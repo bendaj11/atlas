@@ -77,7 +77,7 @@ async function writePackageManagerConfig(directory, localPackages) {
   const allowedBuilds = pnpmAllowedBuilds.map((name) => `  '${name}': true`).join("\n");
   await writeFile(
     join(directory, "pnpm-workspace.yaml"),
-    `overrides:\n${overrides}\nallowBuilds:\n${allowedBuilds}\n`,
+    `packages:\n  - '.'\noverrides:\n${overrides}\nallowBuilds:\n${allowedBuilds}\n`,
     "utf8"
   );
 }
