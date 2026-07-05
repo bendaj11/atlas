@@ -10,6 +10,7 @@ const artifacts = join(root, "dist/package-verification");
 const packageManager = readPackageManager(process.argv.slice(2));
 const cleanRoom = join(root, `dist/generated-project-verification-${packageManager}`);
 const atlasPackages = ["contracts", "sdk", "runtime", "generators", "testkit", "cli"];
+const pnpmVersion = "10.34.4";
 const pnpmAllowedBuilds = ["esbuild", "@parcel/watcher", "lmdb", "msgpackr-extract"];
 const projects = [
   { type: "host", name: "clean-react-host", framework: "react" },
@@ -59,10 +60,14 @@ function toolingManifest(localPackages) {
   return {
     name: "atlas-generation-tooling",
     private: true,
-    packageManager: packageManager === "yarn" ? "yarn@1.22.11" : "pnpm@10.0.0",
+    packageManager: packageManagerSpecification(),
     dependencies: localPackages,
     ...dependencyOverrides(localPackages)
   };
+}
+
+function packageManagerSpecification() {
+  return packageManager === "yarn" ? "yarn@1.22.11" : `pnpm@${pnpmVersion}`;
 }
 
 function dependencyOverrides(localPackages) {
@@ -116,6 +121,7 @@ async function installAndBuildProject(project, localPackages) {
       if (name.startsWith("@atlas/")) dependencyGroup[name] = localPackages[name];
     }
   }
+  manifest.packageManager = packageManagerSpecification();
   Object.assign(manifest, dependencyOverrides(localPackages));
   await writeJson(manifestPath, manifest);
   await writePackageManagerConfig(projectRoot, localPackages);
