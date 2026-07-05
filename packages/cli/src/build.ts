@@ -32,16 +32,21 @@ export class AtlasBuildService {
     const channel = forcedChannel ?? this.args.channel(process.env.ATLAS_CHANNEL ?? "production");
     const version = this.args.flag("version") ?? process.env.ATLAS_VERSION ?? project.version;
     const entryPath = this.args.flag("entry") ?? "remoteEntry.json";
-    const artifactRoot = await findArtifactRoot(this.workspace.root, project, config, entryPath);
-    const artifactDigest = await hashArtifactDirectory(artifactRoot, this.args.hasFlag("include-source-maps"));
+    const artifactRoot = channel === "local"
+      ? await findArtifactRootIfPresent(this.workspace.root, project, config, entryPath)
+      : await findArtifactRoot(this.workspace.root, project, config, entryPath);
+    const artifactDigest = artifactRoot
+      ? await hashArtifactDirectory(artifactRoot, this.args.hasFlag("include-source-maps"))
+      : "local";
     const buildId = this.args.flag("build-id") ?? process.env.ATLAS_BUILD_ID ?? `${version}-${artifactDigest.slice(0, 12)}`;
     const baseUrl = trimSlash(options.baseUrl ?? this.registryBaseUrl(channel));
     const remoteEntryUrl = channel === "local" ? `${baseUrl}/${entryPath}` : `${baseUrl}/${config.id}/${version}/${buildId}/${entryPath}`;
     const artifactBaseUrl = remoteEntryUrl.slice(0, -entryPath.length).replace(/\/$/, "");
     const exportedComponents = await discoverExportedComponents(project.root, config, remoteEntryUrl);
-    const styles = await discoverStylesheets({ artifactRoot, artifactBaseUrl, framework: config.framework, channel });
-    const entryBytes = await readFile(join(artifactRoot, entryPath));
-    const integrity = channel === "local" ? undefined : `sha256-${createHash("sha256").update(entryBytes).digest("base64")}`;
+    const styles = await discoverStylesheets({ artifactRoot: artifactRoot ?? project.root, artifactBaseUrl, framework: config.framework, channel });
+    const integrity = artifactRoot
+      ? `sha256-${createHash("sha256").update(await readFile(join(artifactRoot, entryPath))).digest("base64")}`
+      : undefined;
     const manifest = createManifestFromConfig({
       config, version, buildId, remoteEntryUrl, channel,
       gitSha: process.env.GIT_SHA,
@@ -176,6 +181,12 @@ async function discoverExportedComponents(root: string, config: AtlasConfig, own
 }
 
 async function findArtifactRoot(workspaceRoot: string, project: AtlasProject, config: AtlasConfig, entryPath: string): Promise<string> {
+  const artifactRoot = await findArtifactRootIfPresent(workspaceRoot, project, config, entryPath);
+  if (artifactRoot) return artifactRoot;
+  throw new Error(`Atlas could not find build artifacts for "${config.id}". Run its production build first.`);
+}
+
+async function findArtifactRootIfPresent(workspaceRoot: string, project: AtlasProject, config: AtlasConfig, entryPath: string): Promise<string | undefined> {
   const conventional = [
     ...project.outputPaths,
     join(workspaceRoot, "dist", "apps", project.id),
@@ -191,7 +202,7 @@ async function findArtifactRoot(workspaceRoot: string, project: AtlasProject, co
       if ((await stat(candidate)).isDirectory() && (await stat(join(candidate, entryPath))).isFile()) return candidate;
     } catch { /* Continue. */ }
   }
-  throw new Error(`Atlas could not find build artifacts for "${config.id}". Run its production build first.`);
+  return undefined;
 }
 
 async function listFiles(root: string, relative = ""): Promise<string[]> {

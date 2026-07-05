@@ -2,7 +2,7 @@
 
 Atlas has two test layers. `yarn test` runs fast contract, SDK, runtime, generator, CLI, and Chrome extension tests. `yarn test:e2e` proves that production-built applications work together in a browser.
 
-`yarn test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in an isolated workspace, invokes the packaged CLI through its real Yarn binary link, and production-builds newly generated Angular and React hosts and MFs.
+`yarn test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and MFs with both package managers.
 
 ## Deployment E2E
 

@@ -7,8 +7,10 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
 const artifacts = join(root, "dist/package-verification");
-const cleanRoom = join(root, "dist/generated-project-verification");
+const packageManager = readPackageManager(process.argv.slice(2));
+const cleanRoom = join(root, `dist/generated-project-verification-${packageManager}`);
 const atlasPackages = ["contracts", "sdk", "runtime", "generators", "testkit", "cli"];
+const pnpmAllowedBuilds = ["esbuild", "@parcel/watcher", "lmdb", "msgpackr-extract"];
 const projects = [
   { type: "host", name: "clean-react-host", framework: "react" },
   { type: "app", name: "clean-react-mf", framework: "react" },
@@ -21,8 +23,8 @@ await rm(cleanRoom, { recursive: true, force: true });
 await mkdir(join(cleanRoom, "tooling"), { recursive: true });
 const localPackages = await stagePackageArchives();
 await writeJson(join(cleanRoom, "tooling/package.json"), toolingManifest(localPackages));
-await writeFile(join(cleanRoom, "tooling/yarn.lock"), "", "utf8");
-await runYarn(["install", "--non-interactive"], join(cleanRoom, "tooling"));
+await writePackageManagerConfig(join(cleanRoom, "tooling"), localPackages);
+await installDependencies(join(cleanRoom, "tooling"));
 
 for (const project of projects) {
   await runAtlas(["g", project.type, project.name, `--framework=${project.framework}`, `--directory=${join(cleanRoom, "projects", project.name)}`]);
@@ -31,7 +33,13 @@ for (const project of projects) {
 await assertGeneratedAtlasRanges();
 for (const project of projects) await installAndBuildProject(project, localPackages);
 
-console.info(`Built ${projects.length} clean-room projects from packed Atlas packages.`);
+console.info(`Built ${projects.length} clean-room projects with ${packageManager}.`);
+
+function readPackageManager(args) {
+  const value = args.find((argument) => argument.startsWith("--package-manager="))?.split("=")[1] ?? "yarn";
+  if (value === "yarn" || value === "pnpm") return value;
+  throw new Error(`Unsupported package manager "${value}". Use yarn or pnpm.`);
+}
 
 async function stagePackageArchives() {
   const packageDirectory = join(cleanRoom, "packages");
@@ -51,10 +59,27 @@ function toolingManifest(localPackages) {
   return {
     name: "atlas-generation-tooling",
     private: true,
-    packageManager: "yarn@1.22.11",
+    packageManager: packageManager === "yarn" ? "yarn@1.22.11" : "pnpm@10.0.0",
     dependencies: localPackages,
-    resolutions: localPackages
+    ...dependencyOverrides(localPackages)
   };
+}
+
+function dependencyOverrides(localPackages) {
+  return packageManager === "yarn" ? { resolutions: localPackages } : {};
+}
+
+async function writePackageManagerConfig(directory, localPackages) {
+  if (packageManager !== "pnpm") return;
+  const overrides = Object.entries(localPackages)
+    .map(([name, location]) => `  '${name}': '${location}'`)
+    .join("\n");
+  const allowedBuilds = pnpmAllowedBuilds.map((name) => `  '${name}': true`).join("\n");
+  await writeFile(
+    join(directory, "pnpm-workspace.yaml"),
+    `overrides:\n${overrides}\nallowBuilds:\n${allowedBuilds}\n`,
+    "utf8"
+  );
 }
 
 async function assertGeneratedAtlasRanges() {
@@ -69,11 +94,17 @@ async function assertGeneratedAtlasRanges() {
 }
 
 async function runAtlas(args) {
-  await run(join(cleanRoom, "tooling/node_modules/.bin/atlas"), args, cleanRoom);
+  const toolingRoot = join(cleanRoom, "tooling");
+  if (packageManager === "pnpm") {
+    await run("pnpm", ["exec", "atlas", ...args], toolingRoot);
+    return;
+  }
+  await run(join(toolingRoot, "node_modules/.bin/atlas"), args, cleanRoom);
 }
 
-async function runYarn(args, cwd) {
-  await run("yarn", args, cwd);
+async function installDependencies(cwd) {
+  const args = packageManager === "yarn" ? ["install", "--non-interactive"] : ["install", "--frozen-lockfile=false"];
+  await run(packageManager, args, cwd);
 }
 
 async function installAndBuildProject(project, localPackages) {
@@ -85,11 +116,11 @@ async function installAndBuildProject(project, localPackages) {
       if (name.startsWith("@atlas/")) dependencyGroup[name] = localPackages[name];
     }
   }
-  manifest.resolutions = localPackages;
+  Object.assign(manifest, dependencyOverrides(localPackages));
   await writeJson(manifestPath, manifest);
-  await writeFile(join(projectRoot, "yarn.lock"), "", "utf8");
-  await runYarn(["install", "--non-interactive"], projectRoot);
-  await runYarn(["build"], projectRoot);
+  await writePackageManagerConfig(projectRoot, localPackages);
+  await installDependencies(projectRoot);
+  await run(packageManager, ["run", "build"], projectRoot);
 }
 
 async function run(command, args, cwd) {
