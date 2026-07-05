@@ -16,6 +16,7 @@
     "build": "turbo run build --filter='@atlas/*'",
     "build:examples": "NG_BUILD_MAX_WORKERS=1 turbo run build --concurrency=1 --filter='@atlas-example/*' --filter='@atlas-mf/*'",
     "pack:verify": "node scripts/verify-packages.mjs",
+    "release": "node scripts/prepare-release.mjs",
     "release:bundle": "yarn pack:verify && node scripts/create-release-bundle.mjs",
     "release:version": "node scripts/version-packages.mjs",
     "test:generated": "yarn pack:verify && node scripts/verify-generated-projects.mjs --package-manager=yarn && node scripts/verify-generated-projects.mjs --package-manager=pnpm",

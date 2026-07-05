@@ -5,6 +5,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,6 +32,15 @@ jobs:
       - run: yarn test:generated
       - run: yarn playwright install --with-deps chromium
       - run: yarn test:e2e
+      - if: github.event_name == 'push'
+        run: yarn release:bundle
+      - if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-main-${{ github.run_id }}
+          path: dist/release
+          if-no-files-found: error
+          retention-days: 30
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -33,3 +49,34 @@ jobs:
             playwright-report
             test-results
           if-no-files-found: ignore
+
+  publish-packages:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: atlas-main-${{ github.run_id }}
+          path: dist/release
+      - run: cd dist/release && sha256sum --check SHA256SUMS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Publish unpublished Atlas packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          version=$(node -p "require('./dist/release/release.json').version")
+          for package in contracts sdk runtime generators testkit cli; do
+            if npm view "@atlas/${package}@${version}" version >/dev/null 2>&1; then
+              echo "@atlas/${package}@${version} is already published; skipping."
+            else
+              npm publish "dist/release/${package}.tgz" --access public --provenance
+            fi
+          done
