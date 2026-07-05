@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Atlas Microfrontend Versions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minimum_chrome_version": "102",
   "description": "Switch Atlas microfrontends between production, PR, historical, and local versions.",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

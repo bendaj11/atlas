@@ -1,11 +1,19 @@
 {
   "name": "@atlas/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
-  "keywords": ["microfrontend", "cli", "native-federation"],
-  "repository": { "type": "git", "url": "https://github.com/bendaj11/atlas.git", "directory": "packages/cli" },
+  "keywords": [
+    "microfrontend",
+    "cli",
+    "native-federation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bendaj11/atlas.git",
+    "directory": "packages/cli"
+  },
   "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/cli#readme",
   "bugs": "https://github.com/bendaj11/atlas/issues",
   "main": "./dist/index.js",
@@ -34,8 +42,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/contracts": "0.1.0",
-    "@atlas/generators": "0.1.0",
-    "@atlas/runtime": "0.1.0"
+    "@atlas/contracts": "0.2.0",
+    "@atlas/generators": "0.2.0",
+    "@atlas/runtime": "0.2.0"
   }
 }

@@ -1,11 +1,19 @@
 {
   "name": "@atlas/generators",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",
-  "keywords": ["microfrontend", "generator", "native-federation"],
-  "repository": { "type": "git", "url": "https://github.com/bendaj11/atlas.git", "directory": "packages/generators" },
+  "keywords": [
+    "microfrontend",
+    "generator",
+    "native-federation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bendaj11/atlas.git",
+    "directory": "packages/generators"
+  },
   "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/generators#readme",
   "bugs": "https://github.com/bendaj11/atlas/issues",
   "main": "./dist/index.js",
@@ -31,6 +39,6 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/contracts": "0.1.0"
+    "@atlas/contracts": "0.2.0"
   }
 }

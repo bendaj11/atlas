@@ -1,11 +1,19 @@
 {
   "name": "@atlas/testkit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Test fixtures and in-memory utilities for Atlas hosts and microfrontends.",
   "license": "MIT",
-  "keywords": ["microfrontend", "testing", "typescript"],
-  "repository": { "type": "git", "url": "https://github.com/bendaj11/atlas.git", "directory": "packages/testkit" },
+  "keywords": [
+    "microfrontend",
+    "testing",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bendaj11/atlas.git",
+    "directory": "packages/testkit"
+  },
   "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/testkit#readme",
   "bugs": "https://github.com/bendaj11/atlas/issues",
   "main": "./dist/index.js",
@@ -31,7 +39,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/contracts": "0.1.0",
-    "@atlas/sdk": "0.1.0"
+    "@atlas/contracts": "0.2.0",
+    "@atlas/sdk": "0.2.0"
   }
 }
