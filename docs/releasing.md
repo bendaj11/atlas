@@ -63,10 +63,22 @@ dependency order with npm provenance. Package versions are immutable, so a
 package already available at the repository's current version is skipped. Run
 `yarn release` before merging changes that should produce a new public release.
 
-Configure the `npm-publish` GitHub environment with npm trusted publishing or
-an `NPM_TOKEN`. Environment protection rules may require approval before the
-triggered publish job proceeds. Pull requests only run verification and never
-publish.
+Configure the `npm-publish` GitHub environment with npm trusted publishing. For
+each `@atlas/*` package, select GitHub Actions as the trusted publisher and set
+the repository and workflow filename to this repository and `verify.yml`
+exactly. Atlas uses Node 24 and npm 11 in that job because npm's OIDC support
+requires Node 22.14 or newer and npm 11.5.1 or newer.
+
+An unpublished package cannot yet have a trusted publisher configured. The
+first release therefore needs a granular npm automation token named
+`NPM_TOKEN` in the `npm-publish` GitHub environment. After the packages exist,
+configure trusted publishing for all six packages and remove the long-lived
+token. Environment protection rules may require approval before the publish
+job proceeds. Pull requests only run verification and never publish.
+
+The optional manual package-publishing action in `release.yml` is a recovery
+path and always requires `NPM_TOKEN`; npm permits only one trusted publisher
+configuration per package. Normal releases publish from `verify.yml`.
 
 Organizations using Artifactory, GitHub Packages, or another compatible
 registry can replace that protected job while retaining the same artifact,

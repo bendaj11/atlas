@@ -13,34 +13,77 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: yarn
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.34.4
       - run: yarn install --frozen-lockfile
       - run: yarn typecheck
       - run: yarn check:unused
       - run: yarn test
-      - run: yarn test:generated
+
+  package-artifacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn pack:verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-package-verification-${{ github.run_id }}
+          path: dist/package-verification
+          if-no-files-found: error
+          retention-days: 1
+
+  generated-projects:
+    needs: package-artifacts
+    strategy:
+      fail-fast: false
+      matrix:
+        package-manager: [yarn, pnpm]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: matrix.package-manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.4
+      - uses: actions/download-artifact@v4
+        with:
+          name: atlas-package-verification-${{ github.run_id }}
+          path: dist/package-verification
+      - run: node scripts/verify-generated-projects.mjs --package-manager=${{ matrix.package-manager }}
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
       - run: yarn test:e2e
-      - if: github.event_name == 'push'
-        run: yarn release:bundle
-      - if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
-        with:
-          name: atlas-main-${{ github.run_id }}
-          path: dist/release
-          if-no-files-found: error
-          retention-days: 30
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -50,9 +93,30 @@ jobs:
             test-results
           if-no-files-found: ignore
 
+  release-bundle:
+    if: github.event_name == 'push'
+    needs: [quality, package-artifacts, generated-projects, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: atlas-package-verification-${{ github.run_id }}
+          path: dist/package-verification
+      - run: node scripts/create-release-bundle.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-main-${{ github.run_id }}
+          path: dist/release
+          if-no-files-found: error
+          retention-days: 30
+
   publish-packages:
     if: github.event_name == 'push'
-    needs: test
+    needs: release-bundle
     runs-on: ubuntu-latest
     environment: npm-publish
     permissions:
@@ -64,10 +128,11 @@ jobs:
           name: atlas-main-${{ github.run_id }}
           path: dist/release
       - run: cd dist/release && sha256sum --check SHA256SUMS
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       - name: Publish unpublished Atlas packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

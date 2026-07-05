@@ -78,10 +78,19 @@ jobs:
           name: atlas-${{ github.ref_name }}
           path: dist/release
       - run: cd dist/release && sha256sum --check SHA256SUMS
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Require npm token for manual publishing
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN is required for manual publishing from release.yml." >&2
+            exit 1
+          fi
       - name: Publish verified packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
