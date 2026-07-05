@@ -1,0 +1,57 @@
+# Manifest
+
+An Atlas manifest is the self-description of one MF version.
+
+It answers:
+
+- What is this MF?
+- Which version is this?
+- Where are its remote assets?
+- Which hosts can use it?
+- Which routes or slots does it contribute?
+- Which SDK version does it require?
+
+## Example
+
+```ts
+{
+  schemaVersion: "1",
+  id: "catalog",
+  name: "Catalog",
+  version: "1.2.3",
+  buildId: "build-123",
+  channel: "production",
+  framework: "react",
+  isolation: "scoped",
+  remoteEntryUrl: "https://cdn.example.com/atlas/catalog/1.2.3/remoteEntry.js",
+  styles: [{
+    href: "https://cdn.example.com/atlas/catalog/1.2.3/assets/entry-a1b2.css",
+    integrity: "sha256-..."
+  }],
+  exposes: { entry: "./entry" },
+  exportedComponents: [
+    {
+      schemaVersion: "1",
+      id: "product-count",
+      name: "Product Count",
+      ownerMfId: "catalog",
+      framework: "react",
+      remoteEntryUrl: "https://cdn.example.com/atlas/catalog/1.2.3/product-count.js",
+      expose: "./components/product-count",
+      contractVersion: "1"
+    }
+  ],
+  requiredHostSdkVersion: "^0.1.0",
+  supportedHosts: ["shell"],
+  placements: [],
+  createdAt: "2026-01-01T00:00:00.000Z"
+}
+```
+
+Normal developers should not hand-write this JSON. They edit `atlas.config.ts`; Atlas generates and validates the manifest.
+
+Atlas discovers emitted CSS during `atlas build`. The host loads every declared stylesheet before mounting the MF, applies its SHA-256 integrity value, shares it across simultaneous page and widget mounts, and removes it after the final mount is destroyed.
+
+`isolation` defaults to `scoped`, which gives every mount a stable `data-atlas-mf` or `data-atlas-widget` root. Use `shadow-dom` when the MF emits its styles inside its own root and needs a hard CSS boundary. See [Cross-Framework Interoperability](architecture.md#cross-framework-interoperability) for dependency and browser-global limits.
+
+Exported component entries are generated from `src/exported-components/<component-id>/index.ts`. See [Exported Components](exported-components.md).

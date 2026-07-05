@@ -1,0 +1,30 @@
+{
+  "name": "@atlas-mf/catalog-react",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "atlas:config": "tsc -p tsconfig.atlas.json",
+    "build": "tsc -p tsconfig.atlas.json && tsc -b && vite build",
+    "atlas:build": "atlas build catalog-react"
+  },
+  "dependencies": {
+    "@atlas/contracts": "*",
+    "@atlas/sdk": "*",
+    "@softarc/native-federation-runtime": "^3.5.5",
+    "es-module-shims": "^2.7.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "babel-plugin-react-compiler": "latest",
+    "typescript": "~5.9.0",
+    "vite": "^7.3.6"
+  }
+}

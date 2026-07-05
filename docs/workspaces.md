@@ -1,0 +1,80 @@
+# Workspaces And Monorepos
+
+## Developing Atlas Itself
+
+The Atlas repository uses Yarn workspaces with Turborepo. The root commands are
+the stable interface for contributors:
+
+```sh
+yarn build
+yarn typecheck
+yarn build:examples
+```
+
+Turbo derives package order from workspace dependencies and caches `dist`
+outputs. Atlas consumers do not need Turborepo: generated projects also work in
+Nx, Turborepo, Yarn workspaces, or standalone repositories through the workspace
+discovery implemented by the CLI.
+
+Atlas uses the same commands in Nx, Turborepo, package-manager workspaces, and standalone projects. There is no Atlas workspace setting to maintain.
+
+## Automatic Detection
+
+Atlas walks up from the current directory and selects the first matching workspace:
+
+| File | Behavior |
+| --- | --- |
+| `nx.json` | Runs project targets through Nx |
+| `turbo.json` | Runs package tasks through Turborepo filters |
+| `package.json` with `workspaces` | Runs the selected package through Yarn, pnpm, or npm |
+| `pnpm-workspace.yaml` | Runs the selected package through pnpm workspace filters |
+| None | Runs scripts from the Atlas project's directory |
+
+The package manager comes from `packageManager` in the root `package.json`, then the lockfile. Yarn, pnpm, and npm are supported.
+
+```sh
+yarn atlas dev orders --host=customer-shell
+yarn atlas build orders
+```
+
+Atlas finds a project by Nx project name, package name, unscoped package name, directory name, or explicit directory. An Atlas project is identified by `atlas.config.ts`.
+Atlas also detects a workspace root from `package.json#workspaces` before a lockfile exists.
+
+## Nx
+
+Generated projects go under `apps/`. Atlas invokes targets such as `orders:build`, `orders:dev`, and `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
+
+When integrating Atlas into an existing Nx project, expose these three targets. Their commands remain the framework's normal build and development commands.
+Atlas reads the build target's `options.outputPath`, configuration-specific
+`outputPath` values, and declared `outputs`. It also recognizes the conventional
+workspace output `dist/apps/<project>`, including Angular's `browser`
+subdirectory. A candidate is accepted only when it contains `remoteEntry.json`.
+
+## Turborepo
+
+Generated projects go under `apps/`. Atlas invokes package scripts through `turbo run <task> --filter=<package>`, preserving the dependency graph and cache policy from `turbo.json`.
+
+Ensure `build`, `dev`, and `atlas:config` are declared in the package and included in the Turbo task graph where appropriate.
+
+## Package-Manager Workspaces
+
+Atlas uses native workspace commands:
+
+- Yarn: `yarn workspace <package> run <task>`
+- pnpm: `pnpm --filter <package> run <task>`
+- npm: `npm run <task> --workspace <package>`
+
+No global Nx or Turbo installation is required. Atlas uses the workspace-local tool through the selected package manager.
+
+## Styles And Assets
+
+Atlas does not replace a framework's style configuration. Nx or Angular may list
+global styles and assets in `project.json` or `angular.json`; Vite may discover
+them through imports. Atlas runs the workspace's normal production target and
+then describes the emitted CSS in the MF manifest. The host therefore loads the
+same build output regardless of whether the source lives in Nx, Turbo, a Yarn
+workspace, or a standalone project.
+
+## Troubleshooting
+
+Run Atlas from inside the monorepo. If two projects share a name, pass the project directory explicitly. Keep generated script and target names unchanged unless the workspace target delegates to them.

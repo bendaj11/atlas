@@ -1,0 +1,45 @@
+{
+  "name": "@atlas/runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
+  "license": "MIT",
+  "keywords": ["microfrontend", "runtime", "native-federation"],
+  "repository": { "type": "git", "url": "https://github.com/bendaj11/atlas.git", "directory": "packages/runtime" },
+  "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/runtime#readme",
+  "bugs": "https://github.com/bendaj11/atlas/issues",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./angular": {
+      "types": "./dist/angular.d.ts",
+      "default": "./dist/angular.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@atlas/contracts": "0.1.0",
+    "@atlas/sdk": "0.1.0"
+  }
+}

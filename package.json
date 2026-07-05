@@ -1,0 +1,44 @@
+{
+  "name": "atlas-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript-first microfrontend platform with focused SDK, runtime, static registry, generators, and test tooling.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bendaj11/atlas.git"
+  },
+  "homepage": "https://github.com/bendaj11/atlas#readme",
+  "bugs": "https://github.com/bendaj11/atlas/issues",
+  "type": "module",
+  "packageManager": "yarn@1.22.11",
+  "scripts": {
+    "build": "turbo run build --filter='@atlas/*'",
+    "build:examples": "NG_BUILD_MAX_WORKERS=1 turbo run build --concurrency=1 --filter='@atlas-example/*' --filter='@atlas-mf/*'",
+    "pack:verify": "node scripts/verify-packages.mjs",
+    "release:bundle": "yarn pack:verify && node scripts/create-release-bundle.mjs",
+    "release:version": "node scripts/version-packages.mjs",
+    "test:generated": "yarn pack:verify && node scripts/verify-generated-projects.mjs",
+    "test": "node --test packages/contracts/tests/*.test.mjs packages/sdk/tests/*.test.mjs packages/runtime/tests/*.test.mjs apps/chrome-extension/tests/*.test.mjs packages/cli/tests/*.test.mjs scripts/*.test.mjs",
+    "test:e2e": "node tests/e2e/prepare.mjs && playwright test",
+    "test:e2e:prepare": "node tests/e2e/prepare.mjs",
+    "typecheck": "turbo run typecheck --filter='@atlas/*'",
+    "check:unused": "tsc -p packages/cli/tsconfig.json --noEmit --composite false --noUnusedLocals --noUnusedParameters",
+    "atlas": "node packages/cli/dist/index.js"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "examples/hosts/*",
+    "examples/mfs/*"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^22",
+    "turbo": "^2.6.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

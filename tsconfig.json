@@ -1,0 +1,15 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/contracts" },
+    { "path": "packages/sdk" },
+    { "path": "packages/runtime" },
+    { "path": "packages/generators" },
+    { "path": "packages/testkit" },
+    { "path": "packages/cli" },
+    { "path": "apps/chrome-extension" },
+    { "path": "examples/hosts/demo-react-host" },
+    { "path": "examples/mfs/catalog-react" },
+    { "path": "examples/mfs/dashboard-react" }
+  ]
+}

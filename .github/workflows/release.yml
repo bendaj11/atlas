@@ -1,0 +1,88 @@
+name: Release bundle
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_packages:
+        description: Publish verified tarballs to npm after environment approval
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn typecheck
+      - run: yarn check:unused
+      - run: yarn test
+      - run: yarn test:generated
+      - run: yarn playwright install --with-deps chromium
+      - run: yarn test:e2e
+      - run: yarn release:bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-${{ github.ref_name }}
+          path: dist/release
+          if-no-files-found: error
+          retention-days: 90
+
+  github-release:
+    if: github.ref_type == 'tag'
+    needs: bundle
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: atlas-${{ github.ref_name }}
+          path: dist/release
+      - run: cd dist/release && sha256sum --check SHA256SUMS
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/release/* --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/release/* --verify-tag --generate-notes --title "Atlas ${GITHUB_REF_NAME}"
+          fi
+
+  publish-packages:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_packages && github.ref_type == 'tag'
+    needs: bundle
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: atlas-${{ github.ref_name }}
+          path: dist/release
+      - run: cd dist/release && sha256sum --check SHA256SUMS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Publish verified packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for package in contracts sdk runtime generators testkit cli; do
+            npm publish "dist/release/${package}.tgz" --access public --provenance
+          done

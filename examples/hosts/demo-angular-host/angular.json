@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "projects": {
+    "demo-angular-host": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "target": "demo-angular-host:esbuild:production"
+          },
+          "configurations": {
+            "development": {
+              "target": "demo-angular-host:esbuild:development",
+              "dev": true
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "target": "demo-angular-host:serve-original:development",
+            "dev": true,
+            "port": 4200
+          }
+        },
+        "esbuild": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/demo-angular-host",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "polyfills": [
+              "zone.js",
+              "es-module-shims"
+            ],
+            "tsConfig": "tsconfig.app.json",
+              "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": [
+              "src/styles.css"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          }
+        },
+        "serve-original": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "demo-angular-host:esbuild:production"
+            },
+            "development": {
+              "buildTarget": "demo-angular-host:esbuild:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  }
+}

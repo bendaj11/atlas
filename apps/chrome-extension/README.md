@@ -1,0 +1,40 @@
+# Atlas Chrome Extension
+
+This Manifest V3 extension switches the microfrontend versions used by the Atlas host in the active tab. It does not modify host source code, Native Federation configuration, or CDN URLs.
+
+## Build And Install
+
+```bash
+yarn workspace @atlas/chrome-extension build
+```
+
+Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/chrome-extension/dist`.
+
+The extension requests `activeTab`, `scripting`, and `storage`. It receives temporary access only when its toolbar action is opened; it does not request permanent access to every website. Atlas uses a small script in the page's main world to read the public runtime catalog and update that origin's Atlas override storage. No remote JavaScript is executed by the extension.
+
+## Use
+
+1. Open an Atlas host.
+2. Open the Atlas extension.
+3. Choose one version for each MF.
+4. Keep **All tabs** selected (the default), or choose **This tab** for an isolated experiment.
+5. Select **Apply and reload**.
+
+Production is the default. PR and historical versions come from the host static MF index. For local development, paste either an MF manifest URL or the `atlas.local-overrides.json` URL printed by `atlas dev`.
+
+All-tabs overrides are stored by `hostId` in `chrome.storage.local` and copied to the host origin's `localStorage`. Current-tab overrides use `sessionStorage` and take precedence in that tab. The SDK validates the complete document and every manifest before federation initialization.
+
+Choosing **Use production** updates the current selection; choose **Apply and reload** to commit it. With **All tabs**, Atlas removes the origin-wide override. With **This tab**, Atlas stores an empty tab override so that one tab can stay on production while other tabs continue using an all-tabs override.
+
+If one MF version index is unavailable, the extension keeps the host usable, shows a warning, and still offers that MF's production version. Local manifests are validated for structure, MF identity, and host compatibility before they can be applied.
+
+## Verification
+
+`yarn test:e2e` loads the built Manifest V3 extension in Playwright's bundled Chromium and exercises historical, PR, local, reset, all-tabs, current-tab, and invalid-manifest workflows against the example Atlas deployment. The harness adds localhost access to a temporary extension copy because headless Chromium cannot reliably expose a toolbar popup's transient `activeTab` grant. The built extension is separately asserted to contain no permanent `host_permissions`.
+
+## Troubleshooting
+
+- **This page does not expose a valid Atlas runtime configuration**: the active page must serve `/atlas.runtime.json`.
+- **Catalog URL does not identify the static registry**: the extension expects `/hosts/<hostId>/catalog.json` under the Atlas storage root.
+- **Local manifest returned an error**: keep `atlas dev` running and use its control URL.
+- **A version is disabled**: its manifest does not declare compatibility with the current host.

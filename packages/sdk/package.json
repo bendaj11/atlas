@@ -1,0 +1,72 @@
+{
+  "name": "@atlas/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Atlas microfrontend-to-host communication SDK and framework adapters.",
+  "license": "MIT",
+  "keywords": ["microfrontend", "sdk", "typescript"],
+  "repository": { "type": "git", "url": "https://github.com/bendaj11/atlas.git", "directory": "packages/sdk" },
+  "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/sdk#readme",
+  "bugs": "https://github.com/bendaj11/atlas/issues",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./host": {
+      "types": "./dist/host.d.ts",
+      "default": "./dist/host.js"
+    },
+    "./lifecycle": {
+      "types": "./dist/lifecycle.d.ts",
+      "default": "./dist/lifecycle.js"
+    },
+    "./navigation": {
+      "types": "./dist/navigation.d.ts",
+      "default": "./dist/navigation.js"
+    },
+    "./overlay": {
+      "types": "./dist/overlay.d.ts",
+      "default": "./dist/overlay.js"
+    },
+    "./angular": {
+      "types": "./dist/angular.d.ts",
+      "default": "./dist/angular.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@atlas/contracts": "0.1.0"
+  },
+  "peerDependencies": {
+    "@angular/core": ">=19 <23",
+    "react": ">=17 <20"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,82 @@
+# Security
+
+Atlas loads JavaScript selected by remote metadata. Treat the static registry
+and MF publication pipeline as part of the application's code supply chain.
+
+## Runtime Guarantees
+
+For production, PR, and historical manifests Atlas:
+
+1. validates the manifest shape;
+2. requires a `sha256-...` integrity value by default;
+3. permits HTTP(S) remote entries only;
+4. permits the catalog origin and explicitly configured remote origins only;
+5. verifies remote-entry bytes before Native Federation initialization.
+
+Trust checks are isolated per MF. Atlas never initializes a rejected remote,
+but other trusted MFs continue to run and the host renders its normal fallback
+UI in the rejected MF's route or slot.
+
+Local manifests are exempt from origin and integrity requirements because
+`atlas dev` intentionally loads a changing loopback build. Their remote entry,
+stylesheet, and exported-widget URLs must resolve to localhost or an IP loopback
+address. URL and storage overrides are ignored unless the host explicitly sets
+`allowRuntimeOverrides` to `true` in runtime configuration or host options.
+Override documents still have to target the current host and contain matching
+MF ids. Catalog placements and supported-host declarations remain authoritative,
+and Atlas revalidates widget dependencies after applying replacements.
+
+## Host Configuration
+
+```json
+{
+  "schemaVersion": "1",
+  "hostId": "customer-shell",
+  "catalogUrl": "https://registry.example.com/atlas/hosts/customer-shell/catalog.json",
+  "allowedRemoteOrigins": ["https://assets.example.com"],
+  "requireIntegrity": true,
+  "allowRuntimeOverrides": false
+}
+```
+
+The catalog origin is always included. `allowedRemoteOrigins` accepts origins,
+not paths or wildcard strings. Keep `requireIntegrity` enabled in production.
+The opt-out exists only for controlled migrations from older catalogs.
+
+## Storage And CI Requirements
+
+- Allow publication only from protected CI identities.
+- Upload immutable assets before publishing manifests and catalogs.
+- Never overwrite an existing version/build path.
+- Use HTTPS for production storage.
+- Restrict CORS to known host origins where operationally practical.
+- Revalidate mutable catalogs while caching versioned assets as immutable.
+- Use registry revision checks or storage locking for concurrent publications.
+- Keep cloud and package-registry credentials out of source and generated files.
+
+## Content Security Policy
+
+The host's CSP must allow scripts and connections from every approved asset
+origin. Keep that list consistent with `allowedRemoteOrigins`. Atlas does not
+weaken or inject CSP headers because the host and deployment platform own them.
+
+## Trust Boundary
+
+Integrity proves that the bytes Atlas checks match the manifest at check time.
+Native Federation subsequently loads the configured URL, so the guarantee relies
+on that URL being immutable and served consistently; Atlas does not pin the
+verified bytes for execution. Anyone who can publish both an asset and its manifest is
+effectively a code publisher for the host. Protect publication permissions,
+review MF changes, and preserve an auditable build-to-manifest relationship.
+
+Atlas does not place MFs in cross-origin iframes. MFs share the host page and
+can access browser APIs available to that page. DOM boundaries and Shadow DOM
+help with UI and style isolation, not security isolation.
+
+## Dependency Checks
+
+Run the package manager's dependency audit and your organization's secret/SAST
+scanners in consumer CI. Atlas keeps these tools consumer-selectable because
+organizations differ in vulnerability feeds, policies, and accepted scanners.
+The Atlas release pipeline verifies exact package tarballs and publishes SHA-256
+checksums so downstream publishing does not need to rebuild them.

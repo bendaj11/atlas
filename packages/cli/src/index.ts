@@ -1,0 +1,131 @@
+#!/usr/bin/env node
+import { realpathSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { CliArguments } from "./arguments.js";
+import { AtlasBuildService } from "./build.js";
+import { AtlasDevService } from "./dev.js";
+import { AtlasGenerateService } from "./generate.js";
+import { AtlasRollbackService } from "./rollback.js";
+import { AtlasVerifyService, type AtlasVerificationCheck } from "./verify.js";
+import { resolveInvocation } from "./interaction.js";
+import { TerminalPrompter, ui, type AtlasPrompter } from "./ui.js";
+import { detectWorkspace } from "./workspace.js";
+
+export async function runAtlasCli(values = process.argv.slice(2), prompts: AtlasPrompter = new TerminalPrompter()): Promise<void> {
+  const args = new CliArguments(values);
+  try {
+    if (["--version", "-v", "version"].includes(values[0] ?? "") && values.length === 1) {
+      console.info(cliVersion());
+      return;
+    }
+    if (args.hasFlag("help") || values.includes("-h") || args.command === "help" || !args.command) {
+      printHelp();
+      return;
+    }
+    const invocation = await resolveInvocation(args, prompts);
+    const workspace = await detectWorkspace();
+    const builds = new AtlasBuildService(workspace, args);
+    const generate = new AtlasGenerateService(workspace, args);
+
+    if (invocation.command === "g" || invocation.command === "generate") {
+      if (!invocation.name) return printHelp();
+      if (invocation.subcommand === "host" || invocation.subcommand === "app") {
+        ui.heading(`Creating Atlas ${invocation.subcommand}`);
+        const root = await generate.project(invocation.subcommand, invocation.name, invocation.framework);
+        ui.success(`Created "${invocation.name}" at ${root}.`);
+        return;
+      }
+      if (invocation.subcommand === "widget") {
+        ui.heading("Creating Atlas widget");
+        await generate.widget(invocation.name, args.flag("app") ?? ".");
+        ui.success(`Created widget "${invocation.name}".`);
+        return;
+      }
+    }
+
+    if (invocation.command === "build" && invocation.subcommand) {
+      ui.heading(`Building ${invocation.subcommand}`);
+      const manifest = await builds.build(invocation.subcommand);
+      ui.success(`Built ${manifest.id}@${manifest.version}.`);
+      ui.info("Upload dist/atlas-publication with your CI storage tooling.");
+      return;
+    }
+
+    if (invocation.command === "dev" && invocation.subcommand) {
+      ui.heading(`Starting ${invocation.subcommand}`);
+      await new AtlasDevService(workspace, args, builds).run(invocation.subcommand);
+      return;
+    }
+
+    if (invocation.command === "rollback" && invocation.subcommand) {
+      ui.heading(`Rolling back ${invocation.subcommand}`);
+      const result = await new AtlasRollbackService(args).run(invocation.subcommand, invocation.version);
+      ui.success(`Selected ${invocation.subcommand}@${result.version} (${result.buildId}).`);
+      ui.info(`Upload ${result.output} with your CI storage tooling.`);
+      return;
+    }
+
+    if (invocation.command === "verify") {
+      const runtimeUrl = args.flag("runtime-url");
+      if (!runtimeUrl) throw new Error("--runtime-url is required.");
+      ui.heading("Verifying Atlas deployment");
+      const report = await new AtlasVerifyService().run({ runtimeUrl, hostOrigin: args.flag("host-origin") });
+      report.checks.forEach(printVerificationCheck);
+      if (report.failures > 0) throw new Error(`Verification failed with ${report.failures} failure(s) and ${report.warnings} warning(s).`);
+      ui.success(`Deployment verified with ${report.warnings} warning(s).`);
+      return;
+    }
+
+    if (invocation.command === "dev-host") {
+      throw new Error("atlas dev-host is not implemented yet. Run the generated host framework dev script directly.");
+    }
+
+    throw new Error(`Unknown or incomplete command "${values.join(" ")}". Run atlas --help for usage.`);
+  } finally {
+    prompts.close();
+  }
+}
+
+function cliVersion(): string {
+  const packageJson = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as { version?: string };
+  if (!packageJson.version) throw new Error("Atlas CLI package version is missing.");
+  return packageJson.version;
+}
+
+function printHelp(): void {
+  console.info(`Atlas CLI
+
+Usage:
+  atlas g host <hostname> --framework=angular|react [--framework-version=<range>] [--directory=<path>]
+  atlas g app <app-name> --framework=angular|react [--framework-version=<range>] [--directory=<path>]
+  atlas g widget <widget-name> --app=<owner-mf>
+  atlas dev <app-name> --host=<hostId> [--host-url=https://host.example/app] [--port=4201]
+  atlas build <app-name> --registry-base-url=https://static.example/atlas [--registry-snapshot=<path>] [--expected-registry-revision=<sha256>]
+  atlas rollback <app-name> --version=<version> [--build-id=<build>] --registry-base-url=https://static.example/atlas [--registry-snapshot=<path>]
+  atlas verify --runtime-url=https://host.example/atlas.runtime.json [--host-origin=https://host.example]
+
+Atlas automatically detects Nx, Turborepo, Yarn, pnpm, npm, and standalone workspaces.`);
+}
+
+function printVerificationCheck(check: AtlasVerificationCheck): void {
+  const message = `${check.subject}: ${check.message}`;
+  if (check.status === "pass") ui.success(message);
+  else if (check.status === "warning") ui.warning(message);
+  else ui.error(message);
+}
+
+if (isMainModule(import.meta.url, process.argv[1])) {
+  runAtlasCli().catch((error: unknown) => {
+    ui.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}
+
+function isMainModule(moduleUrl: string, executablePath?: string): boolean {
+  if (!executablePath) return false;
+  try {
+    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(executablePath);
+  } catch {
+    return false;
+  }
+}

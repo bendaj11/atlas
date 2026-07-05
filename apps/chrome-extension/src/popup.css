@@ -1,0 +1,37 @@
+:root { color-scheme: light dark; font: 13px/1.4 system-ui, sans-serif; letter-spacing: 0; --accent: #1267d6; --danger: #b42318; --border: color-mix(in srgb, CanvasText 16%, transparent); }
+* { box-sizing: border-box; }
+body { margin: 0; width: 410px; max-height: 600px; background: Canvas; color: CanvasText; }
+header, footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-color: var(--border); }
+header { border-bottom: 1px solid; }
+footer { position: sticky; bottom: 0; border-top: 1px solid; background: Canvas; }
+.title { display: grid; min-width: 0; }
+header strong { font-size: 16px; }
+header span { overflow: hidden; color: GrayText; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+main { padding: 10px 14px 14px; overflow: auto; max-height: 500px; }
+#status { display: flex; min-height: 34px; align-items: center; gap: 7px; padding: 8px 0; color: GrayText; }
+#status[data-tone="error"] { color: var(--danger); }
+.status-spinner { display: none; width: 12px; height: 12px; flex: 0 0 auto; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+#status[data-busy="true"] .status-spinner { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .status-spinner { animation: none; border-color: var(--accent); } }
+.mf { padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent); }
+.mf-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.mf-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.framework { color: GrayText; font-size: 11px; text-transform: uppercase; }
+select, input, button { font: inherit; }
+select, input { width: 100%; padding: 7px 8px; border: 1px solid color-mix(in srgb, CanvasText 28%, transparent); border-radius: 4px; background: Canvas; color: CanvasText; }
+button { min-height: 32px; border: 1px solid color-mix(in srgb, CanvasText 28%, transparent); border-radius: 4px; padding: 7px 10px; background: ButtonFace; color: ButtonText; cursor: pointer; }
+button:disabled { opacity: .55; cursor: default; }
+#apply { background: var(--accent); border-color: var(--accent); color: white; }
+.icon-button { width: 30px; height: 30px; padding: 0; font-size: 18px; }
+.scope { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 4px 0 8px; padding: 3px; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 6px; }
+.scope legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.scope label { position: relative; display: block; margin: 0; color: CanvasText; text-align: center; cursor: pointer; }
+.scope input { position: absolute; opacity: 0; pointer-events: none; }
+.scope span { display: block; padding: 6px 8px; border-radius: 4px; }
+.scope input:checked + span { background: var(--accent); color: white; }
+.scope input:focus-visible + span { outline: 2px solid Highlight; outline-offset: 1px; }
+details { margin-top: 14px; padding-top: 4px; }
+summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+label { display: grid; gap: 4px; margin: 9px 0; color: GrayText; }
+.note { color: GrayText; font-size: 11px; }
