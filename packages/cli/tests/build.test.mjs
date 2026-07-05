@@ -222,6 +222,7 @@ test("atlas dev prepares an Angular local override without manual URL editing", 
   assert.equal(document.hostId, "demo-angular-host");
   assert.equal(document.overrides[0].manifest.channel, "local");
   assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4511/remoteEntry.json");
+  assert.equal(document.overrides[0].manifest.integrity, undefined);
   assert.match(stdout, /https:\/\/host\.example\/orders\?atlas-override=http%3A%2F%2Flocalhost%3A4512/);
 });
 
@@ -234,6 +235,7 @@ test("atlas dev prepares a React Native Federation override", async () => {
   const document = JSON.parse(await readFile("examples/mfs/dashboard-react/.atlas/local-overrides.json", "utf8"));
   assert.equal(document.overrides[0].manifest.framework, "react");
   assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4513/remoteEntry.json");
+  assert.equal(document.overrides[0].manifest.integrity, undefined);
   assert.match(stdout, /https:\/\/host\.example\/dashboard\?atlas-override=/);
 });
 

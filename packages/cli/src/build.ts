@@ -44,7 +44,7 @@ export class AtlasBuildService {
     const artifactBaseUrl = remoteEntryUrl.slice(0, -entryPath.length).replace(/\/$/, "");
     const exportedComponents = await discoverExportedComponents(project.root, config, remoteEntryUrl);
     const styles = await discoverStylesheets({ artifactRoot: artifactRoot ?? project.root, artifactBaseUrl, framework: config.framework, channel });
-    const integrity = artifactRoot
+    const integrity = artifactRoot && channel !== "local"
       ? `sha256-${createHash("sha256").update(await readFile(join(artifactRoot, entryPath))).digest("base64")}`
       : undefined;
     const manifest = createManifestFromConfig({
