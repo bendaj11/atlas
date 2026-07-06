@@ -148,3 +148,26 @@ test("missing Nx plugins are added through the workspace package manager", () =>
     cwd: "/repo"
   });
 });
+
+test("Angular uses portable Nx targets when project references make the plugin incompatible", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-solution-"));
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({
+    packageManager: "pnpm@10.0.0",
+    workspaces: ["packages/*"]
+  }));
+  await writeFile(join(root, "tsconfig.json"), JSON.stringify({ files: [], references: [] }));
+  await writeFile(join(root, "tsconfig.base.json"), JSON.stringify({
+    compilerOptions: { composite: true, declaration: true }
+  }));
+
+  const workspace = await detectWorkspace(root);
+  assert.equal(await workspace.missingScaffoldDependency("angular"), undefined);
+  assert.equal(await workspace.scaffoldProject({
+    type: "host",
+    name: "shell",
+    framework: "angular",
+    projectRoot: join(root, "packages", "shell")
+  }), false);
+  assert.equal(workspace.generationRoot("host", "shell"), join(root, "packages", "shell"));
+});

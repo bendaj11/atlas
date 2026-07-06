@@ -25,6 +25,9 @@ Yarn, pnpm, and npm provide task or workspace orchestration rather than framewor
 generators, so Atlas creates a regular package that those tools discover normally.
 If an Nx framework plugin is missing, Atlas asks permission to run `nx add` for
 the matching plugin. Pass `--yes` in non-interactive automation to approve this.
+For an Nx solution-style TypeScript workspace, Angular is generated as an
+isolated Nx-managed package because Angular does not support project references;
+Atlas never enables Nx's unsafe compatibility override.
 
 ## Host
 

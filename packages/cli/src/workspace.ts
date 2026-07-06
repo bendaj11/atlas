@@ -40,7 +40,7 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
   const root = await findWorkspaceRoot(resolve(start));
   const kind = await workspaceKind(root);
   const packageManager = await detectPackageManager(root);
-  const generationBase = await detectGenerationBase(root, kind);
+  const generationBase = await detectGenerationBase(root);
   return {
     kind,
     root,
@@ -51,6 +51,7 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     installDependencies: (projectRoot) => runProcess(createInstallCommand(packageManager, projectRoot)),
     missingScaffoldDependency: async (framework) => {
       if (kind !== "nx") return undefined;
+      if (framework === "angular" && await usesTypeScriptProjectReferences(root)) return undefined;
       const plugin = nxFrameworkPlugin(framework);
       return await packageIsInstalled(root, plugin) ? undefined : plugin;
     },
@@ -59,6 +60,7 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     },
     scaffoldProject: async (options) => {
       if (kind !== "nx") return false;
+      if (options.framework === "angular" && await usesTypeScriptProjectReferences(root)) return false;
       const directory = relative(root, options.projectRoot);
       if (!directory || directory === ".." || directory.startsWith("../")) {
         throw new Error("Nx projects must be generated inside the workspace root.");
@@ -250,12 +252,12 @@ function packageExecutor(manager: AtlasPackageManager, root: string, args: strin
   return { command: "npx", args, cwd: root };
 }
 
-async function detectGenerationBase(root: string, kind: AtlasWorkspaceKind): Promise<string> {
-  if (kind === "nx") return "apps";
+async function detectGenerationBase(root: string): Promise<string> {
   const patterns = await workspacePatterns(root);
   const conventional = patterns.find((pattern) => pattern === "apps/*" || pattern.startsWith("apps/"));
   const selected = conventional ?? patterns.find((pattern) => pattern.includes("*"));
-  return selected ? selected.slice(0, selected.indexOf("*")).replace(/\/$/, "") || "." : "apps";
+  if (selected) return selected.slice(0, selected.indexOf("*")).replace(/\/$/, "") || ".";
+  return "apps";
 }
 
 async function workspacePatterns(root: string): Promise<string[]> {
@@ -281,6 +283,15 @@ async function packageIsInstalled(root: string, packageName: string): Promise<bo
   const packageJson = await readJson<Record<string, unknown>>(join(root, "package.json"));
   return ["dependencies", "devDependencies", "optionalDependencies"]
     .some((field) => packageName in asDependencyMap(packageJson?.[field]));
+}
+
+async function usesTypeScriptProjectReferences(root: string): Promise<boolean> {
+  const solution = await readJson<{ files?: unknown[]; references?: unknown[] }>(join(root, "tsconfig.json"));
+  const base = await readJson<{ compilerOptions?: { composite?: boolean } }>(join(root, "tsconfig.base.json"));
+  return Array.isArray(solution?.files)
+    && solution.files.length === 0
+    && Array.isArray(solution.references)
+    && base?.compilerOptions?.composite === true;
 }
 
 function asDependencyMap(value: unknown): Record<string, unknown> {

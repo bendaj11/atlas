@@ -54,6 +54,12 @@ When `@nx/angular` or `@nx/react` is missing, interactive Atlas asks permission
 to add the version matched by Nx. Non-interactive automation can approve this
 with `--yes`.
 
+Angular does not currently support Nx's solution-style TypeScript project
+references. Atlas detects that setup and does not install `@nx/angular` or set
+`NX_IGNORE_UNSUPPORTED_TS_SETUP`. It generates Angular as an isolated workspace
+package with `project.json` targets, allowing Nx to retain caching, task
+orchestration, and project-graph visibility without an unsupported integration.
+
 Atlas invokes targets such as `orders:build`, `orders:dev`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
 Use `--skip-workspace-generator` only in automation that deliberately needs the
