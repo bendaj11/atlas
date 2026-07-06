@@ -53,24 +53,32 @@ ordinary JSON served from the consumer's static storage.
 
 ## Quick Start
 
-Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, plus Yarn 1.x. These ranges match the generated Vite 7 and Angular toolchains.
+Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, plus npm,
+pnpm, or Yarn. These ranges match the generated Vite 7 and Angular toolchains.
 
 ```sh
-yarn add --dev @atlas/cli
-yarn atlas g host customer-shell --framework=react
-yarn atlas g app orders --framework=angular
+# Choose one:
+npm install --global @atlas/cli
+pnpm add --global @atlas/cli
+yarn global add @atlas/cli
+
+atlas g host customer-shell --framework=react
+atlas g app orders --framework=angular
 ```
+
+For a private registry, configure the `@atlas` scope in your user-level
+`.npmrc` first: `@atlas:registry=https://registry.example.com`.
 
 Commands are interactive when required values are omitted:
 
 ```sh
-yarn atlas g
+atlas g
 ```
 
 Run one MF locally inside an existing host:
 
 ```sh
-yarn atlas dev orders \
+atlas dev orders \
   --host=customer-shell \
   --host-url=https://customer.example/orders
 ```
@@ -81,7 +89,7 @@ Prepare production files without uploading them:
 ATLAS_VERSION=1.0.0 \
 ATLAS_BUILD_ID="$BUILD_ID" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-yarn atlas build orders
+atlas build orders
 ```
 
 The output is written under `dist/atlas-publication`. Consumer CI uploads it
@@ -91,7 +99,7 @@ Verify the deployed runtime, catalog, manifests, assets, integrity, and HTTP
 delivery policy before promoting it:
 
 ```sh
-yarn atlas verify --runtime-url=https://customer.example/atlas.runtime.json
+atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
 Follow the complete [Getting Started guide](docs/getting-started.md) before

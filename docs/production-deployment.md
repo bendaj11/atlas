@@ -44,7 +44,7 @@ Build provider-neutral deployment files:
 ATLAS_VERSION=1.4.0 \
 ATLAS_BUILD_ID="$BUILD_ID" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-yarn atlas build orders
+atlas build orders
 ```
 
 Non-local builds require `ATLAS_REGISTRY_BASE_URL` or
@@ -87,7 +87,7 @@ the last known-good version.
 After uploading, verify the same public files a browser will consume:
 
 ```sh
-yarn atlas verify \
+atlas verify \
   --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
@@ -95,7 +95,7 @@ For a runtime file hosted somewhere other than the application origin, provide
 the real host origin used by browser CORS checks:
 
 ```sh
-yarn atlas verify \
+atlas verify \
   --runtime-url=https://config.example/customer/atlas.runtime.json \
   --host-origin=https://customer.example
 ```
@@ -151,7 +151,7 @@ manifest and replaces only mutable registry and host catalog JSON. It does not
 rebuild the MF, re-upload chunks, or redeploy the host.
 
 ```sh
-yarn atlas rollback orders \
+atlas rollback orders \
   --version=1.3.2 \
   --registry-base-url=https://cdn.example.com/atlas
 ```
@@ -159,7 +159,7 @@ yarn atlas rollback orders \
 If the same version has multiple builds, identify the exact immutable build:
 
 ```sh
-yarn atlas rollback orders --version=1.3.2 --build-id=1.3.2-a81f29c204e1
+atlas rollback orders --version=1.3.2 --build-id=1.3.2-a81f29c204e1
 ```
 
 Atlas reads the current `registry.json` and writes `dist/atlas-rollback` plus

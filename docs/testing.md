@@ -1,5 +1,9 @@
 # Testing Atlas
 
+This page documents development of the Atlas source repository, which uses
+Yarn. Generated consumer projects are verified with both Yarn and pnpm, and
+Atlas also supports npm workspaces.
+
 Atlas has two test layers. `yarn test` runs fast contract, SDK, runtime, generator, CLI, and Chrome extension tests. `yarn test:e2e` proves that production-built applications work together in a browser.
 
 `yarn test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and MFs with both package managers.

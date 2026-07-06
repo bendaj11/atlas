@@ -44,7 +44,8 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
     "@atlas/contracts": "0.2.0",

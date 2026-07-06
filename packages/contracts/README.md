@@ -3,6 +3,9 @@
 TypeScript contracts and validation for Atlas manifests, catalogs, registries, and runtime configuration.
 
 ```sh
+# Choose one:
+npm install @atlas/contracts
+pnpm add @atlas/contracts
 yarn add @atlas/contracts
 ```
 

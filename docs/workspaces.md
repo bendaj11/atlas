@@ -32,9 +32,13 @@ Atlas walks up from the current directory and selects the first matching workspa
 
 The package manager comes from `packageManager` in the root `package.json`, then the lockfile. Yarn, pnpm, and npm are supported.
 
+The globally installed CLI is invoked identically in every workspace. Atlas
+then uses the detected package manager internally, so developers do not prefix
+Atlas commands with `yarn`, `pnpm`, or `npm exec`.
+
 ```sh
-yarn atlas dev orders --host=customer-shell
-yarn atlas build orders
+atlas dev orders --host=customer-shell
+atlas build orders
 ```
 
 Atlas finds a project by Nx project name, package name, unscoped package name, directory name, or explicit directory. An Atlas project is identified by `atlas.config.ts`.

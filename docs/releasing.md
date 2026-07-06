@@ -1,5 +1,8 @@
 # Releasing Atlas packages
 
+These commands are for maintainers of the Atlas source repository, which uses
+Yarn. They do not require Atlas consumers to use Yarn.
+
 Atlas publishes six packages as one compatible release set:
 
 - `@atlas/contracts`

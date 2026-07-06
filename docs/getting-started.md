@@ -7,45 +7,65 @@ microfrontend or Native Federation knowledge is required.
 ## 1. Prerequisites
 
 - Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0` (required by the generated Vite 7 and Angular toolchains)
-- Yarn 1.x
+- npm, pnpm, or Yarn
 - A TypeScript workspace, Nx monorepo, Turborepo, or empty directory
 
 Atlas automatically detects Nx, Turborepo, and package-manager workspaces.
+The package manager used by your project does not change Atlas commands: after
+global installation, always invoke the CLI as `atlas`.
 
 ## 2. Install The CLI
 
-Install Atlas in the workspace root so every project and CI job uses the same
-version:
+Install the CLI globally with your preferred package manager:
 
 ```sh
-yarn add --dev @atlas/cli
+# npm
+npm install --global @atlas/cli
+
+# pnpm
+pnpm add --global @atlas/cli
+
+# Yarn
+yarn global add @atlas/cli
 ```
 
-Use the local binary through Yarn:
+`yarn global add` applies to Yarn Classic. With modern Yarn, install the global
+CLI through npm or pnpm, or run individual commands with
+`yarn dlx @atlas/cli <command>`.
+
+Verify the installation:
 
 ```sh
-yarn atlas --help
+atlas --help
 ```
 
-Do not require developers to install Atlas globally. Pinning it in the
-workspace makes generation and builds reproducible.
+The generated projects pin their `@atlas/*` runtime dependencies. CI may also
+pin the CLI version when installing it globally, for example
+`npm install --global @atlas/cli@0.2.0`.
+
+When packages are hosted in a private registry, configure the scope once in
+your user-level or CI `.npmrc`:
+
+```ini
+@atlas:registry=https://registry.example.com
+```
 
 ## 3. Generate A Host
 
 ```sh
-yarn atlas g host customer-shell --framework=react
+atlas g host customer-shell --framework=react
 ```
 
 For Angular:
 
 ```sh
-yarn atlas g host customer-shell --framework=angular
+atlas g host customer-shell --framework=angular
 ```
 
 You may omit flags and answer interactive prompts:
 
 ```sh
-yarn atlas g host
+atlas g host
 ```
 
 The generated host contains:
@@ -95,7 +115,7 @@ toast library.
 An Angular MF may run in the React host and vice versa:
 
 ```sh
-yarn atlas g app orders --framework=angular
+atlas g app orders --framework=angular
 ```
 
 The generated MF contains:
@@ -199,7 +219,7 @@ Atlas MFs are intentionally not standalone. Render the local MF inside a real
 deployed or locally running host:
 
 ```sh
-yarn atlas dev orders \
+atlas dev orders \
   --host=customer-shell \
   --host-url=https://customer.example/orders
 ```
@@ -212,7 +232,7 @@ normal catalog.
 Defaults are MF port `4201` and control port `4400`:
 
 ```sh
-yarn atlas dev orders --host=customer-shell --port=4210 --control-port=4410
+atlas dev orders --host=customer-shell --port=4210 --control-port=4410
 ```
 
 No host source file, remote URL, or production catalog is edited.
@@ -223,7 +243,7 @@ Use a widget when another MF needs a reusable, independently deployed piece of
 UI and behavior:
 
 ```sh
-yarn atlas g widget order-summary --app=orders
+atlas g widget order-summary --app=orders
 ```
 
 The owning MF exposes it automatically. A consuming MF declares
@@ -273,7 +293,7 @@ ATLAS_VERSION=1.4.0 \
 ATLAS_BUILD_ID="$BUILD_ID" \
 ATLAS_CREATED_AT="$BUILD_TIMESTAMP" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-yarn atlas build orders
+atlas build orders
 ```
 
 The registry base URL is mandatory for every non-local channel. Source maps

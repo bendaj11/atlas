@@ -1,5 +1,9 @@
 # Examples
 
+The commands below build examples inside the Atlas source repository, which is
+a Yarn workspace. Consumer projects may use npm, pnpm, or Yarn; the global
+`atlas` command detects and uses the project's package manager automatically.
+
 This repository includes:
 
 - `examples/hosts/demo-react-host`

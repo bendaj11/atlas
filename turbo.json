@@ -7,6 +7,7 @@
       "env": ["NG_BUILD_MAX_WORKERS"],
       "outputs": ["dist/**"]
     },
+    "publish-lib": { "cache": false },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "outputs": ["dist/**", "*.tsbuildinfo"]

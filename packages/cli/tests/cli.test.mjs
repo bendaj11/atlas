@@ -13,16 +13,41 @@ test("--version prints the package version and exits successfully", async () => 
   assert.equal(result.stderr, "");
 });
 
-test("--help prints usage and exits successfully", async () => {
+test("--help prints a concise command catalog", async () => {
   const result = await run(["--help"]);
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /Usage:/);
+  assert.match(result.stdout, /Commands:\n\s+generate, g\s+Generate a host/);
+  assert.doesNotMatch(result.stdout, /--registry-base-url/);
 });
 
-test("command help does not require workspace detection", async () => {
+test("command help describes arguments, options, environment, and examples", async () => {
   const result = await run(["build", "--help"]);
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /atlas build/);
+  assert.match(result.stdout, /Usage:\n\s+atlas build <project> \[options\]/);
+  assert.match(result.stdout, /Arguments:/);
+  assert.match(result.stdout, /--registry-base-url <url>/);
+  assert.match(result.stdout, /Environment:/);
+  assert.match(result.stdout, /Examples:/);
+});
+
+test("help command resolves command aliases", async () => {
+  const result = await run(["help", "g", "host"]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /atlas generate host <name> \[options\]/);
+  assert.match(result.stdout, /--framework <name>/);
+});
+
+test("generation subcommand help is available without a resource name", async () => {
+  const result = await run(["g", "widget", "--help"]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /atlas generate widget <name>/);
+  assert.match(result.stdout, /--app <project>/);
+});
+
+test("command help ignores positional values after the command", async () => {
+  const result = await run(["build", "orders", "--help"]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /atlas build <project> \[options\]/);
 });
 
 test("unknown commands explain the error and exit unsuccessfully", async () => {

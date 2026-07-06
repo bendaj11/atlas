@@ -34,7 +34,7 @@ Atlas prepares storage-relative files but never uploads them:
 
 ```sh
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-yarn atlas build orders
+atlas build orders
 ```
 
 The result is written to the MF's `dist/atlas-publication` directory. CI then chooses its own deployment tool:
@@ -54,7 +54,7 @@ Atlas reads the existing public `registry.json` from `ATLAS_REGISTRY_BASE_URL` t
 Two pipelines must not replace mutable registry files from the same starting snapshot. Each generated `registry.json` has a canonical SHA-256 `revision`. CI can pass the revision it expects:
 
 ```sh
-yarn atlas build orders \
+atlas build orders \
   --registry-snapshot=.ci/registry.json \
   --expected-registry-revision="$REGISTRY_REVISION"
 ```
