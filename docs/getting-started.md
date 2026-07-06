@@ -68,6 +68,10 @@ You may omit flags and answer interactive prompts:
 atlas g host
 ```
 
+Use the arrow keys and Enter for selections. Atlas detects Yarn, pnpm, or npm,
+installs the generated project's dependencies, and waits for installation to
+finish before returning control to the terminal.
+
 The generated host contains:
 
 - a normal framework application;

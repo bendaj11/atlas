@@ -146,6 +146,9 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
       { label: "--directory <path>", description: "Target directory" },
       { label: "--allow-unsupported-version", description: "Generate outside Atlas's tested version range" },
       { label: "--force", description: "Write into an existing target directory" },
+      { label: "--skip-install", description: "Generate files without installing dependencies" },
+      { label: "--skip-workspace-generator", description: "Skip the native Nx project generator" },
+      { label: "--yes", description: "Approve required workspace plugin installation" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: [

@@ -44,6 +44,12 @@ test("generation subcommand help is available without a resource name", async ()
   assert.match(result.stdout, /--app <project>/);
 });
 
+test("generation help documents automatic dependency installation control", async () => {
+  const result = await run(["g", "host", "--help"]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /--skip-install\s+Generate files without installing dependencies/);
+});
+
 test("command help ignores positional values after the command", async () => {
   const result = await run(["build", "orders", "--help"]);
   assert.equal(result.code, 0);

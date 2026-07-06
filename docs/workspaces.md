@@ -46,7 +46,18 @@ Atlas also detects a workspace root from `package.json#workspaces` before a lock
 
 ## Nx
 
-Generated projects go under `apps/`. Atlas invokes targets such as `orders:build`, `orders:dev`, and `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
+Generated projects go under `apps/`. Atlas first invokes the workspace's installed
+`@nx/angular:application` or `@nx/react:application` generator, then adds the
+Atlas-specific files. Nx therefore remains responsible for `project.json`,
+linting, testing, TypeScript references, and workspace registration. The matching
+When `@nx/angular` or `@nx/react` is missing, interactive Atlas asks permission
+to add the version matched by Nx. Non-interactive automation can approve this
+with `--yes`.
+
+Atlas invokes targets such as `orders:build`, `orders:dev`, and
+`orders:atlas:config`, so Nx caching and affected-project workflows remain active.
+Use `--skip-workspace-generator` only in automation that deliberately needs the
+portable Atlas template instead of native Nx scaffolding.
 
 When integrating Atlas into an existing Nx project, expose these three targets. Their commands remain the framework's normal build and development commands.
 Atlas reads the build target's `options.outputPath`, configuration-specific
@@ -57,6 +68,10 @@ subdirectory. A candidate is accepted only when it contains `remoteEntry.json`.
 ## Turborepo
 
 Generated projects go under `apps/`. Atlas invokes package scripts through `turbo run <task> --filter=<package>`, preserving the dependency graph and cache policy from `turbo.json`.
+
+Turborepo does not provide framework application generators. Atlas creates a
+normal package under the repository's declared workspace pattern (for example,
+`apps/*` or `packages/*`) so Turbo discovers it without extra configuration.
 
 Ensure `build`, `dev`, and `atlas:config` are declared in the package and included in the Turbo task graph where appropriate.
 

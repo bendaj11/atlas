@@ -113,35 +113,3 @@ jobs:
           path: dist/release
           if-no-files-found: error
           retention-days: 30
-
-  publish-packages:
-    if: github.event_name == 'push'
-    needs: release-bundle
-    runs-on: ubuntu-latest
-    environment: npm-publish
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: atlas-main-${{ github.run_id }}
-          path: dist/release
-      - run: cd dist/release && sha256sum --check SHA256SUMS
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-      - name: Publish unpublished Atlas packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          version=$(node -p "require('./dist/release/release.json').version")
-          for package in contracts sdk runtime generators testkit cli; do
-            if npm view "@atlas/${package}@${version}" version >/dev/null 2>&1; then
-              echo "@atlas/${package}@${version} is already published; skipping."
-            else
-              npm publish "dist/release/${package}.tgz" --access public --provenance
-            fi
-          done

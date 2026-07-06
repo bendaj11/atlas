@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createTaskCommand, detectWorkspace } from "../dist/workspace.js";
+import { createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace } from "../dist/workspace.js";
 
 test("workspace detection discovers an Nx project without consumer configuration", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-"));
@@ -38,6 +38,7 @@ test("package.json workspaces establish the workspace root without a lockfile", 
   const workspace = await detectWorkspace(projectRoot);
   assert.equal(workspace.root, root);
   assert.equal(workspace.kind, "workspace");
+  assert.equal(workspace.generationRoot("app", "catalog"), join(root, "packages", "catalog"));
 });
 
 test("pnpm-workspace.yaml establishes a pnpm workspace without package.json workspaces", async () => {
@@ -53,6 +54,7 @@ test("pnpm-workspace.yaml establishes a pnpm workspace without package.json work
   assert.equal(workspace.root, root);
   assert.equal(workspace.kind, "workspace");
   assert.equal(workspace.packageManager, "pnpm");
+  assert.equal(workspace.generationRoot("host", "shell"), join(root, "packages", "shell"));
 });
 
 test("pnpm-lock.yaml establishes the workspace root", async () => {
@@ -111,5 +113,38 @@ test("task commands follow Nx, Turbo, and package-manager conventions", () => {
   });
   assert.deepEqual(createTaskCommand("workspace", "npm", "/repo", project, "build"), {
     command: "npm", args: ["run", "build", "--workspace", "@acme/orders"], cwd: "/repo"
+  });
+});
+
+test("dependency installs use the detected package manager from the generated project", () => {
+  assert.deepEqual(createInstallCommand("npm", "/repo/apps/orders"), {
+    command: "npm", args: ["install"], cwd: "/repo/apps/orders"
+  });
+});
+
+test("Nx projects are scaffolded through the installed framework plugin", () => {
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/shell" }), {
+    command: "pnpm",
+    args: [
+      "exec", "nx", "generate", "@nx/angular:application", "apps/shell",
+      "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
+    ],
+    cwd: "/repo"
+  });
+  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", directory: "apps/orders" }), {
+    command: "yarn",
+    args: [
+      "nx", "generate", "@nx/react:application", "apps/orders",
+      "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
+    ],
+    cwd: "/repo"
+  });
+});
+
+test("missing Nx plugins are added through the workspace package manager", () => {
+  assert.deepEqual(createNxPluginInstallCommand("npm", "/repo", "react"), {
+    command: "npx",
+    args: ["nx", "add", "@nx/react", "--interactive=false"],
+    cwd: "/repo"
   });
 });

@@ -14,7 +14,17 @@ atlas g app
 atlas build
 ```
 
-Selections cover the project type and framework; text prompts collect project names. Fully specified commands never prompt, and non-interactive environments such as CI retain deterministic command behavior.
+Use the arrow keys and Enter to choose the project type and framework; text prompts collect project names. Fully specified commands never prompt, and non-interactive environments such as CI retain deterministic command behavior.
+
+After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command from the generated project and waits for it to finish. The package manager automatically coordinates with a parent Nx, Turbo, or package-manager workspace when applicable. Advanced automation that installs dependencies separately can pass `--skip-install`.
+
+Inside Nx, Atlas delegates initial project creation to the installed
+`@nx/angular` or `@nx/react` generator before adding Atlas files. This preserves
+Nx project configuration, lint/test setup, and workspace conventions. Turbo,
+Yarn, pnpm, and npm provide task or workspace orchestration rather than framework
+generators, so Atlas creates a regular package that those tools discover normally.
+If an Nx framework plugin is missing, Atlas asks permission to run `nx add` for
+the matching plugin. Pass `--yes` in non-interactive automation to approve this.
 
 ## Host
 

@@ -28,7 +28,7 @@ await writePackageManagerConfig(join(cleanRoom, "tooling"), localPackages);
 await installDependencies(join(cleanRoom, "tooling"));
 
 for (const project of projects) {
-  await runAtlas(["g", project.type, project.name, `--framework=${project.framework}`, `--directory=${join(cleanRoom, "projects", project.name)}`]);
+  await runAtlas(["g", project.type, project.name, `--framework=${project.framework}`, "--skip-install", `--directory=${join(cleanRoom, "projects", project.name)}`]);
 }
 
 await assertGeneratedAtlasRanges();

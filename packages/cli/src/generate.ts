@@ -8,21 +8,53 @@ import {
   type AtlasGeneratorOptions
 } from "@atlas/generators";
 import { CliArguments, type SupportedFramework } from "./arguments.js";
+import type { AtlasPrompter } from "./ui.js";
 import type { AtlasWorkspace } from "./workspace.js";
 
 export class AtlasGenerateService {
-  constructor(private readonly workspace: AtlasWorkspace, private readonly args: CliArguments) {}
+  constructor(
+    private readonly workspace: AtlasWorkspace,
+    private readonly args: CliArguments,
+    private readonly prompts: AtlasPrompter
+  ) {}
 
   async project(type: "host" | "app", name: string, framework?: SupportedFramework): Promise<string> {
     assertSafeId(name, "project name");
+    const selectedFramework = framework ?? this.args.framework();
     const explicit = this.args.flag("directory");
     const root = explicit && explicit !== "true" ? resolve(explicit) : this.defaultRoot(type, name);
+    await this.ensureWorkspaceGenerator(selectedFramework);
+    const workspaceScaffolded = !this.args.hasFlag("skip-workspace-generator")
+      && await this.workspace.scaffoldProject({ type, name, framework: selectedFramework, projectRoot: root });
     const files = type === "host"
-      ? generateHostFiles(this.options(name, framework))
-      : generateMicrofrontendFiles(this.options(name, framework));
-    await writeGenerated(root, files, this.args.hasFlag("force"));
-    if (this.workspace.kind === "nx") await this.writeNxProject(root, name);
+      ? generateHostFiles(this.options(name, selectedFramework))
+      : generateMicrofrontendFiles(this.options(name, selectedFramework));
+    await writeGenerated(root, files, workspaceScaffolded || this.args.hasFlag("force"));
+    if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
     return root;
+  }
+
+  private async ensureWorkspaceGenerator(framework: SupportedFramework): Promise<void> {
+    if (this.args.hasFlag("skip-workspace-generator")) return;
+    const dependency = await this.workspace.missingScaffoldDependency(framework);
+    if (!dependency) return;
+    const approved = this.args.hasFlag("yes") || await this.confirmPluginInstall(dependency);
+    if (!approved) throw new Error(`${dependency} is required to generate this Nx project.`);
+    await this.workspace.installScaffoldDependency(framework);
+  }
+
+  private async confirmPluginInstall(dependency: string): Promise<boolean> {
+    if (!this.prompts.interactive) {
+      throw new Error(`${dependency} is not installed. Re-run with --yes to let Atlas add it automatically.`);
+    }
+    return await this.prompts.select(`Nx needs ${dependency}. Add it to this workspace?`, [
+      { label: "Yes, install it", value: "yes" },
+      { label: "No, cancel", value: "no" }
+    ]) === "yes";
+  }
+
+  async installDependencies(projectRoot: string): Promise<void> {
+    await this.workspace.installDependencies(projectRoot);
   }
 
   async widget(name: string, app: string): Promise<void> {

@@ -1,5 +1,6 @@
 import { createInterface, type Interface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
+import selectPrompt from "@inquirer/select";
 
 export interface AtlasPrompter {
   readonly interactive: boolean;
@@ -23,14 +24,10 @@ export class TerminalPrompter implements AtlasPrompter {
 
   async select<T extends string>(message: string, choices: readonly { label: string; value: T }[]): Promise<T> {
     if (!this.interactive) throw new Error(`${message} must be provided in non-interactive mode.`);
-    console.info(`${style("?", "cyan")} ${message}`);
-    choices.forEach((choice, index) => console.info(`  ${style(String(index + 1), "cyan")}) ${choice.label}`));
-    while (true) {
-      const answer = (await this.reader().question("  Select: ")).trim();
-      const selected = Number(answer) - 1;
-      if (Number.isInteger(selected) && choices[selected]) return choices[selected]!.value;
-      console.info(style(`  Enter a number from 1 to ${choices.length}.`, "yellow"));
-    }
+    return selectPrompt({
+      message,
+      choices: choices.map(({ label, value }) => ({ name: label, value }))
+    });
   }
 
   close(): void { this.interface?.close(); }

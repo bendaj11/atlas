@@ -5,12 +5,6 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
-    inputs:
-      publish_packages:
-        description: Publish verified tarballs to npm after environment approval
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -63,38 +57,3 @@ jobs:
           else
             gh release create "${GITHUB_REF_NAME}" dist/release/* --verify-tag --generate-notes --title "Atlas ${GITHUB_REF_NAME}"
           fi
-
-  publish-packages:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_packages && github.ref_type == 'tag'
-    needs: bundle
-    runs-on: ubuntu-latest
-    environment: npm-publish
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: atlas-${{ github.ref_name }}
-          path: dist/release
-      - run: cd dist/release && sha256sum --check SHA256SUMS
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-      - name: Require npm token for manual publishing
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN is required for manual publishing from release.yml." >&2
-            exit 1
-          fi
-      - name: Publish verified packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          for package in contracts sdk runtime generators testkit cli; do
-            npm publish "dist/release/${package}.tgz" --access public --provenance
-          done

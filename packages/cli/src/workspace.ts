@@ -22,13 +22,25 @@ export interface AtlasWorkspace {
   findProject(name: string): Promise<AtlasProject>;
   run(project: AtlasProject, task: AtlasTask, args?: string[]): Promise<void>;
   spawn(project: AtlasProject, task: AtlasTask, args?: string[]): ChildProcess;
+  installDependencies(projectRoot: string): Promise<void>;
+  missingScaffoldDependency(framework: "angular" | "react"): Promise<string | undefined>;
+  installScaffoldDependency(framework: "angular" | "react"): Promise<void>;
+  scaffoldProject(options: AtlasScaffoldOptions): Promise<boolean>;
   generationRoot(type: "host" | "app", name: string): string;
+}
+
+export interface AtlasScaffoldOptions {
+  type: "host" | "app";
+  name: string;
+  framework: "angular" | "react";
+  projectRoot: string;
 }
 
 export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorkspace> {
   const root = await findWorkspaceRoot(resolve(start));
   const kind = await workspaceKind(root);
   const packageManager = await detectPackageManager(root);
+  const generationBase = await detectGenerationBase(root, kind);
   return {
     kind,
     root,
@@ -36,8 +48,65 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     findProject: (name) => findAtlasProject(root, name),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
-    generationRoot: (type, name) => join(root, generationDirectory(kind, type), name)
+    installDependencies: (projectRoot) => runProcess(createInstallCommand(packageManager, projectRoot)),
+    missingScaffoldDependency: async (framework) => {
+      if (kind !== "nx") return undefined;
+      const plugin = nxFrameworkPlugin(framework);
+      return await packageIsInstalled(root, plugin) ? undefined : plugin;
+    },
+    installScaffoldDependency: async (framework) => {
+      if (kind === "nx") await runProcess(createNxPluginInstallCommand(packageManager, root, framework));
+    },
+    scaffoldProject: async (options) => {
+      if (kind !== "nx") return false;
+      const directory = relative(root, options.projectRoot);
+      if (!directory || directory === ".." || directory.startsWith("../")) {
+        throw new Error("Nx projects must be generated inside the workspace root.");
+      }
+      try {
+        await runProcess(createNxGenerationCommand(packageManager, root, {
+          framework: options.framework,
+          directory
+        }));
+      } catch (error) {
+        const plugin = options.framework === "angular" ? "@nx/angular" : "@nx/react";
+        throw new Error(`Nx could not scaffold "${options.name}". Install ${plugin} in the workspace and try again.`, { cause: error });
+      }
+      return true;
+    },
+    generationRoot: (_type, name) => join(root, generationBase, name)
   };
+}
+
+export function createNxGenerationCommand(
+  manager: AtlasPackageManager,
+  root: string,
+  options: { framework: "angular" | "react"; directory: string }
+): ProcessCommand {
+  const generator = options.framework === "angular" ? "@nx/angular:application" : "@nx/react:application";
+  const args = [
+    "nx", "generate", generator, options.directory,
+    "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none",
+    ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])
+  ];
+  return packageExecutor(manager, root, args);
+}
+
+export function createNxPluginInstallCommand(
+  manager: AtlasPackageManager,
+  root: string,
+  framework: "angular" | "react"
+): ProcessCommand {
+  return packageExecutor(manager, root, [
+    "nx", "add", nxFrameworkPlugin(framework), "--interactive=false"
+  ]);
+}
+
+export function createInstallCommand(
+  manager: AtlasPackageManager,
+  projectRoot: string
+): ProcessCommand {
+  return { command: manager, args: ["install"], cwd: projectRoot };
 }
 
 async function findWorkspaceRoot(start: string): Promise<string> {
@@ -181,9 +250,41 @@ function packageExecutor(manager: AtlasPackageManager, root: string, args: strin
   return { command: "npx", args, cwd: root };
 }
 
-function generationDirectory(kind: AtlasWorkspaceKind, type: "host" | "app"): string {
-  if (kind === "nx" || kind === "turbo") return "apps";
-  return type === "host" ? "hosts" : "apps";
+async function detectGenerationBase(root: string, kind: AtlasWorkspaceKind): Promise<string> {
+  if (kind === "nx") return "apps";
+  const patterns = await workspacePatterns(root);
+  const conventional = patterns.find((pattern) => pattern === "apps/*" || pattern.startsWith("apps/"));
+  const selected = conventional ?? patterns.find((pattern) => pattern.includes("*"));
+  return selected ? selected.slice(0, selected.indexOf("*")).replace(/\/$/, "") || "." : "apps";
+}
+
+async function workspacePatterns(root: string): Promise<string[]> {
+  const packageJson = await readJson<{ workspaces?: string[] | { packages?: string[] } }>(join(root, "package.json"));
+  const declared = Array.isArray(packageJson?.workspaces)
+    ? packageJson.workspaces
+    : packageJson?.workspaces?.packages ?? [];
+  if (declared.length) return declared;
+  try {
+    const source = await readFile(join(root, "pnpm-workspace.yaml"), "utf8");
+    return [...source.matchAll(/^\s*-\s*['"]?([^'"#\n]+?)['"]?\s*$/gm)].map((match) => match[1]!.trim());
+  } catch {
+    return [];
+  }
+}
+
+function nxFrameworkPlugin(framework: "angular" | "react"): string {
+  return framework === "angular" ? "@nx/angular" : "@nx/react";
+}
+
+async function packageIsInstalled(root: string, packageName: string): Promise<boolean> {
+  if (await exists(join(root, "node_modules", ...packageName.split("/"), "package.json"))) return true;
+  const packageJson = await readJson<Record<string, unknown>>(join(root, "package.json"));
+  return ["dependencies", "devDependencies", "optionalDependencies"]
+    .some((field) => packageName in asDependencyMap(packageJson?.[field]));
+}
+
+function asDependencyMap(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
 async function hasAny(root: string, names: string[]): Promise<boolean> {

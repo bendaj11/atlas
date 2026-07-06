@@ -184,7 +184,7 @@ test("atlas build is deterministic with fixed CI metadata", async () => {
 test("atlas generates a portable Angular host at an explicit directory", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-"));
   const target = join(temporary, "customer-shell");
-  await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-shell", "--framework=angular", `--directory=${target}`]);
+  await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-shell", "--framework=angular", "--skip-install", `--directory=${target}`]);
   const runtime = JSON.parse(await readFile(join(target, "public/atlas.runtime.json"), "utf8"));
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
@@ -199,7 +199,7 @@ test("atlas generation registers projects with Nx automatically", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-generator-"));
   await writeFile(join(root, "nx.json"), "{}\n");
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, packageManager: "yarn@1.22.22" }));
-  await run(process.execPath, [join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders", "--framework=react"], { cwd: root });
+  await run(process.execPath, [join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders", "--framework=react", "--skip-install", "--skip-workspace-generator"], { cwd: root });
   const project = JSON.parse(await readFile(join(root, "apps/orders/project.json"), "utf8"));
   assert.equal(project.name, "orders");
   assert.equal(project.targets.build.executor, "nx:run-commands");

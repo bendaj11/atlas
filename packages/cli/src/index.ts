@@ -27,7 +27,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     const invocation = await resolveInvocation(args, prompts);
     const workspace = await detectWorkspace();
     const builds = new AtlasBuildService(workspace, args);
-    const generate = new AtlasGenerateService(workspace, args);
+    const generate = new AtlasGenerateService(workspace, args, prompts);
 
     if (invocation.command === "g" || invocation.command === "generate") {
       if (!invocation.name) {
@@ -37,6 +37,10 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       if (invocation.subcommand === "host" || invocation.subcommand === "app") {
         ui.heading(`Creating Atlas ${invocation.subcommand}`);
         const root = await generate.project(invocation.subcommand, invocation.name, invocation.framework);
+        if (!args.hasFlag("skip-install")) {
+          ui.info(`Installing dependencies with ${workspace.packageManager}...`);
+          await generate.installDependencies(root);
+        }
         ui.success(`Created "${invocation.name}" at ${root}.`);
         return;
       }
