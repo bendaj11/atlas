@@ -8,12 +8,12 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "baseUrl": ".",
-    "paths": { "@atlas/contracts": ["../contracts/src/index.ts"] },
+    "paths": { "@atlas/schema": ["../schema/src/index.ts"] },
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "../contracts" }],
+  "references": [{ "path": "../schema" }],
   "include": ["src/**/*.ts"]
 }

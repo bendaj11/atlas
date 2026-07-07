@@ -8,7 +8,7 @@ import {
   type AtlasMicrofrontendIndex,
   type AtlasProductionSelection,
   type AtlasStaticRegistry
-} from "@atlas/contracts";
+} from "@atlas/schema";
 
 export interface AtlasRegistryResult {
   hostIds: string[];

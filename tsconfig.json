@@ -1,7 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/contracts" },
+    { "path": "packages/schema" },
     { "path": "packages/sdk" },
     { "path": "packages/runtime" },
     { "path": "packages/generators" },

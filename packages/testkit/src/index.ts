@@ -1,4 +1,4 @@
-import { createManifestFromConfig, type AtlasManifest } from "@atlas/contracts";
+import { createManifestFromConfig, type AtlasManifest } from "@atlas/schema";
 import { createAtlasHostSdk, type AtlasHostSdk } from "@atlas/sdk/host";
 import { createMemoryNavigation } from "./navigation.js";
 

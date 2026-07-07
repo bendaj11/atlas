@@ -1,4 +1,4 @@
-import type { AtlasExportedComponentManifest, AtlasManifest, AtlasPlacement } from "@atlas/contracts";
+import type { AtlasExportedComponentManifest, AtlasManifest, AtlasPlacement } from "@atlas/schema";
 import type { AtlasHostSdk } from "@atlas/sdk/host";
 import type {
   AtlasComponentLoader,

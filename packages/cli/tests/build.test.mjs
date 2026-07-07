@@ -402,9 +402,9 @@ exit 1
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
   await assert.rejects(access(join(root, "products/shell/public/atlas.runtime.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.17");
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.17");
-  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.17");
+  assert.equal(rootPackage.dependencies["@atlas/schema"], "^0.2.18");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.18");
+  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.18");
   assert.equal(rootPackage.dependencies["@angular/core"], "~20.3.0");
   assert.equal(rootPackage.dependencies["@angular/animations"], "~20.3.0");
   assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^20.0.0");
@@ -461,7 +461,7 @@ exit 1
   assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "react"/);
   await assert.rejects(access(join(root, "apps/shell/package.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.17");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.18");
   assert.equal(rootPackage.dependencies.react, "^19.2.0");
   assert.equal(rootPackage.dependencies["react-dom"], "^19.2.0");
   assert.equal(rootPackage.devDependencies["@nx/react"], "22.0.0");
@@ -586,8 +586,8 @@ exit 1
   const projectPackage = JSON.parse(await readFile(join(root, "packages/orders/package.json"), "utf8"));
   assert.equal(rootPackage.dependencies?.["@atlas/sdk"], undefined);
   assert.equal(projectPackage.dependencies.react, "^17.0.2");
-  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.17");
-  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.17");
+  assert.equal(projectPackage.dependencies["@atlas/schema"], "^0.2.18");
+  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.18");
   assert.equal(projectPackage.dependencies["@softarc/native-federation-runtime"], "^3.5.5");
   assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
   assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");

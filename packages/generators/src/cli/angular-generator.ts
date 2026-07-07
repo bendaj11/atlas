@@ -69,7 +69,7 @@ function angularPackage(options: AngularPackageOptions): unknown {
       "@angular/platform-browser": angular,
       "@angular/router": angular,
       "@angular-architects/native-federation": `^${profile.major}.0.0`,
-      "@atlas/contracts": atlasPackageRange(),
+      "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),
       ...(host ? { "@atlas/runtime": atlasPackageRange() } : {}),
       "es-module-shims": "^2.7.0",
@@ -141,7 +141,74 @@ function angularHostBootstrap(): string {
 
 function angularMicrofrontendEntry(name: string): string {
   const selector = `atlas-${name.replace(/[^a-zA-Z0-9-]/g, "-")}-root`;
-  return `import "zone.js";\nimport { LocationStrategy } from "@angular/common";\nimport { Component, InjectionToken, inject } from "@angular/core";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, RouterLink, RouterOutlet, type Routes } from "@angular/router";\nimport { createLocationStrategy, defineMicrofrontend, injectAtlasSdk, provideAtlasSdk } from "@atlas/sdk/angular";\nimport type { AtlasMfContext } from "@atlas/sdk/lifecycle";\n\nexport const ATLAS_MF_CONTEXT = new InjectionToken<AtlasMfContext>("ATLAS_MF_CONTEXT");\n\n@Component({ selector: "atlas-mf-home", standalone: true, template: \`<p>${title(name)} home</p>\` })\nclass HomeComponent {}\n@Component({ selector: "atlas-mf-details", standalone: true, template: \`<p>Routed details page</p>\` })\nclass DetailsComponent {}\n@Component({ selector: "${selector}", standalone: true, imports: [RouterLink, RouterOutlet], template: \`<section><h1>${title(name)}</h1><nav><a routerLink="/">Home</a> <a routerLink="details/42">Details</a></nav><router-outlet /></section>\` })\nclass AtlasMfRootComponent { private readonly atlas = injectAtlasSdk(); showToast() { this.atlas.toast.open({ title: "${title(name)} is ready" }); } }\nconst routes: Routes = [{ path: "", component: HomeComponent }, { path: "details/:id", component: DetailsComponent }];\n\nexport default defineMicrofrontend(async ({ container, sdk, context }) => {\n  const element = document.createElement("${selector}");\n  const locationStrategy = createLocationStrategy(context);\n  container.append(element);\n  const app = await bootstrapApplication(AtlasMfRootComponent, { providers: [provideRouter(routes), { provide: LocationStrategy, useValue: locationStrategy }, provideAtlasSdk(sdk), { provide: ATLAS_MF_CONTEXT, useValue: context }] });\n  context.ready();\n  return { unmount() { app.destroy(); locationStrategy.ngOnDestroy(); element.remove(); } };\n});\n`;
+  return `import "zone.js";
+import { LocationStrategy } from "@angular/common";
+import { Component } from "@angular/core";
+import { bootstrapApplication } from "@angular/platform-browser";
+import { provideRouter, RouterLink, RouterOutlet, type Routes } from "@angular/router";
+import { createLocationStrategy, defineMicrofrontend, provideAtlasSdk } from "@atlas/sdk/angular";
+
+@Component({
+  selector: "atlas-mf-home",
+  standalone: true,
+  template: \`<p>${title(name)} home</p>\`
+})
+class HomeComponent {}
+
+@Component({
+  selector: "atlas-mf-details",
+  standalone: true,
+  template: \`<p>Routed details page</p>\`
+})
+class DetailsComponent {}
+
+@Component({
+  selector: "${selector}",
+  standalone: true,
+  imports: [RouterLink, RouterOutlet],
+  template: \`
+    <section>
+      <h1>${title(name)}</h1>
+      <nav>
+        <a routerLink="/">Home</a>
+        <a routerLink="details/42">Details</a>
+      </nav>
+      <router-outlet />
+    </section>
+  \`
+})
+class AtlasMfRootComponent {}
+
+const routes: Routes = [
+  { path: "", component: HomeComponent },
+  { path: "details/:id", component: DetailsComponent }
+];
+
+export default defineMicrofrontend(async ({ container, sdk, context }) => {
+  const element = document.createElement("${selector}");
+  const locationStrategy = createLocationStrategy(context);
+
+  container.append(element);
+
+  const app = await bootstrapApplication(AtlasMfRootComponent, {
+    providers: [
+      provideRouter(routes),
+      provideAtlasSdk(sdk),
+      { provide: LocationStrategy, useValue: locationStrategy }
+    ]
+  });
+
+  context.ready();
+
+  return {
+    unmount() {
+      app.destroy();
+      locationStrategy.ngOnDestroy();
+      element.remove();
+    }
+  };
+});
+`;
 }
 
 function remoteName(name: string): string {

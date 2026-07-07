@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import type { AtlasConfig, AtlasHostRuntimeConfig } from "@atlas/contracts";
+import type { AtlasConfig, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import type { AtlasWorkspace } from "./workspace.js";

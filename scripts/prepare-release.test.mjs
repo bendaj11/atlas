@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { nextVersion, prepareRelease } from "./prepare-release.mjs";
 
-const packageDirectories = ["contracts", "sdk", "runtime", "generators", "testkit", "cli"];
+const packageDirectories = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
 
 test("nextVersion calculates semantic release increments", () => {
   assert.equal(nextVersion("1.2.3", "patch"), "1.2.4");
@@ -32,7 +32,7 @@ async function createWorkspace(version) {
     await writeJson(join(root, "packages", directory, "package.json"), {
       name: `@atlas/${directory}`,
       version,
-      dependencies: { "@atlas/contracts": version }
+      dependencies: { "@atlas/schema": version }
     });
   }
   await writeJson(join(root, "apps/chrome-extension/package.json"), { version });

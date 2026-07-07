@@ -9,7 +9,7 @@ const root = resolve(import.meta.dirname, "..");
 const artifacts = join(root, "dist/package-verification");
 const packageManager = readPackageManager(process.argv.slice(2));
 const cleanRoom = join(root, `dist/generated-project-verification-${packageManager}`);
-const atlasPackages = ["contracts", "sdk", "runtime", "generators", "testkit", "cli"];
+const atlasPackages = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
 const pnpmVersion = "10.34.4";
 const pnpmAllowedBuilds = ["esbuild", "@parcel/watcher", "lmdb", "msgpackr-extract"];
 const projects = [
@@ -18,7 +18,7 @@ const projects = [
   { type: "host", name: "clean-angular-host", framework: "angular" },
   { type: "app", name: "clean-angular-mf", framework: "angular" }
 ];
-const expectedVersion = JSON.parse(await readFile(join(root, "packages/contracts/package.json"), "utf8")).version;
+const expectedVersion = JSON.parse(await readFile(join(root, "packages/schema/package.json"), "utf8")).version;
 
 await rm(cleanRoom, { recursive: true, force: true });
 await mkdir(join(cleanRoom, "tooling"), { recursive: true });

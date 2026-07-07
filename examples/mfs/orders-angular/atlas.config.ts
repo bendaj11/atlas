@@ -1,4 +1,4 @@
-import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };
+import type { AtlasConfig } from "@atlas/schema" with { "resolution-mode": "import" };
 
 export default {
   id: "orders-angular",

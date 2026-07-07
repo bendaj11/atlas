@@ -1,4 +1,4 @@
-import type { AtlasManifest, AtlasStylesheet } from "@atlas/contracts";
+import type { AtlasManifest, AtlasStylesheet } from "@atlas/schema";
 import { assertManifestStylesTrust, type AtlasRemoteTrustPolicy } from "./loader/runtime-discovery.js";
 
 export type AtlasStyleRelease = () => void;

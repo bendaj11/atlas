@@ -9,7 +9,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@atlas/contracts": ["../contracts/src/index.ts"],
+      "@atlas/schema": ["../schema/src/index.ts"],
       "@atlas/generators": ["../generators/src/index.ts"],
       "@atlas/runtime": ["../runtime/src/index.ts"],
       "@atlas/sdk": ["../sdk/src/index.ts"],
@@ -21,7 +21,7 @@
     "skipLibCheck": true
   },
   "references": [
-    { "path": "../contracts" },
+    { "path": "../schema" },
     { "path": "../generators" },
     { "path": "../runtime" },
     { "path": "../sdk" }

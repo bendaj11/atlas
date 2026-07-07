@@ -1,4 +1,4 @@
-import type { AtlasHostRuntimeConfig } from "@atlas/contracts";
+import type { AtlasHostRuntimeConfig } from "@atlas/schema";
 import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
@@ -153,7 +153,7 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function renderAngularNavigation(document: Document, manifests: import("@atlas/contracts").AtlasManifest[], hostId: string, navigation: AtlasNavigation): void {
+function renderAngularNavigation(document: Document, manifests: import("@atlas/schema").AtlasManifest[], hostId: string, navigation: AtlasNavigation): void {
   const nav = document.querySelector<HTMLElement>("[data-atlas-navigation]");
   if (!nav) return;
   nav.replaceChildren(...manifests.flatMap((manifest) => manifest.placements

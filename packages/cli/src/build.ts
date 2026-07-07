@@ -10,7 +10,7 @@ import {
   type AtlasStaticRegistry,
   type AtlasStylesheet,
   type AtlasVersionChannel
-} from "@atlas/contracts";
+} from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { prepareStaticRegistry, registryRevision } from "./static-registry.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";

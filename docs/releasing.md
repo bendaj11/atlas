@@ -5,7 +5,7 @@ Yarn. They do not require Atlas consumers to use Yarn.
 
 Atlas publishes six packages as one compatible release set:
 
-- `@atlas/contracts`
+- `@atlas/schema`
 - `@atlas/sdk`
 - `@atlas/runtime`
 - `@atlas/generators`
@@ -54,7 +54,7 @@ The tag must exactly match the package version.
 `release:bundle` creates `dist/release` with the six verified tarballs,
 `SHA256SUMS`, and `release.json`. Release CI preserves this exact directory as
 an artifact and attaches it to the tag's GitHub release. Publishing automation must consume that artifact instead of
-rebuilding packages from the tag. Package order is contracts, SDK, runtime,
+rebuilding packages from the tag. Package order is schema, SDK, runtime,
 generators, testkit, then CLI.
 Rerunning the tag workflow replaces existing GitHub release assets with the newly verified bundle.
 

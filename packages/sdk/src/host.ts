@@ -1,4 +1,4 @@
-import type { AtlasManifest } from "@atlas/contracts";
+import type { AtlasManifest } from "@atlas/schema";
 import type { AtlasNavigation } from "./navigation.js";
 import type { AtlasOverlayContentMount } from "./overlay.js";
 

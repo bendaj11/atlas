@@ -4,7 +4,7 @@ import {
   type AtlasHostCatalog,
   type AtlasHostRuntimeConfig,
   type AtlasManifest
-} from "@atlas/contracts";
+} from "@atlas/schema";
 
 export type AtlasVerificationStatus = "pass" | "warning" | "failure";
 

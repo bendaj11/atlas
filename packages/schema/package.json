@@ -1,20 +1,20 @@
 {
-  "name": "@atlas/contracts",
-  "version": "0.2.18",
+  "name": "@atlas/schema",
+  "version": "0.2.19",
   "type": "module",
-  "description": "Stable Atlas manifests, static indexes, catalogs, and configuration contracts.",
+  "description": "Stable Atlas manifests, static indexes, catalogs, and configuration schemas.",
   "license": "MIT",
   "keywords": [
     "microfrontend",
     "typescript",
-    "contracts"
+    "schema"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bendaj11/atlas.git",
-    "directory": "packages/contracts"
+    "directory": "packages/schema"
   },
-  "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/contracts#readme",
+  "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/schema#readme",
   "bugs": "https://github.com/bendaj11/atlas/issues",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

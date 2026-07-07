@@ -2,9 +2,9 @@
 
 For a concise list of stable imports, see [Public API](api.md).
 
-`@atlas/sdk` is the API used by MFs to communicate with their host. Catalog loading and federation live in `@atlas/runtime`; manifests live in `@atlas/contracts`.
+`@atlas/sdk` is the API used by MFs to communicate with their host. Catalog loading and federation live in `@atlas/runtime`; manifests live in `@atlas/schema`.
 
-## `@atlas/contracts`
+## `@atlas/schema`
 
 Contains TypeScript types and manifest validation.
 

@@ -1,4 +1,4 @@
-import type { AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/contracts";
+import type { AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/schema";
 import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type RouterLike } from "@atlas/sdk/react";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";

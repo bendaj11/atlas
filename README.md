@@ -176,7 +176,7 @@ framework, toast library, and extra typed `hostData`. Atlas does not wrap them.
 
 | Package | Responsibility |
 | --- | --- |
-| `@atlas/contracts` | Public configuration, manifest, catalog, and validation types |
+| `@atlas/schema` | Public configuration, manifest, catalog, and validation types |
 | `@atlas/sdk` | MF-to-host communication and framework adapters |
 | `@atlas/runtime` | Discovery, trust checks, federation loading, and lifecycle |
 | `@atlas/cli` | Interactive generation, local development, and build preparation |

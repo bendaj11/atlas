@@ -11,12 +11,12 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
 export function atlasConfig(options: AtlasGeneratorOptions, host: boolean): string {
   const { name, framework } = options;
   const microfrontendFields = options.hostId ? `,\n  ${microfrontendConfig(name, options.hostId)}` : "";
-  return `import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : microfrontendFields}\n} satisfies AtlasConfig;\n`;
+  return `import type { AtlasConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : microfrontendFields}\n} satisfies AtlasConfig;\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
-  return `import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  runtime: {\n    catalogUrl: "http://localhost:4400/hosts/${name}/catalog.json",\n    requireIntegrity: true,\n    allowRuntimeOverrides: true,\n    requestTimeoutMs: 10000,\n    retryAttempts: 2,\n    retryDelayMs: 250,\n    loadTimeoutMs: 15000,\n    waitForMfReady: true,\n    loadingIndicator: "spinner"\n  }\n} satisfies AtlasConfig;\n`;
+  return `import type { AtlasConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  runtime: {\n    catalogUrl: "http://localhost:4400/hosts/${name}/catalog.json",\n    requireIntegrity: true,\n    allowRuntimeOverrides: true,\n    requestTimeoutMs: 10000,\n    retryAttempts: 2,\n    retryDelayMs: 250,\n    loadTimeoutMs: 15000,\n    waitForMfReady: true,\n    loadingIndicator: "spinner"\n  }\n} satisfies AtlasConfig;\n`;
 }
 
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {

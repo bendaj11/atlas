@@ -1,4 +1,4 @@
-import type { AtlasFramework } from "@atlas/contracts";
+import type { AtlasFramework } from "@atlas/schema";
 
 export interface AtlasGeneratorOptions {
   name: string;

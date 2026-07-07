@@ -4,7 +4,7 @@ import {
   type AtlasHostCatalog,
   type AtlasHostRuntimeConfig,
   type AtlasManifest
-} from "@atlas/contracts";
+} from "@atlas/schema";
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
 

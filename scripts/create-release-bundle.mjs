@@ -3,10 +3,10 @@ import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promi
 import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const packageDirectory = join(root, "packages/contracts");
+const packageDirectory = join(root, "packages/schema");
 const verifiedPackagesDirectory = join(root, "dist/package-verification");
 const releaseDirectory = join(root, "dist/release");
-const expectedArchives = ["cli.tgz", "contracts.tgz", "generators.tgz", "runtime.tgz", "sdk.tgz", "testkit.tgz"];
+const expectedArchives = ["cli.tgz", "generators.tgz", "runtime.tgz", "schema.tgz", "sdk.tgz", "testkit.tgz"];
 const packageManifest = JSON.parse(await readFile(join(packageDirectory, "package.json"), "utf8"));
 const version = packageManifest.version;
 

@@ -4,7 +4,7 @@ Atlas uses focused packages so the MF-facing SDK does not also contain host and 
 
 | Import | Purpose |
 | --- | --- |
-| `@atlas/contracts` | Manifests, static indexes, catalogs, and configuration |
+| `@atlas/schema` | Manifests, static indexes, catalogs, and configuration |
 | `@atlas/sdk` | MF-to-host capabilities and lifecycle types |
 | `@atlas/runtime` | Catalog discovery, overrides, federation loading, and mounting |
 | `@atlas/sdk/navigation` | Host-owned and MF-scoped navigation |
@@ -41,7 +41,7 @@ Files not exported through a package subpath are internal. See [SDK](sdk.md) for
 
 ## Contracts
 
-Import from `@atlas/contracts`:
+Import from `@atlas/schema`:
 
 | API | Purpose |
 | --- | --- |

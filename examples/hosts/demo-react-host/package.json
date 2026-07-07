@@ -9,7 +9,7 @@
     "build": "atlas runtime-config demo-react-host && tsc -b && vite build"
   },
   "dependencies": {
-    "@atlas/contracts": "*",
+    "@atlas/schema": "*",
     "@atlas/runtime": "*",
     "@atlas/sdk": "*",
     "@softarc/native-federation-runtime": "^3.5.5",

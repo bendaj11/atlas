@@ -10,7 +10,7 @@
     "atlas:build": "atlas build dashboard-react"
   },
   "dependencies": {
-    "@atlas/contracts": "*",
+    "@atlas/schema": "*",
     "@atlas/sdk": "*",
     "@softarc/native-federation-runtime": "^3.5.5",
     "es-module-shims": "^2.7.0",

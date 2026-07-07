@@ -44,12 +44,12 @@ flowchart LR
 
 ## Focused Packages
 
-MF developers normally use only `@atlas/sdk`. Generated hosts additionally use `@atlas/runtime`, while Atlas CLI manages `@atlas/contracts` and `@atlas/generators` automatically.
+MF developers normally use only `@atlas/sdk`. Generated hosts additionally use `@atlas/runtime`, while Atlas CLI manages `@atlas/schema` and `@atlas/generators` automatically.
 
 Examples:
 
 ```ts
-import type { AtlasConfig } from "@atlas/contracts";
+import type { AtlasConfig } from "@atlas/schema";
 import { createAtlasSdk } from "@atlas/sdk/host";
 import { loadAndMountHostCatalog } from "@atlas/runtime";
 ```

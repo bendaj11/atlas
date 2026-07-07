@@ -1,4 +1,4 @@
-import type { AtlasFramework, AtlasVersionChannel } from "@atlas/contracts";
+import type { AtlasFramework, AtlasVersionChannel } from "@atlas/schema";
 
 export type SupportedFramework = Exclude<AtlasFramework, "vue">;
 

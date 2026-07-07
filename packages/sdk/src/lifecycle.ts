@@ -1,4 +1,4 @@
-import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/contracts";
+import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/schema";
 import type { AtlasEventMap, AtlasSdk } from "./host.js";
 import type { AtlasRouteContext, AtlasScopedNavigation } from "./navigation.js";
 

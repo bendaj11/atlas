@@ -57,7 +57,7 @@ function reactPackage(options: ReactPackageOptions): unknown {
       ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
     },
     dependencies: {
-      "@atlas/contracts": atlasPackageRange(),
+      "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),
       ...(host ? { "@atlas/runtime": atlasPackageRange() } : {}),
       "@softarc/native-federation-runtime": "^3.5.5",

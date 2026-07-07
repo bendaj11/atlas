@@ -9,7 +9,7 @@
     "lib": ["ES2022", "DOM"],
     "baseUrl": ".",
     "paths": {
-      "@atlas/contracts": ["../contracts/src/index.ts"],
+      "@atlas/schema": ["../schema/src/index.ts"],
       "@atlas/sdk": ["../sdk/src/index.ts"],
       "@atlas/sdk/*": ["../sdk/src/*.ts"]
     },
@@ -20,6 +20,6 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "../contracts" }, { "path": "../sdk" }],
+  "references": [{ "path": "../schema" }, { "path": "../sdk" }],
   "include": ["src/**/*.ts"]
 }

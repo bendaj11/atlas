@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import type { AtlasStaticRegistry } from "@atlas/contracts";
+import type { AtlasStaticRegistry } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { prepareStaticRollback, registryRevision } from "./static-registry.js";
 

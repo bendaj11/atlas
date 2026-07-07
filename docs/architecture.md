@@ -6,7 +6,7 @@ Atlas is split into infrastructure and generated usage.
 
 - `@atlas/sdk`: MF-to-host communication and framework access
 - `@atlas/runtime`: host discovery, loading, and mount lifecycle
-- `@atlas/contracts`: manifests, static indexes, and catalogs
+- `@atlas/schema`: manifests, static indexes, and catalogs
 - `@atlas/generators`: generator implementation used by the CLI
 - `@atlas/testkit`: test fixtures and in-memory utilities
 - `@atlas/cli`: generator and workflow commands

@@ -1,4 +1,4 @@
-import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/contracts";
+import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/schema";
 import type { AtlasExportedComponentEntry, AtlasMfEntry } from "@atlas/sdk/lifecycle";
 import { findManifestTrustErrors, verifyManifestIntegrity, type AtlasRemoteTrustPolicy } from "./runtime-discovery.js";
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
