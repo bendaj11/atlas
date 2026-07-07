@@ -50,7 +50,13 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     findProject: (name) => findAtlasProject(root, name),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
-    installDependencies: (projectRoot) => runProcess(createInstallCommand(packageManager, root, projectRoot)),
+    // Nx owns dependencies at the workspace root; generated applications do
+    // not necessarily contain a package.json or their own node_modules.
+    installDependencies: (projectRoot) => runProcess(createInstallCommand(
+      packageManager,
+      root,
+      installationRoot(kind, root, projectRoot)
+    )),
     missingScaffoldDependency: async (framework) => {
       if (kind !== "nx") return undefined;
       const plugin = nxFrameworkPlugin(framework);
@@ -110,13 +116,16 @@ export function createNxPluginInstallCommand(
 
 export function createInstallCommand(
   manager: AtlasPackageManager,
-  workspaceRoot: string,
+  _workspaceRoot: string,
   projectRoot: string
 ): ProcessCommand {
-  const args = manager === "npm"
-    ? ["--globalconfig", join(workspaceRoot, ".npmrc"), "install"]
-    : ["install"];
-  return { command: manager, args, cwd: projectRoot };
+  // npm discovers the applicable project/workspace .npmrc itself. Passing the
+  // same file as --globalconfig makes npm load it twice and abort.
+  return { command: manager, args: ["install"], cwd: projectRoot };
+}
+
+export function installationRoot(kind: AtlasWorkspaceKind, workspaceRoot: string, projectRoot: string): string {
+  return kind === "nx" ? workspaceRoot : projectRoot;
 }
 
 async function findWorkspaceRoot(start: string): Promise<string> {

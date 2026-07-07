@@ -29,7 +29,7 @@ atlas g app products/orders --framework=react
 For example, running `atlas g host my-app` from `<workspace>/products` creates
 `<workspace>/products/my-app`.
 
-After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command from the generated project and waits for it to finish. The package manager automatically coordinates with a parent Nx, Turbo, or package-manager workspace when applicable. Advanced automation that installs dependencies separately can pass `--skip-install`.
+After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command and waits for it to finish. In Nx, installation runs at the workspace root because Nx projects share the root dependency graph and do not require project-local `package.json` or `node_modules`. Other project types install from the generated project. Advanced automation that installs dependencies separately can pass `--skip-install`.
 
 Before writing files, Atlas reports the detected workspace, selected framework,
 target path, and whether scaffolding is delegated to a native Nx generator or

@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace } from "../dist/workspace.js";
+import { createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
 
 test("workspace detection discovers an Nx project without consumer configuration", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-"));
@@ -131,11 +131,13 @@ test("task commands follow Nx, Turbo, and package-manager conventions", () => {
 
 test("dependency installs use the detected package manager from the generated project", () => {
   assert.deepEqual(createInstallCommand("npm", "/repo", "/repo/apps/orders"), {
-    command: "npm", args: ["--globalconfig", "/repo/.npmrc", "install"], cwd: "/repo/apps/orders"
+    command: "npm", args: ["install"], cwd: "/repo/apps/orders"
   });
   assert.deepEqual(createInstallCommand("pnpm", "/repo", "/repo/apps/orders"), {
     command: "pnpm", args: ["install"], cwd: "/repo/apps/orders"
   });
+  assert.equal(installationRoot("nx", "/repo", "/repo/apps/orders"), "/repo");
+  assert.equal(installationRoot("turbo", "/repo", "/repo/apps/orders"), "/repo/apps/orders");
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {
