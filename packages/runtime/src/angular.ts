@@ -1,14 +1,15 @@
 import type { AtlasHostRuntimeConfig } from "@atlas/contracts";
-import { createAtlasSdk, type AtlasEventMap, type AtlasSdkOptions } from "@atlas/sdk";
+import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
-export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation"> {
+export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData"> {
   router: RouterLike;
   location: LocationLike;
   federation: AtlasFederationAdapter;
+  hostData?: THostData & Partial<AtlasHostData>;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Explicitly enables URL and storage runtime overrides for local extension workflows. */
@@ -99,7 +100,7 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
     navigation,
     ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     ...(options.getCurrentUser ? { getCurrentUser: options.getCurrentUser } : {}),
-    ...(options.openToast ? { openToast: options.openToast } : {}),
+    ...(options.showToast ? { showToast: options.showToast } : {}),
     openModal: overlays.openModal,
     openPopup: overlays.openPopup,
     ...(options.getConfig ? { getConfig: options.getConfig } : {}),

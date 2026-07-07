@@ -11,11 +11,11 @@ interface HostExtensions {
   httpClient: typeof fetch;
 }
 
-@Component({ selector: "atlas-dashboard-angular-root", standalone: true, template: `<h1>Dashboard Angular</h1><p>Mounted at {{ context.basePath }}</p><button type="button" (click)="openToast()">Show toast</button><button type="button" (click)="openReactPopup()">Open React widget popup</button>` })
+@Component({ selector: "atlas-dashboard-angular-root", standalone: true, template: `<h1>Dashboard Angular</h1><p>Mounted at {{ context.basePath }}</p><button type="button" (click)="showToast()">Show toast</button><button type="button" (click)="openReactPopup()">Open React widget popup</button>` })
 class AtlasMfRootComponent {
   readonly context = inject(ATLAS_MF_CONTEXT);
   private readonly atlas = injectAtlasSdk<HostExtensions>();
-  openToast() { this.atlas.toast.open({ title: `Project ${this.atlas.hostData.projectId} is ready` }); }
+  showToast() { this.atlas.toast.open({ title: `Project ${this.atlas.hostData.projectId} is ready` }); }
   openReactPopup() { this.atlas.popup.open({ title: "Product count", content: { widget: "catalog-react/product-count", props: { count: 42, label: "Products in popup" } }, draggable: true, resizable: true }); }
 }
 

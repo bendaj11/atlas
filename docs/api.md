@@ -73,7 +73,7 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 | `createAtlasEventBus()` | Create a host-scoped event bus |
 | `AtlasModalRequest` | Host-rendered modal request with native or widget content |
 | `AtlasPopupRequest` | Host-rendered draggable/resizable popup request |
-| `AtlasToastRequest` | Host-rendered toast request |
+| `AtlasToastRequest` | Host-rendered toast request with `state` and `dismissible` options |
 
 MF code normally receives the SDK through `useAtlasSdk()` or
 `injectAtlasSdk()` rather than calling `createAtlasSdk()`.

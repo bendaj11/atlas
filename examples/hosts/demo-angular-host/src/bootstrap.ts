@@ -11,8 +11,9 @@ export async function bootstrap(): Promise<void> {
     router: app.injector.get(Router),
     location: app.injector.get(Location),
     federation: { initFederation, loadRemoteModule },
-    openToast: (toast) => console.info("[Atlas toast]", toast.title),
+    showToast: (toast) => console.info("[Atlas toast]", toast.title),
     getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }),
-    extensions: { hostData: { projectId: "atlas-demo" }, httpClient: fetch }
+    hostData: { projectId: "atlas-demo" },
+    httpClient: fetch
   });
 }

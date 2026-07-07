@@ -17,7 +17,7 @@ class OrderDetailsComponent {}
 @Component({ selector: "atlas-orders-angular-root", standalone: true, imports: [RouterLink, RouterOutlet], template: `<section><h1>Orders Angular</h1><nav><a routerLink="/">Orders</a> <a routerLink="orders/42">Order 42</a></nav><router-outlet /></section>` })
 class AtlasMfRootComponent {
   private readonly atlas = injectAtlasSdk();
-  openToast() { this.atlas.toast.open({ title: "Orders Angular is ready" }); }
+  showToast() { this.atlas.toast.open({ title: "Orders Angular is ready" }); }
 }
 
 const routes: Routes = [

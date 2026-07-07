@@ -122,7 +122,7 @@ await startHost({
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
   getCurrentUser: () => auth.currentUser(),
-  openToast: (toast) => toastService.show(toast),
+  showToast: (toast) => toastService.show(toast),
   openModal: (request) => modalService.open(request),
   hostData: { projectId: currentProject.id },
   httpClient: authenticatedHttpClient,
@@ -238,7 +238,7 @@ export class OrdersToolbarComponent {
   private readonly atlas = injectAtlasSdk<{}, AtlasEventMap, CustomerHostData>();
 
   save(): void {
-    this.atlas.toast.open({ title: "Order saved", tone: "success" });
+    this.atlas.toast.open({ title: "Order saved", state: "success" });
   }
 }
 ```

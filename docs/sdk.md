@@ -28,7 +28,7 @@ const sdk = createAtlasSdk({
   hostData: { name: "Customer Shell", projectId: "project-42" },
   navigation,
   getCurrentUser: async () => user,
-  openToast: (toast) => showToast(toast),
+  showToast: (toast) => showToast(toast),
   openModal: (modal) => showModal(modal),
   openPopup: (popup) => showPopup(popup),
   httpClient: authenticatedHttpClient
@@ -58,6 +58,8 @@ Atlas core.
 The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`. `context.components` remains a deprecated compatibility alias.
 
 Hosts provide the visual implementation for toast, modal, and popup. A popup is non-blocking and may be draggable or resizable. Modal and popup `content` accepts host/framework-native content or `{ widget: "owner/widget", props }`; Atlas does not impose Ionic, Angular CDK, React Portal, Toastr, or another design system.
+
+Toast requests include `title`, optional `message`, optional `state` (`info`, `warning`, `error`, `success`, or `loading`), and optional `dismissible`.
 
 ## `@atlas/sdk/overlay`
 

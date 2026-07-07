@@ -59,3 +59,14 @@ test("host SDK delegates native content and widget references to host overlay pr
     ["popup", { widget: "details/entity-popup", props: { id: "42" } }]
   ]);
 });
+
+test("host SDK delegates toast requests to showToast", () => {
+  const shown = [];
+  const sdk = createAtlasSdk({
+    hostId: "shell",
+    navigation: createMemoryNavigation(),
+    showToast(request) { shown.push(request); }
+  });
+  sdk.toast.open({ title: "Saving order", state: "loading", dismissible: true });
+  assert.deepEqual(shown, [{ title: "Saving order", state: "loading", dismissible: true }]);
+});

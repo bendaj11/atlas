@@ -12,7 +12,8 @@ export interface AtlasUser {
 export interface AtlasToastRequest {
   title: string;
   message?: string;
-  tone?: "info" | "success" | "warning" | "danger";
+  state?: "info" | "warning" | "error" | "success" | "loading";
+  dismissible?: boolean;
 }
 
 export interface AtlasWidgetContent {
@@ -113,7 +114,7 @@ export interface AtlasSdkOptions<
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
   getCurrentUser?: () => Promise<AtlasUser | undefined>;
-  openToast?: (request: AtlasToastRequest) => void;
+  showToast?: (request: AtlasToastRequest) => void;
   openModal?: <TResult = unknown>(request: AtlasModalRequest<TResult>, content?: AtlasOverlayContentMount) => Promise<TResult | undefined>;
   openPopup?: (request: AtlasPopupRequest, content?: AtlasOverlayContentMount) => AtlasPopupRef;
   getConfig?: <TValue = unknown>(key: string) => TValue | undefined;
@@ -152,7 +153,7 @@ export function createAtlasSdk<
     navigation: options.navigation,
     events: options.eventBus ?? createAtlasEventBus(),
     toast: {
-      open: options.openToast ?? (() => undefined)
+      open: options.showToast ?? (() => undefined)
     },
     modal: {
       open: options.openModal ?? (async () => undefined)

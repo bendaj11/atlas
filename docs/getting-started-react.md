@@ -126,7 +126,7 @@ void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
   getCurrentUser: () => auth.currentUser(),
-  openToast: (toast) => toastService.show(toast),
+  showToast: (toast) => toastService.show(toast),
   openModal: (request) => modalService.open(request),
   hostData: { projectId: currentProject.id },
   httpClient: authenticatedHttpClient,
@@ -239,7 +239,7 @@ function OrdersToolbar() {
   return (
     <button
       type="button"
-      onClick={() => atlas.toast.open({ title: "Order saved", tone: "success" })}
+      onClick={() => atlas.toast.open({ title: "Order saved", state: "success" })}
     >
       Save order
     </button>
