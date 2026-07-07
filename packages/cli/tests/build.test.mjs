@@ -412,7 +412,9 @@ exit 1
   assert.equal(await readFile(join(root, "products/shell/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(await readFile(join(root, "products/shell/jest.config.ts"), "utf8"), "nx jest\n");
   assert.equal(JSON.parse(await readFile(join(root, "products/shell/tsconfig.json"), "utf8")).marker, "nx-generator");
-  assert.equal(JSON.parse(await readFile(join(root, "products/shell/tsconfig.app.json"), "utf8")).marker, "nx-generator");
+  const angularHostTsconfig = JSON.parse(await readFile(join(root, "products/shell/tsconfig.app.json"), "utf8"));
+  assert.equal(angularHostTsconfig.marker, "nx-generator");
+  assert.deepEqual(angularHostTsconfig.include, ["atlas.config.ts"]);
   assert.equal(await readFile(join(root, "products/shell/public/nx.txt"), "utf8"), "nx public asset\n");
   await assert.rejects(access(join(root, "products/shell/package.json")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "products/shell/angular.json")), { code: "ENOENT" });
@@ -483,7 +485,9 @@ exit 1
   assert.match(await readFile(join(root, "apps/shell/src/styles.css"), "utf8"), /data-atlas-route-outlet/);
   assert.equal(await readFile(join(root, "apps/shell/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(await readFile(join(root, "apps/shell/public/nx.txt"), "utf8"), "nx react public asset\n");
-  assert.equal(JSON.parse(await readFile(join(root, "apps/shell/tsconfig.json"), "utf8")).marker, "nx-generator");
+  const reactHostTsconfig = JSON.parse(await readFile(join(root, "apps/shell/tsconfig.json"), "utf8"));
+  assert.equal(reactHostTsconfig.marker, "nx-generator");
+  assert.deepEqual(reactHostTsconfig.include, ["atlas.config.ts"]);
   assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "react"/);
   await assert.rejects(access(join(root, "apps/shell/package.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
@@ -525,6 +529,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx angular public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
 fi
 exit 1
@@ -553,6 +558,9 @@ exit 1
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
+  const angularMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
+  assert.equal(angularMfTsconfig.marker, "nx-generator");
+  assert.deepEqual(angularMfTsconfig.include, ["atlas.config.ts"]);
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);
@@ -586,6 +594,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
 fi
 exit 1
@@ -612,6 +621,9 @@ exit 1
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
+  const reactMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
+  assert.equal(reactMfTsconfig.marker, "nx-generator");
+  assert.deepEqual(reactMfTsconfig.include, ["atlas.config.ts"]);
   assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);

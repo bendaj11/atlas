@@ -60,7 +60,10 @@ export class AtlasGenerateService {
         : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
       if (workspaceScaffolded) await takeOverAppSource(root);
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
-      if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files, selectedFramework);
+      if (workspaceScaffolded) {
+        await includeAtlasConfigInDelegatedTsconfig(root);
+        await this.mergeDelegatedDependencies(root, files, selectedFramework);
+      }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
       await this.formatGenerated(root);
       await afterGeneration?.(root);
@@ -406,6 +409,24 @@ async function writeGenerated(root: string, files: AtlasGeneratedFile[], force: 
 
 async function takeOverAppSource(root: string): Promise<void> {
   await rm(resolveContainedPath(root, "src/app"), { recursive: true, force: true });
+}
+
+async function includeAtlasConfigInDelegatedTsconfig(root: string): Promise<void> {
+  const appTsconfig = join(root, "tsconfig.app.json");
+  const target = await exists(appTsconfig) ? appTsconfig : join(root, "tsconfig.json");
+  if (!await exists(target)) return;
+
+  const tsconfig = JSON.parse(await readFile(target, "utf8")) as Record<string, unknown>;
+  if (Array.isArray(tsconfig.files)) {
+    tsconfig.files = addUniqueString(tsconfig.files, "atlas.config.ts");
+  } else {
+    tsconfig.include = addUniqueString(Array.isArray(tsconfig.include) ? tsconfig.include : [], "atlas.config.ts");
+  }
+  await writeFile(target, `${JSON.stringify(tsconfig, null, 2)}\n`, "utf8");
+}
+
+function addUniqueString(values: unknown[], value: string): unknown[] {
+  return values.includes(value) ? values : [...values, value];
 }
 
 async function assertWritable(path: string, force: boolean, message: string): Promise<void> {

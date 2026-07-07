@@ -5,7 +5,7 @@ export function reactTsconfig(): unknown {
       module: "ESNext", moduleResolution: "bundler", jsx: "react-jsx", strict: true,
       noEmit: true, skipLibCheck: true, allowImportingTsExtensions: true, types: ["vite/client"]
     },
-    include: ["src", "vite.config.ts"]
+    include: ["src", "vite.config.ts", "atlas.config.ts"]
   };
 }
 
