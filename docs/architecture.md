@@ -39,6 +39,13 @@ Consumers declare `uses: ["owner/widget"]`. Static catalog generation follows th
 
 Native Federation is the underlying loading mechanism. Atlas treats it as an implementation detail. Generated projects can contain federation configuration, but product developers should not edit it during normal work.
 
+Angular is the one visible exception: `@angular-architects/native-federation`
+requires a root `federation.config.js` beside the Angular tsconfig. Atlas
+generates that file as a compatibility shim and keeps the product-facing
+configuration in `atlas.config.ts`. If you are adding routes, hosts, slots,
+widgets, or metadata, edit `atlas.config.ts`; only platform maintainers should
+touch the generated federation shim.
+
 ## Cross-Framework Interoperability
 
 Hosts and MFs do not need to use the same UI framework. An Angular MF can run in a React host, a React MF can run in an Angular host, and exported components follow the same rule.

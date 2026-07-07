@@ -81,6 +81,10 @@ The generated host contains:
 - SDK providers for user data, events, overlays, configuration, and extensions;
 - loading, error, retry, mount, and unmount behavior.
 
+For Angular hosts, Atlas also creates a root `federation.config.js` when Native
+Federation requires it. That file is generated compatibility wiring. Do not
+configure Atlas there; edit `atlas.config.ts` and application source.
+
 The host's HTML or component tree defines the real layout. Atlas recognizes:
 
 ```html
@@ -130,6 +134,11 @@ The generated MF contains:
 - hidden Native Federation wiring;
 - strict TypeScript configuration;
 - `src/exported-components` for independently deployed widgets.
+
+For Angular MFs, `federation.config.js` can appear next to `atlas.config.ts`.
+It exists because the Angular Native Federation builder resolves that filename
+directly. Atlas owns its contents; product changes belong in `atlas.config.ts`
+and framework source files.
 
 Edit `atlas.config.ts` to place the MF on a host route:
 

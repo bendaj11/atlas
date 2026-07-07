@@ -115,6 +115,9 @@ MF developers normally edit only:
 
 Atlas owns generated federation configuration, manifest generation, catalog
 resolution, loading, mounting, local override documents, and CDN paths.
+Angular projects may include a root `federation.config.js`; treat it as
+Atlas-generated compatibility wiring for Native Federation, not as a second
+configuration surface. Product teams configure Atlas in `atlas.config.ts`.
 
 An MF receives host services through one framework-native API:
 

@@ -42,7 +42,8 @@ Inside Nx, Atlas delegates initial project creation to the installed
 the complete Nx scaffold: project and package manifests, source files, public
 assets, TypeScript configuration, lint/test setup, and workspace conventions.
 Atlas then adds only its explicitly owned integration files, such as
-`atlas.config.ts`, `tsconfig.atlas.json`, federation configuration, and host
+`atlas.config.ts`, `tsconfig.atlas.json`, generated federation compatibility
+shims, and host
 runtime configuration. It does not apply its portable application template over
 the Nx result. Turbo,
 Yarn, pnpm, and npm provide task or workspace orchestration rather than framework
@@ -103,7 +104,7 @@ Developers usually edit:
 See [Assets and Styles](assets-and-styles.md) for Angular, React, Nx, and CDN
 examples.
 
-They should not edit generated federation wiring unless they are doing platform work.
+They should not edit generated federation wiring unless they are doing platform work. In Angular projects, `federation.config.js` is present because the Native Federation Angular builder requires that filename. Atlas generates it from Atlas conventions and owns it as compatibility plumbing; `atlas.config.ts` is the user-facing configuration file.
 
 ## Angular
 
@@ -118,7 +119,7 @@ Angular generation includes:
 
 - Angular CLI application and strict TypeScript configuration
 - `@angular-architects/native-federation` builders
-- generated `federation.config.js` with Atlas-controlled dependency isolation
+- generated `federation.config.js` compatibility shim with Atlas-controlled dependency isolation
 - Native Federation's required `es-module-shims` bootstrap
 - two-stage `main.ts` and `bootstrap.ts` initialization
 - catalog-driven dynamic remote initialization
@@ -131,6 +132,8 @@ Angular generation includes:
 Generated projects target Angular `^20.3.0` by default.
 
 Product developers normally edit feature components and `atlas.config.ts`. Platform wiring, remote names, manifests, CDN paths, import maps, route teardown, and host SDK injection are generated or owned by `@atlas/sdk`.
+
+Angular projects still contain a root `federation.config.js` because the Native Federation Angular builder resolves that exact filename beside the Angular tsconfig. Atlas treats it as a generated compatibility file, not a second product-facing config: edit `atlas.config.ts` and application source, and let Atlas own the federation shim.
 
 ## Framework Versions
 
