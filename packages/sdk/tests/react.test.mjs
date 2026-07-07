@@ -27,11 +27,15 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(mf.get("vite.config.ts"), /remoteEntry\.json/);
   assert.match(mf.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(mf.get("vite.config.ts"), /components\/\$\{id\}/);
+  assert.match(mf.get("src/app/app.tsx"), /useAtlasSdk/);
+  assert.match(mf.get("src/app/app.tsx"), /export const routes: RouteObject\[\]/);
+  assert.match(mf.get("src/app/app.tsx"), /<Outlet \/>/);
   assert.match(mf.get("src/entry.tsx"), /createMemoryRouter/);
   assert.match(mf.get("src/entry.tsx"), /createRoutedMicrofrontend/);
   assert.match(mf.get("src/entry.tsx"), /RouterProvider/);
   assert.match(mf.get("src/entry.tsx"), /createRoot/);
-  assert.match(mf.get("src/entry.tsx"), /useAtlasSdk/);
+  assert.match(mf.get("src/entry.tsx"), /import \{ routes \} from "\.\/app\/app"/);
+  assert.doesNotMatch(mf.get("src/entry.tsx"), /useAtlasSdk|<Outlet|<Link|function Layout/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /"shell"/);

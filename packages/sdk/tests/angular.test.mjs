@@ -21,7 +21,8 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.match(host.get("src/bootstrap.ts"), /const hostData: AtlasHostData = \{ hostId: atlasConfig\.id, name: atlasConfig\.name \?\? atlasConfig\.id \}/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /projectId/);
-  assert.match(host.get("src/app.component.ts"), /data-atlas-host-status/);
+  assert.equal(host.has("src/app.component.ts"), false);
+  assert.match(host.get("src/app/app.component.ts"), /data-atlas-host-status/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
   assert.match(host.get("atlas.config.ts"), /catalogUrl/);
   assert.match(host.get("atlas.config.ts"), /waitForMfReady: true/);
@@ -35,9 +36,10 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(mf.get("federation.config.js"), /componentExposes/);
   assert.match(mf.get("federation.config.js"), /shared: \{\}/);
   assert.doesNotMatch(mf.get("federation.config.js"), /shareAll|singleton/);
-  assert.match(mf.get("src/app.component.ts"), /export class AppComponent/);
-  assert.match(mf.get("src/app.component.ts"), /export const routes: Routes/);
-  assert.match(mf.get("src/app.component.ts"), /router-outlet/);
+  assert.equal(mf.has("src/app.component.ts"), false);
+  assert.match(mf.get("src/app/app.component.ts"), /export class AppComponent/);
+  assert.match(mf.get("src/app/app.component.ts"), /export const routes: Routes/);
+  assert.match(mf.get("src/app/app.component.ts"), /router-outlet/);
   assert.match(mf.get("src/entry.ts"), /provideAtlasSdk/);
   assert.match(mf.get("src/entry.ts"), /import "zone\.js"/);
   assert.match(mf.get("src/entry.ts"), /context\.ready\(\)/);

@@ -8,6 +8,8 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
 
+const ATLAS_PACKAGE_RANGE = `^${JSON.parse(await readFile(new URL("../../generators/package.json", import.meta.url), "utf8")).version}`;
+
 test("atlas build emits a validated deployable manifest", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-build-"));
   const snapshot = join(directory, "registry.json");
@@ -387,7 +389,8 @@ exit 1
   assert.equal(project.marker, "nx-generator");
   assert.match(await readFile(join(root, "products/shell/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
   assert.match(await readFile(join(root, "products/shell/src/bootstrap.ts"), "utf8"), /startHost/);
-  assert.match(await readFile(join(root, "products/shell/src/app.component.ts"), "utf8"), /data-atlas-host-status/);
+  await assert.rejects(access(join(root, "products/shell/src/app.component.ts")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "products/shell/src/app/app.component.ts"), "utf8"), /data-atlas-host-status/);
   assert.match(await readFile(join(root, "products/shell/src/index.html"), "utf8"), /<atlas-host-root><\/atlas-host-root>/);
   assert.equal(await readFile(join(root, "products/shell/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(await readFile(join(root, "products/shell/jest.config.ts"), "utf8"), "nx jest\n");
@@ -402,9 +405,9 @@ exit 1
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
   await assert.rejects(access(join(root, "products/shell/public/atlas.runtime.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/schema"], "^0.2.18");
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.18");
-  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.18");
+  assert.equal(rootPackage.dependencies["@atlas/schema"], ATLAS_PACKAGE_RANGE);
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], ATLAS_PACKAGE_RANGE);
+  assert.equal(rootPackage.dependencies["@atlas/sdk"], ATLAS_PACKAGE_RANGE);
   assert.equal(rootPackage.dependencies["@angular/core"], "~20.3.0");
   assert.equal(rootPackage.dependencies["@angular/animations"], "~20.3.0");
   assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^20.0.0");
@@ -461,7 +464,7 @@ exit 1
   assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "react"/);
   await assert.rejects(access(join(root, "apps/shell/package.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.18");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], ATLAS_PACKAGE_RANGE);
   assert.equal(rootPackage.dependencies.react, "^19.2.0");
   assert.equal(rootPackage.dependencies["react-dom"], "^19.2.0");
   assert.equal(rootPackage.devDependencies["@nx/react"], "22.0.0");
@@ -504,8 +507,9 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineMicrofrontend/);
   assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(AppComponent/);
   assert.doesNotMatch(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /@Component|router-outlet/);
-  assert.match(await readFile(join(root, "orders/src/app.component.ts"), "utf8"), /export const routes: Routes/);
-  assert.match(await readFile(join(root, "orders/src/app.component.ts"), "utf8"), /router-outlet/);
+  await assert.rejects(access(join(root, "orders/src/app.component.ts")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "orders/src/app/app.component.ts"), "utf8"), /export const routes: Routes/);
+  assert.match(await readFile(join(root, "orders/src/app/app.component.ts"), "utf8"), /router-outlet/);
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas microfrontend assets/);
   assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
@@ -549,6 +553,10 @@ exit 1
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /createRoutedMicrofrontend/);
+  assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /import \{ routes \} from "\.\/app\/app"/);
+  assert.doesNotMatch(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /useAtlasSdk|<Outlet|<Link|function Layout/);
+  assert.match(await readFile(join(root, "orders/src/app/app.tsx"), "utf8"), /export const routes: RouteObject\[\]/);
+  assert.match(await readFile(join(root, "orders/src/app/app.tsx"), "utf8"), /useAtlasSdk/);
   assert.match(await readFile(join(root, "orders/vite.config.ts"), "utf8"), /remoteEntry\.json/);
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
@@ -590,8 +598,8 @@ exit 1
   const projectPackage = JSON.parse(await readFile(join(root, "packages/orders/package.json"), "utf8"));
   assert.equal(rootPackage.dependencies?.["@atlas/sdk"], undefined);
   assert.equal(projectPackage.dependencies.react, "^17.0.2");
-  assert.equal(projectPackage.dependencies["@atlas/schema"], "^0.2.18");
-  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.18");
+  assert.equal(projectPackage.dependencies["@atlas/schema"], ATLAS_PACKAGE_RANGE);
+  assert.equal(projectPackage.dependencies["@atlas/sdk"], ATLAS_PACKAGE_RANGE);
   assert.equal(projectPackage.dependencies["@softarc/native-federation-runtime"], "^3.5.5");
   assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
   assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");

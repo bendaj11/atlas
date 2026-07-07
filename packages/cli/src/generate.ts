@@ -220,7 +220,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     ...ATLAS_INTEGRATION_FILES,
     "src/index.html",
     "src/styles.css",
-    "src/app.component.ts",
+    "src/app/app.component.ts",
     "src/main.ts",
     "src/bootstrap.ts"
   ]),
@@ -239,7 +239,7 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/styles.css",
     "src/assets/.gitkeep",
     "src/main.ts",
-    "src/app.component.ts",
+    "src/app/app.component.ts",
     "src/entry.ts",
     "src/exported-components/README.md"
   ]),
@@ -248,6 +248,7 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "vite.config.ts",
     "index.html",
     "src/styles.css",
+    "src/app/app.tsx",
     "src/entry.tsx",
     "src/exported-components/README.md"
   ])

@@ -1,6 +1,6 @@
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../..");
 const artifacts = join(root, "tests/e2e/.artifacts");
@@ -125,7 +125,10 @@ async function addBrokenRoute(hostId) {
 
 async function run(command, args, environment = {}) {
   await new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { cwd: root, env: { ...process.env, ...environment }, stdio: "inherit" });
+    const binPath = join(root, "node_modules/.bin");
+    const path = [binPath, process.env.PATH].filter(Boolean).join(delimiter);
+    const env = { ...process.env, NG_BUILD_MAX_WORKERS: "1", PATH: path, ...environment };
+    const child = spawn(command, args, { cwd: root, env, stdio: "inherit" });
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`${command} ${args.join(" ")} exited with code ${code}.`)));
   });

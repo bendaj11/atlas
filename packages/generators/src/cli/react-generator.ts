@@ -31,6 +31,7 @@ export function generateReactMicrofrontendFiles(options: AtlasGeneratorOptions):
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },
     { path: "index.html", contents: reactIndex(`${title(name)} assets`) },
     { path: "src/styles.css", contents: "" },
+    { path: "src/app/app.tsx", contents: reactMicrofrontendApp(name) },
     { path: "src/entry.tsx", contents: reactMicrofrontendEntry(name, profile) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.tsx\`; Atlas exposes it automatically through Native Federation. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
   ];
@@ -120,7 +121,51 @@ function reactMicrofrontendEntry(name: string, profile: ReactVersionProfile): st
   const root = profile.major === 17
     ? 'import type { ReactNode } from "react";\nimport { render, unmountComponentAtNode } from "react-dom";\n\nfunction createRoot(container: Element) {\n  return { render(element: ReactNode) { render(element, container); }, unmount() { unmountComponentAtNode(container); } };\n}'
     : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, Link, Outlet, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend, useAtlasSdk } from "@atlas/sdk/react";\nimport "./styles.css";\n\nif (import.meta.hot) await import("@vitejs/plugin-react/preamble");\n\nfunction Layout() { const atlas = useAtlasSdk(); return <section><h1>${title(name)}</h1><button type="button" onClick={() => atlas.toast.open({ title: "${title(name)} is ready" })}>Show toast</button><nav><Link to="/">Home</Link> <Link to="details/42">Details</Link></nav><Outlet /></section>; }\nfunction Home() { return <p>${title(name)} home</p>; }\nfunction Details() { return <p>Routed details page</p>; }\nconst routes = [{ path: "/", Component: Layout, children: [{ index: true, Component: Home }, { path: "details/:id", Component: Details }] }];\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/app";\n\nif (import.meta.hot) await import("@vitejs/plugin-react/preamble");\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+}
+
+function reactMicrofrontendApp(name: string): string {
+  return `import { Link, Outlet, type RouteObject } from "react-router-dom";
+import { useAtlasSdk } from "@atlas/sdk/react";
+import "../styles.css";
+
+function Layout() {
+  const atlas = useAtlasSdk();
+
+  return (
+    <section>
+      <h1>${title(name)}</h1>
+      <button type="button" onClick={() => atlas.toast.open({ title: "${title(name)} is ready" })}>
+        Show toast
+      </button>
+      <nav>
+        <Link to="/">Home</Link>
+        <Link to="details/42">Details</Link>
+      </nav>
+      <Outlet />
+    </section>
+  );
+}
+
+function Home() {
+  return <p>${title(name)} home</p>;
+}
+
+function Details() {
+  return <p>Routed details page</p>;
+}
+
+export const routes: RouteObject[] = [
+  {
+    path: "/",
+    Component: Layout,
+    children: [
+      { index: true, Component: Home },
+      { path: "details/:id", Component: Details }
+    ]
+  }
+];
+`;
 }
 
 function remoteName(name: string): string {

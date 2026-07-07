@@ -15,7 +15,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
     { path: "src/styles.css", contents: atlasHostStyles() },
-    { path: "src/app.component.ts", contents: angularHostComponent() },
+    { path: "src/app/app.component.ts", contents: angularHostComponent() },
     { path: "src/main.ts", contents: angularHostMain() },
     { path: "src/bootstrap.ts", contents: angularHostBootstrap() }
   ];
@@ -36,7 +36,7 @@ export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions
     { path: "src/styles.css", contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
-    { path: "src/app.component.ts", contents: angularMicrofrontendComponent(name) },
+    { path: "src/app/app.component.ts", contents: angularMicrofrontendComponent(name) },
     { path: "src/entry.ts", contents: angularMicrofrontendEntry(name) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
   ];
@@ -137,7 +137,7 @@ function angularHostMain(): string {
 }
 
 function angularHostBootstrap(): string {
-  return `import { Location } from "@angular/common";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, Router } from "@angular/router";\nimport { initFederation, loadRemoteModule } from "@angular-architects/native-federation";\nimport { startHost } from "@atlas/runtime/angular";\nimport { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";\nimport atlasConfig from "../atlas.config";\nimport { AppComponent, AtlasRouterAnchorComponent } from "./app.component";\n\nexport async function bootstrap(): Promise<void> {\n  const app = await bootstrapApplication(AppComponent, { providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])] });\n  const hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };\n  await startHost({\n    router: app.injector.get(Router),\n    location: app.injector.get(Location),\n    federation: { initFederation, loadRemoteModule },\n    showToast: (toast) => console.info("[Atlas toast]", toast.title),\n    getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }),\n    hostData,\n    httpClient: createFetchAtlasHttpClient(fetch)\n  });\n}\n`;
+  return `import { Location } from "@angular/common";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, Router } from "@angular/router";\nimport { initFederation, loadRemoteModule } from "@angular-architects/native-federation";\nimport { startHost } from "@atlas/runtime/angular";\nimport { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";\nimport atlasConfig from "../atlas.config";\nimport { AppComponent, AtlasRouterAnchorComponent } from "./app/app.component";\n\nexport async function bootstrap(): Promise<void> {\n  const app = await bootstrapApplication(AppComponent, { providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])] });\n  const hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };\n  await startHost({\n    router: app.injector.get(Router),\n    location: app.injector.get(Location),\n    federation: { initFederation, loadRemoteModule },\n    showToast: (toast) => console.info("[Atlas toast]", toast.title),\n    getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }),\n    hostData,\n    httpClient: createFetchAtlasHttpClient(fetch)\n  });\n}\n`;
 }
 
 function angularMicrofrontendEntry(name: string): string {
@@ -147,7 +147,7 @@ import { LocationStrategy } from "@angular/common";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter } from "@angular/router";
 import { createLocationStrategy, defineMicrofrontend, provideAtlasSdk } from "@atlas/sdk/angular";
-import { AppComponent, routes } from "./app.component";
+import { AppComponent, routes } from "./app/app.component";
 
 export default defineMicrofrontend(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
