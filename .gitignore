@@ -19,6 +19,7 @@ tests/e2e/.artifacts
 .env.*
 !.env.example
 atlas.local-overrides.json
+atlas.runtime.json
 atlas.config.js
 atlas.config.d.ts
 .atlas

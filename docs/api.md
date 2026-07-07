@@ -64,9 +64,11 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 
 | API | Purpose |
 | --- | --- |
-| `AtlasSdk<TExtensions, TEvents>` | Core host capabilities plus typed host extensions |
-| `AtlasSdkOptions` | Providers supplied while starting a host |
+| `AtlasHostData` | Base host metadata: `hostId` and `name` |
+| `AtlasSdk<TExtensions, TEvents, THostData>` | Core host capabilities plus typed host extensions and typed host data |
+| `AtlasSdkOptions<TExtensions, TEvents, THostData>` | Providers supplied while starting a host |
 | `createAtlasSdk()` | Create the host-owned SDK instance |
+| `AtlasHttpClient` | Fetch-compatible core HTTP client supplied by the host |
 | `AtlasEventBus<TEvents>` | Typed in-memory communication between mounted MFs |
 | `createAtlasEventBus()` | Create a host-scoped event bus |
 | `AtlasModalRequest` | Host-rendered modal request with native or widget content |
@@ -131,7 +133,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 
 | API | Purpose |
 | --- | --- |
-| `injectAtlasSdk<TExtensions>()` | Read the typed SDK from Angular injection |
+| `injectAtlasSdk<TExtensions, TEvents, THostData>()` | Read the typed SDK from Angular injection |
 | `provideAtlasSdk()` | Register the host-provided SDK during MF mount |
 | `defineMicrofrontend()` | Expose an Angular MF lifecycle entry |
 | `defineExportedComponent()` | Expose an Angular widget lifecycle entry |
@@ -150,7 +152,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 
 | API | Purpose |
 | --- | --- |
-| `useAtlasSdk<TExtensions>()` | Read the typed SDK from React context |
+| `useAtlasSdk<TExtensions, TEvents, THostData>()` | Read the typed SDK from React context |
 | `defineMicrofrontend()` | Expose a router-free React MF lifecycle entry |
 | `createRoutedMicrofrontend()` | Expose a React Router MF lifecycle entry |
 | `defineExportedComponent()` | Expose a React widget lifecycle entry |

@@ -19,10 +19,12 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/main.ts"), /initFederation/);
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
   assert.match(host.get("src/app.component.ts"), /data-atlas-host-status/);
-  assert.match(host.get("public/atlas.runtime.json"), /"catalogUrl"/);
-  assert.match(host.get("public/atlas.runtime.json"), /"waitForMfReady": true/);
-  assert.match(host.get("public/atlas.runtime.json"), /"loadingIndicator": "spinner"/);
-  assert.match(host.get("public/atlas.runtime.json"), /"retryAttempts": 2/);
+  assert.equal(host.has("public/atlas.runtime.json"), false);
+  assert.match(host.get("atlas.config.ts"), /catalogUrl/);
+  assert.match(host.get("atlas.config.ts"), /waitForMfReady: true/);
+  assert.match(host.get("atlas.config.ts"), /loadingIndicator: "spinner"/);
+  assert.match(host.get("atlas.config.ts"), /retryAttempts: 2/);
+  assert.match(host.get("package.json"), /atlas runtime-config shell/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /localhost:4300/);
   assert.match(host.get("angular.json"), /"input": "public"/);
   assert.match(mf.get("package.json"), /"atlas:config"/);

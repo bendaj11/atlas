@@ -13,13 +13,16 @@ test("event bus publishes across MFs and supports unsubscribe", () => {
   assert.deepEqual(received, [{ orderId: "42" }]);
 });
 
-test("host extensions expose typed hostData and httpClient without wrapping the provider", async () => {
+test("core SDK exposes typed hostData and httpClient without extensions", async () => {
   const httpClient = async (url) => ({ url });
   const sdk = createAtlasSdk({
     hostId: "shell",
     navigation: createMemoryNavigation(),
-    extensions: { hostData: { projectId: "project-42" }, httpClient }
+    hostData: { name: "Shell", projectId: "project-42" },
+    httpClient
   });
+  assert.equal(sdk.hostData.hostId, "shell");
+  assert.equal(sdk.hostData.name, "Shell");
   assert.equal(sdk.hostData.projectId, "project-42");
   assert.deepEqual(await sdk.httpClient("/orders"), { url: "/orders" });
 });

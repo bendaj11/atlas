@@ -139,6 +139,8 @@ export interface AtlasConfig {
   /** Widget references consumed by this MF. Atlas resolves their owner MFs into the host catalog. */
   uses?: string[];
   catalogUrl?: string;
+  /** Host-only runtime defaults. Atlas turns this into atlas.runtime.json for deployment/runtime loading. */
+  runtime?: Partial<Omit<AtlasHostRuntimeConfig, "schemaVersion" | "hostId">>;
   requiredHostSdkVersion?: string;
 }
 

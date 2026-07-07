@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "atlas runtime-config demo-react-host && vite --host 0.0.0.0",
     "atlas:config": "tsc -p tsconfig.atlas.json",
-    "build": "tsc -p tsconfig.atlas.json && tsc -b && vite build"
+    "build": "atlas runtime-config demo-react-host && tsc -b && vite build"
   },
   "dependencies": {
     "@atlas/contracts": "*",

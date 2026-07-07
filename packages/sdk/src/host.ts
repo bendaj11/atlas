@@ -62,9 +62,17 @@ export interface AtlasEventBus<TEvents extends object = AtlasEventMap> {
   once<TKey extends keyof TEvents & string>(type: TKey, listener: (payload: TEvents[TKey]) => void): () => void;
 }
 
-/** Stable capabilities every host exposes to every mounted MF and widget. */
-export interface AtlasCoreSdk<TEvents extends object = AtlasEventMap> {
+export type AtlasHttpClient = typeof fetch;
+
+export interface AtlasHostData {
   readonly hostId: string;
+  readonly name: string;
+}
+
+/** Stable capabilities every host exposes to every mounted MF and widget. */
+export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends object = AtlasEventMap> {
+  readonly hostId: string;
+  readonly hostData: AtlasHostData & Readonly<THostData>;
   readonly user: {
     getCurrentUser(): Promise<AtlasUser | undefined>;
   };
@@ -82,17 +90,26 @@ export interface AtlasCoreSdk<TEvents extends object = AtlasEventMap> {
   readonly config: {
     get<TValue = unknown>(key: string): TValue | undefined;
   };
+  readonly httpClient: AtlasHttpClient;
 }
 
 /** Core Atlas capabilities combined with host-specific, consumer-typed extensions. */
-export type AtlasSdk<TExtensions extends object = {}, TEvents extends object = AtlasEventMap> =
-  AtlasCoreSdk<TEvents> & Readonly<TExtensions>;
+export type AtlasSdk<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+> = AtlasCoreSdk<THostData, TEvents> & Readonly<TExtensions>;
 
 /** @deprecated Use AtlasSdk. */
 export type AtlasHostSdk<TEvents extends object = AtlasEventMap> = AtlasSdk<{}, TEvents>;
 
-export interface AtlasSdkOptions<TExtensions extends object = {}, TEvents extends object = AtlasEventMap> {
+export interface AtlasSdkOptions<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+> {
   hostId: string;
+  hostData?: THostData & Partial<AtlasHostData>;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
   getCurrentUser?: () => Promise<AtlasUser | undefined>;
@@ -100,6 +117,7 @@ export interface AtlasSdkOptions<TExtensions extends object = {}, TEvents extend
   openModal?: <TResult = unknown>(request: AtlasModalRequest<TResult>, content?: AtlasOverlayContentMount) => Promise<TResult | undefined>;
   openPopup?: (request: AtlasPopupRequest, content?: AtlasOverlayContentMount) => AtlasPopupRef;
   getConfig?: <TValue = unknown>(key: string) => TValue | undefined;
+  httpClient?: AtlasHttpClient;
   extensions?: TExtensions;
 }
 
@@ -113,11 +131,21 @@ export interface AtlasSlotRenderRequest {
 }
 
 /** Creates the single host-owned SDK instance shared with mounted MFs and widgets. */
-export function createAtlasSdk<TExtensions extends object = {}, TEvents extends object = AtlasEventMap>(
-  options: AtlasSdkOptions<TExtensions, TEvents>
-): AtlasSdk<TExtensions, TEvents> {
-  const core: AtlasCoreSdk<TEvents> = {
+export function createAtlasSdk<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+>(
+  options: AtlasSdkOptions<TExtensions, TEvents, THostData>
+): AtlasSdk<TExtensions, TEvents, THostData> {
+  const hostData = {
+    ...(options.hostData ?? {}),
     hostId: options.hostId,
+    name: options.hostData?.name ?? options.hostId
+  } as AtlasHostData & Readonly<THostData>;
+  const core: AtlasCoreSdk<THostData, TEvents> = {
+    hostId: options.hostId,
+    hostData,
     user: {
       getCurrentUser: options.getCurrentUser ?? (async () => undefined)
     },
@@ -136,10 +164,11 @@ export function createAtlasSdk<TExtensions extends object = {}, TEvents extends 
     },
     config: {
       get: options.getConfig ?? (() => undefined)
-    }
+    },
+    httpClient: options.httpClient ?? defaultHttpClient
   };
   assertExtensionsDoNotReplaceCore(options.extensions, core);
-  return Object.assign(core, options.extensions ?? {}) as AtlasSdk<TExtensions, TEvents>;
+  return Object.assign(core, options.extensions ?? {}) as AtlasSdk<TExtensions, TEvents, THostData>;
 }
 
 /** @deprecated Use createAtlasSdk. */
@@ -181,6 +210,13 @@ export function createAtlasEventBus<TEvents extends object = AtlasEventMap>(): A
     }
   };
 }
+
+const defaultHttpClient: AtlasHttpClient = (input, init) => {
+  if (typeof globalThis.fetch !== "function") {
+    throw new Error("This Atlas host has not configured an HTTP client.");
+  }
+  return globalThis.fetch(input, init);
+};
 
 export function findManifestsForSlot(manifests: AtlasManifest[], hostId: string, slot: string): AtlasManifest[] {
   return manifests.filter((manifest) =>

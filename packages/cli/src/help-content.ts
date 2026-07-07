@@ -17,6 +17,7 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "generate, g", description: "Generate a host, microfrontend, or exported widget" },
   { label: "dev", description: "Run a microfrontend locally inside an Atlas host" },
   { label: "build", description: "Build a microfrontend for static deployment" },
+  { label: "runtime-config", description: "Generate atlas.runtime.json from atlas.config.ts" },
   { label: "rollback", description: "Prepare a previous microfrontend version for deployment" },
   { label: "verify", description: "Verify a deployed Atlas host and its assets" }
 ];
@@ -25,6 +26,7 @@ export const ROOT_EXAMPLES = [
   "atlas g host customer-shell",
   "atlas g app orders",
   "atlas dev orders --host customer-shell",
+  "atlas runtime-config customer-shell",
   "atlas build orders"
 ] as const;
 
@@ -97,6 +99,20 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     examples: [
       "atlas build orders --registry-base-url https://cdn.example.com/atlas",
       "ATLAS_VERSION=1.4.0 atlas build orders --registry-base-url https://cdn.example.com/atlas"
+    ]
+  },
+  "runtime-config": {
+    summary: "Generate a host atlas.runtime.json from atlas.config.ts.",
+    usage: "atlas runtime-config <host> [options]",
+    arguments: [{ label: "host", description: "Atlas host project name or directory; prompted when omitted" }],
+    options: [
+      { label: "--out <path>", description: "Runtime JSON output path (default: <host>/public/atlas.runtime.json)" },
+      { label: "--skip-compile", description: "Read an existing compiled atlas.config.js" },
+      { label: "-h, --help", description: "Show help for this command" }
+    ],
+    examples: [
+      "atlas runtime-config customer-shell",
+      "atlas runtime-config customer-shell --out dist/customer-shell/atlas.runtime.json"
     ]
   },
   rollback: {

@@ -4,7 +4,7 @@ This guide describes the Angular production path from source code to a remote mo
 
 ## Runtime Configuration
 
-An Angular host serves `public/atlas.runtime.json` as a static file:
+An Angular host serves generated `public/atlas.runtime.json` as a static file:
 
 ```json
 {
@@ -21,7 +21,15 @@ An Angular host serves `public/atlas.runtime.json` as a static file:
 The catalog origin is trusted automatically. Add `allowedRemoteOrigins` only
 when executable MF assets are served from another origin. See [Security](security.md).
 
-The file is outside the compiled JavaScript bundle. Deployment tooling can replace it per environment without rebuilding the host. It contains no MF URLs; the static catalog resolves MF ids to one version each. See [Static Registry](registry.md).
+Generate it from the host's `atlas.config.ts` runtime block:
+
+```sh
+atlas runtime-config customer-shell
+```
+
+The file is outside the compiled JavaScript bundle. Deployment tooling can
+replace it per environment without rebuilding the host. It contains no MF URLs;
+the static catalog resolves MF ids to one version each. See [Static Registry](registry.md).
 
 ## Build And Upload Flow
 

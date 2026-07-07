@@ -204,8 +204,7 @@ function generatedOverlay(files: AtlasGeneratedFile[], workspaceScaffolded: bool
 const ATLAS_INTEGRATION_FILES = new Set([
   "atlas.config.ts",
   "tsconfig.atlas.json",
-  "federation.config.js",
-  "public/atlas.runtime.json"
+  "federation.config.js"
 ]);
 
 async function existingPackageName(root: string): Promise<string | undefined> {

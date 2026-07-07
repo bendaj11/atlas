@@ -25,31 +25,35 @@ Creates the object passed from host to MF.
 ```ts
 const sdk = createAtlasSdk({
   hostId: "shell",
+  hostData: { name: "Customer Shell", projectId: "project-42" },
   navigation,
   getCurrentUser: async () => user,
   openToast: (toast) => showToast(toast),
   openModal: (modal) => showModal(modal),
   openPopup: (popup) => showPopup(popup),
-  extensions: {
-    hostData: { projectId: "project-42" },
-    httpClient: authenticatedApiClient
-  }
+  httpClient: authenticatedHttpClient
 });
 ```
 
-Atlas does not wrap HTTP. `httpClient` is the exact provider selected and configured by the host. Consumers choose its type:
+`hostData` always includes `hostId` and `name`. Hosts can add typed product
+fields, and Atlas exposes the merged shape as `AtlasHostData & THostData`.
+`httpClient` is a core host API; if omitted, Atlas uses `globalThis.fetch`.
 
 ```ts
-interface SystemExtensions {
-  hostData: { projectId: string };
-  httpClient: SystemApiClient;
+import type { AtlasEventMap } from "@atlas/sdk";
+
+interface SystemHostData {
+  projectId: string;
 }
 
-const atlas = useAtlasSdk<SystemExtensions>();
-await atlas.httpClient.projects.get(atlas.hostData.projectId);
+const atlas = useAtlasSdk<{}, AtlasEventMap, SystemHostData>();
+await atlas.httpClient(`/api/projects/${atlas.hostData.projectId}`);
 ```
 
-Angular MFs use `injectAtlasSdk<SystemExtensions>()`; generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
+Angular MFs use `injectAtlasSdk<{}, AtlasEventMap, SystemHostData>()`;
+generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
+Use `extensions` only for additional host-specific APIs that are not part of
+Atlas core.
 
 The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`. `context.components` remains a deprecated compatibility alias.
 

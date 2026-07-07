@@ -19,6 +19,11 @@ export function atlasConfig(options: AtlasGeneratorOptions, host: boolean): stri
   return `import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : `,\n  ${applicationConfig}`}\n} satisfies AtlasConfig;\n`;
 }
 
+export function atlasHostConfig(options: AtlasGeneratorOptions): string {
+  const { name, framework } = options;
+  return `import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  runtime: {\n    catalogUrl: "http://localhost:4400/hosts/${name}/catalog.json",\n    requireIntegrity: true,\n    allowRuntimeOverrides: true,\n    requestTimeoutMs: 10000,\n    retryAttempts: 2,\n    retryDelayMs: 250,\n    loadTimeoutMs: 15000,\n    waitForMfReady: true,\n    loadingIndicator: "spinner"\n  }\n} satisfies AtlasConfig;\n`;
+}
+
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {
   if (options.framework !== "angular" && options.framework !== "react") {
     throw new Error(`Unsupported Atlas generator framework: ${options.framework}. Use angular or react.`);
@@ -45,10 +50,6 @@ export function json(value: unknown): string {
 
 export function atlasHostStyles(): string {
   return `body { margin: 0; font-family: system-ui, sans-serif; }\n[data-atlas-navigation] { display: flex; gap: 1rem; padding: 1rem; }\n[data-atlas-route-outlet] { padding: 1rem; }\n[data-atlas-status] { display: flex; align-items: center; gap: .75rem; padding: 1rem; border: 1px solid #b8bec7; }\n[data-atlas-spinner] { width: 1.25rem; height: 1.25rem; border: 2px solid #b8bec7; border-top-color: #2463eb; border-radius: 50%; animation: atlas-spin .7s linear infinite; }\n@keyframes atlas-spin { to { transform: rotate(360deg); } }\n@media (prefers-reduced-motion: reduce) { [data-atlas-spinner] { animation-duration: 1.5s; } }\n`;
-}
-
-export function runtimeConfig(hostId: string): unknown {
-  return { schemaVersion: "1", hostId, catalogUrl: `http://localhost:4400/hosts/${hostId}/catalog.json`, requireIntegrity: true, allowRuntimeOverrides: true, requestTimeoutMs: 10000, retryAttempts: 2, retryDelayMs: 250, loadTimeoutMs: 15000, waitForMfReady: true, loadingIndicator: "spinner" };
 }
 
 function microfrontendConfig(name: string, hostId: string): string {

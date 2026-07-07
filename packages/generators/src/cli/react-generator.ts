@@ -1,6 +1,6 @@
 import { reactVersionProfile, atlasPackageRange, type ReactVersionProfile } from "./generator-versions.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
-import { atlasConfig, atlasHostStyles, json, runtimeConfig, title } from "./common-generator.js";
+import { atlasConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 
 const REACT_COMPILER_VERSION = "1.0.0";
 
@@ -12,8 +12,7 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "tsconfig.atlas.json", contents: json(reactAtlasTsconfig()) },
     { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget) },
-    { path: "atlas.config.ts", contents: atlasConfig(options, true) },
-    { path: "public/atlas.runtime.json", contents: json(runtimeConfig(name)) },
+    { path: "atlas.config.ts", contents: atlasHostConfig(options) },
     { path: "public/remoteEntry.json", contents: json({ name: remoteName(name), exposes: [], shared: [] }) },
     { path: "index.html", contents: reactIndex("Atlas React Host") },
     { path: "src/styles.css", contents: atlasHostStyles() },
@@ -52,9 +51,9 @@ function reactPackage(options: ReactPackageOptions): unknown {
     private: true,
     type: "module",
     scripts: {
-      dev: "vite --host 0.0.0.0",
+      dev: host ? `atlas runtime-config ${projectName} && vite --host 0.0.0.0` : "vite --host 0.0.0.0",
       "atlas:config": "tsc -p tsconfig.atlas.json",
-      build: "tsc -p tsconfig.atlas.json && tsc -b && vite build",
+      build: host ? `atlas runtime-config ${projectName} && tsc -b && vite build` : "tsc -p tsconfig.atlas.json && tsc -b && vite build",
       ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
     },
     dependencies: {
@@ -114,7 +113,7 @@ function reactHostMain(profile: ReactVersionProfile): string {
   const mount = profile.major === 17
     ? "render(<StrictMode><RouterProvider router={router} /></StrictMode>, root);\nif (import.meta.hot) import.meta.hot.dispose(() => unmountComponentAtNode(root));"
     : "const reactRoot = createRoot(root);\nflushSync(() => reactRoot.render(<StrictMode><RouterProvider router={router} /></StrictMode>));\nif (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());";
-  return `import "es-module-shims";\nimport { StrictMode } from "react";\n${rootImport}\nimport { createBrowserRouter, RouterProvider } from "react-router-dom";\nimport { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";\nimport { startHost } from "@atlas/runtime/react";\nimport "./styles.css";\n\nfunction Shell() { return <><div data-atlas-host-status /><header><strong>Atlas</strong><div data-atlas-slot="header" /></header><nav data-atlas-navigation aria-label="Application" /><main data-atlas-route-outlet /></>; }\nconst router = createBrowserRouter([{ path: "*", Component: Shell }]);\nconst root = document.getElementById("root");\nif (!root) throw new Error("Atlas React host root was not found.");\n${mount}\nvoid startHost({ router, federation: { initFederation, loadRemoteModule }, openToast: (toast) => console.info("[Atlas toast]", toast.title), getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }), extensions: { hostData: { projectId: "local-project" }, httpClient: fetch } }).catch((error) => console.error("Atlas host failed to start", error));\n`;
+  return `import "es-module-shims";\nimport { StrictMode } from "react";\n${rootImport}\nimport { createBrowserRouter, RouterProvider } from "react-router-dom";\nimport { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";\nimport { startHost } from "@atlas/runtime/react";\nimport "./styles.css";\n\nfunction Shell() { return <><div data-atlas-host-status /><header><strong>Atlas</strong><div data-atlas-slot="header" /></header><nav data-atlas-navigation aria-label="Application" /><main data-atlas-route-outlet /></>; }\nconst router = createBrowserRouter([{ path: "*", Component: Shell }]);\nconst root = document.getElementById("root");\nif (!root) throw new Error("Atlas React host root was not found.");\n${mount}\nvoid startHost({ router, federation: { initFederation, loadRemoteModule }, openToast: (toast) => console.info("[Atlas toast]", toast.title), getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }), hostData: { projectId: "local-project" }, httpClient: fetch }).catch((error) => console.error("Atlas host failed to start", error));\n`;
 }
 
 function reactMicrofrontendEntry(name: string, profile: ReactVersionProfile): string {

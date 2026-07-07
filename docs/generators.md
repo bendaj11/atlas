@@ -127,7 +127,7 @@ Angular generation includes:
 - Native Federation's required `es-module-shims` bootstrap
 - two-stage `main.ts` and `bootstrap.ts` initialization
 - catalog-driven dynamic remote initialization
-- external `public/atlas.runtime.json` production configuration
+- generated external `public/atlas.runtime.json` production runtime artifact
 - catalog-driven route and slot lifecycle with loading/error state attributes
 - standalone Angular components and deterministic teardown
 - `injectAtlasSdk()` and generated `provideAtlasSdk()` wiring

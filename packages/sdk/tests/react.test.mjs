@@ -16,8 +16,11 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(host.get("vite.config.ts"), /target: "19"/);
   assert.match(host.get("index.html"), /"shimMode": true/);
-  assert.match(host.get("public/atlas.runtime.json"), /"waitForMfReady": true/);
-  assert.match(host.get("public/atlas.runtime.json"), /"retryAttempts": 2/);
+  assert.equal(host.has("public/atlas.runtime.json"), false);
+  assert.match(host.get("atlas.config.ts"), /runtime:/);
+  assert.match(host.get("atlas.config.ts"), /waitForMfReady: true/);
+  assert.match(host.get("atlas.config.ts"), /retryAttempts: 2/);
+  assert.match(host.get("package.json"), /atlas runtime-config shell/);
   assert.match(mf.get("vite.config.ts"), /remoteEntry\.json/);
   assert.match(mf.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(mf.get("vite.config.ts"), /components\/\$\{id\}/);

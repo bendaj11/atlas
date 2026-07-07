@@ -1,6 +1,6 @@
 import { inject, InjectionToken, type Provider } from "@angular/core";
 import type { AtlasExportedComponentEntry, AtlasExportedComponentMountRequest, AtlasMfContext, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
-import type { AtlasSdk as AtlasSdkValue } from "./host.js";
+import type { AtlasEventMap, AtlasSdk as AtlasSdkValue } from "./host.js";
 import type { AtlasLocation, AtlasNavigation } from "./navigation.js";
 
 export interface MicrofrontendBootstrap {
@@ -9,14 +9,26 @@ export interface MicrofrontendBootstrap {
 
 const ATLAS_SDK = new InjectionToken<AtlasSdkValue>("AtlasSdk");
 
-export type AtlasSdk<TExtensions extends object = {}> = AtlasSdkValue<TExtensions>;
+export type AtlasSdk<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+> = AtlasSdkValue<TExtensions, TEvents, THostData>;
 
-export function provideAtlasSdk<TExtensions extends object>(sdk: AtlasSdk<TExtensions>): Provider {
+export function provideAtlasSdk<
+  TExtensions extends object,
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+>(sdk: AtlasSdk<TExtensions, TEvents, THostData>): Provider {
   return { provide: ATLAS_SDK, useValue: sdk };
 }
 
-export function injectAtlasSdk<TExtensions extends object = {}>(): AtlasSdk<TExtensions> {
-  return inject(ATLAS_SDK) as AtlasSdk<TExtensions>;
+export function injectAtlasSdk<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+>(): AtlasSdk<TExtensions, TEvents, THostData> {
+  return inject(ATLAS_SDK) as AtlasSdk<TExtensions, TEvents, THostData>;
 }
 
 export function defineMicrofrontend(bootstrap: MicrofrontendBootstrap): AtlasMfEntry {

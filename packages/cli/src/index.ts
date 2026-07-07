@@ -7,6 +7,7 @@ import { AtlasDevService } from "./dev.js";
 import { AtlasGenerateService } from "./generate.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasRollbackService } from "./rollback.js";
+import { AtlasRuntimeConfigService } from "./runtime-config.js";
 import { AtlasVerifyService, type AtlasVerificationCheck } from "./verify.js";
 import { resolveInvocation } from "./interaction.js";
 import { TerminalPrompter, ui, type AtlasPrompter } from "./ui.js";
@@ -71,6 +72,13 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       const result = await new AtlasRollbackService(args).run(invocation.subcommand, invocation.version);
       ui.success(`Selected ${invocation.subcommand}@${result.version} (${result.buildId}).`);
       ui.info(`Upload ${result.output} with your CI storage tooling.`);
+      return;
+    }
+
+    if (invocation.command === "runtime-config" && invocation.subcommand) {
+      ui.heading(`Generating runtime config for ${invocation.subcommand}`);
+      const result = await new AtlasRuntimeConfigService(workspace, args, builds).generate(invocation.subcommand);
+      ui.success(`Wrote ${result.path}.`);
       return;
     }
 

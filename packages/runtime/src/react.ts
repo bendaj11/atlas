@@ -1,11 +1,11 @@
 import type { AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/contracts";
-import { createAtlasSdk, type AtlasSdkOptions } from "@atlas/sdk";
+import { createAtlasSdk, type AtlasEventMap, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type RouterLike } from "@atlas/sdk/react";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
-export interface HostOptions<TExtensions extends object = {}> extends Omit<AtlasSdkOptions<TExtensions>, "hostId" | "navigation"> {
+export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation"> {
   router: RouterLike;
   federation: AtlasFederationAdapter;
   runtimeConfig?: AtlasHostRuntimeConfig;
@@ -23,7 +23,7 @@ export interface HostOptions<TExtensions extends object = {}> extends Omit<Atlas
 }
 
 /** Boots Atlas discovery, Native Federation, routing, slots, and lifecycle for a React host. */
-export async function startHost<TExtensions extends object = {}>(options: HostOptions<TExtensions>): Promise<AtlasHostRuntime> {
+export async function startHost<TExtensions extends object = {}, THostData extends object = {}>(options: HostOptions<TExtensions, THostData>): Promise<AtlasHostRuntime> {
   const startedAt = Date.now();
   emitRuntimeEvent(options.observe, { type: "host.start", timestamp: new Date().toISOString(), ...(options.runtimeConfig?.hostId ? { hostId: options.runtimeConfig.hostId } : {}) });
   const document = options.document ?? globalThis.document;
@@ -57,8 +57,8 @@ export async function startHost<TExtensions extends object = {}>(options: HostOp
   }
 }
 
-async function startHostRuntime<TExtensions extends object>(
-  options: HostOptions<TExtensions>,
+async function startHostRuntime<TExtensions extends object, THostData extends object>(
+  options: HostOptions<TExtensions, THostData>,
   document: Document,
   onInfrastructureReady: () => void
 ): Promise<AtlasHostRuntime> {
@@ -86,6 +86,7 @@ async function startHostRuntime<TExtensions extends object>(
   });
   const hostSdk = createAtlasSdk({
     hostId: config.hostId,
+    ...(options.hostData ? { hostData: options.hostData } : {}),
     navigation,
     ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     ...(options.getCurrentUser ? { getCurrentUser: options.getCurrentUser } : {}),
@@ -93,6 +94,7 @@ async function startHostRuntime<TExtensions extends object>(
     openModal: overlays.openModal,
     openPopup: overlays.openPopup,
     ...(options.getConfig ? { getConfig: options.getConfig } : {}),
+    ...(options.httpClient ? { httpClient: options.httpClient } : {}),
     ...(options.extensions ? { extensions: options.extensions } : {})
   });
   widgetLoader = createWidgetLoader(manifests, hostSdk, federation.importComponent);

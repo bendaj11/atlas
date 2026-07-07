@@ -1,5 +1,5 @@
 import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/contracts";
-import type { AtlasSdk } from "./host.js";
+import type { AtlasEventMap, AtlasSdk } from "./host.js";
 import type { AtlasRouteContext, AtlasScopedNavigation } from "./navigation.js";
 
 /** Runtime context scoped to one mounted MF and its assigned host route. */
@@ -19,11 +19,15 @@ export interface AtlasMfContext {
   ready(): void;
 }
 
-export interface AtlasMfMountRequest<TExtensions extends object = {}> {
+export interface AtlasMfMountRequest<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+> {
   container: HTMLElement;
-  sdk: AtlasSdk<TExtensions>;
+  sdk: AtlasSdk<TExtensions, TEvents, THostData>;
   /** @deprecated Use sdk. */
-  hostSdk: AtlasSdk<TExtensions>;
+  hostSdk: AtlasSdk<TExtensions, TEvents, THostData>;
   context: AtlasMfContext;
 }
 
@@ -32,19 +36,25 @@ export interface AtlasMfMountResult {
 }
 
 /** Framework-neutral lifecycle contract exposed by every MF remote entry. */
-export interface AtlasMfEntry<TExtensions extends object = {}> {
-  mount(request: AtlasMfMountRequest<TExtensions>): void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>;
+export interface AtlasMfEntry<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+> {
+  mount(request: AtlasMfMountRequest<TExtensions, TEvents, THostData>): void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>;
 }
 
 export interface AtlasExportedComponentMountRequest<
   TProps extends object = Record<string, unknown>,
-  TExtensions extends object = {}
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
 > {
   container: HTMLElement;
   props: TProps;
-  sdk: AtlasSdk<TExtensions>;
+  sdk: AtlasSdk<TExtensions, TEvents, THostData>;
   /** @deprecated Use sdk. */
-  hostSdk: AtlasSdk<TExtensions>;
+  hostSdk: AtlasSdk<TExtensions, TEvents, THostData>;
   component: AtlasExportedComponentManifest;
   ownerManifest: AtlasManifest;
 }

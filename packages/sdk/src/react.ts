@@ -1,6 +1,6 @@
 import { createContext, createElement as createReactElement, useContext, type ReactElement, type ReactNode } from "react";
 import type { AtlasExportedComponentEntry, AtlasExportedComponentMountRequest, AtlasMfContext, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
-import type { AtlasSdk } from "./host.js";
+import type { AtlasEventMap, AtlasSdk } from "./host.js";
 import type { AtlasLocation, AtlasNavigation } from "./navigation.js";
 
 export interface RootAdapter {
@@ -14,10 +14,14 @@ export function AtlasSdkProvider({ sdk, children }: { sdk: AtlasSdk; children: R
   return createReactElement(AtlasSdkContext.Provider, { value: sdk }, children);
 }
 
-export function useAtlasSdk<TExtensions extends object = {}>(): AtlasSdk<TExtensions> {
+export function useAtlasSdk<
+  TExtensions extends object = {},
+  TEvents extends object = AtlasEventMap,
+  THostData extends object = {}
+>(): AtlasSdk<TExtensions, TEvents, THostData> {
   const sdk = useContext(AtlasSdkContext);
   if (!sdk) throw new Error("useAtlasSdk must be used inside an Atlas microfrontend.");
-  return sdk as AtlasSdk<TExtensions>;
+  return sdk as AtlasSdk<TExtensions, TEvents, THostData>;
 }
 
 export interface MicrofrontendOptions {

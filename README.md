@@ -11,13 +11,41 @@ Atlas supports Angular and React hosts, microfrontends, and exported widgets.
 An Angular host can load React MFs and a React host can load Angular MFs. Vue is
 a future target and is not currently supported.
 
+## Documentation
+
+Start here:
+
+1. [Getting Started](docs/getting-started.md): choose the Angular or React path and see the full beginner flow.
+2. [Getting Started With Angular](docs/getting-started-angular.md): build an Angular host and Angular MF from install to production.
+3. [Getting Started With React](docs/getting-started-react.md): build a React host and React MF from install to production.
+4. [Core Concepts](docs/overview.md): learn the Atlas words: host, MF, catalog, manifest, placement, and SDK.
+5. [Architecture](docs/architecture.md): see how hosts, MFs, catalogs, SDK calls, and Native Federation work together.
+6. [SDK Guide](docs/sdk.md): wire typed host services such as user data, HTTP, events, navigation, modals, and toasts.
+7. [Routing](docs/routing.md): configure route placements, inner routing, navigation, and route ownership.
+8. [Assets and Styles](docs/assets-and-styles.md): publish CSS, images, and other assets without broken URLs.
+9. [Local Development](docs/local-development.md): run one local MF inside a real host using overrides.
+10. [Production Deployment](docs/production-deployment.md): build, upload, verify, and roll back MF releases.
+
+Reference and operations:
+
+- [Public API](docs/api.md): lookup for exported runtime functions and TypeScript types.
+- [Manifest Reference](docs/manifest.md): schema details for generated MF manifests.
+- [Generators](docs/generators.md): CLI prompts, flags, and generated file behavior.
+- [Exported Widgets](docs/exported-components.md): share independently deployed UI from one MF to another.
+- [Static Registry](docs/registry.md): catalog structure, immutable versions, and safe concurrent updates.
+- [Workspaces and Monorepos](docs/workspaces.md): Nx, Turborepo, pnpm, Yarn, and npm workspace setup.
+- [Security](docs/security.md): trust, integrity, allowed origins, and remote loading policy.
+- [Testing](docs/testing.md): test hosts, SDK capabilities, and MFs without deploying.
+- [Troubleshooting](docs/troubleshooting.md): diagnose generation, local dev, build, and runtime loading issues.
+- [Releasing Atlas Packages](docs/releasing.md): maintainers only; publish Atlas packages themselves.
+
 ## What Atlas Provides
 
 - Interactive generators for hosts, MFs, and exported widgets.
 - Dynamic discovery through static JSON catalogs, with no registry service.
 - Native Federation hidden behind framework adapters and generated wiring.
 - One selected runtime version per MF, plus PR and historical versions.
-- Local development inside the real host instead of a standalone MF shell.
+- Local development inside the real host instead of a standalone app.
 - Typed host capabilities for users, HTTP clients, events, navigation, overlays,
   configuration, and host-specific data.
 - Host-owned top-level routing with native Angular Router or React Router inside
@@ -39,7 +67,7 @@ flowchart LR
   SDK --> MF
 ```
 
-The **host** is the application shell. It owns the browser document, session,
+The **host** is the main application. It owns the browser document, session,
 top-level routes, slots, and visual providers such as modals and toasts.
 
 A **microfrontend (MF)** owns a feature. It is mounted by a host and is not a
@@ -57,17 +85,20 @@ Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, plus npm,
 pnpm, or Yarn. These ranges match the generated Vite 7 and Angular toolchains.
 
 ```sh
-# Choose one:
 npm install --global @atlas/cli
-pnpm add --global @atlas/cli
-yarn global add @atlas/cli
-
-atlas g host customer-shell --framework=react
-atlas g app orders --framework=angular
 ```
 
-For a private registry, configure the `@atlas` scope in your workspace-root or
-user-level `.npmrc` first: `@atlas:registry=https://registry.example.com`.
+Choose one same-framework path while learning:
+
+```sh
+# Angular
+atlas g host customer-host --framework=angular
+atlas g app orders --framework=angular
+
+# React
+atlas g host customer-host --framework=react
+atlas g app orders --framework=react
+```
 
 Commands are interactive when required values are omitted:
 
@@ -79,7 +110,7 @@ Run one MF locally inside an existing host:
 
 ```sh
 atlas dev orders \
-  --host=customer-shell \
+  --host=customer-host \
   --host-url=https://customer.example/orders
 ```
 
@@ -102,8 +133,8 @@ delivery policy before promoting it:
 atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
-Follow the complete [Getting Started guide](docs/getting-started.md) before
-building a real application.
+Follow the complete [Angular](docs/getting-started-angular.md) or
+[React](docs/getting-started-react.md) guide before building a real application.
 
 ## Developer Experience
 
@@ -123,16 +154,23 @@ An MF receives host services through one framework-native API:
 
 ```ts
 // React
-const atlas = useAtlasSdk<{ hostData: { projectId: string }; httpClient: ApiClient }>();
+import type { AtlasEventMap } from "@atlas/sdk";
+
+const atlas = useAtlasSdk<{}, AtlasEventMap, { projectId: string }>();
+await atlas.httpClient("/api/orders");
+atlas.hostData.projectId;
 ```
 
 ```ts
 // Angular
-const atlas = injectAtlasSdk<{ hostData: { projectId: string }; httpClient: ApiClient }>();
+import type { AtlasEventMap } from "@atlas/sdk";
+
+const atlas = injectAtlasSdk<{}, AtlasEventMap, { projectId: string }>();
+atlas.hostData.projectId;
 ```
 
 The host supplies the concrete `httpClient`, authentication behavior, modal
-framework, toast library, and extra typed data. Atlas does not wrap them.
+framework, toast library, and extra typed `hostData`. Atlas does not wrap them.
 
 ## Packages
 
@@ -144,32 +182,6 @@ framework, toast library, and extra typed data. Atlas does not wrap them.
 | `@atlas/cli` | Interactive generation, local development, and build preparation |
 | `@atlas/generators` | Generator implementation used by the CLI |
 | `@atlas/testkit` | Typed test fixtures and in-memory host utilities |
-
-## Documentation
-
-Start here:
-
-1. [Getting Started](docs/getting-started.md)
-2. [Core Concepts](docs/overview.md)
-3. [Architecture](docs/architecture.md)
-4. [SDK Guide](docs/sdk.md)
-5. [Routing](docs/routing.md)
-6. [Assets and Styles](docs/assets-and-styles.md)
-7. [Local Development](docs/local-development.md)
-8. [Production Deployment](docs/production-deployment.md)
-
-Reference and operations:
-
-- [Public API](docs/api.md)
-- [Manifest Reference](docs/manifest.md)
-- [Generators](docs/generators.md)
-- [Exported Widgets](docs/exported-components.md)
-- [Static Registry](docs/registry.md)
-- [Workspaces and Monorepos](docs/workspaces.md)
-- [Security](docs/security.md)
-- [Testing](docs/testing.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Releasing Atlas Packages](docs/releasing.md)
 
 ## Repository Development
 

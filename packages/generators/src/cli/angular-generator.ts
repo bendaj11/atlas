@@ -1,6 +1,6 @@
 import { angularVersionProfile, atlasPackageRange, type AngularVersionProfile } from "./generator-versions.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
-import { atlasConfig, atlasHostStyles, json, runtimeConfig, title } from "./common-generator.js";
+import { atlasConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 
 export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
   const { name } = options;
@@ -12,8 +12,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "tsconfig.atlas.json", contents: json(atlasConfigTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, true) },
-    { path: "atlas.config.ts", contents: atlasConfig(options, true) },
-    { path: "public/atlas.runtime.json", contents: json(runtimeConfig(name)) },
+    { path: "atlas.config.ts", contents: atlasHostConfig(options) },
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
     { path: "src/styles.css", contents: atlasHostStyles() },
     { path: "src/app.component.ts", contents: angularHostComponent() },
@@ -57,9 +56,9 @@ function angularPackage(options: AngularPackageOptions): unknown {
     version: "0.1.0",
     private: true,
     scripts: {
-      dev: `ng serve ${projectName}`,
+      dev: host ? `atlas runtime-config ${projectName} && ng serve ${projectName}` : `ng serve ${projectName}`,
       "atlas:config": "tsc -p tsconfig.atlas.json",
-      build: "tsc -p tsconfig.atlas.json && ng build",
+      build: host ? `atlas runtime-config ${projectName} && ng build` : "tsc -p tsconfig.atlas.json && ng build",
       ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
     },
     dependencies: {
@@ -137,7 +136,7 @@ function angularHostMain(): string {
 }
 
 function angularHostBootstrap(): string {
-  return `import { Location } from "@angular/common";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, Router } from "@angular/router";\nimport { initFederation, loadRemoteModule } from "@angular-architects/native-federation";\nimport { startHost } from "@atlas/runtime/angular";\nimport { AppComponent, AtlasRouterAnchorComponent } from "./app.component";\n\nexport async function bootstrap(): Promise<void> {\n  const app = await bootstrapApplication(AppComponent, { providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])] });\n  await startHost({\n    router: app.injector.get(Router),\n    location: app.injector.get(Location),\n    federation: { initFederation, loadRemoteModule },\n    openToast: (toast) => console.info("[Atlas toast]", toast.title),\n    getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }),\n    extensions: { hostData: { projectId: "local-project" }, httpClient: fetch }\n  });\n}\n`;
+  return `import { Location } from "@angular/common";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, Router } from "@angular/router";\nimport { initFederation, loadRemoteModule } from "@angular-architects/native-federation";\nimport { startHost } from "@atlas/runtime/angular";\nimport { AppComponent, AtlasRouterAnchorComponent } from "./app.component";\n\nexport async function bootstrap(): Promise<void> {\n  const app = await bootstrapApplication(AppComponent, { providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])] });\n  await startHost({\n    router: app.injector.get(Router),\n    location: app.injector.get(Location),\n    federation: { initFederation, loadRemoteModule },\n    openToast: (toast) => console.info("[Atlas toast]", toast.title),\n    getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }),\n    hostData: { projectId: "local-project" },\n    httpClient: fetch\n  });\n}\n`;
 }
 
 function angularMicrofrontendEntry(name: string): string {
