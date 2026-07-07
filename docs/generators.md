@@ -29,7 +29,7 @@ atlas g app products/orders --framework=react
 For example, running `atlas g host my-app` from `<workspace>/products` creates
 `<workspace>/products/my-app`.
 
-After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command and waits for it to finish. In Nx, installation runs at the workspace root because Nx projects share the root dependency graph and do not require project-local `package.json` or `node_modules`. Other project types install from the generated project. Advanced automation that installs dependencies separately can pass `--skip-install`.
+After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command and waits for it to finish. For delegated Nx generation, Atlas adds Atlas-specific dependencies to the package manifest that owns the generated project: the project `package.json` when the native Nx generator creates one, otherwise the workspace-root `package.json` used by integrated Nx workspaces. Installation runs from that same manifest directory. Other project types install from the generated project. Advanced automation that installs dependencies separately can pass `--skip-install`.
 
 Before writing files, Atlas reports the detected workspace, selected framework,
 target path, and whether scaffolding is delegated to a native Nx generator or
@@ -45,7 +45,9 @@ Atlas then adds only its explicitly owned integration files, such as
 `atlas.config.ts`, `tsconfig.atlas.json`, generated federation compatibility
 shims, and host
 runtime configuration. It does not apply its portable application template over
-the Nx result. Turbo,
+the Nx result. Atlas also merges its required runtime and federation
+dependencies into the Nx-owned package manifest instead of writing a portable
+`package.json` into the project. Turbo,
 Yarn, pnpm, and npm provide task or workspace orchestration rather than framework
 generators, so Atlas creates a regular package that those tools discover normally.
 If an Nx framework plugin is missing, Atlas asks permission to run `nx add` for

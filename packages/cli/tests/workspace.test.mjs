@@ -129,15 +129,20 @@ test("task commands follow Nx, Turbo, and package-manager conventions", () => {
   });
 });
 
-test("dependency installs use the detected package manager from the generated project", () => {
+test("dependency installs use the detected package manager from the generated project", async () => {
   assert.deepEqual(createInstallCommand("npm", "/repo", "/repo/apps/orders"), {
     command: "npm", args: ["install"], cwd: "/repo/apps/orders"
   });
   assert.deepEqual(createInstallCommand("pnpm", "/repo", "/repo/apps/orders"), {
     command: "pnpm", args: ["install"], cwd: "/repo/apps/orders"
   });
-  assert.equal(installationRoot("nx", "/repo", "/repo/apps/orders"), "/repo");
-  assert.equal(installationRoot("turbo", "/repo", "/repo/apps/orders"), "/repo/apps/orders");
+  const root = await mkdtemp(join(tmpdir(), "atlas-install-root-"));
+  const projectRoot = join(root, "apps/orders");
+  await mkdir(projectRoot, { recursive: true });
+  assert.equal(await installationRoot("nx", root, projectRoot), root);
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "@acme/orders" }));
+  assert.equal(await installationRoot("nx", root, projectRoot), projectRoot);
+  assert.equal(await installationRoot("turbo", root, projectRoot), projectRoot);
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {

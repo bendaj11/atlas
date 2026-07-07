@@ -1,5 +1,5 @@
 import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   generateHostFiles,
   generateMicrofrontendFiles,
@@ -53,6 +53,7 @@ export class AtlasGenerateService {
         ? generateHostFiles(this.options(name, selectedFramework, packageName))
         : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName));
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded), workspaceScaffolded || this.args.hasFlag("force"));
+      if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
       await afterGeneration?.(root);
       return root;
@@ -141,6 +142,14 @@ export class AtlasGenerateService {
     targets["atlas:config"] = nxTarget(this.workspace.packageManager, cwd, "atlas:config");
     await writeFile(join(root, "project.json"), `${JSON.stringify({ name, sourceRoot: `${cwd}/src`, projectType: "application", targets }, null, 2)}\n`, "utf8");
   }
+
+  private async mergeDelegatedDependencies(root: string, files: AtlasGeneratedFile[]): Promise<void> {
+    const packageFile = files.find((file) => file.path === "package.json");
+    if (!packageFile) return;
+    const target = await dependencyManifestPath(root, this.workspace.root);
+    const changed = await mergePackageDependencies(target, packageFile.contents);
+    if (changed) ui.info(`Added Atlas dependencies to ${displayTarget(this.workspace.root, target)}.`);
+  }
 }
 
 function workspaceLabel(kind: AtlasWorkspace["kind"]): string {
@@ -190,6 +199,59 @@ async function existingPackageName(root: string): Promise<string | undefined> {
   } catch {
     return undefined;
   }
+}
+
+async function dependencyManifestPath(projectRoot: string, workspaceRoot: string): Promise<string> {
+  let current = projectRoot;
+  const boundary = resolve(workspaceRoot);
+  while (true) {
+    const manifest = join(current, "package.json");
+    if (await exists(manifest)) return manifest;
+    const parent = dirname(current);
+    if (resolve(current) === boundary || parent === current) break;
+    current = parent;
+  }
+  const workspaceManifest = join(workspaceRoot, "package.json");
+  if (await exists(workspaceManifest)) return workspaceManifest;
+  throw new Error(`Could not find package.json for generated project at ${projectRoot}.`);
+}
+
+async function mergePackageDependencies(targetPackageJson: string, generatedPackageJson: string): Promise<boolean> {
+  const target = JSON.parse(await readFile(targetPackageJson, "utf8")) as PackageJson;
+  const generated = JSON.parse(generatedPackageJson) as PackageJson;
+  let changed = false;
+  for (const field of DEPENDENCY_FIELDS) {
+    const incoming = asStringRecord(generated[field]);
+    if (!Object.keys(incoming).length) continue;
+    const current = asStringRecord(target[field]);
+    for (const [name, version] of Object.entries(incoming)) {
+      if (dependencyDeclared(target, name)) continue;
+      current[name] = version;
+      changed = true;
+    }
+    target[field] = sortObject(current);
+  }
+  if (!changed) return false;
+  await writeFile(targetPackageJson, `${JSON.stringify(target, null, 2)}\n`, "utf8");
+  return true;
+}
+
+const DEPENDENCY_FIELDS = ["dependencies", "devDependencies"] as const;
+
+type DependencyField = typeof DEPENDENCY_FIELDS[number];
+type PackageJson = Record<string, unknown> & Partial<Record<DependencyField, unknown>>;
+
+function dependencyDeclared(packageJson: PackageJson, name: string): boolean {
+  return DEPENDENCY_FIELDS.some((field) => name in asStringRecord(packageJson[field]));
+}
+
+function asStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+}
+
+function sortObject(value: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)));
 }
 
 function nxTarget(packageManager: "yarn" | "pnpm" | "npm", cwd: string, script: string): unknown {

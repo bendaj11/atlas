@@ -67,6 +67,13 @@ Atlas invokes targets such as `orders:build`, `orders:dev`, and
 Use `--skip-workspace-generator` only in automation that deliberately needs the
 portable Atlas template instead of native Nx scaffolding.
 
+Dependency ownership follows the Nx layout. If the native Nx generator creates
+a project-level `package.json`, Atlas merges its required dependencies there and
+runs install from that project. If the generated project has no package
+manifest, Atlas merges dependencies into the workspace-root `package.json` and
+runs install at the root. Atlas does not create a project-local `package.json`
+or `node_modules` for integrated Nx workspaces.
+
 When integrating Atlas into an existing Nx project, expose these three targets. Their commands remain the framework's normal build and development commands.
 Atlas reads the build target's `options.outputPath`, configuration-specific
 `outputPath` values, and declared `outputs`. It also recognizes the conventional

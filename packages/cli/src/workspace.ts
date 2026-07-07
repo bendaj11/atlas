@@ -50,12 +50,10 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     findProject: (name) => findAtlasProject(root, name),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
-    // Nx owns dependencies at the workspace root; generated applications do
-    // not necessarily contain a package.json or their own node_modules.
-    installDependencies: (projectRoot) => runProcess(createInstallCommand(
+    installDependencies: async (projectRoot) => runProcess(createInstallCommand(
       packageManager,
       root,
-      installationRoot(kind, root, projectRoot)
+      await installationRoot(kind, root, projectRoot)
     )),
     missingScaffoldDependency: async (framework) => {
       if (kind !== "nx") return undefined;
@@ -124,8 +122,10 @@ export function createInstallCommand(
   return { command: manager, args: ["install"], cwd: projectRoot };
 }
 
-export function installationRoot(kind: AtlasWorkspaceKind, workspaceRoot: string, projectRoot: string): string {
-  return kind === "nx" ? workspaceRoot : projectRoot;
+export async function installationRoot(kind: AtlasWorkspaceKind, workspaceRoot: string, projectRoot: string): Promise<string> {
+  if (kind !== "nx") return projectRoot;
+  const projectPackage = join(projectRoot, "package.json");
+  return await exists(projectPackage) ? projectRoot : workspaceRoot;
 }
 
 async function findWorkspaceRoot(start: string): Promise<string> {
