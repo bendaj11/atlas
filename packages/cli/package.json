@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -43,9 +43,9 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/contracts": "0.2.14",
-    "@atlas/generators": "0.2.14",
-    "@atlas/runtime": "0.2.14",
+    "@atlas/contracts": "0.2.15",
+    "@atlas/generators": "0.2.15",
+    "@atlas/runtime": "0.2.15",
     "@inquirer/select": "^4.4.2"
   }
 }

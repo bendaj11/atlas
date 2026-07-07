@@ -57,7 +57,7 @@ export class AtlasGenerateService {
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
         : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion));
-      await writeGenerated(root, generatedOverlay(files, workspaceScaffolded), workspaceScaffolded || this.args.hasFlag("force"));
+      await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files, selectedFramework);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
       await afterGeneration?.(root);
@@ -193,12 +193,18 @@ function parseProjectPath(value: string): { name: string; segments: string[] } {
   return { name: segments.at(-1)!, segments };
 }
 
-function generatedOverlay(files: AtlasGeneratedFile[], workspaceScaffolded: boolean): AtlasGeneratedFile[] {
+function generatedOverlay(
+  files: AtlasGeneratedFile[],
+  workspaceScaffolded: boolean,
+  type: "host" | "app",
+  framework: SupportedFramework
+): AtlasGeneratedFile[] {
   if (!workspaceScaffolded) return files;
   // A delegated generator owns the complete application scaffold. Keep this
   // allowlist deliberately small so new portable-template files cannot leak
   // into framework-managed projects by default.
-  return files.filter((file) => ATLAS_INTEGRATION_FILES.has(file.path));
+  const overlay = type === "host" ? DELEGATED_HOST_FILES[framework] : ATLAS_INTEGRATION_FILES;
+  return files.filter((file) => overlay.has(file.path));
 }
 
 const ATLAS_INTEGRATION_FILES = new Set([
@@ -206,6 +212,23 @@ const ATLAS_INTEGRATION_FILES = new Set([
   "tsconfig.atlas.json",
   "federation.config.js"
 ]);
+
+const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
+  angular: new Set([
+    ...ATLAS_INTEGRATION_FILES,
+    "src/index.html",
+    "src/styles.css",
+    "src/app.component.ts",
+    "src/main.ts",
+    "src/bootstrap.ts"
+  ]),
+  react: new Set([
+    ...ATLAS_INTEGRATION_FILES,
+    "index.html",
+    "src/styles.css",
+    "src/main.tsx"
+  ])
+};
 
 async function existingPackageName(root: string): Promise<string | undefined> {
   try {

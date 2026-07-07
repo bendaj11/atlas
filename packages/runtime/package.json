@@ -1,6 +1,6 @@
 {
   "name": "@atlas/runtime",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "type": "module",
   "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
   "license": "MIT",
@@ -48,7 +48,7 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/contracts": "0.2.14",
-    "@atlas/sdk": "0.2.14"
+    "@atlas/contracts": "0.2.15",
+    "@atlas/sdk": "0.2.15"
   }
 }
