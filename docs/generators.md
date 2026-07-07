@@ -45,7 +45,7 @@ the complete Nx scaffold: project and package manifests, source files, public
 assets, TypeScript configuration, lint/test setup, and workspace conventions.
 Atlas then adds only its explicitly owned integration files, such as
 `atlas.config.ts`, `tsconfig.atlas.json`, generated federation compatibility
-shims, and host
+shims, MF lifecycle entry files, React MF Vite federation config, and host
 runtime configuration. It does not apply its portable application template over
 the Nx result. Atlas also merges its required runtime and federation
 dependencies into the Nx-owned package manifest instead of writing a portable

@@ -283,6 +283,67 @@ test("atlas generation registers projects with Nx automatically", async () => {
   assert.match(stdout, /Native Nx scaffolding was skipped; Atlas will generate the React scaffold directly at orders/);
 });
 
+for (const scenario of [
+  {
+    name: "Yarn workspace",
+    prefix: "atlas-yarn-workspace-mf-",
+    files: { "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "yarn@1.22.22", workspaces: ["packages/*"] }) },
+    framework: "react",
+    root: "packages/orders",
+    entry: "src/entry.tsx",
+    config: "vite.config.ts",
+    match: /createRoutedMicrofrontend/,
+    configMatch: /remoteEntry\.json/
+  },
+  {
+    name: "pnpm workspace",
+    prefix: "atlas-pnpm-workspace-mf-",
+    files: {
+      "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0" }),
+      "pnpm-workspace.yaml": "packages:\n  - packages/*\n"
+    },
+    framework: "angular",
+    root: "packages/orders",
+    entry: "src/entry.ts",
+    config: "federation.config.js",
+    match: /defineMicrofrontend/,
+    configMatch: /"\.\/entry": "\.\/src\/entry\.ts"/
+  },
+  {
+    name: "Turborepo",
+    prefix: "atlas-turbo-mf-",
+    files: {
+      "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0", workspaces: ["apps/*"] }),
+      "turbo.json": "{}\n"
+    },
+    framework: "react",
+    root: "apps/orders",
+    entry: "src/entry.tsx",
+    config: "vite.config.ts",
+    match: /createRoutedMicrofrontend/,
+    configMatch: /remoteEntry\.json/
+  }
+]) {
+  test(`atlas generates complete MF files in a ${scenario.name}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), scenario.prefix));
+    for (const [path, contents] of Object.entries(scenario.files)) {
+      await writeFile(join(root, path), contents);
+    }
+
+    const stdout = await run(process.execPath, [
+      join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders",
+      `--framework=${scenario.framework}`, "--skip-install"
+    ], { cwd: root });
+
+    const projectRoot = join(root, scenario.root);
+    assert.match(await readFile(join(projectRoot, scenario.entry), "utf8"), scenario.match);
+    assert.match(await readFile(join(projectRoot, scenario.config), "utf8"), scenario.configMatch);
+    assert.match(await readFile(join(projectRoot, "atlas.config.ts"), "utf8"), new RegExp(`framework: "${scenario.framework}"`));
+    assert.equal(JSON.parse(await readFile(join(projectRoot, "package.json"), "utf8")).name, "orders");
+    assert.match(stdout, new RegExp(`Detected ${scenario.name === "Turborepo" ? "a Turborepo" : "a package-manager"} workspace`));
+  });
+}
+
 test("atlas preserves Nx Angular workspace version after native scaffolding", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-generator-"));
   const bin = join(root, "bin");
@@ -341,9 +402,9 @@ exit 1
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
   await assert.rejects(access(join(root, "products/shell/public/atlas.runtime.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.14");
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.14");
-  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.14");
+  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.17");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.17");
+  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.17");
   assert.equal(rootPackage.dependencies["@angular/core"], "~20.3.0");
   assert.equal(rootPackage.dependencies["@angular/animations"], "~20.3.0");
   assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^20.0.0");
@@ -400,12 +461,97 @@ exit 1
   assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "react"/);
   await assert.rejects(access(join(root, "apps/shell/package.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.14");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.17");
   assert.equal(rootPackage.dependencies.react, "^19.2.0");
   assert.equal(rootPackage.dependencies["react-dom"], "^19.2.0");
   assert.equal(rootPackage.devDependencies["@nx/react"], "22.0.0");
   assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at apps\/shell/);
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
+});
+
+test("atlas adds required Angular MF files after Nx scaffolding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-mf-generator-"));
+  const bin = join(root, "bin");
+  await mkdir(bin);
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({
+    name: "acme",
+    private: true,
+    packageManager: "yarn@1.22.22",
+    dependencies: { "@angular/core": "^20.3.0" },
+    devDependencies: { "@nx/angular": "22.0.0" }
+  }));
+  await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
+  directory="$4"
+  mkdir -p "$directory/src" "$directory/public"
+  printf 'nx angular source\n' > "$directory/src/main.ts"
+  printf 'nx angular index\n' > "$directory/src/index.html"
+  printf 'nx angular styles\n' > "$directory/src/styles.css"
+  printf 'nx angular public asset\n' > "$directory/public/nx.txt"
+  printf 'nx eslint\n' > "$directory/eslint.config.mjs"
+  printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
+  exit 0
+fi
+exit 1
+`, { mode: 0o755 });
+
+  const stdout = await run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders",
+    "--framework=angular", "--skip-install"
+  ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+
+  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineMicrofrontend/);
+  assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
+  assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas microfrontend assets/);
+  assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
+  assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
+  assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
+  assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
+  assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
+  assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
+});
+
+test("atlas adds required React MF files after Nx scaffolding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-react-mf-generator-"));
+  const bin = join(root, "bin");
+  await mkdir(bin);
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({
+    name: "acme",
+    private: true,
+    packageManager: "yarn@1.22.22",
+    dependencies: { react: "^19.2.0", "react-dom": "^19.2.0" },
+    devDependencies: { "@nx/react": "22.0.0" }
+  }));
+  await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
+  directory="$4"
+  mkdir -p "$directory/src" "$directory/public"
+  printf 'nx react source\n' > "$directory/src/main.tsx"
+  printf 'nx react index\n' > "$directory/index.html"
+  printf 'nx react styles\n' > "$directory/src/styles.css"
+  printf 'nx react public asset\n' > "$directory/public/nx.txt"
+  printf 'nx eslint\n' > "$directory/eslint.config.mjs"
+  printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
+  exit 0
+fi
+exit 1
+`, { mode: 0o755 });
+
+  const stdout = await run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders",
+    "--framework=react", "--skip-install"
+  ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+
+  assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /createRoutedMicrofrontend/);
+  assert.match(await readFile(join(root, "orders/vite.config.ts"), "utf8"), /remoteEntry\.json/);
+  assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
+  assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
+  assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");
+  assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
+  assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
+  assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at orders/);
 });
 
 test("atlas aligns React dependencies to an Nx project package framework version", async () => {
@@ -440,8 +586,8 @@ exit 1
   const projectPackage = JSON.parse(await readFile(join(root, "packages/orders/package.json"), "utf8"));
   assert.equal(rootPackage.dependencies?.["@atlas/sdk"], undefined);
   assert.equal(projectPackage.dependencies.react, "^17.0.2");
-  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.14");
-  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.14");
+  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.17");
+  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.17");
   assert.equal(projectPackage.dependencies["@softarc/native-federation-runtime"], "^3.5.5");
   assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
   assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");

@@ -1,4 +1,4 @@
-import type { AtlasValidationIssue } from "./index.js";
+import type { AtlasValidationIssue } from "./atlas-validation-issue.js";
 import {
   addIssue,
   asRecord,

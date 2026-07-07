@@ -1,6 +1,6 @@
 {
   "name": "@atlas/contracts",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "type": "module",
   "description": "Stable Atlas manifests, static indexes, catalogs, and configuration contracts.",
   "license": "MIT",

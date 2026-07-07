@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "type": "module",
   "description": "Atlas microfrontend-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -64,7 +64,7 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/contracts": "0.2.17"
+    "@atlas/contracts": "0.2.18"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",

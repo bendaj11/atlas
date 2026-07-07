@@ -205,7 +205,7 @@ function generatedOverlay(
   // A delegated generator owns the complete application scaffold. Keep this
   // allowlist deliberately small so new portable-template files cannot leak
   // into framework-managed projects by default.
-  const overlay = type === "host" ? DELEGATED_HOST_FILES[framework] : ATLAS_INTEGRATION_FILES;
+  const overlay = type === "host" ? DELEGATED_HOST_FILES[framework] : DELEGATED_MF_FILES[framework];
   return files.filter((file) => overlay.has(file.path));
 }
 
@@ -229,6 +229,26 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "index.html",
     "src/styles.css",
     "src/main.tsx"
+  ])
+};
+
+const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
+  angular: new Set([
+    ...ATLAS_INTEGRATION_FILES,
+    "src/index.html",
+    "src/styles.css",
+    "src/assets/.gitkeep",
+    "src/main.ts",
+    "src/entry.ts",
+    "src/exported-components/README.md"
+  ]),
+  react: new Set([
+    ...ATLAS_INTEGRATION_FILES,
+    "vite.config.ts",
+    "index.html",
+    "src/styles.css",
+    "src/entry.tsx",
+    "src/exported-components/README.md"
   ])
 };
 
