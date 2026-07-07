@@ -21,7 +21,7 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.deepEqual(JSON.parse(host.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
   assert.deepEqual(JSON.parse(mf.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
-  assert.match(host.get("src/bootstrap.ts"), /hostData: atlasConfig/);
+  assert.match(host.get("src/bootstrap.ts"), /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \?\? atlasConfig\.id \}/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /const hostData: AtlasHostData/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /projectId/);
   assert.match(host.get("src/bootstrap.ts"), /AtlasRouterAnchorComponent, startHost/);

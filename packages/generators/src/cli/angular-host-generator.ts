@@ -45,7 +45,7 @@ export async function bootstrap(): Promise<void> {
     location: app.injector.get(Location),
     federation: { initFederation, loadRemoteModule },
     showToast: (toast) => console.info("[Atlas toast]", toast.title),
-    hostData: atlasConfig,
+    hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id },
     httpClient: createFetchAtlasHttpClient(fetch)
   });
 }

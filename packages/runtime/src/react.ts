@@ -1,6 +1,6 @@
 import type { AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/schema";
 import { createElement, Fragment, type ReactElement } from "react";
-import { createAtlasSdk, type AtlasEventMap, type AtlasHostDataInput, type AtlasSdkOptions } from "@atlas/sdk";
+import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type RouterLike } from "@atlas/sdk/react";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
@@ -25,7 +25,7 @@ export function AtlasHostShell(): ReactElement {
 export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData"> {
   router: RouterLike;
   federation: AtlasFederationAdapter;
-  hostData?: AtlasHostDataInput<THostData>;
+  hostData?: THostData & AtlasHostData;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Enables URL and storage app overrides for Atlas tool workflows. */

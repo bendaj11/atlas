@@ -77,8 +77,6 @@ export interface AtlasHostData {
   readonly name: string;
 }
 
-export type AtlasHostDataInput<THostData extends object = {}> = THostData & Partial<AtlasHostData>;
-
 /** Stable capabilities every host exposes to every mounted MF and widget. */
 export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends object = AtlasEventMap> {
   readonly hostId: string;
@@ -116,7 +114,7 @@ export interface AtlasSdkOptions<
   THostData extends object = {}
 > {
   hostId: string;
-  hostData?: AtlasHostDataInput<THostData>;
+  hostData?: THostData & AtlasHostData;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
   showToast?: (request: AtlasToastRequest) => void;
