@@ -1,6 +1,6 @@
 {
   "name": "atlas-platform",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "private": true,
   "description": "TypeScript-first microfrontend platform with focused SDK, runtime, static registry, generators and test tooling.",
   "license": "MIT",
