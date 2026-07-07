@@ -27,17 +27,13 @@ ${rootImport}
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";
 import { AtlasHostShell, startHost } from "@atlas/runtime/react";
-import { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";
+import { createFetchAtlasHttpClient } from "@atlas/sdk";
 import atlasConfig from "../atlas.config";
 import "./styles.css";
 
 const router = createBrowserRouter([{ path: "*", Component: AtlasHostShell }]);
 const root = document.getElementById("root");
 if (!root) throw new Error("Atlas React host root was not found.");
-const hostData: AtlasHostData = {
-  hostId: atlasConfig.id,
-  name: atlasConfig.name ?? atlasConfig.id
-};
 
 ${mount}
 
@@ -45,7 +41,7 @@ void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
   showToast: (toast) => console.info("[Atlas toast]", toast.title),
-  hostData,
+  hostData: atlasConfig,
   httpClient: createFetchAtlasHttpClient(fetch)
 }).catch((error) => console.error("Atlas host failed to start", error));
 `;

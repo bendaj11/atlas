@@ -1,6 +1,6 @@
 import type { AtlasHostRuntimeConfig } from "@atlas/schema";
 import { Component } from "@angular/core";
-import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
+import { createAtlasSdk, type AtlasEventMap, type AtlasHostDataInput, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
@@ -13,7 +13,7 @@ export interface HostOptions<TExtensions extends object = {}, THostData extends 
   router: RouterLike;
   location: LocationLike;
   federation: AtlasFederationAdapter;
-  hostData?: THostData & AtlasHostData;
+  hostData?: AtlasHostDataInput<THostData>;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Enables URL and storage app overrides for Atlas tool workflows. */
