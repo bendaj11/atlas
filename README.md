@@ -20,7 +20,7 @@ Start here:
 3. [Getting Started With React](docs/getting-started-react.md): build a React host and React MF from install to production.
 4. [Core Concepts](docs/overview.md): learn the Atlas words: host, MF, catalog, manifest, mount, and SDK.
 5. [Architecture](docs/architecture.md): see how hosts, MFs, catalogs, SDK calls, and Native Federation work together.
-6. [SDK Guide](docs/sdk.md): wire typed host services such as user data, HTTP, events, navigation, modals, and toasts.
+6. [SDK Guide](docs/sdk.md): wire typed host services such as HTTP, events, navigation, modals, toasts, and host extensions.
 7. [Routing](docs/routing.md): configure routes, slots, inner routing, navigation, and route ownership.
 8. [Assets and Styles](docs/assets-and-styles.md): publish CSS, images, and other assets without broken URLs.
 9. [Local Development](docs/local-development.md): run one local MF inside a real host using overrides.
@@ -46,8 +46,8 @@ Reference and operations:
 - Native Federation hidden behind framework adapters and generated wiring.
 - One selected runtime version per MF, plus PR and historical versions.
 - Local development inside the real host instead of a standalone app.
-- Typed host capabilities for users, HTTP clients, events, navigation, overlays,
-  configuration, and host-specific data.
+- Typed host capabilities for HTTP clients, events, navigation, overlays,
+  configuration, and host-specific extensions.
 - Host-owned top-level routing with native Angular Router or React Router inside
   each MF.
 - SHA-256 verification and origin restrictions for remotely executed assets.
@@ -170,7 +170,8 @@ atlas.hostData.projectId;
 ```
 
 The host supplies the concrete `httpClient`, authentication behavior, modal
-framework, toast library, and extra typed `hostData`. Atlas does not wrap them.
+framework, toast library, extra typed `hostData`, and SDK extensions. Atlas does
+not wrap them.
 
 ## Packages
 

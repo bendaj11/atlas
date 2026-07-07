@@ -4,7 +4,7 @@ Atlas local development is designed around one principle: run the MF locally, bu
 
 ## Why
 
-MFs depend on host services such as user data, navigation, modals, toasts, and configuration. Running them as standalone apps gives a false picture of production behavior.
+MFs depend on host services such as navigation, modals, toasts, configuration, and product-specific SDK extensions. Running them as standalone apps gives a false picture of production behavior.
 
 ## Flow
 

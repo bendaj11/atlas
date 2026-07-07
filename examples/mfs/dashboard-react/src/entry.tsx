@@ -6,12 +6,8 @@ import "./styles.css";
 
 if (import.meta.hot) await import("@vitejs/plugin-react/preamble");
 
-interface SystemHostData {
-  projectId: string;
-}
-
 function App({ context }: AtlasMfMountRequest) {
-  const atlas = useAtlasSdk<{}, {}, SystemHostData>();
+  const atlas = useAtlasSdk();
   const appLoaded = useAppLoaded();
   const widget = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -25,7 +21,7 @@ function App({ context }: AtlasMfMountRequest) {
     });
     return () => { disposed = true; void unmount(); };
   }, [appLoaded, context]);
-  return <section><h1>Dashboard React</h1><p>Project {atlas.hostData.projectId} mounted at {context.basePath}</p><div ref={widget} /><button type="button" onClick={() => atlas.toast.open({ title: "Dashboard React is ready" })}>Show toast</button><button type="button" onClick={() => atlas.popup.open({ title: "Order status", content: { widget: "orders-angular/order-status", props: { status: "processing" } }, draggable: true, resizable: true })}>Open Angular widget popup</button></section>;
+  return <section><h1>Dashboard React</h1><p>{atlas.hostData.name} mounted at {context.basePath}</p><div ref={widget} /><button type="button" onClick={() => atlas.toast.open({ title: "Dashboard React is ready" })}>Show toast</button><button type="button" onClick={() => atlas.popup.open({ title: "Order status", content: { widget: "orders-angular/order-status", props: { status: "processing" } }, draggable: true, resizable: true })}>Open Angular widget popup</button></section>;
 }
 
 export default defineMicrofrontend({ createRoot, createElement: (request) => createElement(App, request) });

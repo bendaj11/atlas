@@ -2,13 +2,6 @@ import type { AtlasManifest } from "@atlas/schema";
 import type { AtlasNavigation } from "./navigation.js";
 import type { AtlasOverlayContentMount } from "./overlay.js";
 
-export interface AtlasUser {
-  id: string;
-  displayName: string;
-  email?: string;
-  roles?: string[];
-}
-
 export interface AtlasToastRequest {
   title: string;
   message?: string;
@@ -88,9 +81,6 @@ export interface AtlasHostData {
 export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends object = AtlasEventMap> {
   readonly hostId: string;
   readonly hostData: AtlasHostData & Readonly<THostData>;
-  readonly user: {
-    getCurrentUser(): Promise<AtlasUser | undefined>;
-  };
   readonly navigation: AtlasNavigation;
   readonly events: AtlasEventBus<TEvents>;
   readonly toast: {
@@ -127,7 +117,6 @@ export interface AtlasSdkOptions<
   hostData?: THostData & AtlasHostData;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
-  getCurrentUser?: () => Promise<AtlasUser | undefined>;
   showToast?: (request: AtlasToastRequest) => void;
   openModal?: <TResult = unknown>(request: AtlasModalRequest<TResult>, content?: AtlasOverlayContentMount) => Promise<TResult | undefined>;
   openPopup?: (request: AtlasPopupRequest, content?: AtlasOverlayContentMount) => AtlasPopupRef;
@@ -161,9 +150,6 @@ export function createAtlasSdk<
   const core: AtlasCoreSdk<THostData, TEvents> = {
     hostId: options.hostId,
     hostData,
-    user: {
-      getCurrentUser: options.getCurrentUser ?? (async () => undefined)
-    },
     navigation: options.navigation,
     events: options.eventBus ?? createAtlasEventBus(),
     toast: {

@@ -36,7 +36,11 @@ export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions
     { path: "src/styles.css", contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
-    { path: "src/app/app.component.ts", contents: angularMicrofrontendComponent(name) },
+    { path: "src/app/README.md", contents: appSourceReadme() },
+    { path: "src/app/starter/shell/starter-shell.component.ts", contents: angularMicrofrontendShellComponent(name) },
+    { path: "src/app/starter/home/starter-home.component.ts", contents: angularMicrofrontendHomeComponent(name) },
+    { path: "src/app/starter/details/starter-details.component.ts", contents: angularMicrofrontendDetailsComponent() },
+    { path: "src/app/routes.ts", contents: angularMicrofrontendRoutes() },
     { path: "src/entry.ts", contents: angularMicrofrontendEntry(name) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
   ];
@@ -129,7 +133,7 @@ function angularFederationConfig(name: string, host: boolean): string {
 }
 
 function angularHostComponent(): string {
-  return `import { Component } from "@angular/core";\nimport { RouterOutlet } from "@angular/router";\n\n@Component({ selector: "atlas-router-anchor", standalone: true, template: "" })\nexport class AtlasRouterAnchorComponent {}\n\n@Component({ selector: "atlas-host-root", standalone: true, imports: [RouterOutlet], template: \`<div data-atlas-host-status></div><header><strong>Atlas</strong><div data-atlas-slot="header"></div></header><nav data-atlas-navigation aria-label="Application"></nav><main data-atlas-route-outlet></main><router-outlet hidden />\` })\nexport class AppComponent {}\n`;
+  return `import { Component } from "@angular/core";\nimport { RouterOutlet } from "@angular/router";\n\n@Component({ selector: "atlas-host-root", standalone: true, imports: [RouterOutlet], template: \`<div data-atlas-host-status></div><header><strong>Atlas</strong><div data-atlas-slot="header"></div></header><nav data-atlas-navigation aria-label="Application"></nav><main data-atlas-route-outlet></main><router-outlet hidden />\` })\nexport class AppComponent {}\n`;
 }
 
 function angularHostMain(): string {
@@ -137,7 +141,7 @@ function angularHostMain(): string {
 }
 
 function angularHostBootstrap(): string {
-  return `import { Location } from "@angular/common";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, Router } from "@angular/router";\nimport { initFederation, loadRemoteModule } from "@angular-architects/native-federation";\nimport { startHost } from "@atlas/runtime/angular";\nimport { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";\nimport atlasConfig from "../atlas.config";\nimport { AppComponent, AtlasRouterAnchorComponent } from "./app/app.component";\n\nexport async function bootstrap(): Promise<void> {\n  const app = await bootstrapApplication(AppComponent, { providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])] });\n  const hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };\n  await startHost({\n    router: app.injector.get(Router),\n    location: app.injector.get(Location),\n    federation: { initFederation, loadRemoteModule },\n    showToast: (toast) => console.info("[Atlas toast]", toast.title),\n    getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }),\n    hostData,\n    httpClient: createFetchAtlasHttpClient(fetch)\n  });\n}\n`;
+  return `import { Location } from "@angular/common";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { provideRouter, Router } from "@angular/router";\nimport { initFederation, loadRemoteModule } from "@angular-architects/native-federation";\nimport { AtlasRouterAnchorComponent, startHost } from "@atlas/runtime/angular";\nimport { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";\nimport atlasConfig from "../atlas.config";\nimport { AppComponent } from "./app/app.component";\n\nexport async function bootstrap(): Promise<void> {\n  const app = await bootstrapApplication(AppComponent, { providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])] });\n  const hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };\n  await startHost({\n    router: app.injector.get(Router),\n    location: app.injector.get(Location),\n    federation: { initFederation, loadRemoteModule },\n    showToast: (toast) => console.info("[Atlas toast]", toast.title),\n    hostData,\n    httpClient: createFetchAtlasHttpClient(fetch)\n  });\n}\n`;
 }
 
 function angularMicrofrontendEntry(name: string): string {
@@ -147,7 +151,8 @@ import { LocationStrategy } from "@angular/common";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter } from "@angular/router";
 import { createLocationStrategy, defineMicrofrontend, provideAtlasMfContext, provideAtlasSdk } from "@atlas/sdk/angular";
-import { AppComponent, routes } from "./app/app.component";
+import { routes } from "./app/routes";
+import { StarterShellComponent } from "./app/starter/shell/starter-shell.component";
 
 export default defineMicrofrontend(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
@@ -155,7 +160,7 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
 
   container.append(element);
 
-  const app = await bootstrapApplication(AppComponent, {
+  const app = await bootstrapApplication(StarterShellComponent, {
     providers: [
       provideRouter(routes),
       provideAtlasMfContext(context),
@@ -175,24 +180,10 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
 `;
 }
 
-function angularMicrofrontendComponent(name: string): string {
+function angularMicrofrontendShellComponent(name: string): string {
   const selector = `atlas-${name.replace(/[^a-zA-Z0-9-]/g, "-")}-root`;
   return `import { Component } from "@angular/core";
-import { RouterLink, RouterOutlet, type Routes } from "@angular/router";
-
-@Component({
-  selector: "atlas-mf-home",
-  standalone: true,
-  template: \`<p>${title(name)} home</p>\`
-})
-class HomeComponent {}
-
-@Component({
-  selector: "atlas-mf-details",
-  standalone: true,
-  template: \`<p>Routed details page</p>\`
-})
-class DetailsComponent {}
+import { RouterLink, RouterOutlet } from "@angular/router";
 
 @Component({
   selector: "${selector}",
@@ -209,12 +200,54 @@ class DetailsComponent {}
     </section>
   \`
 })
-export class AppComponent {}
+export class StarterShellComponent {}
+`;
+}
+
+function angularMicrofrontendHomeComponent(name: string): string {
+  return `import { Component } from "@angular/core";
+
+@Component({
+  selector: "atlas-mf-home",
+  standalone: true,
+  template: \`<p>${title(name)} home</p>\`
+})
+export class StarterHomeComponent {}
+`;
+}
+
+function angularMicrofrontendDetailsComponent(): string {
+  return `import { Component } from "@angular/core";
+
+@Component({
+  selector: "atlas-mf-details",
+  standalone: true,
+  template: \`<p>Routed details page</p>\`
+})
+export class StarterDetailsComponent {}
+`;
+}
+
+function angularMicrofrontendRoutes(): string {
+  return `import type { Routes } from "@angular/router";
+import { StarterDetailsComponent } from "./starter/details/starter-details.component";
+import { StarterHomeComponent } from "./starter/home/starter-home.component";
 
 export const routes: Routes = [
-  { path: "", component: HomeComponent },
-  { path: "details/:id", component: DetailsComponent }
+  { path: "", component: StarterHomeComponent },
+  { path: "details/:id", component: StarterDetailsComponent }
 ];
+`;
+}
+
+function appSourceReadme(): string {
+  return `# App source
+
+Required Atlas wiring lives in \`src/entry.ts\`, \`atlas.config.ts\`, and \`federation.config.js\`. Keep those files aligned with Atlas docs when changing platform wiring.
+
+Replaceable starter UI lives in \`src/app/starter\`. Delete or replace those folders when adding product screens.
+
+\`src/app/routes.ts\` connects starter screens to the router. Update it when replacing starter UI.
 `;
 }
 

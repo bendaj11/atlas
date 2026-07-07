@@ -11,11 +11,13 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.equal(JSON.parse(files(generateHostFiles({ name: "shell", packageName: "@acme/shell", framework: "react" })).get("package.json")).name, "@acme/shell");
   assert.match(host.get("package.json"), /"react": "\^19\.2\.0"/);
   assert.match(host.get("src/main.tsx"), /startHost/);
+  assert.match(host.get("src/main.tsx"), /AtlasHostShell, startHost/);
   assert.match(host.get("src/main.tsx"), /createBrowserRouter/);
   assert.match(host.get("src/main.tsx"), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.match(host.get("src/main.tsx"), /const hostData: AtlasHostData = \{ hostId: atlasConfig\.id, name: atlasConfig\.name \?\? atlasConfig\.id \}/);
   assert.doesNotMatch(host.get("src/main.tsx"), /projectId/);
-  assert.match(host.get("src/main.tsx"), /data-atlas-host-status/);
+  assert.doesNotMatch(host.get("src/main.tsx"), /data-atlas-host-status/);
+  assert.doesNotMatch(host.get("src/main.tsx"), /function Shell/);
   assert.match(host.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(host.get("vite.config.ts"), /target: "19"/);
   assert.match(host.get("index.html"), /"shimMode": true/);

@@ -141,6 +141,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 | `defineMicrofrontend()` | Expose an Angular MF lifecycle entry |
 | `defineExportedComponent()` | Expose an Angular widget lifecycle entry |
 | `createLocationStrategy()` | Scope Angular Router to the MF base path |
+| `AtlasRouterAnchorComponent` | Catch-all Angular host route component for generated hosts |
 | `startHost()` | Boot an Angular Atlas host |
 
 `startHost()` accepts host-wide `renderHostLoading` and `renderHostError` callbacks for the single startup outlet, plus shared `renderLoading` and `renderError` callbacks used by every MF placement.
@@ -161,6 +162,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 | `defineExportedComponent()` | Expose a React widget lifecycle entry |
 | `createRouterOptions()` | Scope a memory router to the MF base path |
 | `connectRouter()` | Synchronize React Router and host navigation |
+| `AtlasHostShell` | Default React host shell with Atlas outlets and navigation anchors |
 | `startHost()` | Boot a React Atlas host |
 
 React hosts receive the same host-wide and shared MF UI callbacks as Angular hosts. Global renderer callbacks may return a cleanup function for framework roots and subscriptions.

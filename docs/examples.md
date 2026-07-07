@@ -64,8 +64,7 @@ await startHost({
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
   showToast: showToast,
-  openModal: showModal,
-  getCurrentUser: loadUser
+  openModal: showModal
 });
 ```
 

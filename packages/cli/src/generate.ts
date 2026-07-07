@@ -58,6 +58,7 @@ export class AtlasGenerateService {
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
         : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
+      if (workspaceScaffolded) await takeOverAppSource(root);
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files, selectedFramework);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -239,7 +240,11 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/styles.css",
     "src/assets/.gitkeep",
     "src/main.ts",
-    "src/app/app.component.ts",
+    "src/app/README.md",
+    "src/app/starter/shell/starter-shell.component.ts",
+    "src/app/starter/home/starter-home.component.ts",
+    "src/app/starter/details/starter-details.component.ts",
+    "src/app/routes.ts",
     "src/entry.ts",
     "src/exported-components/README.md"
   ]),
@@ -248,7 +253,11 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "vite.config.ts",
     "index.html",
     "src/styles.css",
-    "src/app/app.tsx",
+    "src/app/README.md",
+    "src/app/starter/layout/layout.tsx",
+    "src/app/starter/home/home.tsx",
+    "src/app/starter/details/details.tsx",
+    "src/app/routes.tsx",
     "src/entry.tsx",
     "src/exported-components/README.md"
   ])
@@ -384,6 +393,10 @@ async function writeGenerated(root: string, files: AtlasGeneratedFile[], force: 
     await mkdir(join(target, ".."), { recursive: true });
     await writeFile(target, file.contents, "utf8");
   }
+}
+
+async function takeOverAppSource(root: string): Promise<void> {
+  await rm(resolveContainedPath(root, "src/app"), { recursive: true, force: true });
 }
 
 async function assertWritable(path: string, force: boolean, message: string): Promise<void> {

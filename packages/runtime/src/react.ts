@@ -1,9 +1,26 @@
 import type { AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/schema";
+import { createElement, Fragment, type ReactElement } from "react";
 import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type RouterLike } from "@atlas/sdk/react";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
+
+export function AtlasHostShell(): ReactElement {
+  return createElement(
+    Fragment,
+    null,
+    createElement("div", { "data-atlas-host-status": "" }),
+    createElement(
+      "header",
+      null,
+      createElement("strong", null, "Atlas"),
+      createElement("div", { "data-atlas-slot": "header" })
+    ),
+    createElement("nav", { "data-atlas-navigation": "", "aria-label": "Application" }),
+    createElement("main", { "data-atlas-route-outlet": "" })
+  );
+}
 
 export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData"> {
   router: RouterLike;
@@ -90,7 +107,6 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
     ...(options.hostData ? { hostData: options.hostData } : {}),
     navigation,
     ...(options.eventBus ? { eventBus: options.eventBus } : {}),
-    ...(options.getCurrentUser ? { getCurrentUser: options.getCurrentUser } : {}),
     ...(options.showToast ? { showToast: options.showToast } : {}),
     openModal: overlays.openModal,
     openPopup: overlays.openPopup,

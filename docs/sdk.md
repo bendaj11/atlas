@@ -29,7 +29,6 @@ const sdk = createAtlasSdk({
   hostId: "shell",
   hostData: { hostId: "shell", name: "Customer Shell", projectId: "project-42" },
   navigation,
-  getCurrentUser: async () => user,
   showToast: (toast) => showToast(toast),
   openModal: (modal) => showModal(modal),
   openPopup: (popup) => showPopup(popup),
@@ -56,8 +55,8 @@ await atlas.httpClient.get(`/api/projects/${atlas.hostData.projectId}`);
 
 Angular MFs use `injectAtlasSdk<{}, AtlasEventMap, SystemHostData>()`;
 generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
-Use `extensions` only for additional host-specific APIs that are not part of
-Atlas core.
+Use `extensions` for host-specific APIs. Atlas core does not define an auth or
+session shape.
 
 The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`. `context.components` remains a deprecated compatibility alias.
 

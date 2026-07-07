@@ -31,7 +31,11 @@ export function generateReactMicrofrontendFiles(options: AtlasGeneratorOptions):
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },
     { path: "index.html", contents: reactIndex(`${title(name)} assets`) },
     { path: "src/styles.css", contents: "" },
-    { path: "src/app/app.tsx", contents: reactMicrofrontendApp(name) },
+    { path: "src/app/README.md", contents: appSourceReadme("src/entry.tsx", "vite.config.ts") },
+    { path: "src/app/starter/layout/layout.tsx", contents: reactMicrofrontendLayout(name) },
+    { path: "src/app/starter/home/home.tsx", contents: reactMicrofrontendHome(name) },
+    { path: "src/app/starter/details/details.tsx", contents: reactMicrofrontendDetails() },
+    { path: "src/app/routes.tsx", contents: reactMicrofrontendRoutes() },
     { path: "src/entry.tsx", contents: reactMicrofrontendEntry(name, profile) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.tsx\`; Atlas exposes it automatically through Native Federation. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
   ];
@@ -114,22 +118,22 @@ function reactHostMain(profile: ReactVersionProfile): string {
   const mount = profile.major === 17
     ? "render(<StrictMode><RouterProvider router={router} /></StrictMode>, root);\nif (import.meta.hot) import.meta.hot.dispose(() => unmountComponentAtNode(root));"
     : "const reactRoot = createRoot(root);\nflushSync(() => reactRoot.render(<StrictMode><RouterProvider router={router} /></StrictMode>));\nif (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());";
-  return `import "es-module-shims";\nimport { StrictMode } from "react";\n${rootImport}\nimport { createBrowserRouter, RouterProvider } from "react-router-dom";\nimport { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";\nimport { startHost } from "@atlas/runtime/react";\nimport { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";\nimport atlasConfig from "../atlas.config";\nimport "./styles.css";\n\nfunction Shell() { return <><div data-atlas-host-status /><header><strong>Atlas</strong><div data-atlas-slot="header" /></header><nav data-atlas-navigation aria-label="Application" /><main data-atlas-route-outlet /></>; }\nconst router = createBrowserRouter([{ path: "*", Component: Shell }]);\nconst root = document.getElementById("root");\nif (!root) throw new Error("Atlas React host root was not found.");\nconst hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };\n${mount}\nvoid startHost({ router, federation: { initFederation, loadRemoteModule }, showToast: (toast) => console.info("[Atlas toast]", toast.title), getCurrentUser: async () => ({ id: "local-user", displayName: "Local Developer" }), hostData, httpClient: createFetchAtlasHttpClient(fetch) }).catch((error) => console.error("Atlas host failed to start", error));\n`;
+  return `import "es-module-shims";\nimport { StrictMode } from "react";\n${rootImport}\nimport { createBrowserRouter, RouterProvider } from "react-router-dom";\nimport { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";\nimport { AtlasHostShell, startHost } from "@atlas/runtime/react";\nimport { createFetchAtlasHttpClient, type AtlasHostData } from "@atlas/sdk";\nimport atlasConfig from "../atlas.config";\nimport "./styles.css";\n\nconst router = createBrowserRouter([{ path: "*", Component: AtlasHostShell }]);\nconst root = document.getElementById("root");\nif (!root) throw new Error("Atlas React host root was not found.");\nconst hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };\n${mount}\nvoid startHost({ router, federation: { initFederation, loadRemoteModule }, showToast: (toast) => console.info("[Atlas toast]", toast.title), hostData, httpClient: createFetchAtlasHttpClient(fetch) }).catch((error) => console.error("Atlas host failed to start", error));\n`;
 }
 
 function reactMicrofrontendEntry(name: string, profile: ReactVersionProfile): string {
   const root = profile.major === 17
     ? 'import type { ReactNode } from "react";\nimport { render, unmountComponentAtNode } from "react-dom";\n\nfunction createRoot(container: Element) {\n  return { render(element: ReactNode) { render(element, container); }, unmount() { unmountComponentAtNode(container); } };\n}'
     : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/app";\n\nif (import.meta.hot) await import("@vitejs/plugin-react/preamble");\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nif (import.meta.hot) await import("@vitejs/plugin-react/preamble");\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
 }
 
-function reactMicrofrontendApp(name: string): string {
-  return `import { Link, Outlet, type RouteObject } from "react-router-dom";
+function reactMicrofrontendLayout(name: string): string {
+  return `import { Link, Outlet } from "react-router-dom";
 import { useAtlasSdk } from "@atlas/sdk/react";
-import "../styles.css";
+import "../../../styles.css";
 
-function Layout() {
+export function StarterLayout() {
   const atlas = useAtlasSdk();
 
   return (
@@ -146,25 +150,50 @@ function Layout() {
     </section>
   );
 }
+`;
+}
 
-function Home() {
+function reactMicrofrontendHome(name: string): string {
+  return `export function StarterHome() {
   return <p>${title(name)} home</p>;
 }
+`;
+}
 
-function Details() {
+function reactMicrofrontendDetails(): string {
+  return `export function StarterDetails() {
   return <p>Routed details page</p>;
 }
+`;
+}
+
+function reactMicrofrontendRoutes(): string {
+  return `import type { RouteObject } from "react-router-dom";
+import { StarterDetails } from "./starter/details/details";
+import { StarterHome } from "./starter/home/home";
+import { StarterLayout } from "./starter/layout/layout";
 
 export const routes: RouteObject[] = [
   {
     path: "/",
-    Component: Layout,
+    Component: StarterLayout,
     children: [
-      { index: true, Component: Home },
-      { path: "details/:id", Component: Details }
+      { index: true, Component: StarterHome },
+      { path: "details/:id", Component: StarterDetails }
     ]
   }
 ];
+`;
+}
+
+function appSourceReadme(entryFile: string, bundlerFile: string): string {
+  return `# App source
+
+Required Atlas wiring lives in \`${entryFile}\`, \`atlas.config.ts\`, and \`${bundlerFile}\`. Keep those files aligned with Atlas docs when changing platform wiring.
+
+Replaceable starter UI lives in \`src/app/starter\`. Delete or replace those folders when adding product screens.
+
+\`src/app/routes.tsx\` connects starter screens to the router. Update it when replacing starter UI.
 `;
 }
 

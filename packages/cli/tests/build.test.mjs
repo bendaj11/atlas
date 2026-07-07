@@ -5,10 +5,23 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
 import { createTestManifest } from "../../testkit/dist/index.js";
+import { generateHostFiles, generateMicrofrontendFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
 
 const ATLAS_PACKAGE_RANGE = `^${JSON.parse(await readFile(new URL("../../generators/package.json", import.meta.url), "utf8")).version}`;
+
+test("generators keep component declarations split across files", () => {
+  for (const framework of ["angular", "react"]) {
+    const options = { name: "orders", framework };
+    const files = [
+      ...generateHostFiles(options),
+      ...generateMicrofrontendFiles(options),
+      ...generateWidgetFiles({ name: "order-status", framework })
+    ];
+    for (const file of files) assertSingleComponentDeclaration(file.path, file.contents);
+  }
+});
 
 test("atlas build emits a validated deployable manifest", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-build-"));
@@ -487,10 +500,12 @@ test("atlas adds required Angular MF files after Nx scaffolding", async () => {
   await writeFile(join(bin, "yarn"), `#!/bin/sh
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
-  mkdir -p "$directory/src" "$directory/public"
+  mkdir -p "$directory/src/app/nx-only" "$directory/public"
   printf 'nx angular source\n' > "$directory/src/main.ts"
   printf 'nx angular index\n' > "$directory/src/index.html"
   printf 'nx angular styles\n' > "$directory/src/styles.css"
+  printf 'nx app component\n' > "$directory/src/app/app.component.ts"
+  printf 'nx nested component\n' > "$directory/src/app/nx-only/nx-only.component.ts"
   printf 'nx angular public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
@@ -505,11 +520,16 @@ exit 1
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineMicrofrontend/);
-  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(AppComponent/);
+  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(StarterShellComponent/);
   assert.doesNotMatch(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /@Component|router-outlet/);
   await assert.rejects(access(join(root, "orders/src/app.component.ts")), { code: "ENOENT" });
-  assert.match(await readFile(join(root, "orders/src/app/app.component.ts"), "utf8"), /export const routes: Routes/);
-  assert.match(await readFile(join(root, "orders/src/app/app.component.ts"), "utf8"), /router-outlet/);
+  await assert.rejects(access(join(root, "orders/src/app/app.component.ts")), { code: "ENOENT" });
+  await assert.rejects(access(join(root, "orders/src/app/nx-only/nx-only.component.ts")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Required Atlas wiring/);
+  assert.match(await readFile(join(root, "orders/src/app/starter/shell/starter-shell.component.ts"), "utf8"), /router-outlet/);
+  assert.match(await readFile(join(root, "orders/src/app/routes.ts"), "utf8"), /export const routes: Routes/);
+  assert.match(await readFile(join(root, "orders/src/app/starter/home/starter-home.component.ts"), "utf8"), /export class StarterHomeComponent/);
+  assert.match(await readFile(join(root, "orders/src/app/starter/details/starter-details.component.ts"), "utf8"), /export class StarterDetailsComponent/);
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas microfrontend assets/);
   assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
@@ -535,10 +555,12 @@ test("atlas adds required React MF files after Nx scaffolding", async () => {
   await writeFile(join(bin, "yarn"), `#!/bin/sh
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
-  mkdir -p "$directory/src" "$directory/public"
+  mkdir -p "$directory/src/app/nx-only" "$directory/public"
   printf 'nx react source\n' > "$directory/src/main.tsx"
   printf 'nx react index\n' > "$directory/index.html"
   printf 'nx react styles\n' > "$directory/src/styles.css"
+  printf 'nx app component\n' > "$directory/src/app/app.tsx"
+  printf 'nx nested component\n' > "$directory/src/app/nx-only/nx-only.tsx"
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
@@ -553,10 +575,15 @@ exit 1
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /createRoutedMicrofrontend/);
-  assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /import \{ routes \} from "\.\/app\/app"/);
+  assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /import \{ routes \} from "\.\/app\/routes"/);
   assert.doesNotMatch(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /useAtlasSdk|<Outlet|<Link|function Layout/);
-  assert.match(await readFile(join(root, "orders/src/app/app.tsx"), "utf8"), /export const routes: RouteObject\[\]/);
-  assert.match(await readFile(join(root, "orders/src/app/app.tsx"), "utf8"), /useAtlasSdk/);
+  await assert.rejects(access(join(root, "orders/src/app/app.tsx")), { code: "ENOENT" });
+  await assert.rejects(access(join(root, "orders/src/app/nx-only/nx-only.tsx")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Replaceable starter UI/);
+  assert.match(await readFile(join(root, "orders/src/app/routes.tsx"), "utf8"), /export const routes: RouteObject\[\]/);
+  assert.match(await readFile(join(root, "orders/src/app/starter/layout/layout.tsx"), "utf8"), /useAtlasSdk/);
+  assert.match(await readFile(join(root, "orders/src/app/starter/home/home.tsx"), "utf8"), /export function StarterHome/);
+  assert.match(await readFile(join(root, "orders/src/app/starter/details/details.tsx"), "utf8"), /export function StarterDetails/);
   assert.match(await readFile(join(root, "orders/vite.config.ts"), "utf8"), /remoteEntry\.json/);
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
@@ -651,4 +678,17 @@ function run(command, args, options = {}) {
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolve(stdout) : reject(new Error(stderr)));
   });
+}
+
+function assertSingleComponentDeclaration(path, contents) {
+  const componentCount = angularComponentCount(contents) + reactComponentCount(contents);
+  assert.ok(componentCount <= 1, `${path} contains ${componentCount} component declarations`);
+}
+
+function angularComponentCount(contents) {
+  return [...contents.matchAll(/@Component\s*\(/g)].length;
+}
+
+function reactComponentCount(contents) {
+  return [...contents.matchAll(/\bfunction\s+[A-Z][A-Za-z0-9_]*\s*\(/g)].length;
 }

@@ -43,7 +43,7 @@ More docs:
 ## 2. Generate The React Host
 
 The host is the main application. It owns the browser page, top-level routing,
-layout, auth, user data, modals, toasts, and shared services.
+layout, auth, modals, toasts, and shared services.
 
 ```sh
 atlas g host customer-host --framework=react
@@ -61,7 +61,7 @@ Files to look at first:
   environment; application developers normally edit `atlas.config.ts`.
 - `src/main.tsx`: the generated Atlas host startup file. It calls
   `startHost(...)`, connects React Router and Native Federation, and supplies
-  host services such as user data, toasts, modals, events, config, and app data.
+  host services such as toasts, modals, events, config, and app data.
   Edit it when replacing placeholder services with production services.
 - `vite.config.ts`: the generated Vite build file used by the React host. Atlas
   uses it to produce the Native Federation metadata expected by the runtime.
@@ -80,23 +80,17 @@ More docs:
 This step decides where Atlas can render route content, navigation, and named
 slots.
 
-Generated React hosts use these Atlas attributes:
+Generated React hosts use `AtlasHostShell` from `@atlas/runtime/react` as the
+default shell:
 
 ```tsx
-function Shell() {
-  return (
-    <>
-      <div data-atlas-host-status />
-      <header>
-        <strong>Atlas</strong>
-        <div data-atlas-slot="header" />
-      </header>
-      <nav data-atlas-navigation aria-label="Application" />
-      <main data-atlas-route-outlet />
-    </>
-  );
-}
+import { AtlasHostShell } from "@atlas/runtime/react";
+
+const router = createBrowserRouter([{ path: "*", Component: AtlasHostShell }]);
 ```
+
+When you replace the default shell with product layout, keep these Atlas
+attributes:
 
 Meaning:
 
@@ -125,7 +119,6 @@ Edit `src/main.tsx` in the host.
 void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
-  getCurrentUser: () => auth.currentUser(),
   showToast: (toast) => toastService.show(toast),
   openModal: (request) => modalService.open(request),
   hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id, projectId: currentProject.id },
@@ -138,9 +131,9 @@ void startHost({
 
 `hostData` always includes Atlas-owned `hostId` and `name`, and can be extended
 with product fields. `httpClient` is a core host API with Angular-style
-`request()` plus basic HTTP verb helpers. Atlas passes your HTTP,
-auth, modal, toast, and monitoring implementations through without replacing
-your stack.
+`request()` plus basic HTTP verb helpers. Put product-specific APIs in typed SDK
+extensions when MFs need them. Atlas passes your HTTP, modal, toast,
+and monitoring implementations through without replacing your stack.
 
 Effect: every MF mounted by this host can use the same typed host capabilities.
 
