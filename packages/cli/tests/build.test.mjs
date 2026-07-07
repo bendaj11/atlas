@@ -234,6 +234,7 @@ test("atlas preserves Nx framework configuration after native Angular scaffoldin
     name: "acme",
     private: true,
     packageManager: "yarn@1.22.22",
+    dependencies: { "@angular/core": "~21.2.0" },
     devDependencies: { "@nx/angular": "22.0.0" }
   }));
   await writeFile(join(root, "tsconfig.json"), JSON.stringify({ files: [], references: [] }));
@@ -278,10 +279,11 @@ exit 1
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
   assert.equal(JSON.parse(await readFile(join(root, "products/shell/public/atlas.runtime.json"), "utf8")).hostId, "shell");
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.10");
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.10");
-  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.10");
-  assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^20.0.0");
+  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.11");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.11");
+  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.11");
+  assert.equal(rootPackage.dependencies["@angular/animations"], "~21.2.0");
+  assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^21.0.0");
   assert.equal(rootPackage.dependencies["es-module-shims"], "^2.7.0");
   assert.equal(rootPackage.devDependencies["@nx/angular"], "22.0.0");
   assert.match(stdout, /Detected an Nx workspace/);
@@ -289,7 +291,7 @@ exit 1
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
 });
 
-test("atlas adds dependencies to an Nx project package when the native generator creates one", async () => {
+test("atlas aligns React dependencies to an Nx project package framework version", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-package-generator-"));
   const bin = join(root, "bin");
   await mkdir(bin);
@@ -305,7 +307,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/src"
   printf 'react source\n' > "$directory/src/main.tsx"
-  printf '{"name":"@acme/orders","version":"0.0.1","dependencies":{"react":"^19.0.0"},"devDependencies":{}}\n' > "$directory/package.json"
+  printf '{"name":"@acme/orders","version":"0.0.1","dependencies":{"react":"^17.0.2"},"devDependencies":{}}\n' > "$directory/package.json"
   printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
   exit 0
 fi
@@ -320,10 +322,12 @@ exit 1
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const projectPackage = JSON.parse(await readFile(join(root, "packages/orders/package.json"), "utf8"));
   assert.equal(rootPackage.dependencies?.["@atlas/sdk"], undefined);
-  assert.equal(projectPackage.dependencies.react, "^19.0.0");
-  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.10");
-  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.10");
+  assert.equal(projectPackage.dependencies.react, "^17.0.2");
+  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.11");
+  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.11");
   assert.equal(projectPackage.dependencies["@softarc/native-federation-runtime"], "^3.5.5");
+  assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
+  assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");
   assert.equal(projectPackage.devDependencies["@vitejs/plugin-react"], "^5.0.4");
   assert.match(stdout, /Added Atlas dependencies to packages\/orders\/package\.json/);
 });

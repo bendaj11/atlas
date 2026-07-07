@@ -49,9 +49,12 @@ export class AtlasGenerateService {
           interactive: this.prompts.interactive
         });
       const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
+      const scaffoldedFrameworkVersion = workspaceScaffolded
+        ? await existingFrameworkVersion(root, this.workspace.root, selectedFramework)
+        : undefined;
       const files = type === "host"
-        ? generateHostFiles(this.options(name, selectedFramework, packageName))
-        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName));
+        ? generateHostFiles(this.options(name, selectedFramework, packageName, scaffoldedFrameworkVersion))
+        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, scaffoldedFrameworkVersion));
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -113,12 +116,12 @@ export class AtlasGenerateService {
     }
   }
 
-  private options(name: string, framework?: SupportedFramework, packageName?: string): AtlasGeneratorOptions {
+  private options(name: string, framework?: SupportedFramework, packageName?: string, detectedFrameworkVersion?: string): AtlasGeneratorOptions {
     return {
       name,
       packageName,
       framework: framework ?? this.args.framework(),
-      frameworkVersion: this.args.flag("framework-version"),
+      frameworkVersion: this.args.flag("framework-version") ?? detectedFrameworkVersion,
       allowUnsupportedVersion: this.args.hasFlag("allow-unsupported-version")
     };
   }
@@ -199,6 +202,21 @@ async function existingPackageName(root: string): Promise<string | undefined> {
   } catch {
     return undefined;
   }
+}
+
+async function existingFrameworkVersion(root: string, workspaceRoot: string, framework: SupportedFramework): Promise<string | undefined> {
+  try {
+    const manifest = await dependencyManifestPath(root, workspaceRoot);
+    const packageJson = JSON.parse(await readFile(manifest, "utf8")) as PackageJson;
+    const dependency = framework === "angular" ? "@angular/core" : "react";
+    for (const field of DEPENDENCY_FIELDS) {
+      const version = asStringRecord(packageJson[field])[dependency];
+      if (version) return version;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }
 
 async function dependencyManifestPath(projectRoot: string, workspaceRoot: string): Promise<string> {
