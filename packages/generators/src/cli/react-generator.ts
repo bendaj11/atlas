@@ -8,7 +8,7 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
   const { name } = options;
   const profile = reactVersionProfile(options);
   return [
-    { path: "package.json", contents: json(reactPackage({ packageName: `@atlas-example/${name}`, projectName: name, host: true, profile })) },
+    { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "tsconfig.atlas.json", contents: json(reactAtlasTsconfig()) },
     { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget) },
@@ -25,7 +25,7 @@ export function generateReactMicrofrontendFiles(options: AtlasGeneratorOptions):
   const { name } = options;
   const profile = reactVersionProfile(options);
   return [
-    { path: "package.json", contents: json(reactPackage({ packageName: `@atlas-mf/${name}`, projectName: name, host: false, profile })) },
+    { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "tsconfig.atlas.json", contents: json(reactAtlasTsconfig()) },
     { path: "vite.config.ts", contents: reactMicrofrontendViteConfig(name, profile.compilerTarget) },

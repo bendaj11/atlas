@@ -27,6 +27,19 @@ test("workspace detection discovers an Nx project without consumer configuration
   assert.equal(workspace.generationRoot("app", "catalog"), join(root, "apps", "catalog"));
 });
 
+test("Nx generation respects a direct child working directory", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-generation-root-"));
+  const appsRoot = join(root, "apps");
+  await mkdir(appsRoot);
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({ workspaces: ["packages/*"] }));
+
+  const workspace = await detectWorkspace(appsRoot);
+
+  assert.equal(workspace.generationRoot("host", "shell"), join(appsRoot, "shell"));
+  assert.equal(workspace.generationRoot("app", "orders"), join(appsRoot, "orders"));
+});
+
 test("package.json workspaces establish the workspace root without a lockfile", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-workspaces-"));
   const projectRoot = join(root, "packages", "orders");

@@ -6,6 +6,9 @@ import { generateHostFiles, generateMicrofrontendFiles, generateWidgetFiles } fr
 test("React generator emits React 19 Vite Native Federation projects", () => {
   const host = files(generateHostFiles({ name: "shell", framework: "react" }));
   const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "react" }));
+  assert.equal(JSON.parse(host.get("package.json")).name, "shell");
+  assert.equal(JSON.parse(mf.get("package.json")).name, "orders");
+  assert.equal(JSON.parse(files(generateHostFiles({ name: "shell", packageName: "@acme/shell", framework: "react" })).get("package.json")).name, "@acme/shell");
   assert.match(host.get("package.json"), /"react": "\^19\.2\.0"/);
   assert.match(host.get("src/main.tsx"), /startHost/);
   assert.match(host.get("src/main.tsx"), /createBrowserRouter/);

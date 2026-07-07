@@ -26,9 +26,10 @@ export class AtlasGenerateService {
     await this.ensureWorkspaceGenerator(selectedFramework);
     const workspaceScaffolded = !this.args.hasFlag("skip-workspace-generator")
       && await this.workspace.scaffoldProject({ type, name, framework: selectedFramework, projectRoot: root });
+    const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
     const files = type === "host"
-      ? generateHostFiles(this.options(name, selectedFramework))
-      : generateMicrofrontendFiles(this.options(name, selectedFramework));
+      ? generateHostFiles(this.options(name, selectedFramework, packageName))
+      : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName));
     await writeGenerated(root, files, workspaceScaffolded || this.args.hasFlag("force"));
     if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
     return root;
@@ -71,9 +72,10 @@ export class AtlasGenerateService {
     }
   }
 
-  private options(name: string, framework?: SupportedFramework): AtlasGeneratorOptions {
+  private options(name: string, framework?: SupportedFramework, packageName?: string): AtlasGeneratorOptions {
     return {
       name,
+      packageName,
       framework: framework ?? this.args.framework(),
       frameworkVersion: this.args.flag("framework-version"),
       allowUnsupportedVersion: this.args.hasFlag("allow-unsupported-version")
@@ -98,6 +100,15 @@ export class AtlasGenerateService {
     };
     targets["atlas:config"] = nxTarget(this.workspace.packageManager, cwd, "atlas:config");
     await writeFile(join(root, "project.json"), `${JSON.stringify({ name, sourceRoot: `${cwd}/src`, projectType: "application", targets }, null, 2)}\n`, "utf8");
+  }
+}
+
+async function existingPackageName(root: string): Promise<string | undefined> {
+  try {
+    const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as { name?: unknown };
+    return typeof packageJson.name === "string" && packageJson.name ? packageJson.name : undefined;
+  } catch {
+    return undefined;
   }
 }
 

@@ -6,7 +6,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
   const { name } = options;
   const profile = angularVersionProfile(options);
   return [
-    { path: "package.json", contents: json(angularPackage({ packageName: `@atlas-example/${name}`, projectName: name, host: true, profile })) },
+    { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "angular.json", contents: json(angularWorkspace(name, true)) },
     { path: "tsconfig.json", contents: json(angularTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
@@ -26,7 +26,7 @@ export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions
   const { name } = options;
   const profile = angularVersionProfile(options);
   return [
-    { path: "package.json", contents: json(angularPackage({ packageName: `@atlas-mf/${name}`, projectName: name, host: false, profile })) },
+    { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile })) },
     { path: "angular.json", contents: json(angularWorkspace(name, false)) },
     { path: "tsconfig.json", contents: json(angularTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },

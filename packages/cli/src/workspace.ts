@@ -37,10 +37,11 @@ export interface AtlasScaffoldOptions {
 }
 
 export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorkspace> {
-  const root = await findWorkspaceRoot(resolve(start));
+  const resolvedStart = resolve(start);
+  const root = await findWorkspaceRoot(resolvedStart);
   const kind = await workspaceKind(root);
   const packageManager = await detectPackageManager(root);
-  const generationBase = await detectGenerationBase(root);
+  const generationBase = await detectGenerationBase(root, resolvedStart);
   return {
     kind,
     root,
@@ -252,7 +253,10 @@ function packageExecutor(manager: AtlasPackageManager, root: string, args: strin
   return { command: "npx", args, cwd: root };
 }
 
-async function detectGenerationBase(root: string): Promise<string> {
+async function detectGenerationBase(root: string, start: string): Promise<string> {
+  const startDirectory = relative(root, start);
+  if (startDirectory && dirname(startDirectory) === ".") return startDirectory;
+
   const patterns = await workspacePatterns(root);
   const conventional = patterns.find((pattern) => pattern === "apps/*" || pattern.startsWith("apps/"));
   const selected = conventional ?? patterns.find((pattern) => pattern.includes("*"));

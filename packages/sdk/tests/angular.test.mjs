@@ -8,6 +8,9 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 test("Angular generator emits Angular 20 Native Federation projects", () => {
   const host = files(generateHostFiles({ name: "shell", framework: "angular" }));
   const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "angular" }));
+  assert.equal(JSON.parse(host.get("package.json")).name, "shell");
+  assert.equal(JSON.parse(mf.get("package.json")).name, "orders");
+  assert.equal(JSON.parse(files(generateHostFiles({ name: "shell", packageName: "@acme/shell", framework: "angular" })).get("package.json")).name, "@acme/shell");
   assert.match(host.get("package.json"), /"@angular\/core": "\^20\.3\.0"/);
   assert.match(host.get("angular.json"), /@angular-architects\/native-federation:build/);
   assert.match(host.get("src/main.ts"), /initFederation/);

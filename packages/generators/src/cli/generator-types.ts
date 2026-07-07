@@ -2,6 +2,8 @@ import type { AtlasFramework } from "@atlas/contracts";
 
 export interface AtlasGeneratorOptions {
   name: string;
+  /** Package name written to package.json. Defaults to the unscoped project name. */
+  packageName?: string;
   framework: AtlasFramework;
   /** Host that receives the generated route placement. Defaults to the conventional Atlas shell. */
   hostId?: string;
