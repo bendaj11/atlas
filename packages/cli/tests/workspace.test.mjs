@@ -138,8 +138,8 @@ test("dependency installs use the detected package manager from the generated pr
   });
 });
 
-test("Nx projects are scaffolded through the installed framework plugin", () => {
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/shell" }), {
+test("non-interactive Nx projects use deterministic framework generator defaults", () => {
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/shell", interactive: false }), {
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/shell",
@@ -147,11 +147,24 @@ test("Nx projects are scaffolded through the installed framework plugin", () => 
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", directory: "apps/orders" }), {
+  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", directory: "apps/orders", interactive: false }), {
     command: "yarn",
     args: [
       "nx", "generate", "@nx/react:application", "apps/orders",
       "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
+    ],
+    cwd: "/repo"
+  });
+});
+
+test("interactive Nx projects delegate framework choices to the native generator", () => {
+  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", {
+    framework: "angular", directory: "apps/shell", interactive: true
+  }), {
+    command: "yarn",
+    args: [
+      "nx", "generate", "@nx/angular:application", "apps/shell",
+      "--interactive=true", "--skipFormat"
     ],
     cwd: "/repo"
   });
@@ -165,7 +178,7 @@ test("missing Nx plugins are added through the workspace package manager", () =>
   });
 });
 
-test("Angular uses portable Nx targets when project references make the plugin incompatible", async () => {
+test("solution-style Nx workspaces still require the native Angular plugin", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-solution-"));
   await writeFile(join(root, "nx.json"), "{}\n");
   await writeFile(join(root, "package.json"), JSON.stringify({
@@ -178,12 +191,6 @@ test("Angular uses portable Nx targets when project references make the plugin i
   }));
 
   const workspace = await detectWorkspace(root);
-  assert.equal(await workspace.missingScaffoldDependency("angular"), undefined);
-  assert.equal(await workspace.scaffoldProject({
-    type: "host",
-    name: "shell",
-    framework: "angular",
-    projectRoot: join(root, "packages", "shell")
-  }), false);
+  assert.equal(await workspace.missingScaffoldDependency("angular"), "@nx/angular");
   assert.equal(workspace.generationRoot("host", "shell"), join(root, "packages", "shell"));
 });

@@ -138,8 +138,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
 function generationProjectHelp(type: "host" | "app", resource: string): CommandHelp {
   return {
     summary: `Generate a framework-native Atlas ${resource}.`,
-    usage: `atlas generate ${type} <name> [options]`,
-    arguments: [{ label: "name", description: `Name of the ${resource}; prompted when omitted` }],
+    usage: `atlas generate ${type} <name-or-path> [options]`,
+    arguments: [{ label: "name-or-path", description: `Name or command-relative path of the ${resource}; prompted when omitted` }],
     options: [
       { label: "--framework <name>", description: "Framework: angular or react; prompted when omitted" },
       { label: "--framework-version <range>", description: "Framework semver range" },
@@ -153,7 +153,7 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
     ],
     examples: [
       `atlas g ${type} ${type === "host" ? "customer-shell" : "orders"} --framework react`,
-      `atlas g ${type} ${type === "host" ? "admin-shell" : "billing"} --framework angular`
+      `atlas g ${type} ${type === "host" ? "apps/admin-shell" : "products/billing"} --framework angular`
     ]
   };
 }

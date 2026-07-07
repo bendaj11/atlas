@@ -20,19 +20,33 @@ export class AtlasGenerateService {
 
   async project(
     type: "host" | "app",
-    name: string,
+    projectPath: string,
     framework?: SupportedFramework,
     afterGeneration?: (root: string) => Promise<void>
   ): Promise<string> {
-    assertSafeId(name, "project name");
+    const { name, segments } = parseProjectPath(projectPath);
     const selectedFramework = framework ?? this.args.framework();
     const explicit = this.args.flag("directory");
-    const root = explicit && explicit !== "true" ? resolve(explicit) : this.defaultRoot(type, name);
+    const root = explicit && explicit !== "true"
+      ? resolve(explicit)
+      : this.workspace.kind === "nx" || segments.length > 1
+        ? resolve(process.cwd(), ...segments)
+        : this.defaultRoot(type, name);
     const targetExisted = await exists(root);
     try {
       await this.ensureWorkspaceGenerator(selectedFramework);
+      if (this.workspace.kind === "nx" && !this.args.hasFlag("skip-workspace-generator") && this.prompts.interactive) {
+        // Release stdin from any Atlas prompt before Nx takes over the terminal.
+        this.prompts.close();
+      }
       const workspaceScaffolded = !this.args.hasFlag("skip-workspace-generator")
-        && await this.workspace.scaffoldProject({ type, name, framework: selectedFramework, projectRoot: root });
+        && await this.workspace.scaffoldProject({
+          type,
+          name,
+          framework: selectedFramework,
+          projectRoot: root,
+          interactive: this.prompts.interactive
+        });
       const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName))
@@ -113,6 +127,15 @@ export class AtlasGenerateService {
     targets["atlas:config"] = nxTarget(this.workspace.packageManager, cwd, "atlas:config");
     await writeFile(join(root, "project.json"), `${JSON.stringify({ name, sourceRoot: `${cwd}/src`, projectType: "application", targets }, null, 2)}\n`, "utf8");
   }
+}
+
+function parseProjectPath(value: string): { name: string; segments: string[] } {
+  const segments = value.split(/[\\/]/);
+  if (segments.length === 0 || segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    throw new Error(`Invalid project name or path "${value}". Use a relative path with safe directory names.`);
+  }
+  segments.forEach((segment) => assertSafeId(segment, "project name or path segment"));
+  return { name: segments.at(-1)!, segments };
 }
 
 function generatedOverlay(files: AtlasGeneratedFile[], workspaceScaffolded: boolean): AtlasGeneratedFile[] {

@@ -224,13 +224,19 @@ test("atlas generation registers projects with Nx automatically", async () => {
 test("atlas preserves Nx framework configuration after native Angular scaffolding", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-generator-"));
   const bin = join(root, "bin");
+  const products = join(root, "products");
   await mkdir(bin);
+  await mkdir(products);
   await writeFile(join(root, "nx.json"), "{}\n");
   await writeFile(join(root, "package.json"), JSON.stringify({
     name: "acme",
     private: true,
     packageManager: "yarn@1.22.22",
     devDependencies: { "@nx/angular": "22.0.0" }
+  }));
+  await writeFile(join(root, "tsconfig.json"), JSON.stringify({ files: [], references: [] }));
+  await writeFile(join(root, "tsconfig.base.json"), JSON.stringify({
+    compilerOptions: { composite: true, declaration: true }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
@@ -246,12 +252,13 @@ exit 1
   await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "shell",
     "--framework=angular", "--skip-install"
-  ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+  ], { cwd: products, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
-  const project = JSON.parse(await readFile(join(root, "apps/shell/project.json"), "utf8"));
+  const project = JSON.parse(await readFile(join(root, "products/shell/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
-  await assert.rejects(access(join(root, "apps/shell/angular.json")), { code: "ENOENT" });
-  assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "angular"/);
+  await assert.rejects(access(join(root, "products/shell/angular.json")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /framework: "angular"/);
+  assert.equal(JSON.parse(await readFile(join(root, "products/shell/public/atlas.runtime.json"), "utf8")).hostId, "shell");
 });
 
 test("atlas dev prepares an Angular local override without manual URL editing", async () => {

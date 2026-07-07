@@ -46,20 +46,21 @@ Atlas also detects a workspace root from `package.json#workspaces` before a lock
 
 ## Nx
 
-Generated projects go under `apps/`. Atlas first invokes the workspace's installed
+In Nx, generated project names and paths are relative to the directory where
+Atlas is invoked, matching `nx generate`; Atlas does not force an `apps/` layout.
+Atlas first invokes the workspace's installed
 `@nx/angular:application` or `@nx/react:application` generator, then adds the
 Atlas-specific files. Nx therefore remains responsible for `project.json`,
 linting, testing, TypeScript references, and workspace registration. Atlas does
-not emit a nested `angular.json` when the Nx Angular generator succeeds. The matching
-When `@nx/angular` or `@nx/react` is missing, interactive Atlas asks permission
+not emit a nested `angular.json` when the Nx Angular generator succeeds. When
+`@nx/angular` or `@nx/react` is missing, interactive Atlas asks permission
 to add the version matched by Nx. Non-interactive automation can approve this
 with `--yes`.
 
-Angular does not currently support Nx's solution-style TypeScript project
-references. Atlas detects that setup and does not install `@nx/angular` or set
-`NX_IGNORE_UNSUPPORTED_TS_SETUP`. It generates Angular as an isolated workspace
-package with `project.json` targets, allowing Nx to retain caching, task
-orchestration, and project-graph visibility without an unsupported integration.
+In an interactive terminal, Atlas hands control to the native Nx generator for
+framework choices such as stylesheets, test runners, bundler, and SSR. In CI or
+another non-interactive environment, Atlas disables Nx prompts and supplies
+deterministic defaults instead.
 
 Atlas invokes targets such as `orders:build`, `orders:dev`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.

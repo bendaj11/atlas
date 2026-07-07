@@ -4,7 +4,7 @@ import { findManifestTrustErrors, verifyManifestIntegrity, type AtlasRemoteTrust
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
 
-export interface AtlasNativeFederationRuntime {
+export interface AtlasFederationAdapter {
   initFederation(remotes: Record<string, string>): Promise<unknown>;
   loadRemoteModule<T = unknown>(remoteName: string, exposedModule: string): Promise<T>;
 }
@@ -16,7 +16,7 @@ export interface AtlasNativeFederationImporters {
 }
 
 export function createNativeFederationImporters(
-  runtime: AtlasNativeFederationRuntime,
+  runtime: AtlasFederationAdapter,
   requestPolicy?: AtlasRetryPolicy
 ): AtlasNativeFederationImporters {
   const remoteNames = new Map<string, string>();
@@ -63,7 +63,7 @@ export function createNativeFederationImporters(
 
 /** Initializes only trusted remotes and reports rejected manifests through normal MF fallback UI. */
 export async function createTrustedNativeFederationImporters(
-  runtime: AtlasNativeFederationRuntime,
+  runtime: AtlasFederationAdapter,
   manifests: AtlasManifest[],
   policy: AtlasRemoteTrustPolicy,
   requestPolicy?: AtlasRetryPolicy

@@ -3,15 +3,12 @@ import { createAtlasSdk, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
-import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
+import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
 export interface HostOptions<TExtensions extends object = {}> extends Omit<AtlasSdkOptions<TExtensions>, "hostId" | "navigation"> {
   router: RouterLike;
   location: LocationLike;
-  federation: {
-    initFederation(remotes: Record<string, string>): Promise<unknown>;
-    loadRemoteModule<T = unknown>(remoteName: string, exposedModule: string): Promise<T>;
-  };
+  federation: AtlasFederationAdapter;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Explicitly enables URL and storage runtime overrides for local extension workflows. */

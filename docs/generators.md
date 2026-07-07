@@ -16,6 +16,19 @@ atlas build
 
 Use the arrow keys and Enter to choose the project type and framework; text prompts collect project names. Fully specified commands never prompt, and non-interactive environments such as CI retain deterministic command behavior.
 
+The project argument may be a name or a relative path. In Nx, Atlas resolves it
+from the directory where the command is run, matching the Nx CLI instead of
+assuming an `apps/` layout. The final path segment becomes the project and Atlas
+ID:
+
+```sh
+atlas g host apps/my-app --framework=angular
+atlas g app products/orders --framework=react
+```
+
+For example, running `atlas g host my-app` from `<workspace>/products` creates
+`<workspace>/products/my-app`.
+
 After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command from the generated project and waits for it to finish. The package manager automatically coordinates with a parent Nx, Turbo, or package-manager workspace when applicable. Advanced automation that installs dependencies separately can pass `--skip-install`.
 
 If scaffolding, file generation, or dependency installation fails, Atlas removes a newly created project directory. Existing directories updated with `--force` are preserved to avoid deleting user-owned files.
@@ -27,9 +40,6 @@ Yarn, pnpm, and npm provide task or workspace orchestration rather than framewor
 generators, so Atlas creates a regular package that those tools discover normally.
 If an Nx framework plugin is missing, Atlas asks permission to run `nx add` for
 the matching plugin. Pass `--yes` in non-interactive automation to approve this.
-For an Nx solution-style TypeScript workspace, Angular is generated as an
-isolated Nx-managed package because Angular does not support project references;
-Atlas never enables Nx's unsafe compatibility override.
 
 ## Host
 

@@ -33,7 +33,7 @@ test("command help describes arguments, options, environment, and examples", asy
 test("help command resolves command aliases", async () => {
   const result = await run(["help", "g", "host"]);
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /atlas generate host <name> \[options\]/);
+  assert.match(result.stdout, /atlas generate host <name-or-path> \[options\]/);
   assert.match(result.stdout, /--framework <name>/);
 });
 

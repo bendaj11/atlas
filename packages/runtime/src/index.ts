@@ -27,8 +27,8 @@ export {
   createNativeFederationImporters,
   createTrustedNativeFederationImporters,
   importNativeFederationRemote,
-  type AtlasNativeFederationImporters,
-  type AtlasNativeFederationRuntime
+  type AtlasFederationAdapter,
+  type AtlasNativeFederationImporters
 } from "./loader/native-federation.js";
 export {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,

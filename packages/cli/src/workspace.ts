@@ -34,6 +34,7 @@ export interface AtlasScaffoldOptions {
   name: string;
   framework: "angular" | "react";
   projectRoot: string;
+  interactive: boolean;
 }
 
 export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorkspace> {
@@ -52,7 +53,6 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     installDependencies: (projectRoot) => runProcess(createInstallCommand(packageManager, root, projectRoot)),
     missingScaffoldDependency: async (framework) => {
       if (kind !== "nx") return undefined;
-      if (framework === "angular" && await usesTypeScriptProjectReferences(root)) return undefined;
       const plugin = nxFrameworkPlugin(framework);
       return await packageIsInstalled(root, plugin) ? undefined : plugin;
     },
@@ -61,7 +61,6 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     },
     scaffoldProject: async (options) => {
       if (kind !== "nx") return false;
-      if (options.framework === "angular" && await usesTypeScriptProjectReferences(root)) return false;
       const directory = relative(root, options.projectRoot);
       if (!directory || directory === ".." || directory.startsWith("../")) {
         throw new Error("Nx projects must be generated inside the workspace root.");
@@ -69,7 +68,8 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
       try {
         await runProcess(createNxGenerationCommand(packageManager, root, {
           framework: options.framework,
-          directory
+          directory,
+          interactive: options.interactive
         }));
       } catch (error) {
         const plugin = options.framework === "angular" ? "@nx/angular" : "@nx/react";
@@ -84,13 +84,16 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
 export function createNxGenerationCommand(
   manager: AtlasPackageManager,
   root: string,
-  options: { framework: "angular" | "react"; directory: string }
+  options: { framework: "angular" | "react"; directory: string; interactive: boolean }
 ): ProcessCommand {
   const generator = options.framework === "angular" ? "@nx/angular:application" : "@nx/react:application";
   const args = [
     "nx", "generate", generator, options.directory,
-    "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none",
-    ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])
+    `--interactive=${options.interactive}`, "--skipFormat",
+    ...(!options.interactive ? [
+      "--e2eTestRunner=none", "--unitTestRunner=none",
+      ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])
+    ] : [])
   ];
   return packageExecutor(manager, root, args);
 }
@@ -291,15 +294,6 @@ async function packageIsInstalled(root: string, packageName: string): Promise<bo
   const packageJson = await readJson<Record<string, unknown>>(join(root, "package.json"));
   return ["dependencies", "devDependencies", "optionalDependencies"]
     .some((field) => packageName in asDependencyMap(packageJson?.[field]));
-}
-
-async function usesTypeScriptProjectReferences(root: string): Promise<boolean> {
-  const solution = await readJson<{ files?: unknown[]; references?: unknown[] }>(join(root, "tsconfig.json"));
-  const base = await readJson<{ compilerOptions?: { composite?: boolean } }>(join(root, "tsconfig.base.json"));
-  return Array.isArray(solution?.files)
-    && solution.files.length === 0
-    && Array.isArray(solution.references)
-    && base?.compilerOptions?.composite === true;
 }
 
 function asDependencyMap(value: unknown): Record<string, unknown> {
