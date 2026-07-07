@@ -36,11 +36,11 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       }
       if (invocation.subcommand === "host" || invocation.subcommand === "app") {
         ui.heading(`Creating Atlas ${invocation.subcommand}`);
-        const root = await generate.project(invocation.subcommand, invocation.name, invocation.framework);
-        if (!args.hasFlag("skip-install")) {
+        const root = await generate.project(invocation.subcommand, invocation.name, invocation.framework, async (projectRoot) => {
+          if (args.hasFlag("skip-install")) return;
           ui.info(`Installing dependencies with ${workspace.packageManager}...`);
-          await generate.installDependencies(root);
-        }
+          await generate.installDependencies(projectRoot);
+        });
         ui.success(`Created "${invocation.name}" at ${root}.`);
         return;
       }

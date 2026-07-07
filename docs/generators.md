@@ -18,6 +18,8 @@ Use the arrow keys and Enter to choose the project type and framework; text prom
 
 After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command from the generated project and waits for it to finish. The package manager automatically coordinates with a parent Nx, Turbo, or package-manager workspace when applicable. Advanced automation that installs dependencies separately can pass `--skip-install`.
 
+If scaffolding, file generation, or dependency installation fails, Atlas removes a newly created project directory. Existing directories updated with `--force` are preserved to avoid deleting user-owned files.
+
 Inside Nx, Atlas delegates initial project creation to the installed
 `@nx/angular` or `@nx/react` generator before adding Atlas files. This preserves
 Nx project configuration, lint/test setup, and workspace conventions. Turbo,

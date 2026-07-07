@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   generateHostFiles,
@@ -18,21 +18,33 @@ export class AtlasGenerateService {
     private readonly prompts: AtlasPrompter
   ) {}
 
-  async project(type: "host" | "app", name: string, framework?: SupportedFramework): Promise<string> {
+  async project(
+    type: "host" | "app",
+    name: string,
+    framework?: SupportedFramework,
+    afterGeneration?: (root: string) => Promise<void>
+  ): Promise<string> {
     assertSafeId(name, "project name");
     const selectedFramework = framework ?? this.args.framework();
     const explicit = this.args.flag("directory");
     const root = explicit && explicit !== "true" ? resolve(explicit) : this.defaultRoot(type, name);
-    await this.ensureWorkspaceGenerator(selectedFramework);
-    const workspaceScaffolded = !this.args.hasFlag("skip-workspace-generator")
-      && await this.workspace.scaffoldProject({ type, name, framework: selectedFramework, projectRoot: root });
-    const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
-    const files = type === "host"
-      ? generateHostFiles(this.options(name, selectedFramework, packageName))
-      : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName));
-    await writeGenerated(root, files, workspaceScaffolded || this.args.hasFlag("force"));
-    if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
-    return root;
+    const targetExisted = await exists(root);
+    try {
+      await this.ensureWorkspaceGenerator(selectedFramework);
+      const workspaceScaffolded = !this.args.hasFlag("skip-workspace-generator")
+        && await this.workspace.scaffoldProject({ type, name, framework: selectedFramework, projectRoot: root });
+      const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
+      const files = type === "host"
+        ? generateHostFiles(this.options(name, selectedFramework, packageName))
+        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName));
+      await writeGenerated(root, generatedOverlay(files, workspaceScaffolded), workspaceScaffolded || this.args.hasFlag("force"));
+      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
+      await afterGeneration?.(root);
+      return root;
+    } catch (error) {
+      if (!targetExisted) await rm(root, { recursive: true, force: true });
+      throw error;
+    }
   }
 
   private async ensureWorkspaceGenerator(framework: SupportedFramework): Promise<void> {
@@ -103,6 +115,13 @@ export class AtlasGenerateService {
   }
 }
 
+function generatedOverlay(files: AtlasGeneratedFile[], workspaceScaffolded: boolean): AtlasGeneratedFile[] {
+  if (!workspaceScaffolded) return files;
+  // Framework generators own monorepo project configuration. In particular,
+  // Nx configures Angular applications in project.json, never angular.json.
+  return files.filter((file) => file.path !== "angular.json");
+}
+
 async function existingPackageName(root: string): Promise<string | undefined> {
   try {
     const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as { name?: unknown };
@@ -132,6 +151,14 @@ async function assertWritable(path: string, force: boolean, message: string): Pr
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException { return error instanceof Error && "code" in error; }
+
+async function exists(path: string): Promise<boolean> {
+  try { await access(path); return true; }
+  catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") return false;
+    throw error;
+  }
+}
 
 function assertSafeId(value: string, subject: string): void {
   if (!/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i.test(value) || value === "." || value === "..") {

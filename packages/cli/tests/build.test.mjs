@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -195,6 +195,21 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   assert.equal(runtime.catalogUrl, "http://localhost:4400/hosts/customer-shell/catalog.json");
 });
 
+test("atlas removes a newly generated project when dependency installation fails", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-cleanup-"));
+  const bin = join(temporary, "bin");
+  const target = join(temporary, "customer-shell");
+  await mkdir(bin);
+  await writeFile(join(temporary, "package-lock.json"), "{}\n");
+  await writeFile(join(bin, "npm"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+
+  await assert.rejects(run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "customer-shell",
+    "--framework=angular", "--skip-workspace-generator", `--directory=${target}`
+  ], { cwd: temporary, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } }), /npm exited with code 1/);
+  await assert.rejects(access(target), { code: "ENOENT" });
+});
+
 test("atlas generation registers projects with Nx automatically", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-generator-"));
   await writeFile(join(root, "nx.json"), "{}\n");
@@ -204,6 +219,39 @@ test("atlas generation registers projects with Nx automatically", async () => {
   assert.equal(project.name, "orders");
   assert.equal(project.targets.build.executor, "nx:run-commands");
   assert.equal(project.targets["atlas:config"].options.cwd, "apps/orders");
+});
+
+test("atlas preserves Nx framework configuration after native Angular scaffolding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-generator-"));
+  const bin = join(root, "bin");
+  await mkdir(bin);
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({
+    name: "acme",
+    private: true,
+    packageManager: "yarn@1.22.22",
+    devDependencies: { "@nx/angular": "22.0.0" }
+  }));
+  await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
+  directory="$4"
+  mkdir -p "$directory/src"
+  printf '{"name":"shell","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"name":"@acme/shell"}\n' > "$directory/package.json"
+  exit 0
+fi
+exit 1
+`, { mode: 0o755 });
+
+  await run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "shell",
+    "--framework=angular", "--skip-install"
+  ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+
+  const project = JSON.parse(await readFile(join(root, "apps/shell/project.json"), "utf8"));
+  assert.equal(project.marker, "nx-generator");
+  await assert.rejects(access(join(root, "apps/shell/angular.json")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "angular"/);
 });
 
 test("atlas dev prepares an Angular local override without manual URL editing", async () => {

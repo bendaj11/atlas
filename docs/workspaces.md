@@ -49,7 +49,8 @@ Atlas also detects a workspace root from `package.json#workspaces` before a lock
 Generated projects go under `apps/`. Atlas first invokes the workspace's installed
 `@nx/angular:application` or `@nx/react:application` generator, then adds the
 Atlas-specific files. Nx therefore remains responsible for `project.json`,
-linting, testing, TypeScript references, and workspace registration. The matching
+linting, testing, TypeScript references, and workspace registration. Atlas does
+not emit a nested `angular.json` when the Nx Angular generator succeeds. The matching
 When `@nx/angular` or `@nx/react` is missing, interactive Atlas asks permission
 to add the version matched by Nx. Non-interactive automation can approve this
 with `--yes`.
