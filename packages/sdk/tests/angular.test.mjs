@@ -35,13 +35,16 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(mf.get("federation.config.js"), /componentExposes/);
   assert.match(mf.get("federation.config.js"), /shared: \{\}/);
   assert.doesNotMatch(mf.get("federation.config.js"), /shareAll|singleton/);
+  assert.match(mf.get("src/app.component.ts"), /export class AppComponent/);
+  assert.match(mf.get("src/app.component.ts"), /export const routes: Routes/);
+  assert.match(mf.get("src/app.component.ts"), /router-outlet/);
   assert.match(mf.get("src/entry.ts"), /provideAtlasSdk/);
   assert.match(mf.get("src/entry.ts"), /import "zone\.js"/);
   assert.match(mf.get("src/entry.ts"), /context\.ready\(\)/);
   assert.match(mf.get("src/entry.ts"), /provideRouter\(routes\)/);
   assert.match(mf.get("src/entry.ts"), /LocationStrategy/);
-  assert.match(mf.get("src/entry.ts"), /router-outlet/);
-  assert.doesNotMatch(mf.get("src/entry.ts"), /ATLAS_MF_CONTEXT|InjectionToken|injectAtlasSdk/);
+  assert.match(mf.get("src/entry.ts"), /bootstrapApplication\(AppComponent/);
+  assert.doesNotMatch(mf.get("src/entry.ts"), /ATLAS_MF_CONTEXT|InjectionToken|injectAtlasSdk|@Component|router-outlet/);
   assert.doesNotMatch(mf.get("src/entry.ts"), /providers: \[provideRouter\(routes\),/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);

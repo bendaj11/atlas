@@ -36,6 +36,7 @@ export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions
     { path: "src/styles.css", contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
+    { path: "src/app.component.ts", contents: angularMicrofrontendComponent(name) },
     { path: "src/entry.ts", contents: angularMicrofrontendEntry(name) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
   ];
@@ -143,10 +144,42 @@ function angularMicrofrontendEntry(name: string): string {
   const selector = `atlas-${name.replace(/[^a-zA-Z0-9-]/g, "-")}-root`;
   return `import "zone.js";
 import { LocationStrategy } from "@angular/common";
-import { Component } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
-import { provideRouter, RouterLink, RouterOutlet, type Routes } from "@angular/router";
+import { provideRouter } from "@angular/router";
 import { createLocationStrategy, defineMicrofrontend, provideAtlasSdk } from "@atlas/sdk/angular";
+import { AppComponent, routes } from "./app.component";
+
+export default defineMicrofrontend(async ({ container, sdk, context }) => {
+  const element = document.createElement("${selector}");
+  const locationStrategy = createLocationStrategy(context);
+
+  container.append(element);
+
+  const app = await bootstrapApplication(AppComponent, {
+    providers: [
+      provideRouter(routes),
+      provideAtlasSdk(sdk),
+      { provide: LocationStrategy, useValue: locationStrategy }
+    ]
+  });
+
+  context.ready();
+
+  return {
+    unmount() {
+      app.destroy();
+      locationStrategy.ngOnDestroy();
+      element.remove();
+    }
+  };
+});
+`;
+}
+
+function angularMicrofrontendComponent(name: string): string {
+  const selector = `atlas-${name.replace(/[^a-zA-Z0-9-]/g, "-")}-root`;
+  return `import { Component } from "@angular/core";
+import { RouterLink, RouterOutlet, type Routes } from "@angular/router";
 
 @Component({
   selector: "atlas-mf-home",
@@ -177,37 +210,12 @@ class DetailsComponent {}
     </section>
   \`
 })
-class AtlasMfRootComponent {}
+export class AppComponent {}
 
-const routes: Routes = [
+export const routes: Routes = [
   { path: "", component: HomeComponent },
   { path: "details/:id", component: DetailsComponent }
 ];
-
-export default defineMicrofrontend(async ({ container, sdk, context }) => {
-  const element = document.createElement("${selector}");
-  const locationStrategy = createLocationStrategy(context);
-
-  container.append(element);
-
-  const app = await bootstrapApplication(AtlasMfRootComponent, {
-    providers: [
-      provideRouter(routes),
-      provideAtlasSdk(sdk),
-      { provide: LocationStrategy, useValue: locationStrategy }
-    ]
-  });
-
-  context.ready();
-
-  return {
-    unmount() {
-      app.destroy();
-      locationStrategy.ngOnDestroy();
-      element.remove();
-    }
-  };
-});
 `;
 }
 

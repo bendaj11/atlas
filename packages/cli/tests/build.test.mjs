@@ -502,6 +502,10 @@ exit 1
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineMicrofrontend/);
+  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(AppComponent/);
+  assert.doesNotMatch(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /@Component|router-outlet/);
+  assert.match(await readFile(join(root, "orders/src/app.component.ts"), "utf8"), /export const routes: Routes/);
+  assert.match(await readFile(join(root, "orders/src/app.component.ts"), "utf8"), /router-outlet/);
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas microfrontend assets/);
   assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
