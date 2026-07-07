@@ -157,7 +157,7 @@ An MF receives host services through one framework-native API:
 import type { AtlasEventMap } from "@atlas/sdk";
 
 const atlas = useAtlasSdk<{}, AtlasEventMap, { projectId: string }>();
-await atlas.httpClient("/api/orders");
+await atlas.httpClient.get("/api/orders");
 atlas.hostData.projectId;
 ```
 

@@ -63,7 +63,21 @@ export interface AtlasEventBus<TEvents extends object = AtlasEventMap> {
   once<TKey extends keyof TEvents & string>(type: TKey, listener: (payload: TEvents[TKey]) => void): () => void;
 }
 
-export type AtlasHttpClient = typeof fetch;
+export interface AtlasHttpRequestOptions extends Omit<RequestInit, "method"> {}
+
+export interface AtlasHttpClient {
+  request<TResponse = Response>(method: string, url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  get<TResponse = Response>(url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  post<TResponse = Response>(url: RequestInfo | URL, body?: BodyInit | null, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  put<TResponse = Response>(url: RequestInfo | URL, body?: BodyInit | null, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  patch<TResponse = Response>(url: RequestInfo | URL, body?: BodyInit | null, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  delete<TResponse = Response>(url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  head<TResponse = Response>(url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+  options<TResponse = Response>(url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse>;
+}
+
+export type AtlasFetchHttpClient = typeof fetch;
+export type AtlasHttpClientInput = AtlasHttpClient | AtlasFetchHttpClient;
 
 export interface AtlasHostData {
   readonly hostId: string;
@@ -110,7 +124,7 @@ export interface AtlasSdkOptions<
   THostData extends object = {}
 > {
   hostId: string;
-  hostData?: THostData & Partial<AtlasHostData>;
+  hostData?: THostData & AtlasHostData;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
   getCurrentUser?: () => Promise<AtlasUser | undefined>;
@@ -118,7 +132,7 @@ export interface AtlasSdkOptions<
   openModal?: <TResult = unknown>(request: AtlasModalRequest<TResult>, content?: AtlasOverlayContentMount) => Promise<TResult | undefined>;
   openPopup?: (request: AtlasPopupRequest, content?: AtlasOverlayContentMount) => AtlasPopupRef;
   getConfig?: <TValue = unknown>(key: string) => TValue | undefined;
-  httpClient?: AtlasHttpClient;
+  httpClient?: AtlasHttpClientInput;
   extensions?: TExtensions;
 }
 
@@ -166,7 +180,7 @@ export function createAtlasSdk<
     config: {
       get: options.getConfig ?? (() => undefined)
     },
-    httpClient: options.httpClient ?? defaultHttpClient
+    httpClient: normalizeHttpClient(options.httpClient)
   };
   assertExtensionsDoNotReplaceCore(options.extensions, core);
   return Object.assign(core, options.extensions ?? {}) as AtlasSdk<TExtensions, TEvents, THostData>;
@@ -212,12 +226,35 @@ export function createAtlasEventBus<TEvents extends object = AtlasEventMap>(): A
   };
 }
 
-const defaultHttpClient: AtlasHttpClient = (input, init) => {
-  if (typeof globalThis.fetch !== "function") {
-    throw new Error("This Atlas host has not configured an HTTP client.");
-  }
-  return globalThis.fetch(input, init);
-};
+export function createFetchAtlasHttpClient(fetchClient?: AtlasFetchHttpClient): AtlasHttpClient {
+  const request = <TResponse = Response>(method: string, url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse> => {
+    const client = fetchClient ?? globalThis.fetch;
+    if (typeof client !== "function") {
+      throw new Error("This Atlas host has not configured an HTTP client.");
+    }
+    return client(url, { ...options, method }) as Promise<TResponse>;
+  };
+  return {
+    request,
+    get(url, options) { return request("GET", url, options); },
+    post(url, body, options) { return request("POST", url, withBody(options, body)); },
+    put(url, body, options) { return request("PUT", url, withBody(options, body)); },
+    patch(url, body, options) { return request("PATCH", url, withBody(options, body)); },
+    delete(url, options) { return request("DELETE", url, options); },
+    head(url, options) { return request("HEAD", url, options); },
+    options(url, options) { return request("OPTIONS", url, options); }
+  };
+}
+
+function withBody(options: AtlasHttpRequestOptions | undefined, body: BodyInit | null | undefined): AtlasHttpRequestOptions | undefined {
+  return body === undefined ? options : { ...options, body };
+}
+
+function normalizeHttpClient(httpClient: AtlasHttpClientInput | undefined): AtlasHttpClient {
+  if (!httpClient) return createFetchAtlasHttpClient();
+  if (typeof httpClient === "function") return createFetchAtlasHttpClient(httpClient);
+  return httpClient;
+}
 
 export function findManifestsForSlot(manifests: AtlasManifest[], hostId: string, slot: string): AtlasManifest[] {
   return manifests.filter((manifest) =>

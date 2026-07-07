@@ -158,6 +158,7 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
     arguments: [{ label: "name-or-path", description: `Name or command-relative path of the ${resource}; prompted when omitted` }],
     options: [
       { label: "--framework <name>", description: "Framework: angular or react; prompted when omitted" },
+      ...(type === "app" ? [{ label: "--host <host-id>", description: "Host id used for initial compatibility and route placement" }] : []),
       { label: "--framework-version <range>", description: "Framework semver range for new packages; existing Nx packages keep their Angular/React version" },
       { label: "--directory <path>", description: "Target directory" },
       { label: "--allow-unsupported-version", description: "Generate outside Atlas's tested version range" },

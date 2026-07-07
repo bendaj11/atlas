@@ -25,7 +25,7 @@ Creates the object passed from host to MF.
 ```ts
 const sdk = createAtlasSdk({
   hostId: "shell",
-  hostData: { name: "Customer Shell", projectId: "project-42" },
+  hostData: { hostId: "shell", name: "Customer Shell", projectId: "project-42" },
   navigation,
   getCurrentUser: async () => user,
   showToast: (toast) => showToast(toast),
@@ -37,7 +37,9 @@ const sdk = createAtlasSdk({
 
 `hostData` always includes `hostId` and `name`. Hosts can add typed product
 fields, and Atlas exposes the merged shape as `AtlasHostData & THostData`.
-`httpClient` is a core host API; if omitted, Atlas uses `globalThis.fetch`.
+`httpClient` is a core host API with `request()`, `get()`, `post()`, `put()`,
+`patch()`, `delete()`, `head()`, and `options()`. If omitted, Atlas uses
+`globalThis.fetch`.
 
 ```ts
 import type { AtlasEventMap } from "@atlas/sdk";
@@ -47,7 +49,7 @@ interface SystemHostData {
 }
 
 const atlas = useAtlasSdk<{}, AtlasEventMap, SystemHostData>();
-await atlas.httpClient(`/api/projects/${atlas.hostData.projectId}`);
+await atlas.httpClient.get(`/api/projects/${atlas.hostData.projectId}`);
 ```
 
 Angular MFs use `injectAtlasSdk<{}, AtlasEventMap, SystemHostData>()`;

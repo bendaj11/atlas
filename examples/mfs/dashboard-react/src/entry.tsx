@@ -6,13 +6,12 @@ import "./styles.css";
 
 if (import.meta.hot) await import("@vitejs/plugin-react/preamble");
 
-interface HostExtensions {
-  hostData: { projectId: string };
-  httpClient: typeof fetch;
+interface SystemHostData {
+  projectId: string;
 }
 
 function App({ context }: AtlasMfMountRequest) {
-  const atlas = useAtlasSdk<HostExtensions>();
+  const atlas = useAtlasSdk<{}, {}, SystemHostData>();
   const widget = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let disposed = false;

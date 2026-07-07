@@ -9,7 +9,7 @@ export interface HostOptions<TExtensions extends object = {}, THostData extends 
   router: RouterLike;
   location: LocationLike;
   federation: AtlasFederationAdapter;
-  hostData?: THostData & Partial<AtlasHostData>;
+  hostData?: THostData & AtlasHostData;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Explicitly enables URL and storage runtime overrides for local extension workflows. */

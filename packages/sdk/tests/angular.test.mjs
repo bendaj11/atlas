@@ -18,6 +18,9 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("federation.config.js"), /Native Federation requires this exact filename/);
   assert.match(host.get("src/main.ts"), /initFederation/);
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
+  assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
+  assert.match(host.get("src/bootstrap.ts"), /const hostData: AtlasHostData = \{ hostId: atlasConfig\.id, name: atlasConfig\.name \?\? atlasConfig\.id \}/);
+  assert.doesNotMatch(host.get("src/bootstrap.ts"), /projectId/);
   assert.match(host.get("src/app.component.ts"), /data-atlas-host-status/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
   assert.match(host.get("atlas.config.ts"), /catalogUrl/);
@@ -40,6 +43,9 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(mf.get("src/entry.ts"), /provideRouter\(routes\)/);
   assert.match(mf.get("src/entry.ts"), /LocationStrategy/);
   assert.match(mf.get("src/entry.ts"), /router-outlet/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /"shell"/);
 });
 
 test("Angular MF LocationStrategy scopes Router URLs and receives host navigation", () => {

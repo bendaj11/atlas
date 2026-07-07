@@ -195,6 +195,31 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   assert.doesNotMatch(bootstrap, /localhost:4300/);
 });
 
+test("atlas app generation only writes host compatibility when a host is supplied", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "atlas-app-generator-"));
+  const withoutHost = join(temporary, "orders");
+  const withHost = join(temporary, "billing");
+
+  await run(process.execPath, [
+    "packages/cli/dist/index.js", "g", "app", "orders",
+    "--framework=react", "--skip-install", `--directory=${withoutHost}`
+  ]);
+  await run(process.execPath, [
+    "packages/cli/dist/index.js", "g", "app", "billing",
+    "--framework=react", "--host=customer-shell", "--skip-install", `--directory=${withHost}`
+  ]);
+
+  const defaultConfig = await readFile(join(withoutHost, "atlas.config.ts"), "utf8");
+  assert.doesNotMatch(defaultConfig, /hostCompatibility/);
+  assert.doesNotMatch(defaultConfig, /placements/);
+  assert.doesNotMatch(defaultConfig, /"shell"/);
+
+  const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
+  assert.match(explicitConfig, /hostCompatibility: \["customer-shell"\]/);
+  assert.match(explicitConfig, /hostId: "customer-shell"/);
+  assert.doesNotMatch(explicitConfig, /hostId: "shell"/);
+});
+
 test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-runtime-config-"));
   const projectRoot = join(root, "shell");

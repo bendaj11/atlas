@@ -1,6 +1,5 @@
 import type { AtlasGeneratorOptions } from "./generator-types.js";
 
-const DEFAULT_HOST_ID = "shell";
 const MAX_ATLAS_ID_LENGTH = 214;
 const ATLAS_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -9,14 +8,10 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
   if (options.hostId !== undefined) assertValidAtlasId(options.hostId, "hostId");
 }
 
-export function generatorHostId(options: AtlasGeneratorOptions): string {
-  return options.hostId?.trim() || DEFAULT_HOST_ID;
-}
-
 export function atlasConfig(options: AtlasGeneratorOptions, host: boolean): string {
   const { name, framework } = options;
-  const applicationConfig = microfrontendConfig(name, generatorHostId(options));
-  return `import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : `,\n  ${applicationConfig}`}\n} satisfies AtlasConfig;\n`;
+  const microfrontendFields = options.hostId ? `,\n  ${microfrontendConfig(name, options.hostId)}` : "";
+  return `import type { AtlasConfig } from "@atlas/contracts" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : microfrontendFields}\n} satisfies AtlasConfig;\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions): string {

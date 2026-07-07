@@ -124,7 +124,7 @@ await startHost({
   getCurrentUser: () => auth.currentUser(),
   showToast: (toast) => toastService.show(toast),
   openModal: (request) => modalService.open(request),
-  hostData: { projectId: currentProject.id },
+  hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id, projectId: currentProject.id },
   httpClient: authenticatedHttpClient,
   onStateChange: (event) => {
     if (event.error) monitoring.capture("atlas.runtime", event);
@@ -133,7 +133,8 @@ await startHost({
 ```
 
 `hostData` always includes Atlas-owned `hostId` and `name`, and can be extended
-with product fields. `httpClient` is a core host API. Atlas passes your HTTP,
+with product fields. `httpClient` is a core host API with Angular-style
+`request()` plus basic HTTP verb helpers. Atlas passes your HTTP,
 auth, modal, toast, and monitoring implementations through without replacing
 your stack.
 

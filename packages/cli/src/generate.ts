@@ -54,9 +54,10 @@ export class AtlasGenerateService {
         : undefined;
       if (scaffoldedFrameworkVersion) this.logFrameworkVersionSelection(selectedFramework, scaffoldedFrameworkVersion);
       const detectedFrameworkVersion = scaffoldedFrameworkVersion?.version;
+      const hostId = type === "app" ? this.args.flag("host") : undefined;
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
-        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion));
+        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files, selectedFramework);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -129,11 +130,12 @@ export class AtlasGenerateService {
     }
   }
 
-  private options(name: string, framework?: SupportedFramework, packageName?: string, detectedFrameworkVersion?: string): AtlasGeneratorOptions {
+  private options(name: string, framework?: SupportedFramework, packageName?: string, detectedFrameworkVersion?: string, hostId?: string): AtlasGeneratorOptions {
     return {
       name,
       packageName,
       framework: framework ?? this.args.framework(),
+      hostId,
       frameworkVersion: detectedFrameworkVersion ?? this.args.flag("framework-version"),
       allowUnsupportedVersion: this.args.hasFlag("allow-unsupported-version")
     };

@@ -14,17 +14,45 @@ test("event bus publishes across MFs and supports unsubscribe", () => {
 });
 
 test("core SDK exposes typed hostData and httpClient without extensions", async () => {
-  const httpClient = async (url) => ({ url });
+  const httpClient = {
+    async request(method, url, options) {
+      return { method, url, body: options?.body };
+    },
+    async get(url, options) { return this.request("GET", url, options); },
+    async post(url, body, options) { return this.request("POST", url, { ...options, body }); },
+    async put(url, body, options) { return this.request("PUT", url, { ...options, body }); },
+    async patch(url, body, options) { return this.request("PATCH", url, { ...options, body }); },
+    async delete(url, options) { return this.request("DELETE", url, options); },
+    async head(url, options) { return this.request("HEAD", url, options); },
+    async options(url, options) { return this.request("OPTIONS", url, options); }
+  };
   const sdk = createAtlasSdk({
     hostId: "shell",
     navigation: createMemoryNavigation(),
-    hostData: { name: "Shell", projectId: "project-42" },
+    hostData: { hostId: "shell", name: "Shell", projectId: "project-42" },
     httpClient
   });
   assert.equal(sdk.hostData.hostId, "shell");
   assert.equal(sdk.hostData.name, "Shell");
   assert.equal(sdk.hostData.projectId, "project-42");
-  assert.deepEqual(await sdk.httpClient("/orders"), { url: "/orders" });
+  assert.deepEqual(await sdk.httpClient.get("/orders"), { method: "GET", url: "/orders", body: undefined });
+  assert.deepEqual(await sdk.httpClient.post("/orders", "payload"), { method: "POST", url: "/orders", body: "payload" });
+  assert.deepEqual(await sdk.httpClient.request("PATCH", "/orders/42", { body: "patch" }), { method: "PATCH", url: "/orders/42", body: "patch" });
+});
+
+test("host SDK adapts fetch-compatible httpClient providers", async () => {
+  const calls = [];
+  const httpClient = async (url, init) => {
+    calls.push([url, init]);
+    return { ok: true };
+  };
+  const sdk = createAtlasSdk({
+    hostId: "shell",
+    navigation: createMemoryNavigation(),
+    httpClient
+  });
+  assert.deepEqual(await sdk.httpClient.delete("/orders/42"), { ok: true });
+  assert.deepEqual(calls, [["/orders/42", { method: "DELETE" }]]);
 });
 
 test("host extensions cannot replace core SDK capabilities", () => {
