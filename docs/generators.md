@@ -31,11 +31,20 @@ For example, running `atlas g host my-app` from `<workspace>/products` creates
 
 After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command from the generated project and waits for it to finish. The package manager automatically coordinates with a parent Nx, Turbo, or package-manager workspace when applicable. Advanced automation that installs dependencies separately can pass `--skip-install`.
 
+Before writing files, Atlas reports the detected workspace, selected framework,
+target path, and whether scaffolding is delegated to a native Nx generator or
+performed directly by Atlas.
+
 If scaffolding, file generation, or dependency installation fails, Atlas removes a newly created project directory. Existing directories updated with `--force` are preserved to avoid deleting user-owned files.
 
 Inside Nx, Atlas delegates initial project creation to the installed
 `@nx/angular` or `@nx/react` generator before adding Atlas files. This preserves
-Nx project configuration, lint/test setup, and workspace conventions. Turbo,
+the complete Nx scaffold: project and package manifests, source files, public
+assets, TypeScript configuration, lint/test setup, and workspace conventions.
+Atlas then adds only its explicitly owned integration files, such as
+`atlas.config.ts`, `tsconfig.atlas.json`, federation configuration, and host
+runtime configuration. It does not apply its portable application template over
+the Nx result. Turbo,
 Yarn, pnpm, and npm provide task or workspace orchestration rather than framework
 generators, so Atlas creates a regular package that those tools discover normally.
 If an Nx framework plugin is missing, Atlas asks permission to run `nx add` for

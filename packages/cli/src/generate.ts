@@ -8,7 +8,7 @@ import {
   type AtlasGeneratorOptions
 } from "@atlas/generators";
 import { CliArguments, type SupportedFramework } from "./arguments.js";
-import type { AtlasPrompter } from "./ui.js";
+import { ui, type AtlasPrompter } from "./ui.js";
 import type { AtlasWorkspace } from "./workspace.js";
 
 export class AtlasGenerateService {
@@ -34,6 +34,7 @@ export class AtlasGenerateService {
         : this.defaultRoot(type, name);
     const targetExisted = await exists(root);
     try {
+      this.logGenerationPlan(selectedFramework, root);
       await this.ensureWorkspaceGenerator(selectedFramework);
       if (this.workspace.kind === "nx" && !this.args.hasFlag("skip-workspace-generator") && this.prompts.interactive) {
         // Release stdin from any Atlas prompt before Nx takes over the terminal.
@@ -59,6 +60,19 @@ export class AtlasGenerateService {
       if (!targetExisted) await rm(root, { recursive: true, force: true });
       throw error;
     }
+  }
+
+  private logGenerationPlan(framework: SupportedFramework, root: string): void {
+    const label = workspaceLabel(this.workspace.kind);
+    const target = displayTarget(this.workspace.root, root);
+    ui.info(`Detected ${label} at ${this.workspace.root}.`);
+    if (this.workspace.kind === "nx" && !this.args.hasFlag("skip-workspace-generator")) {
+      const generator = framework === "angular" ? "@nx/angular:application" : "@nx/react:application";
+      ui.info(`Delegating ${frameworkLabel(framework)} scaffolding to ${generator} at ${target}.`);
+      return;
+    }
+    const reason = this.workspace.kind === "nx" ? "Native Nx scaffolding was skipped; " : "";
+    ui.info(`${reason}Atlas will generate the ${frameworkLabel(framework)} scaffold directly at ${target}.`);
   }
 
   private async ensureWorkspaceGenerator(framework: SupportedFramework): Promise<void> {
@@ -129,6 +143,22 @@ export class AtlasGenerateService {
   }
 }
 
+function workspaceLabel(kind: AtlasWorkspace["kind"]): string {
+  if (kind === "nx") return "an Nx workspace";
+  if (kind === "turbo") return "a Turborepo workspace";
+  if (kind === "workspace") return "a package-manager workspace";
+  return "a standalone project";
+}
+
+function frameworkLabel(framework: SupportedFramework): string {
+  return framework === "angular" ? "Angular" : "React";
+}
+
+function displayTarget(workspaceRoot: string, root: string): string {
+  const target = relative(workspaceRoot, root);
+  return !target || target === "." ? "." : target.startsWith(`..${sep}`) || isAbsolute(target) ? root : target;
+}
+
 function parseProjectPath(value: string): { name: string; segments: string[] } {
   const segments = value.split(/[\\/]/);
   if (segments.length === 0 || segments.some((segment) => !segment || segment === "." || segment === "..")) {
@@ -140,10 +170,18 @@ function parseProjectPath(value: string): { name: string; segments: string[] } {
 
 function generatedOverlay(files: AtlasGeneratedFile[], workspaceScaffolded: boolean): AtlasGeneratedFile[] {
   if (!workspaceScaffolded) return files;
-  // Framework generators own monorepo project configuration. In particular,
-  // Nx configures Angular applications in project.json, never angular.json.
-  return files.filter((file) => file.path !== "angular.json");
+  // A delegated generator owns the complete application scaffold. Keep this
+  // allowlist deliberately small so new portable-template files cannot leak
+  // into framework-managed projects by default.
+  return files.filter((file) => ATLAS_INTEGRATION_FILES.has(file.path));
 }
+
+const ATLAS_INTEGRATION_FILES = new Set([
+  "atlas.config.ts",
+  "tsconfig.atlas.json",
+  "federation.config.js",
+  "public/atlas.runtime.json"
+]);
 
 async function existingPackageName(root: string): Promise<string | undefined> {
   try {

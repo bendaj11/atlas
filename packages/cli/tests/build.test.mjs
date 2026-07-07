@@ -214,11 +214,13 @@ test("atlas generation registers projects with Nx automatically", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-generator-"));
   await writeFile(join(root, "nx.json"), "{}\n");
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, packageManager: "yarn@1.22.22" }));
-  await run(process.execPath, [join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders", "--framework=react", "--skip-install", "--skip-workspace-generator"], { cwd: root });
-  const project = JSON.parse(await readFile(join(root, "apps/orders/project.json"), "utf8"));
+  const stdout = await run(process.execPath, [join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders", "--framework=react", "--skip-install", "--skip-workspace-generator"], { cwd: root });
+  const project = JSON.parse(await readFile(join(root, "orders/project.json"), "utf8"));
   assert.equal(project.name, "orders");
   assert.equal(project.targets.build.executor, "nx:run-commands");
-  assert.equal(project.targets["atlas:config"].options.cwd, "apps/orders");
+  assert.equal(project.targets["atlas:config"].options.cwd, "orders");
+  assert.match(stdout, /Detected an Nx workspace/);
+  assert.match(stdout, /Native Nx scaffolding was skipped; Atlas will generate the React scaffold directly at orders/);
 });
 
 test("atlas preserves Nx framework configuration after native Angular scaffolding", async () => {
@@ -241,24 +243,40 @@ test("atlas preserves Nx framework configuration after native Angular scaffoldin
   await writeFile(join(bin, "yarn"), `#!/bin/sh
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
-  mkdir -p "$directory/src"
+  mkdir -p "$directory/public" "$directory/src"
+  printf 'nx public asset\n' > "$directory/public/nx.txt"
+  printf 'nx source\n' > "$directory/src/main.ts"
+  printf 'nx eslint\n' > "$directory/eslint.config.mjs"
+  printf 'nx jest\n' > "$directory/jest.config.ts"
   printf '{"name":"shell","marker":"nx-generator"}\n' > "$directory/project.json"
-  printf '{"name":"@acme/shell"}\n' > "$directory/package.json"
+  printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
+  printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
 fi
 exit 1
 `, { mode: 0o755 });
 
-  await run(process.execPath, [
+  const stdout = await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "shell",
     "--framework=angular", "--skip-install"
   ], { cwd: products, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   const project = JSON.parse(await readFile(join(root, "products/shell/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
+  assert.equal(await readFile(join(root, "products/shell/src/main.ts"), "utf8"), "nx source\n");
+  assert.equal(await readFile(join(root, "products/shell/eslint.config.mjs"), "utf8"), "nx eslint\n");
+  assert.equal(await readFile(join(root, "products/shell/jest.config.ts"), "utf8"), "nx jest\n");
+  assert.equal(JSON.parse(await readFile(join(root, "products/shell/tsconfig.json"), "utf8")).marker, "nx-generator");
+  assert.equal(JSON.parse(await readFile(join(root, "products/shell/tsconfig.app.json"), "utf8")).marker, "nx-generator");
+  assert.equal(await readFile(join(root, "products/shell/public/nx.txt"), "utf8"), "nx public asset\n");
+  await assert.rejects(access(join(root, "products/shell/package.json")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "products/shell/angular.json")), { code: "ENOENT" });
+  await assert.rejects(access(join(root, "products/shell/src/bootstrap.ts")), { code: "ENOENT" });
+  await assert.rejects(access(join(root, "products/shell/src/app.component.ts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /framework: "angular"/);
   assert.equal(JSON.parse(await readFile(join(root, "products/shell/public/atlas.runtime.json"), "utf8")).hostId, "shell");
+  assert.match(stdout, /Detected an Nx workspace/);
+  assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at products\/shell/);
 });
 
 test("atlas dev prepares an Angular local override without manual URL editing", async () => {
