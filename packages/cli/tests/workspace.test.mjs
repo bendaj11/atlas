@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
+import { createFormatGeneratedCommand, createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
 
 test("workspace detection discovers an Nx project without consumer configuration", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-"));
@@ -143,6 +143,27 @@ test("dependency installs use the detected package manager from the generated pr
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "@acme/orders" }));
   assert.equal(await installationRoot("nx", root, projectRoot), projectRoot);
   assert.equal(await installationRoot("turbo", root, projectRoot), projectRoot);
+});
+
+test("generated project formatting uses existing workspace tooling", async () => {
+  const nxRoot = await mkdtemp(join(tmpdir(), "atlas-nx-format-command-"));
+  await writeFile(join(nxRoot, "package.json"), JSON.stringify({ devDependencies: { nx: "22.0.0" } }));
+  assert.deepEqual(await createFormatGeneratedCommand("nx", "yarn", nxRoot, join(nxRoot, "apps", "orders")), {
+    command: "yarn", args: ["nx", "format:write", "apps/orders"], cwd: nxRoot
+  });
+
+  const root = await mkdtemp(join(tmpdir(), "atlas-format-command-"));
+  const projectRoot = join(root, "apps", "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ scripts: { format: "prettier --write ." } }));
+  assert.deepEqual(await createFormatGeneratedCommand("workspace", "pnpm", root, projectRoot), {
+    command: "pnpm", args: ["run", "format"], cwd: projectRoot
+  });
+
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ scripts: { lint: "eslint ." } }));
+  assert.deepEqual(await createFormatGeneratedCommand("workspace", "npm", root, projectRoot), {
+    command: "npm", args: ["run", "lint", "--", "--fix"], cwd: projectRoot
+  });
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {

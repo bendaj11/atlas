@@ -8,17 +8,88 @@ export function generateWidgetFiles(options: AtlasGeneratorOptions): AtlasGenera
   const componentName = baseName.endsWith("Widget") ? baseName : `${baseName}Widget`;
   if (options.framework === "react") {
     const root = reactVersionProfile(options).major === 17
-      ? 'import type { ReactNode } from "react";\nimport { render, unmountComponentAtNode } from "react-dom";\n\nfunction createRoot(container: Element) {\n  return { render(element: ReactNode) { render(element, container); }, unmount() { unmountComponentAtNode(container); } };\n}'
+      ? `import type { ReactNode } from "react";
+import { render, unmountComponentAtNode } from "react-dom";
+
+function createRoot(container: Element) {
+  return {
+    render(element: ReactNode) {
+      render(element, container);
+    },
+    unmount() {
+      unmountComponentAtNode(container);
+    }
+  };
+}`
       : 'import { createRoot } from "react-dom/client";';
     return [{
       path: `src/exported-components/${options.name}/index.tsx`,
-      contents: `import { createElement } from "react";\n${root}\nimport { defineExportedComponent } from "@atlas/sdk/react";\n\nexport interface ${componentName}Props {\n  title?: string;\n}\n\nfunction ${componentName}({ title = "${title(options.name)}" }: ${componentName}Props) {\n  return <section><h2>{title}</h2></section>;\n}\n\nexport default defineExportedComponent<${componentName}Props>({\n  createRoot,\n  createElement: ({ props }) => createElement(${componentName}, props)\n});\n`
+      contents: `import { createElement } from "react";
+${root}
+import { defineExportedComponent } from "@atlas/sdk/react";
+
+export interface ${componentName}Props {
+  title?: string;
+}
+
+function ${componentName}({ title = "${title(options.name)}" }: ${componentName}Props) {
+  return (
+    <section>
+      <h2>{title}</h2>
+    </section>
+  );
+}
+
+export default defineExportedComponent<${componentName}Props>({
+  createRoot,
+  createElement: ({ props }) => createElement(${componentName}, props)
+});
+`
     }];
   }
   const selector = `atlas-${options.name}-widget`;
   return [{
     path: `src/exported-components/${options.name}/index.ts`,
-    contents: `import "zone.js";\nimport { Component, InjectionToken, inject } from "@angular/core";\nimport { bootstrapApplication } from "@angular/platform-browser";\nimport { defineExportedComponent } from "@atlas/sdk/angular";\n\nexport interface ${componentName}Props {\n  title?: string;\n}\n\nconst PROPS = new InjectionToken<${componentName}Props>("${componentName}Props");\n\n@Component({ selector: "${selector}", standalone: true, template: \`<section><h2>{{ props.title || "${title(options.name)}" }}</h2></section>\` })\nclass ${componentName} { readonly props = inject(PROPS); }\n\nexport default defineExportedComponent<${componentName}Props>(async ({ container, props }) => {\n  const element = document.createElement("${selector}");\n  container.append(element);\n  const app = await bootstrapApplication(${componentName}, { providers: [{ provide: PROPS, useValue: props }] });\n  return { unmount() { app.destroy(); element.remove(); } };\n});\n`
+    contents: `import "zone.js";
+import { Component, InjectionToken, inject } from "@angular/core";
+import { bootstrapApplication } from "@angular/platform-browser";
+import { defineExportedComponent } from "@atlas/sdk/angular";
+
+export interface ${componentName}Props {
+  title?: string;
+}
+
+const PROPS = new InjectionToken<${componentName}Props>("${componentName}Props");
+
+@Component({
+  selector: "${selector}",
+  standalone: true,
+  template: \`
+    <section>
+      <h2>{{ props.title || "${title(options.name)}" }}</h2>
+    </section>
+  \`
+})
+class ${componentName} {
+  readonly props = inject(PROPS);
+}
+
+export default defineExportedComponent<${componentName}Props>(async ({ container, props }) => {
+  const element = document.createElement("${selector}");
+  container.append(element);
+
+  const app = await bootstrapApplication(${componentName}, {
+    providers: [{ provide: PROPS, useValue: props }]
+  });
+
+  return {
+    unmount() {
+      app.destroy();
+      element.remove();
+    }
+  };
+});
+`
   }];
 }
 

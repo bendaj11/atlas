@@ -22,6 +22,7 @@ export interface AtlasWorkspace {
   findProject(name: string): Promise<AtlasProject>;
   run(project: AtlasProject, task: AtlasTask, args?: string[]): Promise<void>;
   spawn(project: AtlasProject, task: AtlasTask, args?: string[]): ChildProcess;
+  formatGenerated(projectRoot: string): Promise<boolean>;
   installDependencies(projectRoot: string): Promise<void>;
   missingScaffoldDependency(framework: "angular" | "react"): Promise<string | undefined>;
   installScaffoldDependency(framework: "angular" | "react"): Promise<void>;
@@ -50,6 +51,12 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     findProject: (name) => findAtlasProject(root, name),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
+    formatGenerated: async (projectRoot) => {
+      const command = await createFormatGeneratedCommand(kind, packageManager, root, projectRoot);
+      if (!command) return false;
+      await runProcess(command);
+      return true;
+    },
     installDependencies: async (projectRoot) => runProcess(createInstallCommand(
       packageManager,
       root,
@@ -120,6 +127,30 @@ export function createInstallCommand(
   // npm discovers the applicable project/workspace .npmrc itself. Passing the
   // same file as --globalconfig makes npm load it twice and abort.
   return { command: manager, args: ["install"], cwd: projectRoot };
+}
+
+export async function createFormatGeneratedCommand(
+  kind: AtlasWorkspaceKind,
+  manager: AtlasPackageManager,
+  workspaceRoot: string,
+  projectRoot: string
+): Promise<ProcessCommand | undefined> {
+  if (kind === "nx") {
+    if (!await nxFormatterAvailable(workspaceRoot)) return undefined;
+    const target = relative(workspaceRoot, projectRoot) || ".";
+    return packageExecutor(manager, workspaceRoot, ["nx", "format:write", target]);
+  }
+
+  const projectScripts = await packageScripts(projectRoot);
+  if ("format" in projectScripts) return packageScript(manager, projectRoot, "format", []);
+  if ("lint" in projectScripts) return packageScript(manager, projectRoot, "lint", ["--fix"]);
+
+  const target = relative(workspaceRoot, projectRoot) || ".";
+  const workspaceScripts = await packageScripts(workspaceRoot);
+  if ("format" in workspaceScripts) return packageScript(manager, workspaceRoot, "format", [target]);
+  if ("lint" in workspaceScripts) return packageScript(manager, workspaceRoot, "lint", ["--fix", target]);
+
+  return undefined;
 }
 
 export async function installationRoot(kind: AtlasWorkspaceKind, workspaceRoot: string, projectRoot: string): Promise<string> {
@@ -269,6 +300,17 @@ function packageExecutor(manager: AtlasPackageManager, root: string, args: strin
   return { command: "npx", args, cwd: root };
 }
 
+function packageScript(manager: AtlasPackageManager, root: string, script: string, args: string[]): ProcessCommand {
+  if (manager === "yarn") return { command: "yarn", args: ["run", script, ...args], cwd: root };
+  if (manager === "pnpm") return { command: "pnpm", args: ["run", script, ...(args.length ? ["--", ...args] : [])], cwd: root };
+  return { command: "npm", args: ["run", script, ...(args.length ? ["--", ...args] : [])], cwd: root };
+}
+
+async function packageScripts(root: string): Promise<Record<string, unknown>> {
+  const packageJson = await readJson<{ scripts?: Record<string, unknown> }>(join(root, "package.json"));
+  return packageJson?.scripts ?? {};
+}
+
 async function detectGenerationBase(root: string, start: string): Promise<string> {
   const startDirectory = relative(root, start);
   if (startDirectory && dirname(startDirectory) === ".") return startDirectory;
@@ -296,6 +338,13 @@ async function workspacePatterns(root: string): Promise<string[]> {
 
 function nxFrameworkPlugin(framework: "angular" | "react"): string {
   return framework === "angular" ? "@nx/angular" : "@nx/react";
+}
+
+async function nxFormatterAvailable(root: string): Promise<boolean> {
+  for (const packageName of ["nx", "@nx/workspace", "@nx/angular", "@nx/react"]) {
+    if (await packageIsInstalled(root, packageName)) return true;
+  }
+  return false;
 }
 
 async function packageIsInstalled(root: string, packageName: string): Promise<boolean> {

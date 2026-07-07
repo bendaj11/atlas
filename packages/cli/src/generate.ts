@@ -62,6 +62,7 @@ export class AtlasGenerateService {
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files, selectedFramework);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
+      await this.formatGenerated(root);
       await afterGeneration?.(root);
       return root;
     } catch (error) {
@@ -129,6 +130,7 @@ export class AtlasGenerateService {
       await mkdir(join(target, ".."), { recursive: true });
       await writeFile(target, file.contents, "utf8");
     }
+    await this.formatGenerated(project.root);
   }
 
   private options(name: string, framework?: SupportedFramework, packageName?: string, detectedFrameworkVersion?: string, hostId?: string): AtlasGeneratorOptions {
@@ -168,6 +170,13 @@ export class AtlasGenerateService {
     const target = await dependencyManifestPath(root, this.workspace.root);
     const changed = await mergePackageDependencies(target, packageFile.contents, framework);
     if (changed) ui.info(`Added Atlas dependencies to ${displayTarget(this.workspace.root, target)}.`);
+  }
+
+  private async formatGenerated(root: string): Promise<void> {
+    if (this.args.hasFlag("skip-format")) return;
+    if (await this.workspace.formatGenerated(root)) {
+      ui.info(`Formatted generated files in ${displayTarget(this.workspace.root, root)}.`);
+    }
   }
 }
 

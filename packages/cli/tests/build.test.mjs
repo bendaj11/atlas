@@ -378,6 +378,10 @@ test("atlas preserves Nx Angular workspace version after native scaffolding", as
     compilerOptions: { composite: true, declaration: true }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
+  printf '%s\n' "$3" > formatted.txt
+  exit 0
+fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/public" "$directory/src"
@@ -430,6 +434,8 @@ exit 1
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at products\/shell/);
   assert.match(stdout, /Detected existing Angular version ~20\.3\.0 in package\.json; ignoring --framework-version=~21\.2\.0/);
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
+  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "products/shell\n");
+  assert.match(stdout, /Formatted generated files in products\/shell/);
 });
 
 test("atlas preserves Nx React project scaffolding around host startup files", async () => {
@@ -445,6 +451,10 @@ test("atlas preserves Nx React project scaffolding around host startup files", a
     devDependencies: { "@nx/react": "22.0.0" }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
+  printf '%s\n' "$3" > formatted.txt
+  exit 0
+fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/src" "$directory/public"
@@ -483,6 +493,8 @@ exit 1
   assert.equal(rootPackage.devDependencies["@nx/react"], "22.0.0");
   assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at apps\/shell/);
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
+  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "apps/shell\n");
+  assert.match(stdout, /Formatted generated files in apps\/shell/);
 });
 
 test("atlas adds required Angular MF files after Nx scaffolding", async () => {
@@ -498,6 +510,10 @@ test("atlas adds required Angular MF files after Nx scaffolding", async () => {
     devDependencies: { "@nx/angular": "22.0.0" }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
+  printf '%s\n' "$3" > formatted.txt
+  exit 0
+fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/src/app/nx-only" "$directory/public"
@@ -538,6 +554,8 @@ exit 1
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
+  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
+  assert.match(stdout, /Formatted generated files in orders/);
 });
 
 test("atlas adds required React MF files after Nx scaffolding", async () => {
@@ -553,6 +571,10 @@ test("atlas adds required React MF files after Nx scaffolding", async () => {
     devDependencies: { "@nx/react": "22.0.0" }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
+  printf '%s\n' "$3" > formatted.txt
+  exit 0
+fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/src/app/nx-only" "$directory/public"
@@ -591,6 +613,8 @@ exit 1
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
   assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at orders/);
+  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
+  assert.match(stdout, /Formatted generated files in orders/);
 });
 
 test("atlas aligns React dependencies to an Nx project package framework version", async () => {
@@ -605,6 +629,10 @@ test("atlas aligns React dependencies to an Nx project package framework version
     devDependencies: { "@nx/react": "22.0.0" }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
+  printf '%s\n' "$3" > formatted.txt
+  exit 0
+fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/src"

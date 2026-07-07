@@ -45,7 +45,50 @@ export function json(value: unknown): string {
 }
 
 export function atlasHostStyles(): string {
-  return `body { margin: 0; font-family: system-ui, sans-serif; }\n[data-atlas-navigation] { display: flex; gap: 1rem; padding: 1rem; }\n[data-atlas-route-outlet] { padding: 1rem; }\n[data-atlas-status] { display: flex; align-items: center; gap: .75rem; padding: 1rem; border: 1px solid #b8bec7; }\n[data-atlas-spinner] { width: 1.25rem; height: 1.25rem; border: 2px solid #b8bec7; border-top-color: #2463eb; border-radius: 50%; animation: atlas-spin .7s linear infinite; }\n@keyframes atlas-spin { to { transform: rotate(360deg); } }\n@media (prefers-reduced-motion: reduce) { [data-atlas-spinner] { animation-duration: 1.5s; } }\n`;
+  return `body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+[data-atlas-navigation] {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+[data-atlas-route-outlet] {
+  padding: 1rem;
+}
+
+[data-atlas-status] {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #b8bec7;
+}
+
+[data-atlas-spinner] {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #b8bec7;
+  border-top-color: #2463eb;
+  border-radius: 50%;
+  animation: atlas-spin 0.7s linear infinite;
+}
+
+@keyframes atlas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-atlas-spinner] {
+    animation-duration: 1.5s;
+  }
+}
+`;
 }
 
 function microfrontendConfig(name: string, hostId: string): string {
