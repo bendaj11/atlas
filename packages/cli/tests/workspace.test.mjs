@@ -130,8 +130,11 @@ test("task commands follow Nx, Turbo, and package-manager conventions", () => {
 });
 
 test("dependency installs use the detected package manager from the generated project", () => {
-  assert.deepEqual(createInstallCommand("npm", "/repo/apps/orders"), {
-    command: "npm", args: ["install"], cwd: "/repo/apps/orders"
+  assert.deepEqual(createInstallCommand("npm", "/repo", "/repo/apps/orders"), {
+    command: "npm", args: ["--globalconfig", "/repo/.npmrc", "install"], cwd: "/repo/apps/orders"
+  });
+  assert.deepEqual(createInstallCommand("pnpm", "/repo", "/repo/apps/orders"), {
+    command: "pnpm", args: ["install"], cwd: "/repo/apps/orders"
   });
 });
 

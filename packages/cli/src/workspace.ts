@@ -49,7 +49,7 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     findProject: (name) => findAtlasProject(root, name),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
-    installDependencies: (projectRoot) => runProcess(createInstallCommand(packageManager, projectRoot)),
+    installDependencies: (projectRoot) => runProcess(createInstallCommand(packageManager, root, projectRoot)),
     missingScaffoldDependency: async (framework) => {
       if (kind !== "nx") return undefined;
       if (framework === "angular" && await usesTypeScriptProjectReferences(root)) return undefined;
@@ -107,9 +107,13 @@ export function createNxPluginInstallCommand(
 
 export function createInstallCommand(
   manager: AtlasPackageManager,
+  workspaceRoot: string,
   projectRoot: string
 ): ProcessCommand {
-  return { command: manager, args: ["install"], cwd: projectRoot };
+  const args = manager === "npm"
+    ? ["--globalconfig", join(workspaceRoot, ".npmrc"), "install"]
+    : ["install"];
+  return { command: manager, args, cwd: projectRoot };
 }
 
 async function findWorkspaceRoot(start: string): Promise<string> {

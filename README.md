@@ -66,8 +66,8 @@ atlas g host customer-shell --framework=react
 atlas g app orders --framework=angular
 ```
 
-For a private registry, configure the `@atlas` scope in your user-level
-`.npmrc` first: `@atlas:registry=https://registry.example.com`.
+For a private registry, configure the `@atlas` scope in your workspace-root or
+user-level `.npmrc` first: `@atlas:registry=https://registry.example.com`.
 
 Commands are interactive when required values are omitted:
 

@@ -44,7 +44,7 @@ pin the CLI version when installing it globally, for example
 `npm install --global @atlas/cli@0.2.0`.
 
 When packages are hosted in a private registry, configure the scope once in
-your user-level or CI `.npmrc`:
+your workspace-root, user-level, or CI `.npmrc`:
 
 ```ini
 @atlas:registry=https://registry.example.com
