@@ -31,6 +31,8 @@ For example, running `atlas g host my-app` from `<workspace>/products` creates
 
 After creating a host or MF, Atlas runs the detected Yarn, pnpm, or npm install command and waits for it to finish. For delegated Nx generation, Atlas adds Atlas-specific dependencies to the package manifest that owns the generated project: the project `package.json` when the native Nx generator creates one, otherwise the workspace-root `package.json` used by integrated Nx workspaces. Installation runs from that same manifest directory. Other project types install from the generated project. Advanced automation that installs dependencies separately can pass `--skip-install`.
 
+When that owning manifest already declares the framework primary package (`@angular/core` for Angular or `react` for React), Atlas treats that existing version as the source of truth. It aligns companion packages such as `@angular/animations`, `@angular-architects/native-federation`, `react-dom`, React types, and router/runtime packages to the detected major instead of using Atlas defaults or `--framework-version`. The CLI prints the detected version and warns when an explicit `--framework-version` is ignored so Atlas does not upgrade or downgrade the whole monorepo accidentally.
+
 Before writing files, Atlas reports the detected workspace, selected framework,
 target path, and whether scaffolding is delegated to a native Nx generator or
 performed directly by Atlas.
@@ -147,6 +149,8 @@ atlas g app catalog --framework=react --framework-version=^18.3.0
 ```
 
 Atlas accepts version profiles for Angular 19-22 and React 17-19. "Accepted" means the generator emits aligned framework packages, build tooling, type packages, Native Federation, Router APIs, and React Compiler settings for that major; it does not mean every profile is release-certified. React 17 and 18 receive `react-compiler-runtime` automatically.
+
+In delegated Nx workspaces, `--framework-version` applies only when the owning package manifest does not already declare `@angular/core` or `react`. If the workspace root has Angular 20, Atlas keeps Angular 20 and aligns newly added Angular companion dependencies to Angular 20. To generate with another major, either upgrade or downgrade the workspace framework packages first, create a project-level package that owns its own framework version, or pass `--skip-workspace-generator` to create Atlas's portable package template outside the native Nx scaffold.
 
 The certified matrix is narrower: repository CI installs and production-builds the default Angular 20 and React 19 generated projects. Treat the other accepted majors as supported generation profiles that must pass your own generated-project CI before adoption.
 

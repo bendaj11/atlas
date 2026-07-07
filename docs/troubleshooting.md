@@ -32,6 +32,25 @@ Verify that `remoteEntryUrl` points to `remoteEntry.json`, not a JavaScript file
 
 If an exposed entry is reported as missing from compilation, ensure `tsconfig.app.json` includes `src/**/*.ts`.
 
+## Install Fails With Angular Or React Peer Conflicts
+
+An `ERESOLVE unable to resolve dependency tree` error usually means the package
+manifest has mixed framework majors, such as `@angular/core@21` with
+`@angular/animations@20`, or `react@17` with `react-dom@18`.
+
+In Nx workspaces, Atlas reads the manifest that owns the generated project. If
+that manifest already declares `@angular/core` or `react`, Atlas keeps that
+version and aligns framework companion dependencies to it. The CLI prints a
+detected-version message and warns if `--framework-version` was ignored to avoid
+upgrading the whole monorepo.
+
+If peer conflicts still appear:
+
+- Remove stale mismatched entries from the owning `package.json` and rerun Atlas.
+- Upgrade or downgrade the workspace framework packages first, then rerun Atlas.
+- Generate a package with its own framework version if your Nx layout supports project-level `package.json` files.
+- Use `--skip-workspace-generator` for a portable Atlas-generated package, or `--skip-install` when another tool owns dependency resolution.
+
 ## Host APIs Are Missing
 
 MFs should depend only on `AtlasSdk`. If a needed capability is missing, add it to the SDK contract rather than importing host internals.

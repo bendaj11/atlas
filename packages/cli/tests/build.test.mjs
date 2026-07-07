@@ -223,7 +223,7 @@ test("atlas generation registers projects with Nx automatically", async () => {
   assert.match(stdout, /Native Nx scaffolding was skipped; Atlas will generate the React scaffold directly at orders/);
 });
 
-test("atlas preserves Nx framework configuration after native Angular scaffolding", async () => {
+test("atlas preserves Nx Angular workspace version after native scaffolding", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-generator-"));
   const bin = join(root, "bin");
   const products = join(root, "products");
@@ -234,7 +234,7 @@ test("atlas preserves Nx framework configuration after native Angular scaffoldin
     name: "acme",
     private: true,
     packageManager: "yarn@1.22.22",
-    dependencies: { "@angular/core": "~21.2.0" },
+    dependencies: { "@angular/core": "~20.3.0", "@angular/animations": "~21.2.0" },
     devDependencies: { "@nx/angular": "22.0.0" }
   }));
   await writeFile(join(root, "tsconfig.json"), JSON.stringify({ files: [], references: [] }));
@@ -259,7 +259,7 @@ exit 1
 
   const stdout = await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "shell",
-    "--framework=angular", "--skip-install"
+    "--framework=angular", "--framework-version=~21.2.0", "--skip-install"
   ], { cwd: products, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   const project = JSON.parse(await readFile(join(root, "products/shell/project.json"), "utf8"));
@@ -279,15 +279,17 @@ exit 1
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
   assert.equal(JSON.parse(await readFile(join(root, "products/shell/public/atlas.runtime.json"), "utf8")).hostId, "shell");
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.11");
-  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.11");
-  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.11");
-  assert.equal(rootPackage.dependencies["@angular/animations"], "~21.2.0");
-  assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^21.0.0");
+  assert.equal(rootPackage.dependencies["@atlas/contracts"], "^0.2.12");
+  assert.equal(rootPackage.dependencies["@atlas/runtime"], "^0.2.12");
+  assert.equal(rootPackage.dependencies["@atlas/sdk"], "^0.2.12");
+  assert.equal(rootPackage.dependencies["@angular/core"], "~20.3.0");
+  assert.equal(rootPackage.dependencies["@angular/animations"], "~20.3.0");
+  assert.equal(rootPackage.dependencies["@angular-architects/native-federation"], "^20.0.0");
   assert.equal(rootPackage.dependencies["es-module-shims"], "^2.7.0");
   assert.equal(rootPackage.devDependencies["@nx/angular"], "22.0.0");
   assert.match(stdout, /Detected an Nx workspace/);
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at products\/shell/);
+  assert.match(stdout, /Detected existing Angular version ~20\.3\.0 in package\.json; ignoring --framework-version=~21\.2\.0/);
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
 });
 
@@ -307,7 +309,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
   mkdir -p "$directory/src"
   printf 'react source\n' > "$directory/src/main.tsx"
-  printf '{"name":"@acme/orders","version":"0.0.1","dependencies":{"react":"^17.0.2"},"devDependencies":{}}\n' > "$directory/package.json"
+  printf '{"name":"@acme/orders","version":"0.0.1","dependencies":{"react":"^17.0.2","react-dom":"^18.3.1"},"devDependencies":{}}\n' > "$directory/package.json"
   printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
   exit 0
 fi
@@ -316,19 +318,20 @@ exit 1
 
   const stdout = await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "packages/orders",
-    "--framework=react", "--skip-install"
+    "--framework=react", "--framework-version=^19.2.0", "--skip-install"
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const projectPackage = JSON.parse(await readFile(join(root, "packages/orders/package.json"), "utf8"));
   assert.equal(rootPackage.dependencies?.["@atlas/sdk"], undefined);
   assert.equal(projectPackage.dependencies.react, "^17.0.2");
-  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.11");
-  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.11");
+  assert.equal(projectPackage.dependencies["@atlas/contracts"], "^0.2.12");
+  assert.equal(projectPackage.dependencies["@atlas/sdk"], "^0.2.12");
   assert.equal(projectPackage.dependencies["@softarc/native-federation-runtime"], "^3.5.5");
   assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
   assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");
   assert.equal(projectPackage.devDependencies["@vitejs/plugin-react"], "^5.0.4");
+  assert.match(stdout, /Detected existing React version \^17\.0\.2 in packages\/orders\/package\.json; ignoring --framework-version=\^19\.2\.0/);
   assert.match(stdout, /Added Atlas dependencies to packages\/orders\/package\.json/);
 });
 

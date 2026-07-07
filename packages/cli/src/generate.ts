@@ -50,13 +50,15 @@ export class AtlasGenerateService {
         });
       const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
       const scaffoldedFrameworkVersion = workspaceScaffolded
-        ? await existingFrameworkVersion(root, this.workspace.root, selectedFramework)
+        ? await existingFrameworkVersionInfo(root, this.workspace.root, selectedFramework)
         : undefined;
+      if (scaffoldedFrameworkVersion) this.logFrameworkVersionSelection(selectedFramework, scaffoldedFrameworkVersion);
+      const detectedFrameworkVersion = scaffoldedFrameworkVersion?.version;
       const files = type === "host"
-        ? generateHostFiles(this.options(name, selectedFramework, packageName, scaffoldedFrameworkVersion))
-        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, scaffoldedFrameworkVersion));
+        ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
+        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion));
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded), workspaceScaffolded || this.args.hasFlag("force"));
-      if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files);
+      if (workspaceScaffolded) await this.mergeDelegatedDependencies(root, files, selectedFramework);
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
       await afterGeneration?.(root);
       return root;
@@ -98,6 +100,17 @@ export class AtlasGenerateService {
     ]) === "yes";
   }
 
+  private logFrameworkVersionSelection(framework: SupportedFramework, detected: FrameworkVersionInfo): void {
+    const requested = this.args.flag("framework-version");
+    const label = frameworkLabel(framework);
+    const source = displayTarget(this.workspace.root, detected.manifest);
+    if (requested && requested !== detected.version) {
+      ui.warning(`Detected existing ${label} version ${detected.version} in ${source}; ignoring --framework-version=${requested} so Atlas does not change the workspace framework major.`);
+    } else {
+      ui.info(`Detected existing ${label} version ${detected.version} in ${source}; Atlas will align ${label} companion dependencies to it.`);
+    }
+  }
+
   async installDependencies(projectRoot: string): Promise<void> {
     await this.workspace.installDependencies(projectRoot);
   }
@@ -121,7 +134,7 @@ export class AtlasGenerateService {
       name,
       packageName,
       framework: framework ?? this.args.framework(),
-      frameworkVersion: this.args.flag("framework-version") ?? detectedFrameworkVersion,
+      frameworkVersion: detectedFrameworkVersion ?? this.args.flag("framework-version"),
       allowUnsupportedVersion: this.args.hasFlag("allow-unsupported-version")
     };
   }
@@ -146,11 +159,11 @@ export class AtlasGenerateService {
     await writeFile(join(root, "project.json"), `${JSON.stringify({ name, sourceRoot: `${cwd}/src`, projectType: "application", targets }, null, 2)}\n`, "utf8");
   }
 
-  private async mergeDelegatedDependencies(root: string, files: AtlasGeneratedFile[]): Promise<void> {
+  private async mergeDelegatedDependencies(root: string, files: AtlasGeneratedFile[], framework: SupportedFramework): Promise<void> {
     const packageFile = files.find((file) => file.path === "package.json");
     if (!packageFile) return;
     const target = await dependencyManifestPath(root, this.workspace.root);
-    const changed = await mergePackageDependencies(target, packageFile.contents);
+    const changed = await mergePackageDependencies(target, packageFile.contents, framework);
     if (changed) ui.info(`Added Atlas dependencies to ${displayTarget(this.workspace.root, target)}.`);
   }
 }
@@ -204,14 +217,19 @@ async function existingPackageName(root: string): Promise<string | undefined> {
   }
 }
 
-async function existingFrameworkVersion(root: string, workspaceRoot: string, framework: SupportedFramework): Promise<string | undefined> {
+interface FrameworkVersionInfo {
+  version: string;
+  manifest: string;
+}
+
+async function existingFrameworkVersionInfo(root: string, workspaceRoot: string, framework: SupportedFramework): Promise<FrameworkVersionInfo | undefined> {
   try {
     const manifest = await dependencyManifestPath(root, workspaceRoot);
     const packageJson = JSON.parse(await readFile(manifest, "utf8")) as PackageJson;
     const dependency = framework === "angular" ? "@angular/core" : "react";
     for (const field of DEPENDENCY_FIELDS) {
       const version = asStringRecord(packageJson[field])[dependency];
-      if (version) return version;
+      if (version) return { version, manifest };
     }
   } catch {
     return undefined;
@@ -234,20 +252,34 @@ async function dependencyManifestPath(projectRoot: string, workspaceRoot: string
   throw new Error(`Could not find package.json for generated project at ${projectRoot}.`);
 }
 
-async function mergePackageDependencies(targetPackageJson: string, generatedPackageJson: string): Promise<boolean> {
+async function mergePackageDependencies(targetPackageJson: string, generatedPackageJson: string, framework: SupportedFramework): Promise<boolean> {
   const target = JSON.parse(await readFile(targetPackageJson, "utf8")) as PackageJson;
   const generated = JSON.parse(generatedPackageJson) as PackageJson;
+  const primaryDependency = frameworkPrimaryDependency(framework);
+  const hasPrimaryDependency = dependencyDeclared(target, primaryDependency);
   let changed = false;
   for (const field of DEPENDENCY_FIELDS) {
     const incoming = asStringRecord(generated[field]);
     if (!Object.keys(incoming).length) continue;
-    const current = asStringRecord(target[field]);
     for (const [name, version] of Object.entries(incoming)) {
-      if (dependencyDeclared(target, name)) continue;
+      const existingField = dependencyField(target, name);
+      if (existingField) {
+        if (hasPrimaryDependency && isFrameworkManagedDependency(framework, name)) {
+          const existing = asStringRecord(target[existingField]);
+          if (existing[name] !== version) {
+            existing[name] = version;
+            target[existingField] = sortObject(existing);
+            changed = true;
+          }
+        }
+        continue;
+      }
+      const current = asStringRecord(target[field]);
       current[name] = version;
+      target[field] = current;
       changed = true;
     }
-    target[field] = sortObject(current);
+    target[field] = sortObject(asStringRecord(target[field]));
   }
   if (!changed) return false;
   await writeFile(targetPackageJson, `${JSON.stringify(target, null, 2)}\n`, "utf8");
@@ -260,7 +292,30 @@ type DependencyField = typeof DEPENDENCY_FIELDS[number];
 type PackageJson = Record<string, unknown> & Partial<Record<DependencyField, unknown>>;
 
 function dependencyDeclared(packageJson: PackageJson, name: string): boolean {
-  return DEPENDENCY_FIELDS.some((field) => name in asStringRecord(packageJson[field]));
+  return dependencyField(packageJson, name) !== undefined;
+}
+
+function dependencyField(packageJson: PackageJson, name: string): DependencyField | undefined {
+  return DEPENDENCY_FIELDS.find((field) => name in asStringRecord(packageJson[field]));
+}
+
+function frameworkPrimaryDependency(framework: SupportedFramework): string {
+  return framework === "angular" ? "@angular/core" : "react";
+}
+
+function isFrameworkManagedDependency(framework: SupportedFramework, name: string): boolean {
+  if (framework === "angular") {
+    return name.startsWith("@angular/")
+      || name === "@angular-architects/native-federation"
+      || name === "typescript"
+      || name === "zone.js";
+  }
+  return name === "react"
+    || name === "react-dom"
+    || name === "@types/react"
+    || name === "@types/react-dom"
+    || name === "react-router-dom"
+    || name === "react-compiler-runtime";
 }
 
 function asStringRecord(value: unknown): Record<string, string> {

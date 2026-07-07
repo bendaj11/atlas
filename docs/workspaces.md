@@ -74,6 +74,16 @@ manifest, Atlas merges dependencies into the workspace-root `package.json` and
 runs install at the root. Atlas does not create a project-local `package.json`
 or `node_modules` for integrated Nx workspaces.
 
+Atlas never uses its default framework version to upgrade an existing Nx package
+manifest. When the owning manifest already declares `@angular/core` or `react`,
+Atlas keeps that version and aligns only the companion dependencies it must add.
+If the CLI also receives `--framework-version` with a different major, Atlas
+prints a warning and ignores the flag for that delegated project. To use another
+major, change the workspace framework version before generation, let the Nx
+generator create a project-level package manifest with its own framework
+version, or use `--skip-workspace-generator` for a portable Atlas-generated
+package.
+
 When integrating Atlas into an existing Nx project, expose these three targets. Their commands remain the framework's normal build and development commands.
 Atlas reads the build target's `options.outputPath`, configuration-specific
 `outputPath` values, and declared `outputs`. It also recognizes the conventional

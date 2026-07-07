@@ -21,4 +21,9 @@ framework generator, then adds Atlas dependencies to the package manifest that
 owns the project: project-level `package.json` when present, otherwise the
 workspace root.
 
+If that manifest already declares `@angular/core` or `react`, Atlas keeps the
+existing framework version and aligns companion dependencies to it. A conflicting
+`--framework-version` is reported and ignored for delegated Nx projects so Atlas
+does not upgrade or downgrade the monorepo accidentally.
+
 See the [Atlas getting-started guide](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md) for workspace and deployment workflows.
