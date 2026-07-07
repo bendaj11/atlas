@@ -11,20 +11,18 @@ An Angular host serves generated `public/atlas.runtime.json` as a static file:
   "schemaVersion": "1",
   "hostId": "customer-shell",
   "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-shell/catalog.json",
-  "requireIntegrity": true,
-  "loadTimeoutMs": 15000,
-  "waitForMfReady": true,
-  "loadingIndicator": "spinner"
+  "allowAppOverrides": true,
+  "resourcesTimeoutMs": 15000,
+  "resourcesRetryCount": 3
 }
 ```
 
-The catalog origin is trusted automatically. Add `allowedRemoteOrigins` only
-when executable MF assets are served from another origin. See [Security](security.md).
+Atlas loads the exact asset URLs selected by the host catalog. See [Security](security.md).
 
-Generate it from the host's `atlas.config.ts` runtime block:
+Generate it from the host's `atlas.config.ts`:
 
 ```sh
-atlas runtime-config customer-shell
+atlas runtime-config customer-shell --registry-base-url=https://cdn.example.com/atlas
 ```
 
 The file is outside the compiled JavaScript bundle. Deployment tooling can
@@ -39,7 +37,7 @@ sequenceDiagram
   participant CDN
   participant Indexes as Static indexes
   CI->>CI: atlas build orders
-  CI->>CI: create manifest and SHA-256 integrity
+  CI->>CI: create manifest
   CI->>CI: produce dist/atlas-publication
   CI->>CDN: Consumer tooling uploads immutable files
   CI->>Indexes: Consumer tooling replaces mutable JSON

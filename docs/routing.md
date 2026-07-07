@@ -8,21 +8,29 @@ An MF can have inner routes, but only under the base path assigned by the host c
 
 The host catalog decides which MF owns a route.
 
-Example manifest placement:
+Example `atlas.config.ts` route mount:
 
 ```ts
-{
-  id: "catalog-route",
-  kind: "route",
-  hostId: "shell",
-  route: {
-    id: "catalog",
-    basePath: "/catalog",
-    title: "Catalog",
-    nav: { label: "Catalog", visible: true }
-  }
-}
+import type { AtlasMicrofrontendConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+
+export default {
+  id: "catalog",
+  name: "Catalog",
+  framework: "react",
+  routes: [
+    {
+      id: "catalog-route",
+      hostId: "shell",
+      basePath: "/catalog",
+      title: "Catalog",
+      nav: { label: "Catalog", visible: true }
+    }
+  ]
+} satisfies AtlasMicrofrontendConfig;
 ```
+
+Atlas writes those routes into the generated manifest as `placements`, which is
+the runtime/catalog field hosts read.
 
 ## MF Inner Routing
 
@@ -121,4 +129,4 @@ context.navigation.navigate("details/42");
 
 Do not use `PathLocationStrategy` inside a mounted MF. Use `createLocationStrategy(context)` so the inner Angular Router stays scoped while the host remains the sole browser-history authority.
 
-Generated hosts give Angular Router a catch-all anchor route and let Atlas render the selected remote into `data-atlas-route-outlet`. Atlas chooses the longest matching catalog base path, unmounts the previous MF before mounting the next one, and mounts slot placements independently.
+Generated hosts give Angular Router a catch-all anchor route and let Atlas render the selected remote into `data-atlas-route-outlet`. Atlas chooses the longest matching catalog base path, unmounts the previous MF before mounting the next one, and mounts declared slots independently.

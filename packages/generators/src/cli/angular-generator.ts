@@ -146,7 +146,7 @@ function angularMicrofrontendEntry(name: string): string {
 import { LocationStrategy } from "@angular/common";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter } from "@angular/router";
-import { createLocationStrategy, defineMicrofrontend, provideAtlasSdk } from "@atlas/sdk/angular";
+import { createLocationStrategy, defineMicrofrontend, provideAtlasMfContext, provideAtlasSdk } from "@atlas/sdk/angular";
 import { AppComponent, routes } from "./app/app.component";
 
 export default defineMicrofrontend(async ({ container, sdk, context }) => {
@@ -158,12 +158,11 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
   const app = await bootstrapApplication(AppComponent, {
     providers: [
       provideRouter(routes),
+      provideAtlasMfContext(context),
       provideAtlasSdk(sdk),
       { provide: LocationStrategy, useValue: locationStrategy }
     ]
   });
-
-  context.ready();
 
   return {
     unmount() {

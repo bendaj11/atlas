@@ -98,8 +98,7 @@ export interface AtlasHostRuntimeOptions {
   resolveRouteContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
   resolveSlotContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
   onStateChange?: (event: AtlasHostMountEvent) => void;
-  loadTimeoutMs?: number;
-  waitForMfReady?: boolean;
+  resourcesTimeoutMs?: number;
   trustPolicy?: AtlasRemoteTrustPolicy;
 }
 
@@ -122,7 +121,7 @@ interface RuntimeMount {
 
 /** Owns catalog placement lifecycle while the framework adapter owns browser navigation. */
 export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): Promise<AtlasHostRuntime> {
-  const timeoutMs = options.loadTimeoutMs ?? 15_000;
+  const timeoutMs = options.resourcesTimeoutMs ?? 15_000;
   const componentLoader = options.componentLoader ?? createComponentLoader(options.manifests, options.hostSdk, options.importComponent);
   const mounts = new Map<string, RuntimeMount>();
   let stopped = false;
@@ -148,8 +147,7 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
     const isCurrent = (): boolean => !stopped && mount.generation === generation && mounts.get(mount.key) === mount;
     mount.pending = (async () => {
       emit(mount, "mounting");
-      let markReady: () => void = () => undefined;
-      const ready = new Promise<void>((resolve) => { markReady = resolve; });
+      const readiness = createAppReadiness();
       let loading = false;
       const setLoading = (next: boolean): void => {
         if (!isCurrent() || loading === next) return;
@@ -164,7 +162,16 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
         container: mount.container,
         ...(mount.placement.route?.basePath ? { basePath: mount.placement.route.basePath } : {}),
         componentLoader,
-        onReady() { if (isCurrent()) { setLoading(false); markReady(); } },
+        onReady() { if (isCurrent()) { setLoading(false); readiness.markReady(); } },
+        onReadyRequested() {
+          readiness.request();
+          if (isCurrent()) setLoading(true);
+          return () => {
+            if (!isCurrent()) return;
+            setLoading(false);
+            readiness.markReady();
+          };
+        },
         onLoadingChange: setLoading,
         importRemote: options.importRemote,
         ...(options.trustPolicy ? { trustPolicy: options.trustPolicy } : {}),
@@ -179,8 +186,9 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
         delete mount.mounted;
         return;
       }
-      if (options.waitForMfReady) {
-        await withTimeout(ready, timeoutMs, `Atlas MF "${mount.manifest.id}" did not mark itself ready within ${timeoutMs}ms.`);
+      await Promise.resolve();
+      if (readiness.requested) {
+        await withTimeout(readiness.ready, timeoutMs, `Atlas MF "${mount.manifest.id}" did not mark itself ready within ${timeoutMs}ms.`);
       }
       if (isCurrent()) emit(mount, "mounted");
     })().catch(async (error) => {
@@ -246,6 +254,7 @@ export async function mountMicrofrontend(options: AtlasLoaderOptions & {
   container: HTMLElement;
   basePath?: string;
   onReady?: () => void;
+  onReadyRequested?: () => () => void;
   onLoadingChange?: (loading: boolean) => void;
 }): Promise<AtlasMountedMf> {
   const document = options.container.ownerDocument ?? globalThis.document;
@@ -276,7 +285,8 @@ export async function mountMicrofrontend(options: AtlasLoaderOptions & {
         widgets,
         loading: {
           show: () => options.onLoadingChange?.(true),
-          hide: () => options.onLoadingChange?.(false)
+          hide: () => options.onLoadingChange?.(false),
+          waitUntilReady: () => options.onReadyRequested?.() ?? options.onReady ?? (() => undefined)
         },
         ready: options.onReady ?? (() => undefined)
       }
@@ -291,6 +301,21 @@ export async function mountMicrofrontend(options: AtlasLoaderOptions & {
     manifest: options.manifest,
     async unmount() {
       try { await result?.unmount?.(); } finally { boundary.remove(); releaseStyles(); }
+    }
+  };
+}
+
+function createAppReadiness(): { readonly requested: boolean; readonly ready: Promise<void>; request(): void; markReady(): void } {
+  let requested = false;
+  let resolveReady: () => void = () => undefined;
+  const ready = new Promise<void>((resolve) => { resolveReady = resolve; });
+  return {
+    get requested() { return requested; },
+    ready,
+    request() { requested = true; },
+    markReady() {
+      requested = true;
+      resolveReady();
     }
   };
 }
@@ -387,10 +412,7 @@ export async function loadAndMountHostCatalog(options: AtlasLoaderOptions & {
     throw new Error(`Atlas catalog targets host "${catalog.hostId}", but loader targets "${options.hostId}".`);
   }
   const manifests = resolveRuntimeManifests(catalog, options.overrides);
-  const trustPolicy = options.trustPolicy ?? {
-    allowedOrigins: [new URL(options.catalogUrl, globalThis.location?.href ?? "http://atlas.local").origin],
-    requireIntegrity: true
-  };
+  const trustPolicy = options.trustPolicy ?? {};
   const mounted: AtlasMountedMf[] = [];
   const componentLoader = createComponentLoader(manifests, options.hostSdk, options.importComponent);
 
@@ -412,7 +434,8 @@ function findDefaultBasePath(manifest: AtlasManifest): string {
 
 function defaultManifestTrustPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy {
   const baseUrl = globalThis.location?.href ?? "http://atlas.local";
-  return { allowedOrigins: [new URL(manifest.remoteEntryUrl, baseUrl).origin], requireIntegrity: true };
+  new URL(manifest.remoteEntryUrl, baseUrl);
+  return {};
 }
 
 function findRoutePlacement(

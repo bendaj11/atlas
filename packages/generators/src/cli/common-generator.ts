@@ -11,12 +11,13 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
 export function atlasConfig(options: AtlasGeneratorOptions, host: boolean): string {
   const { name, framework } = options;
   const microfrontendFields = options.hostId ? `,\n  ${microfrontendConfig(name, options.hostId)}` : "";
-  return `import type { AtlasConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : microfrontendFields}\n} satisfies AtlasConfig;\n`;
+  const typeName = host ? "AtlasHostConfig" : "AtlasMicrofrontendConfig";
+  return `import type { ${typeName} } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : microfrontendFields}\n} satisfies ${typeName};\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
-  return `import type { AtlasConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  runtime: {\n    catalogUrl: "http://localhost:4400/hosts/${name}/catalog.json",\n    requireIntegrity: true,\n    allowRuntimeOverrides: true,\n    requestTimeoutMs: 10000,\n    retryAttempts: 2,\n    retryDelayMs: 250,\n    loadTimeoutMs: 15000,\n    waitForMfReady: true,\n    loadingIndicator: "spinner"\n  }\n} satisfies AtlasConfig;\n`;
+  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  allowAppOverrides: true,\n  resourcesTimeoutMs: 15000,\n  resourcesRetryCount: 3\n} satisfies AtlasHostConfig;\n`;
 }
 
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {
@@ -48,5 +49,5 @@ export function atlasHostStyles(): string {
 }
 
 function microfrontendConfig(name: string, hostId: string): string {
-  return `hostCompatibility: ["${hostId}"],\n  placements: [{ id: "${name}-route", kind: "route", hostId: "${hostId}", route: { id: "${name}", basePath: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } } }]`;
+  return `routes: [{ id: "${name}-route", hostId: "${hostId}", basePath: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } }]`;
 }

@@ -18,10 +18,10 @@ Start here:
 1. [Getting Started](docs/getting-started.md): choose the Angular or React path and see the full beginner flow.
 2. [Getting Started With Angular](docs/getting-started-angular.md): build an Angular host and Angular MF from install to production.
 3. [Getting Started With React](docs/getting-started-react.md): build a React host and React MF from install to production.
-4. [Core Concepts](docs/overview.md): learn the Atlas words: host, MF, catalog, manifest, placement, and SDK.
+4. [Core Concepts](docs/overview.md): learn the Atlas words: host, MF, catalog, manifest, mount, and SDK.
 5. [Architecture](docs/architecture.md): see how hosts, MFs, catalogs, SDK calls, and Native Federation work together.
 6. [SDK Guide](docs/sdk.md): wire typed host services such as user data, HTTP, events, navigation, modals, and toasts.
-7. [Routing](docs/routing.md): configure route placements, inner routing, navigation, and route ownership.
+7. [Routing](docs/routing.md): configure routes, slots, inner routing, navigation, and route ownership.
 8. [Assets and Styles](docs/assets-and-styles.md): publish CSS, images, and other assets without broken URLs.
 9. [Local Development](docs/local-development.md): run one local MF inside a real host using overrides.
 10. [Production Deployment](docs/production-deployment.md): build, upload, verify, and roll back MF releases.
@@ -74,7 +74,7 @@ A **microfrontend (MF)** owns a feature. It is mounted by a host and is not a
 standalone product application.
 
 A **manifest** describes one built MF version, including its immutable asset
-URL, integrity hash, framework, host compatibility, routes, slots, and widgets.
+URL, integrity hash, framework, supported hosts, routes, slots, and widgets.
 
 A **catalog** selects exactly one version of every MF needed by one host. It is
 ordinary JSON served from the consumer's static storage.

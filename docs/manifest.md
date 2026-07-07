@@ -48,7 +48,7 @@ It answers:
 }
 ```
 
-Normal developers should not hand-write this JSON. They edit `atlas.config.ts`; Atlas generates and validates the manifest.
+Normal developers should not hand-write this JSON. They edit `atlas.config.ts`; Atlas generates and validates the manifest. In source config the human-facing fields are `routes` and `slots`; Atlas writes them to manifest `placements` for the host/runtime contract.
 
 Atlas discovers emitted CSS during `atlas build`. The host loads every declared stylesheet before mounting the MF, applies its SHA-256 integrity value, shares it across simultaneous page and widget mounts, and removes it after the final mount is destroyed.
 

@@ -22,7 +22,7 @@ Without a platform, hosts often hardcode remote URLs and every team invents its 
 
 Atlas moves those decisions into infrastructure:
 
-- hosts contain MF ids or placement rules, not asset URLs
+- hosts contain MF ids or mount rules, not asset URLs
 - MFs publish manifests automatically
 - CI regenerates the correct static catalog for each host
 - the loader enforces one runtime version per MF id
@@ -49,7 +49,7 @@ MF developers normally use only `@atlas/sdk`. Generated hosts additionally use `
 Examples:
 
 ```ts
-import type { AtlasConfig } from "@atlas/schema";
+import type { AtlasHostConfig, AtlasMicrofrontendConfig } from "@atlas/schema";
 import { createAtlasSdk } from "@atlas/sdk/host";
 import { loadAndMountHostCatalog } from "@atlas/runtime";
 ```

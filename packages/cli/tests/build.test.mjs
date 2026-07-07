@@ -57,7 +57,7 @@ test("excluded source maps do not affect the generated build identity", async ()
   const artifactRoot = join(projectRoot, "dist");
   await mkdir(artifactRoot, { recursive: true });
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
-  await writeFile(join(projectRoot, "atlas.config.js"), 'export default { id: "orders", name: "Orders", framework: "react", route: "/orders", supportedHosts: ["host"], placements: [] };\n');
+  await writeFile(join(projectRoot, "atlas.config.js"), 'export default { id: "orders", name: "Orders", framework: "react", routes: [{ id: "orders-route", hostId: "host", basePath: "/orders", title: "Orders" }] };\n');
   await writeFile(join(artifactRoot, "remoteEntry.json"), "{}\n");
   await writeFile(join(artifactRoot, "remoteEntry.js.map"), "first map\n");
   const project = { id: "orders", root: projectRoot, packageName: "orders", version: "1.0.0", outputPaths: [artifactRoot] };
@@ -190,14 +190,15 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
   await assert.rejects(access(join(target, "public/atlas.runtime.json")), { code: "ENOENT" });
-  assert.match(await readFile(join(target, "atlas.config.ts"), "utf8"), /runtime:/);
+  assert.match(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs: 15000/);
+  assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /catalogUrl/);
   assert.match(await readFile(join(target, "package.json"), "utf8"), /atlas runtime-config customer-shell/);
   assert.match(main, /initFederation/);
   assert.match(bootstrap, /startHost/);
   assert.doesNotMatch(bootstrap, /localhost:4300/);
 });
 
-test("atlas app generation only writes host compatibility when a host is supplied", async () => {
+test("atlas app generation only writes a route when a host is supplied", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-app-generator-"));
   const withoutHost = join(temporary, "orders");
   const withHost = join(temporary, "billing");
@@ -214,10 +215,13 @@ test("atlas app generation only writes host compatibility when a host is supplie
   const defaultConfig = await readFile(join(withoutHost, "atlas.config.ts"), "utf8");
   assert.doesNotMatch(defaultConfig, /hostCompatibility/);
   assert.doesNotMatch(defaultConfig, /placements/);
+  assert.doesNotMatch(defaultConfig, /mounts/);
+  assert.doesNotMatch(defaultConfig, /routes/);
   assert.doesNotMatch(defaultConfig, /"shell"/);
 
   const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
-  assert.match(explicitConfig, /hostCompatibility: \["customer-shell"\]/);
+  assert.doesNotMatch(explicitConfig, /hostCompatibility/);
+  assert.match(explicitConfig, /routes: \[/);
   assert.match(explicitConfig, /hostId: "customer-shell"/);
   assert.doesNotMatch(explicitConfig, /hostId: "shell"/);
 });
@@ -234,27 +238,23 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
   await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
     id: "shell",
     framework: "react",
-    runtime: {
-      catalogUrl: "https://cdn.example/atlas/hosts/shell/catalog.json",
-      allowedRemoteOrigins: ["https://assets.example"],
-      retryAttempts: 4,
-      loadingIndicator: "none"
-    }
+    allowAppOverrides: false,
+    resourcesTimeoutMs: 12000,
+    resourcesRetryCount: 4
   };\n`);
 
   await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "runtime-config", "shell",
-    "--skip-compile", `--out=${output}`
+    "--skip-compile", "--registry-base-url=https://cdn.example/atlas", `--out=${output}`
   ], { cwd: root });
 
   const runtime = JSON.parse(await readFile(output, "utf8"));
   assert.equal(runtime.schemaVersion, "1");
   assert.equal(runtime.hostId, "shell");
   assert.equal(runtime.catalogUrl, "https://cdn.example/atlas/hosts/shell/catalog.json");
-  assert.deepEqual(runtime.allowedRemoteOrigins, ["https://assets.example"]);
-  assert.equal(runtime.retryAttempts, 4);
-  assert.equal(runtime.loadingIndicator, "none");
-  assert.equal(runtime.waitForMfReady, true);
+  assert.equal(runtime.allowAppOverrides, false);
+  assert.equal(runtime.resourcesTimeoutMs, 12000);
+  assert.equal(runtime.resourcesRetryCount, 4);
 });
 
 test("atlas removes a newly generated project when dependency installation fails", async () => {
@@ -400,7 +400,7 @@ exit 1
   await assert.rejects(access(join(root, "products/shell/package.json")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "products/shell/angular.json")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /framework: "angular"/);
-  assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /runtime:/);
+  assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /resourcesRetryCount: 3/);
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Generated by Atlas/);
   assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
   await assert.rejects(access(join(root, "products/shell/public/atlas.runtime.json")), { code: "ENOENT" });

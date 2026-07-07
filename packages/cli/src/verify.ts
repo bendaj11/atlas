@@ -43,8 +43,6 @@ interface AssetExpectation {
   subject: string;
   integrity?: string;
   contentType: "json" | "css";
-  requireIntegrity: boolean;
-  trusted: boolean;
   inspectFederationReferences?: boolean;
 }
 
@@ -153,26 +151,20 @@ export class AtlasVerifyService {
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext
   ): Promise<void>[] {
-    const catalogOrigin = new URL(runtime.catalogUrl, context.runtimeUrl).origin;
-    const trustedOrigins = new Set([catalogOrigin, ...(runtime.allowedRemoteOrigins ?? [])]);
-    const trusts = (url: string): boolean => manifest.channel === "local" || trustedOrigins.has(new URL(url, context.runtimeUrl).origin);
+    new URL(runtime.catalogUrl, context.runtimeUrl);
     const assets: AssetExpectation[] = [
       {
         url: manifest.remoteEntryUrl,
         subject: `${manifest.id} remote entry`,
         integrity: manifest.integrity,
         contentType: "json",
-        requireIntegrity: runtime.requireIntegrity !== false,
-        trusted: trusts(manifest.remoteEntryUrl),
         inspectFederationReferences: true
       },
       ...(manifest.styles ?? []).map((style, index): AssetExpectation => ({
         url: style.href,
         subject: `${manifest.id} stylesheet ${index + 1}`,
         integrity: style.integrity,
-        contentType: "css",
-        requireIntegrity: runtime.requireIntegrity !== false,
-        trusted: trusts(style.href)
+        contentType: "css"
       }))
     ];
     return assets.map((asset) => this.verifyAsset(asset, manifest, context));
@@ -180,11 +172,7 @@ export class AtlasVerifyService {
 
   private async verifyAsset(asset: AssetExpectation, manifest: AtlasManifest, context: VerificationContext): Promise<void> {
     const url = new URL(asset.url, context.runtimeUrl);
-    if (!asset.trusted) {
-      fail(context, `${asset.subject} origin`, `${url.origin} is not allowed by the host runtime configuration.`);
-      return;
-    }
-    pass(context, `${asset.subject} origin`, `${url.origin} is trusted.`);
+    pass(context, `${asset.subject} URL`, url.href);
     const response = await this.fetch(url, asset.subject, context);
     if (!response) return;
     this.verifyCors(response, url, asset.subject, context);
@@ -300,8 +288,7 @@ function verifyImmutableCache(response: Response, subject: string, channel: Atla
 function verifyIntegrity(bytes: Uint8Array, asset: AssetExpectation, channel: AtlasManifest["channel"], context: VerificationContext): void {
   if (!asset.integrity) {
     if (channel === "local") warn(context, `${asset.subject} integrity`, "Skipped for a local manifest.");
-    else if (asset.requireIntegrity) fail(context, `${asset.subject} integrity`, "Missing SHA-256 integrity metadata.");
-    else warn(context, `${asset.subject} integrity`, "Not required by this host runtime configuration.");
+    else warn(context, `${asset.subject} integrity`, "Missing optional SHA-256 integrity metadata.");
     return;
   }
   const actual = `sha256-${createHash("sha256").update(bytes).digest("base64")}`;

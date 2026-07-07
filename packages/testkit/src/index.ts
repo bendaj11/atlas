@@ -9,17 +9,12 @@ export function createTestManifest(overrides: Partial<AtlasManifest> = {}): Atla
         id: "catalog",
         name: "Catalog",
         framework: "react",
-        hostCompatibility: ["shell"],
-        placements: [
+        routes: [
           {
             id: "catalog-route",
-            kind: "route",
             hostId: "shell",
-            route: {
-              id: "catalog",
-              basePath: "/catalog",
-              title: "Catalog"
-            }
+            basePath: "/catalog",
+            title: "Catalog"
           }
         ]
       },

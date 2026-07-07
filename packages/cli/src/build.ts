@@ -7,6 +7,7 @@ import {
   type AtlasConfig,
   type AtlasExportedComponentManifest,
   type AtlasManifest,
+  type AtlasMicrofrontendConfig,
   type AtlasStaticRegistry,
   type AtlasStylesheet,
   type AtlasVersionChannel
@@ -28,7 +29,7 @@ export class AtlasBuildService {
   async buildManifest(name: string, forcedChannel?: AtlasVersionChannel, options: { skipCompile?: boolean; baseUrl?: string } = {}): Promise<AtlasManifest> {
     const project = await this.workspace.findProject(name);
     if (!options.skipCompile && !this.args.hasFlag("skip-compile")) await this.workspace.run(project, "build");
-    const config = await this.loadConfig(project.root);
+    const config = assertMicrofrontendConfig(await this.loadConfig(project.root));
     const channel = forcedChannel ?? this.args.channel(process.env.ATLAS_CHANNEL ?? "production");
     const version = this.args.flag("version") ?? process.env.ATLAS_VERSION ?? project.version;
     const entryPath = this.args.flag("entry") ?? "remoteEntry.json";
@@ -241,6 +242,12 @@ function isAtlasBuildMetadata(path: string): boolean {
 }
 
 function isAtlasConfig(value: unknown): value is AtlasConfig { return typeof value === "object" && value !== null && "id" in value && "framework" in value; }
+function assertMicrofrontendConfig(config: AtlasConfig): AtlasMicrofrontendConfig {
+  if ("allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config) {
+    throw new Error(`Atlas build expects a microfrontend config for "${config.id}", but received a host config.`);
+  }
+  return config;
+}
 function isNodeError(error: unknown): error is NodeJS.ErrnoException { return error instanceof Error && "code" in error; }
 function trimSlash(value: string): string { return value.replace(/\/$/, ""); }
 function title(value: string): string { return value.split(/[-_\s]+/).filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" "); }

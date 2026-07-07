@@ -9,6 +9,7 @@ export interface RootAdapter {
 }
 
 const AtlasSdkContext = createContext<AtlasSdk | undefined>(undefined);
+const AtlasRuntimeContext = createContext<AtlasMfContext | undefined>(undefined);
 
 export function AtlasSdkProvider({ sdk, children }: { sdk: AtlasSdk; children: ReactNode }): ReactElement {
   return createReactElement(AtlasSdkContext.Provider, { value: sdk }, children);
@@ -24,6 +25,12 @@ export function useAtlasSdk<
   return sdk as AtlasSdk<TExtensions, TEvents, THostData>;
 }
 
+export function useAppLoaded(): () => void {
+  const context = useContext(AtlasRuntimeContext);
+  if (!context) throw new Error("useAppLoaded must be used inside an Atlas microfrontend.");
+  return context.loading.waitUntilReady();
+}
+
 export interface MicrofrontendOptions {
   createRoot(container: HTMLElement): RootAdapter;
   createElement(request: AtlasMfMountRequest): unknown;
@@ -33,7 +40,8 @@ export function defineMicrofrontend(options: MicrofrontendOptions): AtlasMfEntry
   return {
     mount(request): AtlasMfMountResult {
       const root = options.createRoot(request.container);
-      root.render(createReactElement(AtlasSdkContext.Provider, { value: request.hostSdk }, options.createElement(request) as ReactNode));
+      root.render(createReactElement(AtlasSdkContext.Provider, { value: request.hostSdk },
+        createReactElement(AtlasRuntimeContext.Provider, { value: request.context }, options.createElement(request) as ReactNode)));
       return {
         unmount() {
           root.unmount();
@@ -53,8 +61,8 @@ export function createRoutedMicrofrontend<TRouter extends MfRouterLike>(options:
       const root = options.createRoot(request.container);
       const router = options.createRouter(request);
       const disconnect = connectRouter(router, request.context);
-      root.render(createReactElement(AtlasSdkContext.Provider, { value: request.hostSdk }, options.createElement(router, request) as ReactNode));
-      request.context.ready();
+      root.render(createReactElement(AtlasSdkContext.Provider, { value: request.hostSdk },
+        createReactElement(AtlasRuntimeContext.Provider, { value: request.context }, options.createElement(router, request) as ReactNode)));
       return {
         unmount() {
           disconnect();

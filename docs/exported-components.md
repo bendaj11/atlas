@@ -24,19 +24,9 @@ export default component;
 
 Both supported framework subpaths export the same `defineExportedComponent` helper.
 
-## Declare And Consume A Widget
+## Consume A Widget
 
-Declare stable widget references in the consuming page MF's `atlas.config.ts`:
-
-```ts
-export default {
-  id: "workspace",
-  framework: "react",
-  uses: ["maps/main-map", "entity-details/popup"]
-} satisfies AtlasConfig;
-```
-
-Atlas uses `uses` to include the selected owner manifests and their transitive dependencies in the host catalog. It contains no URL or version.
+Widget references live where they are used. Atlas resolves and loads the owner MF on demand through the runtime catalog and registry data.
 
 Every mounted MF receives a catalog-scoped widget loader:
 

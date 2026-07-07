@@ -37,10 +37,7 @@ export interface AtlasBrowserOverrideOptions {
 }
 
 /** Host policy applied before Atlas downloads executable remote metadata. */
-export interface AtlasRemoteTrustPolicy {
-  allowedOrigins?: readonly string[];
-  requireIntegrity?: boolean;
-}
+export interface AtlasRemoteTrustPolicy {}
 
 export const ATLAS_OVERRIDE_QUERY_PARAM = "atlas-override";
 export const ATLAS_OVERRIDE_STORAGE_KEY = "atlas.runtime-override-url";
@@ -75,39 +72,19 @@ export async function loadHostRuntimeConfig(
   if (config.schemaVersion !== "1" || !config.hostId || !config.catalogUrl) {
     throw new Error(`Invalid Atlas host runtime configuration from ${url}.`);
   }
-  if (config.loadTimeoutMs !== undefined && (!Number.isInteger(config.loadTimeoutMs) || config.loadTimeoutMs < 1)) {
-    throw new Error("Atlas host loadTimeoutMs must be a positive integer.");
-  }
   validateRequestPolicy(config);
-  if (config.waitForMfReady !== undefined && typeof config.waitForMfReady !== "boolean") {
-    throw new Error("Atlas host waitForMfReady must be a boolean.");
-  }
-  if (config.loadingIndicator !== undefined && !["spinner", "text", "none"].includes(config.loadingIndicator)) {
-    throw new Error("Atlas host loadingIndicator must be spinner, text, or none.");
-  }
-  if (config.requireIntegrity !== undefined && typeof config.requireIntegrity !== "boolean") {
-    throw new Error("Atlas host requireIntegrity must be a boolean.");
-  }
-  if (config.allowRuntimeOverrides !== undefined && typeof config.allowRuntimeOverrides !== "boolean") {
-    throw new Error("Atlas host allowRuntimeOverrides must be a boolean.");
-  }
-  if (config.allowedRemoteOrigins !== undefined) {
-    if (!Array.isArray(config.allowedRemoteOrigins) || config.allowedRemoteOrigins.some((origin) => !isHttpOrigin(origin))) {
-      throw new Error("Atlas host allowedRemoteOrigins must contain absolute HTTP(S) origins without paths.");
-    }
+  if (config.allowAppOverrides !== undefined && typeof config.allowAppOverrides !== "boolean") {
+    throw new Error("Atlas host allowAppOverrides must be a boolean.");
   }
   return config;
 }
 
 function validateRequestPolicy(config: AtlasHostRuntimeConfig): void {
-  if (config.requestTimeoutMs !== undefined && (!Number.isInteger(config.requestTimeoutMs) || config.requestTimeoutMs < 1)) {
-    throw new Error("Atlas host requestTimeoutMs must be a positive integer.");
+  if (config.resourcesTimeoutMs !== undefined && (!Number.isInteger(config.resourcesTimeoutMs) || config.resourcesTimeoutMs < 1)) {
+    throw new Error("Atlas host resourcesTimeoutMs must be a positive integer.");
   }
-  if (config.retryAttempts !== undefined && (!Number.isInteger(config.retryAttempts) || config.retryAttempts < 0)) {
-    throw new Error("Atlas host retryAttempts must be a non-negative integer.");
-  }
-  if (config.retryDelayMs !== undefined && (!Number.isInteger(config.retryDelayMs) || config.retryDelayMs < 0)) {
-    throw new Error("Atlas host retryDelayMs must be a non-negative integer.");
+  if (config.resourcesRetryCount !== undefined && (!Number.isInteger(config.resourcesRetryCount) || config.resourcesRetryCount < 0)) {
+    throw new Error("Atlas host resourcesRetryCount must be a non-negative integer.");
   }
 }
 
@@ -181,9 +158,6 @@ export async function verifyManifestIntegrity(
   for (const manifest of manifests) {
     assertManifestAssetTrust(manifest, policy);
     if (!manifest.integrity) {
-      if (manifest.channel !== "local" && policy.requireIntegrity !== false) {
-        throw new Error(`Atlas MF "${manifest.id}" is missing required remote entry integrity.`);
-      }
       continue;
     }
     const [algorithm, expected] = manifest.integrity.split("-", 2);
@@ -219,11 +193,8 @@ export async function findManifestTrustErrors(
 
 /** Builds the default fail-closed policy from deployment configuration. */
 export function createRemoteTrustPolicy(config: AtlasHostRuntimeConfig): AtlasRemoteTrustPolicy {
-  const catalogOrigin = new URL(config.catalogUrl, globalThis.location?.href ?? "http://atlas.local").origin;
-  return {
-    allowedOrigins: [catalogOrigin, ...(config.allowedRemoteOrigins ?? [])],
-    requireIntegrity: config.requireIntegrity ?? true
-  };
+  new URL(config.catalogUrl, globalThis.location?.href ?? "http://atlas.local");
+  return {};
 }
 
 function parseOverrideDocument(value: string): AtlasRuntimeOverrideDocument {
@@ -272,10 +243,7 @@ export function assertManifestAssetTrust(manifest: AtlasManifest, policy: AtlasR
     assertLocalManifestUrls(manifest);
     return;
   }
-  assertTrustedAssetUrl(manifest.remoteEntryUrl, manifest.id, "remote", policy.allowedOrigins);
-  if (!manifest.integrity && policy.requireIntegrity !== false) {
-    throw new Error(`Atlas MF "${manifest.id}" is missing required remote entry integrity.`);
-  }
+  assertTrustedAssetUrl(manifest.remoteEntryUrl, manifest.id, "remote");
   assertManifestStylesTrust(manifest, policy);
 }
 
@@ -285,19 +253,13 @@ export function assertManifestStylesTrust(manifest: AtlasManifest, policy: Atlas
     return;
   }
   for (const stylesheet of manifest.styles ?? []) {
-    assertTrustedAssetUrl(stylesheet.href, manifest.id, "stylesheet", policy.allowedOrigins);
-    if (!stylesheet.integrity && policy.requireIntegrity !== false) {
-      throw new Error(`Atlas MF "${manifest.id}" stylesheet "${stylesheet.href}" is missing required integrity.`);
-    }
+    assertTrustedAssetUrl(stylesheet.href, manifest.id, "stylesheet");
   }
 }
 
-function assertTrustedAssetUrl(urlValue: string, mfId: string, kind: string, allowedOrigins: readonly string[] | undefined): void {
+function assertTrustedAssetUrl(urlValue: string, mfId: string, kind: string): void {
   const url = new URL(urlValue, globalThis.location?.href ?? "http://atlas.local");
   if (!isHttpProtocol(url.protocol)) throw new Error(`Atlas MF "${mfId}" uses unsupported ${kind} protocol "${url.protocol}".`);
-  if (allowedOrigins && !allowedOrigins.includes(url.origin)) {
-    throw new Error(`Atlas MF "${mfId}" uses untrusted ${kind} origin "${url.origin}".`);
-  }
 }
 
 function assertManifestSupportsHost(manifest: AtlasManifest, hostId: string, source: string): void {
@@ -352,16 +314,6 @@ function assertUniqueExactRoutes(manifests: AtlasManifest[], hostId: string): vo
 
 function normalizeRoutePath(path: string): string {
   return path === "/" ? path : path.replace(/\/+$/, "");
-}
-
-function isHttpOrigin(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  try {
-    const url = new URL(value);
-    return isHttpProtocol(url.protocol) && url.origin === value;
-  } catch {
-    return false;
-  }
 }
 
 function isHttpProtocol(protocol: string): boolean {

@@ -20,9 +20,9 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("vite.config.ts"), /target: "19"/);
   assert.match(host.get("index.html"), /"shimMode": true/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
-  assert.match(host.get("atlas.config.ts"), /runtime:/);
-  assert.match(host.get("atlas.config.ts"), /waitForMfReady: true/);
-  assert.match(host.get("atlas.config.ts"), /retryAttempts: 2/);
+  assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
+  assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
+  assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
   assert.match(host.get("package.json"), /atlas runtime-config shell/);
   assert.match(mf.get("vite.config.ts"), /remoteEntry\.json/);
   assert.match(mf.get("vite.config.ts"), /babel-plugin-react-compiler/);
@@ -36,8 +36,11 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(mf.get("src/entry.tsx"), /createRoot/);
   assert.match(mf.get("src/entry.tsx"), /import \{ routes \} from "\.\/app\/app"/);
   assert.doesNotMatch(mf.get("src/entry.tsx"), /useAtlasSdk|<Outlet|<Link|function Layout/);
+  assert.match(host.get("atlas.config.ts"), /AtlasHostConfig/);
+  assert.match(mf.get("atlas.config.ts"), /AtlasMicrofrontendConfig/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /mounts/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /"shell"/);
 });
 
@@ -91,12 +94,13 @@ test("React generator rejects unsafe project, widget, and host IDs", () => {
   assert.throws(() => generateHostFiles({ name: "../shell", framework: "react" }), /Invalid generator name/);
   assert.throws(() => generateMicrofrontendFiles({ name: "Orders", framework: "react" }), /Invalid generator name/);
   assert.throws(() => generateWidgetFiles({ name: "summary/widget", framework: "react" }), /Invalid generator name/);
-  assert.throws(() => generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "shell\"], placements: []" }), /Invalid generator hostId/);
+  assert.throws(() => generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "shell\"], routes: []" }), /Invalid generator hostId/);
 });
 
 test("React generator targets a supplied compatible host and keeps framework dependencies isolated", () => {
   const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "customer-shell" }));
-  assert.match(mf.get("atlas.config.ts"), /hostCompatibility: \["customer-shell"\]/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
+  assert.match(mf.get("atlas.config.ts"), /routes: \[/);
   assert.match(mf.get("atlas.config.ts"), /hostId: "customer-shell"/);
   assert.match(mf.get("vite.config.ts"), /shared: \[\]/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostId: "shell"/);

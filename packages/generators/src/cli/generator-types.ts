@@ -5,7 +5,7 @@ export interface AtlasGeneratorOptions {
   /** Package name written to package.json. Defaults to the unscoped project name. */
   packageName?: string;
   framework: AtlasFramework;
-  /** Host that receives the generated route placement. Omit to leave host compatibility unconfigured. */
+  /** Host that receives the generated route. Omit to leave routes unconfigured. */
   hostId?: string;
   /** Exact version or semver range used by the generated framework dependencies. */
   frameworkVersion?: string;

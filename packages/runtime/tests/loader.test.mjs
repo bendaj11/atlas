@@ -105,7 +105,7 @@ test("catalog loading retries transient failures", async () => {
   let attempts = 0;
   const catalog = await loadHostCatalog({
     catalogUrl: "https://cdn.example/hosts/shell/catalog.json",
-    requestPolicy: { retryAttempts: 1, retryDelayMs: 0, timeoutMs: 50 },
+    requestPolicy: { retryCount: 1, timeoutMs: 50 },
     async fetchJson() {
       attempts += 1;
       if (attempts === 1) throw new Error("temporary outage");
@@ -129,7 +129,7 @@ test("catalog loading passes resilience abort signals to custom fetch callbacks"
   await assert.rejects(
     () => loadHostCatalog({
       catalogUrl: "https://cdn.example/catalog.json",
-      requestPolicy: { retryAttempts: 0, timeoutMs: 2 },
+      requestPolicy: { retryCount: 0, timeoutMs: 2 },
       fetchJson(_url, signal) { receivedSignal = signal; return new Promise(() => undefined); }
     }),
     AtlasLoadError
@@ -147,7 +147,7 @@ test("resilient operations emit structured retry and success events", async () =
       return "ready";
     },
     { stage: "catalog", resource: "https://cdn.example/catalog.json" },
-    { retryAttempts: 1, retryDelayMs: 0, timeoutMs: 50, observer: (event) => events.push(event) }
+    { retryCount: 1, timeoutMs: 50, observer: (event) => events.push(event) }
   );
   assert.deepEqual(events.map((event) => event.type), ["operation.retry", "operation.success"]);
   assert.equal(events[0].attempt, 1);
@@ -163,7 +163,7 @@ test("timed out resilient operations are aborted before retry", async () => {
         return new Promise(() => undefined);
       },
       { stage: "catalog" },
-      { retryAttempts: 1, retryDelayMs: 0, timeoutMs: 2 }
+      { retryCount: 1, timeoutMs: 2 }
     ),
     AtlasLoadError
   );
@@ -185,7 +185,7 @@ test("exhausted loading reports structured diagnostics", async () => {
     () => runResiliently(
       async () => { throw new Error("offline"); },
       { stage: "remote-module", resource: "https://cdn.example/entry.js", mfId: "map", version: "3.2.1" },
-      { retryAttempts: 1, retryDelayMs: 0, timeoutMs: 50 }
+      { retryCount: 1, timeoutMs: 50 }
     ),
     (error) => {
       assert.equal(error instanceof AtlasLoadError, true);
@@ -208,7 +208,7 @@ test("Native Federation module imports use the configured retry policy", async (
       if (attempts === 1) throw new Error("chunk unavailable");
       return { mount() {} };
     }
-  }, { retryAttempts: 1, retryDelayMs: 0, timeoutMs: 50 });
+  }, { retryCount: 1, timeoutMs: 50 });
   await importers.initialize([manifest]);
 
   await importers.importRemote(manifest);
@@ -227,7 +227,7 @@ test("Native Federation initializes independent remotes concurrently", async () 
       active -= 1;
     },
     async loadRemoteModule() { return { mount() {} }; }
-  }, { retryAttempts: 0, timeoutMs: 50 });
+  }, { retryCount: 0, timeoutMs: 50 });
 
   await importers.initialize([createTestManifest({ id: "first" }), createTestManifest({ id: "second" })]);
 
@@ -245,7 +245,7 @@ test("Native Federation bounds parallel remote initialization", async () => {
       active -= 1;
     },
     async loadRemoteModule() { return { mount() {} }; }
-  }, { retryAttempts: 0, timeoutMs: 50 });
+  }, { retryCount: 0, timeoutMs: 50 });
   const manifests = Array.from({ length: 12 }, (_, index) => createTestManifest({ id: `mf-${index}` }));
 
   await importers.initialize(manifests);
@@ -441,23 +441,18 @@ test("stylesheet failures prevent remote mounting", async () => {
   assert.equal(imported, false);
 });
 
-test("stylesheet trust rejects unapproved origins and missing integrity before import", async () => {
+test("stylesheet trust rejects unsupported protocols before import", async () => {
   let imported = false;
   const base = {
     hostId: "shell",
     catalogUrl: "",
     hostSdk: createTestHostSdk(),
     container: { ownerDocument: createStylesheetDocument([]), append() {} },
-    trustPolicy: { allowedOrigins: ["https://cdn.example"], requireIntegrity: true },
     async importRemote() { imported = true; return { mount() {} }; }
   };
   await assert.rejects(
-    () => mountMicrofrontend({ ...base, manifest: createTestManifest({ remoteEntryUrl: "https://cdn.example/entry.js", integrity: "sha256-valid", styles: [{ href: "https://evil.example/styles.css", integrity: "sha256-valid" }] }) }),
-    /untrusted stylesheet origin/
-  );
-  await assert.rejects(
-    () => mountMicrofrontend({ ...base, manifest: createTestManifest({ remoteEntryUrl: "https://cdn.example/entry.js", integrity: "sha256-valid", styles: [{ href: "https://cdn.example/styles.css" }] }) }),
-    /stylesheet .* missing required integrity/
+    () => mountMicrofrontend({ ...base, manifest: createTestManifest({ remoteEntryUrl: "https://cdn.example/entry.js", styles: [{ href: "ftp://cdn.example/styles.css" }] }) }),
+    /unsupported stylesheet protocol/
   );
   assert.equal(imported, false);
 });
@@ -538,7 +533,7 @@ test("host runtime cleans up mounts that finish after their timeout", async () =
     hostId: "shell",
     manifests: [widget],
     hostSdk: createTestHostSdk(),
-    loadTimeoutMs: 2,
+    resourcesTimeoutMs: 2,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     async importRemote() {
@@ -557,7 +552,7 @@ test("host runtime coalesces overlapping retries for one failed placement", asyn
     hostId: "shell",
     manifests: [widget],
     hostSdk: createTestHostSdk(),
-    loadTimeoutMs: 2,
+    resourcesTimeoutMs: 2,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     async importRemote() {
@@ -579,15 +574,14 @@ test("host runtime shows loading UI only when requested by the MF", async () => 
     hostId: "shell",
     manifests: [widget],
     hostSdk: createTestHostSdk(),
-    waitForMfReady: true,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     onStateChange(event) { states.push(event.state); },
     async importRemote() {
-      return { mount({ context }) { context.loading.show(); setTimeout(() => context.ready(), 5); } };
+      return { mount({ context }) { context.loading.show(); setTimeout(() => context.loading.hide(), 5); } };
     }
   });
-  assert.deepEqual(states, ["mounting", "loading", "mounting", "mounted"]);
+  assert.deepEqual(states, ["mounting", "loading", "mounted"]);
   await runtime.stop();
 });
 
@@ -598,17 +592,16 @@ test("host runtime renders no loading state when the MF does not request one", a
     hostId: "shell",
     manifests: [widget],
     hostSdk: createTestHostSdk(),
-    waitForMfReady: true,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     onStateChange(event) { states.push(event.state); },
-    async importRemote() { return { mount({ context }) { context.ready(); } }; }
+    async importRemote() { return { mount() {} }; }
   });
   assert.deepEqual(states, ["mounting", "mounted"]);
   await runtime.stop();
 });
 
-test("host runtime reports and cleans up an MF that never becomes ready", async () => {
+test("host runtime reports and cleans up an MF that opts into readiness but never becomes ready", async () => {
   const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "shell", slot: "header" }] });
   const states = [];
   let unmounted = false;
@@ -616,16 +609,15 @@ test("host runtime reports and cleans up an MF that never becomes ready", async 
     hostId: "shell",
     manifests: [widget],
     hostSdk: createTestHostSdk(),
-    waitForMfReady: true,
-    loadTimeoutMs: 5,
+    resourcesTimeoutMs: 5,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     onStateChange(event) { states.push(event); },
-    async importRemote() { return { mount() { return { unmount() { unmounted = true; } }; } }; }
+    async importRemote() { return { mount({ context }) { context.loading.waitUntilReady(); return { unmount() { unmounted = true; } }; } }; }
   });
   assert.equal(unmounted, true);
-  assert.deepEqual(states.map(({ state }) => state), ["mounting", "error"]);
-  assert.match(states[1].error.message, /did not mark itself ready/);
+  assert.deepEqual(states.map(({ state }) => state), ["mounting", "loading", "error"]);
+  assert.match(states[2].error.message, /did not mark itself ready/);
   await runtime.stop();
 });
 
@@ -680,50 +672,46 @@ test("remote entry integrity rejects modified production assets", async () => {
   );
 });
 
-test("production remotes require integrity and an approved origin", async () => {
+test("production remotes allow optional integrity and require HTTP URLs", async () => {
   const missingIntegrity = createTestManifest({ remoteEntryUrl: "https://assets.example.com/remoteEntry.json" });
-  await assert.rejects(
-    () => verifyManifestIntegrity([missingIntegrity], async () => new ArrayBuffer(0), { allowedOrigins: ["https://assets.example.com"] }),
-    /missing required remote entry integrity/
-  );
+  await verifyManifestIntegrity([missingIntegrity], async () => new ArrayBuffer(0));
 
-  const untrusted = createTestManifest({
-    remoteEntryUrl: "https://untrusted.example/remoteEntry.json",
+  const unsupportedProtocol = createTestManifest({
+    remoteEntryUrl: "ftp://assets.example.com/remoteEntry.json",
     integrity: "sha256-LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ="
   });
   await assert.rejects(
-    () => verifyManifestIntegrity([untrusted], async () => new TextEncoder().encode("hello").buffer, { allowedOrigins: ["https://assets.example.com"] }),
-    /untrusted remote origin/
+    () => verifyManifestIntegrity([unsupportedProtocol], async () => new TextEncoder().encode("hello").buffer),
+    /unsupported remote protocol/
   );
 });
 
 test("local remotes stay exempt from production trust checks", async () => {
   const local = createTestManifest({ channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
-  await verifyManifestIntegrity([local], async () => new ArrayBuffer(0), { allowedOrigins: ["https://assets.example.com"] });
+  await verifyManifestIntegrity([local], async () => new ArrayBuffer(0));
 });
 
-test("runtime config creates a catalog-origin trust policy", async () => {
+test("runtime config creates a resource policy", async () => {
   const config = await loadHostRuntimeConfig("/atlas.runtime.json", async () => ({
     schemaVersion: "1",
     hostId: "shell",
     catalogUrl: "https://registry.example.com/atlas/hosts/shell/catalog.json",
-    allowedRemoteOrigins: ["https://assets.example.com"]
+    allowAppOverrides: true,
+    resourcesTimeoutMs: 15000,
+    resourcesRetryCount: 3
   }));
-  assert.deepEqual(createRemoteTrustPolicy(config), {
-    allowedOrigins: ["https://registry.example.com", "https://assets.example.com"],
-    requireIntegrity: true
-  });
+  assert.deepEqual(createRemoteTrustPolicy(config), {});
 });
 
-test("runtime config rejects origins containing paths", async () => {
+test("runtime config rejects invalid resource settings", async () => {
   await assert.rejects(
     () => loadHostRuntimeConfig("/atlas.runtime.json", async () => ({
       schemaVersion: "1",
       hostId: "shell",
       catalogUrl: "https://registry.example.com/catalog.json",
-      allowedRemoteOrigins: ["https://assets.example.com/path"]
+      resourcesRetryCount: -1
     })),
-    /absolute HTTP\(S\) origins without paths/
+    /resourcesRetryCount/
   );
 });
 
@@ -734,9 +722,9 @@ test("federation isolates rejected remotes while trusted MFs remain loadable", a
   const federation = await createTrustedNativeFederationImporters({
     async initFederation(remotes) { initialized.push(...Object.keys(remotes)); },
     async loadRemoteModule() { return { mount() {} }; }
-  }, [rejected, local], { allowedOrigins: ["https://assets.example.com"], requireIntegrity: true });
+  }, [rejected, local], {});
 
-  assert.deepEqual(initialized, ["atlas_local"]);
-  await assert.rejects(() => federation.importRemote(rejected), /missing required remote entry integrity/);
+  assert.deepEqual(initialized, ["atlas_rejected", "atlas_local"]);
+  assert.equal(typeof (await federation.importRemote(rejected)).mount, "function");
   assert.equal(typeof (await federation.importRemote(local)).mount, "function");
 });

@@ -27,9 +27,14 @@ function issueAt(issues, path) {
   return issues.find((issue) => issue.path === path);
 }
 
-test("createManifestFromConfig preserves MF-declared host compatibility", () => {
+test("createManifestFromConfig derives supported hosts from source routes and slots", () => {
   const manifest = createManifestFromConfig({
-    config: { id: "catalog", framework: "react", hostCompatibility: ["shell", "partner-host.v2"] },
+    config: {
+      id: "catalog",
+      framework: "react",
+      routes: [{ id: "catalog-route", hostId: "shell", basePath: "/catalog", title: "Catalog" }],
+      slots: [{ id: "catalog-sidebar", hostId: "partner-host.v2", name: "sidebar" }]
+    },
     version: "1.0.0",
     buildId: "build-1",
     remoteEntryUrl: "https://cdn.example.com/catalog/remoteEntry.js"
@@ -38,8 +43,27 @@ test("createManifestFromConfig preserves MF-declared host compatibility", () => 
   assert.deepEqual(manifest.supportedHosts, ["shell", "partner-host.v2"]);
 });
 
-test("createManifestFromConfig retains wildcard host compatibility", () => {
+test("createManifestFromConfig uses wildcard supported hosts when no routes or slots are configured", () => {
   assert.deepEqual(createManifest().supportedHosts, ["*"]);
+});
+
+test("createManifestFromConfig writes source routes and slots to manifest placements", () => {
+  const manifest = createManifestFromConfig({
+    config: {
+      id: "catalog",
+      framework: "react",
+      routes: [{ id: "catalog-route", hostId: "shell", basePath: "/catalog", title: "Catalog" }],
+      slots: [{ id: "catalog-sidebar", hostId: "shell", name: "sidebar" }]
+    },
+    version: "1.0.0",
+    buildId: "build-1",
+    remoteEntryUrl: "https://cdn.example.com/catalog/remoteEntry.js"
+  });
+
+  assert.deepEqual(manifest.placements, [
+    { id: "catalog-route", kind: "route", hostId: "shell", route: { id: "catalog-route", basePath: "/catalog", title: "Catalog" } },
+    { id: "catalog-sidebar", kind: "slot", hostId: "shell", slot: "sidebar" }
+  ]);
 });
 
 test("manifest validates the optional DOM isolation policy", () => {

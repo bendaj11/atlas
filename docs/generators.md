@@ -103,7 +103,7 @@ Developers usually edit:
 
 - feature components
 - framework-native styles and assets using relative references
-- `atlas.config.ts` for display name, routes, host compatibility, and placements
+- `atlas.config.ts` for display name, routes, and host runtime settings
 
 See [Assets and Styles](assets-and-styles.md) for Angular, React, Nx, and CDN
 examples.

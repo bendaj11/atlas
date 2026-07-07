@@ -13,6 +13,8 @@ Important exports:
 - `AtlasManifest`
 - `AtlasHostCatalog`
 - `AtlasHostRuntimeConfig`
+- `AtlasHostConfig`
+- `AtlasMicrofrontendConfig`
 - `AtlasConfig`
 - `createManifestFromConfig`
 - `assertAtlasManifest`
@@ -95,7 +97,7 @@ Important production APIs:
 - `createRemoteTrustPolicy`: trusts the catalog origin plus explicitly configured asset origins and requires integrity for non-local remotes by default.
 - `startAtlasHostRuntime`: owns route/slot mount, timeout, retry, and teardown lifecycle.
 - `context.loading.show()` / `hide()`: asks the host to show or remove its own loading UI. Atlas never dictates the loader design.
-- `context.ready()`: tells the host that an MF has finished its first useful render and clears any requested loading UI.
+- `context.loading.waitUntilReady()`: opts the app into manual readiness and returns the callback the app calls after its first useful render.
 
 ## Events between microfrontends
 
@@ -120,13 +122,11 @@ events.publish("orders.updated", { orderId: "42" });
 
 The host configures UI once; individual MFs never choose a spinner or fallback.
 
-- `[data-atlas-host-status]` is the single global outlet shown while Atlas loads runtime configuration, the catalog, trust metadata, and Native Federation. `renderHostLoading` and `renderHostError` replace its defaults.
-- `renderLoading` is the one renderer shared by every MF placement. It appears only when an MF calls `context.loading.show()` and is removed by `hide()` or `ready()`.
+- `[data-atlas-host-status]` is the single global outlet shown while Atlas loads runtime configuration, the catalog, and Native Federation. `renderHostLoading` and `renderHostError` replace its defaults.
+- `renderLoading` is the one renderer shared by every MF placement. It appears only when an MF calls `context.loading.show()` or opts into manual readiness, and is removed by `hide()` or the app-loaded callback.
 - `renderError` is the one fallback shared by every MF placement. Atlas supplies the failed manifest, error, and retry action.
 
-If an MF never requests loading, its route or slot remains visually empty until it renders. `loadingIndicator` accepts `spinner`, `text`, or `none` for the default placement renderer.
-
-Set `waitForMfReady` in `atlas.runtime.json` to make a missing ready signal a timeout error. Generated Angular hosts enable the ready handshake by default.
+If an MF never requests loading or manual readiness, its route or slot is ready as soon as mount completes.
 
 Both host adapters render accessible defaults. A host can use its own Angular, React, Ionic, or other design system:
 

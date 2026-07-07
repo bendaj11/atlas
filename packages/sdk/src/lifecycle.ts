@@ -15,7 +15,9 @@ export interface AtlasMfContext {
   readonly loading: {
     show(): void;
     hide(): void;
+    waitUntilReady(): () => void;
   };
+  /** @deprecated Use framework helpers such as useAppLoaded or injectAppLoaded. */
   ready(): void;
 }
 

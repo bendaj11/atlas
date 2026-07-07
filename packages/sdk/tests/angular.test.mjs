@@ -24,10 +24,12 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.equal(host.has("src/app.component.ts"), false);
   assert.match(host.get("src/app/app.component.ts"), /data-atlas-host-status/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
-  assert.match(host.get("atlas.config.ts"), /catalogUrl/);
-  assert.match(host.get("atlas.config.ts"), /waitForMfReady: true/);
-  assert.match(host.get("atlas.config.ts"), /loadingIndicator: "spinner"/);
-  assert.match(host.get("atlas.config.ts"), /retryAttempts: 2/);
+  assert.doesNotMatch(host.get("atlas.config.ts"), /catalogUrl/);
+  assert.match(host.get("atlas.config.ts"), /AtlasHostConfig/);
+  assert.match(mf.get("atlas.config.ts"), /AtlasMicrofrontendConfig/);
+  assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
+  assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
+  assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
   assert.match(host.get("package.json"), /atlas runtime-config shell/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /localhost:4300/);
   assert.match(host.get("angular.json"), /"input": "public"/);
@@ -41,8 +43,9 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(mf.get("src/app/app.component.ts"), /export const routes: Routes/);
   assert.match(mf.get("src/app/app.component.ts"), /router-outlet/);
   assert.match(mf.get("src/entry.ts"), /provideAtlasSdk/);
+  assert.match(mf.get("src/entry.ts"), /provideAtlasMfContext/);
   assert.match(mf.get("src/entry.ts"), /import "zone\.js"/);
-  assert.match(mf.get("src/entry.ts"), /context\.ready\(\)/);
+  assert.doesNotMatch(mf.get("src/entry.ts"), /context\.ready\(\)/);
   assert.match(mf.get("src/entry.ts"), /provideRouter\(routes\)/);
   assert.match(mf.get("src/entry.ts"), /LocationStrategy/);
   assert.match(mf.get("src/entry.ts"), /bootstrapApplication\(AppComponent/);
@@ -50,6 +53,7 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.doesNotMatch(mf.get("src/entry.ts"), /providers: \[provideRouter\(routes\),/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /mounts/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /"shell"/);
 });
 
@@ -80,7 +84,8 @@ test("Angular generator keeps framework tooling on the selected major", () => {
 
 test("Angular generator targets a supplied compatible host without sharing framework dependencies", () => {
   const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "angular", hostId: "customer-shell" }));
-  assert.match(mf.get("atlas.config.ts"), /hostCompatibility: \["customer-shell"\]/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
+  assert.match(mf.get("atlas.config.ts"), /routes: \[/);
   assert.match(mf.get("atlas.config.ts"), /hostId: "customer-shell"/);
   assert.match(mf.get("federation.config.js"), /shared: \{\}/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostId: "shell"/);

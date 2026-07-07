@@ -57,7 +57,7 @@ MFs should depend only on `AtlasSdk`. If a needed capability is missing, add it 
 
 ### The host spinner never disappears
 
-When the host has `waitForMfReady: true`, the MF must call `context.ready()` after its first useful render. Generated projects already do this. If it called `context.loading.show()`, readiness also removes that loader. Atlas eventually times out, unmounts the incomplete MF, and presents the host fallback with Retry.
+If the MF calls `useAppLoaded()`, `injectAppLoaded()`, or `context.loading.waitUntilReady()`, it must call the returned callback after its first useful render. Atlas eventually times out, unmounts the incomplete MF, and presents the host fallback with Retry. If the app never opts into manual readiness, mount completion is ready enough.
 
 ### An event is not received by another MF
 

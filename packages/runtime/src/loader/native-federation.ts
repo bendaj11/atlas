@@ -97,7 +97,8 @@ export async function importNativeFederationRemote(
 
 function defaultManifestPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy {
   const baseUrl = globalThis.location?.href ?? "http://atlas.local";
-  return { allowedOrigins: [new URL(manifest.remoteEntryUrl, baseUrl).origin], requireIntegrity: true };
+  new URL(manifest.remoteEntryUrl, baseUrl);
+  return {};
 }
 
 function normalizeMfEntry(value: AtlasMfEntry | { default?: AtlasMfEntry }, id: string): AtlasMfEntry {

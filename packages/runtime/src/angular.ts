@@ -12,8 +12,8 @@ export interface HostOptions<TExtensions extends object = {}, THostData extends 
   hostData?: THostData & AtlasHostData;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
-  /** Explicitly enables URL and storage runtime overrides for local extension workflows. */
-  allowRuntimeOverrides?: boolean;
+  /** Enables URL and storage app overrides for Atlas tool workflows. */
+  allowAppOverrides?: boolean;
   document?: Document;
   onStateChange?: (event: AtlasHostMountEvent) => void;
   renderLoading?: (container: HTMLElement, event: AtlasHostMountEvent) => void;
@@ -74,8 +74,8 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
   if (catalog.hostId !== config.hostId) {
     throw new Error(`Atlas catalog targets host "${catalog.hostId}", but runtime configuration targets "${config.hostId}".`);
   }
-  const allowRuntimeOverrides = options.allowRuntimeOverrides ?? runtimeOverridesEnabled(config);
-  const overrides = await loadBrowserRuntimeOverrides({ hostId: config.hostId, enabled: allowRuntimeOverrides, requestPolicy });
+  const allowAppOverrides = options.allowAppOverrides ?? appOverridesEnabled(config);
+  const overrides = await loadBrowserRuntimeOverrides({ hostId: config.hostId, enabled: allowAppOverrides, requestPolicy });
   const manifests = resolveRuntimeManifests(catalog, overrides);
   const trustPolicy = createRemoteTrustPolicy(config);
   const federation = await createTrustedNativeFederationImporters(options.federation, manifests, trustPolicy, requestPolicy);
@@ -121,10 +121,9 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
     trustPolicy,
     resolveRouteContainer: () => document.querySelector<HTMLElement>("[data-atlas-route-outlet]") ?? undefined,
     resolveSlotContainer: (_manifest, placement) => document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(placement.slot!)}"]`) ?? undefined,
-    ...(config.loadTimeoutMs ? { loadTimeoutMs: config.loadTimeoutMs } : {}),
-    ...(config.waitForMfReady !== undefined ? { waitForMfReady: config.waitForMfReady } : {}),
+    ...(config.resourcesTimeoutMs ? { resourcesTimeoutMs: config.resourcesTimeoutMs } : {}),
     onStateChange(event) {
-      renderAngularMountState(document, event, config.loadingIndicator ?? "text", () => { void runtime?.retry(event.manifest.id); }, options);
+      renderAngularMountState(document, event, () => { void runtime?.retry(event.manifest.id); }, options);
       emitRuntimeEvent(options.observe, {
         type: "mf.state",
         timestamp: new Date().toISOString(),
@@ -141,8 +140,8 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
   return runtime;
 }
 
-function runtimeOverridesEnabled(config: AtlasHostRuntimeConfig): boolean {
-  return (config as AtlasHostRuntimeConfig & { allowRuntimeOverrides?: unknown }).allowRuntimeOverrides === true;
+function appOverridesEnabled(config: AtlasHostRuntimeConfig): boolean {
+  return config.allowAppOverrides !== false;
 }
 
 function reportRetryFailure(error: unknown): void {
@@ -168,7 +167,7 @@ function renderAngularNavigation(document: Document, manifests: import("@atlas/s
     })));
 }
 
-function renderAngularMountState(document: Document, event: AtlasHostMountEvent, indicator: "spinner" | "text" | "none", retry: () => void, options: HostOptions): void {
+function renderAngularMountState(document: Document, event: AtlasHostMountEvent, retry: () => void, options: HostOptions): void {
   const selector = event.placement.kind === "route"
     ? "[data-atlas-route-outlet]"
     : `[data-atlas-slot="${cssEscape(event.placement.slot!)}"]`;
@@ -180,17 +179,10 @@ function renderAngularMountState(document: Document, event: AtlasHostMountEvent,
   if (event.state === "mounting") existingStatus?.remove();
   if (event.state === "loading") {
     if (options.renderLoading) { options.renderLoading(container, event); return; }
-    if (indicator === "none") { existingStatus?.remove(); return; }
     const status = existingStatus ?? document.createElement("div");
     status.dataset.atlasStatus = "";
     status.setAttribute("role", "status");
     status.replaceChildren();
-    if (indicator === "spinner") {
-      const spinner = document.createElement("span");
-      spinner.dataset.atlasSpinner = "";
-      spinner.setAttribute("aria-hidden", "true");
-      status.append(spinner);
-    }
     const label = document.createElement("span");
     label.textContent = `Loading ${event.manifest.name}...`;
     status.append(label);

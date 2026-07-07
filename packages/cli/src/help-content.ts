@@ -107,12 +107,13 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     arguments: [{ label: "host", description: "Atlas host project name or directory; prompted when omitted" }],
     options: [
       { label: "--out <path>", description: "Runtime JSON output path (default: <host>/public/atlas.runtime.json)" },
+      { label: "--registry-base-url <url>", description: "Public base URL used to derive the host catalog URL" },
       { label: "--skip-compile", description: "Read an existing compiled atlas.config.js" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: [
-      "atlas runtime-config customer-shell",
-      "atlas runtime-config customer-shell --out dist/customer-shell/atlas.runtime.json"
+      "atlas runtime-config customer-shell --registry-base-url https://cdn.example.com/atlas",
+      "atlas runtime-config customer-shell --registry-base-url https://cdn.example.com/atlas --out dist/customer-shell/atlas.runtime.json"
     ]
   },
   rollback: {
@@ -158,7 +159,7 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
     arguments: [{ label: "name-or-path", description: `Name or command-relative path of the ${resource}; prompted when omitted` }],
     options: [
       { label: "--framework <name>", description: "Framework: angular or react; prompted when omitted" },
-      ...(type === "app" ? [{ label: "--host <host-id>", description: "Host id used for initial compatibility and route placement" }] : []),
+      ...(type === "app" ? [{ label: "--host <host-id>", description: "Host id used for the generated route" }] : []),
       { label: "--framework-version <range>", description: "Framework semver range for new packages; existing Nx packages keep their Angular/React version" },
       { label: "--directory <path>", description: "Target directory" },
       { label: "--allow-unsupported-version", description: "Generate outside Atlas's tested version range" },

@@ -1,4 +1,6 @@
 import type { AtlasManifest } from "./atlas-manifest.js";
+import type { AtlasMicrofrontendConfig } from "./atlas-config.js";
+import type { AtlasPlacement } from "./atlas-placement.js";
 import type { CreateManifestFromConfigInput } from "./create-manifest-from-config-input.js";
 import { assertAtlasManifest } from "./assert-atlas-manifest.js";
 
@@ -12,12 +14,12 @@ export function createManifestFromConfig(input: CreateManifestFromConfigInput): 
     buildId: input.buildId,
     channel: input.channel ?? "production",
     framework: input.config.framework,
-    isolation: input.config.isolation ?? "scoped",
+    isolation: input.config.domIsolation ?? "scoped",
     remoteEntryUrl: input.remoteEntryUrl,
     exposes: { entry: "./entry" },
     requiredHostSdkVersion: input.config.requiredHostSdkVersion ?? "^0.1.0",
-    supportedHosts: input.config.hostCompatibility ?? ["*"],
-    placements: input.config.placements ?? [],
+    supportedHosts: supportedHosts(input.config),
+    placements: placements(input.config),
     createdAt: input.createdAt ?? new Date().toISOString()
   };
 
@@ -26,8 +28,6 @@ export function createManifestFromConfig(input: CreateManifestFromConfigInput): 
   }
 
   if (input.styles?.length) manifest.styles = input.styles;
-
-  if (input.config.uses?.length) manifest.uses = [...input.config.uses];
 
   if (input.integrity) manifest.integrity = input.integrity;
 
@@ -41,4 +41,31 @@ export function createManifestFromConfig(input: CreateManifestFromConfigInput): 
 
   assertAtlasManifest(manifest);
   return manifest;
+}
+
+function placements(config: AtlasMicrofrontendConfig): AtlasPlacement[] {
+  return [
+    ...(config.routes ?? []).map((route) => ({
+      id: route.id,
+      kind: "route" as const,
+      hostId: route.hostId,
+      route: {
+        id: route.id,
+        basePath: route.basePath,
+        title: route.title,
+        ...(route.nav ? { nav: route.nav } : {})
+      }
+    })),
+    ...(config.slots ?? []).map((slot) => ({
+      id: slot.id,
+      kind: "slot" as const,
+      hostId: slot.hostId,
+      slot: slot.name
+    }))
+  ];
+}
+
+function supportedHosts(config: AtlasMicrofrontendConfig): string[] {
+  const hosts = [...new Set(placements(config).map((placement) => placement.hostId))];
+  return hosts.length ? hosts : ["*"];
 }

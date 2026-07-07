@@ -8,10 +8,9 @@ and MF publication pipeline as part of the application's code supply chain.
 For production, PR, and historical manifests Atlas:
 
 1. validates the manifest shape;
-2. requires a `sha256-...` integrity value by default;
-3. permits HTTP(S) remote entries only;
-4. permits the catalog origin and explicitly configured remote origins only;
-5. verifies remote-entry bytes before Native Federation initialization.
+2. permits HTTP(S) remote entries only;
+3. loads the exact remote-entry and stylesheet URLs selected by the host catalog;
+4. verifies optional `sha256-...` metadata when a manifest provides it.
 
 Trust checks are isolated per MF. Atlas never initializes a rejected remote,
 but other trusted MFs continue to run and the host renders its normal fallback
@@ -20,8 +19,8 @@ UI in the rejected MF's route or slot.
 Local manifests are exempt from origin and integrity requirements because
 `atlas dev` intentionally loads a changing loopback build. Their remote entry,
 stylesheet, and exported-widget URLs must resolve to localhost or an IP loopback
-address. URL and storage overrides are ignored unless the host explicitly sets
-`allowRuntimeOverrides` to `true` in runtime configuration or host options.
+address. URL and storage app overrides are enabled by default and can be disabled
+with `allowAppOverrides: false` in runtime configuration or host options.
 Override documents still have to target the current host and contain matching
 MF ids. Catalog placements and supported-host declarations remain authoritative,
 and Atlas revalidates widget dependencies after applying replacements.
@@ -33,15 +32,15 @@ and Atlas revalidates widget dependencies after applying replacements.
   "schemaVersion": "1",
   "hostId": "customer-shell",
   "catalogUrl": "https://registry.example.com/atlas/hosts/customer-shell/catalog.json",
-  "allowedRemoteOrigins": ["https://assets.example.com"],
-  "requireIntegrity": true,
-  "allowRuntimeOverrides": false
+  "allowAppOverrides": true,
+  "resourcesTimeoutMs": 15000,
+  "resourcesRetryCount": 3
 }
 ```
 
-The catalog origin is always included. `allowedRemoteOrigins` accepts origins,
-not paths or wildcard strings. Keep `requireIntegrity` enabled in production.
-The opt-out exists only for controlled migrations from older catalogs.
+`allowAppOverrides` controls Atlas tooling that swaps selected app manifests at
+runtime. `resourcesTimeoutMs` and `resourcesRetryCount` bound Atlas-owned catalog,
+override, federation, app load, and readiness work.
 
 ## Storage And CI Requirements
 
@@ -57,17 +56,14 @@ The opt-out exists only for controlled migrations from older catalogs.
 ## Content Security Policy
 
 The host's CSP must allow scripts and connections from every approved asset
-origin. Keep that list consistent with `allowedRemoteOrigins`. Atlas does not
-weaken or inject CSP headers because the host and deployment platform own them.
+origin. Atlas does not weaken or inject CSP headers because the host and
+deployment platform own them.
 
 ## Trust Boundary
 
-Integrity proves that the bytes Atlas checks match the manifest at check time.
-Native Federation subsequently loads the configured URL, so the guarantee relies
-on that URL being immutable and served consistently; Atlas does not pin the
-verified bytes for execution. Anyone who can publish both an asset and its manifest is
-effectively a code publisher for the host. Protect publication permissions,
-review MF changes, and preserve an auditable build-to-manifest relationship.
+Anyone who can publish both an asset and its manifest is effectively a code
+publisher for the host. Protect publication permissions, review MF changes, and
+preserve an auditable build-to-manifest relationship.
 
 Atlas does not place MFs in cross-origin iframes. MFs share the host page and
 can access browser APIs available to that page. DOM boundaries and Shadow DOM

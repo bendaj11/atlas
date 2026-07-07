@@ -29,9 +29,7 @@ export async function loadManifestStyles(
   return () => releases.forEach((release) => release());
 }
 
-function defaultManifestPolicy(): AtlasRemoteTrustPolicy {
-  return { requireIntegrity: true };
-}
+function defaultManifestPolicy(): AtlasRemoteTrustPolicy { return {}; }
 
 async function acquireStylesheet(document: Document, stylesheet: AtlasStylesheet, mfId: string): Promise<AtlasStyleRelease> {
   const styles = stylesFor(document);

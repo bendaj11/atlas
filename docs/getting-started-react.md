@@ -112,7 +112,7 @@ Effect: the host page has real product structure before any MF is loaded.
 
 More docs:
 
-- [Routing](routing.md): explains route placements, inner routes, navigation, and route ownership.
+- [Routing](routing.md): explains routes, slots, inner routes, navigation, and route ownership.
 - [Assets and styles](assets-and-styles.md): explains CSS, images, and asset URLs for host and MF builds.
 
 ## 4. Connect Real Host Services
@@ -160,9 +160,9 @@ atlas g app orders --framework=react
 
 Files to look at first:
 
-- `atlas.config.ts`: the Atlas identity and placement file for this MF. It names
+- `atlas.config.ts`: the Atlas identity and mount file for this MF. It names
   the MF, declares which hosts may load it, and tells Atlas where it should
-  appear, such as a route or slot. Edit this when changing host compatibility,
+  appear, such as a route or slot. Edit this when changing route or slot hosts,
   route paths, navigation labels, slots, or advanced manifest metadata.
 - `src/entry.tsx`: the generated Atlas mount entry for the React MF. It exports
   the lifecycle Atlas loads through Native Federation and wires the MF to the
@@ -188,27 +188,22 @@ This step tells Atlas which host can load the MF and where users will see it.
 Edit `atlas.config.ts` in the MF.
 
 ```ts
-import type { AtlasConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasMicrofrontendConfig } from "@atlas/schema" with { "resolution-mode": "import" };
 
 export default {
   id: "orders",
   name: "Orders",
   framework: "react",
-  hostCompatibility: ["customer-host"],
-  placements: [
+  routes: [
     {
       id: "orders-route",
-      kind: "route",
       hostId: "customer-host",
-      route: {
-        id: "orders",
-        basePath: "/orders",
-        title: "Orders",
-        nav: { label: "Orders", visible: true, order: 10 }
-      }
+      basePath: "/orders",
+      title: "Orders",
+      nav: { label: "Orders", visible: true, order: 10 }
     }
   ]
-} satisfies AtlasConfig;
+} satisfies AtlasMicrofrontendConfig;
 ```
 
 Effect: production catalogs can select `orders` for `customer-host`, and the
@@ -216,7 +211,7 @@ host can mount it at `/orders`.
 
 More docs:
 
-- [Routing](routing.md): explains route placement options and nested MF navigation.
+- [Routing](routing.md): explains route mount options and nested MF navigation.
 - [Static registry](registry.md): explains how catalogs select this MF version for a host.
 
 ## 7. Build React Feature UI
@@ -289,14 +284,13 @@ More docs:
 
 ## 9. Configure Production Runtime
 
-This step tells the deployed host where its catalog lives and how strictly to
-load remote code.
+This step tells the deployed host where its catalog lives and how long Atlas
+waits for runtime resources.
 
-Configure the host runtime block in `atlas.config.ts`, then generate the
-browser artifact:
+Configure host-level runtime knobs in `atlas.config.ts`, then generate the browser artifact:
 
 ```sh
-atlas runtime-config customer-host
+atlas runtime-config customer-host --registry-base-url=https://cdn.example.com/atlas
 ```
 
 The generated `public/atlas.runtime.json` looks like:
@@ -306,13 +300,9 @@ The generated `public/atlas.runtime.json` looks like:
   "schemaVersion": "1",
   "hostId": "customer-host",
   "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-host/catalog.json",
-  "requireIntegrity": true,
-  "requestTimeoutMs": 10000,
-  "retryAttempts": 2,
-  "retryDelayMs": 250,
-  "loadTimeoutMs": 15000,
-  "waitForMfReady": true,
-  "loadingIndicator": "spinner"
+  "allowAppOverrides": true,
+  "resourcesTimeoutMs": 15000,
+  "resourcesRetryCount": 3
 }
 ```
 

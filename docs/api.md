@@ -45,17 +45,19 @@ Import from `@atlas/schema`:
 
 | API | Purpose |
 | --- | --- |
-| `AtlasConfig` | Developer-owned host or MF source configuration |
+| `AtlasHostConfig` | Developer-owned host source configuration |
+| `AtlasMicrofrontendConfig` | Developer-owned MF source configuration |
+| `AtlasConfig` | Union of host and MF source configuration |
 | `AtlasManifest` | Immutable description of one built MF version |
 | `AtlasHostCatalog` | One selected version of every MF required by a host |
-| `AtlasHostRuntimeConfig` | Deployment-time catalog, trust, and lifecycle settings |
+| `AtlasHostRuntimeConfig` | Deployment-time catalog, override, timeout, and retry settings |
 | `AtlasPlacement` | Route or slot contribution for a host |
 | `AtlasExportedComponentManifest` | One widget exposed by an owning MF |
 | `createManifestFromConfig()` | Build a manifest from source config and CI metadata |
 | `validateAtlasManifest()` | Return structured validation issues for unknown JSON |
 | `assertAtlasManifest()` | Validate unknown JSON or throw `AtlasValidationError` |
 
-Use `satisfies AtlasConfig` in `atlas.config.ts`; do not hand-write runtime
+Use `satisfies AtlasHostConfig` or `satisfies AtlasMicrofrontendConfig` in `atlas.config.ts`; do not hand-write runtime
 manifests or catalogs.
 
 ## SDK Core

@@ -1,12 +1,9 @@
 import "zone.js";
 import { LocationStrategy } from "@angular/common";
-import { Component, InjectionToken, inject } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, RouterLink, RouterOutlet, type Routes } from "@angular/router";
-import { createLocationStrategy, defineMicrofrontend, injectAtlasSdk, provideAtlasSdk } from "@atlas/sdk/angular";
-import type { AtlasMfContext } from "@atlas/sdk/lifecycle";
-
-export const ATLAS_MF_CONTEXT = new InjectionToken<AtlasMfContext>("ATLAS_MF_CONTEXT");
+import { createLocationStrategy, defineMicrofrontend, injectAtlasSdk, provideAtlasMfContext, provideAtlasSdk } from "@atlas/sdk/angular";
 
 @Component({ selector: "atlas-orders-home", standalone: true, template: `<p>Order list</p>` })
 class OrdersHomeComponent {}
@@ -29,7 +26,6 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
   const element = document.createElement("atlas-orders-angular-root");
   const locationStrategy = createLocationStrategy(context);
   container.append(element);
-  const app = await bootstrapApplication(AtlasMfRootComponent, { providers: [provideRouter(routes), provideAtlasSdk(sdk), { provide: LocationStrategy, useValue: locationStrategy }, { provide: ATLAS_MF_CONTEXT, useValue: context }] });
-  context.ready();
+  const app = await bootstrapApplication(AtlasMfRootComponent, { providers: [provideRouter(routes), provideAtlasMfContext(context), provideAtlasSdk(sdk), { provide: LocationStrategy, useValue: locationStrategy }] });
   return { unmount() { app.destroy(); locationStrategy.ngOnDestroy(); element.remove(); } };
 });

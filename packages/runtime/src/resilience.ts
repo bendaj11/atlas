@@ -2,15 +2,13 @@ import { emitRuntimeEvent, eventTimestamp, type AtlasRuntimeObserver } from "./o
 
 export interface AtlasRetryPolicy {
   timeoutMs?: number;
-  retryAttempts?: number;
-  retryDelayMs?: number;
+  retryCount?: number;
   observer?: AtlasRuntimeObserver;
 }
 
 export interface AtlasRetryPolicySource {
-  requestTimeoutMs?: number;
-  retryAttempts?: number;
-  retryDelayMs?: number;
+  resourcesTimeoutMs?: number;
+  resourcesRetryCount?: number;
 }
 
 export interface AtlasOperationContext {
@@ -45,15 +43,14 @@ export class AtlasLoadError extends Error {
   }
 }
 
-const DEFAULT_TIMEOUT_MS = 10_000;
-const DEFAULT_RETRY_ATTEMPTS = 2;
+const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_RETRY_COUNT = 3;
 const DEFAULT_RETRY_DELAY_MS = 250;
 
 export function createRetryPolicy(source: AtlasRetryPolicySource, observer?: AtlasRuntimeObserver): AtlasRetryPolicy {
   return {
-    ...(source.requestTimeoutMs !== undefined ? { timeoutMs: source.requestTimeoutMs } : {}),
-    ...(source.retryAttempts !== undefined ? { retryAttempts: source.retryAttempts } : {}),
-    ...(source.retryDelayMs !== undefined ? { retryDelayMs: source.retryDelayMs } : {}),
+    ...(source.resourcesTimeoutMs !== undefined ? { timeoutMs: source.resourcesTimeoutMs } : {}),
+    ...(source.resourcesRetryCount !== undefined ? { retryCount: source.resourcesRetryCount } : {}),
     ...(observer ? { observer } : {})
   };
 }
@@ -64,11 +61,11 @@ export async function runResiliently<T>(
   policy: AtlasRetryPolicy = {}
 ): Promise<T> {
   const timeoutMs = policy.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const retryAttempts = policy.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
-  const retryDelayMs = policy.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
-  validatePolicy({ timeoutMs, retryAttempts, retryDelayMs });
+  const retryCount = policy.retryCount ?? DEFAULT_RETRY_COUNT;
+  const retryDelayMs = DEFAULT_RETRY_DELAY_MS;
+  validatePolicy({ timeoutMs, retryCount });
 
-  const totalAttempts = retryAttempts + 1;
+  const totalAttempts = retryCount + 1;
   const startedAt = Date.now();
   for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
     try {
@@ -113,15 +110,12 @@ function emitOperationEvent(input: OperationEventInput): void {
   });
 }
 
-function validatePolicy(policy: { timeoutMs: number; retryAttempts: number; retryDelayMs: number }): void {
+function validatePolicy(policy: { timeoutMs: number; retryCount: number }): void {
   if (!Number.isInteger(policy.timeoutMs) || policy.timeoutMs < 1) {
     throw new Error("Atlas request timeoutMs must be a positive integer.");
   }
-  if (!Number.isInteger(policy.retryAttempts) || policy.retryAttempts < 0) {
-    throw new Error("Atlas retryAttempts must be a non-negative integer.");
-  }
-  if (!Number.isInteger(policy.retryDelayMs) || policy.retryDelayMs < 0) {
-    throw new Error("Atlas retryDelayMs must be a non-negative integer.");
+  if (!Number.isInteger(policy.retryCount) || policy.retryCount < 0) {
+    throw new Error("Atlas retryCount must be a non-negative integer.");
   }
 }
 

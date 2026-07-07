@@ -33,7 +33,7 @@ Atlas uses three ownership levels. The host owns top-level routing and global ca
 
 The page MF is intentionally a thin coordinator: it creates containers, controls responsive layout, and translates page-level events. Business logic remains in the owning widgets. This avoids turning the rarely deployed host into a layout engine while preserving independent widget deployment.
 
-Consumers declare `uses: ["owner/widget"]`. Static catalog generation follows those references transitively and includes exactly one production owner version in the host catalog. Widget code can still load lazily; catalog inclusion does not mount or eagerly download it.
+MF code calls widget references through the SDK when needed. Atlas resolves the selected owner manifest at runtime and lazy-loads the widget without a source-config dependency list.
 
 ## Native Federation
 
@@ -80,13 +80,13 @@ The host always runs at most one version of a given MF id in a session.
 
 Each placement reports `loading`, `mounted`, `error`, and `unmounted` states. Loading has a configurable timeout and failed placements can be retried through `AtlasHostRuntime.retry`. A failed route does not remove independently mounted slots. Generated Angular hosts expose state through `data-atlas-state` and `aria-busy` so a product design system can render its own fallback UI.
 
-Host startup has one separate global boundary at `[data-atlas-host-status]`. It covers runtime configuration, catalog discovery, integrity verification, and federation initialization. The host defines this loader and fallback once through `renderHostLoading` and `renderHostError`; Atlas does not require separate UI configuration for every MF.
+Host startup has one separate global boundary at `[data-atlas-host-status]`. It covers runtime configuration, catalog discovery, and federation initialization. The host defines this loader and fallback once through `renderHostLoading` and `renderHostError`; Atlas does not require separate UI configuration for every MF.
 
-Atlas does not show loading UI merely because a remote is being imported. An MF explicitly requests it with `context.loading.show()`, and the host determines its appearance. Calling `context.loading.hide()` removes it; calling `context.ready()` removes it and completes the lifecycle. Without a loading request, the host outlet remains visually empty until the MF renders.
+Atlas does not show loading UI merely because a remote is being imported. An MF explicitly requests it with `context.loading.show()`, and the host determines its appearance. Calling `context.loading.hide()` removes it. Without a loading request, the host outlet remains visually empty until the MF renders.
 
-When `waitForMfReady` is enabled, `mounted` is emitted only after both the remote mount completes and the MF calls `context.ready()`. A missing ready signal becomes a retryable timeout and Atlas calls the MF's unmount hook before showing the host-owned error fallback.
+Apps opt into manual readiness from code. React calls `useAppLoaded()` and Angular calls `injectAppLoaded()` or `context.loading.waitUntilReady()`. If an app opts in, `mounted` is emitted only after the returned callback runs. If it never opts in, mount completion is ready enough. A missing ready callback becomes a retryable timeout and Atlas calls the MF's unmount hook before showing the host-owned error fallback.
 
-Runtime requests have bounded timeouts and retries. Exhausted operations produce `AtlasLoadError` diagnostics containing the stage, resource URL, MF id, version, and attempt count. The same policy applies to catalogs, browser overrides, integrity downloads, federation initialization, page modules, and exported widgets.
+Runtime resources have bounded timeouts and retries. Exhausted operations produce `AtlasLoadError` diagnostics containing the stage, resource URL, MF id, version, and attempt count. The same policy applies to catalogs, browser overrides, federation initialization, page modules, readiness callbacks, and exported widgets.
 
 The host creates one in-memory event bus and exposes it through every MF through `atlas.events`. This supports typed, decoupled notifications between currently mounted MFs while keeping direct MF imports forbidden. The bus is intentionally not durable and does not replace backend messaging.
 

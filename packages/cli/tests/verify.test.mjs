@@ -58,14 +58,14 @@ test("verify rejects missing cross-origin CORS headers", async () => {
   assert.equal(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("CORS")), true);
 });
 
-test("verify rejects remote origins outside the host trust policy", async () => {
+test("verify accepts asset origins selected by the catalog", async () => {
   const service = new AtlasVerifyService(createDeploymentFetch([
-    deploymentManifest({ remoteEntryUrl: "https://untrusted.example/orders/remoteEntry.json" })
+    deploymentManifest({ remoteEntryUrl: "https://assets.example/orders/remoteEntry.json" })
   ]));
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("origin")), true);
+  assert.equal(report.checks.some((check) => check.status === "failure"), false);
 });
 
 test("verify bounds concurrent network requests", async () => {
@@ -156,8 +156,9 @@ function createDeploymentFetch(manifests, options = { includeCors: true }) {
       schemaVersion: "1",
       hostId: "shell",
       catalogUrl: "https://cdn.example/hosts/shell/catalog.json",
-      allowedRemoteOrigins: ["https://cdn.example"],
-      requireIntegrity: true
+      allowAppOverrides: true,
+      resourcesTimeoutMs: 15000,
+      resourcesRetryCount: 3
     }, { headers: jsonHeaders });
     if (url.endsWith("catalog.json")) return Response.json({
       schemaVersion: "1",
