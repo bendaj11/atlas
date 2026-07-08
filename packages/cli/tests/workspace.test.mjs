@@ -20,9 +20,11 @@ test("workspace detection discovers an Nx project without consumer configuration
 
   const workspace = await detectWorkspace(projectRoot);
   const project = await workspace.findProject("orders");
+  const currentProject = await workspace.findProject(".");
   assert.equal(workspace.kind, "nx");
   assert.equal(workspace.packageManager, "yarn");
   assert.equal(project.root, projectRoot);
+  assert.equal(currentProject.root, projectRoot);
   assert.deepEqual(project.outputPaths, [join(root, "dist", "apps", "orders")]);
   assert.equal(workspace.generationRoot("app", "catalog"), join(root, "apps", "catalog"));
 });

@@ -334,8 +334,9 @@ atlas dev orders \
 ```
 
 Run both commands from the directory that contains `customer-host/` and
-`orders/`, or from your monorepo root. Open the **Open host** URL printed by
-Terminal 2.
+`orders/`, or from your monorepo root. If Terminal 2 is already inside
+`orders/`, run `atlas dev` with no project name. Open the **Open host** URL
+printed by Terminal 2.
 
 Because `orders/atlas.config.ts` already declares one host route, Atlas can
 infer the host id. For the generated Angular host, this shorter command is
@@ -374,10 +375,19 @@ atlas dev customer-host
 atlas dev orders
 ```
 
+From inside either project directory, the project name is optional:
+
+```sh
+atlas dev
+```
+
 Under the hood, Atlas delegates to your workspace. In Nx it runs project
 targets such as `customer-host:dev`, `orders:dev`, and
 `orders:atlas:config`. In Turborepo, pnpm workspaces, and Yarn workspaces it
-runs the generated package scripts through the matching workspace command. The
+runs the generated package scripts through the matching workspace command. You
+can also run those native commands directly, for example `nx run orders:dev`,
+`pnpm --filter orders run dev`, `yarn workspace orders run dev`, or
+`turbo run dev --filter=orders`. The
 separate host process is still required because the app is rendered inside the
 host page.
 

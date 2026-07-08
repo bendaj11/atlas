@@ -448,7 +448,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx source\n' > "$directory/src/main.ts"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf 'nx jest\n' > "$directory/jest.config.ts"
-  printf '{"name":"host","root":"products/host","marker":"nx-generator","targets":{"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
+  printf '{"name":"mobile-host","root":"products/host","marker":"nx-generator","targets":{"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
@@ -465,8 +465,8 @@ exit 1
   assert.equal(project.marker, "nx-generator");
   assert.equal(project.targets["atlas:config"].options.cwd, "products/host");
   assert.equal(project.targets["atlas:config"].options.command, "tsc -p tsconfig.atlas.json");
-  assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config host");
-  assert.equal(project.targets.dev.options.commands[1].command, "nx run host:serve");
+  assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config mobile-host");
+  assert.equal(project.targets.dev.options.commands[1].command, "nx run mobile-host:serve");
   assert.equal(project.targets.dev.options.commands[1].forwardAllArgs, true);
   assert.match(await readFile(join(root, "products/host/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
   assert.match(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8"), /startHost/);
@@ -827,6 +827,40 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
   }
 
   assert.deepEqual(calls, [["run", "atlas:config"], ["spawn", "dev"]]);
+});
+
+test("atlas dev without a project uses the current Atlas project directory", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-current-project-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({
+    name: "orders",
+    version: "1.0.0",
+    type: "module",
+    scripts: { "atlas:config": "node write-config.mjs" }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
+  await writeFile(join(projectRoot, "write-config.mjs"), [
+    'import { mkdir, writeFile } from "node:fs/promises";',
+    'await mkdir(".atlas", { recursive: true });',
+    "await writeFile(\".atlas/atlas.config.js\", `export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};\\n`);"
+  ].join("\n"));
+
+  const stdout = await run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"),
+    "dev",
+    "--prepare-only",
+    "--control-port=4521"
+  ], { cwd: projectRoot, env: { ...process.env, ATLAS_HOST_ORIGIN: "http://localhost:5173" } });
+
+  const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+  assert.equal(document.hostId, "customer-host");
+  assert.match(stdout, /Starting \./);
+  assert.match(stdout, /Open host: http:\/\/localhost:5173\/orders\?atlas-override=/);
 });
 
 test("workspace .env supplies Atlas dev defaults without overriding shell env", async () => {

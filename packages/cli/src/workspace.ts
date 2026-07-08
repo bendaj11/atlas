@@ -48,7 +48,7 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     kind,
     root,
     packageManager,
-    findProject: (name) => findAtlasProject(root, name),
+    findProject: (name) => findAtlasProject(root, name, resolvedStart),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     formatGenerated: async (projectRoot) => {
@@ -185,10 +185,11 @@ async function detectPackageManager(root: string): Promise<AtlasPackageManager> 
   return "npm";
 }
 
-async function findAtlasProject(root: string, name: string): Promise<AtlasProject> {
-  const directCandidates = [resolve(root, name), resolve(name), process.cwd()];
+async function findAtlasProject(root: string, name: string, currentDirectory = process.cwd()): Promise<AtlasProject> {
+  const requestedName = name === "." ? currentDirectory : name;
+  const directCandidates = [resolve(root, name), resolve(currentDirectory, name), currentDirectory];
   for (const candidate of directCandidates) {
-    const project = await readProject(candidate, name, root);
+    const project = await readProject(candidate, requestedName, root);
     if (project) return project;
   }
   const matches = await discoverProjects(root, name, root, 0);

@@ -441,6 +441,7 @@ async function ensureDelegatedNxTargets(root: string, name: string, type: "host"
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
   if (!project) return;
 
+  const projectName = typeof project.name === "string" && project.name ? project.name : name;
   const targets = asObject(project.targets);
   if (!targets["atlas:config"]) {
     targets["atlas:config"] = {
@@ -454,15 +455,15 @@ async function ensureDelegatedNxTargets(root: string, name: string, type: "host"
           executor: "nx:run-commands",
           options: {
             commands: [
-              { command: `atlas runtime-config ${name}` },
-              { command: `nx run ${name}:serve`, forwardAllArgs: true }
+              { command: `atlas runtime-config ${projectName}` },
+              { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
             ],
             parallel: false
           }
         }
       : {
           executor: "nx:run-commands",
-          options: { command: `nx run ${name}:serve`, forwardAllArgs: true }
+          options: { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
         };
   }
   project.targets = targets;

@@ -63,9 +63,10 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       return;
     }
 
-    if (invocation.command === "dev" && invocation.subcommand) {
-      ui.heading(`Starting ${invocation.subcommand}`);
-      await new AtlasDevService(workspace, args, builds).run(invocation.subcommand, prompts);
+    if (invocation.command === "dev") {
+      const project = invocation.subcommand && !invocation.subcommand.startsWith("-") ? invocation.subcommand : ".";
+      ui.heading(`Starting ${project}`);
+      await new AtlasDevService(workspace, args, builds).run(project, prompts);
       return;
     }
 

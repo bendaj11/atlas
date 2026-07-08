@@ -57,8 +57,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
   },
   dev: {
     summary: "Run a host, or run one app locally inside an Atlas host.",
-    usage: "atlas dev <project> [options]",
-    arguments: [{ label: "project", description: "Atlas project name or directory; prompted when omitted" }],
+    usage: "atlas dev [project] [options]",
+    arguments: [{ label: "project", description: "Atlas project name or directory; defaults to the current directory" }],
     options: [
       { label: "--host <host-id>", description: "Host receiving the local override" },
       { label: "--host-url <url>", description: "Host page opened with the override activated" },
@@ -75,6 +75,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     examples: [
       "atlas dev customer-host",
       "atlas dev orders",
+      "atlas dev",
       "ATLAS_HOST_ORIGIN=http://localhost:4200 atlas dev orders",
       "atlas dev orders --host customer-host --host-url https://customer.example/orders"
     ]

@@ -42,6 +42,13 @@ atlas dev orders
 atlas build orders
 ```
 
+When the shell is already inside an Atlas host or app directory, the project
+name is optional:
+
+```sh
+atlas dev
+```
+
 For `atlas dev <app>`, Atlas infers the host when the app config declares only
 one host. For multiple hosts, interactive terminals ask which host to use; in
 non-interactive shells, pass `--host` or set `ATLAS_HOST`. Use
@@ -81,6 +88,14 @@ Atlas invokes targets such as `orders:build`, `orders:dev`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
 When Atlas delegates to the native Nx generator, it preserves Nx's generated
 targets and adds missing Atlas aliases such as `dev` and `atlas:config`.
+Generated projects can also be run with native Nx commands:
+
+```sh
+nx run customer-host:dev
+nx run orders:dev
+nx run orders:atlas:config
+```
+
 Use `--skip-workspace-generator` only in automation that deliberately needs the
 portable Atlas template instead of native Nx scaffolding.
 
@@ -128,6 +143,7 @@ atlas dev customer-host
 Under the hood, Atlas uses the same filter syntax as other Turbo tasks:
 
 ```sh
+turbo run dev --filter=customer-host
 pnpm exec turbo run dev --filter=customer-host
 yarn exec -- turbo run dev --filter=customer-host
 ```

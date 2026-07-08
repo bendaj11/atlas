@@ -30,7 +30,7 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
         { label: "Angular", value: "angular" },
       ]);
     }
-  } else if ((command === "build" || command === "dev" || command === "rollback" || command === "runtime-config") && !subcommand) {
+  } else if ((command === "build" || command === "rollback" || command === "runtime-config") && !subcommand) {
     subcommand = await prompts.input("Atlas project name or directory");
   }
   if (command === "rollback" && !version) version = await prompts.input("Production version to restore");
