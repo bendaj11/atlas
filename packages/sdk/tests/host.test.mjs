@@ -116,3 +116,11 @@ test("host SDK delegates toast requests to showToast", () => {
   sdk.toast.open({ title: "Saving order", state: "loading", dismissible: true });
   assert.deepEqual(shown, [{ title: "Saving order", state: "loading", dismissible: true }]);
 });
+
+test("host SDK treats modal as no-op when no modal provider is configured", async () => {
+  const sdk = createAtlasSdk({
+    hostId: "host",
+    navigation: createMemoryNavigation()
+  });
+  assert.equal(await sdk.modal.open({ component: "details" }), undefined);
+});

@@ -25,11 +25,11 @@ export function createPopupBar(
   return bar;
 }
 
-export function styleOverlay(element: HTMLElement, kind: "modal" | "popup", title?: string): void {
+export function styleOverlay(element: HTMLElement, kind: "popup", title?: string): void {
   element.dataset.atlasOverlay = kind;
   element.setAttribute("aria-label", title ?? kind);
   Object.assign(element.style, overlayStyle);
-  if (kind === "popup") Object.assign(element.style, popupStyle);
+  Object.assign(element.style, popupStyle);
 }
 
 export function applyBounds(element: HTMLElement, bounds?: AtlasPopupBounds): void {

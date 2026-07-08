@@ -91,10 +91,12 @@ points:
 
 Meaning:
 
-- `data-atlas-route-outlet`: route MFs mount here.
-- `data-atlas-navigation`: Atlas renders route navigation here.
-- `data-atlas-slot="header"`: slot MFs can mount here.
-- `data-atlas-host-status`: host loading and error state appears here.
+| Attribute | Meaning |
+| --- | --- |
+| `data-atlas-route-outlet` | Route MFs mount here. |
+| `data-atlas-navigation` | Atlas renders route navigation here. |
+| `data-atlas-slot="header"` | Slot MFs can mount here. |
+| `data-atlas-host-status` | Host loading and error state appears here. |
 
 The host controls page width, header, sidebar, spacing, and theme. MFs should
 stay inside their assigned outlets.
@@ -152,24 +154,14 @@ atlas g app orders --framework=react
 
 Files to look at first:
 
-- `atlas.config.ts`: the Atlas identity and mount file for this MF. It names
-  the MF, declares which hosts may load it, and tells Atlas where it should
-  appear, such as a route or slot. Edit this when changing route or slot hosts,
-  route paths, navigation labels, slots, or advanced manifest metadata.
-- `src/entry.tsx`: the generated Atlas mount entry for the React MF. It exports
-  the lifecycle Atlas loads through Native Federation and wires the MF to the
-  host SDK and inner React routing. Edit it only when changing Atlas lifecycle
-  wiring or the MF root router setup.
-- `src/main.tsx`: the local Vite preview entry. It renders the generated app
-  with a local Atlas SDK provider so `vite` can run the MF outside a host.
-- `src/app/App.tsx`: the main routed React component. Keep this as the app root,
-  and add feature screens in folders under `src/app`.
-- `src/app/routes.tsx`: the React Router route tree. It connects `App.tsx` to
-  generated feature folders such as `home/` and `details/`.
-- `vite.config.ts`: the generated Vite build file for the React MF. Atlas uses
-  it to expose the MF entry, discover exported widgets, and emit federation
-  metadata. Most product work should stay in `atlas.config.ts` and application
-  source.
+| File | Why it matters |
+| --- | --- |
+| `atlas.config.ts` | The Atlas identity and mount file for this MF. It names the MF, declares which hosts may load it, and tells Atlas where it should appear, such as a route or slot. Edit this when changing route or slot hosts, route paths, navigation labels, slots, or advanced manifest metadata. |
+| `src/entry.tsx` | The generated Atlas mount entry for the React MF. It exports the lifecycle Atlas loads through Native Federation and wires the MF to the host SDK and inner React routing. Edit it only when changing Atlas lifecycle wiring or the MF root router setup. |
+| `src/main.tsx` | The local Vite preview entry. It renders the generated app with a local Atlas SDK provider so `vite` can run the MF outside a host. |
+| `src/app/App.tsx` | The main routed React component. Keep this as the app root, and add feature screens in folders under `src/app`. |
+| `src/app/routes.tsx` | The React Router route tree. It connects `App.tsx` to generated feature folders such as `home/` and `details/`. |
+| `vite.config.ts` | The generated Vite build file for the React MF. Atlas uses it to expose the MF entry, discover exported widgets, and emit federation metadata. Most product work should stay in `atlas.config.ts` and application source. |
 
 Effect: you now have a feature app that can be mounted by an Atlas host. It is
 not meant to be a separate host application.
@@ -329,10 +321,12 @@ atlas build orders
 
 Atlas writes:
 
-- `dist/atlas-publication`: upload tree
-- `dist/atlas-publication.json`: upload plan and cache policy
-- immutable assets and manifest
-- updated MF indexes and host catalogs
+| Output | Purpose |
+| --- | --- |
+| `dist/atlas-publication` | Upload tree. |
+| `dist/atlas-publication.json` | Upload plan and cache policy. |
+| Immutable assets and manifest | Versioned files that can use immutable cache headers. |
+| Updated MF indexes and host catalogs | Mutable JSON files that point hosts to the selected version. |
 
 Upload immutable files first, then replace mutable JSON.
 

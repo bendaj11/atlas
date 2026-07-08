@@ -4,15 +4,17 @@ Atlas is split into infrastructure and generated usage.
 
 ## Infrastructure
 
-- `@atlas/sdk`: MF-to-host communication and framework access
-- `@atlas/runtime`: host discovery, loading, and mount lifecycle
-- `@atlas/schema`: manifests, static indexes, and catalogs
-- `@atlas/generators`: generator implementation used by the CLI
-- `@atlas/testkit`: test fixtures and in-memory utilities
-- `@atlas/cli`: generator and workflow commands
-- Static storage: immutable MF assets plus mutable indexes and host catalogs
-- Chrome extension: local, PR, and historical version overrides
-- CDN: immutable assets and generated catalog JSON
+| Component | Role |
+| --- | --- |
+| `@atlas/sdk` | MF-to-host communication and framework access. |
+| `@atlas/runtime` | Host discovery, loading, and mount lifecycle. |
+| `@atlas/schema` | Manifests, static indexes, and catalogs. |
+| `@atlas/generators` | Generator implementation used by the CLI. |
+| `@atlas/testkit` | Test fixtures and in-memory utilities. |
+| `@atlas/cli` | Generator and workflow commands. |
+| Static storage | Immutable MF assets plus mutable indexes and host catalogs. |
+| Chrome extension | Local, PR, and historical version overrides. |
+| CDN | Immutable assets and generated catalog JSON. |
 
 ## Runtime Flow
 

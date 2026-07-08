@@ -22,9 +22,11 @@ orders/
 
 Version directories are immutable. Atlas only replaces these mutable files:
 
-- `registry.json`: all published manifest metadata, used by CI when rebuilding catalogs.
-- `microfrontends/<mfId>/index.json`: production, PR, and historical versions shown by developer tooling.
-- `hosts/<hostId>/catalog.json`: exactly one selected production version of every MF needed by that host.
+| File | Purpose |
+| --- | --- |
+| `registry.json` | All published manifest metadata, used by CI when rebuilding catalogs. |
+| `microfrontends/<mfId>/index.json` | Production, PR, and historical versions shown by developer tooling. |
+| `hosts/<hostId>/catalog.json` | Exactly one selected production version of every MF needed by that host. |
 
 Hosts download only their catalog. They do not download `registry.json` or discover every MF separately.
 

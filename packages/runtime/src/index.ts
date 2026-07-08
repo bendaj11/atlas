@@ -117,134 +117,182 @@ interface RuntimeMount {
   generation: number;
 }
 
+interface RuntimePlacement {
+  manifest: AtlasManifest;
+  placement: AtlasPlacement;
+}
+
+const DEFAULT_RUNTIME_TIMEOUT_MS = 15_000;
+
 /** Owns catalog placement lifecycle while the framework adapter owns browser navigation. */
 export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): Promise<AtlasHostRuntime> {
-  const timeoutMs = options.resourcesTimeoutMs ?? 15_000;
   const widgetLoader = options.widgetLoader ?? createWidgetLoader(options.manifests, options.sdk, options.importComponent);
-  const mounts = new Map<string, RuntimeMount>();
-  let stopped = false;
-  let routeKey: string | undefined;
-  let queue = Promise.resolve();
-
-  const placements = options.manifests.flatMap((manifest) => manifest.placements
-    .filter((placement) => placement.hostId === options.hostId)
-    .map((placement) => ({ manifest, placement })));
+  const placements = hostPlacements(options.manifests, options.hostId);
   const routePlacements = placements.filter(({ placement }) => placement.kind === "route" && placement.route);
   const slotPlacements = placements.filter(({ placement }) => placement.kind === "slot" && placement.slot);
   assertUniqueRoutePlacements(routePlacements);
+  const controller = new AtlasRuntimeController(options, widgetLoader, routePlacements);
 
-  const emit = (mount: RuntimeMount, state: AtlasHostMountState, error?: Error): void => {
-    options.onStateChange?.({ manifest: mount.manifest, placement: mount.placement, state, ...(error ? { error } : {}) });
-  };
-  const mountOne = async (mount: RuntimeMount): Promise<void> => {
-    if (stopped || mount.mounted) return;
-    if (mount.pending) return mount.pending;
-    mounts.set(mount.key, mount);
-    const generation = mount.generation + 1;
-    mount.generation = generation;
-    const isCurrent = (): boolean => !stopped && mount.generation === generation && mounts.get(mount.key) === mount;
-    mount.pending = (async () => {
-      emit(mount, "mounting");
-      const readiness = createAppReadiness();
-      let loading = false;
-      const setLoading = (next: boolean): void => {
-        if (!isCurrent() || loading === next) return;
-        loading = next;
-        emit(mount, next ? "loading" : "mounting");
-      };
-      const mounting = mountMicrofrontend({
-        hostId: options.hostId,
-        catalogUrl: "",
-        sdk: options.sdk,
-        manifest: mount.manifest,
-        container: mount.container,
-        ...(mount.placement.route?.basePath ? { basePath: mount.placement.route.basePath } : {}),
-        widgetLoader,
-        onReady() { if (isCurrent()) { setLoading(false); readiness.markReady(); } },
-        onReadyRequested() {
-          readiness.request();
-          if (isCurrent()) setLoading(true);
-          return () => {
-            if (!isCurrent()) return;
-            setLoading(false);
-            readiness.markReady();
-          };
-        },
-        onLoadingChange: setLoading,
-        importRemote: options.importRemote,
-        ...(options.trustPolicy ? { trustPolicy: options.trustPolicy } : {}),
-        ...(options.importComponent ? { importComponent: options.importComponent } : {})
-      });
-      void mounting.then(async (mounted) => {
-        if (!isCurrent()) await mounted.unmount();
-      }, () => undefined);
-      mount.mounted = await withTimeout(mounting, timeoutMs, `Loading Atlas MF "${mount.manifest.id}" timed out after ${timeoutMs}ms.`);
-      if (!isCurrent()) {
-        await mount.mounted.unmount();
-        delete mount.mounted;
-        return;
-      }
-      await Promise.resolve();
-      if (readiness.requested) {
-        await withTimeout(readiness.ready, timeoutMs, `Atlas MF "${mount.manifest.id}" did not mark itself ready within ${timeoutMs}ms.`);
-      }
-      if (isCurrent()) emit(mount, "mounted");
-    })().catch(async (error) => {
-      if (!isCurrent()) return;
-      mount.generation += 1;
-      delete mount.pending;
-      await mount.mounted?.unmount();
-      delete mount.mounted;
-      emit(mount, "error", toError(error));
-    }).finally(() => {
-      if (mount.generation === generation) delete mount.pending;
-    });
-    return mount.pending;
-  };
-  const unmountOne = async (key: string): Promise<void> => {
-    const mount = mounts.get(key);
-    if (!mount) return;
-    mounts.delete(key);
-    mount.generation += 1;
-    await mount.mounted?.unmount();
-    emit(mount, "unmounted");
-  };
-  const reconcileRoute = async (pathname: string): Promise<void> => {
-    const selected = findRoutePlacement(routePlacements, pathname);
-    const nextKey = selected ? placementKey(selected.manifest, selected.placement) : undefined;
-    if (routeKey === nextKey) return;
-    if (routeKey) await unmountOne(routeKey);
-    routeKey = nextKey;
-    if (!selected) return;
-    const container = options.resolveRouteContainer(selected.manifest, selected.placement);
-    if (!container) return;
-    await mountOne({ key: nextKey!, ...selected, container, generation: 0 });
-  };
-
-  await mapWithConcurrency(slotPlacements, async (selected) => {
-    const container = options.resolveSlotContainer(selected.manifest, selected.placement);
-    if (container) await mountOne({ key: placementKey(selected.manifest, selected.placement), ...selected, container, generation: 0 });
-  });
-  await reconcileRoute(options.sdk.navigation.getCurrentLocation().pathname);
+  await controller.mountSlots(slotPlacements);
+  await controller.reconcileRoute(options.sdk.navigation.getCurrentLocation().pathname);
   const unsubscribe = options.sdk.navigation.subscribe((location) => {
-    queue = queue.then(() => reconcileRoute(location.pathname));
+    controller.enqueueRouteReconcile(location.pathname);
   });
 
   return {
     hostId: options.hostId,
     manifests: options.manifests,
-    async retry(mfId) {
-      const failed = [...mounts.values()].filter((mount) => mount.manifest.id === mfId && !mount.mounted);
-      await Promise.all(failed.map((mount) => mountOne(mount)));
-    },
-    async stop() {
-      if (stopped) return;
-      stopped = true;
-      unsubscribe();
-      await queue;
-      await Promise.all([...mounts.keys()].map((key) => unmountOne(key)));
-    }
+    retry: (mfId) => controller.retry(mfId),
+    stop: () => controller.stop(unsubscribe)
   };
+}
+
+class AtlasRuntimeController {
+  private readonly mounts = new Map<string, RuntimeMount>();
+  private readonly timeoutMs: number;
+  private routeKey: string | undefined;
+  private stopped = false;
+  private queue = Promise.resolve();
+
+  constructor(
+    private readonly options: AtlasHostRuntimeOptions,
+    private readonly widgetLoader: AtlasWidgetLoader,
+    private readonly routePlacements: RuntimePlacement[]
+  ) {
+    this.timeoutMs = options.resourcesTimeoutMs ?? DEFAULT_RUNTIME_TIMEOUT_MS;
+  }
+
+  async mountSlots(slotPlacements: RuntimePlacement[]): Promise<void> {
+    await mapWithConcurrency(slotPlacements, async (selected) => {
+      const container = this.options.resolveSlotContainer(selected.manifest, selected.placement);
+      if (container) await this.mountOne(createRuntimeMount(selected, container));
+    });
+  }
+
+  enqueueRouteReconcile(pathname: string): void {
+    this.queue = this.queue.then(() => this.reconcileRoute(pathname));
+  }
+
+  async reconcileRoute(pathname: string): Promise<void> {
+    const selected = findRoutePlacement(this.routePlacements, pathname);
+    const nextKey = selected ? placementKey(selected.manifest, selected.placement) : undefined;
+    if (this.routeKey === nextKey) return;
+    if (this.routeKey) await this.unmountOne(this.routeKey);
+    this.routeKey = nextKey;
+    if (!selected) return;
+
+    const container = this.options.resolveRouteContainer(selected.manifest, selected.placement);
+    if (container) await this.mountOne(createRuntimeMount(selected, container));
+  }
+
+  async retry(mfId: string): Promise<void> {
+    const failed = [...this.mounts.values()].filter((mount) => mount.manifest.id === mfId && !mount.mounted);
+    await Promise.all(failed.map((mount) => this.mountOne(mount)));
+  }
+
+  async stop(unsubscribe: () => void): Promise<void> {
+    if (this.stopped) return;
+    this.stopped = true;
+    unsubscribe();
+    await this.queue;
+    await Promise.all([...this.mounts.keys()].map((key) => this.unmountOne(key)));
+  }
+
+  private async mountOne(mount: RuntimeMount): Promise<void> {
+    if (this.stopped || mount.mounted) return;
+    if (mount.pending) return mount.pending;
+
+    this.mounts.set(mount.key, mount);
+    const generation = this.nextGeneration(mount);
+    const isCurrent = (): boolean => this.isCurrentMount(mount, generation);
+    mount.pending = this.runMount(mount, isCurrent)
+      .catch((error) => this.handleMountError(mount, error, isCurrent))
+      .finally(() => {
+        if (mount.generation === generation) delete mount.pending;
+      });
+    return mount.pending;
+  }
+
+  private async runMount(mount: RuntimeMount, isCurrent: () => boolean): Promise<void> {
+    this.emit(mount, "mounting");
+    const readiness = createAppReadiness();
+    const loading = createLoadingEmitter((state) => this.emit(mount, state), isCurrent);
+    const mounting = mountMicrofrontend({
+      hostId: this.options.hostId,
+      catalogUrl: "",
+      sdk: this.options.sdk,
+      manifest: mount.manifest,
+      container: mount.container,
+      ...(mount.placement.route?.basePath ? { basePath: mount.placement.route.basePath } : {}),
+      widgetLoader: this.widgetLoader,
+      onReady: () => {
+        if (!isCurrent()) return;
+        loading.set(false);
+        readiness.markReady();
+      },
+      onReadyRequested: () => this.requestReadiness(readiness, loading, isCurrent),
+      onLoadingChange: loading.set,
+      importRemote: this.options.importRemote,
+      ...(this.options.trustPolicy ? { trustPolicy: this.options.trustPolicy } : {}),
+      ...(this.options.importComponent ? { importComponent: this.options.importComponent } : {})
+    });
+    void unmountIfStale(mounting, isCurrent);
+
+    mount.mounted = await withTimeout(mounting, this.timeoutMs, `Loading Atlas MF "${mount.manifest.id}" timed out after ${this.timeoutMs}ms.`);
+    if (!isCurrent()) {
+      await mount.mounted.unmount();
+      delete mount.mounted;
+      return;
+    }
+
+    await Promise.resolve();
+    if (readiness.requested) {
+      await withTimeout(readiness.ready, this.timeoutMs, `Atlas MF "${mount.manifest.id}" did not mark itself ready within ${this.timeoutMs}ms.`);
+    }
+    if (isCurrent()) this.emit(mount, "mounted");
+  }
+
+  private requestReadiness(readiness: AppReadiness, loading: LoadingEmitter, isCurrent: () => boolean): () => void {
+    readiness.request();
+    if (isCurrent()) loading.set(true);
+    return () => {
+      if (!isCurrent()) return;
+      loading.set(false);
+      readiness.markReady();
+    };
+  }
+
+  private async handleMountError(mount: RuntimeMount, error: unknown, isCurrent: () => boolean): Promise<void> {
+    if (!isCurrent()) return;
+    mount.generation += 1;
+    delete mount.pending;
+    await mount.mounted?.unmount();
+    delete mount.mounted;
+    this.emit(mount, "error", toError(error));
+  }
+
+  private async unmountOne(key: string): Promise<void> {
+    const mount = this.mounts.get(key);
+    if (!mount) return;
+    this.mounts.delete(key);
+    mount.generation += 1;
+    await mount.mounted?.unmount();
+    this.emit(mount, "unmounted");
+  }
+
+  private nextGeneration(mount: RuntimeMount): number {
+    const generation = mount.generation + 1;
+    mount.generation = generation;
+    return generation;
+  }
+
+  private isCurrentMount(mount: RuntimeMount, generation: number): boolean {
+    return !this.stopped && mount.generation === generation && this.mounts.get(mount.key) === mount;
+  }
+
+  private emit(mount: RuntimeMount, state: AtlasHostMountState, error?: Error): void {
+    this.options.onStateChange?.({ manifest: mount.manifest, placement: mount.placement, state, ...(error ? { error } : {}) });
+  }
 }
 
 export async function mountMicrofrontend(options: AtlasLoaderOptions & {
@@ -300,7 +348,54 @@ export async function mountMicrofrontend(options: AtlasLoaderOptions & {
   };
 }
 
-function createAppReadiness(): { readonly requested: boolean; readonly ready: Promise<void>; request(): void; markReady(): void } {
+interface AppReadiness {
+  readonly requested: boolean;
+  readonly ready: Promise<void>;
+  request(): void;
+  markReady(): void;
+}
+
+interface LoadingEmitter {
+  set(next: boolean): void;
+}
+
+function hostPlacements(manifests: AtlasManifest[], hostId: string): RuntimePlacement[] {
+  return manifests.flatMap((manifest) => manifest.placements
+    .filter((placement) => placement.hostId === hostId)
+    .map((placement) => ({ manifest, placement })));
+}
+
+function createRuntimeMount(selected: RuntimePlacement, container: HTMLElement): RuntimeMount {
+  return {
+    key: placementKey(selected.manifest, selected.placement),
+    manifest: selected.manifest,
+    placement: selected.placement,
+    container,
+    generation: 0
+  };
+}
+
+function createLoadingEmitter(emit: (state: AtlasHostMountState) => void, isCurrent: () => boolean): LoadingEmitter {
+  let loading = false;
+  return {
+    set(next) {
+      if (!isCurrent() || loading === next) return;
+      loading = next;
+      emit(next ? "loading" : "mounting");
+    }
+  };
+}
+
+async function unmountIfStale(mounting: Promise<AtlasMountedMf>, isCurrent: () => boolean): Promise<void> {
+  try {
+    const mounted = await mounting;
+    if (!isCurrent()) await mounted.unmount();
+  } catch {
+    return;
+  }
+}
+
+function createAppReadiness(): AppReadiness {
   let requested = false;
   let resolveReady: () => void = () => undefined;
   const ready = new Promise<void>((resolve) => { resolveReady = resolve; });
