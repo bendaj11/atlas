@@ -120,7 +120,7 @@ void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
   showToast: (toast) => toastService.show(toast),
-  openModal: (request) => modalService.open(request),
+  openModal: (request, controls) => modalService.open(request.component, request.props, controls),
   hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id, projectId: currentProject.id },
   httpClient: authenticatedHttpClient,
   onStateChange: (event) => {
@@ -161,8 +161,14 @@ Files to look at first:
   route paths, navigation labels, slots, or advanced manifest metadata.
 - `src/entry.tsx`: the generated Atlas mount entry for the React MF. It exports
   the lifecycle Atlas loads through Native Federation and wires the MF to the
-  host SDK and inner React routing. Edit it when changing the MF root route
-  setup or replacing the generated starter feature.
+  host SDK and inner React routing. Edit it only when changing Atlas lifecycle
+  wiring or the MF root router setup.
+- `src/main.tsx`: the local Vite preview entry. It renders the generated app
+  with a local Atlas SDK provider so `vite` can run the MF outside a host.
+- `src/app/App.tsx`: the main routed React component. Keep this as the app root,
+  and add feature screens in folders under `src/app`.
+- `src/app/routes.tsx`: the React Router route tree. It connects `App.tsx` to
+  generated feature folders such as `home/` and `details/`.
 - `vite.config.ts`: the generated Vite build file for the React MF. Atlas uses
   it to expose the MF entry, discover exported widgets, and emit federation
   metadata. Most product work should stay in `atlas.config.ts` and application
@@ -213,8 +219,10 @@ More docs:
 
 This step is normal React development inside the MF.
 
-Edit `src/entry.tsx` in the MF when changing the generated Atlas starter route.
-Build the rest of the feature in normal React source files.
+Keep the main app shell in `src/app/App.tsx`, add feature components under
+folders such as `src/app/orders`, and update `src/app/routes.tsx` when adding or
+renaming routes. Edit `src/entry.tsx` only for Atlas lifecycle or root router
+wiring changes.
 
 ```tsx
 import { useAtlasSdk } from "@atlas/sdk/react";

@@ -123,7 +123,7 @@ await startHost({
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
   showToast: (toast) => toastService.show(toast),
-  openModal: (request) => modalService.open(request),
+  openModal: (request, controls) => modalService.open(request.component, request.props, controls),
   hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id, projectId: currentProject.id },
   httpClient: authenticatedHttpClient,
   onStateChange: (event) => {

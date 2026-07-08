@@ -2,18 +2,19 @@ import type { AtlasHostRuntimeConfig } from "@atlas/schema";
 import { Component } from "@angular/core";
 import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
-import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
+import { createAtlasOverlayController, createDomOverlayProviders, type AtlasModalProvider } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
 @Component({ selector: "atlas-router-anchor", standalone: true, template: "" })
 export class AtlasRouterAnchorComponent {}
 
-export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData"> {
+export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData" | "openModal"> {
   router: RouterLike;
   location: LocationLike;
   federation: AtlasFederationAdapter;
   hostData?: THostData & AtlasHostData;
+  openModal?: AtlasModalProvider;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Enables URL and storage app overrides for Atlas tool workflows. */

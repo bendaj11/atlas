@@ -10,14 +10,31 @@ export interface AtlasWidgetContent {
   props?: Record<string, unknown>;
 }
 
-export interface AtlasModalRequest<TResult = unknown> {
+export interface AtlasModalRequest<
+  TResult = unknown,
+  TProps extends object = Record<string, unknown>
+> {
   id?: string;
-  title?: string;
-  /** Native framework content or an Atlas widget reference. */
-  content?: unknown | AtlasWidgetContent;
-  props?: Record<string, unknown>;
-  onResult?: (result: TResult) => void;
+  component: unknown | AtlasWidgetContent;
+  props?: TProps;
 }
+
+export interface AtlasModalControls<TResult = unknown> {
+  close(result?: TResult): void;
+  dismiss(): void;
+}
+
+export interface AtlasModalRef<TResult = unknown> {
+  readonly id: string;
+  readonly closed: Promise<TResult | undefined>;
+  close(result?: TResult): void | Promise<void>;
+  dismiss(): void | Promise<void>;
+}
+
+export type AtlasModalOpener = <
+  TResult = unknown,
+  TProps extends object = Record<string, unknown>
+>(request: AtlasModalRequest<TResult, TProps>) => Promise<TResult | undefined>;
 
 export interface AtlasPopupBounds {
   x?: number;

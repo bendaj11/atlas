@@ -17,15 +17,68 @@ function createRoot(container: Element) {
   };
 }`
     : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nif (import.meta.hot) await import("@vitejs/plugin-react/preamble");\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nif (import.meta.hot) void import("@vitejs/plugin-react/preamble");\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
 }
 
-export function reactMicrofrontendLayout(name: string): string {
+export function reactMicrofrontendMain(profile: ReactVersionProfile): string {
+  const root = profile.major === 17
+    ? `import { render, unmountComponentAtNode } from "react-dom";
+
+function mountApp(root: Element) {
+  render(app, root);
+}
+
+function unmountApp(root: Element) {
+  unmountComponentAtNode(root);
+}`
+    : `import { createRoot } from "react-dom/client";
+
+function mountApp(root: Element) {
+  const reactRoot = createRoot(root);
+  reactRoot.render(app);
+  if (import.meta.hot) import.meta.hot.dispose(() => {
+    reactRoot.unmount();
+    navigation.dispose();
+  });
+}`;
+
+  return `import { StrictMode } from "react";
+${root}
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createAtlasSdk } from "@atlas/sdk/host";
+import { createBrowserNavigation } from "@atlas/sdk/navigation";
+import { AtlasSdkProvider } from "@atlas/sdk/react";
+import { routes } from "./app/routes";
+import "./styles.css";
+
+const root = document.getElementById("root");
+if (!root) throw new Error("Atlas React microfrontend root was not found.");
+const navigation = createBrowserNavigation();
+const sdk = createAtlasSdk({
+  hostId: "local-dev",
+  hostData: { hostId: "local-dev", name: "Local Dev" },
+  navigation,
+  showToast: (toast) => console.info("[Atlas toast]", toast.title)
+});
+const router = createBrowserRouter(routes);
+const app = (
+  <StrictMode>
+    <AtlasSdkProvider sdk={sdk}>
+      <RouterProvider router={router} />
+    </AtlasSdkProvider>
+  </StrictMode>
+);
+
+mountApp(root);
+${profile.major === 17 ? "if (import.meta.hot) import.meta.hot.dispose(() => {\n  unmountApp(root);\n  navigation.dispose();\n});\n" : ""}`;
+}
+
+export function reactMicrofrontendApp(name: string): string {
   return `import { Link, Outlet } from "react-router-dom";
 import { useAtlasSdk } from "@atlas/sdk/react";
-import "../../../styles.css";
+import "../styles.css";
 
-export function StarterLayout() {
+export function App() {
   const atlas = useAtlasSdk();
 
   return (
@@ -46,14 +99,14 @@ export function StarterLayout() {
 }
 
 export function reactMicrofrontendHome(name: string): string {
-  return `export function StarterHome() {
+  return `export function Home() {
   return <p>${title(name)} home</p>;
 }
 `;
 }
 
 export function reactMicrofrontendDetails(): string {
-  return `export function StarterDetails() {
+  return `export function Details() {
   return <p>Routed details page</p>;
 }
 `;
@@ -61,17 +114,17 @@ export function reactMicrofrontendDetails(): string {
 
 export function reactMicrofrontendRoutes(): string {
   return `import type { RouteObject } from "react-router-dom";
-import { StarterDetails } from "./starter/details/details";
-import { StarterHome } from "./starter/home/home";
-import { StarterLayout } from "./starter/layout/layout";
+import { App } from "./App";
+import { Details } from "./details/Details";
+import { Home } from "./home/Home";
 
 export const routes: RouteObject[] = [
   {
     path: "/",
-    Component: StarterLayout,
+    Component: App,
     children: [
-      { index: true, Component: StarterHome },
-      { path: "details/:id", Component: StarterDetails }
+      { index: true, Component: Home },
+      { path: "details/:id", Component: Details }
     ]
   }
 ];
@@ -83,8 +136,8 @@ export function appSourceReadme(entryFile: string, bundlerFile: string): string 
 
 Required Atlas wiring lives in \`${entryFile}\`, \`atlas.config.ts\`, and \`${bundlerFile}\`. Keep those files aligned with Atlas docs when changing platform wiring.
 
-Replaceable starter UI lives in \`src/app/starter\`. Delete or replace those folders when adding product screens.
+Main app component lives in \`src/app/App.tsx\`. Add routed screens under feature folders in \`src/app\`.
 
-\`src/app/routes.tsx\` connects starter screens to the router. Update it when replacing starter UI.
+\`src/app/routes.tsx\` connects app screens to the router. Update it when adding routes.
 `;
 }

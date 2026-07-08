@@ -61,7 +61,7 @@ export class AtlasGenerateService {
       if (workspaceScaffolded) await takeOverAppSource(root);
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) {
-        await includeAtlasConfigInDelegatedTsconfig(root);
+        await alignDelegatedTsconfig(root, selectedFramework);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -266,10 +266,11 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "index.html",
     "src/styles.css",
     "src/app/README.md",
-    "src/app/starter/layout/layout.tsx",
-    "src/app/starter/home/home.tsx",
-    "src/app/starter/details/details.tsx",
+    "src/app/App.tsx",
+    "src/app/home/Home.tsx",
+    "src/app/details/Details.tsx",
     "src/app/routes.tsx",
+    "src/main.tsx",
     "src/entry.tsx",
     "src/exported-components/README.md"
   ])
@@ -411,12 +412,21 @@ async function takeOverAppSource(root: string): Promise<void> {
   await rm(resolveContainedPath(root, "src/app"), { recursive: true, force: true });
 }
 
-async function includeAtlasConfigInDelegatedTsconfig(root: string): Promise<void> {
+async function alignDelegatedTsconfig(root: string, framework: SupportedFramework): Promise<void> {
   const appTsconfig = join(root, "tsconfig.app.json");
   const target = await exists(appTsconfig) ? appTsconfig : join(root, "tsconfig.json");
   if (!await exists(target)) return;
 
   const tsconfig = JSON.parse(await readFile(target, "utf8")) as Record<string, unknown>;
+  if (framework === "react") {
+    const compilerOptions = typeof tsconfig.compilerOptions === "object" && tsconfig.compilerOptions && !Array.isArray(tsconfig.compilerOptions)
+      ? tsconfig.compilerOptions as Record<string, unknown>
+      : {};
+    compilerOptions.module = "ESNext";
+    compilerOptions.moduleResolution = "bundler";
+    compilerOptions.types = addUniqueString(Array.isArray(compilerOptions.types) ? compilerOptions.types : [], "vite/client");
+    tsconfig.compilerOptions = compilerOptions;
+  }
   if (Array.isArray(tsconfig.files)) {
     tsconfig.files = addUniqueString(tsconfig.files, "atlas.config.ts");
   } else {

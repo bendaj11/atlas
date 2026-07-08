@@ -2,7 +2,7 @@ import type { AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/schema";
 import { createElement, Fragment, type ReactElement } from "react";
 import { createAtlasSdk, type AtlasEventMap, type AtlasHostData, type AtlasSdkOptions } from "@atlas/sdk";
 import { createHostNavigation, type RouterLike } from "@atlas/sdk/react";
-import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
+import { createAtlasOverlayController, createDomOverlayProviders, type AtlasModalProvider } from "@atlas/sdk/overlay";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
@@ -22,10 +22,11 @@ export function AtlasHostShell(): ReactElement {
   );
 }
 
-export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData"> {
+export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData" | "openModal"> {
   router: RouterLike;
   federation: AtlasFederationAdapter;
   hostData?: THostData & AtlasHostData;
+  openModal?: AtlasModalProvider;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Enables URL and storage app overrides for Atlas tool workflows. */

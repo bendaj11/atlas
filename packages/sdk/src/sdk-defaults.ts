@@ -2,7 +2,7 @@ export function noop(): void {
   return undefined;
 }
 
-export async function emptyModalProvider(): Promise<undefined> {
+export async function emptyModalOpener(): Promise<undefined> {
   return undefined;
 }
 

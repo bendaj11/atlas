@@ -33,14 +33,17 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(mf.get("vite.config.ts"), /remoteEntry\.json/);
   assert.match(mf.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(mf.get("vite.config.ts"), /components\/\$\{id\}/);
-  assert.match(mf.get("src/app/starter/layout/layout.tsx"), /useAtlasSdk/);
+  assert.match(mf.get("src/app/App.tsx"), /useAtlasSdk/);
   assert.match(mf.get("src/app/routes.tsx"), /export const routes: RouteObject\[\]/);
-  assert.match(mf.get("src/app/starter/layout/layout.tsx"), /<Outlet \/>/);
+  assert.match(mf.get("src/app/App.tsx"), /<Outlet \/>/);
+  assert.match(mf.get("src/main.tsx"), /createBrowserRouter\(routes\)/);
+  assert.match(mf.get("src/app/routes.tsx"), /import \{ App \} from "\.\/App"/);
   assert.match(mf.get("src/entry.tsx"), /createMemoryRouter/);
   assert.match(mf.get("src/entry.tsx"), /createRoutedMicrofrontend/);
   assert.match(mf.get("src/entry.tsx"), /RouterProvider/);
   assert.match(mf.get("src/entry.tsx"), /createRoot/);
   assert.match(mf.get("src/entry.tsx"), /import \{ routes \} from "\.\/app\/routes"/);
+  assert.doesNotMatch(mf.get("src/entry.tsx"), /await import/);
   assert.doesNotMatch(mf.get("src/entry.tsx"), /useAtlasSdk|<Outlet|<Link|function Layout/);
   assert.match(host.get("atlas.config.ts"), /AtlasHostConfig/);
   assert.match(mf.get("atlas.config.ts"), /AtlasMicrofrontendConfig/);
@@ -116,6 +119,8 @@ test("React widget generator creates a typed independently deployed widget", () 
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "react" }));
   assert.match(widget.get("src/exported-components/entity-popup/index.tsx"), /EntityPopupWidgetProps/);
   assert.match(widget.get("src/exported-components/entity-popup/index.tsx"), /defineExportedComponent/);
+  assert.match(widget.get("src/exported-components/entity-popup/index.tsx"), /void import\("@vitejs\/plugin-react\/preamble"\)/);
+  assert.doesNotMatch(widget.get("src/exported-components/entity-popup/index.tsx"), /await import/);
 });
 
 test("React Router adapter owns navigation and subscriptions", async () => {

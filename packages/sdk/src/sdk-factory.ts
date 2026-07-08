@@ -1,6 +1,6 @@
 import { createAtlasEventBus, type AtlasEventMap } from "./event-bus.js";
 import { normalizeHttpClient } from "./http-client.js";
-import { emptyModalProvider, missingConfigValue, missingPopupProvider, noop } from "./sdk-defaults.js";
+import { emptyModalOpener, missingConfigValue, missingPopupProvider, noop } from "./sdk-defaults.js";
 import type { AtlasCoreSdk, AtlasHostData, AtlasSdk, AtlasSdkOptions } from "./sdk-types.js";
 
 /** Creates the single host-owned SDK instance shared with mounted MFs and widgets. */
@@ -29,7 +29,7 @@ function createAtlasCoreSdk<
     navigation: options.navigation,
     events: options.eventBus ?? createAtlasEventBus(),
     toast: { open: options.showToast ?? noop },
-    modal: { open: options.openModal ?? emptyModalProvider },
+    modal: { open: options.openModal ?? emptyModalOpener },
     popup: { open: options.openPopup ?? missingPopupProvider },
     config: { get: options.getConfig ?? missingConfigValue },
     httpClient: normalizeHttpClient(options.httpClient)

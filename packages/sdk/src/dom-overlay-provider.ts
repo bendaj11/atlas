@@ -1,4 +1,4 @@
-import type { AtlasModalRequest, AtlasPopupRef, AtlasPopupRequest } from "./host-overlays.js";
+import type { AtlasModalControls, AtlasModalRef, AtlasModalRequest, AtlasPopupRef, AtlasPopupRequest } from "./host-overlays.js";
 import { applyBounds, createPopupBar, styleOverlay } from "./dom-overlay-style.js";
 import { renderOverlayContent } from "./overlay-content.js";
 import type { AtlasOverlayContentMount, AtlasOverlayProviders } from "./overlay-types.js";
@@ -6,26 +6,34 @@ import type { AtlasOverlayContentMount, AtlasOverlayProviders } from "./overlay-
 /** A dependency-free default. Hosts can replace either provider with Ionic, CDK, Bootstrap, or another UI system. */
 export function createDomOverlayProviders(document: Document): Required<AtlasOverlayProviders> {
   return {
-    openModal<TResult>(request: AtlasModalRequest<TResult>, content?: AtlasOverlayContentMount): Promise<TResult | undefined> {
-      return new Promise((resolve, reject) => {
-        const dialog = document.createElement("dialog");
-        styleOverlay(dialog, "modal", request.title);
+    openModal<TResult, TProps extends object>(
+      request: AtlasModalRequest<TResult, TProps>,
+      _controls: AtlasModalControls<TResult>,
+      content?: AtlasOverlayContentMount
+    ): AtlasModalRef<TResult> {
+      const dialog = document.createElement("dialog");
+      const closed = createSettledPromise<TResult | undefined>();
+      const closeDialog = (result: TResult | undefined): void => {
+        closed.resolve(result);
+        removeDialog(dialog);
+      };
 
-        const outlet = createOutlet(document, dialog);
-        const finish = (): void => {
-          dialog.remove();
-          resolve(undefined);
-        };
+      styleOverlay(dialog, "modal");
+      dialog.addEventListener("close", () => closeDialog(undefined), { once: true });
+      document.body.append(dialog);
+      void renderOverlayContent(request.component, createOutlet(document, dialog), content)
+        .then(() => dialog.showModal())
+        .catch((error) => {
+          removeDialog(dialog);
+          closed.reject(error);
+        });
 
-        dialog.addEventListener("close", finish, { once: true });
-        document.body.append(dialog);
-        renderOverlayContent(request.content, outlet, content)
-          .then(() => dialog.showModal())
-          .catch((error) => {
-            dialog.remove();
-            reject(error);
-          });
-      });
+      return {
+        id: request.id ?? createOverlayId("modal"),
+        closed: closed.promise,
+        close: closeDialog,
+        dismiss: () => closeDialog(undefined)
+      };
     },
     openPopup(request: AtlasPopupRequest, content?: AtlasOverlayContentMount): AtlasPopupRef {
       const popup = createPopupElement(document, request);
@@ -41,7 +49,7 @@ export function createDomOverlayProviders(document: Document): Required<AtlasOve
       void renderOverlayContent(request.content, outlet, content).catch((error) => renderError(document, outlet, error));
 
       return {
-        id: request.id ?? createPopupId(),
+        id: request.id ?? createOverlayId("popup"),
         closed: closed.promise,
         close,
         update(bounds) {
@@ -70,6 +78,20 @@ function createClosedPromise(): { promise: Promise<void>; resolve: () => void } 
   return { promise, resolve };
 }
 
+function createSettledPromise<TValue>(): {
+  promise: Promise<TValue>;
+  resolve: (value: TValue) => void;
+  reject: (error: unknown) => void;
+} {
+  let resolve: (value: TValue) => void = () => undefined;
+  let reject: (error: unknown) => void = () => undefined;
+  const promise = new Promise<TValue>((next, fail) => {
+    resolve = next;
+    reject = fail;
+  });
+  return { promise, resolve, reject };
+}
+
 function createOutlet(document: Document, parent: HTMLElement): HTMLElement {
   const outlet = document.createElement("div");
   outlet.dataset.atlasOverlayOutlet = "";
@@ -77,8 +99,13 @@ function createOutlet(document: Document, parent: HTMLElement): HTMLElement {
   return outlet;
 }
 
-function createPopupId(): string {
-  return `atlas-popup-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+function createOverlayId(kind: "modal" | "popup"): string {
+  return `atlas-${kind}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function removeDialog(dialog: HTMLDialogElement): void {
+  if (dialog.open) dialog.close();
+  dialog.remove();
 }
 
 function renderError(document: Document, outlet: HTMLElement, value: unknown): void {

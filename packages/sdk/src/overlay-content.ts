@@ -4,7 +4,8 @@ import type { AtlasOverlayContentMount } from "./overlay-types.js";
 
 export function createOverlayContentMount(
   value: unknown,
-  getLoader: () => AtlasWidgetLoader | undefined
+  getLoader: () => AtlasWidgetLoader | undefined,
+  injectedProps?: Record<string, unknown>
 ): AtlasOverlayContentMount | undefined {
   if (!isWidgetContent(value)) return undefined;
 
@@ -20,7 +21,10 @@ export function createOverlayContentMount(
       const loader = getLoader();
       if (!loader) throw new Error(`Atlas widget loader is not ready for overlay content "${value.widget}".`);
 
-      const next = await loader.mount(value.widget, container, value.props ?? {});
+      const next = await loader.mount(value.widget, container, {
+        ...(value.props ?? {}),
+        ...(injectedProps ?? {})
+      });
       if (disposed) await next.unmount();
       else mounted = next;
     },

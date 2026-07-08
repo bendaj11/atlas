@@ -74,7 +74,9 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 | `HttpClient` | Default fetch-backed HTTP client used when hosts omit `httpClient` |
 | `AtlasEventBus<TEvents>` | Typed in-memory communication between mounted MFs |
 | `createAtlasEventBus()` | Create a host-scoped event bus |
-| `AtlasModalRequest` | Host-rendered modal request with native or widget content |
+| `AtlasModalRequest` | Host-rendered modal request with component and props |
+| `AtlasModalRef` | Host modal instance with close, dismiss, and closed result promise |
+| `AtlasModalControls` | Close/dismiss callbacks passed into host modal providers |
 | `AtlasPopupRequest` | Host-rendered draggable/resizable popup request |
 | `AtlasToastRequest` | Host-rendered toast request with `state` and `dismissible` options |
 

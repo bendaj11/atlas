@@ -90,18 +90,18 @@ test("event bus once listener is removed after its first event", () => {
   assert.equal(calls, 1);
 });
 
-test("host SDK delegates native content and widget references to host overlay providers", async () => {
+test("host SDK delegates modal components and popup content to host overlay providers", async () => {
   const opened = [];
   const sdk = createAtlasSdk({
     hostId: "shell",
     navigation: createMemoryNavigation(),
-    async openModal(request) { opened.push(["modal", request.content]); return "confirmed"; },
+    async openModal(request) { opened.push(["modal", request.component, request.props]); return "confirmed"; },
     openPopup(request) { opened.push(["popup", request.content]); return { id: "popup-1", close() {} }; }
   });
-  assert.equal(await sdk.modal.open({ content: { frameworkNative: true } }), "confirmed");
+  assert.equal(await sdk.modal.open({ component: { frameworkNative: true }, props: { orderId: "42" } }), "confirmed");
   assert.equal(sdk.popup.open({ content: { widget: "details/entity-popup", props: { id: "42" } } }).id, "popup-1");
   assert.deepEqual(opened, [
-    ["modal", { frameworkNative: true }],
+    ["modal", { frameworkNative: true }, { orderId: "42" }],
     ["popup", { widget: "details/entity-popup", props: { id: "42" } }]
   ]);
 });

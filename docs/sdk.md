@@ -30,7 +30,7 @@ const sdk = createAtlasSdk({
   hostData: { hostId: "shell", name: "Customer Shell", projectId: "project-42" },
   navigation,
   showToast: (toast) => showToast(toast),
-  openModal: (modal) => showModal(modal),
+  openModal: (modal) => showModal(modal.component, modal.props),
   openPopup: (popup) => showPopup(popup)
 });
 ```
@@ -86,29 +86,67 @@ session shape.
 
 The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.
 
-Hosts provide the visual implementation for toast, modal, and popup. A popup is non-blocking and may be draggable or resizable. Modal and popup `content` accepts host/framework-native content or `{ widget: "owner/widget", props }`; Atlas does not impose Ionic, Angular CDK, React Portal, Toastr, or another design system.
+Hosts provide the visual implementation for toast, modal, and popup. A popup is non-blocking and may be draggable or resizable. Modal requests accept a `component` and optional `props`; popup `content` accepts host/framework-native content or `{ widget: "owner/widget", props }`. Atlas does not impose Ionic, Angular CDK, React Portal, Toastr, or another design system.
 
 Toast requests include `title`, optional `message`, optional `state` (`info`, `warning`, `error`, `success`, or `loading`), and optional `dismissible`.
 
 ## `@atlas/sdk/overlay`
 
-Framework host adapters automatically connect overlays to the catalog widget loader. With no configuration, Atlas supplies accessible DOM modal and draggable/resizable popup providers. A host can replace either provider with its design system:
+Framework host adapters automatically connect overlays to the catalog widget loader. With no configuration, Atlas supplies accessible DOM modal and draggable/resizable popup providers. A host can replace either provider with its design system. Atlas queues modal requests FIFO so only one host modal is visible at a time.
 
-```ts
+React host example:
+
+```tsx
 startHost({
   // ...
-  async openModal(request, widgetContent) {
-    const modal = await ionicModalController.create({ component: HostModalShell });
-    await modal.present();
-    const outlet = await modal.getTop().then(findContentElement);
-    await widgetContent?.mount(outlet);
-    const result = await modal.onDidDismiss();
-    return result.data;
+  openModal(request, controls) {
+    return reactModalService.open({
+      id: request.id,
+      component: request.component,
+      props: { ...request.props, close: controls.close, dismiss: controls.dismiss }
+    });
   }
 });
 ```
 
-`widgetContent` exists only for `{ widget, props }` content. Native Angular or React content remains untouched for the host provider to render. Atlas unmounts widget content after the modal promise settles. Popup providers should expose `closed: Promise<void>` on their returned `AtlasPopupRef`; Atlas then cleans up when users close the UI through the provider, not only through `ref.close()`.
+Angular/Ionic host example:
+
+```ts
+startHost({
+  // ...
+  async openModal(request, controls) {
+    const modal = await ionicModalController.create({
+      component: request.component,
+      componentProps: {
+        ...request.props,
+        close: controls.close,
+        dismiss: controls.dismiss
+      }
+    });
+    void modal.present();
+    const closed = modal.onDidDismiss().then((result) => result.data);
+    return {
+      id: request.id ?? "modal",
+      closed,
+      close: (value) => modal.dismiss(value),
+      dismiss: () => modal.dismiss()
+    };
+  }
+});
+```
+
+MFs request modals through the SDK and never render the modal shell, backdrop, or focus trap inside their own route or slot:
+
+```ts
+const result = await atlas.modal.open({
+  component: ConfirmDeleteModal,
+  props: { orderId: "42" }
+});
+```
+
+The host decides how to interpret `component`. React hosts can render React components, Angular hosts can render Angular components, DOM hosts can render custom elements, and mixed-framework hosts can require host-registered component tokens or web components. If a component is incompatible, the provider should reject with a clear error.
+
+Modal providers receive `controls.close(result)` and `controls.dismiss()` so rendered components can close the host-owned modal. When `component` is `{ widget: "owner/widget", props }`, Atlas mounts that widget and injects the controls as `atlasModal` in widget props. Atlas unmounts widget content after the modal settles. Popup providers should expose `closed: Promise<void>` on their returned `AtlasPopupRef`; Atlas then cleans up when users close the UI through the provider, not only through `ref.close()`.
 
 ## `@atlas/runtime`
 

@@ -2,7 +2,7 @@ import type { AtlasNavigation } from "./navigation.js";
 import type { AtlasOverlayContentMount } from "./overlay.js";
 import type { AtlasEventBus, AtlasEventMap } from "./event-bus.js";
 import type { AtlasHttpClient, AtlasHttpClientInput } from "./http-client.js";
-import type { AtlasModalRequest, AtlasPopupRef, AtlasPopupRequest, AtlasToastRequest } from "./host-overlays.js";
+import type { AtlasModalOpener, AtlasModalRequest, AtlasPopupRef, AtlasPopupRequest, AtlasToastRequest } from "./host-overlays.js";
 
 export interface AtlasHostData {
   readonly hostId: string;
@@ -19,7 +19,7 @@ export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends obj
     open(request: AtlasToastRequest): void;
   };
   readonly modal: {
-    open<TResult = unknown>(request: AtlasModalRequest<TResult>): Promise<TResult | undefined>;
+    open<TResult = unknown, TProps extends object = Record<string, unknown>>(request: AtlasModalRequest<TResult, TProps>): Promise<TResult | undefined>;
   };
   readonly popup: {
     open(request: AtlasPopupRequest): AtlasPopupRef;
@@ -47,7 +47,7 @@ export interface AtlasSdkOptions<
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
   showToast?: (request: AtlasToastRequest) => void;
-  openModal?: <TResult = unknown>(request: AtlasModalRequest<TResult>, content?: AtlasOverlayContentMount) => Promise<TResult | undefined>;
+  openModal?: AtlasModalOpener;
   openPopup?: (request: AtlasPopupRequest, content?: AtlasOverlayContentMount) => AtlasPopupRef;
   getConfig?: <TValue = unknown>(key: string) => TValue | undefined;
   httpClient?: AtlasHttpClientInput;

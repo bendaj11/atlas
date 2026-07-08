@@ -4,10 +4,11 @@ import { reactVersionProfile } from "./generator-versions.js";
 import { reactHostMain } from "./react-host-generator.js";
 import {
   appSourceReadme,
+  reactMicrofrontendApp,
   reactMicrofrontendDetails,
   reactMicrofrontendEntry,
   reactMicrofrontendHome,
-  reactMicrofrontendLayout,
+  reactMicrofrontendMain,
   reactMicrofrontendRoutes
 } from "./react-microfrontend-generator.js";
 import { reactRemoteName } from "./react-names.js";
@@ -43,10 +44,11 @@ export function generateReactMicrofrontendFiles(options: AtlasGeneratorOptions):
     { path: "index.html", contents: reactIndex(`${title(name)} assets`) },
     { path: "src/styles.css", contents: "" },
     { path: "src/app/README.md", contents: appSourceReadme("src/entry.tsx", "vite.config.ts") },
-    { path: "src/app/starter/layout/layout.tsx", contents: reactMicrofrontendLayout(name) },
-    { path: "src/app/starter/home/home.tsx", contents: reactMicrofrontendHome(name) },
-    { path: "src/app/starter/details/details.tsx", contents: reactMicrofrontendDetails() },
+    { path: "src/app/App.tsx", contents: reactMicrofrontendApp(name) },
+    { path: "src/app/home/Home.tsx", contents: reactMicrofrontendHome(name) },
+    { path: "src/app/details/Details.tsx", contents: reactMicrofrontendDetails() },
     { path: "src/app/routes.tsx", contents: reactMicrofrontendRoutes() },
+    { path: "src/main.tsx", contents: reactMicrofrontendMain(profile) },
     { path: "src/entry.tsx", contents: reactMicrofrontendEntry(name, profile) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.tsx\`; Atlas exposes it automatically through Native Federation. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
   ];

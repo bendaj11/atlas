@@ -31,7 +31,7 @@ export function generateWidgetFiles(options: AtlasGeneratorOptions): AtlasGenera
     ...file,
     contents: file.contents.replace(
       'import { defineExportedComponent } from "@atlas/sdk/react";',
-      'import { defineExportedComponent } from "@atlas/sdk/react";\n\nif (import.meta.hot) await import("@vitejs/plugin-react/preamble");'
+      'import { defineExportedComponent } from "@atlas/sdk/react";\n\nif (import.meta.hot) void import("@vitejs/plugin-react/preamble");'
     )
   }));
 }

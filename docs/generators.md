@@ -46,8 +46,12 @@ assets, TypeScript configuration, lint/test setup, and workspace conventions.
 Atlas then adds only its explicitly owned integration files, such as
 `atlas.config.ts`, `tsconfig.atlas.json`, generated federation compatibility
 shims, MF lifecycle entry files, React MF Vite federation config, and host
-runtime configuration. It does not apply its portable application template over
-the Nx result. Atlas also merges its required runtime and federation
+runtime configuration. For delegated React MFs, Atlas replaces the Nx sample app
+source with the Atlas app convention (`src/app/App.tsx`, feature folders under
+`src/app`, `src/app/routes.tsx`, `src/main.tsx`, and `src/entry.tsx`) so the
+generated Vite and Native Federation entries type-check together. It does not
+apply unrelated portable-template files over the Nx result. Atlas also merges
+its required runtime and federation
 dependencies into the Nx-owned package manifest instead of writing a portable
 `package.json` into the project. Turbo,
 Yarn, pnpm, and npm provide task or workspace orchestration rather than framework
@@ -94,6 +98,11 @@ Creates an MF with:
 ## React
 
 React generation creates real Vite applications, not contract-only placeholders. Hosts receive React Router integration, catalog-driven Native Federation loading, route and slot outlets, lifecycle UI, and external runtime configuration. MFs emit `remoteEntry.json` with automatic exposes for `src/exported-components/<id>/index.tsx`.
+
+Generated React MFs keep the app root at `src/app/App.tsx`. Additional screens
+live in feature folders under `src/app`, and `src/app/routes.tsx` owns the route
+tree. `src/main.tsx` is the local Vite preview entry; `src/entry.tsx` is the
+Atlas lifecycle entry exposed through Native Federation.
 
 React Compiler is enabled in host and MF Vite builds through `babel-plugin-react-compiler`. Atlas selects the compiler target and adds its runtime when needed. React 17 generation uses React Router 6 and the legacy `react-dom` root API; React 18 and 19 use concurrent roots and React Router 7.
 

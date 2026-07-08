@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -607,14 +607,16 @@ exit 1
 
   assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /createRoutedMicrofrontend/);
   assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /import \{ routes \} from "\.\/app\/routes"/);
+  assert.doesNotMatch(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /await import/);
   assert.doesNotMatch(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /useAtlasSdk|<Outlet|<Link|function Layout/);
-  await assert.rejects(access(join(root, "orders/src/app/app.tsx")), { code: "ENOENT" });
+  assert.equal((await readdir(join(root, "orders/src/app"))).includes("app.tsx"), false);
   await assert.rejects(access(join(root, "orders/src/app/nx-only/nx-only.tsx")), { code: "ENOENT" });
-  assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Replaceable starter UI/);
+  assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Main app component/);
   assert.match(await readFile(join(root, "orders/src/app/routes.tsx"), "utf8"), /export const routes: RouteObject\[\]/);
-  assert.match(await readFile(join(root, "orders/src/app/starter/layout/layout.tsx"), "utf8"), /useAtlasSdk/);
-  assert.match(await readFile(join(root, "orders/src/app/starter/home/home.tsx"), "utf8"), /export function StarterHome/);
-  assert.match(await readFile(join(root, "orders/src/app/starter/details/details.tsx"), "utf8"), /export function StarterDetails/);
+  assert.match(await readFile(join(root, "orders/src/app/App.tsx"), "utf8"), /useAtlasSdk/);
+  assert.match(await readFile(join(root, "orders/src/app/home/Home.tsx"), "utf8"), /export function Home/);
+  assert.match(await readFile(join(root, "orders/src/app/details/Details.tsx"), "utf8"), /export function Details/);
+  assert.match(await readFile(join(root, "orders/src/main.tsx"), "utf8"), /createBrowserRouter\(routes\)/);
   assert.match(await readFile(join(root, "orders/vite.config.ts"), "utf8"), /remoteEntry\.json/);
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
@@ -624,6 +626,9 @@ exit 1
   const reactMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
   assert.equal(reactMfTsconfig.marker, "nx-generator");
   assert.deepEqual(reactMfTsconfig.include, ["atlas.config.ts"]);
+  assert.equal(reactMfTsconfig.compilerOptions.module, "ESNext");
+  assert.equal(reactMfTsconfig.compilerOptions.moduleResolution, "bundler");
+  assert.deepEqual(reactMfTsconfig.compilerOptions.types, ["vite/client"]);
   assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);
