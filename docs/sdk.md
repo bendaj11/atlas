@@ -1,8 +1,10 @@
 # SDK Reference
 
 For a concise list of stable imports, see [Public API](api.md).
+For framework onboarding, use [Angular SDK](angular/sdk.md) or
+[React SDK](react/sdk.md). This page is shared reference for package contracts.
 
-`@atlas/sdk` is the API used by MFs to communicate with their host. Catalog loading and federation live in `@atlas/runtime`; manifests live in `@atlas/schema`.
+`@atlas/sdk` is the API used by apps to communicate with their host. Catalog loading and federation live in `@atlas/runtime`; manifests live in `@atlas/schema`.
 
 ## `@atlas/schema`
 
@@ -14,7 +16,7 @@ Important exports:
 - `AtlasHostCatalog`
 - `AtlasHostRuntimeConfig`
 - `AtlasHostConfig`
-- `AtlasMicrofrontendConfig`
+- `AtlasAppConfig`
 - `AtlasConfig`
 - `createManifestFromConfig`
 - `assertAtlasManifest`
@@ -22,7 +24,7 @@ Important exports:
 
 ## `@atlas/sdk/host`
 
-Creates the object passed from host to MF.
+Creates the object passed from host to app.
 
 ```ts
 const sdk = createAtlasSdk({
@@ -79,12 +81,12 @@ const atlas = useAtlasSdk<{}, AtlasEventMap, SystemHostData>();
 await atlas.httpClient.get(`/api/projects/${atlas.hostData.projectId}`);
 ```
 
-Angular MFs use `injectAtlasSdk<{}, AtlasEventMap, SystemHostData>()`;
+Angular apps use `injectAtlasSdk<{}, AtlasEventMap, SystemHostData>()`;
 generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
 Use `extensions` for host-specific APIs. Atlas core does not define an auth or
 session shape.
 
-The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.
+The loader exposes `createWidgetLoader` and widget lifecycle types. Page apps consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.
 
 Hosts provide the visual implementation for toast, modal, and popup. A popup is non-blocking and may be draggable or resizable. Modal requests accept a `component` and optional `props`; popup `content` accepts host/framework-native content or `{ widget: "owner/widget", props }`. Atlas does not impose Ionic, Angular CDK, React Portal, Toastr, or another design system.
 
@@ -135,7 +137,7 @@ startHost({
 });
 ```
 
-MFs request modals through the SDK and never render the modal frame, backdrop, or focus trap inside their own route or slot:
+apps request modals through the SDK and never render the modal frame, backdrop, or focus trap inside their own route or slot:
 
 ```ts
 const result = await atlas.modal.open({
@@ -150,23 +152,23 @@ Modal providers receive `controls.close(result)` and `controls.dismiss()` so ren
 
 ## `@atlas/runtime`
 
-Loads catalogs and mounts MFs.
+Loads catalogs and mounts apps.
 
 Important production APIs:
 
 | API | Purpose |
 | --- | --- |
 | `loadHostRuntimeConfig` | Reads deployment-specific host and catalog settings. |
-| `resolveRuntimeManifests` | Applies one override per MF while enforcing one runtime version. |
+| `resolveRuntimeManifests` | Applies one override per app while enforcing one runtime version. |
 | `verifyManifestIntegrity` | Validates SHA-256 remote entries before federation initialization. |
 | `createRemoteTrustPolicy` | Trusts the catalog origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |
 | `startAtlasHostRuntime` | Owns route/slot mount, timeout, retry, and teardown lifecycle. |
 | `context.loading.show()` / `hide()` | Asks the host to show or remove its own loading UI. Atlas never dictates the loader design. |
 | `context.loading.waitUntilReady()` | Opts the app into manual readiness and returns the callback the app calls after its first useful render. |
 
-## Events between microfrontends
+## Events between apps
 
-MFs communicate without importing each other through the host-scoped event bus at `atlas.events`. Define the event contract in shared TypeScript source, then use the same type from publishers and subscribers:
+apps communicate without importing each other through the host-scoped event bus at `atlas.events`. Define the event contract in shared TypeScript source, then use the same type from publishers and subscribers:
 
 ```ts
 import type { AtlasEventBus } from "@atlas/sdk/host";
@@ -185,13 +187,13 @@ events.publish("orders.updated", { orderId: "42" });
 
 ## Loading and failure UI
 
-The host configures UI once; individual MFs never choose a spinner or fallback.
+The host configures UI once; individual apps never choose a spinner or fallback.
 
 - `[data-atlas-host-status]` is the single global outlet shown while Atlas loads runtime configuration, the catalog, and Native Federation. `renderHostLoading` and `renderHostError` replace its defaults.
-- `renderLoading` is the one renderer shared by every MF placement. It appears only when an MF calls `context.loading.show()` or opts into manual readiness, and is removed by `hide()` or the app-loaded callback.
-- `renderError` is the one fallback shared by every MF placement. Atlas supplies the failed manifest, error, and retry action.
+- `renderLoading` is the one renderer shared by every app placement. It appears only when an app calls `context.loading.show()` or opts into manual readiness, and is removed by `hide()` or the app-loaded callback.
+- `renderError` is the one fallback shared by every app placement. Atlas supplies the failed manifest, error, and retry action.
 
-If an MF never requests loading or manual readiness, its route or slot is ready as soon as mount completes.
+If an app never requests loading or manual readiness, its route or slot is ready as soon as mount completes.
 
 Both host adapters render accessible defaults. A host can use its own Angular, React, Ionic, or other design system:
 
@@ -238,9 +240,9 @@ The callback receives a discriminated `AtlasRuntimeEvent` union:
 | --- | --- |
 | `host.start`, `host.ready`, and `host.error` | Host bootstrap. |
 | `operation.success`, `operation.retry`, and `operation.error` | Catalog, integrity, override, and federation work. |
-| `mf.state` | Mounting, MF-requested loading, mounted, failed, and unmounted placement states. |
+| `mf.state` | Mounting, app-requested loading, mounted, failed, and unmounted placement states. |
 
-Events include durations and relevant host, MF, version, placement, URL,
+Events include durations and relevant host, app, version, placement, URL,
 attempt, stage, and error fields. Atlas catches errors thrown by the observer,
 so a monitoring outage cannot prevent the application from loading.
 
@@ -266,9 +268,9 @@ await loadAndMountHostCatalog({
 
 Vue is a future adapter target and is not currently supported by Atlas generators.
 
-Routed MFs use their native router through a thin Atlas bridge:
+Routed apps use their native router through a thin Atlas bridge:
 
-- React uses `createRoutedMicrofrontend`, `createRouterOptions`, and React Router's `createMemoryRouter`.
+- React uses `createRoutedApp`, `createRouterOptions`, and React Router's `createMemoryRouter`.
 - Angular uses `provideRouter` and `createLocationStrategy`.
 
 Atlas performs two-way URL synchronization and base-path scoping. The application continues to use normal framework links, outlets, route parameters, guards, loaders, and navigation APIs.
@@ -277,9 +279,9 @@ Adapters convert framework-native app bootstrapping into the Atlas `mount/unmoun
 
 Angular hosts use `startHost`. It loads runtime configuration and catalog metadata, applies overrides, verifies integrity, initializes Native Federation, synchronizes Angular Router deep links, creates the host SDK, renders navigation, and starts route/slot lifecycle management.
 
-Angular MFs use `defineMicrofrontend` and `defineExportedComponent`. They receive `AtlasMfContext`, including `navigation`, `route`, and `widgets`; no product MF bootstraps standalone.
+Angular apps use `defineApp` and `defineExportedWidget`. They receive `AtlasMfContext`, including `navigation`, `route`, and `widgets`; no product app bootstraps standalone.
 
-React hosts use `startHost` with React Router and the framework-agnostic Native Federation runtime. Routed React MFs use `createRoutedMicrofrontend`; router-free MFs use `defineMicrofrontend`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
+React hosts use `startHost` with React Router and the framework-agnostic Native Federation runtime. Routed React apps use `createRoutedApp`; router-free apps use `defineApp`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
 
 ## Testing
 

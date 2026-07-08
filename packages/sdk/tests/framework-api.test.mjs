@@ -5,7 +5,7 @@ import * as angular from "../dist/angular.js";
 import * as react from "../dist/react.js";
 
 test("framework subpaths share one Atlas API vocabulary", () => {
-  for (const name of ["defineMicrofrontend", "defineExportedComponent", "createHostNavigation"]) {
+  for (const name of ["defineApp", "defineExportedWidget", "createHostNavigation"]) {
     assert.equal(typeof angular[name], "function", `Angular must export ${name}`);
     assert.equal(typeof react[name], "function", `React must export ${name}`);
   }

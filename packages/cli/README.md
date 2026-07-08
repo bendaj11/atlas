@@ -1,7 +1,7 @@
 # @atlas/cli
 
 Package-manager-neutral command-line tooling for generating, developing,
-building, rolling back, and verifying Atlas microfrontends.
+building, rolling back, and verifying Atlas apps.
 
 ```sh
 # Choose one:

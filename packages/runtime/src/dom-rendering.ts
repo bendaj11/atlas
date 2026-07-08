@@ -6,11 +6,11 @@ import type { AtlasHostMountEvent } from "./index.js";
 export function renderHostNavigation(document: Document, manifests: AtlasManifest[], hostId: string, navigation: AtlasNavigation): void {
   const nav = document.querySelector<HTMLElement>("[data-atlas-navigation]");
   if (!nav) return;
-  nav.replaceChildren(...routePlacementsForHost(manifests, hostId).map((placement) => {
+  nav.replaceChildren(...routePlacementsForHost(manifests, hostId).map(({ manifest, placement }) => {
     const route = placement.route!;
     const link = document.createElement("a");
     link.href = navigation.createHref(route.basePath);
-    link.textContent = route.nav?.label ?? route.title;
+    link.textContent = route.nav?.label ?? route.title ?? manifest.name;
     link.addEventListener("click", (event) => {
       event.preventDefault();
       navigation.navigate(route.basePath);
@@ -41,11 +41,11 @@ export function cssEscape(value: string): string {
   return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
 }
 
-function routePlacementsForHost(manifests: AtlasManifest[], hostId: string): AtlasManifest["placements"] {
+function routePlacementsForHost(manifests: AtlasManifest[], hostId: string): Array<{ manifest: AtlasManifest; placement: AtlasManifest["placements"][number] }> {
   return manifests
-    .flatMap((manifest) => manifest.placements)
-    .filter((placement) => placement.hostId === hostId && placement.kind === "route" && placement.route?.nav?.visible !== false)
-    .sort((left, right) => (left.route?.nav?.order ?? 0) - (right.route?.nav?.order ?? 0));
+    .flatMap((manifest) => manifest.placements.map((placement) => ({ manifest, placement })))
+    .filter(({ placement }) => placement.hostId === hostId && placement.kind === "route" && placement.route?.nav?.visible !== false)
+    .sort((left, right) => (left.placement.route?.nav?.order ?? 0) - (right.placement.route?.nav?.order ?? 0));
 }
 
 function findMountContainer(document: Document, event: AtlasHostMountEvent): HTMLElement | null {

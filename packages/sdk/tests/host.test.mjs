@@ -3,7 +3,7 @@ import test from "node:test";
 import { HttpClient, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 
-test("event bus publishes across MFs and supports unsubscribe", () => {
+test("event bus publishes across apps and supports unsubscribe", () => {
   const bus = createAtlasEventBus();
   const received = [];
   const unsubscribe = bus.subscribe("orders.updated", (payload) => received.push(payload));

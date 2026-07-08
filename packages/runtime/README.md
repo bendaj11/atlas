@@ -1,6 +1,6 @@
 # @atlas/runtime
 
-Host-side discovery, loading, routing, and lifecycle orchestration for Atlas microfrontends.
+Host-side discovery, loading, routing, and lifecycle orchestration for Atlas apps.
 
 ```sh
 # Choose one:

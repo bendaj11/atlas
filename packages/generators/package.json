@@ -1,11 +1,11 @@
 {
   "name": "@atlas/generators",
-  "version": "0.2.33",
+  "version": "0.2.35",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",
   "keywords": [
-    "microfrontend",
+    "app",
     "generator",
     "native-federation"
   ],
@@ -41,6 +41,6 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.33"
+    "@atlas/schema": "0.2.35"
   }
 }

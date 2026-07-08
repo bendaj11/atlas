@@ -7,7 +7,7 @@ const workspaceRoot = resolve(import.meta.dirname, "../..");
 const cdnRoot = join(workspaceRoot, "tests/e2e/.artifacts/cdn");
 const rollbackRoot = join(workspaceRoot, "tests/e2e/.artifacts/rollback");
 
-test("React host mounts an Angular MF with native inner routing", async ({ page }) => {
+test("React host mounts an Angular app with native inner routing", async ({ page }) => {
   await page.goto("http://127.0.0.1:4300/angular-orders");
   await expect(page.getByRole("heading", { name: "Orders Angular" })).toBeVisible();
   await page.getByRole("link", { name: "Order 42" }).click();
@@ -15,7 +15,7 @@ test("React host mounts an Angular MF with native inner routing", async ({ page 
   await expect(page.getByText("Order details")).toBeVisible();
 });
 
-test("Angular host mounts a React MF with native inner routing", async ({ page }) => {
+test("Angular host mounts a React app with native inner routing", async ({ page }) => {
   await page.goto("http://127.0.0.1:4301/react-catalog");
   await expect(page.getByRole("heading", { name: "Catalog React" })).toBeVisible();
   const stylesheet = page.locator('link[data-atlas-style="catalog-react"]');
@@ -26,7 +26,7 @@ test("Angular host mounts a React MF with native inner routing", async ({ page }
   await expect(page.getByRole("paragraph")).toHaveText("Product 42");
 });
 
-test("host displays its spinner only after an MF requests loading state", async ({ page }) => {
+test("host displays its spinner only after an app requests loading state", async ({ page }) => {
   await page.route("**/order-status-*.js", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 750));
     await route.continue();
@@ -37,7 +37,7 @@ test("host displays its spinner only after an MF requests loading state", async 
   await expect(page.getByRole("status")).toBeHidden();
 });
 
-test("React page MF mounts an Angular widget and popup", async ({ page }) => {
+test("React page app mounts an Angular widget and popup", async ({ page }) => {
   await page.goto("http://127.0.0.1:4300/dashboard");
   await expect(page.getByRole("heading", { name: "Dashboard React" })).toBeVisible();
   await expect(page.getByText("Status: paid")).toBeVisible();
@@ -45,7 +45,7 @@ test("React page MF mounts an Angular widget and popup", async ({ page }) => {
   await expect(page.getByText("Status: processing")).toBeVisible();
 });
 
-test("Angular page MF mounts a React widget and popup", async ({ page }) => {
+test("Angular page app mounts a React widget and popup", async ({ page }) => {
   await page.goto("http://127.0.0.1:4301/dashboard-angular");
   await expect(page.getByRole("heading", { name: "Dashboard Angular" })).toBeVisible();
   await expect(page.getByText("React products: 24")).toBeVisible();
@@ -61,7 +61,7 @@ for (const [name, origin] of [["React", "http://127.0.0.1:4300"], ["Angular", "h
   });
 }
 
-test("CDN serves mutable catalogs and immutable MF assets with appropriate headers", async ({ request }) => {
+test("CDN serves mutable catalogs and immutable app assets with appropriate headers", async ({ request }) => {
   const catalogResponse = await request.get("http://127.0.0.1:4400/hosts/demo-react-host/catalog.json");
   expect(catalogResponse.headers()["access-control-allow-origin"]).toBe("*");
   expect(catalogResponse.headers()["cache-control"]).toBe("no-cache");

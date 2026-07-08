@@ -11,7 +11,7 @@ test("overlay controller mounts a modal widget with close controls and tears it 
       list: () => [],
       async mount(widget, container, props) {
         calls.push(["mount", widget, container, props]);
-        return { component: {}, async unmount() { calls.push(["unmount"]); } };
+        return { widget: {}, async unmount() { calls.push(["unmount"]); } };
       }
     }),
     providers: {
@@ -115,7 +115,7 @@ test("popup widget cleanup is idempotent and native content remains opaque", asy
   let unmounts = 0;
   let nativeContent;
   const controller = createAtlasOverlayController({
-    getWidgetLoader: () => ({ list: () => [], async mount() { return { component: {}, async unmount() { unmounts += 1; } }; } }),
+    getWidgetLoader: () => ({ list: () => [], async mount() { return { widget: {}, async unmount() { unmounts += 1; } }; } }),
     providers: {
       openPopup(request, content) {
         nativeContent = request.content;

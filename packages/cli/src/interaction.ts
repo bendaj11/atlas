@@ -19,7 +19,7 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
 
   if (command === "g" || command === "generate") {
     subcommand ??= await prompts.select("What would you like to generate?", [
-      { label: "Microfrontend app", value: "app" },
+      { label: "App app", value: "app" },
       { label: "Host application", value: "host" },
       { label: "Exported widget", value: "widget" }
     ]);

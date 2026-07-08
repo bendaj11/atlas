@@ -14,11 +14,11 @@ export interface CommandHelp {
 }
 
 export const ROOT_COMMANDS: readonly HelpEntry[] = [
-  { label: "generate, g", description: "Generate a host, microfrontend, or exported widget" },
-  { label: "dev", description: "Run a microfrontend locally inside an Atlas host" },
-  { label: "build", description: "Build a microfrontend for static deployment" },
+  { label: "generate, g", description: "Generate a host, app, or exported widget" },
+  { label: "dev", description: "Run an app locally inside an Atlas host" },
+  { label: "build", description: "Build an app for static deployment" },
   { label: "runtime-config", description: "Generate atlas.runtime.json from atlas.config.ts" },
-  { label: "rollback", description: "Prepare a previous microfrontend version for deployment" },
+  { label: "rollback", description: "Prepare a previous app version for deployment" },
   { label: "verify", description: "Verify a deployed Atlas host and its assets" }
 ];
 
@@ -42,26 +42,26 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders"]
   },
   "generate host": generationProjectHelp("host", "host application"),
-  "generate app": generationProjectHelp("app", "microfrontend application"),
+  "generate app": generationProjectHelp("app", "app"),
   "generate widget": {
-    summary: "Generate an exported widget inside an existing microfrontend.",
+    summary: "Generate an exported widget inside an existing app.",
     usage: "atlas generate widget <name> --app <project> [options]",
     arguments: [{ label: "name", description: "Widget name" }],
     options: [
-      { label: "--app <project>", description: "Owning microfrontend name or directory" },
+      { label: "--app <project>", description: "Owning app name or directory" },
       { label: "--force", description: "Replace an existing widget with the same name" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: ["atlas g widget order-summary --app orders"]
   },
   dev: {
-    summary: "Run one microfrontend locally inside an Atlas host.",
+    summary: "Run one app locally inside an Atlas host.",
     usage: "atlas dev <project> [options]",
     arguments: [{ label: "project", description: "Atlas project name or directory; prompted when omitted" }],
     options: [
       { label: "--host <host-id>", description: "Host receiving the local override" },
       { label: "--host-url <url>", description: "Host page opened with the override activated" },
-      { label: "--port <number>", description: "Microfrontend dev-server port (default: 4201)" },
+      { label: "--port <number>", description: "App dev-server port (default: 4201)" },
       { label: "--control-port <number>", description: "Atlas override-server port (default: 4400)" },
       { label: "--prepare-only", description: "Create the override without starting development servers" },
       { label: "-h, --help", description: "Show help for this command" }
@@ -72,7 +72,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ]
   },
   build: {
-    summary: "Build a microfrontend and prepare files for static deployment.",
+    summary: "Build an app and prepare files for static deployment.",
     usage: "atlas build <project> [options]",
     arguments: [{ label: "project", description: "Atlas project name or directory; prompted when omitted" }],
     options: [
@@ -117,7 +117,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ]
   },
   rollback: {
-    summary: "Prepare a previously published microfrontend version for redeployment.",
+    summary: "Prepare a previously published app version for redeployment.",
     usage: "atlas rollback <project> --version <version> [options]",
     arguments: [{ label: "project", description: "Atlas project name; prompted when omitted" }],
     options: [

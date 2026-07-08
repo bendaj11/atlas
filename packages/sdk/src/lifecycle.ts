@@ -1,8 +1,8 @@
-import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/schema";
+import type { AtlasExportedWidgetManifest, AtlasManifest } from "@atlas/schema";
 import type { AtlasEventMap, AtlasSdk } from "./host.js";
 import type { AtlasRouteContext, AtlasScopedNavigation } from "./navigation.js";
 
-/** Runtime context scoped to one mounted MF and its assigned host route. */
+/** Runtime context scoped to one mounted app and its assigned host route. */
 export interface AtlasMfContext {
   manifest: AtlasManifest;
   hostId: string;
@@ -31,7 +31,7 @@ export interface AtlasMfMountResult {
   unmount?: () => void | Promise<void>;
 }
 
-/** Framework-neutral lifecycle contract exposed by every MF remote entry. */
+/** Framework-neutral lifecycle contract exposed by every app remote entry. */
 export interface AtlasMfEntry<
   TExtensions extends object = {},
   TEvents extends object = AtlasEventMap,
@@ -40,7 +40,7 @@ export interface AtlasMfEntry<
   mount(request: AtlasMfMountRequest<TExtensions, TEvents, THostData>): void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>;
 }
 
-export interface AtlasExportedComponentMountRequest<
+export interface AtlasExportedWidgetMountRequest<
   TProps extends object = Record<string, unknown>,
   TExtensions extends object = {},
   TEvents extends object = AtlasEventMap,
@@ -49,22 +49,22 @@ export interface AtlasExportedComponentMountRequest<
   container: HTMLElement;
   props: TProps;
   sdk: AtlasSdk<TExtensions, TEvents, THostData>;
-  component: AtlasExportedComponentManifest;
+  widget: AtlasExportedWidgetManifest;
   ownerManifest: AtlasManifest;
 }
 
-export interface AtlasExportedComponentEntry<TProps extends object = Record<string, unknown>> {
-  mount(request: AtlasExportedComponentMountRequest<TProps>): void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>;
+export interface AtlasExportedWidgetEntry<TProps extends object = Record<string, unknown>> {
+  mount(request: AtlasExportedWidgetMountRequest<TProps>): void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>;
 }
 
 export interface AtlasMountedWidget {
-  component: AtlasExportedComponentManifest;
+  widget: AtlasExportedWidgetManifest;
   unmount(): Promise<void>;
 }
 
 /** Loads widgets only from owner versions selected in the current host catalog. */
 export interface AtlasWidgetLoader {
-  list(ownerMfId?: string): AtlasExportedComponentManifest[];
+  list(ownerMfId?: string): AtlasExportedWidgetManifest[];
   mount<TProps extends object = Record<string, unknown>>(
     widgetRef: string,
     container: HTMLElement,

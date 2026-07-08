@@ -11,7 +11,6 @@ export function createTestManifest(overrides: Partial<AtlasManifest> = {}): Atla
         framework: "react",
         routes: [
           {
-            id: "catalog-route",
             hostId: "host",
             basePath: "/catalog",
             title: "Catalog"

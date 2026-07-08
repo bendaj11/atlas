@@ -2,7 +2,7 @@ import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   generateHostFiles,
-  generateMicrofrontendFiles,
+  generateAppFiles,
   generateWidgetFiles,
   type AtlasGeneratedFile,
   type AtlasGeneratorOptions
@@ -57,7 +57,7 @@ export class AtlasGenerateService {
       const hostId = type === "app" ? this.args.flag("host") : undefined;
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
-        : generateMicrofrontendFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
+        : generateAppFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
       if (workspaceScaffolded) await takeOverAppSource(root);
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) {
@@ -218,7 +218,7 @@ function generatedOverlay(
   // A delegated generator owns the complete application scaffold. Keep this
   // allowlist deliberately small so new portable-template files cannot leak
   // into framework-managed projects by default.
-  const overlay = type === "host" ? DELEGATED_HOST_FILES[framework] : DELEGATED_MF_FILES[framework];
+  const overlay = type === "host" ? DELEGATED_HOST_FILES[framework] : DELEGATED_APP_FILES[framework];
   return files.filter((file) => overlay.has(file.path));
 }
 
@@ -245,7 +245,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   ])
 };
 
-const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
+const DELEGATED_APP_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   angular: new Set([
     ...ATLAS_INTEGRATION_FILES,
     "src/index.html",
@@ -258,7 +258,7 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/app/details/details.component.ts",
     "src/app/routes.ts",
     "src/entry.ts",
-    "src/exported-components/README.md"
+    "src/exported-widgets/README.md"
   ]),
   react: new Set([
     ...ATLAS_INTEGRATION_FILES,
@@ -272,7 +272,7 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/app/routes.tsx",
     "src/main.tsx",
     "src/entry.tsx",
-    "src/exported-components/README.md"
+    "src/exported-widgets/README.md"
   ])
 };
 

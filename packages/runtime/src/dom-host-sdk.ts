@@ -1,6 +1,6 @@
-import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/schema";
+import type { AtlasExportedWidgetManifest, AtlasManifest } from "@atlas/schema";
 import { createAtlasSdk, type AtlasEventMap } from "@atlas/sdk";
-import type { AtlasExportedComponentEntry } from "@atlas/sdk/lifecycle";
+import type { AtlasExportedWidgetEntry } from "@atlas/sdk/lifecycle";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createAtlasOverlayController, createDomOverlayProviders } from "@atlas/sdk/overlay";
 import type { DomHostOptions } from "./dom-host-options.js";
@@ -15,7 +15,7 @@ interface SdkProviderInput<TExtensions extends object, THostData extends object>
   document: Document;
   navigation: AtlasNavigation;
   manifests: AtlasManifest[];
-  importComponent: (component: AtlasExportedComponentManifest) => Promise<AtlasExportedComponentEntry>;
+  importWidget: (widget: AtlasExportedWidgetManifest) => Promise<AtlasExportedWidgetEntry>;
 }
 
 export function createSdkProviders<TExtensions extends object, THostData extends object>(
@@ -42,6 +42,6 @@ export function createSdkProviders<TExtensions extends object, THostData extends
     ...(input.options.httpClient ? { httpClient: input.options.httpClient } : {}),
     ...(input.options.extensions ? { extensions: input.options.extensions } : {})
   });
-  widgetLoader = createWidgetLoader(input.manifests, sdk, input.importComponent);
+  widgetLoader = createWidgetLoader(input.manifests, sdk, input.importWidget);
   return { sdk, widgetLoader };
 }

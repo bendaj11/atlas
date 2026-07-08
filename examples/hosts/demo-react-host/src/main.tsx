@@ -33,5 +33,5 @@ void startHost({
   },
   openPopup: overlayDefaults.openPopup,
   hostData,
-  onStateChange: (event) => { if (event.error) console.error("[Atlas MF error]", event.manifest.id, event.error); }
+  onStateChange: (event) => { if (event.error) console.error("[Atlas app error]", event.manifest.id, event.error); }
 }).catch((error) => console.error("Atlas host failed to start", error));

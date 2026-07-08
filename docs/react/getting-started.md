@@ -1,15 +1,15 @@
 # Getting Started With React
 
-This guide creates a React host and a React microfrontend (MF), runs the MF
+This guide creates a React host and a React feature app, runs the app
 inside the host, then prepares files for production.
 
 The example names are:
 
 - Host: `customer-host`
-- MF: `orders`
+- App: `orders`
 - Route: `/orders`
 
-## 1. Install Atlas
+## 1. Install Atlas (Workstation Domain)
 
 This gives you the `atlas` command used for generation, local development, build,
 verify, and rollback.
@@ -38,9 +38,9 @@ Effect: no project files change yet. You only install the CLI.
 More docs:
 
 - [Generators](generators.md): use when you need CLI flags, prompts, or generated file details.
-- [Workspaces and monorepos](workspaces.md): use when adding Atlas to Nx, Turborepo, pnpm, Yarn, or npm workspaces.
+- [Workspaces and monorepos](../workspaces.md): use when adding Atlas to Nx, Turborepo, pnpm, Yarn, or npm workspaces.
 
-## 2. Generate The React Host
+## 2. Generate The React Host (Host Domain)
 
 The host is the main application. It owns the browser page, top-level routing,
 layout, auth, modals, toasts, and shared services.
@@ -56,19 +56,19 @@ Files to look at first:
 | File | Why it matters |
 | --- | --- |
 | `atlas.config.ts` | Atlas identity and runtime source file for this host. It gives the host its stable id, display name, and runtime defaults. Atlas uses it later to generate `public/atlas.runtime.json` for the browser. |
-| `public/atlas.runtime.json` | Not created by host generation. It is the deployment-time runtime artifact produced by `atlas runtime-config`, read by the browser before MFs load. CI/CD may replace or transform this per environment; application developers normally edit `atlas.config.ts`. |
+| `public/atlas.runtime.json` | Not created by host generation. It is the deployment-time runtime artifact produced by `atlas runtime-config`, read by the browser before apps load. CI/CD may replace or transform this per environment; application developers normally edit `atlas.config.ts`. |
 | `src/main.tsx` | Generated Atlas host startup file. It calls `startHost(...)`, connects React Router and Native Federation, and supplies host services such as toasts, modals, events, config, and app data. Edit it when replacing placeholder services with production services. |
 | `vite.config.ts` | Generated Vite build file used by the React host. Atlas uses it to produce the Native Federation metadata expected by the runtime. Most product work should stay in `atlas.config.ts` and application source. |
 
-Effect: you now have a host that can load catalog-selected MFs. It still uses
+Effect: you now have a host that can load catalog-selected apps. It still uses
 local placeholder services.
 
 More docs:
 
-- [Architecture](architecture.md): shows how hosts, MFs, catalogs, and Native Federation fit together.
-- [Public API](api.md): lists the runtime functions and types used by generated host code.
+- [Architecture](../architecture.md): shows how hosts, apps, catalogs, and Native Federation fit together.
+- [Public API](../api.md): lists the runtime functions and types used by generated host code.
 
-## 3. Shape The Host Layout
+## 3. Shape The Host Layout (Host Domain)
 
 This step decides where Atlas can render route content, navigation, and named
 slots.
@@ -93,22 +93,22 @@ Meaning:
 
 | Attribute | Meaning |
 | --- | --- |
-| `data-atlas-route-outlet` | Route MFs mount here. |
+| `data-atlas-route-outlet` | Route apps mount here. |
 | `data-atlas-navigation` | Atlas renders route navigation here. |
-| `data-atlas-slot="header"` | Slot MFs can mount here. |
+| `data-atlas-slot="header"` | Slot apps can mount here. |
 | `data-atlas-host-status` | Host loading and error state appears here. |
 
-The host controls page width, header, sidebar, spacing, and theme. MFs should
+The host controls page width, header, sidebar, spacing, and theme. Apps should
 stay inside their assigned outlets.
 
-Effect: the host page has real product structure before any MF is loaded.
+Effect: the host page has real product structure before any app is loaded.
 
 More docs:
 
 - [Routing](routing.md): explains routes, slots, inner routes, navigation, and route ownership.
-- [Assets and styles](assets-and-styles.md): explains CSS, images, and asset URLs for host and MF builds.
+- [Assets and styles](assets-and-styles.md): explains CSS, images, and asset URLs for host and app builds.
 
-## 4. Connect Real Host Services
+## 4. Connect Real Host Services (Host Domain)
 
 This step replaces generated local services with product services.
 
@@ -122,30 +122,30 @@ void startHost({
   openModal: (request, controls) => modalService.open(request.component, request.props, controls),
   hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id, projectId: currentProject.id },
   httpClient: authenticatedHttpClient,
-  onStateChange: (event) => {
-    if (event.error) monitoring.capture("atlas.runtime", event);
-  }
+  observe: (event) => monitoring.capture("atlas.runtime", event)
 });
 ```
 
 `hostData` always includes Atlas-owned `hostId` and `name`, and can be extended
-with product fields. `httpClient` is a core host API with Angular-style
-`request()` plus basic HTTP verb helpers. Omit `httpClient` to use Atlas'
-default `HttpClient`, or provide one to use axios, authentication, interceptors,
-or another transport. Put product-specific APIs in typed SDK extensions when MFs
-need them. Atlas passes your modal, toast, and monitoring implementations
-through without replacing your stack.
+with product fields. `httpClient` is a core host API with a `request()` method
+plus basic HTTP verb helpers. Omit `httpClient` to use Atlas' default
+fetch-backed client, or provide one to use axios, authentication, interceptors,
+or another transport. Use `observe` for runtime monitoring. Use `onStateChange`
+only when you need the older per-placement mount-state callback. Put
+product-specific APIs in typed SDK extensions when apps need them. Atlas passes
+your modal, toast, and monitoring implementations through without replacing your
+stack.
 
-Effect: every MF mounted by this host can use the same typed host capabilities.
+Effect: every app mounted by this host can use the same typed host capabilities.
 
 More docs:
 
-- [SDK guide](sdk.md): explains every host capability available to MFs.
-- [Testing](testing.md): shows how to test host services and MF behavior without a deployed catalog.
+- [SDK guide](sdk.md): explains every host capability available to apps.
+- [Consumer testing](../consumer-testing.md): shows how to test host services and app behavior without a deployed catalog.
 
-## 5. Generate The React MF
+## 5. Generate The React App (App Domain)
 
-An MF owns one feature area. It is built and deployed independently, then mounted
+An app owns one feature area. It is built and deployed independently, then mounted
 by a host catalog.
 
 ```sh
@@ -156,12 +156,12 @@ Files to look at first:
 
 | File | Why it matters |
 | --- | --- |
-| `atlas.config.ts` | The Atlas identity and mount file for this MF. It names the MF, declares which hosts may load it, and tells Atlas where it should appear, such as a route or slot. Edit this when changing route or slot hosts, route paths, navigation labels, slots, or advanced manifest metadata. |
-| `src/entry.tsx` | The generated Atlas mount entry for the React MF. It exports the lifecycle Atlas loads through Native Federation and wires the MF to the host SDK and inner React routing. Edit it only when changing Atlas lifecycle wiring or the MF root router setup. |
-| `src/main.tsx` | The local Vite preview entry. It renders the generated app with a local Atlas SDK provider so `vite` can run the MF outside a host. |
+| `atlas.config.ts` | The Atlas identity and mount file for this app. It names the app, declares which hosts may load it, and tells Atlas where it should appear, such as a route or slot. Edit this when changing route or slot hosts, route paths, navigation labels, slots, or advanced manifest metadata. |
+| `src/entry.tsx` | The generated Atlas mount entry for the React app. It exports the lifecycle Atlas loads through Native Federation and wires the app to the host SDK and inner React routing. Edit it only when changing Atlas lifecycle wiring or the app root router setup. |
+| `src/main.tsx` | The local Vite preview entry. It renders the generated app with a local Atlas SDK provider so `vite` can run the app outside a host. |
 | `src/app/App.tsx` | The main routed React component. Keep this as the app root, and add feature screens in folders under `src/app`. |
 | `src/app/routes.tsx` | The React Router route tree. It connects `App.tsx` to generated feature folders such as `home/` and `details/`. |
-| `vite.config.ts` | The generated Vite build file for the React MF. Atlas uses it to expose the MF entry, discover exported widgets, and emit federation metadata. Most product work should stay in `atlas.config.ts` and application source. |
+| `vite.config.ts` | The generated Vite build file for the React app. Atlas uses it to expose the app entry, discover exported widgets, and emit federation metadata. Most product work should stay in `atlas.config.ts` and application source. |
 
 Effect: you now have a feature app that can be mounted by an Atlas host. It is
 not meant to be a separate host application.
@@ -169,16 +169,16 @@ not meant to be a separate host application.
 More docs:
 
 - [Generators](generators.md): use when you need more app-generation flags or scaffold details.
-- [Manifest reference](manifest.md): explains the manifest Atlas builds from this MF configuration.
+- [Manifest reference](../manifest.md): explains the manifest Atlas builds from this app configuration.
 
-## 6. Place The MF On A Host Route
+## 6. Place The App On A Host Route (App Domain)
 
-This step tells Atlas which host can load the MF and where users will see it.
+This step tells Atlas which host can load the app and where users will see it.
 
-Edit `atlas.config.ts` in the MF.
+Edit `atlas.config.ts` in the app.
 
 ```ts
-import type { AtlasMicrofrontendConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
 
 export default {
   id: "orders",
@@ -186,14 +186,13 @@ export default {
   framework: "react",
   routes: [
     {
-      id: "orders-route",
       hostId: "customer-host",
       basePath: "/orders",
       title: "Orders",
       nav: { label: "Orders", visible: true, order: 10 }
     }
   ]
-} satisfies AtlasMicrofrontendConfig;
+} satisfies AtlasAppConfig;
 ```
 
 Effect: production catalogs can select `orders` for `customer-host`, and the
@@ -201,12 +200,12 @@ host can mount it at `/orders`.
 
 More docs:
 
-- [Routing](routing.md): explains route mount options and nested MF navigation.
-- [Static registry](registry.md): explains how catalogs select this MF version for a host.
+- [Routing](routing.md): explains route mount options and nested app navigation.
+- [Static registry](../registry.md): explains how catalogs select this app version for a host.
 
-## 7. Build React Feature UI
+## 7. Build React Feature UI (App Domain)
 
-This step is normal React development inside the MF.
+This step is normal React development inside the app.
 
 Keep the main app root in `src/app/App.tsx`, add feature components under
 folders such as `src/app/orders`, and update `src/app/routes.tsx` when adding or
@@ -243,46 +242,70 @@ Use relative asset paths in CSS:
 }
 ```
 
-Do not use `/assets/...`; that points at the host origin instead of the MF
+Do not use `/assets/...`; that points at the host origin instead of the app
 publication path.
 
-Effect: the MF can use host services while keeping feature code in React.
+Effect: the app can use host services while keeping feature code in React.
 
 More docs:
 
 - [SDK guide](sdk.md): explains typed events, navigation, toasts, modals, config, and host data.
-- [Assets and styles](assets-and-styles.md): explains how CSS and assets are published with the MF.
+- [Assets and styles](assets-and-styles.md): explains how CSS and assets are published with the app.
 
-## 8. Run The MF Inside The Host
+## 8. Run The App Inside The Host (Local Development Domain)
 
-Atlas local development runs the MF locally, but renders it inside a real host.
+Atlas local development runs the app locally, but renders it inside a real host.
 This shows the same integration shape users see in production.
 
+Use two terminals:
+
 ```sh
-atlas dev orders \
-  --host=customer-host \
-  --host-url=https://customer.example/orders
+# Terminal 1: Host domain
+cd customer-host
+npm run dev
 ```
 
-Open the **Open host** URL printed by the command.
+Keep the host running and copy the local host URL printed by Vite. In a generated
+React host this is usually `http://localhost:5173`.
 
-Effect: only `orders` loads from localhost. Other MFs still load from the normal
+```sh
+# Terminal 2: App domain
+atlas dev orders \
+  --host=customer-host \
+  --host-url=http://localhost:5173/orders
+```
+
+Run Terminal 2 from the directory that contains both `customer-host/` and
+`orders/`, or from your monorepo root. Open the **Open host** URL printed by the
+command.
+
+Effect: only `orders` loads from localhost. Other apps still load from the normal
 host catalog. No production catalog or host source file is edited.
 
 More docs:
 
-- [Local development](local-development.md): explains override URLs, local ports, and debugging one MF in a host.
-- [Troubleshooting](troubleshooting.md): use when the host opens but the MF does not mount or load.
+- [Local development](../local-development.md): explains override URLs, local ports, and debugging one app in a host.
+- [Troubleshooting](troubleshooting.md): use when the host opens but the app does not mount or load.
 
-## 9. Configure Production Runtime
+## 9. Configure Production Runtime (Host And Deployment Domains)
 
 This step tells the deployed host where its catalog lives and how long Atlas
 waits for runtime resources.
 
-Configure host-level runtime knobs in `atlas.config.ts`, then generate the browser artifact:
+In `customer-host/atlas.config.ts`, set production-safe runtime knobs:
+
+```ts
+allowAppOverrides: false,
+resourcesTimeoutMs: 15000,
+resourcesRetryCount: 3
+```
+
+Then generate the browser artifact:
 
 ```sh
+cd customer-host
 atlas runtime-config customer-host --registry-base-url=https://cdn.example.com/atlas
+cd ..
 ```
 
 The generated `public/atlas.runtime.json` looks like:
@@ -292,7 +315,7 @@ The generated `public/atlas.runtime.json` looks like:
   "schemaVersion": "1",
   "hostId": "customer-host",
   "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-host/catalog.json",
-  "allowAppOverrides": true,
+  "allowAppOverrides": false,
   "resourcesTimeoutMs": 15000,
   "resourcesRetryCount": 3
 }
@@ -303,10 +326,10 @@ JavaScript rebuild.
 
 More docs:
 
-- [Security](security.md): explains trust, allowed origins, integrity, and runtime loading policy.
-- [Static registry](registry.md): explains catalog JSON, mutable indexes, and immutable MF versions.
+- [Security](../security.md): explains trust, allowed origins, integrity, and runtime loading policy.
+- [Static registry](../registry.md): explains catalog JSON, mutable indexes, and immutable app versions.
 
-## 10. Build And Publish The MF
+## 10. Build And Publish The App (App And Deployment Domains)
 
 This step creates provider-neutral files for static storage. Atlas does not
 upload anything.
@@ -319,6 +342,8 @@ ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
 atlas build orders
 ```
 
+Run this from the directory that contains `orders/`, or from your monorepo root.
+
 Atlas writes:
 
 | Output | Purpose |
@@ -326,18 +351,21 @@ Atlas writes:
 | `dist/atlas-publication` | Upload tree. |
 | `dist/atlas-publication.json` | Upload plan and cache policy. |
 | Immutable assets and manifest | Versioned files that can use immutable cache headers. |
-| Updated MF indexes and host catalogs | Mutable JSON files that point hosts to the selected version. |
+| Updated app indexes and host catalogs | Mutable JSON files that point hosts to the selected version. |
 
-Upload immutable files first, then replace mutable JSON.
+Upload immutable files first, then replace mutable JSON. If this is the first app
+in a new registry, there may be no existing `registry.json`; Atlas creates the
+initial registry files in `dist/atlas-publication`, and CI uploads that tree as
+the first published registry state.
 
-Effect: the unchanged host can load the new MF version through its catalog.
+Effect: the unchanged host can load the new app version through its catalog.
 
 More docs:
 
 - [Production deployment](production-deployment.md): explains upload order, CI variables, verification, and rollback.
-- [Static registry](registry.md): explains how published manifests update host catalogs safely.
+- [Static registry](../registry.md): explains how published manifests update host catalogs safely.
 
-## 11. Verify And Roll Back
+## 11. Verify And Roll Back (Deployment Domain)
 
 Verify what browsers will fetch:
 
@@ -360,4 +388,4 @@ overwrite assets.
 More docs:
 
 - [Production deployment](production-deployment.md): shows the full release, verify, and rollback flow.
-- [Troubleshooting](troubleshooting.md): use when verification fails or the deployed host cannot load an MF.
+- [Troubleshooting](troubleshooting.md): use when verification fails or the deployed host cannot load an app.

@@ -1,7 +1,7 @@
 import { title } from "./common-generator.js";
 import type { ReactVersionProfile } from "./generator-versions.js";
 
-export function reactMicrofrontendEntry(name: string, profile: ReactVersionProfile): string {
+export function reactAppEntry(name: string, profile: ReactVersionProfile): string {
   const root = profile.major === 17
     ? `import type { ReactNode } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
@@ -17,10 +17,10 @@ function createRoot(container: Element) {
   };
 }`
     : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nexport default createRoutedApp({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
 }
 
-export function reactMicrofrontendMain(profile: ReactVersionProfile): string {
+export function reactAppMain(profile: ReactVersionProfile): string {
   const root = profile.major === 17
     ? `import { render } from "react-dom";
 
@@ -44,7 +44,7 @@ import { routes } from "./app/routes";
 import "./styles.css";
 
 const root = document.getElementById("root");
-if (!root) throw new Error("Atlas React microfrontend root was not found.");
+if (!root) throw new Error("Atlas React app root was not found.");
 const navigation = createBrowserNavigation();
 const sdk = createAtlasSdk({
   hostId: "local-dev",
@@ -65,7 +65,7 @@ mountApp(root);
 `;
 }
 
-export function reactMicrofrontendApp(name: string): string {
+export function reactAppApp(name: string): string {
   return `import { Link, Outlet } from "react-router-dom";
 import { useAtlasSdk } from "@atlas/sdk/react";
 import "../styles.css";
@@ -90,21 +90,21 @@ export function App() {
 `;
 }
 
-export function reactMicrofrontendHome(name: string): string {
+export function reactAppHome(name: string): string {
   return `export function Home() {
   return <p>${title(name)} home</p>;
 }
 `;
 }
 
-export function reactMicrofrontendDetails(): string {
+export function reactAppDetails(): string {
   return `export function Details() {
   return <p>Routed details page</p>;
 }
 `;
 }
 
-export function reactMicrofrontendRoutes(): string {
+export function reactAppRoutes(): string {
   return `import type { RouteObject } from "react-router-dom";
 import { App } from "./App";
 import { Details } from "./details/Details";

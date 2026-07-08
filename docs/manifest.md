@@ -1,10 +1,10 @@
 # Manifest
 
-An Atlas manifest is the self-description of one MF version.
+An Atlas manifest is the self-description of one app version.
 
 It answers:
 
-- What is this MF?
+- What is this app?
 - Which version is this?
 - Where are its remote assets?
 - Which hosts can use it?
@@ -29,7 +29,7 @@ It answers:
     integrity: "sha256-..."
   }],
   exposes: { entry: "./entry" },
-  exportedComponents: [
+  exportedWidgets: [
     {
       schemaVersion: "1",
       id: "product-count",
@@ -37,7 +37,7 @@ It answers:
       ownerMfId: "catalog",
       framework: "react",
       remoteEntryUrl: "https://cdn.example.com/atlas/catalog/1.2.3/product-count.js",
-      expose: "./components/product-count",
+      expose: "./widgets/product-count",
       contractVersion: "1"
     }
   ],
@@ -50,8 +50,8 @@ It answers:
 
 Normal developers should not hand-write this JSON. They edit `atlas.config.ts`; Atlas generates and validates the manifest. In source config the human-facing fields are `routes` and `slots`; Atlas writes them to manifest `placements` for the host/runtime contract.
 
-Atlas discovers emitted CSS during `atlas build`. The host loads every declared stylesheet before mounting the MF, applies its SHA-256 integrity value, shares it across simultaneous page and widget mounts, and removes it after the final mount is destroyed.
+Atlas discovers emitted CSS during `atlas build`. The host loads every declared stylesheet before mounting the app, applies its SHA-256 integrity value, shares it across simultaneous page and widget mounts, and removes it after the final mount is destroyed.
 
-`isolation` defaults to `scoped`, which gives every mount a stable `data-atlas-mf` or `data-atlas-widget` root. Use `shadow-dom` when the MF emits its styles inside its own root and needs a hard CSS boundary. See [Cross-Framework Interoperability](architecture.md#cross-framework-interoperability) for dependency and browser-global limits.
+`isolation` defaults to `scoped`, which gives every mount a stable `data-atlas-mf` or `data-atlas-widget` root. Use `shadow-dom` when the app emits its styles inside its own root and needs a hard CSS boundary. See [Cross-Framework Interoperability](architecture.md#cross-framework-interoperability) for dependency and browser-global limits.
 
-Exported component entries are generated from `src/exported-components/<component-id>/index.ts`. See [Exported Components](exported-components.md).
+Exported widget entries are generated from `src/exported-widgets/<widget-id>/index.ts`. See [Exported Widgets](exported-widgets.md).

@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHostNavigation, createLocationStrategy } from "../dist/angular.js";
-import { generateHostFiles, generateMicrofrontendFiles, generateWidgetFiles } from "../../generators/dist/index.js";
+import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { createNativeFederationImporters } from "../../runtime/dist/index.js";
 import { createTestManifest } from "../../testkit/dist/index.js";
 
 test("Angular generator emits Angular 20 Native Federation projects", () => {
   const host = files(generateHostFiles({ name: "host", framework: "angular" }));
-  const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "angular" }));
+  const appFiles = files(generateAppFiles({ name: "orders", framework: "angular" }));
   assert.equal(JSON.parse(host.get("package.json")).name, "host");
-  assert.equal(JSON.parse(mf.get("package.json")).name, "orders");
+  assert.equal(JSON.parse(appFiles.get("package.json")).name, "orders");
   assert.equal(JSON.parse(files(generateHostFiles({ name: "host", packageName: "@acme/host", framework: "angular" })).get("package.json")).name, "@acme/host");
   assert.match(host.get("package.json"), /"@angular\/core": "\^20\.3\.0"/);
   assert.match(host.get("angular.json"), /@angular-architects\/native-federation:build/);
@@ -20,7 +20,7 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
   assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.deepEqual(JSON.parse(host.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
-  assert.deepEqual(JSON.parse(mf.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
+  assert.deepEqual(JSON.parse(appFiles.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
   assert.match(host.get("src/bootstrap.ts"), /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \}/);
   assert.match(host.get("src/bootstrap.ts"), /openModal: \(modal, controls\) =>/);
   assert.match(host.get("src/bootstrap.ts"), /openPopup: overlayDefaults\.openPopup/);
@@ -35,39 +35,39 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.equal(host.has("public/atlas.runtime.json"), false);
   assert.doesNotMatch(host.get("atlas.config.ts"), /catalogUrl/);
   assert.match(host.get("atlas.config.ts"), /AtlasHostConfig/);
-  assert.match(mf.get("atlas.config.ts"), /AtlasMicrofrontendConfig/);
+  assert.match(appFiles.get("atlas.config.ts"), /AtlasAppConfig/);
   assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
   assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
   assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
   assert.match(host.get("package.json"), /atlas runtime-config host/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /localhost:4300/);
   assert.match(host.get("angular.json"), /"input": "public"/);
-  assert.match(mf.get("package.json"), /"atlas:config"/);
-  assert.match(mf.get("federation.config.js"), /"\.\/entry": "\.\/src\/entry\.ts"/);
-  assert.match(mf.get("federation.config.js"), /componentExposes/);
-  assert.match(mf.get("federation.config.js"), /shared: \{\}/);
-  assert.doesNotMatch(mf.get("federation.config.js"), /shareAll|singleton/);
-  assert.equal(mf.has("src/app.component.ts"), false);
-  assert.match(mf.get("src/app/app.component.ts"), /export class AppComponent/);
-  assert.match(mf.get("src/app/routes.ts"), /export const routes: Routes/);
-  assert.match(mf.get("src/app/app.component.ts"), /router-outlet/);
-  assert.match(mf.get("src/entry.ts"), /provideAtlasSdk/);
-  assert.match(mf.get("src/entry.ts"), /provideAtlasMfContext/);
-  assert.match(mf.get("src/entry.ts"), /import "zone\.js"/);
-  assert.doesNotMatch(mf.get("src/entry.ts"), /context\.ready\(\)/);
-  assert.match(mf.get("src/entry.ts"), /provideRouter\(routes\)/);
-  assert.match(mf.get("src/entry.ts"), /LocationStrategy/);
-  assert.match(mf.get("src/entry.ts"), /bootstrapApplication\(AppComponent/);
-  assert.doesNotMatch(mf.get("src/entry.ts"), /ATLAS_MF_CONTEXT|InjectionToken|injectAtlasSdk|@Component|router-outlet/);
-  assert.doesNotMatch(mf.get("src/entry.ts"), /providers: \[provideRouter\(routes\),/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /mounts/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /"host"/);
+  assert.match(appFiles.get("package.json"), /"atlas:config"/);
+  assert.match(appFiles.get("federation.config.js"), /"\.\/entry": "\.\/src\/entry\.ts"/);
+  assert.match(appFiles.get("federation.config.js"), /widgetExposes/);
+  assert.match(appFiles.get("federation.config.js"), /shared: \{\}/);
+  assert.doesNotMatch(appFiles.get("federation.config.js"), /shareAll|singleton/);
+  assert.equal(appFiles.has("src/app.component.ts"), false);
+  assert.match(appFiles.get("src/app/app.component.ts"), /export class AppComponent/);
+  assert.match(appFiles.get("src/app/routes.ts"), /export const routes: Routes/);
+  assert.match(appFiles.get("src/app/app.component.ts"), /router-outlet/);
+  assert.match(appFiles.get("src/entry.ts"), /provideAtlasSdk/);
+  assert.match(appFiles.get("src/entry.ts"), /provideAtlasAppContext/);
+  assert.match(appFiles.get("src/entry.ts"), /import "zone\.js"/);
+  assert.doesNotMatch(appFiles.get("src/entry.ts"), /context\.ready\(\)/);
+  assert.match(appFiles.get("src/entry.ts"), /provideRouter\(routes\)/);
+  assert.match(appFiles.get("src/entry.ts"), /LocationStrategy/);
+  assert.match(appFiles.get("src/entry.ts"), /bootstrapApplication\(AppComponent/);
+  assert.doesNotMatch(appFiles.get("src/entry.ts"), /ATLAS_APP_CONTEXT|InjectionToken|injectAtlasSdk|@Component|router-outlet/);
+  assert.doesNotMatch(appFiles.get("src/entry.ts"), /providers: \[provideRouter\(routes\),/);
+  assert.doesNotMatch(appFiles.get("atlas.config.ts"), /hostCompatibility/);
+  assert.doesNotMatch(appFiles.get("atlas.config.ts"), /placements/);
+  assert.doesNotMatch(appFiles.get("atlas.config.ts"), /mounts/);
+  assert.doesNotMatch(appFiles.get("atlas.config.ts"), /"host"/);
 });
 
-test("Angular MF LocationStrategy scopes Router URLs and receives host navigation", () => {
-  const atlas = createMfContext("/orders/details/7?tab=history");
+test("Angular app LocationStrategy scopes Router URLs and receives host navigation", () => {
+  const atlas = createAppContext("/orders/details/7?tab=history");
   const strategy = createLocationStrategy(atlas.context);
   const events = [];
   strategy.onPopState((event) => events.push(event));
@@ -83,7 +83,7 @@ test("Angular MF LocationStrategy scopes Router URLs and receives host navigatio
 });
 
 test("Angular generator keeps framework tooling on the selected major", () => {
-  const angular21 = files(generateMicrofrontendFiles({ name: "next-orders", framework: "angular", frameworkVersion: "^21.2.0" }));
+  const angular21 = files(generateAppFiles({ name: "next-orders", framework: "angular", frameworkVersion: "^21.2.0" }));
   assert.match(angular21.get("package.json"), /"@angular\/core": "\^21\.2\.0"/);
   assert.match(angular21.get("package.json"), /"@angular\/cli": "\^21\.2\.0"/);
   assert.match(angular21.get("package.json"), /"@angular-architects\/native-federation": "\^21\.0\.0"/);
@@ -92,26 +92,26 @@ test("Angular generator keeps framework tooling on the selected major", () => {
 });
 
 test("Angular generator targets a supplied compatible host without sharing framework dependencies", () => {
-  const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "angular", hostId: "customer-host" }));
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
-  assert.match(mf.get("atlas.config.ts"), /routes: \[/);
-  assert.match(mf.get("atlas.config.ts"), /hostId: "customer-host"/);
-  assert.match(mf.get("federation.config.js"), /shared: \{\}/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostId: "host"/);
+  const appFiles = files(generateAppFiles({ name: "orders", framework: "angular", hostId: "customer-host" }));
+  assert.doesNotMatch(appFiles.get("atlas.config.ts"), /hostCompatibility/);
+  assert.match(appFiles.get("atlas.config.ts"), /routes: \[/);
+  assert.match(appFiles.get("atlas.config.ts"), /hostId: "customer-host"/);
+  assert.match(appFiles.get("federation.config.js"), /shared: \{\}/);
+  assert.doesNotMatch(appFiles.get("atlas.config.ts"), /hostId: "host"/);
 });
 
 test("Angular generator validates IDs before using them in paths and source", () => {
   assert.throws(() => generateHostFiles({ name: "", framework: "angular" }), /Invalid generator name/);
-  assert.throws(() => generateMicrofrontendFiles({ name: "orders--admin", framework: "angular" }), /Invalid generator name/);
+  assert.throws(() => generateAppFiles({ name: "orders--admin", framework: "angular" }), /Invalid generator name/);
   assert.throws(() => generateWidgetFiles({ name: "../summary", framework: "angular" }), /Invalid generator name/);
-  assert.throws(() => generateMicrofrontendFiles({ name: "orders", framework: "angular", hostId: "../host" }), /Invalid generator hostId/);
+  assert.throws(() => generateAppFiles({ name: "orders", framework: "angular", hostId: "../host" }), /Invalid generator hostId/);
 });
 
 test("Angular widget generator creates a typed independently deployed widget", () => {
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "angular" }));
-  const source = widget.get("src/exported-components/entity-popup/index.ts");
+  const source = widget.get("src/exported-widgets/entity-popup/index.ts");
   assert.match(source, /EntityPopupWidgetProps/);
-  assert.match(source, /defineExportedComponent/);
+  assert.match(source, /defineExportedWidget/);
   assert.match(source, /import "zone\.js"/);
 });
 
@@ -121,16 +121,16 @@ test("Native Federation bridge initializes catalog remotes and loads exposes", a
     async initFederation(remotes) { calls.push(["init", remotes]); },
     async loadRemoteModule(remote, expose) { calls.push(["load", remote, expose]); return { default: { mount() {} } }; }
   };
-  const component = { schemaVersion: "1", id: "summary", name: "Summary", ownerMfId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./components/summary", contractVersion: "1" };
-  const manifest = createTestManifest({ id: "orders-app", remoteEntryUrl: "https://cdn/remoteEntry.json", exportedComponents: [component] });
+  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerMfId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./widgets/summary", contractVersion: "1" };
+  const manifest = createTestManifest({ id: "orders-app", remoteEntryUrl: "https://cdn/remoteEntry.json", exportedWidgets: [widget] });
   const bridge = createNativeFederationImporters(runtime);
   await bridge.initialize([manifest]);
   await bridge.importRemote(manifest);
-  await bridge.importComponent(component);
+  await bridge.importWidget(widget);
   assert.deepEqual(calls, [
     ["init", { atlas_orders_app: "https://cdn/remoteEntry.json" }],
     ["load", "atlas_orders_app", "./entry"],
-    ["load", "atlas_orders_app", "./components/summary"]
+    ["load", "atlas_orders_app", "./widgets/summary"]
   ]);
 });
 
@@ -178,7 +178,7 @@ function splitUrl(value) {
   return { pathname: url.pathname, search: url.search, hash: url.hash };
 }
 
-function createMfContext(initialUrl) {
+function createAppContext(initialUrl) {
   let current = initialUrl;
   const listeners = new Set();
   const notify = () => { for (const listener of listeners) listener(); };
@@ -194,7 +194,7 @@ function createMfContext(initialUrl) {
     getCurrentLocation() { return splitUrl(current); }, toInnerPath(to) { return `/orders${to}`; }
   };
   return {
-    context: { navigation, route: { getCurrent: inner, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } } },
+    context: { navigation, route: { getCurrent: inner, setTabTitle() {}, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } } },
     url: () => current,
     hostNavigate(value) { current = value; notify(); }
   };

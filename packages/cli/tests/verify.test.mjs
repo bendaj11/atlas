@@ -20,7 +20,7 @@ test("verify accepts a healthy cross-origin deployment", async () => {
   assert.equal(report.hostId, "host");
 });
 
-test("verify rejects multiple selected versions of one MF", async () => {
+test("verify rejects multiple selected versions of one app", async () => {
   const first = deploymentManifest();
   const second = deploymentManifest({ version: "2.0.0", buildId: "second" });
   const service = new AtlasVerifyService(createDeploymentFetch([first, second]));
@@ -40,14 +40,14 @@ test("verify rejects an asset whose integrity does not match", async () => {
   assert.equal(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("integrity")), true);
 });
 
-test("verify rejects unresolved exported components", async () => {
+test("verify rejects unresolved exported widgets", async () => {
   const service = new AtlasVerifyService(createDeploymentFetch([
     deploymentManifest({ uses: ["catalog/missing"] })
   ]));
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "exported components"), true);
+  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "exported widgets"), true);
 });
 
 test("verify rejects missing cross-origin CORS headers", async () => {

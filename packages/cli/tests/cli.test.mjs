@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const cli = "packages/cli/dist/index.js";
+const cli = fileURLToPath(new URL("../dist/index.js", import.meta.url));
+const packageJson = new URL("../package.json", import.meta.url);
 
 test("--version prints the package version and exits successfully", async () => {
   const result = await run(["--version"]);
-  const expectedVersion = JSON.parse(await readFile("packages/cli/package.json", "utf8")).version;
+  const expectedVersion = JSON.parse(await readFile(packageJson, "utf8")).version;
   assert.equal(result.code, 0);
   assert.equal(result.stdout.trim(), expectedVersion);
   assert.equal(result.stderr, "");

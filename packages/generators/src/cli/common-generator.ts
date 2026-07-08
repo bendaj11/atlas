@@ -10,9 +10,9 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
 
 export function atlasConfig(options: AtlasGeneratorOptions, host: boolean): string {
   const { name, framework } = options;
-  const microfrontendFields = options.hostId ? `,\n  ${microfrontendConfig(name, options.hostId)}` : "";
-  const typeName = host ? "AtlasHostConfig" : "AtlasMicrofrontendConfig";
-  return `import type { ${typeName} } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : microfrontendFields}\n} satisfies ${typeName};\n`;
+  const appFields = options.hostId ? `,\n  ${appConfig(name, options.hostId)}` : "";
+  const typeName = host ? "AtlasHostConfig" : "AtlasAppConfig";
+  return `import type { ${typeName} } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : appFields}\n} satisfies ${typeName};\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions): string {
@@ -91,6 +91,6 @@ export function atlasHostStyles(): string {
 `;
 }
 
-function microfrontendConfig(name: string, hostId: string): string {
-  return `routes: [{ id: "${name}-route", hostId: "${hostId}", basePath: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } }]`;
+function appConfig(name: string, hostId: string): string {
+  return `routes: [{ hostId: "${hostId}", basePath: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } }]`;
 }

@@ -10,14 +10,14 @@ export interface MfRouterLike extends RouterLike {
   dispose?(): void;
 }
 
-/** Options passed to React Router's createMemoryRouter for an Atlas MF. */
+/** Options passed to React Router's createMemoryRouter for an Atlas app. */
 export function createRouterOptions(context: AtlasMfContext): { initialEntries: string[] } {
   return { initialEntries: [readAtlasInnerUrl(context)] };
 }
 
 /**
  * Keeps a React Router memory router synchronized with the host-owned URL.
- * MF code continues to use Link, useNavigate, loaders, and RouterProvider normally.
+ * app code continues to use Link, useNavigate, loaders, and RouterProvider normally.
  */
 export function connectRouter(router: MfRouterLike, context: AtlasMfContext): () => void {
   let synchronizing = false;

@@ -1,6 +1,6 @@
-export type { AtlasBaseConfig, AtlasConfig, AtlasHostConfig, AtlasMicrofrontendConfig, AtlasRouteMount, AtlasSlotMount } from "./atlas-config.js";
+export type { AtlasBaseConfig, AtlasConfig, AtlasHostConfig, AtlasAppConfig, AtlasMicrofrontendConfig, AtlasRouteMount, AtlasSlotMount } from "./atlas-config.js";
 export type { AtlasDomIsolation } from "./atlas-dom-isolation.js";
-export type { AtlasExportedComponentManifest } from "./atlas-exported-component-manifest.js";
+export type { AtlasExportedWidgetManifest } from "./atlas-exported-widget-manifest.js";
 export type { AtlasExposeMap } from "./atlas-expose-map.js";
 export type { AtlasFramework } from "./atlas-framework.js";
 export type { AtlasHostCatalog } from "./atlas-host-catalog.js";
@@ -8,7 +8,7 @@ export type { AtlasHostRuntimeConfig } from "./atlas-host-runtime-config.js";
 export type { AtlasManifest } from "./atlas-manifest.js";
 export type { AtlasMetadata } from "./atlas-metadata.js";
 export type { AtlasMetadataValue } from "./atlas-metadata-value.js";
-export type { AtlasMicrofrontendIndex } from "./atlas-microfrontend-index.js";
+export type { AtlasAppIndex, AtlasMicrofrontendIndex } from "./atlas-microfrontend-index.js";
 export type { AtlasPlacement } from "./atlas-placement.js";
 export type { AtlasPlacementKind } from "./atlas-placement-kind.js";
 export type { AtlasProductionSelection } from "./atlas-production-selection.js";

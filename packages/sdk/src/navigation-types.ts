@@ -28,7 +28,7 @@ export interface AtlasBrowserNavigation extends AtlasNavigation {
   dispose(): void;
 }
 
-/** MF navigation restricted to the base path assigned by the host catalog. */
+/** app navigation restricted to the base path assigned by the host catalog. */
 export interface AtlasScopedNavigation extends AtlasNavigation {
   readonly basePath: string;
   toInnerPath(to: string): string;
@@ -43,6 +43,7 @@ export interface AtlasInnerLocation {
 export interface AtlasRouteContext {
   readonly basePath: string;
   getCurrent(): AtlasInnerLocation;
+  setTabTitle(title: string): void;
   subscribe(listener: (location: AtlasInnerLocation) => void): () => void;
   match(pattern: string): Readonly<Record<string, string>> | undefined;
 }

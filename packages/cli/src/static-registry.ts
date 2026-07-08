@@ -5,7 +5,7 @@ import {
   assertAtlasManifest,
   type AtlasHostCatalog,
   type AtlasManifest,
-  type AtlasMicrofrontendIndex,
+  type AtlasAppIndex,
   type AtlasProductionSelection,
   type AtlasStaticRegistry
 } from "@atlas/schema";
@@ -23,14 +23,14 @@ export async function prepareStaticRegistry(
 ): Promise<AtlasRegistryResult> {
   assertStaticRegistry(current);
   assertAtlasManifest(manifest);
-  assertSafeRegistryId(manifest.id, "microfrontend ID");
+  assertSafeRegistryId(manifest.id, "app ID");
   const manifests = replacePublishedManifest(current?.manifests ?? [], manifest);
   const updatedAt = manifest.createdAt;
   const productionSelections = selectPublishedProduction(current?.productionSelections, manifest);
   const baseRevision = registryRevision(current?.manifests ?? [], current?.productionSelections);
   const nextRevision = registryRevision(manifests, productionSelections);
   const registry: AtlasStaticRegistry = { schemaVersion: "1", revision: nextRevision, updatedAt, manifests, productionSelections };
-  const mfIndex: AtlasMicrofrontendIndex = {
+  const mfIndex: AtlasAppIndex = {
     schemaVersion: "1",
     mfId: manifest.id,
     updatedAt,
@@ -79,9 +79,9 @@ export function createHostCatalog(
       const [ownerId, widgetId] = reference.split("/");
       if (!ownerId || !widgetId) continue;
       const owner = byId.get(ownerId);
-      if (!owner) throw new Error(`Atlas MF "${consumer.id}" uses "${reference}", but no production manifest exists for owner "${ownerId}".`);
-      if (!(owner.exportedComponents ?? []).some((widget) => widget.id === widgetId)) {
-        throw new Error(`Atlas MF "${consumer.id}" uses "${reference}", but that widget is not exported by "${ownerId}".`);
+      if (!owner) throw new Error(`Atlas app "${consumer.id}" uses "${reference}", but no production manifest exists for owner "${ownerId}".`);
+      if (!(owner.exportedWidgets ?? []).some((widget) => widget.id === widgetId)) {
+        throw new Error(`Atlas app "${consumer.id}" uses "${reference}", but that widget is not exported by "${ownerId}".`);
       }
       if (included.has(ownerId)) continue;
       included.set(ownerId, owner);
@@ -112,10 +112,10 @@ export async function prepareStaticRollback(options: {
     manifest.version === options.version &&
     (!options.buildId || manifest.buildId === options.buildId));
   if (candidates.length === 0) {
-    throw new Error(`No production build found for Atlas MF "${options.mfId}" at version "${options.version}".`);
+    throw new Error(`No production build found for Atlas app "${options.mfId}" at version "${options.version}".`);
   }
   if (candidates.length > 1) {
-    throw new Error(`Atlas MF "${options.mfId}" has multiple builds for version "${options.version}". Pass --build-id.`);
+    throw new Error(`Atlas app "${options.mfId}" has multiple builds for version "${options.version}". Pass --build-id.`);
   }
 
   const selected = candidates[0]!;
@@ -155,7 +155,7 @@ function assertStaticRegistry(registry: AtlasStaticRegistry | undefined): void {
   for (const [mfId, selection] of Object.entries(registry.productionSelections ?? {})) {
     const exists = registry.manifests.some((manifest) => manifest.id === mfId &&
       manifest.channel === "production" && manifest.version === selection.version && manifest.buildId === selection.buildId);
-    if (!exists) throw new Error(`The static Atlas registry selects a missing production build for MF "${mfId}".`);
+    if (!exists) throw new Error(`The static Atlas registry selects a missing production build for app "${mfId}".`);
   }
   const actualRevision = registryRevision(registry.manifests, registry.productionSelections);
   if (registry.revision && registry.revision !== actualRevision) {

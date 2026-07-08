@@ -32,7 +32,7 @@ function validateUniqueManifestIds(manifests: unknown[], issues: AtlasValidation
     const manifest = asRecord(manifestValue);
     if (typeof manifest?.id !== "string") return;
     if (manifestIds.has(manifest.id)) {
-      addIssue(issues, `manifests.${manifestIndex}.id`, `Duplicate MF id "${manifest.id}".`);
+      addIssue(issues, `manifests.${manifestIndex}.id`, `Duplicate app id "${manifest.id}".`);
     } else {
       manifestIds.add(manifest.id);
     }
@@ -52,7 +52,7 @@ function validateExactRouteOwnership(manifests: unknown[], issues: AtlasValidati
       const key = `${placement.hostId}\u0000${route.basePath}`;
       const previous = owners.get(key);
       if (previous) {
-        addIssue(issues, path, `Route \"${route.basePath}\" for host \"${placement.hostId}\" is already owned by MF \"${previous.manifestId}\" at ${previous.path}.`);
+        addIssue(issues, path, `Route \"${route.basePath}\" for host \"${placement.hostId}\" is already owned by app \"${previous.manifestId}\" at ${previous.path}.`);
       } else {
         owners.set(key, { manifestId: typeof manifest?.id === "string" ? manifest.id : `manifest ${manifestIndex}`, path });
       }

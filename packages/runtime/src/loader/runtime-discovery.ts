@@ -115,20 +115,20 @@ export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideO
 export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: AtlasRuntimeOverride[] = []): AtlasManifest[] {
   const byId = new Map<string, AtlasManifest>();
   for (const manifest of catalog.manifests) {
-    if (byId.has(manifest.id)) throw new Error(`Atlas catalog contains multiple selected versions for MF "${manifest.id}".`);
+    if (byId.has(manifest.id)) throw new Error(`Atlas catalog contains multiple selected versions for app "${manifest.id}".`);
     byId.set(manifest.id, manifest);
   }
   const overriddenIds = new Set<string>();
   for (const override of overrides) {
     assertAtlasManifest(override.manifest);
     if (override.mfId !== override.manifest.id) {
-      throw new Error(`Atlas override MF id "${override.mfId}" does not match manifest id "${override.manifest.id}".`);
+      throw new Error(`Atlas override app id "${override.mfId}" does not match manifest id "${override.manifest.id}".`);
     }
     if (overriddenIds.has(override.mfId)) {
-      throw new Error(`Atlas overrides contain duplicate entries for MF "${override.mfId}".`);
+      throw new Error(`Atlas overrides contain duplicate entries for app "${override.mfId}".`);
     }
     if (!byId.has(override.mfId)) {
-      throw new Error(`Atlas override targets MF "${override.mfId}", which is not selected by the host catalog.`);
+      throw new Error(`Atlas override targets app "${override.mfId}", which is not selected by the host catalog.`);
     }
     assertManifestSupportsHost(override.manifest, catalog.hostId, "override");
     assertLocalManifestUrls(override.manifest);
@@ -161,10 +161,10 @@ export async function verifyManifestIntegrity(
       continue;
     }
     const [algorithm, expected] = manifest.integrity.split("-", 2);
-    if (algorithm !== "sha256" || !expected) throw new Error(`Atlas MF "${manifest.id}" has an unsupported integrity value.`);
+    if (algorithm !== "sha256" || !expected) throw new Error(`Atlas app "${manifest.id}" has an unsupported integrity value.`);
     const digest = await globalThis.crypto.subtle.digest("SHA-256", await fetchBytes(manifest.remoteEntryUrl));
     if (bytesToBase64(new Uint8Array(digest)) !== expected) {
-      throw new Error(`Atlas MF "${manifest.id}" failed remote entry integrity verification.`);
+      throw new Error(`Atlas app "${manifest.id}" failed remote entry integrity verification.`);
     }
   }
 }
@@ -214,7 +214,7 @@ function validateOverrideDocument(document: AtlasRuntimeOverrideDocument, hostId
   }
   for (const override of document.overrides) {
     if (override.mfId !== override.manifest.id) {
-      throw new Error(`Atlas override MF id "${override.mfId}" does not match manifest id "${override.manifest.id}".`);
+      throw new Error(`Atlas override app id "${override.mfId}" does not match manifest id "${override.manifest.id}".`);
     }
     assertAtlasManifest(override.manifest);
   }
@@ -259,12 +259,12 @@ export function assertManifestStylesTrust(manifest: AtlasManifest, policy: Atlas
 
 function assertTrustedAssetUrl(urlValue: string, mfId: string, kind: string): void {
   const url = new URL(urlValue, globalThis.location?.href ?? "http://atlas.local");
-  if (!isHttpProtocol(url.protocol)) throw new Error(`Atlas MF "${mfId}" uses unsupported ${kind} protocol "${url.protocol}".`);
+  if (!isHttpProtocol(url.protocol)) throw new Error(`Atlas app "${mfId}" uses unsupported ${kind} protocol "${url.protocol}".`);
 }
 
 function assertManifestSupportsHost(manifest: AtlasManifest, hostId: string, source: string): void {
   if (!manifest.supportedHosts.includes("*") && !manifest.supportedHosts.includes(hostId)) {
-    throw new Error(`Atlas ${source} manifest for MF "${manifest.id}" does not support host "${hostId}".`);
+    throw new Error(`Atlas ${source} manifest for app "${manifest.id}" does not support host "${hostId}".`);
   }
 }
 
@@ -273,12 +273,12 @@ function assertLocalManifestUrls(manifest: AtlasManifest): void {
   const urls = [
     manifest.remoteEntryUrl,
     ...(manifest.styles ?? []).map(({ href }) => href),
-    ...(manifest.exportedComponents ?? []).map(({ remoteEntryUrl }) => remoteEntryUrl)
+    ...(manifest.exportedWidgets ?? []).map(({ remoteEntryUrl }) => remoteEntryUrl)
   ];
   for (const value of urls) {
     const url = new URL(value, globalThis.location?.href ?? "http://atlas.local");
     if (!isHttpProtocol(url.protocol) || !isLoopbackHostname(url.hostname)) {
-      throw new Error(`Atlas local MF "${manifest.id}" must use loopback HTTP(S) asset URLs.`);
+      throw new Error(`Atlas local app "${manifest.id}" must use loopback HTTP(S) asset URLs.`);
     }
   }
 }
@@ -289,11 +289,11 @@ function isLoopbackHostname(hostname: string): boolean {
 
 function assertWidgetUsesGraph(manifests: AtlasManifest[]): void {
   const exports = new Set(manifests.flatMap((manifest) =>
-    (manifest.exportedComponents ?? []).map((component) => `${manifest.id}/${component.id}`)));
+    (manifest.exportedWidgets ?? []).map((component) => `${manifest.id}/${component.id}`)));
   for (const manifest of manifests) {
     for (const reference of manifest.uses ?? []) {
       if (!exports.has(reference)) {
-        throw new Error(`Atlas MF "${manifest.id}" uses widget "${reference}", which is not exported by the selected runtime manifests.`);
+        throw new Error(`Atlas app "${manifest.id}" uses widget "${reference}", which is not exported by the selected runtime manifests.`);
       }
     }
   }

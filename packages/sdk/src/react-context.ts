@@ -15,12 +15,12 @@ export function useAtlasSdk<
   THostData extends object = {}
 >(): AtlasSdk<TExtensions, TEvents, THostData> {
   const sdk = useContext(AtlasSdkContext);
-  if (!sdk) throw new Error("useAtlasSdk must be used inside an Atlas microfrontend.");
+  if (!sdk) throw new Error("useAtlasSdk must be used inside an Atlas app.");
   return sdk as AtlasSdk<TExtensions, TEvents, THostData>;
 }
 
 export function useAppLoaded(): () => void {
   const context = useContext(AtlasRuntimeContext);
-  if (!context) throw new Error("useAppLoaded must be used inside an Atlas microfrontend.");
+  if (!context) throw new Error("useAppLoaded must be used inside an Atlas app.");
   return context.loading.waitUntilReady();
 }

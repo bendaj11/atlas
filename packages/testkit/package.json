@@ -1,11 +1,11 @@
 {
   "name": "@atlas/testkit",
-  "version": "0.2.33",
+  "version": "0.2.35",
   "type": "module",
-  "description": "Test fixtures and in-memory utilities for Atlas hosts and microfrontends.",
+  "description": "Test fixtures and in-memory utilities for Atlas hosts and apps.",
   "license": "MIT",
   "keywords": [
-    "microfrontend",
+    "app",
     "testing",
     "typescript"
   ],
@@ -41,7 +41,7 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.33",
-    "@atlas/sdk": "0.2.33"
+    "@atlas/schema": "0.2.35",
+    "@atlas/sdk": "0.2.35"
   }
 }

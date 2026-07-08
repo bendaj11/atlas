@@ -69,7 +69,7 @@ test.describe("Atlas Chrome extension", () => {
 
     const localPopup = await openPopup(session, host);
     await localPopup.getByText("Use a local manifest").click();
-    await localPopup.locator("#local-mf").selectOption("dashboard-react");
+    await localPopup.locator("#local-app").selectOption("dashboard-react");
     await localPopup.getByLabel("Manifest or atlas dev URL").fill("http://127.0.0.1:4400/fixtures/dashboard-react-local.json");
     await localPopup.getByRole("button", { name: "Use local version" }).click();
     await expect(localPopup.getByRole("status")).toContainText("ready to apply");
@@ -90,7 +90,7 @@ test.describe("Atlas Chrome extension", () => {
     await host.goto(hostUrl);
     const popup = await openPopup(session, host);
     await popup.getByText("Use a local manifest").click();
-    await popup.locator("#local-mf").selectOption("catalog-react");
+    await popup.locator("#local-app").selectOption("catalog-react");
     await popup.getByLabel("Manifest or atlas dev URL").fill("http://127.0.0.1:4400/fixtures/dashboard-react-local.json");
     await popup.getByRole("button", { name: "Use local version" }).click();
     await expect(popup.getByRole("status")).toContainText('manifest must belong to "catalog-react"');
@@ -112,7 +112,7 @@ async function launchExtension(): Promise<ExtensionSession> {
 
 async function openPopup(session: ExtensionSession, host: Page): Promise<Page> {
   const popup = await openPopupDocument(session, host);
-  await expect(popup.getByRole("status")).toContainText("microfrontends discovered");
+  await expect(popup.getByRole("status")).toContainText("apps discovered");
   return popup;
 }
 

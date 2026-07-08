@@ -9,7 +9,7 @@ export interface AtlasHostData {
   readonly name: string;
 }
 
-/** Stable capabilities every host exposes to every mounted MF and widget. */
+/** Stable capabilities every host exposes to every mounted app and widget. */
 export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends object = AtlasEventMap> {
   readonly hostId: string;
   readonly hostData: AtlasHostData & Readonly<THostData>;

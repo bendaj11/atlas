@@ -1,7 +1,7 @@
 import type { AtlasNavigation, AtlasScopedNavigation } from "./navigation-types.js";
 import { normalizeBasePath, scopePath } from "./navigation-paths.js";
 
-/** Restricts an MF's relative and absolute-path navigation to its assigned base path. */
+/** Restricts an app's relative and absolute-path navigation to its assigned base path. */
 export function createScopedNavigation(basePath: string, navigation: AtlasNavigation): AtlasScopedNavigation {
   const normalizedBasePath = normalizeBasePath(basePath);
 

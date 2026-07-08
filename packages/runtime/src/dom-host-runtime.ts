@@ -47,7 +47,7 @@ export async function startDomHostRuntime<TExtensions extends object, THostData 
     document,
     navigation,
     manifests,
-    importComponent: federation.importComponent
+    importWidget: federation.importWidget
   });
 
   renderHostNavigation(document, manifests, config.hostId, navigation);
@@ -59,7 +59,7 @@ export async function startDomHostRuntime<TExtensions extends object, THostData 
     manifests,
     sdk,
     importRemote: federation.importRemote,
-    importComponent: federation.importComponent,
+    importWidget: federation.importWidget,
     widgetLoader,
     trustPolicy,
     resolveRouteContainer: () => document.querySelector<HTMLElement>("[data-atlas-route-outlet]") ?? undefined,

@@ -1,5 +1,5 @@
 import type { AtlasDomIsolation } from "./atlas-dom-isolation.js";
-import type { AtlasExportedComponentManifest } from "./atlas-exported-component-manifest.js";
+import type { AtlasExportedWidgetManifest } from "./atlas-exported-widget-manifest.js";
 import type { AtlasExposeMap } from "./atlas-expose-map.js";
 import type { AtlasFramework } from "./atlas-framework.js";
 import type { AtlasMetadata } from "./atlas-metadata.js";
@@ -31,13 +31,13 @@ export interface AtlasManifest {
   styles?: AtlasStylesheet[];
   /** Public modules this app exposes to the host. */
   exposes: AtlasExposeMap;
-  /** Components or widgets this app publishes for other apps. */
-  exportedComponents?: AtlasExportedComponentManifest[];
+  /** Widgets this app publishes for other apps. */
+  exportedWidgets?: AtlasExportedWidgetManifest[];
   /** Widgets this app needs from other apps, written as "app-id/widget-id". */
   uses?: string[];
   /** Host SDK version range this build expects, such as "^0.1.0". */
   requiredHostSdkVersion: string;
-  /** Host app ids allowed to load this app. Use "*" to allow any host. */
+  /** Host ids allowed to load this app. Use "*" to allow any host. */
   supportedHosts: string[];
   /** Pages or named host areas where this app may appear. */
   placements: AtlasPlacement[];

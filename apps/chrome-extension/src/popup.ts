@@ -11,7 +11,7 @@ const hostName = requireElement<HTMLElement>("host-name");
 const statusElement = requireElement<HTMLElement>("status");
 const statusText = requireElement<HTMLElement>("status-text");
 const versions = requireElement<HTMLElement>("versions");
-const localMf = requireElement<HTMLSelectElement>("local-mf");
+const localApp = requireElement<HTMLSelectElement>("local-app");
 const localUrl = requireElement<HTMLInputElement>("local-url");
 const applyButton = requireElement<HTMLButtonElement>("apply");
 const clearButton = requireElement<HTMLButtonElement>("clear");
@@ -53,7 +53,7 @@ async function load(): Promise<void> {
     render();
     const errorCount = hostData.runtimeErrors.length + hostData.versionErrors.length;
     const runtimeNote = errorCount ? ` · ${errorCount} warning${errorCount === 1 ? "" : "s"}` : "";
-    setBusy(false, `${hostData.catalog.manifests.length} microfrontends discovered${runtimeNote}`);
+    setBusy(false, `${hostData.catalog.manifests.length} apps discovered${runtimeNote}`);
     if (errorCount) statusElement.dataset.tone = "error";
   } catch (error) {
     setError(error);
@@ -77,16 +77,16 @@ function isInspectableTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.
 
 function render(): void {
   versions.replaceChildren();
-  localMf.replaceChildren();
+  localApp.replaceChildren();
   if (!hostData) return;
   hostName.textContent = hostData.config.hostId;
   for (const production of hostData.catalog.manifests) {
     const section = document.createElement("article");
-    section.className = "mf";
+    section.className = "app";
     const row = document.createElement("div");
-    row.className = "mf-row";
+    row.className = "app-row";
     const name = document.createElement("span");
-    name.className = "mf-name";
+    name.className = "app-name";
     name.textContent = production.name;
     const framework = document.createElement("span");
     framework.className = "framework";
@@ -117,10 +117,10 @@ function render(): void {
     section.append(row, select, note);
     versions.append(section);
 
-    const mfOption = document.createElement("option");
-    mfOption.value = production.id;
-    mfOption.textContent = production.name;
-    localMf.append(mfOption);
+    const appOption = document.createElement("option");
+    appOption.value = production.id;
+    appOption.textContent = production.name;
+    localApp.append(appOption);
   }
   applyButton.disabled = false;
   clearButton.disabled = model.size === 0;
@@ -128,7 +128,7 @@ function render(): void {
 
 async function addLocal(): Promise<void> {
   if (!activeTabId || !hostData) return;
-  const mfId = localMf.value;
+  const mfId = localApp.value;
   const url = localUrl.value.trim();
   if (!url) return setError(new Error("Enter a local manifest URL."));
   setBusy(true, "Validating local manifest...");
@@ -213,7 +213,7 @@ async function inspectAtlasHost(): Promise<HostData> {
     try { overrides = JSON.parse(stored) as OverrideDocument; } catch { /* SDK reports malformed documents during host boot. */ }
   }
   const runtimeErrors = [...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]')]
-    .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-mf") || "Unknown MF error");
+    .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-mf") || "Unknown app error");
   return { config, catalog, versions: Object.fromEntries(entries), overrides, overrideScope, runtimeErrors, versionErrors };
 }
 

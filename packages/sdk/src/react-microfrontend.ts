@@ -1,5 +1,5 @@
 import { createElement as createReactElement, type ReactNode } from "react";
-import type { AtlasExportedComponentEntry, AtlasExportedComponentMountRequest, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
+import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
 import { AtlasRuntimeContext, AtlasSdkContext } from "./react-context.js";
 import { connectRouter, type MfRouterLike } from "./react-router.js";
 
@@ -8,12 +8,12 @@ export interface RootAdapter {
   unmount(): void;
 }
 
-export interface MicrofrontendOptions {
+export interface AppOptions {
   createRoot(container: HTMLElement): RootAdapter;
   createElement(request: AtlasMfMountRequest): unknown;
 }
 
-export function defineMicrofrontend(options: MicrofrontendOptions): AtlasMfEntry {
+export function defineApp(options: AppOptions): AtlasMfEntry {
   return {
     mount(request): AtlasMfMountResult {
       const root = options.createRoot(request.container);
@@ -27,7 +27,7 @@ export function defineMicrofrontend(options: MicrofrontendOptions): AtlasMfEntry
   };
 }
 
-export function createRoutedMicrofrontend<TRouter extends MfRouterLike>(options: {
+export function createRoutedApp<TRouter extends MfRouterLike>(options: {
   createRoot(container: HTMLElement): RootAdapter;
   createRouter(request: AtlasMfMountRequest): TRouter;
   createElement(router: TRouter, request: AtlasMfMountRequest): unknown;
@@ -51,10 +51,10 @@ export function createRoutedMicrofrontend<TRouter extends MfRouterLike>(options:
   };
 }
 
-export function defineExportedComponent<TProps extends object>(options: {
+export function defineExportedWidget<TProps extends object>(options: {
   createRoot(container: HTMLElement): RootAdapter;
-  createElement(request: AtlasExportedComponentMountRequest<TProps>): unknown;
-}): AtlasExportedComponentEntry<TProps> {
+  createElement(request: AtlasExportedWidgetMountRequest<TProps>): unknown;
+}): AtlasExportedWidgetEntry<TProps> {
   return {
     mount(request): AtlasMfMountResult {
       const root = options.createRoot(request.container);

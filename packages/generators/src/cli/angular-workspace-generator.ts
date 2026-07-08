@@ -41,21 +41,21 @@ const { readdirSync, existsSync } = require("node:fs");
 const { join } = require("node:path");
 const { withNativeFederation } = require("@angular-architects/native-federation/config");
 
-const componentsRoot = join(__dirname, "src/exported-components");
-const componentExposes = existsSync(componentsRoot)
+const widgetsRoot = join(__dirname, "src/exported-widgets");
+const widgetExposes = existsSync(widgetsRoot)
   ? Object.fromEntries(
-      readdirSync(componentsRoot, { withFileTypes: true })
+      readdirSync(widgetsRoot, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())
         .map((entry) => [
-          \`./components/\${entry.name}\`,
-          \`./src/exported-components/\${entry.name}/index.ts\`
+          \`./widgets/\${entry.name}\`,
+          \`./src/exported-widgets/\${entry.name}/index.ts\`
         ])
     )
   : {};
 
 module.exports = withNativeFederation({
   name: "${angularRemoteName(name)}",
-  exposes: ${host ? "{}" : `{ "./entry": "./src/entry.ts", ...componentExposes }`},
+  exposes: ${host ? "{}" : `{ "./entry": "./src/entry.ts", ...widgetExposes }`},
   // Product dependencies stay inside this build so hosts never impose their versions.
   shared: {},
   skip: ["rxjs/ajax", "rxjs/fetch", "rxjs/testing", "rxjs/webSocket"]

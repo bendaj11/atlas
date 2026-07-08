@@ -5,9 +5,9 @@ import { pathToFileURL } from "node:url";
 import {
   createManifestFromConfig,
   type AtlasConfig,
-  type AtlasExportedComponentManifest,
+  type AtlasExportedWidgetManifest,
   type AtlasManifest,
-  type AtlasMicrofrontendConfig,
+  type AtlasAppConfig,
   type AtlasStaticRegistry,
   type AtlasStylesheet,
   type AtlasVersionChannel
@@ -29,7 +29,7 @@ export class AtlasBuildService {
   async buildManifest(name: string, forcedChannel?: AtlasVersionChannel, options: { skipCompile?: boolean; baseUrl?: string } = {}): Promise<AtlasManifest> {
     const project = await this.workspace.findProject(name);
     if (!options.skipCompile && !this.args.hasFlag("skip-compile")) await this.workspace.run(project, "build");
-    const config = assertMicrofrontendConfig(await this.loadConfig(project.root));
+    const config = assertAppConfig(await this.loadConfig(project.root));
     const channel = forcedChannel ?? this.args.channel(process.env.ATLAS_CHANNEL ?? "production");
     const version = this.args.flag("version") ?? process.env.ATLAS_VERSION ?? project.version;
     const entryPath = this.args.flag("entry") ?? "remoteEntry.json";
@@ -43,7 +43,7 @@ export class AtlasBuildService {
     const baseUrl = trimSlash(options.baseUrl ?? this.registryBaseUrl(channel));
     const remoteEntryUrl = channel === "local" ? `${baseUrl}/${entryPath}` : `${baseUrl}/${config.id}/${version}/${buildId}/${entryPath}`;
     const artifactBaseUrl = remoteEntryUrl.slice(0, -entryPath.length).replace(/\/$/, "");
-    const exportedComponents = await discoverExportedComponents(project.root, config, remoteEntryUrl);
+    const exportedWidgets = await discoverExportedWidgets(project.root, config, remoteEntryUrl);
     const styles = await discoverStylesheets({ artifactRoot: artifactRoot ?? project.root, artifactBaseUrl, framework: config.framework, channel });
     const integrity = artifactRoot && channel !== "local"
       ? `sha256-${createHash("sha256").update(await readFile(join(artifactRoot, entryPath))).digest("base64")}`
@@ -53,7 +53,7 @@ export class AtlasBuildService {
       gitSha: process.env.GIT_SHA,
       prNumber: optionalNumber(process.env.PR_NUMBER),
       createdAt: buildTimestamp(),
-      exportedComponents,
+      exportedWidgets,
       styles,
       ...(integrity ? { integrity } : {})
     });
@@ -161,24 +161,24 @@ async function discoverStylesheets(options: {
   return stylesheets;
 }
 
-async function discoverExportedComponents(root: string, config: AtlasConfig, ownerRemoteEntryUrl: string): Promise<AtlasExportedComponentManifest[]> {
-  const directory = join(root, "src", "exported-components");
+async function discoverExportedWidgets(root: string, config: AtlasConfig, ownerRemoteEntryUrl: string): Promise<AtlasExportedWidgetManifest[]> {
+  const directory = join(root, "src", "exported-widgets");
   let entries;
   try { entries = await readdir(directory, { withFileTypes: true }); }
   catch (error) { if (isNodeError(error) && error.code === "ENOENT") return []; throw error; }
-  const components: AtlasExportedComponentManifest[] = [];
+  const widgets: AtlasExportedWidgetManifest[] = [];
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory()) continue;
     const extension = config.framework === "react" ? "tsx" : "ts";
     try { await access(join(directory, entry.name, `index.${extension}`)); }
-    catch { throw new Error(`Exported component "${entry.name}" must contain src/exported-components/${entry.name}/index.${extension}.`); }
-    components.push({
+    catch { throw new Error(`Exported widget "${entry.name}" must contain src/exported-widgets/${entry.name}/index.${extension}.`); }
+    widgets.push({
       schemaVersion: "1", id: entry.name, name: title(entry.name), ownerMfId: config.id, framework: config.framework,
       remoteEntryUrl: ownerRemoteEntryUrl,
-      expose: `./components/${entry.name}`, contractVersion: "1"
+      expose: `./widgets/${entry.name}`, contractVersion: "1"
     });
   }
-  return components;
+  return widgets;
 }
 
 async function findArtifactRoot(workspaceRoot: string, project: AtlasProject, config: AtlasConfig, entryPath: string): Promise<string> {
@@ -242,9 +242,9 @@ function isAtlasBuildMetadata(path: string): boolean {
 }
 
 function isAtlasConfig(value: unknown): value is AtlasConfig { return typeof value === "object" && value !== null && "id" in value && "framework" in value; }
-function assertMicrofrontendConfig(config: AtlasConfig): AtlasMicrofrontendConfig {
+function assertAppConfig(config: AtlasConfig): AtlasAppConfig {
   if ("allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config) {
-    throw new Error(`Atlas build expects a microfrontend config for "${config.id}", but received a host config.`);
+    throw new Error(`Atlas build expects an app config for "${config.id}", but received a host config.`);
   }
   return config;
 }

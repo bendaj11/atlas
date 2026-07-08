@@ -2,7 +2,7 @@ import type { AtlasDomIsolation } from "./atlas-dom-isolation.js";
 import type { AtlasFramework } from "./atlas-framework.js";
 import type { AtlasRouteNavigation } from "./atlas-route-navigation.js";
 
-/** Shared Atlas source config fields for hosts and microfrontends. */
+/** Shared Atlas source config fields for hosts and apps. */
 export interface AtlasBaseConfig {
   /** Stable Atlas app or host id. Used in manifests, catalogs, and generated runtime files. */
   id: string;
@@ -22,8 +22,8 @@ export interface AtlasHostConfig extends AtlasBaseConfig {
   resourcesRetryCount?: number;
 }
 
-/** Source config developers write for microfrontend projects. */
-export interface AtlasMicrofrontendConfig extends AtlasBaseConfig {
+/** Source config developers write for app projects. */
+export interface AtlasAppConfig extends AtlasBaseConfig {
   /** DOM/CSS boundary requested when a host mounts this app. Defaults to scoped. */
   domIsolation?: AtlasDomIsolation;
   /** Page routes this app contributes to hosts. */
@@ -34,16 +34,17 @@ export interface AtlasMicrofrontendConfig extends AtlasBaseConfig {
   requiredHostSdkVersion?: string;
 }
 
+/** @deprecated Use AtlasAppConfig. */
+export type AtlasMicrofrontendConfig = AtlasAppConfig;
+
 /** Route this app contributes to one host. */
 export interface AtlasRouteMount {
-  /** Short stable id for this route mount, unique inside this app. */
-  id: string;
   /** Host app this route belongs to. */
   hostId: string;
   /** URL path users visit to see this app, such as "/checkout". No query string or hash. */
   basePath: string;
-  /** Text hosts can show as the page title, breadcrumb, or menu title. */
-  title: string;
+  /** Static page title hosts can show before the app sets a dynamic title. */
+  title?: string;
   /** Optional menu settings if the host shows this route in navigation. */
   nav?: AtlasRouteNavigation;
 }
@@ -59,4 +60,4 @@ export interface AtlasSlotMount {
 }
 
 /** Source config developers write so Atlas can build manifests and runtime files. */
-export type AtlasConfig = AtlasHostConfig | AtlasMicrofrontendConfig;
+export type AtlasConfig = AtlasHostConfig | AtlasAppConfig;

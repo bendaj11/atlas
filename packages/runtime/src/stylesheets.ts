@@ -11,7 +11,7 @@ interface LoadedStylesheet {
 
 const documentStyles = new WeakMap<Document, Map<string, LoadedStylesheet>>();
 
-/** Loads an MF's declared styles once per document and returns a reference-counted release function. */
+/** Loads an app's declared styles once per document and returns a reference-counted release function. */
 export async function loadManifestStyles(
   manifest: AtlasManifest,
   document: Document | undefined,
@@ -65,7 +65,7 @@ async function acquireStylesheet(document: Document, stylesheet: AtlasStylesheet
 function stylesheetReady(element: HTMLLinkElement, mfId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     element.addEventListener("load", () => resolve(), { once: true });
-    element.addEventListener("error", () => reject(new Error(`Atlas could not load stylesheet for MF "${mfId}": ${element.href}`)), { once: true });
+    element.addEventListener("error", () => reject(new Error(`Atlas could not load stylesheet for app "${mfId}": ${element.href}`)), { once: true });
   });
 }
 

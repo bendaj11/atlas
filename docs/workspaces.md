@@ -115,7 +115,7 @@ No global Nx or Turbo installation is required. Atlas uses the workspace-local t
 Atlas does not replace a framework's style configuration. Nx or Angular may list
 global styles and assets in `project.json` or `angular.json`; Vite may discover
 them through imports. Atlas runs the workspace's normal production target and
-then describes the emitted CSS in the MF manifest. The host therefore loads the
+then describes the emitted CSS in the app manifest. The host therefore loads the
 same build output regardless of whether the source lives in Nx, Turbo, a Yarn
 workspace, or a standalone project.
 

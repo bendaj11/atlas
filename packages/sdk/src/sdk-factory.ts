@@ -3,7 +3,7 @@ import { normalizeHttpClient } from "./http-client.js";
 import { emptyModalOpener, missingConfigValue, missingPopupProvider, noop } from "./sdk-defaults.js";
 import type { AtlasCoreSdk, AtlasHostData, AtlasSdk, AtlasSdkOptions } from "./sdk-types.js";
 
-/** Creates the single host-owned SDK instance shared with mounted MFs and widgets. */
+/** Creates the single host-owned SDK instance shared with mounted apps and widgets. */
 export function createAtlasSdk<
   TExtensions extends object = {},
   TEvents extends object = AtlasEventMap,

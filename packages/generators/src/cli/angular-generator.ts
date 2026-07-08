@@ -1,10 +1,10 @@
 import { angularHostBootstrap, angularHostComponent, angularHostMain } from "./angular-host-generator.js";
 import {
-  angularMicrofrontendAppComponent,
-  angularMicrofrontendDetailsComponent,
-  angularMicrofrontendEntry,
-  angularMicrofrontendHomeComponent,
-  angularMicrofrontendRoutes,
+  angularAppAppComponent,
+  angularAppDetailsComponent,
+  angularAppEntry,
+  angularAppHomeComponent,
+  angularAppRoutes,
   appSourceReadme
 } from "./angular-microfrontend-generator.js";
 import { angularIndex, angularPackage } from "./angular-package-generator.js";
@@ -38,7 +38,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
   ];
 }
 
-export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
+export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
   const { name } = options;
   const profile = angularVersionProfile(options);
   return [
@@ -49,16 +49,16 @@ export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions
     { path: "tsconfig.atlas.json", contents: json(atlasConfigTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },
-    { path: "src/index.html", contents: angularIndex(title(name), "<div>Atlas microfrontend assets</div>") },
+    { path: "src/index.html", contents: angularIndex(title(name), "<div>Atlas app assets</div>") },
     { path: "src/styles.css", contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
     { path: "src/app/README.md", contents: appSourceReadme() },
-    { path: "src/app/app.component.ts", contents: angularMicrofrontendAppComponent(name) },
-    { path: "src/app/home/home.component.ts", contents: angularMicrofrontendHomeComponent(name) },
-    { path: "src/app/details/details.component.ts", contents: angularMicrofrontendDetailsComponent() },
-    { path: "src/app/routes.ts", contents: angularMicrofrontendRoutes() },
-    { path: "src/entry.ts", contents: angularMicrofrontendEntry(name) },
-    { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }
+    { path: "src/app/app.component.ts", contents: angularAppAppComponent(name) },
+    { path: "src/app/home/home.component.ts", contents: angularAppHomeComponent(name) },
+    { path: "src/app/details/details.component.ts", contents: angularAppDetailsComponent() },
+    { path: "src/app/routes.ts", contents: angularAppRoutes() },
+    { path: "src/entry.ts", contents: angularAppEntry(name) },
+    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-app/widget-id\` in \`uses\`.\n` }
   ];
 }

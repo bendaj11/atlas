@@ -32,7 +32,7 @@ test("createManifestFromConfig derives supported hosts from source routes and sl
     config: {
       id: "catalog",
       framework: "react",
-      routes: [{ id: "catalog-route", hostId: "host", basePath: "/catalog", title: "Catalog" }],
+      routes: [{ hostId: "host", basePath: "/catalog", title: "Catalog" }],
       slots: [{ id: "catalog-sidebar", hostId: "partner-host.v2", name: "sidebar" }]
     },
     version: "1.0.0",
@@ -52,7 +52,7 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
     config: {
       id: "catalog",
       framework: "react",
-      routes: [{ id: "catalog-route", hostId: "host", basePath: "/catalog", title: "Catalog" }],
+      routes: [{ hostId: "host", basePath: "/catalog", title: "Catalog" }],
       slots: [{ id: "catalog-sidebar", hostId: "host", name: "sidebar" }]
     },
     version: "1.0.0",
@@ -61,9 +61,27 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
   });
 
   assert.deepEqual(manifest.placements, [
-    { id: "catalog-route", kind: "route", hostId: "host", route: { id: "catalog-route", basePath: "/catalog", title: "Catalog" } },
+    { id: "host-catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } },
     { id: "catalog-sidebar", kind: "slot", hostId: "host", slot: "sidebar" }
   ]);
+});
+
+test("createManifestFromConfig derives unique internal route placement ids", () => {
+  const manifest = createManifestFromConfig({
+    config: {
+      id: "catalog",
+      framework: "react",
+      routes: [
+        { hostId: "host", basePath: "/orders/:id" },
+        { hostId: "host", basePath: "/orders/id" }
+      ]
+    },
+    version: "1.0.0",
+    buildId: "build-1",
+    remoteEntryUrl: "https://cdn.example.com/catalog/remoteEntry.js"
+  });
+
+  assert.deepEqual(manifest.placements.map((placement) => placement.id), ["host-orders-id-route", "host-orders-id-route-2"]);
 });
 
 test("manifest validates the optional DOM isolation policy", () => {
@@ -91,7 +109,7 @@ test("identifiers permit practical frontend ids", () => {
     id: "workspace.ui_v2",
     supportedHosts: ["host.web_v2"],
     placements: [{ id: "main-slot_v2", kind: "slot", hostId: "host.web_v2", slot: "sidebar" }],
-    exportedComponents: [{
+    exportedWidgets: [{
       schemaVersion: "1",
       contractVersion: "1",
       id: "summary-card_v2",
@@ -111,8 +129,8 @@ test("manifest identifiers reject separators and traversal", () => {
   const issues = validateAtlasManifest(createManifest({
     id: "../workspace",
     supportedHosts: ["host/admin", "host\\admin", "host..admin"],
-    placements: [{ id: "../main", kind: "route", hostId: "host/admin", route: { id: "main/route", basePath: "/workspace", title: "Workspace" } }],
-    exportedComponents: [{
+    placements: [{ id: "../main", kind: "route", hostId: "host/admin", route: { basePath: "/workspace", title: "Workspace" } }],
+    exportedWidgets: [{
       schemaVersion: "1",
       contractVersion: "1",
       id: "../summary",
@@ -125,7 +143,7 @@ test("manifest identifiers reject separators and traversal", () => {
     uses: ["maps/../main", "maps\\admin/main"]
   }));
 
-  for (const path of ["id", "supportedHosts.0", "supportedHosts.1", "supportedHosts.2", "placements.0.id", "placements.0.hostId", "placements.0.route.id", "exportedComponents.0.id", "exportedComponents.0.ownerMfId", "uses.0", "uses.1"]) {
+  for (const path of ["id", "supportedHosts.0", "supportedHosts.1", "supportedHosts.2", "placements.0.id", "placements.0.hostId", "exportedWidgets.0.id", "exportedWidgets.0.ownerMfId", "uses.0", "uses.1"]) {
     assert.ok(issueAt(issues, path), `Expected an issue at ${path}`);
   }
 });
@@ -142,7 +160,7 @@ test("route placements validate nested route and navigation fields", () => {
     kind: "route",
     hostId: "host",
     slot: "sidebar",
-    route: { id: "main", basePath: "workspace?tab=1", title: "", nav: { label: "", order: "first", visible: "yes" } }
+    route: { basePath: "workspace?tab=1", title: "", nav: { label: "", order: "first", visible: "yes" } }
   }];
   const issues = validateAtlasManifest(createManifest({ placements }));
 
@@ -153,7 +171,7 @@ test("route placements validate nested route and navigation fields", () => {
 });
 
 test("slot placements require a slot and reject route details", () => {
-  const placements = [{ id: "tools", kind: "slot", hostId: "host", route: { id: "tools", basePath: "/tools", title: "Tools" } }];
+  const placements = [{ id: "tools", kind: "slot", hostId: "host", route: { basePath: "/tools", title: "Tools" } }];
   const issues = validateAtlasManifest(createManifest({ placements }));
 
   assert.ok(issueAt(issues, "placements.0.slot"));
@@ -170,7 +188,7 @@ test("placements require unique ids", () => {
 });
 
 test("manifest and nested asset URLs accept only absolute HTTP(S) URLs", () => {
-  const exportedComponents = [{
+  const exportedWidgets = [{
     schemaVersion: "1",
     contractVersion: "1",
     id: "summary",
@@ -183,11 +201,11 @@ test("manifest and nested asset URLs accept only absolute HTTP(S) URLs", () => {
   const issues = validateAtlasManifest(createManifest({
     remoteEntryUrl: "file:///tmp/entry.js",
     styles: [{ href: "styles.css" }],
-    exportedComponents
+    exportedWidgets
   }));
 
   assert.deepEqual(
-    ["remoteEntryUrl", "styles.0.href", "exportedComponents.0.remoteEntryUrl"].every((path) => issueAt(issues, path) !== undefined),
+    ["remoteEntryUrl", "styles.0.href", "exportedWidgets.0.remoteEntryUrl"].every((path) => issueAt(issues, path) !== undefined),
     true
   );
 });
@@ -224,7 +242,7 @@ test("manifest integrity requires SHA-256 SRI format", () => {
   assert.equal(issueAt(validateAtlasManifest(createManifest({ integrity: VALID_INTEGRITY })), "integrity"), undefined);
 });
 
-test("exported components validate metadata and unique ids", () => {
+test("exported widgets validate metadata and unique ids", () => {
   const component = {
     schemaVersion: "1",
     contractVersion: "1",
@@ -236,10 +254,10 @@ test("exported components validate metadata and unique ids", () => {
     expose: "./summary",
     metadata: { stable: true, invalid: null }
   };
-  const issues = validateAtlasManifest(createManifest({ exportedComponents: [component, component] }));
+  const issues = validateAtlasManifest(createManifest({ exportedWidgets: [component, component] }));
 
-  assert.ok(issueAt(issues, "exportedComponents.0.metadata.invalid"));
-  assert.ok(issueAt(issues, "exportedComponents.1.id"));
+  assert.ok(issueAt(issues, "exportedWidgets.0.metadata.invalid"));
+  assert.ok(issueAt(issues, "exportedWidgets.1.id"));
 });
 
 test("widget uses reject whitespace and duplicate references", () => {
@@ -255,7 +273,7 @@ test("catalog validates nested manifests with prefixed paths", () => {
   assert.ok(issueAt(validateAtlasHostCatalog(catalog), "manifests.0.version"));
 });
 
-test("catalog rejects duplicate MF ids", () => {
+test("catalog rejects duplicate app ids", () => {
   const catalog = {
     schemaVersion: "1",
     hostId: "host",
@@ -263,11 +281,11 @@ test("catalog rejects duplicate MF ids", () => {
     manifests: [createManifest({ id: "catalog" }), createManifest({ id: "catalog" })]
   };
 
-  assert.equal(issueAt(validateAtlasHostCatalog(catalog), "manifests.1.id")?.message, 'Duplicate MF id "catalog".');
+  assert.equal(issueAt(validateAtlasHostCatalog(catalog), "manifests.1.id")?.message, 'Duplicate app id "catalog".');
 });
 
 test("catalog rejects duplicate exact route ownership with a clear owner error", () => {
-  const route = { id: "main", kind: "route", hostId: "host", route: { id: "main", basePath: "/workspace", title: "Workspace" } };
+  const route = { id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
     hostId: "host",
@@ -276,12 +294,12 @@ test("catalog rejects duplicate exact route ownership with a clear owner error",
   };
   const issue = issueAt(validateAtlasHostCatalog(catalog), "manifests.1.placements.0.route.basePath");
 
-  assert.match(issue.message, /already owned by MF "first"/);
+  assert.match(issue.message, /already owned by app "first"/);
   assert.match(issue.message, /manifests\.0\.placements\.0\.route\.basePath/);
 });
 
 test("catalog permits the same route path for different hosts", () => {
-  const route = { id: "main", kind: "route", route: { id: "main", basePath: "/workspace", title: "Workspace" } };
+  const route = { id: "main", kind: "route", route: { basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
     hostId: "host",

@@ -3,7 +3,7 @@ import type { AtlasHostMountState } from "./index.js";
 export type AtlasRuntimeEvent =
   | AtlasHostEvent
   | AtlasOperationEvent
-  | AtlasMicrofrontendEvent;
+  | AtlasAppEvent;
 
 export type AtlasRuntimeObserver = (event: AtlasRuntimeEvent) => void;
 
@@ -30,7 +30,7 @@ export interface AtlasOperationEvent extends AtlasEventBase {
   error?: Error;
 }
 
-export interface AtlasMicrofrontendEvent extends AtlasEventBase {
+export interface AtlasAppEvent extends AtlasEventBase {
   type: "mf.state";
   hostId: string;
   mfId: string;

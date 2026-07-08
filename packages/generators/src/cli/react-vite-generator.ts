@@ -18,23 +18,23 @@ export default defineConfig({
 `;
 }
 
-export function reactMicrofrontendViteConfig(name: string, compilerTarget: string): string {
+export function reactAppViteConfig(name: string, compilerTarget: string): string {
   return `import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
-const componentsRoot = resolve(__dirname, "src/exported-components");
-const componentIds = existsSync(componentsRoot)
-  ? readdirSync(componentsRoot, { withFileTypes: true })
+const widgetsRoot = resolve(__dirname, "src/exported-widgets");
+const widgetIds = existsSync(widgetsRoot)
+  ? readdirSync(widgetsRoot, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
   : [];
 const exposes = [
   { key: "./entry", outFileName: "entry.js" },
-  ...componentIds.map((id) => ({
-    key: \`./components/\${id}\`,
-    outFileName: \`components/\${id}.js\`
+  ...widgetIds.map((id) => ({
+    key: \`./widgets/\${id}\`,
+    outFileName: \`widgets/\${id}.js\`
   }))
 ];
 
@@ -56,10 +56,10 @@ function atlasFederationMetadata(): Plugin {
                 outFileName: "src/entry.tsx",
                 dev: { entryPoint: "src/entry.tsx" }
               },
-              ...componentIds.map((id) => ({
-                key: \`./components/\${id}\`,
-                outFileName: \`src/exported-components/\${id}/index.tsx\`,
-                dev: { entryPoint: \`src/exported-components/\${id}/index.tsx\` }
+              ...widgetIds.map((id) => ({
+                key: \`./widgets/\${id}\`,
+                outFileName: \`src/exported-widgets/\${id}/index.tsx\`,
+                dev: { entryPoint: \`src/exported-widgets/\${id}/index.tsx\` }
               }))
             ]
           })
@@ -75,7 +75,7 @@ function atlasFederationMetadata(): Plugin {
 function atlasReactRefreshPreamble(): Plugin {
   const sourceEntries = new Set([
     "src/entry.tsx",
-    ...componentIds.map((id) => \`src/exported-components/\${id}/index.tsx\`)
+    ...widgetIds.map((id) => \`src/exported-widgets/\${id}/index.tsx\`)
   ]);
 
   return {
@@ -107,7 +107,7 @@ export default defineConfig({
     rollupOptions: {
       input: Object.fromEntries([
         ["entry", resolve(__dirname, "src/entry.tsx")],
-        ...componentIds.map((id) => [\`components/\${id}\`, resolve(componentsRoot, id, "index.tsx")])
+        ...widgetIds.map((id) => [\`widgets/\${id}\`, resolve(widgetsRoot, id, "index.tsx")])
       ]),
       output: {
         entryFileNames: "[name].js",

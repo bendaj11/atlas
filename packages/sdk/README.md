@@ -1,6 +1,6 @@
 # @atlas/sdk
 
-Typed host capabilities and framework adapters for Atlas microfrontends.
+Typed host capabilities and framework adapters for Atlas apps.
 
 ```sh
 # Choose one:

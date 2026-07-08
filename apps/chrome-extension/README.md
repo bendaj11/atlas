@@ -1,6 +1,6 @@
 # Atlas Chrome Extension
 
-This Manifest V3 extension switches the microfrontend versions used by the Atlas host in the active tab. It does not modify host source code, Native Federation configuration, or CDN URLs.
+This Manifest V3 extension switches the app versions used by the Atlas host in the active tab. It does not modify host source code, Native Federation configuration, or CDN URLs.
 
 ## Build And Install
 
@@ -16,17 +16,17 @@ The extension requests `activeTab`, `scripting`, and `storage`. It receives temp
 
 1. Open an Atlas host.
 2. Open the Atlas extension.
-3. Choose one version for each MF.
+3. Choose one version for each app.
 4. Keep **All tabs** selected (the default), or choose **This tab** for an isolated experiment.
 5. Select **Apply and reload**.
 
-Production is the default. PR and historical versions come from the host static MF index. For local development, paste either an MF manifest URL or the `atlas.local-overrides.json` URL printed by `atlas dev`.
+Production is the default. PR and historical versions come from the host static app index. For local development, paste either an app manifest URL or the `atlas.local-overrides.json` URL printed by `atlas dev`.
 
 All-tabs overrides are stored by `hostId` in `chrome.storage.local` and copied to the host origin's `localStorage`. Current-tab overrides use `sessionStorage` and take precedence in that tab. The SDK validates the complete document and every manifest before federation initialization.
 
 Choosing **Use production** updates the current selection; choose **Apply and reload** to commit it. With **All tabs**, Atlas removes the origin-wide override. With **This tab**, Atlas stores an empty tab override so that one tab can stay on production while other tabs continue using an all-tabs override.
 
-If one MF version index is unavailable, the extension keeps the host usable, shows a warning, and still offers that MF's production version. Local manifests are validated for structure, MF identity, and host compatibility before they can be applied.
+If one app version index is unavailable, the extension keeps the host usable, shows a warning, and still offers that app's production version. Local manifests are validated for structure, app identity, and host compatibility before they can be applied.
 
 ## Verification
 

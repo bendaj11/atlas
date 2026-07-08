@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { createMemoryRouter, Link, Outlet, RouterProvider, useParams } from "react-router";
-import { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";
+import { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";
 import "./styles.css";
 
 function Layout() {
@@ -16,7 +16,7 @@ const routes = [{ path: "/", Component: Layout, children: [
   { path: "products/:id", Component: ProductDetails }
 ] }];
 
-export default createRoutedMicrofrontend({
+export default createRoutedApp({
   createRoot,
   createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),
   createElement: (router) => createElement(RouterProvider, { router })

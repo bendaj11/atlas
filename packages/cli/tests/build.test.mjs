@@ -4,10 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import { generateHostFiles, generateMicrofrontendFiles, generateWidgetFiles } from "../../generators/dist/index.js";
+import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
+
+process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
 const ATLAS_PACKAGE_RANGE = `^${JSON.parse(await readFile(new URL("../../generators/package.json", import.meta.url), "utf8")).version}`;
 
@@ -16,7 +19,7 @@ test("generators keep component declarations split across files", () => {
     const options = { name: "orders", framework };
     const files = [
       ...generateHostFiles(options),
-      ...generateMicrofrontendFiles(options),
+      ...generateAppFiles(options),
       ...generateWidgetFiles({ name: "order-status", framework })
     ];
     for (const file of files) {
@@ -46,9 +49,9 @@ test("atlas build emits a validated deployable manifest", async () => {
   assert.equal(manifest.version, "2.3.4");
   assert.equal(manifest.channel, "production");
   assert.equal(manifest.remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
-  assert.equal(manifest.exportedComponents[0].id, "product-count");
-  assert.equal(manifest.exportedComponents[0].ownerMfId, "catalog-react");
-  assert.equal(manifest.exportedComponents[0].remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
+  assert.equal(manifest.exportedWidgets[0].id, "product-count");
+  assert.equal(manifest.exportedWidgets[0].ownerMfId, "catalog-react");
+  assert.equal(manifest.exportedWidgets[0].remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
   assert.match(manifest.integrity, /^sha256-/);
 });
 
@@ -73,7 +76,7 @@ test("excluded source maps do not affect the generated build identity", async ()
   const artifactRoot = join(projectRoot, "dist");
   await mkdir(artifactRoot, { recursive: true });
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
-  await writeFile(join(projectRoot, "atlas.config.js"), 'export default { id: "orders", name: "Orders", framework: "react", routes: [{ id: "orders-route", hostId: "host", basePath: "/orders", title: "Orders" }] };\n');
+  await writeFile(join(projectRoot, "atlas.config.js"), 'export default { id: "orders", name: "Orders", framework: "react", routes: [{ hostId: "host", basePath: "/orders", title: "Orders" }] };\n');
   await writeFile(join(artifactRoot, "remoteEntry.json"), "{}\n");
   await writeFile(join(artifactRoot, "remoteEntry.js.map"), "first map\n");
   const project = { id: "orders", root: projectRoot, packageName: "orders", version: "1.0.0", outputPaths: [artifactRoot] };
@@ -304,18 +307,18 @@ test("atlas generation registers projects with Nx automatically", async () => {
 for (const scenario of [
   {
     name: "Yarn workspace",
-    prefix: "atlas-yarn-workspace-mf-",
+    prefix: "atlas-yarn-workspace-app-",
     files: { "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "yarn@1.22.22", workspaces: ["packages/*"] }) },
     framework: "react",
     root: "packages/orders",
     entry: "src/entry.tsx",
     config: "vite.config.ts",
-    match: /createRoutedMicrofrontend/,
+    match: /createRoutedApp/,
     configMatch: /remoteEntry\.json/
   },
   {
     name: "pnpm workspace",
-    prefix: "atlas-pnpm-workspace-mf-",
+    prefix: "atlas-pnpm-workspace-app-",
     files: {
       "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0" }),
       "pnpm-workspace.yaml": "packages:\n  - packages/*\n"
@@ -324,12 +327,12 @@ for (const scenario of [
     root: "packages/orders",
     entry: "src/entry.ts",
     config: "federation.config.js",
-    match: /defineMicrofrontend/,
+    match: /defineApp/,
     configMatch: /"\.\/entry": "\.\/src\/entry\.ts"/
   },
   {
     name: "Turborepo",
-    prefix: "atlas-turbo-mf-",
+    prefix: "atlas-turbo-app-",
     files: {
       "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0", workspaces: ["apps/*"] }),
       "turbo.json": "{}\n"
@@ -338,11 +341,11 @@ for (const scenario of [
     root: "apps/orders",
     entry: "src/entry.tsx",
     config: "vite.config.ts",
-    match: /createRoutedMicrofrontend/,
+    match: /createRoutedApp/,
     configMatch: /remoteEntry\.json/
   }
 ]) {
-  test(`atlas generates complete MF files in a ${scenario.name}`, async () => {
+  test(`atlas generates complete app files in a ${scenario.name}`, async () => {
     const root = await mkdtemp(join(tmpdir(), scenario.prefix));
     for (const [path, contents] of Object.entries(scenario.files)) {
       await writeFile(join(root, path), contents);
@@ -506,8 +509,8 @@ exit 1
   assert.match(stdout, /Formatted generated files in apps\/host/);
 });
 
-test("atlas adds required Angular MF files after Nx scaffolding", async () => {
-  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-mf-generator-"));
+test("atlas adds required Angular app files after Nx scaffolding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-app-generator-"));
   const bin = join(root, "bin");
   await mkdir(bin);
   await writeFile(join(root, "nx.json"), "{}\n");
@@ -545,7 +548,7 @@ exit 1
     "--framework=angular", "--skip-install"
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
-  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineMicrofrontend/);
+  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineApp/);
   assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(AppComponent/);
   assert.doesNotMatch(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /@Component|router-outlet/);
   await assert.rejects(access(join(root, "orders/src/app.component.ts")), { code: "ENOENT" });
@@ -556,9 +559,9 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/app/home/home.component.ts"), "utf8"), /export class HomeComponent/);
   assert.match(await readFile(join(root, "orders/src/app/details/details.component.ts"), "utf8"), /export class DetailsComponent/);
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
-  assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas microfrontend assets/);
+  assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas app assets/);
   assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
-  assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
+  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
@@ -570,8 +573,8 @@ exit 1
   assert.match(stdout, /Formatted generated files in orders/);
 });
 
-test("atlas adds required React MF files after Nx scaffolding", async () => {
-  const root = await mkdtemp(join(tmpdir(), "atlas-nx-react-mf-generator-"));
+test("atlas adds required React app files after Nx scaffolding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-react-app-generator-"));
   const bin = join(root, "bin");
   await mkdir(bin);
   await writeFile(join(root, "nx.json"), "{}\n");
@@ -610,7 +613,7 @@ exit 1
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   const reactEntry = await readFile(join(root, "orders/src/entry.tsx"), "utf8");
-  assert.match(reactEntry, /createRoutedMicrofrontend/);
+  assert.match(reactEntry, /createRoutedApp/);
   assert.match(reactEntry, /import \{ routes \} from "\.\/app\/routes"/);
   assert.doesNotMatch(reactEntry, /await import|import\.meta\.hot/);
   assert.doesNotMatch(reactEntry, /useAtlasSdk|<Outlet|<Link|function Layout/);
@@ -628,7 +631,7 @@ exit 1
   assert.match(reactViteConfig, /remoteEntry\.json/);
   assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
-  assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
+  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");

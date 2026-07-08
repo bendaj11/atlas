@@ -15,10 +15,10 @@ test("static registry prepares version indexes and a host catalog", async () => 
     ownerMfId: "orders",
     framework: "angular",
     remoteEntryUrl: "https://cdn.example/orders/1.0.0/build/remoteEntry.json",
-    expose: "./components/summary",
+    expose: "./widgets/summary",
     contractVersion: "1"
   };
-  const owner = createTestManifest({ id: "orders", name: "Orders", exportedComponents: [widget] });
+  const owner = createTestManifest({ id: "orders", name: "Orders", exportedWidgets: [widget] });
   const consumer = createTestManifest({ id: "dashboard", name: "Dashboard", uses: ["orders/summary"] });
 
   await prepareStaticRegistry(owner, undefined, directory);

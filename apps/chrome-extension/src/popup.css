@@ -14,9 +14,9 @@ main { padding: 10px 14px 14px; overflow: auto; max-height: 500px; }
 #status[data-busy="true"] .status-spinner { display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .status-spinner { animation: none; border-color: var(--accent); } }
-.mf { padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent); }
-.mf-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-.mf-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app { padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent); }
+.app-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.app-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .framework { color: GrayText; font-size: 11px; text-transform: uppercase; }
 select, input, button { font: inherit; }
 select, input { width: 100%; padding: 7px 8px; border: 1px solid color-mix(in srgb, CanvasText 28%, transparent); border-radius: 4px; background: Canvas; color: CanvasText; }

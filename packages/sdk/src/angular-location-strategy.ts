@@ -3,7 +3,7 @@ import type { LocationStrategyAdapter } from "./angular-types.js";
 
 type PopStateListener = (event: { type: "popstate"; state: unknown }) => void;
 
-/** Creates the LocationStrategy used by an Angular Router mounted inside an Atlas MF. */
+/** Creates the LocationStrategy used by an Angular Router mounted inside an Atlas app. */
 export function createLocationStrategy(context: AtlasMfContext): LocationStrategyAdapter {
   const listeners = new Set<PopStateListener>();
   let ignoredUrl: string | undefined;

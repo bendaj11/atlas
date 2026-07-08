@@ -1,12 +1,12 @@
-import type { AtlasMicrofrontendConfig } from "./atlas-config.js";
-import type { AtlasExportedComponentManifest } from "./atlas-exported-component-manifest.js";
+import type { AtlasAppConfig } from "./atlas-config.js";
+import type { AtlasExportedWidgetManifest } from "./atlas-exported-widget-manifest.js";
 import type { AtlasStylesheet } from "./atlas-stylesheet.js";
 import type { AtlasVersionChannel } from "./atlas-version-channel.js";
 
 /** Values needed to build the manifest JSON a host loads for one app build. */
 export interface CreateManifestFromConfigInput {
   /** Developer-written Atlas config for the app. */
-  config: AtlasMicrofrontendConfig;
+  config: AtlasAppConfig;
   /** App version to write into the manifest, such as "1.2.3". */
   version: string;
   /** Unique build id to write into the manifest. */
@@ -21,8 +21,8 @@ export interface CreateManifestFromConfigInput {
   prNumber?: number;
   /** Creation time to write into the manifest. Defaults to now. */
   createdAt?: string;
-  /** Components or widgets this app build publishes. */
-  exportedComponents?: AtlasExportedComponentManifest[];
+  /** Widgets this app build publishes. */
+  exportedWidgets?: AtlasExportedWidgetManifest[];
   /** CSS files this build produced. */
   styles?: AtlasStylesheet[];
   /** Browser integrity check for the generated JavaScript file. */

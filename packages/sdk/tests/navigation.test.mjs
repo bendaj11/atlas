@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createBrowserNavigation, createRouteContext, createScopedNavigation, scopePath } from "../dist/navigation.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 
-test("scopePath keeps MF navigation under base path", () => {
+test("scopePath keeps app navigation under base path", () => {
   assert.equal(scopePath("/catalog", "details/42"), "/catalog/details/42");
   assert.equal(scopePath("/catalog", "/details/42"), "/catalog/details/42");
   assert.equal(scopePath("/catalog", "/catalog/details/42"), "/catalog/details/42");
@@ -11,9 +11,12 @@ test("scopePath keeps MF navigation under base path", () => {
 
 test("route context exposes scoped path, query, params, and updates", () => {
   const navigation = createMemoryNavigation("/catalog/orders/42?tab=open&tag=a&tag=b");
-  const route = createRouteContext("/catalog", navigation);
+  let title;
+  const route = createRouteContext("/catalog", navigation, { setTabTitle: (nextTitle) => { title = nextTitle; } });
   assert.deepEqual(route.getCurrent(), { pathname: "/orders/42", query: { tab: "open", tag: ["a", "b"] }, hash: "" });
   assert.deepEqual(route.match("orders/:id"), { id: "42" });
+  route.setTabTitle("Order 42");
+  assert.equal(title, "Order 42");
   const seen = [];
   const unsubscribe = route.subscribe((location) => seen.push(location.pathname));
   navigation.navigate("/catalog/settings");

@@ -1,6 +1,6 @@
 import { createElement, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { defineMicrofrontend, useAppLoaded, useAtlasSdk } from "@atlas/sdk/react";
+import { defineApp, useAppLoaded, useAtlasSdk } from "@atlas/sdk/react";
 import type { AtlasMfMountRequest } from "@atlas/sdk/lifecycle";
 import "./styles.css";
 
@@ -22,4 +22,4 @@ function App({ context }: AtlasMfMountRequest) {
   return <section><h1>Dashboard React</h1><p>{atlas.hostData.name} mounted at {context.basePath}</p><div ref={widget} /><button type="button" onClick={() => atlas.toast.open({ title: "Dashboard React is ready" })}>Show toast</button><button type="button" onClick={() => atlas.popup.open({ title: "Order status", content: { widget: "orders-angular/order-status", props: { status: "processing" } }, draggable: true, resizable: true })}>Open Angular widget popup</button></section>;
 }
 
-export default defineMicrofrontend({ createRoot, createElement: (request) => createElement(App, request) });
+export default defineApp({ createRoot, createElement: (request) => createElement(App, request) });

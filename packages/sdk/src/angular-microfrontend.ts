@@ -1,10 +1,10 @@
-import type { AtlasExportedComponentEntry, AtlasExportedComponentMountRequest, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
+import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
 
-export interface MicrofrontendBootstrap {
+export interface AppBootstrap {
   (request: AtlasMfMountRequest): void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>;
 }
 
-export function defineMicrofrontend(bootstrap: MicrofrontendBootstrap): AtlasMfEntry {
+export function defineApp(bootstrap: AppBootstrap): AtlasMfEntry {
   return {
     mount(request) {
       return bootstrap(request);
@@ -12,8 +12,8 @@ export function defineMicrofrontend(bootstrap: MicrofrontendBootstrap): AtlasMfE
   };
 }
 
-export function defineExportedComponent<TProps extends object>(
-  bootstrap: (request: AtlasExportedComponentMountRequest<TProps>) => void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>
-): AtlasExportedComponentEntry<TProps> {
+export function defineExportedWidget<TProps extends object>(
+  bootstrap: (request: AtlasExportedWidgetMountRequest<TProps>) => void | AtlasMfMountResult | Promise<void | AtlasMfMountResult>
+): AtlasExportedWidgetEntry<TProps> {
   return { mount: bootstrap };
 }

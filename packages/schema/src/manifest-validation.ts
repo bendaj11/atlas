@@ -24,7 +24,7 @@ export function validateManifest(value: unknown, prefix?: string): AtlasValidati
   for (const key of ["schemaVersion", "id", "name", "version", "buildId", "channel", "framework", "remoteEntryUrl", "requiredHostSdkVersion", "createdAt"]) {
     requiredString(manifest, key, issues, prefix);
   }
-  validateIdentifier(manifest?.id, path("id"), "MF id", issues);
+  validateIdentifier(manifest?.id, path("id"), "app id", issues);
 
   if (manifest?.schemaVersion !== "1") addIssue(issues, path("schemaVersion"), "Expected schemaVersion to be \"1\".");
   if (!isOneOf(manifest?.channel, ["production", "pr", "historical", "local"])) addIssue(issues, path("channel"), "Expected channel to be production, pr, historical, or local.");
@@ -40,7 +40,7 @@ export function validateManifest(value: unknown, prefix?: string): AtlasValidati
   validatePlacements(manifest?.placements, path("placements"), issues);
   validateExposes(manifest?.exposes, path("exposes"), issues);
   validateStyles(manifest?.styles, path("styles"), issues);
-  validateExportedComponents(manifest, path("exportedComponents"), issues);
+  validateExportedWidgets(manifest, path("exportedWidgets"), issues);
   validateUses(manifest?.uses, path("uses"), issues);
   return issues;
 }
@@ -85,10 +85,8 @@ function validateRoutePlacement(placement: UnknownRecord, path: string, issues: 
     addIssue(issues, `${path}.route`, "Expected route details for a route placement.");
     return;
   }
-  const routeId = requiredString(route, "id", issues, `${path}.route`);
-  if (routeId) validateIdentifier(routeId, `${path}.route.id`, "route id", issues);
   const basePath = requiredString(route, "basePath", issues, `${path}.route`);
-  requiredString(route, "title", issues, `${path}.route`);
+  if (route.title !== undefined) requiredString(route, "title", issues, `${path}.route`);
   if (basePath && (!basePath.startsWith("/") || basePath.includes("?") || basePath.includes("#"))) {
     addIssue(issues, `${path}.route.basePath`, "Expected an absolute route path without a query or fragment.");
   }
@@ -143,34 +141,34 @@ function validateStyles(value: unknown, path: string, issues: AtlasValidationIss
   });
 }
 
-function validateExportedComponents(manifest: UnknownRecord | undefined, path: string, issues: AtlasValidationIssue[]): void {
-  const value = manifest?.exportedComponents;
+function validateExportedWidgets(manifest: UnknownRecord | undefined, path: string, issues: AtlasValidationIssue[]): void {
+  const value = manifest?.exportedWidgets;
   if (value === undefined) return;
   if (!Array.isArray(value)) {
-    addIssue(issues, path, "Expected exportedComponents to be an array.");
+    addIssue(issues, path, "Expected exportedWidgets to be an array.");
     return;
   }
   const ids = new Set<string>();
-  value.forEach((component, index) => validateExportedComponent(component, manifest?.id, `${path}.${index}`, ids, issues));
+  value.forEach((widget, index) => validateExportedWidget(widget, manifest?.id, `${path}.${index}`, ids, issues));
 }
 
-function validateExportedComponent(value: unknown, ownerId: unknown, path: string, ids: Set<string>, issues: AtlasValidationIssue[]): void {
-  const component = asRecord(value);
-  const id = requiredString(component, "id", issues, path);
-  requiredString(component, "name", issues, path);
-  const ownerMfId = requiredString(component, "ownerMfId", issues, path);
-  requiredString(component, "framework", issues, path);
-  const remoteEntryUrl = requiredString(component, "remoteEntryUrl", issues, path);
-  requiredString(component, "expose", issues, path);
-  if (id) validateIdentifier(id, `${path}.id`, "component id", issues);
-  if (ownerMfId) validateIdentifier(ownerMfId, `${path}.ownerMfId`, "owner MF id", issues);
-  if (component?.schemaVersion !== "1") addIssue(issues, `${path}.schemaVersion`, "Expected schemaVersion to be \"1\".");
-  if (component?.contractVersion !== "1") addIssue(issues, `${path}.contractVersion`, "Expected contractVersion to be \"1\".");
-  if (component?.ownerMfId !== ownerId) addIssue(issues, `${path}.ownerMfId`, "Expected ownerMfId to match the MF id.");
-  if (!isOneOf(component?.framework, FRAMEWORKS)) addIssue(issues, `${path}.framework`, "Expected a supported framework.");
+function validateExportedWidget(value: unknown, ownerId: unknown, path: string, ids: Set<string>, issues: AtlasValidationIssue[]): void {
+  const widget = asRecord(value);
+  const id = requiredString(widget, "id", issues, path);
+  requiredString(widget, "name", issues, path);
+  const ownerMfId = requiredString(widget, "ownerMfId", issues, path);
+  requiredString(widget, "framework", issues, path);
+  const remoteEntryUrl = requiredString(widget, "remoteEntryUrl", issues, path);
+  requiredString(widget, "expose", issues, path);
+  if (id) validateIdentifier(id, `${path}.id`, "widget id", issues);
+  if (ownerMfId) validateIdentifier(ownerMfId, `${path}.ownerMfId`, "owner app id", issues);
+  if (widget?.schemaVersion !== "1") addIssue(issues, `${path}.schemaVersion`, "Expected schemaVersion to be \"1\".");
+  if (widget?.contractVersion !== "1") addIssue(issues, `${path}.contractVersion`, "Expected contractVersion to be \"1\".");
+  if (widget?.ownerMfId !== ownerId) addIssue(issues, `${path}.ownerMfId`, "Expected ownerMfId to match the app id.");
+  if (!isOneOf(widget?.framework, FRAMEWORKS)) addIssue(issues, `${path}.framework`, "Expected a supported framework.");
   if (remoteEntryUrl) validateHttpUrl(remoteEntryUrl, `${path}.remoteEntryUrl`, issues);
-  validateMetadata(component?.metadata, `${path}.metadata`, issues);
-  if (id) validateUniqueValue(id, `${path}.id`, "exported component id", ids, issues);
+  validateMetadata(widget?.metadata, `${path}.metadata`, issues);
+  if (id) validateUniqueValue(id, `${path}.id`, "exported widget id", ids, issues);
 }
 
 function validateUses(value: unknown, path: string, issues: AtlasValidationIssue[]): void {
@@ -183,13 +181,13 @@ function validateUses(value: unknown, path: string, issues: AtlasValidationIssue
   value.forEach((reference, index) => {
     const itemPath = `${path}.${index}`;
     if (typeof reference !== "string" || !/^[^/]+\/[^/]+$/.test(reference)) {
-      addIssue(issues, itemPath, "Expected a widget reference in owner-mf/widget-id format.");
+      addIssue(issues, itemPath, "Expected a widget reference in owner-app/widget-id format.");
       return;
     }
-    const [ownerMfId, componentId] = reference.split("/");
-    const ownerIsValid = validateIdentifier(ownerMfId, itemPath, "widget owner MF id", issues);
-    const componentIsValid = validateIdentifier(componentId, itemPath, "widget component id", issues);
-    if (ownerIsValid && componentIsValid) validateUniqueValue(reference, itemPath, "widget reference", references, issues);
+    const [ownerMfId, widgetId] = reference.split("/");
+    const ownerIsValid = validateIdentifier(ownerMfId, itemPath, "widget owner app id", issues);
+    const widgetIsValid = validateIdentifier(widgetId, itemPath, "widget id", issues);
+    if (ownerIsValid && widgetIsValid) validateUniqueValue(reference, itemPath, "widget reference", references, issues);
   });
 }
 

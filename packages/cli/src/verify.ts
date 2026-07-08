@@ -98,7 +98,7 @@ export class AtlasVerifyService {
       fail(context, "host catalog", "Expected schemaVersion, hostId, generatedAt, and manifests.");
       return undefined;
     }
-    pass(context, "host catalog", `Loaded ${value.manifests.length} selected microfrontend(s).`);
+    pass(context, "host catalog", `Loaded ${value.manifests.length} selected app(s).`);
     return value;
   }
 
@@ -114,21 +114,21 @@ export class AtlasVerifyService {
       } catch (error) {
         fail(context, `${manifest.id || "unknown"} manifest`, errorMessage(error));
       }
-      if (ids.has(manifest.id)) fail(context, "catalog versions", `MF "${manifest.id}" is selected more than once.`);
+      if (ids.has(manifest.id)) fail(context, "catalog versions", `app "${manifest.id}" is selected more than once.`);
       ids.add(manifest.id);
     }
-    if (ids.size === catalog.manifests.length) pass(context, "catalog versions", "Exactly one version is selected per MF.");
+    if (ids.size === catalog.manifests.length) pass(context, "catalog versions", "Exactly one version is selected per app.");
     this.verifyWidgetReferences(catalog.manifests, context);
     this.verifyRouteOwnership(catalog, context);
   }
 
   private verifyWidgetReferences(manifests: AtlasManifest[], context: VerificationContext): void {
-    const exports = new Set(manifests.flatMap((manifest) =>
-      (manifest.exportedComponents ?? []).map((component) => `${manifest.id}/${component.id}`)));
+    const exportedWidgets = new Set(manifests.flatMap((manifest) =>
+      (manifest.exportedWidgets ?? []).map((component) => `${manifest.id}/${component.id}`)));
     const missing = manifests.flatMap((manifest) =>
-      (manifest.uses ?? []).filter((reference) => !exports.has(reference)).map((reference) => `${manifest.id} -> ${reference}`));
-    if (missing.length > 0) fail(context, "exported components", `Missing: ${missing.join(", ")}.`);
-    else pass(context, "exported components", "All consumed components resolve in the catalog.");
+      (manifest.uses ?? []).filter((reference) => !exportedWidgets.has(reference)).map((reference) => `${manifest.id} -> ${reference}`));
+    if (missing.length > 0) fail(context, "exported widgets", `Missing: ${missing.join(", ")}.`);
+    else pass(context, "exported widgets", "All consumed widgets resolve in the catalog.");
   }
 
   private verifyRouteOwnership(catalog: AtlasHostCatalog, context: VerificationContext): void {
@@ -194,7 +194,7 @@ export class AtlasVerifyService {
     const exposedKeys = new Set(metadata.map((entry) => entry.key));
     const requiredExposes = new Set([
       ...Object.values(manifest.exposes),
-      ...(manifest.exportedComponents ?? []).map((component) => component.expose)
+      ...(manifest.exportedWidgets ?? []).map((component) => component.expose)
     ]);
     const missingExposes = [...requiredExposes].filter((expose) => !exposedKeys.has(expose));
     if (missingExposes.length > 0) fail(context, `${manifest.id} federation exposes`, `Missing: ${missingExposes.join(", ")}.`);

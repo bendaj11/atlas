@@ -28,7 +28,7 @@ export class AtlasLoadError extends Error {
   constructor(context: AtlasOperationContext, attempts: number, cause: unknown) {
     const details = [
       `stage=${context.stage}`,
-      context.mfId ? `mf=${context.mfId}` : undefined,
+      context.mfId ? `app=${context.mfId}` : undefined,
       context.version ? `version=${context.version}` : undefined,
       context.resource ? `resource=${context.resource}` : undefined,
       `attempts=${attempts}`

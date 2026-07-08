@@ -1,6 +1,6 @@
 # @atlas/testkit
 
-Fixtures and in-memory utilities for testing Atlas hosts, manifests, and microfrontends.
+Fixtures and in-memory utilities for testing Atlas hosts, manifests, and apps.
 
 ```sh
 # Choose one:

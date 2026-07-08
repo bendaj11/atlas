@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 
 const PROCESS_START_TIMEOUT = 120_000;
 const PROCESS_STOP_TIMEOUT = 15_000;
-const MF_MOUNT_TIMEOUT = 15_000;
+const APP_MOUNT_TIMEOUT = 15_000;
 
 interface LocalDevelopmentCase {
   app: string;
@@ -45,7 +45,7 @@ test.describe("atlas dev", () => {
         await page.goto(activationUrl(scenario));
         await remoteEntryRequest;
         await expect(page.getByRole("heading", { name: scenario.heading })).toBeVisible({
-          timeout: MF_MOUNT_TIMEOUT
+          timeout: APP_MOUNT_TIMEOUT
         });
       } finally {
         await stopAtlasDev(process);

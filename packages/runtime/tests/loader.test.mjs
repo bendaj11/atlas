@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountMicrofrontend, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 
-test("resolveRuntimeManifests rejects duplicate selected MF versions", () => {
+test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
   const catalog = {
     schemaVersion: "1",
     hostId: "host",
@@ -62,7 +62,7 @@ test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible 
 });
 
 test("resolveRuntimeManifests rejects ambiguous exact routes", () => {
-  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { id, basePath, title: id } }];
+  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
   const catalog = {
     schemaVersion: "1",
     hostId: "host",
@@ -77,7 +77,7 @@ test("resolveRuntimeManifests rejects ambiguous exact routes", () => {
 });
 
 test("resolveRuntimeManifests preserves catalog placement ownership", () => {
-  const placement = { id: "catalog-route", kind: "route", hostId: "host", route: { id: "catalog", basePath: "/catalog", title: "Catalog" } };
+  const placement = { id: "catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } };
   const selected = createTestManifest({ id: "catalog", placements: [placement] });
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", placements: [] });
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
@@ -90,9 +90,9 @@ test("resolveRuntimeManifests preserves catalog placement ownership", () => {
 
 test("resolveRuntimeManifests revalidates widget uses after an override", () => {
   const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerMfId: "orders", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./summary", contractVersion: "1" };
-  const owner = createTestManifest({ id: "orders", exportedComponents: [widget], placements: [] });
+  const owner = createTestManifest({ id: "orders", exportedWidgets: [widget], placements: [] });
   const consumer = createTestManifest({ id: "dashboard", uses: ["orders/summary"], placements: [] });
-  const replacement = createTestManifest({ id: "orders", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", exportedComponents: [] });
+  const replacement = createTestManifest({ id: "orders", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", exportedWidgets: [] });
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [owner, consumer] };
 
   assert.throws(
@@ -246,7 +246,7 @@ test("Native Federation bounds parallel remote initialization", async () => {
     },
     async loadRemoteModule() { return { mount() {} }; }
   }, { retryCount: 0, timeoutMs: 50 });
-  const manifests = Array.from({ length: 12 }, (_, index) => createTestManifest({ id: `mf-${index}` }));
+  const manifests = Array.from({ length: 12 }, (_, index) => createTestManifest({ id: `app-${index}` }));
 
   await importers.initialize(manifests);
 
@@ -350,8 +350,8 @@ test("local override assets must use loopback URLs", () => {
 });
 
 test("widget loader mounts from the selected owner version", async () => {
-  const component = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerMfId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./components/product-count", contractVersion: "1" };
-  const manifest = createTestManifest({ exportedComponents: [component] });
+  const widget = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerMfId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
+  const manifest = createTestManifest({ exportedWidgets: [widget] });
   let request;
   let unmounted = false;
   const loader = createWidgetLoader([manifest], {}, async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
@@ -363,15 +363,15 @@ test("widget loader mounts from the selected owner version", async () => {
   assert.equal(unmounted, true);
 });
 
-test("widget loader rejects components outside the selected catalog", async () => {
+test("widget loader rejects widgets outside the selected catalog", async () => {
   const loader = createWidgetLoader([], {});
   await assert.rejects(() => loader.mount("unknown/widget", {}, {}), /not available in the selected catalog/);
 });
 
-test("page MFs receive the shared widget loader", async () => {
+test("page apps receive the shared widget loader", async () => {
   let received;
   const widgetLoader = createWidgetLoader([], {});
-  await mountMicrofrontend({
+  await mountApp({
     hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
@@ -384,12 +384,32 @@ test("page MFs receive the shared widget loader", async () => {
   assert.equal("components" in received, false);
 });
 
-test("MF mounts receive an Atlas-owned scoped DOM boundary", async () => {
+test("page apps can update the host document title while mounted", async () => {
+  const document = createStylesheetDocument([]);
+  document.title = "Host";
+  const mounted = await mountApp({
+    hostId: "host",
+    catalogUrl: "",
+    sdk: createTestHostSdk(),
+    manifest: createTestManifest(),
+    container: { ownerDocument: document, append() {} },
+    routeTitle: "Catalog",
+    async importRemote() {
+      return { mount({ context }) { context.route.setTabTitle("Order 42"); } };
+    }
+  });
+
+  assert.equal(document.title, "Order 42");
+  await mounted.unmount();
+  assert.equal(document.title, "Host");
+});
+
+test("app mounts receive an Atlas-owned scoped DOM boundary", async () => {
   const created = [];
   const document = { createElement() { const element = { dataset: {}, ownerDocument: document, append() {}, remove() { element.removed = true; } }; created.push(element); return element; } };
   const parent = { ownerDocument: document, append(element) { this.child = element; } };
   let receivedContainer;
-  const mounted = await mountMicrofrontend({
+  const mounted = await mountApp({
     hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
@@ -403,7 +423,7 @@ test("MF mounts receive an Atlas-owned scoped DOM boundary", async () => {
   assert.equal(receivedContainer.removed, true);
 });
 
-test("host loads MF styles before mount and releases them after the final unmount", async () => {
+test("host loads app styles before mount and releases them after the final unmount", async () => {
   const events = [];
   const document = createStylesheetDocument(events);
   const container = { ownerDocument: document, append() {} };
@@ -417,8 +437,8 @@ test("host loads MF styles before mount and releases them after the final unmoun
     async importRemote() { events.push("import"); return { mount() { events.push("mount"); } }; }
   };
 
-  const first = await mountMicrofrontend(options);
-  const second = await mountMicrofrontend(options);
+  const first = await mountApp(options);
+  const second = await mountApp(options);
   assert.deepEqual(events.slice(0, 3), ["style", "import", "mount"]);
   assert.equal(document.links.length, 1);
   assert.equal(document.links[0].crossOrigin, "anonymous");
@@ -431,7 +451,7 @@ test("host loads MF styles before mount and releases them after the final unmoun
 test("stylesheet failures prevent remote mounting", async () => {
   const document = createStylesheetDocument([], "error");
   let imported = false;
-  await assert.rejects(() => mountMicrofrontend({
+  await assert.rejects(() => mountApp({
     hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
@@ -452,15 +472,15 @@ test("stylesheet trust rejects unsupported protocols before import", async () =>
     async importRemote() { imported = true; return { mount() {} }; }
   };
   await assert.rejects(
-    () => mountMicrofrontend({ ...base, manifest: createTestManifest({ remoteEntryUrl: "https://cdn.example/entry.js", styles: [{ href: "ftp://cdn.example/styles.css" }] }) }),
+    () => mountApp({ ...base, manifest: createTestManifest({ remoteEntryUrl: "https://cdn.example/entry.js", styles: [{ href: "ftp://cdn.example/styles.css" }] }) }),
     /unsupported stylesheet protocol/
   );
   assert.equal(imported, false);
 });
 
 test("host runtime mounts only the active route and unmounts during navigation", async () => {
-  const catalog = createTestManifest({ id: "catalog", placements: [{ id: "catalog-route", kind: "route", hostId: "host", route: { id: "catalog", basePath: "/catalog", title: "Catalog" } }] });
-  const details = createTestManifest({ id: "details", placements: [{ id: "details-route", kind: "route", hostId: "host", route: { id: "details", basePath: "/catalog/details", title: "Details" } }] });
+  const catalog = createTestManifest({ id: "catalog", placements: [{ id: "catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } }] });
+  const details = createTestManifest({ id: "details", placements: [{ id: "details-route", kind: "route", hostId: "host", route: { basePath: "/catalog/details", title: "Details" } }] });
   const sdk = createTestHostSdk();
   const events = [];
   const unmounted = [];
@@ -568,7 +588,7 @@ test("host runtime coalesces overlapping retries for one failed placement", asyn
   await runtime.stop();
 });
 
-test("host runtime shows loading UI only when requested by the MF", async () => {
+test("host runtime shows loading UI only when requested by the app", async () => {
   const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const states = [];
   const runtime = await startAtlasHostRuntime({
@@ -586,7 +606,7 @@ test("host runtime shows loading UI only when requested by the MF", async () => 
   await runtime.stop();
 });
 
-test("host runtime renders no loading state when the MF does not request one", async () => {
+test("host runtime renders no loading state when the app does not request one", async () => {
   const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const states = [];
   const runtime = await startAtlasHostRuntime({
@@ -602,7 +622,7 @@ test("host runtime renders no loading state when the MF does not request one", a
   await runtime.stop();
 });
 
-test("host runtime reports and cleans up an MF that opts into readiness but never becomes ready", async () => {
+test("host runtime reports and cleans up an app that opts into readiness but never becomes ready", async () => {
   const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const states = [];
   let unmounted = false;
@@ -716,7 +736,7 @@ test("runtime config rejects invalid resource settings", async () => {
   );
 });
 
-test("federation isolates rejected remotes while trusted MFs remain loadable", async () => {
+test("federation isolates rejected remotes while trusted apps remain loadable", async () => {
   const rejected = createTestManifest({ id: "rejected", remoteEntryUrl: "https://assets.example.com/rejected.json" });
   const local = createTestManifest({ id: "local", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
   const initialized = [];

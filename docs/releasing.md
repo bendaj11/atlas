@@ -45,7 +45,7 @@ The release command updates the root manifest, every public package, internal
 Atlas dependency pins, the Chrome extension package and manifest, and the
 version range emitted by generators. Chrome manifests use the numeric core of
 a prerelease version. `test:generated` packs those packages and proves that the
-packaged CLI can generate and production-build Angular and React hosts and MFs.
+packaged CLI can generate and production-build Angular and React hosts and apps.
 
 Review the changes, move the relevant entries from `Unreleased` in the changelog
 to a section for the new version, and tag the reviewed commit as `v<version>`.
@@ -107,4 +107,4 @@ For npmjs.org, use trusted publishing or a short-lived token, require approval t
 - missing or incorrect MIT license metadata and text.
 - source maps in public package tarballs.
 
-The static MF registry and CDN publication flow is separate. Releasing Atlas packages does not upload consumer MF assets or catalogs.
+The static app registry and CDN publication flow is separate. Releasing Atlas packages does not upload consumer app assets or catalogs.

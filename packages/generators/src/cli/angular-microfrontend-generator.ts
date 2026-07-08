@@ -1,17 +1,17 @@
 import { angularRootSelector } from "./angular-names.js";
 import { title } from "./common-generator.js";
 
-export function angularMicrofrontendEntry(name: string): string {
+export function angularAppEntry(name: string): string {
   const selector = angularRootSelector(name);
   return `import "zone.js";
 import { LocationStrategy } from "@angular/common";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter } from "@angular/router";
-import { createLocationStrategy, defineMicrofrontend, provideAtlasMfContext, provideAtlasSdk } from "@atlas/sdk/angular";
+import { createLocationStrategy, defineApp, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
 import { routes } from "./app/routes";
 import { AppComponent } from "./app/app.component";
 
-export default defineMicrofrontend(async ({ container, sdk, context }) => {
+export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
   const locationStrategy = createLocationStrategy(context);
 
@@ -20,7 +20,7 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
   const app = await bootstrapApplication(AppComponent, {
     providers: [
       provideRouter(routes),
-      provideAtlasMfContext(context),
+      provideAtlasAppContext(context),
       provideAtlasSdk(sdk),
       { provide: LocationStrategy, useValue: locationStrategy }
     ]
@@ -37,7 +37,7 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
 `;
 }
 
-export function angularMicrofrontendAppComponent(name: string): string {
+export function angularAppAppComponent(name: string): string {
   const selector = angularRootSelector(name);
   return `import { Component } from "@angular/core";
 import { RouterLink, RouterOutlet } from "@angular/router";
@@ -61,11 +61,11 @@ export class AppComponent {}
 `;
 }
 
-export function angularMicrofrontendHomeComponent(name: string): string {
+export function angularAppHomeComponent(name: string): string {
   return `import { Component } from "@angular/core";
 
 @Component({
-  selector: "atlas-mf-home",
+  selector: "atlas-app-home",
   standalone: true,
   template: \`<p>${title(name)} home</p>\`
 })
@@ -73,11 +73,11 @@ export class HomeComponent {}
 `;
 }
 
-export function angularMicrofrontendDetailsComponent(): string {
+export function angularAppDetailsComponent(): string {
   return `import { Component } from "@angular/core";
 
 @Component({
-  selector: "atlas-mf-details",
+  selector: "atlas-app-details",
   standalone: true,
   template: \`<p>Routed details page</p>\`
 })
@@ -85,7 +85,7 @@ export class DetailsComponent {}
 `;
 }
 
-export function angularMicrofrontendRoutes(): string {
+export function angularAppRoutes(): string {
   return `import type { Routes } from "@angular/router";
 import { DetailsComponent } from "./details/details.component";
 import { HomeComponent } from "./home/home.component";

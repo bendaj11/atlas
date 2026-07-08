@@ -23,10 +23,10 @@ function createRoot(container: Element) {
 }`
       : 'import { createRoot } from "react-dom/client";';
     return [{
-      path: `src/exported-components/${options.name}/index.tsx`,
+      path: `src/exported-widgets/${options.name}/index.tsx`,
       contents: `import { createElement } from "react";
 ${root}
-import { defineExportedComponent } from "@atlas/sdk/react";
+import { defineExportedWidget } from "@atlas/sdk/react";
 
 export interface ${componentName}Props {
   title?: string;
@@ -40,7 +40,7 @@ function ${componentName}({ title = "${title(options.name)}" }: ${componentName}
   );
 }
 
-export default defineExportedComponent<${componentName}Props>({
+export default defineExportedWidget<${componentName}Props>({
   createRoot,
   createElement: ({ props }) => createElement(${componentName}, props)
 });
@@ -49,11 +49,11 @@ export default defineExportedComponent<${componentName}Props>({
   }
   const selector = `atlas-${options.name}-widget`;
   return [{
-    path: `src/exported-components/${options.name}/index.ts`,
+    path: `src/exported-widgets/${options.name}/index.ts`,
     contents: `import "zone.js";
 import { Component, InjectionToken, inject } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
-import { defineExportedComponent } from "@atlas/sdk/angular";
+import { defineExportedWidget } from "@atlas/sdk/angular";
 
 export interface ${componentName}Props {
   title?: string;
@@ -74,7 +74,7 @@ class ${componentName} {
   readonly props = inject(PROPS);
 }
 
-export default defineExportedComponent<${componentName}Props>(async ({ container, props }) => {
+export default defineExportedWidget<${componentName}Props>(async ({ container, props }) => {
   const element = document.createElement("${selector}");
   container.append(element);
 

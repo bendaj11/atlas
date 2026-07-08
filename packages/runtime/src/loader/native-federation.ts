@@ -1,5 +1,5 @@
-import type { AtlasExportedComponentManifest, AtlasManifest } from "@atlas/schema";
-import type { AtlasExportedComponentEntry, AtlasMfEntry } from "@atlas/sdk/lifecycle";
+import type { AtlasExportedWidgetManifest, AtlasManifest } from "@atlas/schema";
+import type { AtlasExportedWidgetEntry, AtlasMfEntry } from "@atlas/sdk/lifecycle";
 import { findManifestTrustErrors, verifyManifestIntegrity, type AtlasRemoteTrustPolicy } from "./runtime-discovery.js";
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
@@ -12,7 +12,7 @@ export interface AtlasFederationAdapter {
 export interface AtlasNativeFederationImporters {
   initialize(manifests: AtlasManifest[]): Promise<void>;
   importRemote(manifest: AtlasManifest): Promise<AtlasMfEntry>;
-  importComponent(component: AtlasExportedComponentManifest): Promise<AtlasExportedComponentEntry>;
+  importWidget(widget: AtlasExportedWidgetManifest): Promise<AtlasExportedWidgetEntry>;
 }
 
 export function createNativeFederationImporters(
@@ -48,20 +48,20 @@ export function createNativeFederationImporters(
       );
       return normalizeMfEntry(entry, manifest.id);
     },
-    async importComponent(component) {
-      const initializationError = initializationErrors.get(component.ownerMfId);
+    async importWidget(widget) {
+      const initializationError = initializationErrors.get(widget.ownerMfId);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
-        () => runtime.loadRemoteModule<AtlasExportedComponentEntry>(requireInitializedRemoteName(remoteNames, component.ownerMfId), component.expose),
-        { stage: "exported-component", resource: component.remoteEntryUrl, mfId: component.ownerMfId },
+        () => runtime.loadRemoteModule<AtlasExportedWidgetEntry>(requireInitializedRemoteName(remoteNames, widget.ownerMfId), widget.expose),
+        { stage: "exported-widget", resource: widget.remoteEntryUrl, mfId: widget.ownerMfId },
         requestPolicy
       );
-      return normalizeComponentEntry(entry, `${component.ownerMfId}/${component.id}`);
+      return normalizeWidgetEntry(entry, `${widget.ownerMfId}/${widget.id}`);
     }
   };
 }
 
-/** Initializes only trusted remotes and reports rejected manifests through normal MF fallback UI. */
+/** Initializes only trusted remotes and reports rejected manifests through normal app fallback UI. */
 export async function createTrustedNativeFederationImporters(
   runtime: AtlasFederationAdapter,
   manifests: AtlasManifest[],
@@ -78,10 +78,10 @@ export async function createTrustedNativeFederationImporters(
       if (error) throw error;
       return importers.importRemote(manifest);
     },
-    async importComponent(component) {
-      const error = trustErrors.get(component.ownerMfId);
+    async importWidget(widget) {
+      const error = trustErrors.get(widget.ownerMfId);
       if (error) throw error;
-      return importers.importComponent(component);
+      return importers.importWidget(widget);
     }
   };
 }
@@ -104,18 +104,18 @@ function defaultManifestPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy 
 function normalizeMfEntry(value: AtlasMfEntry | { default?: AtlasMfEntry }, id: string): AtlasMfEntry {
   const candidate = value as { mount?: AtlasMfEntry["mount"]; default?: AtlasMfEntry };
   const entry = candidate.default ?? candidate;
-  if (typeof entry.mount !== "function") throw new Error(`Atlas MF "${id}" does not expose a mount function.`);
+  if (typeof entry.mount !== "function") throw new Error(`Atlas app "${id}" does not expose a mount function.`);
   return entry as AtlasMfEntry;
 }
 
-function normalizeComponentEntry(
-  value: AtlasExportedComponentEntry | { default?: AtlasExportedComponentEntry },
+function normalizeWidgetEntry(
+  value: AtlasExportedWidgetEntry | { default?: AtlasExportedWidgetEntry },
   ref: string
-): AtlasExportedComponentEntry {
-  const candidate = value as { mount?: AtlasExportedComponentEntry["mount"]; default?: AtlasExportedComponentEntry };
+): AtlasExportedWidgetEntry {
+  const candidate = value as { mount?: AtlasExportedWidgetEntry["mount"]; default?: AtlasExportedWidgetEntry };
   const entry = candidate.default ?? candidate;
-  if (typeof entry.mount !== "function") throw new Error(`Atlas exported component "${ref}" does not expose a mount function.`);
-  return entry as AtlasExportedComponentEntry;
+  if (typeof entry.mount !== "function") throw new Error(`Atlas exported widget "${ref}" does not expose a mount function.`);
+  return entry as AtlasExportedWidgetEntry;
 }
 
 function federationRemoteName(id: string): string {
@@ -124,7 +124,7 @@ function federationRemoteName(id: string): string {
 
 function requireInitializedRemoteName(remotes: Map<string, string>, mfId: string): string {
   const remoteName = remotes.get(mfId);
-  if (!remoteName) throw new Error(`Native Federation was not initialized for Atlas MF "${mfId}".`);
+  if (!remoteName) throw new Error(`Native Federation was not initialized for Atlas app "${mfId}".`);
   return remoteName;
 }
 

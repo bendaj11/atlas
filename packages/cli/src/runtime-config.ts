@@ -38,7 +38,7 @@ export function createHostRuntimeConfig(config: AtlasConfig, args = new CliArgum
 
 function assertHostConfig(config: AtlasConfig): asserts config is AtlasHostConfig {
   if ("routes" in config || "slots" in config || "domIsolation" in config || "requiredHostSdkVersion" in config) {
-    throw new Error(`Atlas runtime-config expects a host config for "${config.id}", but received a microfrontend config.`);
+    throw new Error(`Atlas runtime-config expects a host config for "${config.id}", but received an app config.`);
   }
 }
 
