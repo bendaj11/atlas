@@ -41,7 +41,7 @@ void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
   showToast: (toast) => console.info("[Atlas toast]", toast.title),
-  hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id },
+  hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
   httpClient: createFetchAtlasHttpClient(fetch)
 }).catch((error) => console.error("Atlas host failed to start", error));
 `;
