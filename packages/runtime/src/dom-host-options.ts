@@ -7,6 +7,7 @@ import type {
   AtlasHostMountEvent,
   AtlasRuntimeObserver
 } from "./index.js";
+import type { AtlasHostNavigationItem } from "./host-navigation.js";
 
 type AtlasPopupProvider = Required<AtlasOverlayProviders>["openPopup"];
 
@@ -21,6 +22,7 @@ export interface DomHostOptions<TExtensions extends object = {}, THostData exten
   /** Enables URL and storage app overrides for Atlas tool workflows. */
   allowAppOverrides?: boolean;
   document?: Document;
+  onNavigationChange?: (items: readonly AtlasHostNavigationItem[]) => void;
   onStateChange?: (event: AtlasHostMountEvent) => void;
   renderLoading?: (container: HTMLElement, event: AtlasHostMountEvent) => void;
   renderError?: (container: HTMLElement, event: AtlasHostMountEvent, retry: () => void) => void;

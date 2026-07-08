@@ -1,7 +1,7 @@
-import { Component } from "@angular/core";
+import { Component, Injectable, signal, type OnDestroy, type Signal } from "@angular/core";
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
 import { startDomHost, type DomHostOptions } from "./dom-host.js";
-import type { AtlasHostRuntime } from "./index.js";
+import { readAtlasNavigationItems, subscribeAtlasNavigationItems, type AtlasHostNavigationItem, type AtlasHostRuntime } from "./index.js";
 
 @Component({ selector: "atlas-default-host-route", standalone: true, template: "" })
 export class AtlasDefaultHostRouteComponent {}
@@ -20,6 +20,18 @@ export async function startHost<TExtensions extends object = {}, THostData exten
     beforeNavigation: () => syncAngularRouterWithBrowserUrl(options.router),
     createNavigation: () => createHostNavigation(options.router, options.location)
   });
+}
+
+@Injectable({ providedIn: "root" })
+export class AtlasNavigationItemsService implements OnDestroy {
+  private readonly itemsState = signal<readonly AtlasHostNavigationItem[]>(readAtlasNavigationItems());
+  private readonly unsubscribe = subscribeAtlasNavigationItems((items) => this.itemsState.set(items));
+
+  readonly items: Signal<readonly AtlasHostNavigationItem[]> = this.itemsState.asReadonly();
+
+  ngOnDestroy(): void {
+    this.unsubscribe();
+  }
 }
 
 async function syncAngularRouterWithBrowserUrl(router: RouterLike): Promise<void> {

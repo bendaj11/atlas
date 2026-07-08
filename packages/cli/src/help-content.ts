@@ -15,7 +15,7 @@ export interface CommandHelp {
 
 export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "generate, g", description: "Generate a host, app, or exported widget" },
-  { label: "dev", description: "Run an app locally inside an Atlas host" },
+  { label: "dev", description: "Run a host, or run one app locally inside a host" },
   { label: "build", description: "Build an app for static deployment" },
   { label: "runtime-config", description: "Generate atlas.runtime.json from atlas.config.ts" },
   { label: "rollback", description: "Prepare a previous app version for deployment" },
@@ -25,6 +25,7 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
 export const ROOT_EXAMPLES = [
   "atlas g host customer-host",
   "atlas g app orders",
+  "atlas dev customer-host",
   "atlas dev orders --host customer-host",
   "atlas runtime-config customer-host",
   "atlas build orders"
@@ -55,7 +56,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     examples: ["atlas g widget order-summary --app orders"]
   },
   dev: {
-    summary: "Run one app locally inside an Atlas host.",
+    summary: "Run a host, or run one app locally inside an Atlas host.",
     usage: "atlas dev <project> [options]",
     arguments: [{ label: "project", description: "Atlas project name or directory; prompted when omitted" }],
     options: [
@@ -66,8 +67,15 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--prepare-only", description: "Create the override without starting development servers" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
+    environment: [
+      { label: "ATLAS_HOST", description: "Default host id when an app supports multiple hosts" },
+      { label: "ATLAS_HOST_URL", description: "Exact host page URL opened with the override activated" },
+      { label: "ATLAS_HOST_ORIGIN", description: "Host origin; Atlas appends the configured route base path" }
+    ],
     examples: [
-      "atlas dev orders --host customer-host",
+      "atlas dev customer-host",
+      "atlas dev orders",
+      "ATLAS_HOST_ORIGIN=http://localhost:4200 atlas dev orders",
       "atlas dev orders --host customer-host --host-url https://customer.example/orders"
     ]
   },

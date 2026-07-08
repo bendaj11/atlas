@@ -5,6 +5,7 @@ import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { AtlasDevService } from "./dev.js";
 import { AtlasGenerateService } from "./generate.js";
+import { loadWorkspaceEnv } from "./env.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasRollbackService } from "./rollback.js";
 import { AtlasRuntimeConfigService } from "./runtime-config.js";
@@ -27,6 +28,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     }
     const invocation = await resolveInvocation(args, prompts);
     const workspace = await detectWorkspace();
+    await loadWorkspaceEnv(workspace.root);
     const builds = new AtlasBuildService(workspace, args);
     const generate = new AtlasGenerateService(workspace, args, prompts);
 
@@ -63,7 +65,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
 
     if (invocation.command === "dev" && invocation.subcommand) {
       ui.heading(`Starting ${invocation.subcommand}`);
-      await new AtlasDevService(workspace, args, builds).run(invocation.subcommand);
+      await new AtlasDevService(workspace, args, builds).run(invocation.subcommand, prompts);
       return;
     }
 
@@ -91,10 +93,6 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       if (report.failures > 0) throw new Error(`Verification failed with ${report.failures} failure(s) and ${report.warnings} warning(s).`);
       ui.success(`Deployment verified with ${report.warnings} warning(s).`);
       return;
-    }
-
-    if (invocation.command === "dev-host") {
-      throw new Error("atlas dev-host is not implemented yet. Run the generated host framework dev script directly.");
     }
 
     throw new Error(`Unknown or incomplete command "${values.join(" ")}". Run atlas --help for usage.`);

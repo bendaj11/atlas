@@ -127,6 +127,7 @@ Import host infrastructure from `@atlas/runtime`:
 | `verifyManifestIntegrity()` | Verify remote origins and SHA-256 bytes |
 | `findManifestTrustErrors()` | Verify apps independently for host fallback isolation |
 | `createWidgetLoader()` | Create the selected-catalog widget loader |
+| `createHostNavigationItems()` | Convert resolved manifests into custom host navigation items |
 | `startAtlasHostRuntime()` | Mount routes/slots and own lifecycle state |
 
 Generated hosts should use framework-specific `startHost()` instead of
@@ -144,6 +145,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 | `defineExportedWidget()` | Expose an Angular widget lifecycle entry |
 | `createLocationStrategy()` | Scope Angular Router to the app base path |
 | `AtlasDefaultHostRouteComponent` | Catch-all Angular host route component used with the generated default host layout |
+| `AtlasNavigationItemsService` | Read runtime-resolved route navigation items for custom Angular host navigation |
 | `startHost()` | Boot an Angular Atlas host |
 
 `startHost()` accepts host-wide `renderHostLoading` and `renderHostError` callbacks for the single startup outlet, plus shared `renderLoading` and `renderError` callbacks used by every app placement.
@@ -165,6 +167,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 | `createRouterOptions()` | Scope a memory router to the app base path |
 | `connectRouter()` | Synchronize React Router and host navigation |
 | `AtlasDefaultHostLayout` | Replaceable default React host layout; renders the Atlas status, navigation, route outlet, and slot anchors |
+| `useAtlasNavigationItems()` | Read runtime-resolved route navigation items for custom React host navigation |
 | `startHost()` | Boot a React Atlas host |
 
 React hosts receive the same host-wide and shared app UI callbacks as Angular hosts. Global renderer callbacks may return a cleanup function for framework roots and subscriptions.

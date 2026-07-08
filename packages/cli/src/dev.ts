@@ -3,16 +3,27 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
+import type { AtlasConfig, AtlasHostConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
-import type { AtlasWorkspace } from "./workspace.js";
+import type { AtlasPrompter } from "./ui.js";
+import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
 const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
+const DEFAULT_HOST_ORIGINS = {
+  angular: "http://localhost:4200",
+  react: "http://localhost:5173"
+} as const;
 
 interface DevControlServer {
   server: Server;
   markReady(): void;
+}
+
+interface DevTarget {
+  hostId: string;
+  hostUrl?: string;
 }
 
 export class AtlasDevService {
@@ -22,15 +33,39 @@ export class AtlasDevService {
     private readonly builds: AtlasBuildService
   ) {}
 
-  async run(name: string): Promise<void> {
+  async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "select"> = nonInteractivePrompter): Promise<void> {
     const project = await this.workspace.findProject(name);
+    await this.workspace.run(project, "atlas:config");
+    const config = await this.builds.loadConfig(project.root);
+    if (isHostConfig(config)) {
+      await this.runHost(project, config);
+      return;
+    }
+    await this.runApp(project, name, config, prompts);
+  }
+
+  private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
+    if (this.args.hasFlag("prepare-only")) {
+      console.info(`Host "${config.id}" is ready. Run without --prepare-only to start its dev server.`);
+      return;
+    }
+    const hostServer = this.workspace.spawn(project, "dev");
+    console.info(`Atlas is running host ${config.id}. Press Ctrl+C to stop.`);
+    await waitForChildShutdown(hostServer, "Host dev server");
+  }
+
+  private async runApp(
+    project: AtlasProject,
+    name: string,
+    config: AtlasConfig,
+    prompts: Pick<AtlasPrompter, "interactive" | "select">
+  ): Promise<void> {
     const remotePort = this.args.port("port", 4201);
     const controlPort = this.args.port("control-port", 4400);
-    await this.workspace.run(project, "atlas:config");
     const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: `http://localhost:${remotePort}` });
-    const hostId = this.args.flag("host") ?? manifest.supportedHosts[0] ?? "host";
+    const target = await this.resolveDevTarget(config, prompts);
     const document: AtlasRuntimeOverrideDocument = {
-      schemaVersion: "1", hostId,
+      schemaVersion: "1", hostId: target.hostId,
       overrides: [{ mfId: manifest.id, manifest, reason: "local" }],
       generatedAt: new Date().toISOString()
     };
@@ -39,10 +74,9 @@ export class AtlasDevService {
     await mkdir(directory, { recursive: true });
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
     const overrideUrl = `http://localhost:${controlPort}/atlas.local-overrides.json`;
-    const hostUrl = this.args.flag("host-url");
     console.info(`Local override written to ${overridePath}.`);
     console.info(`Override URL: ${overrideUrl}`);
-    if (hostUrl) console.info(`Open host: ${activationUrl(hostUrl, overrideUrl)}`);
+    if (target.hostUrl) console.info(`Open host: ${activationUrl(target.hostUrl, overrideUrl)}`);
     if (this.args.hasFlag("prepare-only")) return;
     const control = await startControlServer(controlPort, document);
     const frameworkServer = this.workspace.spawn(project, "dev", ["--port", String(remotePort)]);
@@ -54,8 +88,42 @@ export class AtlasDevService {
       control.server.close();
       throw error;
     }
-    console.info(`Atlas is serving ${manifest.id} for host ${hostId}. Press Ctrl+C to stop.`);
+    console.info(`Atlas is serving ${manifest.id} for host ${target.hostId}. Press Ctrl+C to stop.`);
     await waitForShutdown(frameworkServer, control.server);
+  }
+
+  private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<DevTarget> {
+    const hostId = await this.resolveHostId(config, prompts);
+    const basePath = routeBasePath(config, hostId);
+    const hostUrl = this.args.flag("host-url") ??
+      process.env.ATLAS_HOST_URL ??
+      urlFromOrigin(process.env.ATLAS_HOST_ORIGIN, basePath) ??
+      await this.defaultHostUrl(hostId, basePath);
+    return { hostId, ...(hostUrl ? { hostUrl } : {}) };
+  }
+
+  private async resolveHostId(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<string> {
+    const explicit = this.args.flag("host") ?? process.env.ATLAS_HOST;
+    if (explicit) return explicit;
+    const hostIds = configuredHostIds(config);
+    if (hostIds.length === 1) return hostIds[0]!;
+    if (hostIds.length > 1 && prompts.interactive) {
+      return prompts.select("Host receiving the local override", hostIds.map((hostId) => ({ label: hostId, value: hostId })));
+    }
+    if (hostIds.length > 1) throw new Error(`Multiple hosts found for "${config.id}". Pass --host or set ATLAS_HOST.`);
+    return "host";
+  }
+
+  private async defaultHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
+    try {
+      const hostProject = await this.workspace.findProject(hostId);
+      await this.workspace.run(hostProject, "atlas:config");
+      const hostConfig = await this.builds.loadConfig(hostProject.root);
+      if (!isHostConfig(hostConfig)) return undefined;
+      return urlFromOrigin(defaultHostOrigin(hostConfig), basePath);
+    } catch {
+      return undefined;
+    }
   }
 }
 
@@ -164,8 +232,72 @@ function waitForShutdown(child: ChildProcess, server: Server): Promise<void> {
   });
 }
 
+function waitForChildShutdown(child: ChildProcess, label: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let stopping = false;
+    let settled = false;
+    const removeSignalListeners = (): void => {
+      process.off("SIGINT", stop);
+      process.off("SIGTERM", stop);
+    };
+    const stop = (): void => {
+      stopping = true;
+      if (!child.killed) child.kill("SIGTERM");
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+    child.once("error", (error) => {
+      if (settled) return;
+      settled = true;
+      removeSignalListeners();
+      reject(error);
+    });
+    child.once("exit", (code, signal) => {
+      if (settled) return;
+      settled = true;
+      removeSignalListeners();
+      if (stopping || code === 0 || signal === "SIGTERM") resolve();
+      else reject(new Error(`${label} exited with code ${code ?? "unknown"}.`));
+    });
+  });
+}
+
 function activationUrl(hostUrl: string, overrideUrl: string): string {
   const url = new URL(hostUrl);
   url.searchParams.set("atlas-override", overrideUrl);
   return url.toString();
 }
+
+function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
+  return "allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
+}
+
+function configuredHostIds(config: AtlasConfig): string[] {
+  if (isHostConfig(config)) return [];
+  return [...new Set([
+    ...(config.routes ?? []).map((route) => route.hostId),
+    ...(config.slots ?? []).map((slot) => slot.hostId)
+  ])].filter((hostId) => hostId !== "*");
+}
+
+function routeBasePath(config: AtlasConfig, hostId: string): string | undefined {
+  if (isHostConfig(config)) return undefined;
+  return config.routes?.find((route) => route.hostId === hostId)?.basePath;
+}
+
+function urlFromOrigin(origin: string | undefined, basePath: string | undefined): string | undefined {
+  if (!origin) return undefined;
+  return `${origin.replace(/\/$/, "")}${basePath ?? ""}`;
+}
+
+function defaultHostOrigin(config: AtlasHostConfig): string | undefined {
+  if (config.framework === "angular" || config.framework === "react") return DEFAULT_HOST_ORIGINS[config.framework];
+  return undefined;
+}
+
+const nonInteractivePrompter: Pick<AtlasPrompter, "interactive" | "select"> = {
+  interactive: false,
+  async select() {
+    throw new Error("Host must be provided in non-interactive mode.");
+  }
+};

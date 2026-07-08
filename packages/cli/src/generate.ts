@@ -62,6 +62,7 @@ export class AtlasGenerateService {
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) {
         await alignDelegatedTsconfig(root, selectedFramework);
+        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(root, name, type);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -433,6 +434,57 @@ async function alignDelegatedTsconfig(root: string, framework: SupportedFramewor
     tsconfig.include = addUniqueString(Array.isArray(tsconfig.include) ? tsconfig.include : [], "atlas.config.ts");
   }
   await writeFile(target, `${JSON.stringify(tsconfig, null, 2)}\n`, "utf8");
+}
+
+async function ensureDelegatedNxTargets(root: string, name: string, type: "host" | "app"): Promise<void> {
+  const projectFile = join(root, "project.json");
+  const project = await readJsonFile<Record<string, unknown>>(projectFile);
+  if (!project) return;
+
+  const targets = asObject(project.targets);
+  if (!targets["atlas:config"]) {
+    targets["atlas:config"] = {
+      executor: "nx:run-commands",
+      options: { cwd: projectRootFromNxProject(project), command: "tsc -p tsconfig.atlas.json" }
+    };
+  }
+  if (!targets.dev && targets.serve) {
+    targets.dev = type === "host"
+      ? {
+          executor: "nx:run-commands",
+          options: {
+            commands: [
+              { command: `atlas runtime-config ${name}` },
+              { command: `nx run ${name}:serve`, forwardAllArgs: true }
+            ],
+            parallel: false
+          }
+        }
+      : {
+          executor: "nx:run-commands",
+          options: { command: `nx run ${name}:serve`, forwardAllArgs: true }
+        };
+  }
+  project.targets = targets;
+  await writeFile(projectFile, `${JSON.stringify(project, null, 2)}\n`, "utf8");
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function projectRootFromNxProject(project: Record<string, unknown>): string {
+  return typeof project.root === "string" && project.root ? project.root : ".";
+}
+
+async function readJsonFile<T>(path: string): Promise<T | undefined> {
+  try { return JSON.parse(await readFile(path, "utf8")) as T; }
+  catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") return undefined;
+    throw error;
+  }
 }
 
 function addUniqueString(values: unknown[], value: string): unknown[] {

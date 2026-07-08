@@ -62,18 +62,24 @@ Use the same local flow developers use manually:
 
 ```sh
 # Terminal 1: Host domain
-cd customer-host
-npm run dev
+atlas dev customer-host
 
 # Terminal 2: App domain
-atlas dev orders --host=customer-host --host-url=http://localhost:5173/orders
+atlas dev orders
 ```
 
 For Angular hosts, use the URL printed by Angular CLI, usually
 `http://localhost:4200/orders`.
 
-Run Terminal 2 from the directory that contains both `customer-host/` and
+Run both commands from the directory that contains `customer-host/` and
 `orders/`, or from your monorepo root.
+
+When testing a non-default host URL, set it explicitly:
+
+```sh
+ATLAS_HOST_ORIGIN=http://localhost:5173 atlas dev orders
+ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
+```
 
 This validates the app inside the host without editing host source or production
 catalogs.

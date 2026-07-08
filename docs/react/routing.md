@@ -11,7 +11,7 @@ The React host owns:
 - the browser history;
 - top-level routes such as `/orders` and `/catalog`;
 - the product layout around the route outlet;
-- navigation UI rendered into `data-atlas-navigation`;
+- navigation UI, either through `data-atlas-navigation` or custom rendering;
 - route and slot mount points.
 
 Generated hosts use `AtlasDefaultHostLayout` until you replace it with the
@@ -39,6 +39,72 @@ export function ShellLayout() {
   );
 }
 ```
+
+You can wrap anchors in real product chrome. Route apps always mount where
+`data-atlas-route-outlet` appears; slot apps mount by matching the slot name:
+
+```tsx
+export function CustomerWorkspaceLayout() {
+  return (
+    <div className="workspace-layout">
+      <header className="workspace-header">
+        <a href="/" className="brand">Customer Portal</a>
+        <div data-atlas-slot="header" />
+      </header>
+      <aside className="workspace-sidebar">
+        <nav data-atlas-navigation aria-label="Applications" />
+        <div data-atlas-slot="sidebar" />
+      </aside>
+      <main className="workspace-content">
+        <div data-atlas-host-status />
+        <section data-atlas-route-outlet />
+      </main>
+      <aside data-atlas-slot="help-panel" />
+    </div>
+  );
+}
+
+const router = createBrowserRouter([
+  { path: "*", Component: CustomerWorkspaceLayout }
+]);
+```
+
+Apps that declare `slots: [{ name: "help-panel", ... }]` mount into the matching
+host anchor. Apps that declare routes mount into `data-atlas-route-outlet`.
+
+`data-atlas-navigation` is optional. It renders a basic Atlas-managed link list
+from the runtime catalog. Product hosts can instead render custom navigation
+with the same resolved route data:
+
+```tsx
+import { useAtlasNavigationItems } from "@atlas/runtime/react";
+
+export function CustomerWorkspaceLayout() {
+  const items = useAtlasNavigationItems();
+
+  return (
+    <div className="workspace-layout">
+      <aside className="workspace-sidebar">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-current={item.active ? "page" : undefined}
+            onClick={item.navigate}
+          >
+            {item.label}
+          </button>
+        ))}
+      </aside>
+      <main data-atlas-route-outlet />
+    </div>
+  );
+}
+```
+
+The host owns the markup and design system components. Atlas still owns runtime
+catalog resolution, route ordering, hidden navigation entries, href creation,
+navigation, and active-route matching.
 
 The host starts Atlas from `src/main.tsx`:
 
@@ -68,12 +134,44 @@ export default {
       title: "Orders",
       nav: { label: "Orders", visible: true, order: 10 }
     }
+  ],
+  slots: [
+    {
+      id: "orders-header-tools",
+      hostId: "customer-host",
+      name: "header"
+    }
   ]
 } satisfies AtlasAppConfig;
 ```
 
 `basePath` belongs to the host URL. The React app router sees app-relative
 paths.
+
+This config does not change host source code. It becomes deployment data that
+the host reads through its catalog.
+
+## How The Host Chooses An App
+
+The host does not import every app or maintain a route table in source. The
+selection flow is:
+
+1. `atlas build orders` reads `orders/atlas.config.ts`.
+2. Atlas writes route and slot declarations into the `orders` manifest.
+3. Publication updates `hosts/customer-host/catalog.json` with selected app
+   versions for that host.
+4. `customer-host/public/atlas.runtime.json` tells the browser where that
+   catalog is.
+5. `startHost(...)` fetches the catalog, filters placements for
+   `hostId: "customer-host"`, and matches the current browser URL against each
+   route `basePath`.
+6. If the URL is `/orders` or `/orders/42`, the `/orders` placement wins and the
+   host mounts the selected `orders` manifest in `data-atlas-route-outlet`.
+7. Slot placements mount independently into matching `data-atlas-slot` anchors,
+   such as `header` or `help-panel`.
+
+If two selected apps claim the same host `basePath`, catalog validation fails.
+The host should not need hard-coded route ownership to resolve that conflict.
 
 ## Inner React Routes
 

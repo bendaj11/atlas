@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 
 test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
@@ -86,6 +86,43 @@ test("resolveRuntimeManifests preserves catalog placement ownership", () => {
 
   assert.deepEqual(resolved.placements, [placement]);
   assert.deepEqual(resolved.supportedHosts, selected.supportedHosts);
+});
+
+test("createHostNavigationItems exposes resolved route metadata for custom host nav", () => {
+  const navigation = {
+    navigate(to) { navigation.visited.push(to); },
+    replace() {},
+    back() {},
+    createHref(to) { return `/app${to}`; },
+    subscribe() { return () => undefined; },
+    getCurrentLocation() { return { pathname: "/orders/42", search: "", hash: "" }; },
+    visited: []
+  };
+  const manifests = [
+    createTestManifest({
+      id: "catalog",
+      name: "Catalog",
+      placements: [{ id: "catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog", nav: { label: "Catalog", order: 20 } } }]
+    }),
+    createTestManifest({
+      id: "orders",
+      name: "Orders",
+      placements: [{ id: "orders-route", kind: "route", hostId: "host", route: { basePath: "/orders", title: "Orders", nav: { label: "Orders", order: 10 } } }]
+    }),
+    createTestManifest({
+      id: "hidden",
+      name: "Hidden",
+      placements: [{ id: "hidden-route", kind: "route", hostId: "host", route: { basePath: "/hidden", title: "Hidden", nav: { visible: false } } }]
+    })
+  ];
+
+  const items = createHostNavigationItems(manifests, "host", navigation);
+
+  assert.deepEqual(items.map((item) => item.label), ["Orders", "Catalog"]);
+  assert.equal(items[0].active, true);
+  assert.equal(items[0].href, "/app/orders");
+  items[0].navigate();
+  assert.deepEqual(navigation.visited, ["/orders"]);
 });
 
 test("resolveRuntimeManifests revalidates widget uses after an override", () => {
@@ -355,7 +392,7 @@ test("widget loader mounts from the selected owner version", async () => {
   let request;
   let unmounted = false;
   const loader = createWidgetLoader([manifest], {}, async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
-  assert.deepEqual(loader.list("catalog"), [component]);
+  assert.deepEqual(loader.list("catalog"), [widget]);
   const mounted = await loader.mount("catalog/product-count", {}, { count: 4 });
   assert.deepEqual(request.props, { count: 4 });
   assert.equal(request.ownerManifest.version, "1.0.0");

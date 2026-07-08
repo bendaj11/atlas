@@ -105,10 +105,34 @@ points:
 | `data-atlas-slot="header"` | Slot apps can mount here. |
 | `data-atlas-host-status` | Host loading and error state appears here. |
 
+For example, a product shell can wrap Atlas anchors in its own header, sidebar,
+and content grid:
+
+```html
+<div class="app-shell">
+  <header class="app-header">
+    <a routerLink="/" class="brand">Customer Portal</a>
+    <div data-atlas-slot="header"></div>
+  </header>
+  <aside class="app-sidebar">
+    <nav data-atlas-navigation aria-label="Applications"></nav>
+    <div data-atlas-slot="sidebar"></div>
+  </aside>
+  <main class="app-main">
+    <div data-atlas-host-status></div>
+    <section data-atlas-route-outlet></section>
+  </main>
+  <router-outlet hidden></router-outlet>
+</div>
+```
+
 The host controls page width, header, sidebar, spacing, and theme. Apps should
 stay inside their assigned outlets.
 
 Effect: the host page has real product structure before any app is loaded.
+The host layout creates mount points only. It does not hard-code app route
+paths or app ids. Route and slot ownership comes from app manifests selected by
+the host catalog at runtime.
 
 More docs:
 
@@ -178,9 +202,12 @@ More docs:
 - [Generators](generators.md): use when you need more app-generation flags or scaffold details.
 - [Manifest reference](../manifest.md): explains the manifest Atlas builds from this app configuration.
 
-## 6. Place The App On A Host Route (App Domain)
+## 6. Declare Host Routes And Slots (App Domain)
 
 This step tells Atlas which host can load the app and where users will see it.
+Declare route and slot placements in the app `atlas.config.ts`, not in the
+host. The app owns its public placement contract; the host owns only the layout
+anchors and the catalog URL.
 
 Edit `atlas.config.ts` in the app.
 
@@ -198,12 +225,36 @@ export default {
       title: "Orders",
       nav: { label: "Orders", visible: true, order: 10 }
     }
+  ],
+  slots: [
+    {
+      id: "orders-header-tools",
+      hostId: "customer-host",
+      name: "header"
+    }
   ]
 } satisfies AtlasAppConfig;
 ```
 
+`routes` create browser URL ownership. Here, `basePath: "/orders"` means the
+host mounts this app for `/orders` and nested URLs such as `/orders/42`.
+
+`slots` create named layout placements. Here, `name: "header"` matches the
+host's `data-atlas-slot="header"` anchor, so the same app can also render
+header tools while the route app renders in `data-atlas-route-outlet`.
+
+The host learns about `basePath` and slots through deployment data:
+
+1. `atlas build orders` reads `orders/atlas.config.ts`.
+2. Atlas writes those `routes` and `slots` into the app manifest as placements.
+3. Publication updates `hosts/customer-host/catalog.json`.
+4. At runtime, `customer-host/public/atlas.runtime.json` points the browser to
+   that catalog.
+5. `startHost(...)` reads the catalog, matches the current URL to `/orders`,
+   and mounts slot apps into matching `data-atlas-slot` anchors.
+
 Effect: production catalogs can select `orders` for `customer-host`, and the
-host can mount it at `/orders`.
+unchanged host can mount it at `/orders` and in the `header` slot.
 
 More docs:
 
@@ -269,12 +320,11 @@ Use two terminals:
 
 ```sh
 # Terminal 1: Host domain
-cd customer-host
-npm run dev
+atlas dev customer-host
 ```
 
-Keep the host running and copy the local host URL printed by Angular CLI. In a
-generated Angular host this is usually `http://localhost:4200`.
+Keep the host running. In a generated Angular host, the local URL is usually
+`http://localhost:4200`.
 
 ```sh
 # Terminal 2: App domain
@@ -283,9 +333,53 @@ atlas dev orders \
   --host-url=http://localhost:4200/orders
 ```
 
-Run Terminal 2 from the directory that contains both `customer-host/` and
-`orders/`, or from your monorepo root. Open the **Open host** URL printed by the
-command.
+Run both commands from the directory that contains `customer-host/` and
+`orders/`, or from your monorepo root. Open the **Open host** URL printed by
+Terminal 2.
+
+Because `orders/atlas.config.ts` already declares one host route, Atlas can
+infer the host id. For the generated Angular host, this shorter command is
+equivalent:
+
+```sh
+atlas dev orders
+```
+
+For quick launch with a non-default host URL, set environment defaults in the
+terminal:
+
+```sh
+ATLAS_HOST_ORIGIN=http://localhost:4200 atlas dev orders
+ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
+```
+
+`ATLAS_HOST_ORIGIN` is the host origin; Atlas appends the app route base path
+from `atlas.config.ts`. `ATLAS_HOST_URL` is the exact page URL and wins when set.
+For repeated local work, put the values in a workspace `.env` file:
+
+```dotenv
+ATLAS_HOST=customer-host
+ATLAS_HOST_ORIGIN=http://localhost:4200
+```
+
+Shell environment variables override `.env` values. If an app declares multiple
+hosts and neither `--host` nor `ATLAS_HOST` is set, Atlas asks which host to use
+in an interactive terminal.
+
+Atlas uses the same top-level command in standalone projects, Nx, Turborepo,
+pnpm workspaces, and Yarn workspaces:
+
+```sh
+atlas dev customer-host
+atlas dev orders
+```
+
+Under the hood, Atlas delegates to your workspace. In Nx it runs project
+targets such as `customer-host:dev`, `orders:dev`, and
+`orders:atlas:config`. In Turborepo, pnpm workspaces, and Yarn workspaces it
+runs the generated package scripts through the matching workspace command. The
+separate host process is still required because the app is rendered inside the
+host page.
 
 Effect: only `orders` loads from localhost. Other apps still load from the normal
 host catalog. No production catalog or host source file is edited.

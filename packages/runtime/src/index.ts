@@ -24,6 +24,14 @@ export {
 } from "./observability.js";
 export { loadManifestStyles, type AtlasStyleRelease } from "./stylesheets.js";
 export {
+  ATLAS_NAVIGATION_ITEMS_EVENT,
+  createHostNavigationItems,
+  publishAtlasNavigationItems,
+  readAtlasNavigationItems,
+  subscribeAtlasNavigationItems,
+  type AtlasHostNavigationItem
+} from "./host-navigation.js";
+export {
   createNativeFederationImporters,
   createTrustedNativeFederationImporters,
   importNativeFederationRemote,

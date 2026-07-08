@@ -1,19 +1,18 @@
-import type { AtlasManifest } from "@atlas/schema";
-import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import type { DomHostOptions } from "./dom-host-options.js";
+import type { AtlasHostNavigationItem } from "./host-navigation.js";
 import type { AtlasHostMountEvent } from "./index.js";
 
-export function renderHostNavigation(document: Document, manifests: AtlasManifest[], hostId: string, navigation: AtlasNavigation): void {
+export function renderHostNavigation(document: Document, items: readonly AtlasHostNavigationItem[]): void {
   const nav = document.querySelector<HTMLElement>("[data-atlas-navigation]");
   if (!nav) return;
-  nav.replaceChildren(...routePlacementsForHost(manifests, hostId).map(({ manifest, placement }) => {
-    const route = placement.route!;
+  nav.replaceChildren(...items.map((item) => {
     const link = document.createElement("a");
-    link.href = navigation.createHref(route.basePath);
-    link.textContent = route.nav?.label ?? route.title ?? manifest.name;
+    link.href = item.href;
+    link.textContent = item.label;
+    if (item.active) link.setAttribute("aria-current", "page");
     link.addEventListener("click", (event) => {
       event.preventDefault();
-      navigation.navigate(route.basePath);
+      item.navigate();
     });
     return link;
   }));
@@ -39,13 +38,6 @@ export function renderHostMountState(
 
 export function cssEscape(value: string): string {
   return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
-}
-
-function routePlacementsForHost(manifests: AtlasManifest[], hostId: string): Array<{ manifest: AtlasManifest; placement: AtlasManifest["placements"][number] }> {
-  return manifests
-    .flatMap((manifest) => manifest.placements.map((placement) => ({ manifest, placement })))
-    .filter(({ placement }) => placement.hostId === hostId && placement.kind === "route" && placement.route?.nav?.visible !== false)
-    .sort((left, right) => (left.placement.route?.nav?.order ?? 0) - (right.placement.route?.nav?.order ?? 0));
 }
 
 function findMountContainer(document: Document, event: AtlasHostMountEvent): HTMLElement | null {

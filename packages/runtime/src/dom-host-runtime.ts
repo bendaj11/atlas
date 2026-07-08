@@ -3,6 +3,7 @@ import { emitMountState } from "./dom-host-events.js";
 import type { DomHostOptions, DomHostServices } from "./dom-host-options.js";
 import { createSdkProviders } from "./dom-host-sdk.js";
 import { cssEscape, renderHostMountState, renderHostNavigation } from "./dom-rendering.js";
+import { createHostNavigationItems, publishAtlasNavigationItems } from "./host-navigation.js";
 import {
   createRemoteTrustPolicy,
   createRetryPolicy,
@@ -50,7 +51,14 @@ export async function startDomHostRuntime<TExtensions extends object, THostData 
     importWidget: federation.importWidget
   });
 
-  renderHostNavigation(document, manifests, config.hostId, navigation);
+  const updateNavigationItems = (): void => {
+    const items = createHostNavigationItems(manifests, config.hostId, navigation);
+    renderHostNavigation(document, items);
+    publishAtlasNavigationItems(document, items);
+    options.onNavigationChange?.(items);
+  };
+  updateNavigationItems();
+  const stopNavigationItems = navigation.subscribe(updateNavigationItems);
   onInfrastructureReady();
 
   let runtime: AtlasHostRuntime | undefined;
@@ -71,7 +79,15 @@ export async function startDomHostRuntime<TExtensions extends object, THostData 
       options.onStateChange?.(event);
     }
   });
-  return runtime;
+  return {
+    hostId: runtime.hostId,
+    manifests: runtime.manifests,
+    retry: (mfId) => runtime.retry(mfId),
+    async stop() {
+      stopNavigationItems();
+      await runtime.stop();
+    }
+  };
 }
 
 async function resolveHostConfig(options: DomHostOptions): Promise<AtlasHostRuntimeConfig> {

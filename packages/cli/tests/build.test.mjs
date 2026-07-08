@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +10,8 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
+import { AtlasDevService } from "../dist/dev.js";
+import { loadWorkspaceEnv } from "../dist/env.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
@@ -365,6 +368,56 @@ for (const scenario of [
   });
 }
 
+for (const scenario of [
+  {
+    name: "Yarn workspace",
+    prefix: "atlas-yarn-workspace-host-",
+    files: { "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "yarn@1.22.22", workspaces: ["packages/*"] }) },
+    framework: "react",
+    root: "packages/customer-host",
+    dev: "atlas runtime-config customer-host && vite --host 0.0.0.0"
+  },
+  {
+    name: "pnpm workspace",
+    prefix: "atlas-pnpm-workspace-host-",
+    files: {
+      "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0" }),
+      "pnpm-workspace.yaml": "packages:\n  - packages/*\n"
+    },
+    framework: "angular",
+    root: "packages/customer-host",
+    dev: "atlas runtime-config customer-host && ng serve customer-host"
+  },
+  {
+    name: "Turborepo",
+    prefix: "atlas-turbo-host-",
+    files: {
+      "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0", workspaces: ["apps/*"] }),
+      "turbo.json": "{}\n"
+    },
+    framework: "react",
+    root: "apps/customer-host",
+    dev: "atlas runtime-config customer-host && vite --host 0.0.0.0"
+  }
+]) {
+  test(`atlas generates host workspace scripts in a ${scenario.name}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), scenario.prefix));
+    for (const [path, contents] of Object.entries(scenario.files)) {
+      await writeFile(join(root, path), contents);
+    }
+
+    await run(process.execPath, [
+      join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "customer-host",
+      `--framework=${scenario.framework}`, "--skip-install"
+    ], { cwd: root });
+
+    const packageJson = JSON.parse(await readFile(join(root, scenario.root, "package.json"), "utf8"));
+    assert.equal(packageJson.scripts.dev, scenario.dev);
+    assert.equal(packageJson.scripts["atlas:config"], "tsc -p tsconfig.atlas.json");
+    assert.ok(packageJson.scripts.build.includes("atlas runtime-config customer-host"));
+  });
+}
+
 test("atlas preserves Nx Angular workspace version after native scaffolding", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-generator-"));
   const bin = join(root, "bin");
@@ -395,7 +448,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx source\n' > "$directory/src/main.ts"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf 'nx jest\n' > "$directory/jest.config.ts"
-  printf '{"name":"host","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"name":"host","root":"products/host","marker":"nx-generator","targets":{"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
@@ -410,6 +463,11 @@ exit 1
 
   const project = JSON.parse(await readFile(join(root, "products/host/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
+  assert.equal(project.targets["atlas:config"].options.cwd, "products/host");
+  assert.equal(project.targets["atlas:config"].options.command, "tsc -p tsconfig.atlas.json");
+  assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config host");
+  assert.equal(project.targets.dev.options.commands[1].command, "nx run host:serve");
+  assert.equal(project.targets.dev.options.commands[1].forwardAllArgs, true);
   assert.match(await readFile(join(root, "products/host/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
   assert.match(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8"), /startHost/);
   await assert.rejects(access(join(root, "products/host/src/app.component.ts")), { code: "ENOENT" });
@@ -725,6 +783,140 @@ test("atlas dev prepares a React Native Federation override", async () => {
   assert.match(stdout, /https:\/\/host\.example\/dashboard\?atlas-override=/);
 });
 
+test("atlas dev delegates host projects to the workspace dev task", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-host-"));
+  const projectRoot = join(root, "customer-host");
+  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
+  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), [
+    "export default {",
+    '  id: "customer-host",',
+    '  framework: "react",',
+    "  allowAppOverrides: true",
+    "};"
+  ].join("\n"));
+
+  const calls = [];
+  const project = { id: "customer-host", root: projectRoot, packageName: "customer-host", version: "1.0.0", outputPaths: [] };
+  const workspace = {
+    kind: "standalone",
+    root,
+    packageManager: "npm",
+    findProject: async () => project,
+    run: async (_project, task) => calls.push(["run", task]),
+    spawn: (_project, task) => {
+      calls.push(["spawn", task]);
+      const child = new EventEmitter();
+      child.killed = false;
+      child.kill = () => {
+        child.killed = true;
+        child.emit("exit", null, "SIGTERM");
+        return true;
+      };
+      setImmediate(() => child.emit("exit", 0, null));
+      return child;
+    }
+  };
+  const args = new CliArguments(["dev", "customer-host"]);
+  const originalInfo = console.info;
+
+  try {
+    console.info = () => {};
+    await new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("customer-host");
+  } finally {
+    console.info = originalInfo;
+  }
+
+  assert.deepEqual(calls, [["run", "atlas:config"], ["spawn", "dev"]]);
+});
+
+test("workspace .env supplies Atlas dev defaults without overriding shell env", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-env-"));
+  const originalHost = process.env.ATLAS_HOST;
+  const originalHostOrigin = process.env.ATLAS_HOST_ORIGIN;
+  process.env.ATLAS_HOST = "shell-host";
+  delete process.env.ATLAS_HOST_ORIGIN;
+  await writeFile(join(root, ".env"), [
+    "ATLAS_HOST=file-host",
+    "ATLAS_HOST_ORIGIN=http://localhost:4200",
+    "# ignored"
+  ].join("\n"));
+
+  try {
+    await loadWorkspaceEnv(root);
+    assert.equal(process.env.ATLAS_HOST, "shell-host");
+    assert.equal(process.env.ATLAS_HOST_ORIGIN, "http://localhost:4200");
+  } finally {
+    restoreEnv("ATLAS_HOST", originalHost);
+    restoreEnv("ATLAS_HOST_ORIGIN", originalHostOrigin);
+  }
+});
+
+test("atlas dev infers a single configured host and builds host URL from env origin", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-single-host-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
+  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+  const originalHost = process.env.ATLAS_HOST;
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  const originalHostOrigin = process.env.ATLAS_HOST_ORIGIN;
+  delete process.env.ATLAS_HOST;
+  delete process.env.ATLAS_HOST_URL;
+  process.env.ATLAS_HOST_ORIGIN = "http://localhost:5173";
+
+  try {
+    const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--control-port=4520", "--prepare-only"]);
+    const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+    assert.equal(document.hostId, "customer-host");
+    assert.match(stdout, /http:\/\/localhost:5173\/orders\?atlas-override=/);
+  } finally {
+    restoreEnv("ATLAS_HOST", originalHost);
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
+    restoreEnv("ATLAS_HOST_ORIGIN", originalHostOrigin);
+  }
+});
+
+test("atlas dev prompts when multiple configured hosts are possible", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-multi-host-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
+  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "angular",',
+    '  routes: [',
+    '    { hostId: "customer-host", basePath: "/orders" },',
+    '    { hostId: "admin-host", basePath: "/admin/orders" }',
+    "  ]",
+    "};"
+  ].join("\n"));
+  const originalHost = process.env.ATLAS_HOST;
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  const originalHostOrigin = process.env.ATLAS_HOST_ORIGIN;
+  delete process.env.ATLAS_HOST;
+  delete process.env.ATLAS_HOST_URL;
+  delete process.env.ATLAS_HOST_ORIGIN;
+
+  try {
+    await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://admin.example/admin/orders", "--prepare-only"], {
+      interactive: true,
+      select: async (_message, choices) => choices.find((choice) => choice.value === "admin-host").value
+    });
+
+    const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+    assert.equal(document.hostId, "admin-host");
+  } finally {
+    restoreEnv("ATLAS_HOST", originalHost);
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
+    restoreEnv("ATLAS_HOST_ORIGIN", originalHostOrigin);
+  }
+});
+
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: "pipe", ...options });
@@ -735,6 +927,35 @@ function run(command, args, options = {}) {
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolve(stdout) : reject(new Error(stderr)));
   });
+}
+
+async function runDevService(root, projectRoot, values, prompts) {
+  const project = { id: "orders", root: projectRoot, packageName: "orders", version: "1.0.0", outputPaths: [] };
+  const workspace = {
+    kind: "standalone",
+    root,
+    packageManager: "npm",
+    findProject: async () => project,
+    run: async () => {},
+    spawn: () => {
+      throw new Error("prepare-only test must not spawn a dev server");
+    }
+  };
+  const args = new CliArguments(values);
+  const originalInfo = console.info;
+  let stdout = "";
+  try {
+    console.info = (message = "") => { stdout += `${message}\n`; };
+    await new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("orders", prompts);
+    return stdout;
+  } finally {
+    console.info = originalInfo;
+  }
+}
+
+function restoreEnv(name, value) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
 }
 
 function assertSingleComponentDeclaration(path, contents) {

@@ -127,6 +127,12 @@ test("task commands follow Nx, Turbo, and package-manager conventions", () => {
   assert.deepEqual(createTaskCommand("workspace", "npm", "/repo", project, "build"), {
     command: "npm", args: ["run", "build", "--workspace", "@acme/orders"], cwd: "/repo"
   });
+  assert.deepEqual(createTaskCommand("workspace", "pnpm", "/repo", project, "dev", ["--port", "4201"]), {
+    command: "pnpm", args: ["--filter", "@acme/orders", "run", "dev", "--port", "4201"], cwd: "/repo"
+  });
+  assert.deepEqual(createTaskCommand("workspace", "yarn", "/repo", project, "dev", ["--port", "4201"]), {
+    command: "yarn", args: ["workspace", "@acme/orders", "run", "dev", "--port", "4201"], cwd: "/repo"
+  });
 });
 
 test("dependency installs use the detected package manager from the generated project", async () => {

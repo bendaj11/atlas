@@ -37,9 +37,24 @@ then uses the detected package manager internally, so developers do not prefix
 Atlas commands with `yarn`, `pnpm`, or `npm exec`.
 
 ```sh
-atlas dev orders --host=customer-host
+atlas dev customer-host
+atlas dev orders
 atlas build orders
 ```
+
+For `atlas dev <app>`, Atlas infers the host when the app config declares only
+one host. For multiple hosts, interactive terminals ask which host to use; in
+non-interactive shells, pass `--host` or set `ATLAS_HOST`. Use
+`ATLAS_HOST_URL` for an exact host page URL, or `ATLAS_HOST_ORIGIN` when Atlas
+should append the route base path from `atlas.config.ts`. You can set these in
+the shell or in a workspace `.env` file:
+
+```dotenv
+ATLAS_HOST=customer-host
+ATLAS_HOST_ORIGIN=http://localhost:4200
+```
+
+Shell environment variables override `.env` values. Flags override both.
 
 Atlas finds a project by Nx project name, package name, unscoped package name, directory name, or explicit directory. An Atlas project is identified by `atlas.config.ts`.
 Atlas also detects a workspace root from `package.json#workspaces` before a lockfile exists.
@@ -64,6 +79,8 @@ deterministic defaults instead.
 
 Atlas invokes targets such as `orders:build`, `orders:dev`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
+When Atlas delegates to the native Nx generator, it preserves Nx's generated
+targets and adds missing Atlas aliases such as `dev` and `atlas:config`.
 Use `--skip-workspace-generator` only in automation that deliberately needs the
 portable Atlas template instead of native Nx scaffolding.
 
@@ -98,7 +115,22 @@ Turborepo does not provide framework application generators. Atlas creates a
 normal package under the repository's declared workspace pattern (for example,
 `apps/*` or `packages/*`) so Turbo discovers it without extra configuration.
 
-Ensure `build`, `dev`, and `atlas:config` are declared in the package and included in the Turbo task graph where appropriate.
+Generated Atlas packages include `build`, `dev`, and `atlas:config` scripts.
+When integrating Atlas into an existing package, expose those scripts and include
+them in the Turbo task graph where appropriate.
+
+Atlas starts generated hosts with the same top-level command used everywhere:
+
+```sh
+atlas dev customer-host
+```
+
+Under the hood, Atlas uses the same filter syntax as other Turbo tasks:
+
+```sh
+pnpm exec turbo run dev --filter=customer-host
+yarn exec -- turbo run dev --filter=customer-host
+```
 
 ## Package-Manager Workspaces
 
@@ -109,6 +141,21 @@ Atlas uses native workspace commands:
 - npm: `npm run <task> --workspace <package>`
 
 No global Nx or Turbo installation is required. Atlas uses the workspace-local tool through the selected package manager.
+
+Generated Atlas packages include the scripts Atlas needs. Start a generated host
+with the same top-level command used everywhere:
+
+```sh
+atlas dev customer-host
+```
+
+Under the hood, Atlas uses the package manager command for your workspace:
+
+```sh
+pnpm --filter customer-host run dev
+yarn workspace customer-host run dev
+npm run dev --workspace customer-host
+```
 
 ## Styles And Assets
 

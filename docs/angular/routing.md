@@ -12,7 +12,7 @@ The Angular host owns:
 - top-level routes such as `/orders` and `/catalog`;
 - the product layout around the route outlet;
 - the catch-all Angular Router route used by Atlas;
-- navigation UI rendered into `data-atlas-navigation`.
+- navigation UI, either through `data-atlas-navigation` or custom rendering.
 
 Generated Angular hosts keep Atlas mount anchors in `src/app/app.component.ts`:
 
@@ -27,6 +27,77 @@ Generated Angular hosts keep Atlas mount anchors in `src/app/app.component.ts`:
 `data-atlas-route-outlet` is where route apps mount. The hidden
 `router-outlet` keeps Angular Router synchronized with Atlas route ownership; it
 is not the place where apps render.
+
+Customize the host layout by moving those anchors into your product shell. The
+anchors can sit inside your design system components, but the attributes must
+stay on real DOM elements:
+
+```html
+<app-top-bar>
+  <div data-atlas-slot="header"></div>
+</app-top-bar>
+
+<div class="workspace-layout">
+  <aside class="workspace-nav">
+    <nav data-atlas-navigation aria-label="Applications"></nav>
+    <div data-atlas-slot="sidebar"></div>
+  </aside>
+
+  <main class="workspace-content">
+    <div data-atlas-host-status></div>
+    <section data-atlas-route-outlet></section>
+  </main>
+</div>
+
+<router-outlet hidden></router-outlet>
+```
+
+You can add more named slots by adding more anchors:
+
+```html
+<aside data-atlas-slot="help-panel"></aside>
+<footer data-atlas-slot="footer-tools"></footer>
+```
+
+Apps that declare `slots: [{ name: "help-panel", ... }]` mount into the matching
+host anchor. Apps that declare routes mount into `data-atlas-route-outlet`.
+
+`data-atlas-navigation` is optional. It renders a basic Atlas-managed link list
+from the runtime catalog. Product hosts can instead render custom navigation
+with the same resolved route data:
+
+```ts
+import { Component, inject } from "@angular/core";
+import { AtlasNavigationItemsService } from "@atlas/runtime/angular";
+
+@Component({
+  selector: "app-root",
+  standalone: true,
+  template: `
+    <aside class="workspace-nav">
+      @for (item of navigation.items(); track item.id) {
+        <button
+          type="button"
+          [attr.aria-current]="item.active ? 'page' : null"
+          (click)="item.navigate()"
+        >
+          {{ item.label }}
+        </button>
+      }
+    </aside>
+
+    <main data-atlas-route-outlet></main>
+    <router-outlet hidden></router-outlet>
+  `
+})
+export class AppComponent {
+  readonly navigation = inject(AtlasNavigationItemsService);
+}
+```
+
+The host owns the markup and design system components. Atlas still owns runtime
+catalog resolution, route ordering, hidden navigation entries, href creation,
+navigation, and active-route matching.
 
 The host starts Atlas from `src/bootstrap.ts`:
 
@@ -57,12 +128,44 @@ export default {
       title: "Orders",
       nav: { label: "Orders", visible: true, order: 10 }
     }
+  ],
+  slots: [
+    {
+      id: "orders-header-tools",
+      hostId: "customer-host",
+      name: "header"
+    }
   ]
 } satisfies AtlasAppConfig;
 ```
 
 `basePath` belongs to the host URL. Angular Router inside the app sees only
 app-relative paths.
+
+This config does not change host source code. It becomes deployment data that
+the host reads through its catalog.
+
+## How The Host Chooses An App
+
+The host does not import every app or maintain a route table in source. The
+selection flow is:
+
+1. `atlas build orders` reads `orders/atlas.config.ts`.
+2. Atlas writes route and slot declarations into the `orders` manifest.
+3. Publication updates `hosts/customer-host/catalog.json` with selected app
+   versions for that host.
+4. `customer-host/public/atlas.runtime.json` tells the browser where that
+   catalog is.
+5. `startHost(...)` fetches the catalog, filters placements for
+   `hostId: "customer-host"`, and matches the current browser URL against each
+   route `basePath`.
+6. If the URL is `/orders` or `/orders/42`, the `/orders` placement wins and the
+   host mounts the selected `orders` manifest in `data-atlas-route-outlet`.
+7. Slot placements mount independently into matching `data-atlas-slot` anchors,
+   such as `header` or `help-panel`.
+
+If two selected apps claim the same host `basePath`, catalog validation fails.
+The host should not need hard-coded route ownership to resolve that conflict.
 
 ## Inner Angular Routes
 

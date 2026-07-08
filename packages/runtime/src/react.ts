@@ -1,7 +1,7 @@
-import { createElement, Fragment, type ReactElement } from "react";
+import { createElement, Fragment, useEffect, useState, type ReactElement } from "react";
 import { createHostNavigation, type RouterLike } from "@atlas/sdk/react";
 import { startDomHost, type DomHostOptions } from "./dom-host.js";
-import type { AtlasHostRuntime } from "./index.js";
+import { readAtlasNavigationItems, subscribeAtlasNavigationItems, type AtlasHostNavigationItem, type AtlasHostRuntime } from "./index.js";
 
 export function AtlasDefaultHostLayout(): ReactElement {
   return createElement(
@@ -31,4 +31,13 @@ export async function startHost<TExtensions extends object = {}, THostData exten
   return startDomHost(options, {
     createNavigation: () => createHostNavigation(options.router)
   });
+}
+
+export function useAtlasNavigationItems(document: Document = globalThis.document): readonly AtlasHostNavigationItem[] {
+  const [items, setItems] = useState(() => readAtlasNavigationItems(document));
+  useEffect(() => {
+    setItems(readAtlasNavigationItems(document));
+    return subscribeAtlasNavigationItems(setItems, document);
+  }, [document]);
+  return items;
 }
