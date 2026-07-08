@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import type { AtlasConfig, AtlasHostConfig, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
+import { compileAtlasConfig } from "./config-compiler.js";
 import type { AtlasWorkspace } from "./workspace.js";
 
 export class AtlasRuntimeConfigService {
@@ -14,7 +15,7 @@ export class AtlasRuntimeConfigService {
 
   async generate(name: string): Promise<{ path: string; config: AtlasHostRuntimeConfig }> {
     const project = await this.workspace.findProject(name);
-    if (!this.args.hasFlag("skip-compile")) await this.workspace.run(project, "atlas:config");
+    if (!this.args.hasFlag("skip-compile")) await compileAtlasConfig(this.workspace, project);
     const source = await this.builds.loadConfig(project.root);
     const config = createHostRuntimeConfig(source, this.args);
     const output = resolve(this.args.flag("out") ?? `${project.root}/public/atlas.runtime.json`);

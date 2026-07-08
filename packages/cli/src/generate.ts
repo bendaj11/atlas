@@ -62,7 +62,7 @@ export class AtlasGenerateService {
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (workspaceScaffolded) {
         await alignDelegatedTsconfig(root, selectedFramework);
-        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(root, name, type);
+        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -165,6 +165,10 @@ export class AtlasGenerateService {
       dev: nxTarget(this.workspace.packageManager, cwd, "dev")
     };
     targets["atlas:config"] = nxTarget(this.workspace.packageManager, cwd, "atlas:config");
+    targets[name] = {
+      executor: "nx:run-commands",
+      options: { command: `nx run ${name}:dev`, forwardAllArgs: true }
+    };
     await writeFile(join(root, "project.json"), `${JSON.stringify({ name, sourceRoot: `${cwd}/src`, projectType: "application", targets }, null, 2)}\n`, "utf8");
   }
 
@@ -436,18 +440,20 @@ async function alignDelegatedTsconfig(root: string, framework: SupportedFramewor
   await writeFile(target, `${JSON.stringify(tsconfig, null, 2)}\n`, "utf8");
 }
 
-async function ensureDelegatedNxTargets(root: string, name: string, type: "host" | "app"): Promise<void> {
+async function ensureDelegatedNxTargets(workspaceRoot: string, root: string, name: string, type: "host" | "app"): Promise<void> {
   const projectFile = join(root, "project.json");
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
   if (!project) return;
 
   const projectName = typeof project.name === "string" && project.name ? project.name : name;
+  const projectRoot = projectRootFromNxProject(project, workspaceRoot, root);
   const targets = asObject(project.targets);
-  if (!targets["atlas:config"]) {
-    targets["atlas:config"] = {
-      executor: "nx:run-commands",
-      options: { cwd: projectRootFromNxProject(project), command: "tsc -p tsconfig.atlas.json" }
-    };
+  const atlasConfigTarget = {
+    executor: "nx:run-commands",
+    options: { command: `tsc -p ${join(projectRoot, "tsconfig.atlas.json").split("\\").join("/")}` }
+  };
+  if (!targets["atlas:config"] || isLegacyAtlasConfigTarget(targets["atlas:config"])) {
+    targets["atlas:config"] = atlasConfigTarget;
   }
   if (!targets.dev && targets.serve) {
     targets.dev = type === "host"
@@ -466,6 +472,12 @@ async function ensureDelegatedNxTargets(root: string, name: string, type: "host"
           options: { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
         };
   }
+  if (targets.dev && !targets[projectName]) {
+    targets[projectName] = {
+      executor: "nx:run-commands",
+      options: { command: `nx run ${projectName}:dev`, forwardAllArgs: true }
+    };
+  }
   project.targets = targets;
   await writeFile(projectFile, `${JSON.stringify(project, null, 2)}\n`, "utf8");
 }
@@ -476,8 +488,15 @@ function asObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function projectRootFromNxProject(project: Record<string, unknown>): string {
-  return typeof project.root === "string" && project.root ? project.root : ".";
+function isLegacyAtlasConfigTarget(value: unknown): boolean {
+  const target = asObject(value);
+  const options = asObject(target.options);
+  return options.command === "tsc -p tsconfig.atlas.json";
+}
+
+function projectRootFromNxProject(project: Record<string, unknown>, workspaceRoot: string, root: string): string {
+  const configuredRoot = typeof project.root === "string" && project.root ? project.root : undefined;
+  return configuredRoot ?? (relative(workspaceRoot, root) || ".");
 }
 
 async function readJsonFile<T>(path: string): Promise<T | undefined> {

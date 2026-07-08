@@ -6,6 +6,7 @@ import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
 import type { AtlasConfig, AtlasHostConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
+import { compileAtlasConfig } from "./config-compiler.js";
 import type { AtlasPrompter } from "./ui.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
@@ -35,7 +36,7 @@ export class AtlasDevService {
 
   async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "select"> = nonInteractivePrompter): Promise<void> {
     const project = await this.workspace.findProject(name);
-    await this.workspace.run(project, "atlas:config");
+    await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
     if (isHostConfig(config)) {
       await this.runHost(project, config);
@@ -117,7 +118,7 @@ export class AtlasDevService {
   private async defaultHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
     try {
       const hostProject = await this.workspace.findProject(hostId);
-      await this.workspace.run(hostProject, "atlas:config");
+      await compileAtlasConfig(this.workspace, hostProject);
       const hostConfig = await this.builds.loadConfig(hostProject.root);
       if (!isHostConfig(hostConfig)) return undefined;
       return urlFromOrigin(defaultHostOrigin(hostConfig), basePath);

@@ -91,10 +91,16 @@ targets and adds missing Atlas aliases such as `dev` and `atlas:config`.
 Generated projects can also be run with native Nx commands:
 
 ```sh
+nx run customer-host
 nx run customer-host:dev
+nx run orders
 nx run orders:dev
 nx run orders:atlas:config
 ```
+
+Nx treats `nx run <project>` as `nx run <project>:<project>`. Atlas adds that
+project-named target as a compatibility alias for `dev`, so the shorter command
+starts the generated host or app.
 
 Use `--skip-workspace-generator` only in automation that deliberately needs the
 portable Atlas template instead of native Nx scaffolding.
@@ -147,6 +153,10 @@ turbo run dev --filter=customer-host
 pnpm exec turbo run dev --filter=customer-host
 yarn exec -- turbo run dev --filter=customer-host
 ```
+
+pnpm, Yarn, npm, and Turbo still require a task name in their native syntax, so
+their direct commands use `run dev`. Use plain `atlas dev` from inside a
+generated package when you want the shortest workspace-agnostic command.
 
 ## Package-Manager Workspaces
 
