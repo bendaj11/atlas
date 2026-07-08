@@ -13,7 +13,7 @@ import {
 } from "./react-microfrontend-generator.js";
 import { reactRemoteName } from "./react-names.js";
 import { reactIndex, reactPackage } from "./react-package-generator.js";
-import { reactAtlasTsconfig, reactTsconfig } from "./react-tsconfig-generator.js";
+import { reactTsconfig } from "./react-tsconfig-generator.js";
 import { reactHostViteConfig, reactAppViteConfig } from "./react-vite-generator.js";
 
 export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
@@ -22,7 +22,6 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
   return [
     { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
-    { path: "tsconfig.atlas.json", contents: json(reactAtlasTsconfig()) },
     { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
     { path: "public/remoteEntry.json", contents: json({ name: reactRemoteName(name), exposes: [], shared: [] }) },
@@ -38,7 +37,6 @@ export function generateReactAppFiles(options: AtlasGeneratorOptions): AtlasGene
   return [
     { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
-    { path: "tsconfig.atlas.json", contents: json(reactAtlasTsconfig()) },
     { path: "vite.config.ts", contents: reactAppViteConfig(name, profile.compilerTarget) },
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },
     { path: "index.html", contents: reactIndex(`${title(name)} assets`) },

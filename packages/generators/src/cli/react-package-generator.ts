@@ -18,8 +18,8 @@ export function reactPackage(options: ReactPackageOptions): unknown {
     type: "module",
     scripts: {
       dev: host ? `atlas runtime-config ${projectName} && vite --host 0.0.0.0` : "vite --host 0.0.0.0",
-      "atlas:config": "tsc -p tsconfig.atlas.json",
-      build: host ? `atlas runtime-config ${projectName} && tsc -b && vite build` : "tsc -p tsconfig.atlas.json && tsc -b && vite build",
+      "atlas:config": `atlas compile-config ${projectName}`,
+      build: host ? `atlas runtime-config ${projectName} && tsc -b && vite build` : `atlas compile-config ${projectName} && tsc -b && vite build`,
       ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
     },
     dependencies: {

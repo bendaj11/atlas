@@ -8,7 +8,3 @@ export function reactTsconfig(): unknown {
     include: ["src", "vite.config.ts", "atlas.config.ts"]
   };
 }
-
-export function reactAtlasTsconfig(): unknown {
-  return { extends: "./tsconfig.json", compilerOptions: { noEmit: false, allowImportingTsExtensions: false, outDir: ".atlas", module: "Node16", moduleResolution: "Node16", types: ["node"] }, files: ["atlas.config.ts"], include: [] };
-}

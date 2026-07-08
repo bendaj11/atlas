@@ -16,8 +16,8 @@ export function angularPackage(options: AngularPackageOptions): unknown {
     private: true,
     scripts: {
       dev: host ? `atlas runtime-config ${projectName} && ng serve ${projectName}` : `ng serve ${projectName}`,
-      "atlas:config": "tsc -p tsconfig.atlas.json",
-      build: host ? `atlas runtime-config ${projectName} && ng build` : "tsc -p tsconfig.atlas.json && ng build",
+      "atlas:config": `atlas compile-config ${projectName}`,
+      build: host ? `atlas runtime-config ${projectName} && ng build` : `atlas compile-config ${projectName} && ng build`,
       ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
     },
     dependencies: {

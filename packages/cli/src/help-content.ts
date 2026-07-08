@@ -64,6 +64,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--host-url <url>", description: "Host page opened with the override activated" },
       { label: "--port <number>", description: "App dev-server port (default: 4201)" },
       { label: "--control-port <number>", description: "Atlas override-server port (default: 4400)" },
+      { label: "--no-open", description: "Do not open the resolved host URL automatically" },
       { label: "--prepare-only", description: "Create the override without starting development servers" },
       { label: "-h, --help", description: "Show help for this command" }
     ],

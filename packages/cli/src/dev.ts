@@ -1,4 +1,4 @@
-import type { ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
@@ -24,6 +24,7 @@ interface DevControlServer {
 
 interface DevTarget {
   hostId: string;
+  basePath?: string;
   hostUrl?: string;
 }
 
@@ -75,32 +76,32 @@ export class AtlasDevService {
     await mkdir(directory, { recursive: true });
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
     const overrideUrl = `http://localhost:${controlPort}/atlas.local-overrides.json`;
-    console.info(`Local override written to ${overridePath}.`);
-    console.info(`Override URL: ${overrideUrl}`);
-    if (target.hostUrl) console.info(`Open host: ${activationUrl(target.hostUrl, overrideUrl)}`);
+    const hostActivationUrl = target.hostUrl ? activationUrl(target.hostUrl, overrideUrl) : undefined;
+    logHostViewUrl(hostActivationUrl);
     if (this.args.hasFlag("prepare-only")) return;
     const control = await startControlServer(controlPort, document);
     const frameworkServer = this.workspace.spawn(project, "dev", ["--port", String(remotePort)]);
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       control.markReady();
+      openBrowserWhenReady(this.args, hostActivationUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill("SIGTERM");
       control.server.close();
       throw error;
     }
-    console.info(`Atlas is serving ${manifest.id} for host ${target.hostId}. Press Ctrl+C to stop.`);
     await waitForShutdown(frameworkServer, control.server);
   }
 
   private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<DevTarget> {
     const hostId = await this.resolveHostId(config, prompts);
     const basePath = routeBasePath(config, hostId);
-    const hostUrl = this.args.flag("host-url") ??
-      process.env.ATLAS_HOST_URL ??
-      urlFromOrigin(process.env.ATLAS_HOST_ORIGIN, basePath) ??
-      await this.defaultHostUrl(hostId, basePath);
-    return { hostId, ...(hostUrl ? { hostUrl } : {}) };
+    const hostUrl = await this.resolveHostUrl(hostId, basePath);
+    return {
+      hostId,
+      ...(basePath ? { basePath } : {}),
+      ...(hostUrl ? { hostUrl } : {})
+    };
   }
 
   private async resolveHostId(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<string> {
@@ -113,6 +114,13 @@ export class AtlasDevService {
     }
     if (hostIds.length > 1) throw new Error(`Multiple hosts found for "${config.id}". Pass --host or set ATLAS_HOST.`);
     return "host";
+  }
+
+  private async resolveHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
+    return this.args.flag("host-url") ??
+      process.env.ATLAS_HOST_URL ??
+      urlFromOrigin(process.env.ATLAS_HOST_ORIGIN, basePath) ??
+      await this.defaultHostUrl(hostId, basePath);
   }
 
   private async defaultHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
@@ -166,13 +174,25 @@ async function waitForRemoteEntry(remoteEntryUrl: string, child: ChildProcess): 
     }
     try {
       const response = await fetch(remoteEntryUrl, { cache: "no-store" });
-      if (response.ok) return;
+      if (await remoteEntryIsReady(response)) return;
     } catch {
       // The framework server has not opened its port yet.
     }
     await new Promise((resolve) => setTimeout(resolve, REMOTE_POLL_INTERVAL_MS));
   }
   throw new Error(`Framework dev server did not serve ${remoteEntryUrl} within 120 seconds.`);
+}
+
+export async function remoteEntryIsReady(response: Response): Promise<boolean> {
+  if (!response.ok) return false;
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return false;
+  try {
+    const metadata = await response.json() as { name?: unknown; exposes?: unknown };
+    return typeof metadata.name === "string" && Array.isArray(metadata.exposes);
+  } catch {
+    return false;
+  }
 }
 
 function waitForShutdown(child: ChildProcess, server: Server): Promise<void> {
@@ -267,6 +287,32 @@ function activationUrl(hostUrl: string, overrideUrl: string): string {
   const url = new URL(hostUrl);
   url.searchParams.set("atlas-override", overrideUrl);
   return url.toString();
+}
+
+function logHostViewUrl(url: string | undefined): void {
+  if (url) {
+    console.info(`View app: ${url}`);
+  } else {
+    console.info("View app: unresolved; pass --host-url or set ATLAS_HOST_ORIGIN.");
+  }
+}
+
+function openBrowserWhenReady(args: CliArguments, url: string | undefined): void {
+  if (!url || args.hasFlag("no-open") || !process.stdout.isTTY) return;
+  const command = browserOpenCommand(url);
+  try {
+    const child = spawn(command.command, command.args, { detached: true, stdio: "ignore" });
+    child.once("error", () => undefined);
+    child.unref();
+  } catch {
+    // The logged URL remains the fallback when the platform opener is unavailable.
+  }
+}
+
+function browserOpenCommand(url: string): { command: string; args: string[] } {
+  if (process.platform === "darwin") return { command: "open", args: [url] };
+  if (process.platform === "win32") return { command: "cmd", args: ["/c", "start", "", url] };
+  return { command: "xdg-open", args: [url] };
 }
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {

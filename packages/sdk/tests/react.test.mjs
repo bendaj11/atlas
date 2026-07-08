@@ -14,6 +14,8 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("src/main.tsx"), /AtlasDefaultHostLayout, startHost/);
   assert.match(host.get("src/main.tsx"), /createBrowserRouter/);
   assert.match(host.get("src/main.tsx"), /import atlasConfig from "\.\.\/atlas\.config"/);
+  assert.equal(host.has("tsconfig.atlas.json"), false);
+  assert.equal(appFiles.has("tsconfig.atlas.json"), false);
   assert.deepEqual(JSON.parse(host.get("tsconfig.json")).include, ["src", "vite.config.ts", "atlas.config.ts"]);
   assert.deepEqual(JSON.parse(appFiles.get("tsconfig.json")).include, ["src", "vite.config.ts", "atlas.config.ts"]);
   assert.match(host.get("src/main.tsx"), /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \}/);

@@ -11,9 +11,7 @@ import { angularIndex, angularPackage } from "./angular-package-generator.js";
 import {
   angularAppTsconfig,
   angularFederationConfig,
-  angularTsconfig,
   angularWorkspace,
-  atlasConfigTsconfig
 } from "./angular-workspace-generator.js";
 import { atlasConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 import { angularVersionProfile } from "./generator-versions.js";
@@ -25,9 +23,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "angular.json", contents: json(angularWorkspace(name, true)) },
-    { path: "tsconfig.json", contents: json(angularTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
-    { path: "tsconfig.atlas.json", contents: json(atlasConfigTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, true) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
@@ -44,9 +40,7 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile })) },
     { path: "angular.json", contents: json(angularWorkspace(name, false)) },
-    { path: "tsconfig.json", contents: json(angularTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
-    { path: "tsconfig.atlas.json", contents: json(atlasConfigTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },
     { path: "src/index.html", contents: angularIndex(title(name), "<div>Atlas app assets</div>") },

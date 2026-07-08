@@ -19,8 +19,12 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/main.ts"), /initFederation/);
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
   assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
-  assert.deepEqual(JSON.parse(host.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
-  assert.deepEqual(JSON.parse(appFiles.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
+  assert.equal(host.has("tsconfig.json"), false);
+  assert.equal(appFiles.has("tsconfig.json"), false);
+  assert.equal(host.has("tsconfig.atlas.json"), false);
+  assert.equal(appFiles.has("tsconfig.atlas.json"), false);
+  assert.deepEqual(JSON.parse(host.get("tsconfig.app.json")).files, ["src/main.ts"]);
+  assert.deepEqual(JSON.parse(appFiles.get("tsconfig.app.json")).files, ["src/main.ts"]);
   assert.match(host.get("src/bootstrap.ts"), /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \}/);
   assert.match(host.get("src/bootstrap.ts"), /openModal: \(modal, controls\) =>/);
   assert.match(host.get("src/bootstrap.ts"), /openPopup: overlayDefaults\.openPopup/);

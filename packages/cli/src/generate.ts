@@ -60,9 +60,10 @@ export class AtlasGenerateService {
         : generateAppFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
       if (workspaceScaffolded) await takeOverAppSource(root);
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
+      if (selectedFramework === "angular") await ensureAngularWorkspaceFederationConfig(root, name, type);
       if (workspaceScaffolded) {
         await alignDelegatedTsconfig(root, selectedFramework);
-        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type);
+        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -229,7 +230,6 @@ function generatedOverlay(
 
 const ATLAS_INTEGRATION_FILES = new Set([
   "atlas.config.ts",
-  "tsconfig.atlas.json",
   "federation.config.js"
 ]);
 
@@ -422,17 +422,22 @@ async function takeOverAppSource(root: string): Promise<void> {
 }
 
 async function alignDelegatedTsconfig(root: string, framework: SupportedFramework): Promise<void> {
-  if (framework === "angular") return;
-
   const appTsconfig = join(root, "tsconfig.app.json");
   const target = await exists(appTsconfig) ? appTsconfig : join(root, "tsconfig.json");
   if (!await exists(target)) return;
 
   const tsconfig = JSON.parse(await readFile(target, "utf8")) as Record<string, unknown>;
+  const compilerOptions = typeof tsconfig.compilerOptions === "object" && tsconfig.compilerOptions && !Array.isArray(tsconfig.compilerOptions)
+    ? tsconfig.compilerOptions as Record<string, unknown>
+    : {};
+  if (framework === "angular") {
+    compilerOptions.emitDeclarationOnly = false;
+    tsconfig.compilerOptions = compilerOptions;
+    await writeFile(target, `${JSON.stringify(tsconfig, null, 2)}\n`, "utf8");
+    return;
+  }
+
   if (framework === "react") {
-    const compilerOptions = typeof tsconfig.compilerOptions === "object" && tsconfig.compilerOptions && !Array.isArray(tsconfig.compilerOptions)
-      ? tsconfig.compilerOptions as Record<string, unknown>
-      : {};
     compilerOptions.module = "ESNext";
     compilerOptions.moduleResolution = "bundler";
     compilerOptions.types = addUniqueString(Array.isArray(compilerOptions.types) ? compilerOptions.types : [], "vite/client");
@@ -446,18 +451,23 @@ async function alignDelegatedTsconfig(root: string, framework: SupportedFramewor
   await writeFile(target, `${JSON.stringify(tsconfig, null, 2)}\n`, "utf8");
 }
 
-async function ensureDelegatedNxTargets(workspaceRoot: string, root: string, name: string, type: "host" | "app"): Promise<void> {
+async function ensureDelegatedNxTargets(workspaceRoot: string, root: string, name: string, type: "host" | "app", framework: SupportedFramework): Promise<void> {
   const projectFile = join(root, "project.json");
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
   if (!project) return;
 
   const projectName = typeof project.name === "string" && project.name ? project.name : name;
-  const projectRoot = projectRootFromNxProject(project, workspaceRoot, root);
+  const projectRoot = normalizedProjectRoot(workspaceRoot, root);
+  const previousProjectRoot = projectRootFromNxProject(project, workspaceRoot, root);
+  if (previousProjectRoot !== projectRoot) {
+    throw new Error(staleNxProjectRootMessage(project, previousProjectRoot, projectRoot));
+  }
   const targets = asObject(project.targets);
+  if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor");
   const atlasConfigTarget = {
     executor: "nx:run-commands",
     outputs: ["{projectRoot}/.atlas"],
-    options: { command: `tsc -p ${join(projectRoot, "tsconfig.atlas.json").split("\\").join("/")}` }
+    options: { command: `atlas compile-config ${projectName}` }
   };
   if (!targets["atlas:config"] || isOutdatedAtlasConfigTarget(targets["atlas:config"])) {
     targets["atlas:config"] = atlasConfigTarget;
@@ -489,6 +499,57 @@ async function ensureDelegatedNxTargets(workspaceRoot: string, root: string, nam
   await writeFile(projectFile, `${JSON.stringify(project, null, 2)}\n`, "utf8");
 }
 
+async function ensureAngularWorkspaceFederationConfig(root: string, projectName: string, type: "host" | "app"): Promise<void> {
+  const workspaceFile = join(root, "angular.json");
+  const workspace = await readJsonFile<Record<string, unknown>>(workspaceFile);
+  if (!workspace) return;
+  const project = asObject(asObject(workspace.projects)[projectName]);
+  const targets = asObject(project.architect);
+  if (!Object.keys(targets).length) return;
+  ensureAngularNativeFederationTargets(targets, projectName, type, "builder");
+  project.architect = targets;
+  asObject(workspace.projects)[projectName] = project;
+  await writeFile(workspaceFile, `${JSON.stringify(workspace, null, 2)}\n`, "utf8");
+}
+
+function ensureAngularNativeFederationTargets(
+  targets: Record<string, unknown>,
+  projectName: string,
+  type: "host" | "app",
+  runnerKey: "builder" | "executor"
+): void {
+  if (targets.build && !isNativeFederationTarget(targets.build, runnerKey)) {
+    targets.esbuild ??= targets.build;
+  }
+  if (targets.esbuild) {
+    targets.build = {
+      [runnerKey]: "@angular-architects/native-federation:build",
+      options: { target: `${projectName}:esbuild:production` },
+      configurations: {
+        development: { target: `${projectName}:esbuild:development`, dev: true }
+      }
+    };
+  }
+
+  if (targets.serve && !isNativeFederationTarget(targets.serve, runnerKey)) {
+    targets["serve-original"] ??= targets.serve;
+  }
+  if (targets["serve-original"]) {
+    targets.serve = {
+      [runnerKey]: "@angular-architects/native-federation:build",
+      options: {
+        target: `${projectName}:serve-original:development`,
+        dev: true,
+        port: type === "host" ? 4200 : 4201
+      }
+    };
+  }
+}
+
+function isNativeFederationTarget(value: unknown, runnerKey: "builder" | "executor"): boolean {
+  return asObject(value)[runnerKey] === "@angular-architects/native-federation:build";
+}
+
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -498,7 +559,7 @@ function asObject(value: unknown): Record<string, unknown> {
 function isOutdatedAtlasConfigTarget(value: unknown): boolean {
   const target = asObject(value);
   const options = asObject(target.options);
-  return options.command === "tsc -p tsconfig.atlas.json" || !declaresAtlasConfigOutput(target);
+  return typeof options.command !== "string" || options.command.includes("tsconfig.atlas.json") || !declaresAtlasConfigOutput(target);
 }
 
 function declaresAtlasConfigOutput(target: Record<string, unknown>): boolean {
@@ -507,7 +568,46 @@ function declaresAtlasConfigOutput(target: Record<string, unknown>): boolean {
 
 function projectRootFromNxProject(project: Record<string, unknown>, workspaceRoot: string, root: string): string {
   const configuredRoot = typeof project.root === "string" && project.root ? project.root : undefined;
-  return configuredRoot ?? (relative(workspaceRoot, root) || ".");
+  return configuredRoot ?? normalizedProjectRoot(workspaceRoot, root);
+}
+
+function normalizedProjectRoot(workspaceRoot: string, root: string): string {
+  return relative(workspaceRoot, root).split("\\").join("/") || ".";
+}
+
+function staleNxProjectRootMessage(project: Record<string, unknown>, configuredRoot: string, actualRoot: string): string {
+  const stalePaths = staleNxProjectPaths(project, configuredRoot);
+  const examples = stalePaths.length ? ` Stale paths: ${stalePaths.slice(0, 3).join(", ")}.` : "";
+  return `Nx project root mismatch. project.json points at "${configuredRoot}", but Atlas generated the project at "${actualRoot}".${examples} Update project.json root/sourceRoot/build options or regenerate the project.`;
+}
+
+function staleNxProjectPaths(project: Record<string, unknown>, configuredRoot: string): string[] {
+  const prefix = configuredRoot === "." ? "" : `${configuredRoot}/`;
+  if (!prefix) return [];
+  const values = collectNxPathValues(project);
+  return [...new Set(values.filter((value) => value.startsWith(prefix)))];
+}
+
+function collectNxPathValues(project: Record<string, unknown>): string[] {
+  const values = typeof project.sourceRoot === "string" ? [project.sourceRoot] : [];
+  const targets = asObject(project.targets);
+  for (const target of Object.values(targets)) {
+    const targetObject = asObject(target);
+    values.push(...nxPathOptions(asObject(targetObject.options)));
+    for (const configuration of Object.values(asObject(targetObject.configurations))) {
+      values.push(...nxPathOptions(asObject(configuration)));
+    }
+  }
+  return values.map((value) => value.split("\\").join("/"));
+}
+
+function nxPathOptions(options: Record<string, unknown>): string[] {
+  return ["index", "browser", "main", "polyfills", "tsConfig", "styles"].flatMap((key) => {
+    const value = options[key];
+    if (typeof value === "string") return [value];
+    if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+    return [];
+  });
 }
 
 async function readJsonFile<T>(path: string): Promise<T | undefined> {

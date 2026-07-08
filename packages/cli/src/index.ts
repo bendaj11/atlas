@@ -3,6 +3,7 @@ import { realpathSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
+import { compileAtlasConfig } from "./config-compiler.js";
 import { AtlasDevService } from "./dev.js";
 import { AtlasGenerateService } from "./generate.js";
 import { loadWorkspaceEnv } from "./env.js";
@@ -82,6 +83,14 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       ui.heading(`Generating runtime config for ${invocation.subcommand}`);
       const result = await new AtlasRuntimeConfigService(workspace, args, builds).generate(invocation.subcommand);
       ui.success(`Wrote ${result.path}.`);
+      return;
+    }
+
+    if (invocation.command === "compile-config") {
+      const projectName = invocation.subcommand && !invocation.subcommand.startsWith("-") ? invocation.subcommand : ".";
+      const project = await workspace.findProject(projectName);
+      await compileAtlasConfig(workspace, project);
+      ui.success(`Compiled ${project.id} atlas.config.ts.`);
       return;
     }
 

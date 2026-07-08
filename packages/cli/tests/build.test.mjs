@@ -10,7 +10,7 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
-import { AtlasDevService } from "../dist/dev.js";
+import { AtlasDevService, remoteEntryIsReady } from "../dist/dev.js";
 import { loadWorkspaceEnv } from "../dist/env.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -215,6 +215,13 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   assert.match(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs: 15000/);
   assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /catalogUrl/);
   assert.match(await readFile(join(target, "package.json"), "utf8"), /atlas runtime-config customer-host/);
+  const angularJson = JSON.parse(await readFile(join(target, "angular.json"), "utf8"));
+  const architect = angularJson.projects["customer-host"].architect;
+  assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
+  assert.equal(architect.build.options.target, "customer-host:esbuild:production");
+  assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
+  assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
+  assert.equal(architect.serve.options.port, 4200);
   assert.match(main, /initFederation/);
   assert.match(bootstrap, /startHost/);
   assert.doesNotMatch(bootstrap, /localhost:4300/);
@@ -279,6 +286,25 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
   assert.equal(runtime.resourcesRetryCount, 4);
 });
 
+test("atlas compile-config emits atlas.config.js through the project tsconfig", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-compile-config-"));
+  await writeFile(join(root, "package.json"), JSON.stringify({ name: "orders", version: "0.1.0", type: "module" }));
+  await writeFile(join(root, "tsconfig.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true, noEmit: true }
+  }));
+  await writeFile(join(root, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+
+  await run(process.execPath, [join(process.cwd(), "packages/cli/dist/index.js"), "compile-config"], { cwd: root });
+
+  await access(join(root, ".atlas", "atlas.config.js"));
+});
+
 test("atlas removes a newly generated project when dependency installation fails", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-cleanup-"));
   const bin = join(temporary, "bin");
@@ -304,6 +330,7 @@ test("atlas generation registers projects with Nx automatically", async () => {
   assert.equal(project.targets.build.executor, "nx:run-commands");
   assert.equal(project.targets["atlas:config"].options.cwd, "orders");
   assert.deepEqual(project.targets["atlas:config"].outputs, ["{projectRoot}/.atlas"]);
+  assert.equal(project.targets["atlas:config"].options.command, "yarn run atlas:config");
   assert.equal(project.targets.orders.options.command, "nx run orders:dev");
   assert.match(stdout, /Detected an Nx workspace/);
   assert.match(stdout, /Native Nx scaffolding was skipped; Atlas will generate the React scaffold directly at orders/);
@@ -348,6 +375,20 @@ for (const scenario of [
     config: "vite.config.ts",
     match: /createRoutedApp/,
     configMatch: /remoteEntry\.json/
+  },
+  {
+    name: "Turborepo",
+    prefix: "atlas-turbo-angular-app-",
+    files: {
+      "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "pnpm@10.0.0", workspaces: ["apps/*"] }),
+      "turbo.json": "{}\n"
+    },
+    framework: "angular",
+    root: "apps/orders",
+    entry: "src/entry.ts",
+    config: "federation.config.js",
+    match: /defineApp/,
+    configMatch: /"\.\/entry": "\.\/src\/entry\.ts"/
   }
 ]) {
   test(`atlas generates complete app files in a ${scenario.name}`, async () => {
@@ -366,6 +407,15 @@ for (const scenario of [
     assert.match(await readFile(join(projectRoot, scenario.config), "utf8"), scenario.configMatch);
     assert.match(await readFile(join(projectRoot, "atlas.config.ts"), "utf8"), new RegExp(`framework: "${scenario.framework}"`));
     assert.equal(JSON.parse(await readFile(join(projectRoot, "package.json"), "utf8")).name, "orders");
+    if (scenario.framework === "angular") {
+      const angularJson = JSON.parse(await readFile(join(projectRoot, "angular.json"), "utf8"));
+      const architect = angularJson.projects.orders.architect;
+      assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
+      assert.equal(architect.build.options.target, "orders:esbuild:production");
+      assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
+      assert.equal(architect.serve.options.target, "orders:serve-original:development");
+      assert.equal(architect.serve.options.port, 4201);
+    }
     assert.match(stdout, new RegExp(`Detected ${scenario.name === "Turborepo" ? "a Turborepo" : "a package-manager"} workspace`));
   });
 }
@@ -415,13 +465,22 @@ for (const scenario of [
 
     const packageJson = JSON.parse(await readFile(join(root, scenario.root, "package.json"), "utf8"));
     assert.equal(packageJson.scripts.dev, scenario.dev);
-    assert.equal(packageJson.scripts["atlas:config"], "tsc -p tsconfig.atlas.json");
+    assert.equal(packageJson.scripts["atlas:config"], "atlas compile-config customer-host");
     assert.ok(packageJson.scripts.build.includes("atlas runtime-config customer-host"));
     if (scenario.framework === "angular") {
       const appTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.app.json"), "utf8"));
-      const atlasTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.atlas.json"), "utf8"));
+      const angularJson = JSON.parse(await readFile(join(root, scenario.root, "angular.json"), "utf8"));
+      const architect = angularJson.projects["customer-host"].architect;
+      assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
+      assert.equal(architect.build.options.target, "customer-host:esbuild:production");
+      assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
+      assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
+      assert.equal(architect.serve.options.port, 4200);
       assert.deepEqual(appTsconfig.files, ["src/main.ts"]);
-      assert.equal(atlasTsconfig.compilerOptions.emitDeclarationOnly, false);
+      assert.equal(appTsconfig.extends, undefined);
+      assert.equal(appTsconfig.compilerOptions.emitDeclarationOnly, undefined);
+      await assert.rejects(access(join(root, scenario.root, "tsconfig.json")), { code: "ENOENT" });
+      await assert.rejects(access(join(root, scenario.root, "tsconfig.atlas.json")), { code: "ENOENT" });
     }
   });
 }
@@ -456,7 +515,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx source\n' > "$directory/src/main.ts"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf 'nx jest\n' > "$directory/jest.config.ts"
-  printf '{"name":"mobile-host","root":"products/host","marker":"nx-generator","targets":{"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
+  printf '{"name":"mobile-host","root":"products/host","marker":"nx-generator","targets":{"build":{"executor":"@nx/angular:application"},"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
@@ -472,8 +531,18 @@ exit 1
   const project = JSON.parse(await readFile(join(root, "products/host/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
   assert.equal(project.targets["atlas:config"].options.cwd, undefined);
-  assert.equal(project.targets["atlas:config"].options.command, "tsc -p products/host/tsconfig.atlas.json");
+  assert.equal(project.targets["atlas:config"].options.command, "atlas compile-config mobile-host");
   assert.deepEqual(project.targets["atlas:config"].outputs, ["{projectRoot}/.atlas"]);
+  assert.equal(project.targets.build.executor, "@angular-architects/native-federation:build");
+  assert.equal(project.targets.build.options.target, "mobile-host:esbuild:production");
+  assert.equal(project.targets.build.configurations.development.target, "mobile-host:esbuild:development");
+  assert.equal(project.targets.build.configurations.development.dev, true);
+  assert.equal(project.targets.esbuild.executor, "@nx/angular:application");
+  assert.equal(project.targets.serve.executor, "@angular-architects/native-federation:build");
+  assert.equal(project.targets.serve.options.target, "mobile-host:serve-original:development");
+  assert.equal(project.targets.serve.options.dev, true);
+  assert.equal(project.targets.serve.options.port, 4200);
+  assert.equal(project.targets["serve-original"].executor, "@angular-devkit/build-angular:dev-server");
   assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config mobile-host");
   assert.equal(project.targets.dev.options.commands[1].command, "nx run mobile-host:serve");
   assert.equal(project.targets.dev.options.commands[1].forwardAllArgs, true);
@@ -489,6 +558,7 @@ exit 1
   const angularHostTsconfig = JSON.parse(await readFile(join(root, "products/host/tsconfig.app.json"), "utf8"));
   assert.equal(angularHostTsconfig.marker, "nx-generator");
   assert.equal(angularHostTsconfig.include, undefined);
+  assert.equal(angularHostTsconfig.compilerOptions.emitDeclarationOnly, false);
   assert.equal(await readFile(join(root, "products/host/public/nx.txt"), "utf8"), "nx public asset\n");
   await assert.rejects(access(join(root, "products/host/package.json")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "products/host/angular.json")), { code: "ENOENT" });
@@ -604,7 +674,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx nested component\n' > "$directory/src/app/nx-only/nx-only.component.ts"
   printf 'nx angular public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
-  printf '{"name":"orders","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"name":"orders","marker":"nx-generator","targets":{"build":{"executor":"@nx/angular:application"},"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
 fi
@@ -632,13 +702,54 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
-  assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
+  const project = JSON.parse(await readFile(join(root, "orders/project.json"), "utf8"));
+  assert.equal(project.marker, "nx-generator");
+  assert.equal(project.targets.build.executor, "@angular-architects/native-federation:build");
+  assert.equal(project.targets.build.options.target, "orders:esbuild:production");
+  assert.equal(project.targets.esbuild.executor, "@nx/angular:application");
+  assert.equal(project.targets.serve.executor, "@angular-architects/native-federation:build");
+  assert.equal(project.targets.serve.options.target, "orders:serve-original:development");
+  assert.equal(project.targets.serve.options.port, 4201);
+  assert.equal(project.targets["serve-original"].executor, "@angular-devkit/build-angular:dev-server");
   const angularMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
   assert.equal(angularMfTsconfig.marker, "nx-generator");
   assert.equal(angularMfTsconfig.include, undefined);
+  assert.equal(angularMfTsconfig.compilerOptions.emitDeclarationOnly, false);
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);
+});
+
+test("atlas fails clearly when Nx Angular scaffolding reports stale project paths", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-stale-root-"));
+  const bin = join(root, "bin");
+  await mkdir(bin);
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({
+    name: "acme",
+    private: true,
+    packageManager: "yarn@1.22.22",
+    dependencies: { "@angular/core": "^20.3.0" },
+    devDependencies: { "@nx/angular": "22.0.0" }
+  }));
+  await writeFile(join(bin, "yarn"), `#!/bin/sh
+if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
+  directory="$4"
+  mkdir -p "$directory/src"
+  printf 'nx angular source\n' > "$directory/src/main.ts"
+  printf '{"name":"orders","root":"login","sourceRoot":"login/src","targets":{"esbuild":{"options":{"browser":"login/src/main.ts","tsConfig":"login/tsconfig.app.json","styles":["login/src/styles.less"]}}}}\n' > "$directory/project.json"
+  printf '{"extends":"./tsconfig.json"}\n' > "$directory/tsconfig.app.json"
+  exit 0
+fi
+exit 1
+`, { mode: 0o755 });
+
+  await assert.rejects(run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders",
+    "--framework=angular", "--skip-install"
+  ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } }), {
+    message: /Nx project root mismatch.*project\.json points at "login".*generated the project at "orders".*login\/tsconfig\.app\.json.*Update project\.json root\/sourceRoot\/build options/
+  });
 });
 
 test("atlas adds required React app files after Nx scaffolding", async () => {
@@ -777,7 +888,7 @@ test("atlas dev prepares an Angular local override without manual URL editing", 
   assert.equal(document.overrides[0].manifest.channel, "local");
   assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4511/remoteEntry.json");
   assert.equal(document.overrides[0].manifest.integrity, undefined);
-  assert.match(stdout, /https:\/\/host\.example\/orders\?atlas-override=http%3A%2F%2Flocalhost%3A4512/);
+  assert.match(stdout, /View app: https:\/\/host\.example\/orders\?atlas-override=http%3A%2F%2Flocalhost%3A4512/);
 });
 
 test("atlas dev prepares a React Native Federation override", async () => {
@@ -793,11 +904,28 @@ test("atlas dev prepares a React Native Federation override", async () => {
   assert.match(stdout, /https:\/\/host\.example\/dashboard\?atlas-override=/);
 });
 
+test("atlas dev waits for valid remote federation metadata", async () => {
+  assert.equal(await remoteEntryIsReady(new Response("<!DOCTYPE html>", {
+    status: 200,
+    headers: { "content-type": "text/html" }
+  })), false);
+  assert.equal(await remoteEntryIsReady(new Response("not found", {
+    status: 404,
+    headers: { "content-type": "application/json" }
+  })), false);
+  assert.equal(await remoteEntryIsReady(new Response(JSON.stringify({ name: "atlas_orders", exposes: [] }), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  })), true);
+});
+
 test("atlas dev delegates host projects to the workspace dev task", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-host-"));
   const projectRoot = join(root, "customer-host");
-  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
-  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), [
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "customer-host", version: "1.0.0", type: "module" }));
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
     '  id: "customer-host",',
     '  framework: "react",',
@@ -836,73 +964,67 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
     console.info = originalInfo;
   }
 
-  assert.deepEqual(calls, [["run", "atlas:config"], ["spawn", "dev"]]);
+  assert.deepEqual(calls, [["spawn", "dev"]]);
 });
 
-test("atlas dev falls back to direct config compile when Nx atlas target has a bad cwd", async () => {
-  const root = await mkdtemp(join(tmpdir(), "atlas-dev-nx-config-fallback-"));
+test("atlas dev compiles atlas.config.ts with the project tsconfig", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-config-compile-"));
   const projectRoot = join(root, "mobile-host");
-  const bin = join(root, "bin");
-  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
-  await mkdir(bin);
+  await mkdir(projectRoot, { recursive: true });
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "mobile-host", version: "0.1.0", type: "module" }));
-  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
-  await writeFile(join(projectRoot, "tsconfig.atlas.json"), "{}\n");
-  await writeFile(join(bin, "npx"), `#!/bin/sh
-if [ "$1" = "tsc" ] && [ "$2" = "-p" ] && [ "$3" = "${projectRoot}/tsconfig.atlas.json" ]; then
-  printf 'export default { id: "mobile-host", framework: "react", allowAppOverrides: true };\\n' > "${projectRoot}/.atlas/atlas.config.js"
-  exit 0
-fi
-exit 1
-`, { mode: 0o755 });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true, noEmit: true }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "mobile-host",',
+    '  framework: "react",',
+    "  allowAppOverrides: true",
+    "};"
+  ].join("\n"));
 
   const calls = [];
   const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
   const workspace = {
-    kind: "nx",
+    kind: "standalone",
     root,
     packageManager: "npm",
     findProject: async () => project,
-    run: async (_project, task) => {
-      calls.push(["run", task]);
-      throw new Error("npx exited with code 1.");
-    },
+    run: async (_project, task) => calls.push(["run", task]),
     spawn: () => {
       throw new Error("prepare-only should not spawn");
     }
   };
   const args = new CliArguments(["dev", "mobile-host", "--prepare-only"]);
-  const originalPath = process.env.PATH;
   const originalInfo = console.info;
 
   try {
-    process.env.PATH = `${bin}:${originalPath}`;
     console.info = () => {};
     await new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("mobile-host");
   } finally {
-    process.env.PATH = originalPath;
     console.info = originalInfo;
   }
 
-  assert.deepEqual(calls, [["run", "atlas:config"]]);
+  await access(join(projectRoot, ".atlas", "atlas.config.js"));
+  assert.deepEqual(calls, []);
 });
 
-test("atlas dev falls back to direct config compile when Nx cache omits atlas output", async () => {
-  const root = await mkdtemp(join(tmpdir(), "atlas-dev-nx-missing-output-"));
+test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-app-tsconfig-"));
   const projectRoot = join(root, "apps", "mobile-host");
-  const bin = join(root, "bin");
-  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
-  await mkdir(bin);
+  await mkdir(projectRoot, { recursive: true });
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "mobile-host", version: "0.1.0", type: "module" }));
-  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
-  await writeFile(join(projectRoot, "tsconfig.atlas.json"), "{}\n");
-  await writeFile(join(bin, "npx"), `#!/bin/sh
-if [ "$1" = "tsc" ] && [ "$2" = "-p" ] && [ "$3" = "${projectRoot}/tsconfig.atlas.json" ]; then
-  printf 'export default { id: "mobile-host", framework: "react", allowAppOverrides: true };\\n' > "${projectRoot}/.atlas/atlas.config.js"
-  exit 0
-fi
-exit 1
-`, { mode: 0o755 });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { emitDeclarationOnly: true } }));
+  await writeFile(join(projectRoot, "tsconfig.app.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "mobile-host",',
+    '  framework: "react",',
+    "  allowAppOverrides: true",
+    "};"
+  ].join("\n"));
 
   const calls = [];
   const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
@@ -917,19 +1039,17 @@ exit 1
     }
   };
   const args = new CliArguments(["dev", "mobile-host", "--prepare-only"]);
-  const originalPath = process.env.PATH;
   const originalInfo = console.info;
 
   try {
-    process.env.PATH = `${bin}:${originalPath}`;
     console.info = () => {};
     await new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("mobile-host");
   } finally {
-    process.env.PATH = originalPath;
     console.info = originalInfo;
   }
 
-  assert.deepEqual(calls, [["run", "atlas:config"]]);
+  await access(join(projectRoot, ".atlas", "atlas.config.js"));
+  assert.deepEqual(calls, []);
 });
 
 test("atlas dev without a project uses the current Atlas project directory", async () => {
@@ -939,18 +1059,15 @@ test("atlas dev without a project uses the current Atlas project directory", asy
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({
     name: "orders",
     version: "1.0.0",
-    type: "module",
-    scripts: { "atlas:config": "node write-config.mjs" }
+    type: "module"
   }));
-  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
-  await writeFile(join(projectRoot, "write-config.mjs"), [
-    'import { mkdir, writeFile } from "node:fs/promises";',
-    'await mkdir(".atlas", { recursive: true });',
-    "await writeFile(\".atlas/atlas.config.js\", `export default {",
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
     '  id: "orders",',
     '  framework: "react",',
     '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
-    "};\\n`);"
+    "};"
   ].join("\n"));
 
   const stdout = await run(process.execPath, [
@@ -963,7 +1080,7 @@ test("atlas dev without a project uses the current Atlas project directory", asy
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
   assert.equal(document.hostId, "customer-host");
   assert.match(stdout, /Starting \./);
-  assert.match(stdout, /Open host: http:\/\/localhost:5173\/orders\?atlas-override=/);
+  assert.match(stdout, /View app: http:\/\/localhost:5173\/orders\?atlas-override=/);
 });
 
 test("workspace .env supplies Atlas dev defaults without overriding shell env", async () => {
@@ -991,8 +1108,9 @@ test("workspace .env supplies Atlas dev defaults without overriding shell env", 
 test("atlas dev infers a single configured host and builds host URL from env origin", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-single-host-"));
   const projectRoot = join(root, "orders");
-  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
-  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), [
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
     '  id: "orders",',
     '  framework: "react",',
@@ -1021,8 +1139,9 @@ test("atlas dev infers a single configured host and builds host URL from env ori
 test("atlas dev prompts when multiple configured hosts are possible", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-multi-host-"));
   const projectRoot = join(root, "orders");
-  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
-  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), [
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
     '  id: "orders",',
     '  framework: "angular",',
