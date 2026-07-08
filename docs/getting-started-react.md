@@ -53,19 +53,12 @@ Atlas creates a normal React app plus Atlas runtime wiring.
 
 Files to look at first:
 
-- `atlas.config.ts`: the Atlas identity and runtime source file for this host.
-  It gives the host its stable id, display name, and runtime defaults. Atlas
-  generates `public/atlas.runtime.json` from it for the browser.
-- `public/atlas.runtime.json`: the generated deployment-time runtime artifact
-  read by the browser before MFs load. CI/CD may replace or transform this per
-  environment; application developers normally edit `atlas.config.ts`.
-- `src/main.tsx`: the generated Atlas host startup file. It calls
-  `startHost(...)`, connects React Router and Native Federation, and supplies
-  host services such as toasts, modals, events, config, and app data.
-  Edit it when replacing placeholder services with production services.
-- `vite.config.ts`: the generated Vite build file used by the React host. Atlas
-  uses it to produce the Native Federation metadata expected by the runtime.
-  Most product work should stay in `atlas.config.ts` and application source.
+| File | Why it matters |
+| --- | --- |
+| `atlas.config.ts` | Atlas identity and runtime source file for this host. It gives the host its stable id, display name, and runtime defaults. Atlas uses it later to generate `public/atlas.runtime.json` for the browser. |
+| `public/atlas.runtime.json` | Not created by host generation. It is the deployment-time runtime artifact produced by `atlas runtime-config`, read by the browser before MFs load. CI/CD may replace or transform this per environment; application developers normally edit `atlas.config.ts`. |
+| `src/main.tsx` | Generated Atlas host startup file. It calls `startHost(...)`, connects React Router and Native Federation, and supplies host services such as toasts, modals, events, config, and app data. Edit it when replacing placeholder services with production services. |
+| `vite.config.ts` | Generated Vite build file used by the React host. Atlas uses it to produce the Native Federation metadata expected by the runtime. Most product work should stay in `atlas.config.ts` and application source. |
 
 Effect: you now have a host that can load catalog-selected MFs. It still uses
 local placeholder services.
@@ -80,17 +73,21 @@ More docs:
 This step decides where Atlas can render route content, navigation, and named
 slots.
 
-Generated React hosts use `AtlasHostShell` from `@atlas/runtime/react` as the
-default shell:
+Generated React hosts use `AtlasDefaultHostLayout` from `@atlas/runtime/react`
+as the replaceable default host layout. It gives a new host a working page
+before the product layout exists. The component only renders the DOM anchors
+Atlas needs for host status, route content, navigation, and slots:
 
 ```tsx
-import { AtlasHostShell } from "@atlas/runtime/react";
+import { AtlasDefaultHostLayout } from "@atlas/runtime/react";
 
-const router = createBrowserRouter([{ path: "*", Component: AtlasHostShell }]);
+const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
 ```
 
-When you replace the default shell with product layout, keep these Atlas
-attributes:
+Most teams replace `AtlasDefaultHostLayout` with their own app frame once they
+add real header, sidebar, spacing, and theme. Keep these Atlas attributes in
+the product layout; they are the contract `startHost(...)` uses to find mount
+points:
 
 Meaning:
 
@@ -219,7 +216,7 @@ More docs:
 
 This step is normal React development inside the MF.
 
-Keep the main app shell in `src/app/App.tsx`, add feature components under
+Keep the main app root in `src/app/App.tsx`, add feature components under
 folders such as `src/app/orders`, and update `src/app/routes.tsx` when adding or
 renaming routes. Edit `src/entry.tsx` only for Atlas lifecycle or root router
 wiring changes.

@@ -30,13 +30,13 @@ export function angularHostBootstrap(): string {
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@angular-architects/native-federation";
-import { AtlasRouterAnchorComponent, startHost } from "@atlas/runtime/angular";
+import { AtlasDefaultHostRouteComponent, startHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { AppComponent } from "./app/app.component";
 
 export async function bootstrap(): Promise<void> {
   const app = await bootstrapApplication(AppComponent, {
-    providers: [provideRouter([{ path: "**", component: AtlasRouterAnchorComponent }])]
+    providers: [provideRouter([{ path: "**", component: AtlasDefaultHostRouteComponent }])]
   });
 
   await startHost({

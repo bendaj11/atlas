@@ -6,8 +6,8 @@ import { createAtlasOverlayController, createDomOverlayProviders, type AtlasModa
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
-@Component({ selector: "atlas-router-anchor", standalone: true, template: "" })
-export class AtlasRouterAnchorComponent {}
+@Component({ selector: "atlas-default-host-route", standalone: true, template: "" })
+export class AtlasDefaultHostRouteComponent {}
 
 export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}> extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData" | "openModal"> {
   router: RouterLike;

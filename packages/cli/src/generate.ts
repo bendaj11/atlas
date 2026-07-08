@@ -253,9 +253,9 @@ const DELEGATED_MF_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/assets/.gitkeep",
     "src/main.ts",
     "src/app/README.md",
-    "src/app/starter/shell/starter-shell.component.ts",
-    "src/app/starter/home/starter-home.component.ts",
-    "src/app/starter/details/starter-details.component.ts",
+    "src/app/app.component.ts",
+    "src/app/home/home.component.ts",
+    "src/app/details/details.component.ts",
     "src/app/routes.ts",
     "src/entry.ts",
     "src/exported-components/README.md"

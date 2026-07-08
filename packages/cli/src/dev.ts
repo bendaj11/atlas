@@ -28,7 +28,7 @@ export class AtlasDevService {
     const controlPort = this.args.port("control-port", 4400);
     await this.workspace.run(project, "atlas:config");
     const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: `http://localhost:${remotePort}` });
-    const hostId = this.args.flag("host") ?? manifest.supportedHosts[0] ?? "shell";
+    const hostId = this.args.flag("host") ?? manifest.supportedHosts[0] ?? "host";
     const document: AtlasRuntimeOverrideDocument = {
       schemaVersion: "1", hostId,
       overrides: [{ mfId: manifest.id, manifest, reason: "local" }],

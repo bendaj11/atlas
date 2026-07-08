@@ -72,6 +72,24 @@ function atlasFederationMetadata(): Plugin {
   };
 }
 
+function atlasReactRefreshPreamble(): Plugin {
+  const sourceEntries = new Set([
+    "src/entry.tsx",
+    ...componentIds.map((id) => \`src/exported-components/\${id}/index.tsx\`)
+  ]);
+
+  return {
+    name: "atlas-react-refresh-preamble",
+    apply: "serve",
+    enforce: "pre",
+    transform(code, id) {
+      const sourcePath = id.split("?")[0].replaceAll("\\\\", "/");
+      if (!sourceEntries.has(sourcePath.slice(sourcePath.lastIndexOf("src/")))) return;
+      return \`import "@vitejs/plugin-react/preamble";\\n\${code}\`;
+    }
+  };
+}
+
 export default defineConfig({
   base: "./",
   plugins: [
@@ -80,6 +98,7 @@ export default defineConfig({
         plugins: [["babel-plugin-react-compiler", { target: "${compilerTarget}", panicThreshold: "none" }]]
       }
     }),
+    atlasReactRefreshPreamble(),
     atlasFederationMetadata()
   ],
   server: { port: 4201, cors: true },

@@ -25,13 +25,5 @@ export function generateMicrofrontendFiles(options: AtlasGeneratorOptions): Atla
 export function generateWidgetFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
   assertValidGeneratorOptions(options);
   assertSupportedGeneratorFramework(options);
-  const files = generateWidgetTemplates(options);
-  if (options.framework === "angular") return files;
-  return files.map((file) => ({
-    ...file,
-    contents: file.contents.replace(
-      'import { defineExportedComponent } from "@atlas/sdk/react";',
-      'import { defineExportedComponent } from "@atlas/sdk/react";\n\nif (import.meta.hot) void import("@vitejs/plugin-react/preamble");'
-    )
-  }));
+  return generateWidgetTemplates(options);
 }

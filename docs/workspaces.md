@@ -37,7 +37,7 @@ then uses the detected package manager internally, so developers do not prefix
 Atlas commands with `yarn`, `pnpm`, or `npm exec`.
 
 ```sh
-atlas dev orders --host=customer-shell
+atlas dev orders --host=customer-host
 atlas build orders
 ```
 

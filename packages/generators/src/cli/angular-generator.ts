@@ -1,10 +1,10 @@
 import { angularHostBootstrap, angularHostComponent, angularHostMain } from "./angular-host-generator.js";
 import {
+  angularMicrofrontendAppComponent,
   angularMicrofrontendDetailsComponent,
   angularMicrofrontendEntry,
   angularMicrofrontendHomeComponent,
   angularMicrofrontendRoutes,
-  angularMicrofrontendShellComponent,
   appSourceReadme
 } from "./angular-microfrontend-generator.js";
 import { angularIndex, angularPackage } from "./angular-package-generator.js";
@@ -54,9 +54,9 @@ export function generateAngularMicrofrontendFiles(options: AtlasGeneratorOptions
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
     { path: "src/app/README.md", contents: appSourceReadme() },
-    { path: "src/app/starter/shell/starter-shell.component.ts", contents: angularMicrofrontendShellComponent(name) },
-    { path: "src/app/starter/home/starter-home.component.ts", contents: angularMicrofrontendHomeComponent(name) },
-    { path: "src/app/starter/details/starter-details.component.ts", contents: angularMicrofrontendDetailsComponent() },
+    { path: "src/app/app.component.ts", contents: angularMicrofrontendAppComponent(name) },
+    { path: "src/app/home/home.component.ts", contents: angularMicrofrontendHomeComponent(name) },
+    { path: "src/app/details/details.component.ts", contents: angularMicrofrontendDetailsComponent() },
     { path: "src/app/routes.ts", contents: angularMicrofrontendRoutes() },
     { path: "src/entry.ts", contents: angularMicrofrontendEntry(name) },
     { path: "src/exported-components/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-mf/widget-id\` in \`uses\`.\n` }

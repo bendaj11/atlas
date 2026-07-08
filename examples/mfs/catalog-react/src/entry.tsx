@@ -4,8 +4,6 @@ import { createMemoryRouter, Link, Outlet, RouterProvider, useParams } from "rea
 import { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";
 import "./styles.css";
 
-if (import.meta.hot) await import("@vitejs/plugin-react/preamble");
-
 function Layout() {
   return <section><h1>Catalog React</h1><nav><Link to="/">Products</Link> <Link to="products/42">Product 42</Link></nav><Outlet /></section>;
 }

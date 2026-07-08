@@ -2,7 +2,7 @@ import type { ReactVersionProfile } from "./generator-versions.js";
 
 export function reactHostMain(profile: ReactVersionProfile): string {
   const rootImport = profile.major === 17
-    ? 'import { render, unmountComponentAtNode } from "react-dom";'
+    ? 'import { render } from "react-dom";'
     : 'import { flushSync } from "react-dom";\nimport { createRoot } from "react-dom/client";';
   const mount = profile.major === 17
     ? `render(
@@ -10,8 +10,7 @@ export function reactHostMain(profile: ReactVersionProfile): string {
     <RouterProvider router={router} />
   </StrictMode>,
   root
-);
-if (import.meta.hot) import.meta.hot.dispose(() => unmountComponentAtNode(root));`
+);`
     : `const reactRoot = createRoot(root);
 flushSync(() =>
   reactRoot.render(
@@ -19,18 +18,17 @@ flushSync(() =>
       <RouterProvider router={router} />
     </StrictMode>
   )
-);
-if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());`;
+);`;
   return `import "es-module-shims";
 import { StrictMode } from "react";
 ${rootImport}
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";
-import { AtlasHostShell, startHost } from "@atlas/runtime/react";
+import { AtlasDefaultHostLayout, startHost } from "@atlas/runtime/react";
 import atlasConfig from "../atlas.config";
 import "./styles.css";
 
-const router = createBrowserRouter([{ path: "*", Component: AtlasHostShell }]);
+const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
 const root = document.getElementById("root");
 if (!root) throw new Error("Atlas React host root was not found.");
 

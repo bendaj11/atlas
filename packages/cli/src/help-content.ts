@@ -23,10 +23,10 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
 ];
 
 export const ROOT_EXAMPLES = [
-  "atlas g host customer-shell",
+  "atlas g host customer-host",
   "atlas g app orders",
-  "atlas dev orders --host customer-shell",
-  "atlas runtime-config customer-shell",
+  "atlas dev orders --host customer-host",
+  "atlas runtime-config customer-host",
   "atlas build orders"
 ] as const;
 
@@ -39,7 +39,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "name", description: "Resource name; prompted when omitted" }
     ],
     options: [{ label: "-h, --help", description: "Show help for this command" }],
-    examples: ["atlas g host customer-shell", "atlas g app orders", "atlas g widget order-summary --app orders"]
+    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders"]
   },
   "generate host": generationProjectHelp("host", "host application"),
   "generate app": generationProjectHelp("app", "microfrontend application"),
@@ -67,8 +67,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: [
-      "atlas dev orders --host customer-shell",
-      "atlas dev orders --host customer-shell --host-url https://customer.example/orders"
+      "atlas dev orders --host customer-host",
+      "atlas dev orders --host customer-host --host-url https://customer.example/orders"
     ]
   },
   build: {
@@ -112,8 +112,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: [
-      "atlas runtime-config customer-shell --registry-base-url https://cdn.example.com/atlas",
-      "atlas runtime-config customer-shell --registry-base-url https://cdn.example.com/atlas --out dist/customer-shell/atlas.runtime.json"
+      "atlas runtime-config customer-host --registry-base-url https://cdn.example.com/atlas",
+      "atlas runtime-config customer-host --registry-base-url https://cdn.example.com/atlas --out dist/customer-host/atlas.runtime.json"
     ]
   },
   rollback: {
@@ -170,8 +170,8 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: [
-      `atlas g ${type} ${type === "host" ? "customer-shell" : "orders"} --framework react`,
-      `atlas g ${type} ${type === "host" ? "apps/admin-shell" : "products/billing"} --framework angular`
+      `atlas g ${type} ${type === "host" ? "customer-host" : "orders"} --framework react`,
+      `atlas g ${type} ${type === "host" ? "apps/admin-host" : "products/billing"} --framework angular`
     ]
   };
 }

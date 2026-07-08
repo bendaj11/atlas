@@ -1,14 +1,15 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
 const artifacts = join(root, "dist/package-verification");
 const packageManager = readPackageManager(process.argv.slice(2));
-const cleanRoom = join(root, `dist/generated-project-verification-${packageManager}`);
+const cleanRoom = await mkdtemp(join(tmpdir(), `atlas-generated-project-verification-${packageManager}-`));
 const atlasPackages = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
 const pnpmVersion = "10.34.4";
 const pnpmAllowedBuilds = ["esbuild", "@parcel/watcher", "lmdb", "msgpackr-extract"];
@@ -20,19 +21,21 @@ const projects = [
 ];
 const expectedVersion = JSON.parse(await readFile(join(root, "packages/schema/package.json"), "utf8")).version;
 
-await rm(cleanRoom, { recursive: true, force: true });
-await mkdir(join(cleanRoom, "tooling"), { recursive: true });
+await mkdir(join(cleanRoom, "projects"), { recursive: true });
 const localPackages = await stagePackageArchives();
-await writeJson(join(cleanRoom, "tooling/package.json"), toolingManifest(localPackages));
-await writePackageManagerConfig(join(cleanRoom, "tooling"), localPackages);
-await installDependencies(join(cleanRoom, "tooling"));
+await writeJson(join(cleanRoom, "package.json"), rootManifest(localPackages));
+await writePackageManagerConfig(cleanRoom, localPackages);
+await installDependencies(cleanRoom);
 
 for (const project of projects) {
   await runAtlas(["g", project.type, project.name, `--framework=${project.framework}`, "--skip-install", `--directory=${join(cleanRoom, "projects", project.name)}`]);
 }
 
 await assertGeneratedAtlasRanges();
-for (const project of projects) await installAndBuildProject(project, localPackages);
+const generatedProjects = await updateGeneratedManifests(localPackages);
+await writeJson(join(cleanRoom, "package.json"), rootManifest(localPackages, generatedProjects));
+await installDependencies(cleanRoom);
+for (const project of generatedProjects) await buildProject(project);
 
 console.info(`Built ${projects.length} clean-room projects with ${packageManager}.`);
 
@@ -56,12 +59,20 @@ async function stagePackageArchives() {
   return Object.fromEntries(entries);
 }
 
-function toolingManifest(localPackages) {
+function rootManifest(localPackages, generatedProjects = []) {
+  const dependencies = { ...localPackages };
+  const devDependencies = {};
+  for (const project of generatedProjects) {
+    Object.assign(dependencies, project.dependencies);
+    Object.assign(devDependencies, project.devDependencies);
+  }
   return {
-    name: "atlas-generation-tooling",
+    name: "atlas-generated-project-verification",
+    version: "0.0.0",
     private: true,
     packageManager: packageManagerSpecification(),
-    dependencies: localPackages,
+    dependencies,
+    ...(Object.keys(devDependencies).length > 0 ? { devDependencies } : {}),
     ...dependencyOverrides(localPackages)
   };
 }
@@ -99,12 +110,11 @@ async function assertGeneratedAtlasRanges() {
 }
 
 async function runAtlas(args) {
-  const toolingRoot = join(cleanRoom, "tooling");
   if (packageManager === "pnpm") {
-    await run("pnpm", ["exec", "atlas", ...args], toolingRoot);
+    await run("pnpm", ["exec", "atlas", ...args], cleanRoom);
     return;
   }
-  await run(join(toolingRoot, "node_modules/.bin/atlas"), args, cleanRoom);
+  await run(join(cleanRoom, "node_modules/.bin/atlas"), args, cleanRoom);
 }
 
 async function installDependencies(cwd) {
@@ -112,7 +122,19 @@ async function installDependencies(cwd) {
   await run(packageManager, args, cwd);
 }
 
-async function installAndBuildProject(project, localPackages) {
+async function updateGeneratedManifests(localPackages) {
+  return Promise.all(projects.map(async (project) => {
+    const manifest = await updateGeneratedManifest(project, localPackages);
+    return {
+      ...project,
+      packageName: manifest.name,
+      dependencies: manifest.dependencies ?? {},
+      devDependencies: manifest.devDependencies ?? {}
+    };
+  }));
+}
+
+async function updateGeneratedManifest(project, localPackages) {
   const projectRoot = join(cleanRoom, "projects", project.name);
   const manifestPath = join(projectRoot, "package.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -124,13 +146,16 @@ async function installAndBuildProject(project, localPackages) {
   manifest.packageManager = packageManagerSpecification();
   Object.assign(manifest, dependencyOverrides(localPackages));
   await writeJson(manifestPath, manifest);
-  await writePackageManagerConfig(projectRoot, localPackages);
-  await installDependencies(projectRoot);
-  await run(packageManager, ["run", "build"], projectRoot);
+  return manifest;
+}
+
+async function buildProject(project) {
+  await run(packageManager, ["run", "build"], join(cleanRoom, "projects", project.name));
 }
 
 async function run(command, args, cwd) {
-  const environment = { ...process.env, PATH: `${join(root, "node_modules/.bin")}:${process.env.PATH ?? ""}` };
+  const binPath = `${join(cleanRoom, "node_modules/.bin")}:${join(root, "node_modules/.bin")}`;
+  const environment = { ...process.env, PATH: `${binPath}:${process.env.PATH ?? ""}` };
   const { stdout, stderr } = await execute(command, args, { cwd, env: environment, maxBuffer: 20 * 1024 * 1024 });
   if (stdout) process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);

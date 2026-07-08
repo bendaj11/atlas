@@ -26,8 +26,8 @@ Creates the object passed from host to MF.
 
 ```ts
 const sdk = createAtlasSdk({
-  hostId: "shell",
-  hostData: { hostId: "shell", name: "Customer Shell", projectId: "project-42" },
+  hostId: "host",
+  hostData: { hostId: "host", name: "Customer Host", projectId: "project-42" },
   navigation,
   showToast: (toast) => showToast(toast),
   openModal: (modal) => showModal(modal.component, modal.props),
@@ -135,7 +135,7 @@ startHost({
 });
 ```
 
-MFs request modals through the SDK and never render the modal shell, backdrop, or focus trap inside their own route or slot:
+MFs request modals through the SDK and never render the modal frame, backdrop, or focus trap inside their own route or slot:
 
 ```ts
 const result = await atlas.modal.open({

@@ -10,7 +10,7 @@ microfrontends/
   orders/
     index.json
 hosts/
-  customer-shell/
+  customer-host/
     catalog.json
 orders/
   2.4.1/
@@ -75,8 +75,8 @@ Generated hosts read a deployment-time `atlas.runtime.json`:
 ```json
 {
   "schemaVersion": "1",
-  "hostId": "customer-shell",
-  "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-shell/catalog.json"
+  "hostId": "customer-host",
+  "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-host/catalog.json"
 }
 ```
 

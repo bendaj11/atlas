@@ -2,8 +2,6 @@ import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { defineExportedComponent } from "@atlas/sdk/react";
 
-if (import.meta.hot) await import("@vitejs/plugin-react/preamble");
-
 export interface ProductCountProps {
   count: number;
   label?: string;

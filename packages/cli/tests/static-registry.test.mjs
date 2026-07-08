@@ -26,7 +26,7 @@ test("static registry prepares version indexes and a host catalog", async () => 
   await prepareStaticRegistry(consumer, current, directory);
 
   const index = await readJson(join(directory, "microfrontends/orders/index.json"));
-  const catalog = await readJson(join(directory, "hosts/shell/catalog.json"));
+  const catalog = await readJson(join(directory, "hosts/host/catalog.json"));
   assert.deepEqual(index.manifests.map((manifest) => manifest.id), ["orders"]);
   assert.deepEqual(catalog.manifests.map((manifest) => manifest.id), ["dashboard", "orders"]);
 });
@@ -50,7 +50,7 @@ test("static registry preserves history while selecting one production version",
   await prepareStaticRegistry(createTestManifest({ version: "2.0.0-pr.42", buildId: "pr", channel: "pr", prNumber: 42 }), current, directory);
 
   const index = await readJson(join(directory, "microfrontends/catalog/index.json"));
-  const catalog = await readJson(join(directory, "hosts/shell/catalog.json"));
+  const catalog = await readJson(join(directory, "hosts/host/catalog.json"));
   assert.equal(index.manifests.length, 3);
   assert.equal(catalog.manifests.length, 1);
   assert.equal(catalog.manifests[0].version, "2.0.0");
@@ -74,7 +74,7 @@ test("static rollback selects an immutable historical production build", async (
   });
 
   const registry = await readJson(join(directory, "registry.json"));
-  const catalog = await readJson(join(directory, "hosts/shell/catalog.json"));
+  const catalog = await readJson(join(directory, "hosts/host/catalog.json"));
   assert.equal(result.selected.buildId, "one");
   assert.equal(registry.manifests.length, 2);
   assert.deepEqual(registry.productionSelections[first.id], { version: "1.0.0", buildId: "one" });

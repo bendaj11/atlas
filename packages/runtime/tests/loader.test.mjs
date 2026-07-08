@@ -6,7 +6,7 @@ import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.
 test("resolveRuntimeManifests rejects duplicate selected MF versions", () => {
   const catalog = {
     schemaVersion: "1",
-    hostId: "shell",
+    hostId: "host",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [
       createTestManifest({ version: "1.0.0" }),
@@ -22,7 +22,7 @@ test("resolveRuntimeManifests applies overrides", () => {
   const local = createTestManifest({ id: "catalog", version: "2.0.0", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
   const catalog = {
     schemaVersion: "1",
-    hostId: "shell",
+    hostId: "host",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [production]
   };
@@ -41,7 +41,7 @@ test("resolveRuntimeManifests treats wildcard supportedHosts as universal", () =
 
 test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible overrides", () => {
   const selected = createTestManifest({ id: "catalog" });
-  const catalog = { schemaVersion: "1", hostId: "shell", generatedAt: "now", manifests: [selected] };
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
   const replacement = createTestManifest({ id: "catalog", version: "2.0.0" });
 
   assert.throws(
@@ -57,15 +57,15 @@ test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible 
   );
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: createTestManifest({ id: "catalog", supportedHosts: ["admin"] }), reason: "local" }]),
-    /does not support host "shell"/
+    /does not support host "host"/
   );
 });
 
 test("resolveRuntimeManifests rejects ambiguous exact routes", () => {
-  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "shell", route: { id, basePath, title: id } }];
+  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { id, basePath, title: id } }];
   const catalog = {
     schemaVersion: "1",
-    hostId: "shell",
+    hostId: "host",
     generatedAt: "now",
     manifests: [
       createTestManifest({ id: "first", placements: route("first", "/orders") }),
@@ -77,10 +77,10 @@ test("resolveRuntimeManifests rejects ambiguous exact routes", () => {
 });
 
 test("resolveRuntimeManifests preserves catalog placement ownership", () => {
-  const placement = { id: "catalog-route", kind: "route", hostId: "shell", route: { id: "catalog", basePath: "/catalog", title: "Catalog" } };
+  const placement = { id: "catalog-route", kind: "route", hostId: "host", route: { id: "catalog", basePath: "/catalog", title: "Catalog" } };
   const selected = createTestManifest({ id: "catalog", placements: [placement] });
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", placements: [] });
-  const catalog = { schemaVersion: "1", hostId: "shell", generatedAt: "now", manifests: [selected] };
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
 
   const [resolved] = resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: replacement, reason: "local" }]);
 
@@ -93,7 +93,7 @@ test("resolveRuntimeManifests revalidates widget uses after an override", () => 
   const owner = createTestManifest({ id: "orders", exportedComponents: [widget], placements: [] });
   const consumer = createTestManifest({ id: "dashboard", uses: ["orders/summary"], placements: [] });
   const replacement = createTestManifest({ id: "orders", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", exportedComponents: [] });
-  const catalog = { schemaVersion: "1", hostId: "shell", generatedAt: "now", manifests: [owner, consumer] };
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [owner, consumer] };
 
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ mfId: "orders", manifest: replacement, reason: "local" }]),
@@ -104,17 +104,17 @@ test("resolveRuntimeManifests revalidates widget uses after an override", () => 
 test("catalog loading retries transient failures", async () => {
   let attempts = 0;
   const catalog = await loadHostCatalog({
-    catalogUrl: "https://cdn.example/hosts/shell/catalog.json",
+    catalogUrl: "https://cdn.example/hosts/host/catalog.json",
     requestPolicy: { retryCount: 1, timeoutMs: 50 },
     async fetchJson() {
       attempts += 1;
       if (attempts === 1) throw new Error("temporary outage");
-      return { schemaVersion: "1", hostId: "shell", generatedAt: "now", manifests: [] };
+      return { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [] };
     }
   });
 
   assert.equal(attempts, 2);
-  assert.equal(catalog.hostId, "shell");
+  assert.equal(catalog.hostId, "host");
 });
 
 test("catalog loading validates the complete host catalog", async () => {
@@ -278,13 +278,13 @@ test("browser overrides are discovered from the host URL and validated", async (
   const manifest = createTestManifest({ channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
   let requestedUrl;
   const overrides = await loadBrowserRuntimeOverrides({
-    hostId: "shell",
+    hostId: "host",
     enabled: true,
     search: "?atlas-override=http%3A%2F%2Flocalhost%3A4400%2Fatlas.local-overrides.json",
     storage: { getItem() { return null; } },
     async fetchJson(url) {
       requestedUrl = url;
-      return { schemaVersion: "1", hostId: "shell", generatedAt: new Date().toISOString(), overrides: [{ mfId: manifest.id, manifest, reason: "local" }] };
+      return { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ mfId: manifest.id, manifest, reason: "local" }] };
     }
   });
   assert.equal(requestedUrl, "http://localhost:4400/atlas.local-overrides.json");
@@ -293,7 +293,7 @@ test("browser overrides are discovered from the host URL and validated", async (
 
 test("browser overrides cannot cross host boundaries", async () => {
   await assert.rejects(() => loadBrowserRuntimeOverrides({
-    hostId: "shell",
+    hostId: "host",
     enabled: true,
     search: "?atlas-override=http://localhost/override.json",
     storage: { getItem() { return null; } },
@@ -304,10 +304,10 @@ test("browser overrides cannot cross host boundaries", async () => {
 test("browser overrides load a directly persisted extension document", async () => {
   const manifest = createTestManifest({ channel: "historical", version: "0.8.0" });
   const overrides = await loadBrowserRuntimeOverrides({
-    hostId: "shell",
+    hostId: "host",
     enabled: true,
     search: "",
-    storage: { getItem(key) { return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY ? JSON.stringify({ schemaVersion: "1", hostId: "shell", generatedAt: "now", overrides: [{ mfId: manifest.id, manifest, reason: "historical" }] }) : null; } }
+    storage: { getItem(key) { return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY ? JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: "now", overrides: [{ mfId: manifest.id, manifest, reason: "historical" }] }) : null; } }
   });
   assert.equal(overrides[0].manifest.version, "0.8.0");
 });
@@ -316,21 +316,21 @@ test("tab-scoped browser overrides take precedence over all-tab overrides", asyn
   const production = createTestManifest({ id: "orders", version: "1.0.0" });
   const tab = createTestManifest({ id: "orders", version: "3.0.0", channel: "historical" });
   const all = createTestManifest({ id: "orders", version: "2.0.0", channel: "historical" });
-  const documentFor = (manifest) => JSON.stringify({ schemaVersion: "1", hostId: "shell", generatedAt: new Date().toISOString(), overrides: [{ mfId: "orders", manifest, reason: "historical" }] });
+  const documentFor = (manifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ mfId: "orders", manifest, reason: "historical" }] });
   const overrides = await loadBrowserRuntimeOverrides({
-    hostId: "shell",
+    hostId: "host",
     enabled: true,
     storage: { getItem: (key) => key === "atlas.runtime-overrides" ? documentFor(all) : null },
     sessionStorage: { getItem: (key) => key === "atlas.runtime-overrides" ? documentFor(tab) : null }
   });
-  const catalog = { schemaVersion: "1", hostId: "shell", generatedAt: new Date().toISOString(), manifests: [production] };
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), manifests: [production] };
   assert.equal(resolveRuntimeManifests(catalog, overrides)[0].version, "3.0.0");
 });
 
 test("browser override URL and storage access are disabled by default", async () => {
   let accessed = false;
   const overrides = await loadBrowserRuntimeOverrides({
-    hostId: "shell",
+    hostId: "host",
     search: "?atlas-override=https://attacker.example/override.json",
     storage: { getItem() { accessed = true; return "ignored"; } },
     async fetchJson() { accessed = true; throw new Error("must not fetch"); }
@@ -342,7 +342,7 @@ test("browser override URL and storage access are disabled by default", async ()
 test("local override assets must use loopback URLs", () => {
   const selected = createTestManifest({ id: "catalog" });
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://192.168.1.20/remoteEntry.json" });
-  const catalog = { schemaVersion: "1", hostId: "shell", generatedAt: "now", manifests: [selected] };
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: replacement, reason: "local" }]),
     /must use loopback/
@@ -372,7 +372,7 @@ test("page MFs receive the shared widget loader", async () => {
   let received;
   const widgetLoader = createWidgetLoader([], {});
   await mountMicrofrontend({
-    hostId: "shell",
+    hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest: createTestManifest(),
@@ -390,7 +390,7 @@ test("MF mounts receive an Atlas-owned scoped DOM boundary", async () => {
   const parent = { ownerDocument: document, append(element) { this.child = element; } };
   let receivedContainer;
   const mounted = await mountMicrofrontend({
-    hostId: "shell",
+    hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest: createTestManifest({ id: "map", isolation: "scoped" }),
@@ -409,7 +409,7 @@ test("host loads MF styles before mount and releases them after the final unmoun
   const container = { ownerDocument: document, append() {} };
   const manifest = createTestManifest({ styles: [{ href: "https://cdn.example/catalog/styles.css", integrity: "sha256-valid" }] });
   const options = {
-    hostId: "shell",
+    hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest,
@@ -432,7 +432,7 @@ test("stylesheet failures prevent remote mounting", async () => {
   const document = createStylesheetDocument([], "error");
   let imported = false;
   await assert.rejects(() => mountMicrofrontend({
-    hostId: "shell",
+    hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest: createTestManifest({ styles: [{ href: "https://cdn.example/catalog/missing.css", integrity: "sha256-valid" }] }),
@@ -445,7 +445,7 @@ test("stylesheet failures prevent remote mounting", async () => {
 test("stylesheet trust rejects unsupported protocols before import", async () => {
   let imported = false;
   const base = {
-    hostId: "shell",
+    hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
     container: { ownerDocument: createStylesheetDocument([]), append() {} },
@@ -459,13 +459,13 @@ test("stylesheet trust rejects unsupported protocols before import", async () =>
 });
 
 test("host runtime mounts only the active route and unmounts during navigation", async () => {
-  const catalog = createTestManifest({ id: "catalog", placements: [{ id: "catalog-route", kind: "route", hostId: "shell", route: { id: "catalog", basePath: "/catalog", title: "Catalog" } }] });
-  const details = createTestManifest({ id: "details", placements: [{ id: "details-route", kind: "route", hostId: "shell", route: { id: "details", basePath: "/catalog/details", title: "Details" } }] });
+  const catalog = createTestManifest({ id: "catalog", placements: [{ id: "catalog-route", kind: "route", hostId: "host", route: { id: "catalog", basePath: "/catalog", title: "Catalog" } }] });
+  const details = createTestManifest({ id: "details", placements: [{ id: "details-route", kind: "route", hostId: "host", route: { id: "details", basePath: "/catalog/details", title: "Details" } }] });
   const sdk = createTestHostSdk();
   const events = [];
   const unmounted = [];
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [catalog, details],
     sdk: sdk,
     resolveRouteContainer() { return {}; },
@@ -488,11 +488,11 @@ test("host runtime mounts only the active route and unmounts during navigation",
 });
 
 test("host runtime mounts slots independently and reports remote failures", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "shell", slot: "header" }] });
+  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const sdk = createTestHostSdk();
   const states = [];
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [widget],
     sdk: sdk,
     resolveRouteContainer() { return undefined; },
@@ -506,11 +506,11 @@ test("host runtime mounts slots independently and reports remote failures", asyn
 });
 
 test("host runtime starts independent slots concurrently", async () => {
-  const placements = (id) => [{ id: `${id}-slot`, kind: "slot", hostId: "shell", slot: id }];
+  const placements = (id) => [{ id: `${id}-slot`, kind: "slot", hostId: "host", slot: id }];
   let active = 0;
   let maximumActive = 0;
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [createTestManifest({ id: "first", placements: placements("first") }), createTestManifest({ id: "second", placements: placements("second") })],
     sdk: createTestHostSdk(),
     resolveRouteContainer() { return undefined; },
@@ -528,10 +528,10 @@ test("host runtime starts independent slots concurrently", async () => {
 });
 
 test("host runtime cleans up mounts that finish after their timeout", async () => {
-  const widget = createTestManifest({ id: "late", placements: [{ id: "late-slot", kind: "slot", hostId: "shell", slot: "late" }] });
+  const widget = createTestManifest({ id: "late", placements: [{ id: "late-slot", kind: "slot", hostId: "host", slot: "late" }] });
   let unmounted = 0;
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [widget],
     sdk: createTestHostSdk(),
     resourcesTimeoutMs: 2,
@@ -547,10 +547,10 @@ test("host runtime cleans up mounts that finish after their timeout", async () =
 });
 
 test("host runtime coalesces overlapping retries for one failed placement", async () => {
-  const widget = createTestManifest({ id: "retry", placements: [{ id: "retry-slot", kind: "slot", hostId: "shell", slot: "retry" }] });
+  const widget = createTestManifest({ id: "retry", placements: [{ id: "retry-slot", kind: "slot", hostId: "host", slot: "retry" }] });
   let imports = 0;
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [widget],
     sdk: createTestHostSdk(),
     resourcesTimeoutMs: 2,
@@ -569,10 +569,10 @@ test("host runtime coalesces overlapping retries for one failed placement", asyn
 });
 
 test("host runtime shows loading UI only when requested by the MF", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "shell", slot: "header" }] });
+  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const states = [];
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [widget],
     sdk: createTestHostSdk(),
     resolveRouteContainer() { return undefined; },
@@ -587,10 +587,10 @@ test("host runtime shows loading UI only when requested by the MF", async () => 
 });
 
 test("host runtime renders no loading state when the MF does not request one", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "shell", slot: "header" }] });
+  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const states = [];
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [widget],
     sdk: createTestHostSdk(),
     resolveRouteContainer() { return undefined; },
@@ -603,11 +603,11 @@ test("host runtime renders no loading state when the MF does not request one", a
 });
 
 test("host runtime reports and cleans up an MF that opts into readiness but never becomes ready", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "shell", slot: "header" }] });
+  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
   const states = [];
   let unmounted = false;
   const runtime = await startAtlasHostRuntime({
-    hostId: "shell",
+    hostId: "host",
     manifests: [widget],
     sdk: createTestHostSdk(),
     resourcesTimeoutMs: 5,
@@ -695,8 +695,8 @@ test("local remotes stay exempt from production trust checks", async () => {
 test("runtime config creates a resource policy", async () => {
   const config = await loadHostRuntimeConfig("/atlas.runtime.json", async () => ({
     schemaVersion: "1",
-    hostId: "shell",
-    catalogUrl: "https://registry.example.com/atlas/hosts/shell/catalog.json",
+    hostId: "host",
+    catalogUrl: "https://registry.example.com/atlas/hosts/host/catalog.json",
     allowAppOverrides: true,
     resourcesTimeoutMs: 15000,
     resourcesRetryCount: 3
@@ -708,7 +708,7 @@ test("runtime config rejects invalid resource settings", async () => {
   await assert.rejects(
     () => loadHostRuntimeConfig("/atlas.runtime.json", async () => ({
       schemaVersion: "1",
-      hostId: "shell",
+      hostId: "host",
       catalogUrl: "https://registry.example.com/catalog.json",
       resourcesRetryCount: -1
     })),

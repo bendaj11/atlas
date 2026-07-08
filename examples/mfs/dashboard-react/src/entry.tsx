@@ -4,8 +4,6 @@ import { defineMicrofrontend, useAppLoaded, useAtlasSdk } from "@atlas/sdk/react
 import type { AtlasMfMountRequest } from "@atlas/sdk/lifecycle";
 import "./styles.css";
 
-if (import.meta.hot) await import("@vitejs/plugin-react/preamble");
-
 function App({ context }: AtlasMfMountRequest) {
   const atlas = useAtlasSdk();
   const appLoaded = useAppLoaded();

@@ -19,7 +19,10 @@ test("generators keep component declarations split across files", () => {
       ...generateMicrofrontendFiles(options),
       ...generateWidgetFiles({ name: "order-status", framework })
     ];
-    for (const file of files) assertSingleComponentDeclaration(file.path, file.contents);
+    for (const file of files) {
+      assertSingleComponentDeclaration(file.path, file.contents);
+      if (framework === "react") assert.doesNotMatch(file.contents, /import\.meta\.hot/);
+    }
   }
 });
 
@@ -198,14 +201,14 @@ test("atlas build is deterministic with fixed CI metadata", async () => {
 
 test("atlas generates a portable Angular host at an explicit directory", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-"));
-  const target = join(temporary, "customer-shell");
-  await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-shell", "--framework=angular", "--skip-install", `--directory=${target}`]);
+  const target = join(temporary, "customer-host");
+  await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-host", "--framework=angular", "--skip-install", `--directory=${target}`]);
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
   await assert.rejects(access(join(target, "public/atlas.runtime.json")), { code: "ENOENT" });
   assert.match(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs: 15000/);
   assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /catalogUrl/);
-  assert.match(await readFile(join(target, "package.json"), "utf8"), /atlas runtime-config customer-shell/);
+  assert.match(await readFile(join(target, "package.json"), "utf8"), /atlas runtime-config customer-host/);
   assert.match(main, /initFederation/);
   assert.match(bootstrap, /startHost/);
   assert.doesNotMatch(bootstrap, /localhost:4300/);
@@ -222,7 +225,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   ]);
   await run(process.execPath, [
     "packages/cli/dist/index.js", "g", "app", "billing",
-    "--framework=react", "--host=customer-shell", "--skip-install", `--directory=${withHost}`
+    "--framework=react", "--host=customer-host", "--skip-install", `--directory=${withHost}`
   ]);
 
   const defaultConfig = await readFile(join(withoutHost, "atlas.config.ts"), "utf8");
@@ -230,26 +233,26 @@ test("atlas app generation only writes a route when a host is supplied", async (
   assert.doesNotMatch(defaultConfig, /placements/);
   assert.doesNotMatch(defaultConfig, /mounts/);
   assert.doesNotMatch(defaultConfig, /routes/);
-  assert.doesNotMatch(defaultConfig, /"shell"/);
+  assert.doesNotMatch(defaultConfig, /"host"/);
 
   const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
   assert.doesNotMatch(explicitConfig, /hostCompatibility/);
   assert.match(explicitConfig, /routes: \[/);
-  assert.match(explicitConfig, /hostId: "customer-shell"/);
-  assert.doesNotMatch(explicitConfig, /hostId: "shell"/);
+  assert.match(explicitConfig, /hostId: "customer-host"/);
+  assert.doesNotMatch(explicitConfig, /hostId: "host"/);
 });
 
 test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-runtime-config-"));
-  const projectRoot = join(root, "shell");
+  const projectRoot = join(root, "host");
   const output = join(root, "runtime.json");
   await mkdir(projectRoot, { recursive: true });
-  await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, workspaces: ["shell"] }));
-  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "shell", version: "0.1.0", type: "module" }));
+  await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, workspaces: ["host"] }));
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "host", version: "0.1.0", type: "module" }));
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
   await mkdir(join(projectRoot, ".atlas"));
   await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
-    id: "shell",
+    id: "host",
     framework: "react",
     allowAppOverrides: false,
     resourcesTimeoutMs: 12000,
@@ -257,14 +260,14 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
   };\n`);
 
   await run(process.execPath, [
-    join(process.cwd(), "packages/cli/dist/index.js"), "runtime-config", "shell",
+    join(process.cwd(), "packages/cli/dist/index.js"), "runtime-config", "host",
     "--skip-compile", "--registry-base-url=https://cdn.example/atlas", `--out=${output}`
   ], { cwd: root });
 
   const runtime = JSON.parse(await readFile(output, "utf8"));
   assert.equal(runtime.schemaVersion, "1");
-  assert.equal(runtime.hostId, "shell");
-  assert.equal(runtime.catalogUrl, "https://cdn.example/atlas/hosts/shell/catalog.json");
+  assert.equal(runtime.hostId, "host");
+  assert.equal(runtime.catalogUrl, "https://cdn.example/atlas/hosts/host/catalog.json");
   assert.equal(runtime.allowAppOverrides, false);
   assert.equal(runtime.resourcesTimeoutMs, 12000);
   assert.equal(runtime.resourcesRetryCount, 4);
@@ -273,13 +276,13 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
 test("atlas removes a newly generated project when dependency installation fails", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-cleanup-"));
   const bin = join(temporary, "bin");
-  const target = join(temporary, "customer-shell");
+  const target = join(temporary, "customer-host");
   await mkdir(bin);
   await writeFile(join(temporary, "package-lock.json"), "{}\n");
   await writeFile(join(bin, "npm"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
 
   await assert.rejects(run(process.execPath, [
-    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "customer-shell",
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "customer-host",
     "--framework=angular", "--skip-workspace-generator", `--directory=${target}`
   ], { cwd: temporary, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } }), /npm exited with code 1/);
   await assert.rejects(access(target), { code: "ENOENT" });
@@ -389,7 +392,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx source\n' > "$directory/src/main.ts"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf 'nx jest\n' > "$directory/jest.config.ts"
-  printf '{"name":"shell","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"name":"host","marker":"nx-generator"}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
@@ -398,31 +401,31 @@ exit 1
 `, { mode: 0o755 });
 
   const stdout = await run(process.execPath, [
-    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "shell",
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "host",
     "--framework=angular", "--framework-version=~21.2.0", "--skip-install"
   ], { cwd: products, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
-  const project = JSON.parse(await readFile(join(root, "products/shell/project.json"), "utf8"));
+  const project = JSON.parse(await readFile(join(root, "products/host/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
-  assert.match(await readFile(join(root, "products/shell/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
-  assert.match(await readFile(join(root, "products/shell/src/bootstrap.ts"), "utf8"), /startHost/);
-  await assert.rejects(access(join(root, "products/shell/src/app.component.ts")), { code: "ENOENT" });
-  assert.match(await readFile(join(root, "products/shell/src/app/app.component.ts"), "utf8"), /data-atlas-host-status/);
-  assert.match(await readFile(join(root, "products/shell/src/index.html"), "utf8"), /<atlas-host-root><\/atlas-host-root>/);
-  assert.equal(await readFile(join(root, "products/shell/eslint.config.mjs"), "utf8"), "nx eslint\n");
-  assert.equal(await readFile(join(root, "products/shell/jest.config.ts"), "utf8"), "nx jest\n");
-  assert.equal(JSON.parse(await readFile(join(root, "products/shell/tsconfig.json"), "utf8")).marker, "nx-generator");
-  const angularHostTsconfig = JSON.parse(await readFile(join(root, "products/shell/tsconfig.app.json"), "utf8"));
+  assert.match(await readFile(join(root, "products/host/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
+  assert.match(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8"), /startHost/);
+  await assert.rejects(access(join(root, "products/host/src/app.component.ts")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "products/host/src/app/app.component.ts"), "utf8"), /data-atlas-host-status/);
+  assert.match(await readFile(join(root, "products/host/src/index.html"), "utf8"), /<atlas-host-root><\/atlas-host-root>/);
+  assert.equal(await readFile(join(root, "products/host/eslint.config.mjs"), "utf8"), "nx eslint\n");
+  assert.equal(await readFile(join(root, "products/host/jest.config.ts"), "utf8"), "nx jest\n");
+  assert.equal(JSON.parse(await readFile(join(root, "products/host/tsconfig.json"), "utf8")).marker, "nx-generator");
+  const angularHostTsconfig = JSON.parse(await readFile(join(root, "products/host/tsconfig.app.json"), "utf8"));
   assert.equal(angularHostTsconfig.marker, "nx-generator");
   assert.deepEqual(angularHostTsconfig.include, ["atlas.config.ts"]);
-  assert.equal(await readFile(join(root, "products/shell/public/nx.txt"), "utf8"), "nx public asset\n");
-  await assert.rejects(access(join(root, "products/shell/package.json")), { code: "ENOENT" });
-  await assert.rejects(access(join(root, "products/shell/angular.json")), { code: "ENOENT" });
-  assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /framework: "angular"/);
-  assert.match(await readFile(join(root, "products/shell/atlas.config.ts"), "utf8"), /resourcesRetryCount: 3/);
-  assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Generated by Atlas/);
-  assert.match(await readFile(join(root, "products/shell/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
-  await assert.rejects(access(join(root, "products/shell/public/atlas.runtime.json")), { code: "ENOENT" });
+  assert.equal(await readFile(join(root, "products/host/public/nx.txt"), "utf8"), "nx public asset\n");
+  await assert.rejects(access(join(root, "products/host/package.json")), { code: "ENOENT" });
+  await assert.rejects(access(join(root, "products/host/angular.json")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "products/host/atlas.config.ts"), "utf8"), /framework: "angular"/);
+  assert.match(await readFile(join(root, "products/host/atlas.config.ts"), "utf8"), /resourcesRetryCount: 3/);
+  assert.match(await readFile(join(root, "products/host/federation.config.js"), "utf8"), /Generated by Atlas/);
+  assert.match(await readFile(join(root, "products/host/federation.config.js"), "utf8"), /Edit atlas\.config\.ts/);
+  await assert.rejects(access(join(root, "products/host/public/atlas.runtime.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   assert.equal(rootPackage.dependencies["@atlas/schema"], ATLAS_PACKAGE_RANGE);
   assert.equal(rootPackage.dependencies["@atlas/runtime"], ATLAS_PACKAGE_RANGE);
@@ -433,11 +436,11 @@ exit 1
   assert.equal(rootPackage.dependencies["es-module-shims"], "^2.7.0");
   assert.equal(rootPackage.devDependencies["@nx/angular"], "22.0.0");
   assert.match(stdout, /Detected an Nx workspace/);
-  assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at products\/shell/);
+  assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at products\/host/);
   assert.match(stdout, /Detected existing Angular version ~20\.3\.0 in package\.json; ignoring --framework-version=~21\.2\.0/);
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
-  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "products/shell\n");
-  assert.match(stdout, /Formatted generated files in products\/shell/);
+  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "products/host\n");
+  assert.match(stdout, /Formatted generated files in products\/host/);
 });
 
 test("atlas preserves Nx React project scaffolding around host startup files", async () => {
@@ -465,7 +468,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx react index\n' > "$directory/index.html"
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
-  printf '{"name":"shell","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"name":"host","marker":"nx-generator"}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   exit 0
 fi
@@ -473,32 +476,34 @@ exit 1
 `, { mode: 0o755 });
 
   const stdout = await run(process.execPath, [
-    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "apps/shell",
+    join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "apps/host",
     "--framework=react", "--skip-install"
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
-  const project = JSON.parse(await readFile(join(root, "apps/shell/project.json"), "utf8"));
+  const project = JSON.parse(await readFile(join(root, "apps/host/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
-  assert.match(await readFile(join(root, "apps/shell/src/main.tsx"), "utf8"), /startHost/);
-  assert.match(await readFile(join(root, "apps/shell/src/main.tsx"), "utf8"), /createBrowserRouter/);
-  assert.match(await readFile(join(root, "apps/shell/index.html"), "utf8"), /<script type="module" src="\/src\/main\.tsx"><\/script>/);
-  assert.match(await readFile(join(root, "apps/shell/src/styles.css"), "utf8"), /data-atlas-route-outlet/);
-  assert.equal(await readFile(join(root, "apps/shell/eslint.config.mjs"), "utf8"), "nx eslint\n");
-  assert.equal(await readFile(join(root, "apps/shell/public/nx.txt"), "utf8"), "nx react public asset\n");
-  const reactHostTsconfig = JSON.parse(await readFile(join(root, "apps/shell/tsconfig.json"), "utf8"));
+  const hostMain = await readFile(join(root, "apps/host/src/main.tsx"), "utf8");
+  assert.match(hostMain, /startHost/);
+  assert.match(hostMain, /createBrowserRouter/);
+  assert.doesNotMatch(hostMain, /import\.meta\.hot/);
+  assert.match(await readFile(join(root, "apps/host/index.html"), "utf8"), /<script type="module" src="\/src\/main\.tsx"><\/script>/);
+  assert.match(await readFile(join(root, "apps/host/src/styles.css"), "utf8"), /data-atlas-route-outlet/);
+  assert.equal(await readFile(join(root, "apps/host/eslint.config.mjs"), "utf8"), "nx eslint\n");
+  assert.equal(await readFile(join(root, "apps/host/public/nx.txt"), "utf8"), "nx react public asset\n");
+  const reactHostTsconfig = JSON.parse(await readFile(join(root, "apps/host/tsconfig.json"), "utf8"));
   assert.equal(reactHostTsconfig.marker, "nx-generator");
   assert.deepEqual(reactHostTsconfig.include, ["atlas.config.ts"]);
-  assert.match(await readFile(join(root, "apps/shell/atlas.config.ts"), "utf8"), /framework: "react"/);
-  await assert.rejects(access(join(root, "apps/shell/package.json")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "apps/host/atlas.config.ts"), "utf8"), /framework: "react"/);
+  await assert.rejects(access(join(root, "apps/host/package.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   assert.equal(rootPackage.dependencies["@atlas/runtime"], ATLAS_PACKAGE_RANGE);
   assert.equal(rootPackage.dependencies.react, "^19.2.0");
   assert.equal(rootPackage.dependencies["react-dom"], "^19.2.0");
   assert.equal(rootPackage.devDependencies["@nx/react"], "22.0.0");
-  assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at apps\/shell/);
+  assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at apps\/host/);
   assert.match(stdout, /Added Atlas dependencies to package\.json/);
-  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "apps/shell\n");
-  assert.match(stdout, /Formatted generated files in apps\/shell/);
+  assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "apps/host\n");
+  assert.match(stdout, /Formatted generated files in apps\/host/);
 });
 
 test("atlas adds required Angular MF files after Nx scaffolding", async () => {
@@ -541,16 +546,15 @@ exit 1
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
   assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /defineMicrofrontend/);
-  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(StarterShellComponent/);
+  assert.match(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /bootstrapApplication\(AppComponent/);
   assert.doesNotMatch(await readFile(join(root, "orders/src/entry.ts"), "utf8"), /@Component|router-outlet/);
   await assert.rejects(access(join(root, "orders/src/app.component.ts")), { code: "ENOENT" });
-  await assert.rejects(access(join(root, "orders/src/app/app.component.ts")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "orders/src/app/nx-only/nx-only.component.ts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Required Atlas wiring/);
-  assert.match(await readFile(join(root, "orders/src/app/starter/shell/starter-shell.component.ts"), "utf8"), /router-outlet/);
+  assert.match(await readFile(join(root, "orders/src/app/app.component.ts"), "utf8"), /router-outlet/);
   assert.match(await readFile(join(root, "orders/src/app/routes.ts"), "utf8"), /export const routes: Routes/);
-  assert.match(await readFile(join(root, "orders/src/app/starter/home/starter-home.component.ts"), "utf8"), /export class StarterHomeComponent/);
-  assert.match(await readFile(join(root, "orders/src/app/starter/details/starter-details.component.ts"), "utf8"), /export class StarterDetailsComponent/);
+  assert.match(await readFile(join(root, "orders/src/app/home/home.component.ts"), "utf8"), /export class HomeComponent/);
+  assert.match(await readFile(join(root, "orders/src/app/details/details.component.ts"), "utf8"), /export class DetailsComponent/);
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas microfrontend assets/);
   assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
@@ -605,10 +609,11 @@ exit 1
     "--framework=react", "--skip-install"
   ], { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
-  assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /createRoutedMicrofrontend/);
-  assert.match(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /import \{ routes \} from "\.\/app\/routes"/);
-  assert.doesNotMatch(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /await import/);
-  assert.doesNotMatch(await readFile(join(root, "orders/src/entry.tsx"), "utf8"), /useAtlasSdk|<Outlet|<Link|function Layout/);
+  const reactEntry = await readFile(join(root, "orders/src/entry.tsx"), "utf8");
+  assert.match(reactEntry, /createRoutedMicrofrontend/);
+  assert.match(reactEntry, /import \{ routes \} from "\.\/app\/routes"/);
+  assert.doesNotMatch(reactEntry, /await import|import\.meta\.hot/);
+  assert.doesNotMatch(reactEntry, /useAtlasSdk|<Outlet|<Link|function Layout/);
   assert.equal((await readdir(join(root, "orders/src/app"))).includes("app.tsx"), false);
   await assert.rejects(access(join(root, "orders/src/app/nx-only/nx-only.tsx")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Main app component/);
@@ -616,8 +621,12 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/app/App.tsx"), "utf8"), /useAtlasSdk/);
   assert.match(await readFile(join(root, "orders/src/app/home/Home.tsx"), "utf8"), /export function Home/);
   assert.match(await readFile(join(root, "orders/src/app/details/Details.tsx"), "utf8"), /export function Details/);
-  assert.match(await readFile(join(root, "orders/src/main.tsx"), "utf8"), /createBrowserRouter\(routes\)/);
-  assert.match(await readFile(join(root, "orders/vite.config.ts"), "utf8"), /remoteEntry\.json/);
+  const reactMain = await readFile(join(root, "orders/src/main.tsx"), "utf8");
+  assert.match(reactMain, /createBrowserRouter\(routes\)/);
+  assert.doesNotMatch(reactMain, /import\.meta\.hot/);
+  const reactViteConfig = await readFile(join(root, "orders/vite.config.ts"), "utf8");
+  assert.match(reactViteConfig, /remoteEntry\.json/);
+  assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-components/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");

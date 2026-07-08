@@ -4,14 +4,14 @@ import { connectRouter, createRouterOptions, defineMicrofrontend, createHostNavi
 import { generateHostFiles, generateMicrofrontendFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 
 test("React generator emits React 19 Vite Native Federation projects", () => {
-  const host = files(generateHostFiles({ name: "shell", framework: "react" }));
+  const host = files(generateHostFiles({ name: "host", framework: "react" }));
   const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "react" }));
-  assert.equal(JSON.parse(host.get("package.json")).name, "shell");
+  assert.equal(JSON.parse(host.get("package.json")).name, "host");
   assert.equal(JSON.parse(mf.get("package.json")).name, "orders");
-  assert.equal(JSON.parse(files(generateHostFiles({ name: "shell", packageName: "@acme/shell", framework: "react" })).get("package.json")).name, "@acme/shell");
+  assert.equal(JSON.parse(files(generateHostFiles({ name: "host", packageName: "@acme/host", framework: "react" })).get("package.json")).name, "@acme/host");
   assert.match(host.get("package.json"), /"react": "\^19\.2\.0"/);
   assert.match(host.get("src/main.tsx"), /startHost/);
-  assert.match(host.get("src/main.tsx"), /AtlasHostShell, startHost/);
+  assert.match(host.get("src/main.tsx"), /AtlasDefaultHostLayout, startHost/);
   assert.match(host.get("src/main.tsx"), /createBrowserRouter/);
   assert.match(host.get("src/main.tsx"), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.deepEqual(JSON.parse(host.get("tsconfig.json")).include, ["src", "vite.config.ts", "atlas.config.ts"]);
@@ -20,7 +20,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.doesNotMatch(host.get("src/main.tsx"), /const hostData: AtlasHostData/);
   assert.doesNotMatch(host.get("src/main.tsx"), /projectId/);
   assert.doesNotMatch(host.get("src/main.tsx"), /data-atlas-host-status/);
-  assert.doesNotMatch(host.get("src/main.tsx"), /function Shell/);
+  assert.doesNotMatch(host.get("src/main.tsx"), /function AtlasDefaultHostLayout/);
   assert.match(host.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(host.get("vite.config.ts"), /target: "19"/);
   assert.match(host.get("index.html"), /"shimMode": true/);
@@ -29,7 +29,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
   assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
   assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
-  assert.match(host.get("package.json"), /atlas runtime-config shell/);
+  assert.match(host.get("package.json"), /atlas runtime-config host/);
   assert.match(mf.get("vite.config.ts"), /remoteEntry\.json/);
   assert.match(mf.get("vite.config.ts"), /babel-plugin-react-compiler/);
   assert.match(mf.get("vite.config.ts"), /components\/\$\{id\}/);
@@ -50,7 +50,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /placements/);
   assert.doesNotMatch(mf.get("atlas.config.ts"), /mounts/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /"shell"/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /"host"/);
 });
 
 test("React Router MF bridge synchronizes native and host navigation", async () => {
@@ -84,7 +84,8 @@ test("React generator targets selected supported majors with React Compiler", ()
   assert.match(react17.get("package.json"), /"react-compiler-runtime": "1\.0\.0"/);
   assert.match(react17.get("package.json"), /"react-router-dom": "\^6\.30\.1"/);
   assert.doesNotMatch(react17.get("package.json"), /"react-router": "\^7/);
-  assert.match(react17Host.get("src/main.tsx"), /unmountComponentAtNode/);
+  assert.match(react17Host.get("src/main.tsx"), /import \{ render \} from "react-dom"/);
+  assert.doesNotMatch(react17Host.get("src/main.tsx"), /unmountComponentAtNode/);
   assert.doesNotMatch(react17Host.get("src/main.tsx"), /react-dom\/client/);
   assert.match(react17.get("src/entry.tsx"), /function createRoot\(container: Element\)/);
   assert.doesNotMatch(react17.get("src/entry.tsx"), /react-dom\/client/);
@@ -100,26 +101,26 @@ test("React generator targets selected supported majors with React Compiler", ()
 });
 
 test("React generator rejects unsafe project, widget, and host IDs", () => {
-  assert.throws(() => generateHostFiles({ name: "../shell", framework: "react" }), /Invalid generator name/);
+  assert.throws(() => generateHostFiles({ name: "../host", framework: "react" }), /Invalid generator name/);
   assert.throws(() => generateMicrofrontendFiles({ name: "Orders", framework: "react" }), /Invalid generator name/);
   assert.throws(() => generateWidgetFiles({ name: "summary/widget", framework: "react" }), /Invalid generator name/);
-  assert.throws(() => generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "shell\"], routes: []" }), /Invalid generator hostId/);
+  assert.throws(() => generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "host\"], routes: []" }), /Invalid generator hostId/);
 });
 
 test("React generator targets a supplied compatible host and keeps framework dependencies isolated", () => {
-  const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "customer-shell" }));
+  const mf = files(generateMicrofrontendFiles({ name: "orders", framework: "react", hostId: "customer-host" }));
   assert.doesNotMatch(mf.get("atlas.config.ts"), /hostCompatibility/);
   assert.match(mf.get("atlas.config.ts"), /routes: \[/);
-  assert.match(mf.get("atlas.config.ts"), /hostId: "customer-shell"/);
+  assert.match(mf.get("atlas.config.ts"), /hostId: "customer-host"/);
   assert.match(mf.get("vite.config.ts"), /shared: \[\]/);
-  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostId: "shell"/);
+  assert.doesNotMatch(mf.get("atlas.config.ts"), /hostId: "host"/);
 });
 
 test("React widget generator creates a typed independently deployed widget", () => {
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "react" }));
   assert.match(widget.get("src/exported-components/entity-popup/index.tsx"), /EntityPopupWidgetProps/);
   assert.match(widget.get("src/exported-components/entity-popup/index.tsx"), /defineExportedComponent/);
-  assert.match(widget.get("src/exported-components/entity-popup/index.tsx"), /void import\("@vitejs\/plugin-react\/preamble"\)/);
+  assert.doesNotMatch(widget.get("src/exported-components/entity-popup/index.tsx"), /@vitejs\/plugin-react\/preamble/);
   assert.doesNotMatch(widget.get("src/exported-components/entity-popup/index.tsx"), /await import/);
 });
 

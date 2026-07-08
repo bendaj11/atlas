@@ -9,8 +9,8 @@ An Angular host serves generated `public/atlas.runtime.json` as a static file:
 ```json
 {
   "schemaVersion": "1",
-  "hostId": "customer-shell",
-  "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-shell/catalog.json",
+  "hostId": "customer-host",
+  "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-host/catalog.json",
   "allowAppOverrides": true,
   "resourcesTimeoutMs": 15000,
   "resourcesRetryCount": 3
@@ -22,7 +22,7 @@ Atlas loads the exact asset URLs selected by the host catalog. See [Security](se
 Generate it from the host's `atlas.config.ts`:
 
 ```sh
-atlas runtime-config customer-shell --registry-base-url=https://cdn.example.com/atlas
+atlas runtime-config customer-host --registry-base-url=https://cdn.example.com/atlas
 ```
 
 The file is outside the compiled JavaScript bundle. Deployment tooling can

@@ -17,29 +17,21 @@ function createRoot(container: Element) {
   };
 }`
     : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nif (import.meta.hot) void import("@vitejs/plugin-react/preamble");\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedMicrofrontend } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nexport default createRoutedMicrofrontend({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
 }
 
 export function reactMicrofrontendMain(profile: ReactVersionProfile): string {
   const root = profile.major === 17
-    ? `import { render, unmountComponentAtNode } from "react-dom";
+    ? `import { render } from "react-dom";
 
 function mountApp(root: Element) {
   render(app, root);
-}
-
-function unmountApp(root: Element) {
-  unmountComponentAtNode(root);
 }`
     : `import { createRoot } from "react-dom/client";
 
 function mountApp(root: Element) {
   const reactRoot = createRoot(root);
   reactRoot.render(app);
-  if (import.meta.hot) import.meta.hot.dispose(() => {
-    reactRoot.unmount();
-    navigation.dispose();
-  });
 }`;
 
   return `import { StrictMode } from "react";
@@ -70,7 +62,7 @@ const app = (
 );
 
 mountApp(root);
-${profile.major === 17 ? "if (import.meta.hot) import.meta.hot.dispose(() => {\n  unmountApp(root);\n  navigation.dispose();\n});\n" : ""}`;
+`;
 }
 
 export function reactMicrofrontendApp(name: string): string {

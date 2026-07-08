@@ -30,8 +30,8 @@ and Atlas revalidates widget dependencies after applying replacements.
 ```json
 {
   "schemaVersion": "1",
-  "hostId": "customer-shell",
-  "catalogUrl": "https://registry.example.com/atlas/hosts/customer-shell/catalog.json",
+  "hostId": "customer-host",
+  "catalogUrl": "https://registry.example.com/atlas/hosts/customer-host/catalog.json",
   "allowAppOverrides": true,
   "resourcesTimeoutMs": 15000,
   "resourcesRetryCount": 3

@@ -27,13 +27,13 @@ test("core SDK exposes typed hostData and httpClient without extensions", async 
     async options(url, options) { return this.request("OPTIONS", url, options); }
   };
   const sdk = createAtlasSdk({
-    hostId: "shell",
+    hostId: "host",
     navigation: createMemoryNavigation(),
-    hostData: { hostId: "shell", name: "Shell", projectId: "project-42" },
+    hostData: { hostId: "host", name: "Host", projectId: "project-42" },
     httpClient
   });
-  assert.equal(sdk.hostData.hostId, "shell");
-  assert.equal(sdk.hostData.name, "Shell");
+  assert.equal(sdk.hostData.hostId, "host");
+  assert.equal(sdk.hostData.name, "Host");
   assert.equal(sdk.hostData.projectId, "project-42");
   assert.deepEqual(await sdk.httpClient.get("/orders"), { method: "GET", url: "/orders", body: undefined });
   assert.deepEqual(await sdk.httpClient.post("/orders", "payload"), { method: "POST", url: "/orders", body: "payload" });
@@ -47,7 +47,7 @@ test("host SDK adapts fetch-compatible httpClient providers", async () => {
     return { ok: true };
   };
   const sdk = createAtlasSdk({
-    hostId: "shell",
+    hostId: "host",
     navigation: createMemoryNavigation(),
     httpClient
   });
@@ -57,7 +57,7 @@ test("host SDK adapts fetch-compatible httpClient providers", async () => {
 
 test("host SDK uses HttpClient by default", () => {
   const sdk = createAtlasSdk({
-    hostId: "shell",
+    hostId: "host",
     navigation: createMemoryNavigation()
   });
   assert.ok(sdk.httpClient instanceof HttpClient);
@@ -75,7 +75,7 @@ test("HttpClient wraps fetch with HTTP helpers", async () => {
 
 test("host extensions cannot replace core SDK capabilities", () => {
   assert.throws(() => createAtlasSdk({
-    hostId: "shell",
+    hostId: "host",
     navigation: createMemoryNavigation(),
     extensions: { navigation: "invalid" }
   }), /conflicts with a core SDK capability/);
@@ -93,7 +93,7 @@ test("event bus once listener is removed after its first event", () => {
 test("host SDK delegates modal components and popup content to host overlay providers", async () => {
   const opened = [];
   const sdk = createAtlasSdk({
-    hostId: "shell",
+    hostId: "host",
     navigation: createMemoryNavigation(),
     async openModal(request) { opened.push(["modal", request.component, request.props]); return "confirmed"; },
     openPopup(request) { opened.push(["popup", request.content]); return { id: "popup-1", close() {} }; }
@@ -109,7 +109,7 @@ test("host SDK delegates modal components and popup content to host overlay prov
 test("host SDK delegates toast requests to showToast", () => {
   const shown = [];
   const sdk = createAtlasSdk({
-    hostId: "shell",
+    hostId: "host",
     navigation: createMemoryNavigation(),
     showToast(request) { shown.push(request); }
   });

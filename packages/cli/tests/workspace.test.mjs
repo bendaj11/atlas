@@ -36,7 +36,7 @@ test("Nx generation respects a direct child working directory", async () => {
 
   const workspace = await detectWorkspace(appsRoot);
 
-  assert.equal(workspace.generationRoot("host", "shell"), join(appsRoot, "shell"));
+  assert.equal(workspace.generationRoot("host", "host"), join(appsRoot, "host"));
   assert.equal(workspace.generationRoot("app", "orders"), join(appsRoot, "orders"));
 });
 
@@ -67,7 +67,7 @@ test("pnpm-workspace.yaml establishes a pnpm workspace without package.json work
   assert.equal(workspace.root, root);
   assert.equal(workspace.kind, "workspace");
   assert.equal(workspace.packageManager, "pnpm");
-  assert.equal(workspace.generationRoot("host", "shell"), join(root, "packages", "shell"));
+  assert.equal(workspace.generationRoot("host", "host"), join(root, "packages", "host"));
 });
 
 test("pnpm-lock.yaml establishes the workspace root", async () => {
@@ -167,10 +167,10 @@ test("generated project formatting uses existing workspace tooling", async () =>
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/shell", interactive: false }), {
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/host", interactive: false }), {
     command: "pnpm",
     args: [
-      "exec", "nx", "generate", "@nx/angular:application", "apps/shell",
+      "exec", "nx", "generate", "@nx/angular:application", "apps/host",
       "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
     ],
     cwd: "/repo"
@@ -187,11 +187,11 @@ test("non-interactive Nx projects use deterministic framework generator defaults
 
 test("interactive Nx projects delegate framework choices to the native generator", () => {
   assert.deepEqual(createNxGenerationCommand("yarn", "/repo", {
-    framework: "angular", directory: "apps/shell", interactive: true
+    framework: "angular", directory: "apps/host", interactive: true
   }), {
     command: "yarn",
     args: [
-      "nx", "generate", "@nx/angular:application", "apps/shell",
+      "nx", "generate", "@nx/angular:application", "apps/host",
       "--interactive=true", "--skipFormat"
     ],
     cwd: "/repo"
@@ -220,5 +220,5 @@ test("solution-style Nx workspaces still require the native Angular plugin", asy
 
   const workspace = await detectWorkspace(root);
   assert.equal(await workspace.missingScaffoldDependency("angular"), "@nx/angular");
-  assert.equal(workspace.generationRoot("host", "shell"), join(root, "packages", "shell"));
+  assert.equal(workspace.generationRoot("host", "host"), join(root, "packages", "host"));
 });

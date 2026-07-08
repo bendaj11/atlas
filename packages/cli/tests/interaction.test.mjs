@@ -16,8 +16,8 @@ test("interactive generation asks only for missing configuration", async () => {
 
 test("fully configured and non-interactive commands never prompt", async () => {
   const prompts = fakePrompts([], false);
-  const invocation = await resolveInvocation(new CliArguments(["g", "host", "shell", "--framework=react"]), prompts);
-  assert.deepEqual(invocation, { command: "g", subcommand: "host", name: "shell", framework: "react", version: undefined });
+  const invocation = await resolveInvocation(new CliArguments(["g", "host", "host", "--framework=react"]), prompts);
+  assert.deepEqual(invocation, { command: "g", subcommand: "host", name: "host", framework: "react", version: undefined });
   assert.deepEqual(prompts.questions, []);
 });
 

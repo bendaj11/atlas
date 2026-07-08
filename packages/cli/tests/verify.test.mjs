@@ -17,7 +17,7 @@ test("verify accepts a healthy cross-origin deployment", async () => {
   });
 
   assert.equal(report.failures, 0);
-  assert.equal(report.hostId, "shell");
+  assert.equal(report.hostId, "host");
 });
 
 test("verify rejects multiple selected versions of one MF", async () => {
@@ -154,15 +154,15 @@ function createDeploymentFetch(manifests, options = { includeCors: true }) {
     const url = input.toString();
     if (url.endsWith("atlas.runtime.json")) return Response.json({
       schemaVersion: "1",
-      hostId: "shell",
-      catalogUrl: "https://cdn.example/hosts/shell/catalog.json",
+      hostId: "host",
+      catalogUrl: "https://cdn.example/hosts/host/catalog.json",
       allowAppOverrides: true,
       resourcesTimeoutMs: 15000,
       resourcesRetryCount: 3
     }, { headers: jsonHeaders });
     if (url.endsWith("catalog.json")) return Response.json({
       schemaVersion: "1",
-      hostId: "shell",
+      hostId: "host",
       generatedAt: "2026-01-01T00:00:00.000Z",
       manifests
     }, { headers: { ...jsonHeaders, ...(options.includeCors ? { "access-control-allow-origin": "https://host.example" } : {}) } });

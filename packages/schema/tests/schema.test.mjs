@@ -32,7 +32,7 @@ test("createManifestFromConfig derives supported hosts from source routes and sl
     config: {
       id: "catalog",
       framework: "react",
-      routes: [{ id: "catalog-route", hostId: "shell", basePath: "/catalog", title: "Catalog" }],
+      routes: [{ id: "catalog-route", hostId: "host", basePath: "/catalog", title: "Catalog" }],
       slots: [{ id: "catalog-sidebar", hostId: "partner-host.v2", name: "sidebar" }]
     },
     version: "1.0.0",
@@ -40,7 +40,7 @@ test("createManifestFromConfig derives supported hosts from source routes and sl
     remoteEntryUrl: "https://cdn.example.com/catalog/remoteEntry.js"
   });
 
-  assert.deepEqual(manifest.supportedHosts, ["shell", "partner-host.v2"]);
+  assert.deepEqual(manifest.supportedHosts, ["host", "partner-host.v2"]);
 });
 
 test("createManifestFromConfig uses wildcard supported hosts when no routes or slots are configured", () => {
@@ -52,8 +52,8 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
     config: {
       id: "catalog",
       framework: "react",
-      routes: [{ id: "catalog-route", hostId: "shell", basePath: "/catalog", title: "Catalog" }],
-      slots: [{ id: "catalog-sidebar", hostId: "shell", name: "sidebar" }]
+      routes: [{ id: "catalog-route", hostId: "host", basePath: "/catalog", title: "Catalog" }],
+      slots: [{ id: "catalog-sidebar", hostId: "host", name: "sidebar" }]
     },
     version: "1.0.0",
     buildId: "build-1",
@@ -61,8 +61,8 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
   });
 
   assert.deepEqual(manifest.placements, [
-    { id: "catalog-route", kind: "route", hostId: "shell", route: { id: "catalog-route", basePath: "/catalog", title: "Catalog" } },
-    { id: "catalog-sidebar", kind: "slot", hostId: "shell", slot: "sidebar" }
+    { id: "catalog-route", kind: "route", hostId: "host", route: { id: "catalog-route", basePath: "/catalog", title: "Catalog" } },
+    { id: "catalog-sidebar", kind: "slot", hostId: "host", slot: "sidebar" }
   ]);
 });
 
@@ -78,7 +78,7 @@ test("manifest reports missing fields", () => {
 });
 
 test("supported hosts require unique non-empty strings", () => {
-  const issues = validateAtlasManifest(createManifest({ supportedHosts: ["shell", "", "shell", 4] }));
+  const issues = validateAtlasManifest(createManifest({ supportedHosts: ["host", "", "host", 4] }));
 
   assert.deepEqual(
     issues.filter((issue) => issue.path.startsWith("supportedHosts.")).map((issue) => issue.path),
@@ -89,8 +89,8 @@ test("supported hosts require unique non-empty strings", () => {
 test("identifiers permit practical frontend ids", () => {
   const manifest = createManifest({
     id: "workspace.ui_v2",
-    supportedHosts: ["shell.web_v2"],
-    placements: [{ id: "main-slot_v2", kind: "slot", hostId: "shell.web_v2", slot: "sidebar" }],
+    supportedHosts: ["host.web_v2"],
+    placements: [{ id: "main-slot_v2", kind: "slot", hostId: "host.web_v2", slot: "sidebar" }],
     exportedComponents: [{
       schemaVersion: "1",
       contractVersion: "1",
@@ -110,8 +110,8 @@ test("identifiers permit practical frontend ids", () => {
 test("manifest identifiers reject separators and traversal", () => {
   const issues = validateAtlasManifest(createManifest({
     id: "../workspace",
-    supportedHosts: ["shell/admin", "shell\\admin", "shell..admin"],
-    placements: [{ id: "../main", kind: "route", hostId: "shell/admin", route: { id: "main/route", basePath: "/workspace", title: "Workspace" } }],
+    supportedHosts: ["host/admin", "host\\admin", "host..admin"],
+    placements: [{ id: "../main", kind: "route", hostId: "host/admin", route: { id: "main/route", basePath: "/workspace", title: "Workspace" } }],
     exportedComponents: [{
       schemaVersion: "1",
       contractVersion: "1",
@@ -131,7 +131,7 @@ test("manifest identifiers reject separators and traversal", () => {
 });
 
 test("catalog host identifiers reject separators and traversal", () => {
-  const catalog = { schemaVersion: "1", hostId: "../shell", generatedAt: "2026-01-01T00:00:00.000Z", manifests: [] };
+  const catalog = { schemaVersion: "1", hostId: "../host", generatedAt: "2026-01-01T00:00:00.000Z", manifests: [] };
 
   assert.ok(issueAt(validateAtlasHostCatalog(catalog), "hostId"));
 });
@@ -140,7 +140,7 @@ test("route placements validate nested route and navigation fields", () => {
   const placements = [{
     id: "main",
     kind: "route",
-    hostId: "shell",
+    hostId: "host",
     slot: "sidebar",
     route: { id: "main", basePath: "workspace?tab=1", title: "", nav: { label: "", order: "first", visible: "yes" } }
   }];
@@ -153,7 +153,7 @@ test("route placements validate nested route and navigation fields", () => {
 });
 
 test("slot placements require a slot and reject route details", () => {
-  const placements = [{ id: "tools", kind: "slot", hostId: "shell", route: { id: "tools", basePath: "/tools", title: "Tools" } }];
+  const placements = [{ id: "tools", kind: "slot", hostId: "host", route: { id: "tools", basePath: "/tools", title: "Tools" } }];
   const issues = validateAtlasManifest(createManifest({ placements }));
 
   assert.ok(issueAt(issues, "placements.0.slot"));
@@ -162,8 +162,8 @@ test("slot placements require a slot and reject route details", () => {
 
 test("placements require unique ids", () => {
   const placements = [
-    { id: "tools", kind: "slot", hostId: "shell", slot: "sidebar" },
-    { id: "tools", kind: "slot", hostId: "shell", slot: "header" }
+    { id: "tools", kind: "slot", hostId: "host", slot: "sidebar" },
+    { id: "tools", kind: "slot", hostId: "host", slot: "header" }
   ];
 
   assert.equal(issueAt(validateAtlasManifest(createManifest({ placements })), "placements.1.id")?.message, "Duplicate placement id \"tools\".");
@@ -250,7 +250,7 @@ test("widget uses reject whitespace and duplicate references", () => {
 });
 
 test("catalog validates nested manifests with prefixed paths", () => {
-  const catalog = { schemaVersion: "1", hostId: "shell", generatedAt: "2026-01-01T00:00:00.000Z", manifests: [createManifest({ version: "latest" })] };
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "2026-01-01T00:00:00.000Z", manifests: [createManifest({ version: "latest" })] };
 
   assert.ok(issueAt(validateAtlasHostCatalog(catalog), "manifests.0.version"));
 });
@@ -258,7 +258,7 @@ test("catalog validates nested manifests with prefixed paths", () => {
 test("catalog rejects duplicate MF ids", () => {
   const catalog = {
     schemaVersion: "1",
-    hostId: "shell",
+    hostId: "host",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [createManifest({ id: "catalog" }), createManifest({ id: "catalog" })]
   };
@@ -267,10 +267,10 @@ test("catalog rejects duplicate MF ids", () => {
 });
 
 test("catalog rejects duplicate exact route ownership with a clear owner error", () => {
-  const route = { id: "main", kind: "route", hostId: "shell", route: { id: "main", basePath: "/workspace", title: "Workspace" } };
+  const route = { id: "main", kind: "route", hostId: "host", route: { id: "main", basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
-    hostId: "shell",
+    hostId: "host",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [createManifest({ id: "first", placements: [route] }), createManifest({ id: "second", placements: [{ ...route, id: "other" }] })]
   };
@@ -284,10 +284,10 @@ test("catalog permits the same route path for different hosts", () => {
   const route = { id: "main", kind: "route", route: { id: "main", basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
-    hostId: "shell",
+    hostId: "host",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [
-      createManifest({ id: "first", placements: [{ ...route, hostId: "shell" }] }),
+      createManifest({ id: "first", placements: [{ ...route, hostId: "host" }] }),
       createManifest({ id: "second", placements: [{ ...route, hostId: "admin" }] })
     ]
   };
@@ -297,7 +297,7 @@ test("catalog permits the same route path for different hosts", () => {
 
 test("assertAtlasHostCatalog throws structured validation errors", () => {
   assert.throws(
-    () => assertAtlasHostCatalog({ schemaVersion: "1", hostId: "shell", generatedAt: "now", manifests: "invalid" }),
+    () => assertAtlasHostCatalog({ schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: "invalid" }),
     (error) => error instanceof AtlasValidationError && error.issues[0].path === "manifests"
   );
 });

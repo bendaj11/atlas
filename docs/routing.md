@@ -20,7 +20,7 @@ export default {
   routes: [
     {
       id: "catalog-route",
-      hostId: "shell",
+      hostId: "host",
       basePath: "/catalog",
       title: "Catalog",
       nav: { label: "Catalog", visible: true }

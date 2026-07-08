@@ -9,7 +9,7 @@ import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter } from "@angular/router";
 import { createLocationStrategy, defineMicrofrontend, provideAtlasMfContext, provideAtlasSdk } from "@atlas/sdk/angular";
 import { routes } from "./app/routes";
-import { StarterShellComponent } from "./app/starter/shell/starter-shell.component";
+import { AppComponent } from "./app/app.component";
 
 export default defineMicrofrontend(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
@@ -17,7 +17,7 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
 
   container.append(element);
 
-  const app = await bootstrapApplication(StarterShellComponent, {
+  const app = await bootstrapApplication(AppComponent, {
     providers: [
       provideRouter(routes),
       provideAtlasMfContext(context),
@@ -37,7 +37,7 @@ export default defineMicrofrontend(async ({ container, sdk, context }) => {
 `;
 }
 
-export function angularMicrofrontendShellComponent(name: string): string {
+export function angularMicrofrontendAppComponent(name: string): string {
   const selector = angularRootSelector(name);
   return `import { Component } from "@angular/core";
 import { RouterLink, RouterOutlet } from "@angular/router";
@@ -57,7 +57,7 @@ import { RouterLink, RouterOutlet } from "@angular/router";
     </section>
   \`
 })
-export class StarterShellComponent {}
+export class AppComponent {}
 `;
 }
 
@@ -69,7 +69,7 @@ export function angularMicrofrontendHomeComponent(name: string): string {
   standalone: true,
   template: \`<p>${title(name)} home</p>\`
 })
-export class StarterHomeComponent {}
+export class HomeComponent {}
 `;
 }
 
@@ -81,18 +81,18 @@ export function angularMicrofrontendDetailsComponent(): string {
   standalone: true,
   template: \`<p>Routed details page</p>\`
 })
-export class StarterDetailsComponent {}
+export class DetailsComponent {}
 `;
 }
 
 export function angularMicrofrontendRoutes(): string {
   return `import type { Routes } from "@angular/router";
-import { StarterDetailsComponent } from "./starter/details/starter-details.component";
-import { StarterHomeComponent } from "./starter/home/starter-home.component";
+import { DetailsComponent } from "./details/details.component";
+import { HomeComponent } from "./home/home.component";
 
 export const routes: Routes = [
-  { path: "", component: StarterHomeComponent },
-  { path: "details/:id", component: StarterDetailsComponent }
+  { path: "", component: HomeComponent },
+  { path: "details/:id", component: DetailsComponent }
 ];
 `;
 }
@@ -102,8 +102,8 @@ export function appSourceReadme(): string {
 
 Required Atlas wiring lives in \`src/entry.ts\`, \`atlas.config.ts\`, and \`federation.config.js\`. Keep those files aligned with Atlas docs when changing platform wiring.
 
-Replaceable starter UI lives in \`src/app/starter\`. Delete or replace those folders when adding product screens.
+Main app component lives in \`src/app/app.component.ts\`. Add routed screens under feature folders in \`src/app\`.
 
-\`src/app/routes.ts\` connects starter screens to the router. Update it when replacing starter UI.
+\`src/app/routes.ts\` connects app screens to the router. Update it when adding routes.
 `;
 }

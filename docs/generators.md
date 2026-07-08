@@ -46,12 +46,14 @@ assets, TypeScript configuration, lint/test setup, and workspace conventions.
 Atlas then adds only its explicitly owned integration files, such as
 `atlas.config.ts`, `tsconfig.atlas.json`, generated federation compatibility
 shims, MF lifecycle entry files, React MF Vite federation config, and host
-runtime configuration. For delegated React MFs, Atlas replaces the Nx sample app
-source with the Atlas app convention (`src/app/App.tsx`, feature folders under
-`src/app`, `src/app/routes.tsx`, `src/main.tsx`, and `src/entry.tsx`) so the
-generated Vite and Native Federation entries type-check together. It does not
-apply unrelated portable-template files over the Nx result. Atlas also merges
-its required runtime and federation
+runtime configuration. For delegated MFs, Atlas replaces the Nx sample app
+source with the Atlas app convention so generated framework entries type-check
+together. Angular uses `src/app/app.component.ts`, feature folders under
+`src/app`, `src/app/routes.ts`, and `src/entry.ts`. React uses
+`src/app/App.tsx`, feature folders under `src/app`, `src/app/routes.tsx`,
+`src/main.tsx`, and `src/entry.tsx`. Atlas does not apply unrelated
+portable-template files over the Nx result. Atlas also merges its required
+runtime and federation
 dependencies into the Nx-owned package manifest instead of writing a portable
 `package.json` into the project. Turbo,
 Yarn, pnpm, and npm provide task or workspace orchestration rather than framework
@@ -62,10 +64,10 @@ the matching plugin. Pass `--yes` in non-interactive automation to approve this.
 ## Host
 
 ```sh
-atlas g host shell --framework=react
+atlas g host customer-host --framework=react
 ```
 
-Creates a host shell with:
+Creates a host with:
 
 - typed `atlas.config.ts`
 - host SDK setup
@@ -122,7 +124,7 @@ They should not edit generated federation wiring unless they are doing platform 
 ## Angular
 
 ```sh
-atlas g host shell --framework=angular
+atlas g host customer-host --framework=angular
 atlas g app orders --framework=angular
 ```
 
@@ -136,11 +138,17 @@ Angular generation includes:
 - Native Federation's required `es-module-shims` bootstrap
 - two-stage `main.ts` and `bootstrap.ts` initialization
 - catalog-driven dynamic remote initialization
-- generated external `public/atlas.runtime.json` production runtime artifact
+- `atlas.config.ts` runtime source; run `atlas runtime-config` to produce
+  external `public/atlas.runtime.json` production runtime artifact
 - catalog-driven route and slot lifecycle with loading/error state attributes
 - standalone Angular components and deterministic teardown
 - `injectAtlasSdk()` and generated `provideAtlasSdk()` wiring
 - automatic exposes for `src/exported-components/<id>/index.ts`
+
+Generated Angular MFs keep the app root at `src/app/app.component.ts`.
+Additional screens live in feature folders under `src/app`, and
+`src/app/routes.ts` owns the route tree. `src/entry.ts` is the Atlas lifecycle
+entry exposed through Native Federation.
 
 Generated projects target Angular `^20.3.0` by default.
 

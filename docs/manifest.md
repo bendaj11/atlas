@@ -42,7 +42,7 @@ It answers:
     }
   ],
   requiredHostSdkVersion: "^0.1.0",
-  supportedHosts: ["shell"],
+  supportedHosts: ["host"],
   placements: [],
   createdAt: "2026-01-01T00:00:00.000Z"
 }

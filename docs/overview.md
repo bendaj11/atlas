@@ -6,7 +6,7 @@ Atlas is a platform for building many small frontend applications that are rende
 
 The main idea is simple:
 
-- A **host** owns the browser page, layout, top-level routing, user session, modals, toasts, and shared product shell.
+- A **host** owns the browser page, layout, top-level routing, user session, modals, toasts, and shared product layout.
 - A **microfrontend**, or **MF**, owns one feature area.
 - A **manifest** is a JSON description of an MF: who it is, where its assets live, what host routes or slots it supports, and which SDK version it needs.
 - A **static registry** is a set of JSON indexes and host catalogs stored beside MF assets.

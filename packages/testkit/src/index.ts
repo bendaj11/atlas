@@ -12,7 +12,7 @@ export function createTestManifest(overrides: Partial<AtlasManifest> = {}): Atla
         routes: [
           {
             id: "catalog-route",
-            hostId: "shell",
+            hostId: "host",
             basePath: "/catalog",
             title: "Catalog"
           }
@@ -27,7 +27,7 @@ export function createTestManifest(overrides: Partial<AtlasManifest> = {}): Atla
   };
 }
 
-export function createTestHostSdk(hostId = "shell"): AtlasSdk {
+export function createTestHostSdk(hostId = "host"): AtlasSdk {
   return createAtlasSdk({
     hostId,
     navigation: createMemoryNavigation()

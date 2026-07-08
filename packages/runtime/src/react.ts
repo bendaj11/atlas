@@ -6,7 +6,7 @@ import { createAtlasOverlayController, createDomOverlayProviders, type AtlasModa
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import { createHostUi, createRemoteTrustPolicy, createRetryPolicy, createTrustedNativeFederationImporters, createWidgetLoader, emitRuntimeEvent, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, resolveRuntimeManifests, startAtlasHostRuntime, type AtlasFederationAdapter, type AtlasHostMountEvent, type AtlasHostRuntime, type AtlasRuntimeObserver, type AtlasWidgetLoader } from "./index.js";
 
-export function AtlasHostShell(): ReactElement {
+export function AtlasDefaultHostLayout(): ReactElement {
   return createElement(
     Fragment,
     null,
