@@ -12,7 +12,7 @@ import type { AtlasExportedComponentEntry } from "@atlas/sdk/lifecycle";
 export interface ProductCountProps { count: number }
 
 const component: AtlasExportedComponentEntry<ProductCountProps> = {
-  mount({ container, props, hostSdk }) {
+  mount({ container, props, sdk }) {
     container.textContent = `Products: ${props.count}`;
     atlas.toast.open({ title: "Count loaded" });
     return { unmount: () => { container.textContent = ""; } };

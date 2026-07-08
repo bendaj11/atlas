@@ -95,7 +95,10 @@ async function waitForHealthyControlServer(port: number, process: ChildProcess):
 
 function waitForRemoteEntry(page: Page, port: number): Promise<void> {
   return page.waitForRequest(
-    (request) => request.url() === `http://localhost:${port}/remoteEntry.json`,
+    (request) => {
+      const url = new URL(request.url());
+      return url.port === String(port) && url.pathname === "/remoteEntry.json";
+    },
     { timeout: PROCESS_START_TIMEOUT }
   ).then(() => undefined);
 }
@@ -108,13 +111,13 @@ function activationUrl(scenario: LocalDevelopmentCase): string {
 
 async function stopAtlasDev(process: ChildProcess): Promise<void> {
   if (process.exitCode !== null || process.signalCode !== null) return;
-  process.kill("SIGINT");
   await Promise.race([
     new Promise<void>((resolve, reject) => {
       process.once("exit", (code, signal) => {
         if (code === 0 || signal === "SIGINT" || signal === "SIGTERM") resolve();
         else reject(new Error(`atlas dev exited with code ${code ?? "unknown"}.`));
       });
+      process.kill("SIGINT");
     }),
     delay(PROCESS_STOP_TIMEOUT).then(() => {
       process.kill("SIGKILL");

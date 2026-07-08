@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createComponentLoader, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountMicrofrontend, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountMicrofrontend, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 
 test("resolveRuntimeManifests rejects duplicate selected MF versions", () => {
@@ -349,12 +349,12 @@ test("local override assets must use loopback URLs", () => {
   );
 });
 
-test("component loader mounts from the selected owner version", async () => {
+test("widget loader mounts from the selected owner version", async () => {
   const component = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerMfId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./components/product-count", contractVersion: "1" };
   const manifest = createTestManifest({ exportedComponents: [component] });
   let request;
   let unmounted = false;
-  const loader = createComponentLoader([manifest], {}, async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
+  const loader = createWidgetLoader([manifest], {}, async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
   assert.deepEqual(loader.list("catalog"), [component]);
   const mounted = await loader.mount("catalog/product-count", {}, { count: 4 });
   assert.deepEqual(request.props, { count: 4 });
@@ -363,24 +363,25 @@ test("component loader mounts from the selected owner version", async () => {
   assert.equal(unmounted, true);
 });
 
-test("component loader rejects components outside the selected catalog", async () => {
-  const loader = createComponentLoader([], {});
+test("widget loader rejects components outside the selected catalog", async () => {
+  const loader = createWidgetLoader([], {});
   await assert.rejects(() => loader.mount("unknown/widget", {}, {}), /not available in the selected catalog/);
 });
 
-test("widget loader is the primary alias and page MFs receive one shared widget loader", async () => {
-  assert.equal(createWidgetLoader, createComponentLoader);
+test("page MFs receive the shared widget loader", async () => {
   let received;
+  const widgetLoader = createWidgetLoader([], {});
   await mountMicrofrontend({
     hostId: "shell",
     catalogUrl: "",
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     manifest: createTestManifest(),
     container: {},
-    componentLoader: createWidgetLoader([], {}),
+    widgetLoader,
     async importRemote() { return { mount({ context }) { received = context; } }; }
   });
-  assert.equal(received.widgets, received.components);
+  assert.equal(received.widgets, widgetLoader);
+  assert.equal("components" in received, false);
 });
 
 test("MF mounts receive an Atlas-owned scoped DOM boundary", async () => {
@@ -391,7 +392,7 @@ test("MF mounts receive an Atlas-owned scoped DOM boundary", async () => {
   const mounted = await mountMicrofrontend({
     hostId: "shell",
     catalogUrl: "",
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     manifest: createTestManifest({ id: "map", isolation: "scoped" }),
     container: parent,
     async importRemote() { return { mount({ container }) { receivedContainer = container; } }; }
@@ -410,7 +411,7 @@ test("host loads MF styles before mount and releases them after the final unmoun
   const options = {
     hostId: "shell",
     catalogUrl: "",
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     manifest,
     container,
     async importRemote() { events.push("import"); return { mount() { events.push("mount"); } }; }
@@ -433,7 +434,7 @@ test("stylesheet failures prevent remote mounting", async () => {
   await assert.rejects(() => mountMicrofrontend({
     hostId: "shell",
     catalogUrl: "",
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     manifest: createTestManifest({ styles: [{ href: "https://cdn.example/catalog/missing.css", integrity: "sha256-valid" }] }),
     container: { ownerDocument: document, append() {} },
     async importRemote() { imported = true; return { mount() {} }; }
@@ -446,7 +447,7 @@ test("stylesheet trust rejects unsupported protocols before import", async () =>
   const base = {
     hostId: "shell",
     catalogUrl: "",
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     container: { ownerDocument: createStylesheetDocument([]), append() {} },
     async importRemote() { imported = true; return { mount() {} }; }
   };
@@ -466,7 +467,7 @@ test("host runtime mounts only the active route and unmounts during navigation",
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [catalog, details],
-    hostSdk: sdk,
+    sdk: sdk,
     resolveRouteContainer() { return {}; },
     resolveSlotContainer() { return undefined; },
     onStateChange(event) { events.push(`${event.manifest.id}:${event.state}`); },
@@ -493,7 +494,7 @@ test("host runtime mounts slots independently and reports remote failures", asyn
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [widget],
-    hostSdk: sdk,
+    sdk: sdk,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     onStateChange(event) { states.push(event); },
@@ -511,7 +512,7 @@ test("host runtime starts independent slots concurrently", async () => {
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [createTestManifest({ id: "first", placements: placements("first") }), createTestManifest({ id: "second", placements: placements("second") })],
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     async importRemote() {
@@ -532,7 +533,7 @@ test("host runtime cleans up mounts that finish after their timeout", async () =
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [widget],
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     resourcesTimeoutMs: 2,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
@@ -551,7 +552,7 @@ test("host runtime coalesces overlapping retries for one failed placement", asyn
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [widget],
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     resourcesTimeoutMs: 2,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
@@ -573,7 +574,7 @@ test("host runtime shows loading UI only when requested by the MF", async () => 
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [widget],
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     onStateChange(event) { states.push(event.state); },
@@ -591,7 +592,7 @@ test("host runtime renders no loading state when the MF does not request one", a
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [widget],
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },
     onStateChange(event) { states.push(event.state); },
@@ -608,7 +609,7 @@ test("host runtime reports and cleans up an MF that opts into readiness but neve
   const runtime = await startAtlasHostRuntime({
     hostId: "shell",
     manifests: [widget],
-    hostSdk: createTestHostSdk(),
+    sdk: createTestHostSdk(),
     resourcesTimeoutMs: 5,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return {}; },

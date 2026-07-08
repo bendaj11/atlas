@@ -144,7 +144,7 @@ test("React microfrontend creates, renders, and unmounts one root", async () => 
     createRoot(container) { calls.push(["create", container]); return { render(element) { calls.push(["render", element]); }, unmount() { calls.push(["unmount"]); } }; },
     createElement(request) { return request.context.basePath; }
   });
-  const mounted = await entry.mount({ container: {}, sdk: {}, hostSdk: {}, context: { basePath: "/orders" } });
+  const mounted = await entry.mount({ container: {}, sdk: {}, context: { basePath: "/orders" } });
   await mounted.unmount();
   assert.deepEqual(calls.map(([name]) => name), ["create", "render", "unmount"]);
 });

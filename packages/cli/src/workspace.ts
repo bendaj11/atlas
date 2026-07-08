@@ -138,17 +138,17 @@ export async function createFormatGeneratedCommand(
   if (kind === "nx") {
     if (!await nxFormatterAvailable(workspaceRoot)) return undefined;
     const target = relative(workspaceRoot, projectRoot) || ".";
-    return packageExecutor(manager, workspaceRoot, ["nx", "format:write", target]);
+    return quietCommand(packageExecutor(manager, workspaceRoot, ["nx", "format:write", target]));
   }
 
   const projectScripts = await packageScripts(projectRoot);
-  if ("format" in projectScripts) return packageScript(manager, projectRoot, "format", []);
-  if ("lint" in projectScripts) return packageScript(manager, projectRoot, "lint", ["--fix"]);
+  if ("format" in projectScripts) return quietCommand(packageScript(manager, projectRoot, "format", []));
+  if ("lint" in projectScripts) return quietCommand(packageScript(manager, projectRoot, "lint", ["--fix"]));
 
   const target = relative(workspaceRoot, projectRoot) || ".";
   const workspaceScripts = await packageScripts(workspaceRoot);
-  if ("format" in workspaceScripts) return packageScript(manager, workspaceRoot, "format", [target]);
-  if ("lint" in workspaceScripts) return packageScript(manager, workspaceRoot, "lint", ["--fix", target]);
+  if ("format" in workspaceScripts) return quietCommand(packageScript(manager, workspaceRoot, "format", [target]));
+  if ("lint" in workspaceScripts) return quietCommand(packageScript(manager, workspaceRoot, "lint", ["--fix", target]));
 
   return undefined;
 }
@@ -304,6 +304,10 @@ function packageScript(manager: AtlasPackageManager, root: string, script: strin
   if (manager === "yarn") return { command: "yarn", args: ["run", script, ...args], cwd: root };
   if (manager === "pnpm") return { command: "pnpm", args: ["run", script, ...(args.length ? ["--", ...args] : [])], cwd: root };
   return { command: "npm", args: ["run", script, ...(args.length ? ["--", ...args] : [])], cwd: root };
+}
+
+function quietCommand(command: ProcessCommand): ProcessCommand {
+  return { ...command, stdio: ["ignore", "ignore", "inherit"] };
 }
 
 async function packageScripts(root: string): Promise<Record<string, unknown>> {

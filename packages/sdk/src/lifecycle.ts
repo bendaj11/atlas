@@ -9,16 +9,12 @@ export interface AtlasMfContext {
   basePath: string;
   navigation: AtlasScopedNavigation;
   route: AtlasRouteContext;
-  /** @deprecated Use widgets. */
-  components: AtlasComponentLoader;
   widgets: AtlasWidgetLoader;
   readonly loading: {
     show(): void;
     hide(): void;
     waitUntilReady(): () => void;
   };
-  /** @deprecated Use framework helpers such as useAppLoaded or injectAppLoaded. */
-  ready(): void;
 }
 
 export interface AtlasMfMountRequest<
@@ -28,8 +24,6 @@ export interface AtlasMfMountRequest<
 > {
   container: HTMLElement;
   sdk: AtlasSdk<TExtensions, TEvents, THostData>;
-  /** @deprecated Use sdk. */
-  hostSdk: AtlasSdk<TExtensions, TEvents, THostData>;
   context: AtlasMfContext;
 }
 
@@ -55,8 +49,6 @@ export interface AtlasExportedComponentMountRequest<
   container: HTMLElement;
   props: TProps;
   sdk: AtlasSdk<TExtensions, TEvents, THostData>;
-  /** @deprecated Use sdk. */
-  hostSdk: AtlasSdk<TExtensions, TEvents, THostData>;
   component: AtlasExportedComponentManifest;
   ownerManifest: AtlasManifest;
 }
@@ -79,9 +71,3 @@ export interface AtlasWidgetLoader {
     props: TProps
   ): Promise<AtlasMountedWidget>;
 }
-
-/** @deprecated Use AtlasWidgetLoader. */
-export type AtlasComponentLoader = AtlasWidgetLoader;
-
-/** @deprecated Use AtlasMountedWidget. */
-export type AtlasMountedComponent = AtlasMountedWidget;

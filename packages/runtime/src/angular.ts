@@ -98,7 +98,7 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
     },
     getWidgetLoader: () => widgetLoader
   });
-  const hostSdk = createAtlasSdk({
+  const sdk = createAtlasSdk({
     hostId: config.hostId,
     ...(options.hostData ? { hostData: options.hostData } : {}),
     navigation,
@@ -110,17 +110,17 @@ async function startHostRuntime<TExtensions extends object, THostData extends ob
     ...(options.httpClient ? { httpClient: options.httpClient } : {}),
     ...(options.extensions ? { extensions: options.extensions } : {})
   });
-  widgetLoader = createWidgetLoader(manifests, hostSdk, federation.importComponent);
+  widgetLoader = createWidgetLoader(manifests, sdk, federation.importComponent);
   renderAngularNavigation(document, manifests, config.hostId, navigation);
   onInfrastructureReady();
   let runtime: AtlasHostRuntime | undefined;
   runtime = await startAtlasHostRuntime({
     hostId: config.hostId,
     manifests,
-    hostSdk,
+    sdk,
     importRemote: federation.importRemote,
     importComponent: federation.importComponent,
-    componentLoader: widgetLoader,
+    widgetLoader: widgetLoader,
     trustPolicy,
     resolveRouteContainer: () => document.querySelector<HTMLElement>("[data-atlas-route-outlet]") ?? undefined,
     resolveSlotContainer: (_manifest, placement) => document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(placement.slot!)}"]`) ?? undefined,

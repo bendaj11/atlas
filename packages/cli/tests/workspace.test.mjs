@@ -149,7 +149,7 @@ test("generated project formatting uses existing workspace tooling", async () =>
   const nxRoot = await mkdtemp(join(tmpdir(), "atlas-nx-format-command-"));
   await writeFile(join(nxRoot, "package.json"), JSON.stringify({ devDependencies: { nx: "22.0.0" } }));
   assert.deepEqual(await createFormatGeneratedCommand("nx", "yarn", nxRoot, join(nxRoot, "apps", "orders")), {
-    command: "yarn", args: ["nx", "format:write", "apps/orders"], cwd: nxRoot
+    command: "yarn", args: ["nx", "format:write", "apps/orders"], cwd: nxRoot, stdio: ["ignore", "ignore", "inherit"]
   });
 
   const root = await mkdtemp(join(tmpdir(), "atlas-format-command-"));
@@ -157,12 +157,12 @@ test("generated project formatting uses existing workspace tooling", async () =>
   await mkdir(projectRoot, { recursive: true });
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ scripts: { format: "prettier --write ." } }));
   assert.deepEqual(await createFormatGeneratedCommand("workspace", "pnpm", root, projectRoot), {
-    command: "pnpm", args: ["run", "format"], cwd: projectRoot
+    command: "pnpm", args: ["run", "format"], cwd: projectRoot, stdio: ["ignore", "ignore", "inherit"]
   });
 
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ scripts: { lint: "eslint ." } }));
   assert.deepEqual(await createFormatGeneratedCommand("workspace", "npm", root, projectRoot), {
-    command: "npm", args: ["run", "lint", "--", "--fix"], cwd: projectRoot
+    command: "npm", args: ["run", "lint", "--", "--fix"], cwd: projectRoot, stdio: ["ignore", "ignore", "inherit"]
   });
 });
 

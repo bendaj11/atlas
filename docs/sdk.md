@@ -31,8 +31,7 @@ const sdk = createAtlasSdk({
   navigation,
   showToast: (toast) => showToast(toast),
   openModal: (modal) => showModal(modal),
-  openPopup: (popup) => showPopup(popup),
-  httpClient: authenticatedHttpClient
+  openPopup: (popup) => showPopup(popup)
 });
 ```
 
@@ -40,7 +39,34 @@ const sdk = createAtlasSdk({
 fields, and Atlas exposes the merged shape as `AtlasHostData & THostData`.
 `httpClient` is a core host API with `request()`, `get()`, `post()`, `put()`,
 `patch()`, `delete()`, `head()`, and `options()`. If omitted, Atlas uses
-`globalThis.fetch`.
+`new HttpClient()`, backed by `globalThis.fetch`.
+
+Use `HttpClient` directly when you want the default fetch-backed behavior:
+
+```ts
+import { HttpClient } from "@atlas/sdk";
+
+const httpClient = new HttpClient();
+await httpClient.get("/api/projects");
+```
+
+Replace `httpClient` in `startHost` or `createAtlasSdk` when the host needs
+axios, authentication headers, interceptors, retries, or another transport:
+
+```ts
+const authenticatedHttpClient = {
+  request(method, url, options) {
+    return axios.request({ url: String(url), method, data: options?.body });
+  },
+  get(url, options) { return this.request("GET", url, options); },
+  post(url, body, options) { return this.request("POST", url, { ...options, body }); },
+  put(url, body, options) { return this.request("PUT", url, { ...options, body }); },
+  patch(url, body, options) { return this.request("PATCH", url, { ...options, body }); },
+  delete(url, options) { return this.request("DELETE", url, options); },
+  head(url, options) { return this.request("HEAD", url, options); },
+  options(url, options) { return this.request("OPTIONS", url, options); }
+};
+```
 
 ```ts
 import type { AtlasEventMap } from "@atlas/sdk";
@@ -58,7 +84,7 @@ generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
 Use `extensions` for host-specific APIs. Atlas core does not define an auth or
 session shape.
 
-The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`. `context.components` remains a deprecated compatibility alias.
+The loader exposes `createWidgetLoader` and widget lifecycle types. Page MFs consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.
 
 Hosts provide the visual implementation for toast, modal, and popup. A popup is non-blocking and may be draggable or resizable. Modal and popup `content` accepts host/framework-native content or `{ widget: "owner/widget", props }`; Atlas does not impose Ionic, Angular CDK, React Portal, Toastr, or another design system.
 
@@ -185,7 +211,7 @@ Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRu
 await loadAndMountHostCatalog({
   hostId: sdk.hostId,
   catalogUrl: "/atlas-catalog.json",
-  hostSdk: sdk,
+  sdk: sdk,
   resolveContainer: (manifest) => document.querySelector(`[data-atlas-mf="${manifest.id}"]`) ?? undefined
 });
 ```

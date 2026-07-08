@@ -1,16 +1,17 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess, type StdioOptions } from "node:child_process";
 
 export interface ProcessCommand {
   command: string;
   args: string[];
   cwd: string;
+  stdio?: StdioOptions;
 }
 
 export function runProcess(input: ProcessCommand): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(input.command, input.args, {
       cwd: input.cwd,
-      stdio: "inherit",
+      stdio: input.stdio ?? "inherit",
       shell: process.platform === "win32"
     });
     child.once("error", reject);

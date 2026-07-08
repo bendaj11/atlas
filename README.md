@@ -169,9 +169,10 @@ const atlas = injectAtlasSdk<{}, AtlasEventMap, { projectId: string }>();
 atlas.hostData.projectId;
 ```
 
-The host supplies the concrete `httpClient`, authentication behavior, modal
-framework, toast library, extra typed `hostData`, and SDK extensions. Atlas does
-not wrap them.
+Atlas supplies a default `HttpClient` backed by `globalThis.fetch`. Hosts can
+replace `httpClient` in `startHost` when they need axios, authentication,
+interceptors, or another transport. Hosts also supply modal framework, toast
+library, extra typed `hostData`, and SDK extensions.
 
 ## Packages
 

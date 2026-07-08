@@ -31,7 +31,6 @@ import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@angular-architects/native-federation";
 import { AtlasRouterAnchorComponent, startHost } from "@atlas/runtime/angular";
-import { createFetchAtlasHttpClient } from "@atlas/sdk";
 import atlasConfig from "../atlas.config";
 import { AppComponent } from "./app/app.component";
 
@@ -45,8 +44,7 @@ export async function bootstrap(): Promise<void> {
     location: app.injector.get(Location),
     federation: { initFederation, loadRemoteModule },
     showToast: (toast) => console.info("[Atlas toast]", toast.title),
-    hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
-    httpClient: createFetchAtlasHttpClient(fetch)
+    hostData: { hostId: atlasConfig.id, name: atlasConfig.name }
   });
 }
 `;

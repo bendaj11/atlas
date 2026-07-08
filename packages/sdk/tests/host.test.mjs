@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAtlasEventBus, createAtlasHostSdk, createAtlasSdk } from "../dist/host.js";
+import { HttpClient, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 
 test("event bus publishes across MFs and supports unsubscribe", () => {
@@ -55,6 +55,24 @@ test("host SDK adapts fetch-compatible httpClient providers", async () => {
   assert.deepEqual(calls, [["/orders/42", { method: "DELETE" }]]);
 });
 
+test("host SDK uses HttpClient by default", () => {
+  const sdk = createAtlasSdk({
+    hostId: "shell",
+    navigation: createMemoryNavigation()
+  });
+  assert.ok(sdk.httpClient instanceof HttpClient);
+});
+
+test("HttpClient wraps fetch with HTTP helpers", async () => {
+  const calls = [];
+  const httpClient = new HttpClient(async (url, init) => {
+    calls.push([url, init]);
+    return { ok: true };
+  });
+  assert.deepEqual(await httpClient.post("/orders", "payload"), { ok: true });
+  assert.deepEqual(calls, [["/orders", { body: "payload", method: "POST" }]]);
+});
+
 test("host extensions cannot replace core SDK capabilities", () => {
   assert.throws(() => createAtlasSdk({
     hostId: "shell",
@@ -74,7 +92,7 @@ test("event bus once listener is removed after its first event", () => {
 
 test("host SDK delegates native content and widget references to host overlay providers", async () => {
   const opened = [];
-  const sdk = createAtlasHostSdk({
+  const sdk = createAtlasSdk({
     hostId: "shell",
     navigation: createMemoryNavigation(),
     async openModal(request) { opened.push(["modal", request.content]); return "confirmed"; },

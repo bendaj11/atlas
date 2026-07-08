@@ -1,7 +1,7 @@
 declare namespace chrome {
   namespace tabs {
-    interface Tab { id?: number; url?: string }
-    function query(queryInfo: { active: boolean; currentWindow: boolean }): Promise<Tab[]>;
+    interface Tab { active?: boolean; id?: number; lastAccessed?: number; url?: string }
+    function query(queryInfo: { active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
     function reload(tabId: number): Promise<void>;
   }
   namespace scripting {

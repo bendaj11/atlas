@@ -1,5 +1,5 @@
 import { createManifestFromConfig, type AtlasManifest } from "@atlas/schema";
-import { createAtlasHostSdk, type AtlasHostSdk } from "@atlas/sdk/host";
+import { createAtlasSdk, type AtlasSdk } from "@atlas/sdk/host";
 import { createMemoryNavigation } from "./navigation.js";
 
 export function createTestManifest(overrides: Partial<AtlasManifest> = {}): AtlasManifest {
@@ -27,8 +27,8 @@ export function createTestManifest(overrides: Partial<AtlasManifest> = {}): Atla
   };
 }
 
-export function createTestHostSdk(hostId = "shell"): AtlasHostSdk {
-  return createAtlasHostSdk({
+export function createTestHostSdk(hostId = "shell"): AtlasSdk {
+  return createAtlasSdk({
     hostId,
     navigation: createMemoryNavigation()
   });

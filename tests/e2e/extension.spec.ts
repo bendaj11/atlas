@@ -50,6 +50,7 @@ test.describe("Atlas Chrome extension", () => {
     expect(await storedVersion(firstHost, "sessionStorage")).toBeUndefined();
     expect(await overrideCount(firstHost, "sessionStorage")).toBe(0);
     expect(await storedVersion(secondHost, "localStorage")).toBe("0.0.9");
+    await firstHost.close();
 
     const resetPopup = await openPopup(session, secondHost);
     await resetPopup.getByRole("button", { name: "Use production" }).click();
@@ -138,6 +139,7 @@ async function applyAndWaitForReload(popup: Page, host: Page): Promise<void> {
   const reload = host.waitForEvent("load");
   await popup.getByRole("button", { name: "Apply and reload" }).click();
   await reload;
+  await expect(host.locator("body")).toBeVisible();
 }
 
 type BrowserStorage = "localStorage" | "sessionStorage";

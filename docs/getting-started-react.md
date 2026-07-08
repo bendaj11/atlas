@@ -131,9 +131,11 @@ void startHost({
 
 `hostData` always includes Atlas-owned `hostId` and `name`, and can be extended
 with product fields. `httpClient` is a core host API with Angular-style
-`request()` plus basic HTTP verb helpers. Put product-specific APIs in typed SDK
-extensions when MFs need them. Atlas passes your HTTP, modal, toast,
-and monitoring implementations through without replacing your stack.
+`request()` plus basic HTTP verb helpers. Omit `httpClient` to use Atlas'
+default `HttpClient`, or provide one to use axios, authentication, interceptors,
+or another transport. Put product-specific APIs in typed SDK extensions when MFs
+need them. Atlas passes your modal, toast, and monitoring implementations
+through without replacing your stack.
 
 Effect: every MF mounted by this host can use the same typed host capabilities.
 

@@ -33,9 +33,7 @@ void load();
 async function load(): Promise<void> {
   setBusy(true, "Reading the active Atlas host...");
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    if (!tab?.id || !tab.url?.startsWith("http")) throw new Error("Open an Atlas host in the active tab first.");
+    const tab = await findInspectableHostTab();
     activeTabId = tab.id;
     const [injection] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -60,6 +58,21 @@ async function load(): Promise<void> {
   } catch (error) {
     setError(error);
   }
+}
+
+async function findInspectableHostTab(): Promise<chrome.tabs.Tab & { id: number; url: string }> {
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (isInspectableTab(activeTab)) return activeTab;
+
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  const candidates = tabs.filter(isInspectableTab).sort((first, second) => (second.lastAccessed ?? 0) - (first.lastAccessed ?? 0));
+  const tab = candidates[0];
+  if (!tab) throw new Error("Open an Atlas host in the active tab first.");
+  return tab;
+}
+
+function isInspectableTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.Tab & { id: number; url: string } {
+  return typeof tab?.id === "number" && typeof tab.url === "string" && tab.url.startsWith("http");
 }
 
 function render(): void {

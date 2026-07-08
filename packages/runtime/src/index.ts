@@ -1,11 +1,11 @@
 import type { AtlasExportedComponentManifest, AtlasManifest, AtlasPlacement } from "@atlas/schema";
-import type { AtlasHostSdk } from "@atlas/sdk/host";
+import type { AtlasSdk } from "@atlas/sdk/host";
 import type {
-  AtlasComponentLoader,
   AtlasExportedComponentEntry,
   AtlasMfEntry,
   AtlasMfMountResult,
-  AtlasMountedComponent
+  AtlasMountedWidget,
+  AtlasWidgetLoader
 } from "@atlas/sdk/lifecycle";
 import { createRouteContext, createScopedNavigation } from "@atlas/sdk/navigation";
 import { assertManifestAssetTrust, loadHostCatalog, resolveRuntimeManifests, verifyManifestIntegrity, type AtlasRemoteTrustPolicy, type AtlasRuntimeOverride } from "./loader/runtime-discovery.js";
@@ -50,14 +50,12 @@ export {
 } from "./loader/runtime-discovery.js";
 
 export type {
-  AtlasComponentLoader,
   AtlasExportedComponentEntry,
   AtlasExportedComponentMountRequest,
   AtlasMfContext,
   AtlasMfEntry,
   AtlasMfMountRequest,
   AtlasMfMountResult,
-  AtlasMountedComponent,
   AtlasMountedWidget,
   AtlasWidgetLoader
 } from "@atlas/sdk/lifecycle";
@@ -65,12 +63,12 @@ export type {
 export interface AtlasLoaderOptions {
   hostId: string;
   catalogUrl: string;
-  hostSdk: AtlasHostSdk;
+  sdk: AtlasSdk;
   fetchJson?: <T>(url: string) => Promise<T>;
   importRemote?: (manifest: AtlasManifest) => Promise<AtlasMfEntry>;
   overrides?: AtlasRuntimeOverride[];
   importComponent?: (component: AtlasExportedComponentManifest) => Promise<AtlasExportedComponentEntry>;
-  componentLoader?: AtlasComponentLoader;
+  widgetLoader?: AtlasWidgetLoader;
   trustPolicy?: AtlasRemoteTrustPolicy;
 }
 
@@ -91,10 +89,10 @@ export interface AtlasHostMountEvent {
 export interface AtlasHostRuntimeOptions {
   hostId: string;
   manifests: AtlasManifest[];
-  hostSdk: AtlasHostSdk;
+  sdk: AtlasSdk;
   importRemote: (manifest: AtlasManifest) => Promise<AtlasMfEntry>;
   importComponent?: (component: AtlasExportedComponentManifest) => Promise<AtlasExportedComponentEntry>;
-  componentLoader?: AtlasComponentLoader;
+  widgetLoader?: AtlasWidgetLoader;
   resolveRouteContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
   resolveSlotContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
   onStateChange?: (event: AtlasHostMountEvent) => void;
@@ -122,7 +120,7 @@ interface RuntimeMount {
 /** Owns catalog placement lifecycle while the framework adapter owns browser navigation. */
 export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): Promise<AtlasHostRuntime> {
   const timeoutMs = options.resourcesTimeoutMs ?? 15_000;
-  const componentLoader = options.componentLoader ?? createComponentLoader(options.manifests, options.hostSdk, options.importComponent);
+  const widgetLoader = options.widgetLoader ?? createWidgetLoader(options.manifests, options.sdk, options.importComponent);
   const mounts = new Map<string, RuntimeMount>();
   let stopped = false;
   let routeKey: string | undefined;
@@ -157,11 +155,11 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
       const mounting = mountMicrofrontend({
         hostId: options.hostId,
         catalogUrl: "",
-        hostSdk: options.hostSdk,
+        sdk: options.sdk,
         manifest: mount.manifest,
         container: mount.container,
         ...(mount.placement.route?.basePath ? { basePath: mount.placement.route.basePath } : {}),
-        componentLoader,
+        widgetLoader,
         onReady() { if (isCurrent()) { setLoading(false); readiness.markReady(); } },
         onReadyRequested() {
           readiness.request();
@@ -227,8 +225,8 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
     const container = options.resolveSlotContainer(selected.manifest, selected.placement);
     if (container) await mountOne({ key: placementKey(selected.manifest, selected.placement), ...selected, container, generation: 0 });
   });
-  await reconcileRoute(options.hostSdk.navigation.getCurrentLocation().pathname);
-  const unsubscribe = options.hostSdk.navigation.subscribe((location) => {
+  await reconcileRoute(options.sdk.navigation.getCurrentLocation().pathname);
+  const unsubscribe = options.sdk.navigation.subscribe((location) => {
     queue = queue.then(() => reconcileRoute(location.pathname));
   });
 
@@ -269,26 +267,23 @@ export async function mountMicrofrontend(options: AtlasLoaderOptions & {
     const entry = await (options.importRemote ?? ((manifest) => options.trustPolicy
       ? importNativeFederationRemote(manifest, options.trustPolicy)
       : importNativeFederationRemote(manifest)))(options.manifest);
-    const navigation = createScopedNavigation(options.basePath ?? findDefaultBasePath(options.manifest), options.hostSdk.navigation);
-    const widgets = options.componentLoader ?? createComponentLoader([options.manifest], options.hostSdk, options.importComponent);
+    const navigation = createScopedNavigation(options.basePath ?? findDefaultBasePath(options.manifest), options.sdk.navigation);
+    const widgets = options.widgetLoader ?? createWidgetLoader([options.manifest], options.sdk, options.importComponent);
     result = await entry.mount({
       container: boundary.container,
-      sdk: options.hostSdk,
-      hostSdk: options.hostSdk,
+      sdk: options.sdk,
       context: {
         manifest: options.manifest,
         hostId: options.hostId,
         basePath: navigation.basePath,
         navigation,
-        route: createRouteContext(navigation.basePath, options.hostSdk.navigation),
-        components: widgets,
+        route: createRouteContext(navigation.basePath, options.sdk.navigation),
         widgets,
         loading: {
           show: () => options.onLoadingChange?.(true),
           hide: () => options.onLoadingChange?.(false),
           waitUntilReady: () => options.onReadyRequested?.() ?? options.onReady ?? (() => undefined)
-        },
-        ready: options.onReady ?? (() => undefined)
+        }
       }
     });
   } catch (error) {
@@ -320,11 +315,11 @@ function createAppReadiness(): { readonly requested: boolean; readonly ready: Pr
   };
 }
 
-export function createComponentLoader(
+export function createWidgetLoader(
   manifests: AtlasManifest[],
-  hostSdk: AtlasHostSdk,
+  sdk: AtlasSdk,
   importComponent?: (component: AtlasExportedComponentManifest) => Promise<AtlasExportedComponentEntry>
-): AtlasComponentLoader {
+): AtlasWidgetLoader {
   const entries = new Map<string, { component: AtlasExportedComponentManifest; ownerManifest: AtlasManifest }>();
   for (const ownerManifest of manifests) {
     for (const component of ownerManifest.exportedComponents ?? []) {
@@ -338,7 +333,7 @@ export function createComponentLoader(
         .filter(({ ownerManifest }) => !ownerMfId || ownerManifest.id === ownerMfId)
         .map(({ component }) => component);
     },
-    async mount<TProps extends object>(componentRef: string, container: HTMLElement, props: TProps): Promise<AtlasMountedComponent> {
+    async mount<TProps extends object>(componentRef: string, container: HTMLElement, props: TProps): Promise<AtlasMountedWidget> {
       const resolved = entries.get(componentRef);
       if (!resolved) throw new Error(`Atlas exported component "${componentRef}" is not available in the selected catalog.`);
       const entry = await (importComponent
@@ -348,7 +343,7 @@ export function createComponentLoader(
       const boundary = createMountBoundary(container, componentRef, resolved.ownerManifest.isolation ?? "scoped", "widget");
       let result: void | AtlasMfMountResult;
       try {
-        result = await entry.mount({ container: boundary.container, props, sdk: hostSdk, hostSdk, ...resolved });
+        result = await entry.mount({ container: boundary.container, props, sdk, ...resolved });
       } catch (error) {
         boundary.remove();
         releaseStyles();
@@ -361,9 +356,6 @@ export function createComponentLoader(
     }
   };
 }
-
-/** Creates the catalog-scoped widget loader. */
-export const createWidgetLoader = createComponentLoader;
 
 function createMountBoundary(parent: HTMLElement, id: string, isolation: "scoped" | "shadow-dom", kind: "mf" | "widget" = "mf"): { container: HTMLElement; remove(): void } {
   const element = parent.ownerDocument?.createElement("div") ?? globalThis.document?.createElement("div");
@@ -414,7 +406,7 @@ export async function loadAndMountHostCatalog(options: AtlasLoaderOptions & {
   const manifests = resolveRuntimeManifests(catalog, options.overrides);
   const trustPolicy = options.trustPolicy ?? {};
   const mounted: AtlasMountedMf[] = [];
-  const componentLoader = createComponentLoader(manifests, options.hostSdk, options.importComponent);
+  const widgetLoader = createWidgetLoader(manifests, options.sdk, options.importComponent);
 
   for (const manifest of manifests) {
     const container = options.resolveContainer(manifest);
@@ -422,7 +414,7 @@ export async function loadAndMountHostCatalog(options: AtlasLoaderOptions & {
       continue;
     }
 
-    mounted.push(await mountMicrofrontend({ ...options, trustPolicy, componentLoader, manifest, container }));
+    mounted.push(await mountMicrofrontend({ ...options, trustPolicy, widgetLoader, manifest, container }));
   }
 
   return mounted;
