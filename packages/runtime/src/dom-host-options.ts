@@ -1,18 +1,21 @@
 import type { AtlasHostRuntimeConfig } from "@atlas/schema";
 import type { AtlasEventMap, AtlasHostData, AtlasSdkOptions } from "@atlas/sdk";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
-import type { AtlasModalProvider } from "@atlas/sdk/overlay";
+import type { AtlasModalProvider, AtlasOverlayProviders } from "@atlas/sdk/overlay";
 import type {
   AtlasFederationAdapter,
   AtlasHostMountEvent,
   AtlasRuntimeObserver
 } from "./index.js";
 
+type AtlasPopupProvider = Required<AtlasOverlayProviders>["openPopup"];
+
 export interface DomHostOptions<TExtensions extends object = {}, THostData extends object = {}>
-  extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData" | "openModal"> {
+  extends Omit<AtlasSdkOptions<TExtensions, AtlasEventMap, THostData>, "hostId" | "navigation" | "hostData" | "openModal" | "openPopup"> {
   federation: AtlasFederationAdapter;
   hostData?: THostData & AtlasHostData;
-  openModal?: AtlasModalProvider;
+  openModal: AtlasModalProvider;
+  openPopup: AtlasPopupProvider;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
   /** Enables URL and storage app overrides for Atlas tool workflows. */

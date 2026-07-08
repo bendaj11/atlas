@@ -25,7 +25,7 @@ export function createSdkProviders<TExtensions extends object, THostData extends
   const defaults = createDomOverlayProviders(input.document);
   const overlays = createAtlasOverlayController({
     providers: {
-      ...(input.options.openModal ? { openModal: input.options.openModal } : {}),
+      openModal: input.options.openModal,
       openPopup: input.options.openPopup ?? defaults.openPopup
     },
     getWidgetLoader: () => widgetLoader

@@ -30,11 +30,13 @@ export function angularHostBootstrap(): string {
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@angular-architects/native-federation";
+import { createDomOverlayProviders } from "@atlas/sdk/overlay";
 import { AtlasDefaultHostRouteComponent, startHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { AppComponent } from "./app/app.component";
 
 export async function bootstrap(): Promise<void> {
+  const overlayDefaults = createDomOverlayProviders(document);
   const app = await bootstrapApplication(AppComponent, {
     providers: [provideRouter([{ path: "**", component: AtlasDefaultHostRouteComponent }])]
   });
@@ -44,6 +46,17 @@ export async function bootstrap(): Promise<void> {
     location: app.injector.get(Location),
     federation: { initFederation, loadRemoteModule },
     showToast: (toast) => console.info("[Atlas toast]", toast.title),
+    openModal: (modal, controls) => {
+      console.info("[Atlas modal]", modal.id ?? modal.component);
+      controls.dismiss();
+      return {
+        id: modal.id ?? "atlas-modal-default",
+        closed: Promise.resolve(undefined),
+        close: () => controls.dismiss(),
+        dismiss: () => controls.dismiss()
+      };
+    },
+    openPopup: overlayDefaults.openPopup,
     hostData: { hostId: atlasConfig.id, name: atlasConfig.name }
   });
 }
