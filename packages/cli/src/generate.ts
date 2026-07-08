@@ -164,7 +164,7 @@ export class AtlasGenerateService {
       build: nxTarget(this.workspace.packageManager, cwd, "build"),
       dev: nxTarget(this.workspace.packageManager, cwd, "dev")
     };
-    targets["atlas:config"] = nxTarget(this.workspace.packageManager, cwd, "atlas:config");
+    targets["atlas:config"] = atlasConfigNxTarget(this.workspace.packageManager, cwd);
     targets[name] = {
       executor: "nx:run-commands",
       options: { command: `nx run ${name}:dev`, forwardAllArgs: true }
@@ -400,8 +400,12 @@ function sortObject(value: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)));
 }
 
-function nxTarget(packageManager: "yarn" | "pnpm" | "npm", cwd: string, script: string): unknown {
+function nxTarget(packageManager: "yarn" | "pnpm" | "npm", cwd: string, script: string): Record<string, unknown> {
   return { executor: "nx:run-commands", options: { cwd, command: `${packageManager} run ${script}` } };
+}
+
+function atlasConfigNxTarget(packageManager: "yarn" | "pnpm" | "npm", cwd: string): Record<string, unknown> {
+  return { ...nxTarget(packageManager, cwd, "atlas:config"), outputs: ["{projectRoot}/.atlas"] };
 }
 
 async function writeGenerated(root: string, files: AtlasGeneratedFile[], force: boolean): Promise<void> {
@@ -418,6 +422,8 @@ async function takeOverAppSource(root: string): Promise<void> {
 }
 
 async function alignDelegatedTsconfig(root: string, framework: SupportedFramework): Promise<void> {
+  if (framework === "angular") return;
+
   const appTsconfig = join(root, "tsconfig.app.json");
   const target = await exists(appTsconfig) ? appTsconfig : join(root, "tsconfig.json");
   if (!await exists(target)) return;
@@ -450,9 +456,10 @@ async function ensureDelegatedNxTargets(workspaceRoot: string, root: string, nam
   const targets = asObject(project.targets);
   const atlasConfigTarget = {
     executor: "nx:run-commands",
+    outputs: ["{projectRoot}/.atlas"],
     options: { command: `tsc -p ${join(projectRoot, "tsconfig.atlas.json").split("\\").join("/")}` }
   };
-  if (!targets["atlas:config"] || isLegacyAtlasConfigTarget(targets["atlas:config"])) {
+  if (!targets["atlas:config"] || isOutdatedAtlasConfigTarget(targets["atlas:config"])) {
     targets["atlas:config"] = atlasConfigTarget;
   }
   if (!targets.dev && targets.serve) {
@@ -488,10 +495,14 @@ function asObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function isLegacyAtlasConfigTarget(value: unknown): boolean {
+function isOutdatedAtlasConfigTarget(value: unknown): boolean {
   const target = asObject(value);
   const options = asObject(target.options);
-  return options.command === "tsc -p tsconfig.atlas.json";
+  return options.command === "tsc -p tsconfig.atlas.json" || !declaresAtlasConfigOutput(target);
+}
+
+function declaresAtlasConfigOutput(target: Record<string, unknown>): boolean {
+  return Array.isArray(target.outputs) && target.outputs.includes("{projectRoot}/.atlas");
 }
 
 function projectRootFromNxProject(project: Record<string, unknown>, workspaceRoot: string, root: string): string {

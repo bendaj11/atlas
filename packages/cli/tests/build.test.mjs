@@ -303,6 +303,7 @@ test("atlas generation registers projects with Nx automatically", async () => {
   assert.equal(project.name, "orders");
   assert.equal(project.targets.build.executor, "nx:run-commands");
   assert.equal(project.targets["atlas:config"].options.cwd, "orders");
+  assert.deepEqual(project.targets["atlas:config"].outputs, ["{projectRoot}/.atlas"]);
   assert.equal(project.targets.orders.options.command, "nx run orders:dev");
   assert.match(stdout, /Detected an Nx workspace/);
   assert.match(stdout, /Native Nx scaffolding was skipped; Atlas will generate the React scaffold directly at orders/);
@@ -416,6 +417,12 @@ for (const scenario of [
     assert.equal(packageJson.scripts.dev, scenario.dev);
     assert.equal(packageJson.scripts["atlas:config"], "tsc -p tsconfig.atlas.json");
     assert.ok(packageJson.scripts.build.includes("atlas runtime-config customer-host"));
+    if (scenario.framework === "angular") {
+      const appTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.app.json"), "utf8"));
+      const atlasTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.atlas.json"), "utf8"));
+      assert.deepEqual(appTsconfig.files, ["src/main.ts"]);
+      assert.equal(atlasTsconfig.compilerOptions.emitDeclarationOnly, false);
+    }
   });
 }
 
@@ -466,6 +473,7 @@ exit 1
   assert.equal(project.marker, "nx-generator");
   assert.equal(project.targets["atlas:config"].options.cwd, undefined);
   assert.equal(project.targets["atlas:config"].options.command, "tsc -p products/host/tsconfig.atlas.json");
+  assert.deepEqual(project.targets["atlas:config"].outputs, ["{projectRoot}/.atlas"]);
   assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config mobile-host");
   assert.equal(project.targets.dev.options.commands[1].command, "nx run mobile-host:serve");
   assert.equal(project.targets.dev.options.commands[1].forwardAllArgs, true);
@@ -480,7 +488,7 @@ exit 1
   assert.equal(JSON.parse(await readFile(join(root, "products/host/tsconfig.json"), "utf8")).marker, "nx-generator");
   const angularHostTsconfig = JSON.parse(await readFile(join(root, "products/host/tsconfig.app.json"), "utf8"));
   assert.equal(angularHostTsconfig.marker, "nx-generator");
-  assert.deepEqual(angularHostTsconfig.include, ["atlas.config.ts"]);
+  assert.equal(angularHostTsconfig.include, undefined);
   assert.equal(await readFile(join(root, "products/host/public/nx.txt"), "utf8"), "nx public asset\n");
   await assert.rejects(access(join(root, "products/host/package.json")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "products/host/angular.json")), { code: "ENOENT" });
@@ -627,7 +635,7 @@ exit 1
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
   const angularMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
   assert.equal(angularMfTsconfig.marker, "nx-generator");
-  assert.deepEqual(angularMfTsconfig.include, ["atlas.config.ts"]);
+  assert.equal(angularMfTsconfig.include, undefined);
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);
@@ -859,6 +867,51 @@ exit 1
       calls.push(["run", task]);
       throw new Error("npx exited with code 1.");
     },
+    spawn: () => {
+      throw new Error("prepare-only should not spawn");
+    }
+  };
+  const args = new CliArguments(["dev", "mobile-host", "--prepare-only"]);
+  const originalPath = process.env.PATH;
+  const originalInfo = console.info;
+
+  try {
+    process.env.PATH = `${bin}:${originalPath}`;
+    console.info = () => {};
+    await new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("mobile-host");
+  } finally {
+    process.env.PATH = originalPath;
+    console.info = originalInfo;
+  }
+
+  assert.deepEqual(calls, [["run", "atlas:config"]]);
+});
+
+test("atlas dev falls back to direct config compile when Nx cache omits atlas output", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-nx-missing-output-"));
+  const projectRoot = join(root, "apps", "mobile-host");
+  const bin = join(root, "bin");
+  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
+  await mkdir(bin);
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "mobile-host", version: "0.1.0", type: "module" }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
+  await writeFile(join(projectRoot, "tsconfig.atlas.json"), "{}\n");
+  await writeFile(join(bin, "npx"), `#!/bin/sh
+if [ "$1" = "tsc" ] && [ "$2" = "-p" ] && [ "$3" = "${projectRoot}/tsconfig.atlas.json" ]; then
+  printf 'export default { id: "mobile-host", framework: "react", allowAppOverrides: true };\\n' > "${projectRoot}/.atlas/atlas.config.js"
+  exit 0
+fi
+exit 1
+`, { mode: 0o755 });
+
+  const calls = [];
+  const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
+  const workspace = {
+    kind: "nx",
+    root,
+    packageManager: "npm",
+    findProject: async () => project,
+    run: async (_project, task) => { calls.push(["run", task]); },
     spawn: () => {
       throw new Error("prepare-only should not spawn");
     }

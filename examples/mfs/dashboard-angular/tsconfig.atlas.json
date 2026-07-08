@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outDir": ".atlas",
     "module": "Node16",
-    "moduleResolution": "Node16"
+    "moduleResolution": "Node16",
+    "emitDeclarationOnly": false
   },
   "files": [
     "atlas.config.ts"

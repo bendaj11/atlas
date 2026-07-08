@@ -26,11 +26,11 @@ export function angularTsconfig(): unknown {
 }
 
 export function angularAppTsconfig(): unknown {
-  return { extends: "./tsconfig.json", compilerOptions: { outDir: "./out-tsc/app" }, files: ["src/main.ts", "atlas.config.ts"], include: ["src/**/*.ts"] };
+  return { extends: "./tsconfig.json", compilerOptions: { outDir: "./out-tsc/app" }, files: ["src/main.ts"], include: ["src/**/*.ts"] };
 }
 
 export function atlasConfigTsconfig(): unknown {
-  return { extends: "./tsconfig.json", compilerOptions: { outDir: ".atlas", module: "Node16", moduleResolution: "Node16" }, files: ["atlas.config.ts"] };
+  return { extends: "./tsconfig.json", compilerOptions: { outDir: ".atlas", module: "Node16", moduleResolution: "Node16", emitDeclarationOnly: false }, files: ["atlas.config.ts"] };
 }
 
 export function angularFederationConfig(name: string, host: boolean): string {

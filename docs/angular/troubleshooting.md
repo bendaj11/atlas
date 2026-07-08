@@ -37,6 +37,17 @@ Verify `remoteEntryUrl` points to `remoteEntry.json`, not a JavaScript file.
 The CDN must serve every file from the Angular browser output with CORS enabled.
 Atlas loads the Native Federation expose named by the manifest.
 
+## Angular Compiler Rejects `emitDeclarationOnly`
+
+If `atlas dev` fails with `NG4006` for `emitDeclarationOnly`, keep
+`atlas.config.ts` out of the Angular application tsconfig. The app and
+federation tsconfigs should compile only Angular source such as `src/main.ts`;
+Atlas config should compile through `tsconfig.atlas.json`.
+
+Set `compilerOptions.emitDeclarationOnly` to `false` in `tsconfig.atlas.json`
+when the workspace base tsconfig enables declaration-only output for library
+builds.
+
 ## Inner Routing Escapes The App
 
 The app should use `createLocationStrategy(context)` through generated
