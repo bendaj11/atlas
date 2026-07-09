@@ -76,7 +76,7 @@ export class AtlasDevService {
     config: AtlasConfig,
     prompts: Pick<AtlasPrompter, "interactive" | "select">
   ): Promise<void> {
-    const remotePort = this.args.port("port", 4201);
+    const remotePort = await this.resolveRemotePort(project);
     const controlPort = this.args.port("control-port", 4400);
     const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: `http://localhost:${remotePort}` });
     const target = await this.resolveDevTarget(config, prompts);
@@ -109,6 +109,11 @@ export class AtlasDevService {
       throw error;
     }
     await waitForShutdown(frameworkServer, control);
+  }
+
+  private async resolveRemotePort(project: AtlasProject): Promise<number> {
+    if (this.args.hasFlag("port")) return this.args.port("port", 4201);
+    return await readConfiguredDevServerPort(project.root, project.id) ?? 4201;
   }
 
   private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<DevTarget> {
@@ -618,6 +623,72 @@ function urlFromOrigin(origin: string | undefined, basePath: string | undefined)
 function defaultHostOrigin(config: AtlasHostConfig): string | undefined {
   if (config.framework === "angular" || config.framework === "react") return DEFAULT_HOST_ORIGINS[config.framework];
   return undefined;
+}
+
+async function readConfiguredDevServerPort(projectRoot: string, projectName: string): Promise<number | undefined> {
+  const angularWorkspace = await readJsonFile<Record<string, unknown>>(join(projectRoot, "angular.json"));
+  const angularPort = readAngularProjectPort(angularWorkspace, projectName);
+  if (angularPort !== undefined) return angularPort;
+
+  const nxProject = await readJsonFile<Record<string, unknown>>(join(projectRoot, "project.json"));
+  const nxPort = readPortFromTargets(asObject(nxProject?.targets));
+  if (nxPort !== undefined) return nxPort;
+
+  return await readViteDevServerPort(projectRoot);
+}
+
+function readAngularProjectPort(workspace: Record<string, unknown> | undefined, projectName: string): number | undefined {
+  const projects = asObject(workspace?.projects);
+  const project = objectValue(projects[projectName]) ?? firstObjectValue(projects);
+  return readPortFromTargets(asObject(project?.architect ?? project?.targets));
+}
+
+function readPortFromTargets(targets: Record<string, unknown>): number | undefined {
+  return readTargetPort(targets.serve) ?? readTargetPort(targets["serve-original"]);
+}
+
+function readTargetPort(target: unknown): number | undefined {
+  const port = asObject(asObject(target).options).port;
+  return typeof port === "number" ? parsePort(port) : undefined;
+}
+
+async function readViteDevServerPort(projectRoot: string): Promise<number | undefined> {
+  try {
+    const source = await readFile(join(projectRoot, "vite.config.ts"), "utf8");
+    const match = /\bserver\s*:\s*\{[^}]*\bport\s*:\s*(\d{1,5})\b/s.exec(source);
+    return match?.[1] ? parsePort(match[1]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parsePort(value: string | number): number | undefined {
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : undefined;
+}
+
+function objectValue(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function firstObjectValue(value: Record<string, unknown>): Record<string, unknown> | undefined {
+  return Object.values(value).find((entry): entry is Record<string, unknown> => objectValue(entry) !== undefined);
+}
+
+async function readJsonFile<T>(path: string): Promise<T | undefined> {
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 const nonInteractivePrompter: Pick<AtlasPrompter, "interactive" | "select"> = {

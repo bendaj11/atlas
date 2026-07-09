@@ -1093,6 +1093,71 @@ test("atlas dev prepares a React Native Federation override", async () => {
   assert.doesNotMatch(stdout, /atlas-override/);
 });
 
+test("atlas dev reuses the generated React dev-server port", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-react-port-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "orders", version: "1.0.0", type: "module" }));
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "Node16", moduleResolution: "Node16", strict: true }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  name: "Orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+  await writeFile(join(projectRoot, "vite.config.ts"), [
+    "export default {",
+    "  server: { port: 4202, cors: true }",
+    "};"
+  ].join("\n"));
+
+  await runDevService(root, projectRoot, [
+    "dev", "orders", "--host-url=https://host.example/orders", "--prepare-only"
+  ]);
+
+  const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+  assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4202/remoteEntry.json");
+});
+
+test("atlas dev reuses the generated Angular dev-server port", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-angular-port-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "orders", version: "1.0.0", type: "module" }));
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "Node16", moduleResolution: "Node16", strict: true }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  name: "Orders",',
+    '  framework: "angular",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+  await writeFile(join(projectRoot, "angular.json"), JSON.stringify({
+    projects: {
+      orders: {
+        architect: {
+          serve: { options: { port: 4203 } },
+          "serve-original": { options: { port: 4203 } }
+        }
+      }
+    }
+  }));
+
+  await runDevService(root, projectRoot, [
+    "dev", "orders", "--host-url=https://host.example/orders", "--prepare-only"
+  ]);
+
+  const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+  assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4203/remoteEntry.json");
+});
+
 test("atlas dev waits for valid remote federation metadata", async () => {
   assert.equal(await remoteEntryIsReady(new Response("<!DOCTYPE html>", {
     status: 200,
