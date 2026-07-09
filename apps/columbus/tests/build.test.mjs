@@ -33,6 +33,8 @@ test("Columbus extension intercepts Atlas catalogs for local dev sessions", asyn
   assert.match(source, /=void 0/);
   assert.match(source, /window\.fetch/);
   assert.match(source, /overrides\.map/);
+  assert.match(source, /decodeURIComponent/);
+  assert.match(source, /\.hostId!==/);
   assert.match(source, /localStorage\.removeItem/);
   assert.match(source, /sessionStorage\.removeItem/);
 });

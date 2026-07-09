@@ -45,11 +45,12 @@ function installAtlasCatalogInterceptor(): void {
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const requestUrl = requestHref(input);
-    if (!isAtlasCatalogRequest(requestUrl)) return nativeFetch(input, init);
+    const hostId = catalogRequestHostId(requestUrl);
+    if (!hostId) return nativeFetch(input, init);
 
     const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession()]);
 
-    if (!session) return catalogResponse;
+    if (!session || session.hostId !== hostId) return catalogResponse;
     return catalogResponse.ok
       ? mergeCatalogResponse(catalogResponse, session)
       : localCatalogResponse(session);
@@ -108,11 +109,12 @@ function requestHref(input: RequestInfo | URL): string {
   return String(input);
 }
 
-function isAtlasCatalogRequest(value: string): boolean {
+function catalogRequestHostId(value: string): string | undefined {
   try {
-    return ATLAS_CATALOG_PATH.test(new URL(value, location.href).pathname);
+    const match = ATLAS_CATALOG_PATH.exec(new URL(value, location.href).pathname);
+    return match?.[1] ? decodeURIComponent(match[1]) : undefined;
   } catch {
-    return false;
+    return undefined;
   }
 }
 
