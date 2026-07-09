@@ -42,7 +42,7 @@ yarn release:bundle
 ```
 
 The release command updates the root manifest, every public package, internal
-Atlas dependency pins, the Chrome extension package and manifest, and the
+Atlas dependency pins, the Columbus extension package and manifest, and the
 version range emitted by generators. Chrome manifests use the numeric core of
 a prerelease version. `test:generated` packs those packages and proves that the
 packaged CLI can generate and production-build Angular and React hosts and apps.

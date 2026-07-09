@@ -211,13 +211,13 @@ yarn test:e2e
 ```
 
 The repository is a Yarn workspace orchestrated by Turborepo. `yarn build`
-builds publishable Atlas packages and the Chrome extension in dependency order;
+builds publishable Atlas packages and the Columbus extension in dependency order;
 `yarn build:examples` builds the complete Angular/React example matrix. Turbo
 caches package outputs locally in `.turbo`.
 
 `test:generated` packs the real packages, installs the packed CLI in clean
 projects, generates Angular and React hosts/apps, and production-builds them.
-Browser E2E tests verify cross-framework loading and Chrome extension overrides.
+Browser E2E tests verify cross-framework loading and Columbus extension overrides.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for repository structure and the full
 pre-pull-request checklist.

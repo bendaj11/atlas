@@ -316,6 +316,11 @@ More docs:
 Atlas local development runs the app locally, but renders it inside a real host.
 This shows the same integration shape users see in production.
 
+Install or reload the Atlas Columbus extension first. During `atlas dev`, the CLI
+serves a local dev session on the Atlas control port. The extension detects that
+session and intercepts the host catalog request, so the address bar stays on the
+normal host URL.
+
 Use two terminals:
 
 ```sh
@@ -336,7 +341,7 @@ atlas dev orders \
 Run both commands from the directory that contains `customer-host/` and
 `orders/`, or from your monorepo root. If Terminal 2 is already inside
 `orders/`, run `atlas dev` with no project name. Open the **Open host** URL
-printed by Terminal 2.
+printed by Terminal 2. It is a clean host URL, not an override URL.
 
 Because `orders/atlas.config.ts` already declares one host route, Atlas can
 infer the host id. For the generated Angular host, this shorter command is
@@ -398,7 +403,7 @@ host catalog. No production catalog or host source file is edited.
 
 More docs:
 
-- [Local development](../local-development.md): explains override URLs, local ports, and debugging one app in a host.
+- [Local development](../local-development.md): explains the Columbus extension flow, local ports, and fallback override debugging.
 - [Troubleshooting](troubleshooting.md): use when the host opens but the app does not mount or load.
 
 ## 9. Configure Production Runtime (Host And Deployment Domains)

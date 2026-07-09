@@ -46,10 +46,7 @@ function installAtlasCatalogInterceptor(): void {
     const requestUrl = requestHref(input);
     if (!isAtlasCatalogRequest(requestUrl)) return nativeFetch(input, init);
 
-    const [catalogResponse, session] = await Promise.all([
-      nativeFetch(input, init),
-      readDevSession()
-    ]);
+    const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession()]);
 
     if (!session) return catalogResponse;
     return catalogResponse.ok
@@ -57,12 +54,14 @@ function installAtlasCatalogInterceptor(): void {
       : localCatalogResponse(session);
   };
 
-  function readDevSession(): Promise<AtlasInterceptDevSession | undefined> {
+  async function readDevSession(): Promise<AtlasInterceptDevSession | undefined> {
     devSession ??= nativeFetch(ATLAS_DEV_SESSION_URL, { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<AtlasInterceptDevSession> : undefined)
       .then((session) => session?.schemaVersion === "1" ? session : undefined)
       .catch(() => undefined);
-    return devSession;
+    const session = await devSession;
+    if (!session) devSession = undefined;
+    return session;
   }
 }
 

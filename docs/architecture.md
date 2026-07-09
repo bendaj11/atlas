@@ -13,7 +13,7 @@ Atlas is split into infrastructure and generated usage.
 | `@atlas/testkit` | Test fixtures and in-memory utilities. |
 | `@atlas/cli` | Generator and workflow commands. |
 | Static storage | Immutable app assets plus mutable indexes and host catalogs. |
-| Chrome extension | Local, PR, and historical version overrides. |
+| Columbus extension | Local, PR, and historical version overrides. |
 | CDN | Immutable assets and generated catalog JSON. |
 
 ## Runtime Flow
@@ -22,7 +22,7 @@ Atlas is split into infrastructure and generated usage.
 2. Host creates an extensible `AtlasSdk`.
 3. Host asks `@atlas/runtime` for its catalog.
 4. Loader validates manifests.
-5. Loader applies Chrome extension overrides if present.
+5. Loader applies Columbus extension overrides if present.
 6. Loader enforces one selected version per app id.
 7. Loader verifies the remote entry SHA-256 integrity.
 8. Runtime selects the longest matching route.

@@ -17,8 +17,8 @@ test("release version propagation updates every version-bearing manifest", async
       dependencies: { "@atlas/schema": "9.9.9", external: "^1.0.0" }
     });
   }
-  await writeJson(join(root, "apps/chrome-extension/package.json"), { name: "@atlas/chrome-extension", version: "9.9.9" });
-  await writeJson(join(root, "apps/chrome-extension/src/manifest.json"), { manifest_version: 3, version: "9.9.9" });
+  await writeJson(join(root, "apps/columbus/package.json"), { name: "@atlas/columbus", version: "9.9.9" });
+  await writeJson(join(root, "apps/columbus/src/manifest.json"), { manifest_version: 3, version: "9.9.9" });
   const generatorPath = join(root, "packages/generators/src/cli/generator-versions.ts");
   await mkdir(join(generatorPath, ".."), { recursive: true });
   await writeFile(generatorPath, 'export const ATLAS_PACKAGE_VERSION = "9.9.9";\n');
@@ -28,8 +28,8 @@ test("release version propagation updates every version-bearing manifest", async
   const paths = [
     join(root, "package.json"),
     ...packageDirectories.map((directory) => join(root, "packages", directory, "package.json")),
-    join(root, "apps/chrome-extension/package.json"),
-    join(root, "apps/chrome-extension/src/manifest.json")
+    join(root, "apps/columbus/package.json"),
+    join(root, "apps/columbus/src/manifest.json")
   ];
   for (const path of paths) assert.equal(JSON.parse(await readFile(path, "utf8")).version, "1.2.3");
   assert.match(await readFile(generatorPath, "utf8"), /ATLAS_PACKAGE_VERSION = "1\.2\.3"/);

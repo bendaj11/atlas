@@ -1,0 +1,25 @@
+{
+  "name": "@atlas/columbus",
+  "version": "0.2.46",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build && node scripts/copy-static.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@file-services/node": "^9.4.1",
+    "@stylable/core": "^6.1.1",
+    "@stylable/node": "^6.1.1",
+    "@stylable/optimizer": "^6.1.1",
+    "@stylable/runtime": "^6.1.1",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.0.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^7.3.6",
+    "wix-style-react": "^10.173.4"
+  }
+}

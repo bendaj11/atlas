@@ -35,8 +35,8 @@ async function createWorkspace(version) {
       dependencies: { "@atlas/schema": version }
     });
   }
-  await writeJson(join(root, "apps/chrome-extension/package.json"), { version });
-  await writeJson(join(root, "apps/chrome-extension/src/manifest.json"), { version });
+  await writeJson(join(root, "apps/columbus/package.json"), { version });
+  await writeJson(join(root, "apps/columbus/src/manifest.json"), { version });
   const generatorPath = join(root, "packages/generators/src/cli/generator-versions.ts");
   await mkdir(join(generatorPath, ".."), { recursive: true });
   await writeFile(generatorPath, `export const ATLAS_PACKAGE_VERSION = "${version}";\n`);

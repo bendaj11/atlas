@@ -36,7 +36,7 @@ non-interactive shells, pass `--host` or set `ATLAS_HOST`.
 
 Atlas delegates to Nx, Turborepo, pnpm, Yarn, npm, or the standalone project
 script as needed. Then open the printed **Open host** URL from the app command.
-With the Atlas Chrome extension installed, the browser keeps the clean host URL
+With the Atlas Columbus extension installed, the browser keeps the clean host URL
 and intercepts the Atlas catalog request, merging the local dev session from the
 control server. Every other app continues to come from the production catalog.
 No Native Federation URL or manifest needs editing.
@@ -66,7 +66,7 @@ The control server reports `503 starting` until the app is ready, so opening the
 Generated hosts still accept an override URL under `atlas.runtime-override-url`
 and a complete override document under `atlas.runtime-overrides` in browser
 storage for fallback and debugging. The normal local-development path is the
-Chrome extension plus the `atlas.dev-session.json` served by `atlas dev`.
+Columbus extension plus the `atlas.dev-session.json` served by `atlas dev`.
 
 ## What Happens Behind The Scenes
 
@@ -98,9 +98,9 @@ The same override protocol can choose:
 
 The host does not need to redeploy for these changes.
 
-## Chrome Extension
+## Columbus Extension
 
-Build the extension with `yarn workspace @atlas/chrome-extension build`, then load `apps/chrome-extension/dist` as an unpacked extension from `chrome://extensions`.
+Build the extension with `yarn workspace @atlas/columbus build`, then load `apps/columbus/dist` as an unpacked extension from `chrome://extensions`.
 
 The extension also detects local `atlas dev` sessions at
 `http://localhost:4400/atlas.dev-session.json`. When a session targets the

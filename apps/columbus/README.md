@@ -1,16 +1,16 @@
-# Atlas Chrome Extension
+# Atlas Columbus Extension
 
 This Manifest V3 extension switches the app versions used by the Atlas host in the active tab. It does not modify host source code, Native Federation configuration, or CDN URLs.
 
 ## Build And Install
 
 ```bash
-yarn workspace @atlas/chrome-extension build
+yarn workspace @atlas/columbus build
 ```
 
-Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/chrome-extension/dist`.
+Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/columbus/dist`.
 
-The extension requests `activeTab`, `scripting`, and `storage`. It receives temporary access only when its toolbar action is opened; it does not request permanent access to every website. Atlas uses a small script in the page's main world to read the public runtime catalog and update that origin's Atlas override storage. No remote JavaScript is executed by the extension.
+The extension requests `activeTab`, `scripting`, and `storage`. It receives temporary access only when its toolbar action is opened; it does not request permanent access to every website. Atlas uses a small script in the page's main world to read the public runtime catalog and update that origin's Atlas override storage. The always-on development interceptor is limited to `localhost` and `127.0.0.1`. No remote JavaScript is executed by the extension.
 
 ## Use
 

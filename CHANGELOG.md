@@ -11,4 +11,4 @@ All notable changes to Atlas are documented in this file. Atlas follows
 - Static-registry discovery, Native Federation loading, routing, lifecycle UI,
   host SDK capabilities, event bus, overlays, and exported widgets.
 - Interactive generators, provider-neutral deployment artifacts, package
-  verification, and Chrome extension overrides.
+  verification, and Columbus extension overrides.

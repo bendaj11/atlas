@@ -3,7 +3,7 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-const builtExtensionPath = resolve("apps/chrome-extension/dist");
+const builtExtensionPath = resolve("apps/columbus/dist");
 const hostUrl = "http://127.0.0.1:4300/dashboard";
 const overrideKey = "atlas.runtime-overrides";
 
@@ -15,7 +15,7 @@ interface ExtensionSession {
   userDataDirectory: string;
 }
 
-test.describe("Atlas Chrome extension", () => {
+test.describe("Atlas Columbus extension", () => {
   let session: ExtensionSession;
 
   test.beforeEach(async () => {
@@ -34,8 +34,10 @@ test.describe("Atlas Chrome extension", () => {
     await firstHost.goto(hostUrl);
 
     const popup = await openPopup(session, firstHost);
-    await popup.getByLabel("Dashboard React version").selectOption({ label: "0.0.9 (historical)" });
-    await applyAndWaitForReload(popup, firstHost);
+    await editApp(popup, "Dashboard React");
+    await popup.getByLabel("Production version").check();
+    await popup.locator("#production-version").selectOption({ label: "0.0.9" });
+    await saveAndWaitForReload(popup, firstHost);
     expect(await storedVersion(firstHost, "localStorage")).toBe("0.0.9");
     await expect(firstHost.getByRole("heading", { name: "Dashboard React Historical" })).toBeVisible();
 
@@ -45,16 +47,19 @@ test.describe("Atlas Chrome extension", () => {
 
     const tabPopup = await openPopup(session, firstHost);
     await tabPopup.getByText("This tab", { exact: true }).click();
-    await tabPopup.getByLabel("Dashboard React version").selectOption({ label: "0.1.0 (production)" });
-    await applyAndWaitForReload(tabPopup, firstHost);
+    await editApp(tabPopup, "Dashboard React");
+    await tabPopup.getByLabel("Production version").check();
+    await tabPopup.locator("#production-version").selectOption({ label: "0.1.0" });
+    await saveAndWaitForReload(tabPopup, firstHost);
     expect(await storedVersion(firstHost, "sessionStorage")).toBeUndefined();
     expect(await overrideCount(firstHost, "sessionStorage")).toBe(0);
     expect(await storedVersion(secondHost, "localStorage")).toBe("0.0.9");
     await firstHost.close();
 
     const resetPopup = await openPopup(session, secondHost);
-    await resetPopup.getByRole("button", { name: "Use production" }).click();
-    await applyAndWaitForReload(resetPopup, secondHost);
+    const resetReload = secondHost.waitForEvent("load");
+    await resetPopup.getByRole("button", { name: "Disable Dashboard React override" }).click();
+    await resetReload;
     expect(await hasOverrideDocument(secondHost, "localStorage")).toBe(false);
   });
 
@@ -63,18 +68,18 @@ test.describe("Atlas Chrome extension", () => {
     await host.goto(hostUrl);
 
     const prPopup = await openPopup(session, host);
-    await prPopup.getByLabel("Dashboard React version").selectOption({ label: "0.2.0-pr.42 (pr #42)" });
-    await applyAndWaitForReload(prPopup, host);
+    await editApp(prPopup, "Dashboard React");
+    await prPopup.getByLabel("PR override").check();
+    await prPopup.locator("#pr-version").selectOption({ label: "0.2.0-pr.42 (pr #42)" });
+    await saveAndWaitForReload(prPopup, host);
     expect(await storedReason(host)).toBe("pr");
 
     const localPopup = await openPopup(session, host);
-    await localPopup.getByText("Use a local manifest").click();
-    await localPopup.locator("#local-app").selectOption("dashboard-react");
-    await localPopup.getByLabel("Manifest or atlas dev URL").fill("http://127.0.0.1:4400/fixtures/dashboard-react-local.json");
-    await localPopup.getByRole("button", { name: "Use local version" }).click();
-    await expect(localPopup.getByRole("status")).toContainText("ready to apply");
-    await applyAndWaitForReload(localPopup, host);
-    expect(await storedVersion(host, "localStorage")).toBe("0.2.0-local");
+    await editApp(localPopup, "Dashboard React");
+    await localPopup.getByLabel("Custom URL").check();
+    await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/dashboard-react/0.2.0-local/local-dev/remoteEntry.json");
+    await saveAndWaitForReload(localPopup, host);
+    expect(await storedVersion(host, "localStorage")).toBe("custom-url");
     expect(await storedReason(host)).toBe("local");
     await expect(host.getByRole("heading", { name: "Dashboard React Local" })).toBeVisible();
   });
@@ -89,11 +94,11 @@ test.describe("Atlas Chrome extension", () => {
     const host = await session.context.newPage();
     await host.goto(hostUrl);
     const popup = await openPopup(session, host);
-    await popup.getByText("Use a local manifest").click();
-    await popup.locator("#local-app").selectOption("catalog-react");
-    await popup.getByLabel("Manifest or atlas dev URL").fill("http://127.0.0.1:4400/fixtures/dashboard-react-local.json");
-    await popup.getByRole("button", { name: "Use local version" }).click();
-    await expect(popup.getByRole("status")).toContainText('manifest must belong to "catalog-react"');
+    await editApp(popup, "Dashboard React");
+    await popup.getByLabel("Custom URL").check();
+    await popup.locator("#custom-url").fill("not-a-url");
+    await popup.getByRole("button", { name: "Save and reload" }).click();
+    await expect(popup.getByRole("status")).toContainText("Custom URL must be absolute HTTP URL.");
   });
 });
 
@@ -135,11 +140,15 @@ async function createTestExtension(): Promise<string> {
   return extensionDirectory;
 }
 
-async function applyAndWaitForReload(popup: Page, host: Page): Promise<void> {
+async function saveAndWaitForReload(popup: Page, host: Page): Promise<void> {
   const reload = host.waitForEvent("load");
-  await popup.getByRole("button", { name: "Apply and reload" }).click();
+  await popup.getByRole("button", { name: "Save and reload" }).click();
   await reload;
   await expect(host.locator("body")).toBeVisible();
+}
+
+async function editApp(popup: Page, appName: string): Promise<void> {
+  await popup.locator("article", { hasText: appName }).getByRole("button", { name: "Edit" }).click();
 }
 
 type BrowserStorage = "localStorage" | "sessionStorage";

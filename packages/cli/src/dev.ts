@@ -90,14 +90,17 @@ export class AtlasDevService {
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
     const overrideUrl = `http://localhost:${controlPort}/atlas.local-overrides.json`;
     const hostActivationUrl = target.hostUrl;
-    logHostViewUrl(hostActivationUrl);
-    if (this.args.hasFlag("prepare-only")) return;
+    if (this.args.hasFlag("prepare-only")) {
+      logHostViewUrl(hostActivationUrl);
+      return;
+    }
     const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
     const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       control.markReady();
+      logHostViewUrl(hostActivationUrl);
       openBrowserWhenReady(this.args, hostActivationUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill("SIGTERM");

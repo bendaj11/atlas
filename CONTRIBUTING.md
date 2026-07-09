@@ -29,12 +29,12 @@ yarn test:e2e
 Use `yarn test:generated` after changing generators or package boundaries. It
 packs the real packages and validates clean Angular and React projects. Use
 `yarn test:e2e` after changing runtime loading, navigation, static catalogs, or
-the Chrome extension.
+the Columbus extension.
 
 ## Repository Layout
 
 - `packages/`: publishable Atlas packages
-- `apps/chrome-extension/`: local, PR, and historical version overrides
+- `apps/columbus/`: local, PR, and historical version overrides
 - `examples/`: compact cross-framework integration fixtures
 - `docs/`: user and architecture documentation
 - `scripts/`: package verification and release scripts

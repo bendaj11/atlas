@@ -13,7 +13,7 @@ export async function versionPackages(version, workspaceRoot = root) {
   const manifestPaths = [
     join(workspaceRoot, "package.json"),
     ...packageDirectories.map((directory) => join(workspaceRoot, "packages", directory, "package.json")),
-    join(workspaceRoot, "apps/chrome-extension/package.json")
+    join(workspaceRoot, "apps/columbus/package.json")
   ];
   for (const path of manifestPaths) {
     const manifest = JSON.parse(await readFile(path, "utf8"));
@@ -24,7 +24,7 @@ export async function versionPackages(version, workspaceRoot = root) {
     await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   }
 
-  const extensionManifestPath = join(workspaceRoot, "apps/chrome-extension/src/manifest.json");
+  const extensionManifestPath = join(workspaceRoot, "apps/columbus/src/manifest.json");
   const extensionManifest = JSON.parse(await readFile(extensionManifestPath, "utf8"));
   extensionManifest.version = version.split("-")[0];
   await writeFile(extensionManifestPath, `${JSON.stringify(extensionManifest, null, 2)}\n`, "utf8");
@@ -39,7 +39,7 @@ export async function versionPackages(version, workspaceRoot = root) {
     `ATLAS_PACKAGE_VERSION = "${version}"`
   ), "utf8");
 
-  console.info(`Updated the workspace, ${packageDirectories.length} Atlas packages, Chrome extension, and generator output to ${version}.`);
+  console.info(`Updated the workspace, ${packageDirectories.length} Atlas packages, Columbus extension, and generator output to ${version}.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

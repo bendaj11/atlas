@@ -7,7 +7,7 @@ Atlas also supports npm workspaces.
 For host and app teams testing generated products, read
 [Consumer testing](consumer-testing.md) instead.
 
-Atlas has two test layers. `yarn test` runs fast contract, SDK, runtime, generator, CLI, and Chrome extension tests. `yarn test:e2e` proves that production-built applications work together in a browser.
+Atlas has two test layers. `yarn test` runs fast contract, SDK, runtime, generator, CLI, and Columbus extension tests. `yarn test:e2e` proves that production-built applications work together in a browser.
 
 `yarn test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and apps with both package managers.
 
@@ -38,7 +38,7 @@ The command performs the following work without requiring a real cloud account:
 
 The suite verifies Angular apps in React hosts, React apps in Angular hosts, framework-native inner routing, cross-framework widgets, popups, opt-in loading UI, failed-remote fallback UI, CORS, and mutable versus immutable cache headers.
 
-It also loads the built Chrome extension into Playwright's bundled Chromium. The extension scenarios cover PR, historical, and local versions; all-tabs and current-tab scope; production reset; invalid manifests; and non-Atlas pages. The E2E harness grants localhost access only to a temporary copy because headless Chromium does not expose the toolbar popup's temporary `activeTab` permission reliably. A separate build test guarantees that the extension users install has no permanent host permissions.
+It also loads the built Columbus extension into Playwright's bundled Chromium. The extension scenarios cover PR, historical, and local versions; all-tabs and current-tab scope; production reset; invalid manifests; and non-Atlas pages. The E2E harness grants localhost access only to a temporary copy because headless Chromium does not expose the toolbar popup's temporary `activeTab` permission reliably. A separate build test guarantees that the extension users install has no permanent host permissions.
 
 Generated deployment files live under `tests/e2e/.artifacts` and are not committed.
 

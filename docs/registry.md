@@ -97,4 +97,4 @@ Atomic replacement, authentication, retries, locking, and cache invalidation bel
 
 ## Versions And Widgets
 
-Production catalogs select one production version per app id. PR and historical manifests stay in the app index for Chrome extension overrides. Widget dependencies are expanded while catalogs are generated, so a host catalog includes the selected owner of every widget used by its page apps.
+Production catalogs select one production version per app id. PR and historical manifests stay in the app index for Columbus extension overrides. Widget dependencies are expanded while catalogs are generated, so a host catalog includes the selected owner of every widget used by its page apps.
