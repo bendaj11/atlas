@@ -936,9 +936,9 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
     hostId: "mobile-host",
     generatedAt: "2026-07-09T08:02:37.622Z",
     overrides: [{ mfId: "login", manifest, reason: "local" }]
-  }, catalog, "http://localhost:4400/atlas.local-overrides.json");
+  }, catalog, "http://127.0.0.1:4400/atlas.local-overrides.json");
   assert.equal(session.hostId, "mobile-host");
-  assert.equal(session.overrideUrl, "http://localhost:4400/atlas.local-overrides.json");
+  assert.equal(session.overrideUrl, "http://127.0.0.1:4400/atlas.local-overrides.json");
   assert.deepEqual(session.catalog, catalog);
 });
 

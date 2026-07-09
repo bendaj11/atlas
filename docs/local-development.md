@@ -103,7 +103,7 @@ The host does not need to redeploy for these changes.
 Build the extension with `yarn workspace @atlas/columbus build`, then load `apps/columbus/dist` as an unpacked extension from `chrome://extensions`.
 
 The extension also detects local `atlas dev` sessions at
-`http://localhost:4400/atlas.dev-session.json`. When a session targets the
+`http://127.0.0.1:4400/atlas.dev-session.json`. When a session targets the
 active host, the extension merges the local manifest into Atlas catalog
 responses before the host runtime reads them. The address bar stays on the real
 host URL.

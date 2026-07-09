@@ -35,7 +35,7 @@ test.describe("Atlas Columbus extension", () => {
 
     const popup = await openPopup(session, firstHost);
     await editApp(popup, "Dashboard React");
-    await popup.getByLabel("Production version").check();
+    await popup.getByLabel("Production").check();
     await popup.locator("#production-version").selectOption({ label: "0.0.9" });
     await saveAndWaitForReload(popup, firstHost);
     expect(await storedVersion(firstHost, "localStorage")).toBe("0.0.9");
@@ -48,7 +48,7 @@ test.describe("Atlas Columbus extension", () => {
     const tabPopup = await openPopup(session, firstHost);
     await tabPopup.getByText("This tab", { exact: true }).click();
     await editApp(tabPopup, "Dashboard React");
-    await tabPopup.getByLabel("Production version").check();
+    await tabPopup.getByLabel("Production").check();
     await tabPopup.locator("#production-version").selectOption({ label: "0.1.0" });
     await saveAndWaitForReload(tabPopup, firstHost);
     expect(await storedVersion(firstHost, "sessionStorage")).toBeUndefined();
@@ -58,7 +58,7 @@ test.describe("Atlas Columbus extension", () => {
 
     const resetPopup = await openPopup(session, secondHost);
     const resetReload = secondHost.waitForEvent("load");
-    await resetPopup.getByRole("button", { name: "Disable Dashboard React override" }).click();
+    await resetPopup.getByLabel("Disable Dashboard React override").click();
     await resetReload;
     expect(await hasOverrideDocument(secondHost, "localStorage")).toBe(false);
   });
@@ -69,15 +69,15 @@ test.describe("Atlas Columbus extension", () => {
 
     const prPopup = await openPopup(session, host);
     await editApp(prPopup, "Dashboard React");
-    await prPopup.getByLabel("PR override").check();
+    await prPopup.getByLabel("PR").check();
     await prPopup.locator("#pr-version").selectOption({ label: "0.2.0-pr.42 (pr #42)" });
     await saveAndWaitForReload(prPopup, host);
     expect(await storedReason(host)).toBe("pr");
 
     const localPopup = await openPopup(session, host);
     await editApp(localPopup, "Dashboard React");
-    await localPopup.getByLabel("Custom URL").check();
-    await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/dashboard-react/0.2.0-local/local-dev/remoteEntry.json");
+    await localPopup.getByLabel("Base URL").check();
+    await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/dashboard-react/0.2.0-local/local-dev");
     await saveAndWaitForReload(localPopup, host);
     expect(await storedVersion(host, "localStorage")).toBe("custom-url");
     expect(await storedReason(host)).toBe("local");
@@ -95,10 +95,10 @@ test.describe("Atlas Columbus extension", () => {
     await host.goto(hostUrl);
     const popup = await openPopup(session, host);
     await editApp(popup, "Dashboard React");
-    await popup.getByLabel("Custom URL").check();
+    await popup.getByLabel("Base URL").check();
     await popup.locator("#custom-url").fill("not-a-url");
-    await popup.getByRole("button", { name: "Save and reload" }).click();
-    await expect(popup.getByRole("status")).toContainText("Custom URL must be absolute HTTP URL.");
+    await popup.getByRole("button", { name: "Save" }).click();
+    await expect(popup.getByRole("status")).toContainText("Base URL must be absolute HTTP URL.");
   });
 });
 
@@ -142,7 +142,7 @@ async function createTestExtension(): Promise<string> {
 
 async function saveAndWaitForReload(popup: Page, host: Page): Promise<void> {
   const reload = host.waitForEvent("load");
-  await popup.getByRole("button", { name: "Save and reload" }).click();
+  await popup.getByRole("button", { name: "Save" }).click();
   await reload;
   await expect(host.locator("body")).toBeVisible();
 }

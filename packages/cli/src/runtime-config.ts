@@ -6,6 +6,8 @@ import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import type { AtlasWorkspace } from "./workspace.js";
 
+const DEFAULT_LOCAL_REGISTRY_BASE_URL = "http://127.0.0.1:4400";
+
 export class AtlasRuntimeConfigService {
   constructor(
     private readonly workspace: AtlasWorkspace,
@@ -30,7 +32,7 @@ export function createHostRuntimeConfig(config: AtlasConfig, args = new CliArgum
   return {
     schemaVersion: "1",
     hostId: config.id,
-    catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? "http://localhost:4400")}/hosts/${config.id}/catalog.json`,
+    catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? DEFAULT_LOCAL_REGISTRY_BASE_URL)}/hosts/${config.id}/catalog.json`,
     allowAppOverrides: config.allowAppOverrides ?? true,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3

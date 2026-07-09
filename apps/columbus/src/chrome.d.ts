@@ -13,6 +13,10 @@ declare namespace chrome {
     function remove(key: string): Promise<void>;
     function set(items: Record<string, unknown>): Promise<void>;
   }
+  namespace action {
+    function setBadgeBackgroundColor(details: { color: string }): Promise<void>;
+    function setBadgeText(details: { text: string; tabId?: number }): Promise<void>;
+  }
   namespace runtime.onInstalled {
     function addListener(listener: () => void): void;
   }

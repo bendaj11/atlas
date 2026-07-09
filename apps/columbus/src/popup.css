@@ -6,14 +6,39 @@ body,
 }
 
 body {
-  width: 520px;
-  max-height: 640px;
+  width: 560px;
+  max-height: 620px;
   overflow: hidden;
+  background: #f7f8fb;
 }
 
 .popup-shell {
-  max-height: 640px;
+  max-height: 620px;
   overflow: auto;
+}
+
+.status-card,
+.scope-card,
+.app-card {
+  border: 1px solid #e7edf5;
+  box-shadow: none;
+}
+
+.scope-card [role="radiogroup"] {
+  display: flex;
+  gap: 14px;
+}
+
+.app-card {
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.app-card:hover {
+  border-color: #c7d8ee;
+}
+
+.app-actions {
+  flex: 0 0 auto;
 }
 
 .app-url {
@@ -21,4 +46,15 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.editor-option {
+  padding: 12px;
+  border: 1px solid #dfe7f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.editor-option [role="radio"] {
+  font-weight: 600;
 }

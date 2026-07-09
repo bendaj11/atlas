@@ -6,11 +6,11 @@ import WsrButton from "wix-style-react/dist/es/src/Button";
 import WsrCard from "wix-style-react/dist/es/src/Card";
 import WsrDivider from "wix-style-react/dist/es/src/Divider";
 import WsrDropdown from "wix-style-react/dist/es/src/Dropdown";
-import WsrHeading from "wix-style-react/dist/es/src/Heading";
 import WsrInput from "wix-style-react/dist/es/src/Input";
 import WsrLoader from "wix-style-react/dist/es/src/Loader";
 import WsrRadioGroup from "wix-style-react/dist/es/src/RadioGroup";
 import WsrText from "wix-style-react/dist/es/src/Text";
+import WsrToggleSwitch from "wix-style-react/dist/es/src/ToggleSwitch";
 import WsrProvider from "wix-style-react/dist/es/src/WixStyleReactProvider";
 import "./popup.css";
 import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData, AtlasOverrideDocument as OverrideDocument } from "./contracts.js";
@@ -25,13 +25,13 @@ const Card = WsrCard as unknown as React.ComponentType<Record<string, unknown>> 
 };
 const Divider = WsrDivider as unknown as React.ComponentType<Record<string, unknown>>;
 const Dropdown = WsrDropdown as unknown as React.ComponentType<Record<string, unknown>>;
-const Heading = WsrHeading as unknown as React.ComponentType<Record<string, unknown>>;
 const Input = WsrInput as unknown as React.ComponentType<Record<string, unknown>>;
 const Loader = WsrLoader as unknown as React.ComponentType<Record<string, unknown>>;
 const RadioGroup = WsrRadioGroup as unknown as React.ComponentType<Record<string, unknown>> & {
   Radio: React.ComponentType<Record<string, unknown>>;
 };
 const Text = WsrText as unknown as React.ComponentType<Record<string, unknown>>;
+const ToggleSwitch = WsrToggleSwitch as unknown as React.ComponentType<Record<string, unknown>>;
 const WixStyleReactProvider = WsrProvider as unknown as React.ComponentType<Record<string, unknown>>;
 
 const DOCUMENT_KEY = "atlas.runtime-overrides";
@@ -49,6 +49,7 @@ interface AppViewModel {
   selected: Manifest | undefined;
   overrideType: OverrideType;
   currentUrl: string;
+  overrideEnabled: boolean;
 }
 
 interface EditorDraft {
@@ -82,8 +83,10 @@ function PopupApp(): JSX.Element {
 
   const load = async (): Promise<void> => {
     setStatus({ busy: true, message: "Reading active Atlas host...", tone: "standard" });
+    let inspectedTabId = activeTabId;
     try {
       const tab = await findInspectableHostTab();
+      inspectedTabId = tab.id;
       setActiveTabId(tab.id);
       const [injection] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -99,6 +102,7 @@ function PopupApp(): JSX.Element {
       }
       activeOverrides.clear();
       for (const override of data.overrides?.overrides ?? []) activeOverrides.set(override.mfId, override.manifest);
+      await updateActionBadge(tab.id, activeOverrides.size);
       setHostData(data);
       setScope(data.overrideScope === "tab" ? "tab" : "all");
       setView({ name: "dashboard" });
@@ -106,6 +110,7 @@ function PopupApp(): JSX.Element {
       const runtimeNote = errorCount ? ` · ${errorCount} warning${errorCount === 1 ? "" : "s"}` : "";
       setStatus({ busy: false, message: `${data.catalog.manifests.length} apps discovered${runtimeNote}`, tone: errorCount ? "error" : "standard" });
     } catch (error) {
+      if (inspectedTabId) await updateActionBadge(inspectedTabId, 0);
       setStatus({ busy: false, message: errorMessage(error), tone: "error" });
     }
   };
@@ -119,6 +124,7 @@ function PopupApp(): JSX.Element {
     setStatus({ busy: true, message: "Applying overrides...", tone: "standard" });
     const documentValue = createOverrideDocument(hostData, activeOverrides);
     try {
+      await updateActionBadge(activeTabId, documentValue.overrides.length);
       const storageKey = `atlas.overrides.${hostData.config.hostId}`;
       if (scope === "all" && documentValue.overrides.length) await chrome.storage.local.set({ [storageKey]: documentValue });
       if (scope === "all" && !documentValue.overrides.length) await chrome.storage.local.remove(storageKey);
@@ -152,9 +158,8 @@ function PopupApp(): JSX.Element {
   return (
     <WixStyleReactProvider>
       <Box className="popup-shell" direction="vertical" backgroundColor="D80" minHeight="100vh">
-        <PopupHeader hostId={hostData?.config.hostId} busy={status.busy} onRefresh={() => void load()} />
-        <Box padding="18px" direction="vertical" gap="18px">
-          <StatusCard status={status} />
+        <Box padding="16px" direction="vertical" gap="14px">
+          <StatusCard hostId={hostData?.config.hostId} status={status} onRefresh={() => void load()} />
           <ScopePicker value={scope} disabled={status.busy} onChange={setScope} />
           {view.name === "dashboard" ? (
             <Dashboard
@@ -186,26 +191,17 @@ function PopupApp(): JSX.Element {
   );
 }
 
-function PopupHeader({ hostId, busy, onRefresh }: { hostId: string | undefined; busy: boolean; onRefresh: () => void }): JSX.Element {
+function StatusCard({ hostId, status, onRefresh }: { hostId: string | undefined; status: StatusState; onRefresh: () => void }): JSX.Element {
   return (
-    <Box backgroundColor="D80" borderBottom="1px solid" borderColor="D60" padding="18px" verticalAlign="middle" gap="12px">
-      <Box width="6px" height="40px" backgroundColor="B10" borderRadius="6px" />
-      <Box direction="vertical" flex="1" minWidth="0">
-        <Heading appearance="H3">Columbus</Heading>
-        <Text size="small" secondary ellipsis>{hostId ?? "Detecting host..."}</Text>
-      </Box>
-      <Button size="small" priority="secondary" disabled={busy} onClick={onRefresh}>Refresh</Button>
-    </Box>
-  );
-}
-
-function StatusCard({ status }: { status: StatusState }): JSX.Element {
-  return (
-    <Card>
+    <Card className="status-card">
       <Card.Content>
-        <Box verticalAlign="middle" gap="12px">
+        <Box verticalAlign="middle" gap="12px" minWidth="0">
           {status.busy ? <Loader size="tiny" /> : <Badge skin={status.tone === "error" ? "danger" : "success"}>{status.tone === "error" ? "Issue" : "Ready"}</Badge>}
-          <Text size="small" skin={status.tone === "error" ? "error" : "standard"}>{status.message}</Text>
+          <Box direction="vertical" flex="1" minWidth="0">
+            <Text size="small" weight="bold" ellipsis>{hostId ?? "No host"}</Text>
+            <Text size="tiny" skin={status.tone === "error" ? "error" : "standard"} ellipsis>{status.message}</Text>
+          </Box>
+          <Button size="small" priority="secondary" disabled={status.busy} onClick={onRefresh} aria-label="Refresh host data">Refresh</Button>
         </Box>
       </Card.Content>
     </Card>
@@ -214,9 +210,9 @@ function StatusCard({ status }: { status: StatusState }): JSX.Element {
 
 function ScopePicker({ value, disabled, onChange }: { value: Scope; disabled: boolean; onChange: (value: Scope) => void }): JSX.Element {
   return (
-    <Card>
+    <Card className="scope-card">
       <Card.Content>
-        <Box direction="vertical" gap="12px">
+        <Box verticalAlign="middle" gap="12px">
           <Text weight="bold">Apply overrides to</Text>
           <RadioGroup value={value} disabled={disabled} display="horizontal" onChange={(nextValue: Scope) => onChange(nextValue)}>
             <RadioGroup.Radio value="all">All tabs</RadioGroup.Radio>
@@ -240,28 +236,30 @@ function Dashboard({ hostData, revision, busy, onEdit, onToggle }: {
   return (
     <Box direction="vertical" gap="12px">
       {apps.map((app) => (
-        <Card key={app.production.id}>
+        <Card key={app.production.id} className="app-card">
           <Card.Content>
-            <Box direction="vertical" gap="12px">
-              <Box verticalAlign="middle" gap="12px">
-                <Box direction="vertical" flex="1" minWidth="0">
-                  <Text weight="bold" ellipsis>{app.production.name}</Text>
-                  <Text className="app-url" size="tiny" secondary>{app.currentUrl}</Text>
-                </Box>
-                <Badge skin={badgeSkin(app.overrideType)}>{overrideLabel(app.overrideType)}</Badge>
+            <Box verticalAlign="middle" gap="12px" minWidth="0">
+              <Box direction="vertical" flex="1" minWidth="0">
+                <Text weight="bold" ellipsis>{app.production.name}</Text>
+                <Text className="app-url" size="tiny" secondary>{app.currentUrl}</Text>
               </Box>
-              <Divider />
-              <Box align="right" gap="8px">
+              <Badge skin={badgeSkin(app.overrideType)}>{overrideLabel(app.overrideType)}</Badge>
+              <Box className="app-actions" gap="8px" verticalAlign="middle">
+                <ToggleSwitch
+                  size="small"
+                  checked={app.overrideEnabled}
+                  disabled={busy || (!app.selected && !savedDisabledOverrides.has(app.production.id))}
+                  onChange={() => onToggle(app.production.id)}
+                  aria-label={`${app.selected ? "Disable" : "Enable"} ${app.production.name} override`}
+                />
                 <Button
                   size="small"
                   priority="secondary"
-                  disabled={busy || (!app.selected && !savedDisabledOverrides.has(app.production.id))}
-                  onClick={() => onToggle(app.production.id)}
-                  aria-label={`${app.selected ? "Disable" : "Enable"} ${app.production.name} override`}
+                  disabled={busy}
+                  onClick={() => onEdit(app.production.id)}
                 >
-                  {app.selected ? "Off" : "On"}
+                  Edit
                 </Button>
-                <Button size="small" disabled={busy} onClick={() => onEdit(app.production.id)}>Edit</Button>
               </Box>
             </Box>
           </Card.Content>
@@ -303,49 +301,52 @@ function Editor({ appId, hostData, busy, onCancel, onSave, onError }: {
     <Card>
       <Card.Header
         title={production.name}
-        subtitle="Choose one override source"
-        suffix={<Button size="small" priority="secondary" onClick={onCancel}>Back to apps</Button>}
+        subtitle="Choose source"
+        suffix={<Button size="small" priority="secondary" onClick={onCancel}>Back</Button>}
       />
       <Card.Content>
         <Box direction="vertical" gap="18px">
           <RadioGroup value={draft.type} onChange={(nextValue: EditorDraft["type"]) => setDraft({ ...draft, type: nextValue })}>
-            <RadioGroup.Radio value="custom">Custom URL</RadioGroup.Radio>
-            <RadioGroup.Radio value="production">Production version</RadioGroup.Radio>
-            <RadioGroup.Radio value="pr">PR override</RadioGroup.Radio>
+            <EditorRow active={draft.type === "custom"}>
+              <RadioGroup.Radio value="custom">Base URL</RadioGroup.Radio>
+              <Input
+                id="custom-url"
+                ariaLabel="Base URL"
+                value={draft.customUrl}
+                disabled={draft.type !== "custom"}
+                placeholder="http://localhost:4513"
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, customUrl: event.target.value })}
+              />
+            </EditorRow>
+            <EditorRow active={draft.type === "production"}>
+              <RadioGroup.Radio value="production">Production</RadioGroup.Radio>
+              <VersionDropdown
+                id="production-version"
+                ariaLabel="Production"
+                disabled={draft.type !== "production"}
+                selectedId={draft.productionKey}
+                versions={productionOptions}
+                hostId={hostData.config.hostId}
+                onChange={(productionKey) => setDraft({ ...draft, productionKey })}
+              />
+            </EditorRow>
+            <EditorRow active={draft.type === "pr"}>
+              <RadioGroup.Radio value="pr">PR</RadioGroup.Radio>
+              <VersionDropdown
+                id="pr-version"
+                ariaLabel="PR"
+                disabled={draft.type !== "pr"}
+                selectedId={draft.prKey}
+                versions={prOptions}
+                hostId={hostData.config.hostId}
+                onChange={(prKey) => setDraft({ ...draft, prKey })}
+              />
+            </EditorRow>
           </RadioGroup>
-          <EditorRow active={draft.type === "custom"} title="Custom URL">
-            <Input
-              ariaLabel="Custom URL"
-              value={draft.customUrl}
-              disabled={draft.type !== "custom"}
-              placeholder="http://localhost:4513/remoteEntry.json"
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, customUrl: event.target.value })}
-            />
-          </EditorRow>
-          <EditorRow active={draft.type === "production"} title="Production version">
-            <VersionDropdown
-              ariaLabel="Production version"
-              disabled={draft.type !== "production"}
-              selectedId={draft.productionKey}
-              versions={productionOptions}
-              hostId={hostData.config.hostId}
-              onChange={(productionKey) => setDraft({ ...draft, productionKey })}
-            />
-          </EditorRow>
-          <EditorRow active={draft.type === "pr"} title="PR override">
-            <VersionDropdown
-              ariaLabel="PR override"
-              disabled={draft.type !== "pr"}
-              selectedId={draft.prKey}
-              versions={prOptions}
-              hostId={hostData.config.hostId}
-              onChange={(prKey) => setDraft({ ...draft, prKey })}
-            />
-          </EditorRow>
           <Divider />
           <Box align="right" gap="8px">
             <Button priority="secondary" disabled={busy} onClick={onCancel}>Cancel</Button>
-            <Button disabled={busy} onClick={save}>Save and reload</Button>
+            <Button disabled={busy} onClick={save}>Save</Button>
           </Box>
         </Box>
       </Card.Content>
@@ -353,16 +354,16 @@ function Editor({ appId, hostData, busy, onCancel, onSave, onError }: {
   );
 }
 
-function EditorRow({ active, title, children }: { active: boolean; title: string; children: React.ReactNode }): JSX.Element {
+function EditorRow({ active, children }: { active: boolean; children: React.ReactNode }): JSX.Element {
   return (
-    <Box direction="vertical" gap="8px" opacity={active ? 1 : 0.56}>
-      <Text size="small" weight="bold">{title}</Text>
+    <Box className="editor-option" direction="vertical" gap="8px" opacity={active ? 1 : 0.56}>
       {children}
     </Box>
   );
 }
 
-function VersionDropdown({ ariaLabel, disabled, selectedId, versions, hostId, onChange }: {
+function VersionDropdown({ id, ariaLabel, disabled, selectedId, versions, hostId, onChange }: {
+  id: string;
   ariaLabel: string;
   disabled: boolean;
   selectedId: string;
@@ -372,6 +373,7 @@ function VersionDropdown({ ariaLabel, disabled, selectedId, versions, hostId, on
 }): JSX.Element {
   return (
     <Dropdown
+      id={id}
       ariaLabel={ariaLabel}
       disabled={disabled || versions.length === 0}
       selectedId={selectedId}
@@ -430,6 +432,9 @@ function createAppViewModel(production: Manifest): AppViewModel {
     selected,
     overrideType: overrideTypeFor(production, selected),
     currentUrl: (selected ?? production).remoteEntryUrl
+      ? baseUrlFromRemoteEntry((selected ?? production).remoteEntryUrl)
+      : "",
+    overrideEnabled: Boolean(selected)
   };
 }
 
@@ -443,7 +448,7 @@ function createEditorDraft(
   const selectedType = type === "none" ? "custom" : type;
   return {
     type: selectedType,
-    customUrl: selected?.channel === "local" ? selected.remoteEntryUrl : production?.remoteEntryUrl ?? "",
+    customUrl: selected?.channel === "local" ? baseUrlFromRemoteEntry(selected.remoteEntryUrl) : baseUrlFromRemoteEntry(production?.remoteEntryUrl ?? ""),
     productionKey: versionKeyOrEmpty(selectedType === "production" && selected ? selected : productionOptions[0] ?? production),
     prKey: versionKeyOrEmpty(selectedType === "pr" && selected ? selected : prOptions[0])
   };
@@ -465,15 +470,29 @@ function selectedManifest({ production, draft, productionOptions, prOptions }: {
 }
 
 function customManifest(production: Manifest, rawUrl: string): Manifest {
-  const remoteEntryUrl = rawUrl.trim();
-  if (!remoteEntryUrl) throw new Error("Enter custom URL.");
+  const baseUrl = normalizeBaseUrl(rawUrl);
+  if (!baseUrl) throw new Error("Enter base URL.");
   try {
-    const url = new URL(remoteEntryUrl);
+    const url = new URL(baseUrl);
     if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error();
   } catch {
-    throw new Error("Custom URL must be absolute HTTP URL.");
+    throw new Error("Base URL must be absolute HTTP URL.");
   }
+  const remoteEntryUrl = `${baseUrl}/remoteEntry.json`;
   return { ...production, version: CUSTOM_VERSION, buildId: CUSTOM_BUILD_ID, channel: "local", remoteEntryUrl };
+}
+
+function baseUrlFromRemoteEntry(remoteEntryUrl: string): string {
+  return normalizeBaseUrl(remoteEntryUrl);
+}
+
+function normalizeBaseUrl(value: string): string {
+  return value.trim().replace(/\/remoteEntry\.json$/u, "").replace(/\/$/u, "");
+}
+
+async function updateActionBadge(tabId: number, overrideCount: number): Promise<void> {
+  await chrome.action.setBadgeBackgroundColor({ color: "#116dff" });
+  await chrome.action.setBadgeText({ tabId, text: overrideCount > 0 ? String(overrideCount) : "" });
 }
 
 function overrideTypeFor(production: Manifest, selected: Manifest | undefined): OverrideType {

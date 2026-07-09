@@ -29,7 +29,7 @@ interface AtlasInterceptDevSession {
   generatedAt: string;
 }
 
-const ATLAS_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
+const ATLAS_DEV_SESSION_URL = "http://127.0.0.1:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
 const atlasWindow = window as Window & { __atlasExtensionInterceptorInstalled?: boolean };
 

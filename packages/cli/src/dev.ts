@@ -13,6 +13,7 @@ import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
 const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
+const LOOPBACK_HOST = "127.0.0.1";
 const DEFAULT_HOST_ORIGINS = {
   angular: "http://localhost:4200",
   react: "http://localhost:5173"
@@ -88,7 +89,7 @@ export class AtlasDevService {
     const overridePath = join(directory, "local-overrides.json");
     await mkdir(directory, { recursive: true });
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
-    const overrideUrl = `http://localhost:${controlPort}/atlas.local-overrides.json`;
+    const overrideUrl = `http://${LOOPBACK_HOST}:${controlPort}/atlas.local-overrides.json`;
     const hostActivationUrl = target.hostUrl;
     if (this.args.hasFlag("prepare-only")) {
       logHostViewUrl(hostActivationUrl);
@@ -199,7 +200,7 @@ function startControlServer(port: number, document: AtlasRuntimeOverrideDocument
   });
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => resolve({ server, markReady: () => { ready = true; } }));
+    server.listen(port, LOOPBACK_HOST, () => resolve({ server, markReady: () => { ready = true; } }));
   });
 }
 
