@@ -36,13 +36,16 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       ...(profile.major < 19 ? { "react-compiler-runtime": REACT_COMPILER_VERSION } : {})
     },
     devDependencies: {
+      "@babel/core": "^7.29.0",
+      "@rolldown/plugin-babel": "^0.2.3",
       "@types/node": "^22.0.0",
       "@types/react": `^${profile.major}.0.0`,
       "@types/react-dom": `^${profile.major}.0.0`,
-      "@vitejs/plugin-react": "^5.0.4",
+      "@vitejs/plugin-react": "^6.0.3",
       "babel-plugin-react-compiler": REACT_COMPILER_VERSION,
+      rolldown: "^1.1.4",
       typescript: "~5.9.0",
-      vite: "^7.3.6"
+      vite: "^8.1.4"
     }
   };
 }

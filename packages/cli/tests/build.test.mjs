@@ -234,7 +234,7 @@ test("atlas build is deterministic with fixed CI metadata", async () => {
 test("atlas generates a portable Angular host at an explicit directory", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-"));
   const target = join(temporary, "customer-host");
-  await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-host", "--framework=angular", "--skip-install", `--directory=${target}`]);
+  await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-host", "--framework=angular", "--port=4305", "--skip-install", `--directory=${target}`]);
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
   await assert.rejects(access(join(target, "public/atlas.runtime.json")), { code: "ENOENT" });
@@ -248,7 +248,7 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   assert.deepEqual(architect.esbuild.options.polyfills, ["zone.js", "es-module-shims"]);
   assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
   assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
-  assert.equal(architect.serve.options.port, 4200);
+  assert.equal(architect.serve.options.port, 4305);
   assert.match(main, /initFederation/);
   assert.match(bootstrap, /startHost/);
   assert.match(bootstrap, /AtlasHostDefaultRouteComponent/);
@@ -268,7 +268,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   ]);
   await run(process.execPath, [
     "packages/cli/dist/index.js", "g", "app", "billing",
-    "--framework=react", "--host=customer-host", "--skip-install", `--directory=${withHost}`
+    "--framework=react", "--host=customer-host", "--port=4306", "--skip-install", `--directory=${withHost}`
   ]);
 
   const defaultConfig = await readFile(join(withoutHost, "atlas.config.ts"), "utf8");
@@ -279,6 +279,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   assert.doesNotMatch(defaultConfig, /"host"/);
 
   const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
+  assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true \}/);
   assert.doesNotMatch(explicitConfig, /hostCompatibility/);
   assert.match(explicitConfig, /routes: \[/);
   assert.match(explicitConfig, /hostId: "customer-host"/);
@@ -703,9 +704,10 @@ exit 1
   assert.match(hostMain, /createBrowserRouter/);
   assert.doesNotMatch(hostMain, /import\.meta\.hot/);
   const hostViteConfig = await readFile(join(root, "apps/host/vite.config.ts"), "utf8");
-  assert.match(hostViteConfig, /babel-plugin-react-compiler/);
+  assert.match(hostViteConfig, /reactCompilerPreset/);
   assert.doesNotMatch(hostViteConfig, /ReactBabelOptions/);
-  assert.match(hostViteConfig, /babel: \{/);
+  assert.doesNotMatch(hostViteConfig, /babel: \{/);
+  assert.match(hostViteConfig, /react\(\{\}\)/);
   assert.match(hostViteConfig, /target: "19"/);
   assert.match(hostViteConfig, /server: \{ port: 4200 \}/);
   await assert.rejects(access(join(root, "apps/host/vite.config.mts")), { code: "ENOENT" });
@@ -901,7 +903,9 @@ exit 1
   assert.match(reactViteConfig, /remoteEntry\.json/);
   assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
   assert.doesNotMatch(reactViteConfig, /ReactBabelOptions/);
-  assert.match(reactViteConfig, /babel: \{/);
+  assert.doesNotMatch(reactViteConfig, /babel: \{/);
+  assert.match(reactViteConfig, /reactCompilerPreset/);
+  assert.match(reactViteConfig, /react\(\{\}\)/);
   assert.match(reactViteConfig, /target: "19"/);
   await assert.rejects(access(join(root, "orders/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
@@ -961,7 +965,9 @@ exit 1
   assert.equal(projectPackage.dependencies["@softarc/native-federation-runtime"], "^3.5.5");
   assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
   assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");
-  assert.equal(projectPackage.devDependencies["@vitejs/plugin-react"], "^5.0.4");
+  assert.equal(projectPackage.devDependencies["@rolldown/plugin-babel"], "^0.2.3");
+  assert.equal(projectPackage.devDependencies["@vitejs/plugin-react"], "^6.0.3");
+  assert.equal(projectPackage.devDependencies.vite, "^8.1.4");
   assert.match(stdout, /Detected existing React version \^17\.0\.2 in packages\/orders\/package\.json; ignoring --framework-version=\^19\.2\.0/);
   assert.match(stdout, /Added Atlas dependencies to packages\/orders\/package\.json/);
 });

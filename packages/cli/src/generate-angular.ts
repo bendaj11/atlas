@@ -8,7 +8,8 @@ const ES_MODULE_SHIMS_POLYFILL = "es-module-shims";
 export async function ensureAngularWorkspaceFederationConfig(
   root: string,
   projectName: string,
-  type: ProjectType
+  type: ProjectType,
+  devServerPort = defaultDevServerPort(type)
 ): Promise<void> {
   const workspaceFile = join(root, "angular.json");
   const workspace = await readJsonFile<Record<string, unknown>>(workspaceFile);
@@ -16,7 +17,7 @@ export async function ensureAngularWorkspaceFederationConfig(
   const project = asObject(asObject(workspace.projects)[projectName]);
   const targets = asObject(project.architect);
   if (!Object.keys(targets).length) return;
-  ensureAngularNativeFederationTargets(targets, projectName, type, "builder");
+  ensureAngularNativeFederationTargets(targets, projectName, type, "builder", devServerPort);
   project.architect = targets;
   asObject(workspace.projects)[projectName] = project;
   await writeJsonFile(workspaceFile, workspace);
@@ -26,7 +27,8 @@ export function ensureAngularNativeFederationTargets(
   targets: Record<string, unknown>,
   projectName: string,
   type: ProjectType,
-  runnerKey: RunnerKey
+  runnerKey: RunnerKey,
+  devServerPort = defaultDevServerPort(type)
 ): void {
   if (targets.build && !isNativeFederationTarget(targets.build, runnerKey)) {
     targets.esbuild ??= targets.build;
@@ -52,10 +54,14 @@ export function ensureAngularNativeFederationTargets(
       options: {
         target: `${projectName}:serve-original:development`,
         dev: true,
-        port: type === "host" ? 4200 : 4201
+        port: devServerPort
       }
     };
   }
+}
+
+function defaultDevServerPort(type: ProjectType): number {
+  return type === "host" ? 4200 : 4201;
 }
 
 function ensureAngularFederationPolyfills(target: unknown): void {

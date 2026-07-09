@@ -9,6 +9,8 @@ export interface AtlasGeneratorOptions {
   hostId?: string;
   /** Whether to generate inner app routes. Defaults to true. */
   routing?: boolean;
+  /** Dev-server port written to generated framework config. Defaults to host 4200, app 4201. */
+  devServerPort?: number;
   /** Exact version or semver range used by the generated framework dependencies. */
   frameworkVersion?: string;
   /** Allows generation outside Atlas' verified framework-major matrix. */

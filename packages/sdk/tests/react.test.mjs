@@ -25,8 +25,11 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.doesNotMatch(host.get("src/main.tsx"), /projectId/);
   assert.doesNotMatch(host.get("src/main.tsx"), /data-atlas-host-status/);
   assert.doesNotMatch(host.get("src/main.tsx"), /function AtlasDefaultHostLayout/);
-  assert.match(host.get("vite.config.ts"), /babel-plugin-react-compiler/);
+  assert.match(host.get("vite.config.ts"), /@rolldown\/plugin-babel/);
+  assert.match(host.get("vite.config.ts"), /reactCompilerPreset/);
   assert.match(host.get("vite.config.ts"), /reactCompilerConfig = \{ target: "19"/);
+  assert.match(host.get("vite.config.ts"), /react\(\{\}\)/);
+  assert.doesNotMatch(host.get("vite.config.ts"), /babel: \{/);
   assert.doesNotMatch(host.get("vite.config.ts"), /ReactBabelOptions/);
   assert.match(host.get("index.html"), /"shimMode": true/);
   assert.match(host.get("index.html"), /<head>\n    <meta charset="UTF-8">/);
@@ -36,7 +39,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
   assert.match(host.get("package.json"), /atlas runtime-config host/);
   assert.match(appFiles.get("vite.config.ts"), /remoteEntry\.json/);
-  assert.match(appFiles.get("vite.config.ts"), /babel-plugin-react-compiler/);
+  assert.match(appFiles.get("vite.config.ts"), /reactCompilerPreset/);
   assert.match(appFiles.get("vite.config.ts"), /widgets\/\$\{id\}/);
   assert.match(appFiles.get("src/app/App.tsx"), /useAtlasSdk/);
   assert.match(appFiles.get("src/app/routes.tsx"), /export const routes: RouteObject\[\]/);
@@ -98,6 +101,9 @@ test("React generator targets selected supported majors with React Compiler", ()
   assert.match(react18.get("package.json"), /"react": "\^18\.3\.0"/);
   assert.match(react18.get("package.json"), /"react-compiler-runtime": "1\.0\.0"/);
   assert.match(react19.get("package.json"), /"babel-plugin-react-compiler": "1\.0\.0"/);
+  assert.match(react19.get("package.json"), /"@vitejs\/plugin-react": "\^6\.0\.3"/);
+  assert.match(react19.get("package.json"), /"@rolldown\/plugin-babel": "\^0\.2\.3"/);
+  assert.match(react19.get("package.json"), /"vite": "\^8\.1\.4"/);
   assert.doesNotMatch(react19.get("package.json"), /"react-compiler-runtime"/);
   assert.doesNotMatch(react19.get("package.json"), /"latest"/);
   assert.match(react18.get("vite.config.ts"), /reactCompilerConfig = \{ target: "18"/);

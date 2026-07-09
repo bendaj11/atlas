@@ -1,6 +1,6 @@
 import { angularRemoteName } from "./angular-names.js";
 
-export function angularWorkspace(name: string, host: boolean): unknown {
+export function angularWorkspace(name: string, host: boolean, devServerPort = defaultDevServerPort(host)): unknown {
   return {
     version: 1,
     projects: {
@@ -8,7 +8,7 @@ export function angularWorkspace(name: string, host: boolean): unknown {
         projectType: "application", root: "", sourceRoot: "src",
         architect: {
           build: { builder: "@angular-architects/native-federation:build", options: { target: `${name}:esbuild:production` }, configurations: { development: { target: `${name}:esbuild:development`, dev: true } } },
-          serve: { builder: "@angular-architects/native-federation:build", options: { target: `${name}:serve-original:development`, dev: true, port: host ? 4200 : 4201 } },
+          serve: { builder: "@angular-architects/native-federation:build", options: { target: `${name}:serve-original:development`, dev: true, port: devServerPort } },
           esbuild: {
             builder: "@angular-devkit/build-angular:application",
             options: { outputPath: `dist/${name}`, index: "src/index.html", browser: "src/main.ts", polyfills: ["zone.js", "es-module-shims"], tsConfig: "tsconfig.app.json", assets: [{ glob: "**/*", input: "public" }, { glob: "**/*", input: "src/assets", output: "assets" }], styles: ["src/styles.css"] },
@@ -19,6 +19,10 @@ export function angularWorkspace(name: string, host: boolean): unknown {
       }
     }
   };
+}
+
+function defaultDevServerPort(host: boolean): number {
+  return host ? 4200 : 4201;
 }
 
 function angularCompilerOptions(): Record<string, unknown> {

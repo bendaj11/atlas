@@ -34,7 +34,7 @@ import {
   workspaceLabel
 } from "./generate-paths.js";
 import { ui, type AtlasPrompter } from "./ui.js";
-import type { AtlasWorkspace } from "./workspace.js";
+import { defaultDevServerPort, type AtlasWorkspace } from "./workspace.js";
 
 export class AtlasGenerateService {
   constructor(
@@ -62,6 +62,7 @@ export class AtlasGenerateService {
       this.logGenerationPlan(selectedFramework, root);
       await this.ensureWorkspaceGenerator(selectedFramework);
       const innerRouting = await this.resolveInnerRouting(type);
+      const devServerPort = await this.resolveDevServerPort(type);
       if (this.workspace.kind === "nx" && !this.args.hasFlag("skip-workspace-generator") && this.prompts.interactive) {
         this.prompts.close();
       }
@@ -71,6 +72,7 @@ export class AtlasGenerateService {
           name,
           framework: selectedFramework,
           projectRoot: root,
+          devServerPort,
           interactive: this.prompts.interactive,
           routing: innerRouting
         });
@@ -81,19 +83,28 @@ export class AtlasGenerateService {
       if (scaffoldedFrameworkVersion) this.logFrameworkVersionSelection(selectedFramework, scaffoldedFrameworkVersion);
       const detectedFrameworkVersion = scaffoldedFrameworkVersion?.version;
       const hostId = type === "app" ? this.args.flag("host") : undefined;
+      const generatorOptions = this.options({
+        name,
+        framework: selectedFramework,
+        packageName,
+        detectedFrameworkVersion,
+        hostId,
+        routing: innerRouting,
+        devServerPort
+      });
       const files = type === "host"
-        ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
-        : generateAppFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId, innerRouting));
+        ? generateHostFiles(generatorOptions)
+        : generateAppFiles(generatorOptions);
       if (workspaceScaffolded) {
         await takeOverAppSource(root);
         if (selectedFramework === "react") await removeDelegatedReactViteConfigs(root);
       }
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
-      if (selectedFramework === "angular") await ensureAngularWorkspaceFederationConfig(root, name, type);
+      if (selectedFramework === "angular") await ensureAngularWorkspaceFederationConfig(root, name, type, devServerPort);
       if (workspaceScaffolded) {
         await alignDelegatedTsconfig(root, selectedFramework);
         if (selectedFramework === "angular") await alignDelegatedAngularFederationConfig(this.workspace.root, root);
-        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework);
+        if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework, devServerPort);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
@@ -178,21 +189,35 @@ export class AtlasGenerateService {
     ]) === "true";
   }
 
-  private options(
-    name: string,
-    framework?: SupportedFramework,
-    packageName?: string,
-    detectedFrameworkVersion?: string,
-    hostId?: string,
-    routing?: boolean
-  ): AtlasGeneratorOptions {
+  private async resolveDevServerPort(type: "host" | "app"): Promise<number> {
+    const fallback = defaultDevServerPort(type);
+    if (this.args.hasFlag("port")) return this.args.port("port", fallback);
+    if (!this.prompts.interactive) return fallback;
+    while (true) {
+      const value = await this.prompts.input("Which port would you like to use for the dev server?", String(fallback));
+      const port = Number(value);
+      if (Number.isInteger(port) && port >= 1 && port <= 65535) return port;
+      ui.warning("Port must be an integer between 1 and 65535.");
+    }
+  }
+
+  private options(options: {
+    name: string;
+    framework?: SupportedFramework;
+    packageName?: string;
+    detectedFrameworkVersion?: string;
+    hostId?: string;
+    routing?: boolean;
+    devServerPort?: number;
+  }): AtlasGeneratorOptions {
     return {
-      name,
-      packageName,
-      framework: framework ?? this.args.framework(),
-      hostId,
-      routing,
-      frameworkVersion: detectedFrameworkVersion ?? this.args.flag("framework-version"),
+      name: options.name,
+      packageName: options.packageName,
+      framework: options.framework ?? this.args.framework(),
+      hostId: options.hostId,
+      routing: options.routing,
+      devServerPort: options.devServerPort,
+      frameworkVersion: options.detectedFrameworkVersion ?? this.args.flag("framework-version"),
       allowUnsupportedVersion: this.args.hasFlag("allow-unsupported-version")
     };
   }

@@ -24,7 +24,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
   const profile = angularVersionProfile(options);
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
-    { path: "angular.json", contents: json(angularWorkspace(name, true)) },
+    { path: "angular.json", contents: json(angularWorkspace(name, true, options.devServerPort)) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, true) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
@@ -43,7 +43,7 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
   const routed = options.routing ?? true;
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile, routed })) },
-    { path: "angular.json", contents: json(angularWorkspace(name, false)) },
+    { path: "angular.json", contents: json(angularWorkspace(name, false, options.devServerPort)) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },

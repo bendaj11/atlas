@@ -25,7 +25,7 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
   return [
     { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
-    { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget) },
+    { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget, options.devServerPort) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
     { path: "public/remoteEntry.json", contents: json({ name: reactRemoteName(name), exposes: [], shared: [] }) },
     { path: "index.html", contents: reactIndex("Atlas React Host") },
@@ -41,7 +41,7 @@ export function generateReactAppFiles(options: AtlasGeneratorOptions): AtlasGene
   return [
     { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile, routed })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
-    { path: "vite.config.ts", contents: reactAppViteConfig(name, profile.compilerTarget) },
+    { path: "vite.config.ts", contents: reactAppViteConfig(name, profile.compilerTarget, options.devServerPort) },
     { path: "atlas.config.ts", contents: atlasConfig(options, false) },
     { path: "index.html", contents: reactIndex(`${title(name)} assets`) },
     { path: "src/styles.css", contents: "" },

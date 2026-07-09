@@ -35,6 +35,7 @@ export interface AtlasScaffoldOptions {
   name: string;
   framework: "angular" | "react";
   projectRoot: string;
+  devServerPort: number;
   interactive: boolean;
   routing: boolean;
 }
@@ -80,7 +81,9 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
       try {
         await runProcess(createNxGenerationCommand(packageManager, root, {
           framework: options.framework,
+          type: options.type,
           directory,
+          devServerPort: options.devServerPort,
           interactive: options.interactive,
           routing: options.routing
         }));
@@ -97,18 +100,23 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
 export function createNxGenerationCommand(
   manager: AtlasPackageManager,
   root: string,
-  options: { framework: "angular" | "react"; directory: string; interactive: boolean; routing: boolean }
+  options: { framework: "angular" | "react"; type: "host" | "app"; directory: string; devServerPort?: number; interactive: boolean; routing: boolean }
 ): ProcessCommand {
   const generator = options.framework === "angular" ? "@nx/angular:application" : "@nx/react:application";
   const args = [
     "nx", "generate", generator, options.directory,
     `--interactive=${options.interactive}`, "--skipFormat", `--routing=${options.routing}`,
+    ...(options.framework === "react" ? [`--port=${options.devServerPort ?? defaultDevServerPort(options.type)}`] : []),
     ...(!options.interactive ? [
       "--e2eTestRunner=none", "--unitTestRunner=none",
       ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])
     ] : [])
   ];
   return packageExecutor(manager, root, args);
+}
+
+export function defaultDevServerPort(type: "host" | "app"): number {
+  return type === "host" ? 4200 : 4201;
 }
 
 export function createNxPluginInstallCommand(

@@ -4,7 +4,7 @@ import selectPrompt from "@inquirer/select";
 
 export interface AtlasPrompter {
   readonly interactive: boolean;
-  input(message: string): Promise<string>;
+  input(message: string, fallback?: string): Promise<string>;
   select<T extends string>(message: string, choices: readonly { label: string; value: T }[]): Promise<T>;
   close(): void;
 }
@@ -13,11 +13,13 @@ export class TerminalPrompter implements AtlasPrompter {
   readonly interactive = Boolean(stdin.isTTY && stdout.isTTY && !process.env.CI);
   private interface?: Interface;
 
-  async input(message: string): Promise<string> {
+  async input(message: string, fallback?: string): Promise<string> {
     if (!this.interactive) throw new Error(`${message} must be provided in non-interactive mode.`);
     while (true) {
-      const answer = (await this.reader().question(`${style("?", "cyan")} ${message}: `)).trim();
+      const suffix = fallback ? ` (${fallback})` : "";
+      const answer = (await this.reader().question(`${style("?", "cyan")} ${message}${suffix}: `)).trim();
       if (answer) return answer;
+      if (fallback) return fallback;
       console.info(style("  A value is required.", "yellow"));
     }
   }

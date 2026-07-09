@@ -1,30 +1,29 @@
 import { reactRemoteName } from "./react-names.js";
 
-export function reactHostViteConfig(compilerTarget: string): string {
+export function reactHostViteConfig(compilerTarget: string, devServerPort = 4200): string {
   return `import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
 const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
 
 export default defineConfig({
   plugins: [
-    react({
-      babel: {
-        plugins: [["babel-plugin-react-compiler", reactCompilerConfig]]
-      }
-    })
+    react({}),
+    babel({ presets: [reactCompilerPreset(reactCompilerConfig)] })
   ],
-  server: { port: 4200 },
+  server: { port: ${devServerPort} },
   build: { target: "esnext" }
 });
 `;
 }
 
-export function reactAppViteConfig(name: string, compilerTarget: string): string {
+export function reactAppViteConfig(name: string, compilerTarget: string, devServerPort = 4201): string {
   return `import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
 const widgetsRoot = resolve(__dirname, "src/exported-widgets");
 const widgetIds = existsSync(widgetsRoot)
@@ -96,15 +95,12 @@ function atlasReactRefreshPreamble(): Plugin {
 export default defineConfig({
   base: "./",
   plugins: [
-    react({
-      babel: {
-        plugins: [["babel-plugin-react-compiler", reactCompilerConfig]]
-      }
-    }),
+    react({}),
+    babel({ presets: [reactCompilerPreset(reactCompilerConfig)] }),
     atlasReactRefreshPreamble(),
     atlasFederationMetadata()
   ],
-  server: { port: 4201, cors: true },
+  server: { port: ${devServerPort}, cors: true },
   build: {
     target: "esnext",
     rollupOptions: {

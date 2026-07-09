@@ -204,7 +204,7 @@ test("generated project formatting uses existing workspace tooling", async () =>
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/host", interactive: false, routing: true }), {
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", type: "host", directory: "apps/host", interactive: false, routing: true }), {
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/host",
@@ -212,11 +212,23 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", directory: "apps/orders", interactive: false, routing: false }), {
+  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", type: "app", directory: "apps/orders", interactive: false, routing: false }), {
     command: "yarn",
     args: [
       "nx", "generate", "@nx/react:application", "apps/orders",
-      "--interactive=false", "--skipFormat", "--routing=false", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
+      "--interactive=false", "--skipFormat", "--routing=false", "--port=4201",
+      "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
+    ],
+    cwd: "/repo"
+  });
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", {
+    framework: "react", type: "host", directory: "apps/host", devServerPort: 4300, interactive: false, routing: true
+  }), {
+    command: "pnpm",
+    args: [
+      "exec", "nx", "generate", "@nx/react:application", "apps/host",
+      "--interactive=false", "--skipFormat", "--routing=true", "--port=4300",
+      "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
     ],
     cwd: "/repo"
   });
@@ -224,12 +236,22 @@ test("non-interactive Nx projects use deterministic framework generator defaults
 
 test("interactive Nx projects delegate framework choices to the native generator", () => {
   assert.deepEqual(createNxGenerationCommand("yarn", "/repo", {
-    framework: "angular", directory: "apps/host", interactive: true, routing: true
+    framework: "angular", type: "host", directory: "apps/host", interactive: true, routing: true
   }), {
     command: "yarn",
     args: [
       "nx", "generate", "@nx/angular:application", "apps/host",
       "--interactive=true", "--skipFormat", "--routing=true"
+    ],
+    cwd: "/repo"
+  });
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", {
+    framework: "react", type: "host", directory: "apps/host", interactive: true, routing: true
+  }), {
+    command: "pnpm",
+    args: [
+      "exec", "nx", "generate", "@nx/react:application", "apps/host",
+      "--interactive=true", "--skipFormat", "--routing=true", "--port=4200"
     ],
     cwd: "/repo"
   });

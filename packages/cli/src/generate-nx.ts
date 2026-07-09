@@ -76,7 +76,8 @@ export async function ensureDelegatedNxTargets(
   root: string,
   name: string,
   type: ProjectType,
-  framework: SupportedFramework
+  framework: SupportedFramework,
+  devServerPort?: number
 ): Promise<void> {
   const projectFile = join(root, "project.json");
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
@@ -89,7 +90,7 @@ export async function ensureDelegatedNxTargets(
     throw new Error(staleNxProjectRootMessage(project, previousProjectRoot, projectRoot));
   }
   const targets = asObject(project.targets);
-  if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor");
+  if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor", devServerPort);
   ensureAtlasConfigTarget(targets, projectName);
   ensureDevTarget(targets, projectName, type);
   project.targets = targets;
