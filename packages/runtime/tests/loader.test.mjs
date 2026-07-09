@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 
@@ -521,6 +521,24 @@ test("remote CSS asset URLs resolve against the owning app remote entry", () => 
   );
 });
 
+test("remote asset URLs are rewritten before inserted nodes enter the host document", () => {
+  const manifest = createTestManifest({ remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
+  const image = createAssetElement("img", { src: "/assets/images/image.jpg" });
+  const wrapper = createAssetElement("div", {}, [image]);
+  const boundary = createAssetElement("div");
+  let appendedSrc;
+  boundary.append = (node) => {
+    boundary.children.push(node);
+    appendedSrc = node.querySelectorAll("*")[0].getAttribute("src");
+  };
+
+  const release = startRemoteAssetRewrite(manifest, boundary, undefined);
+  boundary.append(wrapper);
+  release();
+
+  assert.equal(appendedSrc, "http://localhost:4202/assets/images/image.jpg");
+});
+
 test("host loads app styles before mount and releases them after the final unmount", async () => {
   const events = [];
   const document = createStylesheetDocument(events);
@@ -817,6 +835,31 @@ function tick() {
 function catalogDataUrl(manifests) {
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests };
   return `data:application/json,${encodeURIComponent(JSON.stringify(catalog))}`;
+}
+
+function createAssetElement(tagName, attributes = {}, children = []) {
+  return {
+    nodeType: 1,
+    tagName,
+    attributes: { ...attributes },
+    children: [...children],
+    getAttribute(name) { return this.attributes[name] ?? null; },
+    setAttribute(name, value) { this.attributes[name] = value; },
+    querySelectorAll() {
+      return this.children.flatMap((child) => [child, ...child.querySelectorAll("*")]);
+    },
+    append(...nodes) { this.children.push(...nodes); },
+    prepend(...nodes) { this.children.unshift(...nodes); },
+    appendChild(node) { this.children.push(node); return node; },
+    insertBefore(node) { this.children.push(node); return node; },
+    replaceChild(node, oldNode) {
+      const index = this.children.indexOf(oldNode);
+      if (index === -1) this.children.push(node);
+      else this.children[index] = node;
+      return oldNode;
+    },
+    replaceChildren(...nodes) { this.children = [...nodes]; }
+  };
 }
 
 function createStylesheetDocument(events, outcome = "load") {

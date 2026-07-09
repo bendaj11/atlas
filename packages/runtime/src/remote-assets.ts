@@ -22,12 +22,16 @@ export function startRemoteAssetRewrite(
   if (!isElement(boundary)) return () => undefined;
   const resolver = createRemoteAssetResolver(manifest);
   rewriteAssetUrls(boundary, resolver);
+  const releaseInsertionRewrite = patchElementInsertion(boundary, resolver);
   const observers = [
     observeBoundaryAssets(boundary, resolver),
     observeRemoteStyleAssets(document, resolver)
   ].filter((observer): observer is MutationObserver => observer !== undefined);
 
-  return () => observers.forEach((observer) => observer.disconnect());
+  return () => {
+    releaseInsertionRewrite();
+    observers.forEach((observer) => observer.disconnect());
+  };
 }
 
 export function rewriteAssetUrl(value: string, manifest: AtlasManifest): string {
@@ -114,6 +118,121 @@ function rewriteNodeAssetUrls(node: Node, resolver: AssetResolver): void {
   if (isElement(node)) rewriteAssetUrls(node, resolver);
 }
 
+function patchElementInsertion(element: Element, resolver: AssetResolver): AtlasAssetRewriteRelease {
+  const state: ElementInsertionPatchState = { patchedElements: new WeakSet(), releases: [] };
+  patchElementAndChildren(element, resolver, state);
+
+  return () => state.releases.forEach((release) => release());
+}
+
+interface ElementInsertionPatchState {
+  patchedElements: WeakSet<Element>;
+  releases: AtlasAssetRewriteRelease[];
+}
+
+function patchElementAndChildren(
+  element: Element,
+  resolver: AssetResolver,
+  state: ElementInsertionPatchState
+): void {
+  patchSingleElementInsertion(element, resolver, state);
+  element.querySelectorAll?.("*").forEach((child) => {
+    if (isElement(child)) patchSingleElementInsertion(child, resolver, state);
+  });
+}
+
+function patchSingleElementInsertion(
+  element: Element,
+  resolver: AssetResolver,
+  state: ElementInsertionPatchState
+): void {
+  if (state.patchedElements.has(element)) return;
+  state.patchedElements.add(element);
+  state.releases.push(patchElementInsertionMethods(element, resolver, state));
+}
+
+function patchElementInsertionMethods(
+  element: Element,
+  resolver: AssetResolver,
+  state: ElementInsertionPatchState
+): AtlasAssetRewriteRelease {
+  const releaseAppend = patchVariadicInsertionMethod(element, "append", resolver, state);
+  const releasePrepend = patchVariadicInsertionMethod(element, "prepend", resolver, state);
+  const releaseReplaceChildren = patchVariadicInsertionMethod(element, "replaceChildren", resolver, state);
+  const releaseAppendChild = patchSingleNodeInsertionMethod(element, "appendChild", resolver, state);
+  const releaseInsertBefore = patchSingleNodeInsertionMethod(element, "insertBefore", resolver, state);
+  const releaseReplaceChild = patchSingleNodeInsertionMethod(element, "replaceChild", resolver, state);
+
+  return () => {
+    releaseAppend();
+    releasePrepend();
+    releaseReplaceChildren();
+    releaseAppendChild();
+    releaseInsertBefore();
+    releaseReplaceChild();
+  };
+}
+
+function patchVariadicInsertionMethod(
+  element: Element,
+  methodName: "append" | "prepend" | "replaceChildren",
+  resolver: AssetResolver,
+  state: ElementInsertionPatchState
+): AtlasAssetRewriteRelease {
+  const method = element[methodName];
+  if (typeof method !== "function") return () => undefined;
+  return patchElementMethod(element, methodName, (...args: unknown[]) => {
+    const nodes = args.filter(isNodeOrString);
+    prepareInsertedNodes(nodes, resolver, state);
+    return (method as (...methodArgs: unknown[]) => unknown).apply(element, args);
+  });
+}
+
+function patchSingleNodeInsertionMethod(
+  element: Element,
+  methodName: "appendChild" | "insertBefore" | "replaceChild",
+  resolver: AssetResolver,
+  state: ElementInsertionPatchState
+): AtlasAssetRewriteRelease {
+  const method = element[methodName];
+  if (typeof method !== "function") return () => undefined;
+  return patchElementMethod(element, methodName, (node: unknown, otherNode?: unknown) => {
+    if (!isNode(node)) return (method as (...methodArgs: unknown[]) => unknown).call(element, node, otherNode);
+    prepareInsertedNodes([node], resolver, state);
+    return (method as (...methodArgs: unknown[]) => unknown).call(element, node, otherNode);
+  });
+}
+
+function patchElementMethod(element: Element, methodName: string, patched: (...args: unknown[]) => unknown): AtlasAssetRewriteRelease {
+  const hadOwnMethod = Object.hasOwn(element, methodName);
+  const originalOwnMethod = (element as unknown as Record<string, unknown>)[methodName];
+  Object.defineProperty(element, methodName, { configurable: true, value: patched });
+
+  return () => {
+    if (hadOwnMethod) {
+      Object.defineProperty(element, methodName, { configurable: true, value: originalOwnMethod });
+      return;
+    }
+    delete (element as unknown as Record<string, unknown>)[methodName];
+  };
+}
+
+function prepareInsertedNodes(
+  nodes: readonly (Node | string)[],
+  resolver: AssetResolver,
+  state: ElementInsertionPatchState
+): void {
+  for (const node of nodes) {
+    if (typeof node === "string" || !isElement(node)) continue;
+    rewriteAssetUrls(node, resolver);
+    patchElementAndChildren(node, resolver, state);
+  }
+}
+
+function isNodeOrString(value: unknown): value is Node | string {
+  return typeof value === "string" || isNode(value);
+}
+
 function rewriteElementAssetUrls(element: Element, resolver: AssetResolver): void {
   for (const attributeName of URL_ATTRIBUTE_NAMES) {
     rewriteAttribute(element, attributeName, resolver);
@@ -167,6 +286,10 @@ function isExternalUrl(value: string): boolean {
 
 function isFragmentUrl(value: string): boolean {
   return value.startsWith("#");
+}
+
+function isNode(value: unknown): value is Node {
+  return typeof value === "object" && value !== null && "nodeType" in value;
 }
 
 function isElement(node: Node | EventTarget): node is Element {

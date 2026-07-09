@@ -1,6 +1,6 @@
 {
   "name": "@atlas/schema",
-  "version": "0.2.62",
+  "version": "0.2.63",
   "type": "module",
   "description": "Stable Atlas manifests, static indexes, catalogs, and configuration schemas.",
   "license": "MIT",

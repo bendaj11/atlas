@@ -1,6 +1,6 @@
 {
   "name": "atlas-platform",
-  "version": "0.2.62",
+  "version": "0.2.63",
   "private": true,
   "description": "TypeScript-first app platform with focused SDK, runtime, static registry, generators and test tooling.",
   "license": "MIT",
