@@ -971,6 +971,48 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
   assert.deepEqual(calls, [["spawn", "dev"]]);
 });
 
+test("atlas dev rejects corrupt Angular build tooling before spawning", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-angular-build-preflight-"));
+  const projectRoot = join(root, "mobile-host");
+  const angularBuildRoot = join(root, "node_modules", "@angular", "build");
+  await mkdir(join(angularBuildRoot, "src/tools/angular/compilation"), { recursive: true });
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(angularBuildRoot, "package.json"), JSON.stringify({ name: "@angular/build", version: "21.2.18" }));
+  await writeFile(
+    join(angularBuildRoot, "src/tools/angular/compilation/angular-compilation.js"),
+    "const { readConfiguration } = require('@angular/compiler-cli'); creadConfiguration('tsconfig.json');\n"
+  );
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "mobile-host", version: "0.1.0", type: "module" }));
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "mobile-host",',
+    '  framework: "angular",',
+    "  allowAppOverrides: true",
+    "};"
+  ].join("\n"));
+
+  const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
+  const workspace = {
+    kind: "standalone",
+    root,
+    packageManager: "npm",
+    findProject: async () => project,
+    run: async () => {},
+    spawn: () => {
+      throw new Error("corrupt Angular build preflight should stop before spawn");
+    }
+  };
+  const args = new CliArguments(["dev", "mobile-host"]);
+
+  await assert.rejects(
+    new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("mobile-host"),
+    /@angular\/build 21\.2\.18 is corrupt.*creadConfiguration/
+  );
+});
+
 test("atlas dev compiles atlas.config.ts with the project tsconfig", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-config-compile-"));
   const projectRoot = join(root, "mobile-host");

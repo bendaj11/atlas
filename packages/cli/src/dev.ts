@@ -1,7 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
 import type { AtlasConfig, AtlasHostConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
@@ -39,6 +40,9 @@ export class AtlasDevService {
     const project = await this.workspace.findProject(name);
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
+    if (config.framework === "angular" && !this.args.hasFlag("prepare-only")) {
+      await assertUsableAngularBuildPackage(this.workspace.root, project.root);
+    }
     if (isHostConfig(config)) {
       await this.runHost(project, config);
       return;
@@ -317,6 +321,41 @@ function browserOpenCommand(url: string): { command: string; args: string[] } {
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   return "allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
+}
+
+interface CorruptAngularBuildPackage {
+  version: string;
+  sourcePath: string;
+}
+
+async function assertUsableAngularBuildPackage(workspaceRoot: string, projectRoot: string): Promise<void> {
+  const corruptPackage = await findCorruptAngularBuildPackage(projectRoot) ?? await findCorruptAngularBuildPackage(workspaceRoot);
+  if (!corruptPackage) return;
+
+  throw new Error([
+    `Angular dev server cannot start because @angular/build ${corruptPackage.version} is corrupt.`,
+    `${corruptPackage.sourcePath} calls creadConfiguration(...), but @angular/compiler-cli exports readConfiguration.`,
+    "Pin Angular build tooling to a fixed patch, reinstall node_modules, then run atlas dev again."
+  ].join(" "));
+}
+
+async function findCorruptAngularBuildPackage(root: string): Promise<CorruptAngularBuildPackage | undefined> {
+  try {
+    const requireFromRoot = createRequire(join(root, "package.json"));
+    const packagePath = requireFromRoot.resolve("@angular/build/package.json");
+    const packageJson = JSON.parse(await readFile(packagePath, "utf8")) as { version?: unknown };
+    const sourcePath = join(dirname(packagePath), "src/tools/angular/compilation/angular-compilation.js");
+    const source = await readFile(sourcePath, "utf8");
+    if (!source.includes("creadConfiguration(")) return undefined;
+    return {
+      version: typeof packageJson.version === "string" ? packageJson.version : "unknown",
+      sourcePath
+    };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "MODULE_NOT_FOUND") return undefined;
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return undefined;
+    throw error;
+  }
 }
 
 function configuredHostIds(config: AtlasConfig): string[] {
