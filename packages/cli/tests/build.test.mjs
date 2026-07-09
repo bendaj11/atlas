@@ -515,7 +515,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx source\n' > "$directory/src/main.ts"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf 'nx jest\n' > "$directory/jest.config.ts"
-  printf '{"name":"mobile-host","root":"products/host","marker":"nx-generator","targets":{"build":{"executor":"@nx/angular:application"},"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
+  printf '{"name":"mobile-host","root":"products/host","marker":"nx-generator","targets":{"build":{"executor":"@nx/angular:application"},"serve":{"executor":"@angular-devkit/build-angular:dev-server","defaultConfiguration":"development","configurations":{"production":{"buildTarget":"mobile-host:build:production"},"development":{"buildTarget":"mobile-host:build:development"}}}}}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
@@ -543,6 +543,8 @@ exit 1
   assert.equal(project.targets.serve.options.dev, true);
   assert.equal(project.targets.serve.options.port, 4200);
   assert.equal(project.targets["serve-original"].executor, "@angular-devkit/build-angular:dev-server");
+  assert.equal(project.targets["serve-original"].configurations.production.buildTarget, "mobile-host:esbuild:production");
+  assert.equal(project.targets["serve-original"].configurations.development.buildTarget, "mobile-host:esbuild:development");
   assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config mobile-host");
   assert.equal(project.targets.dev.options.commands[1].command, "nx run mobile-host:serve");
   assert.equal(project.targets.dev.options.commands[1].forwardAllArgs, true);
@@ -674,7 +676,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx nested component\n' > "$directory/src/app/nx-only/nx-only.component.ts"
   printf 'nx angular public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
-  printf '{"name":"orders","marker":"nx-generator","targets":{"build":{"executor":"@nx/angular:application"},"serve":{"executor":"@angular-devkit/build-angular:dev-server"}}}\n' > "$directory/project.json"
+  printf '{"name":"orders","marker":"nx-generator","targets":{"build":{"executor":"@nx/angular:application"},"serve":{"executor":"@angular-devkit/build-angular:dev-server","defaultConfiguration":"development","configurations":{"production":{"buildTarget":"orders:build:production"},"development":{"buildTarget":"orders:build:development"}}}}}\n' > "$directory/project.json"
   printf '{"extends":"./tsconfig.json","marker":"nx-generator"}\n' > "$directory/tsconfig.app.json"
   exit 0
 fi
@@ -711,6 +713,8 @@ exit 1
   assert.equal(project.targets.serve.options.target, "orders:serve-original:development");
   assert.equal(project.targets.serve.options.port, 4201);
   assert.equal(project.targets["serve-original"].executor, "@angular-devkit/build-angular:dev-server");
+  assert.equal(project.targets["serve-original"].configurations.production.buildTarget, "orders:esbuild:production");
+  assert.equal(project.targets["serve-original"].configurations.development.buildTarget, "orders:esbuild:development");
   const angularMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
   assert.equal(angularMfTsconfig.marker, "nx-generator");
   assert.equal(angularMfTsconfig.include, undefined);

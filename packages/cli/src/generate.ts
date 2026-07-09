@@ -535,6 +535,7 @@ function ensureAngularNativeFederationTargets(
     targets["serve-original"] ??= targets.serve;
   }
   if (targets["serve-original"]) {
+    retargetAngularServeBuild(targets["serve-original"], projectName);
     targets.serve = {
       [runnerKey]: "@angular-architects/native-federation:build",
       options: {
@@ -544,6 +545,27 @@ function ensureAngularNativeFederationTargets(
       }
     };
   }
+}
+
+function retargetAngularServeBuild(target: unknown, projectName: string): void {
+  const serveTarget = asObject(target);
+  retargetAngularBuildReference(asObject(serveTarget.options), projectName);
+  for (const configuration of Object.values(asObject(serveTarget.configurations))) {
+    retargetAngularBuildReference(asObject(configuration), projectName);
+  }
+}
+
+function retargetAngularBuildReference(options: Record<string, unknown>, projectName: string): void {
+  for (const key of ["buildTarget", "browserTarget"]) {
+    const value = options[key];
+    if (typeof value === "string") options[key] = retargetAngularBuildTarget(value, projectName);
+  }
+}
+
+function retargetAngularBuildTarget(value: string, projectName: string): string {
+  const [targetProject, targetName, ...rest] = value.split(":");
+  if (targetProject !== projectName || targetName !== "build") return value;
+  return [targetProject, "esbuild", ...rest].join(":");
 }
 
 function isNativeFederationTarget(value: unknown, runnerKey: "builder" | "executor"): boolean {
