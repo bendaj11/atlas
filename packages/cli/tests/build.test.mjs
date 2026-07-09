@@ -220,6 +220,7 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   const architect = angularJson.projects["customer-host"].architect;
   assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
   assert.equal(architect.build.options.target, "customer-host:esbuild:production");
+  assert.deepEqual(architect.esbuild.options.polyfills, ["zone.js", "es-module-shims"]);
   assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
   assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
   assert.equal(architect.serve.options.port, 4200);
@@ -543,6 +544,7 @@ exit 1
   assert.equal(project.targets.build.configurations.development.target, "mobile-host:esbuild:development");
   assert.equal(project.targets.build.configurations.development.dev, true);
   assert.equal(project.targets.esbuild.executor, "@nx/angular:application");
+  assert.deepEqual(project.targets.esbuild.options.polyfills, ["es-module-shims"]);
   assert.equal(project.targets.serve.executor, "@angular-architects/native-federation:build");
   assert.equal(project.targets.serve.options.target, "mobile-host:serve-original:development");
   assert.equal(project.targets.serve.options.dev, true);
@@ -716,6 +718,7 @@ exit 1
   assert.equal(project.targets.build.executor, "@angular-architects/native-federation:build");
   assert.equal(project.targets.build.options.target, "orders:esbuild:production");
   assert.equal(project.targets.esbuild.executor, "@nx/angular:application");
+  assert.deepEqual(project.targets.esbuild.options.polyfills, ["es-module-shims"]);
   assert.equal(project.targets.serve.executor, "@angular-architects/native-federation:build");
   assert.equal(project.targets.serve.options.target, "orders:serve-original:development");
   assert.equal(project.targets.serve.options.port, 4201);

@@ -159,8 +159,15 @@ function PopupApp(): JSX.Element {
     <WixStyleReactProvider>
       <Box className="popup-shell" direction="vertical" backgroundColor="D80" minHeight="100vh">
         <Box padding="16px" direction="vertical" gap="14px">
-          <StatusCard hostId={hostData?.config.hostId} status={status} onRefresh={() => void load()} />
-          <ScopePicker value={scope} disabled={status.busy} onChange={setScope} />
+          {hostData || status.busy ? (
+            <StatusCard hostId={hostData?.config.hostId} status={status} onRefresh={() => void load()} />
+          ) : (
+            <EmptyFrame
+              title="No Atlas host"
+              message="Open an Atlas host tab, then refresh."
+              action={<Button size="small" priority="secondary" disabled={status.busy} onClick={() => void load()} aria-label="Refresh host data">Refresh</Button>}
+            />
+          )}
           {view.name === "dashboard" ? (
             <Dashboard
               hostData={hostData}
@@ -174,7 +181,9 @@ function PopupApp(): JSX.Element {
               appId={view.appId}
               hostData={hostData}
               busy={status.busy}
+              scope={scope}
               onCancel={reloadDashboard}
+              onScopeChange={setScope}
               onSave={(manifest) => {
                 if (!hostData) return;
                 savedDisabledOverrides.delete(manifest.production.id);
@@ -230,9 +239,9 @@ function Dashboard({ hostData, revision, busy, onEdit, onToggle }: {
   busy: boolean;
   onEdit: (appId: string) => void;
   onToggle: (appId: string) => void;
-}): JSX.Element {
+}): JSX.Element | null {
   const apps = useMemo(() => hostData?.catalog.manifests.map((manifest) => createAppViewModel(manifest)) ?? [], [hostData, revision]);
-  if (!hostData) return <EmptyFrame title="No Atlas host" message="Open an Atlas host tab, then refresh." />;
+  if (!hostData) return null;
   return (
     <Box direction="vertical" gap="12px">
       {apps.map((app) => (
@@ -269,11 +278,13 @@ function Dashboard({ hostData, revision, busy, onEdit, onToggle }: {
   );
 }
 
-function Editor({ appId, hostData, busy, onCancel, onSave, onError }: {
+function Editor({ appId, hostData, busy, scope, onCancel, onScopeChange, onSave, onError }: {
   appId: string;
   hostData: HostData | undefined;
   busy: boolean;
+  scope: Scope;
   onCancel: () => void;
+  onScopeChange: (scope: Scope) => void;
   onSave: (value: { production: Manifest; selected: Manifest | undefined }) => void;
   onError: (message: string) => void;
 }): JSX.Element {
@@ -343,6 +354,7 @@ function Editor({ appId, hostData, busy, onCancel, onSave, onError }: {
               />
             </EditorRow>
           </RadioGroup>
+          <ScopePicker value={scope} disabled={busy} onChange={onScopeChange} />
           <Divider />
           <Box align="right" gap="8px">
             <Button priority="secondary" disabled={busy} onClick={onCancel}>Cancel</Button>
@@ -388,13 +400,16 @@ function VersionDropdown({ id, ariaLabel, disabled, selectedId, versions, hostId
   );
 }
 
-function EmptyFrame({ title, message }: { title: string; message: string }): JSX.Element {
+function EmptyFrame({ title, message, action }: { title: string; message: string; action?: React.ReactNode }): JSX.Element {
   return (
     <Card>
       <Card.Content>
-        <Box direction="vertical" gap="6px">
-          <Text weight="bold">{title}</Text>
-          <Text size="small" secondary>{message}</Text>
+        <Box role="status" verticalAlign="middle" gap="12px">
+          <Box direction="vertical" gap="6px" flex="1" minWidth="0">
+            <Text weight="bold">{title}</Text>
+            <Text size="small" secondary>{message}</Text>
+          </Box>
+          {action}
         </Box>
       </Card.Content>
     </Card>

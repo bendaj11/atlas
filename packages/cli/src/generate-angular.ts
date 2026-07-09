@@ -3,6 +3,7 @@ import { readJsonFile, writeJsonFile } from "./generate-json.js";
 
 type ProjectType = "host" | "app";
 type RunnerKey = "builder" | "executor";
+const ES_MODULE_SHIMS_POLYFILL = "es-module-shims";
 
 export async function ensureAngularWorkspaceFederationConfig(
   root: string,
@@ -31,6 +32,7 @@ export function ensureAngularNativeFederationTargets(
     targets.esbuild ??= targets.build;
   }
   if (targets.esbuild) {
+    ensureAngularFederationPolyfills(targets.esbuild);
     targets.build = {
       [runnerKey]: "@angular-architects/native-federation:build",
       options: { target: `${projectName}:esbuild:production` },
@@ -54,6 +56,22 @@ export function ensureAngularNativeFederationTargets(
       }
     };
   }
+}
+
+function ensureAngularFederationPolyfills(target: unknown): void {
+  const targetObject = asObject(target);
+  const options = asObject(targetObject.options);
+  options.polyfills = addUniquePolyfill(options.polyfills, ES_MODULE_SHIMS_POLYFILL);
+  targetObject.options = options;
+}
+
+function addUniquePolyfill(value: unknown, polyfill: string): string[] {
+  if (typeof value === "string" && value) return value === polyfill ? [value] : [value, polyfill];
+  if (Array.isArray(value)) {
+    const polyfills = value.filter((item): item is string => typeof item === "string");
+    return polyfills.includes(polyfill) ? polyfills : [...polyfills, polyfill];
+  }
+  return [polyfill];
 }
 
 function retargetAngularServeBuild(target: unknown, projectName: string): void {

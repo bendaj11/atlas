@@ -46,8 +46,8 @@ test.describe("Atlas Columbus extension", () => {
     expect(await storedVersion(secondHost, "localStorage")).toBe("0.0.9");
 
     const tabPopup = await openPopup(session, firstHost);
-    await tabPopup.getByText("This tab", { exact: true }).click();
     await editApp(tabPopup, "Dashboard React");
+    await tabPopup.getByText("This tab", { exact: true }).click();
     await tabPopup.getByLabel("Production").check();
     await tabPopup.locator("#production-version").selectOption({ label: "0.1.0" });
     await saveAndWaitForReload(tabPopup, firstHost);
