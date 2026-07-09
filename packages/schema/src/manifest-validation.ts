@@ -58,17 +58,17 @@ function validatePlacements(value: unknown, path: string, issues: AtlasValidatio
     addIssue(issues, path, "Expected placements to be an array.");
     return;
   }
-  const ids = new Set<string>();
-  value.forEach((placement, index) => validatePlacement(placement, `${path}.${index}`, ids, issues));
+  const placementIds = new Set<string>();
+  value.forEach((placement, index) => validatePlacement(placement, `${path}.${index}`, placementIds, issues));
 }
 
-function validatePlacement(value: unknown, path: string, ids: Set<string>, issues: AtlasValidationIssue[]): void {
+function validatePlacement(value: unknown, path: string, placementIds: Set<string>, issues: AtlasValidationIssue[]): void {
   const placement = asRecord(value);
   const id = requiredString(placement, "id", issues, path);
   const hostId = requiredString(placement, "hostId", issues, path);
-  if (id) validateIdentifier(id, `${path}.id`, "placement id", issues);
+  if (id) validateIdentifier(id, `${path}.id`, "mount id", issues);
   if (hostId) validateIdentifier(hostId, `${path}.hostId`, "host id", issues);
-  if (id) validateUniqueValue(id, `${path}.id`, "placement id", ids, issues);
+  if (id && hostId) validateUniquePlacementId({ id, hostId, path: `${path}.id`, placementIds, issues });
 
   if (!isOneOf(placement?.kind, ["route", "slot"])) {
     addIssue(issues, `${path}.kind`, "Expected placement kind to be route or slot.");
@@ -206,4 +206,12 @@ function validateUniqueIdentifiers(values: unknown[], path: string, label: strin
 function validateUniqueValue(value: string, path: string, label: string, seen: Set<string>, issues: AtlasValidationIssue[]): void {
   if (seen.has(value)) addIssue(issues, path, `Duplicate ${label} \"${value}\".`);
   seen.add(value);
+}
+
+function validateUniquePlacementId(input: { id: string; hostId: string; path: string; placementIds: Set<string>; issues: AtlasValidationIssue[] }): void {
+  const placementKey = `${input.hostId}\0${input.id}`;
+  if (input.placementIds.has(placementKey)) {
+    addIssue(input.issues, input.path, `Duplicate mount id \"${input.id}\" for host \"${input.hostId}\". Mount ids only need to be unique within the same host. If this came from atlas.config.ts slots, do not repeat the same slotId for the same hostId; use a different slotId or hostId.`);
+  }
+  input.placementIds.add(placementKey);
 }

@@ -63,7 +63,7 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
 
   assert.deepEqual(manifest.placements, [
     { id: "host-catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } },
-    { id: "sidebar", kind: "slot", hostId: "host", slot: "sidebar" }
+    { id: "host-sidebar-slot", kind: "slot", hostId: "host", slot: "sidebar" }
   ]);
 });
 
@@ -83,6 +83,27 @@ test("createManifestFromConfig derives unique internal route placement ids", () 
   });
 
   assert.deepEqual(manifest.placements.map((placement) => placement.id), ["host-orders-id-route", "host-orders-id-route-2"]);
+});
+
+test("createManifestFromConfig scopes slot placement ids by host", () => {
+  const manifest = createManifestFromConfig({
+    config: {
+      id: "catalog",
+      framework: "react",
+      slots: [
+        { hostId: "angular-host", slotId: "window" },
+        { hostId: "react-host", slotId: "window" }
+      ]
+    },
+    version: "1.0.0",
+    buildId: "build-1",
+    remoteEntryUrl: "https://cdn.example.com/catalog/remoteEntry.js"
+  });
+
+  assert.deepEqual(manifest.placements, [
+    { id: "angular-host-window-slot", kind: "slot", hostId: "angular-host", slot: "window" },
+    { id: "react-host-window-slot", kind: "slot", hostId: "react-host", slot: "window" }
+  ]);
 });
 
 test("manifest validates the optional DOM isolation policy", () => {
@@ -179,13 +200,25 @@ test("slot placements require a slot and reject route details", () => {
   assert.ok(issueAt(issues, "placements.0.route"));
 });
 
-test("placements require unique ids", () => {
+test("placements allow matching ids for different hosts", () => {
+  const placements = [
+    { id: "window", kind: "slot", hostId: "angular-host", slot: "window" },
+    { id: "window", kind: "slot", hostId: "react-host", slot: "window" }
+  ];
+
+  assert.equal(issueAt(validateAtlasManifest(createManifest({ placements })), "placements.1.id"), undefined);
+});
+
+test("placements require unique ids for each host", () => {
   const placements = [
     { id: "tools", kind: "slot", hostId: "host", slot: "sidebar" },
     { id: "tools", kind: "slot", hostId: "host", slot: "header" }
   ];
 
-  assert.equal(issueAt(validateAtlasManifest(createManifest({ placements })), "placements.1.id")?.message, "Duplicate placement id \"tools\".");
+  assert.equal(
+    issueAt(validateAtlasManifest(createManifest({ placements })), "placements.1.id")?.message,
+    "Duplicate mount id \"tools\" for host \"host\". Mount ids only need to be unique within the same host. If this came from atlas.config.ts slots, do not repeat the same slotId for the same hostId; use a different slotId or hostId."
+  );
 });
 
 test("manifest and nested asset URLs accept only absolute HTTP(S) URLs", () => {

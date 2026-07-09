@@ -55,8 +55,8 @@ function placements(config: AtlasAppConfig): AtlasPlacement[] {
         ...(route.nav ? { nav: route.nav } : {})
       }
     })),
-    ...(config.slots ?? []).map((slot) => ({
-      id: slot.slotId,
+    ...(config.slots ?? []).map((slot, index, slots) => ({
+      id: slotPlacementId(slot.hostId, slot.slotId, slots.slice(0, index)),
       kind: "slot" as const,
       hostId: slot.hostId,
       slot: slot.slotId
@@ -75,7 +75,18 @@ function routePlacementId(hostId: string, basePath: string, previousRoutes: read
   return duplicateCount === 0 ? baseId : `${baseId}-${duplicateCount + 1}`;
 }
 
+function slotPlacementId(hostId: string, slotId: string, previousSlots: readonly { hostId: string; slotId: string }[]): string {
+  const baseId = identifierFromSlot(hostId, slotId);
+  const duplicateCount = previousSlots.filter((slot) => identifierFromSlot(slot.hostId, slot.slotId) === baseId).length;
+  return duplicateCount === 0 ? baseId : `${baseId}-${duplicateCount + 1}`;
+}
+
 function identifierFromRoute(hostId: string, basePath: string): string {
   const value = `${hostId}-${basePath}`.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
   return value ? `${value}-route` : "route";
+}
+
+function identifierFromSlot(hostId: string, slotId: string): string {
+  const value = `${hostId}-${slotId}`.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+  return value ? `${value}-slot` : "slot";
 }
