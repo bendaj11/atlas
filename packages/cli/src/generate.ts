@@ -18,6 +18,7 @@ import {
 import { existingPackageName, exists, takeOverAppSource, writeGenerated } from "./generate-files.js";
 import { frameworkLabel } from "./generate-labels.js";
 import {
+  alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
   atlasConfigNxTarget,
   ensureDelegatedNxTargets,
@@ -86,6 +87,7 @@ export class AtlasGenerateService {
       if (selectedFramework === "angular") await ensureAngularWorkspaceFederationConfig(root, name, type);
       if (workspaceScaffolded) {
         await alignDelegatedTsconfig(root, selectedFramework);
+        if (selectedFramework === "angular") await alignDelegatedAngularFederationConfig(this.workspace.root, root);
         if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import type { SupportedFramework } from "./arguments.js";
 import { ensureAngularNativeFederationTargets } from "./generate-angular.js";
@@ -43,6 +43,27 @@ export async function alignDelegatedTsconfig(root: string, framework: SupportedF
     tsconfig.include = addUniqueString(Array.isArray(tsconfig.include) ? tsconfig.include : [], "atlas.config.ts");
   }
   await writeJsonFile(target, tsconfig);
+}
+
+export async function alignDelegatedAngularFederationConfig(workspaceRoot: string, root: string): Promise<void> {
+  const projectRoot = normalizedProjectRoot(workspaceRoot, root);
+  if (projectRoot === ".") return;
+
+  const configPath = join(root, "federation.config.js");
+  if (!await exists(configPath)) return;
+
+  const source = await readFile(configPath, "utf8");
+  const next = source
+    .replace(
+      /(["'`])\.\/src\/entry\.ts\1/g,
+      (_match, quote: string) => `${quote}./${projectRoot}/src/entry.ts${quote}`
+    )
+    .replace(
+      /(["'`])\.\/src\/exported-widgets\/\$\{entry\.name\}\/index\.ts\1/g,
+      (_match, quote: string) => `${quote}./${projectRoot}/src/exported-widgets/\${entry.name}/index.ts${quote}`
+    );
+
+  if (next !== source) await writeFile(configPath, next, "utf8");
 }
 
 export async function ensureDelegatedNxTargets(

@@ -700,7 +700,9 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/app/details/details.component.ts"), "utf8"), /export class DetailsComponent/);
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas app assets/);
-  assert.match(await readFile(join(root, "orders/federation.config.js"), "utf8"), /"\.\/entry": "\.\/src\/entry\.ts"/);
+  const federationConfig = await readFile(join(root, "orders/federation.config.js"), "utf8");
+  assert.match(federationConfig, /['"]\.\/entry['"]:\s*['"]\.\/orders\/src\/entry\.ts['"]/);
+  assert.match(federationConfig, /`\.\/orders\/src\/exported-widgets\/\$\{entry\.name\}\/index\.ts`/);
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
