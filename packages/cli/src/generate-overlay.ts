@@ -12,6 +12,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/index.html",
     "src/styles.css",
     "src/app/app.component.ts",
+    "src/app/atlas-host-default-route.component.ts",
     "src/main.ts",
     "src/bootstrap.ts"
   ]),

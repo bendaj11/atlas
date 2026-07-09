@@ -226,7 +226,10 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   assert.equal(architect.serve.options.port, 4200);
   assert.match(main, /initFederation/);
   assert.match(bootstrap, /startHost/);
+  assert.match(bootstrap, /AtlasHostDefaultRouteComponent/);
+  assert.doesNotMatch(bootstrap, /AtlasDefaultHostRouteComponent/);
   assert.doesNotMatch(bootstrap, /localhost:4300/);
+  assert.match(await readFile(join(target, "src/app/atlas-host-default-route.component.ts"), "utf8"), /standalone: true/);
 });
 
 test("atlas app generation only writes a route when a host is supplied", async () => {
@@ -418,6 +421,7 @@ for (const scenario of [
       const architect = angularJson.projects.orders.architect;
       assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
       assert.equal(architect.build.options.target, "orders:esbuild:production");
+      assert.deepEqual(architect.esbuild.options.polyfills, ["zone.js", "es-module-shims"]);
       assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
       assert.equal(architect.serve.options.target, "orders:serve-original:development");
       assert.equal(architect.serve.options.port, 4201);
@@ -479,6 +483,7 @@ for (const scenario of [
       const architect = angularJson.projects["customer-host"].architect;
       assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
       assert.equal(architect.build.options.target, "customer-host:esbuild:production");
+      assert.deepEqual(architect.esbuild.options.polyfills, ["zone.js", "es-module-shims"]);
       assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
       assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
       assert.equal(architect.serve.options.port, 4200);
@@ -558,8 +563,10 @@ exit 1
   assert.equal(project.targets["mobile-host"].options.command, "nx run mobile-host:dev");
   assert.match(await readFile(join(root, "products/host/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
   assert.match(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8"), /startHost/);
+  assert.doesNotMatch(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8"), /AtlasDefaultHostRouteComponent/);
   await assert.rejects(access(join(root, "products/host/src/app.component.ts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "products/host/src/app/app.component.ts"), "utf8"), /data-atlas-host-status/);
+  assert.match(await readFile(join(root, "products/host/src/app/atlas-host-default-route.component.ts"), "utf8"), /standalone: true/);
   assert.match(await readFile(join(root, "products/host/src/index.html"), "utf8"), /<atlas-host-root><\/atlas-host-root>/);
   assert.equal(await readFile(join(root, "products/host/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(await readFile(join(root, "products/host/jest.config.ts"), "utf8"), "nx jest\n");

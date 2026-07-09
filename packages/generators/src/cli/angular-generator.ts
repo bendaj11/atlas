@@ -1,4 +1,4 @@
-import { angularHostBootstrap, angularHostComponent, angularHostMain } from "./angular-host-generator.js";
+import { angularHostBootstrap, angularHostComponent, angularHostDefaultRouteComponent, angularHostMain } from "./angular-host-generator.js";
 import {
   angularAppAppComponent,
   angularAppDetailsComponent,
@@ -29,6 +29,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
     { path: "src/styles.css", contents: atlasHostStyles() },
     { path: "src/app/app.component.ts", contents: angularHostComponent() },
+    { path: "src/app/atlas-host-default-route.component.ts", contents: angularHostDefaultRouteComponent() },
     { path: "src/main.ts", contents: angularHostMain() },
     { path: "src/bootstrap.ts", contents: angularHostBootstrap() }
   ];

@@ -31,6 +31,7 @@ interface AtlasInterceptDevSession {
 
 const ATLAS_DEV_SESSION_URL = "http://127.0.0.1:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
+const ATLAS_RUNTIME_OVERRIDE_KEYS = ["atlas.runtime-overrides", "atlas.runtime-override-url"];
 const atlasWindow = window as Window & { __atlasExtensionInterceptorInstalled?: boolean };
 
 if (!atlasWindow.__atlasExtensionInterceptorInstalled) {
@@ -60,7 +61,8 @@ function installAtlasCatalogInterceptor(): void {
       .then((session) => session?.schemaVersion === "1" ? session : undefined)
       .catch(() => undefined);
     const session = await devSession;
-    if (!session) devSession = undefined;
+    if (session) clearRuntimeStorageOverrides();
+    else devSession = undefined;
     return session;
   }
 }
@@ -111,5 +113,12 @@ function isAtlasCatalogRequest(value: string): boolean {
     return ATLAS_CATALOG_PATH.test(new URL(value, location.href).pathname);
   } catch {
     return false;
+  }
+}
+
+function clearRuntimeStorageOverrides(): void {
+  for (const key of ATLAS_RUNTIME_OVERRIDE_KEYS) {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
   }
 }
