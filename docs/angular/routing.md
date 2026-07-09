@@ -59,7 +59,7 @@ You can add more named slots by adding more anchors:
 <footer data-atlas-slot="footer-tools"></footer>
 ```
 
-Apps that declare `slots: [{ name: "help-panel", ... }]` mount into the matching
+Apps that declare `slots: [{ slotId: "help-panel", ... }]` mount into the matching
 host anchor. Apps that declare routes mount into `data-atlas-route-outlet`.
 
 `data-atlas-navigation` is optional. It renders a basic Atlas-managed link list
@@ -131,9 +131,8 @@ export default {
   ],
   slots: [
     {
-      slotId: "orders-header-tools",
-      hostId: "customer-host",
-      name: "header"
+      slotId: "header",
+      hostId: "customer-host"
     }
   ]
 } satisfies AtlasAppConfig;

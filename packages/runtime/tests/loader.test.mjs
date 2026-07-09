@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
+import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 
 test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
@@ -620,6 +621,36 @@ test("host runtime mounts slots independently and reports remote failures", asyn
   await runtime.stop();
 });
 
+test("DOM host warns and skips app import when a declared slot is missing", async () => {
+  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
+  const warnings = [];
+  let imported = false;
+  const originalWarn = console.warn;
+  console.warn = (message) => warnings.push(message);
+  try {
+    const runtime = await startDomHostRuntime({
+      options: {
+        runtimeConfig: { schemaVersion: "1", hostId: "host", catalogUrl: catalogDataUrl([widget]) },
+        federation: {
+          async initFederation() {},
+          async loadRemoteModule() { imported = true; return { mount() {} }; }
+        },
+        openModal() { throw new Error("modal not used"); },
+        openPopup() { throw new Error("popup not used"); }
+      },
+      services: { createNavigation: () => createTestHostSdk().navigation },
+      document: { querySelector() { return null; }, dispatchEvent() { return true; } },
+      onInfrastructureReady() {}
+    });
+
+    assert.equal(imported, false);
+    assert.match(warnings[0], /does not contain \[data-atlas-slot="header"\]/);
+    await runtime.stop();
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
 test("host runtime starts independent slots concurrently", async () => {
   const placements = (id) => [{ id: `${id}-slot`, kind: "slot", hostId: "host", slot: id }];
   let active = 0;
@@ -739,6 +770,11 @@ test("host runtime reports and cleans up an app that opts into readiness but nev
 
 function tick() {
   return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function catalogDataUrl(manifests) {
+  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests };
+  return `data:application/json,${encodeURIComponent(JSON.stringify(catalog))}`;
 }
 
 function createStylesheetDocument(events, outcome = "load") {

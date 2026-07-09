@@ -103,10 +103,10 @@ export function createNxGenerationCommand(
   options: { framework: "angular" | "react"; type: "host" | "app"; directory: string; devServerPort?: number; interactive: boolean; routing: boolean }
 ): ProcessCommand {
   const generator = options.framework === "angular" ? "@nx/angular:application" : "@nx/react:application";
+  const port = options.devServerPort ?? defaultDevServerPort(options.type);
   const args = [
     "nx", "generate", generator, options.directory,
-    `--interactive=${options.interactive}`, "--skipFormat", `--routing=${options.routing}`,
-    ...(options.framework === "react" ? [`--port=${options.devServerPort ?? defaultDevServerPort(options.type)}`] : []),
+    `--interactive=${options.interactive}`, "--skipFormat", `--routing=${options.routing}`, `--port=${port}`,
     ...(!options.interactive ? [
       "--e2eTestRunner=none", "--unitTestRunner=none",
       ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])

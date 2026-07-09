@@ -51,12 +51,10 @@ export interface AtlasRouteMount {
 
 /** Slot this app can fill inside one host. */
 export interface AtlasSlotMount {
-  /** Short stable id for this slot mount, unique inside this app. */
+  /** Host slot name this app renders into. */
   slotId: string;
   /** Host app this slot belongs to. */
   hostId: string;
-  /** Host slot name this app renders into. */
-  name: string;
 }
 
 /** Source config developers write so Atlas can build manifests and runtime files. */

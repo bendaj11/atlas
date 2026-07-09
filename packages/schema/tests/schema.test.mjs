@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   AtlasValidationError,
   assertAtlasHostCatalog,
+  assertAtlasManifest,
   createManifestFromConfig,
   validateAtlasHostCatalog,
   validateAtlasManifest
@@ -33,7 +34,7 @@ test("createManifestFromConfig derives supported hosts from source routes and sl
       id: "catalog",
       framework: "react",
       routes: [{ hostId: "host", basePath: "/catalog", title: "Catalog" }],
-      slots: [{ slotId: "catalog-sidebar", hostId: "partner-host.v2", name: "sidebar" }]
+      slots: [{ slotId: "sidebar", hostId: "partner-host.v2" }]
     },
     version: "1.0.0",
     buildId: "build-1",
@@ -53,7 +54,7 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
       id: "catalog",
       framework: "react",
       routes: [{ hostId: "host", basePath: "/catalog", title: "Catalog" }],
-      slots: [{ slotId: "catalog-sidebar", hostId: "host", name: "sidebar" }]
+      slots: [{ slotId: "sidebar", hostId: "host" }]
     },
     version: "1.0.0",
     buildId: "build-1",
@@ -62,7 +63,7 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
 
   assert.deepEqual(manifest.placements, [
     { id: "host-catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } },
-    { id: "catalog-sidebar", kind: "slot", hostId: "host", slot: "sidebar" }
+    { id: "sidebar", kind: "slot", hostId: "host", slot: "sidebar" }
   ]);
 });
 
@@ -315,5 +316,14 @@ test("assertAtlasHostCatalog throws structured validation errors", () => {
   assert.throws(
     () => assertAtlasHostCatalog({ schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: "invalid" }),
     (error) => error instanceof AtlasValidationError && error.issues[0].path === "manifests"
+  );
+});
+
+test("manifest validation error messages include actionable issue details", () => {
+  assert.throws(
+    () => assertAtlasManifest(createManifest({ placements: [{ id: "tools", kind: "slot", hostId: "host" }] })),
+    (error) => error instanceof AtlasValidationError
+      && error.message.includes("Invalid Atlas manifest.")
+      && error.message.includes("placements.0.slot: Expected slot to be a non-empty string.")
   );
 });

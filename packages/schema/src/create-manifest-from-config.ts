@@ -59,7 +59,7 @@ function placements(config: AtlasAppConfig): AtlasPlacement[] {
       id: slot.slotId,
       kind: "slot" as const,
       hostId: slot.hostId,
-      slot: slot.name
+      slot: slot.slotId
     }))
   ];
 }

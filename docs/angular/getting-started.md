@@ -228,9 +228,8 @@ export default {
   ],
   slots: [
     {
-      slotId: "orders-header-tools",
-      hostId: "customer-host",
-      name: "header"
+      slotId: "header",
+      hostId: "customer-host"
     }
   ]
 } satisfies AtlasAppConfig;
@@ -239,7 +238,7 @@ export default {
 `routes` create browser URL ownership. Here, `basePath: "/orders"` means the
 host mounts this app for `/orders` and nested URLs such as `/orders/42`.
 
-`slots` create named layout placements. Here, `name: "header"` matches the
+`slots` create named layout placements. Here, `slotId: "header"` matches the
 host's `data-atlas-slot="header"` anchor, so the same app can also render
 header tools while the route app renders in `data-atlas-route-outlet`.
 

@@ -110,7 +110,10 @@ function assertCatalogMatchesConfig(catalogHostId: string, configHostId: string)
 
 function resolveDomSlotContainer(document: Document, mfId: string, placementId: string, slot: string): HTMLElement | undefined {
   const slotContainer = document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(slot)}"]`);
-  if (!slotContainer) return undefined;
+  if (!slotContainer) {
+    console.warn(`Atlas app "${mfId}" declares slot placement "${placementId}" for host slot "${slot}", but the host DOM does not contain [data-atlas-slot="${slot}"]. Add <div data-atlas-slot="${slot}"></div> to the host layout or remove the slot placement from the app manifest.`);
+    return undefined;
+  }
 
   const key = `${mfId}:${placementId}`;
   const selector = `[data-atlas-slot-mount="${cssEscape(key)}"]`;
