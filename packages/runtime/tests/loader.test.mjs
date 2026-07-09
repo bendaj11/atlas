@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 
@@ -273,41 +273,53 @@ test("Native Federation module imports use the configured retry policy", async (
   assert.equal(attempts, 2);
 });
 
-test("Native Federation initializes independent remotes concurrently", async () => {
-  let active = 0;
-  let maximumActive = 0;
+test("Native Federation initializes local remotes in one registry update", async () => {
+  const initialized = [];
+  const loaded = [];
   const importers = createNativeFederationImporters({
-    async initFederation() {
-      active += 1;
-      maximumActive = Math.max(maximumActive, active);
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      active -= 1;
+    async initFederation(remotes) {
+      initialized.push(remotes);
     },
-    async loadRemoteModule() { return { mount() {} }; }
+    async loadRemoteModule(remoteName) {
+      loaded.push(remoteName);
+      return { mount() {} };
+    }
   }, { retryCount: 0, timeoutMs: 50 });
+  const first = createTestManifest({ id: "first", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
+  const second = createTestManifest({ id: "second", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
 
-  await importers.initialize([createTestManifest({ id: "first" }), createTestManifest({ id: "second" })]);
+  await importers.initialize([first, second]);
+  await importers.importRemote(first);
+  await importers.importRemote(second);
 
-  assert.equal(maximumActive, 2);
+  assert.deepEqual(initialized, [{
+    atlas_first: "http://localhost:4201/remoteEntry.json",
+    atlas_second: "http://localhost:4202/remoteEntry.json"
+  }]);
+  assert.deepEqual(loaded, ["atlas_first", "atlas_second"]);
 });
 
-test("Native Federation bounds parallel remote initialization", async () => {
-  let active = 0;
-  let maximumActive = 0;
+test("Native Federation falls back to per-remote initialization when batch initialization fails", async () => {
+  const initialized = [];
   const importers = createNativeFederationImporters({
-    async initFederation() {
-      active += 1;
-      maximumActive = Math.max(maximumActive, active);
-      await new Promise((resolve) => setTimeout(resolve, 2));
-      active -= 1;
+    async initFederation(remotes) {
+      initialized.push(Object.keys(remotes));
+      if ("atlas_broken" in remotes) throw new Error("CDN unavailable");
     },
     async loadRemoteModule() { return { mount() {} }; }
   }, { retryCount: 0, timeoutMs: 50 });
-  const manifests = Array.from({ length: 12 }, (_, index) => createTestManifest({ id: `app-${index}` }));
+  const healthy = createTestManifest({ id: "healthy" });
+  const broken = createTestManifest({ id: "broken" });
 
-  await importers.initialize(manifests);
+  await importers.initialize([healthy, broken]);
+  await importers.importRemote(healthy);
 
-  assert.equal(maximumActive, 8);
+  assert.deepEqual(initialized, [
+    ["atlas_healthy", "atlas_broken"],
+    ["atlas_healthy"],
+    ["atlas_broken"]
+  ]);
+  await assert.rejects(() => importers.importRemote(broken), /CDN unavailable/);
 });
 
 test("host UI uses one host-owned outlet and supports custom loading and fallback renderers", () => {
@@ -478,6 +490,35 @@ test("app mounts receive an Atlas-owned scoped DOM boundary", async () => {
   assert.equal(receivedContainer.dataset.atlasMf, "map");
   await mounted.unmount();
   assert.equal(receivedContainer.removed, true);
+});
+
+test("remote asset URLs resolve against the owning app remote entry", () => {
+  const manifest = createTestManifest({
+    remoteEntryUrl: "http://localhost:4202/apps/catalog/remoteEntry.json"
+  });
+
+  assert.equal(
+    rewriteAssetUrl("/assets/images/image.JPG", manifest),
+    "http://localhost:4202/assets/images/image.JPG"
+  );
+  assert.equal(
+    rewriteAssetUrl("assets/images/image.JPG", manifest),
+    "http://localhost:4202/apps/catalog/assets/images/image.JPG"
+  );
+  assert.equal(
+    rewriteAssetUrl("https://cdn.example/image.JPG", manifest),
+    "https://cdn.example/image.JPG"
+  );
+});
+
+test("remote CSS asset URLs resolve against the owning app remote entry", () => {
+  const manifest = createTestManifest({ remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
+  const css = ".hero{background:url('/assets/images/image.JPG')} .icon{mask:url(\"assets/icon.svg\")}";
+
+  assert.equal(
+    rewriteCssAssetUrls(css, manifest),
+    ".hero{background:url('http://localhost:4202/assets/images/image.JPG')} .icon{mask:url(\"http://localhost:4202/assets/icon.svg\")}"
+  );
 });
 
 test("host loads app styles before mount and releases them after the final unmount", async () => {

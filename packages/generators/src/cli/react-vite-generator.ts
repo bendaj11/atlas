@@ -96,7 +96,7 @@ export default defineConfig({
     atlasReactRefreshPreamble(),
     atlasFederationMetadata()
   ],
-  server: { port: ${devServerPort}, cors: true, open: true },
+  server: { port: ${devServerPort}, cors: true },
   build: {
     target: "esnext",
     rollupOptions: {

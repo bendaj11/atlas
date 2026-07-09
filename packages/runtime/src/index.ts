@@ -10,6 +10,7 @@ import type {
 import { createRouteContext, createScopedNavigation } from "@atlas/sdk/navigation";
 import { assertManifestAssetTrust, loadHostCatalog, resolveRuntimeManifests, verifyManifestIntegrity, type AtlasRemoteTrustPolicy, type AtlasRuntimeOverride } from "./loader/runtime-discovery.js";
 import { importNativeFederationRemote } from "./loader/native-federation.js";
+import { startRemoteAssetRewrite } from "./remote-assets.js";
 import { loadManifestStyles } from "./stylesheets.js";
 import { mapWithConcurrency } from "./concurrency.js";
 export { AtlasLoadError, createRetryPolicy, runResiliently, type AtlasOperationContext, type AtlasRetryPolicy, type AtlasRetryPolicySource } from "./resilience.js";
@@ -38,6 +39,7 @@ export {
   type AtlasFederationAdapter,
   type AtlasNativeFederationImporters
 } from "./loader/native-federation.js";
+export { rewriteAssetUrl, rewriteCssAssetUrls, startRemoteAssetRewrite, type AtlasAssetRewriteRelease } from "./remote-assets.js";
 export {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
   ATLAS_OVERRIDE_QUERY_PARAM,
@@ -323,6 +325,7 @@ export async function mountApp(options: AtlasLoaderOptions & {
     ? await loadManifestStyles(options.manifest, document, options.trustPolicy)
     : await loadManifestStyles(options.manifest, document);
   const boundary = createMountBoundary(options.container, options.manifest.id, options.manifest.isolation ?? "scoped");
+  const releaseAssetRewrite = startRemoteAssetRewrite(options.manifest, boundary.container, document);
   const titleController = createRouteTitleController(document, options.routeTitle);
   let result: void | AtlasMfMountResult;
   try {
@@ -349,6 +352,7 @@ export async function mountApp(options: AtlasLoaderOptions & {
       }
     });
   } catch (error) {
+    releaseAssetRewrite();
     boundary.remove();
     titleController.reset();
     releaseStyles();
@@ -358,7 +362,7 @@ export async function mountApp(options: AtlasLoaderOptions & {
   return {
     manifest: options.manifest,
     async unmount() {
-      try { await result?.unmount?.(); } finally { boundary.remove(); titleController.reset(); releaseStyles(); }
+      try { await result?.unmount?.(); } finally { releaseAssetRewrite(); boundary.remove(); titleController.reset(); releaseStyles(); }
     }
   };
 }
@@ -474,17 +478,19 @@ export function createWidgetLoader(
         : importExportedWidget(resolved.widget, resolved.ownerManifest)) as AtlasExportedWidgetEntry<TProps>;
       const releaseStyles = await loadManifestStyles(resolved.ownerManifest, container.ownerDocument ?? globalThis.document);
       const boundary = createMountBoundary(container, widgetRef, resolved.ownerManifest.isolation ?? "scoped", "widget");
+      const releaseAssetRewrite = startRemoteAssetRewrite(resolved.ownerManifest, boundary.container, container.ownerDocument ?? globalThis.document);
       let result: void | AtlasMfMountResult;
       try {
         result = await entry.mount({ container: boundary.container, props, sdk, ...resolved });
       } catch (error) {
+        releaseAssetRewrite();
         boundary.remove();
         releaseStyles();
         throw error;
       }
       return {
         widget: resolved.widget,
-        async unmount() { try { await result?.unmount?.(); } finally { boundary.remove(); releaseStyles(); } }
+        async unmount() { try { await result?.unmount?.(); } finally { releaseAssetRewrite(); boundary.remove(); releaseStyles(); } }
       };
     }
   };

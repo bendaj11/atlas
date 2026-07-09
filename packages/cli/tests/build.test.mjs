@@ -280,7 +280,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   assert.doesNotMatch(defaultConfig, /"host"/);
 
   const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
-  assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true, open: true \}/);
+  assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true \}/);
   assert.doesNotMatch(explicitConfig, /hostCompatibility/);
   assert.match(explicitConfig, /routes: \[/);
   assert.match(explicitConfig, /hostId: "customer-host"/);

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.2.60",
+  "version": "0.2.61",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -65,7 +65,7 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.60"
+    "@atlas/schema": "0.2.61"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",
