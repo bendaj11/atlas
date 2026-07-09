@@ -1,5 +1,5 @@
 import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData, AtlasOverrideDocument as OverrideDocument } from "../contracts.js";
-import { DOCUMENT_KEY, URL_KEY } from "./constants.js";
+import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR, DOCUMENT_KEY, URL_KEY } from "./constants.js";
 import type { Scope } from "./types.js";
 
 export async function readHostData(activeTabId: number | undefined): Promise<{ hostData: HostData; tabId: number }> {
@@ -7,7 +7,8 @@ export async function readHostData(activeTabId: number | undefined): Promise<{ h
   const [injection] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     world: "MAIN",
-    func: inspectAtlasHost
+    func: inspectAtlasHost,
+    args: [DOCUMENT_KEY]
   });
 
   if (!injection?.result) throw new Error("Active page did not return Atlas runtime information.");
@@ -52,7 +53,8 @@ export async function writeOverrides({ tabId, hostData, documentValue, scope }: 
 }
 
 export async function updateActionBadge(tabId: number, overrideCount: number): Promise<void> {
-  await chrome.action.setBadgeBackgroundColor({ color: "#116dff" });
+  await chrome.action.setBadgeBackgroundColor({ color: BADGE_BACKGROUND_COLOR });
+  await chrome.action.setBadgeTextColor?.({ color: BADGE_TEXT_COLOR });
   await chrome.action.setBadgeText({ tabId, text: overrideCount > 0 ? String(overrideCount) : "" });
 }
 
@@ -83,80 +85,75 @@ function isInspectableTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.
   return typeof tab?.id === "number" && typeof tab.url === "string" && tab.url.startsWith("http");
 }
 
-function inspectAtlasHost(): Promise<HostData> {
-  return inspectAtlasHostData();
-}
+async function inspectAtlasHost(documentKey: string): Promise<HostData> {
+  async function readAtlasConfig(): Promise<HostData["config"]> {
+    const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Atlas runtime configuration returned ${response.status}.`);
 
-async function inspectAtlasHostData(): Promise<HostData> {
+    const config = await response.json() as HostData["config"];
+    if (config.schemaVersion !== "1" || !config.hostId || !config.catalogUrl) throw new Error("This page does not expose a valid Atlas runtime configuration.");
+
+    return config;
+  }
+
+  async function readAtlasCatalog(catalogUrl: URL): Promise<HostData["catalog"]> {
+    const response = await fetch(catalogUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Atlas catalog returned ${response.status}.`);
+
+    return response.json() as Promise<HostData["catalog"]>;
+  }
+
+  async function readManifestVersions(manifest: Manifest, registryRoot: string): Promise<{ entry: readonly [string, Manifest[]]; error?: string }> {
+    try {
+      const response = await fetch(`${registryRoot}/microfrontends/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Version lookup for ${manifest.id} returned ${response.status}.`);
+
+      const index = await response.json() as { manifests?: Manifest[] };
+      if (!Array.isArray(index.manifests)) throw new Error(`Version lookup for ${manifest.id} returned an invalid index.`);
+
+      return { entry: [manifest.id, index.manifests] as const };
+    } catch (error) {
+      return { entry: [manifest.id, [manifest]] as const, error: messageFromError(error) };
+    }
+  }
+
+  function atlasRegistryRoot(catalogUrl: URL): string {
+    const hostsMarker = "/hosts/";
+    const markerIndex = catalogUrl.pathname.indexOf(hostsMarker);
+
+    if (markerIndex < 0) throw new Error("Atlas catalog URL does not identify a static Atlas registry.");
+
+    return `${catalogUrl.origin}${catalogUrl.pathname.slice(0, markerIndex)}`;
+  }
+
+  function readStoredOverrideDocument(): { overrides: OverrideDocument | undefined; overrideScope: Scope | undefined } {
+    const tabStored = sessionStorage.getItem(documentKey);
+    const stored = tabStored ?? localStorage.getItem(documentKey);
+
+    if (!stored) return { overrides: undefined, overrideScope: undefined };
+
+    try {
+      return { overrides: JSON.parse(stored) as OverrideDocument, overrideScope: tabStored ? "tab" : "all" };
+    } catch {
+      return { overrides: undefined, overrideScope: tabStored ? "tab" : "all" };
+    }
+  }
+
+  function messageFromError(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
   const config = await readAtlasConfig();
   const catalogUrl = new URL(config.catalogUrl, location.href);
   const catalog = await readAtlasCatalog(catalogUrl);
   const registryRoot = atlasRegistryRoot(catalogUrl);
-  const versionErrors: string[] = [];
-  const entries = await Promise.all(catalog.manifests.map((manifest) => readManifestVersions({ manifest, registryRoot, versionErrors })));
+  const versionResults = await Promise.all(catalog.manifests.map((manifest) => readManifestVersions(manifest, registryRoot)));
   const { overrides, overrideScope } = readStoredOverrideDocument();
   const runtimeErrors = [...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]')]
     .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-mf") || "Unknown app error");
+  const versionErrors = versionResults.map(({ error }) => error).filter((error): error is string => Boolean(error));
 
-  return { config, catalog, versions: Object.fromEntries(entries), overrides, overrideScope, runtimeErrors, versionErrors };
-}
-
-async function readAtlasConfig(): Promise<HostData["config"]> {
-  const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
-  if (!response.ok) throw new Error(`Atlas runtime configuration returned ${response.status}.`);
-
-  const config = await response.json() as HostData["config"];
-  if (config.schemaVersion !== "1" || !config.hostId || !config.catalogUrl) throw new Error("This page does not expose a valid Atlas runtime configuration.");
-
-  return config;
-}
-
-async function readAtlasCatalog(catalogUrl: URL): Promise<HostData["catalog"]> {
-  const response = await fetch(catalogUrl, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Atlas catalog returned ${response.status}.`);
-
-  return response.json() as Promise<HostData["catalog"]>;
-}
-
-async function readManifestVersions({ manifest, registryRoot, versionErrors }: {
-  manifest: Manifest;
-  registryRoot: string;
-  versionErrors: string[];
-}): Promise<readonly [string, Manifest[]]> {
-  try {
-    const response = await fetch(`${registryRoot}/microfrontends/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Version lookup for ${manifest.id} returned ${response.status}.`);
-
-    const index = await response.json() as { manifests?: Manifest[] };
-    if (!Array.isArray(index.manifests)) throw new Error(`Version lookup for ${manifest.id} returned an invalid index.`);
-
-    return [manifest.id, index.manifests] as const;
-  } catch (error) {
-    versionErrors.push(errorMessage(error));
-    return [manifest.id, [manifest]] as const;
-  }
-}
-
-function atlasRegistryRoot(catalogUrl: URL): string {
-  const hostsMarker = "/hosts/";
-  const markerIndex = catalogUrl.pathname.indexOf(hostsMarker);
-
-  if (markerIndex < 0) throw new Error("Atlas catalog URL does not identify a static Atlas registry.");
-
-  return `${catalogUrl.origin}${catalogUrl.pathname.slice(0, markerIndex)}`;
-}
-
-function readStoredOverrideDocument(): { overrides: OverrideDocument | undefined; overrideScope: Scope | undefined } {
-  const tabStored = sessionStorage.getItem(DOCUMENT_KEY);
-  const stored = tabStored ?? localStorage.getItem(DOCUMENT_KEY);
-
-  if (!stored) return { overrides: undefined, overrideScope: undefined };
-
-  try {
-    return { overrides: JSON.parse(stored) as OverrideDocument, overrideScope: tabStored ? "tab" : "all" };
-  } catch {
-    return { overrides: undefined, overrideScope: tabStored ? "tab" : "all" };
-  }
+  return { config, catalog, versions: Object.fromEntries(versionResults.map(({ entry }) => entry)), overrides, overrideScope, runtimeErrors, versionErrors };
 }
 
 function persistOverrides(documentKey: string, urlKey: string, value: string, scope: Scope): void {

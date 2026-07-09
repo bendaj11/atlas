@@ -11,6 +11,9 @@ test("Columbus extension build is Manifest V3 with local dev interception", asyn
   assert.equal(manifest.content_scripts[0].world, "MAIN");
   assert.deepEqual(manifest.content_scripts[0].matches, ["http://*/*", "https://*/*"]);
   assert.deepEqual(manifest.content_scripts[0].js, ["content-script.js"]);
+  assert.equal(manifest.content_scripts[1].run_at, "document_idle");
+  assert.deepEqual(manifest.content_scripts[1].matches, ["http://*/*", "https://*/*"]);
+  assert.deepEqual(manifest.content_scripts[1].js, ["badge-script.js"]);
   assert.equal(manifest.action.default_popup, "popup.html");
   assert.deepEqual(manifest.action.default_icon, {
     16: "icons/atlas-16.png",
@@ -41,11 +44,43 @@ test("Columbus extension intercepts Atlas catalogs for local dev sessions", asyn
 
 test("Columbus extension keeps persisted overrides as fallback without hardcoded hosts", async () => {
   const source = await readFile(new URL("../dist/popup.js", import.meta.url), "utf8");
-  assert.match(source, /atlas\.runtime-overrides/);
+  const constants = await readFile(new URL("../dist/assets/constants.js", import.meta.url), "utf8");
+  assert.match(constants, /atlas\.runtime-overrides/);
   assert.match(source, /microfrontends\/\$\{encodeURIComponent\(.+?\.id\)\}\/index\.json/);
   assert.doesNotMatch(source, /demo-angular-host|localhost:4300/);
   assert.match(source, /sessionStorage/);
   assert.match(source, /localStorage/);
+});
+
+test("Columbus extension keeps the override count badge synced from pages", async () => {
+  const background = await readFile(new URL("../dist/background.js", import.meta.url), "utf8");
+  const badgeScript = await readFile(new URL("../dist/badge-script.js", import.meta.url), "utf8");
+  assert.match(background, /setBadgeBackgroundColor/);
+  assert.match(background, /setBadgeTextColor/);
+  assert.match(background, /atlas\.override-count/);
+  assert.match(badgeScript, /atlas\.runtime-overrides/);
+  assert.match(badgeScript, /sendMessage/);
+  assert.doesNotMatch(badgeScript, /^import/u);
+});
+
+test("Columbus popup injects a self-contained Atlas host inspector", async () => {
+  const source = await readFile(new URL("../src/popup/atlas-host.ts", import.meta.url), "utf8");
+  assert.match(source, /func: inspectAtlasHost,\n\s+args: \[DOCUMENT_KEY\]/);
+  assert.match(source, /async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+async function readAtlasConfig/);
+  assert.doesNotMatch(source, /return inspectAtlasHostData\(\)/);
+});
+
+test("Columbus popup uses WDS radio group for selected editor options and labels", async () => {
+  const editor = await readFile(new URL("../src/popup/components/Editor.tsx", import.meta.url), "utf8");
+  const popup = await readFile(new URL("../src/popup/components/PopupApp.tsx", import.meta.url), "utf8");
+  assert.match(editor, /<RadioGroup/);
+  assert.match(editor, /<RadioGroup\.Radio/);
+  assert.match(editor, /value=\{draft\.type\}/);
+  assert.match(editor, /content=\{\(/);
+  assert.match(editor, /Base URL/);
+  assert.match(editor, /Production version/);
+  assert.match(editor, /PR version/);
+  assert.doesNotMatch(popup, /StatusCard/);
 });
 
 test("Columbus extension defaults to all tabs and offers current-tab scope", async () => {

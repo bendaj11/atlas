@@ -5,7 +5,6 @@ import { refreshIcon } from "../wds-icons.js";
 import { Dashboard } from "./Dashboard.js";
 import { Editor } from "./Editor.js";
 import { EmptyFrame } from "./EmptyFrame.js";
-import { StatusCard } from "./StatusCard.js";
 
 export function PopupApp(): JSX.Element {
   const controller = usePopupController();
@@ -18,12 +17,13 @@ export function PopupApp(): JSX.Element {
     <WixDesignSystemProvider>
       <Box className="popup-shell" direction="vertical" backgroundColor="D80" minHeight="100vh">
         <Box padding="16px" direction="vertical" gap="14px">
-          {controller.hostData || controller.status.busy ? (
-            <StatusCard hostId={controller.hostData?.config.hostId} status={controller.status} onRefresh={() => void controller.load()} />
-          ) : (
+          {!controller.hostData && controller.status.busy ? (
+            <EmptyFrame title="Loading Atlas host" message={controller.status.message} />
+          ) : null}
+          {!controller.hostData && !controller.status.busy ? (
             <EmptyFrame
               title="No Atlas host"
-              message="Open an Atlas host tab, then refresh."
+              message={controller.status.message}
               action={(
                 <Button
                   size="small"
@@ -37,7 +37,7 @@ export function PopupApp(): JSX.Element {
                 </Button>
               )}
             />
-          )}
+          ) : null}
           {controller.view.name === "dashboard" ? (
             <Dashboard
               apps={controller.apps}

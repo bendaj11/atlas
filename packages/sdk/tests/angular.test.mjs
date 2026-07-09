@@ -30,7 +30,8 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/bootstrap.ts"), /openPopup: overlayDefaults\.openPopup/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /const hostData: AtlasHostData/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /projectId/);
-  assert.match(host.get("src/bootstrap.ts"), /AtlasDefaultHostRouteComponent, startHost/);
+  assert.match(host.get("src/bootstrap.ts"), /AtlasHostDefaultRouteComponent/);
+  assert.match(host.get("src/bootstrap.ts"), /startHost/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /import \{ AppComponent, AtlasDefaultHostRouteComponent \}/);
   assert.equal(host.has("src/app.component.ts"), false);
   assert.match(host.get("src/app/app.component.ts"), /data-atlas-host-status/);
@@ -171,6 +172,26 @@ test("Angular Router adapter owns navigation and subscriptions", async () => {
   assert.equal(navigations[1][1].replaceUrl, true);
   assert.equal(backed, true);
   assert.deepEqual(seen, ["/orders", "/orders/42", "/orders/43"]);
+});
+
+test("Angular Router adapter ignores duplicate router events for the same URL", () => {
+  let listener;
+  const router = {
+    url: "/orders",
+    async navigateByUrl(url) { this.url = url; listener?.(); return true; },
+    events: { subscribe(value) { listener = value; return { unsubscribe() { listener = undefined; } }; } }
+  };
+  const navigation = createHostNavigation(router, { back() {} }, "https://host.example");
+  const seen = [];
+
+  navigation.subscribe((location) => seen.push(location.pathname));
+  listener();
+  listener();
+  router.url = "/orders/details/42";
+  listener();
+  listener();
+
+  assert.deepEqual(seen, ["/orders", "/orders/details/42"]);
 });
 
 function files(generated) {

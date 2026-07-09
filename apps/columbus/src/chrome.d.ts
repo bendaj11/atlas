@@ -15,9 +15,16 @@ declare namespace chrome {
   }
   namespace action {
     function setBadgeBackgroundColor(details: { color: string }): Promise<void>;
+    const setBadgeTextColor: undefined | ((details: { color: string }) => Promise<void>);
     function setBadgeText(details: { text: string; tabId?: number }): Promise<void>;
   }
   namespace runtime.onInstalled {
     function addListener(listener: () => void): void;
+  }
+  namespace runtime {
+    function sendMessage(message: unknown): Promise<unknown>;
+  }
+  namespace runtime.onMessage {
+    function addListener(listener: (message: unknown, sender: { tab?: tabs.Tab }) => void): void;
   }
 }

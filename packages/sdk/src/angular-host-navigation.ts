@@ -29,12 +29,22 @@ export function createHostNavigation(
       return new URL(to, origin).toString();
     },
     subscribe(listener) {
-      listener(read());
-      const subscription = router.events.subscribe(() => listener(read()));
+      let previous = read();
+      listener(previous);
+      const subscription = router.events.subscribe(() => {
+        const next = read();
+        if (sameLocation(previous, next)) return;
+        previous = next;
+        listener(next);
+      });
       return () => subscription.unsubscribe();
     },
     getCurrentLocation: read
   };
+}
+
+function sameLocation(left: AtlasLocation, right: AtlasLocation): boolean {
+  return left.pathname === right.pathname && left.search === right.search && left.hash === right.hash;
 }
 
 function navigateOptions(options: { replace?: boolean; state?: unknown } | undefined): { replaceUrl?: boolean; state?: unknown } {

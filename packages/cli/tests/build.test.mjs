@@ -11,7 +11,7 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
-import { AtlasDevService, createDevSession, createLocalDevCatalog, remoteEntryIsReady } from "../dist/dev.js";
+import { AtlasDevService, createDevSession, createLocalDevCatalog, remoteEntryIsReady, startControlServer } from "../dist/dev.js";
 import { loadWorkspaceEnv } from "../dist/env.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -952,6 +952,50 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
   assert.deepEqual(session.catalog, catalog);
 });
 
+test("atlas dev control server accepts multiple local apps for one host", async () => {
+  const port = await availablePort();
+  const overrideUrl = `http://127.0.0.1:${port}/atlas.local-overrides.json`;
+  const login = createTestManifest({ id: "login", supportedHosts: ["mobile-host"] });
+  const profile = createTestManifest({ id: "profile", supportedHosts: ["mobile-host"] });
+  const first = await startControlServer(port, localDocument("mobile-host", login), overrideUrl);
+  const second = await startControlServer(port, localDocument("mobile-host", profile), overrideUrl);
+
+  try {
+    await first.markReady();
+    assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login"]);
+
+    await second.markReady();
+    assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login", "profile"]);
+
+    await second.close();
+    assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login"]);
+  } finally {
+    await first.close();
+  }
+});
+
+test("atlas dev rejects apps without a configured host", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-missing-host-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "orders", version: "1.0.0", type: "module" }));
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({
+    compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  name: "Orders",',
+    '  framework: "react"',
+    "};"
+  ].join("\n"));
+
+  await assert.rejects(
+    runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]),
+    /No host configured for "orders"\. Add a route or slot with hostId, or pass --host\./
+  );
+});
+
 test("atlas dev prepares a React Native Federation override", async () => {
   const stdout = await run(process.execPath, [
     "packages/cli/dist/index.js", "dev", "dashboard-react",
@@ -1427,6 +1471,22 @@ async function availablePort() {
   const { server, port } = await listenOnRandomPort(createServer());
   await closeServer(server);
   return port;
+}
+
+function localDocument(hostId, manifest) {
+  return {
+    schemaVersion: "1",
+    hostId,
+    generatedAt: "2026-07-09T08:02:37.622Z",
+    overrides: [{ mfId: manifest.id, manifest, reason: "local" }]
+  };
+}
+
+async function catalogManifestIds(port, hostId) {
+  const response = await fetch(`http://127.0.0.1:${port}/hosts/${hostId}/catalog.json`, { cache: "no-store" });
+  assert.equal(response.status, 200);
+  const catalog = await response.json();
+  return catalog.manifests.map((manifest) => manifest.id);
 }
 
 function listenOnRandomPort(server) {

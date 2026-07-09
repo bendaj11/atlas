@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
 import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig } from "@atlas/schema";
@@ -20,8 +20,8 @@ const DEFAULT_HOST_ORIGINS = {
 } as const;
 
 interface DevControlServer {
-  server: Server;
-  markReady(): void;
+  markReady(): Promise<void>;
+  close(): Promise<void>;
 }
 
 interface DevTarget {
@@ -100,15 +100,15 @@ export class AtlasDevService {
     const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
-      control.markReady();
+      await control.markReady();
       logHostViewUrl(hostActivationUrl);
       openBrowserWhenReady(this.args, hostActivationUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill("SIGTERM");
-      control.server.close();
+      await control.close();
       throw error;
     }
-    await waitForShutdown(frameworkServer, control.server);
+    await waitForShutdown(frameworkServer, control);
   }
 
   private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<DevTarget> {
@@ -131,7 +131,7 @@ export class AtlasDevService {
       return prompts.select("Host receiving the local override", hostIds.map((hostId) => ({ label: hostId, value: hostId })));
     }
     if (hostIds.length > 1) throw new Error(`Multiple hosts found for "${config.id}". Pass --host or set ATLAS_HOST.`);
-    return "host";
+    throw new Error(`No host configured for "${config.id}". Add a route or slot with hostId, or pass --host.`);
   }
 
   private async resolveHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
@@ -154,54 +154,117 @@ export class AtlasDevService {
   }
 }
 
-function startControlServer(port: number, document: AtlasRuntimeOverrideDocument, overrideUrl: string): Promise<DevControlServer> {
-  let ready = false;
-  const catalog = createLocalDevCatalog(document);
-  const session = createDevSession(document, catalog, overrideUrl);
-  const catalogPath = `/hosts/${encodeURIComponent(document.hostId)}/catalog.json`;
+export async function startControlServer(
+  port: number,
+  document: AtlasRuntimeOverrideDocument,
+  overrideUrl: string
+): Promise<DevControlServer> {
+  try {
+    return await startOwnedControlServer(port, document, overrideUrl);
+  } catch (error) {
+    if (!isAddressInUse(error)) throw error;
+    return joinControlServer(port, document);
+  }
+}
+
+function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDocument, overrideUrl: string): Promise<DevControlServer> {
+  const session = createDevSessionStore(document, overrideUrl);
   const server = createServer((request, response) => {
     const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
     response.setHeader("access-control-allow-origin", "*");
     response.setHeader("access-control-allow-private-network", "true");
     response.setHeader("cache-control", "no-store");
     if (request.method === "OPTIONS") {
-      response.writeHead(204, { "access-control-allow-methods": "GET, OPTIONS" }); response.end(); return;
+      response.writeHead(204, { "access-control-allow-methods": "GET, POST, DELETE, OPTIONS" }); response.end(); return;
+    }
+    if (request.method === "POST" && pathname === "/atlas.dev-session/overrides") {
+      readJsonRequest<AtlasRuntimeOverrideDocument>(request)
+        .then((nextDocument) => {
+          session.register(nextDocument);
+          writeJson(response, { status: "registered", overrideUrl });
+        })
+        .catch((error: unknown) => writeError(response, error));
+      return;
+    }
+    const overrideReadyMatch = /^\/atlas\.dev-session\/overrides\/([^/]+)\/ready$/.exec(pathname);
+    if (request.method === "POST" && overrideReadyMatch?.[1]) {
+      session.markReady(decodeURIComponent(overrideReadyMatch[1]));
+      writeJson(response, { status: "ready" });
+      return;
+    }
+    const overrideMatch = /^\/atlas\.dev-session\/overrides\/([^/]+)$/.exec(pathname);
+    if (request.method === "DELETE" && overrideMatch?.[1]) {
+      session.unregister(decodeURIComponent(overrideMatch[1]));
+      writeJson(response, { status: "removed" });
+      return;
     }
     if (request.method === "GET" && pathname === "/atlas.local-overrides.json") {
-      if (!ready) {
+      const current = session.document();
+      if (!current) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
         return;
       }
-      response.writeHead(200, { "content-type": "application/json; charset=utf-8" }); response.end(`${JSON.stringify(document, null, 2)}\n`); return;
+      writeJson(response, current);
+      return;
     }
     if (request.method === "GET" && pathname === "/atlas.dev-session.json") {
-      if (!ready) {
+      const current = session.devSession();
+      if (!current) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
         return;
       }
-      response.writeHead(200, { "content-type": "application/json; charset=utf-8" }); response.end(`${JSON.stringify(session, null, 2)}\n`); return;
+      writeJson(response, current);
+      return;
     }
-    if (request.method === "GET" && pathname === catalogPath) {
-      if (!ready) {
+    if (request.method === "GET" && pathname === session.catalogPath()) {
+      const current = session.catalog();
+      if (!current) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
         return;
       }
-      response.writeHead(200, { "content-type": "application/json; charset=utf-8" }); response.end(`${JSON.stringify(catalog, null, 2)}\n`); return;
+      writeJson(response, current);
+      return;
     }
     if (request.method === "GET" && pathname === "/health") {
-      response.writeHead(ready ? 200 : 503, { "content-type": "application/json; charset=utf-8" });
-      response.end(ready ? '{"status":"ok"}\n' : '{"status":"starting"}\n');
+      writeJson(response, session.document() ? { status: "ok" } : { status: "starting" }, session.document() ? 200 : 503);
       return;
     }
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" }); response.end("Not found\n");
   });
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, LOOPBACK_HOST, () => resolve({ server, markReady: () => { ready = true; } }));
+    server.listen(port, LOOPBACK_HOST, () => {
+      server.off("error", reject);
+      resolve({
+        async markReady() {
+          session.markDocumentReady(document);
+        },
+        close() {
+          return closeServer(server);
+        }
+      });
+    });
   });
+}
+
+async function joinControlServer(
+  port: number,
+  document: AtlasRuntimeOverrideDocument
+): Promise<DevControlServer> {
+  const baseUrl = `http://${LOOPBACK_HOST}:${port}`;
+  await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
+  const mfIds = document.overrides.map((override) => override.mfId);
+  return {
+    async markReady() {
+      await Promise.all(mfIds.map((mfId) => postJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(mfId)}/ready`, {})));
+    },
+    async close() {
+      await Promise.all(mfIds.map((mfId) => deleteJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(mfId)}`)));
+    }
+  };
 }
 
 export function createLocalDevCatalog(document: AtlasRuntimeOverrideDocument): AtlasHostCatalog {
@@ -226,6 +289,129 @@ export function createDevSession(
     overrideUrl,
     generatedAt: document.generatedAt
   };
+}
+
+interface DevSessionEntry {
+  override: AtlasRuntimeOverrideDocument["overrides"][number];
+  ready: boolean;
+}
+
+interface DevSessionStore {
+  register(document: AtlasRuntimeOverrideDocument): void;
+  unregister(mfId: string): void;
+  markReady(mfId: string): void;
+  markDocumentReady(document: AtlasRuntimeOverrideDocument): void;
+  document(): AtlasRuntimeOverrideDocument | undefined;
+  catalog(): AtlasHostCatalog | undefined;
+  devSession(): AtlasDevSessionDocument | undefined;
+  catalogPath(): string;
+}
+
+function createDevSessionStore(initial: AtlasRuntimeOverrideDocument, overrideUrl: string): DevSessionStore {
+  const entries = new Map<string, DevSessionEntry>();
+  let hostId = initial.hostId;
+  let generatedAt = initial.generatedAt;
+  register(initial, false);
+
+  function register(document: AtlasRuntimeOverrideDocument, ready = false): void {
+    if (document.hostId !== hostId) {
+      throw new Error(`Atlas dev control server already targets host "${hostId}", not "${document.hostId}".`);
+    }
+    generatedAt = document.generatedAt;
+    for (const override of document.overrides) entries.set(override.mfId, { override, ready });
+  }
+
+  function readyOverrides(): AtlasRuntimeOverrideDocument["overrides"] {
+    return [...entries.values()].filter((entry) => entry.ready).map((entry) => entry.override);
+  }
+
+  function currentDocument(): AtlasRuntimeOverrideDocument | undefined {
+    const overrides = readyOverrides();
+    if (overrides.length === 0) return undefined;
+    return { schemaVersion: "1", hostId, overrides, generatedAt };
+  }
+
+  function markReady(mfId: string): void {
+    const entry = entries.get(mfId);
+    if (entry) entry.ready = true;
+  }
+
+  return {
+    register,
+    unregister(mfId) {
+      entries.delete(mfId);
+    },
+    markReady,
+    markDocumentReady(document) {
+      for (const override of document.overrides) markReady(override.mfId);
+    },
+    document: currentDocument,
+    catalog() {
+      const document = currentDocument();
+      return document ? createLocalDevCatalog(document) : undefined;
+    },
+    devSession() {
+      const document = currentDocument();
+      if (!document) return undefined;
+      return createDevSession(document, createLocalDevCatalog(document), overrideUrl);
+    },
+    catalogPath() {
+      return `/hosts/${encodeURIComponent(hostId)}/catalog.json`;
+    }
+  };
+}
+
+function isAddressInUse(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "EADDRINUSE";
+}
+
+function readJsonRequest<T>(request: IncomingMessage): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    request.on("data", (chunk: Buffer) => chunks.push(chunk));
+    request.once("error", reject);
+    request.once("end", () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")) as T);
+      } catch {
+        reject(new Error("Invalid JSON request body."));
+      }
+    });
+  });
+}
+
+function writeJson(response: ServerResponse, value: unknown, status = 200): void {
+  response.writeHead(status, { "content-type": "application/json; charset=utf-8" });
+  response.end(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function writeError(response: ServerResponse, error: unknown): void {
+  const status = error instanceof Error && error.message.includes("already targets host") ? 409 : 400;
+  writeJson(response, { error: error instanceof Error ? error.message : "Atlas dev control request failed." }, status);
+}
+
+async function postJson(url: string, value: unknown): Promise<void> {
+  await fetchControl(url, { method: "POST", body: JSON.stringify(value) });
+}
+
+async function deleteJson(url: string): Promise<void> {
+  await fetchControl(url, { method: "DELETE" });
+}
+
+async function fetchControl(url: string, init: RequestInit): Promise<void> {
+  const response = await fetch(url, {
+    ...init,
+    headers: { "content-type": "application/json", ...init.headers }
+  });
+  if (response.ok) return;
+  throw new Error(`Atlas dev control server rejected ${url}: ${response.status} ${await response.text()}`);
+}
+
+function closeServer(server: Server): Promise<void> {
+  if (!server.listening) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
 }
 
 async function waitForRemoteEntry(remoteEntryUrl: string, child: ChildProcess): Promise<void> {
@@ -257,7 +443,7 @@ export async function remoteEntryIsReady(response: Response): Promise<boolean> {
   }
 }
 
-function waitForShutdown(child: ChildProcess, server: Server): Promise<void> {
+function waitForShutdown(child: ChildProcess, control: DevControlServer): Promise<void> {
   return new Promise((resolve, reject) => {
     let stopping = false;
     let childExited = false;
@@ -274,22 +460,23 @@ function waitForShutdown(child: ChildProcess, server: Server): Promise<void> {
       removeSignalListeners();
       resolve();
     };
-    const closeControlServer = (): void => {
-      if (!server.listening) {
+    const closeControlServer = async (): Promise<void> => {
+      try {
+        await control.close();
         serverClosed = true;
         resolveAfterShutdown();
-        return;
+      } catch (error) {
+        if (settled) return;
+        settled = true;
+        removeSignalListeners();
+        reject(error);
       }
-      server.close(() => {
-        serverClosed = true;
-        resolveAfterShutdown();
-      });
     };
     const stop = (): void => {
       if (stopping) return;
       stopping = true;
       if (!child.killed) child.kill("SIGTERM");
-      closeControlServer();
+      void closeControlServer();
     };
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
@@ -297,12 +484,12 @@ function waitForShutdown(child: ChildProcess, server: Server): Promise<void> {
       if (settled) return;
       settled = true;
       removeSignalListeners();
-      server.close();
+      void control.close();
       reject(error);
     });
     child.once("exit", (code, signal) => {
       childExited = true;
-      closeControlServer();
+      void closeControlServer();
       if (stopping || code === 0 || signal === "SIGTERM") {
         resolveAfterShutdown();
         return;
