@@ -15,7 +15,7 @@ import {
   mergePackageDependencies,
   type FrameworkVersionInfo
 } from "./generate-dependencies.js";
-import { existingPackageName, exists, takeOverAppSource, writeGenerated } from "./generate-files.js";
+import { existingPackageName, exists, removeDelegatedReactViteConfigs, takeOverAppSource, writeGenerated } from "./generate-files.js";
 import { frameworkLabel } from "./generate-labels.js";
 import {
   alignDelegatedAngularFederationConfig,
@@ -84,7 +84,10 @@ export class AtlasGenerateService {
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
         : generateAppFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId, innerRouting));
-      if (workspaceScaffolded) await takeOverAppSource(root);
+      if (workspaceScaffolded) {
+        await takeOverAppSource(root);
+        if (selectedFramework === "react") await removeDelegatedReactViteConfigs(root);
+      }
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (selectedFramework === "angular") await ensureAngularWorkspaceFederationConfig(root, name, type);
       if (workspaceScaffolded) {

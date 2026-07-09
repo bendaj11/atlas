@@ -56,12 +56,12 @@ export async function alignDelegatedAngularFederationConfig(workspaceRoot: strin
   const escapedProjectRoot = escapeRegExp(projectRoot);
   const next = source
     .replace(
-      new RegExp(`(["'\`])\\./${escapedProjectRoot}/src/entry\\.ts\\1`, "g"),
-      (_match, quote: string) => `${quote}./src/entry.ts${quote}`
+      new RegExp(`(["'\`])\\./(?:${escapedProjectRoot}/)?src/entry\\.ts\\1`, "g"),
+      `join(__dirname, "src/entry.ts")`
     )
     .replace(
-      new RegExp(`(["'\`])\\./${escapedProjectRoot}/src/exported-widgets/\\$\\{entry\\.name\\}/index\\.ts\\1`, "g"),
-      (_match, quote: string) => `${quote}./src/exported-widgets/\${entry.name}/index.ts${quote}`
+      new RegExp(`\`\\./(?:${escapedProjectRoot}/)?src/exported-widgets/\\$\\{entry\\.name\\}/index\\.ts\``, "g"),
+      `join(__dirname, "src/exported-widgets", entry.name, "index.ts")`
     );
 
   if (next !== source) await writeFile(configPath, next, "utf8");

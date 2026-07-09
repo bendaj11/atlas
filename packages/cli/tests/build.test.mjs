@@ -13,6 +13,7 @@ import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
 import { AtlasDevService, createDevSession, createLocalDevCatalog, remoteEntryIsReady, startControlServer } from "../dist/dev.js";
 import { loadWorkspaceEnv } from "../dist/env.js";
+import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
@@ -31,6 +32,30 @@ test("generators keep component declarations split across files", () => {
       if (framework === "react") assert.doesNotMatch(file.contents, /import\.meta\.hot/);
     }
   }
+});
+
+test("Nx Angular federation repair writes cwd-independent expose paths", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-federation-repair-"));
+  const appRoot = join(root, "apps/login");
+  await mkdir(appRoot, { recursive: true });
+  await writeFile(join(appRoot, "federation.config.js"), `const { join } = require("node:path");
+module.exports = {
+  exposes: {
+    "./entry": "./src/entry.ts",
+    "./legacyEntry": "./apps/login/src/entry.ts",
+    "./widgets/profile": \`./src/exported-widgets/\${entry.name}/index.ts\`,
+    "./legacyWidget": \`./apps/login/src/exported-widgets/\${entry.name}/index.ts\`
+  }
+};
+`);
+
+  await alignDelegatedAngularFederationConfig(root, appRoot);
+
+  const source = await readFile(join(appRoot, "federation.config.js"), "utf8");
+  assert.equal([...source.matchAll(/join\(__dirname, "src\/entry\.ts"\)/g)].length, 2);
+  assert.equal([...source.matchAll(/join\(__dirname, "src\/exported-widgets", entry\.name, "index\.ts"\)/g)].length, 2);
+  assert.doesNotMatch(source, /\.\/(?:apps\/login\/)?src\/entry\.ts/);
+  assert.doesNotMatch(source, /\.\/(?:apps\/login\/)?src\/exported-widgets/);
 });
 
 test("atlas build emits a validated deployable manifest", async () => {
@@ -402,7 +427,7 @@ for (const scenario of [
     entry: "src/entry.ts",
     config: "federation.config.js",
     match: /defineApp/,
-    configMatch: /"\.\/entry": "\.\/src\/entry\.ts"/
+    configMatch: /"\.\/entry": join\(__dirname, "src\/entry\.ts"\)/
   },
   {
     name: "Turborepo",
@@ -430,7 +455,7 @@ for (const scenario of [
     entry: "src/entry.ts",
     config: "federation.config.js",
     match: /defineApp/,
-    configMatch: /"\.\/entry": "\.\/src\/entry\.ts"/
+    configMatch: /"\.\/entry": join\(__dirname, "src\/entry\.ts"\)/
   }
 ]) {
   test(`atlas generates complete app files in a ${scenario.name}`, async () => {
@@ -656,6 +681,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx react source\n' > "$directory/src/main.tsx"
   printf 'nx react css\n' > "$directory/src/styles.css"
   printf 'nx react index\n' > "$directory/index.html"
+  printf 'nx vite config\n' > "$directory/vite.config.mts"
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
   printf '{"name":"host","marker":"nx-generator"}\n' > "$directory/project.json"
@@ -676,6 +702,10 @@ exit 1
   assert.match(hostMain, /startHost/);
   assert.match(hostMain, /createBrowserRouter/);
   assert.doesNotMatch(hostMain, /import\.meta\.hot/);
+  const hostViteConfig = await readFile(join(root, "apps/host/vite.config.ts"), "utf8");
+  assert.match(hostViteConfig, /babel-plugin-react-compiler/);
+  assert.match(hostViteConfig, /server: \{ port: 4200 \}/);
+  await assert.rejects(access(join(root, "apps/host/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "apps/host/index.html"), "utf8"), /<script type="module" src="\/src\/main\.tsx"><\/script>/);
   assert.match(await readFile(join(root, "apps/host/src/styles.css"), "utf8"), /data-atlas-route-outlet/);
   assert.equal(await readFile(join(root, "apps/host/eslint.config.mjs"), "utf8"), "nx eslint\n");
@@ -748,8 +778,8 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas app assets/);
   const federationConfig = await readFile(join(root, "orders/federation.config.js"), "utf8");
-  assert.match(federationConfig, /['"]\.\/entry['"]:\s*['"]\.\/src\/entry\.ts['"]/);
-  assert.match(federationConfig, /`\.\/src\/exported-widgets\/\$\{entry\.name\}\/index\.ts`/);
+  assert.match(federationConfig, /['"]\.\/entry['"]:\s*join\(__dirname, ['"]src\/entry\.ts['"]\)/);
+  assert.match(federationConfig, /join\(__dirname, ['"]src\/exported-widgets['"], entry\.name, ['"]index\.ts['"]\)/);
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
@@ -832,6 +862,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx react source\n' > "$directory/src/main.tsx"
   printf 'nx react index\n' > "$directory/index.html"
   printf 'nx react styles\n' > "$directory/src/styles.css"
+  printf 'nx vite config\n' > "$directory/vite.config.mts"
   printf 'nx app component\n' > "$directory/src/app/app.tsx"
   printf 'nx nested component\n' > "$directory/src/app/nx-only/nx-only.tsx"
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
@@ -866,6 +897,7 @@ exit 1
   const reactViteConfig = await readFile(join(root, "orders/vite.config.ts"), "utf8");
   assert.match(reactViteConfig, /remoteEntry\.json/);
   assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
+  await assert.rejects(access(join(root, "orders/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");

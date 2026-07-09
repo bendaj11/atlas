@@ -18,6 +18,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   ]),
   react: new Set([
     ...ATLAS_INTEGRATION_FILES,
+    "vite.config.ts",
     "index.html",
     "src/styles.css",
     "src/main.tsx"

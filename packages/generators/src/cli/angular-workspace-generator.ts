@@ -62,14 +62,14 @@ const widgetExposes = existsSync(widgetsRoot)
         .filter((entry) => entry.isDirectory())
         .map((entry) => [
           \`./widgets/\${entry.name}\`,
-          \`./src/exported-widgets/\${entry.name}/index.ts\`
+          join(__dirname, "src/exported-widgets", entry.name, "index.ts")
         ])
     )
   : {};
 
 module.exports = withNativeFederation({
   name: "${angularRemoteName(name)}",
-  exposes: ${host ? "{}" : `{ "./entry": "./src/entry.ts", ...widgetExposes }`},
+  exposes: ${host ? "{}" : `{ "./entry": join(__dirname, "src/entry.ts"), ...widgetExposes }`},
   // Product dependencies stay inside this build so hosts never impose their versions.
   shared: {},
   skip: ["rxjs/ajax", "rxjs/fetch", "rxjs/testing", "rxjs/webSocket"]

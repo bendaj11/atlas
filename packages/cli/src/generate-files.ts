@@ -25,6 +25,16 @@ export async function takeOverAppSource(root: string): Promise<void> {
   await rm(resolveContainedPath(root, "src/app"), { recursive: true, force: true });
 }
 
+export async function removeDelegatedReactViteConfigs(root: string): Promise<void> {
+  await Promise.all([
+    "vite.config.mts",
+    "vite.config.mjs",
+    "vite.config.js",
+    "vite.config.cjs",
+    "vite.config.cts"
+  ].map((path) => rm(resolveContainedPath(root, path), { force: true })));
+}
+
 export function addUniqueString(values: unknown[], value: string): unknown[] {
   return values.includes(value) ? values : [...values, value];
 }

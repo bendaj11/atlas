@@ -26,7 +26,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.doesNotMatch(host.get("src/main.tsx"), /data-atlas-host-status/);
   assert.doesNotMatch(host.get("src/main.tsx"), /function AtlasDefaultHostLayout/);
   assert.match(host.get("vite.config.ts"), /babel-plugin-react-compiler/);
-  assert.match(host.get("vite.config.ts"), /target: "19"/);
+  assert.match(host.get("vite.config.ts"), /atlasReactCompiler\("19"\)/);
   assert.match(host.get("index.html"), /"shimMode": true/);
   assert.match(host.get("index.html"), /<head>\n    <meta charset="UTF-8">/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
@@ -99,7 +99,7 @@ test("React generator targets selected supported majors with React Compiler", ()
   assert.match(react19.get("package.json"), /"babel-plugin-react-compiler": "1\.0\.0"/);
   assert.doesNotMatch(react19.get("package.json"), /"react-compiler-runtime"/);
   assert.doesNotMatch(react19.get("package.json"), /"latest"/);
-  assert.match(react18.get("vite.config.ts"), /target: \"18\"/);
+  assert.match(react18.get("vite.config.ts"), /atlasReactCompiler\("18"\)/);
   assert.throws(() => generateHostFiles({ name: "future", framework: "react", frameworkVersion: "^20.0.0" }), /not verified/);
   assert.doesNotThrow(() => generateHostFiles({ name: "future", framework: "react", frameworkVersion: "^20.0.0", allowUnsupportedVersion: true }));
 });
