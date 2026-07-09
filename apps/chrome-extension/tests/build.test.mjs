@@ -2,16 +2,28 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Chrome extension build is Manifest V3 and uses temporary active-tab access", async () => {
+test("Chrome extension build is Manifest V3 with local dev interception", async () => {
   const manifest = JSON.parse(await readFile(new URL("../dist/manifest.json", import.meta.url), "utf8"));
   assert.equal(manifest.manifest_version, 3);
   assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
-  assert.equal(manifest.host_permissions, undefined);
+  assert.deepEqual(manifest.host_permissions, ["http://localhost/*", "http://127.0.0.1/*"]);
+  assert.equal(manifest.content_scripts[0].run_at, "document_start");
+  assert.equal(manifest.content_scripts[0].world, "MAIN");
+  assert.deepEqual(manifest.content_scripts[0].js, ["content-script.js"]);
   assert.equal(manifest.action.default_popup, "popup.html");
   assert.equal(manifest.background.service_worker, "background.js");
 });
 
-test("Chrome extension persists the SDK override document without hardcoded hosts", async () => {
+test("Chrome extension intercepts Atlas catalogs for local dev sessions", async () => {
+  const source = await readFile(new URL("../dist/content-script.js", import.meta.url), "utf8");
+  assert.match(source, /atlas\.dev-session\.json/);
+  assert.match(source, /ATLAS_CATALOG_PATH/);
+  assert.match(source, /catalogResponse\.ok/);
+  assert.match(source, /window\.fetch/);
+  assert.match(source, /mergeCatalog/);
+});
+
+test("Chrome extension keeps persisted overrides as fallback without hardcoded hosts", async () => {
   const source = await readFile(new URL("../dist/popup.js", import.meta.url), "utf8");
   assert.match(source, /atlas\.runtime-overrides/);
   assert.match(source, /microfrontends\/\$\{encodeURIComponent\(manifest\.id\)\}\/index\.json/);

@@ -381,17 +381,17 @@ From inside either project directory, the project name is optional:
 atlas dev
 ```
 
-Under the hood, Atlas delegates to your workspace. In Nx it runs project
-targets such as `customer-host:dev`, `orders:dev`, and
-`orders:atlas:config`. In Turborepo, pnpm workspaces, and Yarn workspaces it
-runs the generated package scripts through the matching workspace command. You
-can also run those native commands directly, for example `nx run orders`,
-`nx run orders:dev`, `pnpm --filter orders run dev`,
-`yarn workspace orders run dev`, or `turbo run dev --filter=orders`. Nx gets
-the shorter `nx run <project>` alias automatically; package-manager and Turbo
-commands still include `run dev` because their native CLIs require a task name. The
-separate host process is still required because the app is rendered inside the
-host page.
+Under the hood, Atlas delegates to your workspace. In Nx, `orders:dev` runs the
+Atlas local-development flow and Atlas starts the framework server through
+`orders:serve`; `orders:atlas:config` compiles Atlas config for caching. In
+Turborepo, pnpm workspaces, and Yarn workspaces it runs the generated package
+scripts through the matching workspace command. You can also run commands such
+as `nx run orders`, `nx run orders:dev`, `pnpm --filter orders run dev`,
+`yarn workspace orders run dev`, or `turbo run dev --filter=orders`. Nx gets the
+shorter `nx run <project>` alias automatically; package-manager and Turbo
+commands still include `run dev` because their native CLIs require a task name.
+The separate host process is still required because the app is rendered inside
+the host page.
 
 Effect: only `orders` loads from localhost. Other apps still load from the normal
 host catalog. No production catalog or host source file is edited.

@@ -84,7 +84,7 @@ framework choices such as stylesheets, test runners, bundler, and SSR. In CI or
 another non-interactive environment, Atlas disables Nx prompts and supplies
 deterministic defaults instead.
 
-Atlas invokes targets such as `orders:build`, `orders:dev`, and
+Atlas invokes targets such as `orders:build`, `orders:dev`, `orders:serve`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
 Generated `atlas:config` targets declare `{projectRoot}/.atlas` as an output, so
 Nx cache restores the compiled `atlas.config.js` needed by `atlas dev` and
@@ -92,20 +92,22 @@ Nx cache restores the compiled `atlas.config.js` needed by `atlas dev` and
 framework-generated project tsconfig and writes `.atlas/atlas.config.js`; Atlas
 does not generate a separate `tsconfig.atlas.json`.
 When Atlas delegates to the native Nx generator, it preserves Nx's generated
-targets and adds missing Atlas aliases such as `dev` and `atlas:config`.
-Generated projects can also be run with native Nx commands:
+framework targets and adds Atlas targets such as `dev`, `serve`, and
+`atlas:config`. Generated projects can also be run with native Nx commands:
 
 ```sh
 nx run customer-host
 nx run customer-host:dev
 nx run orders
 nx run orders:dev
+nx run orders:serve
 nx run orders:atlas:config
 ```
 
 Nx treats `nx run <project>` as `nx run <project>:<project>`. Atlas adds that
 project-named target as a compatibility alias for `dev`, so the shorter command
-starts the generated host or app.
+starts the generated host or app. For app projects, `dev` runs Atlas local
+development and `serve` is the lower-level framework dev server used by Atlas.
 
 Use `--skip-workspace-generator` only in automation that deliberately needs the
 portable Atlas template instead of native Nx scaffolding.

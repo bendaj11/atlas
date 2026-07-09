@@ -194,7 +194,11 @@ export class AtlasGenerateService {
     }
     const targets: Record<string, unknown> = {
       build: nxTarget(this.workspace.packageManager, cwd, "build"),
-      dev: nxTarget(this.workspace.packageManager, cwd, "dev")
+      serve: nxTarget(this.workspace.packageManager, cwd, "dev"),
+      dev: {
+        executor: "nx:run-commands",
+        options: { command: `atlas dev ${name}`, forwardAllArgs: true }
+      }
     };
     targets["atlas:config"] = atlasConfigNxTarget(this.workspace.packageManager, cwd);
     targets[name] = {

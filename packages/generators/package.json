@@ -1,6 +1,6 @@
 {
   "name": "@atlas/generators",
-  "version": "0.2.44",
+  "version": "0.2.45",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",
@@ -41,6 +41,6 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.44"
+    "@atlas/schema": "0.2.45"
   }
 }

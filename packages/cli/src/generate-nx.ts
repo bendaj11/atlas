@@ -103,6 +103,12 @@ function ensureAtlasConfigTarget(targets: Record<string, unknown>, projectName: 
 }
 
 function ensureDevTarget(targets: Record<string, unknown>, projectName: string, type: ProjectType): void {
+  if (type === "app" && (!targets.dev || isOutdatedAppDevTarget(targets.dev, projectName))) {
+    targets.dev = {
+      executor: "nx:run-commands",
+      options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
+    };
+  }
   if (!targets.dev && targets.serve) {
     targets.dev = type === "host"
       ? {
@@ -117,7 +123,7 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
         }
       : {
           executor: "nx:run-commands",
-          options: { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
+          options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
         };
   }
   if (targets.dev && !targets[projectName]) {
@@ -126,6 +132,12 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
       options: { command: `nx run ${projectName}:dev`, forwardAllArgs: true }
     };
   }
+}
+
+function isOutdatedAppDevTarget(value: unknown, projectName: string): boolean {
+  const target = asObject(value);
+  const options = asObject(target.options);
+  return options.command === `nx run ${projectName}:serve`;
 }
 
 function asObject(value: unknown): Record<string, unknown> {

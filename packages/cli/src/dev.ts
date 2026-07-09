@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, join } from "node:path";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
-import type { AtlasConfig, AtlasHostConfig } from "@atlas/schema";
+import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
@@ -27,6 +27,15 @@ interface DevTarget {
   hostId: string;
   basePath?: string;
   hostUrl?: string;
+}
+
+interface AtlasDevSessionDocument {
+  schemaVersion: "1";
+  hostId: string;
+  catalog: AtlasHostCatalog;
+  overrides: AtlasRuntimeOverrideDocument["overrides"];
+  overrideUrl: string;
+  generatedAt: string;
 }
 
 export class AtlasDevService {
@@ -80,11 +89,12 @@ export class AtlasDevService {
     await mkdir(directory, { recursive: true });
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
     const overrideUrl = `http://localhost:${controlPort}/atlas.local-overrides.json`;
-    const hostActivationUrl = target.hostUrl ? activationUrl(target.hostUrl, overrideUrl) : undefined;
+    const hostActivationUrl = target.hostUrl;
     logHostViewUrl(hostActivationUrl);
     if (this.args.hasFlag("prepare-only")) return;
-    const control = await startControlServer(controlPort, document);
-    const frameworkServer = this.workspace.spawn(project, "dev", ["--port", String(remotePort)]);
+    const control = await startControlServer(controlPort, document, overrideUrl);
+    const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
+    const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       control.markReady();
@@ -140,16 +150,20 @@ export class AtlasDevService {
   }
 }
 
-function startControlServer(port: number, document: AtlasRuntimeOverrideDocument): Promise<DevControlServer> {
+function startControlServer(port: number, document: AtlasRuntimeOverrideDocument, overrideUrl: string): Promise<DevControlServer> {
   let ready = false;
+  const catalog = createLocalDevCatalog(document);
+  const session = createDevSession(document, catalog, overrideUrl);
+  const catalogPath = `/hosts/${encodeURIComponent(document.hostId)}/catalog.json`;
   const server = createServer((request, response) => {
+    const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
     response.setHeader("access-control-allow-origin", "*");
     response.setHeader("access-control-allow-private-network", "true");
     response.setHeader("cache-control", "no-store");
     if (request.method === "OPTIONS") {
       response.writeHead(204, { "access-control-allow-methods": "GET, OPTIONS" }); response.end(); return;
     }
-    if (request.method === "GET" && request.url === "/atlas.local-overrides.json") {
+    if (request.method === "GET" && pathname === "/atlas.local-overrides.json") {
       if (!ready) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
@@ -157,7 +171,23 @@ function startControlServer(port: number, document: AtlasRuntimeOverrideDocument
       }
       response.writeHead(200, { "content-type": "application/json; charset=utf-8" }); response.end(`${JSON.stringify(document, null, 2)}\n`); return;
     }
-    if (request.method === "GET" && request.url === "/health") {
+    if (request.method === "GET" && pathname === "/atlas.dev-session.json") {
+      if (!ready) {
+        response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
+        response.end('{"status":"starting"}\n');
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json; charset=utf-8" }); response.end(`${JSON.stringify(session, null, 2)}\n`); return;
+    }
+    if (request.method === "GET" && pathname === catalogPath) {
+      if (!ready) {
+        response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
+        response.end('{"status":"starting"}\n');
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json; charset=utf-8" }); response.end(`${JSON.stringify(catalog, null, 2)}\n`); return;
+    }
+    if (request.method === "GET" && pathname === "/health") {
       response.writeHead(ready ? 200 : 503, { "content-type": "application/json; charset=utf-8" });
       response.end(ready ? '{"status":"ok"}\n' : '{"status":"starting"}\n');
       return;
@@ -168,6 +198,30 @@ function startControlServer(port: number, document: AtlasRuntimeOverrideDocument
     server.once("error", reject);
     server.listen(port, "127.0.0.1", () => resolve({ server, markReady: () => { ready = true; } }));
   });
+}
+
+export function createLocalDevCatalog(document: AtlasRuntimeOverrideDocument): AtlasHostCatalog {
+  return {
+    schemaVersion: "1",
+    hostId: document.hostId,
+    generatedAt: document.generatedAt,
+    manifests: document.overrides.map((override) => override.manifest)
+  };
+}
+
+export function createDevSession(
+  document: AtlasRuntimeOverrideDocument,
+  catalog: AtlasHostCatalog,
+  overrideUrl: string
+): AtlasDevSessionDocument {
+  return {
+    schemaVersion: "1",
+    hostId: document.hostId,
+    catalog,
+    overrides: document.overrides,
+    overrideUrl,
+    generatedAt: document.generatedAt
+  };
 }
 
 async function waitForRemoteEntry(remoteEntryUrl: string, child: ChildProcess): Promise<void> {
@@ -285,12 +339,6 @@ function waitForChildShutdown(child: ChildProcess, label: string): Promise<void>
       else reject(new Error(`${label} exited with code ${code ?? "unknown"}.`));
     });
   });
-}
-
-function activationUrl(hostUrl: string, overrideUrl: string): string {
-  const url = new URL(hostUrl);
-  url.searchParams.set("atlas-override", overrideUrl);
-  return url.toString();
 }
 
 function logHostViewUrl(url: string | undefined): void {

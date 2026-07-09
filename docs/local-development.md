@@ -21,8 +21,8 @@ The command:
 1. Generate a local manifest pointing to localhost.
 2. Start the selected app's framework dev server.
 3. Wait until its Native Federation remote entry is reachable.
-4. Serve a validated override document from the Atlas control server.
-5. Print a host URL that activates the override.
+4. Serve a validated dev session from the Atlas control server.
+5. Print the host URL.
 6. Let the host load every production app except the one being overridden.
 
 Run the host separately with `atlas dev <host>` first, then run
@@ -36,9 +36,10 @@ non-interactive shells, pass `--host` or set `ATLAS_HOST`.
 
 Atlas delegates to Nx, Turborepo, pnpm, Yarn, npm, or the standalone project
 script as needed. Then open the printed **Open host** URL from the app command.
-The host discovers the override from its `atlas-override` query parameter,
-while every other app continues to come from the production catalog. No Native
-Federation URL or manifest needs editing.
+With the Atlas Chrome extension installed, the browser keeps the clean host URL
+and intercepts the Atlas catalog request, merging the local dev session from the
+control server. Every other app continues to come from the production catalog.
+No Native Federation URL or manifest needs editing.
 
 Set local defaults in the terminal when you want a quick launch:
 
@@ -62,7 +63,10 @@ Defaults are app port `4201` and Atlas control port `4400`. Use `--port` or `--c
 
 The control server reports `503 starting` until the app is ready, so opening the printed URL cannot race framework startup. Generated React apps also initialize Vite Fast Refresh when imported by a host; Angular and React developers get their normal framework development behavior without extra setup.
 
-Generated hosts accept an override URL under `atlas.runtime-override-url` and a complete override document under `atlas.runtime-overrides` in browser local storage. `atlas dev` uses the URL protocol; the Chrome extension uses the direct document protocol so it needs no background HTTP server of its own. Both receive the same SDK validation.
+Generated hosts still accept an override URL under `atlas.runtime-override-url`
+and a complete override document under `atlas.runtime-overrides` in browser
+storage for fallback and debugging. The normal local-development path is the
+Chrome extension plus the `atlas.dev-session.json` served by `atlas dev`.
 
 ## What Happens Behind The Scenes
 
@@ -77,7 +81,7 @@ sequenceDiagram
   CLI->>app: Wait for remoteEntry.json
   CLI->>Control: Mark override ready
   Host->>CDN: Fetch production catalog
-  Host->>Control: Fetch local override
+  Control-->>Host: Extension merges local dev session into catalog response
   Host->>app: Load selected local remote
   Host->>CDN: Load other production remotes
 ```
@@ -98,10 +102,17 @@ The host does not need to redeploy for these changes.
 
 Build the extension with `yarn workspace @atlas/chrome-extension build`, then load `apps/chrome-extension/dist` as an unpacked extension from `chrome://extensions`.
 
-The popup discovers the active host from `/atlas.runtime.json`, reads its catalog, and reads each static app index for all versions of each selected app. Choices are persisted per `hostId`. Applying changes writes one atomic override document into the host origin and reloads the tab. Widgets follow their owner app version automatically and are not selected independently.
+The extension also detects local `atlas dev` sessions at
+`http://localhost:4400/atlas.dev-session.json`. When a session targets the
+active host, the extension merges the local manifest into Atlas catalog
+responses before the host runtime reads them. The address bar stays on the real
+host URL.
+
+The popup discovers the active host from `/atlas.runtime.json`, reads its catalog, and reads each static app index for all versions of each selected app. Manual choices are persisted per `hostId`. Applying changes writes one atomic override document into the host origin and reloads the tab. Widgets follow their owner app version automatically and are not selected independently.
 
 Overrides apply to **All tabs** by default using origin `localStorage`. Choose **This tab** to keep an experiment isolated in `sessionStorage`; a tab override takes precedence over an all-tabs override without changing other open tabs.
 
-For local development, paste the override URL printed by `atlas dev`. The extension extracts the selected app's local manifest and persists it with the other choices.
+For local development, run `atlas dev <app>` and open the printed host URL. The
+extension applies the local session automatically when host ids match.
 
 Choose **Use production**, then **Apply and reload**, to remove overrides. In **This tab** mode this creates a tab-only production choice, which intentionally takes precedence over any all-tabs override. In **All tabs** mode it removes the shared override completely.

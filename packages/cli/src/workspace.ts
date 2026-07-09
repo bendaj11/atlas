@@ -5,7 +5,7 @@ import { runProcess, spawnProcess, type ProcessCommand } from "./process.js";
 
 export type AtlasWorkspaceKind = "nx" | "turbo" | "workspace" | "standalone";
 export type AtlasPackageManager = "yarn" | "pnpm" | "npm";
-export type AtlasTask = "atlas:config" | "build" | "dev";
+export type AtlasTask = "atlas:config" | "build" | "dev" | "serve";
 
 export interface AtlasProject {
   id: string;
