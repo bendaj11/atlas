@@ -707,8 +707,9 @@ exit 1
   assert.match(hostViteConfig, /reactCompilerPreset/);
   assert.doesNotMatch(hostViteConfig, /ReactBabelOptions/);
   assert.doesNotMatch(hostViteConfig, /babel: \{/);
+  assert.doesNotMatch(hostViteConfig, /panicThreshold/);
   assert.match(hostViteConfig, /react\(\{\}\)/);
-  assert.match(hostViteConfig, /target: "19"/);
+  assert.match(hostViteConfig, /reactCompilerPreset\(\{ target: "19" \}\)/);
   assert.match(hostViteConfig, /server: \{ port: 4200 \}/);
   await assert.rejects(access(join(root, "apps/host/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "apps/host/index.html"), "utf8"), /<script type="module" src="\/src\/main\.tsx"><\/script>/);
@@ -904,9 +905,10 @@ exit 1
   assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
   assert.doesNotMatch(reactViteConfig, /ReactBabelOptions/);
   assert.doesNotMatch(reactViteConfig, /babel: \{/);
+  assert.doesNotMatch(reactViteConfig, /panicThreshold/);
   assert.match(reactViteConfig, /reactCompilerPreset/);
   assert.match(reactViteConfig, /react\(\{\}\)/);
-  assert.match(reactViteConfig, /target: "19"/);
+  assert.match(reactViteConfig, /reactCompilerPreset\(\{ target: "19" \}\)/);
   await assert.rejects(access(join(root, "orders/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
@@ -966,6 +968,7 @@ exit 1
   assert.equal(projectPackage.dependencies["react-dom"], "^17.0.2");
   assert.equal(projectPackage.dependencies["react-router-dom"], "^6.30.1");
   assert.equal(projectPackage.devDependencies["@rolldown/plugin-babel"], "^0.2.3");
+  assert.equal(projectPackage.devDependencies["@types/babel__core"], "^7.20.5");
   assert.equal(projectPackage.devDependencies["@vitejs/plugin-react"], "^6.0.3");
   assert.equal(projectPackage.devDependencies.vite, "^8.1.4");
   assert.match(stdout, /Detected existing React version \^17\.0\.2 in packages\/orders\/package\.json; ignoring --framework-version=\^19\.2\.0/);

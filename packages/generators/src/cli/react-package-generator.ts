@@ -38,6 +38,7 @@ export function reactPackage(options: ReactPackageOptions): unknown {
     devDependencies: {
       "@babel/core": "^7.29.0",
       "@rolldown/plugin-babel": "^0.2.3",
+      "@types/babel__core": "^7.20.5",
       "@types/node": "^22.0.0",
       "@types/react": `^${profile.major}.0.0`,
       "@types/react-dom": `^${profile.major}.0.0`,

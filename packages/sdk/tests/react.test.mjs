@@ -27,8 +27,9 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.doesNotMatch(host.get("src/main.tsx"), /function AtlasDefaultHostLayout/);
   assert.match(host.get("vite.config.ts"), /@rolldown\/plugin-babel/);
   assert.match(host.get("vite.config.ts"), /reactCompilerPreset/);
-  assert.match(host.get("vite.config.ts"), /reactCompilerConfig = \{ target: "19"/);
+  assert.match(host.get("vite.config.ts"), /reactCompilerPreset\(\{ target: "19" \}\)/);
   assert.match(host.get("vite.config.ts"), /react\(\{\}\)/);
+  assert.doesNotMatch(host.get("vite.config.ts"), /panicThreshold/);
   assert.doesNotMatch(host.get("vite.config.ts"), /babel: \{/);
   assert.doesNotMatch(host.get("vite.config.ts"), /ReactBabelOptions/);
   assert.match(host.get("index.html"), /"shimMode": true/);
@@ -103,10 +104,11 @@ test("React generator targets selected supported majors with React Compiler", ()
   assert.match(react19.get("package.json"), /"babel-plugin-react-compiler": "1\.0\.0"/);
   assert.match(react19.get("package.json"), /"@vitejs\/plugin-react": "\^6\.0\.3"/);
   assert.match(react19.get("package.json"), /"@rolldown\/plugin-babel": "\^0\.2\.3"/);
+  assert.match(react19.get("package.json"), /"@types\/babel__core": "\^7\.20\.5"/);
   assert.match(react19.get("package.json"), /"vite": "\^8\.1\.4"/);
   assert.doesNotMatch(react19.get("package.json"), /"react-compiler-runtime"/);
   assert.doesNotMatch(react19.get("package.json"), /"latest"/);
-  assert.match(react18.get("vite.config.ts"), /reactCompilerConfig = \{ target: "18"/);
+  assert.match(react18.get("vite.config.ts"), /reactCompilerPreset\(\{ target: "18" \}\)/);
   assert.throws(() => generateHostFiles({ name: "future", framework: "react", frameworkVersion: "^20.0.0" }), /not verified/);
   assert.doesNotThrow(() => generateHostFiles({ name: "future", framework: "react", frameworkVersion: "^20.0.0", allowUnsupportedVersion: true }));
 });

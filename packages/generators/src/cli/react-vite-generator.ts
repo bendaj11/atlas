@@ -5,12 +5,10 @@ export function reactHostViteConfig(compilerTarget: string, devServerPort = 4200
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
-const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
-
 export default defineConfig({
   plugins: [
     react({}),
-    babel({ presets: [reactCompilerPreset(reactCompilerConfig)] })
+    babel({ presets: [reactCompilerPreset({ target: "${compilerTarget}" })] })
   ],
   server: { port: ${devServerPort} },
   build: { target: "esnext" }
@@ -38,8 +36,6 @@ const exposes = [
     outFileName: \`widgets/\${id}.js\`
   }))
 ];
-const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
-
 function atlasFederationMetadata(): Plugin {
   const metadata = { name: "${reactRemoteName(name)}", exposes, shared: [] };
 
@@ -96,7 +92,7 @@ export default defineConfig({
   base: "./",
   plugins: [
     react({}),
-    babel({ presets: [reactCompilerPreset(reactCompilerConfig)] }),
+    babel({ presets: [reactCompilerPreset({ target: "${compilerTarget}" })] }),
     atlasReactRefreshPreamble(),
     atlasFederationMetadata()
   ],
