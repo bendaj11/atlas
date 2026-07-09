@@ -249,6 +249,7 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
   assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
   assert.equal(architect.serve.options.port, 4305);
+  assert.equal(architect["serve-original"].options.port, 4305);
   assert.match(main, /initFederation/);
   assert.match(bootstrap, /startHost/);
   assert.match(bootstrap, /AtlasHostDefaultRouteComponent/);
@@ -279,7 +280,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   assert.doesNotMatch(defaultConfig, /"host"/);
 
   const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
-  assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true \}/);
+  assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true, open: true \}/);
   assert.doesNotMatch(explicitConfig, /hostCompatibility/);
   assert.match(explicitConfig, /routes: \[/);
   assert.match(explicitConfig, /hostId: "customer-host"/);
@@ -484,6 +485,7 @@ for (const scenario of [
       assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
       assert.equal(architect.serve.options.target, "orders:serve-original:development");
       assert.equal(architect.serve.options.port, 4201);
+      assert.equal(architect["serve-original"].options.port, 4201);
     }
     assert.match(stdout, new RegExp(`Detected ${scenario.name === "Turborepo" ? "a Turborepo" : "a package-manager"} workspace`));
   });
@@ -546,6 +548,7 @@ for (const scenario of [
       assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
       assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
       assert.equal(architect.serve.options.port, 4200);
+      assert.equal(architect["serve-original"].options.port, 4200);
       assert.deepEqual(appTsconfig.files, ["src/main.ts"]);
       assert.equal(appTsconfig.extends, undefined);
       assert.equal(appTsconfig.compilerOptions.emitDeclarationOnly, undefined);

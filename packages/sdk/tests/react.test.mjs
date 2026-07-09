@@ -40,6 +40,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
   assert.match(host.get("package.json"), /atlas runtime-config host/);
   assert.match(appFiles.get("vite.config.ts"), /remoteEntry\.json/);
+  assert.match(appFiles.get("vite.config.ts"), /server: \{ port: 4201, cors: true, open: true \}/);
   assert.match(appFiles.get("vite.config.ts"), /reactCompilerPreset/);
   assert.match(appFiles.get("vite.config.ts"), /widgets\/\$\{id\}/);
   assert.match(appFiles.get("src/app/App.tsx"), /useAtlasSdk/);

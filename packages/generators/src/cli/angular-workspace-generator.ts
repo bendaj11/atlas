@@ -14,7 +14,12 @@ export function angularWorkspace(name: string, host: boolean, devServerPort = de
             options: { outputPath: `dist/${name}`, index: "src/index.html", browser: "src/main.ts", polyfills: ["zone.js", "es-module-shims"], tsConfig: "tsconfig.app.json", assets: [{ glob: "**/*", input: "public" }, { glob: "**/*", input: "src/assets", output: "assets" }], styles: ["src/styles.css"] },
             configurations: { production: { outputHashing: "all" }, development: { optimization: false, sourceMap: true } }
           },
-          "serve-original": { builder: "@angular-devkit/build-angular:dev-server", configurations: { production: { buildTarget: `${name}:esbuild:production` }, development: { buildTarget: `${name}:esbuild:development` } }, defaultConfiguration: "development" }
+          "serve-original": {
+            builder: "@angular-devkit/build-angular:dev-server",
+            options: { port: devServerPort },
+            configurations: { production: { buildTarget: `${name}:esbuild:production` }, development: { buildTarget: `${name}:esbuild:development` } },
+            defaultConfiguration: "development"
+          }
         }
       }
     }

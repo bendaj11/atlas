@@ -16,6 +16,11 @@ import {
 
 const FRAMEWORKS = ["angular", "react", "vue"] as const;
 
+interface PlacementUniqueness {
+  placementIds: Set<string>;
+  routeBasePaths: Set<string>;
+}
+
 export function validateManifest(value: unknown, prefix?: string): AtlasValidationIssue[] {
   const issues: AtlasValidationIssue[] = [];
   const manifest = asRecord(value);
@@ -58,39 +63,40 @@ function validatePlacements(value: unknown, path: string, issues: AtlasValidatio
     addIssue(issues, path, "Expected placements to be an array.");
     return;
   }
-  const placementIds = new Set<string>();
-  value.forEach((placement, index) => validatePlacement(placement, `${path}.${index}`, placementIds, issues));
+  const uniqueness: PlacementUniqueness = { placementIds: new Set(), routeBasePaths: new Set() };
+  value.forEach((placement, index) => validatePlacement(placement, `${path}.${index}`, uniqueness, issues));
 }
 
-function validatePlacement(value: unknown, path: string, placementIds: Set<string>, issues: AtlasValidationIssue[]): void {
+function validatePlacement(value: unknown, path: string, uniqueness: PlacementUniqueness, issues: AtlasValidationIssue[]): void {
   const placement = asRecord(value);
   const id = requiredString(placement, "id", issues, path);
   const hostId = requiredString(placement, "hostId", issues, path);
   if (id) validateIdentifier(id, `${path}.id`, "mount id", issues);
   if (hostId) validateIdentifier(hostId, `${path}.hostId`, "host id", issues);
-  if (id && hostId) validateUniquePlacementId({ id, hostId, path: `${path}.id`, placementIds, issues });
+  if (id && hostId) validateUniquePlacementId({ id, hostId, path: `${path}.id`, placementIds: uniqueness.placementIds, issues });
 
   if (!isOneOf(placement?.kind, ["route", "slot"])) {
     addIssue(issues, `${path}.kind`, "Expected placement kind to be route or slot.");
     return;
   }
-  if (placement.kind === "route") validateRoutePlacement(placement, path, issues);
+  if (placement.kind === "route") validateRoutePlacement({ placement, hostId, path, routeBasePaths: uniqueness.routeBasePaths, issues });
   else validateSlotPlacement(placement, path, issues);
 }
 
-function validateRoutePlacement(placement: UnknownRecord, path: string, issues: AtlasValidationIssue[]): void {
-  if (placement.slot !== undefined) addIssue(issues, `${path}.slot`, "Route placements must not define a slot.");
-  const route = asRecord(placement.route);
+function validateRoutePlacement(input: { placement: UnknownRecord; hostId: string | undefined; path: string; routeBasePaths: Set<string>; issues: AtlasValidationIssue[] }): void {
+  if (input.placement.slot !== undefined) addIssue(input.issues, `${input.path}.slot`, "Route placements must not define a slot.");
+  const route = asRecord(input.placement.route);
   if (!route) {
-    addIssue(issues, `${path}.route`, "Expected route details for a route placement.");
+    addIssue(input.issues, `${input.path}.route`, "Expected route details for a route placement.");
     return;
   }
-  const basePath = requiredString(route, "basePath", issues, `${path}.route`);
-  if (route.title !== undefined) requiredString(route, "title", issues, `${path}.route`);
+  const basePath = requiredString(route, "basePath", input.issues, `${input.path}.route`);
+  if (route.title !== undefined) requiredString(route, "title", input.issues, `${input.path}.route`);
   if (basePath && (!basePath.startsWith("/") || basePath.includes("?") || basePath.includes("#"))) {
-    addIssue(issues, `${path}.route.basePath`, "Expected an absolute route path without a query or fragment.");
+    addIssue(input.issues, `${input.path}.route.basePath`, "Expected an absolute route path without a query or fragment.");
   }
-  validateNavigation(route.nav, `${path}.route.nav`, issues);
+  if (input.hostId && basePath) validateUniqueRouteBasePath({ basePath, hostId: input.hostId, path: `${input.path}.route.basePath`, routeBasePaths: input.routeBasePaths, issues: input.issues });
+  validateNavigation(route.nav, `${input.path}.route.nav`, input.issues);
 }
 
 function validateNavigation(value: unknown, path: string, issues: AtlasValidationIssue[]): void {
@@ -214,4 +220,17 @@ function validateUniquePlacementId(input: { id: string; hostId: string; path: st
     addIssue(input.issues, input.path, `Duplicate mount id \"${input.id}\" for host \"${input.hostId}\". Mount ids only need to be unique within the same host. If this came from atlas.config.ts slots, do not repeat the same slotId for the same hostId; use a different slotId or hostId.`);
   }
   input.placementIds.add(placementKey);
+}
+
+function validateUniqueRouteBasePath(input: { basePath: string; hostId: string; path: string; routeBasePaths: Set<string>; issues: AtlasValidationIssue[] }): void {
+  const normalizedBasePath = normalizeRoutePath(input.basePath);
+  const routeKey = `${input.hostId}\0${normalizedBasePath}`;
+  if (input.routeBasePaths.has(routeKey)) {
+    addIssue(input.issues, input.path, `Duplicate route basePath \"${normalizedBasePath}\" for host \"${input.hostId}\". In atlas.config.ts routes, each hostId can use a basePath only once. Use a different basePath or hostId.`);
+  }
+  input.routeBasePaths.add(routeKey);
+}
+
+function normalizeRoutePath(path: string): string {
+  return path === "/" ? path : path.replace(/\/+$/, "");
 }

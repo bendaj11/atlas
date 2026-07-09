@@ -85,6 +85,27 @@ test("createManifestFromConfig derives unique internal route placement ids", () 
   assert.deepEqual(manifest.placements.map((placement) => placement.id), ["host-orders-id-route", "host-orders-id-route-2"]);
 });
 
+test("route base paths must be unique for each host", () => {
+  const placements = [
+    { id: "orders-route", kind: "route", hostId: "host", route: { basePath: "/orders", title: "Orders" } },
+    { id: "more-orders-route", kind: "route", hostId: "host", route: { basePath: "/orders/", title: "More Orders" } }
+  ];
+
+  assert.equal(
+    issueAt(validateAtlasManifest(createManifest({ placements })), "placements.1.route.basePath")?.message,
+    "Duplicate route basePath \"/orders\" for host \"host\". In atlas.config.ts routes, each hostId can use a basePath only once. Use a different basePath or hostId."
+  );
+});
+
+test("route base paths can match across different hosts", () => {
+  const placements = [
+    { id: "customer-orders-route", kind: "route", hostId: "customer-host", route: { basePath: "/orders", title: "Orders" } },
+    { id: "admin-orders-route", kind: "route", hostId: "admin-host", route: { basePath: "/orders", title: "Orders" } }
+  ];
+
+  assert.equal(issueAt(validateAtlasManifest(createManifest({ placements })), "placements.1.route.basePath"), undefined);
+});
+
 test("createManifestFromConfig scopes slot placement ids by host", () => {
   const manifest = createManifestFromConfig({
     config: {

@@ -596,7 +596,7 @@ function routeMatches(basePath: string, pathname: string): boolean {
 
 function logRouteConflict(hostId: string, conflict: RuntimePlacement): void {
   const path = normalizeRoutePath(conflict.placement.route!.basePath);
-  globalThis.console?.error?.(`Atlas host "${hostId}" ignored duplicate route "${path}" from "${conflict.manifest.id}:${conflict.placement.id}" because another app already claimed it.`);
+  globalThis.console?.error?.(`Atlas host "${hostId}" ignored duplicate route basePath "${path}" from app "${conflict.manifest.id}". In atlas.config.ts routes, each hostId can use a basePath only once. Use a different basePath or hostId.`);
 }
 
 function normalizeRoutePath(path: string): string {

@@ -590,7 +590,8 @@ test("host runtime renders the first exact route and logs duplicate routes", asy
       }
     });
 
-    assert.match(errors[0], /ignored duplicate route "\/orders" from "second:second-route"/);
+    assert.match(errors[0], /ignored duplicate route basePath "\/orders" from app "second"/);
+    assert.match(errors[0], /each hostId can use a basePath only once/);
     assert.deepEqual(states, []);
     sdk.navigation.navigate("/orders");
     await tick();

@@ -50,6 +50,24 @@ test("verify rejects unresolved exported widgets", async () => {
   assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "exported widgets"), true);
 });
 
+test("verify explains duplicate route base paths for one host", async () => {
+  const first = deploymentManifest({
+    id: "orders",
+    placements: [{ id: "orders-route", kind: "route", hostId: "host", route: { basePath: "/orders", title: "Orders" } }]
+  });
+  const second = deploymentManifest({
+    id: "billing",
+    placements: [{ id: "billing-route", kind: "route", hostId: "host", route: { basePath: "/orders/", title: "Billing" } }]
+  });
+  const service = new AtlasVerifyService(createDeploymentFetch([first, second]));
+
+  const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
+  const failure = report.checks.find((check) => check.status === "failure" && check.subject === "route ownership");
+
+  assert.match(failure?.message, /Duplicate routes: hostId "host" basePath "\/orders" is declared by "orders" and "billing"/);
+  assert.match(failure?.message, /each hostId can use a basePath only once/);
+});
+
 test("verify rejects missing cross-origin CORS headers", async () => {
   const service = new AtlasVerifyService(createDeploymentFetch([deploymentManifest()], { includeCors: false }));
 

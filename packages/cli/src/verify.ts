@@ -137,12 +137,13 @@ export class AtlasVerifyService {
     for (const manifest of catalog.manifests) {
       for (const placement of manifest.placements) {
         if (placement.hostId !== catalog.hostId || placement.kind !== "route" || !placement.route) continue;
-        const owner = owners.get(placement.route.basePath);
-        if (owner && owner !== manifest.id) conflicts.push(`${placement.route.basePath} (${owner}, ${manifest.id})`);
-        owners.set(placement.route.basePath, manifest.id);
+        const basePath = normalizeRoutePath(placement.route.basePath);
+        const owner = owners.get(basePath);
+        if (owner) conflicts.push(`hostId "${catalog.hostId}" basePath "${basePath}" is declared by "${owner}" and "${manifest.id}"`);
+        owners.set(basePath, manifest.id);
       }
     }
-    if (conflicts.length > 0) fail(context, "route ownership", `Conflicting routes: ${conflicts.join(", ")}.`);
+    if (conflicts.length > 0) fail(context, "route ownership", `Duplicate routes: ${conflicts.join(", ")}. In atlas.config.ts routes, each hostId can use a basePath only once. Use a different basePath or hostId.`);
     else pass(context, "route ownership", "Every exact base path has one owner.");
   }
 
@@ -355,6 +356,10 @@ function absoluteHttpUrl(value: string, flag: string): URL {
 
 function httpOrigin(value: string, flag: string): string {
   return absoluteHttpUrl(value, flag).origin;
+}
+
+function normalizeRoutePath(path: string): string {
+  return path === "/" ? path : path.replace(/\/+$/, "");
 }
 
 function createReport(context: VerificationContext, hostId?: string): AtlasVerificationReport {
