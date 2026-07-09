@@ -704,6 +704,9 @@ exit 1
   assert.doesNotMatch(hostMain, /import\.meta\.hot/);
   const hostViteConfig = await readFile(join(root, "apps/host/vite.config.ts"), "utf8");
   assert.match(hostViteConfig, /babel-plugin-react-compiler/);
+  assert.doesNotMatch(hostViteConfig, /ReactBabelOptions/);
+  assert.match(hostViteConfig, /babel: \{/);
+  assert.match(hostViteConfig, /target: "19"/);
   assert.match(hostViteConfig, /server: \{ port: 4200 \}/);
   await assert.rejects(access(join(root, "apps/host/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "apps/host/index.html"), "utf8"), /<script type="module" src="\/src\/main\.tsx"><\/script>/);
@@ -897,6 +900,9 @@ exit 1
   const reactViteConfig = await readFile(join(root, "orders/vite.config.ts"), "utf8");
   assert.match(reactViteConfig, /remoteEntry\.json/);
   assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
+  assert.doesNotMatch(reactViteConfig, /ReactBabelOptions/);
+  assert.match(reactViteConfig, /babel: \{/);
+  assert.match(reactViteConfig, /target: "19"/);
   await assert.rejects(access(join(root, "orders/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);

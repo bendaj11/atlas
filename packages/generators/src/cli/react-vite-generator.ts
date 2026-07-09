@@ -2,24 +2,17 @@ import { reactRemoteName } from "./react-names.js";
 
 export function reactHostViteConfig(compilerTarget: string): string {
   return `import { defineConfig } from "vite";
-import react, { type ReactBabelOptions } from "@vitejs/plugin-react";
-import type { Plugin } from "vite";
+import react from "@vitejs/plugin-react";
 
-function atlasReactCompiler(target: string): Plugin {
-  return {
-    name: "atlas-react-compiler",
-    api: {
-      reactBabel(babelConfig: ReactBabelOptions) {
-        babelConfig.plugins.push(["babel-plugin-react-compiler", { target, panicThreshold: "none" }]);
-      }
-    }
-  };
-}
+const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
 
 export default defineConfig({
   plugins: [
-    atlasReactCompiler("${compilerTarget}"),
-    react()
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", reactCompilerConfig]]
+      }
+    })
   ],
   server: { port: 4200 },
   build: { target: "esnext" }
@@ -31,7 +24,7 @@ export function reactAppViteConfig(name: string, compilerTarget: string): string
   return `import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import react, { type ReactBabelOptions } from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react";
 
 const widgetsRoot = resolve(__dirname, "src/exported-widgets");
 const widgetIds = existsSync(widgetsRoot)
@@ -46,17 +39,7 @@ const exposes = [
     outFileName: \`widgets/\${id}.js\`
   }))
 ];
-
-function atlasReactCompiler(target: string): Plugin {
-  return {
-    name: "atlas-react-compiler",
-    api: {
-      reactBabel(babelConfig: ReactBabelOptions) {
-        babelConfig.plugins.push(["babel-plugin-react-compiler", { target, panicThreshold: "none" }]);
-      }
-    }
-  };
-}
+const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
 
 function atlasFederationMetadata(): Plugin {
   const metadata = { name: "${reactRemoteName(name)}", exposes, shared: [] };
@@ -113,8 +96,11 @@ function atlasReactRefreshPreamble(): Plugin {
 export default defineConfig({
   base: "./",
   plugins: [
-    atlasReactCompiler("${compilerTarget}"),
-    react(),
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", reactCompilerConfig]]
+      }
+    }),
     atlasReactRefreshPreamble(),
     atlasFederationMetadata()
   ],
