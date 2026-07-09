@@ -5,11 +5,13 @@ interface AngularPackageOptions {
   projectName: string;
   host: boolean;
   profile: AngularVersionProfile;
+  routed?: boolean;
 }
 
 export function angularPackage(options: AngularPackageOptions): unknown {
   const { packageName, projectName, host, profile } = options;
   const angular = profile.version;
+  const routed = host || (options.routed ?? true);
   return {
     name: packageName,
     version: "0.1.0",
@@ -26,7 +28,7 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       "@angular/compiler": angular,
       "@angular/core": angular,
       "@angular/platform-browser": angular,
-      "@angular/router": angular,
+      ...(routed ? { "@angular/router": angular } : {}),
       "@angular-architects/native-federation": `^${profile.major}.0.0`,
       "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),

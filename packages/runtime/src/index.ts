@@ -138,8 +138,11 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
   const placements = hostPlacements(options.manifests, options.hostId);
   const routePlacements = placements.filter(({ placement }) => placement.kind === "route" && placement.route);
   const slotPlacements = placements.filter(({ placement }) => placement.kind === "slot" && placement.slot);
-  assertUniqueRoutePlacements(routePlacements);
-  const controller = new AtlasRuntimeController(options, widgetLoader, routePlacements);
+  const routePlan = createRoutePlacementPlan(routePlacements);
+  for (const conflict of routePlan.conflicts) {
+    logRouteConflict(options.hostId, conflict);
+  }
+  const controller = new AtlasRuntimeController(options, widgetLoader, routePlan.available);
 
   await controller.mountSlots(slotPlacements);
   await controller.reconcileRoute(options.sdk.navigation.getCurrentLocation().pathname);
@@ -569,19 +572,35 @@ function findRoutePlacement(
     .sort((left, right) => right.placement.route!.basePath.length - left.placement.route!.basePath.length)[0];
 }
 
+function createRoutePlacementPlan(placements: RuntimePlacement[]): { available: RuntimePlacement[]; conflicts: RuntimePlacement[] } {
+  const byPath = new Map<string, RuntimePlacement[]>();
+  for (const placement of placements) {
+    const path = normalizeRoutePath(placement.placement.route!.basePath);
+    byPath.set(path, [...(byPath.get(path) ?? []), placement]);
+  }
+
+  const available: RuntimePlacement[] = [];
+  const conflicts: RuntimePlacement[] = [];
+  for (const group of byPath.values()) {
+    available.push(group[0]!);
+    conflicts.push(...group.slice(1));
+  }
+
+  return { available, conflicts };
+}
+
 function routeMatches(basePath: string, pathname: string): boolean {
   const normalized = basePath === "/" ? "/" : basePath.replace(/\/+$/, "");
   return normalized === "/" || pathname === normalized || pathname.startsWith(`${normalized}/`);
 }
 
-function assertUniqueRoutePlacements(placements: Array<{ manifest: AtlasManifest; placement: AtlasPlacement }>): void {
-  const paths = new Map<string, string>();
-  for (const { manifest, placement } of placements) {
-    const path = placement.route!.basePath === "/" ? "/" : placement.route!.basePath.replace(/\/+$/, "");
-    const existing = paths.get(path);
-    if (existing) throw new Error(`Atlas runtime has ambiguous exact route "${path}" in placements "${existing}" and "${manifest.id}:${placement.id}".`);
-    paths.set(path, `${manifest.id}:${placement.id}`);
-  }
+function logRouteConflict(hostId: string, conflict: RuntimePlacement): void {
+  const path = normalizeRoutePath(conflict.placement.route!.basePath);
+  globalThis.console?.error?.(`Atlas host "${hostId}" ignored duplicate route "${path}" from "${conflict.manifest.id}:${conflict.placement.id}" because another app already claimed it.`);
+}
+
+function normalizeRoutePath(path: string): string {
+  return path === "/" ? path : path.replace(/\/+$/, "");
 }
 
 function placementKey(manifest: AtlasManifest, placement: AtlasPlacement): string {

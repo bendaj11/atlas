@@ -56,7 +56,7 @@ function placements(config: AtlasAppConfig): AtlasPlacement[] {
       }
     })),
     ...(config.slots ?? []).map((slot) => ({
-      id: slot.id,
+      id: slot.slotId,
       kind: "slot" as const,
       hostId: slot.hostId,
       slot: slot.name

@@ -36,6 +36,7 @@ export interface AtlasScaffoldOptions {
   framework: "angular" | "react";
   projectRoot: string;
   interactive: boolean;
+  routing: boolean;
 }
 
 export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorkspace> {
@@ -80,7 +81,8 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
         await runProcess(createNxGenerationCommand(packageManager, root, {
           framework: options.framework,
           directory,
-          interactive: options.interactive
+          interactive: options.interactive,
+          routing: options.routing
         }));
       } catch (error) {
         const plugin = options.framework === "angular" ? "@nx/angular" : "@nx/react";
@@ -95,12 +97,12 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
 export function createNxGenerationCommand(
   manager: AtlasPackageManager,
   root: string,
-  options: { framework: "angular" | "react"; directory: string; interactive: boolean }
+  options: { framework: "angular" | "react"; directory: string; interactive: boolean; routing: boolean }
 ): ProcessCommand {
   const generator = options.framework === "angular" ? "@nx/angular:application" : "@nx/react:application";
   const args = [
     "nx", "generate", generator, options.directory,
-    `--interactive=${options.interactive}`, "--skipFormat",
+    `--interactive=${options.interactive}`, "--skipFormat", `--routing=${options.routing}`,
     ...(!options.interactive ? [
       "--e2eTestRunner=none", "--unitTestRunner=none",
       ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])
@@ -236,7 +238,8 @@ interface NxProjectConfiguration {
 interface NxTargetConfiguration {
   defaultConfiguration?: string;
   outputs?: string[];
-  options?: { outputPath?: NxOutputPath };
+  executor?: string;
+  options?: { outputPath?: NxOutputPath; target?: string };
   configurations?: Record<string, { outputPath?: NxOutputPath }>;
 }
 
@@ -245,20 +248,61 @@ type NxOutputPath = string | { base?: string; browser?: string };
 function nxOutputPaths(project: NxProjectConfiguration | undefined, workspaceRoot: string, projectRoot: string): string[] {
   const build = project?.targets?.build;
   if (!build) return [];
-  const configurations = Object.entries(build.configurations ?? {});
-  const orderedConfigurations = build.defaultConfiguration
-    ? configurations.sort(([left], [right]) => Number(right === build.defaultConfiguration) - Number(left === build.defaultConfiguration))
-    : configurations;
-  const configuredOutputPaths = orderedConfigurations.flatMap(([, configuration]) => expandOutputPath(configuration.outputPath, workspaceRoot));
-  const declaredOutputs = (build.outputs ?? [])
-    .map((output) => interpolateNxOutput(output, project?.name, projectRoot))
-    .filter((output): output is string => Boolean(output))
-    .map((output) => resolve(workspaceRoot, output));
+  const targets = nxOutputTargets(project, build);
+  const configuredOutputPaths = targets.flatMap(({ target, configuration }) => configuredNxOutputPaths(target, configuration, workspaceRoot));
+  const declaredOutputs = targets.flatMap(({ target }) => declaredNxOutputPaths(target, {
+    projectName: project?.name,
+    projectRoot,
+    workspaceRoot
+  }));
   return [...new Set([
-    ...expandOutputPath(build.options?.outputPath, workspaceRoot),
     ...configuredOutputPaths,
     ...declaredOutputs
   ])];
+}
+
+function nxOutputTargets(
+  project: NxProjectConfiguration | undefined,
+  build: NxTargetConfiguration
+): Array<{ target: NxTargetConfiguration; configuration?: string }> {
+  const delegated = delegatedNxBuildTarget(project, build);
+  return delegated ? [delegated, { target: build }] : [{ target: build }];
+}
+
+function delegatedNxBuildTarget(
+  project: NxProjectConfiguration | undefined,
+  build: NxTargetConfiguration
+): { target: NxTargetConfiguration; configuration?: string } | undefined {
+  if (build.executor !== "@angular-architects/native-federation:build") return undefined;
+  const target = build.options?.target;
+  if (!target) return undefined;
+  const [projectName, targetName, configuration] = target.split(":");
+  if (projectName !== project?.name || !targetName) return undefined;
+  const delegatedTarget = project.targets?.[targetName];
+  return delegatedTarget ? { target: delegatedTarget, configuration } : undefined;
+}
+
+function configuredNxOutputPaths(target: NxTargetConfiguration, configuration: string | undefined, workspaceRoot: string): string[] {
+  const configurations = Object.entries(target.configurations ?? {});
+  const preferredConfiguration = configuration ?? target.defaultConfiguration;
+  const orderedConfigurations = preferredConfiguration
+    ? configurations.sort(([left], [right]) => Number(right === preferredConfiguration) - Number(left === preferredConfiguration))
+    : configurations;
+  return [
+    ...expandOutputPath(target.options?.outputPath, workspaceRoot),
+    ...orderedConfigurations.flatMap(([, targetConfiguration]) => expandOutputPath(targetConfiguration.outputPath, workspaceRoot))
+  ];
+}
+
+function declaredNxOutputPaths(target: NxTargetConfiguration, context: {
+  projectName: string | undefined;
+  projectRoot: string;
+  workspaceRoot: string;
+}): string[] {
+  return (target.outputs ?? [])
+    .map((output) => interpolateNxOutput(output, context.projectName, context.projectRoot))
+    .filter((output): output is string => Boolean(output))
+    .map((output) => resolve(context.workspaceRoot, output));
 }
 
 function expandOutputPath(outputPath: NxOutputPath | undefined, workspaceRoot: string): string[] {

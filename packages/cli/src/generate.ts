@@ -61,6 +61,7 @@ export class AtlasGenerateService {
     try {
       this.logGenerationPlan(selectedFramework, root);
       await this.ensureWorkspaceGenerator(selectedFramework);
+      const innerRouting = await this.resolveInnerRouting(type);
       if (this.workspace.kind === "nx" && !this.args.hasFlag("skip-workspace-generator") && this.prompts.interactive) {
         this.prompts.close();
       }
@@ -70,7 +71,8 @@ export class AtlasGenerateService {
           name,
           framework: selectedFramework,
           projectRoot: root,
-          interactive: this.prompts.interactive
+          interactive: this.prompts.interactive,
+          routing: innerRouting
         });
       const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
       const scaffoldedFrameworkVersion = workspaceScaffolded
@@ -81,7 +83,7 @@ export class AtlasGenerateService {
       const hostId = type === "app" ? this.args.flag("host") : undefined;
       const files = type === "host"
         ? generateHostFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion))
-        : generateAppFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId));
+        : generateAppFiles(this.options(name, selectedFramework, packageName, detectedFrameworkVersion, hostId, innerRouting));
       if (workspaceScaffolded) await takeOverAppSource(root);
       await writeGenerated(root, generatedOverlay(files, workspaceScaffolded, type, selectedFramework), workspaceScaffolded || this.args.hasFlag("force"));
       if (selectedFramework === "angular") await ensureAngularWorkspaceFederationConfig(root, name, type);
@@ -163,18 +165,30 @@ export class AtlasGenerateService {
     }
   }
 
+  private async resolveInnerRouting(type: "host" | "app"): Promise<boolean> {
+    if (type === "host") return true;
+    if (this.args.hasFlag("routing") || this.args.hasFlag("no-routing")) return this.args.routing();
+    if (!this.prompts.interactive) return true;
+    return await this.prompts.select("Add Atlas inner routing to this app?", [
+      { label: "Yes, create sample routes", value: "true" },
+      { label: "No, single-page app", value: "false" }
+    ]) === "true";
+  }
+
   private options(
     name: string,
     framework?: SupportedFramework,
     packageName?: string,
     detectedFrameworkVersion?: string,
-    hostId?: string
+    hostId?: string,
+    routing?: boolean
   ): AtlasGeneratorOptions {
     return {
       name,
       packageName,
       framework: framework ?? this.args.framework(),
       hostId,
+      routing,
       frameworkVersion: detectedFrameworkVersion ?? this.args.flag("framework-version"),
       allowUnsupportedVersion: this.args.hasFlag("allow-unsupported-version")
     };

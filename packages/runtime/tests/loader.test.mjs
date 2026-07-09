@@ -61,7 +61,7 @@ test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible 
   );
 });
 
-test("resolveRuntimeManifests rejects ambiguous exact routes", () => {
+test("resolveRuntimeManifests preserves ambiguous exact routes for runtime conflict reporting", () => {
   const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
   const catalog = {
     schemaVersion: "1",
@@ -73,7 +73,7 @@ test("resolveRuntimeManifests rejects ambiguous exact routes", () => {
     ]
   };
 
-  assert.throws(() => resolveRuntimeManifests(catalog), /ambiguous exact route "\/orders"/);
+  assert.deepEqual(resolveRuntimeManifests(catalog).map((manifest) => manifest.id), ["first", "second"]);
 });
 
 test("resolveRuntimeManifests preserves catalog placement ownership", () => {
@@ -123,6 +123,25 @@ test("createHostNavigationItems exposes resolved route metadata for custom host 
   assert.equal(items[0].href, "/app/orders");
   items[0].navigate();
   assert.deepEqual(navigation.visited, ["/orders"]);
+});
+
+test("createHostNavigationItems keeps the first app for duplicate exact routes", () => {
+  const navigation = {
+    navigate() {},
+    replace() {},
+    back() {},
+    createHref(to) { return to; },
+    subscribe() { return () => undefined; },
+    getCurrentLocation() { return { pathname: "/catalog", search: "", hash: "" }; }
+  };
+  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
+  const manifests = [
+    createTestManifest({ id: "first", placements: route("first", "/orders") }),
+    createTestManifest({ id: "second", placements: route("second", "/orders/") }),
+    createTestManifest({ id: "catalog", placements: route("catalog", "/catalog") })
+  ];
+
+  assert.deepEqual(createHostNavigationItems(manifests, "host", navigation).map((item) => item.appId), ["first", "catalog"]);
 });
 
 test("resolveRuntimeManifests revalidates widget uses after an override", () => {
@@ -542,6 +561,45 @@ test("host runtime mounts only the active route and unmounts during navigation",
   assert.ok(events.includes("details:mounted"));
   await runtime.stop();
   assert.ok(unmounted.includes("details"));
+});
+
+test("host runtime renders the first exact route and logs duplicate routes", async () => {
+  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
+  const states = [];
+  const imported = [];
+  const sdk = createTestHostSdk();
+  const errors = [];
+  const originalError = console.error;
+  console.error = (message) => errors.push(message);
+  try {
+    const runtime = await startAtlasHostRuntime({
+      hostId: "host",
+      manifests: [
+        createTestManifest({ id: "first", placements: route("first", "/orders") }),
+        createTestManifest({ id: "second", placements: route("second", "/orders/") }),
+        createTestManifest({ id: "catalog", placements: route("catalog", "/catalog") })
+      ],
+      sdk,
+      resolveRouteContainer() { return {}; },
+      resolveSlotContainer() { return undefined; },
+      onStateChange(event) { states.push(event); },
+      async importRemote(manifest) {
+        imported.push(manifest.id);
+        return { mount() {} };
+      }
+    });
+
+    assert.match(errors[0], /ignored duplicate route "\/orders" from "second:second-route"/);
+    assert.deepEqual(states, []);
+    sdk.navigation.navigate("/orders");
+    await tick();
+    sdk.navigation.navigate("/catalog");
+    await tick();
+    assert.deepEqual(imported, ["first", "catalog"]);
+    await runtime.stop();
+  } finally {
+    console.error = originalError;
+  }
 });
 
 test("host runtime mounts slots independently and reports remote failures", async () => {

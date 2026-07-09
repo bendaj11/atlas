@@ -5,6 +5,8 @@ import {
   angularAppEntry,
   angularAppHomeComponent,
   angularAppRoutes,
+  angularSinglePageAppComponent,
+  angularSinglePageAppEntry,
   appSourceReadme
 } from "./angular-microfrontend-generator.js";
 import { angularIndex, angularPackage } from "./angular-package-generator.js";
@@ -38,8 +40,9 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
 export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
   const { name } = options;
   const profile = angularVersionProfile(options);
+  const routed = options.routing ?? true;
   return [
-    { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile })) },
+    { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile, routed })) },
     { path: "angular.json", contents: json(angularWorkspace(name, false)) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
@@ -49,11 +52,16 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
     { path: "src/app/README.md", contents: appSourceReadme() },
-    { path: "src/app/app.component.ts", contents: angularAppAppComponent(name) },
-    { path: "src/app/home/home.component.ts", contents: angularAppHomeComponent(name) },
-    { path: "src/app/details/details.component.ts", contents: angularAppDetailsComponent() },
-    { path: "src/app/routes.ts", contents: angularAppRoutes() },
-    { path: "src/entry.ts", contents: angularAppEntry(name) },
+    ...(routed ? [
+      { path: "src/app/app.component.ts", contents: angularAppAppComponent(name) },
+      { path: "src/app/home/home.component.ts", contents: angularAppHomeComponent(name) },
+      { path: "src/app/details/details.component.ts", contents: angularAppDetailsComponent() },
+      { path: "src/app/routes.ts", contents: angularAppRoutes() },
+      { path: "src/entry.ts", contents: angularAppEntry(name) },
+    ] : [
+      { path: "src/app/app.component.ts", contents: angularSinglePageAppComponent(name) },
+      { path: "src/entry.ts", contents: angularSinglePageAppEntry(name) },
+    ]),
     { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-app/widget-id\` in \`uses\`.\n` }
   ];
 }

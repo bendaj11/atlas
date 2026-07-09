@@ -224,7 +224,7 @@ export default {
   ],
   slots: [
     {
-      id: "orders-header-tools",
+      slotId: "orders-header-tools",
       hostId: "customer-host",
       name: "header"
     }

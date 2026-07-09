@@ -20,6 +20,25 @@ function createRoot(container: Element) {
   return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nexport default createRoutedApp({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
 }
 
+export function reactSinglePageAppEntry(name: string, profile: ReactVersionProfile): string {
+  const root = profile.major === 17
+    ? `import type { ReactNode } from "react";
+import { render, unmountComponentAtNode } from "react-dom";
+
+function createRoot(container: Element) {
+  return {
+    render(element: ReactNode) {
+      render(element, container);
+    },
+    unmount() {
+      unmountComponentAtNode(container);
+    }
+  };
+}`
+    : 'import { createRoot } from "react-dom/client";';
+  return `import { createElement } from "react";\n${root}\nimport { defineApp } from "@atlas/sdk/react";\nimport { App } from "./app/App";\n\nexport default defineApp({\n  createRoot,\n  createElement: () => createElement(App, { name: "${title(name)}" })\n});\n`;
+}
+
 export function reactAppMain(profile: ReactVersionProfile): string {
   const root = profile.major === 17
     ? `import { render } from "react-dom";
@@ -65,6 +84,49 @@ mountApp(root);
 `;
 }
 
+export function reactSinglePageAppMain(name: string, profile: ReactVersionProfile): string {
+  const root = profile.major === 17
+    ? `import { render } from "react-dom";
+
+function mountApp(root: Element) {
+  render(app, root);
+}`
+    : `import { createRoot } from "react-dom/client";
+
+function mountApp(root: Element) {
+  const reactRoot = createRoot(root);
+  reactRoot.render(app);
+}`;
+
+  return `import { StrictMode } from "react";
+${root}
+import { createAtlasSdk } from "@atlas/sdk/host";
+import { createBrowserNavigation } from "@atlas/sdk/navigation";
+import { AtlasSdkProvider } from "@atlas/sdk/react";
+import { App } from "./app/App";
+import "./styles.css";
+
+const root = document.getElementById("root");
+if (!root) throw new Error("Atlas React app root was not found.");
+const navigation = createBrowserNavigation();
+const sdk = createAtlasSdk({
+  hostId: "local-dev",
+  hostData: { hostId: "local-dev", name: "Local Dev" },
+  navigation,
+  showToast: (toast) => console.info("[Atlas toast]", toast.title)
+});
+const app = (
+  <StrictMode>
+    <AtlasSdkProvider sdk={sdk}>
+      <App name="${title(name)}" />
+    </AtlasSdkProvider>
+  </StrictMode>
+);
+
+mountApp(root);
+`;
+}
+
 export function reactAppApp(name: string): string {
   return `import { Link, Outlet } from "react-router-dom";
 import { useAtlasSdk } from "@atlas/sdk/react";
@@ -84,6 +146,30 @@ export function App() {
         <Link to="details/42">Details</Link>
       </nav>
       <Outlet />
+    </section>
+  );
+}
+`;
+}
+
+export function reactSinglePageApp(name: string): string {
+  return `import { useAtlasSdk } from "@atlas/sdk/react";
+import "../styles.css";
+
+interface AppProps {
+  name?: string;
+}
+
+export function App({ name = "${title(name)}" }: AppProps) {
+  const atlas = useAtlasSdk();
+
+  return (
+    <section>
+      <h1>{name}</h1>
+      <button type="button" onClick={() => atlas.toast.open({ title: \`\${name} is ready\` })}>
+        Show toast
+      </button>
+      <p>Single-page Atlas app</p>
     </section>
   );
 }
@@ -128,8 +214,8 @@ export function appSourceReadme(entryFile: string, bundlerFile: string): string 
 
 Required Atlas wiring lives in \`${entryFile}\`, \`atlas.config.ts\`, and \`${bundlerFile}\`. Keep those files aligned with Atlas docs when changing platform wiring.
 
-Main app component lives in \`src/app/App.tsx\`. Add routed screens under feature folders in \`src/app\`.
+Main app component lives in \`src/app/App.tsx\`. Add screens under feature folders in \`src/app\`.
 
-\`src/app/routes.tsx\` connects app screens to the router. Update it when adding routes.
+When inner routing is enabled, \`src/app/routes.tsx\` connects app screens to the router. Update it when adding routes.
 `;
 }

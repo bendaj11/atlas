@@ -20,6 +20,14 @@ export class CliArguments {
     return this.flag(name) !== undefined;
   }
 
+  routing(): boolean {
+    if (this.hasFlag("no-routing")) return false;
+    const value = this.flag("routing");
+    if (value === undefined || value === "true") return true;
+    if (value === "false") return false;
+    throw new Error("--routing must be true or false.");
+  }
+
   framework(): SupportedFramework {
     const value = this.flag("framework") ?? "react";
     if (value === "angular" || value === "react") return value;

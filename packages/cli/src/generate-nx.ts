@@ -53,17 +53,22 @@ export async function alignDelegatedAngularFederationConfig(workspaceRoot: strin
   if (!await exists(configPath)) return;
 
   const source = await readFile(configPath, "utf8");
+  const escapedProjectRoot = escapeRegExp(projectRoot);
   const next = source
     .replace(
-      /(["'`])\.\/src\/entry\.ts\1/g,
-      (_match, quote: string) => `${quote}./${projectRoot}/src/entry.ts${quote}`
+      new RegExp(`(["'\`])\\./${escapedProjectRoot}/src/entry\\.ts\\1`, "g"),
+      (_match, quote: string) => `${quote}./src/entry.ts${quote}`
     )
     .replace(
-      /(["'`])\.\/src\/exported-widgets\/\$\{entry\.name\}\/index\.ts\1/g,
-      (_match, quote: string) => `${quote}./${projectRoot}/src/exported-widgets/\${entry.name}/index.ts${quote}`
+      new RegExp(`(["'\`])\\./${escapedProjectRoot}/src/exported-widgets/\\$\\{entry\\.name\\}/index\\.ts\\1`, "g"),
+      (_match, quote: string) => `${quote}./src/exported-widgets/\${entry.name}/index.ts${quote}`
     );
 
   if (next !== source) await writeFile(configPath, next, "utf8");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function ensureDelegatedNxTargets(

@@ -112,6 +112,35 @@ test("Nx discovery includes configured and declared output directories", async (
   ]);
 });
 
+test("Nx discovery follows Angular native federation delegated build output", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-native-outputs-"));
+  const projectRoot = join(root, "apps", "mobile-host");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({ packageManager: "npm@10.0.0" }));
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "@acme/mobile-host", version: "1.0.0" }));
+  await writeFile(join(projectRoot, "project.json"), JSON.stringify({
+    name: "mobile-host",
+    targets: {
+      build: {
+        executor: "@angular-architects/native-federation:build",
+        options: { target: "mobile-host:esbuild:production" }
+      },
+      esbuild: {
+        executor: "@nx/angular:application",
+        options: { outputPath: { base: "apps/mobile-host/dist", browser: "browser" } }
+      }
+    }
+  }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
+
+  const project = await (await detectWorkspace(projectRoot)).findProject("mobile-host");
+
+  assert.deepEqual(project.outputPaths, [
+    join(root, "apps/mobile-host/dist/browser"), join(root, "apps/mobile-host/dist")
+  ]);
+});
+
 test("task commands follow Nx, Turbo, and package-manager conventions", () => {
   const project = { id: "orders", root: "/repo/apps/orders", packageName: "@acme/orders", version: "1.0.0", outputPaths: [] };
   assert.deepEqual(createTaskCommand("nx", "yarn", "/repo", project, "build"), {
@@ -175,19 +204,19 @@ test("generated project formatting uses existing workspace tooling", async () =>
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/host", interactive: false }), {
+  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", directory: "apps/host", interactive: false, routing: true }), {
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/host",
-      "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
+      "--interactive=false", "--skipFormat", "--routing=true", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", directory: "apps/orders", interactive: false }), {
+  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", directory: "apps/orders", interactive: false, routing: false }), {
     command: "yarn",
     args: [
       "nx", "generate", "@nx/react:application", "apps/orders",
-      "--interactive=false", "--skipFormat", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
+      "--interactive=false", "--skipFormat", "--routing=false", "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
     ],
     cwd: "/repo"
   });
@@ -195,12 +224,12 @@ test("non-interactive Nx projects use deterministic framework generator defaults
 
 test("interactive Nx projects delegate framework choices to the native generator", () => {
   assert.deepEqual(createNxGenerationCommand("yarn", "/repo", {
-    framework: "angular", directory: "apps/host", interactive: true
+    framework: "angular", directory: "apps/host", interactive: true, routing: true
   }), {
     command: "yarn",
     args: [
       "nx", "generate", "@nx/angular:application", "apps/host",
-      "--interactive=true", "--skipFormat"
+      "--interactive=true", "--skipFormat", "--routing=true"
     ],
     cwd: "/repo"
   });

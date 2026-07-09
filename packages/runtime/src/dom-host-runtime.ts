@@ -71,7 +71,7 @@ export async function startDomHostRuntime<TExtensions extends object, THostData 
     widgetLoader,
     trustPolicy,
     resolveRouteContainer: () => document.querySelector<HTMLElement>("[data-atlas-route-outlet]") ?? undefined,
-    resolveSlotContainer: (_manifest, placement) => document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(placement.slot!)}"]`) ?? undefined,
+    resolveSlotContainer: (manifest, placement) => resolveDomSlotContainer(document, manifest.id, placement.id, placement.slot!),
     ...(config.resourcesTimeoutMs ? { resourcesTimeoutMs: config.resourcesTimeoutMs } : {}),
     onStateChange(event) {
       renderHostMountState(document, event, () => { void runtime?.retry(event.manifest.id); }, options);
@@ -106,4 +106,21 @@ function assertCatalogMatchesConfig(catalogHostId: string, configHostId: string)
   if (catalogHostId !== configHostId) {
     throw new Error(`Atlas catalog targets host "${catalogHostId}", but runtime configuration targets "${configHostId}".`);
   }
+}
+
+function resolveDomSlotContainer(document: Document, mfId: string, placementId: string, slot: string): HTMLElement | undefined {
+  const slotContainer = document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(slot)}"]`);
+  if (!slotContainer) return undefined;
+
+  const key = `${mfId}:${placementId}`;
+  const selector = `[data-atlas-slot-mount="${cssEscape(key)}"]`;
+  const existing = slotContainer.querySelector<HTMLElement>(selector);
+  if (existing) return existing;
+
+  const container = document.createElement("div");
+  container.dataset.atlasSlotMount = key;
+  container.dataset.atlasMfId = mfId;
+  container.dataset.atlasPlacementId = placementId;
+  slotContainer.append(container);
+  return container;
 }

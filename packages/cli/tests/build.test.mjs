@@ -260,6 +260,39 @@ test("atlas app generation only writes a route when a host is supplied", async (
   assert.doesNotMatch(explicitConfig, /hostId: "host"/);
 });
 
+test("atlas app generation can create single-page apps without inner route files", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "atlas-single-page-generator-"));
+  const reactRoot = join(temporary, "orders");
+  const angularRoot = join(temporary, "billing");
+
+  await run(process.execPath, [
+    "packages/cli/dist/index.js", "g", "app", "orders",
+    "--framework=react", "--no-routing", "--skip-install", `--directory=${reactRoot}`
+  ]);
+  await run(process.execPath, [
+    "packages/cli/dist/index.js", "g", "app", "billing",
+    "--framework=angular", "--no-routing", "--skip-install", `--directory=${angularRoot}`
+  ]);
+
+  const reactPackage = JSON.parse(await readFile(join(reactRoot, "package.json"), "utf8"));
+  assert.equal(reactPackage.dependencies["react-router-dom"], undefined);
+  assert.match(await readFile(join(reactRoot, "src/entry.tsx"), "utf8"), /defineApp/);
+  assert.doesNotMatch(await readFile(join(reactRoot, "src/entry.tsx"), "utf8"), /createRoutedApp|RouterProvider/);
+  assert.match(await readFile(join(reactRoot, "src/app/App.tsx"), "utf8"), /Single-page Atlas app/);
+  await assert.rejects(access(join(reactRoot, "src/app/routes.tsx")), { code: "ENOENT" });
+  await assert.rejects(access(join(reactRoot, "src/app/home/Home.tsx")), { code: "ENOENT" });
+  await assert.rejects(access(join(reactRoot, "src/app/details/Details.tsx")), { code: "ENOENT" });
+
+  const angularPackage = JSON.parse(await readFile(join(angularRoot, "package.json"), "utf8"));
+  assert.equal(angularPackage.dependencies["@angular/router"], undefined);
+  assert.match(await readFile(join(angularRoot, "src/entry.ts"), "utf8"), /defineApp/);
+  assert.doesNotMatch(await readFile(join(angularRoot, "src/entry.ts"), "utf8"), /provideRouter|LocationStrategy/);
+  assert.match(await readFile(join(angularRoot, "src/app/app.component.ts"), "utf8"), /Single-page Atlas app/);
+  await assert.rejects(access(join(angularRoot, "src/app/routes.ts")), { code: "ENOENT" });
+  await assert.rejects(access(join(angularRoot, "src/app/home/home.component.ts")), { code: "ENOENT" });
+  await assert.rejects(access(join(angularRoot, "src/app/details/details.component.ts")), { code: "ENOENT" });
+});
+
 test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-runtime-config-"));
   const projectRoot = join(root, "host");
@@ -301,7 +334,7 @@ test("atlas compile-config emits atlas.config.js through the project tsconfig", 
     "export default {",
     '  id: "orders",',
     '  framework: "react",',
-    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders", title: "Orders" }]',
     "};"
   ].join("\n"));
 
@@ -715,8 +748,8 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/main.ts"), "utf8"), /initFederation/);
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas app assets/);
   const federationConfig = await readFile(join(root, "orders/federation.config.js"), "utf8");
-  assert.match(federationConfig, /['"]\.\/entry['"]:\s*['"]\.\/orders\/src\/entry\.ts['"]/);
-  assert.match(federationConfig, /`\.\/orders\/src\/exported-widgets\/\$\{entry\.name\}\/index\.ts`/);
+  assert.match(federationConfig, /['"]\.\/entry['"]:\s*['"]\.\/src\/entry\.ts['"]/);
+  assert.match(federationConfig, /`\.\/src\/exported-widgets\/\$\{entry\.name\}\/index\.ts`/);
   assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
@@ -1086,7 +1119,7 @@ test("atlas dev delegates Nx app projects to the serve task", async () => {
     '  id: "orders",',
     '  name: "Orders",',
     '  framework: "react",',
-    '  routes: [{ hostId: "customer-host", basePath: "/orders", title: "Orders" }]',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
     "};"
   ].join("\n"));
 

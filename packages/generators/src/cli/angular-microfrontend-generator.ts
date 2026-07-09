@@ -37,6 +37,34 @@ export default defineApp(async ({ container, sdk, context }) => {
 `;
 }
 
+export function angularSinglePageAppEntry(name: string): string {
+  const selector = angularRootSelector(name);
+  return `import "zone.js";
+import { bootstrapApplication } from "@angular/platform-browser";
+import { defineApp, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
+import { AppComponent } from "./app/app.component";
+
+export default defineApp(async ({ container, sdk, context }) => {
+  const element = document.createElement("${selector}");
+  container.append(element);
+
+  const app = await bootstrapApplication(AppComponent, {
+    providers: [
+      provideAtlasAppContext(context),
+      provideAtlasSdk(sdk)
+    ]
+  });
+
+  return {
+    unmount() {
+      app.destroy();
+      element.remove();
+    }
+  };
+});
+`;
+}
+
 export function angularAppAppComponent(name: string): string {
   const selector = angularRootSelector(name);
   return `import { Component } from "@angular/core";
@@ -58,6 +86,32 @@ import { RouterLink, RouterOutlet } from "@angular/router";
   \`
 })
 export class AppComponent {}
+`;
+}
+
+export function angularSinglePageAppComponent(name: string): string {
+  const selector = angularRootSelector(name);
+  return `import { Component } from "@angular/core";
+import { injectAtlasSdk } from "@atlas/sdk/angular";
+
+@Component({
+  selector: "${selector}",
+  standalone: true,
+  template: \`
+    <section>
+      <h1>${title(name)}</h1>
+      <button type="button" (click)="showToast()">Show toast</button>
+      <p>Single-page Atlas app</p>
+    </section>
+  \`
+})
+export class AppComponent {
+  private readonly atlas = injectAtlasSdk();
+
+  showToast(): void {
+    this.atlas.toast.open({ title: "${title(name)} is ready" });
+  }
+}
 `;
 }
 
@@ -102,8 +156,8 @@ export function appSourceReadme(): string {
 
 Required Atlas wiring lives in \`src/entry.ts\`, \`atlas.config.ts\`, and \`federation.config.js\`. Keep those files aligned with Atlas docs when changing platform wiring.
 
-Main app component lives in \`src/app/app.component.ts\`. Add routed screens under feature folders in \`src/app\`.
+Main app component lives in \`src/app/app.component.ts\`. Add screens under feature folders in \`src/app\`.
 
-\`src/app/routes.ts\` connects app screens to the router. Update it when adding routes.
+When inner routing is enabled, \`src/app/routes.ts\` connects app screens to the router. Update it when adding routes.
 `;
 }

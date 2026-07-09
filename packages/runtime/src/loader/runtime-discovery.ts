@@ -145,7 +145,6 @@ export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: At
     assertManifestSupportsHost(manifest, catalog.hostId, "catalog");
     assertLocalManifestUrls(manifest);
   }
-  assertUniqueExactRoutes(manifests, catalog.hostId);
   assertWidgetUsesGraph(manifests);
   return manifests;
 }
@@ -297,23 +296,6 @@ function assertWidgetUsesGraph(manifests: AtlasManifest[]): void {
       }
     }
   }
-}
-
-function assertUniqueExactRoutes(manifests: AtlasManifest[], hostId: string): void {
-  const routes = new Map<string, string>();
-  for (const manifest of manifests) {
-    for (const placement of manifest.placements) {
-      if (placement.hostId !== hostId || placement.kind !== "route" || !placement.route) continue;
-      const path = normalizeRoutePath(placement.route.basePath);
-      const existing = routes.get(path);
-      if (existing) throw new Error(`Atlas host "${hostId}" has ambiguous exact route "${path}" in placements "${existing}" and "${manifest.id}:${placement.id}".`);
-      routes.set(path, `${manifest.id}:${placement.id}`);
-    }
-  }
-}
-
-function normalizeRoutePath(path: string): string {
-  return path === "/" ? path : path.replace(/\/+$/, "");
 }
 
 function isHttpProtocol(protocol: string): boolean {

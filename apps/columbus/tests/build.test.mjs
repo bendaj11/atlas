@@ -59,6 +59,9 @@ test("Columbus extension keeps the override count badge synced from pages", asyn
   assert.match(background, /setBadgeTextColor/);
   assert.match(background, /atlas\.override-count/);
   assert.match(badgeScript, /atlas\.runtime-overrides/);
+  assert.match(badgeScript, /atlas\.overrides/);
+  assert.match(badgeScript, /atlas\.runtime\.json/);
+  assert.match(badgeScript, /chrome\.storage\.local\.get/);
   assert.match(badgeScript, /sendMessage/);
   assert.doesNotMatch(badgeScript, /^import/u);
 });

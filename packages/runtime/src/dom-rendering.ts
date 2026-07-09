@@ -41,10 +41,12 @@ export function cssEscape(value: string): string {
 }
 
 function findMountContainer(document: Document, event: AtlasHostMountEvent): HTMLElement | null {
-  const selector = event.placement.kind === "route"
-    ? "[data-atlas-route-outlet]"
-    : `[data-atlas-slot="${cssEscape(event.placement.slot!)}"]`;
-  return document.querySelector<HTMLElement>(selector);
+  if (event.placement.kind === "route") {
+    return document.querySelector<HTMLElement>("[data-atlas-route-outlet]");
+  }
+
+  return document.querySelector<HTMLElement>(`[data-atlas-slot-mount="${cssEscape(`${event.manifest.id}:${event.placement.id}`)}"]`)
+    ?? document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(event.placement.slot!)}"]`);
 }
 
 function renderLoadingState(
@@ -78,7 +80,9 @@ function renderErrorState(
   }
   const status = prepareStatusElement(document, container, existingStatus, "alert");
   const message = document.createElement("span");
-  message.textContent = `Unable to load ${event.manifest.name}. `;
+  message.textContent = event.error?.message
+    ? `Unable to load ${event.manifest.name}: ${event.error.message}. `
+    : `Unable to load ${event.manifest.name}. `;
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = "Retry";

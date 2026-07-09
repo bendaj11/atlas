@@ -69,13 +69,27 @@ export function subscribeAtlasNavigationItems(
 }
 
 function routePlacementsForHost(manifests: readonly AtlasManifest[], hostId: string): RoutePlacement[] {
-  return manifests
+  return uniqueRoutePlacements(manifests
     .flatMap((manifest) => manifest.placements.map((placement) => ({ manifest, placement })))
-    .filter(({ placement }) => placement.hostId === hostId && placement.kind === "route" && placement.route?.nav?.visible !== false)
+    .filter(({ placement }) => placement.hostId === hostId && placement.kind === "route" && placement.route && placement.route.nav?.visible !== false))
     .sort((left, right) => (left.placement.route?.nav?.order ?? 0) - (right.placement.route?.nav?.order ?? 0));
 }
 
+function uniqueRoutePlacements(placements: RoutePlacement[]): RoutePlacement[] {
+  const byPath = new Map<string, RoutePlacement[]>();
+  for (const placement of placements) {
+    const path = normalizeRoutePath(placement.placement.route!.basePath);
+    byPath.set(path, [...(byPath.get(path) ?? []), placement]);
+  }
+
+  return [...byPath.values()].map((group) => group[0]!);
+}
+
 function routeMatches(basePath: string, pathname: string): boolean {
-  const normalized = basePath === "/" ? "/" : basePath.replace(/\/+$/, "");
+  const normalized = normalizeRoutePath(basePath);
   return normalized === "/" || pathname === normalized || pathname.startsWith(`${normalized}/`);
+}
+
+function normalizeRoutePath(path: string): string {
+  return path === "/" ? path : path.replace(/\/+$/, "");
 }

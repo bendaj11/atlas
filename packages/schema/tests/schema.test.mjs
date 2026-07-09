@@ -33,7 +33,7 @@ test("createManifestFromConfig derives supported hosts from source routes and sl
       id: "catalog",
       framework: "react",
       routes: [{ hostId: "host", basePath: "/catalog", title: "Catalog" }],
-      slots: [{ id: "catalog-sidebar", hostId: "partner-host.v2", name: "sidebar" }]
+      slots: [{ slotId: "catalog-sidebar", hostId: "partner-host.v2", name: "sidebar" }]
     },
     version: "1.0.0",
     buildId: "build-1",
@@ -53,7 +53,7 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
       id: "catalog",
       framework: "react",
       routes: [{ hostId: "host", basePath: "/catalog", title: "Catalog" }],
-      slots: [{ id: "catalog-sidebar", hostId: "host", name: "sidebar" }]
+      slots: [{ slotId: "catalog-sidebar", hostId: "host", name: "sidebar" }]
     },
     version: "1.0.0",
     buildId: "build-1",
@@ -284,7 +284,7 @@ test("catalog rejects duplicate app ids", () => {
   assert.equal(issueAt(validateAtlasHostCatalog(catalog), "manifests.1.id")?.message, 'Duplicate app id "catalog".');
 });
 
-test("catalog rejects duplicate exact route ownership with a clear owner error", () => {
+test("catalog permits duplicate exact route ownership so runtime can report conflicts", () => {
   const route = { id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
@@ -292,10 +292,8 @@ test("catalog rejects duplicate exact route ownership with a clear owner error",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [createManifest({ id: "first", placements: [route] }), createManifest({ id: "second", placements: [{ ...route, id: "other" }] })]
   };
-  const issue = issueAt(validateAtlasHostCatalog(catalog), "manifests.1.placements.0.route.basePath");
 
-  assert.match(issue.message, /already owned by app "first"/);
-  assert.match(issue.message, /manifests\.0\.placements\.0\.route\.basePath/);
+  assert.equal(validateAtlasHostCatalog(catalog).length, 0);
 });
 
 test("catalog permits the same route path for different hosts", () => {

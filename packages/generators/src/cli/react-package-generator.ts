@@ -7,10 +7,12 @@ interface ReactPackageOptions {
   projectName: string;
   host: boolean;
   profile: ReactVersionProfile;
+  routed?: boolean;
 }
 
 export function reactPackage(options: ReactPackageOptions): unknown {
   const { packageName, projectName, host, profile } = options;
+  const routed = host || (options.routed ?? true);
   return {
     name: packageName,
     version: "0.1.0",
@@ -30,7 +32,7 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       "es-module-shims": "^2.7.0",
       react: profile.version,
       "react-dom": profile.version,
-      "react-router-dom": profile.routerVersion,
+      ...(routed ? { "react-router-dom": profile.routerVersion } : {}),
       ...(profile.major < 19 ? { "react-compiler-runtime": REACT_COMPILER_VERSION } : {})
     },
     devDependencies: {
