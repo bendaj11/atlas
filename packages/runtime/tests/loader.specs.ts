@@ -1,20 +1,19 @@
-import test from "node:test";
+import { test } from "@jest/globals";
 import assert from "node:assert/strict";
 import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
-import { HostRuntimeDriver, createDeferred, createRouteManifest, createSlotManifest } from "./runtime-driver.mjs";
+import type { AtlasExportedWidgetManifest, AtlasHostCatalog, AtlasManifest, AtlasPlacement } from "../../schema/dist/index.js";
+import type { AtlasNavigation } from "../../sdk/dist/index.js";
+import type { AtlasAppContext, AtlasExportedWidgetMountRequest } from "../../sdk/dist/lifecycle.js";
+import type { AtlasHostMountEvent, AtlasRuntimeEvent } from "../dist/index.js";
+import { HostRuntimeDriver, createDeferred, createHostCatalog, createRouteManifest, createRoutePlacement, createSlotManifest, createTestContainer, createTestDocument, createTestElement } from "./loader.driver.js";
 
 test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
-  const catalog = {
-    schemaVersion: "1",
-    hostId: "host",
-    generatedAt: "2026-01-01T00:00:00.000Z",
-    manifests: [
+  const catalog = createHostCatalog([
       createTestManifest({ version: "1.0.0" }),
       createTestManifest({ version: "2.0.0" })
-    ]
-  };
+  ]);
 
   assert.throws(() => resolveRuntimeManifests(catalog), /multiple selected versions/);
 });
@@ -22,12 +21,7 @@ test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
 test("resolveRuntimeManifests applies overrides", () => {
   const production = createTestManifest({ version: "1.0.0", channel: "production" });
   const local = createTestManifest({ id: "catalog", version: "2.0.0", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
-  const catalog = {
-    schemaVersion: "1",
-    hostId: "host",
-    generatedAt: "2026-01-01T00:00:00.000Z",
-    manifests: [production]
-  };
+  const catalog = createHostCatalog([production]);
 
   const manifests = resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: local, reason: "local" }]);
 
@@ -36,14 +30,14 @@ test("resolveRuntimeManifests applies overrides", () => {
 
 test("resolveRuntimeManifests treats wildcard supportedHosts as universal", () => {
   const manifest = createTestManifest({ supportedHosts: ["*"] });
-  const catalog = { schemaVersion: "1", hostId: "partner-host", generatedAt: "now", manifests: [manifest] };
+  const catalog = createHostCatalog([manifest], "partner-host");
 
   assert.deepEqual(resolveRuntimeManifests(catalog), [manifest]);
 });
 
 test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible overrides", () => {
   const selected = createTestManifest({ id: "catalog" });
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
+  const catalog = createHostCatalog([selected]);
   const replacement = createTestManifest({ id: "catalog", version: "2.0.0" });
 
   assert.throws(
@@ -64,25 +58,20 @@ test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible 
 });
 
 test("resolveRuntimeManifests preserves ambiguous exact routes for runtime conflict reporting", () => {
-  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
-  const catalog = {
-    schemaVersion: "1",
-    hostId: "host",
-    generatedAt: "now",
-    manifests: [
-      createTestManifest({ id: "first", placements: route("first", "/orders") }),
-      createTestManifest({ id: "second", placements: route("second", "/orders/") })
-    ]
-  };
+  const route = (id: string, basePath: string): AtlasPlacement[] => [createRoutePlacement(id, basePath)];
+  const catalog = createHostCatalog([
+    createTestManifest({ id: "first", placements: route("first", "/orders") }),
+    createTestManifest({ id: "second", placements: route("second", "/orders/") })
+  ]);
 
   assert.deepEqual(resolveRuntimeManifests(catalog).map((manifest) => manifest.id), ["first", "second"]);
 });
 
 test("resolveRuntimeManifests preserves catalog placement ownership", () => {
-  const placement = { id: "catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } };
+  const placement: AtlasPlacement = { id: "catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } };
   const selected = createTestManifest({ id: "catalog", placements: [placement] });
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", placements: [] });
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
+  const catalog = createHostCatalog([selected]);
 
   const [resolved] = resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: replacement, reason: "local" }]);
 
@@ -91,14 +80,14 @@ test("resolveRuntimeManifests preserves catalog placement ownership", () => {
 });
 
 test("createHostNavigationItems exposes resolved route metadata for custom host nav", () => {
-  const navigation = {
-    navigate(to) { navigation.visited.push(to); },
+  const visited: string[] = [];
+  const navigation: AtlasNavigation = {
+    navigate(to) { visited.push(to); },
     replace() {},
     back() {},
     createHref(to) { return `/app${to}`; },
     subscribe() { return () => undefined; },
-    getCurrentLocation() { return { pathname: "/orders/42", search: "", hash: "" }; },
-    visited: []
+    getCurrentLocation() { return { pathname: "/orders/42", search: "", hash: "" }; }
   };
   const manifests = [
     createTestManifest({
@@ -114,7 +103,7 @@ test("createHostNavigationItems exposes resolved route metadata for custom host 
     createTestManifest({
       id: "hidden",
       name: "Hidden",
-      placements: [{ id: "hidden-route", kind: "route", hostId: "host", route: { basePath: "/hidden", title: "Hidden", nav: { visible: false } } }]
+      placements: [{ id: "hidden-route", kind: "route", hostId: "host", route: { basePath: "/hidden", title: "Hidden", nav: { label: "Hidden", visible: false } } }]
     })
   ];
 
@@ -124,11 +113,11 @@ test("createHostNavigationItems exposes resolved route metadata for custom host 
   assert.equal(items[0].active, true);
   assert.equal(items[0].href, "/app/orders");
   items[0].navigate();
-  assert.deepEqual(navigation.visited, ["/orders"]);
+  assert.deepEqual(visited, ["/orders"]);
 });
 
 test("createHostNavigationItems keeps the first app for duplicate exact routes", () => {
-  const navigation = {
+  const navigation: AtlasNavigation = {
     navigate() {},
     replace() {},
     back() {},
@@ -136,7 +125,7 @@ test("createHostNavigationItems keeps the first app for duplicate exact routes",
     subscribe() { return () => undefined; },
     getCurrentLocation() { return { pathname: "/catalog", search: "", hash: "" }; }
   };
-  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
+  const route = (id: string, basePath: string): AtlasPlacement[] => [createRoutePlacement(id, basePath)];
   const manifests = [
     createTestManifest({ id: "first", placements: route("first", "/orders") }),
     createTestManifest({ id: "second", placements: route("second", "/orders/") }),
@@ -147,11 +136,11 @@ test("createHostNavigationItems keeps the first app for duplicate exact routes",
 });
 
 test("resolveRuntimeManifests revalidates widget uses after an override", () => {
-  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./summary", contractVersion: "1" };
+  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./summary", contractVersion: "1" };
   const owner = createTestManifest({ id: "orders", exportedWidgets: [widget], placements: [] });
   const consumer = createTestManifest({ id: "dashboard", uses: ["orders/summary"], placements: [] });
   const replacement = createTestManifest({ id: "orders", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", exportedWidgets: [] });
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [owner, consumer] };
+  const catalog = createHostCatalog([owner, consumer]);
 
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ appId: "orders", manifest: replacement, reason: "local" }]),
@@ -183,7 +172,7 @@ test("catalog loading validates the complete host catalog", async () => {
 });
 
 test("catalog loading passes resilience abort signals to custom fetch callbacks", async () => {
-  let receivedSignal;
+  let receivedSignal: AbortSignal | undefined;
   await assert.rejects(
     () => loadHostCatalog({
       catalogUrl: "https://cdn.example/catalog.json",
@@ -192,11 +181,11 @@ test("catalog loading passes resilience abort signals to custom fetch callbacks"
     }),
     AtlasLoadError
   );
-  assert.equal(receivedSignal.aborted, true);
+  assert.equal(receivedSignal?.aborted, true);
 });
 
 test("resilient operations emit structured retry and success events", async () => {
-  const events = [];
+  const events: AtlasRuntimeEvent[] = [];
   let attempts = 0;
   await runResiliently(
     async () => {
@@ -208,12 +197,15 @@ test("resilient operations emit structured retry and success events", async () =
     { retryCount: 1, timeoutMs: 50, observer: (event) => events.push(event) }
   );
   assert.deepEqual(events.map((event) => event.type), ["operation.retry", "operation.success"]);
+  if (events[0]?.type !== "operation.retry" || events[1]?.type !== "operation.success") {
+    throw new Error("Expected retry and success operation events.");
+  }
   assert.equal(events[0].attempt, 1);
   assert.equal(events[1].attempt, 2);
 });
 
 test("timed out resilient operations are aborted before retry", async () => {
-  const signals = [];
+  const signals: AbortSignal[] = [];
   await assert.rejects(
     () => runResiliently(
       (signal) => {
@@ -246,7 +238,7 @@ test("exhausted loading reports structured diagnostics", async () => {
       { retryCount: 1, timeoutMs: 50 }
     ),
     (error) => {
-      assert.equal(error instanceof AtlasLoadError, true);
+      if (!(error instanceof AtlasLoadError)) return false;
       assert.equal(error.stage, "remote-module");
       assert.equal(error.appId, "map");
       assert.equal(error.version, "3.2.1");
@@ -275,8 +267,8 @@ test("Native Federation module imports use the configured retry policy", async (
 });
 
 test("Native Federation initializes local remotes in one registry update", async () => {
-  const initialized = [];
-  const loaded = [];
+  const initialized: Array<Record<string, string>> = [];
+  const loaded: string[] = [];
   const importers = createNativeFederationImporters({
     async initFederation(remotes) {
       initialized.push(remotes);
@@ -301,7 +293,7 @@ test("Native Federation initializes local remotes in one registry update", async
 });
 
 test("Native Federation falls back to per-remote initialization when batch initialization fails", async () => {
-  const initialized = [];
+  const initialized: string[][] = [];
   const importers = createNativeFederationImporters({
     async initFederation(remotes) {
       initialized.push(Object.keys(remotes));
@@ -325,10 +317,11 @@ test("Native Federation falls back to per-remote initialization when batch initi
 
 test("host UI uses one host-owned outlet and supports custom loading and fallback renderers", () => {
   const container = createHostStatusContainer();
-  const document = { querySelector: () => container };
-  let retry;
+  const document = createTestDocument();
+  document.querySelector = () => container;
+  let retry: (() => void) | undefined;
   let disposed = false;
-  const states = [];
+  const states: string[] = [];
   const ui = createHostUi({
     document,
     renderHostLoading(target) { states.push("loading"); target.textContent = "Preparing workspace"; return () => { disposed = true; }; },
@@ -336,12 +329,33 @@ test("host UI uses one host-owned outlet and supports custom loading and fallbac
   });
   ui.showLoading();
   ui.showError(new Error("catalog unavailable"), () => states.push("retried"));
+  if (!retry) throw new Error("Expected host retry callback.");
   retry();
 
   assert.deepEqual(states, ["loading", "catalog unavailable", "retried"]);
   assert.equal(disposed, true);
-  assert.equal(container.dataset.atlasState, "error");
+  assert.equal(container.dataset["atlasState"], "error");
   assert.equal(container.textContent, "Custom fallback");
+});
+
+test("default host UI shows exact Atlas errors with a suggested action", () => {
+  const container = createHostStatusContainer();
+  const document = createTestDocument();
+  document.querySelector = () => container;
+  document.createElement = () => {
+    const element = createTestElement();
+    element.textContent = "";
+    element.setAttribute = () => undefined;
+    element.addEventListener = () => undefined;
+    element.append = (...children) => { element.textContent = children.map((child) => typeof child === "string" ? child : child.textContent).join(""); };
+    return element;
+  };
+  const ui = createHostUi({ document });
+
+  ui.showError(new Error('Invalid Atlas host catalog. manifests.1.id: Duplicate app id "angular-app".'), () => undefined);
+
+  assert.match(container.textContent, /Duplicate app id "angular-app"/);
+  assert.match(container.textContent, /Suggested action: Remove duplicate manifest entries for "angular-app"/);
 });
 
 test("browser overrides are discovered from the host URL and validated", async () => {
@@ -371,6 +385,22 @@ test("browser overrides cannot cross host boundaries", async () => {
   }), /targets host "admin"/);
 });
 
+test("invalid browser overrides name the app and provide a Columbus recovery action", async () => {
+  const manifest = createTestManifest({ id: "angular-app", version: "custom-url" });
+  await assert.rejects(() => loadBrowserRuntimeOverrides({
+    hostId: "host",
+    enabled: true,
+    search: "",
+    storage: {
+      getItem(key) {
+        return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY
+          ? JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: "now", overrides: [{ appId: manifest.id, manifest, reason: "local" }] })
+          : null;
+      }
+    }
+  }), /Invalid Atlas override for app "angular-app".*Suggested action: Open Columbus, correct or disable this app override/u);
+});
+
 test("browser overrides load a directly persisted extension document", async () => {
   const manifest = createTestManifest({ channel: "historical", version: "0.8.0" });
   const overrides = await loadBrowserRuntimeOverrides({
@@ -386,14 +416,14 @@ test("tab-scoped browser overrides take precedence over all-tab overrides", asyn
   const production = createTestManifest({ id: "orders", version: "1.0.0" });
   const tab = createTestManifest({ id: "orders", version: "3.0.0", channel: "historical" });
   const all = createTestManifest({ id: "orders", version: "2.0.0", channel: "historical" });
-  const documentFor = (manifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: "orders", manifest, reason: "historical" }] });
+  const documentFor = (manifest: AtlasManifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: "orders", manifest, reason: "historical" }] });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
     enabled: true,
     storage: { getItem: (key) => key === "atlas.runtime-overrides" ? documentFor(all) : null },
     sessionStorage: { getItem: (key) => key === "atlas.runtime-overrides" ? documentFor(tab) : null }
   });
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), manifests: [production] };
+  const catalog = createHostCatalog([production]);
   assert.equal(resolveRuntimeManifests(catalog, overrides)[0].version, "3.0.0");
 });
 
@@ -412,7 +442,7 @@ test("browser override URL and storage access are disabled by default", async ()
 test("local override assets must use loopback URLs", () => {
   const selected = createTestManifest({ id: "catalog" });
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://192.168.1.20/remoteEntry.json" });
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
+  const catalog = createHostCatalog([selected]);
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: replacement, reason: "local" }]),
     /must use loopback/
@@ -420,13 +450,14 @@ test("local override assets must use loopback URLs", () => {
 });
 
 test("widget loader mounts from the selected owner version", async () => {
-  const widget = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerAppId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
+  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerAppId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
   const manifest = createTestManifest({ exportedWidgets: [widget] });
-  let request;
+  let request: AtlasExportedWidgetMountRequest | undefined;
   let unmounted = false;
-  const loader = createWidgetLoader([manifest], {}, async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
+  const loader = createWidgetLoader([manifest], createTestHostSdk(), async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
   assert.deepEqual(loader.list("catalog"), [widget]);
-  const mounted = await loader.mount("catalog/product-count", {}, { count: 4 });
+  const mounted = await loader.mount("catalog/product-count", createTestElement(), { count: 4 });
+  if (!request) throw new Error("Widget was not mounted.");
   assert.deepEqual(request.props, { count: 4 });
   assert.equal(request.ownerManifest.version, "1.0.0");
   await mounted.unmount();
@@ -434,22 +465,23 @@ test("widget loader mounts from the selected owner version", async () => {
 });
 
 test("widget loader rejects widgets outside the selected catalog", async () => {
-  const loader = createWidgetLoader([], {});
-  await assert.rejects(() => loader.mount("unknown/widget", {}, {}), /not available in the selected catalog/);
+  const loader = createWidgetLoader([], createTestHostSdk());
+  await assert.rejects(() => loader.mount("unknown/widget", createTestElement(), {}), /not available in the selected catalog/);
 });
 
 test("page apps receive the shared widget loader", async () => {
-  let received;
-  const widgetLoader = createWidgetLoader([], {});
+  let received: AtlasAppContext | undefined;
+  const widgetLoader = createWidgetLoader([], createTestHostSdk());
   await mountApp({
     hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest: createTestManifest(),
-    container: {},
+    container: createTestElement(),
     widgetLoader,
     async importRemote() { return { mount({ context }) { received = context; } }; }
   });
+  if (!received) throw new Error("App context was not received.");
   assert.equal(received.widgets, widgetLoader);
   assert.equal("components" in received, false);
 });
@@ -462,7 +494,7 @@ test("page apps can update the host document title while mounted", async () => {
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest: createTestManifest(),
-    container: { ownerDocument: document, append() {} },
+    container: createTestContainer(document),
     routeTitle: "Catalog",
     async importRemote() {
       return { mount({ context }) { context.route.setTabTitle("Order 42"); } };
@@ -475,10 +507,15 @@ test("page apps can update the host document title while mounted", async () => {
 });
 
 test("app mounts receive an Atlas-owned scoped DOM boundary", async () => {
-  const created = [];
-  const document = { createElement() { const element = { dataset: {}, ownerDocument: document, append() {}, remove() { element.removed = true; } }; created.push(element); return element; } };
-  const parent = { ownerDocument: document, append(element) { this.child = element; } };
-  let receivedContainer;
+  const document = createTestDocument();
+  let removed = false;
+  const boundary = createTestContainer(document);
+  boundary.remove = () => { removed = true; };
+  Object.defineProperty(document, "createElement", { value: () => boundary });
+  const parent = createTestContainer(document);
+  let child: HTMLElement | undefined;
+  parent.append = () => { child = boundary; };
+  let receivedContainer: HTMLElement | undefined;
   const mounted = await mountApp({
     hostId: "host",
     catalogUrl: "",
@@ -487,10 +524,11 @@ test("app mounts receive an Atlas-owned scoped DOM boundary", async () => {
     container: parent,
     async importRemote() { return { mount({ container }) { receivedContainer = container; } }; }
   });
-  assert.equal(parent.child, receivedContainer);
+  if (!receivedContainer) throw new Error("App boundary was not received.");
+  assert.equal(child, receivedContainer);
   assert.equal(receivedContainer.dataset.atlasApp, "map");
   await mounted.unmount();
-  assert.equal(receivedContainer.removed, true);
+  assert.equal(removed, true);
 });
 
 test("remote asset URLs resolve against the owning app remote entry", () => {
@@ -527,10 +565,11 @@ test("remote asset URLs are rewritten before inserted nodes enter the host docum
   const image = createAssetElement("img", { src: "/assets/images/image.jpg" });
   const wrapper = createAssetElement("div", {}, [image]);
   const boundary = createAssetElement("div");
-  let appendedSrc;
+  let appendedSrc: string | null | undefined;
   boundary.append = (node) => {
-    boundary.children.push(node);
-    appendedSrc = node.querySelectorAll("*")[0].getAttribute("src");
+    if (!isTestAssetElement(node)) return;
+    boundary.testChildren.push(node);
+    appendedSrc = node.querySelectorAll("*")[0]?.getAttribute("src");
   };
 
   const release = startRemoteAssetRewrite(manifest, boundary, undefined);
@@ -541,9 +580,9 @@ test("remote asset URLs are rewritten before inserted nodes enter the host docum
 });
 
 test("host loads app styles before mount and releases them after the final unmount", async () => {
-  const events = [];
+  const events: string[] = [];
   const document = createStylesheetDocument(events);
-  const container = { ownerDocument: document, append() {} };
+  const container = createTestContainer(document);
   const manifest = createTestManifest({ styles: [{ href: "https://cdn.example/catalog/styles.css", integrity: "sha256-valid" }] });
   const options = {
     hostId: "host",
@@ -557,12 +596,12 @@ test("host loads app styles before mount and releases them after the final unmou
   const first = await mountApp(options);
   const second = await mountApp(options);
   assert.deepEqual(events.slice(0, 3), ["style", "import", "mount"]);
-  assert.equal(document.links.length, 1);
-  assert.equal(document.links[0].crossOrigin, "anonymous");
+  assert.equal(document.testLinks.length, 1);
+  assert.equal(document.testLinks[0]?.crossOrigin, "anonymous");
   await first.unmount();
-  assert.equal(document.links[0].removed, undefined);
+  assert.equal(document.testLinks[0]?.removed, undefined);
   await second.unmount();
-  assert.equal(document.links[0].removed, true);
+  assert.equal(document.testLinks[0]?.removed, true);
 });
 
 test("stylesheet failures prevent remote mounting", async () => {
@@ -573,7 +612,7 @@ test("stylesheet failures prevent remote mounting", async () => {
     catalogUrl: "",
     sdk: createTestHostSdk(),
     manifest: createTestManifest({ styles: [{ href: "https://cdn.example/catalog/missing.css", integrity: "sha256-valid" }] }),
-    container: { ownerDocument: document, append() {} },
+    container: createTestContainer(document),
     async importRemote() { imported = true; return { mount() {} }; }
   }), /could not load stylesheet/);
   assert.equal(imported, false);
@@ -585,7 +624,7 @@ test("stylesheet trust rejects unsupported protocols before import", async () =>
     hostId: "host",
     catalogUrl: "",
     sdk: createTestHostSdk(),
-    container: { ownerDocument: createStylesheetDocument([]), append() {} },
+    container: createTestContainer(createStylesheetDocument([])),
     async importRemote() { imported = true; return { mount() {} }; }
   };
   await assert.rejects(
@@ -596,10 +635,10 @@ test("stylesheet trust rejects unsupported protocols before import", async () =>
 });
 
 test("host runtime mounts only the active route and unmounts during navigation", async () => {
-  const unmounted = [];
+  const unmounted: string[] = [];
   const driver = new HostRuntimeDriver()
     .given.manifests([createRouteManifest("catalog", "/catalog"), createRouteManifest("details", "/catalog/details")])
-    .given.remote(async (manifest) => ({ mount: () => ({ unmount: () => unmounted.push(manifest.id) }) }));
+    .given.remote(async (manifest) => ({ mount: () => ({ unmount: () => { unmounted.push(manifest.id); } }) }));
 
   await driver.when.started();
   assert.deepEqual(driver.states, []);
@@ -613,11 +652,11 @@ test("host runtime mounts only the active route and unmounts during navigation",
 });
 
 test("host runtime renders the first exact route and logs duplicate routes", async () => {
-  const route = (id, basePath) => [{ id: `${id}-route`, kind: "route", hostId: "host", route: { basePath, title: id } }];
-  const states = [];
-  const imported = [];
+  const route = (id: string, basePath: string): AtlasPlacement[] => [createRoutePlacement(id, basePath)];
+  const states: AtlasHostMountEvent[] = [];
+  const imported: string[] = [];
   const sdk = createTestHostSdk();
-  const errors = [];
+  const errors: unknown[] = [];
   const originalError = console.error;
   console.error = (message) => errors.push(message);
   try {
@@ -629,7 +668,7 @@ test("host runtime renders the first exact route and logs duplicate routes", asy
         createTestManifest({ id: "catalog", placements: route("catalog", "/catalog") })
       ],
       sdk,
-      resolveRouteContainer() { return {}; },
+      resolveRouteContainer() { return createTestElement(); },
       resolveSlotContainer() { return undefined; },
       onStateChange(event) { states.push(event); },
       async importRemote(manifest) {
@@ -638,8 +677,8 @@ test("host runtime renders the first exact route and logs duplicate routes", asy
       }
     });
 
-    assert.match(errors[0], /ignored duplicate route basePath "\/orders" from app "second"/);
-    assert.match(errors[0], /each hostId can use a basePath only once/);
+    assert.match(String(errors[0]), /ignored duplicate route basePath "\/orders" from app "second"/);
+    assert.match(String(errors[0]), /each hostId can use a basePath only once/);
     assert.deepEqual(states, []);
     sdk.navigation.navigate("/orders");
     await tick();
@@ -660,17 +699,20 @@ test("host runtime mounts slots independently and reports remote failures", asyn
   await driver.when.started();
 
   assert.deepEqual(driver.states, ["mounting", "error"]);
-  assert.match(driver.lastError.message, /CDN unavailable/);
+  assert.match(driver.lastError?.message ?? "", /CDN unavailable/);
   await driver.when.stopped();
 });
 
 test("DOM host warns and skips app import when a declared slot is missing", async () => {
   const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
-  const warnings = [];
+  const warnings: unknown[] = [];
   let imported = false;
   const originalWarn = console.warn;
   console.warn = (message) => warnings.push(message);
   try {
+    const document = createTestDocument();
+    document.querySelector = () => null;
+    document.dispatchEvent = () => true;
     const runtime = await startDomHostRuntime({
       options: {
         runtimeConfig: { schemaVersion: "1", hostId: "host", catalogUrl: catalogDataUrl([widget]) },
@@ -682,12 +724,12 @@ test("DOM host warns and skips app import when a declared slot is missing", asyn
         openPopup() { throw new Error("popup not used"); }
       },
       services: { createNavigation: () => createTestHostSdk().navigation },
-      document: { querySelector() { return null; }, dispatchEvent() { return true; } },
+      document,
       onInfrastructureReady() {}
     });
 
     assert.equal(imported, false);
-    assert.match(warnings[0], /does not contain \[data-atlas-slot="header"\]/);
+    assert.match(String(warnings[0]), /does not contain \[data-atlas-slot="header"\]/);
     await runtime.stop();
   } finally {
     console.warn = originalWarn;
@@ -721,7 +763,7 @@ test("host runtime cleans up mounts that finish after their timeout", async () =
     sdk: createTestHostSdk(),
     resourcesTimeoutMs: 2,
     resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
+    resolveSlotContainer() { return createTestElement(); },
     async importRemote() {
       return { async mount() { await new Promise((resolve) => setTimeout(resolve, 10)); return { unmount() { unmounted += 1; } }; } };
     }
@@ -772,7 +814,7 @@ test("host runtime renders no loading state when the app does not request one", 
 
 test("host runtime reports and cleans up an app that opts into readiness but never becomes ready", async () => {
   const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
-  const states = [];
+  const states: AtlasHostMountEvent[] = [];
   let unmounted = false;
   const runtime = await startAtlasHostRuntime({
     hostId: "host",
@@ -780,86 +822,104 @@ test("host runtime reports and cleans up an app that opts into readiness but nev
     sdk: createTestHostSdk(),
     resourcesTimeoutMs: 5,
     resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
+    resolveSlotContainer() { return createTestElement(); },
     onStateChange(event) { states.push(event); },
     async importRemote() { return { mount({ context }) { context.loading.waitUntilReady(); return { unmount() { unmounted = true; } }; } }; }
   });
   assert.equal(unmounted, true);
   assert.deepEqual(states.map(({ state }) => state), ["mounting", "loading", "error"]);
-  assert.match(states[2].error.message, /did not mark itself ready/);
+  assert.match(states[2]?.error?.message ?? "", /did not mark itself ready/);
   await runtime.stop();
 });
 
-function tick() {
+function tick(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function catalogDataUrl(manifests) {
+function catalogDataUrl(manifests: AtlasManifest[]): string {
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests };
   return `data:application/json,${encodeURIComponent(JSON.stringify(catalog))}`;
 }
 
-function createAssetElement(tagName, attributes = {}, children = []) {
-  return {
-    nodeType: 1,
-    tagName,
-    attributes: { ...attributes },
-    children: [...children],
-    getAttribute(name) { return this.attributes[name] ?? null; },
-    setAttribute(name, value) { this.attributes[name] = value; },
-    querySelectorAll() {
-      return this.children.flatMap((child) => [child, ...child.querySelectorAll("*")]);
-    },
-    append(...nodes) { this.children.push(...nodes); },
-    prepend(...nodes) { this.children.unshift(...nodes); },
-    appendChild(node) { this.children.push(node); return node; },
-    insertBefore(node) { this.children.push(node); return node; },
-    replaceChild(node, oldNode) {
-      const index = this.children.indexOf(oldNode);
-      if (index === -1) this.children.push(node);
-      else this.children[index] = node;
-      return oldNode;
-    },
-    replaceChildren(...nodes) { this.children = [...nodes]; }
-  };
+interface TestAssetElement extends HTMLElement {
+  testChildren: TestAssetElement[];
 }
 
-function createStylesheetDocument(events, outcome = "load") {
-  const links = [];
-  const document = {
-    links,
-    head: {
-      append(element) {
-        links.push(element);
-        events.push("style");
-        queueMicrotask(() => element.listeners[outcome]?.());
-      }
-    },
-    createElement(tag) {
-      if (tag !== "link") return { dataset: {}, ownerDocument: document, append() {}, remove() {} };
-      return {
-        dataset: {},
-        listeners: {},
-        addEventListener(name, listener) { this.listeners[name] = listener; },
-        remove() { this.removed = true; }
-      };
-    }
+function createAssetElement(tagName: string, initialAttributes: Record<string, string> = {}, children: TestAssetElement[] = []): TestAssetElement {
+  const element: TestAssetElement = Object.create(null);
+  const attributes = new Map(Object.entries(initialAttributes));
+  element.testChildren = [...children];
+  Object.defineProperty(element, "nodeType", { value: 1 });
+  Object.defineProperty(element, "tagName", { value: tagName.toUpperCase() });
+  element.getAttribute = (name) => attributes.get(name) ?? null;
+  element.setAttribute = (name, value) => { attributes.set(name, value); };
+  Object.defineProperty(element, "querySelectorAll", { value: () => element.testChildren.flatMap((child) => [child, ...Array.from(child.querySelectorAll("*"))]) });
+  element.append = (...nodes) => { element.testChildren.push(...nodes.filter(isTestAssetElement)); };
+  element.prepend = (...nodes) => { element.testChildren.unshift(...nodes.filter(isTestAssetElement)); };
+  element.appendChild = (node) => { if (isTestAssetElement(node)) element.testChildren.push(node); return node; };
+  element.insertBefore = (node) => { if (isTestAssetElement(node)) element.testChildren.push(node); return node; };
+  element.replaceChild = (node, oldNode) => {
+    if (!isTestAssetElement(node) || !isTestAssetElement(oldNode)) return oldNode;
+    const index = element.testChildren.indexOf(oldNode);
+    if (index === -1) element.testChildren.push(node); else element.testChildren[index] = node;
+    return oldNode;
   };
+  element.replaceChildren = (...nodes) => { element.testChildren = nodes.filter(isTestAssetElement); };
+  return element;
+}
+
+function isTestAssetElement(value: unknown): value is TestAssetElement {
+  return typeof value === "object" && value !== null && "testChildren" in value && Array.isArray(value.testChildren);
+}
+
+interface TestStyleLink extends HTMLLinkElement {
+  removed?: boolean;
+  testListeners: Partial<Record<"load" | "error", EventListener>>;
+}
+
+type TestStylesheetDocument = Document & { testLinks: TestStyleLink[] };
+
+function createStylesheetDocument(events: string[], outcome: "load" | "error" = "load"): TestStylesheetDocument {
+  const document: TestStylesheetDocument = Object.create(null);
+  document.testLinks = [];
+  const head = createTestElement();
+  head.append = (node) => {
+    if (!isTestStyleLink(node)) return;
+    const link = node;
+    document.testLinks.push(link);
+    events.push("style");
+    queueMicrotask(() => link.testListeners[outcome]?.(new Event(outcome)));
+  };
+  Object.defineProperty(document, "head", { value: head });
+  Object.defineProperty(document, "createElement", { value: (tag: string) => {
+    if (tag !== "link") return createTestContainer(document);
+    const link: TestStyleLink = Object.create(null);
+    Object.defineProperty(link, "dataset", { value: {} });
+    link.testListeners = {};
+    link.addEventListener = (name: string, listener: EventListenerOrEventListenerObject) => {
+      if ((name === "load" || name === "error") && typeof listener === "function") link.testListeners[name] = listener;
+    };
+    link.remove = () => { link.removed = true; };
+    return link;
+  } });
   return document;
 }
 
+function isTestStyleLink(value: unknown): value is TestStyleLink {
+  return typeof value === "object" && value !== null && "testListeners" in value;
+}
+
 function createHostStatusContainer() {
-  return {
-    dataset: {},
-    attributes: new Map(),
-    textContent: "",
-    setAttribute(name, value) { this.attributes.set(name, value); },
-    removeAttribute(name) { this.attributes.delete(name); },
-    replaceChildren(...children) {
-      this.children = children;
-      this.textContent = children.map((child) => child.textContent ?? "").join("");
-    }
+  const element = createTestElement();
+  const attributes = new Map<string, string>();
+  element.textContent = "";
+  element.getAttribute = (name) => attributes.get(name) ?? null;
+  element.setAttribute = (name, value) => { attributes.set(name, value); };
+  element.removeAttribute = (name) => { attributes.delete(name); };
+  element.replaceChildren = (...children) => {
+    element.textContent = children.map((child) => typeof child === "string" ? child : child.textContent ?? "").join("");
   };
+  return element;
 }
 
 test("remote entry integrity rejects modified production assets", async () => {
@@ -917,7 +977,7 @@ test("runtime config rejects invalid resource settings", async () => {
 test("federation isolates rejected remotes while trusted apps remain loadable", async () => {
   const rejected = createTestManifest({ id: "rejected", remoteEntryUrl: "https://assets.example.com/rejected.json" });
   const local = createTestManifest({ id: "local", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
-  const initialized = [];
+  const initialized: string[] = [];
   const federation = await createTrustedNativeFederationImporters({
     async initFederation(remotes) { initialized.push(...Object.keys(remotes)); },
     async loadRemoteModule() { return { mount() {} }; }

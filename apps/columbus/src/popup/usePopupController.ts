@@ -1,7 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData } from "../contracts.js";
-import { createOverrideDocument, errorMessage, readHostData, updateActionBadge, writeOverrides } from "./atlas-host.js";
-import { createAppViewModel, prVersions, productionVersions } from "./manifest-utils.js";
+import {
+  createOverrideDocument,
+  errorMessage,
+  readDisabledOverrides,
+  readHostData,
+  updateActionBadge,
+  writeDisabledOverrides,
+  writeOverrides
+} from "./atlas-host.js";
+import { createAppViewModel, normalizeStoredManifest, prVersions, productionVersions } from "./manifest-utils.js";
 import type { AppViewModel, EditorModel, SaveOverrideValue, Scope, StatusState, View } from "./types.js";
 
 const readingStatus: StatusState = { busy: true, message: "Reading active Atlas host...", tone: "standard" };
@@ -16,16 +24,23 @@ export function usePopupController() {
   const [revision, setRevision] = useState(0);
   const activeOverrides = useRef(new Map<string, Manifest>());
   const savedDisabledOverrides = useRef(new Map<string, Manifest>());
+  const applying = useRef(false);
 
   const load = useCallback(async (): Promise<void> => {
     setStatus(readingStatus);
 
     try {
       const result = await readHostData(activeTabId);
-      activeOverrides.current = new Map((result.hostData.overrides?.overrides ?? []).map((override) => [override.appId, override.manifest]));
+      activeOverrides.current = new Map((result.hostData.overrides?.overrides ?? []).map((override) => [
+        override.appId,
+        normalizeStoredManifest(override.manifest)
+      ]));
+      const loadedScope = result.hostData.overrideScope === "tab" ? "tab" : "all";
+      savedDisabledOverrides.current = await readDisabledOverrides(result.hostData.config.hostId, result.tabId, loadedScope);
+      includeDisabledApps(result.hostData, savedDisabledOverrides.current);
       setActiveTabId(result.tabId);
       setHostData(result.hostData);
-      setScope(result.hostData.overrideScope === "tab" ? "tab" : "all");
+      setScope(loadedScope);
       setView({ name: "dashboard" });
       setRevision((value) => value + 1);
       setStatus(hostReadyStatus(result.hostData));
@@ -37,20 +52,36 @@ export function usePopupController() {
   }, [activeTabId]);
 
   const persistActiveOverrides = useCallback(async (): Promise<void> => {
-    if (!activeTabId || !hostData) return;
+    if (!activeTabId || !hostData || applying.current) return;
 
+    applying.current = true;
     setStatus(applyingStatus);
 
     try {
+      await writeDisabledOverrides({
+        hostId: hostData.config.hostId,
+        tabId: activeTabId,
+        scope,
+        overrides: savedDisabledOverrides.current
+      });
       const documentValue = createOverrideDocument(hostData, activeOverrides.current);
-      await writeOverrides({ tabId: activeTabId, hostData, documentValue, scope });
+      await writeOverrides({
+        tabId: activeTabId,
+        hostData,
+        documentValue,
+        scope,
+        disabledAppIds: [...savedDisabledOverrides.current.keys()]
+      });
       window.close();
     } catch (error) {
       setStatus({ busy: false, message: errorMessage(error), tone: "error" });
+    } finally {
+      applying.current = false;
     }
   }, [activeTabId, hostData, scope]);
 
   const toggleOverride = useCallback(async (appId: string): Promise<void> => {
+    if (applying.current) return;
     const active = activeOverrides.current.get(appId);
 
     if (active) {
@@ -60,6 +91,7 @@ export function usePopupController() {
       const disabled = savedDisabledOverrides.current.get(appId);
       if (!disabled) return;
       activeOverrides.current.set(appId, disabled);
+      savedDisabledOverrides.current.delete(appId);
     }
 
     setRevision((value) => value + 1);
@@ -67,6 +99,7 @@ export function usePopupController() {
   }, [persistActiveOverrides]);
 
   const saveOverride = useCallback((value: SaveOverrideValue): void => {
+    if (applying.current) return;
     savedDisabledOverrides.current.delete(value.production.id);
 
     if (value.selected) activeOverrides.current.set(value.production.id, value.selected);
@@ -109,6 +142,13 @@ export function usePopupController() {
     setError: (message: string) => setStatus({ busy: false, message, tone: "error" }),
     toggleOverride
   };
+}
+
+function includeDisabledApps(hostData: HostData, disabledOverrides: Map<string, Manifest>): void {
+  const knownAppIds = new Set(hostData.catalog.manifests.map((manifest) => manifest.id));
+  for (const manifest of disabledOverrides.values()) {
+    if (!knownAppIds.has(manifest.id)) hostData.catalog.manifests.push(manifest);
+  }
 }
 
 function hostReadyStatus(hostData: HostData): StatusState {

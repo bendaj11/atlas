@@ -31,7 +31,8 @@ interface AtlasInterceptDevSession {
 
 const ATLAS_DEV_SESSION_URL = "http://127.0.0.1:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
-const ATLAS_RUNTIME_OVERRIDE_KEYS = ["atlas.runtime-overrides", "atlas.runtime-override-url"];
+const ATLAS_RUNTIME_CONFIG_PATH = /\/atlas\.runtime\.json$/;
+const DISABLED_LOCAL_APPS_KEY_PREFIX = "atlas.disabled-local-apps.";
 const atlasWindow = window as Window & { __atlasExtensionInterceptorInstalled?: boolean };
 
 if (!atlasWindow.__atlasExtensionInterceptorInstalled) {
@@ -41,12 +42,19 @@ if (!atlasWindow.__atlasExtensionInterceptorInstalled) {
 
 function installAtlasCatalogInterceptor(): void {
   const nativeFetch = window.fetch.bind(window);
-  const devSessions = new Map<string, Promise<AtlasInterceptDevSession | undefined>>();
+  const overridePolicies = new Map<string, boolean>();
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const requestUrl = requestHref(input);
+    if (isRuntimeConfigRequest(requestUrl)) {
+      const response = await nativeFetch(input, init);
+      await rememberOverridePolicy(response, overridePolicies);
+      return response;
+    }
+
     const hostId = catalogRequestHostId(requestUrl);
     if (!hostId) return nativeFetch(input, init);
+    if (overridePolicies.get(hostId) !== true) return nativeFetch(input, init);
 
     const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession(hostId)]);
 
@@ -57,16 +65,41 @@ function installAtlasCatalogInterceptor(): void {
   };
 
   async function readDevSession(hostId: string): Promise<AtlasInterceptDevSession | undefined> {
-    const pendingSession = devSessions.get(hostId) ?? nativeFetch(devSessionUrl(hostId), { cache: "no-store" })
+    return nativeFetch(devSessionUrl(hostId), { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<AtlasInterceptDevSession> : undefined)
-      .then((session) => session?.schemaVersion === "1" ? session : undefined)
+      .then((session) => isDevSession(session, hostId) ? session : undefined)
       .catch(() => undefined);
-    devSessions.set(hostId, pendingSession);
-    const session = await pendingSession;
-    if (session) clearRuntimeStorageOverrides();
-    else devSessions.delete(hostId);
-    return session;
   }
+}
+
+async function rememberOverridePolicy(response: Response, policies: Map<string, boolean>): Promise<void> {
+  if (!response.ok) return;
+  try {
+    const config = await response.clone().json() as { schemaVersion?: unknown; hostId?: unknown; allowAppOverrides?: unknown };
+    if (config.schemaVersion === "1" && typeof config.hostId === "string") {
+      policies.set(config.hostId, config.allowAppOverrides !== false);
+    }
+  } catch {
+    return;
+  }
+}
+
+function isDevSession(value: unknown, hostId: string): value is AtlasInterceptDevSession {
+  if (typeof value !== "object" || value === null) return false;
+  const session = value as Partial<AtlasInterceptDevSession>;
+  return session.schemaVersion === "1"
+    && session.hostId === hostId
+    && session.catalog?.schemaVersion === "1"
+    && session.catalog.hostId === hostId
+    && Array.isArray(session.catalog.manifests)
+    && Array.isArray(session.overrides)
+    && session.overrides.every(isMatchingOverride);
+}
+
+function isMatchingOverride(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const override = value as { appId?: unknown; manifest?: { id?: unknown } };
+  return typeof override.appId === "string" && override.appId === override.manifest?.id;
 }
 
 function devSessionUrl(hostId: string): string {
@@ -86,14 +119,21 @@ async function mergeCatalogResponse(response: Response, session: AtlasInterceptD
 }
 
 function localCatalogResponse(session: AtlasInterceptDevSession): Response {
-  return jsonResponse(session.catalog);
+  const disabledAppIds = readDisabledAppIds(session.hostId);
+  return jsonResponse({
+    ...session.catalog,
+    manifests: session.catalog.manifests.filter((manifest) => !disabledAppIds.has(manifest.id))
+  });
 }
 
 function mergeCatalog(catalog: AtlasInterceptCatalog, session: AtlasInterceptDevSession): AtlasInterceptCatalog {
-  const overrides = new Map(session.overrides.map((override) => [override.appId, override.manifest]));
-  const merged = catalog.manifests.map((manifest) => overrides.get(manifest.id) ?? manifest);
+  const disabledAppIds = readDisabledAppIds(session.hostId);
+  const enabledOverrides = session.overrides.filter((override) => !disabledAppIds.has(override.appId));
+  const overrides = new Map(enabledOverrides.map((override) => [override.appId, override.manifest]));
+  const baseManifests = catalog.manifests.filter((manifest) => manifest.channel !== "local" || !disabledAppIds.has(manifest.id));
+  const merged = baseManifests.map((manifest) => overrides.get(manifest.id) ?? manifest);
   const present = new Set(merged.map((manifest) => manifest.id));
-  for (const override of session.overrides) {
+  for (const override of enabledOverrides) {
     if (!present.has(override.appId)) merged.push(override.manifest);
   }
   return {
@@ -101,6 +141,18 @@ function mergeCatalog(catalog: AtlasInterceptCatalog, session: AtlasInterceptDev
     generatedAt: session.generatedAt,
     manifests: merged
   };
+}
+
+function readDisabledAppIds(hostId: string): Set<string> {
+  try {
+    const key = `${DISABLED_LOCAL_APPS_KEY_PREFIX}${hostId}`;
+    const tabValue = sessionStorage.getItem(key);
+    const stored = tabValue ?? localStorage.getItem(key);
+    const appIds = stored ? JSON.parse(stored) as unknown : [];
+    return new Set(Array.isArray(appIds) ? appIds.filter((value): value is string => typeof value === "string") : []);
+  } catch {
+    return new Set();
+  }
 }
 
 function jsonResponse(value: unknown, status = 200): Response {
@@ -125,9 +177,10 @@ function catalogRequestHostId(value: string): string | undefined {
   }
 }
 
-function clearRuntimeStorageOverrides(): void {
-  for (const key of ATLAS_RUNTIME_OVERRIDE_KEYS) {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
+function isRuntimeConfigRequest(value: string): boolean {
+  try {
+    return ATLAS_RUNTIME_CONFIG_PATH.test(new URL(value, location.href).pathname);
+  } catch {
+    return false;
   }
 }

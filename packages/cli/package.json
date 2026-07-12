@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.2.65",
+  "version": "0.2.66",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -39,14 +39,14 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "yarn workspace @atlas-app/catalog-react build && node --test tests/*.test.mjs",
+    "test": "yarn workspace @atlas-app/catalog-react build && NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/cli/tests/'",
     "typecheck": "tsc -b --pretty false",
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.65",
-    "@atlas/generators": "0.2.65",
-    "@atlas/runtime": "0.2.65",
+    "@atlas/schema": "0.2.66",
+    "@atlas/generators": "0.2.66",
+    "@atlas/runtime": "0.2.66",
     "@inquirer/select": "^4.4.2",
     "typescript": "~5.9.0"
   }

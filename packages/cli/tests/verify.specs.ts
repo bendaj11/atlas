@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import test from "node:test";
-import { createTestManifest } from "../../testkit/dist/index.js";
+import { test } from "@jest/globals";
 import { AtlasVerifyService } from "../dist/verify.js";
-
-const remoteBytes = new TextEncoder().encode('{"name":"orders","exposes":[{"key":"./entry","outFileName":"entry.js"}]}');
-const remoteIntegrity = `sha256-${createHash("sha256").update(remoteBytes).digest("base64")}`;
+import { createDeploymentFetch, deploymentManifest, remoteIntegrity } from "./verify.driver.js";
 
 test("verify accepts a healthy cross-origin deployment", async () => {
   const manifest = deploymentManifest();
@@ -63,9 +59,10 @@ test("verify explains duplicate route base paths for one host", async () => {
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
   const failure = report.checks.find((check) => check.status === "failure" && check.subject === "route ownership");
+  if (!failure) throw new Error("Expected route ownership failure.");
 
-  assert.match(failure?.message, /Duplicate routes: hostId "host" basePath "\/orders" is declared by "orders" and "billing"/);
-  assert.match(failure?.message, /each hostId can use a basePath only once/);
+  assert.match(failure.message, /Duplicate routes: hostId "host" basePath "\/orders" is declared by "orders" and "billing"/);
+  assert.match(failure.message, /each hostId can use a basePath only once/);
 });
 
 test("verify rejects missing cross-origin CORS headers", async () => {
@@ -107,11 +104,13 @@ test("verify bounds concurrent network requests", async () => {
 });
 
 test("verify aborts network requests after the configured timeout", async () => {
-  let receivedSignal;
+  let receivedSignal: AbortSignal | undefined;
   const keepAlive = setTimeout(() => {}, 50);
   const service = new AtlasVerifyService((_input, init) => new Promise((_resolve, reject) => {
-    receivedSignal = init.signal;
-    init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+    const signal = init?.signal;
+    if (!signal) throw new Error("Verify request did not receive an abort signal.");
+    receivedSignal = signal;
+    signal.addEventListener("abort", () => reject(signal.reason), { once: true });
   }));
 
   let report;
@@ -124,6 +123,7 @@ test("verify aborts network requests after the configured timeout", async () => 
     clearTimeout(keepAlive);
   }
 
+  if (!receivedSignal) throw new Error("Verify request signal was not captured.");
   assert.equal(receivedSignal.aborted, true);
   assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "runtime configuration"), true);
 });
@@ -151,40 +151,3 @@ test("verify warns when immutable caching has max-age zero", async () => {
 
   assert.equal(report.checks.some((check) => check.status === "warning" && check.subject === "orders remote entry cache"), true);
 });
-
-function deploymentManifest(overrides = {}) {
-  return createTestManifest({
-    id: "orders",
-    remoteEntryUrl: "https://cdn.example/orders/1/build/remoteEntry.json",
-    integrity: remoteIntegrity,
-    ...overrides
-  });
-}
-
-function createDeploymentFetch(manifests, options = { includeCors: true }) {
-  const jsonHeaders = { "content-type": "application/json", "cache-control": "no-cache" };
-  const crossOriginHeaders = {
-    "content-type": "application/json",
-    "cache-control": options.assetCacheControl ?? "public, max-age=31536000, immutable",
-    ...(options.includeCors ? { "access-control-allow-origin": "https://host.example" } : {})
-  };
-  return async (input) => {
-    const url = input.toString();
-    if (url.endsWith("atlas.runtime.json")) return Response.json({
-      schemaVersion: "1",
-      hostId: "host",
-      catalogUrl: "https://cdn.example/hosts/host/catalog.json",
-      allowAppOverrides: true,
-      resourcesTimeoutMs: 15000,
-      resourcesRetryCount: 3
-    }, { headers: jsonHeaders });
-    if (url.endsWith("catalog.json")) return Response.json({
-      schemaVersion: "1",
-      hostId: "host",
-      generatedAt: "2026-01-01T00:00:00.000Z",
-      manifests
-    }, { headers: { ...jsonHeaders, ...(options.includeCors ? { "access-control-allow-origin": "https://host.example" } : {}) } });
-    if (url.endsWith("remoteEntry.json")) return new Response(remoteBytes, { headers: crossOriginHeaders });
-    return new Response("export {};", { headers: { ...crossOriginHeaders, "content-type": "text/javascript" } });
-  };
-}

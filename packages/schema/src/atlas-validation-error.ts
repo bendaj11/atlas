@@ -1,4 +1,5 @@
 import type { AtlasValidationIssue } from "./atlas-validation-issue.js";
+import { actionableMessage } from "./actionable-error.js";
 
 /** Error thrown when Atlas JSON is invalid. Includes every issue Atlas found. */
 export class AtlasValidationError extends Error {
@@ -6,7 +7,10 @@ export class AtlasValidationError extends Error {
   readonly issues: AtlasValidationIssue[];
 
   constructor(message: string, issues: AtlasValidationIssue[]) {
-    super(formatAtlasValidationMessage(message, issues));
+    super(actionableMessage(
+      formatAtlasValidationMessage(message, issues),
+      "Correct every listed field in Atlas JSON source, regenerate artifact if generated, then retry."
+    ));
     this.name = "AtlasValidationError";
     this.issues = issues;
   }

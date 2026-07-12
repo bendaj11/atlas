@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Box, Button, Card, ToggleSwitch } from "@wix/design-system";
+import { Badge, Box, Button, Card, Text, ToggleSwitch } from "@wix/design-system";
 import { badgeSkin, overrideLabel } from "../manifest-utils.js";
 import type { AppViewModel } from "../types.js";
 import { editIcon } from "../wds-icons.js";
@@ -18,19 +18,21 @@ export function AppOverrideRow({ app, busy, onEdit, onToggle }: AppOverrideRowPr
     <Card className="app-card">
       <Card.Content>
         <Box verticalAlign="middle" gap="12px" minWidth="0">
-          <Box direction="vertical" flex="1" minWidth="0">
-            <span className="app-name">{app.production.name}</span>
-            <span className="app-url">{app.currentUrl}</span>
+          <ToggleSwitch
+            size="small"
+            checked={app.overrideEnabled}
+            disabled={busy || !app.canToggle}
+            onChange={onToggle}
+            aria-label={toggleLabel}
+          />
+          <Box direction="vertical" gap="3px" flex="1" minWidth="0">
+            <Box gap="6px" verticalAlign="middle" minWidth="0">
+              <Text size="medium" weight="bold">{app.production.name}</Text>
+              <Badge size="tiny" skin={badgeSkin(app.overrideType)}>{overrideLabel(app.overrideType)}</Badge>
+            </Box>
+            <Text size="tiny" secondary ellipsis>{app.currentUrl}</Text>
           </Box>
-          <Badge skin={badgeSkin(app.overrideType)}>{overrideLabel(app.overrideType)}</Badge>
-          <Box className="app-actions" gap="8px" verticalAlign="middle">
-            <ToggleSwitch
-              size="small"
-              checked={app.overrideEnabled}
-              disabled={busy || !app.canToggle}
-              onChange={onToggle}
-              aria-label={toggleLabel}
-            />
+          <Box gap="8px" verticalAlign="middle" flex="0 0 auto">
             <Button size="small" priority="secondary" disabled={busy} onClick={onEdit} prefixIcon={editIcon}>
               Edit
             </Button>

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { realpathSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { ensureActionableError } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
@@ -106,6 +107,8 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     }
 
     throw new Error(`Unknown or incomplete command "${values.join(" ")}". Run atlas --help for usage.`);
+  } catch (error) {
+    throw ensureActionableError(error, "Run atlas --help, correct command or input named above, then rerun command.");
   } finally {
     prompts.close();
   }
@@ -126,7 +129,7 @@ function printVerificationCheck(check: AtlasVerificationCheck): void {
 
 if (isMainModule(import.meta.url, process.argv[1])) {
   runAtlasCli().catch((error: unknown) => {
-    ui.error(error instanceof Error ? error.message : String(error));
+    ui.error(ensureActionableError(error).message);
     process.exitCode = 1;
   });
 }

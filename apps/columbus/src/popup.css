@@ -2,19 +2,9 @@ html,
 body,
 #root {
   margin: 0;
-  min-height: 100%;
-}
-
-body {
   width: 560px;
-  max-height: 620px;
+  height: 620px;
   overflow: hidden;
-  background: #f7f8fb;
-}
-
-.popup-shell {
-  max-height: 620px;
-  overflow: auto;
 }
 
 .scope-card,
@@ -26,25 +16,6 @@ body {
 .scope-card [role="radiogroup"] {
   display: flex;
   gap: 14px;
-}
-
-.app-card {
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-
-.app-card:hover {
-  border-color: #c7d8ee;
-}
-
-.app-actions {
-  flex: 0 0 auto;
-}
-
-.app-url {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .editor-option {

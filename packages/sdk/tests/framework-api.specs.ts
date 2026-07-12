@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-import * as angular from "../dist/angular.js";
-import * as react from "../dist/react.js";
+import { test } from "@jest/globals";
+import { frameworkApis, readSdkPackage } from "./framework-api.driver.js";
+
+const { angular, react } = frameworkApis;
 
 test("framework subpaths share one Atlas API vocabulary", () => {
-  for (const name of ["defineApp", "defineExportedWidget", "createHostNavigation"]) {
+  const sharedApiNames: Array<"defineApp" | "defineExportedWidget" | "createHostNavigation"> = ["defineApp", "defineExportedWidget", "createHostNavigation"];
+  for (const name of sharedApiNames) {
     assert.equal(typeof angular[name], "function", `Angular must export ${name}`);
     assert.equal(typeof react[name], "function", `React must export ${name}`);
   }
@@ -21,6 +22,6 @@ test("framework subpaths share one Atlas API vocabulary", () => {
 });
 
 test("unsupported Vue adapter is not a public SDK subpath", async () => {
-  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const packageJson = await readSdkPackage();
   assert.equal(packageJson.exports["./vue"], undefined);
 });

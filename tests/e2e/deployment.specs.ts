@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { spawn } from "node:child_process";
 import { copyFile, mkdir, readdir, rename } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
+import { deploymentCatalog, runCli as runAtlasCli } from "./deployment.driver.js";
 
 const workspaceRoot = resolve(import.meta.dirname, "../..");
 const cdnRoot = join(workspaceRoot, "tests/e2e/.artifacts/cdn");
@@ -53,7 +53,8 @@ test("Angular page app mounts a React widget and popup", async ({ page }) => {
   await expect(page.getByText("Products in popup: 42")).toBeVisible();
 });
 
-for (const [name, origin] of [["React", "http://127.0.0.1:4300"], ["Angular", "http://127.0.0.1:4301"]] as const) {
+const hostFallbackCases: Array<[string, string]> = [["React", "http://127.0.0.1:4300"], ["Angular", "http://127.0.0.1:4301"]];
+for (const [name, origin] of hostFallbackCases) {
   test(`${name} host renders fallback UI when a remote fails`, async ({ page }) => {
     await page.goto(`${origin}/broken`);
     await expect(page.getByRole("alert")).toContainText("Unable to load Broken Example");
@@ -65,7 +66,7 @@ test("CDN serves mutable catalogs and immutable app assets with appropriate head
   const catalogResponse = await request.get("http://127.0.0.1:4400/hosts/demo-react-host/catalog.json");
   expect(catalogResponse.headers()["access-control-allow-origin"]).toBe("*");
   expect(catalogResponse.headers()["cache-control"]).toBe("no-cache");
-  const catalog = await catalogResponse.json() as { manifests: Array<{ id: string; remoteEntryUrl: string }> };
+  const catalog = deploymentCatalog(await catalogResponse.json());
   const manifest = catalog.manifests.find((candidate) => candidate.id === "catalog-react");
   expect(manifest).toBeDefined();
   const remoteResponse = await request.get(manifest!.remoteEntryUrl);
@@ -104,7 +105,7 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
 
 async function expectCatalogVersion(request: APIRequestContext, version: string): Promise<void> {
   const response = await request.get(`http://127.0.0.1:4400/hosts/demo-angular-host/catalog.json?version=${version}`);
-  const catalog = await response.json() as { manifests: Array<{ id: string; version: string }> };
+  const catalog = deploymentCatalog(await response.json());
   expect(catalog.manifests.find((manifest) => manifest.id === "catalog-react")?.version).toBe(version);
 }
 
@@ -128,11 +129,5 @@ async function listFiles(root: string): Promise<string[]> {
 }
 
 async function runCli(args: string[]): Promise<void> {
-  await new Promise<void>((resolvePromise, reject) => {
-    const child = spawn(process.execPath, args, { cwd: workspaceRoot, stdio: "inherit" });
-    child.once("error", reject);
-    child.once("exit", (code) => code === 0
-      ? resolvePromise()
-      : reject(new Error(`Atlas CLI exited with code ${code ?? "unknown"}.`)));
-  });
+  await runAtlasCli(workspaceRoot, args);
 }

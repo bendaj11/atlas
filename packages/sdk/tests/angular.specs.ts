@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "@jest/globals";
 import { createHostNavigation, createLocationStrategy } from "../dist/angular.js";
+import type { RouterLike } from "../dist/angular-types.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { createNativeFederationImporters } from "../../runtime/dist/index.js";
+import type { AtlasFederationAdapter } from "../../runtime/dist/index.js";
+import type { AtlasExportedWidgetManifest } from "../../schema/dist/index.js";
 import { createTestManifest } from "../../testkit/dist/index.js";
+import { createAppContext, files } from "./angular.driver.js";
 
 test("Angular generator emits Angular 20 Native Federation projects", () => {
   const host = files(generateHostFiles({ name: "host", framework: "angular" }));
@@ -122,12 +126,12 @@ test("Angular widget generator creates a typed independently deployed widget", (
 });
 
 test("Native Federation bridge initializes catalog remotes and loads exposes", async () => {
-  const calls = [];
-  const runtime = {
+  const calls: Array<["init", Record<string, string>] | ["load", string, string]> = [];
+  const runtime: AtlasFederationAdapter = {
     async initFederation(remotes) { calls.push(["init", remotes]); },
     async loadRemoteModule(remote, expose) { calls.push(["load", remote, expose]); return { default: { mount() {} } }; }
   };
-  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./widgets/summary", contractVersion: "1" };
+  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./widgets/summary", contractVersion: "1" };
   const manifest = createTestManifest({ id: "orders-app", remoteEntryUrl: "https://cdn/remoteEntry.json", exportedWidgets: [widget] });
   const bridge = createNativeFederationImporters(runtime);
   await bridge.initialize([manifest]);
@@ -153,16 +157,17 @@ test("Native Federation bridge isolates initialization failures per remote", asy
 });
 
 test("Angular Router adapter owns navigation and subscriptions", async () => {
-  let listener;
-  const navigations = [];
-  const router = {
-    url: "/orders?tab=open",
-    async navigateByUrl(url, options) { navigations.push([url, options]); this.url = url; listener?.(); return true; },
+  let listener: (() => void) | undefined;
+  let currentUrl = "/orders?tab=open";
+  const navigations: Array<[string, { replaceUrl?: boolean; state?: unknown } | undefined]> = [];
+  const router: RouterLike = {
+    get url() { return currentUrl; },
+    async navigateByUrl(url, options) { navigations.push([url, options]); currentUrl = url; listener?.(); return true; },
     events: { subscribe(value) { listener = value; return { unsubscribe() { listener = undefined; } }; } }
   };
   let backed = false;
   const navigation = createHostNavigation(router, { back() { backed = true; } }, "https://host.example");
-  const seen = [];
+  const seen: string[] = [];
   const unsubscribe = navigation.subscribe((location) => seen.push(location.pathname));
   navigation.navigate("/orders/42");
   await Promise.resolve();
@@ -170,58 +175,28 @@ test("Angular Router adapter owns navigation and subscriptions", async () => {
   navigation.back();
   unsubscribe();
   assert.deepEqual(navigations.map(([url]) => url), ["/orders/42", "/orders/43"]);
-  assert.equal(navigations[1][1].replaceUrl, true);
+  assert.equal(navigations[1]?.[1]?.replaceUrl, true);
   assert.equal(backed, true);
   assert.deepEqual(seen, ["/orders", "/orders/42", "/orders/43"]);
 });
 
 test("Angular Router adapter ignores duplicate router events for the same URL", () => {
-  let listener;
-  const router = {
-    url: "/orders",
-    async navigateByUrl(url) { this.url = url; listener?.(); return true; },
+  let listener: (() => void) | undefined;
+  let currentUrl = "/orders";
+  const router: RouterLike = {
+    get url() { return currentUrl; },
+    async navigateByUrl(url) { currentUrl = url; listener?.(); return true; },
     events: { subscribe(value) { listener = value; return { unsubscribe() { listener = undefined; } }; } }
   };
   const navigation = createHostNavigation(router, { back() {} }, "https://host.example");
-  const seen = [];
+  const seen: string[] = [];
 
   navigation.subscribe((location) => seen.push(location.pathname));
-  listener();
-  listener();
-  router.url = "/orders/details/42";
-  listener();
-  listener();
+  listener?.();
+  listener?.();
+  currentUrl = "/orders/details/42";
+  listener?.();
+  listener?.();
 
   assert.deepEqual(seen, ["/orders", "/orders/details/42"]);
 });
-
-function files(generated) {
-  return new Map(generated.map((file) => [file.path, file.contents]));
-}
-
-function splitUrl(value) {
-  const url = new URL(value, "https://host.example");
-  return { pathname: url.pathname, search: url.search, hash: url.hash };
-}
-
-function createAppContext(initialUrl) {
-  let current = initialUrl;
-  const listeners = new Set();
-  const notify = () => { for (const listener of listeners) listener(); };
-  const inner = () => {
-    const value = splitUrl(current);
-    return { pathname: value.pathname.replace(/^\/orders/, "") || "/", query: {}, hash: value.hash };
-  };
-  const navigation = {
-    basePath: "/orders",
-    navigate(to) { current = `/orders${to.startsWith("/") ? to : `/${to}`}`; notify(); },
-    replace(to) { this.navigate(to); }, back() {}, createHref(to) { return to; },
-    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-    getCurrentLocation() { return splitUrl(current); }, toInnerPath(to) { return `/orders${to}`; }
-  };
-  return {
-    context: { navigation, route: { getCurrent: inner, setTabTitle() {}, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } } },
-    url: () => current,
-    hostNavigate(value) { current = value; notify(); }
-  };
-}

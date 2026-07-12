@@ -30,7 +30,8 @@ export interface AtlasOverrideDocument {
 }
 
 export interface AtlasHostData {
-  config: { schemaVersion: "1"; hostId: string; catalogUrl: string };
+  config: { schemaVersion: "1"; hostId: string; hostVersion?: string; catalogUrl: string; allowAppOverrides?: boolean };
+  pageUrl: string;
   catalog: { schemaVersion: "1"; hostId: string; manifests: AtlasExtensionManifest[] };
   versions: Record<string, AtlasExtensionManifest[]>;
   overrides: AtlasOverrideDocument | undefined;

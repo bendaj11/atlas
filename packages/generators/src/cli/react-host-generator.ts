@@ -32,7 +32,7 @@ import "./styles.css";
 const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
 const overlayDefaults = createDomOverlayProviders(document);
 const root = document.getElementById("root");
-if (!root) throw new Error("Atlas React host root was not found.");
+if (!root) throw new Error('Atlas React host root was not found. Suggested action: Add <div id="root"></div> to host index.html, then reload.');
 
 ${mount}
 
@@ -52,6 +52,6 @@ void startHost({
   },
   openPopup: overlayDefaults.openPopup,
   hostData: { hostId: atlasConfig.id, name: atlasConfig.name }
-}).catch((error) => console.error("Atlas host failed to start", error));
+}).catch((error) => console.error("Atlas host failed to start:", error instanceof Error ? error.message : String(error), "Suggested action: Fix reported host configuration or resource failure, then reload host."));
 `;
 }

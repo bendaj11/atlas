@@ -1,23 +1,27 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
-import { createServer } from "node:http";
+import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
-import test from "node:test";
+import { spawn, type SpawnOptions } from "node:child_process";
+import { test } from "@jest/globals";
 import { fileURLToPath } from "node:url";
 import { createTestManifest } from "../../testkit/dist/index.js";
+import type { AtlasManifest } from "../../schema/dist/index.js";
+import type { AtlasRuntimeOverrideDocument } from "../../runtime/dist/index.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
 import { AtlasDevService, browserOpenCommand, createDevSession, createLocalDevCatalog, remoteEntryIsReady, startControlServer } from "../dist/dev.js";
 import { loadWorkspaceEnv } from "../dist/env.js";
 import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
+import type { AtlasPrompter } from "../dist/ui.js";
+import { atlasPackageRange, createTestWorkspace, TestChildProcess } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
-const ATLAS_PACKAGE_RANGE = `^${JSON.parse(await readFile(new URL("../../generators/package.json", import.meta.url), "utf8")).version}`;
+const ATLAS_PACKAGE_RANGE = await atlasPackageRange();
 
 test("macOS browser opener focuses an existing Atlas URL before opening it", () => {
   const command = browserOpenCommand("http://localhost:5173/orders", "darwin");
@@ -43,7 +47,8 @@ test("Windows browser opener focuses a matching tab before opening the URL", () 
 });
 
 test("generators keep component declarations split across files", () => {
-  for (const framework of ["angular", "react"]) {
+  const frameworks: Array<"angular" | "react"> = ["angular", "react"];
+  for (const framework of frameworks) {
     const options = { name: "orders", framework };
     const files = [
       ...generateHostFiles(options),
@@ -127,16 +132,17 @@ test("excluded source maps do not affect the generated build identity", async ()
   const projectRoot = join(root, "orders");
   const artifactRoot = join(projectRoot, "dist");
   await mkdir(artifactRoot, { recursive: true });
+  await writeFile(join(root, "package.json"), JSON.stringify({ type: "module" }));
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
   await writeFile(join(projectRoot, "atlas.config.js"), 'export default { id: "orders", name: "Orders", framework: "react", routes: [{ hostId: "host", basePath: "/orders", title: "Orders" }] };\n');
   await writeFile(join(artifactRoot, "remoteEntry.json"), "{}\n");
   await writeFile(join(artifactRoot, "remoteEntry.js.map"), "first map\n");
   const project = { id: "orders", root: projectRoot, packageName: "orders", version: "1.0.0", outputPaths: [artifactRoot] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "standalone", root, packageManager: "npm",
     findProject: async () => project,
     run: async () => {}, spawn: () => { throw new Error("not used"); }, generationRoot: () => root
-  };
+  });
   const args = new CliArguments(["build", "orders", "--skip-compile", "--channel=local"]);
   const first = await new AtlasBuildService(workspace, args).buildManifest("orders");
   await writeFile(join(artifactRoot, "remoteEntry.js.map"), "different map\n");
@@ -183,7 +189,7 @@ test("atlas build prepares provider-neutral files without uploading", async () =
   assert.match(plan.baseRevision, /^sha256:[a-f0-9]{64}$/);
   assert.match(plan.registryRevision, /^sha256:[a-f0-9]{64}$/);
   assert.deepEqual(plan.uploadOrder, ["immutable", "revalidate"]);
-  assert.equal(plan.files.find((file) => file.path === "registry.json").cache, "revalidate");
+  assert.equal(plan.files.find((file: { path: string }) => file.path === "registry.json").cache, "revalidate");
   await readFile(join(publication, "catalog-react/2.3.4/test-build/remoteEntry.json"));
 });
 
@@ -226,8 +232,8 @@ test("atlas rollback emits only mutable registry files", async () => {
   const plan = JSON.parse(await readFile(planPath, "utf8"));
   assert.deepEqual(registry.productionSelections.orders, { version: "1.0.0", buildId: "stable" });
   assert.equal(plan.operation, "rollback");
-  assert.equal(plan.files.every((file) => file.cache === "revalidate"), true);
-  assert.equal(plan.files.some((file) => file.path.includes("remoteEntry")), false);
+  assert.equal(plan.files.every((file: { cache: string }) => file.cache === "revalidate"), true);
+  assert.equal(plan.files.some((file: { path: string }) => file.path.includes("remoteEntry")), false);
 });
 
 test("atlas build is deterministic with fixed CI metadata", async () => {
@@ -235,7 +241,7 @@ test("atlas build is deterministic with fixed CI metadata", async () => {
   const snapshot = join(directory, "registry.json");
   await writeFile(snapshot, JSON.stringify({ schemaVersion: "1", updatedAt: "2026-01-01T00:00:00.000Z", manifests: [] }));
   const environment = { ...process.env, ATLAS_CREATED_AT: "2026-02-03T04:05:06.000Z" };
-  const build = async (name) => {
+  const build = async (name: string) => {
     const publication = join(directory, name);
     const plan = join(directory, `${name}.json`);
     await run(process.execPath, [
@@ -368,6 +374,7 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
   const runtime = JSON.parse(await readFile(output, "utf8"));
   assert.equal(runtime.schemaVersion, "1");
   assert.equal(runtime.hostId, "host");
+  assert.equal(runtime.hostVersion, "0.1.0");
   assert.equal(runtime.catalogUrl, "https://cdn.example/atlas/hosts/host/catalog.json");
   assert.equal(runtime.allowAppOverrides, false);
   assert.equal(runtime.resourcesTimeoutMs, 12000);
@@ -1018,7 +1025,7 @@ test("atlas dev prepares an Angular local override without manual URL editing", 
   assert.equal(document.overrides[0].manifest.channel, "local");
   assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4511/remoteEntry.json");
   assert.equal(document.overrides[0].manifest.integrity, undefined);
-  assert.match(stdout, /View app: https:\/\/host\.example\/orders/);
+  assert.match(stdout, /App Preview: https:\/\/host\.example\/orders/);
   assert.doesNotMatch(stdout, /atlas-override/);
 });
 
@@ -1040,7 +1047,10 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
     schemaVersion: "1",
     hostId: "mobile-host",
     generatedAt: "2026-07-09T08:02:37.622Z",
-    overrides: [{ appId: "login", manifest, reason: "local" }]
+    overrides: [
+      { appId: "login", manifest, reason: "local" },
+      { appId: "stale-login-registration", manifest, reason: "local" }
+    ]
   });
 
   assert.equal(catalog.schemaVersion, "1");
@@ -1059,46 +1069,42 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
 });
 
 test("atlas dev control server accepts multiple local apps for one host", async () => {
-  const port = await availablePort();
-  const overrideUrl = `http://127.0.0.1:${port}/atlas.local-overrides.json`;
   const login = createTestManifest({ id: "login", supportedHosts: ["mobile-host"] });
   const profile = createTestManifest({ id: "profile", supportedHosts: ["mobile-host"] });
-  const first = await startControlServer(port, localDocument("mobile-host", login), overrideUrl);
-  const second = await startControlServer(port, localDocument("mobile-host", profile), overrideUrl);
+  const first = await startControlServer(0, localDocument("mobile-host", login), "");
+  const second = await startControlServer(first.port, localDocument("mobile-host", profile), "");
 
   try {
     await first.markReady();
-    assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login"]);
+    assert.deepEqual(await catalogManifestIds(first.port, "mobile-host"), ["login"]);
 
     await second.markReady();
-    assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login", "profile"]);
+    assert.deepEqual(await catalogManifestIds(first.port, "mobile-host"), ["login", "profile"]);
 
     await second.close();
-    assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login"]);
+    assert.deepEqual(await catalogManifestIds(first.port, "mobile-host"), ["login"]);
   } finally {
     await first.close();
   }
 });
 
 test("atlas dev control server serves local apps for different hosts", async () => {
-  const port = await availablePort();
-  const overrideUrl = `http://127.0.0.1:${port}/atlas.local-overrides.json`;
   const angularApp = createTestManifest({ id: "angular-app", supportedHosts: ["angular-host"] });
   const reactApp = createTestManifest({ id: "react-app", supportedHosts: ["react-host"] });
-  const angularControl = await startControlServer(port, localDocument("angular-host", angularApp), overrideUrl);
-  const reactControl = await startControlServer(port, localDocument("react-host", reactApp), overrideUrl);
+  const angularControl = await startControlServer(0, localDocument("angular-host", angularApp), "");
+  const reactControl = await startControlServer(angularControl.port, localDocument("react-host", reactApp), "");
 
   try {
     await angularControl.markReady();
     await reactControl.markReady();
 
-    assert.deepEqual(await catalogManifestIds(port, "angular-host"), ["angular-app"]);
-    assert.deepEqual(await catalogManifestIds(port, "react-host"), ["react-app"]);
-    assert.equal(await devSessionHostId(port, "angular-host"), "angular-host");
-    assert.equal(await devSessionHostId(port, "react-host"), "react-host");
+    assert.deepEqual(await catalogManifestIds(angularControl.port, "angular-host"), ["angular-app"]);
+    assert.deepEqual(await catalogManifestIds(angularControl.port, "react-host"), ["react-app"]);
+    assert.equal(await devSessionHostId(angularControl.port, "angular-host"), "angular-host");
+    assert.equal(await devSessionHostId(angularControl.port, "react-host"), "react-host");
 
     await reactControl.close();
-    assert.deepEqual(await catalogManifestIds(port, "angular-host"), ["angular-app"]);
+    assert.deepEqual(await catalogManifestIds(angularControl.port, "angular-host"), ["angular-app"]);
   } finally {
     await angularControl.close();
   }
@@ -1136,7 +1142,7 @@ test("atlas dev prepares a React Native Federation override", async () => {
   assert.equal(document.overrides[0].manifest.framework, "react");
   assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4513/remoteEntry.json");
   assert.equal(document.overrides[0].manifest.integrity, undefined);
-  assert.match(stdout, /View app: https:\/\/host\.example\/dashboard/);
+  assert.match(stdout, /App Preview: https:\/\/host\.example\/dashboard/);
   assert.doesNotMatch(stdout, /atlas-override/);
 });
 
@@ -1234,27 +1240,21 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
     "};"
   ].join("\n"));
 
-  const calls = [];
+  const calls: unknown[][] = [];
   const project = { id: "customer-host", root: projectRoot, packageName: "customer-host", version: "1.0.0", outputPaths: [] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "standalone",
     root,
     packageManager: "npm",
     findProject: async () => project,
-    run: async (_project, task) => calls.push(["run", task]),
+    run: async (_project, task) => { calls.push(["run", task]); },
     spawn: (_project, task) => {
       calls.push(["spawn", task]);
-      const child = new EventEmitter();
-      child.killed = false;
-      child.kill = () => {
-        child.killed = true;
-        child.emit("exit", null, "SIGTERM");
-        return true;
-      };
-      setImmediate(() => child.emit("exit", 0, null));
+      const child = new TestChildProcess();
+      setImmediate(() => child.finish());
       return child;
     }
-  };
+  });
   const args = new CliArguments(["dev", "customer-host"]);
   const originalInfo = console.info;
 
@@ -1287,36 +1287,26 @@ test("atlas dev delegates Nx app projects to the serve task", async () => {
 
   const remoteServer = await listenWithRemoteEntry();
   const controlPort = await availablePort();
-  const calls = [];
+  const calls: unknown[][] = [];
   const project = { id: "orders", root: projectRoot, packageName: "orders", version: "1.0.0", outputPaths: [] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "nx",
     root,
     packageManager: "npm",
     findProject: async (name) => name === "customer-host"
       ? Promise.reject(new Error("host not present"))
       : project,
-    run: async (_project, task) => calls.push(["run", task]),
+    run: async (_project, task) => { calls.push(["run", task]); },
     spawn: (_project, task, args) => {
       calls.push(["spawn", task, args]);
-      const child = new EventEmitter();
-      child.killed = false;
-      child.exitCode = null;
-      child.signalCode = null;
-      child.kill = () => {
-        child.killed = true;
-        child.signalCode = "SIGTERM";
-        child.emit("exit", null, "SIGTERM");
-        return true;
-      };
+      const child = new TestChildProcess();
       setTimeout(() => {
         if (child.killed) return;
-        child.exitCode = 0;
-        child.emit("exit", 0, null);
+        child.finish();
       }, 50);
       return child;
     }
-  };
+  });
   const args = new CliArguments([
     "dev", "orders",
     "--host=customer-host",
@@ -1325,14 +1315,14 @@ test("atlas dev delegates Nx app projects to the serve task", async () => {
     `--control-port=${controlPort}`,
     "--no-open"
   ]);
-  const builds = {
+  const builds: Pick<AtlasBuildService, "loadConfig" | "buildManifest"> = {
     loadConfig: async () => ({
       id: "orders",
       name: "Orders",
       framework: "react",
       routes: [{ hostId: "customer-host", basePath: "/orders", title: "Orders" }]
     }),
-    buildManifest: async () => ({
+    buildManifest: async () => createTestManifest({
       id: "orders",
       name: "Orders",
       framework: "react",
@@ -1382,7 +1372,7 @@ test("atlas dev rejects corrupt Angular build tooling before spawning", async ()
   ].join("\n"));
 
   const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "standalone",
     root,
     packageManager: "npm",
@@ -1391,7 +1381,7 @@ test("atlas dev rejects corrupt Angular build tooling before spawning", async ()
     spawn: () => {
       throw new Error("corrupt Angular build preflight should stop before spawn");
     }
-  };
+  });
   const args = new CliArguments(["dev", "mobile-host"]);
 
   await assert.rejects(
@@ -1416,18 +1406,18 @@ test("atlas dev compiles atlas.config.ts with the project tsconfig", async () =>
     "};"
   ].join("\n"));
 
-  const calls = [];
+  const calls: unknown[][] = [];
   const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "standalone",
     root,
     packageManager: "npm",
     findProject: async () => project,
-    run: async (_project, task) => calls.push(["run", task]),
+    run: async (_project, task) => { calls.push(["run", task]); },
     spawn: () => {
       throw new Error("prepare-only should not spawn");
     }
-  };
+  });
   const args = new CliArguments(["dev", "mobile-host", "--prepare-only"]);
   const originalInfo = console.info;
 
@@ -1459,9 +1449,9 @@ test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", asyn
     "};"
   ].join("\n"));
 
-  const calls = [];
+  const calls: unknown[][] = [];
   const project = { id: "mobile-host", root: projectRoot, packageName: "mobile-host", version: "0.1.0", outputPaths: [] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "nx",
     root,
     packageManager: "npm",
@@ -1470,7 +1460,7 @@ test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", asyn
     spawn: () => {
       throw new Error("prepare-only should not spawn");
     }
-  };
+  });
   const args = new CliArguments(["dev", "mobile-host", "--prepare-only"]);
   const originalInfo = console.info;
 
@@ -1513,7 +1503,7 @@ test("atlas dev without a project uses the current Atlas project directory", asy
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
   assert.equal(document.hostId, "customer-host");
   assert.match(stdout, /Starting \./);
-  assert.match(stdout, /View app: http:\/\/localhost:5173\/orders/);
+  assert.match(stdout, /App Preview: http:\/\/localhost:5173\/orders/);
   assert.doesNotMatch(stdout, /atlas-override/);
 });
 
@@ -1617,7 +1607,7 @@ test("atlas dev prompts for a missing host URL in interactive mode", async () =>
       },
       select: async () => { throw new Error("Host selection should not be prompted"); }
     });
-    assert.match(stdout, /View app: https:\/\/customer\.example\/orders/);
+    assert.match(stdout, /App Preview: https:\/\/customer\.example\/orders/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -1648,10 +1638,12 @@ test("atlas dev prompts for a route when a base host URL matches multiple routes
       select: async (message, choices) => {
         assert.equal(message, "Route opened for local development");
         assert.deepEqual(choices.map((choice) => choice.value), ["/orders", "/admin/orders"]);
-        return "/admin/orders";
+        const selected = choices.find((choice) => choice.value === "/admin/orders");
+        if (!selected) throw new Error("Expected admin route choice.");
+        return selected.value;
       }
     });
-    assert.match(stdout, /View app: https:\/\/customer\.example\/admin\/orders/);
+    assert.match(stdout, /App Preview: https:\/\/customer\.example\/admin\/orders/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -1677,7 +1669,7 @@ test("atlas dev keeps a full ATLAS_HOST_URL with multiple routes", async () => {
 
   try {
     const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]);
-    assert.match(stdout, /View app: https:\/\/customer\.example\/custom\/path\?mode=dev/);
+    assert.match(stdout, /App Preview: https:\/\/customer\.example\/custom\/path\?mode=dev/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -1706,7 +1698,12 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
   try {
     await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://admin.example/admin/orders", "--prepare-only"], {
       interactive: true,
-      select: async (_message, choices) => choices.find((choice) => choice.value === "admin-host").value
+      input: async () => { throw new Error("Host input should not be prompted."); },
+      select: async (_message, choices) => {
+        const selected = choices.find((choice) => choice.value === "admin-host");
+        if (!selected) throw new Error("Expected admin host choice.");
+        return selected.value;
+      }
     });
 
     const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
@@ -1717,21 +1714,30 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
   }
 });
 
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
+function run(command: string, args: string[], options: SpawnOptions = {}): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const child = spawn(command, args, { stdio: "pipe", ...options });
     let stderr = "";
     let stdout = "";
-    child.stdout.on("data", (chunk) => { stdout += chunk; });
-    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.stdout?.on("data", (chunk) => { stdout += String(chunk); });
+    child.stderr?.on("data", (chunk) => { stderr += String(chunk); });
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolve(stdout) : reject(new Error(stderr)));
   });
 }
 
-async function runDevService(root, projectRoot, values, prompts) {
+async function runDevService(
+  root: string,
+  projectRoot: string,
+  values: string[],
+  prompts: Pick<AtlasPrompter, "interactive" | "input" | "select"> = {
+    interactive: false,
+    async input() { throw new Error("Unexpected interactive input prompt."); },
+    async select() { throw new Error("Unexpected interactive selection prompt."); }
+  }
+): Promise<string> {
   const project = { id: "orders", root: projectRoot, packageName: "orders", version: "1.0.0", outputPaths: [] };
-  const workspace = {
+  const workspace = createTestWorkspace({
     kind: "standalone",
     root,
     packageManager: "npm",
@@ -1740,7 +1746,7 @@ async function runDevService(root, projectRoot, values, prompts) {
     spawn: () => {
       throw new Error("prepare-only test must not spawn a dev server");
     }
-  };
+  });
   const args = new CliArguments(values);
   const originalInfo = console.info;
   let stdout = "";
@@ -1753,12 +1759,12 @@ async function runDevService(root, projectRoot, values, prompts) {
   }
 }
 
-function restoreEnv(name, value) {
+function restoreEnv(name: string, value: string | undefined): void {
   if (value === undefined) delete process.env[name];
   else process.env[name] = value;
 }
 
-function listenWithRemoteEntry() {
+function listenWithRemoteEntry(): Promise<{ server: Server; port: number }> {
   const server = createServer((request, response) => {
     if (request.url === "/remoteEntry.json") {
       response.writeHead(200, { "content-type": "application/json" });
@@ -1771,13 +1777,13 @@ function listenWithRemoteEntry() {
   return listenOnRandomPort(server);
 }
 
-async function availablePort() {
+async function availablePort(): Promise<number> {
   const { server, port } = await listenOnRandomPort(createServer());
   await closeServer(server);
   return port;
 }
 
-function localDocument(hostId, manifest) {
+function localDocument(hostId: string, manifest: AtlasManifest): AtlasRuntimeOverrideDocument {
   return {
     schemaVersion: "1",
     hostId,
@@ -1786,21 +1792,24 @@ function localDocument(hostId, manifest) {
   };
 }
 
-async function catalogManifestIds(port, hostId) {
+async function catalogManifestIds(port: number, hostId: string): Promise<string[]> {
   const response = await fetch(`http://127.0.0.1:${port}/hosts/${hostId}/catalog.json`, { cache: "no-store" });
   assert.equal(response.status, 200);
   const catalog = await response.json();
-  return catalog.manifests.map((manifest) => manifest.id);
+  if (!hasManifestIds(catalog)) throw new Error("Control server returned an invalid catalog.");
+  return Array.from(catalog.manifests, (manifest) => manifest.id);
 }
 
-async function devSessionHostId(port, hostId) {
+async function devSessionHostId(port: number, hostId: string): Promise<string> {
   const response = await fetch(`http://127.0.0.1:${port}/atlas.dev-session.json?hostId=${encodeURIComponent(hostId)}`, { cache: "no-store" });
   assert.equal(response.status, 200);
-  return (await response.json()).hostId;
+  const session = await response.json();
+  if (!hasStringProperty(session, "hostId")) throw new Error("Control server returned an invalid dev session.");
+  return session.hostId;
 }
 
-function listenOnRandomPort(server) {
-  return new Promise((resolve, reject) => {
+function listenOnRandomPort(server: Server): Promise<{ server: Server; port: number }> {
+  return new Promise<{ server: Server; port: number }>((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
@@ -1813,21 +1822,31 @@ function listenOnRandomPort(server) {
   });
 }
 
-function closeServer(server) {
-  return new Promise((resolve, reject) => {
+function closeServer(server: Server): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     server.close((error) => error ? reject(error) : resolve());
   });
 }
 
-function assertSingleComponentDeclaration(path, contents) {
+function assertSingleComponentDeclaration(path: string, contents: string): void {
   const componentCount = angularComponentCount(contents) + reactComponentCount(contents);
   assert.ok(componentCount <= 1, `${path} contains ${componentCount} component declarations`);
 }
 
-function angularComponentCount(contents) {
+function angularComponentCount(contents: string): number {
   return [...contents.matchAll(/@Component\s*\(/g)].length;
 }
 
-function reactComponentCount(contents) {
+function reactComponentCount(contents: string): number {
   return [...contents.matchAll(/\bfunction\s+[A-Z][A-Za-z0-9_]*\s*\(/g)].length;
+}
+
+function hasStringProperty(value: unknown, property: string): value is Record<string, string> {
+  if (typeof value !== "object" || value === null || !(property in value)) return false;
+  return typeof Object.getOwnPropertyDescriptor(value, property)?.value === "string";
+}
+
+function hasManifestIds(value: unknown): value is { manifests: Array<{ id: string }> } {
+  return typeof value === "object" && value !== null && "manifests" in value && Array.isArray(value.manifests)
+    && value.manifests.every((manifest) => hasStringProperty(manifest, "id"));
 }

@@ -70,6 +70,11 @@ export function customManifest(production: Manifest, rawUrl: string): Manifest {
   };
 }
 
+export function normalizeStoredManifest(manifest: Manifest): Manifest {
+  if (manifest.channel !== "local" || manifest.version !== CUSTOM_BUILD_ID) return manifest;
+  return { ...manifest, version: CUSTOM_VERSION };
+}
+
 export function productionVersions(hostData: HostData, production: Manifest): Manifest[] {
   const versions = hostData.versions[production.id] ?? [];
   return uniqueVersions([production, ...versions]).filter((manifest) => manifest.channel !== "local" && manifest.channel !== "pr");
@@ -80,14 +85,15 @@ export function prVersions(hostData: HostData, production: Manifest): Manifest[]
 }
 
 export function overrideTypeFor(production: Manifest, selected: Manifest | undefined): OverrideType {
-  if (!selected || versionKey(selected) === versionKey(production)) return "none";
+  if (!selected) return "none";
   if (selected.channel === "local") return "custom";
   if (selected.channel === "pr") return "pr";
+  if (versionKey(selected) === versionKey(production)) return "none";
   return "production";
 }
 
 export function overrideLabel(type: OverrideType): string {
-  if (type === "custom") return "Custom";
+  if (type === "custom") return "Custom URL";
   if (type === "production") return "Production";
   if (type === "pr") return "PR";
   return "None";

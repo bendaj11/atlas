@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "@jest/globals";
 import { connectRouter, createRouterOptions, defineApp, createHostNavigation } from "../dist/react.js";
+import type { RouterLike } from "../dist/react-router.js";
+import { createTestHostSdk } from "../../testkit/dist/index.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
+import { createAppContext, files, splitUrl } from "./react.driver.js";
 
 test("React generator emits React 19 Vite Native Federation projects", () => {
   const host = files(generateHostFiles({ name: "host", framework: "react" }));
@@ -65,10 +68,11 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
 
 test("React Router app bridge synchronizes native and host navigation", async () => {
   const atlas = createAppContext("/catalog/products?tab=open");
-  const listeners = new Set();
-  const router = {
+  const listeners = new Set<() => void>();
+  const router: RouterLike = {
     state: { location: { pathname: "/products", search: "?tab=open", hash: "" }, historyAction: "POP" },
     navigate(to, options) {
+      if (typeof to !== "string") throw new Error("Numeric navigation not used.");
       this.state.location = splitUrl(to);
       this.state.historyAction = options?.replace ? "REPLACE" : "PUSH";
       for (const listener of listeners) listener();
@@ -77,7 +81,7 @@ test("React Router app bridge synchronizes native and host navigation", async ()
   };
   assert.deepEqual(createRouterOptions(atlas.context), { initialEntries: ["/products?tab=open"] });
   const disconnect = connectRouter(router, atlas.context);
-  router.navigate("/details/42");
+  router.navigate("/details/42", {});
   assert.equal(atlas.url(), "/catalog/details/42");
   atlas.hostNavigate("/catalog/settings?mode=compact");
   await Promise.resolve();
@@ -139,63 +143,35 @@ test("React widget generator creates a typed independently deployed widget", () 
 });
 
 test("React Router adapter owns navigation and subscriptions", async () => {
-  const subscribers = new Set();
-  const calls = [];
-  const router = {
+  const subscribers = new Set<() => void>();
+  const calls: Array<[string | number, { replace?: boolean; state?: unknown } | undefined]> = [];
+  const router: RouterLike = {
     state: { location: { pathname: "/orders", search: "?tab=open", hash: "" } },
     navigate(to, options) { calls.push([to, options]); if (typeof to === "string") this.state.location.pathname = to; for (const listener of subscribers) listener(); },
     subscribe(listener) { subscribers.add(listener); return () => subscribers.delete(listener); }
   };
   const navigation = createHostNavigation(router, "https://host.example");
-  const seen = [];
+  const seen: string[] = [];
   const unsubscribe = navigation.subscribe((location) => seen.push(location.pathname));
   navigation.navigate("/orders/42");
   navigation.replace("/orders/43");
   navigation.back();
   unsubscribe();
   assert.deepEqual(calls.map(([to]) => to), ["/orders/42", "/orders/43", -1]);
-  assert.equal(calls[1][1].replace, true);
+  assert.equal(calls[1]?.[1]?.replace, true);
   assert.deepEqual(seen, ["/orders", "/orders/42", "/orders/43", "/orders/43"]);
 });
 
 test("React app creates, renders, and unmounts one root", async () => {
-  const calls = [];
+  const calls: unknown[][] = [];
   const entry = defineApp({
     createRoot(container) { calls.push(["create", container]); return { render(element) { calls.push(["render", element]); }, unmount() { calls.push(["unmount"]); } }; },
     createElement(request) { return request.context.basePath; }
   });
-  const mounted = await entry.mount({ container: {}, sdk: {}, context: { basePath: "/orders" } });
+  const atlas = createAppContext("/catalog/orders");
+  const container: HTMLElement = Object.create(null);
+  const mounted = await entry.mount({ container, sdk: createTestHostSdk(), context: atlas.context });
+  if (!mounted?.unmount) throw new Error("React app did not return an unmount lifecycle.");
   await mounted.unmount();
   assert.deepEqual(calls.map(([name]) => name), ["create", "render", "unmount"]);
 });
-
-function files(generated) {
-  return new Map(generated.map((file) => [file.path, file.contents]));
-}
-
-function splitUrl(value) {
-  const url = new URL(value, "https://host.example");
-  return { pathname: url.pathname, search: url.search, hash: url.hash };
-}
-
-function createAppContext(initialUrl) {
-  let current = initialUrl;
-  const listeners = new Set();
-  const notify = () => { for (const listener of listeners) listener(); };
-  const inner = () => {
-    const value = splitUrl(current);
-    return { pathname: value.pathname.replace(/^\/catalog/, "") || "/", query: {}, hash: value.hash };
-  };
-  const navigation = {
-    basePath: "/catalog",
-    navigate(to) { current = `/catalog${to.startsWith("/") ? to : `/${to}`}`; notify(); },
-    replace(to) { this.navigate(to); }, back() {}, createHref(to) { return to; },
-    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
-    getCurrentLocation() { return splitUrl(current); }, toInnerPath(to) { return `/catalog${to}`; }
-  };
-  return {
-    context: { navigation, route: { getCurrent: inner, setTabTitle() {}, subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } } },
-    url: () => current,
-    hostNavigate(value) { current = value; notify(); }
-  };
-}

@@ -15,6 +15,7 @@ const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
 const LOOPBACK_HOST = "127.0.0.1";
 interface DevControlServer {
+  port: number;
   markReady(): Promise<void>;
   close(): Promise<void>;
 }
@@ -37,7 +38,7 @@ export class AtlasDevService {
   constructor(
     private readonly workspace: AtlasWorkspace,
     private readonly args: CliArguments,
-    private readonly builds: AtlasBuildService
+    private readonly builds: Pick<AtlasBuildService, "loadConfig" | "buildManifest">
   ) {}
 
   async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select"> = nonInteractivePrompter): Promise<void> {
@@ -240,7 +241,13 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
     server.once("error", reject);
     server.listen(port, LOOPBACK_HOST, () => {
       server.off("error", reject);
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("Atlas dev control server did not receive a TCP port."));
+        return;
+      }
       resolve({
+        port: address.port,
         async markReady() {
           session.markDocumentReady(document);
         },
@@ -258,9 +265,10 @@ async function joinControlServer(
 ): Promise<DevControlServer> {
   const baseUrl = `http://${LOOPBACK_HOST}:${port}`;
   await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
-  const appIds = document.overrides.map((override) => override.appId);
+  const appIds = document.overrides.map((override) => override.manifest.id);
   const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
   return {
+    port,
     async markReady() {
       await Promise.all(appIds.map((appId) => postJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}/ready${hostQuery}`, {})));
     },
@@ -275,8 +283,12 @@ export function createLocalDevCatalog(document: AtlasRuntimeOverrideDocument): A
     schemaVersion: "1",
     hostId: document.hostId,
     generatedAt: document.generatedAt,
-    manifests: document.overrides.map((override) => override.manifest)
+    manifests: uniqueManifests(document.overrides)
   };
+}
+
+function uniqueManifests(overrides: AtlasRuntimeOverrideDocument["overrides"]): AtlasHostCatalog["manifests"] {
+  return [...new Map(overrides.map((override) => [override.manifest.id, override.manifest])).values()];
 }
 
 export function createDevSession(
@@ -317,7 +329,7 @@ function createDevSessionStore(initial: AtlasRuntimeOverrideDocument, overrideUr
   function register(document: AtlasRuntimeOverrideDocument): void {
     const host = hosts.get(document.hostId) ?? createHostDevSession(document.generatedAt);
     host.generatedAt = document.generatedAt;
-    for (const override of document.overrides) host.entries.set(override.appId, { override, ready: false });
+    for (const override of document.overrides) host.entries.set(override.manifest.id, { override, ready: false });
     hosts.set(document.hostId, host);
   }
 
@@ -391,7 +403,7 @@ function resolveHostId(hosts: Map<string, HostDevSession>, requestedHostId?: str
 }
 
 function isAddressInUse(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "EADDRINUSE";
+  return typeof error === "object" && error !== null && "code" in error && error.code === "EADDRINUSE";
 }
 
 function readJsonRequest<T>(request: IncomingMessage): Promise<T> {
@@ -562,14 +574,14 @@ function waitForChildShutdown(child: ChildProcess, label: string): Promise<void>
 
 function logHostViewUrl(url: string | undefined): void {
   if (url) {
-    console.info(`View app: ${url}`);
+    console.info(`App Preview: ${url}`);
   } else {
-    console.info("View app: unresolved; pass --host-url or set ATLAS_HOST_URL.");
+    console.info("App Preview: unresolved; pass --host-url or set ATLAS_HOST_URL.");
   }
 }
 
 function openBrowserWhenReady(args: CliArguments, url: string | undefined): void {
-  if (!url || args.hasFlag("no-open") || !process.stdout.isTTY) return;
+  if (!url || args.hasFlag("no-open")) return;
   const command = browserOpenCommand(url);
   try {
     const child = spawn(command.command, command.args, { detached: true, stdio: "ignore" });

@@ -22,7 +22,7 @@ export class AppComponent {}
 }
 
 export function angularHostMain(): string {
-  return `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation()\n  .then(() => import("./bootstrap"))\n  .then(({ bootstrap }) => bootstrap())\n  .catch((error) => console.error("Atlas host failed to start", error));\n`;
+  return `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation()\n  .then(() => import("./bootstrap"))\n  .then(({ bootstrap }) => bootstrap())\n  .catch((error) => console.error("Atlas host failed to start:", error instanceof Error ? error.message : String(error), "Suggested action: Fix reported federation, host configuration, or resource failure, then reload host."));\n`;
 }
 
 export function angularHostDefaultRouteComponent(): string {

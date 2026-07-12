@@ -4,6 +4,8 @@ export interface AtlasHostRuntimeConfig {
   schemaVersion: "1";
   /** Host app using this runtime config. */
   hostId: string;
+  /** Deployed host package version, when known. */
+  hostVersion?: string;
   /** Full URL of the catalog JSON this host should load. */
   catalogUrl: string;
   /** Allow Atlas tools to override selected app manifests at runtime. Defaults to true. */

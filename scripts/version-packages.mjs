@@ -1,8 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const packageDirectories = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
 
 export async function versionPackages(version, workspaceRoot = root) {

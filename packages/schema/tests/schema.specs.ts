@@ -1,32 +1,16 @@
-import test from "node:test";
+import { test } from "@jest/globals";
 import assert from "node:assert/strict";
 import {
   AtlasValidationError,
   assertAtlasHostCatalog,
   assertAtlasManifest,
   createManifestFromConfig,
+  ensureActionableError,
   validateAtlasHostCatalog,
   validateAtlasManifest
 } from "../dist/index.js";
-
-const VALID_INTEGRITY = `sha256-${"A".repeat(43)}=`;
-
-function createManifest(overrides = {}) {
-  return {
-    ...createManifestFromConfig({
-      config: { id: "workspace", framework: "react" },
-      version: "1.0.0",
-      buildId: "build-1",
-      remoteEntryUrl: "https://cdn.example/workspace/entry.js",
-      createdAt: "2026-01-01T00:00:00.000Z"
-    }),
-    ...overrides
-  };
-}
-
-function issueAt(issues, path) {
-  return issues.find((issue) => issue.path === path);
-}
+import type { AtlasPlacement } from "../dist/index.js";
+import { VALID_INTEGRITY, createManifest, createManifestCandidate, issueAt } from "./schema.driver.js";
 
 test("createManifestFromConfig derives supported hosts from source routes and slots", () => {
   const manifest = createManifestFromConfig({
@@ -86,7 +70,7 @@ test("createManifestFromConfig derives unique internal route placement ids", () 
 });
 
 test("route base paths must be unique for each host", () => {
-  const placements = [
+  const placements: AtlasPlacement[] = [
     { id: "orders-route", kind: "route", hostId: "host", route: { basePath: "/orders", title: "Orders" } },
     { id: "more-orders-route", kind: "route", hostId: "host", route: { basePath: "/orders/", title: "More Orders" } }
   ];
@@ -98,7 +82,7 @@ test("route base paths must be unique for each host", () => {
 });
 
 test("route base paths can match across different hosts", () => {
-  const placements = [
+  const placements: AtlasPlacement[] = [
     { id: "customer-orders-route", kind: "route", hostId: "customer-host", route: { basePath: "/orders", title: "Orders" } },
     { id: "admin-orders-route", kind: "route", hostId: "admin-host", route: { basePath: "/orders", title: "Orders" } }
   ];
@@ -128,7 +112,7 @@ test("createManifestFromConfig scopes slot placement ids by host", () => {
 });
 
 test("manifest validates the optional DOM isolation policy", () => {
-  assert.equal(issueAt(validateAtlasManifest(createManifest({ isolation: "iframe" })), "isolation")?.path, "isolation");
+  assert.equal(issueAt(validateAtlasManifest(createManifestCandidate({ isolation: "iframe" })), "isolation")?.path, "isolation");
 });
 
 test("manifest reports missing fields", () => {
@@ -139,7 +123,7 @@ test("manifest reports missing fields", () => {
 });
 
 test("supported hosts require unique non-empty strings", () => {
-  const issues = validateAtlasManifest(createManifest({ supportedHosts: ["host", "", "host", 4] }));
+  const issues = validateAtlasManifest(createManifestCandidate({ supportedHosts: ["host", "", "host", 4] }));
 
   assert.deepEqual(
     issues.filter((issue) => issue.path.startsWith("supportedHosts.")).map((issue) => issue.path),
@@ -205,7 +189,7 @@ test("route placements validate nested route and navigation fields", () => {
     slot: "sidebar",
     route: { basePath: "workspace?tab=1", title: "", nav: { label: "", order: "first", visible: "yes" } }
   }];
-  const issues = validateAtlasManifest(createManifest({ placements }));
+  const issues = validateAtlasManifest(createManifestCandidate({ placements }));
 
   assert.deepEqual(
     ["placements.0.slot", "placements.0.route.basePath", "placements.0.route.title", "placements.0.route.nav.label", "placements.0.route.nav.order", "placements.0.route.nav.visible"].every((path) => issueAt(issues, path) !== undefined),
@@ -215,14 +199,14 @@ test("route placements validate nested route and navigation fields", () => {
 
 test("slot placements require a slot and reject route details", () => {
   const placements = [{ id: "tools", kind: "slot", hostId: "host", route: { basePath: "/tools", title: "Tools" } }];
-  const issues = validateAtlasManifest(createManifest({ placements }));
+  const issues = validateAtlasManifest(createManifestCandidate({ placements }));
 
   assert.ok(issueAt(issues, "placements.0.slot"));
   assert.ok(issueAt(issues, "placements.0.route"));
 });
 
 test("placements allow matching ids for different hosts", () => {
-  const placements = [
+  const placements: AtlasPlacement[] = [
     { id: "window", kind: "slot", hostId: "angular-host", slot: "window" },
     { id: "window", kind: "slot", hostId: "react-host", slot: "window" }
   ];
@@ -231,7 +215,7 @@ test("placements allow matching ids for different hosts", () => {
 });
 
 test("placements require unique ids for each host", () => {
-  const placements = [
+  const placements: AtlasPlacement[] = [
     { id: "tools", kind: "slot", hostId: "host", slot: "sidebar" },
     { id: "tools", kind: "slot", hostId: "host", slot: "header" }
   ];
@@ -253,7 +237,7 @@ test("manifest and nested asset URLs accept only absolute HTTP(S) URLs", () => {
     remoteEntryUrl: "javascript:alert(1)",
     expose: "./summary"
   }];
-  const issues = validateAtlasManifest(createManifest({
+  const issues = validateAtlasManifest(createManifestCandidate({
     remoteEntryUrl: "file:///tmp/entry.js",
     styles: [{ href: "styles.css" }],
     exportedWidgets
@@ -309,7 +293,7 @@ test("exported widgets validate metadata and unique ids", () => {
     expose: "./summary",
     metadata: { stable: true, invalid: null }
   };
-  const issues = validateAtlasManifest(createManifest({ exportedWidgets: [component, component] }));
+  const issues = validateAtlasManifest(createManifestCandidate({ exportedWidgets: [component, component] }));
 
   assert.ok(issueAt(issues, "exportedWidgets.0.metadata.invalid"));
   assert.ok(issueAt(issues, "exportedWidgets.1.id"));
@@ -340,7 +324,7 @@ test("catalog rejects duplicate app ids", () => {
 });
 
 test("catalog permits duplicate exact route ownership so runtime can report conflicts", () => {
-  const route = { id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } };
+  const route: AtlasPlacement = { id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
     hostId: "host",
@@ -352,14 +336,13 @@ test("catalog permits duplicate exact route ownership so runtime can report conf
 });
 
 test("catalog permits the same route path for different hosts", () => {
-  const route = { id: "main", kind: "route", route: { basePath: "/workspace", title: "Workspace" } };
   const catalog = {
     schemaVersion: "1",
     hostId: "host",
     generatedAt: "2026-01-01T00:00:00.000Z",
     manifests: [
-      createManifest({ id: "first", placements: [{ ...route, hostId: "host" }] }),
-      createManifest({ id: "second", placements: [{ ...route, hostId: "admin" }] })
+      createManifest({ id: "first", placements: [{ id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } }] }),
+      createManifest({ id: "second", placements: [{ id: "main", kind: "route", hostId: "admin", route: { basePath: "/workspace", title: "Workspace" } }] })
     ]
   };
 
@@ -379,5 +362,17 @@ test("manifest validation error messages include actionable issue details", () =
     (error) => error instanceof AtlasValidationError
       && error.message.includes("Invalid Atlas manifest.")
       && error.message.includes("placements.0.slot: Expected slot to be a non-empty string.")
+      && error.message.includes("Suggested action:")
   );
+});
+
+test("Atlas errors preserve details and always include one suggested action", () => {
+  const error = new Error("Catalog request returned 503.");
+
+  assert.equal(ensureActionableError(error), error);
+  assert.match(error.message, /Catalog request returned 503\./);
+  assert.match(error.message, /Suggested action: Verify configured catalog URL/);
+  assert.equal(error.message.match(/Suggested action:/g)?.length, 1);
+  ensureActionableError(error);
+  assert.equal(error.message.match(/Suggested action:/g)?.length, 1);
 });

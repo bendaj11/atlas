@@ -6,7 +6,7 @@ import { mapWithConcurrency } from "../concurrency.js";
 
 export interface AtlasFederationAdapter {
   initFederation(remotes: Record<string, string>): Promise<unknown>;
-  loadRemoteModule<T = unknown>(remoteName: string, exposedModule: string): Promise<T>;
+  loadRemoteModule(remoteName: string, exposedModule: string): Promise<unknown>;
 }
 
 export interface AtlasNativeFederationImporters {
@@ -54,7 +54,7 @@ export function createNativeFederationImporters(
       const initializationError = initializationErrors.get(manifest.id);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
-        () => runtime.loadRemoteModule<AtlasAppEntry>(requireInitializedRemoteName(remoteNames, manifest.id), manifest.exposes.entry),
+        () => runtime.loadRemoteModule(requireInitializedRemoteName(remoteNames, manifest.id), manifest.exposes.entry),
         { stage: "remote-module", resource: manifest.remoteEntryUrl, appId: manifest.id, version: manifest.version },
         requestPolicy
       );
@@ -64,7 +64,7 @@ export function createNativeFederationImporters(
       const initializationError = initializationErrors.get(widget.ownerAppId);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
-        () => runtime.loadRemoteModule<AtlasExportedWidgetEntry>(requireInitializedRemoteName(remoteNames, widget.ownerAppId), widget.expose),
+        () => runtime.loadRemoteModule(requireInitializedRemoteName(remoteNames, widget.ownerAppId), widget.expose),
         { stage: "exported-widget", resource: widget.remoteEntryUrl, appId: widget.ownerAppId },
         requestPolicy
       );
@@ -121,21 +121,25 @@ function defaultManifestPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy 
   return {};
 }
 
-function normalizeAppEntry(value: AtlasAppEntry | { default?: AtlasAppEntry }, id: string): AtlasAppEntry {
-  const candidate = value as { mount?: AtlasAppEntry["mount"]; default?: AtlasAppEntry };
-  const entry = candidate.default ?? candidate;
-  if (typeof entry.mount !== "function") throw new Error(`Atlas app "${id}" does not expose a mount function.`);
-  return entry as AtlasAppEntry;
+function normalizeAppEntry(value: unknown, id: string): AtlasAppEntry {
+  const entry = unwrapDefault(value);
+  if (!hasMountFunction(entry)) throw new Error(`Atlas app "${id}" does not expose a mount function.`);
+  return entry;
 }
 
-function normalizeWidgetEntry(
-  value: AtlasExportedWidgetEntry | { default?: AtlasExportedWidgetEntry },
-  ref: string
-): AtlasExportedWidgetEntry {
-  const candidate = value as { mount?: AtlasExportedWidgetEntry["mount"]; default?: AtlasExportedWidgetEntry };
-  const entry = candidate.default ?? candidate;
-  if (typeof entry.mount !== "function") throw new Error(`Atlas exported widget "${ref}" does not expose a mount function.`);
-  return entry as AtlasExportedWidgetEntry;
+function normalizeWidgetEntry(value: unknown, ref: string): AtlasExportedWidgetEntry {
+  const entry = unwrapDefault(value);
+  if (!hasMountFunction(entry)) throw new Error(`Atlas exported widget "${ref}" does not expose a mount function.`);
+  return entry;
+}
+
+function unwrapDefault(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || !("default" in value)) return value;
+  return value.default ?? value;
+}
+
+function hasMountFunction(value: unknown): value is AtlasAppEntry & AtlasExportedWidgetEntry {
+  return typeof value === "object" && value !== null && "mount" in value && typeof value.mount === "function";
 }
 
 function federationRemoteName(id: string): string {

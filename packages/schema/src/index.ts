@@ -21,6 +21,7 @@ export type { AtlasVersionChannel } from "./atlas-version-channel.js";
 export type { CreateManifestFromConfigInput } from "./create-manifest-from-config-input.js";
 export { assertAtlasHostCatalog } from "./assert-atlas-host-catalog.js";
 export { assertAtlasManifest } from "./assert-atlas-manifest.js";
+export { actionableMessage, ensureActionableError, suggestedActionFor } from "./actionable-error.js";
 export { AtlasValidationError } from "./atlas-validation-error.js";
 export { createManifestFromConfig } from "./create-manifest-from-config.js";
 export { validateAtlasHostCatalog } from "./validate-atlas-host-catalog.js";

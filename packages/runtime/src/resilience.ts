@@ -1,4 +1,5 @@
 import { emitRuntimeEvent, eventTimestamp, type AtlasRuntimeObserver } from "./observability.js";
+import { actionableMessage } from "@atlas/schema";
 
 export interface AtlasRetryPolicy {
   timeoutMs?: number;
@@ -33,7 +34,10 @@ export class AtlasLoadError extends Error {
       context.resource ? `resource=${context.resource}` : undefined,
       `attempts=${attempts}`
     ].filter(Boolean).join(", ");
-    super(`Atlas loading failed (${details}): ${errorMessage(cause)}`, { cause });
+    super(actionableMessage(
+      `Atlas loading failed (${details}): ${errorMessage(cause)}`,
+      actionForStage(context.stage)
+    ), { cause });
     this.name = "AtlasLoadError";
     this.stage = context.stage;
     this.resource = context.resource;
@@ -41,6 +45,14 @@ export class AtlasLoadError extends Error {
     this.version = context.version;
     this.attempts = attempts;
   }
+}
+
+function actionForStage(stage: string): string {
+  if (stage === "catalog") return "Verify catalog URL, response status, JSON schema, and network access, then retry.";
+  if (stage.includes("remote") || stage.includes("federation")) {
+    return "Verify app artifact URL, deployment, CORS policy, and federation metadata, then retry.";
+  }
+  return `Verify resource used during "${stage}" is reachable and correctly configured, then retry.`;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;

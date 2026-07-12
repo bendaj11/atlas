@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import { test } from "@jest/globals";
 import { versionPackages } from "./version-packages.mjs";
+import { writeJson } from "./version-packages.driver.js";
 
 const packageDirectories = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
 
@@ -34,8 +35,3 @@ test("release version propagation updates every version-bearing manifest", async
   for (const path of paths) assert.equal(JSON.parse(await readFile(path, "utf8")).version, "1.2.3");
   assert.match(await readFile(generatorPath, "utf8"), /ATLAS_PACKAGE_VERSION = "1\.2\.3"/);
 });
-
-async function writeJson(path, value) {
-  await mkdir(join(path, ".."), { recursive: true });
-  await writeFile(path, `${JSON.stringify(value)}\n`);
-}

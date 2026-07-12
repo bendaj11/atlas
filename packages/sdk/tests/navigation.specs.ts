@@ -1,7 +1,8 @@
-import test from "node:test";
+import { test } from "@jest/globals";
 import assert from "node:assert/strict";
 import { createBrowserNavigation, createRouteContext, createScopedNavigation, scopePath } from "../dist/navigation.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
+import { createFakeWindow } from "./navigation.driver.js";
 
 test("scopePath keeps app navigation under base path", () => {
   assert.equal(scopePath("/catalog", "details/42"), "/catalog/details/42");
@@ -17,7 +18,7 @@ test("route context exposes scoped path, query, params, and updates", () => {
   assert.deepEqual(route.match("orders/:id"), { id: "42" });
   route.setTabTitle("Order 42");
   assert.equal(title, "Order 42");
-  const seen = [];
+  const seen: string[] = [];
   const unsubscribe = route.subscribe((location) => seen.push(location.pathname));
   navigation.navigate("/catalog/settings");
   unsubscribe();
@@ -43,7 +44,7 @@ test("browser navigation reattaches popstate after all subscribers leave", () =>
 
   const unsubscribe = navigation.subscribe(() => undefined);
   unsubscribe();
-  const seen = [];
+  const seen: string[] = [];
   navigation.subscribe((location) => seen.push(location.pathname));
   browser.setPathname("/returned");
   browser.dispatchPopstate();
@@ -58,7 +59,7 @@ test("browser navigation can subscribe again after explicit disposal", () => {
 
   navigation.subscribe(() => undefined);
   navigation.dispose();
-  const seen = [];
+  const seen: string[] = [];
   navigation.subscribe((location) => seen.push(location.pathname));
   browser.setPathname("/after-dispose");
   browser.dispatchPopstate();
@@ -66,43 +67,3 @@ test("browser navigation can subscribe again after explicit disposal", () => {
   assert.deepEqual(seen, ["/", "/after-dispose"]);
   assert.deepEqual(browser.listenerCounts(), { added: 2, removed: 1 });
 });
-
-function createFakeWindow() {
-  let popstateListener;
-  let added = 0;
-  let removed = 0;
-  const location = { pathname: "/", search: "", hash: "", href: "http://atlas.test/" };
-  const windowLike = {
-    location,
-    history: {
-      pushState() {},
-      replaceState() {},
-      back() {},
-      go() {}
-    },
-    addEventListener(type, listener) {
-      if (type !== "popstate") return;
-      popstateListener = listener;
-      added += 1;
-    },
-    removeEventListener(type, listener) {
-      if (type !== "popstate" || popstateListener !== listener) return;
-      popstateListener = undefined;
-      removed += 1;
-    }
-  };
-
-  return {
-    windowLike,
-    setPathname(pathname) {
-      location.pathname = pathname;
-      location.href = `http://atlas.test${pathname}`;
-    },
-    dispatchPopstate() {
-      popstateListener?.({ type: "popstate" });
-    },
-    listenerCounts() {
-      return { added, removed };
-    }
-  };
-}

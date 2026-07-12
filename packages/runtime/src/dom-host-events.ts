@@ -1,4 +1,5 @@
 import type { DomHostOptions } from "./dom-host-options.js";
+import { ensureActionableError } from "@atlas/schema";
 import {
   emitRuntimeEvent,
   type AtlasHostMountEvent,
@@ -47,9 +48,9 @@ export function emitMountState(observer: AtlasRuntimeObserver | undefined, hostI
 }
 
 export function reportRetryFailure(error: unknown): void {
-  console.error("Atlas host retry failed", error);
+  console.error("Atlas host retry failed:", ensureActionableError(error).message);
 }
 
 export function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
+  return ensureActionableError(error, "Correct reported host configuration or unavailable resource, then reload host.");
 }

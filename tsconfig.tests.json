@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "apps/**/*.specs.ts",
+    "apps/**/*.driver.ts",
+    "packages/**/*.specs.ts",
+    "packages/**/*.driver.ts",
+    "scripts/**/*.specs.ts",
+    "scripts/**/*.driver.ts",
+    "tests/**/*.specs.ts",
+    "tests/**/*.driver.ts",
+    "playwright.config.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

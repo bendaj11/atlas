@@ -1,3 +1,5 @@
+import { ensureActionableError } from "@atlas/schema";
+
 export type AtlasEventMap = Record<string, unknown>;
 
 export interface AtlasEventBus<TEvents extends object = AtlasEventMap> {
@@ -55,7 +57,7 @@ function notifyListener<TEvents extends object>(
     listener(payload);
   } catch (error) {
     queueMicrotask(() => {
-      throw error;
+      throw ensureActionableError(error, "Fix failing Atlas event listener named in stack trace, then publish event again.");
     });
   }
 }

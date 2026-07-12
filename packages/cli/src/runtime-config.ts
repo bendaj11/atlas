@@ -19,7 +19,7 @@ export class AtlasRuntimeConfigService {
     const project = await this.workspace.findProject(name);
     if (!this.args.hasFlag("skip-compile")) await compileAtlasConfig(this.workspace, project);
     const source = await this.builds.loadConfig(project.root);
-    const config = createHostRuntimeConfig(source, this.args);
+    const config = createHostRuntimeConfig(source, this.args, project.version);
     const output = resolve(this.args.flag("out") ?? `${project.root}/public/atlas.runtime.json`);
     await mkdir(dirname(output), { recursive: true });
     await writeFile(output, `${JSON.stringify(config, null, 2)}\n`, "utf8");
@@ -27,11 +27,16 @@ export class AtlasRuntimeConfigService {
   }
 }
 
-export function createHostRuntimeConfig(config: AtlasConfig, args = new CliArguments([])): AtlasHostRuntimeConfig {
+export function createHostRuntimeConfig(
+  config: AtlasConfig,
+  args = new CliArguments([]),
+  hostVersion?: string
+): AtlasHostRuntimeConfig {
   assertHostConfig(config);
   return {
     schemaVersion: "1",
     hostId: config.id,
+    ...(hostVersion ? { hostVersion } : {}),
     catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? DEFAULT_LOCAL_REGISTRY_BASE_URL)}/hosts/${config.id}/catalog.json`,
     allowAppOverrides: config.allowAppOverrides ?? true,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,

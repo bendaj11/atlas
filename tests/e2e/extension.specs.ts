@@ -1,7 +1,8 @@
 import { chromium, expect, test, type BrowserContext, type Page, type Worker } from "@playwright/test";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { readOverride, restrictExtensionHosts, type BrowserStorage } from "./extension.driver.js";
 
 const builtExtensionPath = resolve("apps/columbus/dist");
 const hostUrl = "http://127.0.0.1:4300/dashboard";
@@ -79,7 +80,7 @@ test.describe("Atlas Columbus extension", () => {
     await localPopup.getByLabel("Base URL").check();
     await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/dashboard-react/0.2.0-local/local-dev");
     await saveAndWaitForReload(localPopup, host);
-    expect(await storedVersion(host, "localStorage")).toBe("custom-url");
+    expect(await storedVersion(host, "localStorage")).toBe("0.0.0-local");
     expect(await storedReason(host)).toBe("local");
     await expect(host.getByRole("heading", { name: "Dashboard React Local" })).toBeVisible();
   });
@@ -134,9 +135,7 @@ async function createTestExtension(): Promise<string> {
   const extensionDirectory = await mkdtemp(join(tmpdir(), "atlas-extension-build-"));
   await cp(builtExtensionPath, extensionDirectory, { recursive: true });
   const manifestPath = join(extensionDirectory, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
-  manifest.host_permissions = ["http://127.0.0.1/*"];
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await restrictExtensionHosts(manifestPath);
   return extensionDirectory;
 }
 
@@ -149,15 +148,6 @@ async function saveAndWaitForReload(popup: Page, host: Page): Promise<void> {
 
 async function editApp(popup: Page, appName: string): Promise<void> {
   await popup.locator("article", { hasText: appName }).getByRole("button", { name: "Edit" }).click();
-}
-
-type BrowserStorage = "localStorage" | "sessionStorage";
-
-async function readOverride(host: Page, storage: BrowserStorage): Promise<{ overrides: Array<{ manifest: { version: string }; reason: string }> } | undefined> {
-  return host.evaluate(({ key, storageName }) => {
-    const value = window[storageName].getItem(key);
-    return value ? JSON.parse(value) : undefined;
-  }, { key: overrideKey, storageName: storage });
 }
 
 async function storedVersion(host: Page, storage: BrowserStorage): Promise<string | undefined> {

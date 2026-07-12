@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import { test } from "@jest/globals";
 import { createFormatGeneratedCommand, createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
+import { createWorkspaceFixture } from "./workspace.driver.js";
 
 test("workspace detection discovers an Nx project without consumer configuration", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-"));
@@ -30,11 +31,12 @@ test("workspace detection discovers an Nx project without consumer configuration
 });
 
 test("Nx generation respects a direct child working directory", async () => {
-  const root = await mkdtemp(join(tmpdir(), "atlas-nx-generation-root-"));
+  const root = await createWorkspaceFixture("atlas-nx-generation-root-", {
+    "nx.json": "{}\n",
+    "package.json": JSON.stringify({ workspaces: ["packages/*"] })
+  });
   const appsRoot = join(root, "apps");
   await mkdir(appsRoot);
-  await writeFile(join(root, "nx.json"), "{}\n");
-  await writeFile(join(root, "package.json"), JSON.stringify({ workspaces: ["packages/*"] }));
 
   const workspace = await detectWorkspace(appsRoot);
 

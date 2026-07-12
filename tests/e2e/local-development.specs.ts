@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
+import { delay } from "./local-development.driver.js";
 
 const PROCESS_START_TIMEOUT = 120_000;
 const PROCESS_STOP_TIMEOUT = 15_000;
@@ -135,8 +136,4 @@ async function expectPortReleased(port: number): Promise<void> {
       return true;
     }
   }).toBe(true);
-}
-
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

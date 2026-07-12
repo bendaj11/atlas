@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "@jest/globals";
 import { HttpClient, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
+import { createHostSdk } from "./host.driver.js";
+import type { AtlasModalOpener, AtlasToastRequest } from "../dist/host-overlays.js";
 
 test("event bus publishes across apps and supports unsubscribe", () => {
-  const bus = createAtlasEventBus();
-  const received = [];
+  const bus = createAtlasEventBus<{ "orders.updated": { orderId: string } }>();
+  const received: Array<{ orderId: string }> = [];
   const unsubscribe = bus.subscribe("orders.updated", (payload) => received.push(payload));
   bus.publish("orders.updated", { orderId: "42" });
   unsubscribe();
@@ -14,18 +16,8 @@ test("event bus publishes across apps and supports unsubscribe", () => {
 });
 
 test("core SDK exposes typed hostData and httpClient without extensions", async () => {
-  const httpClient = {
-    async request(method, url, options) {
-      return { method, url, body: options?.body };
-    },
-    async get(url, options) { return this.request("GET", url, options); },
-    async post(url, body, options) { return this.request("POST", url, { ...options, body }); },
-    async put(url, body, options) { return this.request("PUT", url, { ...options, body }); },
-    async patch(url, body, options) { return this.request("PATCH", url, { ...options, body }); },
-    async delete(url, options) { return this.request("DELETE", url, options); },
-    async head(url, options) { return this.request("HEAD", url, options); },
-    async options(url, options) { return this.request("OPTIONS", url, options); }
-  };
+  const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
+  const httpClient: typeof fetch = async (url, options) => { calls.push([url, options]); return new Response(null, { status: 204 }); };
   const sdk = createAtlasSdk({
     hostId: "host",
     navigation: createMemoryNavigation(),
@@ -35,41 +27,39 @@ test("core SDK exposes typed hostData and httpClient without extensions", async 
   assert.equal(sdk.hostData.hostId, "host");
   assert.equal(sdk.hostData.name, "Host");
   assert.equal(sdk.hostData.projectId, "project-42");
-  assert.deepEqual(await sdk.httpClient.get("/orders"), { method: "GET", url: "/orders", body: undefined });
-  assert.deepEqual(await sdk.httpClient.post("/orders", "payload"), { method: "POST", url: "/orders", body: "payload" });
-  assert.deepEqual(await sdk.httpClient.request("PATCH", "/orders/42", { body: "patch" }), { method: "PATCH", url: "/orders/42", body: "patch" });
+  await sdk.httpClient.get("/orders");
+  await sdk.httpClient.post("/orders", "payload");
+  await sdk.httpClient.request("PATCH", "/orders/42", { body: "patch" });
+  assert.deepEqual(calls.map(([, options]) => options?.method), ["GET", "POST", "PATCH"]);
 });
 
 test("host SDK adapts fetch-compatible httpClient providers", async () => {
-  const calls = [];
-  const httpClient = async (url, init) => {
+  const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
+  const httpClient: typeof fetch = async (url, init) => {
     calls.push([url, init]);
-    return { ok: true };
+    return new Response(null, { status: 204 });
   };
   const sdk = createAtlasSdk({
     hostId: "host",
     navigation: createMemoryNavigation(),
     httpClient
   });
-  assert.deepEqual(await sdk.httpClient.delete("/orders/42"), { ok: true });
+  assert.equal((await sdk.httpClient.delete("/orders/42")).status, 204);
   assert.deepEqual(calls, [["/orders/42", { method: "DELETE" }]]);
 });
 
 test("host SDK uses HttpClient by default", () => {
-  const sdk = createAtlasSdk({
-    hostId: "host",
-    navigation: createMemoryNavigation()
-  });
+  const sdk = createHostSdk();
   assert.ok(sdk.httpClient instanceof HttpClient);
 });
 
 test("HttpClient wraps fetch with HTTP helpers", async () => {
-  const calls = [];
+  const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
   const httpClient = new HttpClient(async (url, init) => {
     calls.push([url, init]);
-    return { ok: true };
+    return new Response(null, { status: 204 });
   });
-  assert.deepEqual(await httpClient.post("/orders", "payload"), { ok: true });
+  assert.equal((await httpClient.post("/orders", "payload")).status, 204);
   assert.deepEqual(calls, [["/orders", { body: "payload", method: "POST" }]]);
 });
 
@@ -91,11 +81,12 @@ test("event bus once listener is removed after its first event", () => {
 });
 
 test("host SDK delegates modal components and popup content to host overlay providers", async () => {
-  const opened = [];
+  const opened: unknown[][] = [];
+  const openModal: AtlasModalOpener = async (request) => { opened.push(["modal", request.component, request.props]); return JSON.parse('"confirmed"'); };
   const sdk = createAtlasSdk({
     hostId: "host",
     navigation: createMemoryNavigation(),
-    async openModal(request) { opened.push(["modal", request.component, request.props]); return "confirmed"; },
+    openModal,
     openPopup(request) { opened.push(["popup", request.content]); return { id: "popup-1", close() {} }; }
   });
   assert.equal(await sdk.modal.open({ component: { frameworkNative: true }, props: { orderId: "42" } }), "confirmed");
@@ -107,7 +98,7 @@ test("host SDK delegates modal components and popup content to host overlay prov
 });
 
 test("host SDK delegates toast requests to showToast", () => {
-  const shown = [];
+  const shown: AtlasToastRequest[] = [];
   const sdk = createAtlasSdk({
     hostId: "host",
     navigation: createMemoryNavigation(),
@@ -118,9 +109,6 @@ test("host SDK delegates toast requests to showToast", () => {
 });
 
 test("host SDK treats modal as no-op when no modal provider is configured", async () => {
-  const sdk = createAtlasSdk({
-    hostId: "host",
-    navigation: createMemoryNavigation()
-  });
+  const sdk = createHostSdk();
   assert.equal(await sdk.modal.open({ component: "details" }), undefined);
 });

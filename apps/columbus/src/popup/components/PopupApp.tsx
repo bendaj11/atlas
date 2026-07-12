@@ -15,7 +15,7 @@ export function PopupApp(): JSX.Element {
 
   return (
     <WixDesignSystemProvider>
-      <Box className="popup-shell" direction="vertical" backgroundColor="D80" minHeight="100vh">
+      <Box direction="vertical" backgroundColor="D80" width="560px" height="620px" overflowY="auto" borderRadius="12px">
         <Box padding="16px" direction="vertical" gap="14px">
           {!controller.hostData && controller.status.busy ? (
             <EmptyFrame title="Loading Atlas host" message={controller.status.message} />
@@ -42,7 +42,7 @@ export function PopupApp(): JSX.Element {
             <Dashboard
               apps={controller.apps}
               busy={controller.status.busy}
-              hasHost={Boolean(controller.hostData)}
+              hostData={controller.hostData}
               onEdit={controller.showEditor}
               onToggle={(appId) => void controller.toggleOverride(appId)}
             />

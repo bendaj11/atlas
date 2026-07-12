@@ -1,6 +1,11 @@
 import type { AtlasBrowserNavigation, AtlasLocation, AtlasNavigationListener } from "./navigation-types.js";
 
-type BrowserWindowLike = Pick<Window, "location" | "history" | "addEventListener" | "removeEventListener">;
+export interface BrowserWindowLike {
+  location: Pick<Location, "pathname" | "search" | "hash" | "href">;
+  history: Pick<History, "pushState" | "replaceState" | "back" | "go">;
+  addEventListener(type: "popstate", listener: () => void): void;
+  removeEventListener(type: "popstate", listener: () => void): void;
+}
 
 export function createBrowserNavigation(windowLike: BrowserWindowLike = window): AtlasBrowserNavigation {
   const listeners = new Set<AtlasNavigationListener>();

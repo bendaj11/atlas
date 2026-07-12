@@ -1,4 +1,5 @@
 import type { DomHostOptions } from "./dom-host-options.js";
+import { ensureActionableError } from "@atlas/schema";
 import type { AtlasHostNavigationItem } from "./host-navigation.js";
 import type { AtlasHostMountEvent } from "./index.js";
 
@@ -81,7 +82,7 @@ function renderErrorState(
   const status = prepareStatusElement(document, container, existingStatus, "alert");
   const message = document.createElement("span");
   message.textContent = event.error?.message
-    ? `Unable to load ${event.manifest.name}: ${event.error.message}. `
+    ? `Unable to load ${event.manifest.name}: ${ensureActionableError(event.error).message} `
     : `Unable to load ${event.manifest.name}. `;
   const button = document.createElement("button");
   button.type = "button";

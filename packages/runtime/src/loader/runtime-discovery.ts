@@ -1,6 +1,7 @@
 import {
   assertAtlasHostCatalog,
   assertAtlasManifest,
+  actionableMessage,
   type AtlasHostCatalog,
   type AtlasHostRuntimeConfig,
   type AtlasManifest
@@ -8,7 +9,7 @@ import {
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
 
-type FetchJson = <T>(url: string, signal?: AbortSignal) => Promise<T>;
+type FetchJson = (url: string, signal?: AbortSignal) => Promise<unknown>;
 type FetchBytes = (url: string, signal?: AbortSignal) => Promise<ArrayBuffer>;
 
 export interface AtlasRuntimeOverride {
@@ -50,8 +51,8 @@ export async function loadHostCatalog(options: {
 }): Promise<AtlasHostCatalog> {
   const catalog = await runResiliently(
     (signal) => options.fetchJson
-      ? options.fetchJson<AtlasHostCatalog>(options.catalogUrl, signal)
-      : defaultFetchJson<AtlasHostCatalog>(options.catalogUrl, signal),
+      ? options.fetchJson(options.catalogUrl, signal)
+      : defaultFetchJson(options.catalogUrl, signal),
     { stage: "catalog", resource: options.catalogUrl },
     options.requestPolicy
   );
@@ -65,11 +66,11 @@ export async function loadHostRuntimeConfig(
   requestPolicy?: AtlasRetryPolicy
 ): Promise<AtlasHostRuntimeConfig> {
   const config = await runResiliently(
-    (signal) => fetchJson<AtlasHostRuntimeConfig>(url, signal),
+    (signal) => fetchJson(url, signal),
     { stage: "runtime-config", resource: url },
     requestPolicy
   );
-  if (config.schemaVersion !== "1" || !config.hostId || !config.catalogUrl) {
+  if (!isHostRuntimeConfig(config)) {
     throw new Error(`Invalid Atlas host runtime configuration from ${url}.`);
   }
   validateRequestPolicy(config);
@@ -103,11 +104,12 @@ export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideO
 
   const document = url
     ? await runResiliently(
-      (signal) => (options.fetchJson ?? defaultFetchJson)<AtlasRuntimeOverrideDocument>(url, signal),
+      (signal) => (options.fetchJson ?? defaultFetchJson)(url, signal),
       { stage: "runtime-overrides", resource: url },
       options.requestPolicy
     )
     : parseOverrideDocument(storedDocument!);
+  validateOverrideShape(document);
   validateOverrideDocument(document, options.hostId, url ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY);
   return document.overrides;
 }
@@ -198,10 +200,34 @@ export function createRemoteTrustPolicy(config: AtlasHostRuntimeConfig): AtlasRe
 
 function parseOverrideDocument(value: string): AtlasRuntimeOverrideDocument {
   try {
-    return JSON.parse(value) as AtlasRuntimeOverrideDocument;
+    const document: unknown = JSON.parse(value);
+    validateOverrideShape(document);
+    return document;
   } catch {
     throw new Error(`Invalid Atlas runtime override document in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY}.`);
   }
+}
+
+function validateOverrideShape(value: unknown): asserts value is AtlasRuntimeOverrideDocument {
+  if (!isRecord(value) || value.schemaVersion !== "1" || typeof value.hostId !== "string"
+    || typeof value.generatedAt !== "string" || !Array.isArray(value.overrides)) {
+    throw new Error(`Invalid Atlas runtime override document in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY}.`);
+  }
+  for (const override of value.overrides) {
+    if (!isRecord(override) || typeof override.appId !== "string" || !isRecord(override.manifest)
+      || typeof override.reason !== "string") {
+      throw new Error(`Invalid Atlas runtime override document in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY}.`);
+    }
+  }
+}
+
+function isHostRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
+  return isRecord(value) && value.schemaVersion === "1" && typeof value.hostId === "string" && value.hostId.length > 0
+    && typeof value.catalogUrl === "string" && value.catalogUrl.length > 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function validateOverrideDocument(document: AtlasRuntimeOverrideDocument, hostId: string, source: string): void {
@@ -215,14 +241,22 @@ function validateOverrideDocument(document: AtlasRuntimeOverrideDocument, hostId
     if (override.appId !== override.manifest.id) {
       throw new Error(`Atlas override app id "${override.appId}" does not match manifest id "${override.manifest.id}".`);
     }
-    assertAtlasManifest(override.manifest);
+    try {
+      assertAtlasManifest(override.manifest);
+    } catch (error) {
+      const detail = (error instanceof Error ? error.message : String(error)).replace(/ Suggested action:.*$/u, "");
+      throw new Error(actionableMessage(
+        `Invalid Atlas override for app "${override.appId}". ${detail}`,
+        "Open Columbus, correct or disable this app override, then reload the host."
+      ), { cause: error });
+    }
   }
 }
 
-async function defaultFetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+async function defaultFetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(url, signal ? { signal } : undefined);
   if (!response.ok) throw new Error(`Failed to fetch Atlas JSON from ${url}: ${response.status} ${response.statusText}`);
-  return response.json() as Promise<T>;
+  return response.json();
 }
 
 async function defaultFetchBytes(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {

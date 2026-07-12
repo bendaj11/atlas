@@ -248,7 +248,10 @@ function assertAppConfig(config: AtlasConfig): AtlasAppConfig {
   }
   return config;
 }
-function isNodeError(error: unknown): error is NodeJS.ErrnoException { return error instanceof Error && "code" in error; }
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return typeof error === "object" && error !== null && "code" in error;
+}
+
 function trimSlash(value: string): string { return value.replace(/\/$/, ""); }
 function title(value: string): string { return value.split(/[-_\s]+/).filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" "); }
 function optionalNumber(value: string | undefined): number | undefined {
