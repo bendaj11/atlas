@@ -1,5 +1,3 @@
-import { ensureActionableError } from "@atlas/schema";
-
 export interface AtlasHostUiOptions {
   document: Document;
   renderHostLoading?: (container: HTMLElement) => void | (() => void);
@@ -44,7 +42,7 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
         disposeRenderer = options.renderHostError(container, error, retry) || undefined;
         return;
       }
-      renderDefaultError(options.document, container, error, retry);
+      renderDefaultError(options.document, container, retry);
     },
     clear
   };
@@ -63,12 +61,12 @@ function renderDefaultLoading(document: Document, container: HTMLElement): void 
   container.replaceChildren(status);
 }
 
-function renderDefaultError(document: Document, container: HTMLElement, error: Error, retry: () => void): void {
+function renderDefaultError(document: Document, container: HTMLElement, retry: () => void): void {
   const status = document.createElement("div");
   status.dataset.atlasStatus = "";
   status.setAttribute("role", "alert");
   const message = document.createElement("span");
-  message.textContent = `${ensureActionableError(error).message} `;
+  message.textContent = "Unable to start application. ";
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = "Retry";

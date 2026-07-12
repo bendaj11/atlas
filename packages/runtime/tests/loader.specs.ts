@@ -337,7 +337,7 @@ test("host UI uses one host-owned outlet and supports custom loading and fallbac
   assert.equal(container.textContent, "Custom fallback");
 });
 
-test("default host UI shows exact Atlas errors with a suggested action", () => {
+test("default host UI hides diagnostic details", () => {
   const container = createHostStatusContainer();
   const document = createTestDocument();
   document.querySelector = () => container;
@@ -353,8 +353,8 @@ test("default host UI shows exact Atlas errors with a suggested action", () => {
 
   ui.showError(new Error('Invalid Atlas host catalog. manifests.1.id: Duplicate app id "angular-app".'), () => undefined);
 
-  assert.match(container.textContent, /Duplicate app id "angular-app"/);
-  assert.match(container.textContent, /Suggested action: Remove duplicate manifest entries for "angular-app"/);
+  assert.equal(container.textContent, "Unable to start application. Retry");
+  assert.doesNotMatch(container.textContent, /Duplicate app id|Suggested action/);
 });
 
 test("browser overrides are discovered from the host URL and validated", async () => {

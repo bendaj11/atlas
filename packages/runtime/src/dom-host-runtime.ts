@@ -1,4 +1,4 @@
-import type { AtlasHostRuntimeConfig } from "@atlas/schema";
+import { ensureActionableError, type AtlasHostRuntimeConfig } from "@atlas/schema";
 import { emitMountState } from "./dom-host-events.js";
 import type { DomHostOptions, DomHostServices } from "./dom-host-options.js";
 import { createSdkProviders } from "./dom-host-sdk.js";
@@ -74,6 +74,9 @@ export async function startDomHostRuntime<THostSdk extends object>(
     resolveSlotContainer: (manifest, placement) => resolveDomSlotContainer(document, manifest.id, placement.id, placement.slot!),
     ...(config.resourcesTimeoutMs ? { resourcesTimeoutMs: config.resourcesTimeoutMs } : {}),
     onStateChange(event) {
+      if (event.state === "error" && event.error) {
+        console.error(`Atlas app "${event.manifest.id}" failed to load:`, ensureActionableError(event.error));
+      }
       renderHostMountState(document, event, () => { void runtime?.retry(event.manifest.id); }, options);
       emitMountState(options.observe, config.hostId, event);
       options.onStateChange?.(event);

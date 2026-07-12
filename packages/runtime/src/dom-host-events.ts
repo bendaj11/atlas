@@ -25,6 +25,7 @@ export function emitHostReady(observer: AtlasRuntimeObserver | undefined, runtim
 }
 
 export function emitHostError(options: DomHostOptions, error: Error, startedAt: number): void {
+  console.error("Atlas host failed to start:", error);
   emitRuntimeEvent(options.observe, {
     type: "host.error",
     timestamp: new Date().toISOString(),

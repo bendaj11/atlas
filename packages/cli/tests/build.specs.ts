@@ -718,7 +718,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx vite config\n' > "$directory/vite.config.mts"
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
-  printf '{"name":"host","marker":"nx-generator","targets":{"dev":{"executor":"@nx/vite:dev-server"},"serve":{"executor":"@nx/vite:dev-server"}}}\n' > "$directory/project.json"
+  printf '{"name":"host","marker":"nx-generator","targets":{"dev":{"executor":"@nx/vite:dev-server"}}}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   exit 0
 fi
@@ -735,6 +735,7 @@ exit 1
   assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config host");
   assert.equal(project.targets.dev.options.commands[1].command, "nx run host:serve");
   assert.equal(project.targets.dev.options.parallel, false);
+  assert.equal(project.targets.serve.executor, "@nx/vite:dev-server");
   const hostMain = await readFile(join(root, "apps/host/src/main.tsx"), "utf8");
   assert.match(hostMain, /startAtlasHost/);
   assert.doesNotMatch(hostMain, /startHost|createBrowserRouter|atlasConfig/);

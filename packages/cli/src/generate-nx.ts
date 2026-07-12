@@ -120,7 +120,9 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
       options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
     };
   }
-  if (type === "host" && targets.serve && !isAtlasHostDevTarget(targets.dev, projectName)) {
+  if (type === "host" && !isAtlasHostDevTarget(targets.dev, projectName)) {
+    preserveNativeHostDevTarget(targets);
+    if (!targets.serve) return;
     targets.dev = {
       executor: "nx:run-commands",
       options: {
@@ -138,6 +140,10 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
       options: { command: `nx run ${projectName}:dev`, forwardAllArgs: true }
     };
   }
+}
+
+function preserveNativeHostDevTarget(targets: Record<string, unknown>): void {
+  if (!targets.serve && targets.dev) targets.serve = targets.dev;
 }
 
 function isAtlasHostDevTarget(value: unknown, projectName: string): boolean {
