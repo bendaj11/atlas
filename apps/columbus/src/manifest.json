@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Atlas App Versions",
-  "version": "0.2.71",
+  "version": "0.2.72",
   "minimum_chrome_version": "111",
   "description": "Switch Atlas apps between production, PR, historical, and local versions.",
   "icons": {

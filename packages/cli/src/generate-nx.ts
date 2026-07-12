@@ -9,6 +9,14 @@ import { exists } from "./generate-paths.js";
 type ProjectType = "host" | "app";
 type PackageManager = "yarn" | "pnpm" | "npm";
 
+interface NxDevTargetOptions {
+  targets: Record<string, unknown>;
+  projectName: string;
+  projectRoot: string;
+  type: ProjectType;
+  framework: SupportedFramework;
+}
+
 export function nxTarget(packageManager: PackageManager, cwd: string, script: string): Record<string, unknown> {
   return { executor: "nx:run-commands", options: { cwd, command: `${packageManager} run ${script}` } };
 }
@@ -97,7 +105,7 @@ export async function ensureDelegatedNxTargets(
   const targets = asObject(project.targets);
   if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor", devServerPort);
   ensureAtlasConfigTarget(targets, projectName);
-  ensureDevTarget(targets, projectName, type);
+  ensureDevTarget({ targets, projectName, projectRoot, type, framework });
   project.targets = targets;
   await writeJsonFile(projectFile, project);
 }
@@ -113,7 +121,8 @@ function ensureAtlasConfigTarget(targets: Record<string, unknown>, projectName: 
   }
 }
 
-function ensureDevTarget(targets: Record<string, unknown>, projectName: string, type: ProjectType): void {
+function ensureDevTarget(options: NxDevTargetOptions): void {
+  const { targets, projectName, projectRoot, type, framework } = options;
   if (type === "app" && (!targets.dev || isOutdatedAppDevTarget(targets.dev, projectName))) {
     targets.dev = {
       executor: "nx:run-commands",
@@ -122,6 +131,9 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
   }
   if (type === "host" && !isAtlasHostDevTarget(targets.dev, projectName)) {
     preserveNativeHostDevTarget(targets);
+    if (!targets.serve && framework === "react") {
+      targets.serve = inferredViteServeTarget(projectRoot);
+    }
     if (!targets.serve) return;
     targets.dev = {
       executor: "nx:run-commands",
@@ -140,6 +152,14 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
       options: { command: `nx run ${projectName}:dev`, forwardAllArgs: true }
     };
   }
+}
+
+function inferredViteServeTarget(projectRoot: string): Record<string, unknown> {
+  return {
+    continuous: true,
+    executor: "nx:run-commands",
+    options: { cwd: projectRoot, command: "vite" }
+  };
 }
 
 function preserveNativeHostDevTarget(targets: Record<string, unknown>): void {

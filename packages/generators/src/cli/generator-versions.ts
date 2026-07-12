@@ -1,6 +1,6 @@
 import type { AtlasGeneratorOptions } from "./generator-types.js";
 
-export const ATLAS_PACKAGE_VERSION = "0.2.71";
+export const ATLAS_PACKAGE_VERSION = "0.2.72";
 
 export function atlasPackageRange(): string {
   return `^${ATLAS_PACKAGE_VERSION}`;
