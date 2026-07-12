@@ -16,7 +16,7 @@ a future target and is not currently supported.
 Start here:
 
 1. [Getting Started](docs/getting-started.md): choose the Angular or React path and see the full beginner flow.
-2. [Angular Getting Started](docs/angular/getting-started.md): build an Angular host and Angular app from install to production.
+2. [Angular Getting Started](docs/angular/getting-started.md): follow staged zero-to-production path, then choose [host](docs/angular/host-getting-started.md) or [app](docs/angular/app-getting-started.md) track.
 3. [React Getting Started](docs/react/getting-started.md): build a React host and React app from install to production.
 4. [Core Concepts](docs/overview.md): learn the Atlas words: host, app, catalog, manifest, mount, and SDK.
 5. [Architecture](docs/architecture.md): see how hosts, apps, catalogs, SDK calls, and Native Federation work together.

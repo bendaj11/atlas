@@ -23,8 +23,8 @@ Angular apps.
 
 Choose the framework used by the first host you want to build:
 
-- [Angular path](angular/getting-started.md): generate an Angular host and an
-  Angular app, run it locally, publish files, verify production, and roll back.
+- [Angular path](angular/getting-started.md): follow shared zero-to-production
+  stages, then choose the detailed host or app track.
 - [React path](react/getting-started.md): generate a React host and a React app,
   run it locally, publish files, verify production, and roll back.
 

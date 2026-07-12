@@ -349,17 +349,17 @@ For quick launch with a non-default host URL, set environment defaults in the
 terminal:
 
 ```sh
-ATLAS_HOST_ORIGIN=http://localhost:5173 atlas dev orders
+ATLAS_HOST_URL=http://localhost:5173 atlas dev orders
 ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
 ```
 
-`ATLAS_HOST_ORIGIN` is the host origin; Atlas appends the app route base path
-from `atlas.config.ts`. `ATLAS_HOST_URL` is the exact page URL and wins when set.
+`ATLAS_HOST_URL` accepts a host base URL or full page URL. For a base URL, Atlas
+appends the app route base path from `atlas.config.ts`.
 For repeated local work, put the values in a workspace `.env` file:
 
 ```dotenv
 ATLAS_HOST=customer-host
-ATLAS_HOST_ORIGIN=http://localhost:5173
+ATLAS_HOST_URL=http://localhost:5173
 ```
 
 Shell environment variables override `.env` values. If an app declares multiple

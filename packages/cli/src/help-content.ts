@@ -70,14 +70,13 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     environment: [
       { label: "ATLAS_HOST", description: "Default host id when an app supports multiple hosts" },
-      { label: "ATLAS_HOST_URL", description: "Exact host page URL opened with the override activated" },
-      { label: "ATLAS_HOST_ORIGIN", description: "Host origin; Atlas appends the configured route base path" }
+      { label: "ATLAS_HOST_URL", description: "Host base URL or full page URL opened with the override activated" }
     ],
     examples: [
       "atlas dev customer-host",
       "atlas dev orders",
       "atlas dev",
-      "ATLAS_HOST_ORIGIN=http://localhost:4200 atlas dev orders",
+      "ATLAS_HOST_URL=http://localhost:4200 atlas dev orders",
       "atlas dev orders --host customer-host --host-url https://customer.example/orders"
     ]
   },

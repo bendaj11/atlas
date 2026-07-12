@@ -52,13 +52,14 @@ atlas dev
 For `atlas dev <app>`, Atlas infers the host when the app config declares only
 one host. For multiple hosts, interactive terminals ask which host to use; in
 non-interactive shells, pass `--host` or set `ATLAS_HOST`. Use
-`ATLAS_HOST_URL` for an exact host page URL, or `ATLAS_HOST_ORIGIN` when Atlas
-should append the route base path from `atlas.config.ts`. You can set these in
-the shell or in a workspace `.env` file:
+`ATLAS_HOST_URL` accepts either an exact host page URL or a base URL. For a base
+URL, Atlas appends the route base path from `atlas.config.ts`; when several
+routes match the selected host, interactive terminals ask which route to use.
+Set it in the shell or in a workspace `.env` file:
 
 ```dotenv
 ATLAS_HOST=customer-host
-ATLAS_HOST_ORIGIN=http://localhost:4200
+ATLAS_HOST_URL=http://localhost:4200
 ```
 
 Shell environment variables override `.env` values. Flags override both.

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
+import { HostRuntimeDriver, createDeferred, createRouteManifest, createSlotManifest } from "./runtime-driver.mjs";
 
 test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
   const catalog = {
@@ -595,31 +596,19 @@ test("stylesheet trust rejects unsupported protocols before import", async () =>
 });
 
 test("host runtime mounts only the active route and unmounts during navigation", async () => {
-  const catalog = createTestManifest({ id: "catalog", placements: [{ id: "catalog-route", kind: "route", hostId: "host", route: { basePath: "/catalog", title: "Catalog" } }] });
-  const details = createTestManifest({ id: "details", placements: [{ id: "details-route", kind: "route", hostId: "host", route: { basePath: "/catalog/details", title: "Details" } }] });
-  const sdk = createTestHostSdk();
-  const events = [];
   const unmounted = [];
-  const runtime = await startAtlasHostRuntime({
-    hostId: "host",
-    manifests: [catalog, details],
-    sdk: sdk,
-    resolveRouteContainer() { return {}; },
-    resolveSlotContainer() { return undefined; },
-    onStateChange(event) { events.push(`${event.manifest.id}:${event.state}`); },
-    async importRemote(manifest) {
-      return { mount() { return { unmount() { unmounted.push(manifest.id); } }; } };
-    }
-  });
-  assert.deepEqual(events, []);
-  sdk.navigation.navigate("/catalog");
-  await tick();
-  assert.ok(events.includes("catalog:mounted"));
-  sdk.navigation.navigate("/catalog/details/42");
-  await tick();
+  const driver = new HostRuntimeDriver()
+    .given.manifests([createRouteManifest("catalog", "/catalog"), createRouteManifest("details", "/catalog/details")])
+    .given.remote(async (manifest) => ({ mount: () => ({ unmount: () => unmounted.push(manifest.id) }) }));
+
+  await driver.when.started();
+  assert.deepEqual(driver.states, []);
+  await driver.when.navigatedTo("/catalog");
+  await driver.when.navigatedTo("/catalog/details/42");
+
   assert.ok(unmounted.includes("catalog"));
-  assert.ok(events.includes("details:mounted"));
-  await runtime.stop();
+  assert.deepEqual(driver.imports, ["catalog", "details"]);
+  await driver.when.stopped();
   assert.ok(unmounted.includes("details"));
 });
 
@@ -664,21 +653,15 @@ test("host runtime renders the first exact route and logs duplicate routes", asy
 });
 
 test("host runtime mounts slots independently and reports remote failures", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
-  const sdk = createTestHostSdk();
-  const states = [];
-  const runtime = await startAtlasHostRuntime({
-    hostId: "host",
-    manifests: [widget],
-    sdk: sdk,
-    resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
-    onStateChange(event) { states.push(event); },
-    async importRemote() { throw new Error("CDN unavailable"); }
-  });
-  assert.deepEqual(states.map(({ state }) => state), ["mounting", "error"]);
-  assert.match(states[1].error.message, /CDN unavailable/);
-  await runtime.stop();
+  const driver = new HostRuntimeDriver()
+    .given.manifests([createSlotManifest("widget", "header")])
+    .given.remote(async () => { throw new Error("CDN unavailable"); });
+
+  await driver.when.started();
+
+  assert.deepEqual(driver.states, ["mounting", "error"]);
+  assert.match(driver.lastError.message, /CDN unavailable/);
+  await driver.when.stopped();
 });
 
 test("DOM host warns and skips app import when a declared slot is missing", async () => {
@@ -712,25 +695,21 @@ test("DOM host warns and skips app import when a declared slot is missing", asyn
 });
 
 test("host runtime starts independent slots concurrently", async () => {
-  const placements = (id) => [{ id: `${id}-slot`, kind: "slot", hostId: "host", slot: id }];
-  let active = 0;
-  let maximumActive = 0;
-  const runtime = await startAtlasHostRuntime({
-    hostId: "host",
-    manifests: [createTestManifest({ id: "first", placements: placements("first") }), createTestManifest({ id: "second", placements: placements("second") })],
-    sdk: createTestHostSdk(),
-    resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
-    async importRemote() {
-      active += 1;
-      maximumActive = Math.max(maximumActive, active);
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      active -= 1;
+  const bothImportsStarted = createDeferred();
+  let activeImports = 0;
+  const driver = new HostRuntimeDriver()
+    .given.manifests([createSlotManifest("first"), createSlotManifest("second")])
+    .given.remote(async () => {
+      activeImports += 1;
+      if (activeImports === 2) bothImportsStarted.resolve();
+      await bothImportsStarted.promise;
       return { mount() {} };
-    }
-  });
-  assert.equal(maximumActive, 2);
-  await runtime.stop();
+    });
+
+  await driver.when.started();
+
+  assert.equal(activeImports, 2);
+  await driver.when.stopped();
 });
 
 test("host runtime cleans up mounts that finish after their timeout", async () => {
@@ -753,59 +732,42 @@ test("host runtime cleans up mounts that finish after their timeout", async () =
 });
 
 test("host runtime coalesces overlapping retries for one failed placement", async () => {
-  const widget = createTestManifest({ id: "retry", placements: [{ id: "retry-slot", kind: "slot", hostId: "host", slot: "retry" }] });
-  let imports = 0;
-  const runtime = await startAtlasHostRuntime({
-    hostId: "host",
-    manifests: [widget],
-    sdk: createTestHostSdk(),
-    resourcesTimeoutMs: 2,
-    resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
-    async importRemote() {
-      imports += 1;
-      if (imports === 1) return new Promise(() => undefined);
-      await new Promise((resolve) => setTimeout(resolve, 5));
+  const retryImport = createDeferred();
+  const driver = new HostRuntimeDriver()
+    .given.manifests([createSlotManifest("retry")])
+    .given.resourcesTimeout(2)
+    .given.remote(async () => {
+      if (driver.imports.length === 1) return new Promise(() => undefined);
+      retryImport.resolve();
       return { mount() {} };
-    }
-  });
-  await Promise.all([runtime.retry("retry"), runtime.retry("retry")]);
-  assert.equal(imports, 2);
-  await runtime.stop();
+    });
+
+  await driver.when.started();
+  await driver.when.retriedTogether("retry");
+  await retryImport.promise;
+
+  assert.equal(driver.imports.length, 2);
+  await driver.when.stopped();
 });
 
 test("host runtime shows loading UI only when requested by the app", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
-  const states = [];
-  const runtime = await startAtlasHostRuntime({
-    hostId: "host",
-    manifests: [widget],
-    sdk: createTestHostSdk(),
-    resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
-    onStateChange(event) { states.push(event.state); },
-    async importRemote() {
-      return { mount({ context }) { context.loading.show(); setTimeout(() => context.loading.hide(), 5); } };
-    }
-  });
-  assert.deepEqual(states, ["mounting", "loading", "mounted"]);
-  await runtime.stop();
+  const driver = new HostRuntimeDriver()
+    .given.manifests([createSlotManifest("widget", "header")])
+    .given.remote(async () => ({ mount: ({ context }) => context.loading.show() }));
+
+  await driver.when.started();
+
+  assert.deepEqual(driver.states, ["mounting", "loading", "mounted"]);
+  await driver.when.stopped();
 });
 
 test("host runtime renders no loading state when the app does not request one", async () => {
-  const widget = createTestManifest({ id: "widget", placements: [{ id: "header-widget", kind: "slot", hostId: "host", slot: "header" }] });
-  const states = [];
-  const runtime = await startAtlasHostRuntime({
-    hostId: "host",
-    manifests: [widget],
-    sdk: createTestHostSdk(),
-    resolveRouteContainer() { return undefined; },
-    resolveSlotContainer() { return {}; },
-    onStateChange(event) { states.push(event.state); },
-    async importRemote() { return { mount() {} }; }
-  });
-  assert.deepEqual(states, ["mounting", "mounted"]);
-  await runtime.stop();
+  const driver = new HostRuntimeDriver().given.manifests([createSlotManifest("widget", "header")]);
+
+  await driver.when.started();
+
+  assert.deepEqual(driver.states, ["mounting", "mounted"]);
+  await driver.when.stopped();
 });
 
 test("host runtime reports and cleans up an app that opts into readiness but never becomes ready", async () => {

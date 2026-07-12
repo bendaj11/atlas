@@ -44,17 +44,18 @@ No Native Federation URL or manifest needs editing.
 Set local defaults in the terminal when you want a quick launch:
 
 ```sh
-ATLAS_HOST=customer-host ATLAS_HOST_ORIGIN=http://localhost:4200 atlas dev orders
+ATLAS_HOST=customer-host ATLAS_HOST_URL=http://localhost:4200 atlas dev orders
 ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
 ```
 
-`ATLAS_HOST_URL` is the exact page URL. `ATLAS_HOST_ORIGIN` is only the origin;
-Atlas appends the configured route base path for the selected host. For repeated
-local work, add a workspace `.env` file:
+`ATLAS_HOST_URL` accepts either a host base URL or a full page URL. For a base
+URL, Atlas appends the configured route base path. When the selected host has
+multiple routes, Atlas asks which route to open. For repeated local work, add a
+workspace `.env` file:
 
 ```dotenv
 ATLAS_HOST=customer-host
-ATLAS_HOST_ORIGIN=http://localhost:4200
+ATLAS_HOST_URL=http://localhost:4200
 ```
 
 Shell environment variables override `.env` values. Flags override both.

@@ -11,13 +11,36 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
-import { AtlasDevService, createDevSession, createLocalDevCatalog, remoteEntryIsReady, startControlServer } from "../dist/dev.js";
+import { AtlasDevService, browserOpenCommand, createDevSession, createLocalDevCatalog, remoteEntryIsReady, startControlServer } from "../dist/dev.js";
 import { loadWorkspaceEnv } from "../dist/env.js";
 import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
 const ATLAS_PACKAGE_RANGE = `^${JSON.parse(await readFile(new URL("../../generators/package.json", import.meta.url), "utf8")).version}`;
+
+test("macOS browser opener focuses an existing Atlas URL before opening it", () => {
+  const command = browserOpenCommand("http://localhost:5173/orders", "darwin");
+
+  assert.equal(command.command, "osascript");
+  assert.match(command.args.join("\n"), /tabs\[tabIndex\]\.url\(\) !== requestedUrl/);
+});
+
+test("non-macOS browser openers retain platform defaults", () => {
+  assert.deepEqual(browserOpenCommand("http://localhost/app", "linux"), {
+    command: "xdg-open",
+    args: ["http://localhost/app"]
+  });
+});
+
+test("Windows browser opener focuses a matching tab before opening the URL", () => {
+  const command = browserOpenCommand("http://localhost/app", "win32");
+
+  assert.equal(command.command, "powershell.exe");
+  assert.match(command.args.join("\n"), /SelectionItemPattern/);
+  assert.match(command.args.join("\n"), /SetForegroundWindow/);
+  assert.equal(command.args.at(-1), "http://localhost/app");
+});
 
 test("generators keep component declarations split across files", () => {
   for (const framework of ["angular", "react"]) {
@@ -1485,7 +1508,7 @@ test("atlas dev without a project uses the current Atlas project directory", asy
     "dev",
     "--prepare-only",
     "--control-port=4521"
-  ], { cwd: projectRoot, env: { ...process.env, ATLAS_HOST_ORIGIN: "http://localhost:5173" } });
+  ], { cwd: projectRoot, env: { ...process.env, ATLAS_HOST_URL: "http://localhost:5173" } });
 
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
   assert.equal(document.hostId, "customer-host");
@@ -1497,26 +1520,26 @@ test("atlas dev without a project uses the current Atlas project directory", asy
 test("workspace .env supplies Atlas dev defaults without overriding shell env", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-env-"));
   const originalHost = process.env.ATLAS_HOST;
-  const originalHostOrigin = process.env.ATLAS_HOST_ORIGIN;
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
   process.env.ATLAS_HOST = "shell-host";
-  delete process.env.ATLAS_HOST_ORIGIN;
+  delete process.env.ATLAS_HOST_URL;
   await writeFile(join(root, ".env"), [
     "ATLAS_HOST=file-host",
-    "ATLAS_HOST_ORIGIN=http://localhost:4200",
+    "ATLAS_HOST_URL=http://localhost:4200",
     "# ignored"
   ].join("\n"));
 
   try {
     await loadWorkspaceEnv(root);
     assert.equal(process.env.ATLAS_HOST, "shell-host");
-    assert.equal(process.env.ATLAS_HOST_ORIGIN, "http://localhost:4200");
+    assert.equal(process.env.ATLAS_HOST_URL, "http://localhost:4200");
   } finally {
     restoreEnv("ATLAS_HOST", originalHost);
-    restoreEnv("ATLAS_HOST_ORIGIN", originalHostOrigin);
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
 
-test("atlas dev infers a single configured host and builds host URL from env origin", async () => {
+test("atlas dev appends a single route to a base ATLAS_HOST_URL", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-single-host-"));
   const projectRoot = join(root, "orders");
   await mkdir(projectRoot, { recursive: true });
@@ -1530,10 +1553,8 @@ test("atlas dev infers a single configured host and builds host URL from env ori
   ].join("\n"));
   const originalHost = process.env.ATLAS_HOST;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  const originalHostOrigin = process.env.ATLAS_HOST_ORIGIN;
   delete process.env.ATLAS_HOST;
-  delete process.env.ATLAS_HOST_URL;
-  process.env.ATLAS_HOST_ORIGIN = "http://localhost:5173";
+  process.env.ATLAS_HOST_URL = "http://localhost:5173";
 
   try {
     const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--control-port=4520", "--prepare-only"]);
@@ -1544,7 +1565,121 @@ test("atlas dev infers a single configured host and builds host URL from env ori
   } finally {
     restoreEnv("ATLAS_HOST", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
-    restoreEnv("ATLAS_HOST_ORIGIN", originalHostOrigin);
+  }
+});
+
+test("atlas dev requires an explicit host URL in non-interactive mode", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-required-host-url-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  delete process.env.ATLAS_HOST_URL;
+
+  try {
+    await assert.rejects(
+      runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]),
+      /Host URL is required\. Pass --host-url or set ATLAS_HOST_URL\./
+    );
+  } finally {
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
+  }
+});
+
+test("atlas dev prompts for a missing host URL in interactive mode", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-prompt-host-url-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  delete process.env.ATLAS_HOST_URL;
+
+  try {
+    const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"], {
+      interactive: true,
+      input: async (message) => {
+        assert.equal(message, "Host URL for local development");
+        return "https://customer.example/orders";
+      },
+      select: async () => { throw new Error("Host selection should not be prompted"); }
+    });
+    assert.match(stdout, /View app: https:\/\/customer\.example\/orders/);
+  } finally {
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
+  }
+});
+
+test("atlas dev prompts for a route when a base host URL matches multiple routes", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-prompt-route-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [',
+    '    { hostId: "customer-host", basePath: "/orders" },',
+    '    { hostId: "customer-host", basePath: "/admin/orders" }',
+    "  ]",
+    "};"
+  ].join("\n"));
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  process.env.ATLAS_HOST_URL = "https://customer.example";
+
+  try {
+    const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"], {
+      interactive: true,
+      input: async () => { throw new Error("Host URL should not be prompted"); },
+      select: async (message, choices) => {
+        assert.equal(message, "Route opened for local development");
+        assert.deepEqual(choices.map((choice) => choice.value), ["/orders", "/admin/orders"]);
+        return "/admin/orders";
+      }
+    });
+    assert.match(stdout, /View app: https:\/\/customer\.example\/admin\/orders/);
+  } finally {
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
+  }
+});
+
+test("atlas dev keeps a full ATLAS_HOST_URL with multiple routes", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-full-host-url-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [',
+    '    { hostId: "customer-host", basePath: "/orders" },',
+    '    { hostId: "customer-host", basePath: "/admin/orders" }',
+    "  ]",
+    "};"
+  ].join("\n"));
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  process.env.ATLAS_HOST_URL = "https://customer.example/custom/path?mode=dev";
+
+  try {
+    const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]);
+    assert.match(stdout, /View app: https:\/\/customer\.example\/custom\/path\?mode=dev/);
+  } finally {
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
 
@@ -1565,10 +1700,8 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
   ].join("\n"));
   const originalHost = process.env.ATLAS_HOST;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  const originalHostOrigin = process.env.ATLAS_HOST_ORIGIN;
   delete process.env.ATLAS_HOST;
   delete process.env.ATLAS_HOST_URL;
-  delete process.env.ATLAS_HOST_ORIGIN;
 
   try {
     await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://admin.example/admin/orders", "--prepare-only"], {
@@ -1581,7 +1714,6 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
   } finally {
     restoreEnv("ATLAS_HOST", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
-    restoreEnv("ATLAS_HOST_ORIGIN", originalHostOrigin);
   }
 });
 

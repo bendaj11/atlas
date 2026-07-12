@@ -14,11 +14,6 @@ import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
 const LOOPBACK_HOST = "127.0.0.1";
-const DEFAULT_HOST_ORIGINS = {
-  angular: "http://localhost:4200",
-  react: "http://localhost:5173"
-} as const;
-
 interface DevControlServer {
   markReady(): Promise<void>;
   close(): Promise<void>;
@@ -26,8 +21,7 @@ interface DevControlServer {
 
 interface DevTarget {
   hostId: string;
-  basePath?: string;
-  hostUrl?: string;
+  hostUrl: string;
 }
 
 interface AtlasDevSessionDocument {
@@ -46,7 +40,7 @@ export class AtlasDevService {
     private readonly builds: AtlasBuildService
   ) {}
 
-  async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "select"> = nonInteractivePrompter): Promise<void> {
+  async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select"> = nonInteractivePrompter): Promise<void> {
     const project = await this.workspace.findProject(name);
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
@@ -74,7 +68,7 @@ export class AtlasDevService {
     project: AtlasProject,
     name: string,
     config: AtlasConfig,
-    prompts: Pick<AtlasPrompter, "interactive" | "select">
+    prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">
   ): Promise<void> {
     const remotePort = await this.resolveRemotePort(project);
     const controlPort = this.args.port("control-port", 4400);
@@ -116,15 +110,10 @@ export class AtlasDevService {
     return await readConfiguredDevServerPort(project.root, project.id) ?? 4201;
   }
 
-  private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<DevTarget> {
+  private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">): Promise<DevTarget> {
     const hostId = await this.resolveHostId(config, prompts);
-    const basePath = routeBasePath(config, hostId);
-    const hostUrl = await this.resolveHostUrl(hostId, basePath);
-    return {
-      hostId,
-      ...(basePath ? { basePath } : {}),
-      ...(hostUrl ? { hostUrl } : {})
-    };
+    const hostUrl = await this.resolveHostUrl(config, hostId, prompts);
+    return { hostId, hostUrl };
   }
 
   private async resolveHostId(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<string> {
@@ -139,23 +128,27 @@ export class AtlasDevService {
     throw new Error(`No host configured for "${config.id}". Add a route or slot with hostId, or pass --host.`);
   }
 
-  private async resolveHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
-    return this.args.flag("host-url") ??
-      process.env.ATLAS_HOST_URL ??
-      urlFromOrigin(process.env.ATLAS_HOST_ORIGIN, basePath) ??
-      await this.defaultHostUrl(hostId, basePath);
+  private async resolveHostUrl(
+    config: AtlasConfig,
+    hostId: string,
+    prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">
+  ): Promise<string> {
+    const configuredUrl = this.args.flag("host-url") ?? process.env.ATLAS_HOST_URL;
+    const hostUrl = configuredUrl ?? await this.promptForHostUrl(prompts);
+    if (!isBaseHostUrl(hostUrl)) return hostUrl;
+    const basePaths = routeBasePaths(config, hostId);
+    if (basePaths.length === 0) return hostUrl;
+    if (basePaths.length === 1) return urlWithBasePath(hostUrl, basePaths[0]!);
+    if (!prompts.interactive) {
+      throw new Error(`Multiple routes found for host "${hostId}". Pass a full --host-url or set ATLAS_HOST_URL to a full URL.`);
+    }
+    const basePath = await prompts.select("Route opened for local development", basePaths.map((value) => ({ label: value, value })));
+    return urlWithBasePath(hostUrl, basePath);
   }
 
-  private async defaultHostUrl(hostId: string, basePath: string | undefined): Promise<string | undefined> {
-    try {
-      const hostProject = await this.workspace.findProject(hostId);
-      await compileAtlasConfig(this.workspace, hostProject);
-      const hostConfig = await this.builds.loadConfig(hostProject.root);
-      if (!isHostConfig(hostConfig)) return undefined;
-      return urlFromOrigin(defaultHostOrigin(hostConfig), basePath);
-    } catch {
-      return undefined;
-    }
+  private async promptForHostUrl(prompts: Pick<AtlasPrompter, "interactive" | "input">): Promise<string> {
+    if (prompts.interactive) return prompts.input("Host URL for local development");
+    throw new Error("Host URL is required. Pass --host-url or set ATLAS_HOST_URL.");
   }
 }
 
@@ -571,7 +564,7 @@ function logHostViewUrl(url: string | undefined): void {
   if (url) {
     console.info(`View app: ${url}`);
   } else {
-    console.info("View app: unresolved; pass --host-url or set ATLAS_HOST_ORIGIN.");
+    console.info("View app: unresolved; pass --host-url or set ATLAS_HOST_URL.");
   }
 }
 
@@ -587,11 +580,104 @@ function openBrowserWhenReady(args: CliArguments, url: string | undefined): void
   }
 }
 
-function browserOpenCommand(url: string): { command: string; args: string[] } {
-  if (process.platform === "darwin") return { command: "open", args: [url] };
-  if (process.platform === "win32") return { command: "cmd", args: ["/c", "start", "", url] };
+export function browserOpenCommand(url: string, platform: NodeJS.Platform = process.platform): { command: string; args: string[] } {
+  if (platform === "darwin") return { command: "osascript", args: ["-l", "JavaScript", "-e", MACOS_FOCUS_BROWSER_TAB_SCRIPT, "--", url] };
+  if (platform === "win32") {
+    return {
+      command: "powershell.exe",
+      args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", WINDOWS_FOCUS_BROWSER_TAB_SCRIPT, url]
+    };
+  }
   return { command: "xdg-open", args: [url] };
 }
+
+const WINDOWS_FOCUS_BROWSER_TAB_SCRIPT = String.raw`
+$targetUrl = $args[0]
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class AtlasWindow {
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr handle);
+  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr handle, int command);
+}
+'@
+
+$browserProcesses = Get-Process chrome, msedge, brave, firefox -ErrorAction SilentlyContinue |
+  Where-Object { $_.MainWindowHandle -ne 0 }
+$tabCondition = New-Object Windows.Automation.PropertyCondition(
+  [Windows.Automation.AutomationElement]::ControlTypeProperty,
+  [Windows.Automation.ControlType]::TabItem
+)
+$editCondition = New-Object Windows.Automation.PropertyCondition(
+  [Windows.Automation.AutomationElement]::ControlTypeProperty,
+  [Windows.Automation.ControlType]::Edit
+)
+
+foreach ($process in $browserProcesses) {
+  try {
+    $window = [Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+    $tabs = $window.FindAll([Windows.Automation.TreeScope]::Descendants, $tabCondition)
+    foreach ($tab in $tabs) {
+      $selection = $tab.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern)
+      $selection.Select()
+      Start-Sleep -Milliseconds 40
+      $edits = $window.FindAll([Windows.Automation.TreeScope]::Descendants, $editCondition)
+      foreach ($edit in $edits) {
+        $valuePattern = $null
+        if (-not $edit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern)) { continue }
+        if ($valuePattern.Current.Value -ne $targetUrl) { continue }
+        [AtlasWindow]::ShowWindowAsync($process.MainWindowHandle, 9) | Out-Null
+        [AtlasWindow]::SetForegroundWindow($process.MainWindowHandle) | Out-Null
+        exit 0
+      }
+    }
+  } catch {}
+}
+
+Start-Process $targetUrl
+`;
+
+const MACOS_FOCUS_BROWSER_TAB_SCRIPT = String.raw`
+function run(argv) {
+  const requestedUrl = argv[0];
+  const browsers = [
+    { name: "Safari", safari: true },
+    { name: "Google Chrome" },
+    { name: "Brave Browser" },
+    { name: "Microsoft Edge" },
+    { name: "Chromium" }
+  ];
+
+  for (const candidate of browsers) {
+    const browser = Application(candidate.name);
+    if (!browser.running()) continue;
+    try {
+      const windows = browser.windows();
+      for (let windowIndex = 0; windowIndex < windows.length; windowIndex += 1) {
+        const tabs = windows[windowIndex].tabs();
+        for (let tabIndex = 0; tabIndex < tabs.length; tabIndex += 1) {
+          if (tabs[tabIndex].url() !== requestedUrl) continue;
+          if (candidate.safari) windows[windowIndex].currentTab = tabs[tabIndex];
+          else windows[windowIndex].activeTabIndex = tabIndex + 1;
+          windows[windowIndex].index = 1;
+          browser.activate();
+          return;
+        }
+      }
+    } catch (_) {}
+  }
+
+  const app = Application.currentApplication();
+  app.includeStandardAdditions = true;
+  app.doShellScript("open " + quotedForm(requestedUrl));
+}
+
+function quotedForm(value) {
+  return "'" + value.replace(/'/g, "'\\\"'\\\"'") + "'";
+}
+`;
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   return "allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
@@ -640,19 +726,18 @@ function configuredHostIds(config: AtlasConfig): string[] {
   ])].filter((hostId) => hostId !== "*");
 }
 
-function routeBasePath(config: AtlasConfig, hostId: string): string | undefined {
-  if (isHostConfig(config)) return undefined;
-  return config.routes?.find((route) => route.hostId === hostId)?.basePath;
+function routeBasePaths(config: AtlasConfig, hostId: string): string[] {
+  if (isHostConfig(config)) return [];
+  return config.routes?.filter((route) => route.hostId === hostId).map((route) => route.basePath) ?? [];
 }
 
-function urlFromOrigin(origin: string | undefined, basePath: string | undefined): string | undefined {
-  if (!origin) return undefined;
-  return `${origin.replace(/\/$/, "")}${basePath ?? ""}`;
+function isBaseHostUrl(value: string): boolean {
+  const url = new URL(value);
+  return url.pathname === "/" && !url.search && !url.hash;
 }
 
-function defaultHostOrigin(config: AtlasHostConfig): string | undefined {
-  if (config.framework === "angular" || config.framework === "react") return DEFAULT_HOST_ORIGINS[config.framework];
-  return undefined;
+function urlWithBasePath(hostUrl: string, basePath: string): string {
+  return `${hostUrl.replace(/\/$/, "")}${basePath}`;
 }
 
 async function readConfiguredDevServerPort(projectRoot: string, projectName: string): Promise<number | undefined> {
@@ -721,8 +806,11 @@ function asObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-const nonInteractivePrompter: Pick<AtlasPrompter, "interactive" | "select"> = {
+const nonInteractivePrompter: Pick<AtlasPrompter, "interactive" | "input" | "select"> = {
   interactive: false,
+  async input() {
+    throw new Error("Host URL must be provided in non-interactive mode.");
+  },
   async select() {
     throw new Error("Host must be provided in non-interactive mode.");
   }

@@ -77,7 +77,7 @@ Run both commands from the directory that contains `customer-host/` and
 When testing a non-default host URL, set it explicitly:
 
 ```sh
-ATLAS_HOST_ORIGIN=http://localhost:5173 atlas dev orders
+ATLAS_HOST_URL=http://localhost:5173 atlas dev orders
 ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
 ```
 
