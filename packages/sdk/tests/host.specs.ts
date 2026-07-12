@@ -15,9 +15,12 @@ test("event bus publishes across apps and supports unsubscribe", () => {
 });
 
 test("core SDK exposes typed hostData and httpClient without extensions", async () => {
+  interface ProjectHostSdk {
+    hostData: { projectId: string };
+  }
   const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
   const httpClient: typeof fetch = async (url, options) => { calls.push([url, options]); return new Response(null, { status: 204 }); };
-  const sdk = createAtlasSdk({
+  const sdk = createAtlasSdk<ProjectHostSdk>({
     hostId: "host",
     navigation: createMemoryNavigation(),
     hostData: { hostId: "host", name: "Host", projectId: "project-42" },
@@ -62,12 +65,12 @@ test("HttpClient wraps fetch with HTTP helpers", async () => {
   assert.deepEqual(calls, [["/orders", { body: "payload", method: "POST" }]]);
 });
 
-test("host extensions cannot replace core SDK capabilities", () => {
+test("host properties cannot replace core SDK capabilities", () => {
   assert.throws(() => createAtlasSdk({
     hostId: "host",
     navigation: createMemoryNavigation(),
-    extensions: { navigation: "invalid" }
-  }), /conflicts with a core SDK capability/);
+    events: "invalid"
+  } as never), /conflicts with a core SDK capability/);
 });
 
 test("event bus once listener is removed after its first event", () => {
@@ -81,18 +84,19 @@ test("event bus once listener is removed after its first event", () => {
 
 test("host SDK exposes consumer-typed host extensions", async () => {
   interface CommerceHostSdk {
+    hostData: { storeId: string };
     showToast(message: string): void;
     openOrder(orderId: string): Promise<boolean>;
   }
   const shown: string[] = [];
-  const sdk = createAtlasSdk({
+  const sdk = createAtlasSdk<CommerceHostSdk>({
     hostId: "host",
     navigation: createMemoryNavigation(),
-    extensions: {
-      showToast(message: string) { shown.push(message); },
-      async openOrder(orderId: string) { return orderId === "42"; }
-    } satisfies CommerceHostSdk
+    hostData: { name: "Host", storeId: "store-7" },
+    showToast(message: string) { shown.push(message); },
+    async openOrder(orderId: string) { return orderId === "42"; }
   });
+  assert.equal(sdk.hostData.storeId, "store-7");
   sdk.showToast("Order ready");
   assert.equal(await sdk.openOrder("42"), true);
   assert.deepEqual(shown, ["Order ready"]);

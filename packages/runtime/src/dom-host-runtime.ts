@@ -1,6 +1,6 @@
 import { ensureActionableError, type AtlasHostRuntimeConfig } from "@atlas/schema";
 import { emitMountState } from "./dom-host-events.js";
-import type { DomHostOptions, DomHostServices } from "./dom-host-options.js";
+import type { DomHostOptions, DomHostServices, DomRuntimeOptions } from "./dom-host-options.js";
 import { createSdkProviders } from "./dom-host-sdk.js";
 import { cssEscape, renderHostMountState, renderHostNavigation } from "./dom-rendering.js";
 import { createHostNavigationItems, publishAtlasNavigationItems } from "./host-navigation.js";
@@ -93,7 +93,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
   };
 }
 
-async function resolveHostConfig(options: DomHostOptions): Promise<AtlasHostRuntimeConfig> {
+async function resolveHostConfig(options: DomRuntimeOptions): Promise<AtlasHostRuntimeConfig> {
   return options.runtimeConfig ?? await loadHostRuntimeConfig(
     options.runtimeConfigUrl,
     undefined,

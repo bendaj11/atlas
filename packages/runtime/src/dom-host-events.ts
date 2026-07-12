@@ -1,4 +1,4 @@
-import type { DomHostOptions } from "./dom-host-options.js";
+import type { DomRuntimeOptions } from "./dom-host-options.js";
 import { ensureActionableError } from "@atlas/schema";
 import {
   emitRuntimeEvent,
@@ -7,7 +7,7 @@ import {
   type AtlasRuntimeObserver
 } from "./index.js";
 
-export function emitHostStart(options: DomHostOptions): void {
+export function emitHostStart(options: DomRuntimeOptions): void {
   emitRuntimeEvent(options.observe, {
     type: "host.start",
     timestamp: new Date().toISOString(),
@@ -24,7 +24,7 @@ export function emitHostReady(observer: AtlasRuntimeObserver | undefined, runtim
   });
 }
 
-export function emitHostError(options: DomHostOptions, error: Error, startedAt: number): void {
+export function emitHostError(options: DomRuntimeOptions, error: Error, startedAt: number): void {
   console.error("Atlas host failed to start:", error);
   emitRuntimeEvent(options.observe, {
     type: "host.error",

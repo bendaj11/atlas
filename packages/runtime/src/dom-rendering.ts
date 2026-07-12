@@ -1,4 +1,4 @@
-import type { DomHostOptions } from "./dom-host-options.js";
+import type { DomRuntimeOptions } from "./dom-host-options.js";
 import type { AtlasHostNavigationItem } from "./host-navigation.js";
 import type { AtlasHostMountEvent } from "./index.js";
 
@@ -22,7 +22,7 @@ export function renderHostMountState(
   document: Document,
   event: AtlasHostMountEvent,
   retry: () => void,
-  options: DomHostOptions
+  options: DomRuntimeOptions
 ): void {
   const container = findMountContainer(document, event);
   if (!container) return;
@@ -54,7 +54,7 @@ function renderLoadingState(
   container: HTMLElement,
   event: AtlasHostMountEvent,
   existingStatus: HTMLElement | null,
-  options: DomHostOptions
+  options: DomRuntimeOptions
 ): void {
   if (options.renderLoading) {
     options.renderLoading(container, event);
@@ -72,7 +72,7 @@ function renderErrorState(
   event: AtlasHostMountEvent,
   retry: () => void,
   existingStatus: HTMLElement | null,
-  options: DomHostOptions
+  options: DomRuntimeOptions
 ): void {
   if (options.renderError) {
     options.renderError(container, event, retry);

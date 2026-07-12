@@ -9,18 +9,22 @@ The Angular host provides SDK capabilities in `src/bootstrap.ts` when it calls
 `startHost`:
 
 ```ts
-await startHost({
+interface CustomerHostSdk {
+  hostData: { projectId: string };
+  showToast(message: string): void;
+}
+
+await startHost<CustomerHostSdk>({
   router: app.injector.get(Router),
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
   hostData: {
     hostId: "customer-host",
-    name: "Customer Host"
+    name: "Customer Host",
+    projectId: "project-42"
   },
   httpClient: authenticatedHttpClient,
-  extensions: {
-    showToast: (message: string) => toastService.show(message)
-  },
+  showToast: (message) => toastService.show(message),
   observe: (event) => monitoring.capture("atlas.runtime", event)
 });
 ```

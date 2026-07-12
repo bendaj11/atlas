@@ -6,11 +6,10 @@ import { readAtlasNavigationItems, subscribeAtlasNavigationItems, type AtlasHost
 @Component({ selector: "atlas-default-host-route", standalone: true, template: "" })
 export class AtlasDefaultHostRouteComponent {}
 
-export interface HostOptions<THostSdk extends object = {}>
-  extends DomHostOptions<THostSdk> {
+export type HostOptions<THostSdk extends object = {}> = DomHostOptions<THostSdk> & {
   router: RouterLike;
   location: LocationLike;
-}
+};
 
 /** Boots Atlas discovery, Native Federation, SDK providers, routes, slots, and lifecycle for an Angular host. */
 export async function startHost<THostSdk extends object = {}>(

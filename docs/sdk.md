@@ -28,24 +28,23 @@ Creates the object passed from host to app.
 
 ```ts
 interface CustomerHostSdk {
+  hostData: { projectId: string };
   showToast(message: string): void;
   openOrder(orderId: string): Promise<void>;
 }
 
-const sdk = createAtlasSdk({
+const sdk = createAtlasSdk<CustomerHostSdk>({
   hostId: "host",
   hostData: { hostId: "host", name: "Customer Host", projectId: "project-42" },
   navigation,
   httpClient: authenticatedHttpClient,
-  extensions: {
-    showToast: (message) => toastService.show(message),
-    openOrder: (orderId) => orderService.open(orderId)
-  } satisfies CustomerHostSdk
+  showToast: (message) => toastService.show(message),
+  openOrder: (orderId) => orderService.open(orderId)
 });
 ```
 
 `hostData` always includes `hostId` and `name`. Hosts can add typed product
-fields, and Atlas exposes the merged shape as `AtlasHostData & THostData`.
+fields on the host SDK type. Atlas merges those fields with `AtlasHostData`.
 `httpClient` is a core host API with `request()`, `get()`, `post()`, `put()`,
 `patch()`, `delete()`, `head()`, and `options()`. If omitted, Atlas uses
 `new HttpClient()`, backed by `globalThis.fetch`.
@@ -91,8 +90,8 @@ atlas.showToast("Order saved");
 
 Angular apps use `injectAtlasSdk<CustomerHostSdk>()`;
 generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
-Core SDK contains only host identity/data, HTTP, navigation, and events. Use
-`extensions` for every product-specific API. Atlas does not define toast,
+Core SDK contains only host identity/data, HTTP, navigation, and events. Add
+product-specific APIs directly to the SDK shape. Atlas does not define toast,
 modal, popup, auth, config, or session contracts.
 
 The loader exposes `createWidgetLoader` and widget lifecycle types. Page apps consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.

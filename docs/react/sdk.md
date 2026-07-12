@@ -9,17 +9,21 @@ The React host provides SDK capabilities in `src/main.tsx` when it calls
 `startHost`:
 
 ```tsx
-void startHost({
+interface CustomerHostSdk {
+  hostData: { projectId: string };
+  showToast(message: string): void;
+}
+
+void startHost<CustomerHostSdk>({
   router,
   federation: { initFederation, loadRemoteModule },
   hostData: {
     hostId: "customer-host",
-    name: "Customer Host"
+    name: "Customer Host",
+    projectId: "project-42"
   },
   httpClient: authenticatedHttpClient,
-  extensions: {
-    showToast: (message: string) => toastService.show(message)
-  },
+  showToast: (message) => toastService.show(message),
   observe: (event) => monitoring.capture("atlas.runtime", event)
 });
 ```

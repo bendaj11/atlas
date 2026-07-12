@@ -19,10 +19,9 @@ export function AtlasDefaultHostLayout(): ReactElement {
   );
 }
 
-export interface HostOptions<THostSdk extends object = {}>
-  extends DomHostOptions<THostSdk> {
+export type HostOptions<THostSdk extends object = {}> = DomHostOptions<THostSdk> & {
   router: RouterLike;
-}
+};
 
 /** Boots Atlas discovery, Native Federation, routing, slots, and lifecycle for a React host. */
 export async function startHost<THostSdk extends object = {}>(

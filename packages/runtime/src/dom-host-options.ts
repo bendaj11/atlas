@@ -1,5 +1,5 @@
 import type { AtlasHostRuntimeConfig } from "@atlas/schema";
-import type { AtlasSdkOptions } from "@atlas/sdk";
+import type { AtlasEventMap, AtlasSdkOptions } from "@atlas/sdk";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import type {
   AtlasFederationAdapter,
@@ -8,8 +8,7 @@ import type {
 } from "./index.js";
 import type { AtlasHostNavigationItem } from "./host-navigation.js";
 
-export interface DomHostOptions<THostSdk extends object = {}>
-  extends Omit<AtlasSdkOptions<THostSdk>, "hostId" | "navigation"> {
+export interface DomRuntimeOptions {
   federation: AtlasFederationAdapter;
   runtimeConfig?: AtlasHostRuntimeConfig;
   runtimeConfigUrl?: string;
@@ -25,6 +24,11 @@ export interface DomHostOptions<THostSdk extends object = {}>
   /** Receives provider-neutral runtime diagnostics. Observer errors are ignored. */
   observe?: AtlasRuntimeObserver;
 }
+
+export type DomHostOptions<THostSdk extends object = {}> = Omit<
+  AtlasSdkOptions<THostSdk, AtlasEventMap>,
+  "hostId" | "navigation"
+> & DomRuntimeOptions;
 
 export interface DomHostServices {
   createNavigation(): AtlasNavigation | Promise<AtlasNavigation>;

@@ -16,22 +16,31 @@ export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends obj
   readonly httpClient: AtlasHttpClient;
 }
 
+type HostDataOf<THostSdk extends object> = THostSdk extends { readonly hostData: infer THostData extends object }
+  ? Omit<THostData, keyof AtlasHostData>
+  : {};
+
+type HostDataOption<THostSdk extends object> = keyof HostDataOf<THostSdk> extends never
+  ? { hostData?: Partial<AtlasHostData> }
+  : { hostData: HostDataOf<THostSdk> & Partial<AtlasHostData> };
+
+type HostSdkProperties<THostSdk extends object> = Omit<
+  THostSdk,
+  "hostId" | "hostData" | "navigation" | "events" | "httpClient"
+>;
+
 /** Atlas runtime capabilities combined with a host-owned, consumer-typed API. */
 export type AtlasSdk<
   THostSdk extends object = {},
-  TEvents extends object = AtlasEventMap,
-  THostData extends object = {}
-> = AtlasCoreSdk<THostData, TEvents> & Readonly<THostSdk>;
+  TEvents extends object = AtlasEventMap
+> = AtlasCoreSdk<HostDataOf<THostSdk>, TEvents> & Readonly<HostSdkProperties<THostSdk>>;
 
-export interface AtlasSdkOptions<
+export type AtlasSdkOptions<
   THostSdk extends object = {},
-  TEvents extends object = AtlasEventMap,
-  THostData extends object = {}
-> {
+  TEvents extends object = AtlasEventMap
+> = {
   hostId: string;
-  hostData?: THostData & Partial<AtlasHostData>;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
   httpClient?: AtlasHttpClientInput;
-  extensions?: THostSdk;
-}
+} & HostDataOption<THostSdk> & HostSdkProperties<THostSdk>;

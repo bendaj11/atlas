@@ -67,8 +67,8 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 | API | Purpose |
 | --- | --- |
 | `AtlasHostData` | Base host metadata: `hostId` and `name` |
-| `AtlasSdk<TExtensions, TEvents, THostData>` | Core host capabilities plus typed host extensions and typed host data |
-| `AtlasSdkOptions<TExtensions, TEvents, THostData>` | Providers supplied while starting a host |
+| `AtlasSdk<THostSdk, TEvents>` | Core capabilities plus host-owned SDK properties and typed host data |
+| `AtlasSdkOptions<THostSdk, TEvents>` | Providers and host-owned SDK properties supplied while starting a host |
 | `createAtlasSdk()` | Create the host-owned SDK instance |
 | `AtlasHttpClient` | Core HTTP client with Angular-style `request()` plus basic HTTP verb helpers |
 | `HttpClient` | Default fetch-backed HTTP client used when hosts omit `httpClient` |
