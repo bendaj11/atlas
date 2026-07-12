@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
-import { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";
+import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import { AtlasDefaultHostLayout, startHost } from "@atlas/runtime/react";
 import type { AtlasHostData } from "@atlas/sdk";
 import atlasConfig from "../atlas.config";

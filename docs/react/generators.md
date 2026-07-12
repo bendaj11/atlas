@@ -16,8 +16,9 @@ Generated host files to understand first:
 | File | Owner | Purpose |
 | --- | --- | --- |
 | `atlas.config.ts` | Host team | Stable host id, display name, runtime defaults. |
-| `src/atlas-bootstrap.ts` | Host team | Connects React Router, Native Federation, host config, and `startHost`. |
-| `src/main.tsx` | Host team | Mounts React and starts the Atlas bootstrap. |
+| `src/atlas-bootstrap.ts` | Host team | Creates the host's React Router. |
+| `src/CustomerHostAtlasProvider.tsx` | Host team | Uses host hooks and supplies runtime and SDK options to `AtlasHostProvider`. |
+| `src/main.tsx` | Host team | Mounts the generated provider and React Router. |
 | `vite.config.ts` | Atlas/platform | Vite and federation build wiring. Product teams usually leave federation parts alone. |
 | `src/app` | Host team | Replaceable product layout with Atlas DOM anchors. |
 
@@ -38,13 +39,16 @@ Generated app files to understand first:
 | --- | --- | --- |
 | `atlas.config.ts` | App team | App id, name, framework, host routes, slots, widgets, manifest metadata. |
 | `src/entry.tsx` | Atlas/platform | Mount/unmount lifecycle exposed through Native Federation. |
-| `src/main.tsx` | App team | Local Vite preview entry. |
 | `src/app/App.tsx` | App team | App root component. |
 | `src/app/routes.tsx` | App team | Inner React Router routes scoped under the host base path. |
 | `vite.config.ts` | Atlas/platform | Vite and federation build wiring. |
 
 Product developers usually edit React components, hooks, styles, tests, and
-`atlas.config.ts`.
+`atlas.config.ts`. Generated apps do not contain a standalone `src/main.tsx`.
+Their dev server exposes federation assets; Atlas runtime inside a host mounts
+the entry and provides SDK/runtime contexts.
+Host federation runtime imports come from `@atlas/sdk/federation`; product
+source does not depend directly on the underlying runtime package.
 
 ## Widgets
 

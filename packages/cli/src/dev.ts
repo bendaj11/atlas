@@ -646,103 +646,10 @@ function openBrowserWhenReady(args: CliArguments, url: string | undefined): void
 }
 
 export function browserOpenCommand(url: string, platform: NodeJS.Platform = process.platform): { command: string; args: string[] } {
-  if (platform === "darwin") return { command: "osascript", args: ["-l", "JavaScript", "-e", MACOS_FOCUS_BROWSER_TAB_SCRIPT, "--", url] };
-  if (platform === "win32") {
-    return {
-      command: "powershell.exe",
-      args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", WINDOWS_FOCUS_BROWSER_TAB_SCRIPT, url]
-    };
-  }
+  if (platform === "darwin") return { command: "open", args: [url] };
+  if (platform === "win32") return { command: "cmd", args: ["/c", "start", "", url] };
   return { command: "xdg-open", args: [url] };
 }
-
-const WINDOWS_FOCUS_BROWSER_TAB_SCRIPT = String.raw`
-$targetUrl = $args[0]
-Add-Type -AssemblyName UIAutomationClient
-Add-Type -AssemblyName UIAutomationTypes
-Add-Type @'
-using System;
-using System.Runtime.InteropServices;
-public static class AtlasWindow {
-  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr handle);
-  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr handle, int command);
-}
-'@
-
-$browserProcesses = Get-Process chrome, msedge, brave, firefox -ErrorAction SilentlyContinue |
-  Where-Object { $_.MainWindowHandle -ne 0 }
-$tabCondition = New-Object Windows.Automation.PropertyCondition(
-  [Windows.Automation.AutomationElement]::ControlTypeProperty,
-  [Windows.Automation.ControlType]::TabItem
-)
-$editCondition = New-Object Windows.Automation.PropertyCondition(
-  [Windows.Automation.AutomationElement]::ControlTypeProperty,
-  [Windows.Automation.ControlType]::Edit
-)
-
-foreach ($process in $browserProcesses) {
-  try {
-    $window = [Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
-    $tabs = $window.FindAll([Windows.Automation.TreeScope]::Descendants, $tabCondition)
-    foreach ($tab in $tabs) {
-      $selection = $tab.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern)
-      $selection.Select()
-      Start-Sleep -Milliseconds 40
-      $edits = $window.FindAll([Windows.Automation.TreeScope]::Descendants, $editCondition)
-      foreach ($edit in $edits) {
-        $valuePattern = $null
-        if (-not $edit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern)) { continue }
-        if ($valuePattern.Current.Value -ne $targetUrl) { continue }
-        [AtlasWindow]::ShowWindowAsync($process.MainWindowHandle, 9) | Out-Null
-        [AtlasWindow]::SetForegroundWindow($process.MainWindowHandle) | Out-Null
-        exit 0
-      }
-    }
-  } catch {}
-}
-
-Start-Process $targetUrl
-`;
-
-const MACOS_FOCUS_BROWSER_TAB_SCRIPT = String.raw`
-function run(argv) {
-  const requestedUrl = argv[0];
-  const browsers = [
-    { name: "Safari", safari: true },
-    { name: "Google Chrome" },
-    { name: "Brave Browser" },
-    { name: "Microsoft Edge" },
-    { name: "Chromium" }
-  ];
-
-  for (const candidate of browsers) {
-    const browser = Application(candidate.name);
-    if (!browser.running()) continue;
-    try {
-      const windows = browser.windows();
-      for (let windowIndex = 0; windowIndex < windows.length; windowIndex += 1) {
-        const tabs = windows[windowIndex].tabs();
-        for (let tabIndex = 0; tabIndex < tabs.length; tabIndex += 1) {
-          if (tabs[tabIndex].url() !== requestedUrl) continue;
-          if (candidate.safari) windows[windowIndex].currentTab = tabs[tabIndex];
-          else windows[windowIndex].activeTabIndex = tabIndex + 1;
-          windows[windowIndex].index = 1;
-          browser.activate();
-          return;
-        }
-      }
-    } catch (_) {}
-  }
-
-  const app = Application.currentApplication();
-  app.includeStandardAdditions = true;
-  app.doShellScript("open " + quotedForm(requestedUrl));
-}
-
-function quotedForm(value) {
-  return "'" + value.replace(/'/g, "'\\\"'\\\"'") + "'";
-}
-`;
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   return "allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;

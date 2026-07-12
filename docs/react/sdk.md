@@ -5,8 +5,9 @@ source code. It receives typed capabilities through Atlas at mount time.
 
 ## Host Domain
 
-The React host provides SDK capabilities in `src/main.tsx` when it calls
-`startHost`:
+The React host provides SDK capabilities in its generated
+`CustomerHostAtlasProvider` component. Hooks can enrich the SDK because this
+provider runs inside the host's React tree:
 
 ```tsx
 interface CustomerHostSdk {
@@ -14,18 +15,29 @@ interface CustomerHostSdk {
   showToast(message: string): void;
 }
 
-void startHost<CustomerHostSdk>({
-  router,
-  federation: { initFederation, loadRemoteModule },
-  hostData: {
-    hostId: "customer-host",
-    name: "Customer Host",
-    projectId: "project-42"
-  },
-  httpClient: authenticatedHttpClient,
-  showToast: (message) => toastService.show(message),
-  observe: (event) => monitoring.capture("atlas.runtime", event)
-});
+export function CustomerHostAtlasProvider({ children }: PropsWithChildren) {
+  const toast = useToast();
+
+  return (
+    <AtlasHostProvider<CustomerHostSdk>
+      hostId="customer-host"
+      options={{
+        router,
+        federation: { initFederation, loadRemoteModule },
+        hostData: {
+          hostId: "customer-host",
+          name: "Customer Host",
+          projectId: "project-42"
+        },
+        httpClient: authenticatedHttpClient,
+        showToast: toast.show,
+        observe: (event) => monitoring.capture("atlas.runtime", event)
+      }}
+    >
+      {children}
+    </AtlasHostProvider>
+  );
+}
 ```
 
 Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to

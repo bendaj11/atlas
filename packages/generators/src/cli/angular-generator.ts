@@ -50,7 +50,7 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
     { path: "src/index.html", contents: angularIndex(title(name), "<div>Atlas app assets</div>") },
     { path: "src/styles.css", contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },
-    { path: "src/main.ts", contents: `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation();\n` },
+    { path: "src/main.ts", contents: `import { initFederation } from "@atlas/sdk/federation";\n\nvoid initFederation();\n` },
     { path: "src/app/README.md", contents: appSourceReadme() },
     ...(routed ? [
       { path: "src/app/app.component.ts", contents: angularAppAppComponent(name) },

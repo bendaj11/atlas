@@ -1,4 +1,4 @@
-import { initFederation } from "@angular-architects/native-federation";
+import { initFederation } from "@atlas/sdk/federation";
 
 void initFederation()
   .then(() => import("./bootstrap"))

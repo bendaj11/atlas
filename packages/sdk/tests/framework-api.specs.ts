@@ -35,5 +35,7 @@ test("framework subpaths share one Atlas API vocabulary", () => {
 
 test("unsupported Vue adapter is not a public SDK subpath", async () => {
   const packageJson = await readSdkPackage();
+  assert.notEqual(packageJson.exports["./federation"], undefined);
+  assert.notEqual(packageJson.exports["./federation-config"], undefined);
   assert.equal(packageJson.exports["./vue"], undefined);
 });

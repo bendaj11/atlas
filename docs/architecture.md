@@ -39,11 +39,11 @@ app code calls widget references through the SDK when needed. Atlas resolves the
 
 ## Native Federation
 
-Native Federation is the underlying loading mechanism. Atlas treats it as an implementation detail. Generated projects can contain federation configuration, but product developers should not edit it during normal work.
+Native Federation is the underlying loading mechanism. Atlas treats it as an implementation detail. Generated source imports runtime functions from `@atlas/sdk/federation`, while Atlas owns the underlying Native Federation runtime dependency.
 
-Angular is the one visible exception: `@angular-architects/native-federation`
+Angular build configuration is the one visible exception: `@angular-architects/native-federation`
 requires a root `federation.config.js` beside the Angular tsconfig. Atlas
-generates that file as a compatibility shim and keeps the product-facing
+generates that file as a small `@atlas/sdk/federation-config` compatibility shim and keeps the product-facing
 configuration in `atlas.config.ts`. If you are adding routes, hosts, slots,
 widgets, or metadata, edit `atlas.config.ts`; only platform maintainers should
 touch the generated federation shim.

@@ -11,7 +11,7 @@ export function AtlasSdkProvider({ sdk, children }: { sdk: AtlasSdk; children: R
 
 export function useAtlasSdk<THostSdk extends object = {}>(): AtlasSdk<THostSdk> {
   const sdk = useContext(AtlasSdkContext);
-  if (!sdk) throw new Error("useAtlasSdk must be used inside an Atlas app.");
+  if (!sdk) throw new Error("useAtlasSdk must be used inside an Atlas SDK provider.");
   return sdk as AtlasSdk<THostSdk>;
 }
 

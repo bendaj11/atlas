@@ -28,7 +28,6 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),
       ...(host ? { "@atlas/runtime": atlasPackageRange() } : {}),
-      "@softarc/native-federation-runtime": "^3.5.5",
       "es-module-shims": "^2.7.0",
       react: profile.version,
       "react-dom": profile.version,
@@ -64,6 +63,19 @@ export function reactIndex(pageTitle: string): string {
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
+</html>
+`;
+}
+
+export function reactAppIndex(pageTitle: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${pageTitle}</title>
+  </head>
+  <body></body>
 </html>
 `;
 }

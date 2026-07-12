@@ -12,7 +12,6 @@
   "dependencies": {
     "@atlas/schema": "*",
     "@atlas/sdk": "*",
-    "@softarc/native-federation-runtime": "^3.5.5",
     "es-module-shims": "^2.7.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

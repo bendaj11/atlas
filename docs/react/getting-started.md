@@ -57,8 +57,9 @@ Files to look at first:
 | --- | --- |
 | `atlas.config.ts` | Atlas identity and runtime source file for this host. It gives the host its stable id, display name, and runtime defaults. Atlas uses it later to generate `public/atlas.runtime.json` for the browser. |
 | `public/atlas.runtime.json` | Not created by host generation. It is the deployment-time runtime artifact produced by `atlas runtime-config`, read by the browser before apps load. CI/CD may replace or transform this per environment; application developers normally edit `atlas.config.ts`. |
-| `src/atlas-bootstrap.ts` | Atlas host startup file. It connects React Router, Native Federation, host config, and `startHost(...)`. |
-| `src/main.tsx` | React entry file. It mounts `RouterProvider` and starts the Atlas bootstrap. |
+| `src/atlas-bootstrap.ts` | Creates the host's React Router. |
+| `src/CustomerHostAtlasProvider.tsx` | React bootstrap provider. Add host hooks and SDK capabilities here. |
+| `src/main.tsx` | React entry file. It mounts the generated Atlas provider and `RouterProvider`. |
 | `vite.config.ts` | Generated Vite build file used by the React host. Atlas uses it to produce the Native Federation metadata expected by the runtime. Most product work should stay in `atlas.config.ts` and application source. |
 
 Effect: you now have a host that can load catalog-selected apps. It still uses
@@ -140,18 +141,32 @@ More docs:
 
 This step replaces generated local services with product services.
 
-Edit `src/main.tsx` in the host.
+Edit `src/CustomerHostAtlasProvider.tsx` in the host. Because this is a React
+component, it can use product hooks before passing their services into Atlas.
 
-```ts
-void startHost({
-  router,
-  federation: { initFederation, loadRemoteModule },
-  showToast: (toast) => toastService.show(toast),
-  openModal: (request, controls) => modalService.open(request.component, request.props, controls),
-  hostData: { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id, projectId: currentProject.id },
-  httpClient: authenticatedHttpClient,
-  observe: (event) => monitoring.capture("atlas.runtime", event)
-});
+```tsx
+export function CustomerHostAtlasProvider({ children }: PropsWithChildren) {
+  const toast = useToast();
+  const modal = useModal();
+  const authenticatedHttpClient = useAuthenticatedHttpClient();
+
+  return (
+    <AtlasHostProvider
+      hostId={atlasConfig.id}
+      options={{
+        router,
+        federation: { initFederation, loadRemoteModule },
+        showToast: toast.show,
+        openModal: modal.open,
+        hostData: { hostId: atlasConfig.id, name: atlasConfig.name, projectId: currentProject.id },
+        httpClient: authenticatedHttpClient,
+        observe: (event) => monitoring.capture("atlas.runtime", event)
+      }}
+    >
+      {children}
+    </AtlasHostProvider>
+  );
+}
 ```
 
 `hostData` always includes Atlas-owned `hostId` and `name`, and can be extended
@@ -186,13 +201,14 @@ Files to look at first:
 | --- | --- |
 | `atlas.config.ts` | The Atlas identity and mount file for this app. It names the app, declares which hosts may load it, and tells Atlas where it should appear, such as a route or slot. Edit this when changing route or slot hosts, route paths, navigation labels, slots, or advanced manifest metadata. |
 | `src/entry.tsx` | The generated Atlas mount entry for the React app. It exports the lifecycle Atlas loads through Native Federation and wires the app to the host SDK and inner React routing. Edit it only when changing Atlas lifecycle wiring or the app root router setup. |
-| `src/main.tsx` | The local Vite preview entry. It renders the generated app with a local Atlas SDK provider so `vite` can run the app outside a host. |
 | `src/app/App.tsx` | The main routed React component. Keep this as the app root, and add feature screens in folders under `src/app`. |
 | `src/app/routes.tsx` | The React Router route tree. It connects `App.tsx` to generated feature folders such as `home/` and `details/`. |
 | `vite.config.ts` | The generated Vite build file for the React app. Atlas uses it to expose the app entry, discover exported widgets, and emit federation metadata. Most product work should stay in `atlas.config.ts` and application source. |
 
 Effect: you now have a feature app that can be mounted by an Atlas host. It is
-not meant to be a separate host application.
+not meant to be a separate host application. Generated apps have no
+`src/main.tsx`; Vite serves federation assets, while the host runtime mounts
+`src/entry.tsx` and supplies Atlas SDK and runtime contexts.
 
 More docs:
 
@@ -335,8 +351,10 @@ atlas dev orders \
 
 Run both commands from the directory that contains `customer-host/` and
 `orders/`, or from your monorepo root. If Terminal 2 is already inside
-`orders/`, run `atlas dev` with no project name. Open the **Open host** URL
-printed by Terminal 2. It is a clean host URL, not an override URL.
+`orders/`, run `atlas dev` with no project name. When the app is ready, Atlas
+opens the clean host URL in a new browser tab and prints it as **App Preview**.
+Pass `--no-open` when you only want the printed URL. It is a clean host URL, not
+an override URL.
 
 Because `orders/atlas.config.ts` already declares one host route, Atlas can
 infer the host id. For the generated React host, this shorter command is

@@ -2,7 +2,7 @@ import { Location } from "@angular/common";
 import { Component } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
-import { initFederation, loadRemoteModule } from "@angular-architects/native-federation";
+import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import { startHost } from "@atlas/runtime/angular";
 import type { AtlasHostData } from "@atlas/sdk";
 import atlasConfig from "../atlas.config";

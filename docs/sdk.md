@@ -290,7 +290,7 @@ Angular hosts use `startHost`. It loads runtime configuration and catalog metada
 
 Angular apps use `defineApp` and `defineExportedWidget`. They receive `AtlasAppContext`, including `navigation`, `route`, and `widgets`; no product app bootstraps standalone.
 
-React hosts use `startHost` with React Router and the framework-agnostic Native Federation runtime. Routed React apps use `createRoutedApp`; router-free apps use `defineApp`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
+React hosts use `AtlasHostProvider` with React Router and the framework-agnostic Native Federation runtime. The provider makes the host SDK available to host components and starts the runtime after the tree commits. Imperative integrations may still use `startHost`. Routed React apps use `createRoutedApp`; router-free apps use `defineApp`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
 
 ## Testing
 

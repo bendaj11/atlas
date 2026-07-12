@@ -43,12 +43,15 @@ Inspect these files:
 | --- | --- |
 | `atlas.config.ts` | App identity, allowed hosts, routes, slots, widgets, and manifest metadata. |
 | `src/entry.ts` | Atlas lifecycle entry connecting Angular app, host SDK, and scoped routing. |
+| `src/main.ts` | Native Federation dev-server initialization only. It does not bootstrap `AppComponent`. |
 | `src/app/app.component.ts` | Main app root component. |
 | `src/app/routes.ts` | Inner Angular route tree. |
 | `federation.config.js` | Generated Native Federation exposure wiring. |
 
 Most feature work belongs under `src/app`. Edit `src/entry.ts` only for lifecycle
 or root-router wiring. See [Generators](generators.md) for flags and scaffold details.
+The app cannot mount independently: Atlas runtime invokes its entry inside a
+host and supplies SDK and app context.
 
 ## Stage 3: Declare Host Placement
 
@@ -148,7 +151,8 @@ atlas dev orders \
   --host-url=http://localhost:4200/orders
 ```
 
-Open **Open host** URL printed by app terminal. Address bar stays on normal host
+When the app is ready, Atlas opens the normal host URL in a new browser tab and
+prints it as **App Preview**. Pass `--no-open` when you only want the printed
 URL. No production catalog or host source is edited.
 
 When app declares one host route and generated host uses default URL, Atlas can

@@ -78,6 +78,9 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 app code normally receives the SDK through `useAtlasSdk()` or
 `injectAtlasSdk()` rather than calling `createAtlasSdk()`.
 
+Import `initFederation` and `loadRemoteModule` from `@atlas/sdk/federation`.
+Generated projects do not import Native Federation runtime packages directly.
+
 ## Navigation
 
 Import from `@atlas/sdk/navigation`:
@@ -161,11 +164,15 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 | `defineExportedWidget()` | Expose a React widget lifecycle entry |
 | `createRouterOptions()` | Scope a memory router to the app base path |
 | `connectRouter()` | Synchronize React Router and host navigation |
+| `AtlasHostProvider` | Create and provide the host SDK, then start Atlas after the React tree commits |
 | `AtlasDefaultHostLayout` | Replaceable default React host layout; renders the Atlas status, navigation, route outlet, and slot anchors |
 | `useAtlasNavigationItems()` | Read runtime-resolved route navigation items for custom React host navigation |
-| `startHost()` | Boot a React Atlas host |
+| `startHost()` | Imperatively boot a React Atlas host |
 
-React hosts receive the same host-wide and shared app UI callbacks as Angular hosts. Global renderer callbacks may return a cleanup function for framework roots and subscriptions.
+Generated React hosts wrap their tree with `AtlasHostProvider`; `startHost()`
+remains available for imperative integrations and tests. React hosts receive the
+same host-wide and shared app UI callbacks as Angular hosts. Global renderer
+callbacks may return a cleanup function for framework roots and subscriptions.
 
 React hosts support the same provider-neutral `observe(event)` callback as
 Angular hosts.

@@ -66,5 +66,9 @@ export function generatedOverlay(
 ): AtlasGeneratedFile[] {
   if (!workspaceScaffolded) return files;
   const overlay = type === "host" ? DELEGATED_HOST_FILES[framework] : DELEGATED_APP_FILES[framework];
-  return files.filter((file) => overlay.has(file.path));
+  return files.filter((file) => overlay.has(file.path) || isReactHostProvider(file.path, type, framework));
+}
+
+function isReactHostProvider(path: string, type: "host" | "app", framework: SupportedFramework): boolean {
+  return type === "host" && framework === "react" && path.startsWith("src/") && path.endsWith("AtlasProvider.tsx");
 }

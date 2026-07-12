@@ -1,5 +1,5 @@
 import type { AtlasHostRuntimeConfig } from "@atlas/schema";
-import type { AtlasEventMap, AtlasSdkOptions } from "@atlas/sdk";
+import type { AtlasEventMap, AtlasSdk, AtlasSdkOptions } from "@atlas/sdk";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import type {
   AtlasFederationAdapter,
@@ -28,7 +28,10 @@ export interface DomRuntimeOptions {
 export type DomHostOptions<THostSdk extends object = {}> = Omit<
   AtlasSdkOptions<THostSdk, AtlasEventMap>,
   "hostId" | "navigation"
-> & DomRuntimeOptions;
+> & DomRuntimeOptions & {
+  sdk?: AtlasSdk<THostSdk, AtlasEventMap>;
+  navigation?: AtlasNavigation;
+};
 
 export interface DomHostServices {
   createNavigation(): AtlasNavigation | Promise<AtlasNavigation>;

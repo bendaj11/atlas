@@ -36,12 +36,19 @@ Generated app files to understand first:
 | --- | --- | --- |
 | `atlas.config.ts` | App team | App id, name, framework, host routes, slots, widgets, manifest metadata. |
 | `src/entry.ts` | Atlas/platform | Mount/unmount lifecycle exposed through Native Federation. |
+| `src/main.ts` | Atlas/platform | Initializes Native Federation for asset serving only; it does not bootstrap the app. |
 | `src/app/app.component.ts` | App team | App root component. |
 | `src/app/routes.ts` | App team | Inner Angular routes scoped under the host base path. |
 | `federation.config.js` | Atlas/platform | Native Federation compatibility file. |
 
 Product developers usually edit Angular components, services, styles, tests,
-and `atlas.config.ts`.
+and `atlas.config.ts`. Angular app bootstrap happens only when Atlas runtime
+mounts `src/entry.ts` inside a host. The host supplies SDK and app context;
+generated apps do not create either one.
+Generated `main.ts` and host bootstrap files import federation runtime functions
+from `@atlas/sdk/federation`. The required `federation.config.js` delegates to
+`@atlas/sdk/federation-config`; only Angular builder declarations and their
+package dependency remain visible because Angular CLI resolves them by package name.
 
 ## Widgets
 

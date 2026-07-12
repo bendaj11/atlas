@@ -35,7 +35,9 @@ there are multiple hosts, an interactive terminal asks which one to use; in
 non-interactive shells, pass `--host` or set `ATLAS_HOST_ID`.
 
 Atlas delegates to Nx, Turborepo, pnpm, Yarn, npm, or the standalone project
-script as needed. Then open the printed **Open host** URL from the app command.
+script as needed. When the app is ready, Atlas opens the host URL in a new
+browser tab and also prints it as **App Preview**. Pass `--no-open` to print the
+URL without opening it.
 With the Atlas Columbus extension installed, the browser keeps the clean host URL
 and intercepts the Atlas catalog request, merging the local dev session from the
 control server. Every other app continues to come from the production catalog.

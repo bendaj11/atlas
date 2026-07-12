@@ -11,7 +11,7 @@ import {
 const NON_SDK_OPTION_NAMES = new Set([
   "allowAppOverrides", "document", "eventBus", "events", "federation", "hostData", "hostId", "httpClient",
   "location", "navigation", "observe", "onNavigationChange", "onStateChange", "renderError", "renderHostError",
-  "renderHostLoading", "renderLoading", "router", "runtimeConfig", "runtimeConfigUrl"
+  "renderHostLoading", "renderLoading", "router", "runtimeConfig", "runtimeConfigUrl", "sdk"
 ]);
 
 interface SdkProviderInput<THostSdk extends object> {
@@ -26,18 +26,26 @@ interface SdkProviderInput<THostSdk extends object> {
 export function createSdkProviders<THostSdk extends object>(
   input: SdkProviderInput<THostSdk>
 ): { sdk: ReturnType<typeof createAtlasSdk<THostSdk, AtlasEventMap>>; widgetLoader: AtlasWidgetLoader } {
-  const sdkProperties = readSdkProperties(input.options);
-  const sdkOptions = {
-    hostId: input.hostId,
-    ...(input.options.hostData ? { hostData: input.options.hostData } : {}),
-    navigation: input.navigation,
-    ...(input.options.eventBus ? { eventBus: input.options.eventBus } : {}),
-    ...(input.options.httpClient ? { httpClient: input.options.httpClient } : {}),
-    ...sdkProperties
-  } as unknown as AtlasSdkOptions<THostSdk, AtlasEventMap>;
-  const sdk = createAtlasSdk<THostSdk, AtlasEventMap>(sdkOptions);
+  const sdk = input.options.sdk ?? createDomHostSdk(input.options, input.hostId, input.navigation);
   const widgetLoader = createWidgetLoader(input.manifests, sdk, input.importWidget);
   return { sdk, widgetLoader };
+}
+
+export function createDomHostSdk<THostSdk extends object>(
+  options: DomHostOptions<THostSdk>,
+  hostId: string,
+  navigation: AtlasNavigation
+): ReturnType<typeof createAtlasSdk<THostSdk, AtlasEventMap>> {
+  const sdkProperties = readSdkProperties(options);
+  const sdkOptions = {
+    hostId,
+    ...(options.hostData ? { hostData: options.hostData } : {}),
+    navigation,
+    ...(options.eventBus ? { eventBus: options.eventBus } : {}),
+    ...(options.httpClient ? { httpClient: options.httpClient } : {}),
+    ...sdkProperties
+  } as unknown as AtlasSdkOptions<THostSdk, AtlasEventMap>;
+  return createAtlasSdk<THostSdk, AtlasEventMap>(sdkOptions);
 }
 
 function readSdkProperties<THostSdk extends object>(options: DomHostOptions<THostSdk>): object {

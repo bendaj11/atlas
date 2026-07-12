@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.2.73",
+  "version": "0.2.74",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -35,6 +35,13 @@
       "types": "./dist/navigation.d.ts",
       "default": "./dist/navigation.js"
     },
+    "./federation": {
+      "types": "./dist/federation.d.ts",
+      "default": "./dist/federation.js"
+    },
+    "./federation-config": {
+      "require": "./federation-config.cjs"
+    },
     "./overlay": {
       "types": "./dist/overlay.d.ts",
       "default": "./dist/overlay.js"
@@ -50,7 +57,8 @@
   },
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "federation-config.cjs"
   ],
   "publishConfig": {
     "access": "public"
@@ -65,7 +73,8 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.73"
+    "@atlas/schema": "0.2.74",
+    "@softarc/native-federation-runtime": "^3.5.5"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",

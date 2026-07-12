@@ -22,7 +22,7 @@ export class AppComponent {}
 }
 
 export function angularHostMain(): string {
-  return `import { initFederation } from "@angular-architects/native-federation";\n\nvoid initFederation()\n  .then(() => import("./bootstrap"))\n  .then(({ bootstrap }) => bootstrap())\n  .catch((error) => console.error("Atlas host failed to start:", error instanceof Error ? error.message : String(error), "Suggested action: Fix reported federation, host configuration, or resource failure, then reload host."));\n`;
+  return `import { initFederation } from "@atlas/sdk/federation";\n\nvoid initFederation()\n  .then(() => import("./bootstrap"))\n  .then(({ bootstrap }) => bootstrap())\n  .catch((error) => console.error("Atlas host failed to start:", error instanceof Error ? error.message : String(error), "Suggested action: Fix reported federation, host configuration, or resource failure, then reload host."));\n`;
 }
 
 export function angularHostDefaultRouteComponent(): string {
@@ -37,7 +37,7 @@ export function angularHostBootstrap(): string {
   return `import { Location } from "@angular/common";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
-import { initFederation, loadRemoteModule } from "@angular-architects/native-federation";
+import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import { startHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { AppComponent } from "./app/app.component";
