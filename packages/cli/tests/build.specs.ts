@@ -741,12 +741,14 @@ exit 1
   assert.match(hostMain, /<HostAtlasProvider>/);
   assert.doesNotMatch(hostMain, /startHost|createBrowserRouter|atlasConfig/);
   assert.doesNotMatch(hostMain, /import\.meta\.hot/);
-  const atlasBootstrap = await readFile(join(root, "apps/host/src/atlas-bootstrap.ts"), "utf8");
-  assert.doesNotMatch(atlasBootstrap, /startHost/);
-  assert.match(atlasBootstrap, /createBrowserRouter/);
+  await assert.rejects(access(join(root, "apps/host/src/atlas-bootstrap.ts")), { code: "ENOENT" });
   const atlasProvider = await readFile(join(root, "apps/host/src/HostAtlasProvider.tsx"), "utf8");
   assert.match(atlasProvider, /AtlasHostProvider/);
+  assert.match(atlasProvider, /createBrowserRouter/);
+  assert.match(atlasProvider, /Component: HostLayout/);
   assert.match(atlasProvider, /hostId=\{atlasConfig\.id\}/);
+  const hostLayout = await readFile(join(root, "apps/host/src/app/HostLayout.tsx"), "utf8");
+  assert.match(hostLayout, /data-atlas-route-outlet/);
   const hostViteConfig = await readFile(join(root, "apps/host/vite.config.ts"), "utf8");
   assert.match(hostViteConfig, /reactCompilerPreset/);
   assert.doesNotMatch(hostViteConfig, /ReactBabelOptions/);

@@ -28,8 +28,7 @@ flushSync(() =>
   return `import { StrictMode } from "react";
 ${rootImport}
 import { RouterProvider } from "react-router-dom";
-import { router } from "./atlas-bootstrap";
-import { ${providerName} } from "./${providerName}";
+import { ${providerName}, router } from "./${providerName}";
 import "./styles.css";
 
 const root = document.getElementById("root");
@@ -39,22 +38,17 @@ ${mount}
 `;
 }
 
-export function reactHostBootstrap(): string {
-  return `import { createBrowserRouter } from "react-router-dom";
-import { AtlasDefaultHostLayout } from "@atlas/runtime/react";
-
-export const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
-`;
-}
-
 export function reactHostProvider(name: string): string {
   const providerName = reactHostProviderName(name);
   return `import "es-module-shims";
 import type { PropsWithChildren } from "react";
+import { createBrowserRouter } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import { AtlasHostProvider } from "@atlas/runtime/react";
 import atlasConfig from "../atlas.config";
-import { router } from "./atlas-bootstrap";
+import { HostLayout } from "./app/HostLayout";
+
+export const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
 
 export function ${providerName}({ children }: PropsWithChildren) {
   return (
@@ -68,6 +62,23 @@ export function ${providerName}({ children }: PropsWithChildren) {
     >
       {children}
     </AtlasHostProvider>
+  );
+}
+`;
+}
+
+export function reactHostLayout(): string {
+  return `export function HostLayout() {
+  return (
+    <>
+      <div data-atlas-host-status />
+      <header>
+        <strong>Atlas</strong>
+        <div data-atlas-slot="header" />
+      </header>
+      <nav data-atlas-navigation aria-label="Application" />
+      <main data-atlas-route-outlet />
+    </>
   );
 }
 `;

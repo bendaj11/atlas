@@ -1,7 +1,7 @@
 import { atlasConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 import { reactVersionProfile } from "./generator-versions.js";
-import { reactHostBootstrap, reactHostMain, reactHostProvider, reactHostProviderName } from "./react-host-generator.js";
+import { reactHostLayout, reactHostMain, reactHostProvider, reactHostProviderName } from "./react-host-generator.js";
 import {
   appSourceReadme,
   reactAppApp,
@@ -28,7 +28,7 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
     { path: "public/remoteEntry.json", contents: json({ name: reactRemoteName(name), exposes: [], shared: [] }) },
     { path: "index.html", contents: reactIndex("Atlas React Host") },
     { path: "src/styles.css", contents: atlasHostStyles() },
-    { path: "src/atlas-bootstrap.ts", contents: reactHostBootstrap() },
+    { path: "src/app/HostLayout.tsx", contents: reactHostLayout() },
     { path: `src/${reactHostProviderName(name)}.tsx`, contents: reactHostProvider(name) },
     { path: "src/main.tsx", contents: reactHostMain(name, profile) }
   ];

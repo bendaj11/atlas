@@ -22,7 +22,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "vite.config.ts",
     "index.html",
     "src/styles.css",
-    "src/atlas-bootstrap.ts",
+    "src/app/HostLayout.tsx",
     "src/main.tsx"
   ])
 };
