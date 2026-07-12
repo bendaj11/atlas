@@ -35,10 +35,10 @@ export function emitHostError(options: DomHostOptions, error: Error, startedAt: 
 
 export function emitMountState(observer: AtlasRuntimeObserver | undefined, hostId: string, event: AtlasHostMountEvent): void {
   emitRuntimeEvent(observer, {
-    type: "mf.state",
+    type: "app.state",
     timestamp: new Date().toISOString(),
     hostId,
-    mfId: event.manifest.id,
+    appId: event.manifest.id,
     version: event.manifest.version,
     placementId: event.placement.id,
     state: event.state,

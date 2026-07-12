@@ -15,9 +15,9 @@ const pnpmVersion = "10.34.4";
 const pnpmAllowedBuilds = ["esbuild", "@parcel/watcher", "lmdb", "msgpackr-extract"];
 const projects = [
   { type: "host", name: "clean-react-host", framework: "react" },
-  { type: "app", name: "clean-react-mf", framework: "react" },
+  { type: "app", name: "clean-react-app", framework: "react" },
   { type: "host", name: "clean-angular-host", framework: "angular" },
-  { type: "app", name: "clean-angular-mf", framework: "angular" }
+  { type: "app", name: "clean-angular-app", framework: "angular" }
 ];
 const expectedVersion = JSON.parse(await readFile(join(root, "packages/schema/package.json"), "utf8")).version;
 

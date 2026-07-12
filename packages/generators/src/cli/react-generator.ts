@@ -13,7 +13,7 @@ import {
   reactSinglePageApp,
   reactSinglePageAppEntry,
   reactSinglePageAppMain
-} from "./react-microfrontend-generator.js";
+} from "./react-app-generator.js";
 import { reactRemoteName } from "./react-names.js";
 import { reactIndex, reactPackage } from "./react-package-generator.js";
 import { reactTsconfig } from "./react-tsconfig-generator.js";

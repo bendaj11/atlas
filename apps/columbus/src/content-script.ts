@@ -25,7 +25,7 @@ interface AtlasInterceptDevSession {
   schemaVersion: "1";
   hostId: string;
   catalog: AtlasInterceptCatalog;
-  overrides: Array<{ mfId: string; manifest: AtlasInterceptManifest }>;
+  overrides: Array<{ appId: string; manifest: AtlasInterceptManifest }>;
   generatedAt: string;
 }
 
@@ -41,14 +41,14 @@ if (!atlasWindow.__atlasExtensionInterceptorInstalled) {
 
 function installAtlasCatalogInterceptor(): void {
   const nativeFetch = window.fetch.bind(window);
-  let devSession: Promise<AtlasInterceptDevSession | undefined> | undefined;
+  const devSessions = new Map<string, Promise<AtlasInterceptDevSession | undefined>>();
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const requestUrl = requestHref(input);
     const hostId = catalogRequestHostId(requestUrl);
     if (!hostId) return nativeFetch(input, init);
 
-    const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession()]);
+    const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession(hostId)]);
 
     if (!session || session.hostId !== hostId) return catalogResponse;
     return catalogResponse.ok
@@ -56,16 +56,23 @@ function installAtlasCatalogInterceptor(): void {
       : localCatalogResponse(session);
   };
 
-  async function readDevSession(): Promise<AtlasInterceptDevSession | undefined> {
-    devSession ??= nativeFetch(ATLAS_DEV_SESSION_URL, { cache: "no-store" })
+  async function readDevSession(hostId: string): Promise<AtlasInterceptDevSession | undefined> {
+    const pendingSession = devSessions.get(hostId) ?? nativeFetch(devSessionUrl(hostId), { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<AtlasInterceptDevSession> : undefined)
       .then((session) => session?.schemaVersion === "1" ? session : undefined)
       .catch(() => undefined);
-    const session = await devSession;
+    devSessions.set(hostId, pendingSession);
+    const session = await pendingSession;
     if (session) clearRuntimeStorageOverrides();
-    else devSession = undefined;
+    else devSessions.delete(hostId);
     return session;
   }
+}
+
+function devSessionUrl(hostId: string): string {
+  const url = new URL(ATLAS_DEV_SESSION_URL);
+  url.searchParams.set("hostId", hostId);
+  return url.href;
 }
 
 async function mergeCatalogResponse(response: Response, session: AtlasInterceptDevSession): Promise<Response> {
@@ -83,11 +90,11 @@ function localCatalogResponse(session: AtlasInterceptDevSession): Response {
 }
 
 function mergeCatalog(catalog: AtlasInterceptCatalog, session: AtlasInterceptDevSession): AtlasInterceptCatalog {
-  const overrides = new Map(session.overrides.map((override) => [override.mfId, override.manifest]));
+  const overrides = new Map(session.overrides.map((override) => [override.appId, override.manifest]));
   const merged = catalog.manifests.map((manifest) => overrides.get(manifest.id) ?? manifest);
   const present = new Set(merged.map((manifest) => manifest.id));
   for (const override of session.overrides) {
-    if (!present.has(override.mfId)) merged.push(override.manifest);
+    if (!present.has(override.appId)) merged.push(override.manifest);
   }
   return {
     ...catalog,

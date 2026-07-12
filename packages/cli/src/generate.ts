@@ -224,7 +224,7 @@ export class AtlasGenerateService {
 
   private defaultRoot(type: "host" | "app", name: string): string {
     if (this.workspace.root.endsWith("/atlas") && this.workspace.kind === "workspace") {
-      return join(this.workspace.root, "examples", type === "host" ? "hosts" : "mfs", name);
+      return join(this.workspace.root, "examples", type === "host" ? "hosts" : "apps", name);
     }
     return this.workspace.generationRoot(type, name);
   }

@@ -157,7 +157,7 @@ test("identifiers permit practical frontend ids", () => {
       contractVersion: "1",
       id: "summary-card_v2",
       name: "Summary",
-      ownerMfId: "workspace.ui_v2",
+      ownerAppId: "workspace.ui_v2",
       framework: "react",
       remoteEntryUrl: "https://cdn.example/workspace/entry.js",
       expose: "./summary"
@@ -178,7 +178,7 @@ test("manifest identifiers reject separators and traversal", () => {
       contractVersion: "1",
       id: "../summary",
       name: "Summary",
-      ownerMfId: "../workspace",
+      ownerAppId: "../workspace",
       framework: "react",
       remoteEntryUrl: "https://cdn.example/workspace/entry.js",
       expose: "./summary"
@@ -186,7 +186,7 @@ test("manifest identifiers reject separators and traversal", () => {
     uses: ["maps/../main", "maps\\admin/main"]
   }));
 
-  for (const path of ["id", "supportedHosts.0", "supportedHosts.1", "supportedHosts.2", "placements.0.id", "placements.0.hostId", "exportedWidgets.0.id", "exportedWidgets.0.ownerMfId", "uses.0", "uses.1"]) {
+  for (const path of ["id", "supportedHosts.0", "supportedHosts.1", "supportedHosts.2", "placements.0.id", "placements.0.hostId", "exportedWidgets.0.id", "exportedWidgets.0.ownerAppId", "uses.0", "uses.1"]) {
     assert.ok(issueAt(issues, path), `Expected an issue at ${path}`);
   }
 });
@@ -248,7 +248,7 @@ test("manifest and nested asset URLs accept only absolute HTTP(S) URLs", () => {
     contractVersion: "1",
     id: "summary",
     name: "Summary",
-    ownerMfId: "workspace",
+    ownerAppId: "workspace",
     framework: "react",
     remoteEntryUrl: "javascript:alert(1)",
     expose: "./summary"
@@ -303,7 +303,7 @@ test("exported widgets validate metadata and unique ids", () => {
     contractVersion: "1",
     id: "summary",
     name: "Summary",
-    ownerMfId: "workspace",
+    ownerAppId: "workspace",
     framework: "react",
     remoteEntryUrl: "https://cdn.example/workspace/entry.js",
     expose: "./summary",

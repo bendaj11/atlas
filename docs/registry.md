@@ -6,7 +6,7 @@ Atlas uses ordinary static storage as its registry. There is no registry server 
 
 ```text
 registry.json
-microfrontends/       # legacy storage path for app indexes
+apps/       # app indexes
   orders/
     index.json
 hosts/
@@ -15,7 +15,7 @@ hosts/
 orders/
   2.4.1/
     2.4.1-1730000000000/
-      mf.manifest.json
+      app.manifest.json
       remoteEntry.json
       chunks/...
 ```
@@ -25,7 +25,7 @@ Version directories are immutable. Atlas only replaces these mutable files:
 | File | Purpose |
 | --- | --- |
 | `registry.json` | All published manifest metadata, used by CI when rebuilding catalogs. |
-| `microfrontends/<appId>/index.json` | Production, PR, and historical versions shown by developer tooling. The path keeps its historical name, but it represents Atlas apps. |
+| `apps/<appId>/index.json` | Production, PR, and historical versions shown by developer tooling. |
 | `hosts/<hostId>/catalog.json` | Exactly one selected production version of every app needed by that host. |
 
 Hosts download only their catalog. They do not download `registry.json` or discover every app separately.

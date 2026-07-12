@@ -31,7 +31,7 @@ export async function loadManifestStyles(
 
 function defaultManifestPolicy(): AtlasRemoteTrustPolicy { return {}; }
 
-async function acquireStylesheet(document: Document, stylesheet: AtlasStylesheet, mfId: string): Promise<AtlasStyleRelease> {
+async function acquireStylesheet(document: Document, stylesheet: AtlasStylesheet, appId: string): Promise<AtlasStyleRelease> {
   const styles = stylesFor(document);
   const existing = styles.get(stylesheet.href);
   if (existing) {
@@ -43,12 +43,12 @@ async function acquireStylesheet(document: Document, stylesheet: AtlasStylesheet
   const element = document.createElement("link");
   element.rel = "stylesheet";
   element.href = stylesheet.href;
-  element.dataset.atlasStyle = mfId;
+  element.dataset.atlasStyle = appId;
   if (stylesheet.integrity) {
     element.integrity = stylesheet.integrity;
     element.crossOrigin = "anonymous";
   }
-  const ready = stylesheetReady(element, mfId);
+  const ready = stylesheetReady(element, appId);
   const loaded = { element, ready, references: 1 };
   styles.set(stylesheet.href, loaded);
   document.head.append(element);
@@ -62,10 +62,10 @@ async function acquireStylesheet(document: Document, stylesheet: AtlasStylesheet
   }
 }
 
-function stylesheetReady(element: HTMLLinkElement, mfId: string): Promise<void> {
+function stylesheetReady(element: HTMLLinkElement, appId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     element.addEventListener("load", () => resolve(), { once: true });
-    element.addEventListener("error", () => reject(new Error(`Atlas could not load stylesheet for app "${mfId}": ${element.href}`)), { once: true });
+    element.addEventListener("error", () => reject(new Error(`Atlas could not load stylesheet for app "${appId}": ${element.href}`)), { once: true });
   });
 }
 

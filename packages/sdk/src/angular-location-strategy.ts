@@ -1,10 +1,10 @@
-import type { AtlasMfContext } from "./lifecycle.js";
+import type { AtlasAppContext } from "./lifecycle.js";
 import type { LocationStrategyAdapter } from "./angular-types.js";
 
 type PopStateListener = (event: { type: "popstate"; state: unknown }) => void;
 
 /** Creates the LocationStrategy used by an Angular Router mounted inside an Atlas app. */
-export function createLocationStrategy(context: AtlasMfContext): LocationStrategyAdapter {
+export function createLocationStrategy(context: AtlasAppContext): LocationStrategyAdapter {
   const listeners = new Set<PopStateListener>();
   let ignoredUrl: string | undefined;
 
@@ -58,7 +58,7 @@ export function createLocationStrategy(context: AtlasMfContext): LocationStrateg
   };
 }
 
-function readInnerUrl(context: AtlasMfContext, includeHash = true): string {
+function readInnerUrl(context: AtlasAppContext, includeHash = true): string {
   const route = context.route.getCurrent();
   const host = context.navigation.getCurrentLocation();
   return `${route.pathname}${host.search}${includeHash ? host.hash : ""}`;

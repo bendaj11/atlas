@@ -1,7 +1,7 @@
 import { createElement as createReactElement, type ReactNode } from "react";
-import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasMfEntry, AtlasMfMountRequest, AtlasMfMountResult } from "./lifecycle.js";
+import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasAppEntry, AtlasAppMountRequest, AtlasAppMountResult } from "./lifecycle.js";
 import { AtlasRuntimeContext, AtlasSdkContext } from "./react-context.js";
-import { connectRouter, type MfRouterLike } from "./react-router.js";
+import { connectRouter, type AppRouterLike } from "./react-router.js";
 
 export interface RootAdapter {
   render(element: unknown): void;
@@ -10,12 +10,12 @@ export interface RootAdapter {
 
 export interface AppOptions {
   createRoot(container: HTMLElement): RootAdapter;
-  createElement(request: AtlasMfMountRequest): unknown;
+  createElement(request: AtlasAppMountRequest): unknown;
 }
 
-export function defineApp(options: AppOptions): AtlasMfEntry {
+export function defineApp(options: AppOptions): AtlasAppEntry {
   return {
-    mount(request): AtlasMfMountResult {
+    mount(request): AtlasAppMountResult {
       const root = options.createRoot(request.container);
       root.render(renderWithAtlasProviders(request, options.createElement(request)));
       return {
@@ -27,13 +27,13 @@ export function defineApp(options: AppOptions): AtlasMfEntry {
   };
 }
 
-export function createRoutedApp<TRouter extends MfRouterLike>(options: {
+export function createRoutedApp<TRouter extends AppRouterLike>(options: {
   createRoot(container: HTMLElement): RootAdapter;
-  createRouter(request: AtlasMfMountRequest): TRouter;
-  createElement(router: TRouter, request: AtlasMfMountRequest): unknown;
-}): AtlasMfEntry {
+  createRouter(request: AtlasAppMountRequest): TRouter;
+  createElement(router: TRouter, request: AtlasAppMountRequest): unknown;
+}): AtlasAppEntry {
   return {
-    mount(request): AtlasMfMountResult {
+    mount(request): AtlasAppMountResult {
       const root = options.createRoot(request.container);
       const router = options.createRouter(request);
       const disconnect = connectRouter(router, request.context);
@@ -56,7 +56,7 @@ export function defineExportedWidget<TProps extends object>(options: {
   createElement(request: AtlasExportedWidgetMountRequest<TProps>): unknown;
 }): AtlasExportedWidgetEntry<TProps> {
   return {
-    mount(request): AtlasMfMountResult {
+    mount(request): AtlasAppMountResult {
       const root = options.createRoot(request.container);
       root.render(options.createElement(request));
       return { unmount: () => root.unmount() };
@@ -64,7 +64,7 @@ export function defineExportedWidget<TProps extends object>(options: {
   };
 }
 
-function renderWithAtlasProviders(request: AtlasMfMountRequest, element: unknown): ReactNode {
+function renderWithAtlasProviders(request: AtlasAppMountRequest, element: unknown): ReactNode {
   return createReactElement(
     AtlasSdkContext.Provider,
     { value: request.sdk },

@@ -19,7 +19,7 @@ Use it to study:
 
 ## App Domain
 
-`examples/mfs/dashboard-react` and `examples/mfs/catalog-react` are React apps.
+`examples/apps/dashboard-react` and `examples/apps/catalog-react` are React apps.
 They show:
 
 - `atlas.config.ts` route and slot declarations;

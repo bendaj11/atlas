@@ -33,11 +33,12 @@ test("Columbus extension intercepts Atlas catalogs for local dev sessions", asyn
   assert.match(source, /atlas\.dev-session\.json/);
   assert.match(source, /hosts\\\/\(.+catalog\\\.json/);
   assert.match(source, /\.ok/);
-  assert.match(source, /=void 0/);
+  assert.match(source, /void 0/);
   assert.match(source, /window\.fetch/);
   assert.match(source, /overrides\.map/);
   assert.match(source, /decodeURIComponent/);
   assert.match(source, /\.hostId!==/);
+  assert.match(source, /searchParams\.set\("hostId"/);
   assert.match(source, /localStorage\.removeItem/);
   assert.match(source, /sessionStorage\.removeItem/);
 });
@@ -46,7 +47,7 @@ test("Columbus extension keeps persisted overrides as fallback without hardcoded
   const source = await readFile(new URL("../dist/popup.js", import.meta.url), "utf8");
   const constants = await readFile(new URL("../dist/assets/constants.js", import.meta.url), "utf8");
   assert.match(constants, /atlas\.runtime-overrides/);
-  assert.match(source, /microfrontends\/\$\{encodeURIComponent\(.+?\.id\)\}\/index\.json/);
+  assert.match(source, /apps\/\$\{encodeURIComponent\(.+?\.id\)\}\/index\.json/);
   assert.doesNotMatch(source, /demo-angular-host|localhost:4300/);
   assert.match(source, /sessionStorage/);
   assert.match(source, /localStorage/);

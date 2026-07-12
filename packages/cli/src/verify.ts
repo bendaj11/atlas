@@ -319,7 +319,7 @@ function isHostCatalog(value: unknown): value is AtlasHostCatalog {
 
 function parseFederationMetadata(
   bytes: Uint8Array,
-  mfId: string,
+  appId: string,
   context: VerificationContext
 ): { key: string; outFileName: string }[] | undefined {
   try {
@@ -334,7 +334,7 @@ function parseFederationMetadata(
       return { key: expose.key, outFileName: expose.outFileName };
     });
   } catch (error) {
-    fail(context, `${mfId} federation metadata`, errorMessage(error));
+    fail(context, `${appId} federation metadata`, errorMessage(error));
     return undefined;
   }
 }

@@ -12,7 +12,7 @@ test("static registry prepares version indexes and a host catalog", async () => 
     schemaVersion: "1",
     id: "summary",
     name: "Summary",
-    ownerMfId: "orders",
+    ownerAppId: "orders",
     framework: "angular",
     remoteEntryUrl: "https://cdn.example/orders/1.0.0/build/remoteEntry.json",
     expose: "./widgets/summary",
@@ -25,7 +25,7 @@ test("static registry prepares version indexes and a host catalog", async () => 
   const current = await readJson(join(directory, "registry.json"));
   await prepareStaticRegistry(consumer, current, directory);
 
-  const index = await readJson(join(directory, "microfrontends/orders/index.json"));
+  const index = await readJson(join(directory, "apps/orders/index.json"));
   const catalog = await readJson(join(directory, "hosts/host/catalog.json"));
   assert.deepEqual(index.manifests.map((manifest) => manifest.id), ["orders"]);
   assert.deepEqual(catalog.manifests.map((manifest) => manifest.id), ["dashboard", "orders"]);
@@ -49,7 +49,7 @@ test("static registry preserves history while selecting one production version",
   current = await readJson(join(directory, "registry.json"));
   await prepareStaticRegistry(createTestManifest({ version: "2.0.0-pr.42", buildId: "pr", channel: "pr", prNumber: 42 }), current, directory);
 
-  const index = await readJson(join(directory, "microfrontends/catalog/index.json"));
+  const index = await readJson(join(directory, "apps/catalog/index.json"));
   const catalog = await readJson(join(directory, "hosts/host/catalog.json"));
   assert.equal(index.manifests.length, 3);
   assert.equal(catalog.manifests.length, 1);
@@ -66,7 +66,7 @@ test("static rollback selects an immutable historical production build", async (
   current = await readJson(join(directory, "registry.json"));
 
   const result = await prepareStaticRollback({
-    mfId: first.id,
+    appId: first.id,
     version: first.version,
     current,
     outputDirectory: directory,
@@ -91,7 +91,7 @@ test("static rollback requires a build id when a version has multiple builds", a
     manifests: [first, rebuilt]
   };
   await assert.rejects(
-    prepareStaticRollback({ mfId: first.id, version: first.version, current, outputDirectory: directory }),
+    prepareStaticRollback({ appId: first.id, version: first.version, current, outputDirectory: directory }),
     /multiple builds/
   );
 });

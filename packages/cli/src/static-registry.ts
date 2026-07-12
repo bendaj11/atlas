@@ -30,15 +30,15 @@ export async function prepareStaticRegistry(
   const baseRevision = registryRevision(current?.manifests ?? [], current?.productionSelections);
   const nextRevision = registryRevision(manifests, productionSelections);
   const registry: AtlasStaticRegistry = { schemaVersion: "1", revision: nextRevision, updatedAt, manifests, productionSelections };
-  const mfIndex: AtlasAppIndex = {
+  const appIndex: AtlasAppIndex = {
     schemaVersion: "1",
-    mfId: manifest.id,
+    appId: manifest.id,
     updatedAt,
     manifests: manifests.filter((candidate) => candidate.id === manifest.id).sort(compareManifestNewestFirst)
   };
 
   await writeJson(outputDirectory, "registry.json", registry);
-  await writeJson(outputDirectory, `microfrontends/${manifest.id}/index.json`, mfIndex);
+  await writeJson(outputDirectory, `apps/${manifest.id}/index.json`, appIndex);
 
   const hostIds = discoverHostIds(manifests);
   for (const hostId of hostIds) {
@@ -67,7 +67,7 @@ export function createHostCatalog(
   generatedAt = new Date().toISOString(),
   productionSelections?: Readonly<Record<string, AtlasProductionSelection>>
 ): AtlasHostCatalog {
-  const production = selectOneProductionVersionPerMf(manifests, productionSelections);
+  const production = selectOneProductionVersionPerApp(manifests, productionSelections);
   const byId = new Map(production.map((manifest) => [manifest.id, manifest]));
   const directlySupported = production.filter((manifest) => supportsHost(manifest, hostId));
   const included = new Map(directlySupported.map((manifest) => [manifest.id, manifest]));
@@ -98,7 +98,7 @@ export function createHostCatalog(
 }
 
 export async function prepareStaticRollback(options: {
-  mfId: string;
+  appId: string;
   version: string;
   buildId?: string;
   current: AtlasStaticRegistry;
@@ -107,22 +107,22 @@ export async function prepareStaticRollback(options: {
 }): Promise<AtlasRegistryResult & { selected: AtlasManifest }> {
   assertStaticRegistry(options.current);
   const candidates = options.current.manifests.filter((manifest) =>
-    manifest.id === options.mfId &&
+    manifest.id === options.appId &&
     manifest.channel === "production" &&
     manifest.version === options.version &&
     (!options.buildId || manifest.buildId === options.buildId));
   if (candidates.length === 0) {
-    throw new Error(`No production build found for Atlas app "${options.mfId}" at version "${options.version}".`);
+    throw new Error(`No production build found for Atlas app "${options.appId}" at version "${options.version}".`);
   }
   if (candidates.length > 1) {
-    throw new Error(`Atlas app "${options.mfId}" has multiple builds for version "${options.version}". Pass --build-id.`);
+    throw new Error(`Atlas app "${options.appId}" has multiple builds for version "${options.version}". Pass --build-id.`);
   }
 
   const selected = candidates[0]!;
   const updatedAt = options.updatedAt ?? new Date().toISOString();
   const productionSelections = {
     ...(options.current.productionSelections ?? {}),
-    [options.mfId]: { version: selected.version, buildId: selected.buildId }
+    [options.appId]: { version: selected.version, buildId: selected.buildId }
   };
   const baseRevision = registryRevision(options.current.manifests, options.current.productionSelections);
   const nextRevision = registryRevision(options.current.manifests, productionSelections);
@@ -152,10 +152,10 @@ function assertStaticRegistry(registry: AtlasStaticRegistry | undefined): void {
     throw new Error("The static Atlas registry is malformed or uses an unsupported schema version.");
   }
   for (const manifest of registry.manifests) assertAtlasManifest(manifest);
-  for (const [mfId, selection] of Object.entries(registry.productionSelections ?? {})) {
-    const exists = registry.manifests.some((manifest) => manifest.id === mfId &&
+  for (const [appId, selection] of Object.entries(registry.productionSelections ?? {})) {
+    const exists = registry.manifests.some((manifest) => manifest.id === appId &&
       manifest.channel === "production" && manifest.version === selection.version && manifest.buildId === selection.buildId);
-    if (!exists) throw new Error(`The static Atlas registry selects a missing production build for app "${mfId}".`);
+    if (!exists) throw new Error(`The static Atlas registry selects a missing production build for app "${appId}".`);
   }
   const actualRevision = registryRevision(registry.manifests, registry.productionSelections);
   if (registry.revision && registry.revision !== actualRevision) {
@@ -197,7 +197,7 @@ function supportsHost(manifest: AtlasManifest, hostId: string): boolean {
     manifest.placements.some((placement) => placement.hostId === hostId);
 }
 
-function selectOneProductionVersionPerMf(
+function selectOneProductionVersionPerApp(
   manifests: AtlasManifest[],
   productionSelections?: Readonly<Record<string, AtlasProductionSelection>>
 ): AtlasManifest[] {

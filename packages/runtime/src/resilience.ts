@@ -14,21 +14,21 @@ export interface AtlasRetryPolicySource {
 export interface AtlasOperationContext {
   stage: string;
   resource?: string;
-  mfId?: string;
+  appId?: string;
   version?: string;
 }
 
 export class AtlasLoadError extends Error {
   readonly stage: string;
   readonly resource: string | undefined;
-  readonly mfId: string | undefined;
+  readonly appId: string | undefined;
   readonly version: string | undefined;
   readonly attempts: number;
 
   constructor(context: AtlasOperationContext, attempts: number, cause: unknown) {
     const details = [
       `stage=${context.stage}`,
-      context.mfId ? `app=${context.mfId}` : undefined,
+      context.appId ? `app=${context.appId}` : undefined,
       context.version ? `version=${context.version}` : undefined,
       context.resource ? `resource=${context.resource}` : undefined,
       `attempts=${attempts}`
@@ -37,7 +37,7 @@ export class AtlasLoadError extends Error {
     this.name = "AtlasLoadError";
     this.stage = context.stage;
     this.resource = context.resource;
-    this.mfId = context.mfId;
+    this.appId = context.appId;
     this.version = context.version;
     this.attempts = attempts;
   }
@@ -104,7 +104,7 @@ function emitOperationEvent(input: OperationEventInput): void {
     maxAttempts: input.totalAttempts,
     durationMs: Date.now() - input.startedAt,
     ...(input.context.resource ? { resource: input.context.resource } : {}),
-    ...(input.context.mfId ? { mfId: input.context.mfId } : {}),
+    ...(input.context.appId ? { appId: input.context.appId } : {}),
     ...(input.context.version ? { version: input.context.version } : {}),
     ...(input.error ? { error: input.error } : {})
   });

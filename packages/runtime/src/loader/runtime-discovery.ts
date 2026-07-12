@@ -12,7 +12,7 @@ type FetchJson = <T>(url: string, signal?: AbortSignal) => Promise<T>;
 type FetchBytes = (url: string, signal?: AbortSignal) => Promise<ArrayBuffer>;
 
 export interface AtlasRuntimeOverride {
-  mfId: string;
+  appId: string;
   manifest: AtlasManifest;
   reason: "local" | "pr" | "historical";
 }
@@ -121,20 +121,20 @@ export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: At
   const overriddenIds = new Set<string>();
   for (const override of overrides) {
     assertAtlasManifest(override.manifest);
-    if (override.mfId !== override.manifest.id) {
-      throw new Error(`Atlas override app id "${override.mfId}" does not match manifest id "${override.manifest.id}".`);
+    if (override.appId !== override.manifest.id) {
+      throw new Error(`Atlas override app id "${override.appId}" does not match manifest id "${override.manifest.id}".`);
     }
-    if (overriddenIds.has(override.mfId)) {
-      throw new Error(`Atlas overrides contain duplicate entries for app "${override.mfId}".`);
+    if (overriddenIds.has(override.appId)) {
+      throw new Error(`Atlas overrides contain duplicate entries for app "${override.appId}".`);
     }
-    if (!byId.has(override.mfId)) {
-      throw new Error(`Atlas override targets app "${override.mfId}", which is not selected by the host catalog.`);
+    if (!byId.has(override.appId)) {
+      throw new Error(`Atlas override targets app "${override.appId}", which is not selected by the host catalog.`);
     }
     assertManifestSupportsHost(override.manifest, catalog.hostId, "override");
     assertLocalManifestUrls(override.manifest);
-    const selected = byId.get(override.mfId)!;
-    overriddenIds.add(override.mfId);
-    byId.set(override.mfId, {
+    const selected = byId.get(override.appId)!;
+    overriddenIds.add(override.appId);
+    byId.set(override.appId, {
       ...override.manifest,
       supportedHosts: selected.supportedHosts,
       placements: selected.placements
@@ -180,7 +180,7 @@ export async function findManifestTrustErrors(
     try {
       await verifyManifestIntegrity([manifest], (url) => runResiliently(
         (signal) => fetchBytes(url, signal),
-        { stage: "integrity", resource: url, mfId: manifest.id, version: manifest.version },
+        { stage: "integrity", resource: url, appId: manifest.id, version: manifest.version },
         requestPolicy
       ), policy);
     } catch (error) {
@@ -212,8 +212,8 @@ function validateOverrideDocument(document: AtlasRuntimeOverrideDocument, hostId
     throw new Error(`Atlas override targets host "${document.hostId}", but the current host is "${hostId}".`);
   }
   for (const override of document.overrides) {
-    if (override.mfId !== override.manifest.id) {
-      throw new Error(`Atlas override app id "${override.mfId}" does not match manifest id "${override.manifest.id}".`);
+    if (override.appId !== override.manifest.id) {
+      throw new Error(`Atlas override app id "${override.appId}" does not match manifest id "${override.manifest.id}".`);
     }
     assertAtlasManifest(override.manifest);
   }
@@ -256,9 +256,9 @@ export function assertManifestStylesTrust(manifest: AtlasManifest, policy: Atlas
   }
 }
 
-function assertTrustedAssetUrl(urlValue: string, mfId: string, kind: string): void {
+function assertTrustedAssetUrl(urlValue: string, appId: string, kind: string): void {
   const url = new URL(urlValue, globalThis.location?.href ?? "http://atlas.local");
-  if (!isHttpProtocol(url.protocol)) throw new Error(`Atlas app "${mfId}" uses unsupported ${kind} protocol "${url.protocol}".`);
+  if (!isHttpProtocol(url.protocol)) throw new Error(`Atlas app "${appId}" uses unsupported ${kind} protocol "${url.protocol}".`);
 }
 
 function assertManifestSupportsHost(manifest: AtlasManifest, hostId: string, source: string): void {

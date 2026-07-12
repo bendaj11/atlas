@@ -127,7 +127,7 @@ test("Native Federation bridge initializes catalog remotes and loads exposes", a
     async initFederation(remotes) { calls.push(["init", remotes]); },
     async loadRemoteModule(remote, expose) { calls.push(["load", remote, expose]); return { default: { mount() {} } }; }
   };
-  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerMfId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./widgets/summary", contractVersion: "1" };
+  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./widgets/summary", contractVersion: "1" };
   const manifest = createTestManifest({ id: "orders-app", remoteEntryUrl: "https://cdn/remoteEntry.json", exportedWidgets: [widget] });
   const bridge = createNativeFederationImporters(runtime);
   await bridge.initialize([manifest]);

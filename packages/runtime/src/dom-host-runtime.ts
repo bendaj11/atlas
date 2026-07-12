@@ -82,7 +82,7 @@ export async function startDomHostRuntime<TExtensions extends object, THostData 
   return {
     hostId: runtime.hostId,
     manifests: runtime.manifests,
-    retry: (mfId) => runtime.retry(mfId),
+    retry: (appId) => runtime.retry(appId),
     async stop() {
       stopNavigationItems();
       await runtime.stop();
@@ -108,21 +108,21 @@ function assertCatalogMatchesConfig(catalogHostId: string, configHostId: string)
   }
 }
 
-function resolveDomSlotContainer(document: Document, mfId: string, placementId: string, slot: string): HTMLElement | undefined {
+function resolveDomSlotContainer(document: Document, appId: string, placementId: string, slot: string): HTMLElement | undefined {
   const slotContainer = document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(slot)}"]`);
   if (!slotContainer) {
-    console.warn(`Atlas app "${mfId}" declares slot placement "${placementId}" for host slot "${slot}", but the host DOM does not contain [data-atlas-slot="${slot}"]. Add <div data-atlas-slot="${slot}"></div> to the host layout or remove the slot placement from the app manifest.`);
+    console.warn(`Atlas app "${appId}" declares slot placement "${placementId}" for host slot "${slot}", but the host DOM does not contain [data-atlas-slot="${slot}"]. Add <div data-atlas-slot="${slot}"></div> to the host layout or remove the slot placement from the app manifest.`);
     return undefined;
   }
 
-  const key = `${mfId}:${placementId}`;
+  const key = `${appId}:${placementId}`;
   const selector = `[data-atlas-slot-mount="${cssEscape(key)}"]`;
   const existing = slotContainer.querySelector<HTMLElement>(selector);
   if (existing) return existing;
 
   const container = document.createElement("div");
   container.dataset.atlasSlotMount = key;
-  container.dataset.atlasMfId = mfId;
+  container.dataset.atlasAppId = appId;
   container.dataset.atlasPlacementId = placementId;
   slotContainer.append(container);
   return container;

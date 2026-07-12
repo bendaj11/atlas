@@ -58,7 +58,7 @@ export class AtlasBuildService {
       ...(integrity ? { integrity } : {})
     });
     await mkdir(join(project.root, "dist"), { recursive: true });
-    await writeFile(join(project.root, "dist", "mf.manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    await writeFile(join(project.root, "dist", "app.manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
     return manifest;
   }
 
@@ -88,7 +88,7 @@ export class AtlasBuildService {
       await mkdir(join(target, ".."), { recursive: true });
       await copyFile(join(source, relativePath), target);
     }
-    await writeFile(join(output, prefix, "mf.manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    await writeFile(join(output, prefix, "app.manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
     const current = await this.loadCurrentRegistry();
     this.assertExpectedRegistryRevision(current);
     const registry = await prepareStaticRegistry(manifest, current, output);
@@ -102,7 +102,7 @@ export class AtlasBuildService {
       baseRevision: registry.baseRevision,
       registryRevision: registry.registryRevision,
       uploadOrder: ["immutable", "revalidate"],
-      manifest: `${prefix}/mf.manifest.json`,
+      manifest: `${prefix}/app.manifest.json`,
       hosts: registry.hostIds,
       files: publicationFiles.map((path) => ({ path: path.split("\\").join("/"), cache: isMutableRegistryPath(path) ? "revalidate" : "immutable" }))
     }, null, 2)}\n`, "utf8");
@@ -173,7 +173,7 @@ async function discoverExportedWidgets(root: string, config: AtlasConfig, ownerR
     try { await access(join(directory, entry.name, `index.${extension}`)); }
     catch { throw new Error(`Exported widget "${entry.name}" must contain src/exported-widgets/${entry.name}/index.${extension}.`); }
     widgets.push({
-      schemaVersion: "1", id: entry.name, name: title(entry.name), ownerMfId: config.id, framework: config.framework,
+      schemaVersion: "1", id: entry.name, name: title(entry.name), ownerAppId: config.id, framework: config.framework,
       remoteEntryUrl: ownerRemoteEntryUrl,
       expose: `./widgets/${entry.name}`, contractVersion: "1"
     });
@@ -231,12 +231,12 @@ async function hashArtifactDirectory(root: string, includeSourceMaps: boolean): 
 
 function isMutableRegistryPath(path: string): boolean {
   const normalized = path.split("\\").join("/");
-  return normalized === "registry.json" || normalized.startsWith("microfrontends/") || normalized.startsWith("hosts/");
+  return normalized === "registry.json" || normalized.startsWith("apps/") || normalized.startsWith("hosts/");
 }
 
 function isAtlasBuildMetadata(path: string): boolean {
   const normalized = path.split("\\").join("/");
-  return normalized === "mf.manifest.json" ||
+  return normalized === "app.manifest.json" ||
     normalized === "atlas-publication.json" ||
     normalized.startsWith("atlas-publication/");
 }

@@ -1,9 +1,9 @@
 import { createContext, createElement as createReactElement, useContext, type ReactElement, type ReactNode } from "react";
-import type { AtlasMfContext } from "./lifecycle.js";
+import type { AtlasAppContext } from "./lifecycle.js";
 import type { AtlasEventMap, AtlasSdk } from "./host.js";
 
 export const AtlasSdkContext = createContext<AtlasSdk | undefined>(undefined);
-export const AtlasRuntimeContext = createContext<AtlasMfContext | undefined>(undefined);
+export const AtlasRuntimeContext = createContext<AtlasAppContext | undefined>(undefined);
 
 export function AtlasSdkProvider({ sdk, children }: { sdk: AtlasSdk; children: ReactNode }): ReactElement {
   return createReactElement(AtlasSdkContext.Provider, { value: sdk }, children);

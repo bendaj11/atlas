@@ -8,7 +8,7 @@ import {
   angularSinglePageAppComponent,
   angularSinglePageAppEntry,
   appSourceReadme
-} from "./angular-microfrontend-generator.js";
+} from "./angular-app-generator.js";
 import { angularIndex, angularPackage } from "./angular-package-generator.js";
 import {
   angularAppTsconfig,

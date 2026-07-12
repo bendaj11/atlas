@@ -59,7 +59,11 @@ ATLAS_HOST_ORIGIN=http://localhost:4200
 
 Shell environment variables override `.env` values. Flags override both.
 
-Defaults are app port `4201` and Atlas control port `4400`. Use `--port` or `--control-port` only when necessary. Atlas writes a diagnostic copy to `.atlas/local-overrides.json`; developers do not maintain it.
+Defaults are app port `4201` and Atlas control port `4400`. The control server
+multiplexes local apps by `hostId`, so apps targeting different hosts can run
+concurrently on the default port. Use `--port` or `--control-port` only when
+necessary. Atlas writes a diagnostic copy to `.atlas/local-overrides.json`;
+developers do not maintain it.
 
 The control server reports `503 starting` until the app is ready, so opening the printed URL cannot race framework startup. Generated React apps also initialize Vite Fast Refresh when imported by a host; Angular and React developers get their normal framework development behavior without extra setup.
 

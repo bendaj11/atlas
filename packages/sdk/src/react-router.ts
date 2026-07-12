@@ -1,4 +1,4 @@
-import type { AtlasMfContext } from "./lifecycle.js";
+import type { AtlasAppContext } from "./lifecycle.js";
 
 export interface RouterLike {
   readonly state: { location: { pathname: string; search?: string; hash?: string }; historyAction?: string };
@@ -6,12 +6,12 @@ export interface RouterLike {
   subscribe(listener: () => void): () => void;
 }
 
-export interface MfRouterLike extends RouterLike {
+export interface AppRouterLike extends RouterLike {
   dispose?(): void;
 }
 
 /** Options passed to React Router's createMemoryRouter for an Atlas app. */
-export function createRouterOptions(context: AtlasMfContext): { initialEntries: string[] } {
+export function createRouterOptions(context: AtlasAppContext): { initialEntries: string[] } {
   return { initialEntries: [readAtlasInnerUrl(context)] };
 }
 
@@ -19,7 +19,7 @@ export function createRouterOptions(context: AtlasMfContext): { initialEntries: 
  * Keeps a React Router memory router synchronized with the host-owned URL.
  * app code continues to use Link, useNavigate, loaders, and RouterProvider normally.
  */
-export function connectRouter(router: MfRouterLike, context: AtlasMfContext): () => void {
+export function connectRouter(router: AppRouterLike, context: AtlasAppContext): () => void {
   let synchronizing = false;
 
   const stopRouter = router.subscribe(() => {
@@ -43,13 +43,13 @@ export function connectRouter(router: MfRouterLike, context: AtlasMfContext): ()
   };
 }
 
-export function readAtlasInnerUrl(context: AtlasMfContext): string {
+export function readAtlasInnerUrl(context: AtlasAppContext): string {
   const inner = context.route.getCurrent();
   const host = context.navigation.getCurrentLocation();
   return `${inner.pathname}${host.search}${host.hash}`;
 }
 
-function syncAtlasFromRouter(router: MfRouterLike, context: AtlasMfContext): void {
+function syncAtlasFromRouter(router: AppRouterLike, context: AtlasAppContext): void {
   const next = readRouterUrl(router);
   if (next === readAtlasInnerUrl(context)) return;
 

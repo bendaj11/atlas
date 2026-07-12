@@ -7,7 +7,7 @@ import { prepareStaticRollback, registryRevision } from "./static-registry.js";
 export class AtlasRollbackService {
   constructor(private readonly args: CliArguments) {}
 
-  async run(mfId: string, requestedVersion?: string): Promise<{ version: string; buildId: string; output: string }> {
+  async run(appId: string, requestedVersion?: string): Promise<{ version: string; buildId: string; output: string }> {
     const version = requestedVersion ?? this.args.flag("version");
     if (!version) throw new Error("Atlas rollback requires --version.");
     const registryBaseUrl = this.registryBaseUrl();
@@ -16,7 +16,7 @@ export class AtlasRollbackService {
     const output = resolve(this.args.flag("publication-directory") ?? join("dist", "atlas-rollback"));
     await rm(output, { recursive: true, force: true });
     const result = await prepareStaticRollback({
-      mfId,
+      appId,
       version,
       ...(this.args.flag("build-id") ? { buildId: this.args.flag("build-id") } : {}),
       current,
@@ -32,7 +32,7 @@ export class AtlasRollbackService {
       generatedAt: new Date().toISOString(),
       baseRevision: result.baseRevision,
       registryRevision: result.registryRevision,
-      selected: { mfId, version: result.selected.version, buildId: result.selected.buildId },
+      selected: { appId, version: result.selected.version, buildId: result.selected.buildId },
       uploadOrder: ["revalidate"],
       files: files.map((path) => ({ path, cache: "revalidate" }))
     }, null, 2)}\n`, "utf8");

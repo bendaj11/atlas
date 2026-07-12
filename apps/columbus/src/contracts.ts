@@ -17,7 +17,7 @@ export interface AtlasExtensionManifest {
 }
 
 export interface AtlasRuntimeOverride {
-  mfId: string;
+  appId: string;
   manifest: AtlasExtensionManifest;
   reason: "local" | "pr" | "historical";
 }

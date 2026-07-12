@@ -1,10 +1,10 @@
 import { createElement, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { defineApp, useAppLoaded, useAtlasSdk } from "@atlas/sdk/react";
-import type { AtlasMfMountRequest } from "@atlas/sdk/lifecycle";
+import type { AtlasAppMountRequest } from "@atlas/sdk/lifecycle";
 import "./styles.css";
 
-function App({ context }: AtlasMfMountRequest) {
+function App({ context }: AtlasAppMountRequest) {
   const atlas = useAtlasSdk();
   const appLoaded = useAppLoaded();
   const widget = useRef<HTMLDivElement>(null);

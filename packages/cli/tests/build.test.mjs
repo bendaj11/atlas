@@ -74,12 +74,12 @@ test("atlas build emits a validated deployable manifest", async () => {
     `--publication-directory=${join(directory, "publication")}`,
     `--publication-plan=${join(directory, "publication.json")}`
   ]);
-  const manifest = JSON.parse(await readFile("examples/mfs/catalog-react/dist/mf.manifest.json", "utf8"));
+  const manifest = JSON.parse(await readFile("examples/apps/catalog-react/dist/app.manifest.json", "utf8"));
   assert.equal(manifest.version, "2.3.4");
   assert.equal(manifest.channel, "production");
   assert.equal(manifest.remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
   assert.equal(manifest.exportedWidgets[0].id, "product-count");
-  assert.equal(manifest.exportedWidgets[0].ownerMfId, "catalog-react");
+  assert.equal(manifest.exportedWidgets[0].ownerAppId, "catalog-react");
   assert.equal(manifest.exportedWidgets[0].remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
   assert.match(manifest.integrity, /^sha256-/);
 });
@@ -150,7 +150,7 @@ test("atlas build prepares provider-neutral files without uploading", async () =
     `--publication-plan=${publicationPlan}`
   ]);
   const registry = JSON.parse(await readFile(join(publication, "registry.json"), "utf8"));
-  const index = JSON.parse(await readFile(join(publication, "microfrontends/catalog-react/index.json"), "utf8"));
+  const index = JSON.parse(await readFile(join(publication, "apps/catalog-react/index.json"), "utf8"));
   const catalog = JSON.parse(await readFile(join(publication, "hosts/demo-react-host/catalog.json"), "utf8"));
   const plan = JSON.parse(await readFile(publicationPlan, "utf8"));
   assert.equal(registry.manifests[0].id, "catalog-react");
@@ -807,10 +807,10 @@ exit 1
   assert.equal(project.targets.dev.options.command, "atlas dev orders");
   assert.equal(project.targets.dev.options.forwardAllArgs, true);
   assert.equal(project.targets.orders.options.command, "nx run orders:dev");
-  const angularMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
-  assert.equal(angularMfTsconfig.marker, "nx-generator");
-  assert.equal(angularMfTsconfig.include, undefined);
-  assert.equal(angularMfTsconfig.compilerOptions.emitDeclarationOnly, false);
+  const angularAppTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
+  assert.equal(angularAppTsconfig.marker, "nx-generator");
+  assert.equal(angularAppTsconfig.include, undefined);
+  assert.equal(angularAppTsconfig.compilerOptions.emitDeclarationOnly, false);
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);
@@ -918,12 +918,12 @@ exit 1
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
-  const reactMfTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
-  assert.equal(reactMfTsconfig.marker, "nx-generator");
-  assert.deepEqual(reactMfTsconfig.include, ["atlas.config.ts"]);
-  assert.equal(reactMfTsconfig.compilerOptions.module, "ESNext");
-  assert.equal(reactMfTsconfig.compilerOptions.moduleResolution, "bundler");
-  assert.deepEqual(reactMfTsconfig.compilerOptions.types, ["vite/client"]);
+  const reactAppTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
+  assert.equal(reactAppTsconfig.marker, "nx-generator");
+  assert.deepEqual(reactAppTsconfig.include, ["atlas.config.ts"]);
+  assert.equal(reactAppTsconfig.compilerOptions.module, "ESNext");
+  assert.equal(reactAppTsconfig.compilerOptions.moduleResolution, "bundler");
+  assert.deepEqual(reactAppTsconfig.compilerOptions.types, ["vite/client"]);
   assert.match(stdout, /Delegating React scaffolding to @nx\/react:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");
   assert.match(stdout, /Formatted generated files in orders/);
@@ -989,7 +989,7 @@ test("atlas dev prepares an Angular local override without manual URL editing", 
     "--control-port=4512",
     "--prepare-only"
   ]);
-  const document = JSON.parse(await readFile("examples/mfs/orders-angular/.atlas/local-overrides.json", "utf8"));
+  const document = JSON.parse(await readFile("examples/apps/orders-angular/.atlas/local-overrides.json", "utf8"));
   assert.equal(document.schemaVersion, "1");
   assert.equal(document.hostId, "demo-angular-host");
   assert.equal(document.overrides[0].manifest.channel, "local");
@@ -1017,7 +1017,7 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
     schemaVersion: "1",
     hostId: "mobile-host",
     generatedAt: "2026-07-09T08:02:37.622Z",
-    overrides: [{ mfId: "login", manifest, reason: "local" }]
+    overrides: [{ appId: "login", manifest, reason: "local" }]
   });
 
   assert.equal(catalog.schemaVersion, "1");
@@ -1028,7 +1028,7 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
     schemaVersion: "1",
     hostId: "mobile-host",
     generatedAt: "2026-07-09T08:02:37.622Z",
-    overrides: [{ mfId: "login", manifest, reason: "local" }]
+    overrides: [{ appId: "login", manifest, reason: "local" }]
   }, catalog, "http://127.0.0.1:4400/atlas.local-overrides.json");
   assert.equal(session.hostId, "mobile-host");
   assert.equal(session.overrideUrl, "http://127.0.0.1:4400/atlas.local-overrides.json");
@@ -1054,6 +1054,30 @@ test("atlas dev control server accepts multiple local apps for one host", async 
     assert.deepEqual(await catalogManifestIds(port, "mobile-host"), ["login"]);
   } finally {
     await first.close();
+  }
+});
+
+test("atlas dev control server serves local apps for different hosts", async () => {
+  const port = await availablePort();
+  const overrideUrl = `http://127.0.0.1:${port}/atlas.local-overrides.json`;
+  const angularApp = createTestManifest({ id: "angular-app", supportedHosts: ["angular-host"] });
+  const reactApp = createTestManifest({ id: "react-app", supportedHosts: ["react-host"] });
+  const angularControl = await startControlServer(port, localDocument("angular-host", angularApp), overrideUrl);
+  const reactControl = await startControlServer(port, localDocument("react-host", reactApp), overrideUrl);
+
+  try {
+    await angularControl.markReady();
+    await reactControl.markReady();
+
+    assert.deepEqual(await catalogManifestIds(port, "angular-host"), ["angular-app"]);
+    assert.deepEqual(await catalogManifestIds(port, "react-host"), ["react-app"]);
+    assert.equal(await devSessionHostId(port, "angular-host"), "angular-host");
+    assert.equal(await devSessionHostId(port, "react-host"), "react-host");
+
+    await reactControl.close();
+    assert.deepEqual(await catalogManifestIds(port, "angular-host"), ["angular-app"]);
+  } finally {
+    await angularControl.close();
   }
 });
 
@@ -1085,7 +1109,7 @@ test("atlas dev prepares a React Native Federation override", async () => {
     "--host=demo-react-host", "--host-url=https://host.example/dashboard",
     "--port=4513", "--control-port=4514", "--prepare-only"
   ]);
-  const document = JSON.parse(await readFile("examples/mfs/dashboard-react/.atlas/local-overrides.json", "utf8"));
+  const document = JSON.parse(await readFile("examples/apps/dashboard-react/.atlas/local-overrides.json", "utf8"));
   assert.equal(document.overrides[0].manifest.framework, "react");
   assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4513/remoteEntry.json");
   assert.equal(document.overrides[0].manifest.integrity, undefined);
@@ -1626,7 +1650,7 @@ function localDocument(hostId, manifest) {
     schemaVersion: "1",
     hostId,
     generatedAt: "2026-07-09T08:02:37.622Z",
-    overrides: [{ mfId: manifest.id, manifest, reason: "local" }]
+    overrides: [{ appId: manifest.id, manifest, reason: "local" }]
   };
 }
 
@@ -1635,6 +1659,12 @@ async function catalogManifestIds(port, hostId) {
   assert.equal(response.status, 200);
   const catalog = await response.json();
   return catalog.manifests.map((manifest) => manifest.id);
+}
+
+async function devSessionHostId(port, hostId) {
+  const response = await fetch(`http://127.0.0.1:${port}/atlas.dev-session.json?hostId=${encodeURIComponent(hostId)}`, { cache: "no-store" });
+  assert.equal(response.status, 200);
+  return (await response.json()).hostId;
 }
 
 function listenOnRandomPort(server) {

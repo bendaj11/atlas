@@ -10,7 +10,7 @@ export interface AtlasExportedWidgetManifest {
   /** Friendly widget name for tools, docs, and people. */
   name: string;
   /** App id that owns this widget. Must match the manifest's id. */
-  ownerMfId: string;
+  ownerAppId: string;
   /** Framework this widget needs when another app renders it. */
   framework: AtlasFramework;
   /** Full URL of the built file that exposes this widget. */

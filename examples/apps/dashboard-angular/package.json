@@ -1,12 +1,12 @@
 {
-  "name": "@atlas-mf/orders-angular",
+  "name": "@atlas-app/dashboard-angular",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "ng serve orders-angular",
+    "dev": "ng serve dashboard-angular",
     "atlas:config": "tsc -p tsconfig.atlas.json",
     "build": "tsc -p tsconfig.atlas.json && ng build",
-    "atlas:build": "atlas build orders-angular"
+    "atlas:build": "atlas build dashboard-angular"
   },
   "dependencies": {
     "@atlas/schema": "*",

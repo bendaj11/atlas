@@ -1,9 +1,9 @@
 import { inject, InjectionToken, type Provider } from "@angular/core";
-import type { AtlasMfContext } from "./lifecycle.js";
+import type { AtlasAppContext } from "./lifecycle.js";
 import type { AtlasEventMap, AtlasSdk as AtlasSdkValue } from "./host.js";
 
 const ATLAS_SDK = new InjectionToken<AtlasSdkValue>("AtlasSdk");
-const ATLAS_APP_CONTEXT = new InjectionToken<AtlasMfContext>("AtlasAppContext");
+const ATLAS_APP_CONTEXT = new InjectionToken<AtlasAppContext>("AtlasAppContext");
 
 export type AtlasSdk<
   TExtensions extends object = {},
@@ -19,7 +19,7 @@ export function provideAtlasSdk<
   return { provide: ATLAS_SDK, useValue: sdk };
 }
 
-export function provideAtlasAppContext(context: AtlasMfContext): Provider {
+export function provideAtlasAppContext(context: AtlasAppContext): Provider {
   return { provide: ATLAS_APP_CONTEXT, useValue: context };
 }
 
@@ -31,16 +31,10 @@ export function injectAtlasSdk<
   return inject(ATLAS_SDK) as AtlasSdk<TExtensions, TEvents, THostData>;
 }
 
-export function injectAtlasAppContext(): AtlasMfContext {
+export function injectAtlasAppContext(): AtlasAppContext {
   return inject(ATLAS_APP_CONTEXT);
 }
 
 export function injectAppLoaded(): () => void {
   return injectAtlasAppContext().loading.waitUntilReady();
 }
-
-/** @deprecated Use provideAtlasAppContext. */
-export const provideAtlasMfContext = provideAtlasAppContext;
-
-/** @deprecated Use injectAtlasAppContext. */
-export const injectAtlasMfContext = injectAtlasAppContext;

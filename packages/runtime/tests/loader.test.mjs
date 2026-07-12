@@ -28,7 +28,7 @@ test("resolveRuntimeManifests applies overrides", () => {
     manifests: [production]
   };
 
-  const manifests = resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: local, reason: "local" }]);
+  const manifests = resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: local, reason: "local" }]);
 
   assert.equal(manifests[0].version, "2.0.0");
 });
@@ -46,18 +46,18 @@ test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible 
   const replacement = createTestManifest({ id: "catalog", version: "2.0.0" });
 
   assert.throws(
-    () => resolveRuntimeManifests(catalog, [{ mfId: "unknown", manifest: createTestManifest({ id: "unknown" }), reason: "local" }]),
+    () => resolveRuntimeManifests(catalog, [{ appId: "unknown", manifest: createTestManifest({ id: "unknown" }), reason: "local" }]),
     /not selected by the host catalog/
   );
   assert.throws(
     () => resolveRuntimeManifests(catalog, [
-      { mfId: "catalog", manifest: replacement, reason: "local" },
-      { mfId: "catalog", manifest: replacement, reason: "historical" }
+      { appId: "catalog", manifest: replacement, reason: "local" },
+      { appId: "catalog", manifest: replacement, reason: "historical" }
     ]),
     /duplicate entries/
   );
   assert.throws(
-    () => resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: createTestManifest({ id: "catalog", supportedHosts: ["admin"] }), reason: "local" }]),
+    () => resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: createTestManifest({ id: "catalog", supportedHosts: ["admin"] }), reason: "local" }]),
     /does not support host "host"/
   );
 });
@@ -83,7 +83,7 @@ test("resolveRuntimeManifests preserves catalog placement ownership", () => {
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", placements: [] });
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
 
-  const [resolved] = resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: replacement, reason: "local" }]);
+  const [resolved] = resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: replacement, reason: "local" }]);
 
   assert.deepEqual(resolved.placements, [placement]);
   assert.deepEqual(resolved.supportedHosts, selected.supportedHosts);
@@ -146,14 +146,14 @@ test("createHostNavigationItems keeps the first app for duplicate exact routes",
 });
 
 test("resolveRuntimeManifests revalidates widget uses after an override", () => {
-  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerMfId: "orders", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./summary", contractVersion: "1" };
+  const widget = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./summary", contractVersion: "1" };
   const owner = createTestManifest({ id: "orders", exportedWidgets: [widget], placements: [] });
   const consumer = createTestManifest({ id: "dashboard", uses: ["orders/summary"], placements: [] });
   const replacement = createTestManifest({ id: "orders", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", exportedWidgets: [] });
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [owner, consumer] };
 
   assert.throws(
-    () => resolveRuntimeManifests(catalog, [{ mfId: "orders", manifest: replacement, reason: "local" }]),
+    () => resolveRuntimeManifests(catalog, [{ appId: "orders", manifest: replacement, reason: "local" }]),
     /is not exported by the selected runtime manifests/
   );
 });
@@ -241,13 +241,13 @@ test("exhausted loading reports structured diagnostics", async () => {
   await assert.rejects(
     () => runResiliently(
       async () => { throw new Error("offline"); },
-      { stage: "remote-module", resource: "https://cdn.example/entry.js", mfId: "map", version: "3.2.1" },
+      { stage: "remote-module", resource: "https://cdn.example/entry.js", appId: "map", version: "3.2.1" },
       { retryCount: 1, timeoutMs: 50 }
     ),
     (error) => {
       assert.equal(error instanceof AtlasLoadError, true);
       assert.equal(error.stage, "remote-module");
-      assert.equal(error.mfId, "map");
+      assert.equal(error.appId, "map");
       assert.equal(error.version, "3.2.1");
       assert.equal(error.attempts, 2);
       return true;
@@ -353,7 +353,7 @@ test("browser overrides are discovered from the host URL and validated", async (
     storage: { getItem() { return null; } },
     async fetchJson(url) {
       requestedUrl = url;
-      return { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ mfId: manifest.id, manifest, reason: "local" }] };
+      return { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: manifest.id, manifest, reason: "local" }] };
     }
   });
   assert.equal(requestedUrl, "http://localhost:4400/atlas.local-overrides.json");
@@ -376,7 +376,7 @@ test("browser overrides load a directly persisted extension document", async () 
     hostId: "host",
     enabled: true,
     search: "",
-    storage: { getItem(key) { return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY ? JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: "now", overrides: [{ mfId: manifest.id, manifest, reason: "historical" }] }) : null; } }
+    storage: { getItem(key) { return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY ? JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: "now", overrides: [{ appId: manifest.id, manifest, reason: "historical" }] }) : null; } }
   });
   assert.equal(overrides[0].manifest.version, "0.8.0");
 });
@@ -385,7 +385,7 @@ test("tab-scoped browser overrides take precedence over all-tab overrides", asyn
   const production = createTestManifest({ id: "orders", version: "1.0.0" });
   const tab = createTestManifest({ id: "orders", version: "3.0.0", channel: "historical" });
   const all = createTestManifest({ id: "orders", version: "2.0.0", channel: "historical" });
-  const documentFor = (manifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ mfId: "orders", manifest, reason: "historical" }] });
+  const documentFor = (manifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: "orders", manifest, reason: "historical" }] });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
     enabled: true,
@@ -413,13 +413,13 @@ test("local override assets must use loopback URLs", () => {
   const replacement = createTestManifest({ id: "catalog", channel: "local", remoteEntryUrl: "http://192.168.1.20/remoteEntry.json" });
   const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [selected] };
   assert.throws(
-    () => resolveRuntimeManifests(catalog, [{ mfId: "catalog", manifest: replacement, reason: "local" }]),
+    () => resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: replacement, reason: "local" }]),
     /must use loopback/
   );
 });
 
 test("widget loader mounts from the selected owner version", async () => {
-  const widget = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerMfId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
+  const widget = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerAppId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
   const manifest = createTestManifest({ exportedWidgets: [widget] });
   let request;
   let unmounted = false;
@@ -487,7 +487,7 @@ test("app mounts receive an Atlas-owned scoped DOM boundary", async () => {
     async importRemote() { return { mount({ container }) { receivedContainer = container; } }; }
   });
   assert.equal(parent.child, receivedContainer);
-  assert.equal(receivedContainer.dataset.atlasMf, "map");
+  assert.equal(receivedContainer.dataset.atlasApp, "map");
   await mounted.unmount();
   assert.equal(receivedContainer.removed, true);
 });

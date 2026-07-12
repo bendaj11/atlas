@@ -27,7 +27,7 @@ export function createOverrideDocument(hostData: HostData, overrides: Map<string
     schemaVersion: "1",
     hostId: hostData.config.hostId,
     generatedAt: new Date().toISOString(),
-    overrides: [...overrides].map(([mfId, manifest]) => ({ mfId, manifest, reason: overrideReason(manifest) }))
+    overrides: [...overrides].map(([appId, manifest]) => ({ appId, manifest, reason: overrideReason(manifest) }))
   };
 }
 
@@ -105,7 +105,7 @@ async function inspectAtlasHost(documentKey: string): Promise<HostData> {
 
   async function readManifestVersions(manifest: Manifest, registryRoot: string): Promise<{ entry: readonly [string, Manifest[]]; error?: string }> {
     try {
-      const response = await fetch(`${registryRoot}/microfrontends/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
+      const response = await fetch(`${registryRoot}/apps/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Version lookup for ${manifest.id} returned ${response.status}.`);
 
       const index = await response.json() as { manifests?: Manifest[] };
@@ -150,7 +150,7 @@ async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const versionResults = await Promise.all(catalog.manifests.map((manifest) => readManifestVersions(manifest, registryRoot)));
   const { overrides, overrideScope } = readStoredOverrideDocument();
   const runtimeErrors = [...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]')]
-    .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-mf") || "Unknown app error");
+    .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-app") || "Unknown app error");
   const versionErrors = versionResults.map(({ error }) => error).filter((error): error is string => Boolean(error));
 
   return { config, catalog, versions: Object.fromEntries(versionResults.map(({ entry }) => entry)), overrides, overrideScope, runtimeErrors, versionErrors };

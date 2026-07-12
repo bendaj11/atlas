@@ -19,7 +19,7 @@ Use it to study:
 
 ## App Domain
 
-`examples/mfs/dashboard-angular` and `examples/mfs/orders-angular` are Angular
+`examples/apps/dashboard-angular` and `examples/apps/orders-angular` are Angular
 apps. They show:
 
 - `atlas.config.ts` route and slot declarations;

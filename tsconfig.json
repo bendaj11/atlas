@@ -9,7 +9,7 @@
     { "path": "packages/cli" },
     { "path": "apps/columbus" },
     { "path": "examples/hosts/demo-react-host" },
-    { "path": "examples/mfs/catalog-react" },
-    { "path": "examples/mfs/dashboard-react" }
+    { "path": "examples/apps/catalog-react" },
+    { "path": "examples/apps/dashboard-react" }
   ]
 }

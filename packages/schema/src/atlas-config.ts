@@ -34,9 +34,6 @@ export interface AtlasAppConfig extends AtlasBaseConfig {
   requiredHostSdkVersion?: string;
 }
 
-/** @deprecated Use AtlasAppConfig. */
-export type AtlasMicrofrontendConfig = AtlasAppConfig;
-
 /** Route this app contributes to one host. */
 export interface AtlasRouteMount {
   /** Host app this route belongs to. */

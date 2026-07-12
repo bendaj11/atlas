@@ -1,5 +1,5 @@
 import type { AtlasExportedWidgetManifest, AtlasManifest } from "@atlas/schema";
-import type { AtlasExportedWidgetEntry, AtlasMfEntry } from "@atlas/sdk/lifecycle";
+import type { AtlasExportedWidgetEntry, AtlasAppEntry } from "@atlas/sdk/lifecycle";
 import { findManifestTrustErrors, verifyManifestIntegrity, type AtlasRemoteTrustPolicy } from "./runtime-discovery.js";
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
@@ -11,7 +11,7 @@ export interface AtlasFederationAdapter {
 
 export interface AtlasNativeFederationImporters {
   initialize(manifests: AtlasManifest[]): Promise<void>;
-  importRemote(manifest: AtlasManifest): Promise<AtlasMfEntry>;
+  importRemote(manifest: AtlasManifest): Promise<AtlasAppEntry>;
   importWidget(widget: AtlasExportedWidgetManifest): Promise<AtlasExportedWidgetEntry>;
 }
 
@@ -41,7 +41,7 @@ export function createNativeFederationImporters(
           try {
             await runResiliently(
               () => runtime.initFederation({ [remoteName]: manifest.remoteEntryUrl }).then(() => undefined),
-              { stage: "federation-init", resource: manifest.remoteEntryUrl, mfId: manifest.id, version: manifest.version },
+              { stage: "federation-init", resource: manifest.remoteEntryUrl, appId: manifest.id, version: manifest.version },
               requestPolicy
             );
           } catch (error) {
@@ -54,21 +54,21 @@ export function createNativeFederationImporters(
       const initializationError = initializationErrors.get(manifest.id);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
-        () => runtime.loadRemoteModule<AtlasMfEntry>(requireInitializedRemoteName(remoteNames, manifest.id), manifest.exposes.entry),
-        { stage: "remote-module", resource: manifest.remoteEntryUrl, mfId: manifest.id, version: manifest.version },
+        () => runtime.loadRemoteModule<AtlasAppEntry>(requireInitializedRemoteName(remoteNames, manifest.id), manifest.exposes.entry),
+        { stage: "remote-module", resource: manifest.remoteEntryUrl, appId: manifest.id, version: manifest.version },
         requestPolicy
       );
-      return normalizeMfEntry(entry, manifest.id);
+      return normalizeAppEntry(entry, manifest.id);
     },
     async importWidget(widget) {
-      const initializationError = initializationErrors.get(widget.ownerMfId);
+      const initializationError = initializationErrors.get(widget.ownerAppId);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
-        () => runtime.loadRemoteModule<AtlasExportedWidgetEntry>(requireInitializedRemoteName(remoteNames, widget.ownerMfId), widget.expose),
-        { stage: "exported-widget", resource: widget.remoteEntryUrl, mfId: widget.ownerMfId },
+        () => runtime.loadRemoteModule<AtlasExportedWidgetEntry>(requireInitializedRemoteName(remoteNames, widget.ownerAppId), widget.expose),
+        { stage: "exported-widget", resource: widget.remoteEntryUrl, appId: widget.ownerAppId },
         requestPolicy
       );
-      return normalizeWidgetEntry(entry, `${widget.ownerMfId}/${widget.id}`);
+      return normalizeWidgetEntry(entry, `${widget.ownerAppId}/${widget.id}`);
     }
   };
 }
@@ -99,7 +99,7 @@ export async function createTrustedNativeFederationImporters(
       return importers.importRemote(manifest);
     },
     async importWidget(widget) {
-      const error = trustErrors.get(widget.ownerMfId);
+      const error = trustErrors.get(widget.ownerAppId);
       if (error) throw error;
       return importers.importWidget(widget);
     }
@@ -109,10 +109,10 @@ export async function createTrustedNativeFederationImporters(
 export async function importNativeFederationRemote(
   manifest: AtlasManifest,
   policy: AtlasRemoteTrustPolicy = defaultManifestPolicy(manifest)
-): Promise<AtlasMfEntry> {
+): Promise<AtlasAppEntry> {
   await verifyManifestIntegrity([manifest], undefined, policy);
   const remote = await import(/* @vite-ignore */ manifest.remoteEntryUrl);
-  return normalizeMfEntry(remote, manifest.id);
+  return normalizeAppEntry(remote, manifest.id);
 }
 
 function defaultManifestPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy {
@@ -121,11 +121,11 @@ function defaultManifestPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy 
   return {};
 }
 
-function normalizeMfEntry(value: AtlasMfEntry | { default?: AtlasMfEntry }, id: string): AtlasMfEntry {
-  const candidate = value as { mount?: AtlasMfEntry["mount"]; default?: AtlasMfEntry };
+function normalizeAppEntry(value: AtlasAppEntry | { default?: AtlasAppEntry }, id: string): AtlasAppEntry {
+  const candidate = value as { mount?: AtlasAppEntry["mount"]; default?: AtlasAppEntry };
   const entry = candidate.default ?? candidate;
   if (typeof entry.mount !== "function") throw new Error(`Atlas app "${id}" does not expose a mount function.`);
-  return entry as AtlasMfEntry;
+  return entry as AtlasAppEntry;
 }
 
 function normalizeWidgetEntry(
@@ -142,9 +142,9 @@ function federationRemoteName(id: string): string {
   return `atlas_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 }
 
-function requireInitializedRemoteName(remotes: Map<string, string>, mfId: string): string {
-  const remoteName = remotes.get(mfId);
-  if (!remoteName) throw new Error(`Native Federation was not initialized for Atlas app "${mfId}".`);
+function requireInitializedRemoteName(remotes: Map<string, string>, appId: string): string {
+  const remoteName = remotes.get(appId);
+  if (!remoteName) throw new Error(`Native Federation was not initialized for Atlas app "${appId}".`);
   return remoteName;
 }
 

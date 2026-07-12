@@ -25,15 +25,15 @@ export interface AtlasOperationEvent extends AtlasEventBase {
   maxAttempts: number;
   durationMs: number;
   resource?: string;
-  mfId?: string;
+  appId?: string;
   version?: string;
   error?: Error;
 }
 
 export interface AtlasAppEvent extends AtlasEventBase {
-  type: "mf.state";
+  type: "app.state";
   hostId: string;
-  mfId: string;
+  appId: string;
   version: string;
   placementId: string;
   state: AtlasHostMountState;

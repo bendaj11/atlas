@@ -82,7 +82,7 @@ export class AtlasDevService {
     const target = await this.resolveDevTarget(config, prompts);
     const document: AtlasRuntimeOverrideDocument = {
       schemaVersion: "1", hostId: target.hostId,
-      overrides: [{ mfId: manifest.id, manifest, reason: "local" }],
+      overrides: [{ appId: manifest.id, manifest, reason: "local" }],
       generatedAt: new Date().toISOString()
     };
     const directory = join(project.root, ".atlas");
@@ -175,7 +175,9 @@ export async function startControlServer(
 function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDocument, overrideUrl: string): Promise<DevControlServer> {
   const session = createDevSessionStore(document, overrideUrl);
   const server = createServer((request, response) => {
-    const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+    const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    const pathname = requestUrl.pathname;
+    const requestedHostId = requestUrl.searchParams.get("hostId") ?? undefined;
     response.setHeader("access-control-allow-origin", "*");
     response.setHeader("access-control-allow-private-network", "true");
     response.setHeader("cache-control", "no-store");
@@ -193,18 +195,18 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
     }
     const overrideReadyMatch = /^\/atlas\.dev-session\/overrides\/([^/]+)\/ready$/.exec(pathname);
     if (request.method === "POST" && overrideReadyMatch?.[1]) {
-      session.markReady(decodeURIComponent(overrideReadyMatch[1]));
+      session.markReady(decodeURIComponent(overrideReadyMatch[1]), requestedHostId);
       writeJson(response, { status: "ready" });
       return;
     }
     const overrideMatch = /^\/atlas\.dev-session\/overrides\/([^/]+)$/.exec(pathname);
     if (request.method === "DELETE" && overrideMatch?.[1]) {
-      session.unregister(decodeURIComponent(overrideMatch[1]));
+      session.unregister(decodeURIComponent(overrideMatch[1]), requestedHostId);
       writeJson(response, { status: "removed" });
       return;
     }
     if (request.method === "GET" && pathname === "/atlas.local-overrides.json") {
-      const current = session.document();
+      const current = session.document(requestedHostId);
       if (!current) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
@@ -214,7 +216,7 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
       return;
     }
     if (request.method === "GET" && pathname === "/atlas.dev-session.json") {
-      const current = session.devSession();
+      const current = session.devSession(requestedHostId);
       if (!current) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
@@ -223,8 +225,9 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
       writeJson(response, current);
       return;
     }
-    if (request.method === "GET" && pathname === session.catalogPath()) {
-      const current = session.catalog();
+    const catalogMatch = /^\/hosts\/([^/]+)\/catalog\.json$/.exec(pathname);
+    if (request.method === "GET" && catalogMatch?.[1]) {
+      const current = session.catalog(decodeURIComponent(catalogMatch[1]));
       if (!current) {
         response.writeHead(503, { "content-type": "application/json; charset=utf-8", "retry-after": "1" });
         response.end('{"status":"starting"}\n');
@@ -234,7 +237,8 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
       return;
     }
     if (request.method === "GET" && pathname === "/health") {
-      writeJson(response, session.document() ? { status: "ok" } : { status: "starting" }, session.document() ? 200 : 503);
+      const ready = session.hasReadySession();
+      writeJson(response, ready ? { status: "ok" } : { status: "starting" }, ready ? 200 : 503);
       return;
     }
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" }); response.end("Not found\n");
@@ -261,13 +265,14 @@ async function joinControlServer(
 ): Promise<DevControlServer> {
   const baseUrl = `http://${LOOPBACK_HOST}:${port}`;
   await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
-  const mfIds = document.overrides.map((override) => override.mfId);
+  const appIds = document.overrides.map((override) => override.appId);
+  const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
   return {
     async markReady() {
-      await Promise.all(mfIds.map((mfId) => postJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(mfId)}/ready`, {})));
+      await Promise.all(appIds.map((appId) => postJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}/ready${hostQuery}`, {})));
     },
     async close() {
-      await Promise.all(mfIds.map((mfId) => deleteJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(mfId)}`)));
+      await Promise.all(appIds.map((appId) => deleteJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}${hostQuery}`)));
     }
   };
 }
@@ -303,67 +308,93 @@ interface DevSessionEntry {
 
 interface DevSessionStore {
   register(document: AtlasRuntimeOverrideDocument): void;
-  unregister(mfId: string): void;
-  markReady(mfId: string): void;
+  unregister(appId: string, hostId?: string): void;
+  markReady(appId: string, hostId?: string): void;
   markDocumentReady(document: AtlasRuntimeOverrideDocument): void;
-  document(): AtlasRuntimeOverrideDocument | undefined;
-  catalog(): AtlasHostCatalog | undefined;
-  devSession(): AtlasDevSessionDocument | undefined;
-  catalogPath(): string;
+  document(hostId?: string): AtlasRuntimeOverrideDocument | undefined;
+  catalog(hostId: string): AtlasHostCatalog | undefined;
+  devSession(hostId?: string): AtlasDevSessionDocument | undefined;
+  hasReadySession(): boolean;
 }
 
 function createDevSessionStore(initial: AtlasRuntimeOverrideDocument, overrideUrl: string): DevSessionStore {
-  const entries = new Map<string, DevSessionEntry>();
-  let hostId = initial.hostId;
-  let generatedAt = initial.generatedAt;
-  register(initial, false);
+  const hosts = new Map<string, HostDevSession>();
+  register(initial);
 
-  function register(document: AtlasRuntimeOverrideDocument, ready = false): void {
-    if (document.hostId !== hostId) {
-      throw new Error(`Atlas dev control server already targets host "${hostId}", not "${document.hostId}".`);
-    }
-    generatedAt = document.generatedAt;
-    for (const override of document.overrides) entries.set(override.mfId, { override, ready });
+  function register(document: AtlasRuntimeOverrideDocument): void {
+    const host = hosts.get(document.hostId) ?? createHostDevSession(document.generatedAt);
+    host.generatedAt = document.generatedAt;
+    for (const override of document.overrides) host.entries.set(override.appId, { override, ready: false });
+    hosts.set(document.hostId, host);
   }
 
-  function readyOverrides(): AtlasRuntimeOverrideDocument["overrides"] {
-    return [...entries.values()].filter((entry) => entry.ready).map((entry) => entry.override);
-  }
-
-  function currentDocument(): AtlasRuntimeOverrideDocument | undefined {
-    const overrides = readyOverrides();
+  function currentDocument(requestedHostId?: string): AtlasRuntimeOverrideDocument | undefined {
+    const hostId = resolveHostId(hosts, requestedHostId);
+    if (!hostId) return undefined;
+    const host = hosts.get(hostId);
+    if (!host) return undefined;
+    const overrides = [...host.entries.values()].filter((entry) => entry.ready).map((entry) => entry.override);
     if (overrides.length === 0) return undefined;
-    return { schemaVersion: "1", hostId, overrides, generatedAt };
+    return { schemaVersion: "1", hostId, overrides, generatedAt: host.generatedAt };
   }
 
-  function markReady(mfId: string): void {
-    const entry = entries.get(mfId);
-    if (entry) entry.ready = true;
+  function matchingHosts(appId: string, requestedHostId?: string): HostDevSession[] {
+    if (requestedHostId) {
+      const host = hosts.get(requestedHostId);
+      return host ? [host] : [];
+    }
+    return [...hosts.values()].filter((host) => host.entries.has(appId));
+  }
+
+  function markReady(appId: string, requestedHostId?: string): void {
+    for (const host of matchingHosts(appId, requestedHostId)) {
+      const entry = host.entries.get(appId);
+      if (entry) entry.ready = true;
+    }
   }
 
   return {
     register,
-    unregister(mfId) {
-      entries.delete(mfId);
+    unregister(appId, requestedHostId) {
+      for (const [hostId, host] of hosts) {
+        if (requestedHostId && requestedHostId !== hostId) continue;
+        host.entries.delete(appId);
+        if (host.entries.size === 0) hosts.delete(hostId);
+      }
     },
     markReady,
     markDocumentReady(document) {
-      for (const override of document.overrides) markReady(override.mfId);
+      for (const override of document.overrides) markReady(override.appId, document.hostId);
     },
     document: currentDocument,
-    catalog() {
-      const document = currentDocument();
+    catalog(hostId) {
+      const document = currentDocument(hostId);
       return document ? createLocalDevCatalog(document) : undefined;
     },
-    devSession() {
-      const document = currentDocument();
+    devSession(hostId) {
+      const document = currentDocument(hostId);
       if (!document) return undefined;
       return createDevSession(document, createLocalDevCatalog(document), overrideUrl);
     },
-    catalogPath() {
-      return `/hosts/${encodeURIComponent(hostId)}/catalog.json`;
+    hasReadySession() {
+      return [...hosts.keys()].some((hostId) => currentDocument(hostId) !== undefined);
     }
   };
+}
+
+interface HostDevSession {
+  entries: Map<string, DevSessionEntry>;
+  generatedAt: string;
+}
+
+function createHostDevSession(generatedAt: string): HostDevSession {
+  return { entries: new Map<string, DevSessionEntry>(), generatedAt };
+}
+
+function resolveHostId(hosts: Map<string, HostDevSession>, requestedHostId?: string): string | undefined {
+  if (requestedHostId) return requestedHostId;
+  if (hosts.size !== 1) return undefined;
+  return hosts.keys().next().value;
 }
 
 function isAddressInUse(error: unknown): boolean {
@@ -391,8 +422,7 @@ function writeJson(response: ServerResponse, value: unknown, status = 200): void
 }
 
 function writeError(response: ServerResponse, error: unknown): void {
-  const status = error instanceof Error && error.message.includes("already targets host") ? 409 : 400;
-  writeJson(response, { error: error instanceof Error ? error.message : "Atlas dev control request failed." }, status);
+  writeJson(response, { error: error instanceof Error ? error.message : "Atlas dev control request failed." }, 400);
 }
 
 async function postJson(url: string, value: unknown): Promise<void> {

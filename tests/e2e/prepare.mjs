@@ -34,7 +34,7 @@ await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build"]);
 await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build"]);
 
 async function addSecondCatalogRelease() {
-  const entryPath = join(root, "examples/mfs/catalog-react/dist/entry.js");
+  const entryPath = join(root, "examples/apps/catalog-react/dist/entry.js");
   const originalEntry = await readFile(entryPath, "utf8");
   const releaseEntry = originalEntry.replace("Catalog React", "Catalog React 0.2.0");
   if (releaseEntry === originalEntry) throw new Error("Could not mark the second catalog-react release.");
@@ -54,11 +54,11 @@ async function addSecondCatalogRelease() {
   await cp(publication, cdn, { recursive: true, force: true });
 }
 
-async function addVersionFixtures(mfId) {
-  const indexPath = join(cdn, "apps", mfId, "index.json");
+async function addVersionFixtures(appId) {
+  const indexPath = join(cdn, "apps", appId, "index.json");
   const index = JSON.parse(await readFile(indexPath, "utf8"));
   const production = index.manifests[0];
-  const historicalRemoteEntryUrl = await createDistinctArtifact(production.remoteEntryUrl, mfId, "0.0.9", "historical-0.0.9", "Dashboard React Historical");
+  const historicalRemoteEntryUrl = await createDistinctArtifact(production.remoteEntryUrl, appId, "0.0.9", "historical-0.0.9", "Dashboard React Historical");
   const historical = {
     ...production,
     version: "0.0.9",
@@ -77,8 +77,8 @@ async function addVersionFixtures(mfId) {
   };
   index.manifests.push(pullRequest, historical);
   await writeJson(indexPath, index);
-  const localRemoteEntryUrl = await createDistinctArtifact(production.remoteEntryUrl, mfId, "0.2.0-local", "local-dev", "Dashboard React Local");
-  await writeJson(join(cdn, "fixtures", `${mfId}-local.json`), {
+  const localRemoteEntryUrl = await createDistinctArtifact(production.remoteEntryUrl, appId, "0.2.0-local", "local-dev", "Dashboard React Local");
+  await writeJson(join(cdn, "fixtures", `${appId}-local.json`), {
     ...production,
     version: "0.2.0-local",
     buildId: "local-dev",
@@ -88,16 +88,16 @@ async function addVersionFixtures(mfId) {
   });
 }
 
-async function createDistinctArtifact(sourceUrl, mfId, version, buildId, heading) {
+async function createDistinctArtifact(sourceUrl, appId, version, buildId, heading) {
   const sourceDirectory = dirname(join(cdn, new URL(sourceUrl).pathname));
-  const targetDirectory = join(cdn, mfId, version, buildId);
+  const targetDirectory = join(cdn, appId, version, buildId);
   await cp(sourceDirectory, targetDirectory, { recursive: true });
   const entryPath = join(targetDirectory, "entry.js");
   const entry = await readFile(entryPath, "utf8");
   const markedEntry = entry.replace("Dashboard React", heading);
-  if (markedEntry === entry) throw new Error(`Could not mark the ${version} ${mfId} artifact.`);
+  if (markedEntry === entry) throw new Error(`Could not mark the ${version} ${appId} artifact.`);
   await writeFile(entryPath, markedEntry, "utf8");
-  return `http://127.0.0.1:4400/${mfId}/${version}/${buildId}/remoteEntry.json`;
+  return `http://127.0.0.1:4400/${appId}/${version}/${buildId}/remoteEntry.json`;
 }
 
 async function addBrokenRoute(hostId) {

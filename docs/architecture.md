@@ -58,7 +58,7 @@ Each generated remote is responsible for the runtime it needs. React remotes are
 
 Generated remotes do not share product dependencies as federation singletons. Angular, React, Ionic, Bootstrap JavaScript, and other libraries are bundled with the remote that selected their version. This costs some duplicate bytes but prevents one app from satisfying another app's incompatible dependency range. Atlas values correctness and independent deployment over accidental deduplication; CDN caching still reuses immutable assets from repeated visits.
 
-Every mount receives an Atlas-owned root marked with `data-atlas-mf` or `data-atlas-widget`. The default `scoped` mode supports framework style encapsulation, CSS Modules, and selectors rooted at that marker. Set `isolation: "shadow-dom"` in `atlas.config.ts` for a hard DOM/CSS boundary when the widget emits its styles inside its root. Global CSS files loaded into `<head>` do not cross into a shadow root.
+Every mount receives an Atlas-owned root marked with `data-atlas-app` or `data-atlas-widget`. The default `scoped` mode supports framework style encapsulation, CSS Modules, and selectors rooted at that marker. Set `isolation: "shadow-dom"` in `atlas.config.ts` for a hard DOM/CSS boundary when the widget emits its styles inside its root. Global CSS files loaded into `<head>` do not cross into a shadow root.
 
 Browser globals are the remaining boundary. A library that mutates `window`, patches DOM prototypes, or installs an incompatible global runtime is not made safe merely by federation. Such a library must be configured not to install globals, upgraded, or run behind an iframe/process boundary. Atlas deliberately does not claim same-document isolation for arbitrary global side effects.
 
@@ -94,4 +94,4 @@ The host creates one in-memory event bus and exposes it through every app throug
 
 ## Static Registry
 
-CI publishes immutable version directories, updates `microfrontends/<appId>/index.json`, and replaces `hosts/<hostId>/catalog.json`. The `microfrontends` directory is the historical storage path for Atlas app indexes. Filesystem updates use atomic rename. HTTP/object-storage publication requires one serialized CI writer per storage root.
+CI publishes immutable version directories, updates `apps/<appId>/index.json`, and replaces `hosts/<hostId>/catalog.json`. Filesystem updates use atomic rename. HTTP/object-storage publication requires one serialized CI writer per storage root.

@@ -105,8 +105,8 @@ Import lifecycle types from `@atlas/sdk/lifecycle`:
 
 | API | Purpose |
 | --- | --- |
-| `AtlasMfEntry` | Framework-neutral `mount` contract exposed by an app |
-| `AtlasMfContext` | Manifest, navigation, route, widget, loading, and ready context |
+| `AtlasAppEntry` | Framework-neutral `mount` contract exposed by an app |
+| `AtlasAppContext` | Manifest, navigation, route, widget, loading, and ready context |
 | `AtlasWidgetLoader` | Catalog-scoped widget discovery and mounting |
 | `AtlasExportedWidgetEntry` | Framework-neutral widget mount contract |
 

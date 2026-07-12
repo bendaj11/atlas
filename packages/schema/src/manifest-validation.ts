@@ -162,15 +162,15 @@ function validateExportedWidget(value: unknown, ownerId: unknown, path: string, 
   const widget = asRecord(value);
   const id = requiredString(widget, "id", issues, path);
   requiredString(widget, "name", issues, path);
-  const ownerMfId = requiredString(widget, "ownerMfId", issues, path);
+  const ownerAppId = requiredString(widget, "ownerAppId", issues, path);
   requiredString(widget, "framework", issues, path);
   const remoteEntryUrl = requiredString(widget, "remoteEntryUrl", issues, path);
   requiredString(widget, "expose", issues, path);
   if (id) validateIdentifier(id, `${path}.id`, "widget id", issues);
-  if (ownerMfId) validateIdentifier(ownerMfId, `${path}.ownerMfId`, "owner app id", issues);
+  if (ownerAppId) validateIdentifier(ownerAppId, `${path}.ownerAppId`, "owner app id", issues);
   if (widget?.schemaVersion !== "1") addIssue(issues, `${path}.schemaVersion`, "Expected schemaVersion to be \"1\".");
   if (widget?.contractVersion !== "1") addIssue(issues, `${path}.contractVersion`, "Expected contractVersion to be \"1\".");
-  if (widget?.ownerMfId !== ownerId) addIssue(issues, `${path}.ownerMfId`, "Expected ownerMfId to match the app id.");
+  if (widget?.ownerAppId !== ownerId) addIssue(issues, `${path}.ownerAppId`, "Expected ownerAppId to match the app id.");
   if (!isOneOf(widget?.framework, FRAMEWORKS)) addIssue(issues, `${path}.framework`, "Expected a supported framework.");
   if (remoteEntryUrl) validateHttpUrl(remoteEntryUrl, `${path}.remoteEntryUrl`, issues);
   validateMetadata(widget?.metadata, `${path}.metadata`, issues);
@@ -190,8 +190,8 @@ function validateUses(value: unknown, path: string, issues: AtlasValidationIssue
       addIssue(issues, itemPath, "Expected a widget reference in owner-app/widget-id format.");
       return;
     }
-    const [ownerMfId, widgetId] = reference.split("/");
-    const ownerIsValid = validateIdentifier(ownerMfId, itemPath, "widget owner app id", issues);
+    const [ownerAppId, widgetId] = reference.split("/");
+    const ownerIsValid = validateIdentifier(ownerAppId, itemPath, "widget owner app id", issues);
     const widgetIsValid = validateIdentifier(widgetId, itemPath, "widget id", issues);
     if (ownerIsValid && widgetIsValid) validateUniqueValue(reference, itemPath, "widget reference", references, issues);
   });

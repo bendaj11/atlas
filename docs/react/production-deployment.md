@@ -62,10 +62,10 @@ Example publication plan shape:
   "schemaVersion": "1",
   "uploadOrder": ["immutable", "revalidate"],
   "files": [
-    { "path": "orders/1.4.0/build-123/mf.manifest.json", "cache": "immutable" },
+    { "path": "orders/1.4.0/build-123/app.manifest.json", "cache": "immutable" },
     { "path": "orders/1.4.0/build-123/remoteEntry.json", "cache": "immutable" },
     { "path": "registry.json", "cache": "revalidate" },
-    { "path": "microfrontends/orders/index.json", "cache": "revalidate" },
+    { "path": "apps/orders/index.json", "cache": "revalidate" },
     { "path": "hosts/customer-host/catalog.json", "cache": "revalidate" }
   ]
 }

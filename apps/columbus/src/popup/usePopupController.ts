@@ -22,7 +22,7 @@ export function usePopupController() {
 
     try {
       const result = await readHostData(activeTabId);
-      activeOverrides.current = new Map((result.hostData.overrides?.overrides ?? []).map((override) => [override.mfId, override.manifest]));
+      activeOverrides.current = new Map((result.hostData.overrides?.overrides ?? []).map((override) => [override.appId, override.manifest]));
       setActiveTabId(result.tabId);
       setHostData(result.hostData);
       setScope(result.hostData.overrideScope === "tab" ? "tab" : "all");

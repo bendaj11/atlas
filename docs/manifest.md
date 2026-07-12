@@ -34,7 +34,7 @@ It answers:
       schemaVersion: "1",
       id: "product-count",
       name: "Product Count",
-      ownerMfId: "catalog",
+      ownerAppId: "catalog",
       framework: "react",
       remoteEntryUrl: "https://cdn.example.com/atlas/catalog/1.2.3/product-count.js",
       expose: "./widgets/product-count",
@@ -52,6 +52,6 @@ Normal developers should not hand-write this JSON. They edit `atlas.config.ts`; 
 
 Atlas discovers emitted CSS during `atlas build`. The host loads every declared stylesheet before mounting the app, applies its SHA-256 integrity value, shares it across simultaneous page and widget mounts, and removes it after the final mount is destroyed.
 
-`isolation` defaults to `scoped`, which gives every mount a stable `data-atlas-mf` or `data-atlas-widget` root. Use `shadow-dom` when the app emits its styles inside its own root and needs a hard CSS boundary. See [Cross-Framework Interoperability](architecture.md#cross-framework-interoperability) for dependency and browser-global limits.
+`isolation` defaults to `scoped`, which gives every mount a stable `data-atlas-app` or `data-atlas-widget` root. Use `shadow-dom` when the app emits its styles inside its own root and needs a hard CSS boundary. See [Cross-Framework Interoperability](architecture.md#cross-framework-interoperability) for dependency and browser-global limits.
 
 Exported widget entries are generated from `src/exported-widgets/<widget-id>/index.ts`. See [Exported Widgets](exported-widgets.md).

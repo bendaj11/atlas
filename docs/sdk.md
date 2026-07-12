@@ -209,10 +209,10 @@ await startHost({
     return () => view.destroy();
   },
   renderLoading(container, event) {
-    mountMfLoader(container, event.manifest);
+    mountAppLoader(container, event.manifest);
   },
   renderError(container, event, retry) {
-    mountMfFallback(container, { error: event.error, retry });
+    mountAppFallback(container, { error: event.error, retry });
   }
 });
 ```
@@ -240,7 +240,7 @@ The callback receives a discriminated `AtlasRuntimeEvent` union:
 | --- | --- |
 | `host.start`, `host.ready`, and `host.error` | Host bootstrap. |
 | `operation.success`, `operation.retry`, and `operation.error` | Catalog, integrity, override, and federation work. |
-| `mf.state` | Mounting, app-requested loading, mounted, failed, and unmounted placement states. |
+| `app.state` | Mounting, app-requested loading, mounted, failed, and unmounted placement states. |
 
 Events include durations and relevant host, app, version, placement, URL,
 attempt, stage, and error fields. Atlas catches errors thrown by the observer,
@@ -257,7 +257,7 @@ await loadAndMountHostCatalog({
   hostId: sdk.hostId,
   catalogUrl: "/atlas-catalog.json",
   sdk: sdk,
-  resolveContainer: (manifest) => document.querySelector(`[data-atlas-mf="${manifest.id}"]`) ?? undefined
+  resolveContainer: (manifest) => document.querySelector(`[data-atlas-app="${manifest.id}"]`) ?? undefined
 });
 ```
 
@@ -279,7 +279,7 @@ Adapters convert framework-native app bootstrapping into the Atlas `mount/unmoun
 
 Angular hosts use `startHost`. It loads runtime configuration and catalog metadata, applies overrides, verifies integrity, initializes Native Federation, synchronizes Angular Router deep links, creates the host SDK, renders navigation, and starts route/slot lifecycle management.
 
-Angular apps use `defineApp` and `defineExportedWidget`. They receive `AtlasMfContext`, including `navigation`, `route`, and `widgets`; no product app bootstraps standalone.
+Angular apps use `defineApp` and `defineExportedWidget`. They receive `AtlasAppContext`, including `navigation`, `route`, and `widgets`; no product app bootstraps standalone.
 
 React hosts use `startHost` with React Router and the framework-agnostic Native Federation runtime. Routed React apps use `createRoutedApp`; router-free apps use `defineApp`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
 
