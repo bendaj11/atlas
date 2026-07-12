@@ -1,10 +1,15 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export async function loadWorkspaceEnv(root: string): Promise<void> {
+  await loadEnvFile(join(root, ".env.local"));
+  await loadEnvFile(join(root, ".env"));
+}
+
+async function loadEnvFile(path: string): Promise<void> {
   let source: string;
   try {
-    source = await readFile(join(root, ".env"), "utf8");
+    source = await readFile(path, "utf8");
   } catch {
     return;
   }
@@ -13,6 +18,27 @@ export async function loadWorkspaceEnv(root: string): Promise<void> {
     if (!entry || process.env[entry.name] !== undefined) continue;
     process.env[entry.name] = entry.value;
   }
+}
+
+export async function saveWorkspaceLocalEnv(root: string, values: Readonly<Record<string, string>>): Promise<void> {
+  const path = join(root, ".env.local");
+  let source = "";
+  try {
+    source = await readFile(path, "utf8");
+  } catch (error) {
+    if (!isMissingFileError(error)) throw error;
+  }
+  const remaining = new Map(Object.entries(values));
+  const lines = source.split(/\r?\n/).map((line) => {
+    const entry = parseEnvLine(line);
+    if (!entry || !remaining.has(entry.name)) return line;
+    const value = remaining.get(entry.name)!;
+    remaining.delete(entry.name);
+    return `${entry.name}=${formatEnvValue(value)}`;
+  });
+  if (lines.at(-1) === "") lines.pop();
+  for (const [name, value] of remaining) lines.push(`${name}=${formatEnvValue(value)}`);
+  await writeFile(path, `${lines.join("\n")}\n`, "utf8");
 }
 
 function parseEnvLine(line: string): { name: string; value: string } | undefined {
@@ -27,4 +53,12 @@ function parseEnvValue(value: string): string {
   if (value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1).replace(/\\n/g, "\n").replace(/\\"/g, '"');
   if (value.startsWith("'") && value.endsWith("'")) return value.slice(1, -1);
   return value.replace(/\s+#.*$/, "");
+}
+
+function formatEnvValue(value: string): string {
+  return /^[^\s#"']+$/.test(value) ? value : JSON.stringify(value);
+}
+
+function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }

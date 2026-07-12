@@ -1514,24 +1514,25 @@ test("atlas dev without a project uses the current Atlas project directory", asy
   assert.doesNotMatch(stdout, /atlas-override/);
 });
 
-test("workspace .env supplies Atlas dev defaults without overriding shell env", async () => {
+test("workspace env files supply Atlas dev defaults without overriding shell env", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-env-"));
-  const originalHost = process.env.ATLAS_HOST;
+  const originalHost = process.env.ATLAS_HOST_ID;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  process.env.ATLAS_HOST = "shell-host";
+  process.env.ATLAS_HOST_ID = "shell-host";
   delete process.env.ATLAS_HOST_URL;
   await writeFile(join(root, ".env"), [
-    "ATLAS_HOST=file-host",
+    "ATLAS_HOST_ID=file-host",
     "ATLAS_HOST_URL=http://localhost:4200",
     "# ignored"
   ].join("\n"));
+  await writeFile(join(root, ".env.local"), "ATLAS_HOST_URL=http://localhost:4300\n");
 
   try {
     await loadWorkspaceEnv(root);
-    assert.equal(process.env.ATLAS_HOST, "shell-host");
-    assert.equal(process.env.ATLAS_HOST_URL, "http://localhost:4200");
+    assert.equal(process.env.ATLAS_HOST_ID, "shell-host");
+    assert.equal(process.env.ATLAS_HOST_URL, "http://localhost:4300");
   } finally {
-    restoreEnv("ATLAS_HOST", originalHost);
+    restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
@@ -1548,9 +1549,9 @@ test("atlas dev appends a single route to a base ATLAS_HOST_URL", async () => {
     '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
     "};"
   ].join("\n"));
-  const originalHost = process.env.ATLAS_HOST;
+  const originalHost = process.env.ATLAS_HOST_ID;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  delete process.env.ATLAS_HOST;
+  delete process.env.ATLAS_HOST_ID;
   process.env.ATLAS_HOST_URL = "http://localhost:5173";
 
   try {
@@ -1560,7 +1561,7 @@ test("atlas dev appends a single route to a base ATLAS_HOST_URL", async () => {
     assert.match(stdout, /http:\/\/localhost:5173\/orders/);
     assert.doesNotMatch(stdout, /atlas-override/);
   } finally {
-    restoreEnv("ATLAS_HOST", originalHost);
+    restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
@@ -1612,7 +1613,10 @@ test("atlas dev prompts for a missing host URL in interactive mode", async () =>
         assert.equal(message, "Host URL for local development");
         return "https://customer.example/orders";
       },
-      select: async () => { throw new Error("Host selection should not be prompted"); }
+      select: async (message, choices) => {
+        assert.equal(message, "Save this host configuration to workspace .env.local?");
+        return choices.find((choice) => choice.value === "no")!.value;
+      }
     });
     assert.match(stdout, /App Preview: https:\/\/customer\.example\/orders/);
   } finally {
@@ -1697,16 +1701,19 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
     "  ]",
     "};"
   ].join("\n"));
-  const originalHost = process.env.ATLAS_HOST;
+  const originalHost = process.env.ATLAS_HOST_ID;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  delete process.env.ATLAS_HOST;
+  delete process.env.ATLAS_HOST_ID;
   delete process.env.ATLAS_HOST_URL;
 
   try {
     await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://admin.example/admin/orders", "--prepare-only"], {
       interactive: true,
       input: async () => { throw new Error("Host input should not be prompted."); },
-      select: async (_message, choices) => {
+      select: async (message, choices) => {
+        if (message === "Save this host configuration to workspace .env.local?") {
+          return choices.find((choice) => choice.value === "no")!.value;
+        }
         const selected = choices.find((choice) => choice.value === "admin-host");
         if (!selected) throw new Error("Expected admin host choice.");
         return selected.value;
@@ -1716,7 +1723,46 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
     const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
     assert.equal(document.hostId, "admin-host");
   } finally {
-    restoreEnv("ATLAS_HOST", originalHost);
+    restoreEnv("ATLAS_HOST_ID", originalHost);
+    restoreEnv("ATLAS_HOST_URL", originalHostUrl);
+  }
+});
+
+test("atlas dev offers to save prompted host configuration to workspace .env.local", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-save-host-env-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(root, ".env.local"), "UNCHANGED=value\nATLAS_HOST_ID=old-host\n");
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
+    "};"
+  ].join("\n"));
+  const originalHost = process.env.ATLAS_HOST_ID;
+  const originalHostUrl = process.env.ATLAS_HOST_URL;
+  delete process.env.ATLAS_HOST_ID;
+  delete process.env.ATLAS_HOST_URL;
+
+  try {
+    await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"], {
+      interactive: true,
+      input: async () => "https://customer.example/orders",
+      select: async (message, choices) => {
+        assert.equal(message, "Save this host configuration to workspace .env.local?");
+        return choices.find((choice) => choice.value === "yes")!.value;
+      }
+    });
+    assert.equal(await readFile(join(root, ".env.local"), "utf8"), [
+      "UNCHANGED=value",
+      "ATLAS_HOST_ID=customer-host",
+      "ATLAS_HOST_URL=https://customer.example/orders",
+      ""
+    ].join("\n"));
+  } finally {
+    restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });

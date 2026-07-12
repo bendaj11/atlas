@@ -51,18 +51,18 @@ atlas dev
 
 For `atlas dev <app>`, Atlas infers the host when the app config declares only
 one host. For multiple hosts, interactive terminals ask which host to use; in
-non-interactive shells, pass `--host` or set `ATLAS_HOST`. Use
+non-interactive shells, pass `--host` or set `ATLAS_HOST_ID`. Use
 `ATLAS_HOST_URL` accepts either an exact host page URL or a base URL. For a base
 URL, Atlas appends the route base path from `atlas.config.ts`; when several
 routes match the selected host, interactive terminals ask which route to use.
-Set it in the shell or in a workspace `.env` file:
+Set it in the shell or in a workspace `.env.local` file:
 
 ```dotenv
-ATLAS_HOST=customer-host
+ATLAS_HOST_ID=customer-host
 ATLAS_HOST_URL=http://localhost:4200
 ```
 
-Shell environment variables override `.env` values. Flags override both.
+Shell environment variables override `.env.local` and `.env` values. Flags override both.
 
 Atlas finds a project by Nx project name, package name, unscoped package name, directory name, or explicit directory. An Atlas project is identified by `atlas.config.ts`.
 Atlas also detects a workspace root from `package.json#workspaces` before a lockfile exists.

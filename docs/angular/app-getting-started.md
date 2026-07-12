@@ -159,16 +159,16 @@ atlas dev orders
 ```
 
 From inside app directory project name is optional. For repeated local work use
-workspace `.env`:
+workspace `.env.local`:
 
 ```dotenv
-ATLAS_HOST=customer-host
+ATLAS_HOST_ID=customer-host
 ATLAS_HOST_URL=http://localhost:4200
 ```
 
 `ATLAS_HOST_URL` accepts base or full page URL. For base URL Atlas appends route
-base path. Shell variables override `.env`. Multiple hosts prompt for selection
-unless `--host` or `ATLAS_HOST` is set.
+base path. Shell variables override `.env.local`. Multiple hosts prompt for selection
+unless `--host` or `ATLAS_HOST_ID` is set.
 
 Host process remains required. Workspace-specific commands and override internals
 live in [Local development](../local-development.md). Mount failures live in

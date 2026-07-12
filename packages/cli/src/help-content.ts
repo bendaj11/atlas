@@ -69,7 +69,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "-h, --help", description: "Show help for this command" }
     ],
     environment: [
-      { label: "ATLAS_HOST", description: "Default host id when an app supports multiple hosts" },
+      { label: "ATLAS_HOST_ID", description: "Default host id when an app supports multiple hosts" },
       { label: "ATLAS_HOST_URL", description: "Host base URL or full page URL opened with the override activated" }
     ],
     examples: [

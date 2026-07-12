@@ -32,7 +32,7 @@ the directory that contains both generated projects, or from your monorepo root.
 Atlas reads the app
 `atlas.config.ts` and infers the host when there is only one configured host. If
 there are multiple hosts, an interactive terminal asks which one to use; in
-non-interactive shells, pass `--host` or set `ATLAS_HOST`.
+non-interactive shells, pass `--host` or set `ATLAS_HOST_ID`.
 
 Atlas delegates to Nx, Turborepo, pnpm, Yarn, npm, or the standalone project
 script as needed. Then open the printed **Open host** URL from the app command.
@@ -44,21 +44,21 @@ No Native Federation URL or manifest needs editing.
 Set local defaults in the terminal when you want a quick launch:
 
 ```sh
-ATLAS_HOST=customer-host ATLAS_HOST_URL=http://localhost:4200 atlas dev orders
+ATLAS_HOST_ID=customer-host ATLAS_HOST_URL=http://localhost:4200 atlas dev orders
 ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
 ```
 
 `ATLAS_HOST_URL` accepts either a host base URL or a full page URL. For a base
 URL, Atlas appends the configured route base path. When the selected host has
 multiple routes, Atlas asks which route to open. For repeated local work, add a
-workspace `.env` file:
+workspace `.env.local` file:
 
 ```dotenv
-ATLAS_HOST=customer-host
+ATLAS_HOST_ID=customer-host
 ATLAS_HOST_URL=http://localhost:4200
 ```
 
-Shell environment variables override `.env` values. Flags override both.
+Shell environment variables override `.env.local` and `.env` values. Flags override both.
 
 Defaults are app port `4201` and Atlas control port `4400`. The control server
 multiplexes local apps by `hostId`, so apps targeting different hosts can run

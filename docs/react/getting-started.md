@@ -356,15 +356,15 @@ ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
 
 `ATLAS_HOST_URL` accepts a host base URL or full page URL. For a base URL, Atlas
 appends the app route base path from `atlas.config.ts`.
-For repeated local work, put the values in a workspace `.env` file:
+For repeated local work, put the values in a workspace `.env.local` file:
 
 ```dotenv
-ATLAS_HOST=customer-host
+ATLAS_HOST_ID=customer-host
 ATLAS_HOST_URL=http://localhost:5173
 ```
 
-Shell environment variables override `.env` values. If an app declares multiple
-hosts and neither `--host` nor `ATLAS_HOST` is set, Atlas asks which host to use
+Shell environment variables override `.env.local` values. If an app declares multiple
+hosts and neither `--host` nor `ATLAS_HOST_ID` is set, Atlas asks which host to use
 in an interactive terminal.
 
 Atlas uses the same top-level command in standalone projects, Nx, Turborepo,

@@ -8,6 +8,7 @@ import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig } from "@atlas/sche
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
+import { saveWorkspaceLocalEnv } from "./env.js";
 import type { AtlasPrompter } from "./ui.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
@@ -23,6 +24,7 @@ interface DevControlServer {
 interface DevTarget {
   hostId: string;
   hostUrl: string;
+  promptedForConfiguration: boolean;
 }
 
 interface AtlasDevSessionDocument {
@@ -75,6 +77,7 @@ export class AtlasDevService {
     const controlPort = this.args.port("control-port", 4400);
     const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: `http://localhost:${remotePort}` });
     const target = await this.resolveDevTarget(config, prompts);
+    await this.offerToSaveDevTarget(target, prompts);
     const document: AtlasRuntimeOverrideDocument = {
       schemaVersion: "1", hostId: target.hostId,
       overrides: [{ appId: manifest.id, manifest, reason: "local" }],
@@ -112,20 +115,45 @@ export class AtlasDevService {
   }
 
   private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">): Promise<DevTarget> {
+    const configuredHostId = this.args.flag("host") ?? process.env.ATLAS_HOST_ID;
+    const configuredHostUrl = this.args.flag("host-url") ?? process.env.ATLAS_HOST_URL;
     const hostId = await this.resolveHostId(config, prompts);
     const hostUrl = await this.resolveHostUrl(config, hostId, prompts);
-    return { hostId, hostUrl };
+    return {
+      hostId,
+      hostUrl,
+      promptedForConfiguration: prompts.interactive && (
+        (!configuredHostId && configuredHostIds(config).length > 1) || !configuredHostUrl
+      )
+    };
+  }
+
+  private async offerToSaveDevTarget(
+    target: DevTarget,
+    prompts: Pick<AtlasPrompter, "interactive" | "select">
+  ): Promise<void> {
+    if (!target.promptedForConfiguration) return;
+    const answer = await prompts.select("Save this host configuration to workspace .env.local?", [
+      { label: "Yes", value: "yes" },
+      { label: "No", value: "no" }
+    ]);
+    if (answer === "no") return;
+    await saveWorkspaceLocalEnv(this.workspace.root, {
+      ATLAS_HOST_ID: target.hostId,
+      ATLAS_HOST_URL: target.hostUrl
+    });
+    console.info(`Saved local host configuration to ${join(this.workspace.root, ".env.local")}.`);
   }
 
   private async resolveHostId(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<string> {
-    const explicit = this.args.flag("host") ?? process.env.ATLAS_HOST;
+    const explicit = this.args.flag("host") ?? process.env.ATLAS_HOST_ID;
     if (explicit) return explicit;
     const hostIds = configuredHostIds(config);
     if (hostIds.length === 1) return hostIds[0]!;
     if (hostIds.length > 1 && prompts.interactive) {
       return prompts.select("Host receiving the local override", hostIds.map((hostId) => ({ label: hostId, value: hostId })));
     }
-    if (hostIds.length > 1) throw new Error(`Multiple hosts found for "${config.id}". Pass --host or set ATLAS_HOST.`);
+    if (hostIds.length > 1) throw new Error(`Multiple hosts found for "${config.id}". Pass --host or set ATLAS_HOST_ID.`);
     throw new Error(`No host configured for "${config.id}". Add a route or slot with hostId, or pass --host.`);
   }
 
