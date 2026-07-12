@@ -1282,6 +1282,11 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
     resourcesTimeoutMs: 15000,
     resourcesRetryCount: 3
   });
+  assert.deepEqual(JSON.parse(await readFile(join(projectRoot, "public/remoteEntry.json"), "utf8")), {
+    name: "atlas_customer_host",
+    exposes: [],
+    shared: []
+  });
 });
 
 test("atlas dev delegates Nx app projects to the serve task", async () => {

@@ -61,7 +61,7 @@ export class AtlasDevService {
   }
 
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
-    await writeHostRuntimeConfig(project, config, this.args);
+    await writeHostDevArtifacts(project, config, this.args);
     if (this.args.hasFlag("prepare-only")) {
       console.info(`Host "${config.id}" is ready. Run without --prepare-only to start its dev server.`);
       return;
@@ -186,15 +186,24 @@ export class AtlasDevService {
   }
 }
 
-async function writeHostRuntimeConfig(
+async function writeHostDevArtifacts(
   project: AtlasProject,
   config: AtlasHostConfig,
   args: CliArguments
 ): Promise<void> {
+  const publicDirectory = join(project.root, "public");
+  await mkdir(publicDirectory, { recursive: true });
+  const runtimeConfigPath = join(publicDirectory, "atlas.runtime.json");
   const runtimeConfig = createHostRuntimeConfig(config, args, project.version);
-  const runtimeConfigPath = join(project.root, "public", "atlas.runtime.json");
-  await mkdir(dirname(runtimeConfigPath), { recursive: true });
   await writeFile(runtimeConfigPath, `${JSON.stringify(runtimeConfig, null, 2)}\n`, "utf8");
+  if (config.framework === "react") {
+    const federationInfo = { name: federationRemoteName(config.id), exposes: [], shared: [] };
+    await writeFile(join(publicDirectory, "remoteEntry.json"), `${JSON.stringify(federationInfo, null, 2)}\n`, "utf8");
+  }
+}
+
+function federationRemoteName(id: string): string {
+  return `atlas_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 }
 
 export async function startControlServer(
