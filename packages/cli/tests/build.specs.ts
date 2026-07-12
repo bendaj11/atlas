@@ -14,7 +14,7 @@ import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
 import { AtlasDevService, browserOpenCommand, createDevSession, createLocalDevCatalog, remoteEntryIsReady, startControlServer } from "../dist/dev.js";
-import { loadWorkspaceEnv } from "../dist/env.js";
+import { loadEnvFiles } from "../dist/env.js";
 import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
 import type { AtlasPrompter } from "../dist/ui.js";
 import { atlasPackageRange, createTestWorkspace, TestChildProcess } from "./build.driver.js";
@@ -1273,6 +1273,15 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
   }
 
   assert.deepEqual(calls, [["spawn", "dev"]]);
+  assert.deepEqual(JSON.parse(await readFile(join(projectRoot, "public/atlas.runtime.json"), "utf8")), {
+    schemaVersion: "1",
+    hostId: "customer-host",
+    hostVersion: "1.0.0",
+    catalogUrl: "http://127.0.0.1:4400/hosts/customer-host/catalog.json",
+    allowAppOverrides: true,
+    resourcesTimeoutMs: 15000,
+    resourcesRetryCount: 3
+  });
 });
 
 test("atlas dev delegates Nx app projects to the serve task", async () => {
@@ -1528,7 +1537,7 @@ test("workspace env files supply Atlas dev defaults without overriding shell env
   await writeFile(join(root, ".env.local"), "ATLAS_HOST_URL=http://localhost:4300\n");
 
   try {
-    await loadWorkspaceEnv(root);
+    await loadEnvFiles(root);
     assert.equal(process.env.ATLAS_HOST_ID, "shell-host");
     assert.equal(process.env.ATLAS_HOST_URL, "http://localhost:4300");
   } finally {
@@ -1614,7 +1623,7 @@ test("atlas dev prompts for a missing host URL in interactive mode", async () =>
         return "https://customer.example/orders";
       },
       select: async (message, choices) => {
-        assert.equal(message, "Save this host configuration to workspace .env.local?");
+        assert.equal(message, "Save this host configuration to project .env.local?");
         return choices.find((choice) => choice.value === "no")!.value;
       }
     });
@@ -1711,7 +1720,7 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
       interactive: true,
       input: async () => { throw new Error("Host input should not be prompted."); },
       select: async (message, choices) => {
-        if (message === "Save this host configuration to workspace .env.local?") {
+        if (message === "Save this host configuration to project .env.local?") {
           return choices.find((choice) => choice.value === "no")!.value;
         }
         const selected = choices.find((choice) => choice.value === "admin-host");
@@ -1728,11 +1737,11 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
   }
 });
 
-test("atlas dev offers to save prompted host configuration to workspace .env.local", async () => {
+test("atlas dev offers to save prompted host configuration to project .env.local", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-save-host-env-"));
   const projectRoot = join(root, "orders");
   await mkdir(projectRoot, { recursive: true });
-  await writeFile(join(root, ".env.local"), "UNCHANGED=value\nATLAS_HOST_ID=old-host\n");
+  await writeFile(join(projectRoot, ".env.local"), "UNCHANGED=value\n");
   await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
   await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
@@ -1751,16 +1760,21 @@ test("atlas dev offers to save prompted host configuration to workspace .env.loc
       interactive: true,
       input: async () => "https://customer.example/orders",
       select: async (message, choices) => {
-        assert.equal(message, "Save this host configuration to workspace .env.local?");
+        assert.equal(message, "Save this host configuration to project .env.local?");
         return choices.find((choice) => choice.value === "yes")!.value;
       }
     });
-    assert.equal(await readFile(join(root, ".env.local"), "utf8"), [
+    assert.equal(await readFile(join(projectRoot, ".env.local"), "utf8"), [
       "UNCHANGED=value",
       "ATLAS_HOST_ID=customer-host",
       "ATLAS_HOST_URL=https://customer.example/orders",
       ""
     ].join("\n"));
+    delete process.env.ATLAS_HOST_ID;
+    delete process.env.ATLAS_HOST_URL;
+    await loadEnvFiles(projectRoot);
+    assert.equal(process.env.ATLAS_HOST_ID, "customer-host");
+    assert.equal(process.env.ATLAS_HOST_URL, "https://customer.example/orders");
   } finally {
     restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);

@@ -8,7 +8,8 @@ import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig } from "@atlas/sche
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
-import { saveWorkspaceLocalEnv } from "./env.js";
+import { loadEnvFiles, saveWorkspaceLocalEnv } from "./env.js";
+import { createHostRuntimeConfig } from "./runtime-config.js";
 import type { AtlasPrompter } from "./ui.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
@@ -45,6 +46,8 @@ export class AtlasDevService {
 
   async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select"> = nonInteractivePrompter): Promise<void> {
     const project = await this.workspace.findProject(name);
+    await loadEnvFiles(project.root);
+    if (project.root !== this.workspace.root) await loadEnvFiles(this.workspace.root);
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
     if (config.framework === "angular" && !this.args.hasFlag("prepare-only")) {
@@ -58,6 +61,7 @@ export class AtlasDevService {
   }
 
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
+    await writeHostRuntimeConfig(project, config, this.args);
     if (this.args.hasFlag("prepare-only")) {
       console.info(`Host "${config.id}" is ready. Run without --prepare-only to start its dev server.`);
       return;
@@ -77,7 +81,7 @@ export class AtlasDevService {
     const controlPort = this.args.port("control-port", 4400);
     const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: `http://localhost:${remotePort}` });
     const target = await this.resolveDevTarget(config, prompts);
-    await this.offerToSaveDevTarget(target, prompts);
+    await this.offerToSaveDevTarget(project.root, target, prompts);
     const document: AtlasRuntimeOverrideDocument = {
       schemaVersion: "1", hostId: target.hostId,
       overrides: [{ appId: manifest.id, manifest, reason: "local" }],
@@ -129,20 +133,21 @@ export class AtlasDevService {
   }
 
   private async offerToSaveDevTarget(
+    projectRoot: string,
     target: DevTarget,
     prompts: Pick<AtlasPrompter, "interactive" | "select">
   ): Promise<void> {
     if (!target.promptedForConfiguration) return;
-    const answer = await prompts.select("Save this host configuration to workspace .env.local?", [
+    const answer = await prompts.select("Save this host configuration to project .env.local?", [
       { label: "Yes", value: "yes" },
       { label: "No", value: "no" }
     ]);
     if (answer === "no") return;
-    await saveWorkspaceLocalEnv(this.workspace.root, {
+    await saveWorkspaceLocalEnv(projectRoot, {
       ATLAS_HOST_ID: target.hostId,
       ATLAS_HOST_URL: target.hostUrl
     });
-    console.info(`Saved local host configuration to ${join(this.workspace.root, ".env.local")}.`);
+    console.info(`Saved local host configuration to ${join(projectRoot, ".env.local")}.`);
   }
 
   private async resolveHostId(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<string> {
@@ -179,6 +184,17 @@ export class AtlasDevService {
     if (prompts.interactive) return prompts.input("Host URL for local development");
     throw new Error("Host URL is required. Pass --host-url or set ATLAS_HOST_URL.");
   }
+}
+
+async function writeHostRuntimeConfig(
+  project: AtlasProject,
+  config: AtlasHostConfig,
+  args: CliArguments
+): Promise<void> {
+  const runtimeConfig = createHostRuntimeConfig(config, args, project.version);
+  const runtimeConfigPath = join(project.root, "public", "atlas.runtime.json");
+  await mkdir(dirname(runtimeConfigPath), { recursive: true });
+  await writeFile(runtimeConfigPath, `${JSON.stringify(runtimeConfig, null, 2)}\n`, "utf8");
 }
 
 export async function startControlServer(

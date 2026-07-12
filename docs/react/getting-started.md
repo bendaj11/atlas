@@ -356,7 +356,7 @@ ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
 
 `ATLAS_HOST_URL` accepts a host base URL or full page URL. For a base URL, Atlas
 appends the app route base path from `atlas.config.ts`.
-For repeated local work, put the values in a workspace `.env.local` file:
+For repeated local work, put the values in the app project's `.env.local` file:
 
 ```dotenv
 ATLAS_HOST_ID=customer-host

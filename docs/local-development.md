@@ -51,14 +51,16 @@ ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
 `ATLAS_HOST_URL` accepts either a host base URL or a full page URL. For a base
 URL, Atlas appends the configured route base path. When the selected host has
 multiple routes, Atlas asks which route to open. For repeated local work, add a
-workspace `.env.local` file:
+app project's `.env.local` file:
 
 ```dotenv
 ATLAS_HOST_ID=customer-host
 ATLAS_HOST_URL=http://localhost:4200
 ```
 
-Shell environment variables override `.env.local` and `.env` values. Flags override both.
+Atlas finds this file from the selected app even when invoked elsewhere in the
+workspace. Shell environment variables override project and workspace env files.
+Flags override both.
 
 Defaults are app port `4201` and Atlas control port `4400`. The control server
 multiplexes local apps by `hostId`, so apps targeting different hosts can run

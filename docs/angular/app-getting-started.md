@@ -159,7 +159,7 @@ atlas dev orders
 ```
 
 From inside app directory project name is optional. For repeated local work use
-workspace `.env.local`:
+the app project's `.env.local`:
 
 ```dotenv
 ATLAS_HOST_ID=customer-host

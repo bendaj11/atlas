@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export async function loadWorkspaceEnv(root: string): Promise<void> {
+export async function loadEnvFiles(root: string): Promise<void> {
   await loadEnvFile(join(root, ".env.local"));
   await loadEnvFile(join(root, ".env"));
 }

@@ -55,14 +55,15 @@ non-interactive shells, pass `--host` or set `ATLAS_HOST_ID`. Use
 `ATLAS_HOST_URL` accepts either an exact host page URL or a base URL. For a base
 URL, Atlas appends the route base path from `atlas.config.ts`; when several
 routes match the selected host, interactive terminals ask which route to use.
-Set it in the shell or in a workspace `.env.local` file:
+Set it in the shell or in the app project's `.env.local` file:
 
 ```dotenv
 ATLAS_HOST_ID=customer-host
 ATLAS_HOST_URL=http://localhost:4200
 ```
 
-Shell environment variables override `.env.local` and `.env` values. Flags override both.
+Atlas loads the selected project's env files before workspace env files, regardless
+of invocation directory. Shell environment variables override both. Flags override all env values.
 
 Atlas finds a project by Nx project name, package name, unscoped package name, directory name, or explicit directory. An Atlas project is identified by `atlas.config.ts`.
 Atlas also detects a workspace root from `package.json#workspaces` before a lockfile exists.

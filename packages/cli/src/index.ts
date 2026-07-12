@@ -7,7 +7,7 @@ import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { AtlasDevService } from "./dev.js";
 import { AtlasGenerateService } from "./generate.js";
-import { loadWorkspaceEnv } from "./env.js";
+import { loadEnvFiles } from "./env.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasRollbackService } from "./rollback.js";
 import { AtlasRuntimeConfigService } from "./runtime-config.js";
@@ -30,7 +30,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     }
     const invocation = await resolveInvocation(args, prompts);
     const workspace = await detectWorkspace();
-    await loadWorkspaceEnv(workspace.root);
+    if (invocation.command !== "dev") await loadEnvFiles(workspace.root);
     const builds = new AtlasBuildService(workspace, args);
     const generate = new AtlasGenerateService(workspace, args, prompts);
 
