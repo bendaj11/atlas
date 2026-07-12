@@ -579,7 +579,7 @@ for (const scenario of [
       assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
       assert.equal(architect.serve.options.port, 4200);
       assert.equal(architect["serve-original"].options.port, 4200);
-      assert.deepEqual(appTsconfig.files, ["src/main.ts"]);
+      assert.deepEqual(appTsconfig.files, ["src/main.ts", "atlas.config.ts"]);
       assert.equal(appTsconfig.extends, undefined);
       assert.equal(appTsconfig.compilerOptions.emitDeclarationOnly, undefined);
       await assert.rejects(access(join(root, scenario.root, "tsconfig.json")), { code: "ENOENT" });
@@ -665,7 +665,7 @@ exit 1
   assert.equal(JSON.parse(await readFile(join(root, "products/host/tsconfig.json"), "utf8")).marker, "nx-generator");
   const angularHostTsconfig = JSON.parse(await readFile(join(root, "products/host/tsconfig.app.json"), "utf8"));
   assert.equal(angularHostTsconfig.marker, "nx-generator");
-  assert.equal(angularHostTsconfig.include, undefined);
+  assert.deepEqual(angularHostTsconfig.include, ["atlas.config.ts"]);
   assert.equal(angularHostTsconfig.compilerOptions.emitDeclarationOnly, false);
   assert.equal(await readFile(join(root, "products/host/public/nx.txt"), "utf8"), "nx public asset\n");
   await assert.rejects(access(join(root, "products/host/package.json")), { code: "ENOENT" });
@@ -718,7 +718,7 @@ if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   printf 'nx vite config\n' > "$directory/vite.config.mts"
   printf 'nx react public asset\n' > "$directory/public/nx.txt"
   printf 'nx eslint\n' > "$directory/eslint.config.mjs"
-  printf '{"name":"host","marker":"nx-generator"}\n' > "$directory/project.json"
+  printf '{"name":"host","marker":"nx-generator","targets":{"dev":{"executor":"@nx/vite:dev-server"},"serve":{"executor":"@nx/vite:dev-server"}}}\n' > "$directory/project.json"
   printf '{"extends":"../../tsconfig.base.json","marker":"nx-generator"}\n' > "$directory/tsconfig.json"
   exit 0
 fi
@@ -732,10 +732,16 @@ exit 1
 
   const project = JSON.parse(await readFile(join(root, "apps/host/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
+  assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config host");
+  assert.equal(project.targets.dev.options.commands[1].command, "nx run host:serve");
+  assert.equal(project.targets.dev.options.parallel, false);
   const hostMain = await readFile(join(root, "apps/host/src/main.tsx"), "utf8");
-  assert.match(hostMain, /startHost/);
-  assert.match(hostMain, /createBrowserRouter/);
+  assert.match(hostMain, /startAtlasHost/);
+  assert.doesNotMatch(hostMain, /startHost|createBrowserRouter|atlasConfig/);
   assert.doesNotMatch(hostMain, /import\.meta\.hot/);
+  const atlasBootstrap = await readFile(join(root, "apps/host/src/atlas-bootstrap.ts"), "utf8");
+  assert.match(atlasBootstrap, /startHost/);
+  assert.match(atlasBootstrap, /createBrowserRouter/);
   const hostViteConfig = await readFile(join(root, "apps/host/vite.config.ts"), "utf8");
   assert.match(hostViteConfig, /reactCompilerPreset/);
   assert.doesNotMatch(hostViteConfig, /ReactBabelOptions/);
@@ -839,7 +845,7 @@ exit 1
   assert.equal(project.targets.orders.options.command, "nx run orders:dev");
   const angularAppTsconfig = JSON.parse(await readFile(join(root, "orders/tsconfig.app.json"), "utf8"));
   assert.equal(angularAppTsconfig.marker, "nx-generator");
-  assert.equal(angularAppTsconfig.include, undefined);
+  assert.deepEqual(angularAppTsconfig.include, ["atlas.config.ts"]);
   assert.equal(angularAppTsconfig.compilerOptions.emitDeclarationOnly, false);
   assert.match(stdout, /Delegating Angular scaffolding to @nx\/angular:application at orders/);
   assert.equal(await readFile(join(root, "formatted.txt"), "utf8"), "orders\n");

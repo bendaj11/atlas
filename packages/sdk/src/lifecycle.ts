@@ -1,5 +1,5 @@
 import type { AtlasExportedWidgetManifest, AtlasManifest } from "@atlas/schema";
-import type { AtlasEventMap, AtlasSdk } from "./host.js";
+import type { AtlasSdk } from "./host.js";
 import type { AtlasRouteContext, AtlasScopedNavigation } from "./navigation.js";
 
 /** Runtime context scoped to one mounted app and its assigned host route. */
@@ -17,13 +17,9 @@ export interface AtlasAppContext {
   };
 }
 
-export interface AtlasAppMountRequest<
-  TExtensions extends object = {},
-  TEvents extends object = AtlasEventMap,
-  THostData extends object = {}
-> {
+export interface AtlasAppMountRequest<THostSdk extends object = {}> {
   container: HTMLElement;
-  sdk: AtlasSdk<TExtensions, TEvents, THostData>;
+  sdk: AtlasSdk<THostSdk>;
   context: AtlasAppContext;
 }
 
@@ -32,23 +28,17 @@ export interface AtlasAppMountResult {
 }
 
 /** Framework-neutral lifecycle contract exposed by every app remote entry. */
-export interface AtlasAppEntry<
-  TExtensions extends object = {},
-  TEvents extends object = AtlasEventMap,
-  THostData extends object = {}
-> {
-  mount(request: AtlasAppMountRequest<TExtensions, TEvents, THostData>): void | AtlasAppMountResult | Promise<void | AtlasAppMountResult>;
+export interface AtlasAppEntry<THostSdk extends object = {}> {
+  mount(request: AtlasAppMountRequest<THostSdk>): void | AtlasAppMountResult | Promise<void | AtlasAppMountResult>;
 }
 
 export interface AtlasExportedWidgetMountRequest<
   TProps extends object = Record<string, unknown>,
-  TExtensions extends object = {},
-  TEvents extends object = AtlasEventMap,
-  THostData extends object = {}
+  THostSdk extends object = {}
 > {
   container: HTMLElement;
   props: TProps;
-  sdk: AtlasSdk<TExtensions, TEvents, THostData>;
+  sdk: AtlasSdk<THostSdk>;
   widget: AtlasExportedWidgetManifest;
   ownerManifest: AtlasManifest;
 }

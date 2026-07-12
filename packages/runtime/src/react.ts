@@ -19,14 +19,14 @@ export function AtlasDefaultHostLayout(): ReactElement {
   );
 }
 
-export interface HostOptions<TExtensions extends object = {}, THostData extends object = {}>
-  extends DomHostOptions<TExtensions, THostData> {
+export interface HostOptions<THostSdk extends object = {}>
+  extends DomHostOptions<THostSdk> {
   router: RouterLike;
 }
 
 /** Boots Atlas discovery, Native Federation, routing, slots, and lifecycle for a React host. */
-export async function startHost<TExtensions extends object = {}, THostData extends object = {}>(
-  options: HostOptions<TExtensions, THostData>
+export async function startHost<THostSdk extends object = {}>(
+  options: HostOptions<THostSdk>
 ): Promise<AtlasHostRuntime> {
   return startDomHost(options, {
     createNavigation: () => createHostNavigation(options.router)

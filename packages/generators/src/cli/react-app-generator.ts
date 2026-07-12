@@ -68,8 +68,7 @@ const navigation = createBrowserNavigation();
 const sdk = createAtlasSdk({
   hostId: "local-dev",
   hostData: { hostId: "local-dev", name: "Local Dev" },
-  navigation,
-  showToast: (toast) => console.info("[Atlas toast]", toast.title)
+  navigation
 });
 const router = createBrowserRouter(routes);
 const app = (
@@ -112,8 +111,7 @@ const navigation = createBrowserNavigation();
 const sdk = createAtlasSdk({
   hostId: "local-dev",
   hostData: { hostId: "local-dev", name: "Local Dev" },
-  navigation,
-  showToast: (toast) => console.info("[Atlas toast]", toast.title)
+  navigation
 });
 const app = (
   <StrictMode>
@@ -129,18 +127,12 @@ mountApp(root);
 
 export function reactAppApp(name: string): string {
   return `import { Link, Outlet } from "react-router-dom";
-import { useAtlasSdk } from "@atlas/sdk/react";
 import "../styles.css";
 
 export function App() {
-  const atlas = useAtlasSdk();
-
   return (
     <section>
       <h1>${title(name)}</h1>
-      <button type="button" onClick={() => atlas.toast.open({ title: "${title(name)} is ready" })}>
-        Show toast
-      </button>
       <nav>
         <Link to="/">Home</Link>
         <Link to="details/42">Details</Link>
@@ -153,22 +145,16 @@ export function App() {
 }
 
 export function reactSinglePageApp(name: string): string {
-  return `import { useAtlasSdk } from "@atlas/sdk/react";
-import "../styles.css";
+  return `import "../styles.css";
 
 interface AppProps {
   name?: string;
 }
 
 export function App({ name = "${title(name)}" }: AppProps) {
-  const atlas = useAtlasSdk();
-
   return (
     <section>
       <h1>{name}</h1>
-      <button type="button" onClick={() => atlas.toast.open({ title: \`\${name} is ready\` })}>
-        Show toast
-      </button>
       <p>Single-page Atlas app</p>
     </section>
   );

@@ -19,7 +19,7 @@ function App({ context }: AtlasAppMountRequest) {
     });
     return () => { disposed = true; void unmount(); };
   }, [appLoaded, context]);
-  return <section><h1>Dashboard React</h1><p>{atlas.hostData.name} mounted at {context.basePath}</p><div ref={widget} /><button type="button" onClick={() => atlas.toast.open({ title: "Dashboard React is ready" })}>Show toast</button><button type="button" onClick={() => atlas.popup.open({ title: "Order status", content: { widget: "orders-angular/order-status", props: { status: "processing" } }, draggable: true, resizable: true })}>Open Angular widget popup</button></section>;
+  return <section><h1>Dashboard React</h1><p>{atlas.hostData.name} mounted at {context.basePath}</p><div ref={widget} /></section>;
 }
 
 export default defineApp({ createRoot, createElement: (request) => createElement(App, request) });

@@ -16,7 +16,8 @@ Generated host files to understand first:
 | File | Owner | Purpose |
 | --- | --- | --- |
 | `atlas.config.ts` | Host team | Stable host id, display name, runtime defaults. |
-| `src/main.tsx` | Host team | Calls `startHost`, connects React Router, Native Federation, and SDK providers. |
+| `src/atlas-bootstrap.ts` | Host team | Connects React Router, Native Federation, host config, and `startHost`. |
+| `src/main.tsx` | Host team | Mounts React and starts the Atlas bootstrap. |
 | `vite.config.ts` | Atlas/platform | Vite and federation build wiring. Product teams usually leave federation parts alone. |
 | `src/app` | Host team | Replaceable product layout with Atlas DOM anchors. |
 

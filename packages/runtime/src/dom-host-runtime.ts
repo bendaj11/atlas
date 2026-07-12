@@ -16,15 +16,15 @@ import {
   type AtlasHostRuntime
 } from "./index.js";
 
-interface DomHostRuntimeInput<TExtensions extends object, THostData extends object> {
-  options: DomHostOptions<TExtensions, THostData>;
+interface DomHostRuntimeInput<THostSdk extends object> {
+  options: DomHostOptions<THostSdk>;
   services: DomHostServices;
   document: Document;
   onInfrastructureReady: () => void;
 }
 
-export async function startDomHostRuntime<TExtensions extends object, THostData extends object>(
-  input: DomHostRuntimeInput<TExtensions, THostData>
+export async function startDomHostRuntime<THostSdk extends object>(
+  input: DomHostRuntimeInput<THostSdk>
 ): Promise<AtlasHostRuntime> {
   const { options, services, document, onInfrastructureReady } = input;
   const config = await resolveHostConfig(options);

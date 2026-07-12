@@ -266,7 +266,7 @@ test("Native Federation module imports use the configured retry policy", async (
   assert.equal(attempts, 2);
 });
 
-test("Native Federation initializes local remotes in one registry update", async () => {
+test("Native Federation initializes local remotes independently", async () => {
   const initialized: Array<Record<string, string>> = [];
   const loaded: string[] = [];
   const importers = createNativeFederationImporters({
@@ -285,14 +285,14 @@ test("Native Federation initializes local remotes in one registry update", async
   await importers.importRemote(first);
   await importers.importRemote(second);
 
-  assert.deepEqual(initialized, [{
-    atlas_first: "http://localhost:4201/remoteEntry.json",
-    atlas_second: "http://localhost:4202/remoteEntry.json"
-  }]);
+  assert.deepEqual(initialized, [
+    { atlas_first: "http://localhost:4201/remoteEntry.json" },
+    { atlas_second: "http://localhost:4202/remoteEntry.json" }
+  ]);
   assert.deepEqual(loaded, ["atlas_first", "atlas_second"]);
 });
 
-test("Native Federation falls back to per-remote initialization when batch initialization fails", async () => {
+test("Native Federation keeps healthy remotes loadable when another initialization fails", async () => {
   const initialized: string[][] = [];
   const importers = createNativeFederationImporters({
     async initFederation(remotes) {
@@ -308,7 +308,6 @@ test("Native Federation falls back to per-remote initialization when batch initi
   await importers.importRemote(healthy);
 
   assert.deepEqual(initialized, [
-    ["atlas_healthy", "atlas_broken"],
     ["atlas_healthy"],
     ["atlas_broken"]
   ]);
@@ -719,9 +718,7 @@ test("DOM host warns and skips app import when a declared slot is missing", asyn
         federation: {
           async initFederation() {},
           async loadRemoteModule() { imported = true; return { mount() {} }; }
-        },
-        openModal() { throw new Error("modal not used"); },
-        openPopup() { throw new Error("popup not used"); }
+        }
       },
       services: { createNavigation: () => createTestHostSdk().navigation },
       document,

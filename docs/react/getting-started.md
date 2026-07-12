@@ -57,7 +57,8 @@ Files to look at first:
 | --- | --- |
 | `atlas.config.ts` | Atlas identity and runtime source file for this host. It gives the host its stable id, display name, and runtime defaults. Atlas uses it later to generate `public/atlas.runtime.json` for the browser. |
 | `public/atlas.runtime.json` | Not created by host generation. It is the deployment-time runtime artifact produced by `atlas runtime-config`, read by the browser before apps load. CI/CD may replace or transform this per environment; application developers normally edit `atlas.config.ts`. |
-| `src/main.tsx` | Generated Atlas host startup file. It calls `startHost(...)`, connects React Router and Native Federation, and supplies host services such as toasts, modals, events, config, and app data. Edit it when replacing placeholder services with production services. |
+| `src/atlas-bootstrap.ts` | Atlas host startup file. It connects React Router, Native Federation, host config, and `startHost(...)`. |
+| `src/main.tsx` | React entry file. It mounts `RouterProvider` and starts the Atlas bootstrap. |
 | `vite.config.ts` | Generated Vite build file used by the React host. Atlas uses it to produce the Native Federation metadata expected by the runtime. Most product work should stay in `atlas.config.ts` and application source. |
 
 Effect: you now have a host that can load catalog-selected apps. It still uses

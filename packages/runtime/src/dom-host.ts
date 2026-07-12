@@ -8,8 +8,8 @@ import {
 
 export type { DomHostOptions, DomHostServices } from "./dom-host-options.js";
 
-export async function startDomHost<TExtensions extends object = {}, THostData extends object = {}>(
-  options: DomHostOptions<TExtensions, THostData>,
+export async function startDomHost<THostSdk extends object = {}>(
+  options: DomHostOptions<THostSdk>,
   services: DomHostServices
 ): Promise<AtlasHostRuntime> {
   const startedAt = Date.now();

@@ -14,19 +14,18 @@ void startHost({
   federation: { initFederation, loadRemoteModule },
   hostData: {
     hostId: "customer-host",
-    name: "Customer Host",
-    projectId: currentProject.id
+    name: "Customer Host"
   },
   httpClient: authenticatedHttpClient,
-  showToast: (toast) => toastService.show(toast),
-  openModal: (request, controls) =>
-    modalService.open(request.component, request.props, controls),
+  extensions: {
+    showToast: (message: string) => toastService.show(message)
+  },
   observe: (event) => monitoring.capture("atlas.runtime", event)
 });
 ```
 
-`hostData.hostId` and `hostData.name` are required. Product fields such as
-`projectId`, `tenantId`, or `locale` may be added by the host.
+Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
+host ID when omitted.
 
 If `httpClient` is omitted, Atlas uses a fetch-backed default client. Provide a
 custom client when the host needs authentication headers, interceptors, retries,
@@ -45,19 +44,19 @@ React apps read the SDK with `useAtlasSdk()`:
 import { useAtlasSdk } from "@atlas/sdk/react";
 import type { AtlasEventMap } from "@atlas/sdk";
 
-interface CustomerHostData {
-  projectId: string;
+interface CustomerHostSdk {
+  showToast(message: string): void;
 }
 
 export function OrdersToolbar() {
-  const atlas = useAtlasSdk<{}, AtlasEventMap, CustomerHostData>();
+  const atlas = useAtlasSdk<CustomerHostSdk>();
 
   return (
     <button
       type="button"
       onClick={async () => {
-        await atlas.httpClient.post("/api/orders", { projectId: atlas.hostData.projectId });
-        atlas.toast.open({ title: "Order saved", state: "success" });
+        await atlas.httpClient.post("/api/orders");
+        atlas.showToast("Order saved");
       }}
     >
       Save order

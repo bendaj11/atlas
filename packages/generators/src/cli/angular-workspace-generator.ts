@@ -51,7 +51,7 @@ export function angularAppTsconfig(): unknown {
   return {
     compilerOptions: { ...angularCompilerOptions(), outDir: "./out-tsc/app" },
     angularCompilerOptions: angularTemplateCompilerOptions(),
-    files: ["src/main.ts"],
+    files: ["src/main.ts", "atlas.config.ts"],
     include: ["src/**/*.ts"]
   };
 }

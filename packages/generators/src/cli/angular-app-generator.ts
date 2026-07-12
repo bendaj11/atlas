@@ -92,7 +92,6 @@ export class AppComponent {}
 export function angularSinglePageAppComponent(name: string): string {
   const selector = angularRootSelector(name);
   return `import { Component } from "@angular/core";
-import { injectAtlasSdk } from "@atlas/sdk/angular";
 
 @Component({
   selector: "${selector}",
@@ -100,18 +99,11 @@ import { injectAtlasSdk } from "@atlas/sdk/angular";
   template: \`
     <section>
       <h1>${title(name)}</h1>
-      <button type="button" (click)="showToast()">Show toast</button>
       <p>Single-page Atlas app</p>
     </section>
   \`
 })
-export class AppComponent {
-  private readonly atlas = injectAtlasSdk();
-
-  showToast(): void {
-    this.atlas.toast.open({ title: "${title(name)} is ready" });
-  }
-}
+export class AppComponent {}
 `;
 }
 

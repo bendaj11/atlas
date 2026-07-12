@@ -15,19 +15,18 @@ await startHost({
   federation: { initFederation, loadRemoteModule },
   hostData: {
     hostId: "customer-host",
-    name: "Customer Host",
-    projectId: currentProject.id
+    name: "Customer Host"
   },
   httpClient: authenticatedHttpClient,
-  showToast: (toast) => toastService.show(toast),
-  openModal: (request, controls) =>
-    modalService.open(request.component, request.props, controls),
+  extensions: {
+    showToast: (message: string) => toastService.show(message)
+  },
   observe: (event) => monitoring.capture("atlas.runtime", event)
 });
 ```
 
-`hostData.hostId` and `hostData.name` are required. Product fields such as
-`projectId`, `tenantId`, or `locale` may be added by the host.
+Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
+host ID when omitted.
 
 If `httpClient` is omitted, Atlas uses a fetch-backed default client. Provide a
 custom client when the host needs authentication headers, interceptors, retries,
@@ -47,8 +46,8 @@ import { Component } from "@angular/core";
 import { injectAtlasSdk } from "@atlas/sdk/angular";
 import type { AtlasEventMap } from "@atlas/sdk";
 
-interface CustomerHostData {
-  projectId: string;
+interface CustomerHostSdk {
+  showToast(message: string): void;
 }
 
 @Component({
@@ -57,11 +56,11 @@ interface CustomerHostData {
   template: `<button type="button" (click)="save()">Save order</button>`
 })
 export class OrdersToolbarComponent {
-  private readonly atlas = injectAtlasSdk<{}, AtlasEventMap, CustomerHostData>();
+  private readonly atlas = injectAtlasSdk<CustomerHostSdk>();
 
   async save(): Promise<void> {
-    await this.atlas.httpClient.post("/api/orders", { projectId: this.atlas.hostData.projectId });
-    this.atlas.toast.open({ title: "Order saved", state: "success" });
+    await this.atlas.httpClient.post("/api/orders");
+    this.atlas.showToast("Order saved");
   }
 }
 ```

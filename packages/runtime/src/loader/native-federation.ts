@@ -24,31 +24,19 @@ export function createNativeFederationImporters(
 
   return {
     async initialize(manifests) {
-      for (const manifest of manifests) {
+      await mapWithConcurrency(manifests, async (manifest) => {
         const remoteName = federationRemoteName(manifest.id);
         remoteNames.set(manifest.id, remoteName);
-      }
-
-      try {
-        await runResiliently(
-          () => runtime.initFederation(remoteEntries(manifests)).then(() => undefined),
-          { stage: "federation-init" },
-          requestPolicy
-        );
-      } catch {
-        await mapWithConcurrency(manifests, async (manifest) => {
-          const remoteName = requireInitializedRemoteName(remoteNames, manifest.id);
-          try {
-            await runResiliently(
-              () => runtime.initFederation({ [remoteName]: manifest.remoteEntryUrl }).then(() => undefined),
-              { stage: "federation-init", resource: manifest.remoteEntryUrl, appId: manifest.id, version: manifest.version },
-              requestPolicy
-            );
-          } catch (error) {
-            initializationErrors.set(manifest.id, toError(error));
-          }
-        });
-      }
+        try {
+          await runResiliently(
+            () => runtime.initFederation({ [remoteName]: manifest.remoteEntryUrl }).then(() => undefined),
+            { stage: "federation-init", resource: manifest.remoteEntryUrl, appId: manifest.id, version: manifest.version },
+            requestPolicy
+          );
+        } catch (error) {
+          initializationErrors.set(manifest.id, toError(error));
+        }
+      });
     },
     async importRemote(manifest) {
       const initializationError = initializationErrors.get(manifest.id);
@@ -71,14 +59,6 @@ export function createNativeFederationImporters(
       return normalizeWidgetEntry(entry, `${widget.ownerAppId}/${widget.id}`);
     }
   };
-}
-
-function remoteEntries(manifests: readonly AtlasManifest[]): Record<string, string> {
-  const remotes: Record<string, string> = {};
-  for (const manifest of manifests) {
-    remotes[federationRemoteName(manifest.id)] = manifest.remoteEntryUrl;
-  }
-  return remotes;
 }
 
 /** Initializes only trusted remotes and reports rejected manifests through normal app fallback UI. */

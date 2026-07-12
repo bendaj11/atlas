@@ -29,6 +29,11 @@ export async function alignDelegatedTsconfig(root: string, framework: SupportedF
   if (framework === "angular") {
     compilerOptions.emitDeclarationOnly = false;
     tsconfig.compilerOptions = compilerOptions;
+    if (Array.isArray(tsconfig.files)) {
+      tsconfig.files = addUniqueString(tsconfig.files, "atlas.config.ts");
+    } else {
+      tsconfig.include = addUniqueString(Array.isArray(tsconfig.include) ? tsconfig.include : [], "atlas.config.ts");
+    }
     await writeJsonFile(target, tsconfig);
     return;
   }
@@ -115,22 +120,17 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
       options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
     };
   }
-  if (!targets.dev && targets.serve) {
-    targets.dev = type === "host"
-      ? {
-          executor: "nx:run-commands",
-          options: {
-            commands: [
-              { command: `atlas runtime-config ${projectName}` },
-              { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
-            ],
-            parallel: false
-          }
-        }
-      : {
-          executor: "nx:run-commands",
-          options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
-        };
+  if (type === "host" && targets.serve && !isAtlasHostDevTarget(targets.dev, projectName)) {
+    targets.dev = {
+      executor: "nx:run-commands",
+      options: {
+        commands: [
+          { command: `atlas runtime-config ${projectName}` },
+          { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
+        ],
+        parallel: false
+      }
+    };
   }
   if (targets.dev && !targets[projectName]) {
     targets[projectName] = {
@@ -138,6 +138,14 @@ function ensureDevTarget(targets: Record<string, unknown>, projectName: string, 
       options: { command: `nx run ${projectName}:dev`, forwardAllArgs: true }
     };
   }
+}
+
+function isAtlasHostDevTarget(value: unknown, projectName: string): boolean {
+  const options = asObject(asObject(value).options);
+  if (!Array.isArray(options.commands)) return false;
+  return options.commands.some((command) =>
+    asObject(command).command === `atlas runtime-config ${projectName}`
+  );
 }
 
 function isOutdatedAppDevTarget(value: unknown, projectName: string): boolean {

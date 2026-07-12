@@ -3,7 +3,6 @@ import { test } from "@jest/globals";
 import { HttpClient, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 import { createHostSdk } from "./host.driver.js";
-import type { AtlasModalOpener, AtlasToastRequest } from "../dist/host-overlays.js";
 
 test("event bus publishes across apps and supports unsubscribe", () => {
   const bus = createAtlasEventBus<{ "orders.updated": { orderId: string } }>();
@@ -80,35 +79,21 @@ test("event bus once listener is removed after its first event", () => {
   assert.equal(calls, 1);
 });
 
-test("host SDK delegates modal components and popup content to host overlay providers", async () => {
-  const opened: unknown[][] = [];
-  const openModal: AtlasModalOpener = async (request) => { opened.push(["modal", request.component, request.props]); return JSON.parse('"confirmed"'); };
+test("host SDK exposes consumer-typed host extensions", async () => {
+  interface CommerceHostSdk {
+    showToast(message: string): void;
+    openOrder(orderId: string): Promise<boolean>;
+  }
+  const shown: string[] = [];
   const sdk = createAtlasSdk({
     hostId: "host",
     navigation: createMemoryNavigation(),
-    openModal,
-    openPopup(request) { opened.push(["popup", request.content]); return { id: "popup-1", close() {} }; }
+    extensions: {
+      showToast(message: string) { shown.push(message); },
+      async openOrder(orderId: string) { return orderId === "42"; }
+    } satisfies CommerceHostSdk
   });
-  assert.equal(await sdk.modal.open({ component: { frameworkNative: true }, props: { orderId: "42" } }), "confirmed");
-  assert.equal(sdk.popup.open({ content: { widget: "details/entity-popup", props: { id: "42" } } }).id, "popup-1");
-  assert.deepEqual(opened, [
-    ["modal", { frameworkNative: true }, { orderId: "42" }],
-    ["popup", { widget: "details/entity-popup", props: { id: "42" } }]
-  ]);
-});
-
-test("host SDK delegates toast requests to showToast", () => {
-  const shown: AtlasToastRequest[] = [];
-  const sdk = createAtlasSdk({
-    hostId: "host",
-    navigation: createMemoryNavigation(),
-    showToast(request) { shown.push(request); }
-  });
-  sdk.toast.open({ title: "Saving order", state: "loading", dismissible: true });
-  assert.deepEqual(shown, [{ title: "Saving order", state: "loading", dismissible: true }]);
-});
-
-test("host SDK treats modal as no-op when no modal provider is configured", async () => {
-  const sdk = createHostSdk();
-  assert.equal(await sdk.modal.open({ component: "details" }), undefined);
+  sdk.showToast("Order ready");
+  assert.equal(await sdk.openOrder("42"), true);
+  assert.deepEqual(shown, ["Order ready"]);
 });

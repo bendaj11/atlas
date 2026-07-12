@@ -27,13 +27,20 @@ Important exports:
 Creates the object passed from host to app.
 
 ```ts
+interface CustomerHostSdk {
+  showToast(message: string): void;
+  openOrder(orderId: string): Promise<void>;
+}
+
 const sdk = createAtlasSdk({
   hostId: "host",
   hostData: { hostId: "host", name: "Customer Host", projectId: "project-42" },
   navigation,
-  showToast: (toast) => showToast(toast),
-  openModal: (modal) => showModal(modal.component, modal.props),
-  openPopup: (popup) => showPopup(popup)
+  httpClient: authenticatedHttpClient,
+  extensions: {
+    showToast: (message) => toastService.show(message),
+    openOrder: (orderId) => orderService.open(orderId)
+  } satisfies CustomerHostSdk
 });
 ```
 
@@ -73,22 +80,25 @@ const authenticatedHttpClient = {
 ```ts
 import type { AtlasEventMap } from "@atlas/sdk";
 
-interface SystemHostData {
-  projectId: string;
+interface CustomerHostSdk {
+  showToast(message: string): void;
+  openOrder(orderId: string): Promise<void>;
 }
 
-const atlas = useAtlasSdk<{}, AtlasEventMap, SystemHostData>();
-await atlas.httpClient.get(`/api/projects/${atlas.hostData.projectId}`);
+const atlas = useAtlasSdk<CustomerHostSdk>();
+atlas.showToast("Order saved");
 ```
 
-Angular apps use `injectAtlasSdk<{}, AtlasEventMap, SystemHostData>()`;
+Angular apps use `injectAtlasSdk<CustomerHostSdk>()`;
 generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
-Use `extensions` for host-specific APIs. Atlas core does not define an auth or
-session shape.
+Core SDK contains only host identity/data, HTTP, navigation, and events. Use
+`extensions` for every product-specific API. Atlas does not define toast,
+modal, popup, auth, config, or session contracts.
 
 The loader exposes `createWidgetLoader` and widget lifecycle types. Page apps consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.
 
-Hosts provide the visual implementation for toast, modal, and popup. A popup is non-blocking and may be draggable or resizable. Modal requests accept a `component` and optional `props`; popup `content` accepts host/framework-native content or `{ widget: "owner/widget", props }`. Atlas does not impose Ionic, Angular CDK, React Portal, Toastr, or another design system.
+Hosts may use `@atlas/sdk/overlay` utilities when building their own typed SDK
+extensions. Overlay APIs are not injected into Atlas core.
 
 Toast requests include `title`, optional `message`, optional `state` (`info`, `warning`, `error`, `success`, or `loading`), and optional `dismissible`.
 

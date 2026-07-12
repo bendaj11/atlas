@@ -1,14 +1,11 @@
 import "zone.js";
-import { Component, inject } from "@angular/core";
+import { Component } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
-import { defineApp, injectAtlasAppContext, injectAtlasSdk, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
+import { defineApp, injectAtlasAppContext, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
 
-@Component({ selector: "atlas-dashboard-angular-root", standalone: true, template: `<h1>Dashboard Angular</h1><p>Mounted at {{ context.basePath }}</p><button type="button" (click)="showToast()">Show toast</button><button type="button" (click)="openReactPopup()">Open React widget popup</button>` })
+@Component({ selector: "atlas-dashboard-angular-root", standalone: true, template: `<h1>Dashboard Angular</h1><p>Mounted at {{ context.basePath }}</p>` })
 class AtlasAppRootComponent {
   readonly context = injectAtlasAppContext();
-  private readonly atlas = injectAtlasSdk();
-  showToast() { this.atlas.toast.open({ title: `${this.atlas.hostData.name} is ready` }); }
-  openReactPopup() { this.atlas.popup.open({ title: "Product count", content: { widget: "catalog-react/product-count", props: { count: 42, label: "Products in popup" } }, draggable: true, resizable: true }); }
 }
 
 export default defineApp(async ({ container, sdk, context }) => {
