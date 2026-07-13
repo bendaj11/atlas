@@ -123,28 +123,15 @@ function ensureAtlasConfigTarget(targets: Record<string, unknown>, projectName: 
 
 function ensureDevTarget(options: NxDevTargetOptions): void {
   const { targets, projectName, projectRoot, type, framework } = options;
-  if (type === "app" && (!targets.dev || isOutdatedAppDevTarget(targets.dev, projectName))) {
+  if (!targets.dev || isOutdatedDevTarget(targets.dev, projectName)) {
+    if (type === "host") preserveNativeHostDevTarget(targets);
     targets.dev = {
       executor: "nx:run-commands",
       options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
     };
   }
-  if (type === "host" && !isAtlasHostDevTarget(targets.dev, projectName)) {
-    preserveNativeHostDevTarget(targets);
-    if (!targets.serve && framework === "react") {
-      targets.serve = inferredViteServeTarget(projectRoot);
-    }
-    if (!targets.serve) return;
-    targets.dev = {
-      executor: "nx:run-commands",
-      options: {
-        commands: [
-          { command: `atlas runtime-config ${projectName}` },
-          { command: `nx run ${projectName}:serve`, forwardAllArgs: true }
-        ],
-        parallel: false
-      }
-    };
+  if (type === "host" && !targets.serve && framework === "react") {
+    targets.serve = inferredViteServeTarget(projectRoot);
   }
   if (targets.dev && !targets[projectName]) {
     targets[projectName] = {
@@ -166,18 +153,10 @@ function preserveNativeHostDevTarget(targets: Record<string, unknown>): void {
   if (!targets.serve && targets.dev) targets.serve = targets.dev;
 }
 
-function isAtlasHostDevTarget(value: unknown, projectName: string): boolean {
-  const options = asObject(asObject(value).options);
-  if (!Array.isArray(options.commands)) return false;
-  return options.commands.some((command) =>
-    asObject(command).command === `atlas runtime-config ${projectName}`
-  );
-}
-
-function isOutdatedAppDevTarget(value: unknown, projectName: string): boolean {
+function isOutdatedDevTarget(value: unknown, projectName: string): boolean {
   const target = asObject(value);
   const options = asObject(target.options);
-  return options.command === `nx run ${projectName}:serve`;
+  return options.command !== `atlas dev ${projectName}`;
 }
 
 function asObject(value: unknown): Record<string, unknown> {

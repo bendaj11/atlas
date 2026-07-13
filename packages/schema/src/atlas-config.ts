@@ -14,6 +14,8 @@ export interface AtlasBaseConfig {
 
 /** Source config developers write for host projects. */
 export interface AtlasHostConfig extends AtlasBaseConfig {
+  /** Artifact type used by Atlas build orchestration. */
+  type?: "host";
   /** Allow Atlas tools to override selected app manifests at runtime. Defaults to true. */
   allowAppOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
@@ -24,6 +26,8 @@ export interface AtlasHostConfig extends AtlasBaseConfig {
 
 /** Source config developers write for app projects. */
 export interface AtlasAppConfig extends AtlasBaseConfig {
+  /** Artifact type used by Atlas build orchestration. */
+  type?: "app";
   /** DOM/CSS boundary requested when a host mounts this app. Defaults to scoped. */
   domIsolation?: AtlasDomIsolation;
   /** Page routes this app contributes to hosts. */

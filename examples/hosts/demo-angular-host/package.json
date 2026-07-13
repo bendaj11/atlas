@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ../../../packages/cli/dist/index.js runtime-config demo-angular-host && ng serve demo-angular-host",
+    "dev": "ng serve demo-angular-host",
     "atlas:config": "tsc -p tsconfig.atlas.json",
-    "build": "node ../../../packages/cli/dist/index.js runtime-config demo-angular-host && ng build"
+    "build": "ng build",
+    "atlas:build": "node ../../../packages/cli/dist/index.js build demo-angular-host"
   },
   "dependencies": {
     "@angular/animations": "^20.3.0",

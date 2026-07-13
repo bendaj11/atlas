@@ -8,22 +8,37 @@ import {
   type AtlasExportedWidgetManifest,
   type AtlasManifest,
   type AtlasAppConfig,
+  type AtlasHostConfig,
   type AtlasStaticRegistry,
   type AtlasStylesheet,
   type AtlasVersionChannel
 } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
+import { compileAtlasConfig } from "./config-compiler.js";
+import { writeHostRuntimeConfig } from "./runtime-config.js";
 import { prepareStaticRegistry, registryRevision } from "./static-registry.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
+
+export type AtlasBuildResult =
+  | { artifact: "app"; manifest: AtlasManifest }
+  | { artifact: "host"; id: string; version: string; runtimeConfigPath: string };
 
 export class AtlasBuildService {
   constructor(private readonly workspace: AtlasWorkspace, private readonly args: CliArguments) {}
 
-  async build(name: string): Promise<AtlasManifest> {
+  async build(name: string): Promise<AtlasBuildResult> {
     const project = await this.workspace.findProject(name);
-    const manifest = await this.buildManifest(name);
+    if (!this.args.hasFlag("skip-compile")) await compileAtlasConfig(this.workspace, project);
+    const config = await this.loadConfig(project.root);
+    if (isHostConfig(config)) {
+      const runtimeConfig = await writeHostRuntimeConfig({ project, config, args: this.args });
+      if (!this.args.hasFlag("skip-compile")) await this.workspace.run(project, "build");
+      return { artifact: "host", id: config.id, version: project.version, runtimeConfigPath: runtimeConfig.path };
+    }
+    if (!this.args.hasFlag("skip-compile")) await this.workspace.run(project, "build");
+    const manifest = await this.buildManifest(name, undefined, { skipCompile: true });
     await this.preparePublication(project, manifest);
-    return manifest;
+    return { artifact: "app", manifest };
   }
 
   async buildManifest(name: string, forcedChannel?: AtlasVersionChannel, options: { skipCompile?: boolean; baseUrl?: string } = {}): Promise<AtlasManifest> {
@@ -242,8 +257,12 @@ function isAtlasBuildMetadata(path: string): boolean {
 }
 
 function isAtlasConfig(value: unknown): value is AtlasConfig { return typeof value === "object" && value !== null && "id" in value && "framework" in value; }
+function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
+  if (config.type) return config.type === "host";
+  return "allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
+}
 function assertAppConfig(config: AtlasConfig): AtlasAppConfig {
-  if ("allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config) {
+  if (isHostConfig(config)) {
     throw new Error(`Atlas build expects an app config for "${config.id}", but received a host config.`);
   }
   return config;

@@ -10,7 +10,6 @@ import { AtlasGenerateService } from "./generate.js";
 import { loadEnvFiles } from "./env.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasRollbackService } from "./rollback.js";
-import { AtlasRuntimeConfigService } from "./runtime-config.js";
 import { AtlasVerifyService, type AtlasVerificationCheck } from "./verify.js";
 import { resolveInvocation } from "./interaction.js";
 import { TerminalPrompter, ui, type AtlasPrompter } from "./ui.js";
@@ -59,9 +58,14 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
 
     if (invocation.command === "build" && invocation.subcommand) {
       ui.heading(`Building ${invocation.subcommand}`);
-      const manifest = await builds.build(invocation.subcommand);
-      ui.success(`Built ${manifest.id}@${manifest.version}.`);
-      ui.info("Upload dist/atlas-publication with your CI storage tooling.");
+      const result = await builds.build(invocation.subcommand);
+      if (result.artifact === "host") {
+        ui.success(`Built host ${result.id}@${result.version}.`);
+        ui.info(`Runtime config: ${result.runtimeConfigPath}`);
+      } else {
+        ui.success(`Built app ${result.manifest.id}@${result.manifest.version}.`);
+        ui.info("Upload dist/atlas-publication with your CI storage tooling.");
+      }
       return;
     }
 
@@ -77,13 +81,6 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       const result = await new AtlasRollbackService(args).run(invocation.subcommand, invocation.version);
       ui.success(`Selected ${invocation.subcommand}@${result.version} (${result.buildId}).`);
       ui.info(`Upload ${result.output} with your CI storage tooling.`);
-      return;
-    }
-
-    if (invocation.command === "runtime-config" && invocation.subcommand) {
-      ui.heading(`Generating runtime config for ${invocation.subcommand}`);
-      const result = await new AtlasRuntimeConfigService(workspace, args, builds).generate(invocation.subcommand);
-      ui.success(`Wrote ${result.path}.`);
       return;
     }
 

@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node ../../../packages/cli/dist/index.js runtime-config demo-react-host && vite --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0",
     "atlas:config": "tsc -p tsconfig.atlas.json",
-    "build": "node ../../../packages/cli/dist/index.js runtime-config demo-react-host && tsc -b && vite build"
+    "build": "tsc -b && vite build",
+    "atlas:build": "node ../../../packages/cli/dist/index.js build demo-react-host"
   },
   "dependencies": {
     "@atlas/schema": "*",

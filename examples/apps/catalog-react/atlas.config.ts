@@ -1,6 +1,7 @@
 import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
 
 export default {
+  type: "app",
   id: "catalog-react",
   name: "Catalog React",
   framework: "react",

@@ -66,7 +66,8 @@ export class AtlasDevService {
       console.info(`Host "${config.id}" is ready. Run without --prepare-only to start its dev server.`);
       return;
     }
-    const hostServer = this.workspace.spawn(project, "dev");
+    const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
+    const hostServer = this.workspace.spawn(project, frameworkTask);
     console.info(`Atlas is running host ${config.id}. Press Ctrl+C to stop.`);
     await waitForChildShutdown(hostServer, "Host dev server");
   }

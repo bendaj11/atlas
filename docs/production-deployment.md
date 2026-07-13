@@ -85,11 +85,11 @@ before sending user traffic to a new host or registry.
 
 ## One-Time Host Setup
 
-Run commands through the project-local CLI installed from your lockfile. Generate
-the host runtime file with the public registry URL:
+Run the project-local CLI installed from your lockfile. Atlas identifies the
+project as a host, generates its runtime file, then runs its framework build:
 
 ```sh
-./node_modules/.bin/atlas runtime-config customer-host \
+./node_modules/.bin/atlas build customer-host \
   --registry-base-url=https://cdn.example.com/atlas
 ```
 
@@ -106,12 +106,11 @@ The generated `public/atlas.runtime.json` looks like:
 }
 ```
 
-Keep `ATLAS_REGISTRY_BASE_URL` in the host's production build environment.
-Generated host build scripts run `atlas runtime-config` again; without this
-variable they can replace the production URL with the local default.
+Keep `ATLAS_REGISTRY_BASE_URL` in the host's production build environment so
+Atlas does not write the local registry default.
 
 ```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
 ```
 
 Deploy the host with your normal frontend process. Different environments may

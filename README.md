@@ -53,7 +53,7 @@ and [consumer testing](docs/consumer-testing.md). Atlas maintainers should use
 
 ```mermaid
 flowchart LR
-  Team["app team"] -->|"atlas build"| Output["Assets + manifest + indexes"]
+  Team["host or app team"] -->|"atlas build"| Output["Artifact-specific deployment output"]
   Output -->|"consumer CI uploads"| CDN["Static storage / CDN"]
   Host["Host"] --> Catalog["Host catalog JSON"]
   Catalog --> CDN

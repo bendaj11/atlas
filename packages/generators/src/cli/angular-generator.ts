@@ -15,7 +15,7 @@ import {
   angularFederationConfig,
   angularWorkspace,
 } from "./angular-workspace-generator.js";
-import { atlasConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
+import { atlasAppConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 import { angularVersionProfile } from "./generator-versions.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 
@@ -46,7 +46,7 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
     { path: "angular.json", contents: json(angularWorkspace(name, false, options.devServerPort)) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
-    { path: "atlas.config.ts", contents: atlasConfig(options, false) },
+    { path: "atlas.config.ts", contents: atlasAppConfig(options) },
     { path: "src/index.html", contents: angularIndex(title(name), "<div>Atlas app assets</div>") },
     { path: "src/styles.css", contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },

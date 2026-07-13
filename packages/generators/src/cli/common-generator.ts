@@ -8,16 +8,15 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
   if (options.hostId !== undefined) assertValidAtlasId(options.hostId, "hostId");
 }
 
-export function atlasConfig(options: AtlasGeneratorOptions, host: boolean): string {
+export function atlasAppConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
   const appFields = options.hostId ? `,\n  ${appConfig(name, options.hostId)}` : "";
-  const typeName = host ? "AtlasHostConfig" : "AtlasAppConfig";
-  return `import type { ${typeName} } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${host ? "" : appFields}\n} satisfies ${typeName};\n`;
+  return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
-  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  allowAppOverrides: true,\n  resourcesTimeoutMs: 15000,\n  resourcesRetryCount: 3\n} satisfies AtlasHostConfig;\n`;
+  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  allowAppOverrides: true,\n  resourcesTimeoutMs: 15000,\n  resourcesRetryCount: 3\n} satisfies AtlasHostConfig;\n`;
 }
 
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {

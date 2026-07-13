@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "ng serve orders-angular",
     "atlas:config": "tsc -p tsconfig.atlas.json",
-    "build": "tsc -p tsconfig.atlas.json && ng build",
+    "build": "ng build",
     "atlas:build": "atlas build orders-angular"
   },
   "dependencies": {

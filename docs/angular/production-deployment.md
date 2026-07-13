@@ -40,11 +40,11 @@ artifacts. Upload only paths listed in `dist/atlas-publication.json`.
 See [Angular routing](routing.md) for the required anchors and
 [Angular host setup](host-getting-started.md) for host build and provider wiring.
 
-Generated host builds run `atlas runtime-config` again. Keep the production URL
-in their build environment:
+Atlas's unified build identifies hosts, writes their runtime config, then runs
+their framework build. Keep the production URL in the build environment:
 
 ```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
 ```
 
 ## Angular CDN Requirements

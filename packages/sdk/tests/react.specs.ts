@@ -56,7 +56,8 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
   assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
   assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
-  assert.match(host.get("package.json"), /atlas runtime-config host/);
+  assert.doesNotMatch(host.get("package.json"), /runtime-config/);
+  assert.match(host.get("package.json"), /atlas build host/);
   assert.match(appFiles.get("vite.config.ts"), /remoteEntry\.json/);
   assert.doesNotMatch(appFiles.get("package.json"), /@softarc\/native-federation-runtime/);
   assert.match(appFiles.get("vite.config.ts"), /server: \{ port: 4201, cors: true \}/);

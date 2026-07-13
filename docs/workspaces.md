@@ -90,7 +90,7 @@ Atlas invokes targets such as `orders:build`, `orders:dev`, `orders:serve`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
 Generated `atlas:config` targets declare `{projectRoot}/.atlas` as an output, so
 Nx cache restores the compiled `atlas.config.js` needed by `atlas dev` and
-`atlas runtime-config`. The target runs `atlas compile-config`, which reads the
+`atlas build`. The target runs `atlas compile-config`, which reads the
 framework-generated project tsconfig and writes `.atlas/atlas.config.js`; Atlas
 does not generate a separate `tsconfig.atlas.json`.
 When Atlas delegates to the native Nx generator, it preserves Nx's generated

@@ -2,29 +2,20 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import type { AtlasConfig, AtlasHostConfig, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
-import { AtlasBuildService } from "./build.js";
-import { compileAtlasConfig } from "./config-compiler.js";
-import type { AtlasWorkspace } from "./workspace.js";
 
 const DEFAULT_LOCAL_REGISTRY_BASE_URL = "http://127.0.0.1:4400";
 
-export class AtlasRuntimeConfigService {
-  constructor(
-    private readonly workspace: AtlasWorkspace,
-    private readonly args: CliArguments,
-    private readonly builds: AtlasBuildService
-  ) {}
-
-  async generate(name: string): Promise<{ path: string; config: AtlasHostRuntimeConfig }> {
-    const project = await this.workspace.findProject(name);
-    if (!this.args.hasFlag("skip-compile")) await compileAtlasConfig(this.workspace, project);
-    const source = await this.builds.loadConfig(project.root);
-    const config = createHostRuntimeConfig(source, this.args, project.version);
-    const output = resolve(this.args.flag("out") ?? `${project.root}/public/atlas.runtime.json`);
-    await mkdir(dirname(output), { recursive: true });
-    await writeFile(output, `${JSON.stringify(config, null, 2)}\n`, "utf8");
-    return { path: output, config };
-  }
+export async function writeHostRuntimeConfig(options: {
+  project: { root: string; version: string };
+  config: AtlasConfig;
+  args: CliArguments;
+}): Promise<{ path: string; config: AtlasHostRuntimeConfig }> {
+  const { project, config, args } = options;
+  const runtimeConfig = createHostRuntimeConfig(config, args, project.version);
+  const output = resolve(args.flag("out") ?? `${project.root}/public/atlas.runtime.json`);
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, `${JSON.stringify(runtimeConfig, null, 2)}\n`, "utf8");
+  return { path: output, config: runtimeConfig };
 }
 
 export function createHostRuntimeConfig(
@@ -45,8 +36,8 @@ export function createHostRuntimeConfig(
 }
 
 function assertHostConfig(config: AtlasConfig): asserts config is AtlasHostConfig {
-  if ("routes" in config || "slots" in config || "domIsolation" in config || "requiredHostSdkVersion" in config) {
-    throw new Error(`Atlas runtime-config expects a host config for "${config.id}", but received an app config.`);
+  if (config.type === "app" || "routes" in config || "slots" in config || "domIsolation" in config || "requiredHostSdkVersion" in config) {
+    throw new Error(`Atlas host build expects a host config for "${config.id}", but received an app config.`);
   }
 }
 

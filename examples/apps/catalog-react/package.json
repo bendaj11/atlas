@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "atlas:config": "tsc -p tsconfig.atlas.json",
-    "build": "tsc -p tsconfig.atlas.json && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "atlas:build": "atlas build catalog-react"
   },
   "dependencies": {

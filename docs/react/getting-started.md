@@ -236,12 +236,12 @@ Set `allowAppOverrides`, `resourcesTimeoutMs`, and `resourcesRetryCount` in
 below; tune timeout and retry values to measured product targets.
 
 Start from the workspace root. Install exactly from the committed lockfile, then
-generate the browser runtime file with network-disabled CLI resolution:
+build the host with network-disabled CLI resolution:
 
 ```sh
 cd customer-host
 npm ci
-./node_modules/.bin/atlas runtime-config customer-host \
+./node_modules/.bin/atlas build customer-host \
   --registry-base-url=https://cdn.example.com/atlas
 ```
 
@@ -262,12 +262,8 @@ The important connection is:
 }
 ```
 
-Build the host with the same registry URL because its generated build script
-runs `atlas runtime-config` again:
-
-```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
-```
+Atlas identifies the host, writes `atlas.runtime.json`, and runs the framework
+build in that single command.
 
 Deploy the Vite output using your normal host pipeline. Production server must:
 

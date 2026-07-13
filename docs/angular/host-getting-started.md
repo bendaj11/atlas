@@ -151,10 +151,10 @@ resourcesTimeoutMs: 15000,
 resourcesRetryCount: 3
 ```
 
-Generate browser artifact:
+Generate browser artifact with Atlas's unified build command:
 
 ```sh
-atlas runtime-config customer-host \
+atlas build customer-host \
   --registry-base-url=https://cdn.example.com/atlas
 ```
 
@@ -171,19 +171,12 @@ Result resembles:
 }
 ```
 
-Build host with generated workspace script:
+Atlas identifies the host, writes runtime config, then runs its framework build.
+Keep `ATLAS_REGISTRY_BASE_URL` on the command so it does not use the local
+registry default.
 
-```sh
-cd customer-host
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
-```
-
-Generated build script runs `atlas runtime-config` again. Keep
-`ATLAS_REGISTRY_BASE_URL` on the build command so it does not replace production
-runtime config with the local registry default.
-
-pnpm or Yarn users run equivalent package script; Nx users may run host build
-target. Deploy emitted Angular browser directory, including copied
+pnpm or Yarn users run the generated `atlas:build` package script. Deploy the
+emitted Angular browser directory, including copied
 `atlas.runtime.json`, as host static site. Exact output directory depends on
 workspace layout and Angular version; use build command's reported output path.
 Environment pipeline may replace runtime JSON without rebuilding JavaScript.

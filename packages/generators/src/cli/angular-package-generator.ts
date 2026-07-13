@@ -17,10 +17,10 @@ export function angularPackage(options: AngularPackageOptions): unknown {
     version: "0.1.0",
     private: true,
     scripts: {
-      dev: host ? `atlas runtime-config ${projectName} && ng serve ${projectName}` : `ng serve ${projectName}`,
+      dev: `ng serve ${projectName}`,
       "atlas:config": `atlas compile-config ${projectName}`,
-      build: host ? `atlas runtime-config ${projectName} && ng build` : `atlas compile-config ${projectName} && ng build`,
-      ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
+      build: "ng build",
+      "atlas:build": `atlas build ${projectName}`
     },
     dependencies: {
       "@angular/animations": angular,

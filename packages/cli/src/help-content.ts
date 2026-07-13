@@ -16,8 +16,7 @@ export interface CommandHelp {
 export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "generate, g", description: "Generate a host, app, or exported widget" },
   { label: "dev", description: "Run a host, or run one app locally inside a host" },
-  { label: "build", description: "Build an app for static deployment" },
-  { label: "runtime-config", description: "Generate atlas.runtime.json from atlas.config.ts" },
+  { label: "build", description: "Build a host or app for deployment" },
   { label: "rollback", description: "Prepare a previous app version for deployment" },
   { label: "verify", description: "Verify a deployed Atlas host and its assets" }
 ];
@@ -27,7 +26,7 @@ export const ROOT_EXAMPLES = [
   "atlas g app orders",
   "atlas dev customer-host",
   "atlas dev orders --host customer-host",
-  "atlas runtime-config customer-host",
+  "atlas build customer-host",
   "atlas build orders"
 ] as const;
 
@@ -81,7 +80,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ]
   },
   build: {
-    summary: "Build an app and prepare files for static deployment.",
+    summary: "Build a host or app and prepare its deployment artifacts.",
     usage: "atlas build <project> [options]",
     arguments: [{ label: "project", description: "Atlas project name or directory; prompted when omitted" }],
     options: [
@@ -91,6 +90,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--include-source-maps", description: "Include source maps in the publication" },
       { label: "--version <version>", description: "Version assigned to the build" },
       { label: "--build-id <id>", description: "Unique build identifier" },
+      { label: "--out <path>", description: "Host runtime config path (default: <host>/public/atlas.runtime.json)" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     advancedOptions: [
@@ -108,21 +108,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     examples: [
       "atlas build orders --registry-base-url https://cdn.example.com/atlas",
       "ATLAS_VERSION=1.4.0 atlas build orders --registry-base-url https://cdn.example.com/atlas"
-    ]
-  },
-  "runtime-config": {
-    summary: "Generate a host atlas.runtime.json from atlas.config.ts.",
-    usage: "atlas runtime-config <host> [options]",
-    arguments: [{ label: "host", description: "Atlas host project name or directory; prompted when omitted" }],
-    options: [
-      { label: "--out <path>", description: "Runtime JSON output path (default: <host>/public/atlas.runtime.json)" },
-      { label: "--registry-base-url <url>", description: "Public base URL used to derive the host catalog URL" },
-      { label: "--skip-compile", description: "Read an existing compiled atlas.config.js" },
-      { label: "-h, --help", description: "Show help for this command" }
-    ],
-    examples: [
-      "atlas runtime-config customer-host --registry-base-url https://cdn.example.com/atlas",
-      "atlas runtime-config customer-host --registry-base-url https://cdn.example.com/atlas --out dist/customer-host/atlas.runtime.json"
     ]
   },
   rollback: {

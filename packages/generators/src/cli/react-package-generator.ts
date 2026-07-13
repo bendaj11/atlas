@@ -19,10 +19,10 @@ export function reactPackage(options: ReactPackageOptions): unknown {
     private: true,
     type: "module",
     scripts: {
-      dev: host ? `atlas runtime-config ${projectName} && vite --host 0.0.0.0` : "vite --host 0.0.0.0",
+      dev: "vite --host 0.0.0.0",
       "atlas:config": `atlas compile-config ${projectName}`,
-      build: host ? `atlas runtime-config ${projectName} && tsc -b && vite build` : `atlas compile-config ${projectName} && tsc -b && vite build`,
-      ...(host ? {} : { "atlas:build": `atlas build ${projectName}` })
+      build: "tsc -b && vite build",
+      "atlas:build": `atlas build ${projectName}`
     },
     dependencies: {
       "@atlas/schema": atlasPackageRange(),

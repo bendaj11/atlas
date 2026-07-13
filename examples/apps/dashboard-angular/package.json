@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "ng serve dashboard-angular",
     "atlas:config": "tsc -p tsconfig.atlas.json",
-    "build": "tsc -p tsconfig.atlas.json && ng build",
+    "build": "ng build",
     "atlas:build": "atlas build dashboard-angular"
   },
   "dependencies": {

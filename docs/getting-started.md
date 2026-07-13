@@ -164,21 +164,21 @@ Pin the CLI used by the host build, then build with the real registry URL:
 ```sh
 cd customer-host
 npm install --save-dev --save-exact @atlas/cli@0.2.75
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
 cd ..
 ```
 
 Commit `package.json` and lockfile after this one-time setup. CI should run
-`npm ci`, not `npm install`, before the generated build script.
+`npm ci`, not `npm install`, before `atlas build`.
 
 pnpm setup uses `pnpm add --save-dev --save-exact @atlas/cli@0.2.75` and
-`ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas pnpm run build`. Yarn
+`ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas pnpm atlas build customer-host`. Yarn
 setup uses `yarn add --dev --exact @atlas/cli@0.2.75` and
-`ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas yarn build`.
+`ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas yarn atlas build customer-host`.
 
-The generated host build script runs `atlas runtime-config` before the framework
-build. `ATLAS_REGISTRY_BASE_URL` prevents it from writing the local registry
-default. Confirm the build copied `public/atlas.runtime.json` to its public
+`atlas build` identifies the host, writes its runtime config, then runs the
+framework build. `ATLAS_REGISTRY_BASE_URL` prevents Atlas from writing the local
+registry default. Confirm the build copied `public/atlas.runtime.json` to its public
 output, then deploy the host. The deployed host must serve
 `/atlas.runtime.json` and return its `index.html` for browser navigation routes
 such as `/orders/42`. Do not apply that fallback to Atlas JSON, JavaScript,

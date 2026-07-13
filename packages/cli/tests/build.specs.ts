@@ -267,7 +267,9 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   await assert.rejects(access(join(target, "public/atlas.runtime.json")), { code: "ENOENT" });
   assert.match(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs: 15000/);
   assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /catalogUrl/);
-  assert.match(await readFile(join(target, "package.json"), "utf8"), /atlas runtime-config customer-host/);
+  const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
+  assert.equal(generatedPackage.scripts.build, "ng build");
+  assert.equal(generatedPackage.scripts["atlas:build"], "atlas build customer-host");
   const angularJson = JSON.parse(await readFile(join(target, "angular.json"), "utf8"));
   const architect = angularJson.projects["customer-host"].architect;
   assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
@@ -347,7 +349,7 @@ test("atlas app generation can create single-page apps without inner route files
   await assert.rejects(access(join(angularRoot, "src/app/details/details.component.ts")), { code: "ENOENT" });
 });
 
-test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", async () => {
+test("atlas build identifies a host and emits deployment runtime JSON", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-runtime-config-"));
   const projectRoot = join(root, "host");
   const output = join(root, "runtime.json");
@@ -357,6 +359,7 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
   await mkdir(join(projectRoot, ".atlas"));
   await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
+    type: "host",
     id: "host",
     framework: "react",
     allowAppOverrides: false,
@@ -365,7 +368,7 @@ test("atlas runtime-config emits deployment runtime JSON from atlas.config.ts", 
   };\n`);
 
   await run(process.execPath, [
-    join(process.cwd(), "packages/cli/dist/index.js"), "runtime-config", "host",
+    join(process.cwd(), "packages/cli/dist/index.js"), "build", "host",
     "--skip-compile", "--registry-base-url=https://cdn.example/atlas", `--out=${output}`
   ], { cwd: root });
 
@@ -526,7 +529,8 @@ for (const scenario of [
     files: { "package.json": JSON.stringify({ name: "acme", private: true, packageManager: "yarn@1.22.22", workspaces: ["packages/*"] }) },
     framework: "react",
     root: "packages/customer-host",
-    dev: "atlas runtime-config customer-host && vite --host 0.0.0.0"
+    dev: "vite --host 0.0.0.0",
+    build: "tsc -b && vite build"
   },
   {
     name: "pnpm workspace",
@@ -537,7 +541,8 @@ for (const scenario of [
     },
     framework: "angular",
     root: "packages/customer-host",
-    dev: "atlas runtime-config customer-host && ng serve customer-host"
+    dev: "ng serve customer-host",
+    build: "ng build"
   },
   {
     name: "Turborepo",
@@ -548,7 +553,8 @@ for (const scenario of [
     },
     framework: "react",
     root: "apps/customer-host",
-    dev: "atlas runtime-config customer-host && vite --host 0.0.0.0"
+    dev: "vite --host 0.0.0.0",
+    build: "tsc -b && vite build"
   }
 ]) {
   test(`atlas generates host workspace scripts in a ${scenario.name}`, async () => {
@@ -565,7 +571,8 @@ for (const scenario of [
     const packageJson = JSON.parse(await readFile(join(root, scenario.root, "package.json"), "utf8"));
     assert.equal(packageJson.scripts.dev, scenario.dev);
     assert.equal(packageJson.scripts["atlas:config"], "atlas compile-config customer-host");
-    assert.ok(packageJson.scripts.build.includes("atlas runtime-config customer-host"));
+    assert.equal(packageJson.scripts.build, scenario.build);
+    assert.equal(packageJson.scripts["atlas:build"], "atlas build customer-host");
     if (scenario.framework === "angular") {
       const appTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.app.json"), "utf8"));
       const angularJson = JSON.parse(await readFile(join(root, scenario.root, "angular.json"), "utf8"));
@@ -647,9 +654,8 @@ exit 1
   assert.equal(project.targets["serve-original"].executor, "@angular-devkit/build-angular:dev-server");
   assert.equal(project.targets["serve-original"].configurations.production.buildTarget, "mobile-host:esbuild:production");
   assert.equal(project.targets["serve-original"].configurations.development.buildTarget, "mobile-host:esbuild:development");
-  assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config mobile-host");
-  assert.equal(project.targets.dev.options.commands[1].command, "nx run mobile-host:serve");
-  assert.equal(project.targets.dev.options.commands[1].forwardAllArgs, true);
+  assert.equal(project.targets.dev.options.command, "atlas dev mobile-host");
+  assert.equal(project.targets.dev.options.forwardAllArgs, true);
   assert.equal(project.targets["mobile-host"].options.command, "nx run mobile-host:dev");
   assert.match(await readFile(join(root, "products/host/src/main.ts"), "utf8"), /import\("\.\/bootstrap"\)/);
   assert.match(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8"), /startHost/);
@@ -730,9 +736,8 @@ exit 1
 
   const project = JSON.parse(await readFile(join(root, "apps/host/project.json"), "utf8"));
   assert.equal(project.marker, "nx-generator");
-  assert.equal(project.targets.dev.options.commands[0].command, "atlas runtime-config host");
-  assert.equal(project.targets.dev.options.commands[1].command, "nx run host:serve");
-  assert.equal(project.targets.dev.options.parallel, false);
+  assert.equal(project.targets.dev.options.command, "atlas dev host");
+  assert.equal(project.targets.dev.options.forwardAllArgs, true);
   assert.equal(project.targets.serve.executor, "nx:run-commands");
   assert.equal(project.targets.serve.options.cwd, "apps/host");
   assert.equal(project.targets.serve.options.command, "vite");
