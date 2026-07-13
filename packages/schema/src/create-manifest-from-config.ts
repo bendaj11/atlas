@@ -8,6 +8,7 @@ import { assertAtlasManifest } from "./assert-atlas-manifest.js";
 export function createManifestFromConfig(input: CreateManifestFromConfigInput): AtlasManifest {
   const manifest: AtlasManifest = {
     schemaVersion: "1",
+    kind: "app",
     id: input.config.id,
     name: input.config.name ?? input.config.id,
     version: input.version,
@@ -25,6 +26,10 @@ export function createManifestFromConfig(input: CreateManifestFromConfigInput): 
 
   if (input.exportedWidgets?.length) {
     manifest.exportedWidgets = input.exportedWidgets;
+  }
+
+  if (input.config.externalAppsDependencies?.length) {
+    manifest.externalAppsDependencies = [...new Set(input.config.externalAppsDependencies)];
   }
 
   if (input.styles?.length) manifest.styles = input.styles;

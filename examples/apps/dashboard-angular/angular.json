@@ -9,6 +9,7 @@
         "build": {
           "builder": "@angular-architects/native-federation:build",
           "options": {
+            "preserveSymlinks": true,
             "target": "dashboard-angular:esbuild:production"
           },
           "configurations": {

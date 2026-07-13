@@ -1,73 +1,103 @@
 # Exported Widgets
 
-Exported widgets are remotely loaded UI features owned and deployed by an app. On disk they live under `src/exported-widgets`. A page app uses widgets when a substantial map, panel, or popup needs its own release cycle without creating npm-package deployment coupling.
+An exported widget is UI owned and released by a normal Atlas app. An app can render as a routed/slotted app in one host, provide widgets to another host, do both, or do neither. “Widget provider” is a runtime role, not another project type.
 
-## Create A Widget
+## Create a widget
 
-Create `src/exported-widgets/<widget-id>/index.ts`:
-
-```ts
-import type { AtlasExportedWidgetEntry } from "@atlas/sdk/lifecycle";
-
-export interface ProductCountProps { count: number }
-
-const widget: AtlasExportedWidgetEntry<ProductCountProps> = {
-  mount({ container, props, sdk }) {
-    container.textContent = `Products: ${props.count}`;
-    atlas.toast.open({ title: "Count loaded" });
-    return { unmount: () => { container.textContent = ""; } };
-  }
-};
-
-export default widget;
+```sh
+atlas g widget product-count --app catalog
 ```
 
-Both supported framework subpaths export the same `defineExportedWidget` helper.
+Atlas creates:
 
-## Consume A Widget
+```text
+src/exported-widgets/product-count/
+  atlas.widget.ts
+  index.tsx                 # React
+  # index.ts                # Angular
+```
 
-Widget references live where they are used. Atlas resolves and loads the owner app on demand through the runtime catalog and registry data.
-
-Every mounted app receives a catalog-scoped widget loader:
+`atlas.widget.ts` contains identity only:
 
 ```ts
-const mounted = await context.widgets.mount(
-  "catalog/product-count",
-  container,
-  { count: 12 }
-);
+import type { AtlasWidgetConfig } from "@atlas/schema";
+
+export default {
+  id: "6f4994c1-b95f-4b24-a01a-106dd61aa4fb",
+  name: "Product Count"
+} satisfies AtlasWidgetConfig;
+```
+
+Atlas uses Node's cryptographically random UUIDv4 generator. Generate the id once, commit it, and keep it when folders or display names change. Folder name controls source/expose path; UUID controls public identity.
+
+Checkpoint: `atlas build catalog` writes the widget UUID, owner app, immutable remote URL, framework, and expose into `app.manifest.json`.
+
+## Consume a widget
+
+Consumers keep widget references where code uses them. App config never lists individual widgets.
+
+```ts
+const widget = await sdk.getWidget("6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
+const mounted = await widget.mount(container, { count: 24 });
 
 await mounted.unmount();
 ```
 
-The reference is `<owner-app-id>/<widget-id>`. Consumers do not specify a URL or version.
+Atlas renders loading and error UI inside that widget's own card. A slow or failed widget does not replace its app, route, slot, or sibling widgets. Retry stays inside the failed card.
 
-Widgets can also be opened directly through host overlays. Atlas resolves, mounts, and tears down the widget; the caller does not create a DOM outlet:
+Host clients customize every widget card through `renderWidgetLoading` and `renderWidgetError` in their framework `startHost()` options. Each renderer may return a cleanup function; Atlas calls it before success, retry, or unmount. See [SDK loading and failure UI](sdk.md#loading-and-failure-ui).
+
+## Same-registry widgets
+
+All production widgets in the host catalog's primary registry are discoverable by UUID, including widgets owned by apps that have no route or slot in this host. Atlas reads the mutable registry index lazily and loads only the requested widget code.
+
+No dependency config is needed.
+
+## External-registry widgets
+
+When provider app lives in another configured registry, consuming app declares provider app id—not widget ids, versions, URLs, buckets, or credentials:
 
 ```ts
-const popup = atlas.popup.open({
-  title: "Entity details",
-  content: { widget: "entity-details/popup", props: { entityId: "42" } },
-  draggable: true,
-  resizable: true
-});
+export default {
+  type: "app",
+  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
+  name: "Orders",
+  framework: "angular",
+  externalAppsDependencies: [
+    "5b0b569f-cae0-48d4-8a41-194fdad05a15"
+  ]
+} satisfies AtlasAppConfig;
 ```
 
-## Behind The Scenes
+Host-server environment supplies trusted environment-specific registry URLs:
 
-During `atlas build`, Atlas scans direct child folders under `src/exported-widgets`. Every folder must contain `index.ts`. Atlas adds an `AtlasExportedWidgetManifest` to the owning app manifest with its immutable CDN URL, framework, expose name, owner, and lifecycle contract version.
+```sh
+ATLAS_EXTERNAL_REGISTRY_URLS=https://team-a.example/atlas,https://shared-ui.example/atlas
+```
 
-Widget manifests are embedded in the app manifest instead of published independently. This guarantees that a widget and its owning app always come from the same selected version. A local, PR, or historical override of the owner automatically overrides its widgets too.
+On refresh Atlas resolves each dependency to its registry's current production selection. External release and rollback therefore become visible after browser refresh without host catalog sync or host-server deployment. Host-client rollback does not roll back independently released external providers.
 
-Changing a widget requires deploying only its owning app. Consumers resolve the new asset when their host catalog selects that app version; consumer apps do not need rebuilding or redeployment.
+Atlas resolves transitive external app dependencies, rejects duplicate app/widget IDs, and searches only explicitly configured registries. An unavailable registry affects only requested widgets from that registry.
 
-## Contract Guidance
+## Performance and caching
 
-Props are a runtime API. Add optional fields compatibly, and avoid removing or changing existing fields without coordinating consumers. Exporting the props interface improves authoring, but it does not replace runtime compatibility discipline.
+- Host startup never waits for unused widgets.
+- Primary and configured external registry reads run in parallel on first unresolved widget lookup.
+- Registry JSON uses `Cache-Control: no-cache` and revalidates after refresh.
+- Version/build assets are immutable and cache forever.
+- Resolved providers and loaded modules are reused for the page lifetime.
+- CDN origins should be few; each new origin adds DNS and TLS cost.
 
-- Components can use the consuming host's SDK.
-- Cross-framework consumption works through the DOM mount/unmount boundary. Consumers do not install or configure the owner's framework.
-- Consumers cannot request arbitrary versions or URLs.
-- A widget may be substantial, such as a map or complex popup. Full pages and browser routes remain page app responsibilities.
+## Columbus
 
-The repository includes both cross-framework directions: `dashboard-react` mounts `orders-angular/order-status`, while `dashboard-angular` mounts `catalog-react/product-count`. The dashboards contain no owner URL and do not need redeployment when the catalog selects a newer owner version.
+Columbus lists external widget providers separately from routed/slotted apps. Local, PR, historical, and production provider overrides use the same app manifest/index mechanics. Stable loader stores provider overrides under `widgetProviders`, so they never mount as full apps.
+
+## Common errors
+
+`atlas.widget.ts is missing`: run widget generator or add file with stable UUIDv4 and name.
+
+`External Atlas app dependency ... was not found`: add provider registry URL to host-server environment and confirm provider production release exists.
+
+`widget id ... is exported by multiple apps`: regenerate one duplicate id and update its consumers.
+
+`origin ... is not allowed`: add approved asset/CDN origin to `ATLAS_ASSET_ORIGINS`; never weaken HTTPS or integrity policy globally.

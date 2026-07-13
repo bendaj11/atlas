@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const packageDirectories = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
+const packageDirectories = ["schema", "sdk", "runtime", "host-server", "generators", "testkit", "cli"];
 
 export async function versionPackages(version, workspaceRoot = root) {
   if (!version || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {

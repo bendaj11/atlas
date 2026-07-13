@@ -42,6 +42,7 @@ export function reactHostProvider(name: string): string {
   const providerName = reactHostProviderName(name);
   return `import "es-module-shims";
 import type { PropsWithChildren } from "react";
+import type { AtlasDeploymentCatalog, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { createBrowserRouter } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import { AtlasHostProvider } from "@atlas/runtime/react";
@@ -50,20 +51,55 @@ import { HostLayout } from "./app/HostLayout";
 
 export const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
 
-export function ${providerName}({ children }: PropsWithChildren) {
+interface HostProviderProps extends PropsWithChildren {
+  runtimeConfig?: AtlasHostRuntimeConfig;
+  catalog?: AtlasDeploymentCatalog;
+}
+
+export function ${providerName}({ children, runtimeConfig, catalog }: HostProviderProps) {
   return (
     <AtlasHostProvider
       hostId={atlasConfig.id}
       options={{
         router,
         federation: { initFederation, loadRemoteModule },
-        hostData: { hostId: atlasConfig.id, name: atlasConfig.name }
+        hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
+        ...(runtimeConfig ? { runtimeConfig } : {}),
+        ...(catalog ? { catalog } : {})
       }}
     >
       {children}
     </AtlasHostProvider>
   );
 }
+`;
+}
+
+export function reactHostEntry(name: string, profile: ReactVersionProfile): string {
+  const providerName = reactHostProviderName(name);
+  const imports = profile.major === 17
+    ? 'import { render, unmountComponentAtNode } from "react-dom";'
+    : 'import { createRoot } from "react-dom/client";';
+  const renderHost = profile.major === 17
+    ? `render(element, request.container);\n  return { unmount: () => unmountComponentAtNode(request.container) };`
+    : `const root = createRoot(request.container);\n  root.render(element);\n  return { unmount: () => root.unmount() };`;
+  return `import { StrictMode } from "react";
+${imports}
+import { RouterProvider } from "react-router-dom";
+import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
+import { ${providerName}, router } from "./${providerName}";
+import "./styles.css";
+
+export const mount: AtlasHostClientEntry["mount"] = (request) => {
+  const element = (
+    <StrictMode>
+      <${providerName} runtimeConfig={request.runtimeConfig} catalog={request.catalog}>
+        <RouterProvider router={router} />
+      </${providerName}>
+    </StrictMode>
+  );
+  ${renderHost}
+};
 `;
 }
 

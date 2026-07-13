@@ -26,13 +26,14 @@ export function validateManifest(value: unknown, prefix?: string): AtlasValidati
   const manifest = asRecord(value);
   const path = (child: string): string => joinPath(prefix, child);
 
-  for (const key of ["schemaVersion", "id", "name", "version", "buildId", "channel", "framework", "remoteEntryUrl", "requiredHostSdkVersion", "createdAt"]) {
+  for (const key of ["schemaVersion", "kind", "id", "name", "version", "buildId", "channel", "framework", "remoteEntryUrl", "requiredHostSdkVersion", "createdAt"]) {
     requiredString(manifest, key, issues, prefix);
   }
   validateIdentifier(manifest?.id, path("id"), "app id", issues);
 
   if (manifest?.schemaVersion !== "1") addIssue(issues, path("schemaVersion"), "Expected schemaVersion to be \"1\".");
-  if (!isOneOf(manifest?.channel, ["production", "pr", "historical", "local"])) addIssue(issues, path("channel"), "Expected channel to be production, pr, historical, or local.");
+  if (manifest?.kind !== "app") addIssue(issues, path("kind"), "Expected kind to be app.");
+  if (!isOneOf(manifest?.channel, ["production", "pr", "local"])) addIssue(issues, path("channel"), "Expected channel to be production, pr, or local.");
   if (!isOneOf(manifest?.framework, FRAMEWORKS)) addIssue(issues, path("framework"), "Expected framework to be angular, react, or vue.");
   if (manifest?.isolation !== undefined && !isOneOf(manifest.isolation, ["scoped", "shadow-dom"])) addIssue(issues, path("isolation"), "Expected isolation to be scoped or shadow-dom.");
 
@@ -46,7 +47,7 @@ export function validateManifest(value: unknown, prefix?: string): AtlasValidati
   validateExposes(manifest?.exposes, path("exposes"), issues);
   validateStyles(manifest?.styles, path("styles"), issues);
   validateExportedWidgets(manifest, path("exportedWidgets"), issues);
-  validateUses(manifest?.uses, path("uses"), issues);
+  validateExternalAppDependencies(manifest?.externalAppsDependencies, path("externalAppsDependencies"), issues);
   return issues;
 }
 
@@ -177,23 +178,22 @@ function validateExportedWidget(value: unknown, ownerId: unknown, path: string, 
   if (id) validateUniqueValue(id, `${path}.id`, "exported widget id", ids, issues);
 }
 
-function validateUses(value: unknown, path: string, issues: AtlasValidationIssue[]): void {
+function validateExternalAppDependencies(value: unknown, path: string, issues: AtlasValidationIssue[]): void {
   if (value === undefined) return;
   if (!Array.isArray(value)) {
-    addIssue(issues, path, "Expected uses to be an array.");
+    addIssue(issues, path, "Expected externalAppsDependencies to be an array.");
     return;
   }
-  const references = new Set<string>();
-  value.forEach((reference, index) => {
+  const appIds = new Set<string>();
+  value.forEach((appId, index) => {
     const itemPath = `${path}.${index}`;
-    if (typeof reference !== "string" || !/^[^/]+\/[^/]+$/.test(reference)) {
-      addIssue(issues, itemPath, "Expected a widget reference in owner-app/widget-id format.");
+    if (typeof appId !== "string") {
+      addIssue(issues, itemPath, "Expected an external app id.");
       return;
     }
-    const [ownerAppId, widgetId] = reference.split("/");
-    const ownerIsValid = validateIdentifier(ownerAppId, itemPath, "widget owner app id", issues);
-    const widgetIsValid = validateIdentifier(widgetId, itemPath, "widget id", issues);
-    if (ownerIsValid && widgetIsValid) validateUniqueValue(reference, itemPath, "widget reference", references, issues);
+    if (validateIdentifier(appId, itemPath, "external app id", issues)) {
+      validateUniqueValue(appId, itemPath, "external app dependency", appIds, issues);
+    }
   });
 }
 

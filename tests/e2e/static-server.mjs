@@ -50,8 +50,8 @@ async function resolveFile(candidate, fallback) {
 }
 
 function cacheControl(path) {
-  if (path.endsWith("registry.json") || path.includes("/hosts/") || path.includes("/apps/")) return "no-cache";
-  return /^\/[^/]+\/[^/]+\/[^/]+\//.test(path) ? "public, max-age=31536000, immutable" : "no-cache";
+  if (path.endsWith("registry.json") || path.endsWith("/catalog.json") || path.endsWith("/index.json")) return "no-cache";
+  return /^\/(?:hosts|apps)\/[^/]+\/[^/]+\/[^/]+\//.test(path) ? "public, max-age=31536000, immutable" : "no-cache";
 }
 
 function contentType(path) {

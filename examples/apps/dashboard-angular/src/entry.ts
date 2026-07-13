@@ -11,13 +11,25 @@ class AtlasAppRootComponent {
 export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement("atlas-dashboard-angular-root");
   const widgetContainer = document.createElement("section");
-  widgetContainer.setAttribute("aria-label", "Shared React product count");
+  const internalWidgetContainer = document.createElement("section");
+  widgetContainer.setAttribute("aria-label", "External React product count");
+  internalWidgetContainer.setAttribute("aria-label", "Internal React product count");
   container.append(element);
-  container.append(widgetContainer);
-  const appLoaded = context.loading.waitUntilReady();
+  container.append(widgetContainer, internalWidgetContainer);
   const app = await bootstrapApplication(AtlasAppRootComponent, { providers: [provideAtlasAppContext(context), provideAtlasSdk(sdk)] });
-  context.loading.show();
-  const widget = await context.widgets.mount("catalog-react/product-count", widgetContainer, { count: 24, label: "React products" });
-  appLoaded();
-  return { async unmount() { await widget.unmount(); app.destroy(); element.remove(); widgetContainer.remove(); } };
+  const [externalWidget, internalWidget] = await Promise.all([
+    sdk.getWidget("55ca3323-c62f-44de-9194-6ab42375e578")
+      .then((widget) => widget.mount(widgetContainer, { count: 24, label: "External products" })),
+    sdk.getWidget("6f4994c1-b95f-4b24-a01a-106dd61aa4fb")
+      .then((widget) => widget.mount(internalWidgetContainer, { count: 12, label: "Internal products" }))
+  ]);
+  return {
+    async unmount() {
+      await Promise.all([externalWidget.unmount(), internalWidget.unmount()]);
+      app.destroy();
+      element.remove();
+      widgetContainer.remove();
+      internalWidgetContainer.remove();
+    }
+  };
 });

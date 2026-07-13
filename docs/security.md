@@ -1,80 +1,82 @@
 # Security
 
-Atlas loads JavaScript selected by remote metadata. Treat the static registry
-and app publication pipeline as part of the application's code supply chain.
+Atlas loads executable browser code from object storage. Treat registry publication as production code deployment.
 
-## Runtime Guarantees
+## Trust levels
 
-For production, PR, and historical manifests Atlas:
+A host client is more privileged than an app. It controls routing, layout, SDK construction, authentication integration, telemetry, and all app mounts. Columbus displays host overrides separately and requires a stronger warning.
 
-1. validates the manifest shape;
-2. permits HTTP(S) remote entries only;
-3. loads the exact remote-entry and stylesheet URLs selected by the host catalog;
-4. verifies optional `sha256-...` metadata when a manifest provides it.
+The host server is a separate infrastructure boundary. It contains no product UI or storage credentials and does not proxy artifacts.
 
-Trust checks are isolated per app. Atlas never initializes a rejected remote,
-but other trusted apps continue to run and the host renders its normal fallback
-UI in the rejected app's route or slot.
+## Runtime policy
 
-Local manifests are exempt from origin and integrity requirements because
-`atlas dev` intentionally loads a changing loopback build. Their remote entry,
-stylesheet, and exported-widget URLs must resolve to localhost or an IP loopback
-address. URL and storage app overrides are enabled by default and can be disabled
-with `allowAppOverrides: false` in runtime configuration or host options.
-Override documents still have to target the current host and contain matching
-app ids. Catalog placements and supported-host declarations remain authoritative,
-and Atlas revalidates widget dependencies after applying replacements.
+Production server configuration should normally include:
 
-## Host Configuration
-
-```json
-{
-  "schemaVersion": "1",
-  "hostId": "customer-host",
-  "catalogUrl": "https://registry.example.com/atlas/hosts/customer-host/catalog.json",
-  "allowAppOverrides": false,
-  "resourcesTimeoutMs": 15000,
-  "resourcesRetryCount": 3
-}
+```sh
+ATLAS_ALLOW_OVERRIDES=false
+ATLAS_ASSET_ORIGINS=https://cdn.example.com
+ATLAS_EXTERNAL_REGISTRY_URLS=https://shared-ui.example/atlas
 ```
 
-`allowAppOverrides` controls Atlas tooling that swaps selected app manifests at
-runtime. Keep it `false` in production unless a controlled environment explicitly
-needs PR, historical, or local overrides. `resourcesTimeoutMs` and
-`resourcesRetryCount` bound Atlas-owned catalog, override, federation, app load,
-and readiness work.
+The catalog origin is allowed automatically. Additional artifact/CDN origins must appear in `ATLAS_ASSET_ORIGINS`. `ATLAS_EXTERNAL_REGISTRY_URLS` explicitly limits cross-registry dependency discovery. Production URLs require HTTPS. Local overrides require HTTP(S) loopback.
 
-## Storage And CI Requirements
+`/atlas.runtime.json` is public browser data. Never expose passwords, tokens, connection strings, or private storage credentials through environment values returned there.
 
-- Allow publication only from protected CI identities.
-- Upload immutable assets before publishing manifests and catalogs.
-- Never overwrite an existing version/build path.
-- Use HTTPS for production storage.
-- Restrict CORS to known host origins where operationally practical.
-- Revalidate mutable catalogs while caching versioned assets as immutable.
-- Use registry revision checks or storage locking for concurrent publications.
-- Keep cloud and package-registry credentials out of source and generated files.
+## Loader validation
 
-## Content Security Policy
+Before importing a host client, the stable loader validates:
 
-The host's CSP must allow scripts and connections from every approved asset
-origin. Atlas does not weaken or inject CSP headers because the host and
-deployment platform own them.
+- runtime, catalog, and host ids agree;
+- catalog contains exactly one host and an app array;
+- host manifest kind is `host`;
+- loader API major is compatible;
+- URL scheme and origin satisfy runtime policy;
+- local URL uses loopback;
+- declared SHA-256 SRI matches remote federation metadata;
+- required `./host` expose exists.
 
-## Trust Boundary
+The host client receives the validated effective host/app catalog and must not resolve a second host/app selection. Widget resolver may lazily read approved registry production pointers for `getWidget`.
 
-Anyone who can publish both an asset and its manifest is effectively a code
-publisher for the host. Protect publication permissions, review app changes, and
-preserve an auditable build-to-manifest relationship.
+External registry manifests and assets receive same scheme, origin, integrity, framework lifecycle, duplicate-ID, and compatibility checks. Registry failure stays inside requested widget's card; it does not disable unrelated apps or widgets.
 
-Atlas does not place apps in cross-origin iframes. Apps share the host page and
-can access browser APIs available to that page. DOM boundaries and Shadow DOM
-help with UI and style isolation, not security isolation.
+## Integrity and immutability
 
-## Dependency Checks
+Production builds include SHA-256 integrity for remote metadata and styles. Version/build object paths are immutable and uploaded with create-only writes. Reusing a build id for different bytes is an error.
 
-Run the package manager's dependency audit and your organization's secret/SAST
-scanners in consumer CI. Atlas keeps these tools consumer-selectable because
-organizations differ in vulnerability feeds, policies, and accepted scanners.
-The Atlas release pipeline verifies exact package tarballs and publishes SHA-256
-checksums so downstream publishing does not need to rebuild them.
+Integrity does not replace publication authorization. Anyone who can publish both artifacts and manifests can execute code in the product. Protect storage credentials, registry lease operations, CI variables, and approval environments accordingly.
+
+## Publication controls
+
+- Pin Atlas CLI and dependencies with a committed lockfile.
+- Build once; promote the same publication directory between environments.
+- Grant immutable create and mutable replace permissions only to protected CI.
+- Serialize all host/app releases sharing one registry root.
+- Compare live registry revision before mutation.
+- Upload immutable bytes before active catalogs.
+- Verify runtime after activation while still holding the lease.
+- Restore previous mutable files on verification failure.
+- Keep deployment and rollback audit logs.
+
+Never fix a release by editing `catalog.json` in a CDN console.
+
+## HTTP controls
+
+The host server sets CSP, disables framework disclosure, adds `nosniff`, a referrer policy, and frame restrictions. Configure `ATLAS_ASSET_ORIGINS` so CSP includes every approved CDN origin. Native Federation creates inline import maps and blob-backed script, connection, and style shims, so those directives permit the required inline/blob operations; Atlas still limits network assets to the host and configured asset origins. TLS termination may occur at the deployment platform.
+
+Object storage/CDN must:
+
+- serve correct JavaScript, JSON, and CSS content types;
+- allow CORS from intended host origins;
+- revalidate mutable JSON;
+- cache immutable version/build paths long term;
+- avoid content transformation that breaks integrity hashes.
+
+## Override recovery
+
+An invalid host can fail before product error boundaries exist. The loader owns recovery UI and can clear both tab and all-tabs overrides. Columbus can also reset overrides without host-client cooperation.
+
+Enable overrides only in environments where developer substitution is intended. When enabled, the server CSP permits loopback HTTP ports so Columbus can connect local host/app builds; non-loopback network assets remain limited to configured origins. A production troubleshooting environment may enable overrides for authorized users, but the setting itself does not provide authentication; browser-extension distribution and environment access remain organizational controls.
+
+## Container hardening
+
+The generated host-server image is non-root, stateless, compatible with read-only filesystems, logs to stdout/stderr, handles `SIGTERM`, and exposes separate health paths. Give it no object-storage write credentials. Apply platform resource limits, network policy, image scanning, signing, and admission controls according to organizational standards.

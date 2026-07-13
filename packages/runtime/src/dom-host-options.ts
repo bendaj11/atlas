@@ -1,16 +1,19 @@
-import type { AtlasHostRuntimeConfig } from "@atlas/schema";
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from "@atlas/schema";
 import type { AtlasEventMap, AtlasSdk, AtlasSdkOptions } from "@atlas/sdk";
 import type { AtlasNavigation } from "@atlas/sdk/navigation";
 import type {
   AtlasFederationAdapter,
   AtlasHostMountEvent,
-  AtlasRuntimeObserver
+  AtlasRuntimeObserver,
+  AtlasWidgetUiOptions
 } from "./index.js";
 import type { AtlasHostNavigationItem } from "./host-navigation.js";
 
-export interface DomRuntimeOptions {
+export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   federation: AtlasFederationAdapter;
   runtimeConfig?: AtlasHostRuntimeConfig;
+  /** Already-resolved catalog supplied by the stable Atlas loader. */
+  catalog?: AtlasHostCatalog;
   runtimeConfigUrl?: string;
   /** Enables URL and storage app overrides for Atlas tool workflows. */
   allowAppOverrides?: boolean;

@@ -28,6 +28,7 @@
     "test:fixtures": "yarn workspace @atlas-app/catalog-react build",
     "test:packages": "turbo run test --filter='@atlas/*'",
     "test:e2e": "node tests/e2e/prepare.mjs && playwright test",
+    "test:container": "yarn pack:verify && node scripts/verify-host-server-container.mjs",
     "test:e2e:prepare": "node tests/e2e/prepare.mjs",
     "typecheck": "turbo run typecheck --filter='@atlas/*' && yarn typecheck:tests",
     "typecheck:tests": "tsc -p tsconfig.tests.json",

@@ -17,11 +17,12 @@ import { AtlasDevService, browserOpenCommand, createDevSession, createLocalDevCa
 import { loadEnvFiles } from "../dist/env.js";
 import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
 import type { AtlasPrompter } from "../dist/ui.js";
-import { atlasPackageRange, createTestWorkspace, TestChildProcess } from "./build.driver.js";
+import { atlasPackageRange, closingJoinedAppPreservesHost, createTestWorkspace, hostJoiningSharedControlBecomesReady, TestChildProcess } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
 const ATLAS_PACKAGE_RANGE = await atlasPackageRange();
+const localNetworkTest = process.env.CODEX_SANDBOX_NETWORK_DISABLED === "1" ? test.skip : test;
 
 test("macOS browser opener always opens the URL", () => {
   assert.deepEqual(browserOpenCommand("http://localhost:5173/orders", "darwin"), {
@@ -87,7 +88,7 @@ module.exports = {
 test("atlas build emits a validated deployable manifest", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-build-"));
   const snapshot = join(directory, "registry.json");
-  await writeFile(snapshot, JSON.stringify({ schemaVersion: "1", updatedAt: "2026-01-01T00:00:00.000Z", manifests: [] }));
+  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   await run(process.execPath, [
     "packages/cli/dist/index.js",
     "build",
@@ -103,10 +104,10 @@ test("atlas build emits a validated deployable manifest", async () => {
   const manifest = JSON.parse(await readFile("examples/apps/catalog-react/dist/app.manifest.json", "utf8"));
   assert.equal(manifest.version, "2.3.4");
   assert.equal(manifest.channel, "production");
-  assert.equal(manifest.remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
-  assert.equal(manifest.exportedWidgets[0].id, "product-count");
+  assert.equal(manifest.remoteEntryUrl, "https://cdn.example/atlas/apps/catalog-react/2.3.4/test-build/remoteEntry.json");
+  assert.equal(manifest.exportedWidgets[0].id, "6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
   assert.equal(manifest.exportedWidgets[0].ownerAppId, "catalog-react");
-  assert.equal(manifest.exportedWidgets[0].remoteEntryUrl, "https://cdn.example/atlas/catalog-react/2.3.4/test-build/remoteEntry.json");
+  assert.equal(manifest.exportedWidgets[0].remoteEntryUrl, "https://cdn.example/atlas/apps/catalog-react/2.3.4/test-build/remoteEntry.json");
   assert.match(manifest.integrity, /^sha256-/);
 });
 
@@ -119,7 +120,7 @@ test("atlas build requires an explicit registry URL outside the local channel", 
 test("atlas rollback requires an explicit registry URL", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-rollback-url-"));
   const snapshot = join(directory, "registry.json");
-  await writeFile(snapshot, JSON.stringify({ schemaVersion: "1", manifests: [] }));
+  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   await assert.rejects(run(process.execPath, [
     "packages/cli/dist/index.js", "rollback", "orders", "--version=1.0.0", `--registry-snapshot=${snapshot}`
   ], { env: { ...process.env, ATLAS_REGISTRY_BASE_URL: "" } }), /registry-base-url.*required/);
@@ -158,12 +159,22 @@ test("atlas generation rejects project names that can escape the target director
   ]), /Invalid project name/);
 });
 
+test("atlas generates advanced publish config only when explicitly requested", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "atlas-publish-config-"));
+  await run(process.execPath, [
+    "packages/cli/dist/index.js", "generate", "publish-config", `--directory=${directory}`, "--skip-format"
+  ]);
+  const source = await readFile(join(directory, "atlas.publish.ts"), "utf8");
+  assert.match(source, /satisfies AtlasPublishConfig/);
+  assert.match(source, /runtimeUrls: \[\]/);
+});
+
 test("atlas build prepares provider-neutral files without uploading", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-static-publication-"));
   const snapshot = join(directory, "current-registry.json");
   const publication = join(directory, "publication");
   const publicationPlan = join(directory, "publication-plan.json");
-  await writeFile(snapshot, JSON.stringify({ schemaVersion: "1", updatedAt: "2026-01-01T00:00:00.000Z", manifests: [] }));
+  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   await run(process.execPath, [
     "packages/cli/dist/index.js",
     "build",
@@ -178,23 +189,21 @@ test("atlas build prepares provider-neutral files without uploading", async () =
   ]);
   const registry = JSON.parse(await readFile(join(publication, "registry.json"), "utf8"));
   const index = JSON.parse(await readFile(join(publication, "apps/catalog-react/index.json"), "utf8"));
-  const catalog = JSON.parse(await readFile(join(publication, "hosts/demo-react-host/catalog.json"), "utf8"));
   const plan = JSON.parse(await readFile(publicationPlan, "utf8"));
-  assert.equal(registry.manifests[0].id, "catalog-react");
+  assert.equal(registry.apps[0].id, "catalog-react");
   assert.equal(index.manifests[0].version, "2.3.4");
-  assert.equal(catalog.manifests[0].id, "catalog-react");
   assert.equal(plan.registryBaseUrl, "https://artifacts.example.com/atlas");
   assert.match(plan.baseRevision, /^sha256:[a-f0-9]{64}$/);
   assert.match(plan.registryRevision, /^sha256:[a-f0-9]{64}$/);
   assert.deepEqual(plan.uploadOrder, ["immutable", "revalidate"]);
   assert.equal(plan.files.find((file: { path: string }) => file.path === "registry.json").cache, "revalidate");
-  await readFile(join(publication, "catalog-react/2.3.4/test-build/remoteEntry.json"));
+  await readFile(join(publication, "apps/catalog-react/2.3.4/test-build/remoteEntry.json"));
 });
 
 test("atlas build rejects a stale expected registry revision", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-stale-registry-"));
   const snapshot = join(directory, "registry.json");
-  await writeFile(snapshot, JSON.stringify({ schemaVersion: "1", updatedAt: "2026-01-01T00:00:00.000Z", manifests: [] }));
+  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   await assert.rejects(run(process.execPath, [
     "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile",
     "--registry-base-url=https://cdn.example/atlas",
@@ -214,8 +223,9 @@ test("atlas rollback emits only mutable registry files", async () => {
   await writeFile(snapshot, JSON.stringify({
     schemaVersion: "1",
     updatedAt: second.createdAt,
-    manifests: [first, second],
-    productionSelections: { orders: { version: "2.0.0", buildId: "latest" } }
+    hosts: [],
+    apps: [first, second],
+    selections: { hosts: {}, apps: { orders: { version: "2.0.0", buildId: "latest" } } }
   }));
 
   await run(process.execPath, [
@@ -223,12 +233,13 @@ test("atlas rollback emits only mutable registry files", async () => {
     "--registry-base-url=https://cdn.example/atlas",
     `--registry-snapshot=${snapshot}`,
     `--publication-directory=${publication}`,
-    `--publication-plan=${planPath}`
+    `--publication-plan=${planPath}`,
+    "--prepare-only"
   ]);
 
   const registry = JSON.parse(await readFile(join(publication, "registry.json"), "utf8"));
   const plan = JSON.parse(await readFile(planPath, "utf8"));
-  assert.deepEqual(registry.productionSelections.orders, { version: "1.0.0", buildId: "stable" });
+  assert.deepEqual(registry.selections.apps.orders, { version: "1.0.0", buildId: "stable" });
   assert.equal(plan.operation, "rollback");
   assert.equal(plan.files.every((file: { cache: string }) => file.cache === "revalidate"), true);
   assert.equal(plan.files.some((file: { path: string }) => file.path.includes("remoteEntry")), false);
@@ -237,7 +248,7 @@ test("atlas rollback emits only mutable registry files", async () => {
 test("atlas build is deterministic with fixed CI metadata", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-deterministic-build-"));
   const snapshot = join(directory, "registry.json");
-  await writeFile(snapshot, JSON.stringify({ schemaVersion: "1", updatedAt: "2026-01-01T00:00:00.000Z", manifests: [] }));
+  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   const environment = { ...process.env, ATLAS_CREATED_AT: "2026-02-03T04:05:06.000Z" };
   const build = async (name: string) => {
     const publication = join(directory, name);
@@ -265,7 +276,8 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
   await assert.rejects(access(join(target, "public/atlas.runtime.json")), { code: "ENOENT" });
-  assert.match(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs: 15000/);
+  assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs/);
+  assert.match(await readFile(join(target, "Containerfile"), "utf8"), /atlas-host-server/);
   assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /catalogUrl/);
   const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
   assert.equal(generatedPackage.scripts.build, "ng build");
@@ -349,37 +361,42 @@ test("atlas app generation can create single-page apps without inner route files
   await assert.rejects(access(join(angularRoot, "src/app/details/details.component.ts")), { code: "ENOENT" });
 });
 
-test("atlas build identifies a host and emits deployment runtime JSON", async () => {
+test("atlas build identifies and versions a host client", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-runtime-config-"));
   const projectRoot = join(root, "host");
-  const output = join(root, "runtime.json");
+  const publication = join(root, "publication");
+  const plan = join(root, "publication.json");
   await mkdir(projectRoot, { recursive: true });
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, workspaces: ["host"] }));
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "host", version: "0.1.0", type: "module" }));
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
   await mkdir(join(projectRoot, ".atlas"));
+  await mkdir(join(projectRoot, "dist"));
+  await writeFile(join(projectRoot, "dist/remoteEntry.json"), JSON.stringify({ name: "atlas_host", exposes: [{ key: "./host", outFileName: "host.js" }], shared: [] }));
+  await writeFile(join(projectRoot, "dist/host.js"), "export const mount = () => {};\n");
+  const snapshot = join(root, "registry.json");
+  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
     type: "host",
     id: "host",
     framework: "react",
-    allowAppOverrides: false,
-    resourcesTimeoutMs: 12000,
-    resourcesRetryCount: 4
+    name: "Host"
   };\n`);
 
   await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "build", "host",
-    "--skip-compile", "--registry-base-url=https://cdn.example/atlas", `--out=${output}`
+    "--skip-compile", "--registry-base-url=https://cdn.example/atlas",
+    `--registry-snapshot=${snapshot}`,
+    `--publication-directory=${publication}`, `--publication-plan=${plan}`
   ], { cwd: root });
 
-  const runtime = JSON.parse(await readFile(output, "utf8"));
-  assert.equal(runtime.schemaVersion, "1");
-  assert.equal(runtime.hostId, "host");
-  assert.equal(runtime.hostVersion, "0.1.0");
-  assert.equal(runtime.catalogUrl, "https://cdn.example/atlas/hosts/host/catalog.json");
-  assert.equal(runtime.allowAppOverrides, false);
-  assert.equal(runtime.resourcesTimeoutMs, 12000);
-  assert.equal(runtime.resourcesRetryCount, 4);
+  const manifest = JSON.parse(await readFile(join(projectRoot, "dist/host.manifest.json"), "utf8"));
+  const catalog = JSON.parse(await readFile(join(publication, "hosts/host/catalog.json"), "utf8"));
+  assert.equal(manifest.kind, "host");
+  assert.equal(manifest.version, "0.1.0");
+  assert.equal(manifest.remoteEntryUrl.startsWith("https://cdn.example/atlas/hosts/host/0.1.0/"), true);
+  assert.equal(catalog.host.id, "host");
+  assert.deepEqual(catalog.apps, []);
 });
 
 test("atlas compile-config emits atlas.config.js through the project tsconfig", async () => {
@@ -585,9 +602,10 @@ for (const scenario of [
       assert.equal(architect.serve.options.port, 4200);
       assert.equal(architect["serve-original"].options.port, 4200);
       assert.deepEqual(appTsconfig.files, ["src/main.ts", "atlas.config.ts"]);
-      assert.equal(appTsconfig.extends, undefined);
+      assert.equal(appTsconfig.extends, "./tsconfig.json");
       assert.equal(appTsconfig.compilerOptions.emitDeclarationOnly, undefined);
-      await assert.rejects(access(join(root, scenario.root, "tsconfig.json")), { code: "ENOENT" });
+      const rootTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.json"), "utf8"));
+      assert.equal(rootTsconfig.compilerOptions.target, "ES2022");
       await assert.rejects(access(join(root, scenario.root, "tsconfig.atlas.json")), { code: "ENOENT" });
     }
   });
@@ -675,9 +693,9 @@ exit 1
   await assert.rejects(access(join(root, "products/host/package.json")), { code: "ENOENT" });
   await assert.rejects(access(join(root, "products/host/angular.json")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "products/host/atlas.config.ts"), "utf8"), /framework: "angular"/);
-  assert.match(await readFile(join(root, "products/host/atlas.config.ts"), "utf8"), /resourcesRetryCount: 3/);
+  assert.doesNotMatch(await readFile(join(root, "products/host/atlas.config.ts"), "utf8"), /resourcesRetryCount/);
   assert.match(await readFile(join(root, "products/host/federation.config.js"), "utf8"), /@atlas\/sdk\/federation-config/);
-  assert.match(await readFile(join(root, "products/host/federation.config.js"), "utf8"), /exposeApp: false/);
+  assert.match(await readFile(join(root, "products/host/federation.config.js"), "utf8"), /expose: "host"/);
   await assert.rejects(access(join(root, "products/host/public/atlas.runtime.json")), { code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   assert.equal(rootPackage.dependencies["@atlas/schema"], ATLAS_PACKAGE_RANGE);
@@ -761,17 +779,14 @@ exit 1
   assert.doesNotMatch(hostViteConfig, /panicThreshold/);
   assert.match(hostViteConfig, /react\(\{\}\)/);
   assert.match(hostViteConfig, /reactCompilerPreset\(\{ target: "19" \}\)/);
-  assert.match(hostViteConfig, /server: \{ port: 4200 \}/);
+  assert.match(hostViteConfig, /server: \{ port: 4200, cors: true \}/);
   await assert.rejects(access(join(root, "apps/host/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "apps/host/index.html"), "utf8"), /<script type="module" src="\/src\/main\.tsx"><\/script>/);
   assert.match(await readFile(join(root, "apps/host/src/styles.css"), "utf8"), /data-atlas-route-outlet/);
   assert.equal(await readFile(join(root, "apps/host/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(await readFile(join(root, "apps/host/public/nx.txt"), "utf8"), "nx react public asset\n");
-  assert.deepEqual(JSON.parse(await readFile(join(root, "apps/host/public/remoteEntry.json"), "utf8")), {
-    name: "atlas_host",
-    exposes: [],
-    shared: []
-  });
+  await assert.rejects(access(join(root, "apps/host/public/remoteEntry.json")), { code: "ENOENT" });
+  assert.match(await readFile(join(root, "apps/host/src/host.tsx"), "utf8"), /AtlasHostClientEntry/);
   const reactHostTsconfig = JSON.parse(await readFile(join(root, "apps/host/tsconfig.json"), "utf8"));
   assert.equal(reactHostTsconfig.marker, "nx-generator");
   assert.deepEqual(reactHostTsconfig.include, ["atlas.config.ts"]);
@@ -842,8 +857,9 @@ exit 1
   assert.match(await readFile(join(root, "orders/src/index.html"), "utf8"), /Atlas app assets/);
   const federationConfig = await readFile(join(root, "orders/federation.config.js"), "utf8");
   assert.match(federationConfig, /@atlas\/sdk\/federation-config/);
-  assert.match(federationConfig, /exposeApp: true/);
-  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.ts`/);
+  assert.match(federationConfig, /expose: "app"/);
+  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /atlas g widget <name> --app=\./);
+  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /sdk\.getWidget\(widgetId\)/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx angular public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   const project = JSON.parse(await readFile(join(root, "orders/project.json"), "utf8"));
@@ -951,10 +967,10 @@ exit 1
   await assert.rejects(access(join(root, "orders/src/app/nx-only/nx-only.tsx")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/src/app/README.md"), "utf8"), /Main app component/);
   assert.match(await readFile(join(root, "orders/src/app/routes.tsx"), "utf8"), /export const routes: RouteObject\[\]/);
-  assert.match(await readFile(join(root, "orders/src/app/App.tsx"), "utf8"), /useAtlasSdk/);
+  assert.doesNotMatch(await readFile(join(root, "orders/src/app/App.tsx"), "utf8"), /useAtlasSdk/);
   assert.match(await readFile(join(root, "orders/src/app/home/Home.tsx"), "utf8"), /export function Home/);
   assert.match(await readFile(join(root, "orders/src/app/details/Details.tsx"), "utf8"), /export function Details/);
-  await assert.rejects(access(join(root, "orders/src/main.tsx")), { code: "ENOENT" });
+  assert.equal(await readFile(join(root, "orders/src/main.tsx"), "utf8"), "nx react source\n");
   const reactViteConfig = await readFile(join(root, "orders/vite.config.ts"), "utf8");
   assert.match(reactViteConfig, /remoteEntry\.json/);
   assert.match(reactViteConfig, /atlasReactRefreshPreamble/);
@@ -966,7 +982,8 @@ exit 1
   assert.match(reactViteConfig, /reactCompilerPreset\(\{ target: "19" \}\)/);
   await assert.rejects(access(join(root, "orders/vite.config.mts")), { code: "ENOENT" });
   assert.match(await readFile(join(root, "orders/index.html"), "utf8"), /Orders assets/);
-  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /Create `<widget-id>\/index\.tsx`/);
+  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /atlas g widget <name> --app=\./);
+  assert.match(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8"), /sdk\.getWidget\(widgetId\)/);
   assert.equal(await readFile(join(root, "orders/public/nx.txt"), "utf8"), "nx react public asset\n");
   assert.equal(await readFile(join(root, "orders/eslint.config.mjs"), "utf8"), "nx eslint\n");
   assert.equal(JSON.parse(await readFile(join(root, "orders/project.json"), "utf8")).marker, "nx-generator");
@@ -1078,7 +1095,7 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
   assert.equal(catalog.schemaVersion, "1");
   assert.equal(catalog.hostId, "mobile-host");
   assert.equal(catalog.generatedAt, "2026-07-09T08:02:37.622Z");
-  assert.deepEqual(catalog.manifests, [manifest]);
+  assert.deepEqual(catalog.apps, [manifest]);
   const session = createDevSession({
     schemaVersion: "1",
     hostId: "mobile-host",
@@ -1090,7 +1107,7 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
   assert.deepEqual(session.catalog, catalog);
 });
 
-test("atlas dev control server accepts multiple local apps for one host", async () => {
+localNetworkTest("atlas dev control server accepts multiple local apps for one host", async () => {
   const login = createTestManifest({ id: "login", supportedHosts: ["mobile-host"] });
   const profile = createTestManifest({ id: "profile", supportedHosts: ["mobile-host"] });
   const first = await startControlServer(0, localDocument("mobile-host", login), "");
@@ -1110,7 +1127,7 @@ test("atlas dev control server accepts multiple local apps for one host", async 
   }
 });
 
-test("atlas dev control server serves local apps for different hosts", async () => {
+localNetworkTest("atlas dev control server serves local apps for different hosts", async () => {
   const angularApp = createTestManifest({ id: "angular-app", supportedHosts: ["angular-host"] });
   const reactApp = createTestManifest({ id: "react-app", supportedHosts: ["react-host"] });
   const angularControl = await startControlServer(0, localDocument("angular-host", angularApp), "");
@@ -1130,6 +1147,14 @@ test("atlas dev control server serves local apps for different hosts", async () 
   } finally {
     await angularControl.close();
   }
+});
+
+localNetworkTest("host dev becomes ready when joining a shared control server", async () => {
+  assert.equal(await hostJoiningSharedControlBecomesReady(), "mobile-host");
+});
+
+localNetworkTest("closing a joined app keeps the host dev session alive", async () => {
+  assert.equal(await closingJoinedAppPreservesHost(), "mobile-host");
 });
 
 test("atlas dev rejects apps without a configured host", async () => {
@@ -1248,7 +1273,7 @@ test("atlas dev waits for valid remote federation metadata", async () => {
   })), true);
 });
 
-test("atlas dev delegates host projects to the workspace dev task", async () => {
+test("atlas dev prepares a versioned local host client", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-host-"));
   const projectRoot = join(root, "customer-host");
   await mkdir(projectRoot, { recursive: true });
@@ -1256,9 +1281,10 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
   await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", strict: true } }));
   await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
+    '  type: "host",',
     '  id: "customer-host",',
     '  framework: "react",',
-    "  allowAppOverrides: true",
+    "  allowOverrides: true",
     "};"
   ].join("\n"));
 
@@ -1277,7 +1303,7 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
       return child;
     }
   });
-  const args = new CliArguments(["dev", "customer-host"]);
+  const args = new CliArguments(["dev", "customer-host", "--prepare-only"]);
   const originalInfo = console.info;
 
   try {
@@ -1287,24 +1313,17 @@ test("atlas dev delegates host projects to the workspace dev task", async () => 
     console.info = originalInfo;
   }
 
-  assert.deepEqual(calls, [["spawn", "dev"]]);
-  assert.deepEqual(JSON.parse(await readFile(join(projectRoot, "public/atlas.runtime.json"), "utf8")), {
-    schemaVersion: "1",
-    hostId: "customer-host",
-    hostVersion: "1.0.0",
-    catalogUrl: "http://127.0.0.1:4400/hosts/customer-host/catalog.json",
-    allowAppOverrides: true,
-    resourcesTimeoutMs: 15000,
-    resourcesRetryCount: 3
-  });
-  assert.deepEqual(JSON.parse(await readFile(join(projectRoot, "public/remoteEntry.json"), "utf8")), {
-    name: "atlas_customer_host",
-    exposes: [],
-    shared: []
-  });
+  assert.deepEqual(calls, []);
+  const localManifest = JSON.parse(await readFile(join(projectRoot, ".atlas/local-host.manifest.json"), "utf8"));
+  const overrides = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+  assert.equal(localManifest.kind, "host");
+  assert.equal(localManifest.channel, "local");
+  assert.equal(localManifest.remoteEntryUrl, "http://127.0.0.1:4200/remoteEntry.json");
+  assert.equal(overrides.hostOverride.id, "customer-host");
+  await assert.rejects(access(join(projectRoot, "public/atlas.runtime.json")), { code: "ENOENT" });
 });
 
-test("atlas dev delegates Nx app projects to the serve task", async () => {
+localNetworkTest("atlas dev delegates Nx app projects to the serve task", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-nx-app-"));
   const projectRoot = join(root, "orders");
   await mkdir(projectRoot, { recursive: true });
@@ -1401,9 +1420,10 @@ test("atlas dev rejects corrupt Angular build tooling before spawning", async ()
   }));
   await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
+    '  type: "host",',
     '  id: "mobile-host",',
     '  framework: "angular",',
-    "  allowAppOverrides: true",
+    "  allowOverrides: true",
     "};"
   ].join("\n"));
 
@@ -1436,9 +1456,10 @@ test("atlas dev compiles atlas.config.ts with the project tsconfig", async () =>
   }));
   await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
+    '  type: "host",',
     '  id: "mobile-host",',
     '  framework: "react",',
-    "  allowAppOverrides: true",
+    "  allowOverrides: true",
     "};"
   ].join("\n"));
 
@@ -1479,9 +1500,10 @@ test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", asyn
   }));
   await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
+    '  type: "host",',
     '  id: "mobile-host",',
     '  framework: "react",',
-    "  allowAppOverrides: true",
+    "  allowOverrides: true",
     "};"
   ].join("\n"));
 
@@ -1884,7 +1906,7 @@ async function catalogManifestIds(port: number, hostId: string): Promise<string[
   assert.equal(response.status, 200);
   const catalog = await response.json();
   if (!hasManifestIds(catalog)) throw new Error("Control server returned an invalid catalog.");
-  return Array.from(catalog.manifests, (manifest) => manifest.id);
+  return Array.from(catalog.apps, (manifest) => manifest.id);
 }
 
 async function devSessionHostId(port: number, hostId: string): Promise<string> {
@@ -1933,7 +1955,17 @@ function hasStringProperty(value: unknown, property: string): value is Record<st
   return typeof Object.getOwnPropertyDescriptor(value, property)?.value === "string";
 }
 
-function hasManifestIds(value: unknown): value is { manifests: Array<{ id: string }> } {
-  return typeof value === "object" && value !== null && "manifests" in value && Array.isArray(value.manifests)
-    && value.manifests.every((manifest) => hasStringProperty(manifest, "id"));
+function hasManifestIds(value: unknown): value is { apps: Array<{ id: string }> } {
+  return typeof value === "object" && value !== null && "apps" in value && Array.isArray(value.apps)
+    && value.apps.every((manifest) => hasStringProperty(manifest, "id"));
+}
+
+function emptyRegistry() {
+  return {
+    schemaVersion: "1",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    hosts: [],
+    apps: [],
+    selections: { hosts: {}, apps: {} }
+  };
 }

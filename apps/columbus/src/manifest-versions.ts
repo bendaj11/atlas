@@ -1,15 +1,16 @@
 import type { AtlasExtensionManifest } from "./contracts.js";
 
 export function assertExtensionManifest(value: AtlasExtensionManifest): void {
-  if (value.schemaVersion !== "1" || !value.id || !value.version || !value.buildId || !value.remoteEntryUrl || !Array.isArray(value.supportedHosts) || !Array.isArray(value.placements)) {
+  if (value.schemaVersion !== "1" || !value.kind || !value.id || !value.version || !value.buildId || !value.remoteEntryUrl) {
     throw new Error("The local URL did not return a valid Atlas manifest.");
   }
 }
 
 export function supportsHost(manifest: AtlasExtensionManifest, hostId: string): boolean {
-  return manifest.supportedHosts.includes("*")
-    || manifest.supportedHosts.includes(hostId)
-    || manifest.placements.some((placement) => placement.hostId === hostId);
+  if (manifest.kind === "host") return manifest.id === hostId;
+  return manifest.supportedHosts?.includes("*") === true
+    || manifest.supportedHosts?.includes(hostId) === true
+    || manifest.placements?.some((placement) => placement.hostId === hostId) === true;
 }
 
 export function uniqueVersions(values: AtlasExtensionManifest[]): AtlasExtensionManifest[] {

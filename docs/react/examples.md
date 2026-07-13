@@ -37,15 +37,12 @@ lifecycles, not through Angular modules or React components.
 A React app may consume an Angular-owned widget through the widget loader:
 
 ```tsx
-const mounted = await context.widgets.mount(
-  "orders-angular/order-status",
-  container,
-  { orderId: "42" }
-);
+const widget = await sdk.getWidget("98abc74d-a11f-4eca-8255-c6f2f49e3d6e");
+const mounted = await widget.mount(container, { orderId: "42" });
 ```
 
 The React app does not install Angular and does not know the widget URL. The
-host catalog selects the owner version.
+Atlas resolves the owner version.
 
 ## What To Copy
 

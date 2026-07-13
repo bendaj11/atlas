@@ -17,7 +17,9 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "generate, g", description: "Generate a host, app, or exported widget" },
   { label: "dev", description: "Run a host, or run one app locally inside a host" },
   { label: "build", description: "Build a host or app for deployment" },
-  { label: "rollback", description: "Prepare a previous app version for deployment" },
+  { label: "publish", description: "Publish a prepared deployment safely" },
+  { label: "release", description: "Build and publish a host client or app" },
+  { label: "rollback", description: "Select and publish a previous host or app version" },
   { label: "verify", description: "Verify a deployed Atlas host and its assets" }
 ];
 
@@ -32,14 +34,14 @@ export const ROOT_EXAMPLES = [
 
 export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
   generate: {
-    summary: "Generate an Atlas project or exported widget.",
+    summary: "Generate an Atlas project, exported widget, or optional advanced publish config.",
     usage: "atlas generate <type> [name] [options]",
     arguments: [
-      { label: "type", description: "Resource to generate: host, app, or widget" },
+      { label: "type", description: "Resource to generate: host, app, widget, or publish-config" },
       { label: "name", description: "Resource name; prompted when omitted" }
     ],
     options: [{ label: "-h, --help", description: "Show help for this command" }],
-    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders"]
+    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders", "atlas generate publish-config"]
   },
   "generate host": generationProjectHelp("host", "host application"),
   "generate app": generationProjectHelp("app", "app"),
@@ -54,6 +56,15 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     examples: ["atlas g widget order-summary --app orders"]
   },
+  "generate publish-config": {
+    summary: "Generate optional advanced publishing configuration.",
+    usage: "atlas generate publish-config [options]",
+    options: [
+      { label: "--directory <path>", description: "Target directory; defaults to workspace root" },
+      { label: "--force", description: "Replace an existing atlas.publish.ts" }
+    ],
+    examples: ["atlas generate publish-config"]
+  },
   dev: {
     summary: "Run a host, or run one app locally inside an Atlas host.",
     usage: "atlas dev [project] [options]",
@@ -61,8 +72,9 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [
       { label: "--host <host-id>", description: "Host receiving the local override" },
       { label: "--host-url <url>", description: "Host page opened with the override activated" },
-      { label: "--port <number>", description: "App dev-server port (default: 4201)" },
+      { label: "--port <number>", description: "Framework dev-server port (host: 4200, app: 4201)" },
       { label: "--control-port <number>", description: "Atlas override-server port (default: 4400)" },
+      { label: "--host-server-port <number>", description: "Local stable host-server port (default: 4300)" },
       { label: "--no-open", description: "Do not open the resolved host URL automatically" },
       { label: "--prepare-only", description: "Create the override without starting development servers" },
       { label: "-h, --help", description: "Show help for this command" }
@@ -90,7 +102,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--include-source-maps", description: "Include source maps in the publication" },
       { label: "--version <version>", description: "Version assigned to the build" },
       { label: "--build-id <id>", description: "Unique build identifier" },
-      { label: "--out <path>", description: "Host runtime config path (default: <host>/public/atlas.runtime.json)" },
+      { label: "--channel <channel>", description: "production, pr, or local" },
+      { label: "--pr-number <number>", description: "Pull request number for a PR artifact" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     advancedOptions: [
@@ -110,8 +123,36 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       "ATLAS_VERSION=1.4.0 atlas build orders --registry-base-url https://cdn.example.com/atlas"
     ]
   },
+  publish: {
+    summary: "Publish a prepared Atlas publication with locking and safe activation order.",
+    usage: "atlas publish --plan <path> [options]",
+    options: [
+      { label: "--plan <path>", description: "Publication plan (default: dist/atlas-publication.json)" },
+      { label: "--storage-directory <path>", description: "Filesystem storage target; otherwise S3 environment is used" },
+      { label: "--runtime-url <url>", description: "Verify after activation and restore mutable files on failure" },
+      { label: "--runtime-urls <urls>", description: "Comma-separated deployed hosts to verify" },
+      { label: "--publish-config <path>", description: "Optional custom storage, invalidation, and verification config" },
+      { label: "--dry-run", description: "Validate and print publication order without writes" },
+      { label: "-h, --help", description: "Show help for this command" }
+    ],
+    examples: ["atlas publish --plan dist/atlas-publication.json --dry-run", "atlas publish --storage-directory /srv/atlas"]
+  },
+  release: {
+    summary: "Build and publish one versioned host client or app.",
+    usage: "atlas release <project> [build and publish options]",
+    arguments: [{ label: "project", description: "Host or app project name" }],
+    options: [
+      { label: "--version <version>", description: "Human release version" },
+      { label: "--build-id <id>", description: "Exact immutable build identifier" },
+      { label: "--channel <channel>", description: "production or pr" },
+      { label: "--pr-number <number>", description: "Pull request number for a PR release" },
+      { label: "--runtime-url <url>", description: "Verify after activation and restore mutable files on failure" },
+      { label: "--dry-run", description: "Build and preview publication without upload" }
+    ],
+    examples: ["atlas release customer-host", "atlas release orders --channel pr"]
+  },
   rollback: {
-    summary: "Prepare a previously published app version for redeployment.",
+    summary: "Select and publish a previously released host-client or app build.",
     usage: "atlas rollback <project> --version <version> [options]",
     arguments: [{ label: "project", description: "Atlas project name; prompted when omitted" }],
     options: [
@@ -120,6 +161,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--registry-base-url <url>", description: "Public base URL of the static registry" },
       { label: "--registry-snapshot <path>", description: "Existing registry snapshot to update" },
       { label: "--expected-registry-revision <hash>", description: "Reject conflicting registry updates" },
+      { label: "--dry-run", description: "Preview selected files without mutation" },
+      { label: "--runtime-url <url>", description: "Verify rollback and restore the prior selection on failure" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     advancedOptions: [

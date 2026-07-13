@@ -16,8 +16,8 @@ export interface AtlasBaseConfig {
 export interface AtlasHostConfig extends AtlasBaseConfig {
   /** Artifact type used by Atlas build orchestration. */
   type?: "host";
-  /** Allow Atlas tools to override selected app manifests at runtime. Defaults to true. */
-  allowAppOverrides?: boolean;
+  /** Allow overrides in locally generated runtime configuration. Production server uses environment policy. */
+  allowOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */
@@ -36,6 +36,16 @@ export interface AtlasAppConfig extends AtlasBaseConfig {
   slots?: AtlasSlotMount[];
   /** Host SDK version range generated manifests should require. */
   requiredHostSdkVersion?: string;
+  /** Published apps from external registries whose exported widgets this app may load. */
+  externalAppsDependencies?: string[];
+}
+
+/** Source config stored beside one exported widget. */
+export interface AtlasWidgetConfig {
+  /** Globally unique widget identity generated once and kept across renames. */
+  id: string;
+  /** Friendly widget name shown in tools and fallback UI. */
+  name: string;
 }
 
 /** Route this app contributes to one host. */

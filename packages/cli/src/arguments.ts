@@ -36,7 +36,7 @@ export class CliArguments {
 
   channel(fallback: string): AtlasVersionChannel {
     const value = this.flag("channel") ?? fallback;
-    if (value === "production" || value === "pr" || value === "historical" || value === "local") return value;
+    if (value === "production" || value === "pr" || value === "local") return value;
     throw new Error(`Unsupported channel "${value}".`);
   }
 

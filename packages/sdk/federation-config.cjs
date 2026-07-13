@@ -19,9 +19,11 @@ function createAngularFederationConfig(options) {
 
   return withNativeFederation({
     name: options.name,
-    exposes: options.exposeApp
-      ? { "./entry": join(options.projectRoot, "src/entry.ts"), ...widgetExposes }
-      : {},
+    exposes: options.expose === "host"
+      ? { "./host": join(options.projectRoot, "src/host.ts") }
+      : options.expose === "app"
+        ? { "./entry": join(options.projectRoot, "src/entry.ts"), ...widgetExposes }
+        : {},
     shared: {},
     skip: ["rxjs/ajax", "rxjs/fetch", "rxjs/testing", "rxjs/webSocket"]
   });

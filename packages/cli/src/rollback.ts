@@ -7,7 +7,7 @@ import { prepareStaticRollback, registryRevision } from "./static-registry.js";
 export class AtlasRollbackService {
   constructor(private readonly args: CliArguments) {}
 
-  async run(appId: string, requestedVersion?: string): Promise<{ version: string; buildId: string; output: string }> {
+  async run(artifactId: string, requestedVersion?: string): Promise<{ version: string; buildId: string; output: string; plan: string }> {
     const version = requestedVersion ?? this.args.flag("version");
     if (!version) throw new Error("Atlas rollback requires --version.");
     const registryBaseUrl = this.registryBaseUrl();
@@ -16,7 +16,7 @@ export class AtlasRollbackService {
     const output = resolve(this.args.flag("publication-directory") ?? join("dist", "atlas-rollback"));
     await rm(output, { recursive: true, force: true });
     const result = await prepareStaticRollback({
-      appId,
+      artifactId,
       version,
       ...(this.args.flag("build-id") ? { buildId: this.args.flag("build-id") } : {}),
       current,
@@ -32,11 +32,11 @@ export class AtlasRollbackService {
       generatedAt: new Date().toISOString(),
       baseRevision: result.baseRevision,
       registryRevision: result.registryRevision,
-      selected: { appId, version: result.selected.version, buildId: result.selected.buildId },
+      selected: { kind: result.selected.kind, id: artifactId, version: result.selected.version, buildId: result.selected.buildId },
       uploadOrder: ["revalidate"],
       files: files.map((path) => ({ path, cache: "revalidate" }))
     }, null, 2)}\n`, "utf8");
-    return { version: result.selected.version, buildId: result.selected.buildId, output };
+    return { version: result.selected.version, buildId: result.selected.buildId, output, plan: planPath };
   }
 
   private async loadRegistry(): Promise<AtlasStaticRegistry> {
@@ -51,7 +51,7 @@ export class AtlasRollbackService {
   private assertExpectedRevision(current: AtlasStaticRegistry): void {
     const expected = this.args.flag("expected-registry-revision");
     if (!expected) return;
-    const actual = registryRevision(current.manifests, current.productionSelections);
+    const actual = registryRevision(current);
     if (expected !== actual) {
       throw new Error(`Static registry snapshot is stale. Expected revision "${expected}", but received "${actual}". Fetch a fresh registry.json and retry.`);
     }

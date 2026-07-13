@@ -2,6 +2,22 @@ import type { AtlasNavigation } from "./navigation.js";
 import type { AtlasEventBus, AtlasEventMap } from "./event-bus.js";
 import type { AtlasHttpClient, AtlasHttpClientInput } from "./http-client.js";
 
+export interface AtlasMountedWidgetHandle {
+  unmount(): Promise<void>;
+}
+
+/** Widget selected by UUID and mounted into a caller-owned card/container. */
+export interface AtlasWidgetHandle {
+  readonly id: string;
+  readonly name: string;
+  mount<TProps extends object = Record<string, unknown>>(
+    container: HTMLElement,
+    props: TProps
+  ): Promise<AtlasMountedWidgetHandle>;
+}
+
+export type AtlasGetWidget = (widgetId: string) => Promise<AtlasWidgetHandle>;
+
 export interface AtlasHostData {
   readonly hostId: string;
   readonly name: string;
@@ -14,6 +30,8 @@ export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends obj
   readonly navigation: AtlasNavigation;
   readonly events: AtlasEventBus<TEvents>;
   readonly httpClient: AtlasHttpClient;
+  /** Resolve one exported widget by globally unique widget id. */
+  readonly getWidget: AtlasGetWidget;
 }
 
 type HostDataOf<THostSdk extends object> = THostSdk extends { readonly hostData: infer THostData extends object }
@@ -26,7 +44,7 @@ type HostDataOption<THostSdk extends object> = keyof HostDataOf<THostSdk> extend
 
 type HostSdkProperties<THostSdk extends object> = Omit<
   THostSdk,
-  "hostId" | "hostData" | "navigation" | "events" | "httpClient"
+  "hostId" | "hostData" | "navigation" | "events" | "httpClient" | "getWidget"
 >;
 
 /** Atlas runtime capabilities combined with a host-owned, consumer-typed API. */

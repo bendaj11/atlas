@@ -2,13 +2,19 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
+  assertAtlasHostManifest,
   assertAtlasManifest,
-  type AtlasHostCatalog,
-  type AtlasManifest,
   type AtlasAppIndex,
+  type AtlasArtifactManifestBase,
+  type AtlasHostCatalog,
+  type AtlasHostIndex,
+  type AtlasHostManifest,
+  type AtlasManifest,
   type AtlasProductionSelection,
   type AtlasStaticRegistry
 } from "@atlas/schema";
+
+type AtlasArtifactManifest = AtlasHostManifest | AtlasManifest;
 
 export interface AtlasRegistryResult {
   hostIds: string[];
@@ -17,214 +23,216 @@ export interface AtlasRegistryResult {
 }
 
 export async function prepareStaticRegistry(
-  manifest: AtlasManifest,
+  manifest: AtlasArtifactManifest,
   current: AtlasStaticRegistry | undefined,
   outputDirectory: string
 ): Promise<AtlasRegistryResult> {
   assertStaticRegistry(current);
-  assertAtlasManifest(manifest);
-  assertSafeRegistryId(manifest.id, "app ID");
-  const manifests = replacePublishedManifest(current?.manifests ?? [], manifest);
-  const updatedAt = manifest.createdAt;
-  const productionSelections = selectPublishedProduction(current?.productionSelections, manifest);
-  const baseRevision = registryRevision(current?.manifests ?? [], current?.productionSelections);
-  const nextRevision = registryRevision(manifests, productionSelections);
-  const registry: AtlasStaticRegistry = { schemaVersion: "1", revision: nextRevision, updatedAt, manifests, productionSelections };
-  const appIndex: AtlasAppIndex = {
-    schemaVersion: "1",
-    appId: manifest.id,
-    updatedAt,
-    manifests: manifests.filter((candidate) => candidate.id === manifest.id).sort(compareManifestNewestFirst)
-  };
+  assertArtifactManifest(manifest);
+  assertSafeRegistryId(manifest.id, `${manifest.kind} ID`);
 
+  const registry = publishArtifact(current, manifest);
+  const baseRevision = registryRevision(current);
+  registry.revision = registryRevision(registry);
   await writeJson(outputDirectory, "registry.json", registry);
-  await writeJson(outputDirectory, `apps/${manifest.id}/index.json`, appIndex);
+  await writeArtifactIndex(outputDirectory, manifest, registry);
 
-  const hostIds = discoverHostIds(manifests);
+  const hostIds = manifest.channel === "production" ? affectedHostIds(manifest, registry) : [];
   for (const hostId of hostIds) {
-    assertSafeRegistryId(hostId, "host ID");
-    await writeJson(outputDirectory, `hosts/${hostId}/catalog.json`, createHostCatalog(hostId, manifests, updatedAt, productionSelections));
+    const catalog = createHostCatalog(hostId, registry, manifest.createdAt);
+    if (!catalog) continue;
+    await writeJson(outputDirectory, `hosts/${hostId}/deployments/${catalog.revision.replace(":", "-")}.json`, catalog);
+    await writeJson(outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
   }
-  return { hostIds, baseRevision, registryRevision: nextRevision };
+  return { hostIds, baseRevision, registryRevision: registry.revision };
 }
 
-export function registryRevision(
-  manifests: readonly AtlasManifest[],
-  productionSelections?: Readonly<Record<string, AtlasProductionSelection>>
-): string {
-  const canonicalManifests = [...manifests]
-    .sort((left, right) => manifestKey(left).localeCompare(manifestKey(right)))
-    .map(sortObjectKeys);
-  const revisionInput = productionSelections && Object.keys(productionSelections).length > 0
-    ? { manifests: canonicalManifests, productionSelections: sortObjectKeys(productionSelections) }
-    : canonicalManifests;
-  return `sha256:${createHash("sha256").update(JSON.stringify(revisionInput)).digest("hex")}`;
+export function registryRevision(registry: AtlasStaticRegistry | undefined): string {
+  const input = registry ? {
+    hosts: [...registry.hosts].sort(compareArtifactIdentity).map(sortObjectKeys),
+    apps: [...registry.apps].sort(compareArtifactIdentity).map(sortObjectKeys),
+    selections: sortObjectKeys(registry.selections ?? {})
+  } : { hosts: [], apps: [], selections: {} };
+  return `sha256:${createHash("sha256").update(JSON.stringify(input)).digest("hex")}`;
 }
 
 export function createHostCatalog(
   hostId: string,
-  manifests: AtlasManifest[],
-  generatedAt = new Date().toISOString(),
-  productionSelections?: Readonly<Record<string, AtlasProductionSelection>>
-): AtlasHostCatalog {
-  const production = selectOneProductionVersionPerApp(manifests, productionSelections);
-  const byId = new Map(production.map((manifest) => [manifest.id, manifest]));
-  const directlySupported = production.filter((manifest) => supportsHost(manifest, hostId));
-  const included = new Map(directlySupported.map((manifest) => [manifest.id, manifest]));
-  const pending = [...directlySupported];
-
-  while (pending.length > 0) {
-    const consumer = pending.shift()!;
-    for (const reference of consumer.uses ?? []) {
-      const [ownerId, widgetId] = reference.split("/");
-      if (!ownerId || !widgetId) continue;
-      const owner = byId.get(ownerId);
-      if (!owner) throw new Error(`Atlas app "${consumer.id}" uses "${reference}", but no production manifest exists for owner "${ownerId}".`);
-      if (!(owner.exportedWidgets ?? []).some((widget) => widget.id === widgetId)) {
-        throw new Error(`Atlas app "${consumer.id}" uses "${reference}", but that widget is not exported by "${ownerId}".`);
-      }
-      if (included.has(ownerId)) continue;
-      included.set(ownerId, owner);
-      pending.push(owner);
-    }
-  }
-
-  return {
-    schemaVersion: "1",
-    hostId,
-    generatedAt,
-    manifests: [...included.values()].sort((left, right) => left.id.localeCompare(right.id))
-  };
+  registry: AtlasStaticRegistry,
+  generatedAt = new Date().toISOString()
+): AtlasHostCatalog | undefined {
+  const host = selectProductionArtifact(registry.hosts, registry.selections?.hosts?.[hostId]);
+  if (!host || host.id !== hostId) return undefined;
+  const selectedApps = selectProductionApps(registry.apps, registry.selections?.apps);
+  const apps = includeHostApps(hostId, selectedApps);
+  const catalogContent = { hostId, host, apps };
+  const revision = `sha256:${createHash("sha256").update(JSON.stringify(sortObjectKeys(catalogContent))).digest("hex")}`;
+  return { schemaVersion: "1", hostId, revision, generatedAt, host, apps };
 }
 
 export async function prepareStaticRollback(options: {
-  appId: string;
+  artifactId: string;
   version: string;
   buildId?: string;
   current: AtlasStaticRegistry;
   outputDirectory: string;
   updatedAt?: string;
-}): Promise<AtlasRegistryResult & { selected: AtlasManifest }> {
+}): Promise<AtlasRegistryResult & { selected: AtlasArtifactManifest }> {
   assertStaticRegistry(options.current);
-  const candidates = options.current.manifests.filter((manifest) =>
-    manifest.id === options.appId &&
-    manifest.channel === "production" &&
-    manifest.version === options.version &&
+  const candidates = [...options.current.hosts, ...options.current.apps].filter((manifest) =>
+    manifest.id === options.artifactId && manifest.channel === "production" && manifest.version === options.version &&
     (!options.buildId || manifest.buildId === options.buildId));
-  if (candidates.length === 0) {
-    throw new Error(`No production build found for Atlas app "${options.appId}" at version "${options.version}".`);
-  }
-  if (candidates.length > 1) {
-    throw new Error(`Atlas app "${options.appId}" has multiple builds for version "${options.version}". Pass --build-id.`);
-  }
+  if (candidates.length === 0) throw new Error(`No production build found for Atlas artifact "${options.artifactId}" at version "${options.version}".`);
+  if (candidates.length > 1) throw new Error(`Atlas artifact "${options.artifactId}" has multiple builds for version "${options.version}". Pass --build-id.`);
 
   const selected = candidates[0]!;
   const updatedAt = options.updatedAt ?? new Date().toISOString();
-  const productionSelections = {
-    ...(options.current.productionSelections ?? {}),
-    [options.appId]: { version: selected.version, buildId: selected.buildId }
-  };
-  const baseRevision = registryRevision(options.current.manifests, options.current.productionSelections);
-  const nextRevision = registryRevision(options.current.manifests, productionSelections);
-  const registry: AtlasStaticRegistry = {
-    ...options.current,
-    revision: nextRevision,
-    updatedAt,
-    productionSelections
-  };
+  const registry = selectArtifact(options.current, selected, updatedAt);
+  const baseRevision = registryRevision(options.current);
+  registry.revision = registryRevision(registry);
   await writeJson(options.outputDirectory, "registry.json", registry);
-  const hostIds = discoverHostIds(options.current.manifests);
+  const hostIds = affectedHostIds(selected, registry);
   for (const hostId of hostIds) {
-    assertSafeRegistryId(hostId, "host ID");
-    await writeJson(options.outputDirectory, `hosts/${hostId}/catalog.json`, createHostCatalog(
-      hostId,
-      options.current.manifests,
-      updatedAt,
-      productionSelections
-    ));
+    const catalog = createHostCatalog(hostId, registry, updatedAt);
+    if (catalog) await writeJson(options.outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
   }
-  return { hostIds, baseRevision, registryRevision: nextRevision, selected };
+  return { hostIds, baseRevision, registryRevision: registry.revision, selected };
+}
+
+function publishArtifact(current: AtlasStaticRegistry | undefined, manifest: AtlasArtifactManifest): AtlasStaticRegistry {
+  const registry: AtlasStaticRegistry = {
+    schemaVersion: "1",
+    updatedAt: manifest.createdAt,
+    hosts: replaceArtifact(current?.hosts ?? [], manifest.kind === "host" ? manifest : undefined),
+    apps: replaceArtifact(current?.apps ?? [], manifest.kind === "app" ? manifest : undefined),
+    selections: {
+      hosts: { ...(current?.selections?.hosts ?? {}) },
+      apps: { ...(current?.selections?.apps ?? {}) }
+    }
+  };
+  if (manifest.channel === "production") {
+    const selections = manifest.kind === "host" ? registry.selections!.hosts! : registry.selections!.apps!;
+    selections[manifest.id] = selectionOf(manifest);
+  }
+  return registry;
+}
+
+function selectArtifact(current: AtlasStaticRegistry, selected: AtlasArtifactManifest, updatedAt: string): AtlasStaticRegistry {
+  return {
+    ...current,
+    updatedAt,
+    selections: {
+      hosts: {
+        ...(current.selections?.hosts ?? {}),
+        ...(selected.kind === "host" ? { [selected.id]: selectionOf(selected) } : {})
+      },
+      apps: {
+        ...(current.selections?.apps ?? {}),
+        ...(selected.kind === "app" ? { [selected.id]: selectionOf(selected) } : {})
+      }
+    }
+  };
+}
+
+function selectionOf(manifest: AtlasArtifactManifestBase): AtlasProductionSelection {
+  return { version: manifest.version, buildId: manifest.buildId };
+}
+
+function replaceArtifact<T extends AtlasArtifactManifest>(manifests: T[], published: T | undefined): T[] {
+  if (!published) return [...manifests];
+  const key = artifactKey(published);
+  return [...manifests.filter((manifest) => artifactKey(manifest) !== key), published]
+    .sort((left, right) => left.id.localeCompare(right.id) || compareNewestFirst(left, right));
+}
+
+async function writeArtifactIndex(output: string, published: AtlasArtifactManifest, registry: AtlasStaticRegistry): Promise<void> {
+  if (published.kind === "host") {
+    const index: AtlasHostIndex = {
+      schemaVersion: "1", kind: "host", id: published.id, updatedAt: published.createdAt,
+      manifests: registry.hosts.filter((candidate) => candidate.id === published.id).sort(compareNewestFirst)
+    };
+    await writeJson(output, `hosts/${published.id}/index.json`, index);
+    return;
+  }
+  const index: AtlasAppIndex = {
+    schemaVersion: "1", kind: "app", id: published.id, updatedAt: published.createdAt,
+    manifests: registry.apps.filter((candidate) => candidate.id === published.id).sort(compareNewestFirst)
+  };
+  await writeJson(output, `apps/${published.id}/index.json`, index);
+}
+
+function affectedHostIds(manifest: AtlasArtifactManifest, registry: AtlasStaticRegistry): string[] {
+  if (manifest.kind === "host") return [manifest.id];
+  const hostIds = new Set(registry.hosts.map((host) => host.id));
+  for (const app of registry.apps) {
+    for (const hostId of app.supportedHosts) if (hostId !== "*") hostIds.add(hostId);
+    for (const placement of app.placements) hostIds.add(placement.hostId);
+  }
+  return [...hostIds].sort();
+}
+
+function selectProductionApps(
+  manifests: AtlasManifest[],
+  selections: Readonly<Record<string, AtlasProductionSelection>> | undefined
+): AtlasManifest[] {
+  const appIds = [...new Set(manifests.map((manifest) => manifest.id))];
+  return appIds.flatMap((id) => {
+    const selected = selectProductionArtifact(manifests.filter((manifest) => manifest.id === id), selections?.[id]);
+    return selected ? [selected] : [];
+  });
+}
+
+function selectProductionArtifact<T extends AtlasArtifactManifest>(
+  manifests: T[],
+  selection: AtlasProductionSelection | undefined
+): T | undefined {
+  const production = manifests.filter((manifest) => manifest.channel === "production");
+  if (selection) return production.find((manifest) => manifest.version === selection.version && manifest.buildId === selection.buildId);
+  return production.sort(compareNewestFirst)[0];
+}
+
+function includeHostApps(hostId: string, selectedApps: AtlasManifest[]): AtlasManifest[] {
+  return selectedApps
+    .filter((manifest) => manifest.placements.some((placement) => placement.hostId === hostId))
+    .sort((left, right) => left.id.localeCompare(right.id));
 }
 
 function assertStaticRegistry(registry: AtlasStaticRegistry | undefined): void {
   if (!registry) return;
-  if (registry.schemaVersion !== "1" || !Array.isArray(registry.manifests)) {
+  if (registry.schemaVersion !== "1" || !Array.isArray(registry.hosts) || !Array.isArray(registry.apps)) {
     throw new Error("The static Atlas registry is malformed or uses an unsupported schema version.");
   }
-  for (const manifest of registry.manifests) assertAtlasManifest(manifest);
-  for (const [appId, selection] of Object.entries(registry.productionSelections ?? {})) {
-    const exists = registry.manifests.some((manifest) => manifest.id === appId &&
-      manifest.channel === "production" && manifest.version === selection.version && manifest.buildId === selection.buildId);
-    if (!exists) throw new Error(`The static Atlas registry selects a missing production build for app "${appId}".`);
-  }
-  const actualRevision = registryRevision(registry.manifests, registry.productionSelections);
+  registry.hosts.forEach(assertAtlasHostManifest);
+  registry.apps.forEach(assertAtlasManifest);
+  const actualRevision = registryRevision(registry);
   if (registry.revision && registry.revision !== actualRevision) {
     throw new Error(`The static Atlas registry revision is invalid. Expected "${registry.revision}", but its contents produce "${actualRevision}".`);
   }
 }
 
-function replacePublishedManifest(manifests: AtlasManifest[], published: AtlasManifest): AtlasManifest[] {
-  const key = manifestKey(published);
-  return [...manifests.filter((manifest) => manifestKey(manifest) !== key), published]
-    .sort((left, right) => left.id.localeCompare(right.id) || compareManifestNewestFirst(left, right));
+function assertArtifactManifest(manifest: AtlasArtifactManifest): void {
+  if (manifest.kind === "host") assertAtlasHostManifest(manifest);
+  else assertAtlasManifest(manifest);
 }
 
-function manifestKey(manifest: AtlasManifest): string {
-  return `${manifest.id}:${manifest.channel}:${manifest.version}:${manifest.buildId}`;
+function artifactKey(manifest: AtlasArtifactManifestBase): string {
+  return `${manifest.kind}:${manifest.id}:${manifest.channel}:${manifest.version}:${manifest.buildId}`;
+}
+
+function compareArtifactIdentity(left: AtlasArtifactManifestBase, right: AtlasArtifactManifestBase): number {
+  return artifactKey(left).localeCompare(artifactKey(right));
+}
+
+function compareNewestFirst(left: AtlasArtifactManifestBase, right: AtlasArtifactManifestBase): number {
+  const version = right.version.localeCompare(left.version, undefined, { numeric: true, sensitivity: "base" });
+  return version || right.createdAt.localeCompare(left.createdAt) || right.buildId.localeCompare(left.buildId);
 }
 
 function sortObjectKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortObjectKeys);
   if (typeof value !== "object" || value === null) return value;
-  const sortedEntries = Object.entries(value)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, entry]) => [key, sortObjectKeys(entry)]);
-  return Object.fromEntries(sortedEntries);
-}
-
-function discoverHostIds(manifests: AtlasManifest[]): string[] {
-  const hostIds = new Set<string>();
-  for (const manifest of manifests) {
-    for (const hostId of manifest.supportedHosts) if (hostId !== "*") hostIds.add(hostId);
-    for (const placement of manifest.placements) hostIds.add(placement.hostId);
-  }
-  return [...hostIds].sort();
-}
-
-function supportsHost(manifest: AtlasManifest, hostId: string): boolean {
-  return manifest.supportedHosts.includes("*") ||
-    manifest.supportedHosts.includes(hostId) ||
-    manifest.placements.some((placement) => placement.hostId === hostId);
-}
-
-function selectOneProductionVersionPerApp(
-  manifests: AtlasManifest[],
-  productionSelections?: Readonly<Record<string, AtlasProductionSelection>>
-): AtlasManifest[] {
-  const selected = new Map<string, AtlasManifest>();
-  for (const manifest of manifests.filter((candidate) => candidate.channel === "production")) {
-    const requested = productionSelections?.[manifest.id];
-    if (requested && (manifest.version !== requested.version || manifest.buildId !== requested.buildId)) continue;
-    const current = selected.get(manifest.id);
-    if (!current || compareManifestNewestFirst(manifest, current) < 0) selected.set(manifest.id, manifest);
-  }
-  return [...selected.values()];
-}
-
-function selectPublishedProduction(
-  current: Readonly<Record<string, AtlasProductionSelection>> | undefined,
-  manifest: AtlasManifest
-): Record<string, AtlasProductionSelection> {
-  if (manifest.channel !== "production") return { ...(current ?? {}) };
-  return {
-    ...(current ?? {}),
-    [manifest.id]: { version: manifest.version, buildId: manifest.buildId }
-  };
-}
-
-function compareManifestNewestFirst(left: AtlasManifest, right: AtlasManifest): number {
-  const version = right.version.localeCompare(left.version, undefined, { numeric: true, sensitivity: "base" });
-  return version || right.createdAt.localeCompare(left.createdAt) || right.buildId.localeCompare(left.buildId);
+  return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => [key, sortObjectKeys(entry)]));
 }
 
 async function writeJson(root: string, relativePath: string, value: unknown): Promise<void> {

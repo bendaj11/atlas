@@ -6,7 +6,7 @@ import { test } from "@jest/globals";
 import { versionPackages } from "./version-packages.mjs";
 import { writeJson } from "./version-packages.driver.js";
 
-const packageDirectories = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
+const packageDirectories = ["schema", "sdk", "runtime", "host-server", "generators", "testkit", "cli"];
 
 test("release version propagation updates every version-bearing manifest", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-version-"));

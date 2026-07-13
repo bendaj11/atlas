@@ -38,7 +38,9 @@ export interface AtlasBrowserOverrideOptions {
 }
 
 /** Host policy applied before Atlas downloads executable remote metadata. */
-export interface AtlasRemoteTrustPolicy {}
+export interface AtlasRemoteTrustPolicy {
+  allowedOrigins?: ReadonlySet<string>;
+}
 
 export const ATLAS_OVERRIDE_QUERY_PARAM = "atlas-override";
 export const ATLAS_OVERRIDE_STORAGE_KEY = "atlas.runtime-override-url";
@@ -74,10 +76,24 @@ export async function loadHostRuntimeConfig(
     throw new Error(`Invalid Atlas host runtime configuration from ${url}.`);
   }
   validateRequestPolicy(config);
-  if (config.allowAppOverrides !== undefined && typeof config.allowAppOverrides !== "boolean") {
-    throw new Error("Atlas host allowAppOverrides must be a boolean.");
+  if (config.allowOverrides !== undefined && typeof config.allowOverrides !== "boolean") {
+    throw new Error("Atlas host allowOverrides must be a boolean.");
   }
+  validateRuntimeUrls(config.externalRegistryUrls, "externalRegistryUrls");
+  validateRuntimeUrls(config.assetOrigins, "assetOrigins");
   return config;
+}
+
+function validateRuntimeUrls(values: string[] | undefined, field: string): void {
+  if (values === undefined) return;
+  if (!Array.isArray(values) || values.some((value) => typeof value !== "string" || !isHttpUrl(value))) {
+    throw new Error(`Atlas host ${field} must be an array of absolute HTTP(S) URLs.`);
+  }
+}
+
+function isHttpUrl(value: string): boolean {
+  try { return isHttpProtocol(new URL(value).protocol); }
+  catch { return false; }
 }
 
 function validateRequestPolicy(config: AtlasHostRuntimeConfig): void {
@@ -116,7 +132,7 @@ export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideO
 
 export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: AtlasRuntimeOverride[] = []): AtlasManifest[] {
   const byId = new Map<string, AtlasManifest>();
-  for (const manifest of catalog.manifests) {
+  for (const manifest of catalog.apps) {
     if (byId.has(manifest.id)) throw new Error(`Atlas catalog contains multiple selected versions for app "${manifest.id}".`);
     byId.set(manifest.id, manifest);
   }
@@ -147,7 +163,6 @@ export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: At
     assertManifestSupportsHost(manifest, catalog.hostId, "catalog");
     assertLocalManifestUrls(manifest);
   }
-  assertWidgetUsesGraph(manifests);
   return manifests;
 }
 
@@ -194,8 +209,10 @@ export async function findManifestTrustErrors(
 
 /** Builds the default fail-closed policy from deployment configuration. */
 export function createRemoteTrustPolicy(config: AtlasHostRuntimeConfig): AtlasRemoteTrustPolicy {
-  new URL(config.catalogUrl, globalThis.location?.href ?? "http://atlas.local");
-  return {};
+  const baseUrl = globalThis.location?.href ?? "http://atlas.local";
+  const origins = [config.catalogUrl, ...(config.assetOrigins ?? []), ...(config.externalRegistryUrls ?? [])]
+    .map((value) => new URL(value, baseUrl).origin);
+  return { allowedOrigins: new Set(origins) };
 }
 
 function parseOverrideDocument(value: string): AtlasRuntimeOverrideDocument {
@@ -276,7 +293,7 @@ export function assertManifestAssetTrust(manifest: AtlasManifest, policy: AtlasR
     assertLocalManifestUrls(manifest);
     return;
   }
-  assertTrustedAssetUrl(manifest.remoteEntryUrl, manifest.id, "remote");
+  assertTrustedAssetUrl(manifest.remoteEntryUrl, manifest.id, "remote", policy);
   assertManifestStylesTrust(manifest, policy);
 }
 
@@ -286,13 +303,16 @@ export function assertManifestStylesTrust(manifest: AtlasManifest, policy: Atlas
     return;
   }
   for (const stylesheet of manifest.styles ?? []) {
-    assertTrustedAssetUrl(stylesheet.href, manifest.id, "stylesheet");
+    assertTrustedAssetUrl(stylesheet.href, manifest.id, "stylesheet", policy);
   }
 }
 
-function assertTrustedAssetUrl(urlValue: string, appId: string, kind: string): void {
+function assertTrustedAssetUrl(urlValue: string, appId: string, kind: string, policy: AtlasRemoteTrustPolicy): void {
   const url = new URL(urlValue, globalThis.location?.href ?? "http://atlas.local");
   if (!isHttpProtocol(url.protocol)) throw new Error(`Atlas app "${appId}" uses unsupported ${kind} protocol "${url.protocol}".`);
+  if (policy.allowedOrigins && !policy.allowedOrigins.has(url.origin)) {
+    throw new Error(`Atlas app "${appId}" uses ${kind} origin "${url.origin}", which is not allowed by host runtime configuration.`);
+  }
 }
 
 function assertManifestSupportsHost(manifest: AtlasManifest, hostId: string, source: string): void {
@@ -318,18 +338,6 @@ function assertLocalManifestUrls(manifest: AtlasManifest): void {
 
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
-}
-
-function assertWidgetUsesGraph(manifests: AtlasManifest[]): void {
-  const exports = new Set(manifests.flatMap((manifest) =>
-    (manifest.exportedWidgets ?? []).map((component) => `${manifest.id}/${component.id}`)));
-  for (const manifest of manifests) {
-    for (const reference of manifest.uses ?? []) {
-      if (!exports.has(reference)) {
-        throw new Error(`Atlas app "${manifest.id}" uses widget "${reference}", which is not exported by the selected runtime manifests.`);
-      }
-    }
-  }
 }
 
 function isHttpProtocol(protocol: string): boolean {

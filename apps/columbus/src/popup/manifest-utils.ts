@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData } from "../contracts.js";
+import { artifactKey, type AtlasExtensionManifest as Manifest, type AtlasHostData as HostData } from "../contracts.js";
 import { supportsHost, uniqueVersions, versionKey } from "../manifest-versions.js";
 import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from "./constants.js";
 import type { BadgeSkin } from "@wix/design-system";
@@ -9,7 +9,8 @@ export function createAppViewModel(
   activeOverrides: Map<string, Manifest>,
   savedDisabledOverrides: Map<string, Manifest>
 ) {
-  const selected = activeOverrides.get(production.id);
+  const key = artifactKey(production);
+  const selected = activeOverrides.get(key);
 
   return {
     production,
@@ -17,7 +18,7 @@ export function createAppViewModel(
     overrideType: overrideTypeFor(production, selected),
     currentUrl: (selected ?? production).remoteEntryUrl ? baseUrlFromRemoteEntry((selected ?? production).remoteEntryUrl) : "",
     overrideEnabled: Boolean(selected),
-    canToggle: Boolean(selected) || savedDisabledOverrides.has(production.id)
+    canToggle: Boolean(selected) || savedDisabledOverrides.has(key)
   };
 }
 
@@ -76,12 +77,12 @@ export function normalizeStoredManifest(manifest: Manifest): Manifest {
 }
 
 export function productionVersions(hostData: HostData, production: Manifest): Manifest[] {
-  const versions = hostData.versions[production.id] ?? [];
+  const versions = hostData.versions[artifactKey(production)] ?? [];
   return uniqueVersions([production, ...versions]).filter((manifest) => manifest.channel !== "local" && manifest.channel !== "pr");
 }
 
 export function prVersions(hostData: HostData, production: Manifest): Manifest[] {
-  return uniqueVersions(hostData.versions[production.id] ?? []).filter((manifest) => manifest.channel === "pr");
+  return uniqueVersions(hostData.versions[artifactKey(production)] ?? []).filter((manifest) => manifest.channel === "pr");
 }
 
 export function overrideTypeFor(production: Manifest, selected: Manifest | undefined): OverrideType {

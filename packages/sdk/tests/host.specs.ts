@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
-import { HttpClient, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
+import { HttpClient, connectAtlasWidgetResolver, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 import { createHostSdk } from "./host.driver.js";
 
@@ -53,6 +53,17 @@ test("host SDK adapts fetch-compatible httpClient providers", async () => {
 test("host SDK uses HttpClient by default", () => {
   const sdk = createHostSdk();
   assert.ok(sdk.httpClient instanceof HttpClient);
+});
+
+test("host runtime connects getWidget after SDK construction", async () => {
+  const sdk = createHostSdk();
+  await assert.rejects(() => sdk.getWidget("widget-id"), /not ready/);
+  connectAtlasWidgetResolver(sdk, async (id) => ({
+    id,
+    name: "Widget",
+    async mount() { return { async unmount() {} }; }
+  }));
+  assert.equal((await sdk.getWidget("widget-id")).name, "Widget");
 });
 
 test("HttpClient wraps fetch with HTTP helpers", async () => {

@@ -29,7 +29,7 @@ async function readJson(path: string): Promise<unknown> {
 }
 
 function isRegistry(value: unknown): value is AtlasStaticRegistry {
-  return isRecord(value) && value.schemaVersion === "1" && Array.isArray(value.manifests) && value.manifests.every(isManifest);
+  return isRecord(value) && value.schemaVersion === "1" && Array.isArray(value.hosts) && Array.isArray(value.apps) && value.apps.every(isManifest);
 }
 
 function isManifest(value: unknown): value is AtlasManifest {

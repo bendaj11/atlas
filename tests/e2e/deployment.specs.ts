@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { copyFile, mkdir, readdir, rename } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { deploymentCatalog, runCli as runAtlasCli } from "./deployment.driver.js";
 
@@ -19,7 +19,7 @@ test("Angular host mounts a React app with native inner routing", async ({ page 
   await page.goto("http://127.0.0.1:4301/react-catalog");
   await expect(page.getByRole("heading", { name: "Catalog React" })).toBeVisible();
   const stylesheet = page.locator('link[data-atlas-style="catalog-react"]');
-  await expect(stylesheet).toHaveAttribute("href", /^http:\/\/127\.0\.0\.1:4400\/catalog-react\/0\.2\.0\/.+\.css$/);
+  await expect(stylesheet).toHaveAttribute("href", /^http:\/\/127\.0\.0\.1:4400\/apps\/catalog-react\/0\.2\.0\/.+\.css$/);
   await expect(stylesheet).toHaveAttribute("integrity", /^sha256-/);
   await page.getByRole("link", { name: "Product 42" }).click();
   await expect(page).toHaveURL(/\/react-catalog\/products\/42$/);
@@ -32,25 +32,64 @@ test("host displays its spinner only after an app requests loading state", async
     await route.continue();
   });
   await page.goto("http://127.0.0.1:4300/dashboard");
-  await expect(page.getByRole("status")).toContainText("Loading Dashboard React");
+  await expect(page.getByRole("heading", { name: "Dashboard React" })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Loading widget");
   await expect(page.getByText("Status: paid")).toBeVisible();
   await expect(page.getByRole("status")).toBeHidden();
 });
 
-test("React page app mounts an Angular widget and popup", async ({ page }) => {
+test("React page app mounts an Angular widget", async ({ page }) => {
   await page.goto("http://127.0.0.1:4300/dashboard");
   await expect(page.getByRole("heading", { name: "Dashboard React" })).toBeVisible();
   await expect(page.getByText("Status: paid")).toBeVisible();
-  await page.getByRole("button", { name: "Open Angular widget popup" }).click();
-  await expect(page.getByText("Status: processing")).toBeVisible();
 });
 
-test("Angular page app mounts a React widget and popup", async ({ page }) => {
+test("Angular page app mounts a React widget", async ({ page }) => {
   await page.goto("http://127.0.0.1:4301/dashboard-angular");
   await expect(page.getByRole("heading", { name: "Dashboard Angular" })).toBeVisible();
-  await expect(page.getByText("React products: 24")).toBeVisible();
-  await page.getByRole("button", { name: "Open React widget popup" }).click();
-  await expect(page.getByText("Products in popup: 42")).toBeVisible();
+  await expect(page.getByText("External products: 24")).toBeVisible();
+  await expect(page.getByText("Internal products: 12")).toBeVisible();
+});
+
+test("failed external widget keeps app and successful sibling widget visible", async ({ page }) => {
+  let blockedExternalRequests = 0;
+  await page.route((url) => url.hostname === "127.0.0.1" && url.port === "4401", (route) => {
+    blockedExternalRequests += 1;
+    return route.abort();
+  });
+  await page.goto("http://127.0.0.1:4301/dashboard-angular");
+  await expect(page.getByRole("heading", { name: "Dashboard Angular" })).toBeVisible();
+  await expect(page.getByText("Internal products: 12")).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Unable to load widget");
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+  expect(blockedExternalRequests).toBeGreaterThan(0);
+});
+
+test("external widget release becomes visible after refresh without catalog sync", async ({ page }) => {
+  const registryPath = join(workspaceRoot, "tests/e2e/.artifacts/external-cdn/registry.json");
+  const original = await readFile(registryPath, "utf8");
+  const requested: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/apps/external-shared-ui/")) requested.push(request.url());
+  });
+  try {
+    await page.goto("http://127.0.0.1:4301/dashboard-angular");
+    await expect(page.getByText("External products: 24")).toBeVisible();
+    expect(requested.some((url) => url.includes("/0.1.0/"))).toBe(true);
+
+    const registry = JSON.parse(original);
+    const latest = registry.apps.find((manifest: { version: string }) => manifest.version === "0.2.0");
+    if (!latest) throw new Error("External 0.2.0 fixture is missing.");
+    registry.selections.apps["external-shared-ui"] = { version: latest.version, buildId: latest.buildId };
+    await writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
+
+    requested.length = 0;
+    await page.reload();
+    await expect(page.getByText("External products: 24")).toBeVisible();
+    expect(requested.some((url) => url.includes("/0.2.0/"))).toBe(true);
+  } finally {
+    await writeFile(registryPath, original, "utf8");
+  }
 });
 
 const hostFallbackCases: Array<[string, string]> = [["React", "http://127.0.0.1:4300"], ["Angular", "http://127.0.0.1:4301"]];
@@ -67,7 +106,7 @@ test("CDN serves mutable catalogs and immutable app assets with appropriate head
   expect(catalogResponse.headers()["access-control-allow-origin"]).toBe("*");
   expect(catalogResponse.headers()["cache-control"]).toBe("no-cache");
   const catalog = deploymentCatalog(await catalogResponse.json());
-  const manifest = catalog.manifests.find((candidate) => candidate.id === "catalog-react");
+  const manifest = catalog.apps.find((candidate) => candidate.id === "catalog-react");
   expect(manifest).toBeDefined();
   const remoteResponse = await request.get(manifest!.remoteEntryUrl);
   expect(remoteResponse.ok()).toBe(true);
@@ -96,7 +135,8 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
     "--registry-base-url=http://127.0.0.1:4400",
     `--registry-snapshot=${join(cdnRoot, "registry.json")}`,
     `--publication-directory=${rollbackRoot}`,
-    `--publication-plan=${rollbackRoot}.json`
+    `--publication-plan=${rollbackRoot}.json`,
+    `--storage-directory=${cdnRoot}`
   ];
   if (buildId) args.push(`--build-id=${buildId}`);
   await runCli(args);
@@ -106,7 +146,7 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
 async function expectCatalogVersion(request: APIRequestContext, version: string): Promise<void> {
   const response = await request.get(`http://127.0.0.1:4400/hosts/demo-angular-host/catalog.json?version=${version}`);
   const catalog = deploymentCatalog(await response.json());
-  expect(catalog.manifests.find((manifest) => manifest.id === "catalog-react")?.version).toBe(version);
+  expect(catalog.apps.find((manifest) => manifest.id === "catalog-react")?.version).toBe(version);
 }
 
 async function replaceMutableFilesAtomically(sourceRoot: string): Promise<void> {

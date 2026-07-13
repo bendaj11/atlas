@@ -1,61 +1,27 @@
-# React Production Details
+# React production deployment
 
-Start with the shared [production deployment guide](../production-deployment.md).
-It explains how an Atlas release differs from a container release, what CI and
-storage require, and the exact build, publication, activation, verification, and
-rollback sequence.
+React changes only the host-client/app framework build. Container, storage, release, verification, and rollback follow the canonical [Production deployment](../production-deployment.md).
 
-This page covers only React-specific details.
+## Host client
 
-## What `atlas build` Does For React
+Generated Vite metadata exposes `./host`. `atlas build customer-host` packages `remoteEntry.json`, `host.js`, chunks, styles, and `host.manifest.json` under the immutable host version/build directory.
 
-```sh
-ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-npm run atlas:build
-```
-
-Atlas runs the React/Vite app's production build, locates `remoteEntry.json`,
-fingerprints the output, creates `app.manifest.json`, and copies deployable files
-under `dist/atlas-publication/<appId>/<version>/<buildId>`.
-
-It also adds integrity metadata for the remote entry and discovered stylesheets,
-then creates the shared mutable registry files and publication plan described in
-the main guide.
-
-Do not upload React source files, Vite configuration, or local-development
-artifacts. Upload only paths listed in `dist/atlas-publication.json`.
-
-## React Host Requirements
-
-- Serve `public/atlas.runtime.json` as `/atlas.runtime.json`.
-- Keep the Atlas route, navigation, status, and slot anchors in the host layout.
-- Return host `index.html` for deep links such as `/orders/42`.
-- Do not rewrite missing Atlas JSON, JavaScript, stylesheet, or CDN assets to
-  `index.html`.
-- Provide production auth, HTTP, modal, toast, host data, and monitoring
-  implementations through `AtlasHostProvider`.
-
-See [React routing](routing.md) and [React getting started](getting-started.md)
-for the required anchors, host build, and provider wiring.
-
-Atlas's unified build identifies hosts, writes their runtime config, then runs
-their framework build. Keep the production URL in the build environment:
+The stable `@atlas/host-server` container serves HTML and `/atlas.runtime.json`; Vite does not. Do not copy React output into the container.
 
 ```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
+ATLAS_VERSION=1.4.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
+  atlas release customer-host
 ```
 
-## React CDN Requirements
+## App
 
-- Serve `remoteEntry.json` as `application/json`.
-- Serve JavaScript modules as `text/javascript` or `application/javascript`.
-- Keep `remoteEntry.json` and referenced Vite chunks under the same immutable
-  version/build prefix.
-- Allow every approved host origin to use `GET` and `HEAD` through CORS.
-- Preserve version/build paths while a build remains available for selection or
-  rollback.
+Generated app federation metadata exposes `./entry` plus exported widgets.
 
-Continue with [Release An App](../production-deployment.md#release-an-app), then
-complete the [production-readiness checklist](../production-readiness.md).
+```sh
+ATLAS_VERSION=2.1.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
+  atlas release orders
+```
+
+Checkpoint: the host manifest path begins `hosts/customer-host/`; the app manifest path begins `apps/orders/`; releasing either requires no container rebuild.
+
+See [React assets](assets-and-styles.md), [routing](routing.md), and [SDK](sdk.md) for product code details.

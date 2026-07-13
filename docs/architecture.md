@@ -1,97 +1,112 @@
 # Architecture
 
-Atlas is split into infrastructure and generated usage.
+Atlas separates the stable web entry point from product UI. This lets a host client release, roll back, and run a local or PR build exactly like an app.
 
-## Infrastructure
+```text
+Domain
+  ingress, route, or load balancer
+    host-server container
+      Atlas browser loader
+        selected host client
+          selected routed/slotted apps
+          lazy widgets from primary and approved external registries
+```
 
-| Component | Role |
-| --- | --- |
-| `@atlas/sdk` | app-to-host communication and framework access. |
-| `@atlas/runtime` | Host discovery, loading, and mount lifecycle. |
-| `@atlas/schema` | Manifests, static indexes, and catalogs. |
-| `@atlas/generators` | Generator implementation used by the CLI. |
-| `@atlas/testkit` | Test fixtures and in-memory utilities. |
-| `@atlas/cli` | Generator and workflow commands. |
-| Static storage | Immutable app assets plus mutable indexes and host catalogs. |
-| Columbus extension | Local, PR, and historical version overrides. |
-| CDN | Immutable assets and generated catalog JSON. |
+There are four runtime responsibilities.
 
-## Runtime Flow
+## Host server
 
-1. Host boots with a `hostId`.
-2. Host creates an extensible `AtlasSdk`.
-3. Host asks `@atlas/runtime` for its catalog.
-4. Loader validates manifests.
-5. Loader applies Columbus extension overrides if present.
-6. Loader enforces one selected version per app id.
-7. Loader verifies the remote entry SHA-256 integrity.
-8. Runtime selects the longest matching route.
-9. Native Federation imports the selected remote and Atlas calls `mount`.
-10. A page app receives the SDK, scoped navigation, route state, and a catalog-scoped widget loader.
+`@atlas/host-server` is stable infrastructure. It serves the HTML document, `/atlas.loader.js`, dynamic `/atlas.runtime.json`, health endpoints, browser deep-link fallback, security headers, logs, and recovery UI. It is stateless, framework-neutral, and safe to replicate.
 
-## Page Apps And Widgets
+It does not contain product UI, choose a host-client version, mount apps, proxy registry assets, or expose secrets. A normal host or app release never rebuilds this image.
 
-Atlas uses three ownership levels. The host owns top-level routing and global capabilities. A page app owns one route and its DOM layout. Independently deployed capabilities such as maps and complex popups are exported widgets mounted by that page app through `context.widgets`.
+Read [Host server and containers](host-server.md) for its complete HTTP contract.
 
-The page app is intentionally a thin coordinator: it creates containers, controls responsive layout, and translates page-level events. Business logic remains in the owning widgets. This avoids turning the rarely deployed host into a layout engine while preserving independent widget deployment.
+## Browser loader
 
-app code calls widget references through the SDK when needed. Atlas resolves the selected owner manifest at runtime and lazy-loads the widget without a source-config dependency list.
+The loader is small code owned by the server package. On every page start it:
 
-## Native Federation
+1. reads `/atlas.runtime.json`;
+2. reads the production catalog;
+3. applies approved Columbus host and app overrides;
+4. validates the effective host/app catalog and any Columbus widget-provider overrides;
+5. checks the host id, loader API compatibility, URL policy, and integrity;
+6. loads one host client and passes it the same effective catalog.
 
-Native Federation is the underlying loading mechanism. Atlas treats it as an implementation detail. Generated source imports runtime functions from `@atlas/sdk/federation`, while Atlas owns the underlying Native Federation runtime dependency.
+The loader is the only component that selects the host client. If loading fails, its framework-neutral panel can clear overrides and reload even when the selected host client never mounted.
 
-Angular build configuration is the one visible exception: `@angular-architects/native-federation`
-requires a root `federation.config.js` beside the Angular tsconfig. Atlas
-generates that file as a small `@atlas/sdk/federation-config` compatibility shim and keeps the product-facing
-configuration in `atlas.config.ts`. If you are adding routes, hosts, slots,
-widgets, or metadata, edit `atlas.config.ts`; only platform maintainers should
-touch the generated federation shim.
+## Host client
 
-## Cross-Framework Interoperability
+The host client is a versioned UI artifact in object storage. It owns product layout, routing, navigation, browser authentication integration, the Atlas SDK, organization SDK extensions, overlays, telemetry, error boundaries, and app mounting.
 
-Hosts and apps do not need to use the same UI framework. An Angular app can run in a React host, a React app can run in an Angular host, and exported widgets follow the same rule.
+It exports one lifecycle:
 
-Atlas achieves this with a framework-neutral DOM lifecycle boundary. A host gives the remote a container and typed Atlas context; the remote owns everything inside that container and returns an unmount hook. Apps never import another app's Angular module, React component, router, or framework runtime directly.
+```ts
+interface AtlasHostClientEntry {
+  mount(request: {
+    container: HTMLElement;
+    runtimeConfig: AtlasHostRuntimeConfig;
+    catalog: AtlasDeploymentCatalog;
+  }): void | Promise<void | { unmount?: () => void | Promise<void> }>;
+}
+```
 
-Each generated remote is responsible for the runtime it needs. React remotes are self-contained at their React root. Angular remotes import `zone.js` and expose an Angular bootstrap wrapper, so they do not assume the host has initialized Angular. Native Federation import maps are installed in shim mode, allowing Atlas to add each selected remote's dependency map at runtime.
+It does not serve HTTP, expose health checks, set HTTP headers, select itself, or fetch a second catalog. It bundles its own framework and product dependencies; the loader shares no React, Angular, router, or product packages with it.
 
-Generated remotes do not share product dependencies as federation singletons. Angular, React, Ionic, Bootstrap JavaScript, and other libraries are bundled with the remote that selected their version. This costs some duplicate bytes but prevents one app from satisfying another app's incompatible dependency range. Atlas values correctness and independent deployment over accidental deduplication; CDN caching still reuses immutable assets from repeated visits.
+## Apps
 
-Every mount receives an Atlas-owned root marked with `data-atlas-app` or `data-atlas-widget`. The default `scoped` mode supports framework style encapsulation, CSS Modules, and selectors rooted at that marker. Set `isolation: "shadow-dom"` in `atlas.config.ts` for a hard DOM/CSS boundary when the widget emits its styles inside its root. Global CSS files loaded into `<head>` do not cross into a shadow root.
+Apps are versioned feature artifacts. The host client mounts the app versions already selected in the effective catalog. Apps receive SDK services and own their feature UI; they do not own the page document or product-wide routing.
 
-Browser globals are the remaining boundary. A library that mutates `window`, patches DOM prototypes, or installs an incompatible global runtime is not made safe merely by federation. Such a library must be configured not to install globals, upgraded, or run behind an iframe/process boundary. Atlas deliberately does not claim same-document isolation for arbitrary global side effects.
+Apps may also export UUID-addressed widgets. Every production widget in the primary registry is discoverable even when its owner app has no route or slot in this host. Cross-registry providers are named by app id in the consumer's `externalAppsDependencies`; host-server environment provides explicit registry URLs. `sdk.getWidget(widgetId)` resolves and mounts code lazily with one independent loading/error card per mount.
 
-This isolation has two practical rules:
+## One selection model
 
-- Share data, navigation, events, and host UI capabilities through `@atlas/sdk` contracts.
-- Share remotely deployed UI through exported widgets, not framework-native imports.
+Hosts and apps share identity fields: kind, id, version, build id, channel, framework, remote URL, integrity, Git metadata, and creation time. `version` is a human release label. `buildId` identifies exact immutable bytes. Two builds may share a version, so rollback accepts an optional build id.
 
-## Versioning
+The production catalog selects one host client and one build of each routed/slotted app. PR artifacts appear in indexes but never activate production. Local artifacts never enter object storage. Same-registry widget-only providers follow their registry production selection. External providers follow their own registry production selection on browser refresh, so independent releases need no host catalog sync.
 
-Every app version is immutable once published. The static app index exposes:
+```text
+registry.json
+hosts/customer-host/index.json
+hosts/customer-host/catalog.json
+hosts/customer-host/deployments/sha256-....json
+hosts/customer-host/1.4.0/build-123/...
+apps/orders/index.json
+apps/orders/2.1.0/build-456/...
+```
 
-- production versions
-- PR versions
-- historical versions
-- local override manifests
+Version/build directories are create-only. Mutable registry, index, and catalog files use revalidation. Publication uploads immutable files first and activates catalogs last.
 
-The host always runs at most one version of a given app id in a session.
+## Release data flow
 
-## Failure Isolation
+```text
+atlas release customer-host
+  build framework output
+  create host manifest and publication plan
+  upload immutable bytes
+  update registry and host index
+  activate affected catalogs last
+  verify deployed runtime
 
-Each placement reports `loading`, `mounted`, `error`, and `unmounted` states. Loading has a configurable timeout and failed placements can be retried through `AtlasHostRuntime.retry`. A failed route does not remove independently mounted slots. Generated Angular hosts expose state through `data-atlas-state` and `aria-busy` so a product design system can render its own fallback UI.
+atlas release orders
+  same pipeline, with kind=app
+  regenerate affected same-registry host catalogs automatically
+```
 
-Host startup has one separate global boundary at `[data-atlas-host-status]`. It covers runtime configuration, catalog discovery, and federation initialization. The host defines this loader and fallback once through `renderHostLoading` and `renderHostError`; Atlas does not require separate UI configuration for every app.
+External provider release updates only its registry production pointer. A refreshed page revalidates that registry and loads the new provider. No host-server deployment, host release, or hot swap occurs.
 
-Atlas does not show loading UI merely because a remote is being imported. An app explicitly requests it with `context.loading.show()`, and the host determines its appearance. Calling `context.loading.hide()` removes it. Without a loading request, the host outlet remains visually empty until the app renders.
+## Rollback boundaries
 
-Apps opt into manual readiness from code. React calls `useAppLoaded()` and Angular calls `injectAppLoaded()` or `context.loading.waitUntilReady()`. If an app opts in, `mounted` is emitted only after the returned callback runs. If it never opts in, mount completion is ready enough. A missing ready callback becomes a retryable timeout and Atlas calls the app's unmount hook before showing the host-owned error fallback.
+`atlas rollback customer-host` changes only host-client selection: layout, slots, router/navigation, host SDK/extensions, authentication integration, overlays, and app mounting behavior. Atlas writes a new catalog revision carrying that changed field, while app selections remain unchanged.
 
-Runtime resources have bounded timeouts and retries. Exhausted operations produce `AtlasLoadError` diagnostics containing the stage, resource URL, app id, version, and attempt count. The same policy applies to catalogs, browser overrides, federation initialization, page modules, readiness callbacks, and exported widgets.
+`atlas rollback orders` changes only Orders selection. External providers roll back in their own registry; host rollback does not roll them back.
 
-The host creates one in-memory event bus and exposes it through every app through `atlas.events`. This supports typed, decoupled notifications between currently mounted apps while keeping direct app imports forbidden. The bus is intentionally not durable and does not replace backend messaging.
+The container is independent of both flows. The deployment platform connects the public domain to the host-server service; browsers fetch host and app assets directly from HTTPS object storage or its CDN gateway.
 
-## Static Registry
+## Trust boundary
 
-CI publishes immutable version directories, updates `apps/<appId>/index.json`, and replaces `hosts/<hostId>/catalog.json`. Filesystem updates use atomic rename. HTTP/object-storage publication requires one serialized CI writer per storage root.
+A host override is more powerful than an app override: it controls routing, SDK creation, authentication integration, layout, and all mounted apps. Columbus therefore displays hosts separately and warns before switching one, while still using the same version-selection mechanics. External widget providers appear separately and never mount as full apps. Production overrides default to disabled; local host-server mode enables them.
+
+## Deliberate limits
+
+Atlas currently uses client-side rendering. SSR is out of scope. Storage is static and browser-accessible; the host server does not proxy it. Kubernetes, OpenShift, Cloud Run, Nomad, and other platforms are deployment adapters around the same container rather than Atlas architecture concepts.

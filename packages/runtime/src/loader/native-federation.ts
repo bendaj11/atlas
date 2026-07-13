@@ -5,7 +5,7 @@ import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
 
 export interface AtlasFederationAdapter {
-  initFederation(remotes: Record<string, string>): Promise<unknown>;
+  initFederation(remotes: Record<string, string>, options?: { deployUrl?: string }): Promise<unknown>;
   loadRemoteModule(remoteName: string, exposedModule: string): Promise<unknown>;
 }
 
@@ -17,25 +17,39 @@ export interface AtlasNativeFederationImporters {
 
 export function createNativeFederationImporters(
   runtime: AtlasFederationAdapter,
-  requestPolicy?: AtlasRetryPolicy
+  requestPolicy?: AtlasRetryPolicy,
+  hostRemoteEntryUrl?: string
 ): AtlasNativeFederationImporters {
   const remoteNames = new Map<string, string>();
   const initializationErrors = new Map<string, Error>();
+  const initializationTasks = new Map<string, Promise<void>>();
+
+  const initializeRemote = (appId: string, remoteEntryUrl: string): Promise<void> => {
+    const existing = initializationTasks.get(appId);
+    if (existing) return existing;
+    const remoteName = federationRemoteName(appId);
+    remoteNames.set(appId, remoteName);
+    const task = runResiliently(
+      () => runtime.initFederation(
+        { [remoteName]: remoteEntryUrl },
+        hostRemoteEntryUrl ? { deployUrl: artifactDirectoryUrl(hostRemoteEntryUrl) } : undefined
+      ).then(() => undefined),
+      { stage: "federation-init", resource: remoteEntryUrl, appId },
+      requestPolicy
+    ).catch((error) => {
+      const normalized = toError(error);
+      initializationErrors.set(appId, normalized);
+      throw normalized;
+    });
+    initializationTasks.set(appId, task);
+    return task;
+  };
 
   return {
     async initialize(manifests) {
       await mapWithConcurrency(manifests, async (manifest) => {
-        const remoteName = federationRemoteName(manifest.id);
-        remoteNames.set(manifest.id, remoteName);
-        try {
-          await runResiliently(
-            () => runtime.initFederation({ [remoteName]: manifest.remoteEntryUrl }).then(() => undefined),
-            { stage: "federation-init", resource: manifest.remoteEntryUrl, appId: manifest.id, version: manifest.version },
-            requestPolicy
-          );
-        } catch (error) {
-          initializationErrors.set(manifest.id, toError(error));
-        }
+        try { await initializeRemote(manifest.id, manifest.remoteEntryUrl); }
+        catch { return; }
       });
     },
     async importRemote(manifest) {
@@ -49,6 +63,7 @@ export function createNativeFederationImporters(
       return normalizeAppEntry(entry, manifest.id);
     },
     async importWidget(widget) {
+      if (!remoteNames.has(widget.ownerAppId)) await initializeRemote(widget.ownerAppId, widget.remoteEntryUrl);
       const initializationError = initializationErrors.get(widget.ownerAppId);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
@@ -66,10 +81,11 @@ export async function createTrustedNativeFederationImporters(
   runtime: AtlasFederationAdapter,
   manifests: AtlasManifest[],
   policy: AtlasRemoteTrustPolicy,
-  requestPolicy?: AtlasRetryPolicy
+  requestPolicy?: AtlasRetryPolicy,
+  hostRemoteEntryUrl?: string
 ): Promise<AtlasNativeFederationImporters> {
   const trustErrors = await findManifestTrustErrors(manifests, policy, undefined, requestPolicy);
-  const importers = createNativeFederationImporters(runtime, requestPolicy);
+  const importers = createNativeFederationImporters(runtime, requestPolicy, hostRemoteEntryUrl);
   await importers.initialize(manifests.filter((manifest) => !trustErrors.has(manifest.id)));
   return {
     initialize: importers.initialize,
@@ -84,6 +100,10 @@ export async function createTrustedNativeFederationImporters(
       return importers.importWidget(widget);
     }
   };
+}
+
+function artifactDirectoryUrl(remoteEntryUrl: string): string {
+  return new URL(".", remoteEntryUrl).href;
 }
 
 export async function importNativeFederationRemote(

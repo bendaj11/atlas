@@ -1,13 +1,14 @@
 import { test } from "@jest/globals";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRegistryWidgetResolver, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
+import { renderHostMountState } from "../dist/dom-rendering.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
 import type { AtlasExportedWidgetManifest, AtlasHostCatalog, AtlasManifest, AtlasPlacement } from "../../schema/dist/index.js";
 import type { AtlasNavigation } from "../../sdk/dist/index.js";
 import type { AtlasAppContext, AtlasExportedWidgetMountRequest } from "../../sdk/dist/lifecycle.js";
 import type { AtlasHostMountEvent, AtlasRuntimeEvent } from "../dist/index.js";
-import { HostRuntimeDriver, createDeferred, createHostCatalog, createRouteManifest, createRoutePlacement, createSlotManifest, createTestContainer, createTestDocument, createTestElement } from "./loader.driver.js";
+import { HostRuntimeDriver, WidgetRegistryDriver, WidgetRetryDriver, createDeferred, createHostCatalog, createRouteManifest, createRoutePlacement, createSlotManifest, createTestContainer, createTestDocument, createTestElement, createWidgetRendererContainer, duplicateRegistryWidgetResult, duplicateWidgetResult, widgetProvider, widgetRegistry } from "./loader.driver.js";
 
 test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
   const catalog = createHostCatalog([
@@ -135,17 +136,14 @@ test("createHostNavigationItems keeps the first app for duplicate exact routes",
   assert.deepEqual(createHostNavigationItems(manifests, "host", navigation).map((item) => item.appId), ["first", "catalog"]);
 });
 
-test("resolveRuntimeManifests revalidates widget uses after an override", () => {
+test("resolveRuntimeManifests does not require consumed widgets in app manifests", () => {
   const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./summary", contractVersion: "1" };
   const owner = createTestManifest({ id: "orders", exportedWidgets: [widget], placements: [] });
-  const consumer = createTestManifest({ id: "dashboard", uses: ["orders/summary"], placements: [] });
+  const consumer = createTestManifest({ id: "dashboard", placements: [] });
   const replacement = createTestManifest({ id: "orders", channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json", exportedWidgets: [] });
   const catalog = createHostCatalog([owner, consumer]);
 
-  assert.throws(
-    () => resolveRuntimeManifests(catalog, [{ appId: "orders", manifest: replacement, reason: "local" }]),
-    /is not exported by the selected runtime manifests/
-  );
+  assert.equal(resolveRuntimeManifests(catalog, [{ appId: "orders", manifest: replacement, reason: "local" }]).length, 2);
 });
 
 test("catalog loading retries transient failures", async () => {
@@ -156,7 +154,7 @@ test("catalog loading retries transient failures", async () => {
     async fetchJson() {
       attempts += 1;
       if (attempts === 1) throw new Error("temporary outage");
-      return { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: [] };
+      return createHostCatalog([]);
     }
   });
 
@@ -166,7 +164,7 @@ test("catalog loading retries transient failures", async () => {
 
 test("catalog loading validates the complete host catalog", async () => {
   await assert.rejects(
-    () => loadHostCatalog({ catalogUrl: "https://cdn.example/catalog.json", async fetchJson() { return { schemaVersion: "1", hostId: "", generatedAt: "now", manifests: [] }; } }),
+    () => loadHostCatalog({ catalogUrl: "https://cdn.example/catalog.json", async fetchJson() { return { ...createHostCatalog([]), hostId: "" }; } }),
     /Invalid Atlas host catalog/
   );
 });
@@ -268,16 +266,18 @@ test("Native Federation module imports use the configured retry policy", async (
 
 test("Native Federation initializes local remotes independently", async () => {
   const initialized: Array<Record<string, string>> = [];
+  const options: Array<{ deployUrl?: string } | undefined> = [];
   const loaded: string[] = [];
   const importers = createNativeFederationImporters({
-    async initFederation(remotes) {
+    async initFederation(remotes, federationOptions) {
       initialized.push(remotes);
+      options.push(federationOptions);
     },
     async loadRemoteModule(remoteName) {
       loaded.push(remoteName);
       return { mount() {} };
     }
-  }, { retryCount: 0, timeoutMs: 50 });
+  }, { retryCount: 0, timeoutMs: 50 }, "https://cdn.example/hosts/customer-host/1.0.0/build-1/remoteEntry.json");
   const first = createTestManifest({ id: "first", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
   const second = createTestManifest({ id: "second", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
 
@@ -290,6 +290,10 @@ test("Native Federation initializes local remotes independently", async () => {
     { atlas_second: "http://localhost:4202/remoteEntry.json" }
   ]);
   assert.deepEqual(loaded, ["atlas_first", "atlas_second"]);
+  assert.deepEqual(options, [
+    { deployUrl: "https://cdn.example/hosts/customer-host/1.0.0/build-1/" },
+    { deployUrl: "https://cdn.example/hosts/customer-host/1.0.0/build-1/" }
+  ]);
 });
 
 test("Native Federation keeps healthy remotes loadable when another initialization fails", async () => {
@@ -357,6 +361,31 @@ test("default host UI hides diagnostic details", () => {
   assert.doesNotMatch(container.textContent, /Duplicate app id|Suggested action/);
 });
 
+test("host placement state never removes a nested widget status", () => {
+  const widgetStatus = createTestElement();
+  let widgetStatusRemoved = false;
+  widgetStatus.remove = () => { widgetStatusRemoved = true; };
+  const container = createTestElement();
+  container.setAttribute = () => undefined;
+  container.querySelector = ((selector: string) => selector === ":scope > [data-atlas-placement-status]" ? null : widgetStatus) as typeof container.querySelector;
+  const document = createTestDocument();
+  document.querySelector = () => container;
+  const manifest = createTestManifest();
+
+  renderHostMountState(document, {
+    manifest,
+    placement: manifest.placements[0]!,
+    state: "mounted"
+  }, () => undefined, {
+    federation: {
+      async initFederation() {},
+      async loadRemoteModule() { return {}; }
+    }
+  });
+
+  assert.equal(widgetStatusRemoved, false);
+});
+
 test("browser overrides are discovered from the host URL and validated", async () => {
   const manifest = createTestManifest({ channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
   let requestedUrl;
@@ -401,7 +430,7 @@ test("invalid browser overrides name the app and provide a Columbus recovery act
 });
 
 test("browser overrides load a directly persisted extension document", async () => {
-  const manifest = createTestManifest({ channel: "historical", version: "0.8.0" });
+  const manifest = createTestManifest({ channel: "production", version: "0.8.0" });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
     enabled: true,
@@ -413,8 +442,8 @@ test("browser overrides load a directly persisted extension document", async () 
 
 test("tab-scoped browser overrides take precedence over all-tab overrides", async () => {
   const production = createTestManifest({ id: "orders", version: "1.0.0" });
-  const tab = createTestManifest({ id: "orders", version: "3.0.0", channel: "historical" });
-  const all = createTestManifest({ id: "orders", version: "2.0.0", channel: "historical" });
+  const tab = createTestManifest({ id: "orders", version: "3.0.0", channel: "production" });
+  const all = createTestManifest({ id: "orders", version: "2.0.0", channel: "production" });
   const documentFor = (manifest: AtlasManifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: "orders", manifest, reason: "historical" }] });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
@@ -453,7 +482,9 @@ test("widget loader mounts from the selected owner version", async () => {
   const manifest = createTestManifest({ exportedWidgets: [widget] });
   let request: AtlasExportedWidgetMountRequest | undefined;
   let unmounted = false;
-  const loader = createWidgetLoader([manifest], createTestHostSdk(), async () => ({ mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }));
+  const loader = createWidgetLoader([manifest], createTestHostSdk(), {
+    async importWidget() { return { mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }; }
+  });
   assert.deepEqual(loader.list("catalog"), [widget]);
   const mounted = await loader.mount("catalog/product-count", createTestElement(), { count: 4 });
   if (!request) throw new Error("Widget was not mounted.");
@@ -463,9 +494,147 @@ test("widget loader mounts from the selected owner version", async () => {
   assert.equal(unmounted, true);
 });
 
-test("widget loader rejects widgets outside the selected catalog", async () => {
+test("widget loader contains unresolved widget failure inside its mount card", async () => {
   const loader = createWidgetLoader([], createTestHostSdk());
-  await assert.rejects(() => loader.mount("unknown/widget", createTestElement(), {}), /not available in the selected catalog/);
+  const mounted = await loader.mount("unknown/widget", createTestElement(), {});
+  assert.equal(mounted.widget, undefined);
+});
+
+test("widget loader uses host-owned loading UI and clears it after mount", async () => {
+  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerAppId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
+  const manifest = createTestManifest({ exportedWidgets: [widget] });
+  const events: string[] = [];
+  const loader = createWidgetLoader([manifest], createTestHostSdk(), {
+    async importWidget() { return { mount() {} }; },
+    renderWidgetLoading(container, context) {
+      events.push(`loading:${context.widget?.name}:${context.ownerManifest?.id}`);
+      container.textContent = "Custom widget loading";
+      return () => { events.push("loading-disposed"); };
+    }
+  });
+
+  const mounted = await loader.mount(widget.id, createWidgetRendererContainer(), {});
+
+  assert.deepEqual(events, ["loading:Product Count:catalog", "loading-disposed"]);
+  await mounted.unmount();
+});
+
+test("widget loader uses host-owned error UI and disposes it on unmount", async () => {
+  const events: string[] = [];
+  let retry: (() => void) | undefined;
+  const loader = createWidgetLoader([], createTestHostSdk(), {
+    renderWidgetLoading(_container, context) {
+      events.push(`loading:${context.widgetId}`);
+      return () => { events.push("loading-disposed"); };
+    },
+    renderWidgetError(container, context, retryAction) {
+      events.push(`error:${context.widgetId}:${context.error.message}`);
+      container.textContent = "Custom widget error";
+      retry = retryAction;
+      return () => { events.push("error-disposed"); };
+    }
+  });
+
+  const mounted = await loader.mount("unknown/widget", createWidgetRendererContainer(), {});
+
+  assert.equal(typeof retry, "function");
+  assert.deepEqual(events, [
+    "loading:unknown/widget",
+    "loading-disposed",
+    'error:unknown/widget:Atlas exported widget "unknown/widget" is not available.'
+  ]);
+  await mounted.unmount();
+  assert.equal(events.at(-1), "error-disposed");
+});
+
+test("widget retry remains owned by original mount lifecycle", async () => {
+  const widget = new WidgetRetryDriver();
+  await widget.start();
+  await widget.retry();
+  await widget.unmount();
+  assert.equal(widget.remoteUnmounted, true);
+});
+
+test("duplicate widget ids warn and keep first selected match", async () => {
+  const result = await duplicateWidgetResult();
+  assert.equal(result.name, "First Widget");
+  assert.match(result.warning, /multiple apps; using first match from "first"/);
+});
+
+test("duplicate registry widget ids warn and keep first match", async () => {
+  const result = await duplicateRegistryWidgetResult();
+  assert.equal(result.ownerId, "first");
+  assert.match(result.warning, /multiple apps; using first match from "first"/);
+});
+
+test("widget registry resolves widgets from non-routed apps in the primary registry", async () => {
+  const widgetId = "6f4994c1-b95f-4b24-a01a-106dd61aa4fb";
+  const provider = widgetProvider("internal-provider", widgetId, "1.0.0");
+  let requests = 0;
+  const resolver = createRegistryWidgetResolver({
+    runtimeConfig: { schemaVersion: "1", hostId: "host", catalogUrl: "https://platform.example/atlas/hosts/host/catalog.json" },
+    catalog: createHostCatalog([]),
+    async fetchJson(url) {
+      requests += 1;
+      assert.equal(url, "https://platform.example/atlas/registry.json");
+      return widgetRegistry([provider]);
+    }
+  });
+
+  assert.equal(requests, 0);
+  assert.equal((await resolver(widgetId)).ownerManifest.id, "internal-provider");
+  assert.equal(requests, 1);
+  assert.equal((await resolver(widgetId)).ownerManifest.id, "internal-provider");
+  assert.equal(requests, 1);
+});
+
+test("widget registry resolves declared external providers at their production selection", async () => {
+  const widgetId = "98abc74d-a11f-4eca-8255-c6f2f49e3d6e";
+  const oldProvider = widgetProvider("external-provider", widgetId, "1.0.0");
+  const currentProvider = widgetProvider("external-provider", widgetId, "2.0.0");
+  const consumer = createTestManifest({ externalAppsDependencies: ["external-provider"] });
+  const resolver = createRegistryWidgetResolver({
+    runtimeConfig: {
+      schemaVersion: "1",
+      hostId: "host",
+      catalogUrl: "https://platform.example/atlas/hosts/host/catalog.json",
+      externalRegistryUrls: ["https://external.example/atlas"]
+    },
+    catalog: createHostCatalog([consumer]),
+    async fetchJson(url) {
+      if (url.includes("platform.example")) return widgetRegistry([]);
+      return widgetRegistry([oldProvider, currentProvider], { "external-provider": { version: "2.0.0", buildId: "build-2.0.0" } });
+    }
+  });
+
+  assert.equal((await resolver(widgetId)).ownerManifest.version, "2.0.0");
+});
+
+test("failed external registry does not block a primary-registry widget", async () => {
+  const widgetId = "6f4994c1-b95f-4b24-a01a-106dd61aa4fb";
+  const consumer = createTestManifest({ externalAppsDependencies: ["external-provider"] });
+  const resolver = createRegistryWidgetResolver({
+    runtimeConfig: {
+      schemaVersion: "1",
+      hostId: "host",
+      catalogUrl: "https://platform.example/atlas/hosts/host/catalog.json",
+      externalRegistryUrls: ["https://offline.example/atlas"]
+    },
+    catalog: createHostCatalog([consumer]),
+    async fetchJson(url) {
+      if (url.includes("offline.example")) throw new Error("offline");
+      return widgetRegistry([widgetProvider("internal-provider", widgetId, "1.0.0")]);
+    }
+  });
+
+  assert.equal((await resolver(widgetId)).ownerManifest.id, "internal-provider");
+});
+
+test("widget registry retries after a transient registry failure", async () => {
+  const registry = new WidgetRegistryDriver();
+  await assert.rejects(() => registry.resolver(registry.widgetId), /temporary registry failure/);
+  assert.equal((await registry.resolver(registry.widgetId)).ownerManifest.id, "internal-provider");
+  assert.equal(registry.requests, 2);
 });
 
 test("page apps receive the shared widget loader", async () => {
@@ -834,7 +1003,7 @@ function tick(): Promise<void> {
 }
 
 function catalogDataUrl(manifests: AtlasManifest[]): string {
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "now", manifests };
+  const catalog = createHostCatalog(manifests);
   return `data:application/json,${encodeURIComponent(JSON.stringify(catalog))}`;
 }
 
@@ -956,7 +1125,8 @@ test("runtime config creates a resource policy", async () => {
     resourcesTimeoutMs: 15000,
     resourcesRetryCount: 3
   }));
-  assert.deepEqual(createRemoteTrustPolicy(config), {});
+  const policy = createRemoteTrustPolicy(config);
+  assert.deepEqual([...(policy.allowedOrigins ?? [])], ["https://registry.example.com"]);
 });
 
 test("runtime config rejects invalid resource settings", async () => {

@@ -4,6 +4,7 @@
     { "path": "packages/schema" },
     { "path": "packages/sdk" },
     { "path": "packages/runtime" },
+    { "path": "packages/host-server" },
     { "path": "packages/generators" },
     { "path": "packages/testkit" },
     { "path": "packages/cli" },

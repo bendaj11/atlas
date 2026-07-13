@@ -21,16 +21,17 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
     subcommand ??= await prompts.select("What would you like to generate?", [
       { label: "App app", value: "app" },
       { label: "Host application", value: "host" },
-      { label: "Exported widget", value: "widget" }
+      { label: "Exported widget", value: "widget" },
+      { label: "Advanced publish config", value: "publish-config" }
     ]);
-    name ??= await prompts.input(subcommand === "widget" ? "Widget name" : `${title(subcommand)} name`);
+    if (subcommand !== "publish-config") name ??= await prompts.input(subcommand === "widget" ? "Widget name" : `${title(subcommand)} name`);
     if ((subcommand === "host" || subcommand === "app") && !framework) {
       framework = await prompts.select<SupportedFramework>("Framework", [
         { label: "React", value: "react" },
         { label: "Angular", value: "angular" },
       ]);
     }
-  } else if ((command === "build" || command === "rollback") && !subcommand) {
+  } else if ((command === "build" || command === "release" || command === "rollback") && !subcommand) {
     subcommand = await prompts.input("Atlas project name or directory");
   }
   if (command === "rollback" && !version) version = await prompts.input("Production version to restore");

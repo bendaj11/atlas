@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import {
   assertAtlasManifest,
+  assertAtlasHostManifest,
   type AtlasHostCatalog,
+  type AtlasHostManifest,
   type AtlasHostRuntimeConfig,
   type AtlasManifest
 } from "@atlas/schema";
@@ -70,7 +72,7 @@ export class AtlasVerifyService {
     if (!catalog) return createReport(context, runtime.hostId);
 
     this.verifyCatalog(runtime, catalog, context);
-    await Promise.all(catalog.manifests.flatMap((manifest) => this.verifyManifestAssets(manifest, runtime, context)));
+    await Promise.all([catalog.host, ...catalog.apps].flatMap((manifest) => this.verifyManifestAssets(manifest, runtime, context)));
     return createReport(context, runtime.hostId);
   }
 
@@ -95,10 +97,10 @@ export class AtlasVerifyService {
     this.verifyMutableCache(response, "host catalog", context);
     const value = await parseJson(response, "host catalog", context);
     if (!isHostCatalog(value)) {
-      fail(context, "host catalog", "Expected schemaVersion, hostId, generatedAt, and manifests.");
+      fail(context, "host catalog", "Expected schemaVersion, hostId, revision, host, and apps.");
       return undefined;
     }
-    pass(context, "host catalog", `Loaded ${value.manifests.length} selected app(s).`);
+    pass(context, "host catalog", `Loaded host client ${value.host.version} and ${value.apps.length} selected app(s).`);
     return value;
   }
 
@@ -106,8 +108,15 @@ export class AtlasVerifyService {
     if (catalog.hostId === runtime.hostId) pass(context, "catalog host", `Matches "${runtime.hostId}".`);
     else fail(context, "catalog host", `Expected "${runtime.hostId}", received "${catalog.hostId}".`);
 
+    try {
+      assertAtlasHostManifest(catalog.host);
+      pass(context, `${catalog.host.id} host manifest`, `${catalog.host.version} (${catalog.host.buildId}) is valid.`);
+    } catch (error) {
+      fail(context, `${catalog.host.id || "unknown"} host manifest`, errorMessage(error));
+    }
+
     const ids = new Set<string>();
-    for (const manifest of catalog.manifests) {
+    for (const manifest of catalog.apps) {
       try {
         assertAtlasManifest(manifest);
         pass(context, `${manifest.id} manifest`, `${manifest.version} (${manifest.buildId}) is valid.`);
@@ -117,24 +126,14 @@ export class AtlasVerifyService {
       if (ids.has(manifest.id)) fail(context, "catalog versions", `app "${manifest.id}" is selected more than once.`);
       ids.add(manifest.id);
     }
-    if (ids.size === catalog.manifests.length) pass(context, "catalog versions", "Exactly one version is selected per app.");
-    this.verifyWidgetReferences(catalog.manifests, context);
+    if (ids.size === catalog.apps.length) pass(context, "catalog versions", "Exactly one version is selected per app.");
     this.verifyRouteOwnership(catalog, context);
-  }
-
-  private verifyWidgetReferences(manifests: AtlasManifest[], context: VerificationContext): void {
-    const exportedWidgets = new Set(manifests.flatMap((manifest) =>
-      (manifest.exportedWidgets ?? []).map((component) => `${manifest.id}/${component.id}`)));
-    const missing = manifests.flatMap((manifest) =>
-      (manifest.uses ?? []).filter((reference) => !exportedWidgets.has(reference)).map((reference) => `${manifest.id} -> ${reference}`));
-    if (missing.length > 0) fail(context, "exported widgets", `Missing: ${missing.join(", ")}.`);
-    else pass(context, "exported widgets", "All consumed widgets resolve in the catalog.");
   }
 
   private verifyRouteOwnership(catalog: AtlasHostCatalog, context: VerificationContext): void {
     const owners = new Map<string, string>();
     const conflicts: string[] = [];
-    for (const manifest of catalog.manifests) {
+    for (const manifest of catalog.apps) {
       for (const placement of manifest.placements) {
         if (placement.hostId !== catalog.hostId || placement.kind !== "route" || !placement.route) continue;
         const basePath = normalizeRoutePath(placement.route.basePath);
@@ -148,7 +147,7 @@ export class AtlasVerifyService {
   }
 
   private verifyManifestAssets(
-    manifest: AtlasManifest,
+    manifest: AtlasManifest | AtlasHostManifest,
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext
   ): Promise<void>[] {
@@ -171,7 +170,7 @@ export class AtlasVerifyService {
     return assets.map((asset) => this.verifyAsset(asset, manifest, context));
   }
 
-  private async verifyAsset(asset: AssetExpectation, manifest: AtlasManifest, context: VerificationContext): Promise<void> {
+  private async verifyAsset(asset: AssetExpectation, manifest: AtlasManifest | AtlasHostManifest, context: VerificationContext): Promise<void> {
     const url = new URL(asset.url, context.runtimeUrl);
     pass(context, `${asset.subject} URL`, url.href);
     const response = await this.fetch(url, asset.subject, context);
@@ -187,7 +186,7 @@ export class AtlasVerifyService {
   private async verifyFederationReferences(
     bytes: Uint8Array,
     remoteEntryUrl: URL,
-    manifest: AtlasManifest,
+    manifest: AtlasManifest | AtlasHostManifest,
     context: VerificationContext
   ): Promise<void> {
     const metadata = parseFederationMetadata(bytes, manifest.id, context);
@@ -195,7 +194,7 @@ export class AtlasVerifyService {
     const exposedKeys = new Set(metadata.map((entry) => entry.key));
     const requiredExposes = new Set([
       ...Object.values(manifest.exposes),
-      ...(manifest.exportedWidgets ?? []).map((component) => component.expose)
+      ...(manifest.kind === "app" ? (manifest.exportedWidgets ?? []).map((component) => component.expose) : [])
     ]);
     const missingExposes = [...requiredExposes].filter((expose) => !exposedKeys.has(expose));
     if (missingExposes.length > 0) fail(context, `${manifest.id} federation exposes`, `Missing: ${missingExposes.join(", ")}.`);
@@ -314,7 +313,7 @@ function isRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
 function isHostCatalog(value: unknown): value is AtlasHostCatalog {
   const record = asRecord(value);
   return record?.schemaVersion === "1" && nonEmptyString(record.hostId) &&
-    nonEmptyString(record.generatedAt) && Array.isArray(record.manifests);
+    nonEmptyString(record.revision) && nonEmptyString(record.generatedAt) && asRecord(record.host)?.kind === "host" && Array.isArray(record.apps);
 }
 
 function parseFederationMetadata(

@@ -46,6 +46,7 @@
   "dependencies": {
     "@atlas/schema": "0.2.76",
     "@atlas/generators": "0.2.76",
+    "@atlas/host-server": "0.2.76",
     "@atlas/runtime": "0.2.76",
     "@inquirer/select": "^4.4.2",
     "typescript": "~5.9.0"

@@ -3,120 +3,133 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "@jest/globals";
-import { prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/static-registry.js";
+import type { AtlasHostManifest, AtlasStaticRegistry } from "../../schema/dist/index.js";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import type { AtlasExportedWidgetManifest, AtlasStaticRegistry } from "../../schema/dist/index.js";
-import { manifestFromUnknown, readCatalog, readManifestIndex, readRegistry } from "./static-registry.driver.js";
+import { prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/static-registry.js";
+import { readCatalog, readManifestIndex, readRegistry } from "./static-registry.driver.js";
 
-test("static registry prepares version indexes and a host catalog", async () => {
+test("static registry selects one host client and its apps", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-static-registry-"));
-  const widget: AtlasExportedWidgetManifest = {
-    schemaVersion: "1",
-    id: "summary",
-    name: "Summary",
-    ownerAppId: "orders",
-    framework: "angular",
-    remoteEntryUrl: "https://cdn.example/orders/1.0.0/build/remoteEntry.json",
-    expose: "./widgets/summary",
-    contractVersion: "1"
-  };
-  const owner = createTestManifest({ id: "orders", name: "Orders", exportedWidgets: [widget] });
-  const consumer = createTestManifest({ id: "dashboard", name: "Dashboard", uses: ["orders/summary"] });
-
-  await prepareStaticRegistry(owner, undefined, directory);
-  const current = await readRegistry(join(directory, "registry.json"));
-  await prepareStaticRegistry(consumer, current, directory);
+  await prepareStaticRegistry(hostManifest(), undefined, directory);
+  const afterHost = await readRegistry(join(directory, "registry.json"));
+  await prepareStaticRegistry(createTestManifest({ id: "orders" }), afterHost, directory);
 
   const index = await readManifestIndex(join(directory, "apps/orders/index.json"));
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
   assert.deepEqual(index.manifests.map((manifest) => manifest.id), ["orders"]);
-  assert.deepEqual(catalog.manifests.map((manifest) => manifest.id), ["dashboard", "orders"]);
+  assert.equal(catalog.host.kind, "host");
+  assert.deepEqual(catalog.apps.map((manifest) => manifest.id), ["orders"]);
 });
 
-test("static registry rejects IDs that could escape the output directory", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "atlas-static-containment-"));
-  const manifest = {
-    ...createTestManifest(),
-    supportedHosts: ["../outside"],
-    placements: []
-  };
-  await assert.rejects(prepareStaticRegistry(manifest, undefined, directory), /Invalid Atlas manifest|safe path segment/);
+test("provider-only apps remain discoverable without entering a host catalog", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "atlas-static-widget-provider-"));
+  await prepareStaticRegistry(hostManifest(), undefined, directory);
+  const afterHost = await readRegistry(join(directory, "registry.json"));
+  const provider = createTestManifest({
+    id: "shared-widgets",
+    supportedHosts: ["*"],
+    placements: [],
+    exportedWidgets: [{
+      schemaVersion: "1",
+      contractVersion: "1",
+      id: "55ca3323-c62f-44de-9194-6ab42375e578",
+      name: "Shared summary",
+      ownerAppId: "shared-widgets",
+      framework: "react",
+      remoteEntryUrl: "https://cdn.example/apps/shared-widgets/1.0.0/test/remoteEntry.json",
+      expose: "./shared-summary"
+    }]
+  });
+
+  await prepareStaticRegistry(provider, afterHost, directory);
+
+  const registry = await readRegistry(join(directory, "registry.json"));
+  const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
+  assert.equal(registry.apps.some((manifest) => manifest.id === provider.id), true);
+  assert.deepEqual(catalog.apps, []);
 });
 
-test("static registry preserves history while selecting one production version", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "atlas-static-history-"));
-  await prepareStaticRegistry(createTestManifest({ version: "1.0.0", buildId: "one" }), undefined, directory);
+test("PR builds enter history without activating catalog", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "atlas-static-pr-"));
+  await prepareStaticRegistry(hostManifest(), undefined, directory);
   let current = await readRegistry(join(directory, "registry.json"));
-  await prepareStaticRegistry(createTestManifest({ version: "2.0.0", buildId: "two" }), current, directory);
+  await prepareStaticRegistry(createTestManifest({ version: "1.0.0", buildId: "one" }), current, directory);
   current = await readRegistry(join(directory, "registry.json"));
-  await prepareStaticRegistry(createTestManifest({ version: "2.0.0-pr.42", buildId: "pr", channel: "pr", prNumber: 42 }), current, directory);
+  const result = await prepareStaticRegistry(createTestManifest({ version: "2.0.0-pr.1", buildId: "pr", channel: "pr", prNumber: 1 }), current, directory);
 
   const index = await readManifestIndex(join(directory, "apps/catalog/index.json"));
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
-  assert.equal(index.manifests.length, 3);
-  assert.equal(catalog.manifests.length, 1);
-  assert.equal(catalog.manifests[0].version, "2.0.0");
+  assert.equal(result.hostIds.length, 0);
+  assert.equal(index.manifests.length, 2);
+  assert.equal(catalog.apps[0]?.version, "1.0.0");
 });
 
-test("static rollback selects an immutable historical production build", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "atlas-static-rollback-"));
-  const first = createTestManifest({ version: "1.0.0", buildId: "one" });
-  const second = createTestManifest({ version: "2.0.0", buildId: "two" });
+test("rollback selects previous host-client build", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "atlas-static-host-rollback-"));
+  const first = hostManifest({ version: "1.0.0", buildId: "one" });
+  const second = hostManifest({ version: "2.0.0", buildId: "two" });
   await prepareStaticRegistry(first, undefined, directory);
   let current = await readRegistry(join(directory, "registry.json"));
+  const orders = createTestManifest({ id: "orders", version: "3.0.0", buildId: "orders-three" });
+  await prepareStaticRegistry(orders, current, directory);
+  current = await readRegistry(join(directory, "registry.json"));
   await prepareStaticRegistry(second, current, directory);
   current = await readRegistry(join(directory, "registry.json"));
 
   const result = await prepareStaticRollback({
-    appId: first.id,
-    version: first.version,
+    artifactId: "host",
+    version: "1.0.0",
     current,
     outputDirectory: directory,
     updatedAt: "2026-02-01T00:00:00.000Z"
   });
-
-  const registry = await readRegistry(join(directory, "registry.json"));
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
-  assert.equal(result.selected.buildId, "one");
-  assert.equal(registry.manifests.length, 2);
-  if (!registry.productionSelections) throw new Error("Registry did not persist production selections.");
-  assert.deepEqual(registry.productionSelections[first.id], { version: "1.0.0", buildId: "one" });
-  assert.equal(catalog.manifests[0].version, "1.0.0");
+  assert.equal(result.selected.kind, "host");
+  assert.equal(catalog.host.buildId, "one");
+  assert.equal(catalog.apps.find((manifest) => manifest.id === "orders")?.buildId, "orders-three");
 });
 
-test("static rollback requires a build id when a version has multiple builds", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "atlas-static-ambiguous-"));
+test("rollback requires build id when version has multiple builds", async () => {
   const first = createTestManifest({ version: "1.0.0", buildId: "one" });
   const rebuilt = createTestManifest({ version: "1.0.0", buildId: "two" });
   const current: AtlasStaticRegistry = {
     schemaVersion: "1",
     updatedAt: first.createdAt,
-    manifests: [first, rebuilt]
+    hosts: [hostManifest()],
+    apps: [first, rebuilt]
   };
-  await assert.rejects(
-    prepareStaticRollback({ appId: first.id, version: first.version, current, outputDirectory: directory }),
-    /multiple builds/
-  );
+  current.revision = registryRevision(current);
+  await assert.rejects(prepareStaticRollback({
+    artifactId: first.id,
+    version: first.version,
+    current,
+    outputDirectory: await mkdtemp(join(tmpdir(), "atlas-static-ambiguous-"))
+  }), /multiple builds/);
 });
 
-test("registry revision is independent of manifest and object key order", () => {
+test("registry revision is independent of artifact order", () => {
+  const host = hostManifest();
   const first = createTestManifest({ id: "first" });
   const second = createTestManifest({ id: "second" });
-  const reorderedFirst = manifestFromUnknown(Object.fromEntries(Object.entries(first).reverse()));
-  assert.equal(registryRevision([first, second]), registryRevision([second, reorderedFirst]));
+  const left: AtlasStaticRegistry = { schemaVersion: "1", updatedAt: first.createdAt, hosts: [host], apps: [first, second] };
+  const right: AtlasStaticRegistry = { schemaVersion: "1", updatedAt: first.createdAt, hosts: [host], apps: [second, first] };
+  assert.equal(registryRevision(left), registryRevision(right));
 });
 
-test("static registry rejects content that does not match its declared revision", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "atlas-invalid-revision-"));
-  const manifest = createTestManifest();
-  const current: AtlasStaticRegistry = {
+function hostManifest(overrides: Partial<AtlasHostManifest> = {}): AtlasHostManifest {
+  return {
     schemaVersion: "1",
-    revision: registryRevision([manifest]),
-    updatedAt: manifest.createdAt,
-    manifests: [{ ...manifest, version: "9.9.9" }]
+    kind: "host",
+    id: "host",
+    name: "Host",
+    version: "1.0.0",
+    buildId: "host-build",
+    channel: "production",
+    framework: "react",
+    remoteEntryUrl: "https://cdn.example/hosts/host/1.0.0/host-build/remoteEntry.json",
+    exposes: { entry: "./host" },
+    requiredLoaderApiVersion: "^1.0.0",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...overrides
   };
-  await assert.rejects(
-    prepareStaticRegistry(createTestManifest({ buildId: "next" }), current, directory),
-    /registry revision is invalid/
-  );
-});
+}

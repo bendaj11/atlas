@@ -1,0 +1,10 @@
+FROM node:22-alpine
+
+COPY dist/package-verification/schema.tgz /tmp/atlas-schema.tgz
+COPY dist/package-verification/host-server.tgz /tmp/atlas-host-server.tgz
+RUN npm install --global /tmp/atlas-schema.tgz /tmp/atlas-host-server.tgz \
+  && rm /tmp/atlas-schema.tgz /tmp/atlas-host-server.tgz
+
+USER node
+EXPOSE 8080
+CMD ["atlas-host-server"]

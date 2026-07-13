@@ -8,6 +8,9 @@
   ],
   "include": [
     "src/**/*.ts",
+    "../../../packages/schema/src/**/*.ts",
+    "../../../packages/sdk/src/**/*.ts",
+    "../../../packages/runtime/src/**/*.ts",
     "src/entry.ts",
     "src/exported-widgets/order-status/index.ts"
   ]

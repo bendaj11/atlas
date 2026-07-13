@@ -15,13 +15,34 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI
     },
     {
-      command: "node tests/e2e/static-server.mjs --root=examples/hosts/demo-react-host/dist --port=4300 --spa",
-      url: "http://127.0.0.1:4300",
+      command: "node tests/e2e/static-server.mjs --root=tests/e2e/.artifacts/external-cdn --port=4401",
+      url: "http://127.0.0.1:4401/registry.json",
       reuseExistingServer: !process.env.CI
     },
     {
-      command: "node tests/e2e/static-server.mjs --root=examples/hosts/demo-angular-host/dist/demo-angular-host/browser --port=4301 --spa",
-      url: "http://127.0.0.1:4301",
+      command: "node packages/host-server/dist/cli.js",
+      url: "http://127.0.0.1:4300/health/ready",
+      env: {
+        PORT: "4300",
+        ATLAS_HOST_ID: "demo-react-host",
+        ATLAS_CATALOG_URL: "http://127.0.0.1:4400/hosts/demo-react-host/catalog.json",
+        ATLAS_ASSET_ORIGINS: "http://127.0.0.1:4400,http://127.0.0.1:4401",
+        ATLAS_EXTERNAL_REGISTRY_URLS: "http://127.0.0.1:4401",
+        ATLAS_ALLOW_OVERRIDES: "true"
+      },
+      reuseExistingServer: !process.env.CI
+    },
+    {
+      command: "node packages/host-server/dist/cli.js",
+      url: "http://127.0.0.1:4301/health/ready",
+      env: {
+        PORT: "4301",
+        ATLAS_HOST_ID: "demo-angular-host",
+        ATLAS_CATALOG_URL: "http://127.0.0.1:4400/hosts/demo-angular-host/catalog.json",
+        ATLAS_ASSET_ORIGINS: "http://127.0.0.1:4400,http://127.0.0.1:4401",
+        ATLAS_EXTERNAL_REGISTRY_URLS: "http://127.0.0.1:4401",
+        ATLAS_ALLOW_OVERRIDES: "true"
+      },
       reuseExistingServer: !process.env.CI
     }
   ]

@@ -17,6 +17,7 @@ test("overlay controller mounts a modal widget with close controls and tears it 
   const controller = createAtlasOverlayController({
     getWidgetLoader: () => ({
       list: () => [],
+      async getWidget() { throw new Error("Direct widget lookup not used."); },
       async mount(widget, container, props) {
         mountedWidget = widget;
         mountedContainer = container;
@@ -116,6 +117,7 @@ test("popup widget cleanup is idempotent and native content remains opaque", asy
   const controller = createAtlasOverlayController({
     getWidgetLoader: () => ({
       list: () => [],
+      async getWidget() { throw new Error("Direct widget lookup not used."); },
       async mount() { return { widget: createTestWidget(), async unmount() { unmounts += 1; } }; }
     }),
     providers: {

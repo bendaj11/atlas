@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
 const outputDirectory = join(root, "dist/package-verification");
-const packageDirectories = ["schema", "sdk", "runtime", "generators", "testkit", "cli"];
+const packageDirectories = ["schema", "sdk", "runtime", "host-server", "generators", "testkit", "cli"];
 const expectedVersion = await atlasGeneratorVersion();
 const canonicalLicense = normalizeText(await readFile(join(root, "LICENSE"), "utf8"));
 

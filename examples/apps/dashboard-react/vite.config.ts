@@ -35,6 +35,12 @@ function atlasReactRefreshPreamble(): Plugin {
 export default defineConfig({
   base: "./",
   plugins: [react({ babel: { plugins: [["babel-plugin-react-compiler", { target: "19", panicThreshold: "none" }]] } }), atlasReactRefreshPreamble(), atlasFederationMetadata()],
+  resolve: {
+    alias: [
+      { find: /^react(\/.*)?$/, replacement: `${resolve(__dirname, "node_modules/react")}$1` },
+      { find: /^react-dom(\/.*)?$/, replacement: `${resolve(__dirname, "node_modules/react-dom")}$1` }
+    ]
+  },
   server: { port: 4201, cors: true },
   build: {
     target: "esnext",

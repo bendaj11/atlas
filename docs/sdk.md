@@ -94,7 +94,14 @@ Core SDK contains only host identity/data, HTTP, navigation, and events. Add
 product-specific APIs directly to the SDK shape. Atlas does not define toast,
 modal, popup, auth, config, or session contracts.
 
-The loader exposes `createWidgetLoader` and widget lifecycle types. Page apps consume catalog-selected widgets through `context.widgets.mount("owner/widget", container, props)`.
+Every mounted app receives `sdk.getWidget(widgetId)`. Widget IDs are UUIDv4 values generated in each producer's `atlas.widget.ts`. Consumers never list widget ids in `atlas.config.ts`:
+
+```ts
+const widget = await sdk.getWidget("6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
+const mounted = await widget.mount(container, props);
+```
+
+`context.widgets` remains a lower-level compatibility API. New code should use `sdk.getWidget`.
 
 Hosts may use `@atlas/sdk/overlay` utilities when building their own typed SDK
 extensions. Overlay APIs are not injected into Atlas core.
@@ -157,7 +164,7 @@ const result = await atlas.modal.open({
 
 The host decides how to interpret `component`. React hosts can render React components, Angular hosts can render Angular components, DOM hosts can render custom elements, and mixed-framework hosts can require host-registered component tokens or web components. If a component is incompatible, the provider should reject with a clear error.
 
-Modal providers receive `controls.close(result)` and `controls.dismiss()` so rendered components can close the host-owned modal. When `component` is `{ widget: "owner/widget", props }`, Atlas mounts that widget and injects the controls as `atlasModal` in widget props. Atlas unmounts widget content after the modal settles. Popup providers should expose `closed: Promise<void>` on their returned `AtlasPopupRef`; Atlas then cleans up when users close the UI through the provider, not only through `ref.close()`.
+Modal providers receive `controls.close(result)` and `controls.dismiss()` so rendered components can close the host-owned modal. When `component` is `{ widget: widgetId, props }`, Atlas resolves the UUID, mounts that widget, and injects controls as `atlasModal` in widget props. Atlas unmounts widget content after the modal settles. Popup providers should expose `closed: Promise<void>` on their returned `AtlasPopupRef`; Atlas then cleans up when users close the UI through the provider, not only through `ref.close()`.
 
 ## `@atlas/runtime`
 
@@ -201,6 +208,8 @@ The host configures UI once; individual apps never choose a spinner or fallback.
 - `[data-atlas-host-status]` is the single global outlet shown while Atlas loads runtime configuration, the catalog, and Native Federation. `renderHostLoading` and `renderHostError` replace its defaults.
 - `renderLoading` is the one renderer shared by every app placement. It appears only when an app calls `context.loading.show()` or opts into manual readiness, and is removed by `hide()` or the app-loaded callback.
 - `renderError` is the one fallback shared by every app placement. Atlas supplies the failed manifest, error, and retry action.
+- `renderWidgetLoading` is the renderer shared by every independent widget card. Atlas supplies the widget id and resolved widget/provider manifests when already known.
+- `renderWidgetError` receives the same context, the error, and a retry action. Failure stays inside that widget card.
 
 If an app never requests loading or manual readiness, its route or slot is ready as soon as mount completes.
 
@@ -222,11 +231,19 @@ await startHost({
   },
   renderError(container, event, retry) {
     mountAppFallback(container, { error: event.error, retry });
+  },
+  renderWidgetLoading(container, context) {
+    const view = mountWidgetLoader(container, context);
+    return () => view.destroy();
+  },
+  renderWidgetError(container, context, retry) {
+    const view = mountWidgetFallback(container, { ...context, retry });
+    return () => view.destroy();
   }
 });
 ```
 
-Custom global renderers may return a cleanup function, which Atlas calls before replacing or clearing their UI. Generated hosts already contain the global status outlet.
+Custom global and widget renderers may return a cleanup function, which Atlas calls before replacing or clearing their UI. Generated hosts already contain the global status outlet.
 
 ## Runtime Observability
 

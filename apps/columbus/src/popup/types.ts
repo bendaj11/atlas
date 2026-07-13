@@ -3,7 +3,7 @@ import type { AtlasExtensionManifest as Manifest } from "../contracts.js";
 export type OverrideType = "none" | "custom" | "production" | "pr";
 export type Scope = "all" | "tab";
 export type StatusTone = "standard" | "error";
-export type View = { name: "dashboard" } | { name: "editor"; appId: string };
+export type View = { name: "dashboard" } | { name: "editor"; artifactKey: string };
 
 export interface AppViewModel {
   production: Manifest;

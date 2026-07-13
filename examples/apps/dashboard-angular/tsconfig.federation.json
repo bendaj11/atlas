@@ -7,6 +7,10 @@
     "src/main.ts"
   ],
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "../../../packages/schema/src/**/*.ts",
+    "../../../packages/sdk/src/**/*.ts",
+    "../../../packages/runtime/src/**/*.ts",
+    "src/entry.ts"
   ]
 }

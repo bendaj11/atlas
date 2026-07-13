@@ -5,15 +5,24 @@ import { delimiter, dirname, join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "../..");
 const artifacts = join(root, "tests/e2e/.artifacts");
 const cdn = join(artifacts, "cdn");
+const externalCdn = join(artifacts, "external-cdn");
 const registrySnapshot = join(cdn, "registry.json");
+const hosts = ["demo-react-host", "demo-angular-host"];
 const apps = ["orders-angular", "catalog-react", "dashboard-angular", "dashboard-react"];
 
 await rm(artifacts, { recursive: true, force: true });
 await mkdir(cdn, { recursive: true });
-await writeJson(registrySnapshot, { schemaVersion: "1", updatedAt: "1970-01-01T00:00:00.000Z", manifests: [] });
+await mkdir(externalCdn, { recursive: true });
+await writeJson(registrySnapshot, {
+  schemaVersion: "1",
+  updatedAt: "1970-01-01T00:00:00.000Z",
+  hosts: [],
+  apps: [],
+  selections: { hosts: {}, apps: {} }
+});
 await run("yarn", ["build"]);
 
-for (const id of apps) {
+for (const id of [...hosts, ...apps]) {
   const publication = join(artifacts, "publications", id);
   await run("node", [
     "packages/cli/dist/index.js", "build", id,
@@ -27,6 +36,7 @@ for (const id of apps) {
 }
 
 await addSecondCatalogRelease();
+await createExternalWidgetRegistry();
 await addVersionFixtures("dashboard-react");
 await addBrokenRoute("demo-react-host");
 await addBrokenRoute("demo-angular-host");
@@ -54,6 +64,41 @@ async function addSecondCatalogRelease() {
   await cp(publication, cdn, { recursive: true, force: true });
 }
 
+async function createExternalWidgetRegistry() {
+  const sourceRegistry = JSON.parse(await readFile(registrySnapshot, "utf8"));
+  const sourceManifests = sourceRegistry.apps.filter((manifest) => manifest.id === "catalog-react" && manifest.channel === "production");
+  const manifests = [];
+  for (const source of sourceManifests) {
+    const targetDirectory = join(externalCdn, "apps", "external-shared-ui", source.version, source.buildId);
+    const sourceDirectory = dirname(join(cdn, new URL(source.remoteEntryUrl).pathname));
+    await cp(sourceDirectory, targetDirectory, { recursive: true });
+    manifests.push({
+      ...source,
+      id: "external-shared-ui",
+      name: "External Shared UI",
+      remoteEntryUrl: `http://127.0.0.1:4401/apps/external-shared-ui/${source.version}/${source.buildId}/remoteEntry.json`,
+      placements: [],
+      supportedHosts: ["*"],
+      externalAppsDependencies: undefined,
+      exportedWidgets: (source.exportedWidgets ?? []).map((widget) => ({
+        ...widget,
+        id: "55ca3323-c62f-44de-9194-6ab42375e578",
+        ownerAppId: "external-shared-ui",
+        remoteEntryUrl: `http://127.0.0.1:4401/apps/external-shared-ui/${source.version}/${source.buildId}/remoteEntry.json`
+      }))
+    });
+  }
+  const selected = manifests.find((manifest) => manifest.version === "0.1.0");
+  if (!selected) throw new Error("External widget fixture requires catalog-react 0.1.0.");
+  await writeJson(join(externalCdn, "registry.json"), {
+    schemaVersion: "1",
+    updatedAt: selected.createdAt,
+    hosts: [],
+    apps: manifests,
+    selections: { hosts: {}, apps: { "external-shared-ui": { version: selected.version, buildId: selected.buildId } } }
+  });
+}
+
 async function addVersionFixtures(appId) {
   const indexPath = join(cdn, "apps", appId, "index.json");
   const index = JSON.parse(await readFile(indexPath, "utf8"));
@@ -63,7 +108,7 @@ async function addVersionFixtures(appId) {
     ...production,
     version: "0.0.9",
     buildId: "historical-0.0.9",
-    channel: "historical",
+    channel: "production",
     remoteEntryUrl: historicalRemoteEntryUrl,
     createdAt: "2025-12-01T00:00:00.000Z"
   };
@@ -90,21 +135,21 @@ async function addVersionFixtures(appId) {
 
 async function createDistinctArtifact(sourceUrl, appId, version, buildId, heading) {
   const sourceDirectory = dirname(join(cdn, new URL(sourceUrl).pathname));
-  const targetDirectory = join(cdn, appId, version, buildId);
+  const targetDirectory = join(cdn, "apps", appId, version, buildId);
   await cp(sourceDirectory, targetDirectory, { recursive: true });
   const entryPath = join(targetDirectory, "entry.js");
   const entry = await readFile(entryPath, "utf8");
   const markedEntry = entry.replace("Dashboard React", heading);
   if (markedEntry === entry) throw new Error(`Could not mark the ${version} ${appId} artifact.`);
   await writeFile(entryPath, markedEntry, "utf8");
-  return `http://127.0.0.1:4400/${appId}/${version}/${buildId}/remoteEntry.json`;
+  return `http://127.0.0.1:4400/apps/${appId}/${version}/${buildId}/remoteEntry.json`;
 }
 
 async function addBrokenRoute(hostId) {
   const path = join(cdn, "hosts", hostId, "catalog.json");
   const catalog = JSON.parse(await readFile(path, "utf8"));
-  const template = catalog.manifests[0];
-  catalog.manifests.push({
+  const template = catalog.apps[0];
+  catalog.apps.push({
     ...template,
     id: `broken-${hostId}`,
     name: "Broken Example",
@@ -112,7 +157,7 @@ async function addBrokenRoute(hostId) {
     remoteEntryUrl: "http://127.0.0.1:4400/missing/remoteEntry.json",
     integrity: undefined,
     exportedWidgets: undefined,
-    uses: undefined,
+    externalAppsDependencies: undefined,
     placements: [{
       id: `broken-${hostId}-route`,
       kind: "route",

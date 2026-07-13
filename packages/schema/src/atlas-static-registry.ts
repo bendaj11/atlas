@@ -1,4 +1,5 @@
 import type { AtlasManifest } from "./atlas-manifest.js";
+import type { AtlasHostManifest } from "./atlas-host-manifest.js";
 import type { AtlasProductionSelection } from "./atlas-production-selection.js";
 
 /** Registry file Atlas tooling reads to find available app builds. */
@@ -9,8 +10,13 @@ export interface AtlasStaticRegistry {
   revision?: string;
   /** Time this registry was last updated, in ISO format. */
   updatedAt: string;
+  /** All host-client builds known to this registry. */
+  hosts: AtlasHostManifest[];
   /** All app builds known to this registry. */
-  manifests: AtlasManifest[];
-  /** Chosen production build per app id. Missing apps use newest production build. */
-  productionSelections?: Record<string, AtlasProductionSelection>;
+  apps: AtlasManifest[];
+  /** Explicit production selections for hosts and apps. */
+  selections?: {
+    hosts?: Record<string, AtlasProductionSelection>;
+    apps?: Record<string, AtlasProductionSelection>;
+  };
 }

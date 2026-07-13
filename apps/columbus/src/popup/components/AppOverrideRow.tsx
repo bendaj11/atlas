@@ -9,9 +9,10 @@ interface AppOverrideRowProps {
   busy: boolean;
   onEdit: () => void;
   onToggle: () => void;
+  label?: string;
 }
 
-export function AppOverrideRow({ app, busy, onEdit, onToggle }: AppOverrideRowProps): JSX.Element {
+export function AppOverrideRow({ app, busy, onEdit, onToggle, label }: AppOverrideRowProps): JSX.Element {
   const toggleLabel = `${app.selected ? "Disable" : "Enable"} ${app.production.name} override`;
 
   return (
@@ -31,6 +32,7 @@ export function AppOverrideRow({ app, busy, onEdit, onToggle }: AppOverrideRowPr
               <Badge size="tiny" skin={badgeSkin(app.overrideType)}>{overrideLabel(app.overrideType)}</Badge>
             </Box>
             <Text size="tiny" secondary ellipsis>{app.currentUrl}</Text>
+            {label ? <Text size="tiny" secondary>{label}</Text> : null}
           </Box>
           <Box gap="8px" verticalAlign="middle" flex="0 0 auto">
             <Button size="small" priority="secondary" disabled={busy} onClick={onEdit} prefixIcon={editIcon}>

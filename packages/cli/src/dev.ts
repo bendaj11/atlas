@@ -4,12 +4,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
-import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig } from "@atlas/schema";
+import { closeAtlasHostServer, createAtlasHostServer } from "@atlas/host-server";
+import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig, AtlasHostManifest } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { loadEnvFiles, saveWorkspaceLocalEnv } from "./env.js";
-import { createHostRuntimeConfig } from "./runtime-config.js";
 import type { AtlasPrompter } from "./ui.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
@@ -28,20 +28,28 @@ interface DevTarget {
   promptedForConfiguration: boolean;
 }
 
+type AtlasDevBuildService = Pick<AtlasBuildService, "loadConfig" | "buildManifest">
+  & Partial<Pick<AtlasBuildService, "buildLocalHostManifest">>;
+
 interface AtlasDevSessionDocument {
   schemaVersion: "1";
   hostId: string;
   catalog: AtlasHostCatalog;
   overrides: AtlasRuntimeOverrideDocument["overrides"];
+  hostOverride?: AtlasHostManifest;
   overrideUrl: string;
   generatedAt: string;
+}
+
+export interface AtlasDevOverrideDocument extends AtlasRuntimeOverrideDocument {
+  hostOverride?: AtlasHostManifest;
 }
 
 export class AtlasDevService {
   constructor(
     private readonly workspace: AtlasWorkspace,
     private readonly args: CliArguments,
-    private readonly builds: Pick<AtlasBuildService, "loadConfig" | "buildManifest">
+    private readonly builds: AtlasDevBuildService
   ) {}
 
   async run(name: string, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select"> = nonInteractivePrompter): Promise<void> {
@@ -61,15 +69,51 @@ export class AtlasDevService {
   }
 
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
-    await writeHostDevArtifacts(project, config, this.args);
+    const remotePort = await this.resolveRemotePort(project, 4200);
+    const controlPort = this.args.port("control-port", 4400);
+    const hostServerPort = this.args.port("host-server-port", 4300);
+    if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
+    const manifest = await this.builds.buildLocalHostManifest(config.id, `http://${LOOPBACK_HOST}:${remotePort}`);
+    const document: AtlasDevOverrideDocument = {
+      schemaVersion: "1",
+      hostId: config.id,
+      hostOverride: manifest,
+      overrides: [],
+      generatedAt: new Date().toISOString()
+    };
+    const directory = join(project.root, ".atlas");
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "local-overrides.json"), `${JSON.stringify(document, null, 2)}\n`, "utf8");
+    const hostUrl = this.args.flag("host-url") ?? `http://${LOOPBACK_HOST}:${hostServerPort}`;
     if (this.args.hasFlag("prepare-only")) {
-      console.info(`Host "${config.id}" is ready. Run without --prepare-only to start its dev server.`);
+      console.info(`Host client "${config.id}" is prepared for ${hostUrl}. Run without --prepare-only to start it.`);
       return;
     }
+    const overrideUrl = `http://${LOOPBACK_HOST}:${controlPort}/atlas.local-overrides.json`;
+    const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
-    const hostServer = this.workspace.spawn(project, frameworkTask);
-    console.info(`Atlas is running host ${config.id}. Press Ctrl+C to stop.`);
-    await waitForChildShutdown(hostServer, "Host dev server");
+    const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
+    const bootstrap = this.args.flag("host-url") ? undefined : await createAtlasHostServer({
+      port: hostServerPort,
+      runtime: {
+        schemaVersion: "1",
+        hostId: config.id,
+        catalogUrl: `http://${LOOPBACK_HOST}:${controlPort}/hosts/${config.id}/catalog.json`,
+        allowOverrides: true,
+        resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
+        resourcesRetryCount: config.resourcesRetryCount ?? 3
+      },
+      assetOrigins: [`http://${LOOPBACK_HOST}:${remotePort}`, `http://${LOOPBACK_HOST}:${controlPort}`]
+    }).listen();
+    try {
+      await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
+      await control.markReady();
+      logHostViewUrl(hostUrl);
+      openBrowserWhenReady(this.args, hostUrl);
+      await waitForShutdown(frameworkServer, control);
+    } finally {
+      if (bootstrap) await closeAtlasHostServer(bootstrap);
+    }
   }
 
   private async runApp(
@@ -114,9 +158,9 @@ export class AtlasDevService {
     await waitForShutdown(frameworkServer, control);
   }
 
-  private async resolveRemotePort(project: AtlasProject): Promise<number> {
-    if (this.args.hasFlag("port")) return this.args.port("port", 4201);
-    return await readConfiguredDevServerPort(project.root, project.id) ?? 4201;
+  private async resolveRemotePort(project: AtlasProject, fallback = 4201): Promise<number> {
+    if (this.args.hasFlag("port")) return this.args.port("port", fallback);
+    return await readConfiguredDevServerPort(project.root, project.id) ?? fallback;
   }
 
   private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">): Promise<DevTarget> {
@@ -187,29 +231,9 @@ export class AtlasDevService {
   }
 }
 
-async function writeHostDevArtifacts(
-  project: AtlasProject,
-  config: AtlasHostConfig,
-  args: CliArguments
-): Promise<void> {
-  const publicDirectory = join(project.root, "public");
-  await mkdir(publicDirectory, { recursive: true });
-  const runtimeConfigPath = join(publicDirectory, "atlas.runtime.json");
-  const runtimeConfig = createHostRuntimeConfig(config, args, project.version);
-  await writeFile(runtimeConfigPath, `${JSON.stringify(runtimeConfig, null, 2)}\n`, "utf8");
-  if (config.framework === "react") {
-    const federationInfo = { name: federationRemoteName(config.id), exposes: [], shared: [] };
-    await writeFile(join(publicDirectory, "remoteEntry.json"), `${JSON.stringify(federationInfo, null, 2)}\n`, "utf8");
-  }
-}
-
-function federationRemoteName(id: string): string {
-  return `atlas_${id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
-}
-
 export async function startControlServer(
   port: number,
-  document: AtlasRuntimeOverrideDocument,
+  document: AtlasDevOverrideDocument,
   overrideUrl: string
 ): Promise<DevControlServer> {
   try {
@@ -220,7 +244,7 @@ export async function startControlServer(
   }
 }
 
-function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDocument, overrideUrl: string): Promise<DevControlServer> {
+function startOwnedControlServer(port: number, document: AtlasDevOverrideDocument, overrideUrl: string): Promise<DevControlServer> {
   const session = createDevSessionStore(document, overrideUrl);
   const server = createServer((request, response) => {
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
@@ -233,7 +257,7 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
       response.writeHead(204, { "access-control-allow-methods": "GET, POST, DELETE, OPTIONS" }); response.end(); return;
     }
     if (request.method === "POST" && pathname === "/atlas.dev-session/overrides") {
-      readJsonRequest<AtlasRuntimeOverrideDocument>(request)
+      readJsonRequest<AtlasDevOverrideDocument>(request)
         .then((nextDocument) => {
           session.register(nextDocument);
           writeJson(response, { status: "registered", overrideUrl });
@@ -250,6 +274,18 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
     const overrideMatch = /^\/atlas\.dev-session\/overrides\/([^/]+)$/.exec(pathname);
     if (request.method === "DELETE" && overrideMatch?.[1]) {
       session.unregister(decodeURIComponent(overrideMatch[1]), requestedHostId);
+      writeJson(response, { status: "removed" });
+      return;
+    }
+    const hostReadyMatch = /^\/atlas\.dev-session\/hosts\/([^/]+)\/ready$/.exec(pathname);
+    if (request.method === "POST" && hostReadyMatch?.[1]) {
+      session.markHostReady(decodeURIComponent(hostReadyMatch[1]));
+      writeJson(response, { status: "ready" });
+      return;
+    }
+    const hostMatch = /^\/atlas\.dev-session\/hosts\/([^/]+)$/.exec(pathname);
+    if (request.method === "DELETE" && hostMatch?.[1]) {
+      session.unregisterHost(decodeURIComponent(hostMatch[1]));
       writeJson(response, { status: "removed" });
       return;
     }
@@ -315,38 +351,65 @@ function startOwnedControlServer(port: number, document: AtlasRuntimeOverrideDoc
 
 async function joinControlServer(
   port: number,
-  document: AtlasRuntimeOverrideDocument
+  document: AtlasDevOverrideDocument
 ): Promise<DevControlServer> {
   const baseUrl = `http://${LOOPBACK_HOST}:${port}`;
   await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
   const appIds = document.overrides.map((override) => override.manifest.id);
   const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
+  const hostPath = `${baseUrl}/atlas.dev-session/hosts/${encodeURIComponent(document.hostId)}`;
   return {
     port,
     async markReady() {
-      await Promise.all(appIds.map((appId) => postJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}/ready${hostQuery}`, {})));
+      await Promise.all([
+        ...appIds.map((appId) => postJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}/ready${hostQuery}`, {})),
+        ...(document.hostOverride ? [postJson(`${hostPath}/ready`, {})] : [])
+      ]);
     },
     async close() {
-      await Promise.all(appIds.map((appId) => deleteJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}${hostQuery}`)));
+      await Promise.all([
+        ...appIds.map((appId) => deleteJson(`${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}${hostQuery}`)),
+        ...(document.hostOverride ? [deleteJson(hostPath)] : [])
+      ]);
     }
   };
 }
 
-export function createLocalDevCatalog(document: AtlasRuntimeOverrideDocument): AtlasHostCatalog {
+export function createLocalDevCatalog(document: AtlasDevOverrideDocument): AtlasHostCatalog {
+  const host = document.hostOverride ?? localHostPlaceholder(document.hostId, document.generatedAt);
   return {
     schemaVersion: "1",
     hostId: document.hostId,
+    revision: `local:${document.generatedAt}`,
     generatedAt: document.generatedAt,
-    manifests: uniqueManifests(document.overrides)
+    host,
+    apps: uniqueManifests(document.overrides)
   };
 }
 
-function uniqueManifests(overrides: AtlasRuntimeOverrideDocument["overrides"]): AtlasHostCatalog["manifests"] {
+function uniqueManifests(overrides: AtlasRuntimeOverrideDocument["overrides"]): AtlasHostCatalog["apps"] {
   return [...new Map(overrides.map((override) => [override.manifest.id, override.manifest])).values()];
 }
 
+function localHostPlaceholder(hostId: string, createdAt: string): AtlasHostManifest {
+  return {
+    schemaVersion: "1",
+    kind: "host",
+    id: hostId,
+    name: hostId,
+    version: "0.0.0-local",
+    buildId: "local-placeholder",
+    channel: "local",
+    framework: "react",
+    remoteEntryUrl: "http://127.0.0.1:4200/remoteEntry.json",
+    exposes: { entry: "./host" },
+    requiredLoaderApiVersion: "^1.0.0",
+    createdAt
+  };
+}
+
 export function createDevSession(
-  document: AtlasRuntimeOverrideDocument,
+  document: AtlasDevOverrideDocument,
   catalog: AtlasHostCatalog,
   overrideUrl: string
 ): AtlasDevSessionDocument {
@@ -355,6 +418,7 @@ export function createDevSession(
     hostId: document.hostId,
     catalog,
     overrides: document.overrides,
+    ...(document.hostOverride ? { hostOverride: document.hostOverride } : {}),
     overrideUrl,
     generatedAt: document.generatedAt
   };
@@ -366,35 +430,42 @@ interface DevSessionEntry {
 }
 
 interface DevSessionStore {
-  register(document: AtlasRuntimeOverrideDocument): void;
+  register(document: AtlasDevOverrideDocument): void;
   unregister(appId: string, hostId?: string): void;
+  unregisterHost(hostId: string): void;
   markReady(appId: string, hostId?: string): void;
-  markDocumentReady(document: AtlasRuntimeOverrideDocument): void;
-  document(hostId?: string): AtlasRuntimeOverrideDocument | undefined;
+  markHostReady(hostId: string): void;
+  markDocumentReady(document: AtlasDevOverrideDocument): void;
+  document(hostId?: string): AtlasDevOverrideDocument | undefined;
   catalog(hostId: string): AtlasHostCatalog | undefined;
   devSession(hostId?: string): AtlasDevSessionDocument | undefined;
   hasReadySession(): boolean;
 }
 
-function createDevSessionStore(initial: AtlasRuntimeOverrideDocument, overrideUrl: string): DevSessionStore {
+function createDevSessionStore(initial: AtlasDevOverrideDocument, overrideUrl: string): DevSessionStore {
   const hosts = new Map<string, HostDevSession>();
   register(initial);
 
-  function register(document: AtlasRuntimeOverrideDocument): void {
+  function register(document: AtlasDevOverrideDocument): void {
     const host = hosts.get(document.hostId) ?? createHostDevSession(document.generatedAt);
     host.generatedAt = document.generatedAt;
+    if (document.hostOverride) {
+      host.hostOverride = document.hostOverride;
+      host.hostReady = false;
+    }
     for (const override of document.overrides) host.entries.set(override.manifest.id, { override, ready: false });
     hosts.set(document.hostId, host);
   }
 
-  function currentDocument(requestedHostId?: string): AtlasRuntimeOverrideDocument | undefined {
+  function currentDocument(requestedHostId?: string): AtlasDevOverrideDocument | undefined {
     const hostId = resolveHostId(hosts, requestedHostId);
     if (!hostId) return undefined;
     const host = hosts.get(hostId);
     if (!host) return undefined;
     const overrides = [...host.entries.values()].filter((entry) => entry.ready).map((entry) => entry.override);
-    if (overrides.length === 0) return undefined;
-    return { schemaVersion: "1", hostId, overrides, generatedAt: host.generatedAt };
+    const hostOverride = host.hostReady ? host.hostOverride : undefined;
+    if (overrides.length === 0 && !hostOverride) return undefined;
+    return { schemaVersion: "1", hostId, overrides, generatedAt: host.generatedAt, ...(hostOverride ? { hostOverride } : {}) };
   }
 
   function matchingHosts(appId: string, requestedHostId?: string): HostDevSession[] {
@@ -418,11 +489,26 @@ function createDevSessionStore(initial: AtlasRuntimeOverrideDocument, overrideUr
       for (const [hostId, host] of hosts) {
         if (requestedHostId && requestedHostId !== hostId) continue;
         host.entries.delete(appId);
-        if (host.entries.size === 0) hosts.delete(hostId);
+        if (host.entries.size === 0 && !host.hostOverride) hosts.delete(hostId);
       }
     },
+    unregisterHost(hostId) {
+      const host = hosts.get(hostId);
+      if (!host) return;
+      delete host.hostOverride;
+      host.hostReady = false;
+      if (host.entries.size === 0) hosts.delete(hostId);
+    },
     markReady,
+    markHostReady(hostId) {
+      const host = hosts.get(hostId);
+      if (host?.hostOverride) host.hostReady = true;
+    },
     markDocumentReady(document) {
+      if (document.hostOverride) {
+        const host = hosts.get(document.hostId);
+        if (host) host.hostReady = true;
+      }
       for (const override of document.overrides) markReady(override.appId, document.hostId);
     },
     document: currentDocument,
@@ -444,10 +530,12 @@ function createDevSessionStore(initial: AtlasRuntimeOverrideDocument, overrideUr
 interface HostDevSession {
   entries: Map<string, DevSessionEntry>;
   generatedAt: string;
+  hostOverride?: AtlasHostManifest;
+  hostReady: boolean;
 }
 
 function createHostDevSession(generatedAt: string): HostDevSession {
-  return { entries: new Map<string, DevSessionEntry>(), generatedAt };
+  return { entries: new Map<string, DevSessionEntry>(), generatedAt, hostReady: false };
 }
 
 function resolveHostId(hosts: Map<string, HostDevSession>, requestedHostId?: string): string | undefined {
@@ -596,36 +684,6 @@ function waitForShutdown(child: ChildProcess, control: DevControlServer): Promis
   });
 }
 
-function waitForChildShutdown(child: ChildProcess, label: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let stopping = false;
-    let settled = false;
-    const removeSignalListeners = (): void => {
-      process.off("SIGINT", stop);
-      process.off("SIGTERM", stop);
-    };
-    const stop = (): void => {
-      stopping = true;
-      if (!child.killed) child.kill("SIGTERM");
-    };
-    process.once("SIGINT", stop);
-    process.once("SIGTERM", stop);
-    child.once("error", (error) => {
-      if (settled) return;
-      settled = true;
-      removeSignalListeners();
-      reject(error);
-    });
-    child.once("exit", (code, signal) => {
-      if (settled) return;
-      settled = true;
-      removeSignalListeners();
-      if (stopping || code === 0 || signal === "SIGTERM") resolve();
-      else reject(new Error(`${label} exited with code ${code ?? "unknown"}.`));
-    });
-  });
-}
-
 function logHostViewUrl(url: string | undefined): void {
   if (url) {
     console.info(`App Preview: ${url}`);
@@ -653,7 +711,8 @@ export function browserOpenCommand(url: string, platform: NodeJS.Platform = proc
 }
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
-  return "allowAppOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
+  if (config.type) return config.type === "host";
+  return "allowOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
 }
 
 interface CorruptAngularBuildPackage {

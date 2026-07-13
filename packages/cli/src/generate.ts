@@ -82,7 +82,7 @@ export class AtlasGenerateService {
         : undefined;
       if (scaffoldedFrameworkVersion) this.logFrameworkVersionSelection(selectedFramework, scaffoldedFrameworkVersion);
       const detectedFrameworkVersion = scaffoldedFrameworkVersion?.version;
-      const hostId = type === "app" ? this.args.flag("host") : undefined;
+      const hostId = type === "app" ? await this.resolveHostId(this.args.flag("host")) : undefined;
       const generatorOptions = this.options({
         name,
         framework: selectedFramework,
@@ -134,6 +134,21 @@ export class AtlasGenerateService {
       await writeFile(target, file.contents, "utf8");
     }
     await this.formatGenerated(project.root);
+  }
+
+  async publishConfig(): Promise<string> {
+    const root = resolve(this.args.flag("directory") ?? this.workspace.root);
+    const target = resolveContainedPath(root, "atlas.publish.ts");
+    await assertWritable(target, this.args.hasFlag("force"), "atlas.publish.ts already exists. Use --force to replace it.");
+    await mkdir(root, { recursive: true });
+    await writeFile(target, `import type { AtlasPublishConfig } from "@atlas/cli";
+
+export default {
+  runtimeUrls: []
+} satisfies AtlasPublishConfig;
+`, "utf8");
+    await this.formatGenerated(root);
+    return target;
   }
 
   private logGenerationPlan(framework: SupportedFramework, root: string): void {
@@ -227,6 +242,17 @@ export class AtlasGenerateService {
       return join(this.workspace.root, "examples", type === "host" ? "hosts" : "apps", name);
     }
     return this.workspace.generationRoot(type, name);
+  }
+
+  private async resolveHostId(hostReference: string | undefined): Promise<string | undefined> {
+    if (!hostReference) return undefined;
+    try {
+      const host = await this.workspace.findProject(hostReference);
+      const source = await readFile(join(host.root, "atlas.config.ts"), "utf8");
+      return source.match(/\bid\s*:\s*["']([^"']+)["']/)?.[1] ?? hostReference;
+    } catch {
+      return hostReference;
+    }
   }
 
   private async writeNxProject(root: string, name: string): Promise<void> {

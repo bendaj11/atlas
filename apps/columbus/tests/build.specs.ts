@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "@jest/globals";
 import { readColumbusFile, readColumbusManifest, runCatalogInterceptor } from "./build.driver.js";
 
-const productionManifest = { schemaVersion: "1", id: "app", name: "App", version: "1.0.0", buildId: "prod", channel: "production", framework: "react", remoteEntryUrl: "https://cdn.test/remoteEntry.json", requiredHostSdkVersion: "*", supportedHosts: ["test-host"], placements: [] };
+const productionHost = { schemaVersion: "1", kind: "host", id: "test-host", name: "Test Host", version: "1.0.0", buildId: "host-prod", channel: "production", framework: "react", remoteEntryUrl: "https://cdn.test/host/remoteEntry.json", requiredHostSdkVersion: "*", supportedHosts: ["test-host"], placements: [] };
+const productionManifest = { schemaVersion: "1", kind: "app", id: "app", name: "App", version: "1.0.0", buildId: "prod", channel: "production", framework: "react", remoteEntryUrl: "https://cdn.test/remoteEntry.json", requiredHostSdkVersion: "*", supportedHosts: ["test-host"], placements: [] };
 const localManifest = { ...productionManifest, version: "1.0.0-local", buildId: "local", channel: "local", remoteEntryUrl: "http://127.0.0.1:4500/remoteEntry.json" };
 
-function catalog(manifests: unknown[]): Record<string, unknown> {
-  return { schemaVersion: "1", hostId: "test-host", generatedAt: "2026-01-01T00:00:00.000Z", manifests };
+function catalog(apps: unknown[]): Record<string, unknown> {
+  return { schemaVersion: "1", hostId: "test-host", revision: "test", generatedAt: "2026-01-01T00:00:00.000Z", host: productionHost, apps };
 }
 
 function devSession(manifests: Array<typeof localManifest>): Record<string, unknown> {
@@ -62,7 +63,7 @@ test("Columbus extension intercepts Atlas catalogs for local dev sessions", asyn
   assert.match(source, /atlas\.disabled-local-apps\./);
   assert.match(sourceModule, /enabledOverrides/);
   assert.match(sourceModule, /sessionStorage\.getItem/);
-  assert.match(sourceModule, /allowAppOverrides/);
+  assert.match(sourceModule, /allowOverrides/);
   assert.match(sourceModule, /isDevSession/);
   assert.match(sourceModule, /manifest\.channel !== "local"/);
 });
@@ -73,7 +74,7 @@ test("disabled local override falls back to production manifest", async () => {
     devSession: devSession([localManifest]),
     disabledAppIds: ["app"]
   });
-  assert.deepEqual((result.catalog as { manifests: unknown[] }).manifests, [productionManifest]);
+  assert.deepEqual((result.catalog as { apps: unknown[] }).apps, [productionManifest]);
 });
 
 test("disabled local-only app is removed from local catalog", async () => {
@@ -82,12 +83,12 @@ test("disabled local-only app is removed from local catalog", async () => {
     devSession: devSession([localManifest]),
     disabledAppIds: ["app"]
   });
-  assert.deepEqual((result.catalog as { manifests: unknown[] }).manifests, []);
+  assert.deepEqual((result.catalog as { apps: unknown[] }).apps, []);
 });
 
 test("host override policy prevents dev-session interception", async () => {
   const result = await runCatalogInterceptor({
-    allowAppOverrides: false,
+    allowOverrides: false,
     catalog: catalog([productionManifest]),
     devSession: devSession([localManifest])
   });
@@ -96,9 +97,11 @@ test("host override policy prevents dev-session interception", async () => {
 
 test("Columbus extension keeps persisted overrides as fallback without hardcoded hosts", async () => {
   const source = await readColumbusFile("dist/popup.js");
+  const hostSource = await readColumbusFile("src/popup/atlas-host.ts");
   const constants = await readColumbusFile("dist/assets/constants.js");
   assert.match(constants, /atlas\.runtime-overrides/);
-  assert.match(source, /apps\/\$\{encodeURIComponent\(.+?\.id\)\}\/index\.json/);
+  assert.match(hostSource, /manifest\.kind === "host" \? "hosts" : "apps"/);
+  assert.match(source, /index\.json/);
   assert.doesNotMatch(source, /demo-angular-host|localhost:4300/);
   assert.match(source, /sessionStorage/);
   assert.match(source, /localStorage/);
@@ -129,6 +132,16 @@ test("Columbus popup recognizes intercepted local manifests as enabled overrides
   assert.match(source, /catalog: productionCatalog/);
 });
 
+test("Columbus discovers and labels external widget providers", async () => {
+  const host = await readColumbusFile("src/popup/atlas-host.ts");
+  const dashboard = await readColumbusFile("src/popup/components/Dashboard.tsx");
+  assert.match(host, /externalRegistryUrls/);
+  assert.match(host, /externalAppsDependencies/);
+  assert.match(host, /registry\.json/);
+  assert.match(host, /widgetProviders: external\.providers/);
+  assert.match(dashboard, /External widget provider · not mounted as app/);
+});
+
 test("Columbus popup uses fixed scrollable WDS layout and left-aligned toggles", async () => {
   const popup = await readColumbusFile("src/popup/components/PopupApp.tsx");
   const row = await readColumbusFile("src/popup/components/AppOverrideRow.tsx");
@@ -154,12 +167,12 @@ test("Columbus writes valid semantic versions and persists disabled toggle selec
   assert.match(host, /writeDisabledOverrides/);
   assert.match(controller, /savedDisabledOverrides\.current = await readDisabledOverrides/);
   assert.match(controller, /await writeDisabledOverrides/);
-  assert.match(controller, /normalizeStoredManifest\(override\.manifest\)/);
+  assert.match(controller, /normalizeStoredManifest\(manifest\)/);
   assert.match(host, /normalizeStoredManifest\(manifest\)/);
   assert.match(host, /disabledAppIds/);
   assert.match(host, /atlas\.disabled-local-apps\./);
   assert.match(controller, /includeDisabledApps/);
-  assert.match(host, /disables app overrides/);
+  assert.match(host, /disables host and app overrides/);
   assert.match(host, /\.tab\.\$\{tabId\}/);
   assert.match(host, /legacyKey/);
 });
@@ -168,7 +181,8 @@ test("Columbus popup displays host identity, version, URL, and environment with 
   const dashboard = await readColumbusFile("src/popup/components/Dashboard.tsx");
   const summary = await readColumbusFile("src/popup/components/HostSummary.tsx");
   assert.match(dashboard, /<HostSummary hostData=\{hostData\}/);
-  assert.match(summary, /hostVersion \?\? "Unknown"/);
+  assert.match(summary, /hostData\.catalog\.host\.version/);
+  assert.match(summary, /Server stable · client/);
   assert.match(summary, /hostData\.pageUrl/);
   assert.match(summary, /<Card/);
   assert.match(summary, /<Badge size="small"/);
@@ -179,7 +193,9 @@ test("Columbus popup displays host identity, version, URL, and environment with 
 test("Columbus popup injects a self-contained Atlas host inspector", async () => {
   const source = await readColumbusFile("src/popup/atlas-host.ts");
   assert.match(source, /func: inspectAtlasHost,\n\s+args: \[DOCUMENT_KEY\]/);
-  assert.match(source, /async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+async function readAtlasConfig/);
+  assert.match(source, /async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+function manifestKey/);
+  const inspector = source.slice(source.indexOf("async function inspectAtlasHost"), source.indexOf("function persistOverrides"));
+  assert.doesNotMatch(inspector, /artifactKey\(/);
   assert.doesNotMatch(source, /return inspectAtlasHostData\(\)/);
 });
 
@@ -206,7 +222,9 @@ test("Columbus extension defaults to all tabs and offers current-tab scope", asy
 
 test("Columbus extension can remove an all-tabs override and preserve a tab production choice", async () => {
   const source = await readColumbusFile("dist/popup.js");
+  const hostSource = await readColumbusFile("src/popup/atlas-host.ts");
   assert.match(source, /chrome\.storage\.local\.remove/);
-  assert.match(source, /overrides\.length/);
+  assert.match(hostSource, /documentValue\.apps\.length/);
+  assert.match(hostSource, /documentValue\.host/);
   assert.match(source, /sessionStorage\.setItem/);
 });

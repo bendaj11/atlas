@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData, AtlasOverrideDocument as OverrideDocument } from "../contracts.js";
+import { artifactKey, type AtlasExtensionManifest as Manifest, type AtlasHostData as HostData, type AtlasOverrideDocument as OverrideDocument } from "../contracts.js";
 import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR, DOCUMENT_KEY, URL_KEY } from "./constants.js";
 import type { Scope } from "./types.js";
 import { normalizeStoredManifest } from "./manifest-utils.js";
@@ -15,11 +15,11 @@ export async function readHostData(activeTabId: number | undefined): Promise<{ h
   if (!injection?.result) throw new Error("Active page did not return Atlas runtime information.");
 
   const hostData = injection.result;
-  if (hostData.config.allowAppOverrides === false) {
-    throw new Error(`Atlas host "${hostData.config.hostId}" disables app overrides. Set allowAppOverrides to true in host configuration, rebuild, and reload the host.`);
+  if (hostData.config.allowOverrides !== true) {
+    throw new Error(`Atlas host "${hostData.config.hostId}" disables host and app overrides. Set ATLAS_ALLOW_OVERRIDES=true on the host-server container.`);
   }
   if (!hostData.overrides) hostData.overrides = await readPersistedOverrides(hostData);
-  await updateActionBadge(tab.id, hostData.overrides?.overrides.length ?? 0);
+  await updateActionBadge(tab.id, overrideCount(hostData.overrides));
 
   if (activeTabId && activeTabId !== tab.id) await updateActionBadge(activeTabId, 0);
 
@@ -27,11 +27,14 @@ export async function readHostData(activeTabId: number | undefined): Promise<{ h
 }
 
 export function createOverrideDocument(hostData: HostData, overrides: Map<string, Manifest>): OverrideDocument {
+  const selected = [...overrides.values()];
+  const host = selected.find((manifest) => manifest.kind === "host");
   return {
     schemaVersion: "1",
     hostId: hostData.config.hostId,
     generatedAt: new Date().toISOString(),
-    overrides: [...overrides].map(([appId, manifest]) => ({ appId, manifest, reason: overrideReason(manifest) }))
+    ...(host ? { host: { manifest: host, reason: overrideReason(host) } } : {}),
+    apps: selected.filter((manifest) => manifest.kind === "app").map((manifest) => ({ manifest, reason: overrideReason(manifest) }))
   };
 }
 
@@ -50,9 +53,10 @@ export async function writeOverrides({ tabId, hostData, documentValue, scope, di
     func: persistOverrides,
     args: [DOCUMENT_KEY, URL_KEY, JSON.stringify({ documentValue, scope, disabledAppIds })]
   });
-  if (scope === "all" && documentValue.overrides.length) await chrome.storage.local.set({ [storageKey]: documentValue });
-  if (scope === "all" && !documentValue.overrides.length) await chrome.storage.local.remove(storageKey);
-  await updateActionBadge(tabId, documentValue.overrides.length);
+  const count = overrideCount(documentValue);
+  if (scope === "all" && count) await chrome.storage.local.set({ [storageKey]: documentValue });
+  if (scope === "all" && !count) await chrome.storage.local.remove(storageKey);
+  await updateActionBadge(tabId, count);
   await chrome.tabs.reload(tabId);
 }
 
@@ -78,7 +82,7 @@ export async function readDisabledOverrides(hostId: string, tabId: number, scope
   const manifests = Array.isArray(value) ? value.filter(isStoredManifest) : [];
   return new Map(manifests.map((manifest) => {
     const normalized = normalizeStoredManifest(manifest);
-    return [normalized.id, normalized];
+    return [artifactKey(normalized), normalized];
   }));
 }
 
@@ -127,6 +131,10 @@ function isInspectableTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.
 }
 
 async function inspectAtlasHost(documentKey: string): Promise<HostData> {
+  function manifestKey(manifest: Manifest): string {
+    return `${manifest.kind}:${manifest.id}`;
+  }
+
   async function readAtlasConfig(): Promise<HostData["config"]> {
     const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`Atlas runtime configuration returned ${response.status}.`);
@@ -146,16 +154,68 @@ async function inspectAtlasHost(documentKey: string): Promise<HostData> {
 
   async function readManifestVersions(manifest: Manifest, registryRoot: string): Promise<{ entry: readonly [string, Manifest[]]; error?: string }> {
     try {
-      const response = await fetch(`${registryRoot}/apps/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
+      const response = await fetch(`${registryRoot}/${manifest.kind === "host" ? "hosts" : "apps"}/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Version lookup for ${manifest.id} returned ${response.status}.`);
 
       const index = await response.json() as { manifests?: Manifest[] };
       if (!Array.isArray(index.manifests)) throw new Error(`Version lookup for ${manifest.id} returned an invalid index.`);
 
-      return { entry: [manifest.id, index.manifests] as const };
+      return { entry: [manifestKey(manifest), index.manifests] as const };
     } catch (error) {
-      return { entry: [manifest.id, [manifest]] as const, error: messageFromError(error) };
+      return { entry: [manifestKey(manifest), [manifest]] as const, error: messageFromError(error) };
     }
+  }
+
+  async function readExternalProviders(
+    config: HostData["config"],
+    catalog: HostData["catalog"]
+  ): Promise<{ providers: Manifest[]; versions: Array<readonly [string, Manifest[]]>; errors: string[] }> {
+    const dependencyIds = new Set(catalog.apps.flatMap((manifest) => manifest.externalAppsDependencies ?? []));
+    if (dependencyIds.size === 0) return { providers: [], versions: [], errors: [] };
+    const results = await Promise.all((config.externalRegistryUrls ?? []).map(async (baseUrl) => {
+      try {
+        const response = await fetch(`${baseUrl.replace(/\/$/, "")}/registry.json`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`External registry ${baseUrl} returned ${response.status}.`);
+        const registry = await response.json() as {
+          apps?: Manifest[];
+          selections?: { apps?: Record<string, { version: string; buildId: string }> };
+        };
+        if (!Array.isArray(registry.apps)) throw new Error(`External registry ${baseUrl} returned invalid apps.`);
+        return { registry, error: undefined };
+      } catch (error) {
+        return { registry: undefined, error: messageFromError(error) };
+      }
+    }));
+    const registries = results.flatMap(({ registry }) => registry ? [registry] : []);
+    const providers: Manifest[] = [];
+    const versions: Array<readonly [string, Manifest[]]> = [];
+    const pending = [...dependencyIds];
+    const resolved = new Set<string>();
+    while (pending.length) {
+      const appId = pending.shift()!;
+      if (resolved.has(appId)) continue;
+      const candidates = registries.flatMap((registry) => {
+        const appVersions = registry.apps!.filter((manifest) => manifest.id === appId);
+        if (appVersions.length) versions.push([`app:${appId}`, appVersions]);
+        const selection = registry.selections?.apps?.[appId];
+        const production = appVersions.filter((manifest) => manifest.channel === "production");
+        const selected = selection
+          ? production.find((manifest) => manifest.version === selection.version && manifest.buildId === selection.buildId)
+          : production.sort((left, right) => right.createdAt!.localeCompare(left.createdAt!))[0];
+        return selected ? [selected] : [];
+      });
+      if (candidates.length === 1) {
+        const provider = candidates[0]!;
+        providers.push(provider);
+        pending.push(...(provider.externalAppsDependencies ?? []));
+      }
+      resolved.add(appId);
+    }
+    return {
+      providers,
+      versions,
+      errors: results.flatMap(({ error }) => error ? [error] : [])
+    };
   }
 
   function atlasRegistryRoot(catalogUrl: URL): string {
@@ -187,27 +247,37 @@ async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const config = await readAtlasConfig();
   const catalogUrl = new URL(config.catalogUrl, location.href);
   const catalog = await readAtlasCatalog(catalogUrl);
+  const external = await readExternalProviders(config, catalog);
   const registryRoot = atlasRegistryRoot(catalogUrl);
-  const versionResults = await Promise.all(catalog.manifests.map((manifest) => readManifestVersions(manifest, registryRoot)));
-  const versions = Object.fromEntries(versionResults.map(({ entry }) => entry));
+  const selectedArtifacts = [catalog.host, ...catalog.apps];
+  const versionResults = await Promise.all(selectedArtifacts.map((manifest) => readManifestVersions(manifest, registryRoot)));
+  const versions = Object.fromEntries([...versionResults.map(({ entry }) => entry), ...external.versions]);
   const storedSelection = readStoredOverrideDocument();
-  const localSelections = catalog.manifests.filter((manifest) => manifest.channel === "local");
+  const localSelections = selectedArtifacts.filter((manifest) => manifest.channel === "local");
   const overrides = storedSelection.overrides ?? (localSelections.length ? {
     schemaVersion: "1" as const,
     hostId: config.hostId,
     generatedAt: new Date().toISOString(),
-    overrides: localSelections.map((manifest) => ({ appId: manifest.id, manifest, reason: "local" as const }))
+    ...(localSelections.find((manifest) => manifest.kind === "host") ? { host: { manifest: localSelections.find((manifest) => manifest.kind === "host")!, reason: "local" as const } } : {}),
+    apps: localSelections.filter((manifest) => manifest.kind === "app").map((manifest) => ({ manifest, reason: "local" as const }))
   } : undefined);
   const productionCatalog = {
     ...catalog,
-    manifests: catalog.manifests.map((manifest) => {
+    host: catalog.host.channel === "local"
+      ? versions[manifestKey(catalog.host)]?.find((version) => version.channel === "production") ?? catalog.host
+      : catalog.host,
+    apps: catalog.apps.map((manifest) => {
       if (manifest.channel !== "local") return manifest;
-      return versions[manifest.id]?.find((version) => version.channel === "production") ?? manifest;
-    })
+      return versions[manifestKey(manifest)]?.find((version) => version.channel === "production") ?? manifest;
+    }),
+    widgetProviders: external.providers
   };
   const runtimeErrors = [...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]')]
     .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-app") || "Unknown app error");
-  const versionErrors = versionResults.map(({ error }) => error).filter((error): error is string => Boolean(error));
+  const versionErrors = [
+    ...versionResults.map(({ error }) => error).filter((error): error is string => Boolean(error)),
+    ...external.errors
+  ];
 
   return {
     config,
@@ -230,7 +300,7 @@ function persistOverrides(documentKey: string, urlKey: string, value: string): v
   const serializedDocument = JSON.stringify(documentValue);
 
   if (scope === "all") {
-    if (documentValue.overrides.length) localStorage.setItem(documentKey, serializedDocument);
+    if (documentValue.apps.length + (documentValue.host ? 1 : 0)) localStorage.setItem(documentKey, serializedDocument);
     else localStorage.removeItem(documentKey);
     sessionStorage.removeItem(documentKey);
   } else {
@@ -252,10 +322,14 @@ function persistOverrides(documentKey: string, urlKey: string, value: string): v
   history.replaceState(history.state, "", url);
 }
 
-function overrideReason(manifest: Manifest): "local" | "pr" | "historical" {
+function overrideReason(manifest: Manifest): "local" | "pr" | "past-production" {
   if (manifest.channel === "local") return "local";
   if (manifest.channel === "pr") return "pr";
-  return "historical";
+  return "past-production";
+}
+
+function overrideCount(documentValue: OverrideDocument | undefined): number {
+  return documentValue ? documentValue.apps.length + (documentValue.host ? 1 : 0) : 0;
 }
 
 function disabledOverridesKey(hostId: string, tabId: number, scope: Scope): string {

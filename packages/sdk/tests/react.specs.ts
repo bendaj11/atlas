@@ -53,9 +53,10 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("index.html"), /"shimMode": true/);
   assert.match(host.get("index.html"), /<head>\n    <meta charset="UTF-8">/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
-  assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
-  assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
-  assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
+  assert.doesNotMatch(host.get("atlas.config.ts"), /allowOverrides|resourcesTimeoutMs|resourcesRetryCount/);
+  assert.match(host.get("Containerfile"), /CMD \["atlas-host-server"\]/);
+  assert.match(host.get("src/host.tsx"), /export const mount: AtlasHostClientEntry/);
+  assert.match(host.get("vite.config.ts"), /key: "\.\/host"/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);
   assert.match(host.get("package.json"), /atlas build host/);
   assert.match(appFiles.get("vite.config.ts"), /remoteEntry\.json/);
@@ -154,6 +155,7 @@ test("React generator targets a supplied compatible host and keeps framework dep
 
 test("React widget generator creates a typed independently deployed widget", () => {
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "react" }));
+  assert.match(widget.get("src/exported-widgets/entity-popup/atlas.widget.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
   assert.match(widget.get("src/exported-widgets/entity-popup/index.tsx"), /EntityPopupWidgetProps/);
   assert.match(widget.get("src/exported-widgets/entity-popup/index.tsx"), /defineExportedWidget/);
   assert.doesNotMatch(widget.get("src/exported-widgets/entity-popup/index.tsx"), /@vitejs\/plugin-react\/preamble/);

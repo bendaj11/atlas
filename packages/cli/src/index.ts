@@ -10,6 +10,9 @@ import { AtlasGenerateService } from "./generate.js";
 import { loadEnvFiles } from "./env.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasRollbackService } from "./rollback.js";
+import { AtlasPublishService, loadAtlasPublishConfig } from "./publish.js";
+export { defineAtlasPublishConfig, FileSystemPublicationStorage, S3PublicationStorage } from "./publish.js";
+export type { AtlasPublicationStorage, AtlasPublishConfig, S3Options } from "./publish.js";
 import { AtlasVerifyService, type AtlasVerificationCheck } from "./verify.js";
 import { resolveInvocation } from "./interaction.js";
 import { TerminalPrompter, ui, type AtlasPrompter } from "./ui.js";
@@ -34,6 +37,12 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     const generate = new AtlasGenerateService(workspace, args, prompts);
 
     if (invocation.command === "g" || invocation.command === "generate") {
+      if (invocation.subcommand === "publish-config") {
+        ui.heading("Creating advanced Atlas publish config");
+        const target = await generate.publishConfig();
+        ui.success(`Created ${target}.`);
+        return;
+      }
       if (!invocation.name) {
         console.info(formatHelp(["generate"]));
         return;
@@ -60,12 +69,29 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       ui.heading(`Building ${invocation.subcommand}`);
       const result = await builds.build(invocation.subcommand);
       if (result.artifact === "host") {
-        ui.success(`Built host ${result.id}@${result.version}.`);
-        ui.info(`Runtime config: ${result.runtimeConfigPath}`);
+        ui.success(`Built host client ${result.manifest.id}@${result.manifest.version}.`);
+        ui.info("Publish dist/atlas-publication; host-server container does not contain client assets.");
       } else {
         ui.success(`Built app ${result.manifest.id}@${result.manifest.version}.`);
         ui.info("Upload dist/atlas-publication with your CI storage tooling.");
       }
+      ui.info(`Publication plan: ${result.publicationPlan}`);
+      return;
+    }
+
+    if (invocation.command === "publish") {
+      const plan = args.flag("plan") ?? "dist/atlas-publication.json";
+      ui.heading(`Publishing ${plan}`);
+      const result = await publishAndVerify(args, plan);
+      ui.success(result.dryRun ? `Dry run: ${result.uploaded.length} file(s).` : `Published ${result.uploaded.length} file(s).`);
+      return;
+    }
+
+    if (invocation.command === "release" && invocation.subcommand) {
+      ui.heading(`Releasing ${invocation.subcommand}`);
+      const result = await builds.build(invocation.subcommand);
+      const publication = await publishAndVerify(args, result.publicationPlan);
+      ui.success(`Released ${result.manifest.kind} ${result.manifest.id}@${result.manifest.version}; ${publication.uploaded.length} file(s) published.`);
       return;
     }
 
@@ -80,7 +106,11 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       ui.heading(`Rolling back ${invocation.subcommand}`);
       const result = await new AtlasRollbackService(args).run(invocation.subcommand, invocation.version);
       ui.success(`Selected ${invocation.subcommand}@${result.version} (${result.buildId}).`);
-      ui.info(`Upload ${result.output} with your CI storage tooling.`);
+      if (args.hasFlag("prepare-only")) ui.info(`Prepared rollback plan: ${result.plan}`);
+      else {
+        const publication = await publishAndVerify(args, result.plan);
+        ui.success(`Published rollback with ${publication.uploaded.length} mutable file(s).`);
+      }
       return;
     }
 
@@ -122,6 +152,32 @@ function printVerificationCheck(check: AtlasVerificationCheck): void {
   if (check.status === "pass") ui.success(message);
   else if (check.status === "warning") ui.warning(message);
   else ui.error(message);
+}
+
+async function publishAndVerify(args: CliArguments, plan: string) {
+  const config = await loadAtlasPublishConfig(args);
+  const singleRuntimeUrl = args.flag("runtime-url") ?? process.env.ATLAS_RUNTIME_URL;
+  const runtimeUrls = [...new Set([
+    ...splitUrls(args.flag("runtime-urls") ?? process.env.ATLAS_RUNTIME_URLS),
+    ...(singleRuntimeUrl ? [singleRuntimeUrl] : []),
+    ...(config?.runtimeUrls ?? [])
+  ])];
+  return new AtlasPublishService(args).run(plan, {
+    ...(config ? { config } : {}),
+    ...(runtimeUrls.length ? {
+      verify: async () => {
+        for (const runtimeUrl of runtimeUrls) {
+          const report = await new AtlasVerifyService().run({ runtimeUrl, hostOrigin: args.flag("host-origin") });
+          report.checks.forEach(printVerificationCheck);
+          if (report.failures > 0) throw new Error(`Deployment verification failed for ${runtimeUrl} with ${report.failures} failure(s); previous mutable selections were restored.`);
+        }
+      }
+    } : {})
+  });
+}
+
+function splitUrls(value: string | undefined): string[] {
+  return value?.split(/[\s,]+/).filter(Boolean) ?? [];
 }
 
 if (isMainModule(import.meta.url, process.argv[1])) {

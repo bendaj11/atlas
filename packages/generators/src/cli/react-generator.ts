@@ -1,7 +1,7 @@
-import { atlasAppConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
+import { atlasAppConfig, atlasHostConfig, atlasHostContainerfile, atlasHostStyles, json, title } from "./common-generator.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 import { reactVersionProfile } from "./generator-versions.js";
-import { reactHostLayout, reactHostMain, reactHostProvider, reactHostProviderName } from "./react-host-generator.js";
+import { reactHostEntry, reactHostLayout, reactHostMain, reactHostProvider, reactHostProviderName } from "./react-host-generator.js";
 import {
   appSourceReadme,
   reactAppApp,
@@ -25,7 +25,8 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget, options.devServerPort) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
-    { path: "public/remoteEntry.json", contents: json({ name: reactRemoteName(name), exposes: [], shared: [] }) },
+    { path: "Containerfile", contents: atlasHostContainerfile() },
+    { path: "src/host.tsx", contents: reactHostEntry(name, profile) },
     { path: "index.html", contents: reactIndex("Atlas React Host") },
     { path: "src/styles.css", contents: atlasHostStyles() },
     { path: "src/app/HostLayout.tsx", contents: reactHostLayout() },
@@ -56,6 +57,6 @@ export function generateReactAppFiles(options: AtlasGeneratorOptions): AtlasGene
       { path: "src/app/App.tsx", contents: reactSinglePageApp(name) },
       { path: "src/entry.tsx", contents: reactSinglePageAppEntry(name, profile) },
     ]),
-    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.tsx\`; Atlas exposes it automatically through Native Federation. Consumers declare \`owner-app/widget-id\` in \`uses\`.\n` }
+    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nRun \`atlas g widget <name> --app=.\`. Atlas generates widget source plus \`atlas.widget.ts\` with stable UUIDv4 identity. Consumers call \`sdk.getWidget(widgetId)\`; do not maintain widget lists in app config.\n` }
   ];
 }

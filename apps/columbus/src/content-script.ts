@@ -1,7 +1,8 @@
-type AtlasReleaseChannel = "production" | "pr" | "historical" | "local";
+type AtlasReleaseChannel = "production" | "pr" | "local";
 
 interface AtlasInterceptManifest {
   schemaVersion: "1";
+  kind: "host" | "app";
   id: string;
   name: string;
   version: string;
@@ -18,7 +19,9 @@ interface AtlasInterceptCatalog {
   schemaVersion: "1";
   hostId: string;
   generatedAt: string;
-  manifests: AtlasInterceptManifest[];
+  revision: string;
+  host: AtlasInterceptManifest;
+  apps: AtlasInterceptManifest[];
 }
 
 interface AtlasInterceptDevSession {
@@ -26,6 +29,7 @@ interface AtlasInterceptDevSession {
   hostId: string;
   catalog: AtlasInterceptCatalog;
   overrides: Array<{ appId: string; manifest: AtlasInterceptManifest }>;
+  hostOverride?: AtlasInterceptManifest;
   generatedAt: string;
 }
 
@@ -75,9 +79,9 @@ function installAtlasCatalogInterceptor(): void {
 async function rememberOverridePolicy(response: Response, policies: Map<string, boolean>): Promise<void> {
   if (!response.ok) return;
   try {
-    const config = await response.clone().json() as { schemaVersion?: unknown; hostId?: unknown; allowAppOverrides?: unknown };
+    const config = await response.clone().json() as { schemaVersion?: unknown; hostId?: unknown; allowOverrides?: unknown };
     if (config.schemaVersion === "1" && typeof config.hostId === "string") {
-      policies.set(config.hostId, config.allowAppOverrides !== false);
+      policies.set(config.hostId, config.allowOverrides === true);
     }
   } catch {
     return;
@@ -91,7 +95,9 @@ function isDevSession(value: unknown, hostId: string): value is AtlasInterceptDe
     && session.hostId === hostId
     && session.catalog?.schemaVersion === "1"
     && session.catalog.hostId === hostId
-    && Array.isArray(session.catalog.manifests)
+    && session.catalog.host?.kind === "host"
+    && (!session.hostOverride || (session.hostOverride.kind === "host" && session.hostOverride.id === hostId))
+    && Array.isArray(session.catalog.apps)
     && Array.isArray(session.overrides)
     && session.overrides.every(isMatchingOverride);
 }
@@ -122,7 +128,7 @@ function localCatalogResponse(session: AtlasInterceptDevSession): Response {
   const disabledAppIds = readDisabledAppIds(session.hostId);
   return jsonResponse({
     ...session.catalog,
-    manifests: session.catalog.manifests.filter((manifest) => !disabledAppIds.has(manifest.id))
+    apps: session.catalog.apps.filter((manifest) => !disabledAppIds.has(manifest.id))
   });
 }
 
@@ -130,7 +136,7 @@ function mergeCatalog(catalog: AtlasInterceptCatalog, session: AtlasInterceptDev
   const disabledAppIds = readDisabledAppIds(session.hostId);
   const enabledOverrides = session.overrides.filter((override) => !disabledAppIds.has(override.appId));
   const overrides = new Map(enabledOverrides.map((override) => [override.appId, override.manifest]));
-  const baseManifests = catalog.manifests.filter((manifest) => manifest.channel !== "local" || !disabledAppIds.has(manifest.id));
+  const baseManifests = catalog.apps.filter((manifest) => manifest.channel !== "local" || !disabledAppIds.has(manifest.id));
   const merged = baseManifests.map((manifest) => overrides.get(manifest.id) ?? manifest);
   const present = new Set(merged.map((manifest) => manifest.id));
   for (const override of enabledOverrides) {
@@ -139,7 +145,8 @@ function mergeCatalog(catalog: AtlasInterceptCatalog, session: AtlasInterceptDev
   return {
     ...catalog,
     generatedAt: session.generatedAt,
-    manifests: merged
+    host: session.hostOverride?.kind === "host" ? session.hostOverride : catalog.host,
+    apps: merged
   };
 }
 

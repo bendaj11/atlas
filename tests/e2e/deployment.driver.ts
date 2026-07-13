@@ -11,7 +11,8 @@ export function runCli(workspaceRoot: string, args: string[]): Promise<void> {
 }
 
 export interface DeploymentCatalog {
-  manifests: Array<{ id: string; remoteEntryUrl: string; version?: string }>;
+  host: { id: string; remoteEntryUrl: string; version?: string };
+  apps: Array<{ id: string; remoteEntryUrl: string; version?: string }>;
 }
 
 export function deploymentCatalog(value: unknown): DeploymentCatalog {
@@ -22,7 +23,7 @@ export function deploymentCatalog(value: unknown): DeploymentCatalog {
 }
 
 function isDeploymentCatalog(value: unknown): value is DeploymentCatalog {
-  return isRecord(value) && Array.isArray(value.manifests) && value.manifests.every(isManifest);
+  return isRecord(value) && isManifest(value.host) && Array.isArray(value.apps) && value.apps.every(isManifest);
 }
 
 function isManifest(value: unknown): value is { id: string; remoteEntryUrl: string; version?: string } {

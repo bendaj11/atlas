@@ -3,7 +3,12 @@ import { readFile, writeFile } from "node:fs/promises";
 
 export type BrowserStorage = "localStorage" | "sessionStorage";
 
-export async function readOverride(host: Page, storage: BrowserStorage): Promise<{ overrides: Array<{ manifest: { version: string }; reason: string }> } | undefined> {
+export interface StoredOverrideDocument {
+  host?: { manifest: { version: string }; reason: string };
+  apps: Array<{ manifest: { version: string }; reason: string }>;
+}
+
+export async function readOverride(host: Page, storage: BrowserStorage): Promise<StoredOverrideDocument | undefined> {
   return host.evaluate(({ key, storageName }) => {
     const value = window[storageName].getItem(key);
     return value ? JSON.parse(value) : undefined;

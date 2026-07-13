@@ -18,15 +18,15 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("package.json"), /"@angular\/core": "\^20\.3\.0"/);
   assert.match(host.get("angular.json"), /@angular-architects\/native-federation:build/);
   assert.match(host.get("federation.config.js"), /@atlas\/sdk\/federation-config/);
-  assert.match(host.get("federation.config.js"), /exposeApp: false/);
+  assert.match(host.get("federation.config.js"), /expose: "host"/);
   assert.doesNotMatch(host.get("federation.config.js"), /@angular-architects\/native-federation/);
   assert.match(host.get("src/main.ts"), /initFederation/);
   assert.match(host.get("src/main.ts"), /from "@atlas\/sdk\/federation"/);
   assert.doesNotMatch(host.get("src/main.ts"), /from "@angular-architects\/native-federation"/);
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
   assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
-  assert.equal(host.has("tsconfig.json"), false);
-  assert.equal(appFiles.has("tsconfig.json"), false);
+  assert.equal(JSON.parse(host.get("tsconfig.json")).compilerOptions.moduleResolution, "bundler");
+  assert.equal(JSON.parse(appFiles.get("tsconfig.json")).angularCompilerOptions.strictTemplates, true);
   assert.equal(host.has("tsconfig.atlas.json"), false);
   assert.equal(appFiles.has("tsconfig.atlas.json"), false);
   assert.deepEqual(JSON.parse(host.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
@@ -46,9 +46,11 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.doesNotMatch(host.get("atlas.config.ts"), /catalogUrl/);
   assert.match(host.get("atlas.config.ts"), /AtlasHostConfig/);
   assert.match(appFiles.get("atlas.config.ts"), /AtlasAppConfig/);
-  assert.match(host.get("atlas.config.ts"), /allowAppOverrides: true/);
-  assert.match(host.get("atlas.config.ts"), /resourcesTimeoutMs: 15000/);
-  assert.match(host.get("atlas.config.ts"), /resourcesRetryCount: 3/);
+  assert.match(host.get("atlas.config.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
+  assert.match(appFiles.get("atlas.config.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
+  assert.doesNotMatch(host.get("atlas.config.ts"), /allowOverrides|resourcesTimeoutMs|resourcesRetryCount/);
+  assert.match(host.get("Containerfile"), /CMD \["atlas-host-server"\]/);
+  assert.match(host.get("src/host.ts"), /export const mount: AtlasHostClientEntry/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);
   assert.match(host.get("package.json"), /atlas build host/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /localhost:4300/);
@@ -56,7 +58,7 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.equal(JSON.parse(appFiles.get("angular.json")).projects.orders.architect["serve-original"].options.port, 4201);
   assert.match(appFiles.get("package.json"), /"atlas:config"/);
   assert.match(appFiles.get("federation.config.js"), /@atlas\/sdk\/federation-config/);
-  assert.match(appFiles.get("federation.config.js"), /exposeApp: true/);
+  assert.match(appFiles.get("federation.config.js"), /expose: "app"/);
   assert.doesNotMatch(appFiles.get("federation.config.js"), /@angular-architects|shareAll|singleton/);
   assert.equal(appFiles.has("src/app.component.ts"), false);
   assert.match(appFiles.get("src/app/app.component.ts"), /export class AppComponent/);
@@ -125,9 +127,11 @@ test("Angular generator validates IDs before using them in paths and source", ()
 test("Angular widget generator creates a typed independently deployed widget", () => {
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "angular" }));
   const source = widget.get("src/exported-widgets/entity-popup/index.ts");
+  const config = widget.get("src/exported-widgets/entity-popup/atlas.widget.ts");
   assert.match(source, /EntityPopupWidgetProps/);
   assert.match(source, /defineExportedWidget/);
   assert.match(source, /import "zone\.js"/);
+  assert.match(config, /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
 });
 
 test("Native Federation bridge initializes catalog remotes and loads exposes", async () => {

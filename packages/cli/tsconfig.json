@@ -11,6 +11,7 @@
     "paths": {
       "@atlas/schema": ["../schema/src/index.ts"],
       "@atlas/generators": ["../generators/src/index.ts"],
+      "@atlas/host-server": ["../host-server/src/index.ts"],
       "@atlas/runtime": ["../runtime/src/index.ts"],
       "@atlas/sdk": ["../sdk/src/index.ts"],
       "@atlas/sdk/*": ["../sdk/src/*.ts"]
@@ -23,6 +24,7 @@
   "references": [
     { "path": "../schema" },
     { "path": "../generators" },
+    { "path": "../host-server" },
     { "path": "../runtime" },
     { "path": "../sdk" }
   ],

@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { AtlasGeneratorOptions } from "./generator-types.js";
+import { ATLAS_PACKAGE_VERSION } from "./generator-versions.js";
 
 const MAX_ATLAS_ID_LENGTH = 214;
 const ATLAS_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -11,12 +13,23 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
 export function atlasAppConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
   const appFields = options.hostId ? `,\n  ${appConfig(name, options.hostId)}` : "";
-  return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
+  return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
-  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${name}",\n  name: "${title(name)}",\n  framework: "${framework}",\n  allowAppOverrides: true,\n  resourcesTimeoutMs: 15000,\n  resourcesRetryCount: 3\n} satisfies AtlasHostConfig;\n`;
+  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
+}
+
+export function atlasHostContainerfile(): string {
+  return `FROM node:22-alpine
+
+RUN npm install --global @atlas/host-server@${ATLAS_PACKAGE_VERSION}
+
+USER node
+EXPOSE 8080
+CMD ["atlas-host-server"]
+`;
 }
 
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {

@@ -28,7 +28,7 @@ Name an owner for each domain before release:
 - [ ] Production serves `/atlas.runtime.json` as JSON.
 - [ ] Runtime `hostId` matches app route and slot declarations.
 - [ ] Runtime `catalogUrl` points to the intended environment.
-- [ ] `allowAppOverrides` is `false` on user-facing production hosts. Use a
+- [ ] `ATLAS_ALLOW_OVERRIDES` is `false` on user-facing production hosts. Use a
   separate controlled environment for PR, historical, or local overrides.
 - [ ] Resource timeout and retry values match product reliability targets.
 - [ ] Host layout retains route, navigation, status, and required slot anchors.
@@ -68,7 +68,7 @@ Name an owner for each domain before release:
 - [ ] Live registry revision is checked after the snapshot and again immediately
   before mutable replacement.
 - [ ] Immutable files upload before mutable indexes and host catalogs.
-- [ ] `registry.json` publishes before app indexes, and host catalogs publish
+- [ ] Immutable host/app bytes publish first, `registry.json` publishes before artifact indexes, and host catalogs publish
   last.
 - [ ] Existing version/build paths are never overwritten.
 - [ ] Immutable assets use long-lived immutable caching.
@@ -107,7 +107,7 @@ Read [security](security.md) before approving a new registry origin or publisher
 ## Release Verification
 
 `atlas verify` checks the public runtime file, selected host catalog, manifest
-shape, one-version-per-app selection, route conflicts, widget dependencies,
+shape, one-version-per-app selection, route conflicts, external app dependencies,
 remote entries, federation exposes, stylesheets, referenced JavaScript chunks,
 CORS, MIME types, cache headers, and declared SHA-256 integrity. Cache and
 missing-integrity findings can be warnings, so read the full report instead of

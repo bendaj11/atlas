@@ -23,7 +23,7 @@ async function readOverrideCount(): Promise<number> {
   if (stored) return overrideCount(stored);
 
   const config = await readAtlasConfig();
-  if (!config?.hostId || config.allowAppOverrides === false) return 0;
+  if (!config?.hostId || config.allowOverrides !== true) return 0;
 
   const devOverrideCount = await readDevOverrideCount(config.hostId);
   if (devOverrideCount !== undefined) return devOverrideCount;
@@ -59,12 +59,12 @@ function readBadgeDisabledAppIds(hostId: string): Set<string> {
   return new Set(Array.isArray(value) ? value.filter((appId): appId is string => typeof appId === "string") : []);
 }
 
-async function readAtlasConfig(): Promise<{ hostId?: string; allowAppOverrides?: boolean } | undefined> {
+async function readAtlasConfig(): Promise<{ hostId?: string; allowOverrides?: boolean } | undefined> {
   try {
     const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
     if (!response.ok) return undefined;
 
-    const value = await response.json() as { schemaVersion?: string; hostId?: string; allowAppOverrides?: boolean };
+    const value = await response.json() as { schemaVersion?: string; hostId?: string; allowOverrides?: boolean };
     return value.schemaVersion === "1" ? value : undefined;
   } catch {
     return undefined;
@@ -75,7 +75,7 @@ function overrideCount(value: unknown): number {
   const documentValue = typeof value === "string" ? parseJson(value) : value;
   if (!isOverrideDocument(documentValue)) return 0;
 
-  return documentValue.overrides.length;
+  return documentValue.apps.length + (documentValue.host ? 1 : 0);
 }
 
 function parseJson(value: string): unknown {
@@ -86,9 +86,9 @@ function parseJson(value: string): unknown {
   }
 }
 
-function isOverrideDocument(value: unknown): value is { overrides: unknown[] } {
+function isOverrideDocument(value: unknown): value is { apps: unknown[]; host?: unknown } {
   return typeof value === "object"
     && value !== null
-    && "overrides" in value
-    && Array.isArray(value.overrides);
+    && "apps" in value
+    && Array.isArray(value.apps);
 }

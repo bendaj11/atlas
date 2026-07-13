@@ -8,10 +8,14 @@ export interface AtlasHostRuntimeConfig {
   hostVersion?: string;
   /** Full URL of the catalog JSON this host should load. */
   catalogUrl: string;
-  /** Allow Atlas tools to override selected app manifests at runtime. Defaults to true. */
-  allowAppOverrides?: boolean;
+  /** Allow Atlas tools to override selected host and app manifests. Defaults to false. */
+  allowOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */
   resourcesRetryCount?: number;
+  /** HTTPS origins allowed to serve host-client artifacts, in addition to the catalog origin. */
+  assetOrigins?: string[];
+  /** Explicit external registries searched for app dependencies. Supplied by host-server environment. */
+  externalRegistryUrls?: string[];
 }

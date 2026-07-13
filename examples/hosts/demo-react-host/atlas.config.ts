@@ -4,8 +4,5 @@ export default {
   type: "host",
   id: "demo-react-host",
   name: "Demo React Host",
-  framework: "react",
-  allowAppOverrides: true,
-  resourcesTimeoutMs: 15000,
-  resourcesRetryCount: 3
+  framework: "react"
 } satisfies AtlasHostConfig;

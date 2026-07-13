@@ -29,7 +29,7 @@ export function renderHostMountState(
   container.dataset.atlasState = event.state;
   container.setAttribute("aria-busy", event.state === "loading" ? "true" : "false");
 
-  const existingStatus = container.querySelector<HTMLElement>("[data-atlas-status]");
+  const existingStatus = container.querySelector<HTMLElement>(":scope > [data-atlas-placement-status]");
   if (event.state === "mounting" || event.state === "mounted") existingStatus?.remove();
   if (event.state === "loading") renderLoadingState(document, container, event, existingStatus, options);
   if (event.state === "error") renderErrorState(document, container, event, retry, existingStatus, options);
@@ -96,6 +96,7 @@ function prepareStatusElement(
 ): HTMLElement {
   const status = existingStatus ?? document.createElement("div");
   status.dataset.atlasStatus = "";
+  status.dataset.atlasPlacementStatus = "";
   status.setAttribute("role", role);
   status.replaceChildren();
   if (!existingStatus) container.prepend(status);

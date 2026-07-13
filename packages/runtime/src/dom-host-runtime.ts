@@ -1,4 +1,4 @@
-import { ensureActionableError, type AtlasHostRuntimeConfig } from "@atlas/schema";
+import { assertAtlasHostCatalog, ensureActionableError, type AtlasHostRuntimeConfig } from "@atlas/schema";
 import { emitMountState } from "./dom-host-events.js";
 import type { DomHostOptions, DomHostServices, DomRuntimeOptions } from "./dom-host-options.js";
 import { createSdkProviders } from "./dom-host-sdk.js";
@@ -6,6 +6,7 @@ import { cssEscape, renderHostMountState, renderHostNavigation } from "./dom-ren
 import { createHostNavigationItems, publishAtlasNavigationItems } from "./host-navigation.js";
 import {
   createRemoteTrustPolicy,
+  createRegistryWidgetResolver,
   createRetryPolicy,
   createTrustedNativeFederationImporters,
   loadBrowserRuntimeOverrides,
@@ -29,17 +30,24 @@ export async function startDomHostRuntime<THostSdk extends object>(
   const { options, services, document, onInfrastructureReady } = input;
   const config = await resolveHostConfig(options);
   const requestPolicy = createRetryPolicy(config, options.observe);
-  const catalog = await loadHostCatalog({ catalogUrl: config.catalogUrl, requestPolicy });
+  const catalog = options.catalog ?? await loadHostCatalog({ catalogUrl: config.catalogUrl, requestPolicy });
+  if (options.catalog) assertAtlasHostCatalog(catalog);
   assertCatalogMatchesConfig(catalog.hostId, config.hostId);
 
-  const overrides = await loadBrowserRuntimeOverrides({
+  const overrides = options.catalog ? [] : await loadBrowserRuntimeOverrides({
     hostId: config.hostId,
-    enabled: options.allowAppOverrides ?? appOverridesEnabled(config),
+    enabled: options.allowAppOverrides ?? config.allowOverrides === true,
     requestPolicy
   });
   const manifests = resolveRuntimeManifests(catalog, overrides);
   const trustPolicy = createRemoteTrustPolicy(config);
-  const federation = await createTrustedNativeFederationImporters(options.federation, manifests, trustPolicy, requestPolicy);
+  const federation = await createTrustedNativeFederationImporters(
+    options.federation,
+    manifests,
+    trustPolicy,
+    requestPolicy,
+    catalog.host.remoteEntryUrl
+  );
   await services.beforeNavigation?.();
   const navigation = await services.createNavigation();
   const { sdk, widgetLoader } = createSdkProviders({
@@ -48,7 +56,9 @@ export async function startDomHostRuntime<THostSdk extends object>(
     document,
     navigation,
     manifests,
-    importWidget: federation.importWidget
+    importWidget: federation.importWidget,
+    resolveWidget: createRegistryWidgetResolver({ runtimeConfig: config, catalog }),
+    trustPolicy
   });
 
   const updateNavigationItems = (): void => {
@@ -99,10 +109,6 @@ async function resolveHostConfig(options: DomRuntimeOptions): Promise<AtlasHostR
     undefined,
     options.observe ? { observer: options.observe } : undefined
   );
-}
-
-function appOverridesEnabled(config: AtlasHostRuntimeConfig): boolean {
-  return config.allowAppOverrides !== false;
 }
 
 function assertCatalogMatchesConfig(catalogHostId: string, configHostId: string): void {

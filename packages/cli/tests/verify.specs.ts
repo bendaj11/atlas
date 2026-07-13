@@ -36,16 +36,6 @@ test("verify rejects an asset whose integrity does not match", async () => {
   assert.equal(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("integrity")), true);
 });
 
-test("verify rejects unresolved exported widgets", async () => {
-  const service = new AtlasVerifyService(createDeploymentFetch([
-    deploymentManifest({ uses: ["catalog/missing"] })
-  ]));
-
-  const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
-
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "exported widgets"), true);
-});
-
 test("verify explains duplicate route base paths for one host", async () => {
   const first = deploymentManifest({
     id: "orders",

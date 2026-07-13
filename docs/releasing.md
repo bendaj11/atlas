@@ -3,11 +3,12 @@
 These commands are for maintainers of the Atlas source repository, which uses
 Yarn. They do not require Atlas consumers to use Yarn.
 
-Atlas publishes six packages as one compatible release set:
+Atlas publishes seven packages as one compatible release set:
 
 - `@atlas/schema`
 - `@atlas/sdk`
 - `@atlas/runtime`
+- `@atlas/host-server`
 - `@atlas/generators`
 - `@atlas/testkit`
 - `@atlas/cli`
@@ -38,6 +39,7 @@ yarn typecheck
 yarn test
 yarn test:generated
 yarn test:e2e
+yarn test:container
 yarn release:bundle
 ```
 
@@ -46,16 +48,19 @@ Atlas dependency pins, the Columbus extension package and manifest, and the
 version range emitted by generators. Chrome manifests use the numeric core of
 a prerelease version. `test:generated` packs those packages and proves that the
 packaged CLI can generate and production-build Angular and React hosts and apps.
+`test:container` validates the locally packed host server before its npm version
+exists, so the generated production `Containerfile` can reference that version
+after publication.
 
 Review the changes, move the relevant entries from `Unreleased` in the changelog
 to a section for the new version, and tag the reviewed commit as `v<version>`.
 The tag must exactly match the package version.
 
-`release:bundle` creates `dist/release` with the six verified tarballs,
+`release:bundle` creates `dist/release` with the seven verified tarballs,
 `SHA256SUMS`, and `release.json`. Release CI preserves this exact directory as
 an artifact and attaches it to the tag's GitHub release. Publishing automation must consume that artifact instead of
 rebuilding packages from the tag. Package order is schema, SDK, runtime,
-generators, testkit, then CLI.
+host-server, generators, testkit, then CLI.
 Rerunning the tag workflow replaces existing GitHub release assets with the newly verified bundle.
 
 ## Publishing policy
@@ -75,7 +80,7 @@ requires Node 22.14 or newer and npm 11.5.1 or newer.
 An unpublished package cannot yet have a trusted publisher configured. The
 first release therefore needs a granular npm automation token named
 `NPM_TOKEN` in the `npm-publish` GitHub environment. After the packages exist,
-configure trusted publishing for all six packages and remove the long-lived
+configure trusted publishing for all seven packages and remove the long-lived
 token. Environment protection rules may require approval before the publish
 job proceeds. Pull requests only run verification and never publish.
 

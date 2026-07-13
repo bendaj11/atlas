@@ -38,9 +38,12 @@ export function PopupApp(): JSX.Element {
               )}
             />
           ) : null}
+          {controller.hostData ? <div role="status">{controller.status.message}</div> : null}
           {controller.view.name === "dashboard" ? (
             <Dashboard
               apps={controller.apps}
+              widgetProviders={controller.widgetProviders}
+              host={controller.host}
               busy={controller.status.busy}
               hostData={controller.hostData}
               onEdit={controller.showEditor}

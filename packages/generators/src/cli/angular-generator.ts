@@ -1,4 +1,4 @@
-import { angularHostBootstrap, angularHostComponent, angularHostDefaultRouteComponent, angularHostMain } from "./angular-host-generator.js";
+import { angularHostBootstrap, angularHostComponent, angularHostDefaultRouteComponent, angularHostEntry, angularHostMain } from "./angular-host-generator.js";
 import {
   angularAppAppComponent,
   angularAppDetailsComponent,
@@ -13,9 +13,10 @@ import { angularIndex, angularPackage } from "./angular-package-generator.js";
 import {
   angularAppTsconfig,
   angularFederationConfig,
+  angularRootTsconfig,
   angularWorkspace,
 } from "./angular-workspace-generator.js";
-import { atlasAppConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
+import { atlasAppConfig, atlasHostConfig, atlasHostContainerfile, atlasHostStyles, json, title } from "./common-generator.js";
 import { angularVersionProfile } from "./generator-versions.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 
@@ -25,14 +26,17 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions): AtlasG
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "angular.json", contents: json(angularWorkspace(name, true, options.devServerPort)) },
+    { path: "tsconfig.json", contents: json(angularRootTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, true) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options) },
+    { path: "Containerfile", contents: atlasHostContainerfile() },
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
     { path: "src/styles.css", contents: atlasHostStyles() },
     { path: "src/app/app.component.ts", contents: angularHostComponent() },
     { path: "src/app/atlas-host-default-route.component.ts", contents: angularHostDefaultRouteComponent() },
     { path: "src/main.ts", contents: angularHostMain() },
+    { path: "src/host.ts", contents: angularHostEntry() },
     { path: "src/bootstrap.ts", contents: angularHostBootstrap() }
   ];
 }
@@ -44,6 +48,7 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile, routed })) },
     { path: "angular.json", contents: json(angularWorkspace(name, false, options.devServerPort)) },
+    { path: "tsconfig.json", contents: json(angularRootTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
     { path: "atlas.config.ts", contents: atlasAppConfig(options) },
@@ -62,6 +67,6 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
       { path: "src/app/app.component.ts", contents: angularSinglePageAppComponent(name) },
       { path: "src/entry.ts", contents: angularSinglePageAppEntry(name) },
     ]),
-    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nCreate \`<widget-id>/index.ts\`; Atlas exposes it automatically. Consumers declare \`owner-app/widget-id\` in \`uses\`.\n` }
+    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nRun \`atlas g widget <name> --app=.\`. Atlas generates widget source plus \`atlas.widget.ts\` with stable UUIDv4 identity. Consumers call \`sdk.getWidget(widgetId)\`; do not maintain widget lists in app config.\n` }
   ];
 }

@@ -9,21 +9,24 @@ const ATLAS_INTEGRATION_FILES = new Set([
 const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   angular: new Set([
     ...ATLAS_INTEGRATION_FILES,
+    "Containerfile",
     "src/index.html",
     "src/styles.css",
     "src/app/app.component.ts",
     "src/app/atlas-host-default-route.component.ts",
     "src/main.ts",
-    "src/bootstrap.ts"
+    "src/bootstrap.ts",
+    "src/host.ts"
   ]),
   react: new Set([
     ...ATLAS_INTEGRATION_FILES,
-    "public/remoteEntry.json",
+    "Containerfile",
     "vite.config.ts",
     "index.html",
     "src/styles.css",
     "src/app/HostLayout.tsx",
-    "src/main.tsx"
+    "src/main.tsx",
+    "src/host.tsx"
   ])
 };
 

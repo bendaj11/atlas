@@ -2,10 +2,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Atlas is a TypeScript-first platform for independently built and deployed
-apps. A stable host owns the page, routing, authentication, layout,
-and shared UI services. Feature teams deploy apps without rebuilding
-that host.
+Atlas is a TypeScript-first platform for independently released host clients and
+apps. A stable framework-neutral container owns HTTP bootstrap; a versioned host
+client owns product routing, authentication integration, layout, SDK services,
+and app mounting. Host and app UI releases do not rebuild the container.
 
 Atlas supports Angular and React hosts, apps, and exported widgets.
 An Angular host can load React apps and a React host can load Angular apps. Vue is
@@ -25,7 +25,7 @@ Choose docs by goal:
 | Build a first system | [Angular](docs/angular/getting-started.md) or [React](docs/react/getting-started.md) |
 | Develop an app in a real host | [Local development](docs/local-development.md) |
 | Add routes or host services | [Angular routing](docs/angular/routing.md), [React routing](docs/react/routing.md), [Angular SDK](docs/angular/sdk.md), or [React SDK](docs/react/sdk.md) |
-| Deploy safely | [Production deployment](docs/production-deployment.md), [Angular details](docs/angular/production-deployment.md), [React details](docs/react/production-deployment.md), and [production readiness](docs/production-readiness.md) |
+| Deploy safely | [Host server](docs/host-server.md), [production deployment](docs/production-deployment.md), and [production readiness](docs/production-readiness.md) |
 | Diagnose a problem | [Angular troubleshooting](docs/angular/troubleshooting.md) or [React troubleshooting](docs/react/troubleshooting.md) |
 
 Reference docs cover the [public API](docs/api.md), [manifest](docs/manifest.md),
@@ -39,7 +39,7 @@ and [consumer testing](docs/consumer-testing.md). Atlas maintainers should use
 - Interactive generators for hosts, apps, and exported widgets.
 - Dynamic discovery through static JSON catalogs, with no registry service.
 - Native Federation hidden behind framework adapters and generated wiring.
-- One selected runtime version per app, plus PR and historical versions.
+- One selected runtime version per host client and app, plus PR and historical versions.
 - Local development inside the real host instead of a standalone app.
 - Typed host capabilities for HTTP clients, events, navigation, overlays,
   configuration, and host-specific extensions.
@@ -47,24 +47,21 @@ and [consumer testing](docs/consumer-testing.md). Atlas maintainers should use
   each app.
 - SHA-256 verification for generated production remote entries and stylesheets,
   plus origin restrictions for remote loading.
-- Provider-neutral output for Nginx, S3, Artifactory, Azure, or another CDN.
+- Portable host-server container plus provider-neutral object-storage publication.
 
 ## The Mental Model
 
 ```mermaid
 flowchart LR
-  Team["host or app team"] -->|"atlas build"| Output["Artifact-specific deployment output"]
-  Output -->|"consumer CI uploads"| CDN["Static storage / CDN"]
-  Host["Host"] --> Catalog["Host catalog JSON"]
-  Catalog --> CDN
-  Host --> Runtime["@atlas/runtime"]
-  Runtime -->|"verify and load"| app["App"]
-  Host --> SDK["Host capabilities"]
-  SDK --> app
+  Domain["Domain"] --> Server["Host-server container"]
+  Server --> Loader["Atlas loader"]
+  Loader --> Catalog["Object-storage catalog"]
+  Catalog --> Host["Versioned host client"]
+  Host --> Apps["Versioned apps"]
 ```
 
-The **host** is the main application. It owns the browser document, session,
-top-level routes, slots, and visual providers such as modals and toasts.
+The **host server** owns HTTP bootstrap, health, headers, and recovery. The
+**host client** owns product UI, top-level routes, slots, and visual providers.
 
 An **app** owns a feature. It is mounted by a host and is not a
 standalone product application.
@@ -128,12 +125,9 @@ Local app replacement uses the Atlas Columbus browser extension. Obtain the
 extension from your platform team. Atlas repository contributors can build and
 load it with the [Columbus instructions](apps/columbus/README.md).
 
-Use the local host URL printed by `atlas dev customer-host`. React hosts usually
-start on `http://localhost:5173`; Angular hosts usually start on
-`http://localhost:4200`.
-For an Angular host, use `--host-url=http://localhost:4200/orders`. Run this
-from the directory that contains both generated projects, or from your monorepo
-root.
+Use the host URL printed by `atlas dev customer-host`; the stable local server
+defaults to `http://127.0.0.1:4300`. Run commands from the directory containing
+both generated projects or the monorepo root.
 
 Prepare production files without uploading them:
 
@@ -144,11 +138,12 @@ project dependency, commit lockfile, and invoke local binary.
 ATLAS_VERSION=1.0.0 \
 ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-atlas build orders
+atlas release orders
 ```
 
-The output is written under `orders/dist/atlas-publication`. Consumer CI uploads
-it with its existing storage tooling. Atlas never needs cloud credentials.
+`atlas build` still prepares provider-neutral output without uploading. `release`
+adds safe S3-compatible/filesystem publication, locking, activation, and optional
+verification.
 
 Verify the deployed runtime, catalog, manifests, assets, integrity, and HTTP
 delivery policy before promoting it:
@@ -171,7 +166,7 @@ Follow the complete [Angular](docs/angular/getting-started.md) or
 App developers normally edit only:
 
 - framework components, services, hooks, styles, and tests;
-- `atlas.config.ts` when routes, hosts, slots, or widget dependencies change;
+- `atlas.config.ts` when routes, hosts, slots, or external provider app dependencies change;
 - exported widget components created by `atlas g widget`.
 
 Atlas owns generated federation configuration, manifest generation, catalog
@@ -213,6 +208,7 @@ library, extra typed `hostData`, and SDK extensions.
 | `@atlas/schema` | Public configuration, manifest, catalog, and validation types |
 | `@atlas/sdk` | app-to-host communication and framework adapters |
 | `@atlas/runtime` | Discovery, trust checks, federation loading, and lifecycle |
+| `@atlas/host-server` | Portable HTTP bootstrap, browser loader, health, and recovery |
 | `@atlas/cli` | Interactive generation, local development, and build preparation |
 | `@atlas/generators` | Generator implementation used by the CLI |
 | `@atlas/testkit` | Typed test fixtures and in-memory host utilities |
@@ -226,6 +222,7 @@ yarn typecheck
 yarn test
 yarn test:generated
 yarn test:e2e
+yarn test:container
 ```
 
 The repository is a Yarn workspace orchestrated by Turborepo. `yarn build`
@@ -236,6 +233,8 @@ caches package outputs locally in `.turbo`.
 `test:generated` packs the real packages, installs the packed CLI in clean
 projects, generates Angular and React hosts/apps, and production-builds them.
 Browser E2E tests verify cross-framework loading and Columbus extension overrides.
+`test:container` packs the server, builds its pre-release image, and verifies
+non-root/read-only execution, health, runtime config, and graceful shutdown.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for repository structure and the full
 pre-pull-request checklist.

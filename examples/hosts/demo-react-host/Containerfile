@@ -1,0 +1,5 @@
+FROM node:22-alpine
+RUN npm install --global @atlas/host-server@0.2.76
+USER node
+EXPOSE 8080
+CMD ["atlas-host-server"]

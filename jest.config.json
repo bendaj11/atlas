@@ -4,6 +4,7 @@
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
   "modulePathIgnorePatterns": ["<rootDir>/dist/"],
+  "rootDir": ".",
   "testPathIgnorePatterns": ["<rootDir>/tests/e2e/"],
   "testEnvironment": "node",
   "testMatch": ["**/*.specs.ts"],
@@ -12,7 +13,7 @@
       "ts-jest",
       {
         "diagnostics": true,
-        "tsconfig": "tsconfig.tests.json",
+        "tsconfig": "<rootDir>/tsconfig.tests.json",
         "useESM": true
       }
     ]

@@ -1,381 +1,189 @@
-# Deploy Atlas To Production
+# Production deployment
 
-Atlas changes the artifact and activation steps of a frontend release. If your
-current pipeline is:
+Production has two independent deployment units:
 
-```text
-test -> build -> create Docker image -> push image -> deploy image
-```
+1. a stable host-server container connected to the public domain;
+2. versioned host-client and app artifacts published to object storage.
 
-an Atlas app pipeline becomes:
+Normal UI releases use the second path only.
 
-```text
-test -> atlas build -> publish immutable files -> activate catalog -> atlas verify
-```
+## Prerequisites
 
-An Atlas app is not a server or a container. It is a set of static JavaScript,
-CSS, and JSON files. CI publishes those files to static storage behind a CDN,
-then updates a host catalog so an already-deployed host selects the new version.
+- Public HTTPS object storage or CDN gateway.
+- CORS allowing each host origin to read registry and artifact files.
+- One CI deployment identity with create and replace permissions.
+- A shared registry lease or lock.
+- A container platform for the host server.
+- Pinned local `@atlas/cli` and committed lockfile.
 
-The host itself is still a normal frontend application. Deploy the host with
-your existing process, including a Docker image if that is how you serve it.
-Only independently deployed Atlas apps use the Atlas publication flow below.
+## Deploy the server
 
-## The New Mental Model
-
-| Familiar CI concept | Atlas equivalent |
-| --- | --- |
-| Docker image | Immutable app files plus `app.manifest.json` |
-| Container registry | Static storage and CDN; for example S3, Azure Blob Storage, Artifactory, or Nginx |
-| Image tag | App `version` and unique `buildId` |
-| Deployment manifest | Host `catalog.json` selecting one build of each app |
-| Deploy a new container | Replace mutable registry JSON so the catalog selects the new immutable build |
-| Roll back an image tag | Replace mutable registry JSON so the catalog selects an older published build |
-
-Atlas uses the word **registry** for the files that record published app
-versions and host selections. It is not a Docker/OCI registry and does not run a
-registry service or database.
-
-Four pieces connect a host to an app:
-
-1. The host serves `/atlas.runtime.json`.
-2. That runtime file points to the host's mutable `catalog.json`.
-3. The catalog contains the selected app manifest.
-4. The manifest points to immutable JavaScript, CSS, and other app files.
-
-Deploying an app changes steps 3 and 4. It does not rebuild or restart the host.
-
-## What You Need Before The First Release
-
-### Application and CI
-
-- An Atlas app with a production build target that produces
-  `remoteEntry.json`.
-- Tests, linting, security scans, and approval gates defined by your team. Atlas
-  does not run these policy checks for you.
-- An exact, project-local `@atlas/cli` version installed from a committed
-  lockfile. Do not use a floating global CLI in CI.
-- A version for the release and a build id that is unique within that version.
-  A CI run id, optionally combined with a commit SHA, is a good build id.
-
-### Storage and CDN
-
-- Static storage reachable through one stable HTTPS base URL, such as
-  `https://cdn.example.com/atlas`.
-- CI credentials that can create immutable paths and replace mutable JSON.
-  Atlas never receives or uses these credentials.
-- Correct CORS, MIME types, and cache policies. See
-  [Storage And CDN Requirements](#storage-and-cdn-requirements).
-- A deployment lock, or a provider transaction that atomically protects the
-  complete set of mutable Atlas files. A compare-and-swap on `registry.json`
-  alone is not sufficient.
-
-### Host
-
-- A deployed Atlas host that serves `/atlas.runtime.json` and points to the
-  correct environment's catalog.
-- Deep-link fallback to the host `index.html` for routes such as `/orders/42`.
-  Do not apply this fallback to missing Atlas JSON, JavaScript, CSS, or CDN
-  assets.
-- Production implementations for auth, HTTP, modal, toast, host data, and
-  monitoring providers.
-
-Complete the full [production-readiness checklist](production-readiness.md)
-before sending user traffic to a new host or registry.
-
-## One-Time Host Setup
-
-Run the project-local CLI installed from your lockfile. Atlas identifies the
-project as a host, generates its runtime file, then runs its framework build:
+Build the generated image:
 
 ```sh
-./node_modules/.bin/atlas build customer-host \
-  --registry-base-url=https://cdn.example.com/atlas
+docker build -t registry.example/customer-host-server:1.0.0 customer-host
+docker push registry.example/customer-host-server:1.0.0
 ```
 
-The generated `public/atlas.runtime.json` looks like:
-
-```json
-{
-  "schemaVersion": "1",
-  "hostId": "customer-host",
-  "catalogUrl": "https://cdn.example.com/atlas/hosts/customer-host/catalog.json",
-  "allowAppOverrides": false,
-  "resourcesTimeoutMs": 15000,
-  "resourcesRetryCount": 3
-}
-```
-
-Keep `ATLAS_REGISTRY_BASE_URL` in the host's production build environment so
-Atlas does not write the local registry default.
+Deploy it with:
 
 ```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
+ATLAS_HOST_ID=customer-host
+ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/customer-host/catalog.json
+ATLAS_ASSET_ORIGINS=https://cdn.example.com
+PORT=8080
 ```
 
-Deploy the host with your normal frontend process. Different environments may
-serve different runtime files without rebuilding host JavaScript.
+Connect the platform's ingress, Route, or load balancer to this service. Configure liveness `/health/live` and readiness `/health/ready`. The server is stateless, horizontally scalable, non-root, and compatible with a read-only filesystem.
 
-## Release An App
+The runtime endpoint is dynamic. Do not bake `atlas.runtime.json` into a framework build, ConfigMap, or image. Do not place object-storage credentials in the container.
 
-The following steps run for every production app release.
+## Release UI artifacts
 
-### 1. Test The Source
-
-Run your normal quality gates before creating publication files:
+Recommended protected CI job:
 
 ```sh
-npm test
-npm run lint
+export ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas
+export ATLAS_S3_BUCKET=company-atlas
+export ATLAS_S3_PREFIX=atlas
+export AWS_REGION=eu-west-1
+export ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json
+
+ATLAS_VERSION="$RELEASE_VERSION" \
+ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
+  npm exec -- atlas release orders
 ```
 
-Include integration testing inside a real Atlas host. Unit tests alone do not
-cover routing, SDK providers, federation loading, or host/app compatibility.
-
-### 2. Acquire The Deployment Lock
-
-Atlas reads the current public `registry.json` while preparing the next state.
-Acquire the registry deployment lock before `atlas build`, and hold it until
-public verification finishes.
-
-The lock protects the shared mutable state from two pipelines starting with the
-same registry snapshot and overwriting each other's catalog changes. Scope the
-lock by registry/environment, not only by app, because one publication can
-update catalogs shared with other apps.
-
-Use a lease with a visible owner, CI run URL, and expiry or recovery procedure.
-That prevents an interrupted pipeline from blocking releases indefinitely. Only
-the lock owner or your documented recovery process should release it.
-
-If your platform provides an atomic transaction over every mutable Atlas file,
-you may use that instead. See [Concurrent publications](registry.md#concurrent-ci-builds)
-for the required revision checks.
-
-### 3. Build The Publication
-
-From the app directory, run its generated package script:
+Use the same command for the host client:
 
 ```sh
-ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-npm run atlas:build
+ATLAS_VERSION="$RELEASE_VERSION" \
+ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
+  npm exec -- atlas release customer-host
 ```
 
-The generated script identifies its own project. From a monorepo root, use the
-project-local CLI with the project name: `npm exec -- atlas build orders`.
+The host-server image does not change.
 
-`atlas build` performs two jobs:
+`release` performs build, publication, and verification. The publication sequence is immutable artifacts, immutable deployment snapshots, registry, indexes, then active catalogs. Catalogs are last because they change what browsers select. If verification fails, previous mutable files are restored while Atlas still holds the lease.
 
-1. Runs the app's normal production build.
-2. Creates provider-neutral publication files and updated registry metadata.
+## Separate build and publish jobs
 
-Atlas does not upload anything and does not need cloud credentials.
-
-Atlas derives catalog targets from app routes and slots in `atlas.config.ts`.
-Their `hostId` values become manifest placements. Atlas regenerates catalogs for
-known host ids because a release can also affect widget dependencies. Inspect
-the plan's `hosts` array and `hosts/<hostId>/catalog.json` entries to see the
-exact catalog set before publishing.
-
-Use these inputs deliberately:
-
-| Input | Meaning | Release guidance |
-| --- | --- | --- |
-| `ATLAS_VERSION` | Human release version | Set explicitly, for example `1.4.0`. |
-| `ATLAS_BUILD_ID` | Unique build within that version | Use an immutable CI identity; never reuse it for different bytes. |
-| `ATLAS_REGISTRY_BASE_URL` | Public URL where publication files will be read | Required for non-local builds. Use the target environment URL. |
-| `ATLAS_CREATED_AT` | Manifest creation time | Optional. Set from CI when reproducible metadata matters. |
-| `GIT_SHA` | Source revision recorded in the manifest | Optional but recommended for traceability. |
-
-For an isolated build environment, CI can download `registry.json` itself and
-pass `--registry-snapshot=<path>`. It can also pass
-`--expected-registry-revision=<revision>` to reject a stale snapshot.
-
-### 4. Inspect The Output
-
-Atlas writes both an upload tree and a plan beside it:
-
-```text
-dist/
-  atlas-publication/                 # files to upload; preserve relative paths
-    orders/1.4.0/build-123/          # immutable
-      app.manifest.json
-      remoteEntry.json
-      ...chunks and styles...
-    registry.json                    # mutable
-    apps/orders/index.json           # mutable
-    hosts/customer-host/catalog.json # mutable; activates selected app build
-  atlas-publication.json             # CI plan; do not upload
-```
-
-Read `dist/atlas-publication.json` instead of guessing which files are mutable.
-Its `files` entries mark each path as `immutable` or `revalidate`, and
-`uploadOrder` defines the required group order. It also records `baseRevision`
-and `registryRevision` for concurrency checks.
-
-Do not upload source code, workspace configuration, local-development files, or
-`dist/atlas-publication.json`. Upload only plan entries, resolving each path
-under `dist/atlas-publication`.
-
-### 5. Publish Immutable Files
-
-Upload every plan entry marked `immutable` first.
-
-- Create each path exactly as generated.
-- Apply long-lived immutable cache headers.
-- Never overwrite an existing version/build path.
-- Confirm every new immutable URL is publicly readable before activation.
-
-At this point the new build exists, but hosts still select the previous build.
-This makes the upload safe to retry and prevents catalogs from pointing to files
-that do not exist yet.
-
-There is intentionally no universal upload command: S3, Azure Blob Storage,
-Artifactory, and Nginx use different clients and concurrency controls. Your CI
-adapter must implement this contract for each plan entry:
-
-```text
-source      = dist/atlas-publication/<file.path>
-destination = <registry base>/<file.path>
-immutable   = create only; Cache-Control: public, max-age=31536000, immutable
-revalidate  = replace under deployment lock; revalidate or invalidate CDN path
-```
-
-Fail the pipeline if an immutable destination already exists. Do not replace an
-immutable object even when its bytes appear equal.
-
-### 6. Activate The Build
-
-Immediately before changing mutable files, confirm the live registry revision
-still equals the plan's `baseRevision`. If it differs, stop, fetch the new
-registry snapshot, and rebuild the publication.
-
-Replace mutable files in this order:
-
-1. `registry.json`
-2. `apps/<appId>/index.json`
-3. `hosts/<hostId>/catalog.json`
-
-Publish host catalogs last because they activate the new selection for running
-hosts. Revalidate or invalidate all changed mutable CDN paths. Do not use an
-unordered whole-directory sync for this step.
-
-### 7. Verify The Public Deployment
-
-Verify what browsers will fetch, not the local output:
+Organizations that separate credentials can pass the provider-neutral plan between jobs:
 
 ```sh
-./node_modules/.bin/atlas verify \
+# Unprivileged build job
+npm exec -- atlas build orders
+
+# Protected deployment job
+npm exec -- atlas publish \
+  --plan=orders/dist/atlas-publication.json \
   --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
-If the runtime file is served from a different origin, state the real host
-origin:
+The second job must receive the whole publication directory beside the plan. `--dry-run` validates order without mutation.
+
+Verify several hosts with `ATLAS_RUNTIME_URLS` or `--runtime-urls`:
 
 ```sh
-./node_modules/.bin/atlas verify \
-  --runtime-url=https://config.example/customer/atlas.runtime.json \
-  --host-origin=https://customer.example
+ATLAS_RUNTIME_URLS=https://customer.example/atlas.runtime.json,https://admin.example/atlas.runtime.json \
+  npm exec -- atlas release orders
 ```
 
-Verification covers runtime JSON, catalog and manifest shape, route conflicts,
-widgets, integrity, remote entries, referenced assets, CORS, MIME types, cache
-headers, and reachability. Read warnings as well as the exit code.
+Normal publishing needs no config file. For custom storage, CDN invalidation, or many verification URLs:
 
-Then smoke-test the host root, app route, refreshed nested route, authentication,
-lazy chunks, and monitoring. Release the deployment lock only after these checks
-finish. If verification fails, keep the lock while you repair or roll back the
-mutable selection.
+```sh
+npm exec -- atlas generate publish-config
+```
 
-## Storage And CDN Requirements
+```ts
+import type { AtlasPublishConfig } from "@atlas/cli";
+import { organizationCdn, organizationStorage } from "./deployment/atlas-storage.js";
 
-| Path type | Required behavior |
+export default {
+  runtimeUrls: [
+    "https://customer.example/atlas.runtime.json",
+    "https://admin.example/atlas.runtime.json"
+  ],
+  async invalidate(paths) {
+    await organizationCdn.invalidate(paths);
+  },
+  storage: organizationStorage
+} satisfies AtlasPublishConfig;
+```
+
+Custom storage implements `AtlasPublicationStorage`. Atlas keeps lock, create-only immutable writes, catalog-last activation, verification, and restore behavior.
+
+## PR artifacts
+
+```sh
+npm exec -- atlas release customer-host \
+  --channel=pr \
+  --pr-number="$PR_NUMBER"
+```
+
+PR releases add immutable bytes and index entries. They do not change production selections or active catalogs. Columbus reads the index and lets an authorized developer select the PR host/app in a browser tab.
+
+## Cache policy
+
+| Content | Policy |
 | --- | --- |
-| Version/build paths | Long-lived immutable caching; never overwritten |
-| `registry.json`, app indexes, host catalogs | Revalidation or explicit CDN invalidation |
-| `remoteEntry.json` | `application/json` |
-| JavaScript modules | `text/javascript` or `application/javascript` |
-| Cross-origin app files | Allow approved host origins to use `GET` and `HEAD` through CORS |
-| Missing JSON, JavaScript, or CSS | Return an HTTP error; never rewrite to host `index.html` |
+| version/build assets and manifests | one year + `immutable` |
+| deployment snapshots | one year + `immutable` |
+| `registry.json`, indexes, catalogs | revalidate or short max-age |
+| `/atlas.runtime.json` | no-cache/revalidate |
+| `/atlas.loader.js` | short cache; server package controls it |
 
-Keep `remoteEntry.json` and its referenced chunks under the same immutable
-version/build prefix. Use HTTPS for every production host, catalog, manifest,
-and asset URL.
+Do not overwrite version/build paths. A collision indicates reused build identity and publication must fail.
 
-## Roll Back
-
-Rollback does not rebuild the app, remove the failed files, or redeploy the
-host. It selects an older immutable build by publishing new mutable JSON.
-
-Under the same deployment lock, prepare an exact version and build id that was
-already published and validated:
+## Verify
 
 ```sh
-./node_modules/.bin/atlas rollback orders \
-  --version=1.3.2 \
+npm exec -- atlas verify \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+Atlas checks runtime and catalog shape, selected host/app manifests, CORS, caching, integrity, federation metadata and files, external registry policy, and route ownership.
+
+Checkpoint: zero failures, intentional warnings documented, deep-link refresh works, and `/health/ready` stays healthy.
+
+## Roll back
+
+Run rollback in a protected CI/CD rollback job, normally from the workspace root with the pinned CLI:
+
+```sh
+npm exec -- atlas rollback customer-host \
+  --version=1.3.0 \
+  --target=production \
+  --dry-run
+
+npm exec -- atlas rollback customer-host \
+  --version=1.3.0 \
+  --target=production \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+For an ambiguous version:
+
+```sh
+npm exec -- atlas rollback customer-host \
+  --version=1.3.0 \
   --build-id=build-123 \
-  --registry-base-url=https://cdn.example.com/atlas
+  --target=production
 ```
 
-Atlas writes mutable payloads under `dist/atlas-rollback/` and the CI plan at
-`dist/atlas-rollback.json`:
+Atlas discovers whether the id is a host or app from the live registry. It needs no application source or framework build. It locks, selects existing bytes, activates catalogs last, verifies, restores the earlier selection if verification fails, and unlocks.
 
-```text
-dist/
-  atlas-rollback/
-    registry.json
-    hosts/customer-host/catalog.json
-  atlas-rollback.json
-```
+Host rollback changes only host-client selection; current app selections remain. External providers follow their own registry and must be rolled back there. Refreshed pages then load provider's restored production version.
 
-Check that the live registry still matches the rollback plan's `baseRevision`.
-Then publish only its `files` entries, resolving each path under
-`dist/atlas-rollback`: replace `registry.json` first and host catalogs last. All
-rollback entries are mutable and marked `revalidate`; no immutable app files or
-app index need uploading because the selected build already exists.
+Never roll back from the host-server container, browser, Columbus, CDN console, or by editing catalog JSON.
 
-Invalidate mutable JSON, run `atlas verify`, repeat browser smoke tests, then
-release the lock.
+## Platform adapters
 
-## Migrating An Existing CI Pipeline
+- Docker is the canonical packaging contract.
+- Kubernetes uses Deployment, Service, Ingress, and HTTP probes.
+- OpenShift uses Deployment, Service, Route, and the same probes.
+- Other platforms map an external domain to container port 8080 and supply environment variables.
 
-Keep existing source checks and split the old image stage into build,
-publication, and activation stages:
+Atlas intentionally does not generate platform manifests. Replica count, TLS, autoscaling, secret/config injection, and domain mapping belong to the deployment platform.
 
-```text
-Existing                              Atlas app
---------                              ---------
-test                                  test
-build                                 atlas build
-create Docker image                   inspect atlas-publication.json
-push image to container registry      upload immutable files to static storage
-deploy image                          publish mutable JSON; host catalog last
-health check                          atlas verify + browser smoke tests
-rollback image                        atlas rollback + publish mutable JSON
-```
-
-Your storage-specific adapter needs only these responsibilities:
-
-1. Acquire and release the registry/environment lock.
-2. Read `dist/atlas-publication.json`.
-3. Upload plan entries with the required cache headers and order.
-4. Check `baseRevision` before mutable writes.
-5. Invalidate changed mutable paths.
-6. Run verification and retain release evidence.
-
-Do not put provider credentials or provider-specific upload code inside Atlas
-apps. Keep that code in the CI platform layer so every app uses the same safe
-publication implementation.
-
-## Framework-Specific Details
-
-The registry, publication, activation, verification, and rollback steps are the
-same for both frameworks. Use the framework page for build-output and asset
-details:
-
-- [Angular production details](angular/production-deployment.md)
-- [React production details](react/production-deployment.md)
-
-For registry layout and concurrency rules, see [Static registry](registry.md).
-For origin, integrity, and CSP rules, see [Security](security.md).
+Before traffic, complete [Production readiness](production-readiness.md) and [Security](security.md).

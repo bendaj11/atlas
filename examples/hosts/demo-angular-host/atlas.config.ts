@@ -4,8 +4,5 @@ export default {
   type: "host",
   id: "demo-angular-host",
   name: "Demo Angular Host",
-  framework: "angular",
-  allowAppOverrides: true,
-  resourcesTimeoutMs: 15000,
-  resourcesRetryCount: 3
+  framework: "angular"
 } satisfies AtlasHostConfig;

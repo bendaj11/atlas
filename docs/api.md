@@ -107,6 +107,9 @@ Import lifecycle types from `@atlas/sdk/lifecycle`:
 | `AtlasAppContext` | Manifest, navigation, route, widget, loading, and ready context |
 | `AtlasWidgetLoader` | Catalog-scoped widget discovery and mounting |
 | `AtlasExportedWidgetEntry` | Framework-neutral widget mount contract |
+| `AtlasWidgetHandle` | UUID-resolved widget with `mount(container, props)` |
+
+`AtlasCoreSdk.getWidget(widgetId)` is preferred consumer API. Same-registry providers resolve automatically; `externalAppsDependencies` permits named providers from host-server-approved external registries.
 
 Framework adapters implement these boundaries. Product code should not create
 manual mount wrappers unless it is integrating another framework.
@@ -125,6 +128,9 @@ Import host infrastructure from `@atlas/runtime`:
 | `verifyManifestIntegrity()` | Verify remote origins and SHA-256 bytes |
 | `findManifestTrustErrors()` | Verify apps independently for host fallback isolation |
 | `createWidgetLoader()` | Create the selected-catalog widget loader |
+| `AtlasWidgetUiOptions` | Host-owned widget loading and error renderers |
+| `AtlasWidgetRenderContext` | Widget id plus resolved widget/provider metadata when available |
+| `createRegistryWidgetResolver()` | Lazily resolve same-registry and external widget providers |
 | `createHostNavigationItems()` | Convert resolved manifests into custom host navigation items |
 | `startAtlasHostRuntime()` | Mount routes/slots and own lifecycle state |
 

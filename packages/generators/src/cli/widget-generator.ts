@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 import { assertSupportedGeneratorFramework, title } from "./common-generator.js";
 import { reactVersionProfile } from "./generator-versions.js";
@@ -22,7 +23,7 @@ function createRoot(container: Element) {
   };
 }`
       : 'import { createRoot } from "react-dom/client";';
-    return [{
+    return [widgetConfig(options.name), {
       path: `src/exported-widgets/${options.name}/index.tsx`,
       contents: `import { createElement } from "react";
 ${root}
@@ -48,7 +49,7 @@ export default defineExportedWidget<${componentName}Props>({
     }];
   }
   const selector = `atlas-${options.name}-widget`;
-  return [{
+  return [widgetConfig(options.name), {
     path: `src/exported-widgets/${options.name}/index.ts`,
     contents: `import "zone.js";
 import { Component, InjectionToken, inject } from "@angular/core";
@@ -91,6 +92,19 @@ export default defineExportedWidget<${componentName}Props>(async ({ container, p
 });
 `
   }];
+}
+
+function widgetConfig(name: string): AtlasGeneratedFile {
+  return {
+    path: `src/exported-widgets/${name}/atlas.widget.ts`,
+    contents: `import type { AtlasWidgetConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+
+export default {
+  id: "${randomUUID()}",
+  name: "${title(name)}"
+} satisfies AtlasWidgetConfig;
+`
+  };
 }
 
 function pascal(value: string): string {

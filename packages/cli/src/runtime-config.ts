@@ -29,7 +29,7 @@ export function createHostRuntimeConfig(
     hostId: config.id,
     ...(hostVersion ? { hostVersion } : {}),
     catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? DEFAULT_LOCAL_REGISTRY_BASE_URL)}/hosts/${config.id}/catalog.json`,
-    allowAppOverrides: config.allowAppOverrides ?? true,
+    allowOverrides: config.allowOverrides ?? true,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3
   };

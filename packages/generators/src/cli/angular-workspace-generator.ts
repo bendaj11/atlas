@@ -49,10 +49,17 @@ function angularTemplateCompilerOptions(): Record<string, unknown> {
 
 export function angularAppTsconfig(): unknown {
   return {
-    compilerOptions: { ...angularCompilerOptions(), outDir: "./out-tsc/app" },
-    angularCompilerOptions: angularTemplateCompilerOptions(),
+    extends: "./tsconfig.json",
+    compilerOptions: { outDir: "./out-tsc/app" },
     files: ["src/main.ts", "atlas.config.ts"],
     include: ["src/**/*.ts"]
+  };
+}
+
+export function angularRootTsconfig(): unknown {
+  return {
+    compilerOptions: angularCompilerOptions(),
+    angularCompilerOptions: angularTemplateCompilerOptions()
   };
 }
 
@@ -62,7 +69,7 @@ export function angularFederationConfig(name: string, host: boolean): string {
 module.exports = createAngularFederationConfig({
   projectRoot: __dirname,
   name: "${angularRemoteName(name)}",
-  exposeApp: ${String(!host)}
+  expose: "${host ? "host" : "app"}"
 });
 `;
 }

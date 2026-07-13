@@ -10,7 +10,7 @@ import {
   validateAtlasManifest
 } from "../dist/index.js";
 import type { AtlasPlacement } from "../dist/index.js";
-import { VALID_INTEGRITY, createManifest, createManifestCandidate, issueAt } from "./schema.driver.js";
+import { VALID_INTEGRITY, createCatalog, createManifest, createManifestCandidate, issueAt } from "./schema.driver.js";
 
 test("createManifestFromConfig derives supported hosts from source routes and slots", () => {
   const manifest = createManifestFromConfig({
@@ -146,7 +146,7 @@ test("identifiers permit practical frontend ids", () => {
       remoteEntryUrl: "https://cdn.example/workspace/entry.js",
       expose: "./summary"
     }],
-    uses: ["maps.ui_v2/main-map_v2"]
+    externalAppsDependencies: ["maps.ui_v2"]
   });
 
   assert.equal(validateAtlasManifest(manifest).length, 0);
@@ -167,16 +167,16 @@ test("manifest identifiers reject separators and traversal", () => {
       remoteEntryUrl: "https://cdn.example/workspace/entry.js",
       expose: "./summary"
     }],
-    uses: ["maps/../main", "maps\\admin/main"]
+    externalAppsDependencies: ["maps/admin", "maps\\admin"]
   }));
 
-  for (const path of ["id", "supportedHosts.0", "supportedHosts.1", "supportedHosts.2", "placements.0.id", "placements.0.hostId", "exportedWidgets.0.id", "exportedWidgets.0.ownerAppId", "uses.0", "uses.1"]) {
+  for (const path of ["id", "supportedHosts.0", "supportedHosts.1", "supportedHosts.2", "placements.0.id", "placements.0.hostId", "exportedWidgets.0.id", "exportedWidgets.0.ownerAppId", "externalAppsDependencies.0", "externalAppsDependencies.1"]) {
     assert.ok(issueAt(issues, path), `Expected an issue at ${path}`);
   }
 });
 
 test("catalog host identifiers reject separators and traversal", () => {
-  const catalog = { schemaVersion: "1", hostId: "../host", generatedAt: "2026-01-01T00:00:00.000Z", manifests: [] };
+  const catalog = createCatalog([], "../host");
 
   assert.ok(issueAt(validateAtlasHostCatalog(catalog), "hostId"));
 });
@@ -299,60 +299,45 @@ test("exported widgets validate metadata and unique ids", () => {
   assert.ok(issueAt(issues, "exportedWidgets.1.id"));
 });
 
-test("widget uses reject whitespace and duplicate references", () => {
-  const issues = validateAtlasManifest(createManifest({ uses: ["maps/main map", "maps/main", "maps/main"] }));
+test("external app dependencies reject whitespace and duplicate ids", () => {
+  const issues = validateAtlasManifest(createManifest({ externalAppsDependencies: ["maps app", "maps", "maps"] }));
 
-  assert.ok(issueAt(issues, "uses.0"));
-  assert.equal(issueAt(issues, "uses.2")?.message, "Duplicate widget reference \"maps/main\".");
+  assert.ok(issueAt(issues, "externalAppsDependencies.0"));
+  assert.equal(issueAt(issues, "externalAppsDependencies.2")?.message, "Duplicate external app dependency \"maps\".");
 });
 
 test("catalog validates nested manifests with prefixed paths", () => {
-  const catalog = { schemaVersion: "1", hostId: "host", generatedAt: "2026-01-01T00:00:00.000Z", manifests: [createManifest({ version: "latest" })] };
+  const catalog = createCatalog([createManifest({ version: "latest" })]);
 
-  assert.ok(issueAt(validateAtlasHostCatalog(catalog), "manifests.0.version"));
+  assert.ok(issueAt(validateAtlasHostCatalog(catalog), "apps.0.version"));
 });
 
 test("catalog rejects duplicate app ids", () => {
-  const catalog = {
-    schemaVersion: "1",
-    hostId: "host",
-    generatedAt: "2026-01-01T00:00:00.000Z",
-    manifests: [createManifest({ id: "catalog" }), createManifest({ id: "catalog" })]
-  };
+  const catalog = createCatalog([createManifest({ id: "catalog" }), createManifest({ id: "catalog" })]);
 
-  assert.equal(issueAt(validateAtlasHostCatalog(catalog), "manifests.1.id")?.message, 'Duplicate app id "catalog".');
+  assert.equal(issueAt(validateAtlasHostCatalog(catalog), "apps.1.id")?.message, 'Duplicate app id "catalog".');
 });
 
 test("catalog permits duplicate exact route ownership so runtime can report conflicts", () => {
   const route: AtlasPlacement = { id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } };
-  const catalog = {
-    schemaVersion: "1",
-    hostId: "host",
-    generatedAt: "2026-01-01T00:00:00.000Z",
-    manifests: [createManifest({ id: "first", placements: [route] }), createManifest({ id: "second", placements: [{ ...route, id: "other" }] })]
-  };
+  const catalog = createCatalog([createManifest({ id: "first", placements: [route] }), createManifest({ id: "second", placements: [{ ...route, id: "other" }] })]);
 
   assert.equal(validateAtlasHostCatalog(catalog).length, 0);
 });
 
 test("catalog permits the same route path for different hosts", () => {
-  const catalog = {
-    schemaVersion: "1",
-    hostId: "host",
-    generatedAt: "2026-01-01T00:00:00.000Z",
-    manifests: [
+  const catalog = createCatalog([
       createManifest({ id: "first", placements: [{ id: "main", kind: "route", hostId: "host", route: { basePath: "/workspace", title: "Workspace" } }] }),
       createManifest({ id: "second", placements: [{ id: "main", kind: "route", hostId: "admin", route: { basePath: "/workspace", title: "Workspace" } }] })
-    ]
-  };
+  ]);
 
   assert.equal(validateAtlasHostCatalog(catalog).length, 0);
 });
 
 test("assertAtlasHostCatalog throws structured validation errors", () => {
   assert.throws(
-    () => assertAtlasHostCatalog({ schemaVersion: "1", hostId: "host", generatedAt: "now", manifests: "invalid" }),
-    (error) => error instanceof AtlasValidationError && error.issues[0].path === "manifests"
+    () => assertAtlasHostCatalog({ ...createCatalog(), apps: "invalid" }),
+    (error) => error instanceof AtlasValidationError && error.issues.some(({ path }) => path === "apps")
   );
 });
 

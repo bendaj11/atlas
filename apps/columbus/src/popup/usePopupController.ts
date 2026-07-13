@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData } from "../contracts.js";
+import { artifactKey, type AtlasExtensionManifest as Manifest, type AtlasHostData as HostData } from "../contracts.js";
 import {
   createOverrideDocument,
   errorMessage,
@@ -31,10 +31,12 @@ export function usePopupController() {
 
     try {
       const result = await readHostData(activeTabId);
-      activeOverrides.current = new Map((result.hostData.overrides?.overrides ?? []).map((override) => [
-        override.appId,
-        normalizeStoredManifest(override.manifest)
-      ]));
+      const documentValue = result.hostData.overrides;
+      const selectedOverrides = [
+        ...(documentValue?.host ? [documentValue.host.manifest] : []),
+        ...(documentValue?.apps ?? []).map((override) => override.manifest)
+      ];
+      activeOverrides.current = new Map(selectedOverrides.map((manifest) => [artifactKey(manifest), normalizeStoredManifest(manifest)]));
       const loadedScope = result.hostData.overrideScope === "tab" ? "tab" : "all";
       savedDisabledOverrides.current = await readDisabledOverrides(result.hostData.config.hostId, result.tabId, loadedScope);
       includeDisabledApps(result.hostData, savedDisabledOverrides.current);
@@ -80,18 +82,18 @@ export function usePopupController() {
     }
   }, [activeTabId, hostData, scope]);
 
-  const toggleOverride = useCallback(async (appId: string): Promise<void> => {
+  const toggleOverride = useCallback(async (key: string): Promise<void> => {
     if (applying.current) return;
-    const active = activeOverrides.current.get(appId);
+    const active = activeOverrides.current.get(key);
 
     if (active) {
-      savedDisabledOverrides.current.set(appId, active);
-      activeOverrides.current.delete(appId);
+      savedDisabledOverrides.current.set(key, active);
+      activeOverrides.current.delete(key);
     } else {
-      const disabled = savedDisabledOverrides.current.get(appId);
+      const disabled = savedDisabledOverrides.current.get(key);
       if (!disabled) return;
-      activeOverrides.current.set(appId, disabled);
-      savedDisabledOverrides.current.delete(appId);
+      activeOverrides.current.set(key, disabled);
+      savedDisabledOverrides.current.delete(key);
     }
 
     setRevision((value) => value + 1);
@@ -100,28 +102,38 @@ export function usePopupController() {
 
   const saveOverride = useCallback((value: SaveOverrideValue): void => {
     if (applying.current) return;
-    savedDisabledOverrides.current.delete(value.production.id);
+    const key = artifactKey(value.production);
+    savedDisabledOverrides.current.delete(key);
 
-    if (value.selected) activeOverrides.current.set(value.production.id, value.selected);
-    else activeOverrides.current.delete(value.production.id);
+    if (value.selected) activeOverrides.current.set(key, value.selected);
+    else activeOverrides.current.delete(key);
 
     void persistActiveOverrides();
   }, [persistActiveOverrides]);
 
   const apps = useMemo<AppViewModel[]>(() => {
-    return hostData?.catalog.manifests.map((manifest) => createAppViewModel(manifest, activeOverrides.current, savedDisabledOverrides.current)) ?? [];
+    return hostData?.catalog.apps.map((manifest) => createAppViewModel(manifest, activeOverrides.current, savedDisabledOverrides.current)) ?? [];
   }, [hostData, revision]);
+
+  const widgetProviders = useMemo<AppViewModel[]>(() => {
+    return hostData?.catalog.widgetProviders?.map((manifest) => createAppViewModel(manifest, activeOverrides.current, savedDisabledOverrides.current)) ?? [];
+  }, [hostData, revision]);
+
+  const host = useMemo<AppViewModel | undefined>(() => hostData
+    ? createAppViewModel(hostData.catalog.host, activeOverrides.current, savedDisabledOverrides.current)
+    : undefined, [hostData, revision]);
 
   const editor = useMemo<EditorModel | undefined>(() => {
     if (view.name !== "editor" || !hostData) return undefined;
 
-    const production = hostData.catalog.manifests.find((manifest) => manifest.id === view.appId);
+    const production = [hostData.catalog.host, ...hostData.catalog.apps, ...(hostData.catalog.widgetProviders ?? [])]
+      .find((manifest) => artifactKey(manifest) === view.artifactKey);
     if (!production) return undefined;
 
     return {
       hostId: hostData.config.hostId,
       production,
-      selected: activeOverrides.current.get(view.appId) ?? savedDisabledOverrides.current.get(view.appId),
+      selected: activeOverrides.current.get(view.artifactKey) ?? savedDisabledOverrides.current.get(view.artifactKey),
       productionOptions: productionVersions(hostData, production),
       prOptions: prVersions(hostData, production)
     };
@@ -129,6 +141,8 @@ export function usePopupController() {
 
   return {
     apps,
+    widgetProviders,
+    host,
     editor,
     hostData,
     scope,
@@ -138,16 +152,20 @@ export function usePopupController() {
     saveOverride,
     setScope,
     showDashboard: () => setView({ name: "dashboard" }),
-    showEditor: (appId: string) => setView({ name: "editor", appId }),
+    showEditor: (key: string) => setView({ name: "editor", artifactKey: key }),
     setError: (message: string) => setStatus({ busy: false, message, tone: "error" }),
     toggleOverride
   };
 }
 
 function includeDisabledApps(hostData: HostData, disabledOverrides: Map<string, Manifest>): void {
-  const knownAppIds = new Set(hostData.catalog.manifests.map((manifest) => manifest.id));
+  const knownAppIds = new Set(hostData.catalog.apps.map((manifest) => artifactKey(manifest)));
+  const dependencyIds = new Set(hostData.catalog.apps.flatMap((manifest) => manifest.externalAppsDependencies ?? []));
+  hostData.catalog.widgetProviders ??= [];
   for (const manifest of disabledOverrides.values()) {
-    if (!knownAppIds.has(manifest.id)) hostData.catalog.manifests.push(manifest);
+    if (manifest.kind !== "app" || knownAppIds.has(artifactKey(manifest))) continue;
+    if (dependencyIds.has(manifest.id)) hostData.catalog.widgetProviders.push(manifest);
+    else hostData.catalog.apps.push(manifest);
   }
 }
 
@@ -157,7 +175,7 @@ function hostReadyStatus(hostData: HostData): StatusState {
 
   return {
     busy: false,
-    message: `${hostData.catalog.manifests.length} apps discovered${runtimeNote}`,
+    message: `Host client, ${hostData.catalog.apps.length} apps, and ${hostData.catalog.widgetProviders?.length ?? 0} external widget providers discovered${runtimeNote}`,
     tone: errorCount ? "error" : "standard"
   };
 }

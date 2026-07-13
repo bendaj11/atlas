@@ -29,7 +29,7 @@ export async function readColumbusManifest(): Promise<ColumbusManifest> {
 }
 
 interface InterceptorScenario {
-  allowAppOverrides?: boolean;
+  allowOverrides?: boolean;
   catalog: Record<string, unknown>;
   devSession: Record<string, unknown>;
   disabledAppIds?: string[];
@@ -42,7 +42,7 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
   const nativeFetch = async (input: RequestInfo | URL): Promise<Response> => {
     const url = String(input);
     if (url.endsWith("/atlas.runtime.json")) {
-      return jsonResponse({ schemaVersion: "1", hostId: "test-host", catalogUrl: "https://registry.test/hosts/test-host/catalog.json", allowAppOverrides: scenario.allowAppOverrides });
+      return jsonResponse({ schemaVersion: "1", hostId: "test-host", catalogUrl: "https://registry.test/hosts/test-host/catalog.json", allowOverrides: scenario.allowOverrides ?? true });
     }
     if (url.startsWith("http://127.0.0.1:4400/atlas.dev-session.json")) {
       devSessionRequests += 1;

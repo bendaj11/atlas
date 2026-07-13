@@ -1,13 +1,28 @@
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
-import { startAtlasHostRuntime } from "../dist/index.js";
-import type { AtlasAppEntry } from "../../sdk/dist/lifecycle.js";
-import type { AtlasHostCatalog, AtlasManifest, AtlasPlacement } from "../../schema/dist/index.js";
+import { createRegistryWidgetResolver, createWidgetLoader, startAtlasHostRuntime } from "../dist/index.js";
+import type { AtlasAppEntry, AtlasMountedWidget } from "../../sdk/dist/lifecycle.js";
+import type { AtlasExportedWidgetManifest, AtlasHostCatalog, AtlasHostManifest, AtlasManifest, AtlasPlacement, AtlasProductionSelection, AtlasStaticRegistry } from "../../schema/dist/index.js";
 import type { AtlasHostMountEvent, AtlasHostMountState, AtlasHostRuntime } from "../dist/index.js";
 
 const hostId = "host";
 
 export function createHostCatalog(manifests: AtlasManifest[], selectedHostId = hostId): AtlasHostCatalog {
-  return { schemaVersion: "1", hostId: selectedHostId, generatedAt: "2026-01-01T00:00:00.000Z", manifests };
+  return {
+    schemaVersion: "1",
+    hostId: selectedHostId,
+    revision: "sha256:test",
+    generatedAt: "2026-01-01T00:00:00.000Z",
+    host: testHostManifest(selectedHostId),
+    apps: manifests
+  };
+}
+
+function testHostManifest(id: string): AtlasHostManifest {
+  return {
+    schemaVersion: "1", kind: "host", id, name: id, version: "1.0.0", buildId: "host",
+    channel: "production", framework: "react", remoteEntryUrl: "https://cdn.example/host/remoteEntry.json",
+    exposes: { entry: "./host" }, requiredLoaderApiVersion: "^1.0.0", createdAt: "2026-01-01T00:00:00.000Z"
+  };
 }
 
 export function createRoutePlacement(id: string, basePath: string): AtlasPlacement {
@@ -30,6 +45,157 @@ export function createTestContainer(document: Document = createTestDocument()): 
   element.append = () => undefined;
   element.remove = () => undefined;
   return element;
+}
+
+export function createWidgetRendererContainer(): HTMLElement {
+  const document: Document = Object.create(null);
+  const createElement = (): HTMLElement => {
+    const element: HTMLElement = Object.create(null);
+    Object.defineProperty(element, "dataset", { value: {} });
+    Object.defineProperty(element, "ownerDocument", { value: document });
+    element.append = () => undefined;
+    element.replaceChildren = () => undefined;
+    element.remove = () => undefined;
+    element.setAttribute = () => undefined;
+    return element;
+  };
+  Object.defineProperty(document, "createElement", { value: createElement });
+  return createElement();
+}
+
+export class WidgetRetryDriver {
+  #mounted: AtlasMountedWidget | undefined;
+  #remoteMounted: Promise<void>;
+  #resolveRemoteMounted!: () => void;
+  #retry: (() => void) | undefined;
+  #unmounted = false;
+
+  constructor() {
+    this.#remoteMounted = new Promise((resolve) => { this.#resolveRemoteMounted = resolve; });
+  }
+
+  async start(): Promise<void> {
+    const widget = widgetManifest("catalog", "6f4994c1-b95f-4b24-a01a-106dd61aa4fb", "Product Count");
+    const manifest = createTestManifest({ id: "catalog", exportedWidgets: [widget] });
+    let attempts = 0;
+    const loader = createWidgetLoader([manifest], createTestHostSdk(), {
+      importWidget: async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("temporary import failure");
+        return {
+          mount: () => {
+            this.#resolveRemoteMounted();
+            return { unmount: () => { this.#unmounted = true; } };
+          }
+        };
+      },
+      renderWidgetError: (_container, _context, retry) => { this.#retry = retry; }
+    });
+    this.#mounted = await loader.mount(widget.id, createWidgetRendererContainer(), {});
+  }
+
+  async retry(): Promise<void> {
+    if (!this.#retry) throw new Error("Widget retry was not available.");
+    this.#retry();
+    await this.#remoteMounted;
+  }
+
+  async unmount(): Promise<void> {
+    await this.#mounted?.unmount();
+  }
+
+  get remoteUnmounted(): boolean {
+    return this.#unmounted;
+  }
+}
+
+export async function duplicateWidgetResult(): Promise<{ name: string; warning: string }> {
+  const widgetId = "6f4994c1-b95f-4b24-a01a-106dd61aa4fb";
+  const first = createTestManifest({ id: "first", exportedWidgets: [widgetManifest("first", widgetId, "First Widget")] });
+  const second = createTestManifest({ id: "second", exportedWidgets: [widgetManifest("second", widgetId, "Second Widget")] });
+  const originalWarn = console.warn;
+  let warning = "";
+  try {
+    console.warn = (message?: unknown) => { warning = String(message); };
+    const widget = await createWidgetLoader([first, second], createTestHostSdk()).getWidget(widgetId);
+    return { name: widget.name, warning };
+  } finally {
+    console.warn = originalWarn;
+  }
+}
+
+export async function duplicateRegistryWidgetResult(): Promise<{ ownerId: string; warning: string }> {
+  const widgetId = "6f4994c1-b95f-4b24-a01a-106dd61aa4fb";
+  const first = widgetProvider("first", widgetId, "1.0.0");
+  const second = widgetProvider("second", widgetId, "1.0.0");
+  const originalWarn = console.warn;
+  let warning = "";
+  try {
+    console.warn = (message?: unknown) => { warning = String(message); };
+    const resolver = createRegistryWidgetResolver({
+      runtimeConfig: { schemaVersion: "1", hostId: "host", catalogUrl: "https://platform.example/atlas/hosts/host/catalog.json" },
+      catalog: createHostCatalog([]),
+      fetchJson: async () => widgetRegistry([first, second])
+    });
+    return { ownerId: (await resolver(widgetId)).ownerManifest.id, warning };
+  } finally {
+    console.warn = originalWarn;
+  }
+}
+
+export class WidgetRegistryDriver {
+  requests = 0;
+  readonly widgetId = "6f4994c1-b95f-4b24-a01a-106dd61aa4fb";
+  readonly resolver = createRegistryWidgetResolver({
+    runtimeConfig: { schemaVersion: "1", hostId: "host", catalogUrl: "https://platform.example/atlas/hosts/host/catalog.json" },
+    catalog: createHostCatalog([]),
+    fetchJson: async () => {
+      this.requests += 1;
+      if (this.requests === 1) throw new Error("temporary registry failure");
+      return widgetRegistry([widgetProvider("internal-provider", this.widgetId, "1.0.0")]);
+    }
+  });
+}
+
+export function widgetProvider(appId: string, widgetId: string, version: string): AtlasManifest {
+  return createTestManifest({
+    id: appId,
+    version,
+    buildId: `build-${version}`,
+    placements: [],
+    exportedWidgets: [widgetManifest(appId, widgetId, "Test Widget", version)]
+  });
+}
+
+export function widgetRegistry(
+  apps: AtlasManifest[],
+  selections: Record<string, AtlasProductionSelection> = {}
+): AtlasStaticRegistry {
+  return {
+    schemaVersion: "1",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    hosts: [],
+    apps,
+    selections: { hosts: {}, apps: selections }
+  };
+}
+
+function widgetManifest(
+  appId: string,
+  widgetId: string,
+  name: string,
+  version = "1.0.0"
+): AtlasExportedWidgetManifest {
+  return {
+    schemaVersion: "1",
+    id: widgetId,
+    name,
+    ownerAppId: appId,
+    framework: "react",
+    remoteEntryUrl: `https://assets.example/${appId}/${version}/remoteEntry.json`,
+    expose: "./widgets/test",
+    contractVersion: "1"
+  };
 }
 
 export function createRouteManifest(id: string, basePath: string): AtlasManifest {
