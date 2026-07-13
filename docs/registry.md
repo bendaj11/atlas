@@ -49,6 +49,11 @@ jf rt upload "dist/atlas-publication/(*)" "product-atlas/{1}"
 
 Atlas reads the existing public `registry.json` from `ATLAS_REGISTRY_BASE_URL` to preserve other app versions while preparing new indexes. CI may instead download it itself and pass `--registry-snapshot=<path>`.
 
+With a deployment-lock strategy, acquire the lock before `atlas build` reads
+that snapshot and hold it through public verification. A lock-free provider
+transaction is safe only when it protects the complete mutable file set; a
+compare-and-swap on `registry.json` alone cannot prevent interleaved catalogs.
+
 `dist/atlas-publication.json` lists every prepared relative path and marks it as `immutable` or `revalidate`. It also contains `baseRevision`, `registryRevision`, and the required upload order. It sits outside the upload directory and is CI metadata, not a registry file.
 
 ## Concurrent CI Builds
@@ -66,7 +71,8 @@ Atlas fails when the supplied snapshot does not have that revision. The publicat
 Because Atlas never writes to consumer storage, the consumer must still use one of these provider-specific safeguards around the mutable upload:
 
 - hold a deployment lock from snapshot download through mutable-file replacement; or
-- compare the live revision with `baseRevision` immediately before an atomic replacement and retry the build when they differ.
+- compare the live revision with `baseRevision` immediately before an atomic
+  replacement of the complete mutable set and retry the build when they differ.
 
 Upload immutable assets before performing that protected mutable replacement. Merely checking a revision early in a pipeline cannot prevent another pipeline from winning the race later.
 

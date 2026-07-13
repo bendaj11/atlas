@@ -67,7 +67,7 @@ Anyone who can publish both an asset and its manifest is effectively a code
 publisher for the host. Protect publication permissions, review app changes, and
 preserve an auditable build-to-manifest relationship.
 
-Atlas does not place apps in cross-origin iframes. apps share the host page and
+Atlas does not place apps in cross-origin iframes. Apps share the host page and
 can access browser APIs available to that page. DOM boundaries and Shadow DOM
 help with UI and style isolation, not security isolation.
 

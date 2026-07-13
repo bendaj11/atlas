@@ -1,13 +1,18 @@
-# Getting Started With React
+# React: From Zero To Production
 
 This guide creates a React host and a React feature app, runs the app
-inside the host, then prepares files for production.
+inside the host, then prepares, verifies, and rolls back a production release.
 
 The example names are:
 
 - Host: `customer-host`
 - App: `orders`
 - Route: `/orders`
+
+Before starting, complete the shared
+[prerequisites](../getting-started.md#before-you-begin). If you only need one
+side of the integration, follow the **Host domain** or **App domain** sections
+and coordinate the named checkpoints with the other team.
 
 ## 1. Install Atlas (Workstation Domain)
 
@@ -192,7 +197,7 @@ An app owns one feature area. It is built and deployed independently, then mount
 by a host catalog.
 
 ```sh
-atlas g app orders --framework=react
+atlas g app orders --framework=react --host=customer-host
 ```
 
 Files to look at first:
@@ -204,6 +209,9 @@ Files to look at first:
 | `src/app/App.tsx` | The main routed React component. Keep this as the app root, and add feature screens in folders under `src/app`. |
 | `src/app/routes.tsx` | The React Router route tree. It connects `App.tsx` to generated feature folders such as `home/` and `details/`. |
 | `vite.config.ts` | The generated Vite build file for the React app. Atlas uses it to expose the app entry, discover exported widgets, and emit federation metadata. Most product work should stay in `atlas.config.ts` and application source. |
+
+Passing `--host=customer-host` creates the initial `/orders` route in
+`atlas.config.ts`.
 
 Effect: you now have a feature app that can be mounted by an Atlas host. It is
 not meant to be a separate host application. Generated apps have no
@@ -424,7 +432,8 @@ More docs:
 This step tells the deployed host where its catalog lives and how long Atlas
 waits for runtime resources.
 
-In `customer-host/atlas.config.ts`, set production-safe runtime knobs:
+In `customer-host/atlas.config.ts`, start with these example runtime knobs, then
+tune them to measured latency and product failure targets:
 
 ```ts
 allowAppOverrides: false,
@@ -456,6 +465,18 @@ The generated `public/atlas.runtime.json` looks like:
 Effect: the host can move between dev, staging, and production catalogs without a
 JavaScript rebuild.
 
+Generated host build script runs `atlas runtime-config` again. Keep the registry
+URL in that build environment:
+
+```sh
+cd customer-host
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
+cd ..
+```
+
+Otherwise the build script writes the local registry default over the file you
+generated above.
+
 More docs:
 
 - [Security](../security.md): explains trust, allowed origins, integrity, and runtime loading policy.
@@ -466,10 +487,13 @@ More docs:
 This step creates provider-neutral files for static storage. Atlas does not
 upload anything.
 
+When CI uses a deployment lock, acquire it before `atlas build` reads the live
+registry snapshot and hold it through public verification.
+
 ```sh
 ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="$BUILD_ID" \
-ATLAS_CREATED_AT="$BUILD_TIMESTAMP" \
+ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
+ATLAS_CREATED_AT="${BUILD_TIMESTAMP:?BUILD_TIMESTAMP is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
 atlas build orders
 ```
@@ -510,8 +534,12 @@ If release fails, roll back by selecting an older immutable version:
 ```sh
 atlas rollback orders \
   --version=1.3.2 \
+  --build-id=1.3.2-build-123 \
   --registry-base-url=https://cdn.example.com/atlas
 ```
+
+Acquire the deployment lock before preparing rollback. Omit `--build-id` only
+when that version has one production build; Atlas rejects ambiguous selection.
 
 Effect: verification catches broken catalogs, manifests, integrity, CORS, MIME
 types, and cache policy. Rollback replaces catalog JSON; it does not rebuild or
@@ -520,4 +548,5 @@ overwrite assets.
 More docs:
 
 - [Production deployment](production-deployment.md): shows the full release, verify, and rollback flow.
+- [Production readiness](../production-readiness.md): final host, app, registry, security, monitoring, and rollback checklist.
 - [Troubleshooting](troubleshooting.md): use when verification fails or the deployed host cannot load an app.

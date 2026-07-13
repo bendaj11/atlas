@@ -4,7 +4,9 @@ Atlas local development is designed around one principle: run the app locally, b
 
 ## Why
 
-apps depend on host services such as navigation, modals, toasts, configuration, and product-specific SDK extensions. Running them as standalone apps gives a false picture of production behavior.
+Apps depend on host services such as navigation, modals, toasts, configuration,
+and product-specific SDK extensions. Running them as standalone apps gives a
+false picture of production behavior.
 
 ## Flow
 
@@ -16,21 +18,21 @@ atlas dev customer-host
 atlas dev customer-host
 ```
 
-The command:
+The app command:
 
-1. Generate a local manifest pointing to localhost.
-2. Start the selected app's framework dev server.
-3. Wait until its Native Federation remote entry is reachable.
-4. Serve a validated dev session from the Atlas control server.
-5. Print the host URL.
-6. Let the host load every production app except the one being overridden.
+1. Generates a local manifest pointing to localhost.
+2. Starts the selected app's framework dev server.
+3. Waits until its Native Federation remote entry is reachable.
+4. Serves a validated dev session from the Atlas control server.
+5. Prints the host URL.
+6. Lets the host load every production app except the one being overridden.
 
 Run the host separately with `atlas dev <host>` first, then run
 `atlas dev <app>`. If your shell is already inside a generated host or app
 directory, `atlas dev` uses that current Atlas project. Run named commands from
 the directory that contains both generated projects, or from your monorepo root.
-Atlas reads the app
-`atlas.config.ts` and infers the host when there is only one configured host. If
+Atlas reads the app's `atlas.config.ts` and infers the host when there is only
+one configured host. If
 there are multiple hosts, an interactive terminal asks which one to use; in
 non-interactive shells, pass `--host` or set `ATLAS_HOST_ID`.
 
@@ -38,6 +40,7 @@ Atlas delegates to Nx, Turborepo, pnpm, Yarn, npm, or the standalone project
 script as needed. When the app is ready, Atlas opens the host URL in a new
 browser tab and also prints it as **App Preview**. Pass `--no-open` to print the
 URL without opening it.
+
 With the Atlas Columbus extension installed, the browser keeps the clean host URL
 and intercepts the Atlas catalog request, merging the local dev session from the
 control server. Every other app continues to come from the production catalog.
@@ -52,8 +55,8 @@ ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
 
 `ATLAS_HOST_URL` accepts either a host base URL or a full page URL. For a base
 URL, Atlas appends the configured route base path. When the selected host has
-multiple routes, Atlas asks which route to open. For repeated local work, add a
-app project's `.env.local` file:
+multiple routes, Atlas asks which route to open. For repeated local work, add
+the values to the app project's `.env.local` file:
 
 ```dotenv
 ATLAS_HOST_ID=customer-host
@@ -70,7 +73,10 @@ concurrently on the default port. Use `--port` or `--control-port` only when
 necessary. Atlas writes a diagnostic copy to `.atlas/local-overrides.json`;
 developers do not maintain it.
 
-The control server reports `503 starting` until the app is ready, so opening the printed URL cannot race framework startup. Generated React apps also initialize Vite Fast Refresh when imported by a host; Angular and React developers get their normal framework development behavior without extra setup.
+The control server reports `503 starting` until the app is ready, so opening the
+printed URL cannot race framework startup. Generated React apps also initialize
+Vite Fast Refresh when imported by a host; Angular and React developers get
+their normal framework development behavior without extra setup.
 
 Generated hosts still accept an override URL under `atlas.runtime-override-url`
 and a complete override document under `atlas.runtime-overrides` in browser
@@ -109,7 +115,17 @@ The host does not need to redeploy for these changes.
 
 ## Columbus Extension
 
-Build the extension with `yarn workspace @atlas/columbus build`, then load `apps/columbus/dist` as an unpacked extension from `chrome://extensions`.
+Product developers should obtain the Columbus extension from their platform
+team. Atlas repository contributors can build it with:
+
+```sh
+yarn workspace @atlas/columbus build
+```
+
+Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
+then select `apps/columbus/dist`. Columbus requires Chrome 111 or newer. See the
+[extension guide](../apps/columbus/README.md) for its permissions, workflow, and
+troubleshooting.
 
 The extension also detects local `atlas dev` sessions at
 `http://127.0.0.1:4400/atlas.dev-session.json`. When a session targets the
@@ -117,9 +133,15 @@ active host, the extension merges the local manifest into Atlas catalog
 responses before the host runtime reads them. The address bar stays on the real
 host URL.
 
-The popup discovers the active host from `/atlas.runtime.json`, reads its catalog, and reads each static app index for all versions of each selected app. Manual choices are persisted per `hostId`. Applying changes writes one atomic override document into the host origin and reloads the tab. Widgets follow their owner app version automatically and are not selected independently.
+The popup discovers the active host from `/atlas.runtime.json`, reads its
+catalog, and reads each static app index for all versions of each selected app.
+Manual choices are persisted per `hostId`. Applying changes writes one atomic
+override document into the host origin and reloads the tab. Widgets follow their
+owner app version automatically and are not selected independently.
 
-Overrides apply to **All tabs** by default using origin `localStorage`. Choose **This tab** to keep an experiment isolated in `sessionStorage`; a tab override takes precedence over an all-tabs override without changing other open tabs.
+Overrides apply to **All tabs** by default using origin `localStorage`. Choose
+**This tab** to keep an experiment isolated in `sessionStorage`; a tab override
+takes precedence over an all-tabs override without changing other open tabs.
 
 For local development, run `atlas dev <app>` and open the printed host URL. The
 extension applies the local session automatically when host ids match.

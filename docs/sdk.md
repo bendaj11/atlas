@@ -146,7 +146,7 @@ startHost({
 });
 ```
 
-apps request modals through the SDK and never render the modal frame, backdrop, or focus trap inside their own route or slot:
+Apps request modals through the SDK and never render the modal frame, backdrop, or focus trap inside their own route or slot:
 
 ```ts
 const result = await atlas.modal.open({
@@ -177,7 +177,7 @@ Important production APIs:
 
 ## Events between apps
 
-apps communicate without importing each other through the host-scoped event bus at `atlas.events`. Define the event contract in shared TypeScript source, then use the same type from publishers and subscribers:
+Apps communicate without importing each other through the host-scoped event bus at `atlas.events`. Define the event contract in shared TypeScript source, then use the same type from publishers and subscribers:
 
 ```ts
 import type { AtlasEventBus } from "@atlas/sdk/host";

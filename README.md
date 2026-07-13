@@ -13,31 +13,26 @@ a future target and is not currently supported.
 
 ## Documentation
 
-Start here:
+New to Atlas? Follow [Getting started](docs/getting-started.md). It takes one
+host and one app from an empty directory to a provider-neutral, verified
+production deployment blueprint.
 
-1. [Getting Started](docs/getting-started.md): choose the Angular or React path and see the full beginner flow.
-2. [Angular Getting Started](docs/angular/getting-started.md): follow staged zero-to-production path, then choose [host](docs/angular/host-getting-started.md) or [app](docs/angular/app-getting-started.md) track.
-3. [React Getting Started](docs/react/getting-started.md): build a React host and React app from install to production.
-4. [Core Concepts](docs/overview.md): learn the Atlas words: host, app, catalog, manifest, mount, and SDK.
-5. [Architecture](docs/architecture.md): see how hosts, apps, catalogs, SDK calls, and Native Federation work together.
-6. SDK guides: wire typed host services for [Angular](docs/angular/sdk.md) or [React](docs/react/sdk.md).
-7. Routing guides: configure route ownership for [Angular](docs/angular/routing.md) or [React](docs/react/routing.md).
-8. Assets and styles: publish CSS and images for [Angular](docs/angular/assets-and-styles.md) or [React](docs/react/assets-and-styles.md).
-9. [Local Development](docs/local-development.md): run one local app inside a real host using overrides.
-10. Production deployment: build, upload, verify, and roll back [Angular](docs/angular/production-deployment.md) or [React](docs/react/production-deployment.md) app releases.
+Choose docs by goal:
 
-Reference and operations:
+| Goal | Guide |
+| --- | --- |
+| Learn Atlas concepts | [Overview](docs/overview.md) and [architecture](docs/architecture.md) |
+| Build a first system | [Angular](docs/angular/getting-started.md) or [React](docs/react/getting-started.md) |
+| Develop an app in a real host | [Local development](docs/local-development.md) |
+| Add routes or host services | [Angular routing](docs/angular/routing.md), [React routing](docs/react/routing.md), [Angular SDK](docs/angular/sdk.md), or [React SDK](docs/react/sdk.md) |
+| Deploy safely | [Angular deployment](docs/angular/production-deployment.md), [React deployment](docs/react/production-deployment.md), and [production readiness](docs/production-readiness.md) |
+| Diagnose a problem | [Angular troubleshooting](docs/angular/troubleshooting.md) or [React troubleshooting](docs/react/troubleshooting.md) |
 
-- [Public API](docs/api.md): lookup for exported runtime functions and TypeScript types.
-- [Manifest Reference](docs/manifest.md): schema details for generated app manifests.
-- Generators: CLI prompts, flags, and generated file behavior for [Angular](docs/angular/generators.md) or [React](docs/react/generators.md).
-- [Exported Widgets](docs/exported-widgets.md): share independently deployed UI from one app to another.
-- [Static Registry](docs/registry.md): catalog structure, immutable versions, and safe concurrent updates.
-- [Workspaces and Monorepos](docs/workspaces.md): Nx, Turborepo, pnpm, Yarn, and npm workspace setup.
-- [Security](docs/security.md): trust, integrity, allowed origins, and remote loading policy.
-- [Consumer testing](docs/consumer-testing.md): test hosts, SDK capabilities, and apps without deploying.
-- Troubleshooting: diagnose generation, local dev, build, and runtime loading issues for [Angular](docs/angular/troubleshooting.md) or [React](docs/react/troubleshooting.md).
-- [Releasing Atlas Packages](docs/releasing.md): maintainers only; publish Atlas packages themselves.
+Reference docs cover the [public API](docs/api.md), [manifest](docs/manifest.md),
+[static registry](docs/registry.md), [security](docs/security.md),
+[workspaces](docs/workspaces.md), [exported widgets](docs/exported-widgets.md),
+and [consumer testing](docs/consumer-testing.md). Atlas maintainers should use
+[repository testing](docs/testing.md) and [release](docs/releasing.md) guides.
 
 ## What Atlas Provides
 
@@ -50,7 +45,8 @@ Reference and operations:
   configuration, and host-specific extensions.
 - Host-owned top-level routing with native Angular Router or React Router inside
   each app.
-- SHA-256 verification and origin restrictions for remotely executed assets.
+- SHA-256 verification for generated production remote entries and stylesheets,
+  plus origin restrictions for remote loading.
 - Provider-neutral output for Nginx, S3, Artifactory, Azure, or another CDN.
 
 ## The Mental Model
@@ -83,6 +79,11 @@ ordinary JSON served from the consumer's static storage.
 
 Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, plus npm,
 pnpm, or Yarn. These ranges match the generated Vite 7 and Angular toolchains.
+Check before installing Atlas:
+
+```sh
+node --version
+```
 
 ```sh
 npm install --global @atlas/cli
@@ -95,15 +96,11 @@ separate scratch directories or different project names so the generated
 ```sh
 # Angular
 atlas g host customer-host --framework=angular
-atlas g app orders --framework=angular
-cd customer-host
-npm run dev
+atlas g app orders --framework=angular --host=customer-host
 
 # React
 atlas g host customer-host --framework=react
-atlas g app orders --framework=react
-cd customer-host
-npm run dev
+atlas g app orders --framework=react --host=customer-host
 ```
 
 Generation creates `customer-host/` and `orders/` under the current directory and
@@ -114,31 +111,44 @@ when required values are omitted:
 atlas g
 ```
 
-Run one app locally inside an existing host:
+From the directory containing both projects, run the host and app in separate
+terminals:
 
 ```sh
+# Terminal 1
+atlas dev customer-host
+
+# Terminal 2
 atlas dev orders \
   --host=customer-host \
   --host-url=http://localhost:5173/orders
 ```
 
-Use the local host URL printed by `npm run dev`. React hosts usually start on
-`http://localhost:5173`; Angular hosts usually start on `http://localhost:4200`.
+Local app replacement uses the Atlas Columbus browser extension. Obtain the
+extension from your platform team. Atlas repository contributors can build and
+load it with the [Columbus instructions](apps/columbus/README.md).
+
+Use the local host URL printed by `atlas dev customer-host`. React hosts usually
+start on `http://localhost:5173`; Angular hosts usually start on
+`http://localhost:4200`.
 For an Angular host, use `--host-url=http://localhost:4200/orders`. Run this
 from the directory that contains both generated projects, or from your monorepo
 root.
 
 Prepare production files without uploading them:
 
+Quick start below uses global CLI. Real CI should pin `@atlas/cli` as exact
+project dependency, commit lockfile, and invoke local binary.
+
 ```sh
 ATLAS_VERSION=1.0.0 \
-ATLAS_BUILD_ID="$BUILD_ID" \
+ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
 atlas build orders
 ```
 
-The output is written under `dist/atlas-publication`. Consumer CI uploads it
-with its existing storage tooling. Atlas never needs cloud credentials.
+The output is written under `orders/dist/atlas-publication`. Consumer CI uploads
+it with its existing storage tooling. Atlas never needs cloud credentials.
 
 Verify the deployed runtime, catalog, manifests, assets, integrity, and HTTP
 delivery policy before promoting it:
@@ -147,12 +157,18 @@ delivery policy before promoting it:
 atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
+Success means verification reports no failures, every warning has an explicit
+disposition, and the deployed host can open `/orders`, refresh a nested route,
+use host-provided services, and load all app assets. Use the
+[production-readiness checklist](docs/production-readiness.md) before enabling
+real traffic.
+
 Follow the complete [Angular](docs/angular/getting-started.md) or
 [React](docs/react/getting-started.md) guide before building a real application.
 
 ## Developer Experience
 
-app developers normally edit only:
+App developers normally edit only:
 
 - framework components, services, hooks, styles, and tests;
 - `atlas.config.ts` when routes, hosts, slots, or widget dependencies change;
@@ -168,6 +184,7 @@ An app receives host services through one framework-native API:
 
 ```ts
 // React
+import { useAtlasSdk } from "@atlas/sdk/react";
 import type { AtlasEventMap } from "@atlas/sdk";
 
 const atlas = useAtlasSdk<{}, AtlasEventMap, { projectId: string }>();
@@ -177,6 +194,7 @@ atlas.hostData.projectId;
 
 ```ts
 // Angular
+import { injectAtlasSdk } from "@atlas/sdk/angular";
 import type { AtlasEventMap } from "@atlas/sdk";
 
 const atlas = injectAtlasSdk<{}, AtlasEventMap, { projectId: string }>();

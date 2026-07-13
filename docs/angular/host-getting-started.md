@@ -10,9 +10,10 @@ Host is stable application owning browser document, auth, top-level URL,
 layout, navigation, modals, toasts, monitoring, and shared services. It does not
 import each app or hard-code app remote URLs. Runtime catalog selects apps.
 
-You need Node.js supported by workspace, Angular tooling used by project, and
-access to static registry URL for production. For Nx, Turborepo, pnpm, Yarn, or
-npm workspaces, read [Workspaces](../workspaces.md).
+You need a supported Node.js version, Angular tooling used by the project, and
+access to a static registry URL for production. Complete the shared
+[prerequisites](../getting-started.md#before-you-begin). For Nx, Turborepo,
+pnpm, Yarn, or npm workspaces, read [Workspaces](../workspaces.md).
 
 ## Stage 1: Install Atlas
 
@@ -77,7 +78,7 @@ Replace surrounding markup with product design, but retain required anchors:
 | `data-atlas-host-status` | Shows host loading and failure state. |
 
 Hidden `router-outlet` keeps Angular Router aligned with Atlas route ownership;
-apps do not render there. Host owns page width, theme, header, and sidebar.
+Apps do not render there. Host owns page width, theme, header, and sidebar.
 Apps stay inside assigned outlets.
 
 App team must declare matching route and slot placements. Send them
@@ -141,7 +142,8 @@ Extension flow and fallback debugging live in [Local development](../local-devel
 
 ## Stage 6: Configure Production Runtime
 
-Set production-safe defaults in `customer-host/atlas.config.ts`:
+Start with these example values in `customer-host/atlas.config.ts`, then tune
+them to measured latency and product failure targets:
 
 ```ts
 allowAppOverrides: false,
@@ -152,7 +154,6 @@ resourcesRetryCount: 3
 Generate browser artifact:
 
 ```sh
-cd customer-host
 atlas runtime-config customer-host \
   --registry-base-url=https://cdn.example.com/atlas
 ```
@@ -174,8 +175,12 @@ Build host with generated workspace script:
 
 ```sh
 cd customer-host
-npm run build
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
 ```
+
+Generated build script runs `atlas runtime-config` again. Keep
+`ATLAS_REGISTRY_BASE_URL` on the build command so it does not replace production
+runtime config with the local registry default.
 
 pnpm or Yarn users run equivalent package script; Nx users may run host build
 target. Deploy emitted Angular browser directory, including copied

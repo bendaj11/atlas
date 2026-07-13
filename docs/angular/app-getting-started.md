@@ -11,8 +11,9 @@ release cadence. Host owns browser page and shared product services. App is not
 a separate product shell and should not import host source.
 
 Before starting, know target host id (`customer-host`), route or slot placement,
-and expected host SDK contract. For advanced mental model, read
-[Architecture](../architecture.md).
+and expected host SDK contract. Complete the shared
+[prerequisites](../getting-started.md#before-you-begin). For advanced mental
+model, read [Architecture](../architecture.md).
 
 ## Stage 1: Install Atlas
 
@@ -34,7 +35,7 @@ generated scripts through native package manager; see [Workspaces](../workspaces
 ## Stage 2: Generate The App
 
 ```sh
-atlas g app orders --framework=angular
+atlas g app orders --framework=angular --host=customer-host
 ```
 
 Inspect these files:
@@ -48,8 +49,10 @@ Inspect these files:
 | `src/app/routes.ts` | Inner Angular route tree. |
 | `federation.config.js` | Generated Native Federation exposure wiring. |
 
-Most feature work belongs under `src/app`. Edit `src/entry.ts` only for lifecycle
-or root-router wiring. See [Generators](generators.md) for flags and scaffold details.
+Passing `--host=customer-host` creates the initial `/orders` route in
+`atlas.config.ts`. Most feature work belongs under `src/app`. Edit `src/entry.ts`
+only for lifecycle or root-router wiring. See [Generators](generators.md) for
+flags and scaffold details.
 The app cannot mount independently: Atlas runtime invokes its entry inside a
 host and supplies SDK and app context.
 
@@ -180,12 +183,14 @@ live in [Local development](../local-development.md). Mount failures live in
 
 ## Stage 6: Build A Production Publication
 
-Set immutable release identity in CI and build:
+When CI uses a deployment lock, acquire it before `atlas build` reads the live
+registry snapshot and hold it through public verification. Then set immutable
+release identity and build:
 
 ```sh
 ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="$BUILD_ID" \
-ATLAS_CREATED_AT="$BUILD_TIMESTAMP" \
+ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
+ATLAS_CREATED_AT="${BUILD_TIMESTAMP:?BUILD_TIMESTAMP is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
 atlas build orders
 ```
@@ -225,13 +230,18 @@ atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
 Then smoke-test `/orders`, nested route refresh, SDK-backed UI, and critical
-assets. If release fails, select older immutable version:
+assets. If release fails, acquire the deployment lock, then select the exact
+older immutable build:
 
 ```sh
 atlas rollback orders \
   --version=1.3.2 \
+  --build-id=1.3.2-build-123 \
   --registry-base-url=https://cdn.example.com/atlas
 ```
+
+Omit `--build-id` only when that version has one production build; Atlas rejects
+ambiguous selection.
 
 Command prepares rollback files and writes plan to `dist/atlas-rollback.json`;
 Atlas does not upload them. CI must upload files listed by plan, invalidate or

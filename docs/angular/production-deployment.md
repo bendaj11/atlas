@@ -26,6 +26,11 @@ atlas runtime-config customer-host --registry-base-url=https://cdn.example.com/a
 cd ..
 ```
 
+Generated host build scripts run `atlas runtime-config` again. Keep
+`ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas` in the production build
+environment so the script does not replace this file with the local registry
+default.
+
 The file is outside the compiled Angular bundle, so each environment may replace
 it without rebuilding the host.
 
@@ -40,11 +45,13 @@ Host production requirements:
 ## App Domain
 
 Build provider-neutral publication files from the directory that contains
-`orders/`, or from your monorepo root:
+`orders/`, or from your monorepo root. When using a deployment lock, acquire it
+before this command reads the live registry snapshot and hold it through public
+verification:
 
 ```sh
 ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="$BUILD_ID" \
+ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
 atlas build orders
 ```
@@ -82,14 +89,17 @@ locking, upload, invalidation, and rollback publication.
 
 Required CI order:
 
-1. Acquire the registry deployment lock or start provider compare-and-swap.
+1. Hold a registry deployment lock that started before the build. A lock-free
+   provider transaction is safe only when it atomically protects the full set of
+   mutable files; single-object compare-and-swap is insufficient.
 2. Confirm the live registry revision still matches the publication plan.
 3. Upload immutable files first; never overwrite an immutable path.
 4. Confirm immutable URLs are publicly readable.
-5. Replace mutable JSON files, such as app indexes and host catalogs.
-6. Revalidate mutable CDN paths.
-7. Run `atlas verify` against the public runtime URL.
-8. Release the deployment lock.
+5. Recheck the live registry revision immediately before mutable writes.
+6. Replace `registry.json`, then app indexes, then host catalogs.
+7. Revalidate mutable CDN paths.
+8. Run `atlas verify` against the public runtime URL.
+9. Release the deployment lock.
 
 Minimal provider-neutral upload loop:
 
@@ -97,8 +107,15 @@ Minimal provider-neutral upload loop:
 node -e '
 const { readFileSync } = require("node:fs");
 const plan = JSON.parse(readFileSync("dist/atlas-publication.json", "utf8"));
+const priority = ({ path }) => path === "registry.json" ? 0
+  : path.startsWith("apps/") ? 1
+  : path.startsWith("hosts/") ? 2
+  : 0;
 for (const cache of plan.uploadOrder) {
-  for (const file of plan.files.filter((entry) => entry.cache === cache)) {
+  const files = plan.files
+    .filter((entry) => entry.cache === cache)
+    .sort((a, b) => priority(a) - priority(b));
+  for (const file of files) {
     console.log(`${cache}: dist/atlas-publication/${file.path}`);
   }
 }
@@ -140,11 +157,19 @@ integrity, remote entries, CORS, MIME types, cache policy, and asset reachabilit
 Rollback selects an already published manifest and replaces only mutable JSON.
 It does not rebuild the Angular app or redeploy the host:
 
+Acquire the deployment lock before preparing rollback. When a version contains
+multiple builds, pass the exact build id selected during staging or canary
+validation:
+
 ```sh
 atlas rollback orders \
   --version=1.3.2 \
+  --build-id=1.3.2-build-123 \
   --registry-base-url=https://cdn.example.com/atlas
 ```
 
 Upload the files listed in `dist/atlas-rollback.json`, invalidate mutable JSON,
 then run `atlas verify` again.
+
+Before enabling traffic, complete the shared
+[production-readiness checklist](../production-readiness.md).

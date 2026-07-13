@@ -29,7 +29,7 @@ Atlas is split into infrastructure and generated usage.
 9. Native Federation imports the selected remote and Atlas calls `mount`.
 10. A page app receives the SDK, scoped navigation, route state, and a catalog-scoped widget loader.
 
-## Page apps And Widgets
+## Page Apps And Widgets
 
 Atlas uses three ownership levels. The host owns top-level routing and global capabilities. A page app owns one route and its DOM layout. Independently deployed capabilities such as maps and complex popups are exported widgets mounted by that page app through `context.widgets`.
 

@@ -27,8 +27,11 @@ configuration.
 Create an Angular app:
 
 ```sh
-atlas g app orders --framework=angular
+atlas g app orders --framework=angular --host=customer-host
 ```
+
+`--host` creates an initial `/orders` route for that host. Omit it when the app
+team will define routes or slots later.
 
 Generated app files to understand first:
 

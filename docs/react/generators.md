@@ -29,8 +29,11 @@ configuration.
 Create a React app:
 
 ```sh
-atlas g app orders --framework=react
+atlas g app orders --framework=react --host=customer-host
 ```
+
+`--host` creates an initial `/orders` route for that host. Omit it when the app
+team will define routes or slots later.
 
 Generated app files to understand first:
 

@@ -10,6 +10,11 @@ publication, production verification, and rollback:
 Host and app often belong to different teams. Follow one track end to end, or
 use this page as the shared delivery checklist.
 
+Before starting, complete the shared
+[prerequisites](../getting-started.md#before-you-begin). This path uses the Atlas
+Columbus extension for local integration and a static HTTPS registry for
+production.
+
 ## Choose Your Track
 
 - [Build an Angular host](host-getting-started.md): create the shell, layout,
@@ -47,7 +52,7 @@ apps:
 
 ```sh
 atlas g host customer-host --framework=angular
-atlas g app orders --framework=angular
+atlas g app orders --framework=angular --host=customer-host
 ```
 
 Generated projects are normal Angular projects with Atlas runtime and Native
@@ -127,3 +132,4 @@ Path complete when:
 Advanced security, registry internals, workspace orchestration, and test design
 stay in focused guides: [Security](../security.md), [Static registry](../registry.md),
 [Workspaces](../workspaces.md), and [Consumer testing](../consumer-testing.md).
+Before enabling traffic, complete [Production readiness](../production-readiness.md).

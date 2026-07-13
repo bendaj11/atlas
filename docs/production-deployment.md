@@ -17,3 +17,4 @@ Shared production model:
 
 For storage layout and concurrency rules, see [Static registry](registry.md).
 For origin, integrity, and CSP rules, see [Security](security.md).
+Before enabling traffic, complete [Production readiness](production-readiness.md).
