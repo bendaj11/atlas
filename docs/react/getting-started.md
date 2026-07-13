@@ -1,236 +1,130 @@
 # React: From Zero To Production
 
-This guide creates a React host and a React feature app, runs the app
-inside the host, then prepares, verifies, and rolls back a production release.
-
-The example names are:
-
-- Host: `customer-host`
-- App: `orders`
-- Route: `/orders`
+This guide creates a React host named `customer-host` and an independently
+deployed React app named `orders`. You will mount the app at `/orders`, run it
+inside the host, publish it, verify production, and practice rollback.
 
 Before starting, complete the shared
-[prerequisites](../getting-started.md#before-you-begin). If you only need one
-side of the integration, follow the **Host domain** or **App domain** sections
-and coordinate the named checkpoints with the other team.
+[prerequisites](../getting-started.md#before-you-begin).
 
-## 1. Install Atlas (Workstation Domain)
+## Delivery Path
 
-This gives you the `atlas` command used for generation, local development, build,
-verify, and rollback.
+| Stage | Outcome |
+| --- | --- |
+| 0–5 | Working app mounted inside a local host |
+| 6 | Clear production mental model and team responsibilities |
+| 7 | Deployed host points to the production Atlas registry |
+| 8 | CI creates an app publication |
+| 9 | CI publishes and activates the app safely |
+| 10 | Public deployment passes verification and smoke tests |
+| 11 | Team can select an older app build without rebuilding the host |
+
+## Stage 0: Understand Host, App, And Deployment Ownership
+
+Atlas separates one frontend system into three ownership domains:
+
+| Domain | Owns |
+| --- | --- |
+| Host team | Browser page, top-level routing, layout, auth, navigation, shared services, and runtime monitoring |
+| App team | Feature UI, inner routes, assets, tests, app configuration, and release identity |
+| Deployment team | Static storage, CDN, credentials, registry locking, upload order, cache policy, verification, and rollback publication |
+
+The host never imports `orders` source or hard-codes its remote URL. The
+`orders` app declares where it can mount. Atlas turns that declaration into an
+app manifest and a host catalog.
+
+Read [Architecture](../architecture.md) for the complete runtime model.
+
+## Stage 1: Install Atlas
+
+For workstation generation and local development:
 
 ```sh
 npm install --global @atlas/cli
 atlas --help
 ```
 
-pnpm and Yarn also work. Use `yarn global add` with Yarn v1. Use `yarn dlx` with Yarn v2 or newer:
+pnpm and Yarn v1 also support global installation. Modern Yarn users can invoke
+one-off commands with `yarn dlx`.
 
-```sh
-pnpm add --global @atlas/cli
-yarn global add @atlas/cli
-```
+Global installation is only for developer convenience. Production CI must use
+an exact project-local `@atlas/cli` version installed from the committed
+lockfile.
 
-With modern Yarn, use npm or pnpm for global install, or run one command with
-`yarn dlx`:
+## Stage 2: Generate The Host
 
-```sh
-yarn dlx @atlas/cli g host customer-host --framework=react
-```
-
-Effect: no project files change yet. You only install the CLI.
-
-More docs:
-
-- [Generators](generators.md): use when you need CLI flags, prompts, or generated file details.
-- [Workspaces and monorepos](../workspaces.md): use when adding Atlas to Nx, Turborepo, pnpm, Yarn, or npm workspaces.
-
-## 2. Generate The React Host (Host Domain)
-
-The host is the main application. It owns the browser page, top-level routing,
-layout, auth, modals, toasts, and shared services.
+The host is the stable product shell:
 
 ```sh
 atlas g host customer-host --framework=react
 ```
 
-Atlas creates a normal React app plus Atlas runtime wiring.
+Inspect these files first:
 
-Files to look at first:
-
-| File | Why it matters |
+| File | Purpose |
 | --- | --- |
-| `atlas.config.ts` | Atlas identity and runtime source file for this host. It gives the host its stable id, display name, and runtime defaults. Atlas uses it later to generate `public/atlas.runtime.json` for the browser. |
-| `public/atlas.runtime.json` | Not created by host generation. It is the deployment-time runtime artifact produced by `atlas runtime-config`, read by the browser before apps load. CI/CD may replace or transform this per environment; application developers normally edit `atlas.config.ts`. |
-| `src/CustomerHostAtlasProvider.tsx` | Creates the host's React Router and provides Atlas. Add host hooks and SDK capabilities here. |
-| `src/app/HostLayout.tsx` | Replaceable product layout. Keep the generated Atlas DOM anchors when customizing it. |
-| `src/main.tsx` | React entry file. It mounts the generated Atlas provider and `RouterProvider`. |
-| `vite.config.ts` | Generated Vite build file used by the React host. Atlas uses it to produce the Native Federation metadata expected by the runtime. Most product work should stay in `atlas.config.ts` and application source. |
+| `customer-host/atlas.config.ts` | Stable host id and runtime defaults |
+| `customer-host/src/CustomerHostAtlasProvider.tsx` | Connects React Router, federation, and host services to Atlas |
+| `customer-host/src/app/HostLayout.tsx` | Product layout and Atlas mount anchors |
+| `customer-host/vite.config.ts` | Generated Vite and federation build wiring |
 
-Effect: you now have a host that can load catalog-selected apps. It still uses
-local placeholder services.
+`public/atlas.runtime.json` does not exist yet. Stage 7 creates it for a specific
+deployment environment.
 
-More docs:
+## Stage 3: Prepare The Host Contract
 
-- [Architecture](../architecture.md): shows how hosts, apps, catalogs, and Native Federation fit together.
-- [Public API](../api.md): lists the runtime functions and types used by generated host code.
-
-## 3. Shape The Host Layout (Host Domain)
-
-This step decides where Atlas can render route content, navigation, and named
-slots.
-
-Generated React hosts use `AtlasDefaultHostLayout` from `@atlas/runtime/react`
-as the replaceable default host layout. It gives a new host a working page
-before the product layout exists. The component only renders the DOM anchors
-Atlas needs for host status, route content, navigation, and slots:
-
-```tsx
-import { AtlasDefaultHostLayout } from "@atlas/runtime/react";
-
-const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
-```
-
-Most teams replace `AtlasDefaultHostLayout` with their own app frame once they
-add real header, sidebar, spacing, and theme. Keep these Atlas attributes in
-the product layout; they are the contract `startHost(...)` uses to find mount
-points:
-
-| Attribute | Meaning |
-| --- | --- |
-| `data-atlas-route-outlet` | Route apps mount here. |
-| `data-atlas-navigation` | Atlas renders route navigation here. |
-| `data-atlas-slot="header"` | Slot apps can mount here. |
-| `data-atlas-host-status` | Host loading and error state appears here. |
-
-For example, a product shell can wrap Atlas anchors in its own header, sidebar,
-and content grid:
+Replace the generated shell with your product layout, but retain the Atlas
+anchors used at runtime:
 
 ```tsx
 export function CustomerHostLayout() {
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <a href="/" className="brand">Customer Portal</a>
-        <div data-atlas-slot="header" />
-      </header>
-      <aside className="app-sidebar">
-        <nav data-atlas-navigation aria-label="Applications" />
-        <div data-atlas-slot="sidebar" />
-      </aside>
-      <main className="app-main">
-        <div data-atlas-host-status />
-        <section data-atlas-route-outlet />
-      </main>
+      <div data-atlas-host-status />
+      <header><div data-atlas-slot="header" /></header>
+      <nav data-atlas-navigation aria-label="Applications" />
+      <main data-atlas-route-outlet />
     </div>
   );
 }
-
-const router = createBrowserRouter([{ path: "*", Component: CustomerHostLayout }]);
 ```
 
-The host controls page width, header, sidebar, spacing, and theme. Apps should
-stay inside their assigned outlets.
+| Anchor | Runtime use |
+| --- | --- |
+| `data-atlas-route-outlet` | Mounts the app selected for the current URL |
+| `data-atlas-navigation` | Renders navigation derived from the catalog |
+| `data-atlas-slot="…"` | Mounts apps assigned to named shell areas |
+| `data-atlas-host-status` | Shows host loading and failure state |
 
-Effect: the host page has real product structure before any app is loaded.
-The host layout creates mount points only. It does not hard-code app route
-paths or app ids. Route and slot ownership comes from app manifests selected by
-the host catalog at runtime.
+In `CustomerHostAtlasProvider.tsx`, replace generated placeholders with real
+auth, HTTP, toast, modal, host data, and monitoring services. Apps consume these
+services through typed Atlas SDK contracts instead of importing host source.
 
-More docs:
+Detailed host examples: [routing](routing.md), [SDK](sdk.md), and
+[consumer testing](../consumer-testing.md).
 
-- [Routing](routing.md): explains routes, slots, inner routes, navigation, and route ownership.
-- [Assets and styles](assets-and-styles.md): explains CSS, images, and asset URLs for host and app builds.
+Checkpoint: host layout contains every anchor needed by planned routes and
+slots, and shared services have production owners.
 
-## 4. Connect Real Host Services (Host Domain)
+## Stage 4: Generate And Configure The App
 
-This step replaces generated local services with product services.
-
-Edit `src/CustomerHostAtlasProvider.tsx` in the host. Because this is a React
-component, it can use product hooks before passing their services into Atlas.
-
-```tsx
-export function CustomerHostAtlasProvider({ children }: PropsWithChildren) {
-  const toast = useToast();
-  const modal = useModal();
-  const authenticatedHttpClient = useAuthenticatedHttpClient();
-
-  return (
-    <AtlasHostProvider
-      hostId={atlasConfig.id}
-      options={{
-        router,
-        federation: { initFederation, loadRemoteModule },
-        showToast: toast.show,
-        openModal: modal.open,
-        hostData: { hostId: atlasConfig.id, name: atlasConfig.name, projectId: currentProject.id },
-        httpClient: authenticatedHttpClient,
-        observe: (event) => monitoring.capture("atlas.runtime", event)
-      }}
-    >
-      {children}
-    </AtlasHostProvider>
-  );
-}
-```
-
-`hostData` always includes Atlas-owned `hostId` and `name`, and can be extended
-with product fields. `httpClient` is a core host API with a `request()` method
-plus basic HTTP verb helpers. Omit `httpClient` to use Atlas' default
-fetch-backed client, or provide one to use axios, authentication, interceptors,
-or another transport. Use `observe` for runtime monitoring. Use `onStateChange`
-only when you need the older per-placement mount-state callback. Put
-product-specific APIs in typed SDK extensions when apps need them. Atlas passes
-your modal, toast, and monitoring implementations through without replacing your
-stack.
-
-Effect: every app mounted by this host can use the same typed host capabilities.
-
-More docs:
-
-- [SDK guide](sdk.md): explains every host capability available to apps.
-- [Consumer testing](../consumer-testing.md): shows how to test host services and app behavior without a deployed catalog.
-
-## 5. Generate The React App (App Domain)
-
-An app owns one feature area. It is built and deployed independently, then mounted
-by a host catalog.
+Generate `orders` with an initial placement in `customer-host`:
 
 ```sh
 atlas g app orders --framework=react --host=customer-host
 ```
 
-Files to look at first:
+Important files:
 
-| File | Why it matters |
+| File | Purpose |
 | --- | --- |
-| `atlas.config.ts` | The Atlas identity and mount file for this app. It names the app, declares which hosts may load it, and tells Atlas where it should appear, such as a route or slot. Edit this when changing route or slot hosts, route paths, navigation labels, slots, or advanced manifest metadata. |
-| `src/entry.tsx` | The generated Atlas mount entry for the React app. It exports the lifecycle Atlas loads through Native Federation and wires the app to the host SDK and inner React routing. Edit it only when changing Atlas lifecycle wiring or the app root router setup. |
-| `src/app/App.tsx` | The main routed React component. Keep this as the app root, and add feature screens in folders under `src/app`. |
-| `src/app/routes.tsx` | The React Router route tree. It connects `App.tsx` to generated feature folders such as `home/` and `details/`. |
-| `vite.config.ts` | The generated Vite build file for the React app. Atlas uses it to expose the app entry, discover exported widgets, and emit federation metadata. Most product work should stay in `atlas.config.ts` and application source. |
+| `orders/atlas.config.ts` | App identity, host routes, slots, widgets, and manifest metadata |
+| `orders/src/entry.tsx` | Atlas lifecycle entry connecting React, scoped routing, and host SDK |
+| `orders/src/app/App.tsx` | Feature root component |
+| `orders/src/app/routes.tsx` | App-owned inner routes |
+| `orders/vite.config.ts` | Generated Vite and federation build wiring |
 
-Passing `--host=customer-host` creates the initial `/orders` route in
-`atlas.config.ts`.
-
-Effect: you now have a feature app that can be mounted by an Atlas host. It is
-not meant to be a separate host application. Generated apps have no
-`src/main.tsx`; Vite serves federation assets, while the host runtime mounts
-`src/entry.tsx` and supplies Atlas SDK and runtime contexts.
-
-More docs:
-
-- [Generators](generators.md): use when you need more app-generation flags or scaffold details.
-- [Manifest reference](../manifest.md): explains the manifest Atlas builds from this app configuration.
-
-## 6. Declare Host Routes And Slots (App Domain)
-
-This step tells Atlas which host can load the app and where users will see it.
-Declare route and slot placements in the app `atlas.config.ts`, not in the
-host. The app owns its public placement contract; the host owns only the layout
-anchors and the catalog URL.
-
-Edit `atlas.config.ts` in the app.
+Declare public placement in `orders/atlas.config.ts`:
 
 ```ts
 import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
@@ -247,209 +141,115 @@ export default {
       nav: { label: "Orders", visible: true, order: 10 }
     }
   ],
-  slots: [
-    {
-      slotId: "header",
-      hostId: "customer-host"
-    }
-  ]
+  slots: [{ slotId: "header", hostId: "customer-host" }]
 } satisfies AtlasAppConfig;
 ```
 
-`routes` create browser URL ownership. Here, `basePath: "/orders"` means the
-host mounts this app for `/orders` and nested URLs such as `/orders/42`.
+`basePath: "/orders"` assigns `/orders` and nested URLs such as `/orders/42`
+to this app. The `header` slot must match the host's
+`data-atlas-slot="header"` anchor.
 
-`slots` create named layout placements. Here, `slotId: "header"` matches the
-host's `data-atlas-slot="header"` anchor, so the same app can also render
-header tools while the route app renders in `data-atlas-route-outlet`.
+Build normal React components and inner routes under `src/app`. Use the Atlas
+SDK for host services and cross-app navigation. Use imported or relative asset
+URLs, never host-root `/assets/...` paths.
 
-The host learns about `basePath` and slots through deployment data:
+Detailed app examples: [routing](routing.md),
+[assets and styles](assets-and-styles.md), and [manifest reference](../manifest.md).
 
-1. `atlas build orders` reads `orders/atlas.config.ts`.
-2. Atlas writes those `routes` and `slots` into the app manifest as placements.
-3. Publication updates `hosts/customer-host/catalog.json`.
-4. At runtime, `customer-host/public/atlas.runtime.json` points the browser to
-   that catalog.
-5. `startHost(...)` reads the catalog, matches the current URL to `/orders`,
-   and mounts slot apps into matching `data-atlas-slot` anchors.
+Checkpoint: app configuration names the correct host, every slot exists in the
+host layout, and route base paths do not conflict with another app.
 
-Effect: production catalogs can select `orders` for `customer-host`, and the
-unchanged host can mount it at `/orders` and in the `header` slot.
+## Stage 5: Run The App Inside The Host
 
-More docs:
-
-- [Routing](routing.md): explains route mount options and nested app navigation.
-- [Static registry](../registry.md): explains how catalogs select this app version for a host.
-
-## 7. Build React Feature UI (App Domain)
-
-This step is normal React development inside the app.
-
-Keep the main app root in `src/app/App.tsx`, add feature components under
-folders such as `src/app/orders`, and update `src/app/routes.tsx` when adding or
-renaming routes. Edit `src/entry.tsx` only for Atlas lifecycle or root router
-wiring changes.
-
-```tsx
-import { useAtlasSdk } from "@atlas/sdk/react";
-import type { AtlasEventMap } from "@atlas/sdk";
-
-interface CustomerHostData {
-  projectId: string;
-}
-
-function OrdersToolbar() {
-  const atlas = useAtlasSdk<{}, AtlasEventMap, CustomerHostData>();
-
-  return (
-    <button
-      type="button"
-      onClick={() => atlas.toast.open({ title: "Order saved", state: "success" })}
-    >
-      Save order
-    </button>
-  );
-}
-```
-
-Use relative asset paths in CSS:
-
-```css
-.orders-hero {
-  background-image: url("./assets/orders-hero.png");
-}
-```
-
-Do not use `/assets/...`; that points at the host origin instead of the app
-publication path.
-
-Effect: the app can use host services while keeping feature code in React.
-
-More docs:
-
-- [SDK guide](sdk.md): explains typed events, navigation, toasts, modals, config, and host data.
-- [Assets and styles](assets-and-styles.md): explains how CSS and assets are published with the app.
-
-## 8. Run The App Inside The Host (Local Development Domain)
-
-Atlas local development runs the app locally, but renders it inside a real host.
-This shows the same integration shape users see in production.
-
-Install or reload the Atlas Columbus extension first. During `atlas dev`, the CLI
-serves a local dev session on the Atlas control port. The extension detects that
-session and intercepts the host catalog request, so the address bar stays on the
-normal host URL.
-
-Use two terminals:
+Atlas serves the app locally but renders it inside the real host. Install or
+reload the Atlas Columbus extension, then run two terminals from the workspace
+root:
 
 ```sh
-# Terminal 1: Host domain
+# Terminal 1: stable host
 atlas dev customer-host
-```
 
-Keep the host running. In a generated React host, the local URL is usually
-`http://localhost:5173`.
-
-```sh
-# Terminal 2: App domain
+# Terminal 2: local feature app
 atlas dev orders \
   --host=customer-host \
   --host-url=http://localhost:5173/orders
 ```
 
-Run both commands from the directory that contains `customer-host/` and
-`orders/`, or from your monorepo root. If Terminal 2 is already inside
-`orders/`, run `atlas dev` with no project name. When the app is ready, Atlas
-opens the clean host URL in a new browser tab and prints it as **App Preview**.
-Pass `--no-open` when you only want the printed URL. It is a clean host URL, not
-an override URL.
+When the app declares one host route and the host uses its generated URL, the
+shorter `atlas dev orders` command can infer the remaining values.
 
-Because `orders/atlas.config.ts` already declares one host route, Atlas can
-infer the host id. For the generated React host, this shorter command is
-equivalent:
+Atlas opens the normal host URL. Only `orders` comes from localhost; other apps
+may continue to load from the host catalog. No production catalog or host source
+file changes.
 
-```sh
-atlas dev orders
+Checkpoint: `/orders` mounts local code, nested routes work after refresh, host
+services work, and browser console has no federation or asset errors.
+
+See [Local development](../local-development.md) for Columbus setup, workspace
+commands, ports, and override debugging.
+
+## Stage 6: Understand The Production Model
+
+Stop here before copying CI commands. Atlas changes the artifact and activation
+parts of a familiar frontend pipeline:
+
+```text
+Traditional: test -> build -> create Docker image -> push image -> deploy image
+Atlas app:    test -> atlas build -> upload immutable files -> activate catalog -> verify
 ```
 
-For quick launch with a non-default host URL, set environment defaults in the
-terminal:
+An Atlas app is static JavaScript, CSS, and JSON. It is not a server or Docker
+image. The host may still use your normal container or static-site deployment.
 
-```sh
-ATLAS_HOST_URL=http://localhost:5173 atlas dev orders
-ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
-```
+Production connects four files:
 
-`ATLAS_HOST_URL` accepts a host base URL or full page URL. For a base URL, Atlas
-appends the app route base path from `atlas.config.ts`.
-For repeated local work, put the values in the app project's `.env.local` file:
+1. Host serves `/atlas.runtime.json`.
+2. Runtime file points to `hosts/customer-host/catalog.json`.
+3. Catalog selects one immutable `orders` manifest.
+4. Manifest points to immutable React/Vite assets.
 
-```dotenv
-ATLAS_HOST_ID=customer-host
-ATLAS_HOST_URL=http://localhost:5173
-```
+App deployment uploads a new immutable build, then changes mutable JSON so the
+catalog selects it. The host is not rebuilt or restarted.
 
-Shell environment variables override `.env.local` values. If an app declares multiple
-hosts and neither `--host` nor `ATLAS_HOST_ID` is set, Atlas asks which host to use
-in an interactive terminal.
+Before proceeding, assign these requirements:
 
-Atlas uses the same top-level command in standalone projects, Nx, Turborepo,
-pnpm workspaces, and Yarn workspaces:
+- App CI: tests, exact local CLI, committed lockfile, version, unique build id.
+- Registry: stable HTTPS base URL, static storage, CDN, correct CORS and MIME
+  types.
+- Deployment CI: protected credentials, registry/environment lock, ordered
+  uploader, CDN invalidation, and release evidence.
+- Host: production services, deep-link fallback, runtime monitoring, CSP, and
+  `/atlas.runtime.json`.
 
-```sh
-atlas dev customer-host
-atlas dev orders
-```
+Checkpoint: each requirement has an owner. Read
+[Deploy Atlas to production](../production-deployment.md) before implementing the
+storage adapter.
 
-From inside either project directory, the project name is optional:
+## Stage 7: Configure And Deploy The Host
 
-```sh
-atlas dev
-```
+**Owner:** host team and host deployment workflow.
 
-Under the hood, Atlas delegates to your workspace. In Nx, `orders:dev` runs the
-Atlas local-development flow and Atlas starts the framework server through
-`orders:serve`; `orders:atlas:config` compiles Atlas config for caching. In
-Turborepo, pnpm workspaces, and Yarn workspaces it runs the generated package
-scripts through the matching workspace command. You can also run commands such
-as `nx run orders`, `nx run orders:dev`, `pnpm --filter orders run dev`,
-`yarn workspace orders run dev`, or `turbo run dev --filter=orders`. Nx gets the
-shorter `nx run <project>` alias automatically; package-manager and Turbo
-commands still include `run dev` because their native CLIs require a task name.
-The separate host process is still required because the app is rendered inside
-the host page.
+This is usually one-time work per environment, not an app-release step.
 
-Effect: only `orders` loads from localhost. Other apps still load from the normal
-host catalog. No production catalog or host source file is edited.
+Set `allowAppOverrides`, `resourcesTimeoutMs`, and `resourcesRetryCount` in
+`customer-host/atlas.config.ts`. Example values appear in the generated JSON
+below; tune timeout and retry values to measured product targets.
 
-More docs:
-
-- [Local development](../local-development.md): explains the Columbus extension flow, local ports, and fallback override debugging.
-- [Troubleshooting](troubleshooting.md): use when the host opens but the app does not mount or load.
-
-## 9. Configure Production Runtime (Host And Deployment Domains)
-
-This step tells the deployed host where its catalog lives and how long Atlas
-waits for runtime resources.
-
-In `customer-host/atlas.config.ts`, start with these example runtime knobs, then
-tune them to measured latency and product failure targets:
-
-```ts
-allowAppOverrides: false,
-resourcesTimeoutMs: 15000,
-resourcesRetryCount: 3
-```
-
-Then generate the browser artifact:
+Start from the workspace root. Install exactly from the committed lockfile, then
+generate the browser runtime file with network-disabled CLI resolution:
 
 ```sh
 cd customer-host
-atlas runtime-config customer-host --registry-base-url=https://cdn.example.com/atlas
-cd ..
+npm ci
+./node_modules/.bin/atlas runtime-config customer-host \
+  --registry-base-url=https://cdn.example.com/atlas
 ```
 
-The generated `public/atlas.runtime.json` looks like:
+Direct `node_modules/.bin` invocation guarantees the command uses the CLI
+installed from this lockfile. In a hoisted workspace, invoke the workspace
+root's `node_modules/.bin/atlas` from the workspace root instead.
+
+The important connection is:
 
 ```json
 {
@@ -462,91 +262,239 @@ The generated `public/atlas.runtime.json` looks like:
 }
 ```
 
-Effect: the host can move between dev, staging, and production catalogs without a
-JavaScript rebuild.
-
-Generated host build script runs `atlas runtime-config` again. Keep the registry
-URL in that build environment:
+Build the host with the same registry URL because its generated build script
+runs `atlas runtime-config` again:
 
 ```sh
-cd customer-host
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas npm run build
-cd ..
 ```
 
-Otherwise the build script writes the local registry default over the file you
-generated above.
+Deploy the Vite output using your normal host pipeline. Production server must:
 
-More docs:
+- serve `/atlas.runtime.json` as JSON;
+- return host `index.html` for page routes such as `/orders/42`;
+- return an HTTP error for missing Atlas JSON, JavaScript, CSS, and CDN assets;
+- allow the approved registry/CDN origins through CSP.
 
-- [Security](../security.md): explains trust, allowed origins, integrity, and runtime loading policy.
-- [Static registry](../registry.md): explains catalog JSON, mutable indexes, and immutable app versions.
+Checkpoint: public `/atlas.runtime.json` returns `customer-host` and the intended
+environment catalog URL. Host root and `/orders` deep link return host HTML.
 
-## 10. Build And Publish The App (App And Deployment Domains)
+## Stage 8: Build The App Publication
 
-This step creates provider-neutral files for static storage. Atlas does not
-upload anything.
+**Owners:** app CI runs quality gates; deployment workflow owns the shared lock
+and publication handoff.
 
-When CI uses a deployment lock, acquire it before `atlas build` reads the live
-registry snapshot and hold it through public verification.
+This stage runs for every app release. Start a new CI job at the workspace root;
+shell directory changes from Stage 7 do not carry into it. Install the committed
+lockfile and run app quality gates before taking the shared lock:
+
+```sh
+cd orders
+npm ci
+```
+
+Atlas does not prescribe test or lint script names. Run the app's configured
+unit, lint, typecheck, security, and build-policy commands, plus an integration
+test inside a real host. Add those scripts before production if the project does
+not already define them.
+
+For example, map your project's actual scripts to gates like these; these names
+are illustrative, not generated Atlas defaults:
+
+```sh
+npm test
+npm run lint
+npm run typecheck
+npm run test:integration
+```
+
+The deployment workflow then acquires the registry/environment lock before
+`atlas build` reads current `registry.json`; hold it through public verification.
+Record lock owner and lease id with the CI run. Stage 9 reuses this same lock; it
+must not acquire a second lock after the publication plan exists.
+
+From the `orders` project, use its generated package script and explicit release
+identity. This example requires a POSIX-compatible CI shell; other shells should
+use their native required-variable check.
 
 ```sh
 ATLAS_VERSION=1.4.0 \
 ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
-ATLAS_CREATED_AT="${BUILD_TIMESTAMP:?BUILD_TIMESTAMP is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-atlas build orders
+npm run atlas:build
 ```
 
-Run this from the directory that contains `orders/`, or from your monorepo root.
+`atlas build` runs the normal React/Vite production build, creates a manifest,
+prepares updated registry metadata, and writes:
 
-Atlas writes:
-
-| Output | Purpose |
-| --- | --- |
-| `dist/atlas-publication` | Upload tree. |
-| `dist/atlas-publication.json` | Upload plan and cache policy. |
-| Immutable assets and manifest | Versioned files that can use immutable cache headers. |
-| Updated app indexes and host catalogs | Mutable JSON files that point hosts to the selected version. |
-
-Upload immutable files first, then replace mutable JSON. If this is the first app
-in a new registry, there may be no existing `registry.json`; Atlas creates the
-initial registry files in `dist/atlas-publication`, and CI uploads that tree as
-the first published registry state.
-
-Effect: the unchanged host can load the new app version through its catalog.
-
-More docs:
-
-- [Production deployment](production-deployment.md): explains upload order, CI variables, verification, and rollback.
-- [Static registry](../registry.md): explains how published manifests update host catalogs safely.
-
-## 11. Verify And Roll Back (Deployment Domain)
-
-Verify what browsers will fetch:
-
-```sh
-atlas verify --runtime-url=https://customer.example/atlas.runtime.json
+```text
+dist/
+  atlas-publication/      # upload tree; preserve relative paths
+  atlas-publication.json  # CI plan; do not upload
 ```
 
-If release fails, roll back by selecting an older immutable version:
+The plan lists exact files, affected host catalogs, cache class, upload order,
+`baseRevision`, and next `registryRevision`. Atlas does not upload files or use
+cloud credentials.
+
+On the first publication, a missing public `registry.json` must return HTTP 404.
+Atlas treats that as an empty registry and generates the initial
+`registry.json`, app index, and `customer-host` catalog from app placements.
+Authentication errors and other HTTP failures stop the build. Later releases
+must preserve existing registry state.
+
+The handoff from app build to deployment workflow is the immutable CI artifact
+containing `dist/atlas-publication/` and `dist/atlas-publication.json` from the
+same run.
+
+Checkpoint: plan contains immutable files under
+`orders/1.4.0/<buildId>/`, mutable registry JSON, and
+`hosts/customer-host/catalog.json`. Build id has never identified different
+bytes.
+
+## Stage 9: Publish And Activate The App
+
+**Owner:** central deployment workflow.
+
+CI must follow the publication plan in two phases.
+
+Phase A publishes bytes without changing what users receive:
+
+1. Upload every file marked `immutable`.
+2. Use long-lived immutable cache headers.
+3. Fail instead of overwriting an existing immutable path.
+4. Confirm every new URL is publicly readable.
+
+Phase B activates the build:
+
+1. Confirm live registry revision still equals plan `baseRevision`.
+2. Replace `registry.json`.
+3. Replace `apps/orders/index.json`.
+4. Replace affected `hosts/<hostId>/catalog.json` files last.
+5. Revalidate or invalidate changed mutable CDN paths.
+
+Catalogs publish last because they make running hosts select the new build. Do
+not use an unordered whole-directory sync.
+
+Atlas cannot provide one storage command for every provider. Before production,
+your organization must supply an adapter implementing this interface; these are
+pseudocode operations, not Atlas CLI commands:
+
+```text
+lock = existing_lock_acquired_before_atlas_build
+assert_lock_owner_and_lease(lock, current_ci_run)
+plan = read("dist/atlas-publication.json")
+for cache_class in plan.uploadOrder:
+  entries = plan.files where file.cache == cache_class
+  if cache_class == "immutable":
+    for file in entries:
+      source = join("dist/atlas-publication", file.path)
+      publish(source, destination = file.path, create_only = true)
+    assert_publicly_readable(entries)
+  if cache_class == "revalidate":
+    assert_live_revision(plan.baseRevision)
+    entries = sort(entries, exact path order: registry.json, apps paths, hosts paths)
+    for file in entries:
+      source = join("dist/atlas-publication", file.path)
+      publish(source, destination = file.path, create_only = false)
+    invalidate(entries)
+continue_to_stage_10_with_lock_held(lock)
+```
+
+If mutable publication fails partway, keep the lock. Retry the ordered,
+idempotent mutable writes until the plan is complete, or prepare rollback from
+the current live revision. Never unlock a partially activated registry.
+
+Checkpoint: immutable URLs return correct cache headers; mutable JSON returns
+fresh content; public catalog selects expected version and build id.
+
+## Stage 10: Verify The Release
+
+**Owner:** deployment workflow, with app and host smoke-test owners.
+
+Verify browser-visible files with the locked local CLI:
 
 ```sh
-atlas rollback orders \
+cd orders
+npm ci
+./node_modules/.bin/atlas verify \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+If runtime config is served from another origin, include the real host origin:
+
+```sh
+./node_modules/.bin/atlas verify \
+  --runtime-url=https://config.example/customer/atlas.runtime.json \
+  --host-origin=https://customer.example
+```
+
+Fix every failure and review every warning. Then smoke-test:
+
+- host root;
+- `/orders`;
+- full-page refresh at `/orders/42`;
+- auth and SDK-backed UI;
+- critical styles, images, and lazy chunks;
+- runtime monitoring.
+
+Release deployment lock only after verification completes. Record verification
+output and smoke-test evidence with the CI run.
+
+If verification or smoke tests fail after activation, keep the lock and either
+repair the current publication or immediately run Stage 11. Verify the repaired
+or rolled-back public state before unlocking.
+
+Checkpoint: CLI verification passes, browser tests pass, selected version/build
+appears in monitoring, and release evidence is retained.
+
+## Stage 11: Roll Back
+
+**Owner:** deployment workflow; incident owner chooses the target build.
+
+Rollback selects an older immutable build. It does not rebuild React/Vite,
+delete the failed build, or redeploy the host.
+
+In a fresh job, start at the workspace root and install dependencies from the
+committed lockfile. Choose an exact previously published version and build id
+from retained release evidence or public `apps/orders/index.json`, then confirm
+its manifest and immutable URLs are still reachable:
+
+```sh
+cd orders
+npm ci
+```
+
+Only after setup and target validation, acquire the deployment lock. Then
+prepare rollback before another publication can change the live registry:
+
+```sh
+./node_modules/.bin/atlas rollback orders \
   --version=1.3.2 \
-  --build-id=1.3.2-build-123 \
+  --build-id=build-123 \
   --registry-base-url=https://cdn.example.com/atlas
 ```
 
-Acquire the deployment lock before preparing rollback. Omit `--build-id` only
-when that version has one production build; Atlas rejects ambiguous selection.
+Atlas writes mutable files under `dist/atlas-rollback/` and a plan at
+`dist/atlas-rollback.json`. Confirm its `baseRevision`, publish `registry.json`
+first and host catalogs last, invalidate mutable paths, run `atlas verify`, and
+repeat smoke tests before releasing the lock.
 
-Effect: verification catches broken catalogs, manifests, integrity, CORS, MIME
-types, and cache policy. Rollback replaces catalog JSON; it does not rebuild or
-overwrite assets.
+Checkpoint: catalog selects the older build, public verification passes, and
+the team has saved evidence from a production-like rollback rehearsal.
 
-More docs:
+## Production-Ready Checkpoint
 
-- [Production deployment](production-deployment.md): shows the full release, verify, and rollback flow.
-- [Production readiness](../production-readiness.md): final host, app, registry, security, monitoring, and rollback checklist.
-- [Troubleshooting](troubleshooting.md): use when verification fails or the deployed host cannot load an app.
+The journey is complete when:
+
+- host and app ownership is explicit;
+- local app runs inside the real host;
+- host runtime points to the correct environment catalog;
+- CI serializes registry changes and publishes immutable files before catalogs;
+- CORS, MIME types, cache headers, CSP, and deep links are correct;
+- verification and browser smoke tests pass;
+- rollback has been rehearsed.
+
+Before enabling traffic, complete [Production readiness](../production-readiness.md).
+Use [React troubleshooting](troubleshooting.md) for framework symptoms and
+[Static registry](../registry.md) for concurrency and storage internals.

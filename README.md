@@ -25,7 +25,7 @@ Choose docs by goal:
 | Build a first system | [Angular](docs/angular/getting-started.md) or [React](docs/react/getting-started.md) |
 | Develop an app in a real host | [Local development](docs/local-development.md) |
 | Add routes or host services | [Angular routing](docs/angular/routing.md), [React routing](docs/react/routing.md), [Angular SDK](docs/angular/sdk.md), or [React SDK](docs/react/sdk.md) |
-| Deploy safely | [Angular deployment](docs/angular/production-deployment.md), [React deployment](docs/react/production-deployment.md), and [production readiness](docs/production-readiness.md) |
+| Deploy safely | [Production deployment](docs/production-deployment.md), [Angular details](docs/angular/production-deployment.md), [React details](docs/react/production-deployment.md), and [production readiness](docs/production-readiness.md) |
 | Diagnose a problem | [Angular troubleshooting](docs/angular/troubleshooting.md) or [React troubleshooting](docs/react/troubleshooting.md) |
 
 Reference docs cover the [public API](docs/api.md), [manifest](docs/manifest.md),

@@ -36,16 +36,16 @@ Atlas prepares storage-relative files but never uploads them:
 
 ```sh
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-atlas build orders
+./node_modules/.bin/atlas build orders
 ```
 
-The result is written to the app's `dist/atlas-publication` directory. CI then chooses its own deployment tool:
+The result is written to the app's `dist/atlas-publication` directory. CI uses
+its own storage client, but it must read `dist/atlas-publication.json` and upload
+each listed file in plan order. Do not use an unordered whole-directory sync:
+that can publish a host catalog before the immutable app files it selects.
 
-```sh
-rsync -a dist/atlas-publication/ /srv/nginx/atlas/
-aws s3 sync dist/atlas-publication/ s3://product-atlas/
-jf rt upload "dist/atlas-publication/(*)" "product-atlas/{1}"
-```
+See [Deploy Atlas to production](production-deployment.md#release-an-app) for
+the upload contract, cache headers, activation order, and verification steps.
 
 Atlas reads the existing public `registry.json` from `ATLAS_REGISTRY_BASE_URL` to preserve other app versions while preparing new indexes. CI may instead download it itself and pass `--registry-snapshot=<path>`.
 
@@ -61,7 +61,7 @@ compare-and-swap on `registry.json` alone cannot prevent interleaved catalogs.
 Two pipelines must not replace mutable registry files from the same starting snapshot. Each generated `registry.json` has a canonical SHA-256 `revision`. CI can pass the revision it expects:
 
 ```sh
-atlas build orders \
+./node_modules/.bin/atlas build orders \
   --registry-snapshot=.ci/registry.json \
   --expected-registry-revision="$REGISTRY_REVISION"
 ```
@@ -70,7 +70,7 @@ Atlas fails when the supplied snapshot does not have that revision. The publicat
 
 Because Atlas never writes to consumer storage, the consumer must still use one of these provider-specific safeguards around the mutable upload:
 
-- hold a deployment lock from snapshot download through mutable-file replacement; or
+- hold a deployment lock from snapshot download through public verification; or
 - compare the live revision with `baseRevision` immediately before an atomic
   replacement of the complete mutable set and retry the build when they differ.
 
@@ -97,7 +97,8 @@ The catalog contains complete manifests with exact immutable asset URLs. Deployi
 - Serve versioned assets with long-lived immutable caching.
 - Serve indexes and catalogs with revalidation or explicit CDN invalidation.
 - Upload immutable files before mutable files marked `revalidate` in `atlas-publication.json`.
-- Serialize mutable writes or use a provider-side compare-and-swap against `baseRevision`.
+- Serialize mutable writes, or compare against `baseRevision` immediately before
+  atomically replacing the complete mutable file set.
 
 Atomic replacement, authentication, retries, locking, and cache invalidation belong to the consumer's chosen storage tooling.
 
