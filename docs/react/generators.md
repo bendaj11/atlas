@@ -57,11 +57,12 @@ source does not depend directly on the underlying runtime package.
 Create a React exported widget inside an app:
 
 ```sh
-atlas g widget product-count --app=catalog
+atlas g widget product-count --app=catalog-react
 ```
 
-Atlas creates `src/exported-widgets/product-count/index.tsx`. Consumers load
-it as `catalog/product-count`; they do not know its URL or version.
+Atlas creates `atlas.widget.ts` (stable UUID and display name) plus `index.tsx`
+(React implementation). Consumers call `sdk.getWidget("<widget-uuid>")`;
+folder/expose path is internal federation wiring.
 
 ## Workspaces
 

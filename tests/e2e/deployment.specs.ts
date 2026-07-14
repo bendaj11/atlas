@@ -136,7 +136,7 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
     `--registry-snapshot=${join(cdnRoot, "registry.json")}`,
     `--publication-directory=${rollbackRoot}`,
     `--publication-plan=${rollbackRoot}.json`,
-    `--storage-directory=${cdnRoot}`
+    "--prepare-only"
   ];
   if (buildId) args.push(`--build-id=${buildId}`);
   await runCli(args);

@@ -141,9 +141,24 @@ export class AtlasGenerateService {
     const target = resolveContainedPath(root, "atlas.publish.ts");
     await assertWritable(target, this.args.hasFlag("force"), "atlas.publish.ts already exists. Use --force to replace it.");
     await mkdir(root, { recursive: true });
-    await writeFile(target, `import type { AtlasPublishConfig } from "@atlas/cli";
+    await writeFile(target, `import { S3PublicationStorage, type AtlasPublishConfig } from "@atlas/cli";
+
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(\`\${name} is required.\`);
+  return value;
+}
 
 export default {
+  storage: new S3PublicationStorage({
+    endpoint: required("S3_ENDPOINT"),
+    bucket: required("S3_BUCKET"),
+    prefix: process.env.S3_PREFIX ?? "",
+    region: required("AWS_REGION"),
+    accessKeyId: required("AWS_ACCESS_KEY_ID"),
+    secretAccessKey: required("AWS_SECRET_ACCESS_KEY"),
+    ...(process.env.AWS_SESSION_TOKEN ? { sessionToken: process.env.AWS_SESSION_TOKEN } : {})
+  }),
   runtimeUrls: []
 } satisfies AtlasPublishConfig;
 `, "utf8");

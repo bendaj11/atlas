@@ -19,7 +19,7 @@ await startHost<CustomerHostSdk>({
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
   hostData: {
-    hostId: "customer-host",
+    hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
     name: "Customer Host",
     projectId: "project-42"
   },

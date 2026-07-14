@@ -61,8 +61,9 @@ Create an Angular exported widget inside an app:
 atlas g widget order-status --app=orders
 ```
 
-Atlas creates `src/exported-widgets/order-status/index.ts`. Consumers load it
-as `orders/order-status`; they do not know its URL or version.
+Atlas creates `atlas.widget.ts` (stable UUID and display name) plus `index.ts`
+(Angular implementation). Consumers call `sdk.getWidget("<widget-uuid>")`;
+folder/expose path is internal federation wiring.
 
 ## Workspaces
 

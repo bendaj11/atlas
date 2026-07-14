@@ -3,6 +3,10 @@
 This page is for teams that build Atlas hosts and apps. It is not about testing
 the Atlas source repository itself.
 
+Prerequisites: generated project tests run, host/app can start with `atlas dev`,
+and tester knows which boundary is under test. Run unit tests in project folder;
+run two-process integration flow from common workspace root.
+
 ## What To Test
 
 Test each domain at the boundary it owns:
@@ -22,7 +26,7 @@ test SDK:
 import { createTestHostSdk } from "@atlas/testkit";
 
 const atlas = createTestHostSdk({
-  hostData: { hostId: "customer-host", name: "Customer Host", projectId: "demo" }
+  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host", projectId: "demo" }
 });
 ```
 
@@ -41,8 +45,8 @@ Test generated or customized host startup with fake manifests and providers:
 import { createTestManifest } from "@atlas/testkit";
 
 const ordersManifest = createTestManifest({
-  id: "orders",
-  hostId: "customer-host",
+  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
+  hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
   basePath: "/orders"
 });
 ```
@@ -68,8 +72,8 @@ atlas dev customer-host
 atlas dev orders
 ```
 
-For Angular hosts, use the URL printed by Angular CLI, usually
-`http://localhost:4200/orders`.
+Use Host Preview URL printed by Atlas CLI, normally
+`http://127.0.0.1:4300/orders`. Port 4200 is framework asset server.
 
 Run both commands from the directory that contains `customer-host/` and
 `orders/`, or from your monorepo root.
@@ -77,8 +81,8 @@ Run both commands from the directory that contains `customer-host/` and
 When testing a non-default host URL, set it explicitly:
 
 ```sh
-ATLAS_HOST_URL=http://localhost:5173 atlas dev orders
-ATLAS_HOST_URL=http://localhost:5173/orders atlas dev orders
+ATLAS_HOST_URL=http://127.0.0.1:4300 atlas dev orders
+ATLAS_HOST_URL=http://127.0.0.1:4300/orders atlas dev orders
 ```
 
 This validates the app inside the host without editing host source or production
@@ -100,5 +104,6 @@ Deployment tests should check:
   under a deployment lock;
 - CDN serves `remoteEntry.json` as JSON and JavaScript chunks as JavaScript;
 - CORS allows each host origin;
-- rollback uploads the files listed in `dist/atlas-rollback.json` and then runs
-  `atlas verify` again.
+- `atlas rollback <artifact-id> --runtime-url=...` selects existing immutable
+  build, activates mutable files last, verifies, and restores prior selection
+  on failure.

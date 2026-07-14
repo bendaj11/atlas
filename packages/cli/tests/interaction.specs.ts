@@ -22,18 +22,19 @@ test("fully configured and non-interactive commands never prompt", async () => {
   assert.deepEqual(prompts.questions, []);
 });
 
-test("interactive rollback asks for its missing target", async () => {
-  const prompts = createPromptDriver(["orders", "1.2.0"]);
+test("interactive rollback asks for its missing artifact ID and version", async () => {
+  const artifactId = "2bea9c13-4899-4f93-9211-cd8c55e9c529";
+  const prompts = createPromptDriver([artifactId, "1.2.0"]);
   const invocation = await resolveInvocation(new CliArguments(["rollback"]), prompts);
   assert.deepEqual(invocation, {
     command: "rollback",
-    subcommand: "orders",
+    subcommand: artifactId,
     name: undefined,
     framework: undefined,
     version: "1.2.0"
   });
   assert.deepEqual(prompts.questions, [
-    "input:Atlas project name or directory",
+    "input:Stable host or app ID from atlas.config.ts",
     "input:Production version to restore"
   ]);
 });

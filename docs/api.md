@@ -1,5 +1,14 @@
 # Public API
 
+Audience: developers choosing imports and maintainers checking compatibility.
+Prerequisite: know whether code belongs to app, host client, or deployment
+tooling. Start with [Overview](overview.md) if unsure.
+
+This is symbol reference, not first tutorial. Product apps normally use only
+`@atlas/sdk`, one framework adapter, and types generated source already imports.
+Sections labeled runtime/federation are infrastructure-only; generated host code
+owns them unless building platform integration.
+
 Atlas uses focused packages so the app-facing SDK does not also contain host and deployment infrastructure.
 
 | Import | Purpose |

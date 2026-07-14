@@ -3,11 +3,11 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import ts from "typescript";
 import { CliArguments } from "./arguments.js";
-import type { AtlasPublicationStorageSource } from "./publication-storage.js";
+import { isPublicationStorage, type AtlasPublicationStorageSource } from "./publication-storage.js";
 
 export interface AtlasPublishConfig {
-  /** Custom storage for advanced providers. Atlas still owns ordering, locking, restore, and verification. */
-  storage?: AtlasPublicationStorageSource;
+  /** Publication storage adapter. Atlas still owns ordering, locking, restore, and verification. */
+  storage: AtlasPublicationStorageSource;
   /** Deployed hosts verified after catalog activation. */
   runtimeUrls?: string[];
   /** Optional provider-specific CDN invalidation after mutable objects activate. */
@@ -44,9 +44,11 @@ export async function loadAtlasPublishConfig(args: CliArguments): Promise<AtlasP
 function isPublishConfig(value: unknown): value is AtlasPublishConfig {
   if (typeof value !== "object" || value === null) return false;
   const config = value as AtlasPublishConfig;
+  const hasStorage = typeof config.storage === "function"
+    || isPublicationStorage(config.storage);
   return (config.runtimeUrls === undefined || (Array.isArray(config.runtimeUrls) && config.runtimeUrls.every((url) => typeof url === "string")))
     && (config.invalidate === undefined || typeof config.invalidate === "function")
-    && (config.storage === undefined || typeof config.storage === "object" || typeof config.storage === "function");
+    && hasStorage;
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {

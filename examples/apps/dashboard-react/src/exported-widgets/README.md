@@ -1,3 +1,5 @@
 # Exported widgets
 
-Create `<widget-id>/index.tsx`; Atlas exposes it automatically through Native Federation.
+Run `atlas g widget <name> --app=dashboard-react`. Generator creates
+`<name>/atlas.widget.ts` plus `<name>/index.tsx`. Consumers call
+`sdk.getWidget("<UUID from atlas.widget.ts>")`; they never use folder/expose path.

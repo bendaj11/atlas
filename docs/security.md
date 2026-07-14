@@ -1,5 +1,10 @@
 # Security
 
+Audience: host, platform, and security owners. Read [Architecture](architecture.md)
+and [Host server](host-server.md) first. App developers mainly follow origin,
+SDK, and immutable-release rules; platform team owns runtime environment,
+storage permissions, CSP, and override policy.
+
 Atlas loads executable browser code from object storage. Treat registry publication as production code deployment.
 
 ## Trust levels

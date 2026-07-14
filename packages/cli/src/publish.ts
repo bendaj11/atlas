@@ -7,7 +7,7 @@ import type { AtlasPublishConfig } from "./publish-config.js";
 
 export { defineAtlasPublishConfig, loadAtlasPublishConfig } from "./publish-config.js";
 export type { AtlasPublishConfig } from "./publish-config.js";
-export { FileSystemPublicationStorage, S3PublicationStorage } from "./publication-storage.js";
+export { S3PublicationStorage } from "./publication-storage.js";
 export type { AtlasPublicationStorage, S3Options } from "./publication-storage.js";
 
 interface PublicationFile {
@@ -42,7 +42,7 @@ export class AtlasPublishService {
     const orderedFiles = publicationOrder(plan.files);
     if (this.args.hasFlag("dry-run")) return { uploaded: orderedFiles.map((file) => file.path), dryRun: true };
 
-    const storage = await createPublicationStorage(this.args, options.config?.storage);
+    const storage = await createPublicationStorage(options.config?.storage);
     const releaseLock = await storage.acquireLock(process.env.CI_PIPELINE_URL ?? `${process.pid}`);
     try {
       await assertLiveRevision(storage, plan.baseRevision);

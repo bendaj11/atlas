@@ -112,7 +112,7 @@ The host starts Atlas from `src/main.tsx`:
 void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
-  hostData: { hostId: "customer-host", name: "Customer Host" }
+  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host" }
 });
 ```
 
@@ -124,12 +124,12 @@ The React app declares where it can mount in its own `atlas.config.ts`:
 import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
 
 export default {
-  id: "orders",
+  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
   name: "Orders",
   framework: "react",
   routes: [
     {
-      hostId: "customer-host",
+      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
       basePath: "/orders",
       title: "Orders",
       nav: { label: "Orders", visible: true, order: 10 }
@@ -138,7 +138,7 @@ export default {
   slots: [
     {
       slotId: "header",
-      hostId: "customer-host"
+      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"
     }
   ]
 } satisfies AtlasAppConfig;
@@ -157,12 +157,12 @@ selection flow is:
 
 1. `atlas build orders` reads `orders/atlas.config.ts`.
 2. Atlas writes route and slot declarations into the `orders` manifest.
-3. Publication updates `hosts/customer-host/catalog.json` with selected app
+3. Publication updates `hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json` with selected app
    versions for that host.
 4. The host server's dynamic `/atlas.runtime.json` tells the loader where that
    catalog is.
 5. The loader selects the host client and passes the effective catalog; the host filters placements for
-   `hostId: "customer-host"`, and matches the current browser URL against each
+   `hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"`, and matches current browser URL against each
    route `basePath`.
 6. If the URL is `/orders` or `/orders/42`, the `/orders` placement wins and the
    host mounts the selected `orders` manifest in `data-atlas-route-outlet`.
@@ -225,7 +225,7 @@ Use relative React Router links only for screens owned by the same app.
 ## Deployment Domain
 
 During `atlas build`, route declarations become manifest placements. During
-publication, the host catalog selects exactly one `orders` manifest. At runtime,
+publication, host catalog selects exactly one Orders app manifest. At runtime,
 the host reads the catalog and mounts the selected app when the browser URL
 matches `/orders`.
 

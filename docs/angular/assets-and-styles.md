@@ -40,7 +40,8 @@ is documented by the host team.
 
 ## Deployment Domain
 
-`atlas build` publishes the Angular browser output and generated manifest under
+`atlas build` places Angular browser output and generated manifest in local
+publication tree under
 the selected immutable app version. CI uploads all immutable files before it
 replaces mutable catalogs.
 

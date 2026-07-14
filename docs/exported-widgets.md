@@ -5,7 +5,7 @@ An exported widget is UI owned and released by a normal Atlas app. An app can re
 ## Create a widget
 
 ```sh
-atlas g widget product-count --app catalog
+atlas g widget product-count --app catalog-react
 ```
 
 Atlas creates:
@@ -30,7 +30,8 @@ export default {
 
 Atlas uses Node's cryptographically random UUIDv4 generator. Generate the id once, commit it, and keep it when folders or display names change. Folder name controls source/expose path; UUID controls public identity.
 
-Checkpoint: `atlas build catalog` writes the widget UUID, owner app, immutable remote URL, framework, and expose into `app.manifest.json`.
+Checkpoint: `atlas build catalog-react` writes widget UUID, owner app, immutable
+remote URL, framework, and expose into `app.manifest.json`.
 
 ## Consume a widget
 

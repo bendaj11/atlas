@@ -1,3 +1,5 @@
 # Exported widgets
 
-Create `<widget-id>/index.ts`; Atlas exposes it automatically.
+Run `atlas g widget <name> --app=dashboard-angular`. Generator creates
+`<name>/atlas.widget.ts` plus `<name>/index.ts`. Consumers call
+`sdk.getWidget("<UUID from atlas.widget.ts>")`; they never use folder/expose path.

@@ -1,5 +1,13 @@
 # SDK Reference
 
+Audience: app and host developers implementing typed communication. Prerequisite:
+generated host/app running locally. New users should read framework guide first:
+[Angular SDK](angular/sdk.md) or [React SDK](react/sdk.md).
+
+App calls SDK; host constructs/provides it. Deployment tooling never calls SDK.
+Examples below are reference fragments unless imports and setup are shown; use
+framework guides for copy-complete components.
+
 For a concise list of stable imports, see [Public API](api.md).
 For framework onboarding, use [Angular SDK](angular/sdk.md) or
 [React SDK](react/sdk.md). This page is shared reference for package contracts.
@@ -34,8 +42,8 @@ interface CustomerHostSdk {
 }
 
 const sdk = createAtlasSdk<CustomerHostSdk>({
-  hostId: "host",
-  hostData: { hostId: "host", name: "Customer Host", projectId: "project-42" },
+  hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
+  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host", projectId: "project-42" },
   navigation,
   httpClient: authenticatedHttpClient,
   showToast: (message) => toastService.show(message),
@@ -278,10 +286,12 @@ so a monitoring outage cannot prevent the application from loading.
 
 Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It discovers an override document through the `atlas-override` query parameter or the `atlas.runtime-override-url` local-storage key, then validates its host and manifests. Product code does not parse this protocol.
 
+Infrastructure-only example for custom DOM host runtime:
+
 ```ts
 await loadAndMountHostCatalog({
   hostId: sdk.hostId,
-  catalogUrl: "/atlas-catalog.json",
+  catalogUrl: "https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json",
   sdk: sdk,
   resolveContainer: (manifest) => document.querySelector(`[data-atlas-app="${manifest.id}"]`) ?? undefined
 });

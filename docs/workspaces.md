@@ -1,5 +1,9 @@
 # Workspaces And Monorepos
 
+Audience: developers adding Atlas to existing repository. Run commands from
+workspace root unless section says otherwise. First confirm root contains one of
+files in detection table below.
+
 ## Developing Atlas Itself
 
 The Atlas repository uses Yarn workspaces with Turborepo. The root commands are
@@ -51,15 +55,15 @@ atlas dev
 
 For `atlas dev <app>`, Atlas infers the host when the app config declares only
 one host. For multiple hosts, interactive terminals ask which host to use; in
-non-interactive shells, pass `--host` or set `ATLAS_HOST_ID`. Use
-`ATLAS_HOST_URL` accepts either an exact host page URL or a base URL. For a base
+non-interactive shells, pass `--host` or set `ATLAS_HOST_ID` to stable host UUID.
+`ATLAS_HOST_URL` accepts either exact host page URL or base URL. For base
 URL, Atlas appends the route base path from `atlas.config.ts`; when several
 routes match the selected host, interactive terminals ask which route to use.
 Set it in the shell or in the app project's `.env.local` file:
 
 ```dotenv
-ATLAS_HOST_ID=customer-host
-ATLAS_HOST_URL=http://localhost:4200
+ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
+ATLAS_HOST_URL=http://127.0.0.1:4300
 ```
 
 Atlas loads the selected project's env files before workspace env files, regardless

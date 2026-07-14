@@ -25,11 +25,11 @@ docker build -t registry.example/customer-host-server:1.0.0 customer-host
 docker push registry.example/customer-host-server:1.0.0
 ```
 
-Deploy it with:
+Deploy it with the host UUID from `customer-host/atlas.config.ts`:
 
 ```sh
-ATLAS_HOST_ID=customer-host
-ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/customer-host/catalog.json
+ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
+ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json
 ATLAS_ASSET_ORIGINS=https://cdn.example.com
 PORT=8080
 ```
@@ -44,15 +44,18 @@ Recommended protected CI job:
 
 ```sh
 export ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas
-export ATLAS_S3_BUCKET=company-atlas
-export ATLAS_S3_PREFIX=atlas
-export AWS_REGION=eu-west-1
 export ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json
 
 ATLAS_VERSION="$RELEASE_VERSION" \
 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
   npm exec -- atlas release orders
 ```
+
+Publication storage comes from committed `atlas.publish.ts`; Atlas does not
+interpret provider-specific environment variables. S3 is available through
+explicit `S3PublicationStorage`. Other providers implement
+`AtlasPublicationStorage`. Keep credentials in CI or organization deployment
+code, never source.
 
 Use the same command for the host client:
 
@@ -89,29 +92,38 @@ ATLAS_RUNTIME_URLS=https://customer.example/atlas.runtime.json,https://admin.exa
   npm exec -- atlas release orders
 ```
 
-Normal publishing needs no config file. For custom storage, CDN invalidation, or many verification URLs:
+Generate explicit S3 adapter config, then customize storage construction, CDN
+invalidation, or verification URLs:
 
 ```sh
 npm exec -- atlas generate publish-config
 ```
 
 ```ts
-import type { AtlasPublishConfig } from "@atlas/cli";
-import { organizationCdn, organizationStorage } from "./deployment/atlas-storage.js";
+import { S3PublicationStorage, type AtlasPublishConfig } from "@atlas/cli";
+import { organizationCdn, publicationCredentials } from "./deployment/atlas-storage.js";
 
 export default {
+  storage: new S3PublicationStorage({
+    endpoint: "https://s3.eu-west-1.amazonaws.com",
+    bucket: "company-atlas",
+    prefix: "atlas",
+    region: "eu-west-1",
+    ...publicationCredentials()
+  }),
   runtimeUrls: [
     "https://customer.example/atlas.runtime.json",
     "https://admin.example/atlas.runtime.json"
   ],
   async invalidate(paths) {
     await organizationCdn.invalidate(paths);
-  },
-  storage: organizationStorage
+  }
 } satisfies AtlasPublishConfig;
 ```
 
-Custom storage implements `AtlasPublicationStorage`. Atlas keeps lock, create-only immutable writes, catalog-last activation, verification, and restore behavior.
+Custom storage implements `AtlasPublicationStorage`. Atlas keeps lock,
+create-only immutable writes, catalog-last activation, verification, and
+restore behavior. Full contract: [Registry and publishing](registry.md).
 
 ## PR artifacts
 
@@ -148,27 +160,28 @@ Checkpoint: zero failures, intentional warnings documented, deep-link refresh wo
 
 ## Roll back
 
-Run rollback in a protected CI/CD rollback job, normally from the workspace root with the pinned CLI:
+Run rollback in a protected CI/CD rollback job with the pinned CLI. Pass the
+artifact UUID from its `atlas.config.ts`; rollback does not resolve a local
+project name:
 
 ```sh
-npm exec -- atlas rollback customer-host \
+HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
+
+npm exec -- atlas rollback "$HOST_ID" \
   --version=1.3.0 \
-  --target=production \
   --dry-run
 
-npm exec -- atlas rollback customer-host \
+npm exec -- atlas rollback "$HOST_ID" \
   --version=1.3.0 \
-  --target=production \
   --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
 For an ambiguous version:
 
 ```sh
-npm exec -- atlas rollback customer-host \
+npm exec -- atlas rollback "$HOST_ID" \
   --version=1.3.0 \
-  --build-id=build-123 \
-  --target=production
+  --build-id=build-123
 ```
 
 Atlas discovers whether the id is a host or app from the live registry. It needs no application source or framework build. It locks, selects existing bytes, activates catalogs last, verifies, restores the earlier selection if verification fails, and unlocks.

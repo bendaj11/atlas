@@ -22,7 +22,7 @@ The app exports its lifecycle from `src/entry.ts`. Feature routes live under `sr
 
 ```sh
 atlas dev customer-host
-atlas dev orders --host=customer-host --host-url=http://127.0.0.1:4300/orders
+atlas dev orders --host-url=http://127.0.0.1:4300/orders
 ```
 
 Expected: host preview loads on port 4300; Orders mounts at `/orders`; Columbus can switch host and app independently.

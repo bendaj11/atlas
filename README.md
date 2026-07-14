@@ -13,7 +13,8 @@ a future target and is not currently supported.
 
 ## Documentation
 
-New to Atlas? Follow [Getting started](docs/getting-started.md). It takes one
+New to Atlas? Open the [documentation map](docs/README.md), then follow
+[Getting started](docs/getting-started.md). It takes one
 host and one app from an empty directory to a provider-neutral, verified
 production deployment blueprint.
 
@@ -117,8 +118,7 @@ atlas dev customer-host
 
 # Terminal 2
 atlas dev orders \
-  --host=customer-host \
-  --host-url=http://localhost:5173/orders
+  --host-url=http://127.0.0.1:4300/orders
 ```
 
 Local app replacement uses the Atlas Columbus browser extension. Obtain the
@@ -129,7 +129,7 @@ Use the host URL printed by `atlas dev customer-host`; the stable local server
 defaults to `http://127.0.0.1:4300`. Run commands from the directory containing
 both generated projects or the monorepo root.
 
-Prepare production files without uploading them:
+Build and publish one production release:
 
 Quick start below uses global CLI. Real CI should pin `@atlas/cli` as exact
 project dependency, commit lockfile, and invoke local binary.
@@ -141,9 +141,13 @@ ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
 atlas release orders
 ```
 
+Before release, generate and commit `atlas.publish.ts`, construct explicit
+`S3PublicationStorage` or organization adapter there, and supply its credentials
+through protected CI secrets. See [Production deployment](docs/production-deployment.md).
+
 `atlas build` still prepares provider-neutral output without uploading. `release`
-adds safe S3-compatible/filesystem publication, locking, activation, and optional
-verification.
+uses explicit publication adapter with safe locking, activation, and optional
+verification. Atlas includes S3-compatible adapter as optional implementation.
 
 Verify the deployed runtime, catalog, manifests, assets, integrity, and HTTP
 delivery policy before promoting it:

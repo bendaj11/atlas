@@ -1,5 +1,9 @@
 # Production Readiness
 
+Audience: release approver. Prerequisites: deployed host-server, public registry,
+published host client/app, and runtime URL. This is a gate, not setup tutorial;
+use [Production deployment](production-deployment.md) first.
+
 Use this checklist before an Atlas host or app receives production traffic.
 Complete it once for the platform, then repeat release-specific checks for every
 app version.
@@ -156,28 +160,37 @@ Then complete browser smoke tests:
 
 ## Rollback Rehearsal
 
-Use the same registry lock and revision check as a forward release. Stop or wait
-for concurrent publication before preparing the rollback, publish only files in
-the rollback plan, keep host catalogs last when atomic replacement is
-unavailable, verify the public result, then release the lock.
+Use same protected storage settings and shared registry as release. Stop or wait
+for concurrent publication before starting. Atlas owns lock acquisition,
+revision check, catalog-last activation, verification, mutable restore on
+failure, and lock release.
 
 Before selection, confirm the exact target version/build is complete, reachable,
-and compatible with current host and SDK contracts in staging or canary. If
-rollback publication fails, restore the previously selected mutable files under
-the same lock, revalidate them, and verify again.
+and compatible with current host and SDK contracts in staging or canary.
 
 Prepare an earlier published version:
 
 ```sh
-npm exec --package=@atlas/cli -- atlas rollback orders \
+APP_ID=2bea9c13-4899-4f93-9211-cd8c55e9c529
+
+npm exec --package=@atlas/cli -- atlas rollback "$APP_ID" \
   --version=1.3.2 \
   --build-id=1.3.2-build-123 \
-  --registry-base-url=https://cdn.example.com/atlas
+  --registry-base-url=https://cdn.example.com/atlas \
+  --dry-run
+
+# After reviewing dry-run paths, run real rollback with verification.
+npm exec --package=@atlas/cli -- atlas rollback "$APP_ID" \
+  --version=1.3.2 \
+  --build-id=1.3.2-build-123 \
+  --registry-base-url=https://cdn.example.com/atlas \
+  --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
-- [ ] CI can publish files listed in `dist/atlas-rollback.json`.
+- [ ] `APP_ID` is stable UUID from app `atlas.config.ts`.
+- [ ] Dry run lists only expected mutable files before real rollback.
 - [ ] Mutable JSON is revalidated after rollback.
-- [ ] `atlas verify` passes after rollback publication.
+- [ ] Built-in verification passes after rollback publication.
 - [ ] Browser smoke tests confirm the older version.
 - [ ] On-call documentation names the decision maker and communication channel.
 - [ ] Team knows how to stop a concurrent publication before rollback.

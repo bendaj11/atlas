@@ -12,9 +12,15 @@ This guide creates one host and one app, runs them locally, deploys the stable s
 
 Read [Architecture](architecture.md) if these boundaries are not yet clear.
 
+Examples use local project names `customer-host`/`orders` and fixed sample
+UUIDs. Keep UUID generated in your own `atlas.config.ts`; replace sample domains,
+buckets, versions, and IDs before running production commands.
+
 ## 2. Generate projects
 
-Requirements: Node 20 or newer, a package manager, and a container runtime for the deployment exercise.
+Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, a package manager,
+and a container runtime for the deployment exercise. These Node ranges satisfy
+the generated Angular and Vite 7 toolchains.
 
 ```sh
 npm install --save-dev --save-exact @atlas/cli
@@ -53,7 +59,6 @@ npx atlas dev customer-host
 
 # Terminal 2: replace the selected Orders app
 npx atlas dev orders \
-  --host=customer-host \
   --host-url=http://127.0.0.1:4300/orders
 ```
 
@@ -69,7 +74,8 @@ The browser remains on `customer.example`; Columbus selects the loopback host cl
 
 Common error: `No host configured for "orders"`.
 
-Recovery: add a route with `hostId: "customer-host"`, or pass `--host=customer-host`.
+Recovery: add a route whose `hostId` exactly matches UUID in
+`customer-host/atlas.config.ts`, or pass that UUID with `--host=<host-id>`.
 
 ## 4. Build the server image
 
@@ -94,22 +100,29 @@ curl --fail http://localhost:8080/health/ready
 
 Checkpoint: output is `ready`.
 
-## 5. Configure object storage
+## 5. Choose publication storage
 
-Atlas supports a mounted/filesystem target and S3-compatible storage. Normal CI uses environment variables rather than a generated config file.
+Registry is static file contract, independent from storage provider. Atlas ships
+one optional S3-compatible adapter. Generate explicit adapter config:
+
+```sh
+npx atlas generate publish-config
+```
+
+Edit generated `atlas.publish.ts` with S3 endpoint, bucket, prefix, region, and
+credentials. Atlas itself reads no S3 environment variables. Generated names
+are examples owned by your CI. Teams using another provider implement
+`AtlasPublicationStorage` in this file.
+
+Set public registry URL independently for builds:
 
 ```sh
 export ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas
-export ATLAS_S3_BUCKET=company-atlas
-export ATLAS_S3_PREFIX=atlas
-export AWS_REGION=eu-west-1
-export AWS_ACCESS_KEY_ID=...
-export AWS_SECRET_ACCESS_KEY=...
 ```
 
-For MinIO or another S3-compatible service, also set `ATLAS_S3_ENDPOINT`.
-
-The browser must be able to read the public HTTPS registry paths with suitable CORS. CI credentials remain private; the host-server container never receives them.
+Browser must read public HTTPS registry paths with suitable CORS. CI credentials
+remain private; host-server container never receives them. See [registry
+requirements](registry.md#registry-requirements).
 
 ### Reuse widgets from another registry
 
@@ -148,7 +161,10 @@ ATLAS_VERSION=1.0.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
 
 Each command builds framework output, hashes it, creates a manifest, prepares symmetric registry/catalog changes, and writes `dist/atlas-publication.json`. It does not upload and needs no storage credentials.
 
-Checkpoint: inspect the plan. Host paths begin `hosts/customer-host/1.0.0/`; app paths begin `apps/orders/1.0.0/`. Both include a build-id directory because the version label alone does not uniquely identify bytes.
+Checkpoint: inspect the plan. Host paths begin `hosts/<host-id>/1.0.0/`; app
+paths begin `apps/<app-id>/1.0.0/`, where each ID is the UUID from
+`atlas.config.ts`. Both include a build-id directory because the version label
+alone does not uniquely identify bytes.
 
 ## 7. Release
 
@@ -174,14 +190,6 @@ You can separate preparation from upload:
 npx atlas build orders
 npx atlas publish --plan=orders/dist/atlas-publication.json --dry-run
 npx atlas publish --plan=orders/dist/atlas-publication.json
-```
-
-For a filesystem or mounted-storage test:
-
-```sh
-npx atlas publish \
-  --plan=orders/dist/atlas-publication.json \
-  --storage-directory=/mnt/atlas
 ```
 
 PR release:
@@ -212,24 +220,29 @@ Expected: runtime, catalog, host manifest, app manifests, CORS, cache headers, i
 
 ## 10. Roll back
 
-Rollback runs in an authorized CI/CD job or developer workstation with the same environment and credentials as release. It never runs in the browser, Columbus, host container, or CDN server.
+Rollback runs in an authorized CI/CD job or developer workstation with the same
+environment and credentials as release. It never runs in the browser, Columbus,
+host container, or CDN server. Unlike `build` and `release`, rollback receives
+the stable artifact UUID from `atlas.config.ts`, not a local project name.
 
 ```sh
-npx atlas rollback customer-host \
+HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
+
+npx atlas rollback "$HOST_ID" \
   --version=0.9.0 \
-  --target=production \
   --dry-run
 
-npx atlas rollback customer-host \
+npx atlas rollback "$HOST_ID" \
   --version=0.9.0 \
-  --target=production \
   --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
 The same command works for an app:
 
 ```sh
-npx atlas rollback orders --version=0.9.0 --target=production
+APP_ID=2bea9c13-4899-4f93-9211-cd8c55e9c529
+
+npx atlas rollback "$APP_ID" --version=0.9.0
 ```
 
 If a version has several builds, add `--build-id=build-123`. Atlas selects existing immutable bytes; no source checkout or application build is needed.

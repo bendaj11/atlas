@@ -159,13 +159,15 @@ test("atlas generation rejects project names that can escape the target director
   ]), /Invalid project name/);
 });
 
-test("atlas generates advanced publish config only when explicitly requested", async () => {
+test("atlas generates S3 publication adapter config only when explicitly requested", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-publish-config-"));
   await run(process.execPath, [
     "packages/cli/dist/index.js", "generate", "publish-config", `--directory=${directory}`, "--skip-format"
   ]);
   const source = await readFile(join(directory, "atlas.publish.ts"), "utf8");
   assert.match(source, /satisfies AtlasPublishConfig/);
+  assert.match(source, /new S3PublicationStorage/);
+  assert.doesNotMatch(source, /ATLAS_S3_/);
   assert.match(source, /runtimeUrls: \[\]/);
 });
 

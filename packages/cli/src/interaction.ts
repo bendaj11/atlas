@@ -22,7 +22,7 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
       { label: "App app", value: "app" },
       { label: "Host application", value: "host" },
       { label: "Exported widget", value: "widget" },
-      { label: "Advanced publish config", value: "publish-config" }
+      { label: "Publication adapter config", value: "publish-config" }
     ]);
     if (subcommand !== "publish-config") name ??= await prompts.input(subcommand === "widget" ? "Widget name" : `${title(subcommand)} name`);
     if ((subcommand === "host" || subcommand === "app") && !framework) {
@@ -31,8 +31,10 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
         { label: "Angular", value: "angular" },
       ]);
     }
-  } else if ((command === "build" || command === "release" || command === "rollback") && !subcommand) {
+  } else if ((command === "build" || command === "release") && !subcommand) {
     subcommand = await prompts.input("Atlas project name or directory");
+  } else if (command === "rollback" && !subcommand) {
+    subcommand = await prompts.input("Stable host or app ID from atlas.config.ts");
   }
   if (command === "rollback" && !version) version = await prompts.input("Production version to restore");
   return { command, subcommand, name, framework, version };

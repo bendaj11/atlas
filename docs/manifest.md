@@ -1,5 +1,13 @@
 # Manifests
 
+Audience: operators debugging generated deployment metadata and maintainers of
+registry tooling. App/host developers edit `atlas.config.ts`, never manifest
+JSON. Prerequisites: one successful `atlas build` and basic
+[registry](registry.md) vocabulary.
+
+Quick decision: source behavior belongs in `atlas.config.ts`; exact built URL,
+hash, compatibility, and version belong in generated manifest.
+
 Each immutable host-client or app build has one generated manifest. Hosts and apps share a base identity so the registry, CLI, and Columbus can version them consistently.
 
 ```ts
@@ -48,13 +56,13 @@ An app manifest adds:
 Example path:
 
 ```text
-apps/orders/2.1.0/build-456/app.manifest.json
+apps/2bea9c13-4899-4f93-9211-cd8c55e9c529/2.1.0/build-456/app.manifest.json
 ```
 
 The equivalent host path is:
 
 ```text
-hosts/customer-host/1.4.0/build-123/host.manifest.json
+hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/1.4.0/build-123/host.manifest.json
 ```
 
 Normal developers do not hand-write manifests. They edit the small `atlas.config.ts`; `atlas build` generates and validates the full artifact contract. Source `routes` and `slots` become app manifest placements. Framework output inspection supplies asset paths and SHA-256 integrity.

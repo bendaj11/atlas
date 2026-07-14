@@ -3,15 +3,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "@jest/globals";
 import { CliArguments } from "../dist/arguments.js";
-import { AtlasPublishService, FileSystemPublicationStorage } from "../dist/publish.js";
+import { AtlasPublishService } from "../dist/publish.js";
 import { registryRevision } from "../dist/static-registry.js";
-import { FailingMutableStorage, publicationFixture } from "./publish.driver.js";
+import { DirectoryPublicationStorage, FailingMutableStorage, publicationFixture } from "./publish.driver.js";
 
 test("publisher writes immutable files before activating mutable metadata", async () => {
   const fixture = await publicationFixture(registryRevision(undefined));
-  const result = await new AtlasPublishService(new CliArguments([
-    "publish", `--storage-directory=${fixture.storage}`
-  ])).run(fixture.plan);
+  const result = await new AtlasPublishService(new CliArguments(["publish"])).run(fixture.plan, {
+    config: { storage: new DirectoryPublicationStorage(fixture.storage) }
+  });
 
   assert.deepEqual(result.uploaded, [
     "apps/orders/1.0.0/build-1/entry.js",
@@ -20,6 +20,20 @@ test("publisher writes immutable files before activating mutable metadata", asyn
     "hosts/customer-host/catalog.json"
   ]);
   assert.equal(await readFile(join(fixture.storage, "apps/orders/1.0.0/build-1/entry.js"), "utf8"), "export {};\n");
+});
+
+test("publisher requires explicit storage for writes", async () => {
+  const fixture = await publicationFixture(registryRevision(undefined));
+  await assert.rejects(
+    new AtlasPublishService(new CliArguments(["publish"])).run(fixture.plan),
+    /Publication storage is required/
+  );
+});
+
+test("publisher dry run needs no storage adapter", async () => {
+  const fixture = await publicationFixture(registryRevision(undefined));
+  const result = await new AtlasPublishService(new CliArguments(["publish", "--dry-run"])).run(fixture.plan);
+  assert.equal(result.dryRun, true);
 });
 
 test("publisher restores mutable files when deployment verification fails", async () => {
@@ -31,7 +45,8 @@ test("publisher restores mutable files when deployment verification fails", asyn
   await writeFile(join(fixture.storage, "hosts/customer-host/catalog.json"), previousCatalog);
 
   await assert.rejects(
-    new AtlasPublishService(new CliArguments(["publish", `--storage-directory=${fixture.storage}`])).run(fixture.plan, {
+    new AtlasPublishService(new CliArguments(["publish"])).run(fixture.plan, {
+      config: { storage: new DirectoryPublicationStorage(fixture.storage) },
       verify: async () => { throw new Error("smoke test failed"); }
     }),
     /smoke test failed/
@@ -42,12 +57,12 @@ test("publisher restores mutable files when deployment verification fails", asyn
   assert.equal(await readFile(join(fixture.storage, "apps/orders/1.0.0/build-1/entry.js"), "utf8"), "export {};\n");
 });
 
-test("advanced publish config keeps Atlas sequencing and runs CDN invalidation before verification", async () => {
+test("publication config keeps Atlas sequencing and runs CDN invalidation before verification", async () => {
   const fixture = await publicationFixture(registryRevision(undefined));
   const events: string[] = [];
   await new AtlasPublishService(new CliArguments(["publish"])).run(fixture.plan, {
     config: {
-      storage: () => new FileSystemPublicationStorage(fixture.storage),
+      storage: () => new DirectoryPublicationStorage(fixture.storage),
       invalidate(paths) { events.push(`invalidate:${paths.join(",")}`); }
     },
     verify: async () => { events.push("verify"); }

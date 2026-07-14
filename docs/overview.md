@@ -16,7 +16,7 @@ If independently deployed frontend apps are new to you, think of Atlas as three 
 | Host | The main application users open in the browser. It owns layout, auth, top-level routes, navigation, modals, toasts, monitoring, and shared services. | Host |
 | App | A feature application mounted by a host. It owns its framework code, inner routes, feature UI, tests, and assets. | App |
 | Widget | A smaller remotely loaded UI exported by an app, such as a popup body, counter, or status panel. | App |
-| Manifest | JSON generated for one built app version. It describes routes, slots, widgets, assets, integrity, framework, and required SDK version. | Deployment |
+| Manifest | JSON generated for one built host-client or app version. App manifests describe routes, slots, widgets, assets, integrity, framework, and required SDK version. | Deployment |
 | Catalog | JSON for one host that selects one manifest version for every app that host can load. | Deployment |
 | Registry | Static storage layout that contains app indexes, host catalogs, immutable assets, and historical versions. | Deployment |
 | SDK | Typed host capabilities exposed to apps: HTTP, events, navigation, overlays, host data, and product extensions. | Host and App |
@@ -79,8 +79,10 @@ CI/CD decides:
 - CDN invalidation or revalidation;
 - production verification and rollback.
 
-Atlas creates provider-neutral files. Your CI uploads them with your existing
-storage tooling.
+`atlas build` creates provider-neutral files and publication plan. `atlas
+publish` uses explicitly configured storage adapter while preserving locking,
+immutable writes, activation order, verification, and restore behavior. Atlas
+offers S3-compatible adapter; registry contract does not require S3.
 
 ## Learn Next
 

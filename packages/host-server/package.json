@@ -1,10 +1,15 @@
 {
   "name": "@atlas/host-server",
-  "version": "0.2.76",
+  "version": "0.3.0",
   "type": "module",
   "description": "Portable Atlas bootstrap server for versioned host clients.",
   "license": "MIT",
-  "keywords": ["atlas", "host", "server", "container"],
+  "keywords": [
+    "atlas",
+    "host",
+    "server",
+    "container"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bendaj11/atlas.git",
@@ -23,9 +28,16 @@
   "bin": {
     "atlas-host-server": "./dist/cli.js"
   },
-  "files": ["dist/**/*.js", "dist/**/*.d.ts"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/host-server/tests/'",
@@ -33,7 +45,7 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.2.76",
+    "@atlas/schema": "0.3.0",
     "express": "^5.2.1"
   },
   "devDependencies": {

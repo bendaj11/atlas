@@ -22,6 +22,8 @@ ATLAS_VERSION=2.1.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
   atlas release orders
 ```
 
-Checkpoint: the host manifest path begins `hosts/customer-host/`; the app manifest path begins `apps/orders/`; releasing either requires no container rebuild.
+Checkpoint: host manifest path begins `hosts/<host-id>/`; app manifest path
+begins `apps/<app-id>/`. IDs are UUIDs from each `atlas.config.ts`; releasing
+either requires no container rebuild.
 
 See [Angular assets](assets-and-styles.md), [routing](routing.md), and [SDK](sdk.md) for product code details.

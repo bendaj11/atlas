@@ -47,7 +47,8 @@ is documented by the host team.
 
 ## Deployment Domain
 
-`atlas build` publishes the Vite output and generated manifest under the
+`atlas build` places Vite output and generated manifest in local publication
+tree under
 selected immutable app version. CI uploads all immutable files before it
 replaces mutable catalogs.
 

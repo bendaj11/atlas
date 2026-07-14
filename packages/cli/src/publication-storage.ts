@@ -1,7 +1,4 @@
 import { createHash, createHmac } from "node:crypto";
-import { mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { CliArguments } from "./arguments.js";
 
 export interface AtlasPublicationStorage {
   read(path: string): Promise<Uint8Array | undefined>;
@@ -14,63 +11,13 @@ export interface AtlasPublicationStorage {
 export type AtlasPublicationStorageSource = AtlasPublicationStorage
   | (() => AtlasPublicationStorage | Promise<AtlasPublicationStorage>);
 
-export async function createPublicationStorage(
-  args: CliArguments,
-  storage?: AtlasPublicationStorageSource
-): Promise<AtlasPublicationStorage> {
-  if (storage) return typeof storage === "function" ? storage() : storage;
-  const storageDirectory = args.flag("storage-directory") ?? process.env.ATLAS_STORAGE_DIRECTORY;
-  if (storageDirectory) return new FileSystemPublicationStorage(resolve(storageDirectory));
-  return new S3PublicationStorage(s3OptionsFromEnvironment());
-}
-
-export class FileSystemPublicationStorage implements AtlasPublicationStorage {
-  private readonly lockPath: string;
-
-  constructor(private readonly root: string) {
-    this.lockPath = join(root, ".atlas-deployment.lock");
+export async function createPublicationStorage(storage?: AtlasPublicationStorageSource): Promise<AtlasPublicationStorage> {
+  if (!storage) {
+    throw new Error("Publication storage is required. Configure storage in atlas.publish.ts or pass AtlasPublishConfig to AtlasPublishService.");
   }
-
-  async read(path: string): Promise<Uint8Array | undefined> {
-    try { return await readFile(join(this.root, path)); }
-    catch (error) { if (isNodeError(error) && error.code === "ENOENT") return undefined; throw error; }
-  }
-
-  async create(path: string, bytes: Uint8Array): Promise<void> {
-    const target = join(this.root, path);
-    await mkdir(dirname(target), { recursive: true });
-    try {
-      const handle = await open(target, "wx");
-      try { await handle.writeFile(bytes); }
-      finally { await handle.close(); }
-    } catch (error) {
-      if (isNodeError(error) && error.code === "EEXIST") throw new Error(`Immutable publication object already exists: ${path}`);
-      throw error;
-    }
-  }
-
-  async replace(path: string, bytes: Uint8Array): Promise<void> {
-    const target = join(this.root, path);
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, bytes);
-  }
-
-  async remove(path: string): Promise<void> {
-    await rm(join(this.root, path), { force: true });
-  }
-
-  async acquireLock(owner: string): Promise<() => Promise<void>> {
-    await mkdir(this.root, { recursive: true });
-    try {
-      const handle = await open(this.lockPath, "wx");
-      await handle.writeFile(`${owner}\n`);
-      await handle.close();
-    } catch (error) {
-      if (isNodeError(error) && error.code === "EEXIST") throw new Error(`Atlas deployment lock is already held at ${this.lockPath}.`);
-      throw error;
-    }
-    return async () => { await rm(this.lockPath, { force: true }); };
-  }
+  const resolvedStorage = typeof storage === "function" ? await storage() : storage;
+  if (!isPublicationStorage(resolvedStorage)) throw new Error("Publication storage must implement AtlasPublicationStorage.");
+  return resolvedStorage;
 }
 
 export interface S3Options {
@@ -146,24 +93,6 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   }
 }
 
-function s3OptionsFromEnvironment(): S3Options {
-  return {
-    endpoint: process.env.ATLAS_S3_ENDPOINT ?? "https://s3.amazonaws.com",
-    bucket: requiredEnvironment("ATLAS_S3_BUCKET"),
-    prefix: process.env.ATLAS_S3_PREFIX ?? "",
-    region: process.env.AWS_REGION ?? "us-east-1",
-    accessKeyId: requiredEnvironment("AWS_ACCESS_KEY_ID"),
-    secretAccessKey: requiredEnvironment("AWS_SECRET_ACCESS_KEY"),
-    ...(process.env.AWS_SESSION_TOKEN ? { sessionToken: process.env.AWS_SESSION_TOKEN } : {})
-  };
-}
-
-function requiredEnvironment(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is required for S3 publication.`);
-  return value;
-}
-
 function signingKey(secret: string, date: string, region: string): Buffer {
   const dateKey = createHmac("sha256", `AWS4${secret}`).update(date).digest();
   const regionKey = createHmac("sha256", dateKey).update(region).digest();
@@ -187,6 +116,12 @@ async function assertS3Response(response: Response, operation: string): Promise<
   if (!response.ok) throw new Error(`S3 could not ${operation}: ${response.status} ${await response.text()}`);
 }
 
-function isNodeError(error: unknown): error is NodeJS.ErrnoException {
-  return typeof error === "object" && error !== null && "code" in error;
+export function isPublicationStorage(value: unknown): value is AtlasPublicationStorage {
+  if (typeof value !== "object" || value === null) return false;
+  const storage = value as Partial<AtlasPublicationStorage>;
+  return typeof storage.read === "function"
+    && typeof storage.create === "function"
+    && typeof storage.replace === "function"
+    && typeof storage.remove === "function"
+    && typeof storage.acquireLock === "function";
 }

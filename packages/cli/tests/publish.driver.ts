@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AtlasPublicationStorage } from "../dist/publish.js";
@@ -21,6 +21,43 @@ export async function publicationFixture(baseRevision: string) {
   }
   await writeFile(plan, `${JSON.stringify({ schemaVersion: "1", baseRevision, registryRevision: "sha256:new", files })}\n`);
   return { plan, storage };
+}
+
+export class DirectoryPublicationStorage implements AtlasPublicationStorage {
+  private readonly lockPath: string;
+
+  constructor(private readonly root: string) {
+    this.lockPath = join(root, ".atlas-deployment.lock");
+  }
+
+  async read(path: string): Promise<Uint8Array | undefined> {
+    try { return await readFile(join(this.root, path)); }
+    catch (error) { if (isMissingFile(error)) return undefined; throw error; }
+  }
+
+  async create(path: string, bytes: Uint8Array): Promise<void> {
+    const target = join(this.root, path);
+    await mkdir(join(target, ".."), { recursive: true });
+    const handle = await open(target, "wx");
+    try { await handle.writeFile(bytes); }
+    finally { await handle.close(); }
+  }
+
+  async replace(path: string, bytes: Uint8Array): Promise<void> {
+    const target = join(this.root, path);
+    await mkdir(join(target, ".."), { recursive: true });
+    await writeFile(target, bytes);
+  }
+
+  async remove(path: string): Promise<void> {
+    await rm(join(this.root, path), { force: true });
+  }
+
+  async acquireLock(owner: string): Promise<() => Promise<void>> {
+    await mkdir(this.root, { recursive: true });
+    await writeFile(this.lockPath, owner, { flag: "wx" });
+    return async () => { await rm(this.lockPath, { force: true }); };
+  }
 }
 
 export class FailingMutableStorage implements AtlasPublicationStorage {
@@ -65,4 +102,8 @@ export class FailingMutableStorage implements AtlasPublicationStorage {
 
 export async function fileText(path: string): Promise<string> {
   return readFile(path, "utf8");
+}
+
+function isMissingFile(error: unknown): error is NodeJS.ErrnoException {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }

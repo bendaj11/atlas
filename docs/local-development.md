@@ -39,9 +39,13 @@ The production server must expose `allowOverrides: true` for the intended develo
 
 ## Run a local app
 
+When `--host` is needed, pass stable host UUID from host `atlas.config.ts`, not
+local project folder name. Omit it when app declares only one host; Atlas infers
+that UUID.
+
 ```sh
 atlas dev orders \
-  --host=customer-host \
+  --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
   --host-url=https://customer.example/orders
 ```
 
@@ -51,7 +55,7 @@ For a local host:
 
 ```sh
 atlas dev orders \
-  --host=customer-host \
+  --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
   --host-url=http://127.0.0.1:4300/orders
 ```
 
@@ -113,7 +117,7 @@ Apps retain their host compatibility, integrity, URL, route, and widget validati
 
 ```sh
 atlas dev customer-host --prepare-only
-atlas dev orders --host=customer-host --host-url=https://customer.example/orders --prepare-only
+atlas dev orders --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 --host-url=https://customer.example/orders --prepare-only
 ```
 
 Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`. It does not publish local artifacts.

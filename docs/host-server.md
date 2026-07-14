@@ -17,9 +17,13 @@ Deep links such as `/orders/42` receive `index.html`. An asset typo does not rec
 
 ## Required environment
 
+Read the host artifact UUID from the generated host's `atlas.config.ts`. Project
+folder name and artifact UUID are different; runtime configuration requires the
+UUID.
+
 ```sh
-ATLAS_HOST_ID=customer-host
-ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/customer-host/catalog.json
+ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
+ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json
 ```
 
 Optional settings:
@@ -44,7 +48,7 @@ curl --fail http://localhost:8080/health/ready
 curl --fail http://localhost:8080/atlas.runtime.json
 ```
 
-Expected: `ready` and JSON containing `customer-host` plus the intended catalog URL.
+Expected: `ready` and JSON containing the host UUID plus the intended catalog URL.
 
 ## Build and run
 
@@ -54,8 +58,8 @@ The generated `Containerfile` runs the packaged `atlas-host-server` binary. Ther
 docker build -t customer-host-server:1.0.0 customer-host
 
 docker run --rm -p 8080:8080 \
-  -e ATLAS_HOST_ID=customer-host \
-  -e ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/customer-host/catalog.json \
+  -e ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
+  -e ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
   -e ATLAS_ASSET_ORIGINS=https://cdn.example.com \
   customer-host-server:1.0.0
 ```

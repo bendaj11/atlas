@@ -67,13 +67,17 @@ The production catalog selects one host client and one build of each routed/slot
 
 ```text
 registry.json
-hosts/customer-host/index.json
-hosts/customer-host/catalog.json
-hosts/customer-host/deployments/sha256-....json
-hosts/customer-host/1.4.0/build-123/...
-apps/orders/index.json
-apps/orders/2.1.0/build-456/...
+hosts/<host-id>/index.json
+hosts/<host-id>/catalog.json
+hosts/<host-id>/deployments/sha256-....json
+hosts/<host-id>/1.4.0/build-123/...
+apps/<app-id>/index.json
+apps/<app-id>/2.1.0/build-456/...
 ```
+
+`<host-id>` and `<app-id>` are stable UUIDs from each project's
+`atlas.config.ts`; CLI development/build commands still accept local project
+names.
 
 Version/build directories are create-only. Mutable registry, index, and catalog files use revalidation. Publication uploads immutable files first and activates catalogs last.
 
@@ -97,9 +101,13 @@ External provider release updates only its registry production pointer. A refres
 
 ## Rollback boundaries
 
-`atlas rollback customer-host` changes only host-client selection: layout, slots, router/navigation, host SDK/extensions, authentication integration, overlays, and app mounting behavior. Atlas writes a new catalog revision carrying that changed field, while app selections remain unchanged.
+`atlas rollback <host-id>` changes only host-client selection: layout, slots,
+router/navigation, host SDK/extensions, authentication integration, overlays,
+and app mounting behavior. Atlas writes a new catalog revision carrying that
+changed field, while app selections remain unchanged.
 
-`atlas rollback orders` changes only Orders selection. External providers roll back in their own registry; host rollback does not roll them back.
+`atlas rollback <app-id>` changes only that app selection. External providers
+roll back in their own registry; host rollback does not roll them back.
 
 The container is independent of both flows. The deployment platform connects the public domain to the host-server service; browsers fetch host and app assets directly from HTTPS object storage or its CDN gateway.
 

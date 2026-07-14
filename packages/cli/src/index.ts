@@ -11,7 +11,7 @@ import { loadEnvFiles } from "./env.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasRollbackService } from "./rollback.js";
 import { AtlasPublishService, loadAtlasPublishConfig } from "./publish.js";
-export { defineAtlasPublishConfig, FileSystemPublicationStorage, S3PublicationStorage } from "./publish.js";
+export { defineAtlasPublishConfig, S3PublicationStorage } from "./publish.js";
 export type { AtlasPublicationStorage, AtlasPublishConfig, S3Options } from "./publish.js";
 import { AtlasVerifyService, type AtlasVerificationCheck } from "./verify.js";
 import { resolveInvocation } from "./interaction.js";
@@ -38,7 +38,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
 
     if (invocation.command === "g" || invocation.command === "generate") {
       if (invocation.subcommand === "publish-config") {
-        ui.heading("Creating advanced Atlas publish config");
+        ui.heading("Creating Atlas publication adapter config");
         const target = await generate.publishConfig();
         ui.success(`Created ${target}.`);
         return;
@@ -155,7 +155,7 @@ function printVerificationCheck(check: AtlasVerificationCheck): void {
 }
 
 async function publishAndVerify(args: CliArguments, plan: string) {
-  const config = await loadAtlasPublishConfig(args);
+  const config = args.hasFlag("dry-run") ? undefined : await loadAtlasPublishConfig(args);
   const singleRuntimeUrl = args.flag("runtime-url") ?? process.env.ATLAS_RUNTIME_URL;
   const runtimeUrls = [...new Set([
     ...splitUrls(args.flag("runtime-urls") ?? process.env.ATLAS_RUNTIME_URLS),

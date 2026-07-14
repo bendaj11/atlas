@@ -10,9 +10,10 @@ App owns one feature area: Angular components, inner routes, assets, tests, and
 release cadence. Host owns browser page and shared product services. App is not
 a separate product shell and should not import host source.
 
-Before starting, know target host id (`customer-host`), route or slot placement,
-and expected host SDK contract. Complete the shared
-[prerequisites](../getting-started.md#before-you-begin). For advanced mental
+Before starting, know target host project (`customer-host`), stable host UUID
+from its `atlas.config.ts`, route or slot placement, and expected host SDK
+contract. Complete shared
+[prerequisites](../getting-started.md#2-generate-projects). For advanced mental
 model, read [Architecture](../architecture.md).
 
 ## Stage 1: Install Atlas
@@ -64,12 +65,13 @@ Edit app `atlas.config.ts`:
 import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
 
 export default {
-  id: "orders",
+  type: "app",
+  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
   name: "Orders",
   framework: "angular",
   routes: [
     {
-      hostId: "customer-host",
+      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
       basePath: "/orders",
       title: "Orders",
       nav: { label: "Orders", visible: true, order: 10 }
@@ -78,7 +80,7 @@ export default {
   slots: [
     {
       slotId: "header",
-      hostId: "customer-host"
+      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"
     }
   ]
 } satisfies AtlasAppConfig;
@@ -90,7 +92,7 @@ export default {
 provides anchors.
 
 Confirm target host exposes matching anchor in
-[host shell stage](host-getting-started.md#stage-3-build-the-product-shell).
+[host shell stage](host-getting-started.md#3-build-the-product-shell).
 Conflicts, navigation, and inner-route rules live in [Routing](routing.md).
 Manifest field reference lives in [Manifest](../manifest.md).
 
@@ -140,7 +142,7 @@ CDN asset rules live in [Assets and styles](assets-and-styles.md).
 Atlas local development serves app locally but renders it inside real host.
 Install or reload Atlas Columbus extension first. For this repository, build it
 and load unpacked extension using
-[Columbus extension instructions](../local-development.md#columbus-extension).
+[Columbus extension instructions](../local-development.md).
 
 Use two terminals from workspace root:
 
@@ -150,8 +152,7 @@ atlas dev customer-host
 
 # Terminal 2
 atlas dev orders \
-  --host=customer-host \
-  --host-url=http://localhost:4200/orders
+  --host-url=http://127.0.0.1:4300/orders
 ```
 
 When the app is ready, Atlas opens the normal host URL in a new browser tab and
@@ -169,8 +170,8 @@ From inside app directory project name is optional. For repeated local work use
 the app project's `.env.local`:
 
 ```dotenv
-ATLAS_HOST_ID=customer-host
-ATLAS_HOST_URL=http://localhost:4200
+ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
+ATLAS_HOST_URL=http://127.0.0.1:4300
 ```
 
 `ATLAS_HOST_URL` accepts base or full page URL. For base URL Atlas appends route
@@ -181,37 +182,45 @@ Host process remains required. Workspace-specific commands and override internal
 live in [Local development](../local-development.md). Mount failures live in
 [Troubleshooting](troubleshooting.md).
 
-## Stage 6: Build A Production Publication
+## Stage 6: Release The App
 
-When CI uses a deployment lock, acquire it before `atlas build` reads the live
-registry snapshot and hold it through public verification. Then set immutable
-release identity and build:
+Run from workspace root in protected CI. Pin `@atlas/cli`, commit lockfile, and
+provide storage through committed `atlas.publish.ts`. `atlas release` builds, locks,
+publishes immutable files before mutable selections, optionally verifies, and
+restores prior mutable files when verification fails:
 
 ```sh
 ATLAS_VERSION=1.4.0 \
 ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
-ATLAS_CREATED_AT="${BUILD_TIMESTAMP:?BUILD_TIMESTAMP is required}" \
 ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-atlas build orders
+ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json \
+atlas release orders
 ```
 
-Atlas writes:
+Checkpoint: immutable app path and affected catalog exist in public storage,
+then `atlas verify` reports no failures. Host-server image stays unchanged.
 
-| Output | Purpose |
-| --- | --- |
-| `dist/atlas-publication` | Provider-neutral upload tree. |
-| `dist/atlas-publication.json` | Upload plan and cache policy. |
-| Immutable app files | Versioned assets and app manifest. |
-| Mutable JSON | App indexes and affected host catalogs. |
+## Stage 7: Split Build And Publish Jobs
 
-Atlas does not upload files. Inspect plan before CI publication. Full variable,
-artifact, and CI guidance lives in [Production deployment](production-deployment.md).
+Use this only when build job cannot receive storage credentials. Build job
+writes `dist/atlas-publication/` upload tree and adjacent
+`dist/atlas-publication.json` plan:
 
-## Stage 7: Publish Safely
+```sh
+# Unprivileged build job
+ATLAS_VERSION=1.4.0 \
+ATLAS_BUILD_ID="${BUILD_ID:?BUILD_ID is required}" \
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
+atlas build orders
 
-Upload immutable files first. After every immutable URL is available, replace
-mutable app indexes and host catalogs. This prevents catalogs from selecting
-files not yet uploaded.
+# Protected publish job; transfer both outputs above first
+atlas publish \
+  --plan=orders/dist/atlas-publication.json \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+Do not upload plan entries with ad-hoc scripts. `atlas publish` owns lock,
+create-only immutable writes, catalog-last activation, verification, and restore.
 
 Static server must serve `remoteEntry.json` as JSON, JavaScript modules with
 JavaScript MIME types, allow required host origins through CORS, and avoid
@@ -230,24 +239,26 @@ atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
 Then smoke-test `/orders`, nested route refresh, SDK-backed UI, and critical
-assets. If release fails, acquire the deployment lock, then select the exact
-older immutable build:
+assets. If release needs rollback, select exact older immutable build; Atlas
+acquires deployment lock:
 
 ```sh
-atlas rollback orders \
+APP_ID=2bea9c13-4899-4f93-9211-cd8c55e9c529
+
+atlas rollback "$APP_ID" \
   --version=1.3.2 \
   --build-id=1.3.2-build-123 \
-  --registry-base-url=https://cdn.example.com/atlas
+  --registry-base-url=https://cdn.example.com/atlas \
+  --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
+`APP_ID` is stable UUID from `orders/atlas.config.ts`, not local project name.
 Omit `--build-id` only when that version has one production build; Atlas rejects
-ambiguous selection.
-
-Command prepares rollback files and writes plan to `dist/atlas-rollback.json`;
-Atlas does not upload them. CI must upload files listed by plan, invalidate or
-revalidate affected mutable JSON, then run `atlas verify` again. Published
-rollback replaces catalog selection; it does not rebuild app, overwrite
-immutable assets, or redeploy host.
+ambiguous selection. Rollback locks storage, selects existing immutable bytes,
+publishes mutable registry/catalog changes, verifies runtime, and restores prior
+selection if verification fails. It does not rebuild app, overwrite immutable
+assets, or redeploy host. Add `--prepare-only` only when another protected job
+must publish generated `dist/atlas-rollback.json` plan.
 
 App track complete when deployed host mounts selected version, verification
 passes, and rollback is known to work. Return to
