@@ -10,11 +10,12 @@ this task guide.
 From workspace root:
 
 ```sh
-atlas g app orders --framework=angular --host=customer-host
+atlas g app orders --framework=angular --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
-Generator resolves local host project to UUID and creates initial `/orders`
-route. Keep generated app UUID stable across renames.
+Copy host UUID from host project's `atlas.config.ts`. Generator creates initial
+`/orders` route for that exact host ID. Keep generated app UUID stable across
+renames.
 
 | File | Edit for |
 | --- | --- |

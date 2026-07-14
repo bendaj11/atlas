@@ -50,6 +50,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   const temporary = await mkdtemp(join(tmpdir(), "atlas-app-generator-"));
   const withoutHost = join(temporary, "orders");
   const withHost = join(temporary, "billing");
+  const hostId = "0a17281f-287b-4d89-a8ca-0ab0e577c506";
 
   await run(process.execPath, [
     "packages/cli/dist/index.js", "g", "app", "orders",
@@ -57,7 +58,7 @@ test("atlas app generation only writes a route when a host is supplied", async (
   ]);
   await run(process.execPath, [
     "packages/cli/dist/index.js", "g", "app", "billing",
-    "--framework=react", "--host=customer-host", "--port=4306", "--skip-install", `--directory=${withHost}`
+    "--framework=react", `--host-id=${hostId}`, "--port=4306", "--skip-install", `--directory=${withHost}`
   ]);
 
   const defaultConfig = await readFile(join(withoutHost, "atlas.config.ts"), "utf8");
@@ -71,8 +72,18 @@ test("atlas app generation only writes a route when a host is supplied", async (
   assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true \}/);
   assert.doesNotMatch(explicitConfig, /hostCompatibility/);
   assert.match(explicitConfig, /routes: \[/);
-  assert.match(explicitConfig, /hostId: "customer-host"/);
+  assert.match(explicitConfig, new RegExp(`hostId: "${hostId}"`));
   assert.doesNotMatch(explicitConfig, /hostId: "host"/);
+});
+
+test("atlas app generation rejects the removed host project option", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "atlas-app-generator-"));
+  const target = join(temporary, "orders");
+
+  await assert.rejects(run(process.execPath, [
+    "packages/cli/dist/index.js", "g", "app", "orders",
+    "--framework=react", "--host=customer-host", "--skip-install", `--directory=${target}`
+  ]), /Unknown option "--host" for app generation\. Use --host-id\./);
 });
 
 test("atlas app generation can create single-page apps without inner route files", async () => {

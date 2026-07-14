@@ -107,6 +107,7 @@ export function createNxGenerationCommand(
   const args = [
     "nx", "generate", generator, options.directory,
     `--interactive=${options.interactive}`, "--skipFormat", `--routing=${options.routing}`, `--port=${port}`,
+    ...(options.framework === "angular" ? ["--ssr=false"] : []),
     ...(!options.interactive ? [
       "--e2eTestRunner=none", "--unitTestRunner=none",
       ...(options.framework === "react" ? ["--bundler=vite"] : ["--bundler=esbuild"])

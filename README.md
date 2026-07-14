@@ -62,7 +62,7 @@ Yarn.
 npm install --save-dev --save-exact @atlas/cli
 
 npx atlas g host customer-host --framework=react
-npx atlas g app orders --framework=react --host=customer-host
+npx atlas g app orders --framework=react --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
 Use `--framework=angular` for Angular. Start the generated host and app from the

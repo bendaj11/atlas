@@ -196,7 +196,7 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
     arguments: [{ label: "name-or-path", description: `Name or command-relative path of the ${resource}; prompted when omitted` }],
     options: [
       { label: "--framework <name>", description: "Framework: angular or react; prompted when omitted" },
-      ...(type === "app" ? [{ label: "--host <host-id>", description: "Host id used for the generated route" }] : []),
+      ...(type === "app" ? [{ label: "--host-id <host-id>", description: "Stable host id used for the generated route" }] : []),
       ...(type === "app" ? [{ label: "--routing, --no-routing", description: "Create Atlas inner route files or a single-page app; prompted when omitted in interactive mode" }] : []),
       { label: "--port <number>", description: `Dev-server port; prompted when omitted in interactive mode (default: ${type === "host" ? 4200 : 4201})` },
       { label: "--framework-version <range>", description: "Framework semver range for new packages; existing Nx packages keep their Angular/React version" },

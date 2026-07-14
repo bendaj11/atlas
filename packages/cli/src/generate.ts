@@ -50,6 +50,9 @@ export class AtlasGenerateService {
     framework?: SupportedFramework,
     afterGeneration?: (root: string) => Promise<void>
   ): Promise<string> {
+    if (type === "app" && this.args.hasFlag("host")) {
+      throw new Error('Unknown option "--host" for app generation. Use --host-id.');
+    }
     const { name, segments } = parseProjectPath(projectPath);
     const selectedFramework = framework ?? this.args.framework();
     const explicit = this.args.flag("directory");
@@ -83,7 +86,7 @@ export class AtlasGenerateService {
         : undefined;
       if (scaffoldedFrameworkVersion) this.logFrameworkVersionSelection(selectedFramework, scaffoldedFrameworkVersion);
       const detectedFrameworkVersion = scaffoldedFrameworkVersion?.version;
-      const hostId = type === "app" ? await this.resolveHostId(this.args.flag("host")) : undefined;
+      const hostId = type === "app" ? this.args.flag("host-id") : undefined;
       const generatorOptions = this.options({
         name,
         framework: selectedFramework,
@@ -258,17 +261,6 @@ export default {
       return join(this.workspace.root, "examples", type === "host" ? "hosts" : "apps", name);
     }
     return this.workspace.generationRoot(type, name);
-  }
-
-  private async resolveHostId(hostReference: string | undefined): Promise<string | undefined> {
-    if (!hostReference) return undefined;
-    try {
-      const host = await this.workspace.findProject(hostReference);
-      const source = await readFile(join(host.root, "atlas.config.ts"), "utf8");
-      return source.match(/\bid\s*:\s*["']([^"']+)["']/)?.[1] ?? hostReference;
-    } catch {
-      return hostReference;
-    }
   }
 
   private async writeNxProject(root: string, name: string, type: "host" | "app"): Promise<void> {

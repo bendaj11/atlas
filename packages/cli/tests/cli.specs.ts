@@ -50,6 +50,13 @@ test("generation help documents automatic dependency installation control", asyn
   assert.match(result.stdout, /--skip-install\s+Generate files without installing dependencies/);
 });
 
+test("app generation help accepts only an explicit host id", async () => {
+  const result = await runCli(["g", "app", "--help"]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /--host-id <host-id>\s+Stable host id used for the generated route/);
+  assert.doesNotMatch(result.stdout, /--host <host-id>/);
+});
+
 test("command help ignores positional values after the command", async () => {
   const result = await runCli(["build", "orders", "--help"]);
   assert.equal(result.code, 0);

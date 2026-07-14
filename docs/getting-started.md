@@ -89,19 +89,21 @@ Choose one framework. React path:
 
 ```sh
 npx atlas g host customer-host --framework=react
-npx atlas g app orders --framework=react --host=customer-host
+npx atlas g app orders --framework=react --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
 Angular path:
 
 ```sh
 npx atlas g host customer-host --framework=angular
-npx atlas g app orders --framework=angular --host=customer-host
+npx atlas g app orders --framework=angular --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
 Generation installs project dependencies unless `--skip-install` is passed.
-The `--host=customer-host` argument resolves the local host project and writes
-its UUID into the app route declaration.
+After generating the host, copy its stable UUID from
+`customer-host/atlas.config.ts` into `--host-id`. Generator writes that exact
+value into app route declaration. This works whether projects share a repo or
+live in separate repos.
 
 Checkpoint: these files exist:
 

@@ -29,11 +29,12 @@ configuration.
 Create a React app:
 
 ```sh
-atlas g app orders --framework=react --host=customer-host
+atlas g app orders --framework=react --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
-`--host` creates an initial `/orders` route for that host. Omit it when the app
-team will define routes or slots later.
+`--host-id` takes stable UUID from host project's `atlas.config.ts` and creates
+an initial `/orders` route for that host. Omit it when app team will define
+routes or slots later.
 
 Generated app files to understand first:
 

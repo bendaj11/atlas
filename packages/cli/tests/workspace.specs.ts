@@ -211,6 +211,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/host",
       "--interactive=false", "--skipFormat", "--routing=true", "--port=4200",
+      "--ssr=false",
       "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
     ],
     cwd: "/repo"
@@ -231,6 +232,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/orders",
       "--interactive=false", "--skipFormat", "--routing=true", "--port=4202",
+      "--ssr=false",
       "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
     ],
     cwd: "/repo"
@@ -248,14 +250,14 @@ test("non-interactive Nx projects use deterministic framework generator defaults
   });
 });
 
-test("interactive Nx projects delegate framework choices to the native generator", () => {
+test("interactive Nx projects delegate supported framework choices to the native generator", () => {
   assert.deepEqual(createNxGenerationCommand("yarn", "/repo", {
     framework: "angular", type: "host", directory: "apps/host", interactive: true, routing: true
   }), {
     command: "yarn",
     args: [
       "nx", "generate", "@nx/angular:application", "apps/host",
-      "--interactive=true", "--skipFormat", "--routing=true", "--port=4200"
+      "--interactive=true", "--skipFormat", "--routing=true", "--port=4200", "--ssr=false"
     ],
     cwd: "/repo"
   });

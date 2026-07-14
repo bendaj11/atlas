@@ -86,9 +86,10 @@ to add the version matched by Nx. Non-interactive automation can approve this
 with `--yes`.
 
 In an interactive terminal, Atlas hands control to the native Nx generator for
-framework choices such as stylesheets, test runners, bundler, and SSR. In CI or
-another non-interactive environment, Atlas disables Nx prompts and supplies
-deterministic defaults instead.
+supported framework choices such as stylesheets, test runners, and bundler.
+Atlas always disables Angular SSR because Atlas currently supports client-side
+rendering only. In CI or another non-interactive environment, Atlas disables Nx
+prompts and supplies deterministic defaults instead.
 
 Atlas invokes targets such as `orders:build`, `orders:dev`, `orders:serve`, and
 `orders:atlas:config`, so Nx caching and affected-project workflows remain active.
