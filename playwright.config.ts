@@ -20,27 +20,13 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI
     },
     {
-      command: "node examples/hosts/demo-react-host-server/dist/main.mjs",
-      url: "http://127.0.0.1:4300/health/ready",
-      env: {
-        PORT: "4300",
-        ATLAS_CATALOG_URL: "http://127.0.0.1:4400/hosts/060a7f62-1c95-402c-9993-55749faf36d9/catalog.json",
-        ATLAS_ASSET_ORIGINS: "http://127.0.0.1:4400,http://127.0.0.1:4401",
-        ATLAS_EXTERNAL_REGISTRY_URLS: "http://127.0.0.1:4401",
-        ATLAS_ALLOW_OVERRIDES: "true"
-      },
+      command: "node tests/e2e/static-server.js --root=tests/e2e/.artifacts/react-bootstrap --port=4300 --spa",
+      url: "http://127.0.0.1:4300/atlas.runtime.json",
       reuseExistingServer: !process.env.CI
     },
     {
-      command: "node examples/hosts/demo-angular-host-server/dist/main.mjs",
-      url: "http://127.0.0.1:4301/health/ready",
-      env: {
-        PORT: "4301",
-        ATLAS_CATALOG_URL: "http://127.0.0.1:4400/hosts/399e1a5d-f83d-4248-96ed-e4211707ae1b/catalog.json",
-        ATLAS_ASSET_ORIGINS: "http://127.0.0.1:4400,http://127.0.0.1:4401",
-        ATLAS_EXTERNAL_REGISTRY_URLS: "http://127.0.0.1:4401",
-        ATLAS_ALLOW_OVERRIDES: "true"
-      },
+      command: "node tests/e2e/static-server.js --root=tests/e2e/.artifacts/angular-bootstrap --port=4301 --spa",
+      url: "http://127.0.0.1:4301/atlas.runtime.json",
       reuseExistingServer: !process.env.CI
     }
   ]

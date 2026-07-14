@@ -6,7 +6,7 @@ const root = resolve(import.meta.dirname, "..");
 const packageDirectory = join(root, "packages/schema");
 const verifiedPackagesDirectory = join(root, "dist/package-verification");
 const releaseDirectory = join(root, "dist/release");
-const expectedArchives = ["cli.tgz", "generators.tgz", "host-server.tgz", "runtime.tgz", "schema.tgz", "sdk.tgz", "testkit.tgz"];
+const expectedArchives = ["bootstrap.tgz", "cli.tgz", "generators.tgz", "runtime.tgz", "schema.tgz", "sdk.tgz", "testkit.tgz"];
 const packageManifest = JSON.parse(await readFile(join(packageDirectory, "package.json"), "utf8"));
 const version = packageManifest.version;
 

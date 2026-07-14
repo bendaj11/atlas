@@ -21,7 +21,7 @@ test("atlas preserves Nx Angular workspace version after native scaffolding", as
     private: true,
     packageManager: "yarn@1.22.22",
     dependencies: { "@angular/core": "~20.3.0", "@angular/animations": "~21.2.0" },
-    devDependencies: { "@nx/angular": "22.0.0", "@nx/node": "22.0.0" }
+    devDependencies: { "@nx/angular": "22.0.0" }
   }));
   await writeFile(join(root, "tsconfig.json"), JSON.stringify({ files: [], references: [] }));
   await writeFile(join(root, "tsconfig.base.json"), JSON.stringify({
@@ -34,14 +34,6 @@ if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
 fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
-  if [ "$3" = "@nx/node:application" ]; then
-    mkdir -p "$directory/src"
-    printf 'nx node source\n' > "$directory/src/main.ts"
-    printf '{"name":"host-server","marker":"nx-node-generator","targets":{"lint":{"executor":"nx:noop"}}}\n' > "$directory/project.json"
-    printf '{"extends":"../../tsconfig.base.json","marker":"nx-node-generator"}\n' > "$directory/tsconfig.json"
-    printf '{"name":"@acme/host-server","version":"0.0.1","scripts":{"nx-native":"nx-native"},"dependencies":{},"devDependencies":{}}\n' > "$directory/package.json"
-    exit 0
-  fi
   mkdir -p "$directory/public" "$directory/src"
   printf 'nx public asset\n' > "$directory/public/nx.txt"
   printf 'nx source\n' > "$directory/src/main.ts"
@@ -82,19 +74,6 @@ exit 1
   expect(project.targets.dev.options.forwardAllArgs).toBe(true);
   expect(project.targets["mobile-host"].options.command).toBe("nx run mobile-host:dev");
   expect(project.targets["build-server"]).toBe(undefined);
-  const serverProject = JSON.parse(await readFile(join(root, "products/host-server/project.json"), "utf8"));
-  expect(serverProject.name).toBe("host-server");
-  expect(serverProject.marker).toBe("nx-node-generator");
-  expect(serverProject.targets.lint.executor).toBe("nx:noop");
-  expect(serverProject.targets.build.options.cwd).toBe("products/host-server");
-  expect(serverProject.targets.build.options.command).toBe("tsc -p tsconfig.json");
-  expect(serverProject.targets.start.options.command).toBe("node dist/main.mjs");
-  expect(await readFile(join(root, "products/host-server/main.mts"), "utf8")).toMatch(/app\.use\(atlas\(/);
-  await expect(access(join(root, "products/host-server/src"))).rejects.toMatchObject({ code: "ENOENT" });
-  const serverPackage = JSON.parse(await readFile(join(root, "products/host-server/package.json"), "utf8"));
-  expect(serverPackage.name).toBe("@acme/host-server");
-  expect(serverPackage.scripts["nx-native"]).toBe("nx-native");
-  expect(serverPackage.dependencies["@atlas/host-server"]).toBe(ATLAS_PACKAGE_RANGE);
   await expect(access(join(root, "products/host/server"))).rejects.toMatchObject({ code: "ENOENT" });
   expect(await readFile(join(root, "products/host/src/main.ts"), "utf8")).toMatch(/import\("\.\/bootstrap"\)/);
   expect(await readFile(join(root, "products/host/src/bootstrap.ts"), "utf8")).toMatch(/startHost/);
@@ -120,7 +99,7 @@ exit 1
   await expect(access(join(root, "products/host/public/atlas.runtime.json"))).rejects.toMatchObject({ code: "ENOENT" });
   const rootPackage = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   expect(rootPackage.dependencies["@atlas/schema"]).toBe(ATLAS_PACKAGE_RANGE);
-  expect(rootPackage.dependencies["@atlas/host-server"]).toBe(undefined);
+  expect(rootPackage.dependencies["@atlas/bootstrap"]).toBe(undefined);
   expect(rootPackage.dependencies["@atlas/runtime"]).toBe(ATLAS_PACKAGE_RANGE);
   expect(rootPackage.dependencies["@atlas/sdk"]).toBe(ATLAS_PACKAGE_RANGE);
   expect(rootPackage.dependencies["@angular/core"]).toBe("~20.3.0");
@@ -130,12 +109,10 @@ exit 1
   expect(rootPackage.devDependencies["@nx/angular"]).toBe("22.0.0");
   expect(stdout).toMatch(/Detected an Nx workspace/);
   expect(stdout).toMatch(/Delegating Angular scaffolding to @nx\/angular:application at products\/host/);
-  expect(stdout).toMatch(/Delegating Node\.js scaffolding to @nx\/node:application at products\/host-server/);
   expect(stdout).toMatch(/Detected existing Angular version ~20\.3\.0 in package\.json; ignoring --framework-version=~21\.2\.0/);
   expect(stdout).toMatch(/Added Atlas dependencies to package\.json/);
-  expect(await readFile(join(root, "formatted.txt"), "utf8")).toBe("products/host-server\n");
+  expect(await readFile(join(root, "formatted.txt"), "utf8")).toBe("products/host\n");
   expect(stdout).toMatch(/Formatted generated files in products\/host/);
-  expect(stdout).toMatch(/Formatted generated files in products\/host-server/);
 });
 
 test("atlas preserves Nx React project scaffolding around host startup files", async () => {
@@ -148,7 +125,7 @@ test("atlas preserves Nx React project scaffolding around host startup files", a
     private: true,
     packageManager: "yarn@1.22.22",
     dependencies: { react: "^19.2.0", "react-dom": "^19.2.0" },
-    devDependencies: { "@nx/react": "22.0.0", "@nx/node": "22.0.0" }
+    devDependencies: { "@nx/react": "22.0.0" }
   }));
   await writeFile(join(bin, "yarn"), `#!/bin/sh
 if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
@@ -157,13 +134,6 @@ if [ "$1" = "nx" ] && [ "$2" = "format:write" ]; then
 fi
 if [ "$1" = "nx" ] && [ "$2" = "generate" ]; then
   directory="$4"
-  if [ "$3" = "@nx/node:application" ]; then
-    mkdir -p "$directory/src"
-    printf 'nx node source\n' > "$directory/src/main.ts"
-    printf '{"name":"host-server","marker":"nx-node-generator","targets":{"lint":{"executor":"nx:noop"}}}\n' > "$directory/project.json"
-    printf '{"extends":"../../tsconfig.base.json","marker":"nx-node-generator"}\n' > "$directory/tsconfig.json"
-    exit 0
-  fi
   mkdir -p "$directory/src" "$directory/public"
   printf 'nx react source\n' > "$directory/src/main.tsx"
   printf 'nx react css\n' > "$directory/src/styles.css"
@@ -192,14 +162,6 @@ exit 1
   expect(project.targets.serve.options.command).toBe("vite");
   expect(project.targets.serve.continuous).toBe(true);
   expect(project.targets["build-server"]).toBe(undefined);
-  const serverProject = JSON.parse(await readFile(join(root, "apps/host-server/project.json"), "utf8"));
-  expect(serverProject.name).toBe("host-server");
-  expect(serverProject.marker).toBe("nx-node-generator");
-  expect(serverProject.targets.lint.executor).toBe("nx:noop");
-  expect(serverProject.targets.build.options.cwd).toBe("apps/host-server");
-  expect(serverProject.targets.start.options.command).toBe("node dist/main.mjs");
-  expect(await readFile(join(root, "apps/host-server/main.mts"), "utf8")).toMatch(/app\.use\(atlas\(/);
-  await expect(access(join(root, "apps/host-server/src"))).rejects.toMatchObject({ code: "ENOENT" });
   await expect(access(join(root, "apps/host/server"))).rejects.toMatchObject({ code: "ENOENT" });
   const hostMain = await readFile(join(root, "apps/host/src/main.tsx"), "utf8");
   expect(hostMain).toMatch(/<HostAtlasProvider>/);
@@ -237,11 +199,9 @@ exit 1
   expect(rootPackage.dependencies["react-dom"]).toBe("^19.2.0");
   expect(rootPackage.devDependencies["@nx/react"]).toBe("22.0.0");
   expect(stdout).toMatch(/Delegating React scaffolding to @nx\/react:application at apps\/host/);
-  expect(stdout).toMatch(/Delegating Node\.js scaffolding to @nx\/node:application at apps\/host-server/);
   expect(stdout).toMatch(/Added Atlas dependencies to package\.json/);
-  expect(await readFile(join(root, "formatted.txt"), "utf8")).toBe("apps/host-server\n");
+  expect(await readFile(join(root, "formatted.txt"), "utf8")).toBe("apps/host\n");
   expect(stdout).toMatch(/Formatted generated files in apps\/host/);
-  expect(stdout).toMatch(/Formatted generated files in apps\/host-server/);
 });
 
 test("atlas adds required Angular app files after Nx scaffolding", async () => {

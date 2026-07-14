@@ -70,13 +70,14 @@ export default {
 } satisfies AtlasAppConfig;
 ```
 
-Host-server environment supplies trusted environment-specific registry URLs:
+Bootstrap build supplies trusted environment-specific registry URLs:
 
 ```sh
-ATLAS_EXTERNAL_REGISTRY_URLS=https://team-a.example/atlas,https://shared-ui.example/atlas
+atlas build-bootstrap customer-host \
+  --external-registry-urls=https://team-a.example/atlas,https://shared-ui.example/atlas
 ```
 
-On refresh Atlas resolves each dependency to its registry's current production selection. External release and rollback therefore become visible after browser refresh without host catalog sync or host-server deployment. Host-client rollback does not roll back independently released external providers.
+On refresh Atlas resolves each dependency to its registry's current production selection. External release and rollback therefore become visible after browser refresh without host catalog sync or bootstrap deployment. Host-client rollback does not roll back independently released external providers.
 
 Atlas resolves transitive external app dependencies, rejects duplicate app/widget IDs, and searches only explicitly configured registries. An unavailable registry affects only requested widgets from that registry.
 
@@ -97,8 +98,8 @@ Columbus lists external widget providers separately from routed/slotted apps. Lo
 
 `atlas.widget.ts is missing`: run widget generator or add file with stable UUIDv4 and name.
 
-`External Atlas app dependency ... was not found`: add provider registry URL to host-server environment and confirm provider production release exists.
+`External Atlas app dependency ... was not found`: add provider registry URL to bootstrap environment and confirm provider production release exists.
 
 `widget id ... is exported by multiple apps`: regenerate one duplicate id and update its consumers.
 
-`origin ... is not allowed`: add approved asset/CDN origin to `ATLAS_ASSET_ORIGINS`; never weaken HTTPS or integrity policy globally.
+`origin ... is not allowed`: add approved asset/CDN origin with `atlas build-bootstrap --asset-origins`; never weaken HTTPS or integrity policy globally.

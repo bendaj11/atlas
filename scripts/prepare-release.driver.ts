@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const packageDirectories = ["schema", "sdk", "runtime", "host-server", "generators", "testkit", "cli"];
+const packageDirectories = ["schema", "sdk", "runtime", "bootstrap", "generators", "testkit", "cli"];
 
 export async function createReleaseWorkspace(version: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "atlas-release-"));

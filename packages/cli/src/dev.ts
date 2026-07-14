@@ -3,9 +3,9 @@ import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
+import { createAtlasBootstrapFiles } from "@atlas/bootstrap";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
-import { closeAtlasHostServer, createAtlasHostServer } from "@atlas/host-server";
-import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig, AtlasHostManifest } from "@atlas/schema";
+import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig, AtlasHostManifest, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
@@ -71,7 +71,7 @@ export class AtlasDevService {
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
     const remotePort = await this.resolveRemotePort(project, 4200);
     const controlPort = this.args.port("control-port", 4400);
-    const hostServerPort = this.args.port("host-server-port", 4300);
+    const bootstrapPort = this.args.port("bootstrap-port", 4300);
     if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
     const manifest = await this.builds.buildLocalHostManifest(project.id, `http://${LOOPBACK_HOST}:${remotePort}`);
     const document: AtlasDevOverrideDocument = {
@@ -84,7 +84,7 @@ export class AtlasDevService {
     const directory = join(project.root, ".atlas");
     await mkdir(directory, { recursive: true });
     await writeFile(join(directory, "local-overrides.json"), `${JSON.stringify(document, null, 2)}\n`, "utf8");
-    const hostUrl = this.args.flag("host-url") ?? `http://${LOOPBACK_HOST}:${hostServerPort}`;
+    const hostUrl = this.args.flag("host-url") ?? `http://${LOOPBACK_HOST}:${bootstrapPort}`;
     if (this.args.hasFlag("prepare-only")) {
       console.info(`Host client "${config.id}" is prepared for ${hostUrl}. Run without --prepare-only to start it.`);
       return;
@@ -93,18 +93,18 @@ export class AtlasDevService {
     const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
     const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
-    const bootstrap = this.args.flag("host-url") ? undefined : await createAtlasHostServer({
-      port: hostServerPort,
+    const bootstrap = this.args.flag("host-url") ? undefined : await startLocalBootstrapServer({
+      port: bootstrapPort,
       runtime: {
         schemaVersion: "1",
         hostId: config.id,
         catalogUrl: `http://${LOOPBACK_HOST}:${controlPort}/hosts/${config.id}/catalog.json`,
         allowOverrides: true,
         resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
-        resourcesRetryCount: config.resourcesRetryCount ?? 3
-      },
-      assetOrigins: [`http://${LOOPBACK_HOST}:${remotePort}`, `http://${LOOPBACK_HOST}:${controlPort}`]
-    }).listen();
+        resourcesRetryCount: config.resourcesRetryCount ?? 3,
+        assetOrigins: [`http://${LOOPBACK_HOST}:${remotePort}`, `http://${LOOPBACK_HOST}:${controlPort}`]
+      }
+    });
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
@@ -112,7 +112,7 @@ export class AtlasDevService {
       openBrowserWhenReady(this.args, hostUrl);
       await waitForShutdown(frameworkServer, control);
     } finally {
-      if (bootstrap) await closeAtlasHostServer(bootstrap);
+      if (bootstrap) await closeServer(bootstrap);
     }
   }
 
@@ -229,6 +229,71 @@ export class AtlasDevService {
     if (prompts.interactive) return prompts.input("Host URL for local development");
     throw new Error("Host URL is required. Pass --host-url or set ATLAS_HOST_URL.");
   }
+}
+
+interface LocalBootstrapServerOptions {
+  port: number;
+  runtime: AtlasHostRuntimeConfig;
+}
+
+export async function startLocalBootstrapServer(options: LocalBootstrapServerOptions): Promise<Server> {
+  const files = new Map(createAtlasBootstrapFiles({ runtime: options.runtime }).map((file) => [`/${file.path}`, file.contents]));
+  const server = createServer((request, response) => {
+    const path = new URL(request.url ?? "/", `http://${LOOPBACK_HOST}`).pathname;
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      response.writeHead(405, { allow: "GET, HEAD" });
+      response.end();
+      return;
+    }
+    const exact = files.get(path);
+    if (exact !== undefined) {
+      writeBootstrapResponse({ response, path, contents: exact, method: request.method ?? "GET" });
+      return;
+    }
+    if (/\.[A-Za-z0-9]+$/.test(path)) {
+      response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+      response.end("Not found\n");
+      return;
+    }
+    writeBootstrapResponse({ response, path: "/index.html", contents: files.get("/index.html")!, method: request.method ?? "GET" });
+  });
+  return await listen(server, options.port, "Atlas local bootstrap");
+}
+
+interface BootstrapResponseOptions {
+  response: ServerResponse;
+  path: string;
+  contents: string;
+  method?: string;
+}
+
+function writeBootstrapResponse(options: BootstrapResponseOptions): void {
+  const { response, path, contents, method } = options;
+  const contentType = path.endsWith(".html")
+    ? "text/html; charset=utf-8"
+    : path.endsWith(".json")
+      ? "application/json; charset=utf-8"
+      : "text/javascript; charset=utf-8";
+  response.writeHead(200, {
+    "content-type": contentType,
+    "cache-control": path === "/atlas.loader.js" ? "no-cache" : "no-store",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin"
+  });
+  response.end(method === "HEAD" ? undefined : contents);
+}
+
+function listen(server: Server, port: number, label: string): Promise<Server> {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, LOOPBACK_HOST, () => {
+      server.off("error", reject);
+      const address = server.address();
+      const actualPort = typeof address === "object" && address ? address.port : port;
+      console.info(`${label} listening at http://${LOOPBACK_HOST}:${actualPort}.`);
+      resolve(server);
+    });
+  });
 }
 
 export async function startControlServer(

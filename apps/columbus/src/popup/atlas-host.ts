@@ -17,7 +17,7 @@ export async function readHostData(activeTabId: number | undefined): Promise<{ h
 
   const hostData = injection.result;
   if (hostData.config.allowOverrides !== true) {
-    throw new Error(`Atlas host "${hostData.config.hostId}" disables host and app overrides. Set ATLAS_ALLOW_OVERRIDES=true on the host-server container.`);
+    throw new Error(`Atlas host "${hostData.config.hostId}" disables host and app overrides. Set allowOverrides: true in host atlas.config.ts and rebuild bootstrap.`);
   }
   if (!hostData.overrides) hostData.overrides = await readPersistedOverrides(hostData);
   await updateActionBadge(tab.id, overrideCount(hostData.overrides));

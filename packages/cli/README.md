@@ -48,9 +48,9 @@ Generation runs detected Yarn, pnpm, or npm install unless `--skip-install` is
 passed. In Nx workspaces, Atlas delegates project scaffolding to installed Nx
 framework generator, then adds Atlas wiring and dependencies.
 
-`atlas g host customer-host` creates sibling `customer-host` and
-`customer-host-server` projects. Client owns framework UI and publication;
-server owns Node.js HTTP bootstrap and deployment.
+`atlas g host customer-host` creates one framework host project.
+`atlas build-bootstrap customer-host` emits static HTML, loader, runtime JSON,
+and Nginx config under `dist/bootstrap`.
 
 If existing Nx manifest declares `@angular/core` or `react`, Atlas keeps that
 framework version and aligns companion dependencies. Conflicting

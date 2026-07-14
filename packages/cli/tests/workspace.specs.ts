@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
-import { createFormatGeneratedCommand, createInstallCommand, createNxGenerationCommand, createNxHostServerGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
+import { createFormatGeneratedCommand, createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
 import { createWorkspaceFixture } from "./workspace.driver.js";
 
 test("workspace detection discovers an Nx project without consumer configuration", async () => {
@@ -278,26 +278,6 @@ test("missing Nx plugins are added through the workspace package manager", () =>
     args: ["nx", "add", "@nx/react", "--interactive=false"],
     cwd: "/repo"
   });
-  expect(createNxPluginInstallCommand("pnpm", "/repo", "node")).toStrictEqual({
-    command: "pnpm",
-    args: ["exec", "nx", "add", "@nx/node", "--interactive=false"],
-    cwd: "/repo"
-  });
-});
-
-test("Nx host servers use the native Node application generator", () => {
-  expect(createNxHostServerGenerationCommand("yarn", "/repo", {
-    directory: "apps/customer-host-server",
-    interactive: false
-  })).toStrictEqual({
-    command: "yarn",
-    args: [
-      "nx", "generate", "@nx/node:application", "apps/customer-host-server",
-      "--interactive=false", "--skipFormat", "--useProjectJson=true",
-      "--bundler=esbuild", "--e2eTestRunner=none", "--unitTestRunner=none", "--linter=none"
-    ],
-    cwd: "/repo"
-  });
 });
 
 test("solution-style Nx workspaces still require the native Angular plugin", async () => {
@@ -314,6 +294,5 @@ test("solution-style Nx workspaces still require the native Angular plugin", asy
 
   const workspace = await detectWorkspace(root);
   expect(await workspace.missingScaffoldDependency("angular")).toBe("@nx/angular");
-  expect(await workspace.missingScaffoldDependency("node")).toBe("@nx/node");
   expect(workspace.generationRoot("host", "host")).toBe(join(root, "packages", "host"));
 });

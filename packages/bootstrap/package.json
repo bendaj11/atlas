@@ -1,21 +1,21 @@
 {
-  "name": "@atlas/host-server",
-  "version": "0.3.4",
+  "name": "@atlas/bootstrap",
+  "version": "0.3.5",
   "type": "module",
-  "description": "Express middleware for Atlas host bootstrap.",
+  "description": "Static Atlas browser bootstrap assets and Nginx configuration.",
   "license": "MIT",
   "keywords": [
     "atlas",
     "host",
-    "server",
-    "bff"
+    "static",
+    "nginx"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/bendaj11/atlas.git",
-    "directory": "packages/host-server"
+    "directory": "packages/bootstrap"
   },
-  "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/host-server#readme",
+  "homepage": "https://github.com/bendaj11/atlas/tree/main/packages/bootstrap#readme",
   "bugs": "https://github.com/bendaj11/atlas/issues",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,9 +24,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
-  },
-  "bin": {
-    "atlas-host-server": "./dist/cli.js"
   },
   "files": [
     "dist/**/*.js",
@@ -40,13 +37,11 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/host-server/tests/'",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/bootstrap/tests/'",
     "typecheck": "tsc -b --pretty false",
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.4",
-    "@types/express": "^5.0.6",
-    "express": "^5.2.1"
+    "@atlas/schema": "0.3.5"
   }
 }

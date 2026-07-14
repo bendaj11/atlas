@@ -1,174 +1,82 @@
 # Production Deployment
 
-Audience: platform and release teams that already completed [Zero to
-production](getting-started.md). This guide turns that learning path into a
-repeatable delivery design.
+Atlas has two independent delivery paths:
 
-Production has two independently delivered artifact classes:
+1. infrequent static bootstrap deployment to product domain;
+2. routine host/app artifact publication to registry/CDN.
 
-1. generated TypeScript host server;
-2. versioned host-client and app artifacts in public object storage or CDN.
+## Provision Environment Once
 
-Atlas does not prescribe repository layout, CI vendor, server package format,
-cloud, or service topology.
-
-## 1. Prepare Publication
-
-Required infrastructure:
-
-- public HTTPS registry base URL;
-- CORS allowing each host origin to read registry and artifact files;
-- correct JSON, JavaScript, CSS, and asset MIME types;
-- publication identity with create and replace permissions;
-- shared registry lease or lock;
-- pinned local `@atlas/cli` and committed lockfile.
-
-Generate and commit explicit publication adapter configuration:
+Build bootstrap:
 
 ```sh
-npm exec -- atlas generate publish-config
+atlas build-bootstrap customer-host \
+  --registry-base-url=https://cdn.example.com/atlas
 ```
 
-Generated `atlas.publish.ts` uses `S3PublicationStorage`. Configure its endpoint,
-bucket, prefix, region, and credentials through protected CI environment. Other
-providers implement `AtlasPublicationStorage`.
+Build Nginx image:
 
-Atlas does not interpret provider-specific environment variables. See [Registry
-and publishing](registry.md) for permissions, layout, concurrency, and adapter
-contract.
-
-## 2. Build And Deploy Host Server
-
-From workspace root:
-
-```sh
-npm --prefix customer-host-server run build
+```dockerfile
+FROM nginxinc/nginx-unprivileged:alpine
+COPY ./dist/bootstrap /usr/share/nginx/html
+COPY ./dist/bootstrap/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080
 ```
 
-Deploy `customer-host-server/dist/main.mjs`, server production dependencies, and runtime
-configuration through existing Node.js delivery tooling. Atlas generates no
-container, cloud manifest, or pipeline definition.
+Push image, deploy container, then route `https://product.com` to it through
+DNS/ingress/TLS. Deploy bootstrap again only when loader, runtime config,
+template, or HTTP policy changes.
 
-Generated server embeds host UUID. Configure environment-specific catalog and
-trusted asset origins:
+## Release Host Or App
 
 ```sh
-ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json
-ATLAS_ASSET_ORIGINS=https://cdn.example.com
-PORT=8080
+atlas build customer-host --registry-base-url=https://cdn.example.com/atlas
+atlas publish --plan customer-host/dist/atlas-publication.json \
+  --runtime-url=https://product.com/atlas.runtime.json
+
+atlas build orders --registry-base-url=https://cdn.example.com/atlas
+atlas publish --plan orders/dist/atlas-publication.json \
+  --runtime-url=https://product.com/atlas.runtime.json
 ```
 
-Connect public domain to server process. Configure liveness `/health/live` and
-readiness `/health/ready`. Do not bake `atlas.runtime.json` into framework output
-or place object-storage credentials in server environment.
+Publication order is immutable artifacts first, mutable indexes next, affected
+catalogs last. Routine release does not rebuild Nginx image. `atlas release`
+combines build and publish when CI uses configured publication adapter.
 
-Checkpoint: public health endpoints pass and `/atlas.runtime.json` contains
-expected host UUID and catalog URL. Catalog may return `404` until next step.
+## CI/CD Jobs
 
-## 3. Release Host Client, Then Apps
+Bootstrap job:
 
-Run from workspace root in protected publication job. Publish host client first
-so catalog has runnable shell, then apps:
+1. build and test Atlas packages;
+2. run `atlas build-bootstrap`;
+3. build and scan Nginx image;
+4. push image and deploy;
+5. verify `/health/live`, `/atlas.runtime.json`, deep link, and missing-asset 404.
 
-```sh
-ATLAS_VERSION="$RELEASE_VERSION" \
-ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json \
-  npm exec -- atlas release customer-host
-```
+Artifact release job:
 
-```sh
-ATLAS_VERSION="$RELEASE_VERSION" \
-ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json \
-  npm exec -- atlas release orders
-```
+1. test and build one host/app;
+2. create publication plan;
+3. upload to registry/CDN;
+4. activate catalog last;
+5. run `atlas verify` against each deployed host.
 
-UI release does not change server artifact. `release` builds, publishes immutable
-files, activates catalog last, verifies public runtime, and restores previous
-mutable selections if verification fails.
-
-## 4. Separate Build And Publish Jobs
-
-When build jobs cannot receive storage credentials, prepare provider-neutral
-publication first:
+Rollback changes catalog selection, not container image:
 
 ```sh
-ATLAS_VERSION="$RELEASE_VERSION" \
-ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-  npm exec -- atlas build orders
-```
-
-Transfer complete `orders/dist/atlas-publication/` directory and adjacent
-`orders/dist/atlas-publication.json` plan to protected job:
-
-```sh
-npm exec -- atlas publish \
-  --plan=orders/dist/atlas-publication.json \
-  --runtime-url=https://customer.example/atlas.runtime.json
-```
-
-Use `--dry-run` before first provider integration. Do not replace `atlas publish`
-with unordered upload scripts; command owns lock, revision checks, create-only
-immutable writes, catalog-last activation, verification, and restore.
-
-## 5. Publish PR Artifacts
-
-```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-  npm exec -- atlas release customer-host \
-  --channel=pr \
-  --pr-number="$PR_NUMBER"
-```
-
-PR release adds immutable bytes and index entry without changing production
-catalog selection. Authorized developers can select build through Columbus.
-
-## 6. Apply Delivery Policy
-
-| Content | Cache policy |
-| --- | --- |
-| Version/build assets and manifests | one year plus `immutable` |
-| Deployment snapshots | one year plus `immutable` |
-| Registries, indexes, catalogs | revalidate or short max-age |
-| `/atlas.runtime.json` | no-cache/revalidate |
-| `/atlas.loader.js` | short cache; server package controls it |
-
-Never overwrite version/build paths. Missing JSON, JavaScript, CSS, and assets
-must return real errors, not host HTML fallback. Production registry and artifact
-URLs use HTTPS.
-
-## 7. Verify After Activation
-
-```sh
-npm exec -- atlas verify \
-  --runtime-url=https://customer.example/atlas.runtime.json
-```
-
-Atlas checks runtime and catalog shape, selected manifests, CORS, cache and MIME
-headers, integrity, federation metadata, and route ownership. External widget
-providers require separate browser checks against approved registries. Then run
-browser smoke, accessibility, authentication, SDK, and monitoring checks in
-[Production readiness](production-readiness.md).
-
-## 8. Roll Back Selection
-
-Use artifact UUID from `atlas.config.ts`, not local project name:
-
-```sh
-npm exec -- atlas rollback "$APP_ID" \
-  --version=1.3.0 \
+atlas rollback <artifact-id> --version=1.3.2 \
   --registry-base-url=https://cdn.example.com/atlas \
-  --runtime-url=https://customer.example/atlas.runtime.json
+  --runtime-url=https://product.com/atlas.runtime.json
 ```
 
-Add `--build-id` when version has several builds. Rollback selects existing
-immutable bytes. It does not rebuild app, overwrite versioned files, redeploy
-server, or modify browser state manually.
+## Required Delivery Policy
 
-Host-client rollback changes host selection only. App and external-provider
-selections keep independent lifecycles. Rehearse full procedure and record
-evidence before traffic.
+- `index.html` and `atlas.runtime.json`: `no-cache`/revalidate.
+- Versioned artifact paths: long-lived `immutable` caching.
+- Extensionless routes: rewrite to `/index.html`.
+- Missing asset paths: return `404`, never HTML.
+- Runtime/catalog/artifacts: browser-accessible HTTPS origins allowed by CSP and CORS.
+- Publication credentials: CI only; never place them in bootstrap or browser config.
+
+See [Static bootstrap](bootstrap.md), [Registry](registry.md), and
+[Production readiness](production-readiness.md).

@@ -4,27 +4,16 @@ import { assertSupportedGeneratorFramework, assertValidGeneratorOptions } from "
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./cli/generator-types.js";
 import { generateReactHostFiles, generateReactAppFiles } from "./cli/react-generator.js";
 import { generateWidgetFiles as generateWidgetTemplates } from "./cli/widget-generator.js";
-import { generateHostServerFiles } from "./cli/host-server-generator.js";
 
 export type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./cli/generator-types.js";
 
-export interface AtlasGeneratedHostProjects {
-  client: AtlasGeneratedFile[];
-  server: AtlasGeneratedFile[];
-}
-
-export function generateHostProjects(options: AtlasGeneratorOptions): AtlasGeneratedHostProjects {
+export function generateHostFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
   assertValidGeneratorOptions(options);
   assertSupportedGeneratorFramework(options);
   const hostId = randomUUID();
-  const client = options.framework === "angular"
+  return options.framework === "angular"
     ? generateAngularHostFiles(options, hostId)
     : generateReactHostFiles(options, hostId);
-  return { client, server: generateHostServerFiles(options.name, hostId) };
-}
-
-export function generateHostFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
-  return generateHostProjects(options).client;
 }
 
 export function generateAppFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {

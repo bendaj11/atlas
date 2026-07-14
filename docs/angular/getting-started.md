@@ -21,7 +21,7 @@ and tests. Atlas owns cross-application discovery and mount lifecycle.
 | `src/bootstrap.ts` | Router, auth, HTTP, SDK services, monitoring | Yes |
 | `src/app/app.component.ts` | Product shell, navigation, status, slots, route outlet | Yes |
 | `federation.config.js` | Native Federation expose and shared dependency wiring | Preserve generated Atlas sections |
-| `customer-host-server/main.mts` | Node.js HTTP composition root | Yes, for server behavior |
+| `dist/bootstrap/` | Generated static product-domain entry | Regenerate through CLI |
 
 Host client receives selected catalog in its mount request. Do not fetch or
 choose catalog versions from Angular application code.

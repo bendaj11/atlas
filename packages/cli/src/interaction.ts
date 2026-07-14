@@ -31,7 +31,7 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
         { label: "Angular", value: "angular" },
       ]);
     }
-  } else if ((command === "build" || command === "release") && !subcommand) {
+  } else if ((command === "build" || command === "build-bootstrap" || command === "release") && !subcommand) {
     subcommand = await prompts.input("Atlas project name or directory");
   } else if (command === "rollback" && !subcommand) {
     subcommand = await prompts.input("Stable host or app ID from atlas.config.ts");

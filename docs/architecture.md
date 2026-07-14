@@ -5,7 +5,7 @@ Atlas separates the stable web entry point from product UI. This lets a host cli
 ```text
 Domain
   ingress, route, or load balancer
-    generated host server
+    generated static bootstrap
       Atlas browser loader
         selected host client
           selected routed/slotted apps
@@ -14,23 +14,19 @@ Domain
 
 There are four runtime responsibilities.
 
-## Host server
+## Static bootstrap
 
-Generated TypeScript server composes stable `@atlas/host-server` core. Core serves
-HTML document, `/atlas.loader.js`, dynamic `/atlas.runtime.json`, health endpoints,
-browser deep-link fallback, security headers, logs, and recovery UI. Generated
-composition root is editable for authentication, BFF routes, middleware, error
-handling, and observability.
+`atlas build-bootstrap` emits HTML, `/atlas.loader.js`, `/atlas.runtime.json`,
+and Nginx config. Nginx or equivalent static hosting owns deep-link fallback,
+caching, security headers, and health. Bootstrap contains no product UI, proxy,
+secrets, authentication middleware, or BFF. Normal host/app release does not
+rebuild unchanged bootstrap.
 
-Default server does not contain product UI, choose host-client version, mount
-apps, proxy registry assets, or expose secrets. Normal host or app release does
-not rebuild unchanged server.
-
-Read [Host server](host-server.md) for complete HTTP and extension contracts.
+Read [Static bootstrap](bootstrap.md) for complete HTTP and extension contracts.
 
 ## Browser loader
 
-The loader is small code owned by the server package. On every page start it:
+Loader is small framework-neutral code owned by bootstrap package. On every page start it:
 
 1. reads `/atlas.runtime.json`;
 2. reads the production catalog;
@@ -63,7 +59,7 @@ It does not serve HTTP, expose health checks, set HTTP headers, select itself, o
 
 Apps are versioned feature artifacts. The host client mounts the app versions already selected in the effective catalog. Apps receive SDK services and own their feature UI; they do not own the page document or product-wide routing.
 
-Apps may also export UUID-addressed widgets. Every production widget in the primary registry is discoverable even when its owner app has no route or slot in this host. Cross-registry providers are named by app id in the consumer's `externalAppsDependencies`; host-server environment provides explicit registry URLs. `sdk.getWidget(widgetId)` resolves and mounts code lazily with one independent loading/error card per mount.
+Apps may also export UUID-addressed widgets. Every production widget in the primary registry is discoverable even when its owner app has no route or slot in this host. Cross-registry providers are named by app id in the consumer's `externalAppsDependencies`; bootstrap environment provides explicit registry URLs. `sdk.getWidget(widgetId)` resolves and mounts code lazily with one independent loading/error card per mount.
 
 ## One selection model
 
@@ -103,7 +99,7 @@ atlas release orders
   regenerate affected same-registry host catalogs automatically
 ```
 
-External provider release updates only its registry production pointer. A refreshed page revalidates that registry and loads the new provider. No host-server deployment, host release, or hot swap occurs.
+External provider release updates only its registry production pointer. A refreshed page revalidates that registry and loads the new provider. No bootstrap deployment, host release, or hot swap occurs.
 
 ## Rollback boundaries
 
@@ -115,17 +111,17 @@ changed field, while app selections remain unchanged.
 `atlas rollback <app-id>` changes only that app selection. External providers
 roll back in their own registry; host rollback does not roll them back.
 
-Host server deployment is independent of both flows. User deployment tooling
-connects public domain to host-server service; browsers fetch host and app assets
+Static bootstrap deployment is independent of both flows. User deployment tooling
+connects public domain to static hosting; browsers fetch host and app assets
 directly from HTTPS object storage or its CDN gateway.
 
 ## Trust boundary
 
-A host override is more powerful than an app override: it controls routing, SDK creation, authentication integration, layout, and all mounted apps. Columbus therefore displays hosts separately and warns before switching one, while still using the same version-selection mechanics. External widget providers appear separately and never mount as full apps. Production overrides default to disabled; local host-server mode enables them.
+A host override is more powerful than an app override: it controls routing, SDK creation, authentication integration, layout, and all mounted apps. Columbus therefore displays hosts separately and warns before switching one, while still using the same version-selection mechanics. External widget providers appear separately and never mount as full apps. Production overrides default to disabled; local bootstrap mode enables them.
 
 ## Deliberate limits
 
 Atlas currently uses client-side rendering. SSR is out of scope. Storage is
-static and browser-accessible; default host server does not proxy it. Packaging,
+static and browser-accessible; bootstrap does not proxy it. Packaging,
 CI/CD, and deployment platforms are user concerns rather than Atlas architecture
 concepts.

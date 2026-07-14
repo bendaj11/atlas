@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "@jest/globals";
 import { createHostNavigation, createLocationStrategy } from "../dist/angular.js";
 import type { RouterLike } from "../dist/angular-types.js";
-import { generateHostFiles, generateHostProjects, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
+import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { createNativeFederationImporters } from "../../runtime/dist/index.js";
 import type { AtlasFederationAdapter } from "../../runtime/dist/index.js";
 import type { AtlasExportedWidgetManifest } from "../../schema/dist/index.js";
@@ -10,9 +10,7 @@ import { createTestManifest } from "../../testkit/dist/index.js";
 import { createAppContext, files } from "./angular.driver.js";
 
 test("Angular generator emits Angular 20 Native Federation projects", () => {
-  const generatedHost = generateHostProjects({ name: "host", framework: "angular" });
-  const host = files(generatedHost.client);
-  const server = files(generatedHost.server);
+  const host = files(generateHostFiles({ name: "host", framework: "angular" }));
   const appFiles = files(generateAppFiles({ name: "orders", framework: "angular" }));
   assert.equal(JSON.parse(host.get("package.json")).name, "host");
   assert.equal(JSON.parse(appFiles.get("package.json")).name, "orders");
@@ -52,11 +50,7 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(appFiles.get("atlas.config.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
   assert.doesNotMatch(host.get("atlas.config.ts"), /allowOverrides|resourcesTimeoutMs|resourcesRetryCount/);
   assert.equal(host.has("Containerfile"), false);
-  assert.equal(host.has("server/main.mts"), false);
-  assert.doesNotMatch(host.get("package.json"), /"@atlas\/host-server"/);
-  assert.match(server.get("main.mts"), /app\.use\(atlas\(/);
-  assert.equal(JSON.parse(server.get("tsconfig.json")).compilerOptions.module, "NodeNext");
-  assert.match(server.get("package.json"), /"@atlas\/host-server"/);
+  assert.doesNotMatch(host.get("package.json"), /"@atlas\/bootstrap"/);
   assert.match(host.get("src/host.ts"), /export const mount: AtlasHostClientEntry/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);
   assert.match(host.get("package.json"), /atlas build host/);

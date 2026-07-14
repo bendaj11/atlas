@@ -21,9 +21,8 @@ Atlas detects Nx, Turborepo, package-manager workspaces, and standalone
 projects. See [Workspaces and monorepos](workspaces.md) before generating in a
 large repository.
 
-Host generation creates two sibling projects: `customer-host` for framework
-client source and `customer-host-server` for editable `main.mts`. Each project
-has its own package manifest, dependencies, and build. No infrastructure or
-pipeline files are emitted. Product teams usually edit framework source, server composition, styles, tests, and
+Host generation creates one framework client project. `atlas build-bootstrap`
+later emits static deployment files under its `dist/bootstrap`. No backend,
+infrastructure, or pipeline project is emitted. Product teams usually edit framework source, styles, tests, and
 `atlas.config.ts`. Atlas owns generated federation wiring, remote expose names,
 manifest paths, and local override plumbing.

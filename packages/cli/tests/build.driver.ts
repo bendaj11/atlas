@@ -32,7 +32,6 @@ export function createTestWorkspace(overrides: Partial<AtlasWorkspace> = {}): At
     async missingScaffoldDependency() { return undefined; },
     async installScaffoldDependency() {},
     async scaffoldProject() { return false; },
-    async scaffoldHostServer() { return false; },
     generationRoot(_type, name) { return `/workspace/${name}`; },
     ...overrides
   };

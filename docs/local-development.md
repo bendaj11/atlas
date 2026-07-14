@@ -12,9 +12,9 @@ Atlas starts:
 
 - the host framework dev server, normally port 4200;
 - the local Atlas control/catalog server, normally port 4400;
-- the stable Atlas host server, normally port 4300.
+- the stable Atlas static bootstrap, normally port 4300.
 
-The framework server exposes `./host`. The control catalog selects its local host manifest. The stable server loads that catalog exactly like production.
+Framework server exposes `./host`. Control catalog selects its local host manifest. Local static bootstrap loads that catalog exactly like production.
 
 Expected output includes a Host Preview URL. Open it and confirm the product shell renders.
 
@@ -24,7 +24,7 @@ Useful overrides:
 atlas dev customer-host \
   --port=4500 \
   --control-port=4501 \
-  --host-server-port=4502
+  --bootstrap-port=4502
 ```
 
 ## Use a deployed domain
@@ -33,9 +33,9 @@ atlas dev customer-host \
 atlas dev customer-host --host-url=https://customer.example
 ```
 
-The local stable server is not started. Columbus discovers the local host manifest from the loopback control server and stores a tab- or all-tabs override. Reloading `customer.example` causes its stable loader to select the local host client.
+Local static bootstrap is not started. Columbus discovers local host manifest from loopback control server and stores tab- or all-tabs override. Reloading `customer.example` causes deployed loader to select local host client.
 
-The production server must expose `allowOverrides: true` for the intended development environment. Production defaults to false. Local manifest URLs must use loopback; Columbus and the loader reject other HTTP origins.
+Deployed bootstrap must expose `allowOverrides: true` for intended development environment. Production defaults to false. Local manifest URLs must use loopback; Columbus and loader reject other HTTP origins.
 
 ## Run a local app
 

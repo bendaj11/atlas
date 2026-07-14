@@ -9,9 +9,9 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@atlas/bootstrap": ["../bootstrap/src/index.ts"],
       "@atlas/schema": ["../schema/src/index.ts"],
       "@atlas/generators": ["../generators/src/index.ts"],
-      "@atlas/host-server": ["../host-server/src/index.ts"],
       "@atlas/runtime": ["../runtime/src/index.ts"],
       "@atlas/sdk": ["../sdk/src/index.ts"],
       "@atlas/sdk/*": ["../sdk/src/*.ts"]
@@ -22,9 +22,9 @@
     "skipLibCheck": true
   },
   "references": [
+    { "path": "../bootstrap" },
     { "path": "../schema" },
     { "path": "../generators" },
-    { "path": "../host-server" },
     { "path": "../runtime" },
     { "path": "../sdk" }
   ],

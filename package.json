@@ -1,6 +1,6 @@
 {
   "name": "atlas-platform",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "description": "TypeScript-first app platform with focused SDK, runtime, static registry, generators and test tooling.",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "test:fixtures": "yarn workspace @atlas-app/catalog-react build",
     "test:packages": "turbo run test --filter='@atlas/*'",
     "test:e2e": "node tests/e2e/prepare.js && playwright test",
-    "test:container": "yarn pack:verify && node scripts/verify-host-server-container.js",
+    "test:container": "yarn pack:verify && node scripts/verify-bootstrap-container.js",
     "test:e2e:prepare": "node tests/e2e/prepare.js",
     "typecheck": "turbo run typecheck --filter='@atlas/*' && yarn typecheck:tests",
     "typecheck:tests": "tsc -p tsconfig.tests.json",

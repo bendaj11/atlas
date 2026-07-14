@@ -101,7 +101,7 @@ function validateArtifactUrl(url, manifest, runtime) {
   if (url.protocol !== "https:") throw new Error("Published host URL must use HTTPS.");
   const catalogOrigin = catalogUrl.origin;
   const allowed = new Set([catalogOrigin, ...(runtime.assetOrigins || []).map((value) => new URL(value).origin)]);
-  if (!allowed.has(url.origin)) throw new Error("Selected host URL uses an origin not approved by ATLAS_ASSET_ORIGINS.");
+  if (!allowed.has(url.origin)) throw new Error("Selected host URL uses an origin not approved by bootstrap assetOrigins.");
 }
 
 async function validateIntegrity(bytes, expected) {

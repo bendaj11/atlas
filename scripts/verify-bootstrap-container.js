@@ -4,30 +4,32 @@ import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
-const image = "atlas-host-server-verification:local";
-const container = `atlas-host-server-verification-${process.pid}`;
+const image = "atlas-bootstrap-verification:local";
+const container = `atlas-bootstrap-verification-${process.pid}`;
 
+await execute(process.execPath, [
+  "packages/cli/dist/index.js", "build-bootstrap", "demo-react-host", "--skip-compile",
+  "--registry-base-url=https://cdn.example/atlas", "--out=dist/container-bootstrap"
+], { cwd: root });
 await docker(["build", "-f", "tests/container/Containerfile", "-t", image, "."]);
 try {
   await docker([
     "run", "--detach", "--read-only", "--tmpfs", "/tmp", "--name", container,
-    "--publish", "127.0.0.1::8080",
-    "--env", "ATLAS_HOST_ID=container-test-host",
-    "--env", "ATLAS_CATALOG_URL=https://cdn.example/atlas/hosts/container-test-host/catalog.json",
-    image
+    "--publish", "127.0.0.1::8080", image
   ]);
   const user = (await docker(["inspect", "--format", "{{.Config.User}}", container])).trim();
-  if (user !== "node") throw new Error(`Host-server container runs as unexpected user "${user}".`);
+  if (!user) throw new Error("Bootstrap container must run as a non-root image user.");
   const port = (await docker(["port", container, "8080/tcp"])).trim().match(/:(\d+)$/)?.[1];
-  if (!port) throw new Error("Docker did not publish the host-server port.");
+  if (!port) throw new Error("Docker did not publish bootstrap port.");
   const origin = `http://127.0.0.1:${port}`;
-  await waitForHealth(`${origin}/health/ready`);
+  await waitForHealth(`${origin}/health/live`);
   const runtime = await fetch(`${origin}/atlas.runtime.json`).then(requireOk).then((response) => response.json());
-  if (runtime.hostId !== "container-test-host") throw new Error("Container returned the wrong Atlas host runtime config.");
-  await docker(["stop", "--time", "5", container]);
-  const status = (await docker(["inspect", "--format", "{{.State.Status}}", container])).trim();
-  if (status !== "exited") throw new Error(`Host-server container did not stop gracefully; status is "${status}".`);
-  console.info("Verified host-server container build, non-root user, read-only filesystem, health, runtime config, and SIGTERM shutdown.");
+  if (runtime.hostId !== "060a7f62-1c95-402c-9993-55749faf36d9") throw new Error("Container returned wrong Atlas host runtime config.");
+  const deepLink = await fetch(`${origin}/orders/42`).then(requireOk).then((response) => response.text());
+  if (!deepLink.includes("atlas-host-root")) throw new Error("Container did not apply SPA fallback.");
+  const missingAsset = await fetch(`${origin}/missing.js`);
+  if (missingAsset.status !== 404) throw new Error(`Missing asset returned HTTP ${missingAsset.status}; expected 404.`);
+  console.info("Verified static bootstrap container, non-root user, read-only filesystem, health, runtime, SPA fallback, and asset 404 behavior.");
 } finally {
   await docker(["rm", "--force", container], true);
 }

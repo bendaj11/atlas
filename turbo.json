@@ -14,6 +14,7 @@
     },
     "test": {
       "dependsOn": ["build", "^build"],
+      "env": ["CODEX_SANDBOX_NETWORK_DISABLED"],
       "outputs": []
     },
     "dev": {

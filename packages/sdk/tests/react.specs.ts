@@ -3,13 +3,11 @@ import { test } from "@jest/globals";
 import { connectRouter, createRouterOptions, defineApp, createHostNavigation } from "../dist/react.js";
 import type { RouterLike } from "../dist/react-router.js";
 import { createTestHostSdk } from "../../testkit/dist/index.js";
-import { generateHostFiles, generateHostProjects, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
+import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { createAppContext, files, splitUrl } from "./react.driver.js";
 
 test("React generator emits React 19 Vite Native Federation projects", () => {
-  const generatedHost = generateHostProjects({ name: "host", framework: "react" });
-  const host = files(generatedHost.client);
-  const server = files(generatedHost.server);
+  const host = files(generateHostFiles({ name: "host", framework: "react" }));
   const customerHost = files(generateHostFiles({ name: "customer-host", framework: "react" }));
   const numericHost = files(generateHostFiles({ name: "123-host", framework: "react" }));
   const appFiles = files(generateAppFiles({ name: "orders", framework: "react" }));
@@ -55,12 +53,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.equal(host.has("public/atlas.runtime.json"), false);
   assert.doesNotMatch(host.get("atlas.config.ts"), /allowOverrides|resourcesTimeoutMs|resourcesRetryCount/);
   assert.equal(host.has("Containerfile"), false);
-  assert.equal(host.has("server/main.mts"), false);
-  assert.doesNotMatch(host.get("package.json"), /"@atlas\/host-server"/);
-  assert.match(server.get("main.mts"), /app\.use\(atlas\(/);
-  assert.equal(JSON.parse(server.get("tsconfig.json")).compilerOptions.module, "NodeNext");
-  assert.match(server.get("package.json"), /"@atlas\/host-server"/);
-  assert.equal(JSON.parse(server.get("package.json")).name, "host-server");
+  assert.doesNotMatch(host.get("package.json"), /"@atlas\/bootstrap"/);
   assert.match(host.get("src/host.tsx"), /export const mount: AtlasHostClientEntry/);
   assert.match(host.get("vite.config.ts"), /key: "\.\/host"/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);

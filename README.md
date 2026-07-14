@@ -5,7 +5,7 @@
 Atlas is a TypeScript-first platform for products made from independently
 released frontend applications. It provides:
 
-- an editable Node.js host server for HTTP bootstrap and product integrations;
+- generated static bootstrap for product-domain HTML, runtime config, and loader;
 - a versioned host client for layout, routing, authentication integration, and
   shared services;
 - versioned Angular and React apps loaded through Native Federation;
@@ -36,8 +36,8 @@ contract you need.
 
 ```mermaid
 flowchart LR
-  Browser["Browser"] --> Server["Generated host server"]
-  Server --> Loader["Atlas loader"]
+  Browser["Browser"] --> Bootstrap["Static bootstrap on Nginx/CDN"]
+  Bootstrap --> Loader["Atlas loader"]
   Loader --> Catalog["Static catalog"]
   Catalog --> Host["Versioned host client"]
   Host --> Apps["Versioned apps"]
@@ -45,8 +45,8 @@ flowchart LR
   SDK --> Apps
 ```
 
-The host server serves the HTML document, browser loader, runtime configuration,
-health endpoints, and product-specific server behavior. The host client and apps
+Static Nginx/CDN hosting serves HTML, browser loader, runtime configuration,
+security headers, health, and SPA fallback. Host client and apps
 are immutable UI artifacts published independently to public object storage or a
 CDN. A catalog selects which host-client and app builds run together.
 
@@ -77,7 +77,7 @@ npx atlas dev orders --host-url=http://127.0.0.1:4300/orders
 ```
 
 This proves local composition only. Production needs a public registry,
-publication adapter, deployed host server, verification, and rollback plan.
+publication adapter, deployed static bootstrap, verification, and rollback plan.
 Continue with [Zero to production](docs/getting-started.md).
 
 ## Packages
@@ -85,7 +85,7 @@ Continue with [Zero to production](docs/getting-started.md).
 | Package | Responsibility |
 | --- | --- |
 | `@atlas/cli` | Generation, local development, build, publication, verification, and rollback |
-| `@atlas/host-server` | HTTP bootstrap, browser loader, health, headers, and recovery |
+| `@atlas/bootstrap` | Static HTML, browser loader, runtime config, Nginx policy, and recovery |
 | `@atlas/runtime` | Catalog discovery, trust checks, federation loading, and lifecycle |
 | `@atlas/sdk` | Typed app-to-host contracts and framework adapters |
 | `@atlas/schema` | Configuration, manifest, registry, and catalog contracts |

@@ -17,6 +17,7 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "generate, g", description: "Generate a host, app, or exported widget" },
   { label: "dev", description: "Run a host, or run one app locally inside a host" },
   { label: "build", description: "Build a host or app for deployment" },
+  { label: "build-bootstrap", description: "Build static host bootstrap files" },
   { label: "publish", description: "Publish a prepared deployment safely" },
   { label: "release", description: "Build and publish a host client or app" },
   { label: "rollback", description: "Select and publish a previous host or app version" },
@@ -29,6 +30,7 @@ export const ROOT_EXAMPLES = [
   "atlas dev customer-host",
   "atlas dev orders",
   "atlas build customer-host",
+  "atlas build-bootstrap customer-host",
   "atlas build orders"
 ] as const;
 
@@ -43,7 +45,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [{ label: "-h, --help", description: "Show help for this command" }],
     examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders", "atlas generate publish-config"]
   },
-  "generate host": generationProjectHelp("host", "host client and server projects"),
+  "generate host": generationProjectHelp("host", "host client"),
   "generate app": generationProjectHelp("app", "app"),
   "generate widget": {
     summary: "Generate an exported widget inside an existing app.",
@@ -74,7 +76,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--host-url <url>", description: "Host page opened with the override activated" },
       { label: "--port <number>", description: "Framework dev-server port (host: 4200, app: 4201)" },
       { label: "--control-port <number>", description: "Atlas override-server port (default: 4400)" },
-      { label: "--host-server-port <number>", description: "Local stable host-server port (default: 4300)" },
+      { label: "--bootstrap-port <number>", description: "Local static bootstrap port (default: 4300)" },
       { label: "--no-open", description: "Do not open the resolved host URL automatically" },
       { label: "--prepare-only", description: "Create the override without starting development servers" },
       { label: "-h, --help", description: "Show help for this command" }
@@ -121,6 +123,27 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     examples: [
       "atlas build orders --registry-base-url https://cdn.example.com/atlas",
       "ATLAS_VERSION=1.4.0 atlas build orders --registry-base-url https://cdn.example.com/atlas"
+    ]
+  },
+  "build-bootstrap": {
+    summary: "Build static Atlas bootstrap files for Nginx or equivalent hosting.",
+    usage: "atlas build-bootstrap <host> [options]",
+    arguments: [{ label: "host", description: "Host project name or directory" }],
+    options: [
+      { label: "--registry-base-url <url>", description: "Public base URL of static registry" },
+      { label: "--out <path>", description: "Output directory (default: <host>/dist/bootstrap)" },
+      { label: "--template <path>", description: "Custom HTML template relative to host project" },
+      { label: "--title <text>", description: "Default template document title" },
+      { label: "--loading-html <html>", description: "Default template loading markup" },
+      { label: "--asset-origins <urls>", description: "Comma-separated approved asset origins" },
+      { label: "--external-registry-urls <urls>", description: "Comma-separated external registry base URLs" },
+      { label: "--skip-compile", description: "Use already compiled atlas.config.ts" },
+      { label: "-h, --help", description: "Show help for this command" }
+    ],
+    environment: [{ label: "ATLAS_REGISTRY_BASE_URL", description: "Default static-registry base URL" }],
+    examples: [
+      "atlas build-bootstrap customer-host --registry-base-url https://cdn.example.com/atlas",
+      "atlas build-bootstrap customer-host --template atlas.bootstrap.html"
     ]
   },
   publish: {
@@ -200,7 +223,7 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
       ...(type === "app" ? [{ label: "--routing, --no-routing", description: "Create Atlas inner route files or a single-page app; prompted when omitted in interactive mode" }] : []),
       { label: "--port <number>", description: `Dev-server port; prompted when omitted in interactive mode (default: ${type === "host" ? 4200 : 4201})` },
       { label: "--framework-version <range>", description: "Framework semver range for new packages; existing Nx packages keep their Angular/React version" },
-      { label: "--directory <path>", description: type === "host" ? "Host-client target; server uses sibling <path>-server" : "Target directory" },
+      { label: "--directory <path>", description: "Target directory" },
       { label: "--allow-unsupported-version", description: "Generate outside Atlas's tested version range" },
       { label: "--force", description: "Write into an existing target directory" },
       { label: "--skip-install", description: "Generate files without installing dependencies" },

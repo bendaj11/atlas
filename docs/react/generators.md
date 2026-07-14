@@ -20,7 +20,7 @@ Generated host files to understand first:
 | `src/main.tsx` | Host team | Mounts the generated provider and React Router. |
 | `vite.config.ts` | Atlas/platform | Vite and federation build wiring. Product teams usually leave federation parts alone. |
 | `src/app/HostLayout.tsx` | Host team | Replaceable product layout with Atlas DOM anchors. |
-| `../customer-host-server/main.mts` | Host/server team | Independent Node.js HTTP composition root. |
+| `dist/bootstrap/` | Atlas CLI | Static product-domain files from `atlas build-bootstrap`. |
 
 The host owns layout, auth, top-level routing, host services, and runtime
 configuration.

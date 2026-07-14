@@ -47,7 +47,7 @@ test("generation help documents automatic dependency installation control", asyn
   const result = await runCli(["g", "host", "--help"]);
   expect(result.code).toBe(0);
   expect(result.stdout).toMatch(/--skip-install\s+Generate files without installing dependencies/);
-  expect(result.stdout).toMatch(/--directory <path>\s+Host-client target; server uses sibling <path>-server/);
+  expect(result.stdout).toMatch(/--directory <path>\s+Target directory/);
 });
 
 test("app generation help accepts only an explicit host id", async () => {

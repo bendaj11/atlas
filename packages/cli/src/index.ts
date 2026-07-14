@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { ensureActionableError } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
+import { AtlasBootstrapService } from "./bootstrap.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { AtlasDevService } from "./dev.js";
 import { AtlasGenerateService } from "./generate.js";
@@ -35,6 +36,14 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     if (invocation.command !== "dev") await loadEnvFiles(workspace.root);
     const builds = new AtlasBuildService(workspace, args);
     const generate = new AtlasGenerateService(workspace, args, prompts);
+
+    if (invocation.command === "build-bootstrap" && invocation.subcommand) {
+      ui.heading(`Building bootstrap for ${invocation.subcommand}`);
+      const result = await new AtlasBootstrapService(workspace, args, builds).build(invocation.subcommand);
+      ui.success(`Built static bootstrap in ${result.directory}.`);
+      ui.info(`Deploy ${result.files.join(", ")} with Nginx or equivalent static hosting.`);
+      return;
+    }
 
     if (invocation.command === "g" || invocation.command === "generate") {
       if (invocation.subcommand === "publish-config") {
@@ -70,7 +79,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       const result = await builds.build(invocation.subcommand);
       if (result.artifact === "host") {
         ui.success(`Built host client ${result.manifest.id}@${result.manifest.version}.`);
-        ui.info("Publish dist/atlas-publication; host server and client artifacts deploy independently.");
+        ui.info("Publish dist/atlas-publication; bootstrap and host artifacts deploy independently.");
       } else {
         ui.success(`Built app ${result.manifest.id}@${result.manifest.version}.`);
         ui.info("Upload dist/atlas-publication with your CI storage tooling.");

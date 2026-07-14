@@ -103,14 +103,11 @@ does not generate a separate `tsconfig.atlas.json`.
 When Atlas delegates to native Nx generators, it preserves their generated
 project metadata and unrelated targets while adding or replacing the targets
 required by Atlas. Client projects receive targets such as `dev`, `serve`, and
-`atlas:config`; the sibling server receives independent `build` and `start`
-targets. Generated projects can also be run with native Nx commands:
+`atlas:config`. Generated projects can also be run with native Nx commands:
 
 ```sh
 nx run customer-host
 nx run customer-host:dev
-nx run customer-host-server:build
-nx run customer-host-server:start
 nx run orders
 nx run orders:dev
 nx run orders:serve

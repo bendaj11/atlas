@@ -1,21 +1,20 @@
 # Build A React Host
 
 Audience: React team owning the product shell, top-level navigation, shared
-browser services, and host-server integration. Complete
+browser services, and bootstrap integration. Complete
 [Zero to production](../getting-started.md) once before using this focused guide.
 
 Finished system:
 
 ```text
 customer.example
-  Express host server provides HTML, runtime configuration, and loader
+  Static bootstrap provides HTML, runtime configuration, and loader
   selected React host client provides product shell and Atlas SDK
   selected apps mount into route and slot anchors in that shell
 ```
 
-Host server and React host client are separate projects and releases. Read
-[Host server](../host-server.md) before adding API or authentication behavior to
-the server.
+Static bootstrap and React host client are separate artifacts and releases.
+Read [Static bootstrap](../bootstrap.md) before deployment.
 
 ## 1. Generate The Host
 
@@ -25,7 +24,7 @@ From workspace root:
 atlas g host customer-host --framework=react
 ```
 
-Generation creates two projects:
+Generation creates one host project:
 
 ```text
 customer-host/
@@ -38,10 +37,6 @@ customer-host/
     host.tsx
     main.tsx
     styles.css
-customer-host-server/
-  main.mts
-  package.json
-  tsconfig.json
 ```
 
 Responsibilities:
@@ -54,7 +49,6 @@ Responsibilities:
 | `src/host.tsx` | Atlas lifecycle adapter | Rarely change |
 | `src/main.tsx` | Standalone development entry | Usually generated wiring only |
 | `vite.config.ts` | Federation build | Preserve generated Atlas exposure and sharing rules |
-| `customer-host-server/main.mts` | Host/server team | Express middleware, BFF routes, sessions, errors, observability |
 
 Provider filename derives from project name: `customer-host` becomes
 `CustomerHostAtlasProvider.tsx`.
@@ -93,7 +87,7 @@ Generated lifecycle:
 `src/main.tsx` is framework entry used when bootstrapping directly through Vite.
 It does not provide Atlas runtime or catalog endpoints by itself, so opening Vite
 port is not complete host composition. `atlas dev` uses federated lifecycle from
-`src/host.tsx` behind local host server.
+`src/host.tsx` behind local static bootstrap.
 
 Do not fetch another catalog or select app versions in React code. Loader passes
 the already-selected catalog and runtime configuration into `mount`.
@@ -232,37 +226,7 @@ host-owned UI.
 
 ## 5. Connect Authentication Deliberately
 
-Authentication usually spans both generated projects:
-
-- React host client owns browser session state, login redirects, route UX, and
-  authenticated SDK capabilities;
-- Express host server validates sessions and authorization for its BFF routes;
-- downstream APIs remain authoritative for permission checks.
-
-Do not put secrets in `atlas.config.ts`, `hostData`, `/atlas.runtime.json`, or the
-catalog. All are browser-visible.
-
-For a same-origin session endpoint, extend
-`customer-host-server/main.mts`:
-
-```ts
-import express from "express";
-import { atlas } from "@atlas/host-server";
-
-const app = express();
-const port = Number(process.env.PORT ?? 8080);
-
-app.get("/api/session", requireSession, (request, response) => {
-  response.json({ user: request.user });
-});
-
-app.use(atlas({ hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506" }));
-app.listen(port);
-```
-
-`requireSession` and `request.user` come from product-owned Express code and
-types. See [Host server](../host-server.md) for middleware ordering, BFF and
-readiness examples, runtime environment, and deployment boundaries.
+Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.runtime.json`, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
 
 ## 6. Run The Host Locally
 
@@ -274,7 +238,7 @@ atlas dev customer-host
 
 CLI starts:
 
-- stable local host server, normally `http://127.0.0.1:4300`;
+- local static bootstrap, normally `http://127.0.0.1:4300`;
 - Vite asset server, normally port `4200`;
 - local catalog/control endpoints used by Columbus.
 
@@ -284,7 +248,7 @@ lower-level asset server and does not represent complete Atlas composition.
 Verify host alone:
 
 ```sh
-curl --fail http://127.0.0.1:4300/health/ready
+curl --fail http://127.0.0.1:4300/atlas.runtime.json
 curl --fail http://127.0.0.1:4300/atlas.runtime.json
 ```
 
@@ -357,11 +321,11 @@ Add organization-standard React tests for:
 - mount and unmount cleanup;
 - host and placement loading/error renderers.
 
-Build client and server independently:
+Build host artifact and static bootstrap independently:
 
 ```sh
 npm --prefix customer-host run build
-npm --prefix customer-host-server run build
+atlas build-bootstrap customer-host --registry-base-url=https://cdn.example.com/atlas
 ```
 
 Use [Consumer testing](../consumer-testing.md) for Atlas lifecycle and SDK
@@ -369,25 +333,17 @@ contract tests.
 
 ## 10. Release And Deploy
 
-Two delivery paths remain independent:
-
-1. Deploy `customer-host-server/dist/main.mjs` and its production dependencies
-   behind product domain.
-2. Publish host-client artifact and update catalog selection:
+Build static bootstrap once per environment or bootstrap change:
 
 ```sh
-atlas release customer-host
+atlas build-bootstrap customer-host --registry-base-url=https://cdn.example.com/atlas
 ```
 
-Changing layout, SDK integration, or React host code needs host-client release.
-Changing Express middleware or BFF routes needs server build and deployment.
-Neither operation requires the other when its side is unchanged.
-
-Continue with [Production deployment](../production-deployment.md).
+Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host releases use `atlas release customer-host`; app releases use `atlas release <app>`. Catalog activation changes selected UI without rebuilding bootstrap container. See [Production deployment](../production-deployment.md).
 
 ## Common Mistakes
 
-- Opening Vite asset-server port instead of Atlas host-server URL.
+- Opening Vite asset-server port instead of Atlas bootstrap URL.
 - Changing generated host UUID after apps already target it.
 - Removing route outlet while customizing layout.
 - Failing to forward `data-atlas-*` attributes through wrapper components.
@@ -395,4 +351,4 @@ Continue with [Production deployment](../production-deployment.md).
 - Importing host services directly into an app instead of exposing SDK contract.
 - Putting API secrets in browser-visible runtime configuration.
 - Hard-coding app routes in host source instead of app `atlas.config.ts`.
-- Expecting host-client release to deploy changed Express server code.
+- Expecting host-client release to redeploy static bootstrap.

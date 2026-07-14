@@ -159,7 +159,7 @@ selection flow is:
 2. Atlas writes route and slot declarations into the `orders` manifest.
 3. Publication updates `hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json` with selected app
    versions for that host.
-4. The host server's dynamic `/atlas.runtime.json` tells the loader where that
+4. The static bootstrap's dynamic `/atlas.runtime.json` tells the loader where that
    catalog is.
 5. The loader selects the host client and passes the effective catalog; the host filters placements for
    `hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"`, and matches current browser URL against each

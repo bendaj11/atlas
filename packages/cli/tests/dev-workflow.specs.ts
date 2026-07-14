@@ -7,7 +7,7 @@ import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
-import { AtlasDevService, remoteEntryIsReady } from "../dist/dev.js";
+import { AtlasDevService, remoteEntryIsReady, startLocalBootstrapServer } from "../dist/dev.js";
 import {
   availablePort,
   closeServer,
@@ -22,6 +22,28 @@ import {
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
 const localNetworkTest = process.env.CODEX_SANDBOX_NETWORK_DISABLED === "1" ? test.skip : test;
+
+localNetworkTest("local bootstrap serves runtime, deep links, and real asset 404s", async () => {
+  const server = await startLocalBootstrapServer({
+    port: 0,
+    runtime: {
+      schemaVersion: "1",
+      hostId: "customer-host",
+      catalogUrl: "http://127.0.0.1:4400/hosts/customer-host/catalog.json",
+      allowOverrides: true
+    }
+  });
+  try {
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected local TCP address.");
+    const origin = `http://127.0.0.1:${address.port}`;
+    expect(await fetch(`${origin}/atlas.runtime.json`).then((response) => response.json())).toMatchObject({ hostId: "customer-host" });
+    expect(await fetch(`${origin}/orders/42`).then((response) => response.text())).toMatch(/atlas-host-root/);
+    expect((await fetch(`${origin}/missing.js`)).status).toBe(404);
+  } finally {
+    await closeServer(server);
+  }
+});
 
 test("atlas dev rejects apps without a configured host", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-missing-host-"));

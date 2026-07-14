@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
-import { generateAppFiles, generateHostProjects, generateWidgetFiles } from "../../generators/dist/index.js";
+import { generateAppFiles, generateHostFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { browserOpenCommand } from "../dist/dev.js";
 import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
 import { assertSingleComponentDeclaration } from "./build.driver.js";
@@ -36,7 +36,7 @@ test("generators keep component declarations split across files", () => {
   for (const framework of frameworks) {
     const options = { name: "orders", framework };
     const files = [
-      ...generateHostProjects(options).client,
+      ...generateHostFiles(options),
       ...generateAppFiles(options),
       ...generateWidgetFiles({ name: "order-status", framework })
     ];

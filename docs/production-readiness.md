@@ -1,6 +1,6 @@
 # Production Readiness
 
-Audience: release approver. Prerequisites: deployed host-server, public registry,
+Audience: release approver. Prerequisites: deployed bootstrap, public registry,
 published host client/app, and runtime URL. This is a gate, not setup tutorial;
 use [Production deployment](production-deployment.md) first.
 
@@ -32,8 +32,8 @@ Name an owner for each domain before release:
 - [ ] Production serves `/atlas.runtime.json` as JSON.
 - [ ] Runtime `hostId` matches app route and slot declarations.
 - [ ] Runtime `catalogUrl` points to the intended environment.
-- [ ] `ATLAS_ALLOW_OVERRIDES` is `false` on user-facing production hosts. Use a
-  separate controlled environment for PR, historical, or local overrides.
+- [ ] Runtime `allowOverrides` matches environment policy. If enabled, extension
+  distribution and environment access restrict who may substitute code.
 - [ ] Resource timeout and retry values match product reliability targets.
 - [ ] Host layout retains route, navigation, status, and required slot anchors.
 - [ ] Host returns `index.html` for browser navigation routes such as

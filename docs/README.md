@@ -55,7 +55,7 @@ Use these goal-oriented guides after completing the tutorial:
 | Source and generated JSON contracts | [Public API](api.md) and [manifests](manifest.md) |
 | SDK types and services | [SDK reference](sdk.md) |
 | Static storage layout | [Registry reference](registry.md) |
-| Host HTTP behavior and environment | [Host server](host-server.md) |
+| Host HTTP behavior and environment | [Static bootstrap](bootstrap.md) |
 | Working examples | [Examples](examples.md) |
 
 CLI help is the source of truth for current flags:

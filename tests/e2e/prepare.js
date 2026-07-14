@@ -53,8 +53,19 @@ await addBrokenRoute(REACT_HOST_ID, "49f9e422-c726-46ee-840b-ad33b8a8faa3");
 await addBrokenRoute(ANGULAR_HOST_ID, "a7d07dd4-49c8-47cb-b020-e99b0b738587");
 await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build"]);
 await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build"]);
-await run("yarn", ["workspace", "@atlas-example/demo-react-host-server", "build"]);
-await run("yarn", ["workspace", "@atlas-example/demo-angular-host-server", "build"]);
+await buildBootstrap("demo-react-host", join(artifacts, "react-bootstrap"));
+await buildBootstrap("demo-angular-host", join(artifacts, "angular-bootstrap"));
+
+async function buildBootstrap(project, output) {
+  await run("node", [
+    "packages/cli/dist/index.js", "build-bootstrap", project,
+    "--skip-compile",
+    "--registry-base-url=http://127.0.0.1:4400",
+    "--asset-origins=http://127.0.0.1:4400,http://127.0.0.1:4401",
+    "--external-registry-urls=http://127.0.0.1:4401",
+    `--out=${output}`
+  ]);
+}
 
 async function addSecondCatalogRelease() {
   const entryPath = join(root, "examples/apps/catalog-react/dist/entry.js");

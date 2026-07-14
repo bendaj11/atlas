@@ -1,22 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
 import type { AtlasConfig, AtlasHostConfig, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 
 const DEFAULT_LOCAL_REGISTRY_BASE_URL = "http://127.0.0.1:4400";
-
-export async function writeHostRuntimeConfig(options: {
-  project: { root: string; version: string };
-  config: AtlasConfig;
-  args: CliArguments;
-}): Promise<{ path: string; config: AtlasHostRuntimeConfig }> {
-  const { project, config, args } = options;
-  const runtimeConfig = createHostRuntimeConfig(config, args, project.version);
-  const output = resolve(args.flag("out") ?? `${project.root}/public/atlas.runtime.json`);
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, `${JSON.stringify(runtimeConfig, null, 2)}\n`, "utf8");
-  return { path: output, config: runtimeConfig };
-}
 
 export function createHostRuntimeConfig(
   config: AtlasConfig,
@@ -29,15 +14,37 @@ export function createHostRuntimeConfig(
     hostId: config.id,
     ...(hostVersion ? { hostVersion } : {}),
     catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? DEFAULT_LOCAL_REGISTRY_BASE_URL)}/hosts/${config.id}/catalog.json`,
-    allowOverrides: config.allowOverrides ?? true,
+    allowOverrides: config.allowOverrides ?? false,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
-    resourcesRetryCount: config.resourcesRetryCount ?? 3
+    resourcesRetryCount: config.resourcesRetryCount ?? 3,
+    ...optionalUrlList("asset-origins", args.flag("asset-origins")),
+    ...optionalUrlList("external-registry-urls", args.flag("external-registry-urls"))
   };
+}
+
+function optionalUrlList(
+  kind: "asset-origins" | "external-registry-urls",
+  value: string | undefined
+): Pick<AtlasHostRuntimeConfig, "assetOrigins" | "externalRegistryUrls"> {
+  if (!value) return {};
+  const urls = [...new Set(value.split(/[\s,]+/).filter(Boolean).map((entry) => {
+    const url = new URL(entry);
+    if (url.protocol !== "https:" && !isLoopbackUrl(url)) {
+      throw new Error(`--${kind} must contain HTTPS URLs or loopback URLs for local development.`);
+    }
+    return kind === "asset-origins" ? url.origin : url.href.replace(/\/$/, "");
+  }))];
+  return kind === "asset-origins" ? { assetOrigins: urls } : { externalRegistryUrls: urls };
+}
+
+function isLoopbackUrl(url: URL): boolean {
+  return (url.protocol === "http:" || url.protocol === "https:")
+    && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
 }
 
 function assertHostConfig(config: AtlasConfig): asserts config is AtlasHostConfig {
   if (config.type === "app" || "routes" in config || "slots" in config || "domIsolation" in config || "requiredHostSdkVersion" in config) {
-    throw new Error(`Atlas host build expects a host config for "${config.id}", but received an app config.`);
+    throw new Error(`Atlas bootstrap build expects a host config for "${config.id}", but received an app config.`);
   }
 }
 

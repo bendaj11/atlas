@@ -10,7 +10,8 @@ createServer(async (request, response) => {
   try {
     const requestPath = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
     const requestedFile = safePath(root, requestPath);
-    const file = await resolveFile(requestedFile, options.spa ? join(root, "index.html") : undefined);
+    const fallback = options.spa && !extname(requestPath) ? join(root, "index.html") : undefined;
+    const file = await resolveFile(requestedFile, fallback);
     if (!file) return send(response, 404, "Not found", "text/plain; charset=utf-8");
     response.statusCode = 200;
     response.setHeader("content-type", contentType(file));

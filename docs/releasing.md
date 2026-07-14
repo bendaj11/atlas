@@ -8,7 +8,7 @@ Atlas publishes seven packages as one compatible release set:
 - `@atlas/schema`
 - `@atlas/sdk`
 - `@atlas/runtime`
-- `@atlas/host-server`
+- `@atlas/bootstrap`
 - `@atlas/generators`
 - `@atlas/testkit`
 - `@atlas/cli`
@@ -48,9 +48,8 @@ Atlas dependency pins, the Columbus extension package and manifest, and the
 version range emitted by generators. Chrome manifests use the numeric core of
 a prerelease version. `test:generated` packs those packages and proves that the
 packaged CLI can generate and production-build Angular and React hosts and apps.
-`test:container` validates the locally packed host server before its npm version
-exists, so generated server dependency can reference that version
-after publication.
+`test:container` validates generated bootstrap files inside non-root, read-only
+Nginx container before publication.
 
 Review the changes, move the relevant entries from `Unreleased` in the changelog
 to a section for the new version, and tag the reviewed commit as `v<version>`.
@@ -60,7 +59,7 @@ The tag must exactly match the package version.
 `SHA256SUMS`, and `release.json`. Release CI preserves this exact directory as
 an artifact and attaches it to the tag's GitHub release. Publishing automation must consume that artifact instead of
 rebuilding packages from the tag. Package order is schema, SDK, runtime,
-host-server, generators, testkit, then CLI.
+bootstrap, generators, testkit, then CLI.
 Rerunning the tag workflow replaces existing GitHub release assets with the newly verified bundle.
 
 ## Publishing policy

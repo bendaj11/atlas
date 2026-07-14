@@ -16,6 +16,6 @@ export interface AtlasHostRuntimeConfig {
   resourcesRetryCount?: number;
   /** HTTPS origins allowed to serve host-client artifacts, in addition to the catalog origin. */
   assetOrigins?: string[];
-  /** Explicit external registries searched for app dependencies. Supplied by host-server environment. */
+  /** Explicit external registries searched for app dependencies. Supplied by bootstrap configuration. */
   externalRegistryUrls?: string[];
 }

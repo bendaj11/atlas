@@ -11,7 +11,7 @@ Atlas has two test layers. `yarn test` runs fast contract, SDK, runtime, generat
 
 `yarn test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and apps with both package managers.
 
-`yarn test:container` builds the host-server image from locally packed tarballs, runs it with a read-only filesystem, checks its non-root user and HTTP endpoints, then verifies graceful `SIGTERM` shutdown. Docker must be running.
+`yarn test:container` builds the bootstrap image from locally packed tarballs, runs it with a read-only filesystem, checks its non-root user and HTTP endpoints, then verifies graceful `SIGTERM` shutdown. Docker must be running.
 
 ## Deployment E2E
 

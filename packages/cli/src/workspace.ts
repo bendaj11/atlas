@@ -27,11 +27,10 @@ export interface AtlasWorkspace {
   missingScaffoldDependency(projectType: AtlasNxProjectType): Promise<string | undefined>;
   installScaffoldDependency(projectType: AtlasNxProjectType): Promise<void>;
   scaffoldProject(options: AtlasScaffoldOptions): Promise<boolean>;
-  scaffoldHostServer(options: AtlasHostServerScaffoldOptions): Promise<boolean>;
   generationRoot(type: "host" | "app", name: string): string;
 }
 
-export type AtlasNxProjectType = "angular" | "react" | "node";
+export type AtlasNxProjectType = "angular" | "react";
 
 export interface AtlasScaffoldOptions {
   type: "host" | "app";
@@ -41,12 +40,6 @@ export interface AtlasScaffoldOptions {
   devServerPort: number;
   interactive: boolean;
   routing: boolean;
-}
-
-export interface AtlasHostServerScaffoldOptions {
-  name: string;
-  projectRoot: string;
-  interactive: boolean;
 }
 
 export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorkspace> {
@@ -102,22 +95,6 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
       }
       return true;
     },
-    scaffoldHostServer: async (options) => {
-      if (kind !== "nx") return false;
-      const directory = relative(root, options.projectRoot);
-      if (!directory || directory === ".." || directory.startsWith("../")) {
-        throw new Error("Nx projects must be generated inside the workspace root.");
-      }
-      try {
-        await runProcess(createNxHostServerGenerationCommand(packageManager, root, {
-          directory,
-          interactive: options.interactive
-        }));
-      } catch (error) {
-        throw new Error(`Nx could not scaffold host server "${options.name}". Install @nx/node in the workspace and try again.`, { cause: error });
-      }
-      return true;
-    },
     generationRoot: (_type, name) => join(root, generationBase, name)
   };
 }
@@ -152,18 +129,6 @@ export function createNxPluginInstallCommand(
 ): ProcessCommand {
   return packageExecutor(manager, root, [
     "nx", "add", nxProjectPlugin(projectType), "--interactive=false"
-  ]);
-}
-
-export function createNxHostServerGenerationCommand(
-  manager: AtlasPackageManager,
-  root: string,
-  options: { directory: string; interactive: boolean }
-): ProcessCommand {
-  return packageExecutor(manager, root, [
-    "nx", "generate", "@nx/node:application", options.directory,
-    `--interactive=${options.interactive}`, "--skipFormat", "--useProjectJson=true",
-    "--bundler=esbuild", "--e2eTestRunner=none", "--unitTestRunner=none", "--linter=none"
   ]);
 }
 
@@ -433,8 +398,7 @@ async function workspacePatterns(root: string): Promise<string[]> {
 
 function nxProjectPlugin(projectType: AtlasNxProjectType): string {
   if (projectType === "angular") return "@nx/angular";
-  if (projectType === "react") return "@nx/react";
-  return "@nx/node";
+  return "@nx/react";
 }
 
 async function nxFormatterAvailable(root: string): Promise<boolean> {

@@ -10,7 +10,6 @@ process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 test("atlas generates a portable Angular host at an explicit directory", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-"));
   const target = join(temporary, "customer-host");
-  const serverTarget = join(temporary, "customer-host-server");
   await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-host", "--framework=angular", "--port=4305", "--skip-install", `--directory=${target}`]);
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
@@ -18,25 +17,12 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/resourcesTimeoutMs/);
   await expect(access(join(target, "Containerfile"))).rejects.toMatchObject({ code: "ENOENT" });
   await expect(access(join(target, "server"))).rejects.toMatchObject({ code: "ENOENT" });
-  const serverMain = await readFile(join(serverTarget, "main.mts"), "utf8");
-  const generatedHostId = (await readFile(join(target, "atlas.config.ts"), "utf8")).match(/id: "([^"]+)"/)?.[1] ?? "";
-  expect(generatedHostId).not.toBe("");
-  expect(serverMain).toMatch(/import express from "express"/);
-  expect(serverMain).toMatch(/app\.use\(atlas\(/);
-  expect(serverMain).toMatch(new RegExp(generatedHostId));
   expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/catalogUrl/);
   const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
   expect(generatedPackage.scripts.build).toBe("ng build");
   expect(generatedPackage.scripts["atlas:build"]).toBe("atlas build customer-host");
   expect(generatedPackage.scripts["build:server"]).toBe(undefined);
-  expect(generatedPackage.dependencies["@atlas/host-server"]).toBe(undefined);
-  const generatedServerPackage = JSON.parse(await readFile(join(serverTarget, "package.json"), "utf8"));
-  expect(generatedServerPackage.name).toBe("customer-host-server");
-  expect(generatedServerPackage.scripts.build).toBe("tsc -p tsconfig.json");
-  expect(generatedServerPackage.scripts.start).toBe("node dist/main.mjs");
-  expect(typeof generatedServerPackage.dependencies["@atlas/host-server"]).toBe("string");
-  expect(generatedServerPackage.dependencies.express).toBe("^5.2.1");
-  expect(generatedServerPackage.devDependencies["@types/express"]).toBe("^5.0.6");
+  expect(generatedPackage.dependencies["@atlas/bootstrap"]).toBe(undefined);
   const angularJson = JSON.parse(await readFile(join(target, "angular.json"), "utf8"));
   const architect = angularJson.projects["customer-host"].architect;
   expect(architect.build.builder).toBe("@angular-architects/native-federation:build");
@@ -165,6 +151,35 @@ test("atlas build identifies and versions a host client", async () => {
   expect(catalog.apps).toStrictEqual([]);
 });
 
+test("atlas build-bootstrap emits deployable static files", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-bootstrap-build-"));
+  const projectRoot = join(root, "host");
+  await mkdir(join(projectRoot, ".atlas"), { recursive: true });
+  await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, workspaces: ["host"] }));
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "host", version: "2.1.0", type: "module" }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
+  await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
+    type: "host",
+    id: "customer-host",
+    framework: "react",
+    allowOverrides: true
+  };\n`);
+
+  await run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "build-bootstrap", "host",
+    "--skip-compile", "--registry-base-url=https://cdn.example/atlas"
+  ], { cwd: root });
+
+  const output = join(projectRoot, "dist/bootstrap");
+  const runtime = JSON.parse(await readFile(join(output, "atlas.runtime.json"), "utf8"));
+  expect(runtime.hostId).toBe("customer-host");
+  expect(runtime.hostVersion).toBe("2.1.0");
+  expect(runtime.catalogUrl).toBe("https://cdn.example/atlas/hosts/customer-host/catalog.json");
+  expect(await readFile(join(output, "index.html"), "utf8")).toMatch(/atlas-host-root/);
+  expect(await readFile(join(output, "atlas.loader.js"), "utf8")).toMatch(/requiredLoaderApiVersion/);
+  expect(await readFile(join(output, "nginx.conf"), "utf8")).toMatch(/try_files \$uri \$uri\/ \/index\.html/);
+});
+
 test("atlas compile-config emits atlas.config.js through the project tsconfig", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-compile-config-"));
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "orders", version: "0.1.0", type: "module" }));
@@ -188,7 +203,6 @@ test("atlas removes a newly generated project when dependency installation fails
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-cleanup-"));
   const bin = join(temporary, "bin");
   const target = join(temporary, "customer-host");
-  const serverTarget = join(temporary, "customer-host-server");
   await mkdir(bin);
   await writeFile(join(temporary, "package-lock.json"), "{}\n");
   await writeFile(join(bin, "npm"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
@@ -198,5 +212,4 @@ test("atlas removes a newly generated project when dependency installation fails
     "--framework=angular", "--skip-workspace-generator", `--directory=${target}`
   ], { cwd: temporary, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } })).rejects.toThrow(/npm exited with code 1/);
   await expect(access(target)).rejects.toMatchObject({ code: "ENOENT" });
-  await expect(access(serverTarget)).rejects.toMatchObject({ code: "ENOENT" });
 });

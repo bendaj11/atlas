@@ -16,6 +16,7 @@ Atlas uses focused packages so the app-facing SDK does not also contain host and
 | `@atlas/schema` | Manifests, static indexes, catalogs, and configuration |
 | `@atlas/sdk` | app-to-host capabilities and lifecycle types |
 | `@atlas/runtime` | Catalog discovery, overrides, federation loading, and mounting |
+| `@atlas/bootstrap` | Static bootstrap file and Nginx configuration generation |
 | `@atlas/sdk/navigation` | Host-owned and app-scoped navigation |
 | `@atlas/sdk/overlay` | Modal, popup, and toast provider contracts |
 | `@atlas/sdk/angular` | Angular host, app, and widget integration |
@@ -118,7 +119,7 @@ Import lifecycle types from `@atlas/sdk/lifecycle`:
 | `AtlasExportedWidgetEntry` | Framework-neutral widget mount contract |
 | `AtlasWidgetHandle` | UUID-resolved widget with `mount(container, props)` |
 
-`AtlasCoreSdk.getWidget(widgetId)` is preferred consumer API. Same-registry providers resolve automatically; `externalAppsDependencies` permits named providers from host-server-approved external registries.
+`AtlasCoreSdk.getWidget(widgetId)` is preferred consumer API. Same-registry providers resolve automatically; `externalAppsDependencies` permits named providers from bootstrap-approved external registries.
 
 Framework adapters implement these boundaries. Product code should not create
 manual mount wrappers unless it is integrating another framework.

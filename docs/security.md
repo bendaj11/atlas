@@ -1,7 +1,7 @@
 # Security
 
 Audience: host, platform, and security owners. Read [Architecture](architecture.md)
-and [Host server](host-server.md) first. App developers mainly follow origin,
+and [Static bootstrap](bootstrap.md) first. App developers mainly follow origin,
 SDK, and immutable-release rules; platform team owns runtime environment,
 storage permissions, CSP, and override policy.
 
@@ -11,26 +11,25 @@ Atlas loads executable browser code from object storage. Treat registry publicat
 
 A host client is more privileged than an app. It controls routing, layout, SDK construction, authentication integration, telemetry, and all app mounts. Columbus displays host overrides separately and requires a stronger warning.
 
-The host server is a separate trusted boundary. User extensions may hold OAuth
-client credentials, sessions, or downstream tokens. Never expose them through
-`/atlas.runtime.json`, and do not give server publication-storage credentials.
-Default Atlas core does not proxy registry artifacts.
+Static bootstrap is public browser content. Never put OAuth client secrets,
+sessions, downstream tokens, or publication-storage credentials in it. Atlas
+does not proxy registry artifacts.
 
 ## Runtime policy
 
-Production server configuration should normally include:
+Generate production runtime policy explicitly:
 
 ```sh
-ATLAS_ALLOW_OVERRIDES=false
-ATLAS_ASSET_ORIGINS=https://cdn.example.com
-ATLAS_EXTERNAL_REGISTRY_URLS=https://shared-ui.example/atlas
+atlas build-bootstrap customer-host \
+  --registry-base-url=https://cdn.example.com/atlas \
+  --asset-origins=https://cdn.example.com \
+  --external-registry-urls=https://shared-ui.example/atlas
 ```
 
-Atlas does not add catalog origin to CSP automatically. Every cross-origin
-catalog or artifact/CDN origin must appear in `ATLAS_ASSET_ORIGINS`.
-`ATLAS_EXTERNAL_REGISTRY_URLS` explicitly limits cross-registry dependency
-discovery and adds those registry origins to CSP. Production URLs require HTTPS.
-Local overrides require HTTP(S) loopback.
+Atlas adds catalog origin to generated CSP. `--asset-origins` adds other
+artifact/CDN origins. `--external-registry-urls` limits cross-registry
+dependency discovery and adds those origins to CSP. Production URLs require
+HTTPS; local development permits HTTP(S) loopback.
 
 `/atlas.runtime.json` is public browser data. Never expose passwords, tokens, connection strings, or private storage credentials through environment values returned there.
 
@@ -73,7 +72,7 @@ Never fix a release by editing `catalog.json` in a CDN console.
 
 ## HTTP controls
 
-The host server sets CSP, disables framework disclosure, adds `nosniff`, a referrer policy, and frame restrictions. Configure `ATLAS_ASSET_ORIGINS` so CSP includes every approved CDN origin. Native Federation creates inline import maps and blob-backed script, connection, and style shims, so those directives permit the required inline/blob operations; Atlas still limits network assets to the host and configured asset origins. TLS termination may occur at the deployment platform.
+Generated Nginx config sets CSP, `nosniff`, referrer policy, and frame restrictions. Configure `--asset-origins` so CSP includes every approved CDN origin. Native Federation creates inline import maps and blob-backed script, connection, and style shims, so directives permit required inline/blob operations while limiting network assets to configured origins. TLS termination may occur at deployment platform.
 
 Object storage/CDN must:
 
@@ -87,7 +86,11 @@ Object storage/CDN must:
 
 An invalid host can fail before product error boundaries exist. The loader owns recovery UI and can clear both tab and all-tabs overrides. Columbus can also reset overrides without host-client cooperation.
 
-Enable overrides only in environments where developer substitution is intended. When enabled, the server CSP permits loopback HTTP ports so Columbus can connect local host/app builds; non-loopback network assets remain limited to configured origins. A production troubleshooting environment may enable overrides for authorized users, but the setting itself does not provide authentication; browser-extension distribution and environment access remain organizational controls.
+Enable overrides only where developer substitution is intended. When enabled,
+generated CSP permits loopback HTTP ports so Columbus can connect local builds;
+non-loopback assets remain limited to configured origins. Setting does not
+provide authorization; extension distribution and environment access remain
+organizational controls.
 
 ## Runtime hardening
 

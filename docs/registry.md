@@ -22,7 +22,7 @@ Every registry must provide:
 - public HTTPS reads with correct CORS and JavaScript/JSON MIME types;
 - revalidation for mutable JSON and long-lived immutable caching for artifacts.
 
-No database, discovery API, registry server, S3 bucket, or Atlas host-server
+No database, discovery API, registry server, S3 bucket, or Atlas bootstrap
 integration is required.
 
 ## Required structure
@@ -198,7 +198,7 @@ implementation.
 
 Different teams may publish to different buckets or registries through their
 adapter configuration. Browsers do not receive storage credentials.
-Cross-registry consumption uses public registry URLs from host-server
+Cross-registry consumption uses public registry URLs from bootstrap
 environment, not bucket names in app config.
 
 ## Cache and CORS
