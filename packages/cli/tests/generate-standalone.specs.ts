@@ -1,9 +1,8 @@
-import assert from "node:assert/strict";
 import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { emptyRegistry, run } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -11,39 +10,45 @@ process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 test("atlas generates a portable Angular host at an explicit directory", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-"));
   const target = join(temporary, "customer-host");
+  const serverTarget = join(temporary, "customer-host-server");
   await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-host", "--framework=angular", "--port=4305", "--skip-install", `--directory=${target}`]);
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
-  await assert.rejects(access(join(target, "public/atlas.runtime.json")), { code: "ENOENT" });
-  assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /resourcesTimeoutMs/);
-  await assert.rejects(access(join(target, "Containerfile")), { code: "ENOENT" });
-  const serverMain = await readFile(join(target, "server/main.mts"), "utf8");
-  const generatedHostId = (await readFile(join(target, "atlas.config.ts"), "utf8")).match(/id: "([^"]+)"/)?.[1];
-  assert.ok(generatedHostId);
-  assert.match(serverMain, /runAtlasHostServer/);
-  assert.match(serverMain, new RegExp(generatedHostId));
-  assert.doesNotMatch(await readFile(join(target, "atlas.config.ts"), "utf8"), /catalogUrl/);
+  await expect(access(join(target, "public/atlas.runtime.json"))).rejects.toMatchObject({ code: "ENOENT" });
+  expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/resourcesTimeoutMs/);
+  await expect(access(join(target, "Containerfile"))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(join(target, "server"))).rejects.toMatchObject({ code: "ENOENT" });
+  const serverMain = await readFile(join(serverTarget, "main.mts"), "utf8");
+  const generatedHostId = (await readFile(join(target, "atlas.config.ts"), "utf8")).match(/id: "([^"]+)"/)?.[1] ?? "";
+  expect(generatedHostId).not.toBe("");
+  expect(serverMain).toMatch(/runAtlasHostServer/);
+  expect(serverMain).toMatch(new RegExp(generatedHostId));
+  expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/catalogUrl/);
   const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
-  assert.equal(generatedPackage.scripts.build, "ng build");
-  assert.equal(generatedPackage.scripts["atlas:build"], "atlas build customer-host");
-  assert.equal(generatedPackage.scripts["build:server"], "tsc -p server/tsconfig.json");
-  assert.equal(generatedPackage.scripts["start:server"], "node server/dist/main.mjs");
-  assert.equal(typeof generatedPackage.dependencies["@atlas/host-server"], "string");
+  expect(generatedPackage.scripts.build).toBe("ng build");
+  expect(generatedPackage.scripts["atlas:build"]).toBe("atlas build customer-host");
+  expect(generatedPackage.scripts["build:server"]).toBe(undefined);
+  expect(generatedPackage.dependencies["@atlas/host-server"]).toBe(undefined);
+  const generatedServerPackage = JSON.parse(await readFile(join(serverTarget, "package.json"), "utf8"));
+  expect(generatedServerPackage.name).toBe("customer-host-server");
+  expect(generatedServerPackage.scripts.build).toBe("tsc -p tsconfig.json");
+  expect(generatedServerPackage.scripts.start).toBe("node dist/main.mjs");
+  expect(typeof generatedServerPackage.dependencies["@atlas/host-server"]).toBe("string");
   const angularJson = JSON.parse(await readFile(join(target, "angular.json"), "utf8"));
   const architect = angularJson.projects["customer-host"].architect;
-  assert.equal(architect.build.builder, "@angular-architects/native-federation:build");
-  assert.equal(architect.build.options.target, "customer-host:esbuild:production");
-  assert.deepEqual(architect.esbuild.options.polyfills, ["zone.js", "es-module-shims"]);
-  assert.equal(architect.serve.builder, "@angular-architects/native-federation:build");
-  assert.equal(architect.serve.options.target, "customer-host:serve-original:development");
-  assert.equal(architect.serve.options.port, 4305);
-  assert.equal(architect["serve-original"].options.port, 4305);
-  assert.match(main, /initFederation/);
-  assert.match(bootstrap, /startHost/);
-  assert.match(bootstrap, /AtlasHostDefaultRouteComponent/);
-  assert.doesNotMatch(bootstrap, /AtlasDefaultHostRouteComponent/);
-  assert.doesNotMatch(bootstrap, /localhost:4300/);
-  assert.match(await readFile(join(target, "src/app/atlas-host-default-route.component.ts"), "utf8"), /standalone: true/);
+  expect(architect.build.builder).toBe("@angular-architects/native-federation:build");
+  expect(architect.build.options.target).toBe("customer-host:esbuild:production");
+  expect(architect.esbuild.options.polyfills).toStrictEqual(["zone.js", "es-module-shims"]);
+  expect(architect.serve.builder).toBe("@angular-architects/native-federation:build");
+  expect(architect.serve.options.target).toBe("customer-host:serve-original:development");
+  expect(architect.serve.options.port).toBe(4305);
+  expect(architect["serve-original"].options.port).toBe(4305);
+  expect(main).toMatch(/initFederation/);
+  expect(bootstrap).toMatch(/startHost/);
+  expect(bootstrap).toMatch(/AtlasHostDefaultRouteComponent/);
+  expect(bootstrap).not.toMatch(/AtlasDefaultHostRouteComponent/);
+  expect(bootstrap).not.toMatch(/localhost:4300/);
+  expect(await readFile(join(target, "src/app/atlas-host-default-route.component.ts"), "utf8")).toMatch(/standalone: true/);
 });
 
 test("atlas app generation only writes a route when a host is supplied", async () => {
@@ -62,28 +67,28 @@ test("atlas app generation only writes a route when a host is supplied", async (
   ]);
 
   const defaultConfig = await readFile(join(withoutHost, "atlas.config.ts"), "utf8");
-  assert.doesNotMatch(defaultConfig, /hostCompatibility/);
-  assert.doesNotMatch(defaultConfig, /placements/);
-  assert.doesNotMatch(defaultConfig, /mounts/);
-  assert.doesNotMatch(defaultConfig, /routes/);
-  assert.doesNotMatch(defaultConfig, /"host"/);
+  expect(defaultConfig).not.toMatch(/hostCompatibility/);
+  expect(defaultConfig).not.toMatch(/placements/);
+  expect(defaultConfig).not.toMatch(/mounts/);
+  expect(defaultConfig).not.toMatch(/routes/);
+  expect(defaultConfig).not.toMatch(/"host"/);
 
   const explicitConfig = await readFile(join(withHost, "atlas.config.ts"), "utf8");
-  assert.match(await readFile(join(withHost, "vite.config.ts"), "utf8"), /server: \{ port: 4306, cors: true \}/);
-  assert.doesNotMatch(explicitConfig, /hostCompatibility/);
-  assert.match(explicitConfig, /routes: \[/);
-  assert.match(explicitConfig, new RegExp(`hostId: "${hostId}"`));
-  assert.doesNotMatch(explicitConfig, /hostId: "host"/);
+  expect(await readFile(join(withHost, "vite.config.ts"), "utf8")).toMatch(/server: \{ port: 4306, cors: true \}/);
+  expect(explicitConfig).not.toMatch(/hostCompatibility/);
+  expect(explicitConfig).toMatch(/routes: \[/);
+  expect(explicitConfig).toMatch(new RegExp(`hostId: "${hostId}"`));
+  expect(explicitConfig).not.toMatch(/hostId: "host"/);
 });
 
 test("atlas app generation rejects the removed host project option", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "atlas-app-generator-"));
   const target = join(temporary, "orders");
 
-  await assert.rejects(run(process.execPath, [
+  await expect(run(process.execPath, [
     "packages/cli/dist/index.js", "g", "app", "orders",
     "--framework=react", "--host=customer-host", "--skip-install", `--directory=${target}`
-  ]), /Unknown option "--host" for app generation\. Use --host-id\./);
+  ])).rejects.toThrow(/Unknown option "--host" for app generation\. Use --host-id\./);
 });
 
 test("atlas app generation can create single-page apps without inner route files", async () => {
@@ -101,22 +106,22 @@ test("atlas app generation can create single-page apps without inner route files
   ]);
 
   const reactPackage = JSON.parse(await readFile(join(reactRoot, "package.json"), "utf8"));
-  assert.equal(reactPackage.dependencies["react-router-dom"], undefined);
-  assert.match(await readFile(join(reactRoot, "src/entry.tsx"), "utf8"), /defineApp/);
-  assert.doesNotMatch(await readFile(join(reactRoot, "src/entry.tsx"), "utf8"), /createRoutedApp|RouterProvider/);
-  assert.match(await readFile(join(reactRoot, "src/app/App.tsx"), "utf8"), /Single-page Atlas app/);
-  await assert.rejects(access(join(reactRoot, "src/app/routes.tsx")), { code: "ENOENT" });
-  await assert.rejects(access(join(reactRoot, "src/app/home/Home.tsx")), { code: "ENOENT" });
-  await assert.rejects(access(join(reactRoot, "src/app/details/Details.tsx")), { code: "ENOENT" });
+  expect(reactPackage.dependencies["react-router-dom"]).toBe(undefined);
+  expect(await readFile(join(reactRoot, "src/entry.tsx"), "utf8")).toMatch(/defineApp/);
+  expect(await readFile(join(reactRoot, "src/entry.tsx"), "utf8")).not.toMatch(/createRoutedApp|RouterProvider/);
+  expect(await readFile(join(reactRoot, "src/app/App.tsx"), "utf8")).toMatch(/Single-page Atlas app/);
+  await expect(access(join(reactRoot, "src/app/routes.tsx"))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(join(reactRoot, "src/app/home/Home.tsx"))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(join(reactRoot, "src/app/details/Details.tsx"))).rejects.toMatchObject({ code: "ENOENT" });
 
   const angularPackage = JSON.parse(await readFile(join(angularRoot, "package.json"), "utf8"));
-  assert.equal(angularPackage.dependencies["@angular/router"], undefined);
-  assert.match(await readFile(join(angularRoot, "src/entry.ts"), "utf8"), /defineApp/);
-  assert.doesNotMatch(await readFile(join(angularRoot, "src/entry.ts"), "utf8"), /provideRouter|LocationStrategy/);
-  assert.match(await readFile(join(angularRoot, "src/app/app.component.ts"), "utf8"), /Single-page Atlas app/);
-  await assert.rejects(access(join(angularRoot, "src/app/routes.ts")), { code: "ENOENT" });
-  await assert.rejects(access(join(angularRoot, "src/app/home/home.component.ts")), { code: "ENOENT" });
-  await assert.rejects(access(join(angularRoot, "src/app/details/details.component.ts")), { code: "ENOENT" });
+  expect(angularPackage.dependencies["@angular/router"]).toBe(undefined);
+  expect(await readFile(join(angularRoot, "src/entry.ts"), "utf8")).toMatch(/defineApp/);
+  expect(await readFile(join(angularRoot, "src/entry.ts"), "utf8")).not.toMatch(/provideRouter|LocationStrategy/);
+  expect(await readFile(join(angularRoot, "src/app/app.component.ts"), "utf8")).toMatch(/Single-page Atlas app/);
+  await expect(access(join(angularRoot, "src/app/routes.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(join(angularRoot, "src/app/home/home.component.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(join(angularRoot, "src/app/details/details.component.ts"))).rejects.toMatchObject({ code: "ENOENT" });
 });
 
 test("atlas build identifies and versions a host client", async () => {
@@ -150,11 +155,11 @@ test("atlas build identifies and versions a host client", async () => {
 
   const manifest = JSON.parse(await readFile(join(projectRoot, "dist/host.manifest.json"), "utf8"));
   const catalog = JSON.parse(await readFile(join(publication, "hosts/host/catalog.json"), "utf8"));
-  assert.equal(manifest.kind, "host");
-  assert.equal(manifest.version, "0.1.0");
-  assert.equal(manifest.remoteEntryUrl.startsWith("https://cdn.example/atlas/hosts/host/0.1.0/"), true);
-  assert.equal(catalog.host.id, "host");
-  assert.deepEqual(catalog.apps, []);
+  expect(manifest.kind).toBe("host");
+  expect(manifest.version).toBe("0.1.0");
+  expect(manifest.remoteEntryUrl.startsWith("https://cdn.example/atlas/hosts/host/0.1.0/")).toBe(true);
+  expect(catalog.host.id).toBe("host");
+  expect(catalog.apps).toStrictEqual([]);
 });
 
 test("atlas compile-config emits atlas.config.js through the project tsconfig", async () => {
@@ -180,13 +185,15 @@ test("atlas removes a newly generated project when dependency installation fails
   const temporary = await mkdtemp(join(tmpdir(), "atlas-generator-cleanup-"));
   const bin = join(temporary, "bin");
   const target = join(temporary, "customer-host");
+  const serverTarget = join(temporary, "customer-host-server");
   await mkdir(bin);
   await writeFile(join(temporary, "package-lock.json"), "{}\n");
   await writeFile(join(bin, "npm"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
 
-  await assert.rejects(run(process.execPath, [
+  await expect(run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "customer-host",
     "--framework=angular", "--skip-workspace-generator", `--directory=${target}`
-  ], { cwd: temporary, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } }), /npm exited with code 1/);
-  await assert.rejects(access(target), { code: "ENOENT" });
+  ], { cwd: temporary, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } })).rejects.toThrow(/npm exited with code 1/);
+  await expect(access(target)).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(serverTarget)).rejects.toMatchObject({ code: "ENOENT" });
 });

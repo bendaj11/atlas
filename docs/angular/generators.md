@@ -18,6 +18,7 @@ Generated host files to understand first:
 | `src/bootstrap.ts` | Host team | Calls `startHost`, connects Angular Router, Native Federation, and SDK providers. |
 | `src/app/app.component.ts` | Host team | Replaceable product layout with Atlas DOM anchors. |
 | `federation.config.js` | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone. |
+| `../customer-host-server/main.mts` | Host/server team | Independent Node.js HTTP composition root. |
 
 The host owns layout, auth, top-level routing, host services, and runtime
 configuration.

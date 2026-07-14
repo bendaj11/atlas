@@ -2,7 +2,7 @@ import "es-module-shims";
 import { StrictMode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import { AtlasDefaultHostLayout, startHost } from "@atlas/runtime/react";
 import type { AtlasHostData } from "@atlas/sdk";

@@ -1,8 +1,8 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   generateAppFiles,
-  generateHostFiles,
+  generateHostProjects,
   generateWidgetFiles,
   type AtlasGeneratedFile,
   type AtlasGeneratorOptions
@@ -21,7 +21,6 @@ import {
   alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
   atlasConfigNxTarget,
-  ensureHostServerTargets,
   ensureDelegatedNxTargets,
   nxTarget
 } from "./generate-nx.js";
@@ -48,8 +47,8 @@ export class AtlasGenerateService {
     type: "host" | "app",
     projectPath: string,
     framework?: SupportedFramework,
-    afterGeneration?: (root: string) => Promise<void>
-  ): Promise<string> {
+    afterGeneration?: (roots: string[]) => Promise<void>
+  ): Promise<string[]> {
     if (type === "app" && this.args.hasFlag("host")) {
       throw new Error('Unknown option "--host" for app generation. Use --host-id.');
     }
@@ -61,7 +60,9 @@ export class AtlasGenerateService {
       : this.workspace.kind === "nx" || segments.length > 1
         ? resolve(process.cwd(), ...segments)
         : this.defaultRoot(type, name);
+    const serverRoot = type === "host" ? join(dirname(root), `${basename(root)}-server`) : undefined;
     const targetExisted = await exists(root);
+    const serverTargetExisted = serverRoot ? await exists(serverRoot) : false;
     try {
       this.logGenerationPlan(selectedFramework, root);
       await this.ensureWorkspaceGenerator(selectedFramework);
@@ -96,9 +97,8 @@ export class AtlasGenerateService {
         routing: innerRouting,
         devServerPort
       });
-      const files = type === "host"
-        ? generateHostFiles(generatorOptions)
-        : generateAppFiles(generatorOptions);
+      const hostProjects = type === "host" ? generateHostProjects(generatorOptions) : undefined;
+      const files = hostProjects?.client ?? generateAppFiles(generatorOptions);
       if (workspaceScaffolded) {
         await takeOverAppSource(root);
         if (selectedFramework === "react") await removeDelegatedReactViteConfigs(root);
@@ -111,18 +111,28 @@ export class AtlasGenerateService {
         if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework, devServerPort);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
-      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name, type);
+      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
+      if (serverRoot && hostProjects) {
+        await this.writeHostServer(serverRoot, name, hostProjects.server, selectedFramework);
+      }
       await this.formatGenerated(root);
-      await afterGeneration?.(root);
-      return root;
+      if (serverRoot) await this.formatGenerated(serverRoot);
+      const roots = serverRoot ? [root, serverRoot] : [root];
+      await afterGeneration?.(roots);
+      return roots;
     } catch (error) {
       if (!targetExisted) await rm(root, { recursive: true, force: true });
+      if (serverRoot && !serverTargetExisted) await rm(serverRoot, { recursive: true, force: true });
       throw error;
     }
   }
 
-  async installDependencies(projectRoot: string): Promise<void> {
-    await this.workspace.installDependencies(projectRoot);
+  async installDependencies(projectRoots: string[]): Promise<void> {
+    if (this.workspace.kind !== "standalone") {
+      await this.workspace.installDependencies(this.workspace.root);
+      return;
+    }
+    for (const projectRoot of projectRoots) await this.workspace.installDependencies(projectRoot);
   }
 
   async widget(name: string, app: string): Promise<void> {
@@ -263,7 +273,7 @@ export default {
     return this.workspace.generationRoot(type, name);
   }
 
-  private async writeNxProject(root: string, name: string, type: "host" | "app"): Promise<void> {
+  private async writeNxProject(root: string, name: string): Promise<void> {
     const cwd = relative(this.workspace.root, root) || ".";
     if (cwd === ".." || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
       throw new Error("Nx projects must be generated inside the workspace root.");
@@ -277,12 +287,53 @@ export default {
       }
     };
     targets["atlas:config"] = atlasConfigNxTarget(this.workspace.packageManager, cwd);
-    if (type === "host") ensureHostServerTargets(targets, cwd);
     targets[name] = {
       executor: "nx:run-commands",
       options: { command: `nx run ${name}:dev`, forwardAllArgs: true }
     };
     const project = { name, sourceRoot: `${cwd}/src`, projectType: "application", targets };
+    await writeFile(join(root, "project.json"), `${JSON.stringify(project, null, 2)}\n`, "utf8");
+  }
+
+  private async writeHostServer(
+    root: string,
+    hostName: string,
+    files: AtlasGeneratedFile[],
+    framework: SupportedFramework
+  ): Promise<void> {
+    if (this.workspace.kind === "nx") {
+      await assertWritable(join(root, "project.json"), this.args.hasFlag("force"), `Host server project "${hostName}-server" already exists. Use --force to replace it.`);
+    }
+    const serverFiles = this.workspace.kind === "nx"
+      ? files.filter((file) => file.path !== "package.json")
+      : files;
+    await writeGenerated(root, serverFiles, this.args.hasFlag("force"));
+    if (this.workspace.kind !== "nx") return;
+    await this.writeNxHostServerProject(root, `${hostName}-server`);
+    await this.mergeDelegatedDependencies(root, files, framework);
+  }
+
+  private async writeNxHostServerProject(root: string, name: string): Promise<void> {
+    const cwd = relative(this.workspace.root, root) || ".";
+    if (cwd === ".." || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
+      throw new Error("Nx projects must be generated inside the workspace root.");
+    }
+    const project = {
+      name,
+      projectType: "application",
+      targets: {
+        build: {
+          executor: "nx:run-commands",
+          outputs: ["{projectRoot}/dist"],
+          options: { cwd, command: "tsc -p tsconfig.json" }
+        },
+        start: {
+          continuous: true,
+          executor: "nx:run-commands",
+          options: { cwd, command: "node dist/main.mjs" }
+        }
+      }
+    };
     await writeFile(join(root, "project.json"), `${JSON.stringify(project, null, 2)}\n`, "utf8");
   }
 

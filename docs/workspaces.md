@@ -100,11 +100,14 @@ framework-generated project tsconfig and writes `.atlas/atlas.config.js`; Atlas
 does not generate a separate `tsconfig.atlas.json`.
 When Atlas delegates to the native Nx generator, it preserves Nx's generated
 framework targets and adds Atlas targets such as `dev`, `serve`, and
-`atlas:config`. Generated projects can also be run with native Nx commands:
+`atlas:config`. Host generation also creates a sibling `<host>-server` Nx project
+with independent `build` and `start` targets. Generated projects can also be run with native Nx commands:
 
 ```sh
 nx run customer-host
 nx run customer-host:dev
+nx run customer-host-server:build
+nx run customer-host-server:start
 nx run orders
 nx run orders:dev
 nx run orders:serve

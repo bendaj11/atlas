@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ng serve dashboard-angular",
-    "atlas:config": "tsc -p tsconfig.atlas.json",
+    "atlas:config": "atlas compile-config dashboard-angular",
     "build": "ng build",
     "atlas:build": "atlas build dashboard-angular"
   },

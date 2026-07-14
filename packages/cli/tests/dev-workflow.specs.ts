@@ -1,10 +1,9 @@
-import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
@@ -38,24 +37,21 @@ test("atlas dev rejects apps without a configured host", async () => {
     "};"
   ].join("\n"));
 
-  await assert.rejects(
-    runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]),
-    /No host configured for "orders"\. Add a route or slot with hostId, or pass --host\./
-  );
+  await expect(runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"])).rejects.toThrow(/No host configured for "orders"\. Add a route or slot with hostId, or pass --host\./);
 });
 
 test("atlas dev prepares a React Native Federation override", async () => {
   const stdout = await run(process.execPath, [
     "packages/cli/dist/index.js", "dev", "dashboard-react",
-    "--host=demo-react-host", "--host-url=https://host.example/dashboard",
+    "--host=060a7f62-1c95-402c-9993-55749faf36d9", "--host-url=https://host.example/dashboard",
     "--port=4513", "--control-port=4514", "--prepare-only"
   ]);
   const document = JSON.parse(await readFile("examples/apps/dashboard-react/.atlas/local-overrides.json", "utf8"));
-  assert.equal(document.overrides[0].manifest.framework, "react");
-  assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4513/remoteEntry.json");
-  assert.equal(document.overrides[0].manifest.integrity, undefined);
-  assert.match(stdout, /App Preview: https:\/\/host\.example\/dashboard/);
-  assert.doesNotMatch(stdout, /atlas-override/);
+  expect(document.overrides[0].manifest.framework).toBe("react");
+  expect(document.overrides[0].manifest.remoteEntryUrl).toBe("http://localhost:4513/remoteEntry.json");
+  expect(document.overrides[0].manifest.integrity).toBe(undefined);
+  expect(stdout).toMatch(/App Preview: https:\/\/host\.example\/dashboard/);
+  expect(stdout).not.toMatch(/atlas-override/);
 });
 
 test("atlas dev reuses the generated React dev-server port", async () => {
@@ -83,7 +79,7 @@ test("atlas dev reuses the generated React dev-server port", async () => {
   ]);
 
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
-  assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4202/remoteEntry.json");
+  expect(document.overrides[0].manifest.remoteEntryUrl).toBe("http://localhost:4202/remoteEntry.json");
 });
 
 test("atlas dev reuses the generated Angular dev-server port", async () => {
@@ -116,22 +112,22 @@ test("atlas dev reuses the generated Angular dev-server port", async () => {
   ]);
 
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
-  assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4203/remoteEntry.json");
+  expect(document.overrides[0].manifest.remoteEntryUrl).toBe("http://localhost:4203/remoteEntry.json");
 });
 
 test("atlas dev waits for valid remote federation metadata", async () => {
-  assert.equal(await remoteEntryIsReady(new Response("<!DOCTYPE html>", {
+  expect(await remoteEntryIsReady(new Response("<!DOCTYPE html>", {
     status: 200,
     headers: { "content-type": "text/html" }
-  })), false);
-  assert.equal(await remoteEntryIsReady(new Response("not found", {
+  }))).toBe(false);
+  expect(await remoteEntryIsReady(new Response("not found", {
     status: 404,
     headers: { "content-type": "application/json" }
-  })), false);
-  assert.equal(await remoteEntryIsReady(new Response(JSON.stringify({ name: "atlas_orders", exposes: [] }), {
+  }))).toBe(false);
+  expect(await remoteEntryIsReady(new Response(JSON.stringify({ name: "atlas_orders", exposes: [] }), {
     status: 200,
     headers: { "content-type": "application/json" }
-  })), true);
+  }))).toBe(true);
 });
 
 test("atlas dev prepares a versioned local host client", async () => {
@@ -174,14 +170,14 @@ test("atlas dev prepares a versioned local host client", async () => {
     console.info = originalInfo;
   }
 
-  assert.deepEqual(calls, []);
+  expect(calls).toStrictEqual([]);
   const localManifest = JSON.parse(await readFile(join(projectRoot, ".atlas/local-host.manifest.json"), "utf8"));
   const overrides = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
-  assert.equal(localManifest.kind, "host");
-  assert.equal(localManifest.channel, "local");
-  assert.equal(localManifest.remoteEntryUrl, "http://127.0.0.1:4200/remoteEntry.json");
-  assert.equal(overrides.hostOverride.id, "customer-host");
-  await assert.rejects(access(join(projectRoot, "public/atlas.runtime.json")), { code: "ENOENT" });
+  expect(localManifest.kind).toBe("host");
+  expect(localManifest.channel).toBe("local");
+  expect(localManifest.remoteEntryUrl).toBe("http://127.0.0.1:4200/remoteEntry.json");
+  expect(overrides.hostOverride.id).toBe("customer-host");
+  await expect(access(join(projectRoot, "public/atlas.runtime.json"))).rejects.toMatchObject({ code: "ENOENT" });
 });
 
 localNetworkTest("atlas dev delegates Nx app projects to the serve task", async () => {
@@ -259,7 +255,7 @@ localNetworkTest("atlas dev delegates Nx app projects to the serve task", async 
     await closeServer(remoteServer.server);
   }
 
-  assert.deepEqual(calls, [["spawn", "serve", ["--port", String(remoteServer.port)]]]);
+  expect(calls).toStrictEqual([["spawn", "serve", ["--port", String(remoteServer.port)]]]);
 });
 
 test("atlas dev rejects corrupt Angular build tooling before spawning", async () => {
@@ -297,10 +293,7 @@ test("atlas dev rejects corrupt Angular build tooling before spawning", async ()
   });
   const args = new CliArguments(["dev", "mobile-host"]);
 
-  await assert.rejects(
-    new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("mobile-host"),
-    /@angular\/build 21\.2\.18 is corrupt.*creadConfiguration/
-  );
+  await expect(new AtlasDevService(workspace, args, new AtlasBuildService(workspace, args)).run("mobile-host")).rejects.toThrow(/@angular\/build 21\.2\.18 is corrupt.*creadConfiguration/);
 });
 
 test("atlas dev compiles atlas.config.ts with the project tsconfig", async () => {
@@ -341,7 +334,7 @@ test("atlas dev compiles atlas.config.ts with the project tsconfig", async () =>
   }
 
   await access(join(projectRoot, ".atlas", "atlas.config.js"));
-  assert.deepEqual(calls, []);
+  expect(calls).toStrictEqual([]);
 });
 
 test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", async () => {
@@ -383,6 +376,5 @@ test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", asyn
   }
 
   await access(join(projectRoot, ".atlas", "atlas.config.js"));
-  assert.deepEqual(calls, []);
+  expect(calls).toStrictEqual([]);
 });
-

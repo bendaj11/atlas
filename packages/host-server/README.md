@@ -1,8 +1,8 @@
 # @atlas/host-server
 
 Framework-neutral Atlas HTTP bootstrap server, browser loader, health endpoints,
-security headers, deep-link fallback, and recovery UI. Generated hosts compose
-this package through editable `server/main.mts`:
+security headers, deep-link fallback, and recovery UI. Generated server projects
+compose this package through editable `main.mts`:
 
 ```ts
 import { runAtlasHostServer } from "@atlas/host-server";
@@ -17,7 +17,7 @@ Only environment-specific catalog location is required. `PORT` defaults to
 npm install @atlas/host-server
 
 ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
-npm run start:server
+npm run start
 ```
 
 `runAtlasHostServer` also accepts product middleware through

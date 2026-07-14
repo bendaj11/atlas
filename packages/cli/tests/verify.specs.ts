@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { AtlasVerifyService } from "../dist/verify.js";
 import { createDeploymentFetch, deploymentManifest, remoteIntegrity } from "./verify.driver.js";
 
@@ -12,8 +11,8 @@ test("verify accepts a healthy cross-origin deployment", async () => {
     hostOrigin: "https://host.example"
   });
 
-  assert.equal(report.failures, 0);
-  assert.equal(report.hostId, "host");
+  expect(report.failures).toBe(0);
+  expect(report.hostId).toBe("host");
 });
 
 test("verify rejects multiple selected versions of one app", async () => {
@@ -23,7 +22,7 @@ test("verify rejects multiple selected versions of one app", async () => {
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "catalog versions"), true);
+  expect(report.checks.some((check) => check.status === "failure" && check.subject === "catalog versions")).toBe(true);
 });
 
 test("verify rejects an asset whose integrity does not match", async () => {
@@ -33,7 +32,7 @@ test("verify rejects an asset whose integrity does not match", async () => {
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("integrity")), true);
+  expect(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("integrity"))).toBe(true);
 });
 
 test("verify explains duplicate route base paths for one host", async () => {
@@ -51,8 +50,8 @@ test("verify explains duplicate route base paths for one host", async () => {
   const failure = report.checks.find((check) => check.status === "failure" && check.subject === "route ownership");
   if (!failure) throw new Error("Expected route ownership failure.");
 
-  assert.match(failure.message, /Duplicate routes: hostId "host" basePath "\/orders" is declared by "orders" and "billing"/);
-  assert.match(failure.message, /each hostId can use a basePath only once/);
+  expect(failure.message).toMatch(/Duplicate routes: hostId "host" basePath "\/orders" is declared by "orders" and "billing"/);
+  expect(failure.message).toMatch(/each hostId can use a basePath only once/);
 });
 
 test("verify rejects missing cross-origin CORS headers", async () => {
@@ -60,7 +59,7 @@ test("verify rejects missing cross-origin CORS headers", async () => {
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("CORS")), true);
+  expect(report.checks.some((check) => check.status === "failure" && check.subject.endsWith("CORS"))).toBe(true);
 });
 
 test("verify accepts asset origins selected by the catalog", async () => {
@@ -70,7 +69,7 @@ test("verify accepts asset origins selected by the catalog", async () => {
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "failure"), false);
+  expect(report.checks.some((check) => check.status === "failure")).toBe(false);
 });
 
 test("verify bounds concurrent network requests", async () => {
@@ -90,7 +89,7 @@ test("verify bounds concurrent network requests", async () => {
   }, 3);
 
   await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
-  assert.equal(maximum, 3);
+  expect(maximum).toBe(3);
 });
 
 test("verify aborts network requests after the configured timeout", async () => {
@@ -114,21 +113,15 @@ test("verify aborts network requests after the configured timeout", async () => 
   }
 
   if (!receivedSignal) throw new Error("Verify request signal was not captured.");
-  assert.equal(receivedSignal.aborted, true);
-  assert.equal(report.checks.some((check) => check.status === "failure" && check.subject === "runtime configuration"), true);
+  expect(receivedSignal.aborted).toBe(true);
+  expect(report.checks.some((check) => check.status === "failure" && check.subject === "runtime configuration")).toBe(true);
 });
 
 test("verify rejects non-positive or non-finite network timeouts", async () => {
   const service = new AtlasVerifyService(createDeploymentFetch([]));
 
-  await assert.rejects(
-    service.run({ runtimeUrl: "https://host.example/atlas.runtime.json", timeoutMs: 0 }),
-    /positive finite number/
-  );
-  await assert.rejects(
-    service.run({ runtimeUrl: "https://host.example/atlas.runtime.json", timeoutMs: Number.POSITIVE_INFINITY }),
-    /positive finite number/
-  );
+  await expect(service.run({ runtimeUrl: "https://host.example/atlas.runtime.json", timeoutMs: 0 })).rejects.toThrow(/positive finite number/);
+  await expect(service.run({ runtimeUrl: "https://host.example/atlas.runtime.json", timeoutMs: Number.POSITIVE_INFINITY })).rejects.toThrow(/positive finite number/);
 });
 
 test("verify warns when immutable caching has max-age zero", async () => {
@@ -139,5 +132,5 @@ test("verify warns when immutable caching has max-age zero", async () => {
 
   const report = await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
 
-  assert.equal(report.checks.some((check) => check.status === "warning" && check.subject === "orders remote entry cache"), true);
+  expect(report.checks.some((check) => check.status === "warning" && check.subject === "orders remote entry cache")).toBe(true);
 });

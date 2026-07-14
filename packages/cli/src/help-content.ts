@@ -43,7 +43,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [{ label: "-h, --help", description: "Show help for this command" }],
     examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders", "atlas generate publish-config"]
   },
-  "generate host": generationProjectHelp("host", "host application"),
+  "generate host": generationProjectHelp("host", "host client and server projects"),
   "generate app": generationProjectHelp("app", "app"),
   "generate widget": {
     summary: "Generate an exported widget inside an existing app.",
@@ -200,7 +200,7 @@ function generationProjectHelp(type: "host" | "app", resource: string): CommandH
       ...(type === "app" ? [{ label: "--routing, --no-routing", description: "Create Atlas inner route files or a single-page app; prompted when omitted in interactive mode" }] : []),
       { label: "--port <number>", description: `Dev-server port; prompted when omitted in interactive mode (default: ${type === "host" ? 4200 : 4201})` },
       { label: "--framework-version <range>", description: "Framework semver range for new packages; existing Nx packages keep their Angular/React version" },
-      { label: "--directory <path>", description: "Target directory" },
+      { label: "--directory <path>", description: type === "host" ? "Host-client target; server uses sibling <path>-server" : "Target directory" },
       { label: "--allow-unsupported-version", description: "Generate outside Atlas's tested version range" },
       { label: "--force", description: "Write into an existing target directory" },
       { label: "--skip-install", description: "Generate files without installing dependencies" },

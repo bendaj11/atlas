@@ -19,7 +19,7 @@ const cases: LocalDevelopmentCase[] = [
   {
     app: "dashboard-react",
     heading: "Dashboard React",
-    hostId: "demo-react-host",
+    hostId: "060a7f62-1c95-402c-9993-55749faf36d9",
     hostUrl: "http://127.0.0.1:4300/dashboard",
     remotePort: 4211,
     controlPort: 4411
@@ -27,7 +27,7 @@ const cases: LocalDevelopmentCase[] = [
   {
     app: "dashboard-angular",
     heading: "Dashboard Angular",
-    hostId: "demo-angular-host",
+    hostId: "399e1a5d-f83d-4248-96ed-e4211707ae1b",
     hostUrl: "http://127.0.0.1:4301/dashboard-angular",
     remotePort: 4212,
     controlPort: 4412

@@ -22,7 +22,7 @@ changes.
 | `src/bootstrap.ts` | router, auth, HTTP, SDK extensions, monitoring |
 | `src/host.ts` | Atlas lifecycle adapter; rarely change |
 | `federation.config.js` | generated federation wiring; preserve Atlas sections |
-| `server/main.mts` | auth middleware, BFF routes, errors, observability |
+| `customer-host-server/main.mts` | auth middleware, BFF routes, errors, observability |
 
 ## 2. Build Product Shell
 
@@ -42,7 +42,7 @@ catalog into `mount` request.
 
 ## 3. Extend Server When Needed
 
-Generated `server/main.mts` is separate Node.js composition root:
+Generated `customer-host-server/main.mts` is separate Node.js project and composition root:
 
 ```ts
 import { runAtlasHostServer } from "@atlas/host-server";

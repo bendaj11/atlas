@@ -1,7 +1,6 @@
-import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import { createDevSession, createLocalDevCatalog, startControlServer } from "../dist/dev.js";
 import {
@@ -22,20 +21,20 @@ test("atlas dev prepares an Angular local override without manual URL editing", 
     "packages/cli/dist/index.js",
     "dev",
     "orders-angular",
-    "--host=demo-angular-host",
+    "--host=399e1a5d-f83d-4248-96ed-e4211707ae1b",
     "--host-url=https://host.example/orders",
     "--port=4511",
     "--control-port=4512",
     "--prepare-only"
   ]);
   const document = JSON.parse(await readFile("examples/apps/orders-angular/.atlas/local-overrides.json", "utf8"));
-  assert.equal(document.schemaVersion, "1");
-  assert.equal(document.hostId, "demo-angular-host");
-  assert.equal(document.overrides[0].manifest.channel, "local");
-  assert.equal(document.overrides[0].manifest.remoteEntryUrl, "http://localhost:4511/remoteEntry.json");
-  assert.equal(document.overrides[0].manifest.integrity, undefined);
-  assert.match(stdout, /App Preview: https:\/\/host\.example\/orders/);
-  assert.doesNotMatch(stdout, /atlas-override/);
+  expect(document.schemaVersion).toBe("1");
+  expect(document.hostId).toBe("399e1a5d-f83d-4248-96ed-e4211707ae1b");
+  expect(document.overrides[0].manifest.channel).toBe("local");
+  expect(document.overrides[0].manifest.remoteEntryUrl).toBe("http://localhost:4511/remoteEntry.json");
+  expect(document.overrides[0].manifest.integrity).toBe(undefined);
+  expect(stdout).toMatch(/App Preview: https:\/\/host\.example\/orders/);
+  expect(stdout).not.toMatch(/atlas-override/);
 });
 
 test("atlas dev local catalog contains overridden manifests for fresh hosts", () => {
@@ -62,19 +61,19 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
     ]
   });
 
-  assert.equal(catalog.schemaVersion, "1");
-  assert.equal(catalog.hostId, "mobile-host");
-  assert.equal(catalog.generatedAt, "2026-07-09T08:02:37.622Z");
-  assert.deepEqual(catalog.apps, [manifest]);
+  expect(catalog.schemaVersion).toBe("1");
+  expect(catalog.hostId).toBe("mobile-host");
+  expect(catalog.generatedAt).toBe("2026-07-09T08:02:37.622Z");
+  expect(catalog.apps).toStrictEqual([manifest]);
   const session = createDevSession({
     schemaVersion: "1",
     hostId: "mobile-host",
     generatedAt: "2026-07-09T08:02:37.622Z",
     overrides: [{ appId: "login", manifest, reason: "local" }]
   }, catalog, "http://127.0.0.1:4400/atlas.local-overrides.json");
-  assert.equal(session.hostId, "mobile-host");
-  assert.equal(session.overrideUrl, "http://127.0.0.1:4400/atlas.local-overrides.json");
-  assert.deepEqual(session.catalog, catalog);
+  expect(session.hostId).toBe("mobile-host");
+  expect(session.overrideUrl).toBe("http://127.0.0.1:4400/atlas.local-overrides.json");
+  expect(session.catalog).toStrictEqual(catalog);
 });
 
 localNetworkTest("atlas dev control server accepts multiple local apps for one host", async () => {
@@ -85,13 +84,13 @@ localNetworkTest("atlas dev control server accepts multiple local apps for one h
 
   try {
     await first.markReady();
-    assert.deepEqual(await catalogManifestIds(first.port, "mobile-host"), ["login"]);
+    expect(await catalogManifestIds(first.port, "mobile-host")).toStrictEqual(["login"]);
 
     await second.markReady();
-    assert.deepEqual(await catalogManifestIds(first.port, "mobile-host"), ["login", "profile"]);
+    expect(await catalogManifestIds(first.port, "mobile-host")).toStrictEqual(["login", "profile"]);
 
     await second.close();
-    assert.deepEqual(await catalogManifestIds(first.port, "mobile-host"), ["login"]);
+    expect(await catalogManifestIds(first.port, "mobile-host")).toStrictEqual(["login"]);
   } finally {
     await first.close();
   }
@@ -107,23 +106,22 @@ localNetworkTest("atlas dev control server serves local apps for different hosts
     await angularControl.markReady();
     await reactControl.markReady();
 
-    assert.deepEqual(await catalogManifestIds(angularControl.port, "angular-host"), ["angular-app"]);
-    assert.deepEqual(await catalogManifestIds(angularControl.port, "react-host"), ["react-app"]);
-    assert.equal(await devSessionHostId(angularControl.port, "angular-host"), "angular-host");
-    assert.equal(await devSessionHostId(angularControl.port, "react-host"), "react-host");
+    expect(await catalogManifestIds(angularControl.port, "angular-host")).toStrictEqual(["angular-app"]);
+    expect(await catalogManifestIds(angularControl.port, "react-host")).toStrictEqual(["react-app"]);
+    expect(await devSessionHostId(angularControl.port, "angular-host")).toBe("angular-host");
+    expect(await devSessionHostId(angularControl.port, "react-host")).toBe("react-host");
 
     await reactControl.close();
-    assert.deepEqual(await catalogManifestIds(angularControl.port, "angular-host"), ["angular-app"]);
+    expect(await catalogManifestIds(angularControl.port, "angular-host")).toStrictEqual(["angular-app"]);
   } finally {
     await angularControl.close();
   }
 });
 
 localNetworkTest("host dev becomes ready when joining a shared control server", async () => {
-  assert.equal(await hostJoiningSharedControlBecomesReady(), "mobile-host");
+  expect(await hostJoiningSharedControlBecomesReady()).toBe("mobile-host");
 });
 
 localNetworkTest("closing a joined app keeps the host dev session alive", async () => {
-  assert.equal(await closingJoinedAppPreservesHost(), "mobile-host");
+  expect(await closingJoinedAppPreservesHost()).toBe("mobile-host");
 });
-

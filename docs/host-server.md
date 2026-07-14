@@ -1,7 +1,8 @@
 # Host server
 
-Every generated host includes an editable TypeScript server at `server/main.mts`.
-The generated composition root calls `@atlas/host-server`, which owns Atlas'
+Every generated host has a sibling server project. For `atlas g host customer-host`,
+the editable TypeScript entry is `customer-host-server/main.mts`. Generated
+composition root calls `@atlas/host-server`, which owns Atlas'
 HTTP bootstrap contract while leaving product middleware, authentication, routes,
 and error handling in user-owned source.
 
@@ -62,15 +63,15 @@ deep links, and shuts down on `SIGINT` or `SIGTERM`.
 
 ## Build and run
 
-Generated scripts keep client and server builds independent:
+Server project owns its build and runtime dependencies:
 
 ```sh
-npm run build:server
+npm --prefix customer-host-server run build
 ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
-  npm run start:server
+  npm --prefix customer-host-server run start
 ```
 
-The compiled entry is `server/dist/main.mjs`. It uses the project's normal
+Compiled entry is `customer-host-server/dist/main.mjs`. It uses server project's
 `@atlas/host-server` dependency. Package that output and its production
 dependencies using your existing delivery system.
 
@@ -86,7 +87,7 @@ configured catalog URL.
 
 ## Add product behavior
 
-Edit `server/main.mts`; do not copy Atlas loader or bootstrap internals:
+Edit `customer-host-server/main.mts`; do not copy Atlas loader or bootstrap internals:
 
 ```ts
 import { runAtlasHostServer } from "@atlas/host-server";
@@ -125,4 +126,4 @@ atlas release customer-host
 ```
 
 Atlas publishes a new immutable client and changes catalog selection. Rebuild
-and redeploy server only when `server/` code or its dependencies change.
+and redeploy server only when `customer-host-server` code or dependencies change.

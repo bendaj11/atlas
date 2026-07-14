@@ -7,8 +7,19 @@ const artifacts = join(root, "tests/e2e/.artifacts");
 const cdn = join(artifacts, "cdn");
 const externalCdn = join(artifacts, "external-cdn");
 const registrySnapshot = join(cdn, "registry.json");
-const hosts = ["demo-react-host", "demo-angular-host"];
-const apps = ["orders-angular", "catalog-react", "dashboard-angular", "dashboard-react"];
+const REACT_HOST_ID = "060a7f62-1c95-402c-9993-55749faf36d9";
+const ANGULAR_HOST_ID = "399e1a5d-f83d-4248-96ed-e4211707ae1b";
+const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
+const DASHBOARD_REACT_ID = "56e41bf1-d1b4-486f-a340-5782ee632bad";
+const EXTERNAL_SHARED_UI_ID = "745518fc-3b1a-4197-b044-da306b0a02ff";
+const projects = [
+  "demo-react-host",
+  "demo-angular-host",
+  "orders-angular",
+  "catalog-react",
+  "dashboard-angular",
+  "dashboard-react"
+];
 
 await rm(artifacts, { recursive: true, force: true });
 await mkdir(cdn, { recursive: true });
@@ -22,10 +33,10 @@ await writeJson(registrySnapshot, {
 });
 await run("yarn", ["build"]);
 
-for (const id of [...hosts, ...apps]) {
-  const publication = join(artifacts, "publications", id);
+for (const project of projects) {
+  const publication = join(artifacts, "publications", project);
   await run("node", [
-    "packages/cli/dist/index.js", "build", id,
+    "packages/cli/dist/index.js", "build", project,
     "--version=0.1.0",
     "--registry-base-url=http://127.0.0.1:4400",
     `--registry-snapshot=${registrySnapshot}`,
@@ -37,13 +48,13 @@ for (const id of [...hosts, ...apps]) {
 
 await addSecondCatalogRelease();
 await createExternalWidgetRegistry();
-await addVersionFixtures("dashboard-react");
-await addBrokenRoute("demo-react-host");
-await addBrokenRoute("demo-angular-host");
+await addVersionFixtures(DASHBOARD_REACT_ID);
+await addBrokenRoute(REACT_HOST_ID, "49f9e422-c726-46ee-840b-ad33b8a8faa3");
+await addBrokenRoute(ANGULAR_HOST_ID, "a7d07dd4-49c8-47cb-b020-e99b0b738587");
 await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build"]);
 await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build"]);
-await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build:server"]);
-await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build:server"]);
+await run("yarn", ["workspace", "@atlas-example/demo-react-host-server", "build"]);
+await run("yarn", ["workspace", "@atlas-example/demo-angular-host-server", "build"]);
 
 async function addSecondCatalogRelease() {
   const entryPath = join(root, "examples/apps/catalog-react/dist/entry.js");
@@ -68,25 +79,25 @@ async function addSecondCatalogRelease() {
 
 async function createExternalWidgetRegistry() {
   const sourceRegistry = JSON.parse(await readFile(registrySnapshot, "utf8"));
-  const sourceManifests = sourceRegistry.apps.filter((manifest) => manifest.id === "catalog-react" && manifest.channel === "production");
+  const sourceManifests = sourceRegistry.apps.filter((manifest) => manifest.id === CATALOG_REACT_ID && manifest.channel === "production");
   const manifests = [];
   for (const source of sourceManifests) {
-    const targetDirectory = join(externalCdn, "apps", "external-shared-ui", source.version, source.buildId);
+    const targetDirectory = join(externalCdn, "apps", EXTERNAL_SHARED_UI_ID, source.version, source.buildId);
     const sourceDirectory = dirname(join(cdn, new URL(source.remoteEntryUrl).pathname));
     await cp(sourceDirectory, targetDirectory, { recursive: true });
     manifests.push({
       ...source,
-      id: "external-shared-ui",
+      id: EXTERNAL_SHARED_UI_ID,
       name: "External Shared UI",
-      remoteEntryUrl: `http://127.0.0.1:4401/apps/external-shared-ui/${source.version}/${source.buildId}/remoteEntry.json`,
+      remoteEntryUrl: `http://127.0.0.1:4401/apps/${EXTERNAL_SHARED_UI_ID}/${source.version}/${source.buildId}/remoteEntry.json`,
       placements: [],
       supportedHosts: ["*"],
       externalAppsDependencies: undefined,
       exportedWidgets: (source.exportedWidgets ?? []).map((widget) => ({
         ...widget,
         id: "55ca3323-c62f-44de-9194-6ab42375e578",
-        ownerAppId: "external-shared-ui",
-        remoteEntryUrl: `http://127.0.0.1:4401/apps/external-shared-ui/${source.version}/${source.buildId}/remoteEntry.json`
+        ownerAppId: EXTERNAL_SHARED_UI_ID,
+        remoteEntryUrl: `http://127.0.0.1:4401/apps/${EXTERNAL_SHARED_UI_ID}/${source.version}/${source.buildId}/remoteEntry.json`
       }))
     });
   }
@@ -97,7 +108,7 @@ async function createExternalWidgetRegistry() {
     updatedAt: selected.createdAt,
     hosts: [],
     apps: manifests,
-    selections: { hosts: {}, apps: { "external-shared-ui": { version: selected.version, buildId: selected.buildId } } }
+    selections: { hosts: {}, apps: { [EXTERNAL_SHARED_UI_ID]: { version: selected.version, buildId: selected.buildId } } }
   });
 }
 
@@ -147,13 +158,13 @@ async function createDistinctArtifact(sourceUrl, appId, version, buildId, headin
   return `http://127.0.0.1:4400/apps/${appId}/${version}/${buildId}/remoteEntry.json`;
 }
 
-async function addBrokenRoute(hostId) {
+async function addBrokenRoute(hostId, brokenAppId) {
   const path = join(cdn, "hosts", hostId, "catalog.json");
   const catalog = JSON.parse(await readFile(path, "utf8"));
   const template = catalog.apps[0];
   catalog.apps.push({
     ...template,
-    id: `broken-${hostId}`,
+    id: brokenAppId,
     name: "Broken Example",
     buildId: "missing",
     remoteEntryUrl: "http://127.0.0.1:4400/missing/remoteEntry.json",
@@ -161,7 +172,7 @@ async function addBrokenRoute(hostId) {
     exportedWidgets: undefined,
     externalAppsDependencies: undefined,
     placements: [{
-      id: `broken-${hostId}-route`,
+      id: `${brokenAppId}-route`,
       kind: "route",
       hostId,
       route: { basePath: "/broken", title: "Broken Example", nav: { label: "Broken", visible: true, order: 100 } }

@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { createMemoryRouter, Link, Outlet, RouterProvider, useParams } from "react-router";
+import { createMemoryRouter, Link, Outlet, RouterProvider, useParams } from "react-router-dom";
 import { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";
 import "./styles.css";
 

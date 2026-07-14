@@ -42,10 +42,10 @@ contract.
 From workspace root:
 
 ```sh
-npm --prefix customer-host run build:server
+npm --prefix customer-host-server run build
 ```
 
-Deploy `customer-host/server/dist/main.mjs`, production dependencies, and runtime
+Deploy `customer-host-server/dist/main.mjs`, server production dependencies, and runtime
 configuration through existing Node.js delivery tooling. Atlas generates no
 container, cloud manifest, or pipeline definition.
 

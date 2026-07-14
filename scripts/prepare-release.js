@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { versionPackages } from "./version-packages.mjs";
+import { versionPackages } from "./version-packages.js";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const releaseTypes = ["patch", "minor", "major"];

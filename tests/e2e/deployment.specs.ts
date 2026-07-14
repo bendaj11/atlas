@@ -6,6 +6,10 @@ import { deploymentCatalog, runCli as runAtlasCli } from "./deployment.driver.js
 const workspaceRoot = resolve(import.meta.dirname, "../..");
 const cdnRoot = join(workspaceRoot, "tests/e2e/.artifacts/cdn");
 const rollbackRoot = join(workspaceRoot, "tests/e2e/.artifacts/rollback");
+const REACT_HOST_ID = "060a7f62-1c95-402c-9993-55749faf36d9";
+const ANGULAR_HOST_ID = "399e1a5d-f83d-4248-96ed-e4211707ae1b";
+const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
+const EXTERNAL_SHARED_UI_ID = "745518fc-3b1a-4197-b044-da306b0a02ff";
 
 test("React host mounts an Angular app with native inner routing", async ({ page }) => {
   await page.goto("http://127.0.0.1:4300/angular-orders");
@@ -18,8 +22,8 @@ test("React host mounts an Angular app with native inner routing", async ({ page
 test("Angular host mounts a React app with native inner routing", async ({ page }) => {
   await page.goto("http://127.0.0.1:4301/react-catalog");
   await expect(page.getByRole("heading", { name: "Catalog React" })).toBeVisible();
-  const stylesheet = page.locator('link[data-atlas-style="catalog-react"]');
-  await expect(stylesheet).toHaveAttribute("href", /^http:\/\/127\.0\.0\.1:4400\/apps\/catalog-react\/0\.2\.0\/.+\.css$/);
+  const stylesheet = page.locator(`link[data-atlas-style="${CATALOG_REACT_ID}"]`);
+  await expect(stylesheet).toHaveAttribute("href", new RegExp(`^http://127\\.0\\.0\\.1:4400/apps/${CATALOG_REACT_ID}/0\\.2\\.0/.+\\.css$`));
   await expect(stylesheet).toHaveAttribute("integrity", /^sha256-/);
   await page.getByRole("link", { name: "Product 42" }).click();
   await expect(page).toHaveURL(/\/react-catalog\/products\/42$/);
@@ -70,7 +74,7 @@ test("external widget release becomes visible after refresh without catalog sync
   const original = await readFile(registryPath, "utf8");
   const requested: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("/apps/external-shared-ui/")) requested.push(request.url());
+    if (request.url().includes(`/apps/${EXTERNAL_SHARED_UI_ID}/`)) requested.push(request.url());
   });
   try {
     await page.goto("http://127.0.0.1:4301/dashboard-angular");
@@ -80,7 +84,7 @@ test("external widget release becomes visible after refresh without catalog sync
     const registry = JSON.parse(original);
     const latest = registry.apps.find((manifest: { version: string }) => manifest.version === "0.2.0");
     if (!latest) throw new Error("External 0.2.0 fixture is missing.");
-    registry.selections.apps["external-shared-ui"] = { version: latest.version, buildId: latest.buildId };
+    registry.selections.apps[EXTERNAL_SHARED_UI_ID] = { version: latest.version, buildId: latest.buildId };
     await writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
 
     requested.length = 0;
@@ -102,11 +106,11 @@ for (const [name, origin] of hostFallbackCases) {
 }
 
 test("CDN serves mutable catalogs and immutable app assets with appropriate headers", async ({ request }) => {
-  const catalogResponse = await request.get("http://127.0.0.1:4400/hosts/demo-react-host/catalog.json");
+  const catalogResponse = await request.get(`http://127.0.0.1:4400/hosts/${REACT_HOST_ID}/catalog.json`);
   expect(catalogResponse.headers()["access-control-allow-origin"]).toBe("*");
   expect(catalogResponse.headers()["cache-control"]).toBe("no-cache");
   const catalog = deploymentCatalog(await catalogResponse.json());
-  const manifest = catalog.apps.find((candidate) => candidate.id === "catalog-react");
+  const manifest = catalog.apps.find((candidate) => candidate.id === CATALOG_REACT_ID);
   expect(manifest).toBeDefined();
   const remoteResponse = await request.get(manifest!.remoteEntryUrl);
   expect(remoteResponse.ok()).toBe(true);
@@ -130,7 +134,7 @@ test("a deployed host rolls back and forward without being rebuilt", async ({ pa
 
 async function selectCatalogRelease(version: string, buildId?: string): Promise<void> {
   const args = [
-    "packages/cli/dist/index.js", "rollback", "catalog-react",
+    "packages/cli/dist/index.js", "rollback", CATALOG_REACT_ID,
     `--version=${version}`,
     "--registry-base-url=http://127.0.0.1:4400",
     `--registry-snapshot=${join(cdnRoot, "registry.json")}`,
@@ -144,9 +148,9 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
 }
 
 async function expectCatalogVersion(request: APIRequestContext, version: string): Promise<void> {
-  const response = await request.get(`http://127.0.0.1:4400/hosts/demo-angular-host/catalog.json?version=${version}`);
+  const response = await request.get(`http://127.0.0.1:4400/hosts/${ANGULAR_HOST_ID}/catalog.json?version=${version}`);
   const catalog = deploymentCatalog(await response.json());
-  expect(catalog.apps.find((manifest) => manifest.id === "catalog-react")?.version).toBe(version);
+  expect(catalog.apps.find((manifest) => manifest.id === CATALOG_REACT_ID)?.version).toBe(version);
 }
 
 async function replaceMutableFilesAtomically(sourceRoot: string): Promise<void> {

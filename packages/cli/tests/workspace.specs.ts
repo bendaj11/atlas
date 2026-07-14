@@ -1,8 +1,7 @@
-import assert from "node:assert/strict";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { createFormatGeneratedCommand, createInstallCommand, createNxGenerationCommand, createNxPluginInstallCommand, createTaskCommand, detectWorkspace, installationRoot } from "../dist/workspace.js";
 import { createWorkspaceFixture } from "./workspace.driver.js";
 
@@ -22,12 +21,12 @@ test("workspace detection discovers an Nx project without consumer configuration
   const workspace = await detectWorkspace(projectRoot);
   const project = await workspace.findProject("orders");
   const currentProject = await workspace.findProject(".");
-  assert.equal(workspace.kind, "nx");
-  assert.equal(workspace.packageManager, "yarn");
-  assert.equal(project.root, projectRoot);
-  assert.equal(currentProject.root, projectRoot);
-  assert.deepEqual(project.outputPaths, [join(root, "dist", "apps", "orders")]);
-  assert.equal(workspace.generationRoot("app", "catalog"), join(root, "apps", "catalog"));
+  expect(workspace.kind).toBe("nx");
+  expect(workspace.packageManager).toBe("yarn");
+  expect(project.root).toBe(projectRoot);
+  expect(currentProject.root).toBe(projectRoot);
+  expect(project.outputPaths).toStrictEqual([join(root, "dist", "apps", "orders")]);
+  expect(workspace.generationRoot("app", "catalog")).toBe(join(root, "apps", "catalog"));
 });
 
 test("Nx generation respects a direct child working directory", async () => {
@@ -40,8 +39,8 @@ test("Nx generation respects a direct child working directory", async () => {
 
   const workspace = await detectWorkspace(appsRoot);
 
-  assert.equal(workspace.generationRoot("host", "host"), join(appsRoot, "host"));
-  assert.equal(workspace.generationRoot("app", "orders"), join(appsRoot, "orders"));
+  expect(workspace.generationRoot("host", "host")).toBe(join(appsRoot, "host"));
+  expect(workspace.generationRoot("app", "orders")).toBe(join(appsRoot, "orders"));
 });
 
 test("package.json workspaces establish the workspace root without a lockfile", async () => {
@@ -53,9 +52,9 @@ test("package.json workspaces establish the workspace root without a lockfile", 
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
 
   const workspace = await detectWorkspace(projectRoot);
-  assert.equal(workspace.root, root);
-  assert.equal(workspace.kind, "workspace");
-  assert.equal(workspace.generationRoot("app", "catalog"), join(root, "packages", "catalog"));
+  expect(workspace.root).toBe(root);
+  expect(workspace.kind).toBe("workspace");
+  expect(workspace.generationRoot("app", "catalog")).toBe(join(root, "packages", "catalog"));
 });
 
 test("pnpm-workspace.yaml establishes a pnpm workspace without package.json workspaces", async () => {
@@ -68,10 +67,10 @@ test("pnpm-workspace.yaml establishes a pnpm workspace without package.json work
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
 
   const workspace = await detectWorkspace(projectRoot);
-  assert.equal(workspace.root, root);
-  assert.equal(workspace.kind, "workspace");
-  assert.equal(workspace.packageManager, "pnpm");
-  assert.equal(workspace.generationRoot("host", "host"), join(root, "packages", "host"));
+  expect(workspace.root).toBe(root);
+  expect(workspace.kind).toBe("workspace");
+  expect(workspace.packageManager).toBe("pnpm");
+  expect(workspace.generationRoot("host", "host")).toBe(join(root, "packages", "host"));
 });
 
 test("pnpm-lock.yaml establishes the workspace root", async () => {
@@ -84,8 +83,8 @@ test("pnpm-lock.yaml establishes the workspace root", async () => {
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
 
   const workspace = await detectWorkspace(projectRoot);
-  assert.equal(workspace.root, root);
-  assert.equal(workspace.packageManager, "pnpm");
+  expect(workspace.root).toBe(root);
+  expect(workspace.packageManager).toBe("pnpm");
 });
 
 test("Nx discovery includes configured and declared output directories", async () => {
@@ -108,7 +107,7 @@ test("Nx discovery includes configured and declared output directories", async (
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
 
   const project = await (await detectWorkspace(projectRoot)).findProject("orders");
-  assert.deepEqual(project.outputPaths, [
+  expect(project.outputPaths).toStrictEqual([
     join(root, "dist/orders/browser"), join(root, "dist/orders"), join(root, "dist/dev/orders"),
     join(root, "custom/orders"), join(projectRoot, "public")
   ]);
@@ -138,56 +137,56 @@ test("Nx discovery follows Angular native federation delegated build output", as
 
   const project = await (await detectWorkspace(projectRoot)).findProject("mobile-host");
 
-  assert.deepEqual(project.outputPaths, [
+  expect(project.outputPaths).toStrictEqual([
     join(root, "apps/mobile-host/dist/browser"), join(root, "apps/mobile-host/dist")
   ]);
 });
 
 test("task commands follow Nx, Turbo, and package-manager conventions", () => {
   const project = { id: "orders", root: "/repo/apps/orders", packageName: "@acme/orders", version: "1.0.0", outputPaths: [] };
-  assert.deepEqual(createTaskCommand("nx", "yarn", "/repo", project, "build"), {
+  expect(createTaskCommand("nx", "yarn", "/repo", project, "build")).toStrictEqual({
     command: "yarn", args: ["nx", "run", "orders:build"], cwd: "/repo"
   });
-  assert.deepEqual(createTaskCommand("turbo", "pnpm", "/repo", project, "dev", ["--port", "4201"]), {
+  expect(createTaskCommand("turbo", "pnpm", "/repo", project, "dev", ["--port", "4201"])).toStrictEqual({
     command: "pnpm", args: ["exec", "turbo", "run", "dev", "--filter=@acme/orders", "--", "--port", "4201"], cwd: "/repo"
   });
-  assert.deepEqual(createTaskCommand("turbo", "yarn", "/repo", project, "dev", ["--port", "4201"]), {
+  expect(createTaskCommand("turbo", "yarn", "/repo", project, "dev", ["--port", "4201"])).toStrictEqual({
     command: "yarn", args: ["exec", "--", "turbo", "run", "dev", "--filter=@acme/orders", "--", "--port", "4201"], cwd: "/repo"
   });
-  assert.deepEqual(createTaskCommand("turbo", "yarn", "/repo", project, "atlas:config"), {
+  expect(createTaskCommand("turbo", "yarn", "/repo", project, "atlas:config")).toStrictEqual({
     command: "yarn", args: ["workspace", "@acme/orders", "run", "atlas:config"], cwd: "/repo"
   });
-  assert.deepEqual(createTaskCommand("workspace", "npm", "/repo", project, "build"), {
+  expect(createTaskCommand("workspace", "npm", "/repo", project, "build")).toStrictEqual({
     command: "npm", args: ["run", "build", "--workspace", "@acme/orders"], cwd: "/repo"
   });
-  assert.deepEqual(createTaskCommand("workspace", "pnpm", "/repo", project, "dev", ["--port", "4201"]), {
+  expect(createTaskCommand("workspace", "pnpm", "/repo", project, "dev", ["--port", "4201"])).toStrictEqual({
     command: "pnpm", args: ["--filter", "@acme/orders", "run", "dev", "--port", "4201"], cwd: "/repo"
   });
-  assert.deepEqual(createTaskCommand("workspace", "yarn", "/repo", project, "dev", ["--port", "4201"]), {
+  expect(createTaskCommand("workspace", "yarn", "/repo", project, "dev", ["--port", "4201"])).toStrictEqual({
     command: "yarn", args: ["workspace", "@acme/orders", "run", "dev", "--port", "4201"], cwd: "/repo"
   });
 });
 
 test("dependency installs use the detected package manager from the generated project", async () => {
-  assert.deepEqual(createInstallCommand("npm", "/repo", "/repo/apps/orders"), {
+  expect(createInstallCommand("npm", "/repo", "/repo/apps/orders")).toStrictEqual({
     command: "npm", args: ["install"], cwd: "/repo/apps/orders"
   });
-  assert.deepEqual(createInstallCommand("pnpm", "/repo", "/repo/apps/orders"), {
+  expect(createInstallCommand("pnpm", "/repo", "/repo/apps/orders")).toStrictEqual({
     command: "pnpm", args: ["install"], cwd: "/repo/apps/orders"
   });
   const root = await mkdtemp(join(tmpdir(), "atlas-install-root-"));
   const projectRoot = join(root, "apps/orders");
   await mkdir(projectRoot, { recursive: true });
-  assert.equal(await installationRoot("nx", root, projectRoot), root);
+  expect(await installationRoot("nx", root, projectRoot)).toBe(root);
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "@acme/orders" }));
-  assert.equal(await installationRoot("nx", root, projectRoot), projectRoot);
-  assert.equal(await installationRoot("turbo", root, projectRoot), projectRoot);
+  expect(await installationRoot("nx", root, projectRoot)).toBe(projectRoot);
+  expect(await installationRoot("turbo", root, projectRoot)).toBe(projectRoot);
 });
 
 test("generated project formatting uses existing workspace tooling", async () => {
   const nxRoot = await mkdtemp(join(tmpdir(), "atlas-nx-format-command-"));
   await writeFile(join(nxRoot, "package.json"), JSON.stringify({ devDependencies: { nx: "22.0.0" } }));
-  assert.deepEqual(await createFormatGeneratedCommand("nx", "yarn", nxRoot, join(nxRoot, "apps", "orders")), {
+  expect(await createFormatGeneratedCommand("nx", "yarn", nxRoot, join(nxRoot, "apps", "orders"))).toStrictEqual({
     command: "yarn", args: ["nx", "format:write", "apps/orders"], cwd: nxRoot, stdio: ["ignore", "ignore", "inherit"]
   });
 
@@ -195,18 +194,18 @@ test("generated project formatting uses existing workspace tooling", async () =>
   const projectRoot = join(root, "apps", "orders");
   await mkdir(projectRoot, { recursive: true });
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ scripts: { format: "prettier --write ." } }));
-  assert.deepEqual(await createFormatGeneratedCommand("workspace", "pnpm", root, projectRoot), {
+  expect(await createFormatGeneratedCommand("workspace", "pnpm", root, projectRoot)).toStrictEqual({
     command: "pnpm", args: ["run", "format"], cwd: projectRoot, stdio: ["ignore", "ignore", "inherit"]
   });
 
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ scripts: { lint: "eslint ." } }));
-  assert.deepEqual(await createFormatGeneratedCommand("workspace", "npm", root, projectRoot), {
+  expect(await createFormatGeneratedCommand("workspace", "npm", root, projectRoot)).toStrictEqual({
     command: "npm", args: ["run", "lint", "--", "--fix"], cwd: projectRoot, stdio: ["ignore", "ignore", "inherit"]
   });
 });
 
 test("non-interactive Nx projects use deterministic framework generator defaults", () => {
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", type: "host", directory: "apps/host", interactive: false, routing: true }), {
+  expect(createNxGenerationCommand("pnpm", "/repo", { framework: "angular", type: "host", directory: "apps/host", interactive: false, routing: true })).toStrictEqual({
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/host",
@@ -216,7 +215,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", { framework: "react", type: "app", directory: "apps/orders", interactive: false, routing: false }), {
+  expect(createNxGenerationCommand("yarn", "/repo", { framework: "react", type: "app", directory: "apps/orders", interactive: false, routing: false })).toStrictEqual({
     command: "yarn",
     args: [
       "nx", "generate", "@nx/react:application", "apps/orders",
@@ -225,9 +224,9 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", {
+  expect(createNxGenerationCommand("pnpm", "/repo", {
     framework: "angular", type: "app", directory: "apps/orders", devServerPort: 4202, interactive: false, routing: true
-  }), {
+  })).toStrictEqual({
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/orders",
@@ -237,9 +236,9 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", {
+  expect(createNxGenerationCommand("pnpm", "/repo", {
     framework: "react", type: "host", directory: "apps/host", devServerPort: 4300, interactive: false, routing: true
-  }), {
+  })).toStrictEqual({
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/react:application", "apps/host",
@@ -251,9 +250,9 @@ test("non-interactive Nx projects use deterministic framework generator defaults
 });
 
 test("interactive Nx projects delegate supported framework choices to the native generator", () => {
-  assert.deepEqual(createNxGenerationCommand("yarn", "/repo", {
+  expect(createNxGenerationCommand("yarn", "/repo", {
     framework: "angular", type: "host", directory: "apps/host", interactive: true, routing: true
-  }), {
+  })).toStrictEqual({
     command: "yarn",
     args: [
       "nx", "generate", "@nx/angular:application", "apps/host",
@@ -261,9 +260,9 @@ test("interactive Nx projects delegate supported framework choices to the native
     ],
     cwd: "/repo"
   });
-  assert.deepEqual(createNxGenerationCommand("pnpm", "/repo", {
+  expect(createNxGenerationCommand("pnpm", "/repo", {
     framework: "react", type: "host", directory: "apps/host", interactive: true, routing: true
-  }), {
+  })).toStrictEqual({
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/react:application", "apps/host",
@@ -274,7 +273,7 @@ test("interactive Nx projects delegate supported framework choices to the native
 });
 
 test("missing Nx plugins are added through the workspace package manager", () => {
-  assert.deepEqual(createNxPluginInstallCommand("npm", "/repo", "react"), {
+  expect(createNxPluginInstallCommand("npm", "/repo", "react")).toStrictEqual({
     command: "npx",
     args: ["nx", "add", "@nx/react", "--interactive=false"],
     cwd: "/repo"
@@ -294,6 +293,6 @@ test("solution-style Nx workspaces still require the native Angular plugin", asy
   }));
 
   const workspace = await detectWorkspace(root);
-  assert.equal(await workspace.missingScaffoldDependency("angular"), "@nx/angular");
-  assert.equal(workspace.generationRoot("host", "host"), join(root, "packages", "host"));
+  expect(await workspace.missingScaffoldDependency("angular")).toBe("@nx/angular");
+  expect(workspace.generationRoot("host", "host")).toBe(join(root, "packages", "host"));
 });

@@ -43,6 +43,13 @@ the Columbus extension.
 Generated `dist`, cache, IDE, and test artifact directories are intentionally
 ignored and must not be committed.
 
+## File Extensions
+
+- Use `.ts` or `.tsx` for authored application, package, test, and configuration code.
+- Use `.js` for uncompiled Node.js scripts; the workspace is ESM through `"type": "module"`.
+- Use `.mts` only when TypeScript must emit an `.mjs` runtime entry.
+- Use `.cjs` only when a consumer explicitly requires CommonJS.
+
 ## Documentation
 
 Follow [`docs/documentation-guide.md`](docs/documentation-guide.md). Keep

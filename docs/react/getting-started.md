@@ -21,7 +21,7 @@ Atlas owns cross-application discovery and mount lifecycle.
 | `src/<HostName>AtlasProvider.tsx` | Router, auth, HTTP, SDK services, monitoring | Yes |
 | `src/app/HostLayout.tsx` | Product shell, navigation, status, slots, route outlet | Yes |
 | `vite.config.ts` | Federation expose and build wiring | Preserve generated Atlas sections |
-| `server/main.mts` | Node.js HTTP composition root | Yes, for server behavior |
+| `customer-host-server/main.mts` | Node.js HTTP composition root | Yes, for server behavior |
 
 Provider filename derives from project name: `customer-host` becomes
 `CustomerHostAtlasProvider.tsx`. Host client receives selected catalog in its

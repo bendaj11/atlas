@@ -19,6 +19,9 @@ const projects = [
   { type: "host", name: "clean-angular-host", framework: "angular" },
   { type: "app", name: "clean-angular-app", framework: "angular" }
 ];
+const generatedProjectDefinitions = projects.flatMap((project) => project.type === "host"
+  ? [project, { type: "server", name: `${project.name}-server`, framework: project.framework }]
+  : [project]);
 const expectedVersion = JSON.parse(await readFile(join(root, "packages/schema/package.json"), "utf8")).version;
 
 await mkdir(join(cleanRoom, "projects"), { recursive: true });
@@ -37,7 +40,7 @@ await writeJson(join(cleanRoom, "package.json"), rootManifest(localPackages, gen
 await installDependencies(cleanRoom);
 for (const project of generatedProjects) await buildProject(project);
 
-console.info(`Built ${projects.length} clean-room projects with ${packageManager}.`);
+console.info(`Built ${generatedProjects.length} clean-room projects with ${packageManager}.`);
 
 function readPackageManager(args) {
   const value = args.find((argument) => argument.startsWith("--package-manager="))?.split("=")[1] ?? "yarn";
@@ -99,7 +102,7 @@ async function writePackageManagerConfig(directory, localPackages) {
 }
 
 async function assertGeneratedAtlasRanges() {
-  for (const project of projects) {
+  for (const project of generatedProjectDefinitions) {
     const manifest = JSON.parse(await readFile(join(cleanRoom, "projects", project.name, "package.json"), "utf8"));
     for (const [name, version] of Object.entries(manifest.dependencies ?? {})) {
       if (name.startsWith("@atlas/") && version !== `^${expectedVersion}`) {
@@ -123,7 +126,7 @@ async function installDependencies(cwd) {
 }
 
 async function updateGeneratedManifests(localPackages) {
-  return Promise.all(projects.map(async (project) => {
+  return Promise.all(generatedProjectDefinitions.map(async (project) => {
     const manifest = await updateGeneratedManifest(project, localPackages);
     return {
       ...project,

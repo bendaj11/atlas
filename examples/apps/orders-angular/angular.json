@@ -9,7 +9,6 @@
         "build": {
           "builder": "@angular-architects/native-federation:build",
           "options": {
-            "preserveSymlinks": true,
             "target": "orders-angular:esbuild:production"
           },
           "configurations": {
@@ -38,7 +37,17 @@
               "es-module-shims"
             ],
             "tsConfig": "tsconfig.app.json",
-            "assets": [],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              }
+            ],
             "styles": [
               "src/styles.css"
             ]
@@ -55,6 +64,9 @@
         },
         "serve-original": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "port": 4201
+          },
           "configurations": {
             "production": {
               "buildTarget": "orders-angular:esbuild:production"

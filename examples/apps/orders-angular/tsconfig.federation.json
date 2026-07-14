@@ -4,13 +4,11 @@
     "outDir": "./out-tsc/app"
   },
   "files": [
-    "src/main.ts"
+    "src/main.ts",
+    "atlas.config.ts"
   ],
   "include": [
     "src/**/*.ts",
-    "../../../packages/schema/src/**/*.ts",
-    "../../../packages/sdk/src/**/*.ts",
-    "../../../packages/runtime/src/**/*.ts",
     "src/entry.ts",
     "src/exported-widgets/order-status/index.ts"
   ]

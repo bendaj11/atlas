@@ -4,7 +4,8 @@
     "outDir": "./out-tsc/app"
   },
   "files": [
-    "src/main.ts"
+    "src/main.ts",
+    "atlas.config.ts"
   ],
   "include": [
     "src/**/*.ts",

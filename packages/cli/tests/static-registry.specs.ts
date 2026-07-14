@@ -1,8 +1,7 @@
-import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import type { AtlasHostManifest, AtlasStaticRegistry } from "../../schema/dist/index.js";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import { prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/static-registry.js";
@@ -16,9 +15,9 @@ test("static registry selects one host client and its apps", async () => {
 
   const index = await readManifestIndex(join(directory, "apps/orders/index.json"));
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
-  assert.deepEqual(index.manifests.map((manifest) => manifest.id), ["orders"]);
-  assert.equal(catalog.host.kind, "host");
-  assert.deepEqual(catalog.apps.map((manifest) => manifest.id), ["orders"]);
+  expect(index.manifests.map((manifest) => manifest.id)).toStrictEqual(["orders"]);
+  expect(catalog.host.kind).toBe("host");
+  expect(catalog.apps.map((manifest) => manifest.id)).toStrictEqual(["orders"]);
 });
 
 test("provider-only apps remain discoverable without entering a host catalog", async () => {
@@ -45,8 +44,8 @@ test("provider-only apps remain discoverable without entering a host catalog", a
 
   const registry = await readRegistry(join(directory, "registry.json"));
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
-  assert.equal(registry.apps.some((manifest) => manifest.id === provider.id), true);
-  assert.deepEqual(catalog.apps, []);
+  expect(registry.apps.some((manifest) => manifest.id === provider.id)).toBe(true);
+  expect(catalog.apps).toStrictEqual([]);
 });
 
 test("PR builds enter history without activating catalog", async () => {
@@ -59,9 +58,9 @@ test("PR builds enter history without activating catalog", async () => {
 
   const index = await readManifestIndex(join(directory, "apps/catalog/index.json"));
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
-  assert.equal(result.hostIds.length, 0);
-  assert.equal(index.manifests.length, 2);
-  assert.equal(catalog.apps[0]?.version, "1.0.0");
+  expect(result.hostIds.length).toBe(0);
+  expect(index.manifests.length).toBe(2);
+  expect(catalog.apps[0]?.version).toBe("1.0.0");
 });
 
 test("rollback selects previous host-client build", async () => {
@@ -84,9 +83,9 @@ test("rollback selects previous host-client build", async () => {
     updatedAt: "2026-02-01T00:00:00.000Z"
   });
   const catalog = await readCatalog(join(directory, "hosts/host/catalog.json"));
-  assert.equal(result.selected.kind, "host");
-  assert.equal(catalog.host.buildId, "one");
-  assert.equal(catalog.apps.find((manifest) => manifest.id === "orders")?.buildId, "orders-three");
+  expect(result.selected.kind).toBe("host");
+  expect(catalog.host.buildId).toBe("one");
+  expect(catalog.apps.find((manifest) => manifest.id === "orders")?.buildId).toBe("orders-three");
 });
 
 test("rollback requires build id when version has multiple builds", async () => {
@@ -99,12 +98,12 @@ test("rollback requires build id when version has multiple builds", async () => 
     apps: [first, rebuilt]
   };
   current.revision = registryRevision(current);
-  await assert.rejects(prepareStaticRollback({
+  await expect(prepareStaticRollback({
     artifactId: first.id,
     version: first.version,
     current,
     outputDirectory: await mkdtemp(join(tmpdir(), "atlas-static-ambiguous-"))
-  }), /multiple builds/);
+  })).rejects.toThrow(/multiple builds/);
 });
 
 test("registry revision is independent of artifact order", () => {
@@ -113,7 +112,7 @@ test("registry revision is independent of artifact order", () => {
   const second = createTestManifest({ id: "second" });
   const left: AtlasStaticRegistry = { schemaVersion: "1", updatedAt: first.createdAt, hosts: [host], apps: [first, second] };
   const right: AtlasStaticRegistry = { schemaVersion: "1", updatedAt: first.createdAt, hosts: [host], apps: [second, first] };
-  assert.equal(registryRevision(left), registryRevision(right));
+  expect(registryRevision(left)).toBe(registryRevision(right));
 });
 
 function hostManifest(overrides: Partial<AtlasHostManifest> = {}): AtlasHostManifest {

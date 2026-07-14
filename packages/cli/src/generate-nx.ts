@@ -106,22 +106,8 @@ export async function ensureDelegatedNxTargets(
   if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor", devServerPort);
   ensureAtlasConfigTarget(targets, projectName);
   ensureDevTarget({ targets, projectName, projectRoot, type, framework });
-  if (type === "host") ensureHostServerTargets(targets, projectRoot);
   project.targets = targets;
   await writeJsonFile(projectFile, project);
-}
-
-export function ensureHostServerTargets(targets: Record<string, unknown>, projectRoot: string): void {
-  targets["build-server"] ??= {
-    executor: "nx:run-commands",
-    outputs: ["{projectRoot}/server/dist"],
-    options: { cwd: projectRoot, command: "tsc -p server/tsconfig.json" }
-  };
-  targets["start-server"] ??= {
-    continuous: true,
-    executor: "nx:run-commands",
-    options: { cwd: projectRoot, command: "node server/dist/main.mjs" }
-  };
 }
 
 function ensureAtlasConfigTarget(targets: Record<string, unknown>, projectName: string): void {

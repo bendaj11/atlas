@@ -9,8 +9,6 @@ const ATLAS_INTEGRATION_FILES = new Set([
 const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   angular: new Set([
     ...ATLAS_INTEGRATION_FILES,
-    "server/main.mts",
-    "server/tsconfig.json",
     "src/index.html",
     "src/styles.css",
     "src/app/app.component.ts",
@@ -21,8 +19,6 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   ]),
   react: new Set([
     ...ATLAS_INTEGRATION_FILES,
-    "server/main.mts",
-    "server/tsconfig.json",
     "vite.config.ts",
     "index.html",
     "src/styles.css",

@@ -1,7 +1,7 @@
-import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { ChildProcess, spawn, type SpawnOptions } from "node:child_process";
 import { createServer, type Server } from "node:http";
+import { expect } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import type { AtlasHostManifest, AtlasManifest } from "../../schema/dist/index.js";
 import type { AtlasRuntimeOverrideDocument } from "../../runtime/dist/index.js";
@@ -156,7 +156,7 @@ export function localDocument(hostId: string, manifest: AtlasManifest): AtlasRun
 
 export async function catalogManifestIds(port: number, hostId: string): Promise<string[]> {
   const response = await fetch(`http://127.0.0.1:${port}/hosts/${hostId}/catalog.json`, { cache: "no-store" });
-  assert.equal(response.status, 200);
+  expect(response.status).toBe(200);
   const catalog = await response.json();
   if (!hasManifestIds(catalog)) throw new Error("Control server returned an invalid catalog.");
   return Array.from(catalog.apps, (manifest) => manifest.id);
@@ -164,7 +164,7 @@ export async function catalogManifestIds(port: number, hostId: string): Promise<
 
 export async function devSessionHostId(port: number, hostId: string): Promise<string> {
   const response = await fetch(`http://127.0.0.1:${port}/atlas.dev-session.json?hostId=${encodeURIComponent(hostId)}`, { cache: "no-store" });
-  assert.equal(response.status, 200);
+  expect(response.status).toBe(200);
   const session = await response.json();
   if (!hasStringProperty(session, "hostId")) throw new Error("Control server returned an invalid dev session.");
   return session.hostId;
@@ -178,7 +178,7 @@ export function closeServer(server: Server): Promise<void> {
 
 export function assertSingleComponentDeclaration(path: string, contents: string): void {
   const componentCount = angularComponentCount(contents) + reactComponentCount(contents);
-  assert.ok(componentCount <= 1, `${path} contains ${componentCount} component declarations`);
+  if (componentCount > 1) throw new Error(`${path} contains ${componentCount} component declarations`);
 }
 
 export function emptyRegistry() {

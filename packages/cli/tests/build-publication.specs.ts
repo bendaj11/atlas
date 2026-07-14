@@ -1,15 +1,16 @@
-import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
 import { AtlasBuildService } from "../dist/build.js";
 import { createTestWorkspace, emptyRegistry, run } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
+
+const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
 
 test("atlas build emits a validated deployable manifest", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-build-"));
@@ -28,28 +29,28 @@ test("atlas build emits a validated deployable manifest", async () => {
     `--publication-plan=${join(directory, "publication.json")}`
   ]);
   const manifest = JSON.parse(await readFile("examples/apps/catalog-react/dist/app.manifest.json", "utf8"));
-  assert.equal(manifest.version, "2.3.4");
-  assert.equal(manifest.channel, "production");
-  assert.equal(manifest.remoteEntryUrl, "https://cdn.example/atlas/apps/catalog-react/2.3.4/test-build/remoteEntry.json");
-  assert.equal(manifest.exportedWidgets[0].id, "6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
-  assert.equal(manifest.exportedWidgets[0].ownerAppId, "catalog-react");
-  assert.equal(manifest.exportedWidgets[0].remoteEntryUrl, "https://cdn.example/atlas/apps/catalog-react/2.3.4/test-build/remoteEntry.json");
-  assert.match(manifest.integrity, /^sha256-/);
+  expect(manifest.version).toBe("2.3.4");
+  expect(manifest.channel).toBe("production");
+  expect(manifest.remoteEntryUrl).toBe(`https://cdn.example/atlas/apps/${CATALOG_REACT_ID}/2.3.4/test-build/remoteEntry.json`);
+  expect(manifest.exportedWidgets[0].id).toBe("6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
+  expect(manifest.exportedWidgets[0].ownerAppId).toBe(CATALOG_REACT_ID);
+  expect(manifest.exportedWidgets[0].remoteEntryUrl).toBe(`https://cdn.example/atlas/apps/${CATALOG_REACT_ID}/2.3.4/test-build/remoteEntry.json`);
+  expect(manifest.integrity).toMatch(/^sha256-/);
 });
 
 test("atlas build requires an explicit registry URL outside the local channel", async () => {
-  await assert.rejects(run(process.execPath, [
+  await expect(run(process.execPath, [
     "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile"
-  ], { env: { ...process.env, ATLAS_REGISTRY_BASE_URL: "" } }), /registry-base-url.*required/);
+  ], { env: { ...process.env, ATLAS_REGISTRY_BASE_URL: "" } })).rejects.toThrow(/registry-base-url.*required/);
 });
 
 test("atlas rollback requires an explicit registry URL", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-rollback-url-"));
   const snapshot = join(directory, "registry.json");
   await writeFile(snapshot, JSON.stringify(emptyRegistry()));
-  await assert.rejects(run(process.execPath, [
+  await expect(run(process.execPath, [
     "packages/cli/dist/index.js", "rollback", "orders", "--version=1.0.0", `--registry-snapshot=${snapshot}`
-  ], { env: { ...process.env, ATLAS_REGISTRY_BASE_URL: "" } }), /registry-base-url.*required/);
+  ], { env: { ...process.env, ATLAS_REGISTRY_BASE_URL: "" } })).rejects.toThrow(/registry-base-url.*required/);
 });
 
 test("excluded source maps do not affect the generated build identity", async () => {
@@ -75,14 +76,36 @@ test("excluded source maps do not affect the generated build identity", async ()
   const included = await new AtlasBuildService(workspace, new CliArguments([
     "build", "orders", "--skip-compile", "--channel=local", "--include-source-maps"
   ])).buildManifest("orders");
-  assert.equal(first.buildId, second.buildId);
-  assert.notEqual(second.buildId, included.buildId);
+  expect(first.buildId).toBe(second.buildId);
+  expect(second.buildId).not.toBe(included.buildId);
+});
+
+test("Angular artifact discovery keeps project folders separate from public UUIDs", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-angular-artifact-"));
+  const projectRoot = join(root, "orders-angular");
+  const artifactRoot = join(projectRoot, "dist/orders-angular/browser");
+  const appId = "7beaafbd-fd95-4506-9359-04f05e5c47de";
+  await mkdir(artifactRoot, { recursive: true });
+  await writeFile(join(projectRoot, "package.json"), JSON.stringify({ type: "module" }));
+  await writeFile(join(projectRoot, "atlas.config.js"), `export default { type: "app", id: "${appId}", name: "Orders", framework: "angular" };\n`);
+  await writeFile(join(artifactRoot, "remoteEntry.json"), "{}\n");
+  const project = { id: "@example/orders-angular", root: projectRoot, packageName: "@example/orders-angular", version: "1.0.0", outputPaths: [] };
+  const workspace = createTestWorkspace({
+    kind: "workspace", root, packageManager: "yarn",
+    findProject: async () => project,
+    run: async () => {}, spawn: () => { throw new Error("not used"); }, generationRoot: () => root
+  });
+
+  const manifest = await new AtlasBuildService(workspace, new CliArguments(["build", "orders-angular", "--skip-compile"]))
+    .buildManifest("orders-angular", "production", { skipCompile: true, baseUrl: "https://cdn.example" });
+
+  expect(manifest.remoteEntryUrl).toContain(`/apps/${appId}/1.0.0/`);
 });
 
 test("atlas generation rejects project names that can escape the target directory", async () => {
-  await assert.rejects(run(process.execPath, [
+  await expect(run(process.execPath, [
     "packages/cli/dist/index.js", "g", "app", "../outside", "--framework=react"
-  ]), /Invalid project name/);
+  ])).rejects.toThrow(/Invalid project name/);
 });
 
 test("atlas generates S3 publication adapter config only when explicitly requested", async () => {
@@ -91,10 +114,10 @@ test("atlas generates S3 publication adapter config only when explicitly request
     "packages/cli/dist/index.js", "generate", "publish-config", `--directory=${directory}`, "--skip-format"
   ]);
   const source = await readFile(join(directory, "atlas.publish.ts"), "utf8");
-  assert.match(source, /satisfies AtlasPublishConfig/);
-  assert.match(source, /new S3PublicationStorage/);
-  assert.doesNotMatch(source, /ATLAS_S3_/);
-  assert.match(source, /runtimeUrls: \[\]/);
+  expect(source).toMatch(/satisfies AtlasPublishConfig/);
+  expect(source).toMatch(/new S3PublicationStorage/);
+  expect(source).not.toMatch(/ATLAS_S3_/);
+  expect(source).toMatch(/runtimeUrls: \[\]/);
 });
 
 test("atlas build prepares provider-neutral files without uploading", async () => {
@@ -116,29 +139,29 @@ test("atlas build prepares provider-neutral files without uploading", async () =
     `--publication-plan=${publicationPlan}`
   ]);
   const registry = JSON.parse(await readFile(join(publication, "registry.json"), "utf8"));
-  const index = JSON.parse(await readFile(join(publication, "apps/catalog-react/index.json"), "utf8"));
+  const index = JSON.parse(await readFile(join(publication, `apps/${CATALOG_REACT_ID}/index.json`), "utf8"));
   const plan = JSON.parse(await readFile(publicationPlan, "utf8"));
-  assert.equal(registry.apps[0].id, "catalog-react");
-  assert.equal(index.manifests[0].version, "2.3.4");
-  assert.equal(plan.registryBaseUrl, "https://artifacts.example.com/atlas");
-  assert.match(plan.baseRevision, /^sha256:[a-f0-9]{64}$/);
-  assert.match(plan.registryRevision, /^sha256:[a-f0-9]{64}$/);
-  assert.deepEqual(plan.uploadOrder, ["immutable", "revalidate"]);
-  assert.equal(plan.files.find((file: { path: string }) => file.path === "registry.json").cache, "revalidate");
-  await readFile(join(publication, "apps/catalog-react/2.3.4/test-build/remoteEntry.json"));
+  expect(registry.apps[0].id).toBe(CATALOG_REACT_ID);
+  expect(index.manifests[0].version).toBe("2.3.4");
+  expect(plan.registryBaseUrl).toBe("https://artifacts.example.com/atlas");
+  expect(plan.baseRevision).toMatch(/^sha256:[a-f0-9]{64}$/);
+  expect(plan.registryRevision).toMatch(/^sha256:[a-f0-9]{64}$/);
+  expect(plan.uploadOrder).toStrictEqual(["immutable", "revalidate"]);
+  expect(plan.files.find((file: { path: string }) => file.path === "registry.json").cache).toBe("revalidate");
+  await readFile(join(publication, `apps/${CATALOG_REACT_ID}/2.3.4/test-build/remoteEntry.json`));
 });
 
 test("atlas build rejects a stale expected registry revision", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-stale-registry-"));
   const snapshot = join(directory, "registry.json");
   await writeFile(snapshot, JSON.stringify(emptyRegistry()));
-  await assert.rejects(run(process.execPath, [
+  await expect(run(process.execPath, [
     "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile",
     "--registry-base-url=https://cdn.example/atlas",
     `--registry-snapshot=${snapshot}`,
     "--expected-registry-revision=sha256:stale",
     `--publication-directory=${join(directory, "publication")}`
-  ]), /snapshot is stale/);
+  ])).rejects.toThrow(/snapshot is stale/);
 });
 
 test("atlas rollback emits only mutable registry files", async () => {
@@ -167,10 +190,10 @@ test("atlas rollback emits only mutable registry files", async () => {
 
   const registry = JSON.parse(await readFile(join(publication, "registry.json"), "utf8"));
   const plan = JSON.parse(await readFile(planPath, "utf8"));
-  assert.deepEqual(registry.selections.apps.orders, { version: "1.0.0", buildId: "stable" });
-  assert.equal(plan.operation, "rollback");
-  assert.equal(plan.files.every((file: { cache: string }) => file.cache === "revalidate"), true);
-  assert.equal(plan.files.some((file: { path: string }) => file.path.includes("remoteEntry")), false);
+  expect(registry.selections.apps.orders).toStrictEqual({ version: "1.0.0", buildId: "stable" });
+  expect(plan.operation).toBe("rollback");
+  expect(plan.files.every((file: { cache: string }) => file.cache === "revalidate")).toBe(true);
+  expect(plan.files.some((file: { path: string }) => file.path.includes("remoteEntry"))).toBe(false);
 });
 
 test("atlas build is deterministic with fixed CI metadata", async () => {
@@ -193,7 +216,6 @@ test("atlas build is deterministic with fixed CI metadata", async () => {
   };
   const first = await build("first");
   const second = await build("second");
-  assert.equal(first.manifest, second.manifest);
-  assert.deepEqual(first.plan, second.plan);
+  expect(first.manifest).toBe(second.manifest);
+  expect(first.plan).toStrictEqual(second.plan);
 });
-

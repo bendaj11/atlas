@@ -3,13 +3,14 @@ import { atlasPackageRange, type AngularVersionProfile } from "./generator-versi
 interface AngularPackageOptions {
   packageName: string;
   projectName: string;
-  host: boolean;
+  type: "host" | "app";
   profile: AngularVersionProfile;
   routed?: boolean;
 }
 
 export function angularPackage(options: AngularPackageOptions): unknown {
-  const { packageName, projectName, host, profile } = options;
+  const { packageName, projectName, profile } = options;
+  const host = options.type === "host";
   const angular = profile.version;
   const routed = host || (options.routed ?? true);
   return {
@@ -20,11 +21,7 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       dev: `ng serve ${projectName}`,
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "ng build",
-      "atlas:build": `atlas build ${projectName}`,
-      ...(host ? {
-        "build:server": "tsc -p server/tsconfig.json",
-        "start:server": "node server/dist/main.mjs"
-      } : {})
+      "atlas:build": `atlas build ${projectName}`
     },
     dependencies: {
       "@angular/animations": angular,
@@ -37,7 +34,6 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),
       ...(host ? {
-        "@atlas/host-server": atlasPackageRange(),
         "@atlas/runtime": atlasPackageRange()
       } : {}),
       "es-module-shims": "^2.7.0",

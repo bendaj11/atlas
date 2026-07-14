@@ -1,9 +1,8 @@
-import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { loadEnvFiles } from "../dist/env.js";
 import { restoreEnv, run, runDevService, testTypeScriptConfig } from "./build.driver.js";
 
@@ -35,10 +34,10 @@ test("atlas dev without a project uses the current Atlas project directory", asy
   ], { cwd: projectRoot, env: { ...process.env, ATLAS_HOST_URL: "http://localhost:5173" } });
 
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
-  assert.equal(document.hostId, "customer-host");
-  assert.match(stdout, /Starting \./);
-  assert.match(stdout, /App Preview: http:\/\/localhost:5173\/orders/);
-  assert.doesNotMatch(stdout, /atlas-override/);
+  expect(document.hostId).toBe("customer-host");
+  expect(stdout).toMatch(/Starting \./);
+  expect(stdout).toMatch(/App Preview: http:\/\/localhost:5173\/orders/);
+  expect(stdout).not.toMatch(/atlas-override/);
 });
 
 test("workspace env files supply Atlas dev defaults without overriding shell env", async () => {
@@ -56,8 +55,8 @@ test("workspace env files supply Atlas dev defaults without overriding shell env
 
   try {
     await loadEnvFiles(root);
-    assert.equal(process.env.ATLAS_HOST_ID, "shell-host");
-    assert.equal(process.env.ATLAS_HOST_URL, "http://localhost:4300");
+    expect(process.env.ATLAS_HOST_ID).toBe("shell-host");
+    expect(process.env.ATLAS_HOST_URL).toBe("http://localhost:4300");
   } finally {
     restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
@@ -84,9 +83,9 @@ test("atlas dev appends a single route to a base ATLAS_HOST_URL", async () => {
   try {
     const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--control-port=4520", "--prepare-only"]);
     const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
-    assert.equal(document.hostId, "customer-host");
-    assert.match(stdout, /http:\/\/localhost:5173\/orders/);
-    assert.doesNotMatch(stdout, /atlas-override/);
+    expect(document.hostId).toBe("customer-host");
+    expect(stdout).toMatch(/http:\/\/localhost:5173\/orders/);
+    expect(stdout).not.toMatch(/atlas-override/);
   } finally {
     restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
@@ -109,10 +108,7 @@ test("atlas dev requires an explicit host URL in non-interactive mode", async ()
   delete process.env.ATLAS_HOST_URL;
 
   try {
-    await assert.rejects(
-      runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]),
-      /Host URL is required\. Pass --host-url or set ATLAS_HOST_URL\./
-    );
+    await expect(runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"])).rejects.toThrow(/Host URL is required\. Pass --host-url or set ATLAS_HOST_URL\./);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -137,15 +133,15 @@ test("atlas dev prompts for a missing host URL in interactive mode", async () =>
     const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"], {
       interactive: true,
       input: async (message) => {
-        assert.equal(message, "Host URL for local development");
+        expect(message).toBe("Host URL for local development");
         return "https://customer.example/orders";
       },
       select: async (message, choices) => {
-        assert.equal(message, "Save this host configuration to project .env.local?");
+        expect(message).toBe("Save this host configuration to project .env.local?");
         return choices.find((choice) => choice.value === "no")!.value;
       }
     });
-    assert.match(stdout, /App Preview: https:\/\/customer\.example\/orders/);
+    expect(stdout).toMatch(/App Preview: https:\/\/customer\.example\/orders/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -174,14 +170,14 @@ test("atlas dev prompts for a route when a base host URL matches multiple routes
       interactive: true,
       input: async () => { throw new Error("Host URL should not be prompted"); },
       select: async (message, choices) => {
-        assert.equal(message, "Route opened for local development");
-        assert.deepEqual(choices.map((choice) => choice.value), ["/orders", "/admin/orders"]);
+        expect(message).toBe("Route opened for local development");
+        expect(choices.map((choice) => choice.value)).toStrictEqual(["/orders", "/admin/orders"]);
         const selected = choices.find((choice) => choice.value === "/admin/orders");
         if (!selected) throw new Error("Expected admin route choice.");
         return selected.value;
       }
     });
-    assert.match(stdout, /App Preview: https:\/\/customer\.example\/admin\/orders/);
+    expect(stdout).toMatch(/App Preview: https:\/\/customer\.example\/admin\/orders/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -207,7 +203,7 @@ test("atlas dev keeps a full ATLAS_HOST_URL with multiple routes", async () => {
 
   try {
     const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]);
-    assert.match(stdout, /App Preview: https:\/\/customer\.example\/custom\/path\?mode=dev/);
+    expect(stdout).toMatch(/App Preview: https:\/\/customer\.example\/custom\/path\?mode=dev/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -248,7 +244,7 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
     });
 
     const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
-    assert.equal(document.hostId, "admin-host");
+    expect(document.hostId).toBe("admin-host");
   } finally {
     restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
@@ -278,11 +274,11 @@ test("atlas dev offers to save prompted host configuration to project .env.local
       interactive: true,
       input: async () => "https://customer.example/orders",
       select: async (message, choices) => {
-        assert.equal(message, "Save this host configuration to project .env.local?");
+        expect(message).toBe("Save this host configuration to project .env.local?");
         return choices.find((choice) => choice.value === "yes")!.value;
       }
     });
-    assert.equal(await readFile(join(projectRoot, ".env.local"), "utf8"), [
+    expect(await readFile(join(projectRoot, ".env.local"), "utf8")).toBe([
       "UNCHANGED=value",
       "ATLAS_HOST_ID=customer-host",
       "ATLAS_HOST_URL=https://customer.example/orders",
@@ -291,8 +287,8 @@ test("atlas dev offers to save prompted host configuration to project .env.local
     delete process.env.ATLAS_HOST_ID;
     delete process.env.ATLAS_HOST_URL;
     await loadEnvFiles(projectRoot);
-    assert.equal(process.env.ATLAS_HOST_ID, "customer-host");
-    assert.equal(process.env.ATLAS_HOST_URL, "https://customer.example/orders");
+    expect(process.env.ATLAS_HOST_ID).toBe("customer-host");
+    expect(process.env.ATLAS_HOST_URL).toBe("https://customer.example/orders");
   } finally {
     restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);

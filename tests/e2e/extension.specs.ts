@@ -78,7 +78,7 @@ test.describe("Atlas Columbus extension", () => {
     const localPopup = await openPopup(session, host);
     await editApp(localPopup, "Dashboard React");
     await localPopup.getByText("Custom URL", { exact: true }).click();
-    await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/apps/dashboard-react/0.2.0-local/local-dev");
+    await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/apps/56e41bf1-d1b4-486f-a340-5782ee632bad/0.2.0-local/local-dev");
     await saveAndWaitForReload(localPopup, host);
     expect(await storedVersion(host, "localStorage")).toBe("0.0.0-local");
     expect(await storedReason(host)).toBe("local");

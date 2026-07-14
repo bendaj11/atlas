@@ -38,7 +38,17 @@
               "es-module-shims"
             ],
             "tsConfig": "tsconfig.app.json",
-              "assets": [{ "glob": "**/*", "input": "public" }],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              }
+            ],
             "styles": [
               "src/styles.css"
             ]
@@ -55,6 +65,9 @@
         },
         "serve-original": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "port": 4200
+          },
           "configurations": {
             "production": {
               "buildTarget": "demo-angular-host:esbuild:production"

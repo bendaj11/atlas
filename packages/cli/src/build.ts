@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { access, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   createManifestFromConfig,
@@ -295,6 +295,7 @@ async function findArtifactRootIfPresent(workspaceRoot: string, project: AtlasPr
     ...project.outputPaths,
     join(workspaceRoot, "dist", "apps", project.id),
     join(workspaceRoot, "dist", "apps", config.id),
+    join(project.root, "dist", basename(project.root)),
     join(project.root, "dist", config.id),
     join(project.root, "dist")
   ];

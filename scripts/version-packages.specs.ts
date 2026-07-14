@@ -1,9 +1,8 @@
-import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "@jest/globals";
-import { versionPackages } from "./version-packages.mjs";
+import { expect, test } from "@jest/globals";
+import { versionPackages } from "./version-packages.js";
 import { writeJson } from "./version-packages.driver.js";
 
 const packageDirectories = ["schema", "sdk", "runtime", "host-server", "generators", "testkit", "cli"];
@@ -32,6 +31,6 @@ test("release version propagation updates every version-bearing manifest", async
     join(root, "apps/columbus/package.json"),
     join(root, "apps/columbus/src/manifest.json")
   ];
-  for (const path of paths) assert.equal(JSON.parse(await readFile(path, "utf8")).version, "1.2.3");
-  assert.match(await readFile(generatorPath, "utf8"), /ATLAS_PACKAGE_VERSION = "1\.2\.3"/);
+  for (const path of paths) expect(JSON.parse(await readFile(path, "utf8")).version).toBe("1.2.3");
+  expect(await readFile(generatorPath, "utf8")).toMatch(/ATLAS_PACKAGE_VERSION = "1\.2\.3"/);
 });

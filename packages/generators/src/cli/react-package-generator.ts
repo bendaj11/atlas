@@ -7,13 +7,14 @@ const VITE_VERSION = "^7.3.6";
 interface ReactPackageOptions {
   packageName: string;
   projectName: string;
-  host: boolean;
+  type: "host" | "app";
   profile: ReactVersionProfile;
   routed?: boolean;
 }
 
 export function reactPackage(options: ReactPackageOptions): unknown {
-  const { packageName, projectName, host, profile } = options;
+  const { packageName, projectName, profile } = options;
+  const host = options.type === "host";
   const routed = host || (options.routed ?? true);
   return {
     name: packageName,
@@ -24,17 +25,12 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       dev: "vite --host 0.0.0.0",
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "tsc -b && vite build",
-      "atlas:build": `atlas build ${projectName}`,
-      ...(host ? {
-        "build:server": "tsc -p server/tsconfig.json",
-        "start:server": "node server/dist/main.mjs"
-      } : {})
+      "atlas:build": `atlas build ${projectName}`
     },
     dependencies: {
       "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),
       ...(host ? {
-        "@atlas/host-server": atlasPackageRange(),
         "@atlas/runtime": atlasPackageRange()
       } : {}),
       "es-module-shims": "^2.7.0",

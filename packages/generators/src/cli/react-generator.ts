@@ -1,4 +1,4 @@
-import { atlasAppConfig, atlasHostFoundation, atlasHostStyles, json, title } from "./common-generator.js";
+import { atlasAppConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 import { reactVersionProfile } from "./generator-versions.js";
 import { reactHostEntry, reactHostLayout, reactHostMain, reactHostProvider, reactHostProviderName } from "./react-host-generator.js";
@@ -17,14 +17,14 @@ import { reactAppIndex, reactIndex, reactPackage } from "./react-package-generat
 import { reactTsconfig } from "./react-tsconfig-generator.js";
 import { reactHostViteConfig, reactAppViteConfig } from "./react-vite-generator.js";
 
-export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
+export function generateReactHostFiles(options: AtlasGeneratorOptions, hostId: string): AtlasGeneratedFile[] {
   const { name } = options;
   const profile = reactVersionProfile(options);
   return [
-    { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
+    { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, type: "host", profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget, options.devServerPort) },
-    ...atlasHostFoundation(options),
+    { path: "atlas.config.ts", contents: atlasHostConfig(options, hostId) },
     { path: "src/host.tsx", contents: reactHostEntry(name, profile) },
     { path: "index.html", contents: reactIndex("Atlas React Host") },
     { path: "src/styles.css", contents: atlasHostStyles() },
@@ -39,7 +39,7 @@ export function generateReactAppFiles(options: AtlasGeneratorOptions): AtlasGene
   const profile = reactVersionProfile(options);
   const routed = options.routing ?? true;
   return [
-    { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: false, profile, routed })) },
+    { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, type: "app", profile, routed })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "vite.config.ts", contents: reactAppViteConfig(name, profile.compilerTarget, options.devServerPort) },
     { path: "atlas.config.ts", contents: atlasAppConfig(options) },

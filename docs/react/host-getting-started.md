@@ -22,7 +22,7 @@ changes.
 | `src/CustomerHostAtlasProvider.tsx` | router, auth, HTTP, SDK services, monitoring |
 | `src/host.tsx` | Atlas lifecycle adapter; rarely change |
 | `vite.config.ts` | generated federation wiring; preserve Atlas sections |
-| `server/main.mts` | auth middleware, BFF routes, errors, observability |
+| `customer-host-server/main.mts` | auth middleware, BFF routes, errors, observability |
 
 Provider filename derives from project name: `customer-host` becomes
 `CustomerHostAtlasProvider.tsx`.
@@ -45,7 +45,7 @@ catalog into `mount` request.
 
 ## 3. Extend Server When Needed
 
-Generated `server/main.mts` is separate Node.js composition root:
+Generated `customer-host-server/main.mts` is separate Node.js project and composition root:
 
 ```ts
 import { runAtlasHostServer } from "@atlas/host-server";

@@ -110,7 +110,8 @@ Checkpoint: these files exist:
 ```text
 customer-host/
   atlas.config.ts
-  server/main.mts
+customer-host-server/
+  main.mts
 orders/
   atlas.config.ts
 ```
@@ -121,7 +122,7 @@ Before editing code, locate ownership boundaries:
 
 | Location | Owner | Purpose |
 | --- | --- | --- |
-| `customer-host/server/main.mts` | Host/server team | HTTP bootstrap, auth middleware, BFF routes, errors, observability |
+| `customer-host-server/main.mts` | Host/server team | HTTP bootstrap, auth middleware, BFF routes, errors, observability |
 | `customer-host/atlas.config.ts` | Host team | Stable host identity and source configuration |
 | Host `src/` | Host team | Product shell, top-level routes, layout, SDK services |
 | `orders/atlas.config.ts` | App team | Stable app identity, host placement, routes, slots, widgets |
@@ -189,11 +190,11 @@ Run your test commands, then production-build both clients and server:
 ```sh
 npm --prefix customer-host run build
 npm --prefix orders run build
-npm --prefix customer-host run build:server
+npm --prefix customer-host-server run build
 ```
 
 Checkpoint: organization test jobs pass, both framework builds complete, and
-`customer-host/server/dist/main.mjs` exists.
+`customer-host-server/dist/main.mjs` exists.
 
 Use [Consumer testing](consumer-testing.md) for SDK and lifecycle contract tests.
 Use framework routing and SDK guides for product code:
@@ -267,7 +268,7 @@ No public storage should change during dry run.
 
 ## 8. Deploy The Host Server
 
-Deploy `customer-host/server/dist/main.mjs`, required production dependencies,
+Deploy `customer-host-server/dist/main.mjs`, required production dependencies,
 and runtime environment through existing Node.js delivery tooling. Atlas does
 not generate a container, cloud manifest, or CI pipeline.
 

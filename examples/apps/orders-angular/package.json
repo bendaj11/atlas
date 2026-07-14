@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ng serve orders-angular",
-    "atlas:config": "tsc -p tsconfig.atlas.json",
+    "atlas:config": "atlas compile-config orders-angular",
     "build": "ng build",
     "atlas:build": "atlas build orders-angular"
   },
