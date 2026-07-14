@@ -600,9 +600,9 @@ async function mountWidgetAttempt<TProps extends object>(
       ? input.options.importWidget(resolved.widget)
       : importExportedWidget(resolved.widget, resolved.ownerManifest)) as AtlasExportedWidgetEntry<TProps>;
     const releaseStyles = await loadManifestStyles(resolved.ownerManifest, card.element.ownerDocument ?? globalThis.document);
+    card.clearStatus();
     const boundary = createMountBoundary(card.element, resolved.widget.id, resolved.ownerManifest.isolation ?? "scoped", "widget");
     const releaseAssetRewrite = startRemoteAssetRewrite(resolved.ownerManifest, boundary.container, card.element.ownerDocument ?? globalThis.document);
-    card.clearStatus();
     let result: void | AtlasAppMountResult;
     try {
       result = await entry.mount({ container: boundary.container, props: input.props, sdk: input.sdk, ...resolved });

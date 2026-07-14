@@ -49,18 +49,35 @@ export function createTestContainer(document: Document = createTestDocument()): 
 
 export function createWidgetRendererContainer(): HTMLElement {
   const document: Document = Object.create(null);
+  const connected = new WeakMap<HTMLElement, boolean>();
   const createElement = (): HTMLElement => {
     const element: HTMLElement = Object.create(null);
+    const elementChildren = new Set<HTMLElement>();
+    connected.set(element, false);
     Object.defineProperty(element, "dataset", { value: {} });
+    Object.defineProperty(element, "isConnected", { get: () => connected.get(element) ?? false });
     Object.defineProperty(element, "ownerDocument", { value: document });
-    element.append = () => undefined;
-    element.replaceChildren = () => undefined;
-    element.remove = () => undefined;
+    element.append = (...nodes) => {
+      for (const node of nodes) {
+        if (typeof node !== "object" || node === null || !("dataset" in node)) continue;
+        const child = node as HTMLElement;
+        elementChildren.add(child);
+        connected.set(child, connected.get(element) ?? false);
+      }
+    };
+    element.replaceChildren = (...nodes) => {
+      for (const child of elementChildren) connected.set(child, false);
+      elementChildren.clear();
+      element.append(...nodes);
+    };
+    element.remove = () => { connected.set(element, false); };
     element.setAttribute = () => undefined;
     return element;
   };
   Object.defineProperty(document, "createElement", { value: createElement });
-  return createElement();
+  const root = createElement();
+  connected.set(root, true);
+  return root;
 }
 
 export class WidgetRetryDriver {

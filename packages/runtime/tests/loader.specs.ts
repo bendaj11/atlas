@@ -486,10 +486,11 @@ test("widget loader mounts from the selected owner version", async () => {
     async importWidget() { return { mount(value) { request = value; return { unmount: () => { unmounted = true; } }; } }; }
   });
   assert.deepEqual(loader.list("catalog"), [widget]);
-  const mounted = await loader.mount("catalog/product-count", createTestElement(), { count: 4 });
+  const mounted = await loader.mount("catalog/product-count", createWidgetRendererContainer(), { count: 4 });
   if (!request) throw new Error("Widget was not mounted.");
   assert.deepEqual(request.props, { count: 4 });
   assert.equal(request.ownerManifest.version, "1.0.0");
+  assert.equal(request.container.isConnected, true);
   await mounted.unmount();
   assert.equal(unmounted, true);
 });

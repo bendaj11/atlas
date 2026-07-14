@@ -4,10 +4,10 @@ export function reactHostViteConfig(compilerTarget: string, devServerPort = 4200
   return `import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react";
 
 const metadata = { name: "atlas_host", exposes: [{ key: "./host", outFileName: "host.js" }], shared: [] };
+const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
 function atlasHostMetadata(): Plugin {
   return {
     name: "atlas-host-metadata",
@@ -26,8 +26,11 @@ function atlasHostMetadata(): Plugin {
 
 export default defineConfig({
   plugins: [
-    react({}),
-    babel({ presets: [reactCompilerPreset({ target: "${compilerTarget}" })] }),
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", reactCompilerConfig]]
+      }
+    }),
     atlasHostMetadata()
   ],
   server: { port: ${devServerPort}, cors: true },
@@ -51,8 +54,7 @@ export function reactAppViteConfig(name: string, compilerTarget: string, devServ
   return `import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react";
 
 const widgetsRoot = resolve(__dirname, "src/exported-widgets");
 const widgetIds = existsSync(widgetsRoot)
@@ -67,6 +69,7 @@ const exposes = [
     outFileName: \`widgets/\${id}.js\`
   }))
 ];
+const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
 function atlasFederationMetadata(): Plugin {
   const metadata = { name: "${reactRemoteName(name)}", exposes, shared: [] };
 
@@ -122,8 +125,11 @@ function atlasReactRefreshPreamble(): Plugin {
 export default defineConfig({
   base: "./",
   plugins: [
-    react({}),
-    babel({ presets: [reactCompilerPreset({ target: "${compilerTarget}" })] }),
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", reactCompilerConfig]]
+      }
+    }),
     atlasReactRefreshPreamble(),
     atlasFederationMetadata()
   ],
