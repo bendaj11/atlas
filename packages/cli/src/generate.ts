@@ -21,6 +21,7 @@ import {
   alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
   atlasConfigNxTarget,
+  ensureHostServerTargets,
   ensureDelegatedNxTargets,
   nxTarget
 } from "./generate-nx.js";
@@ -107,7 +108,7 @@ export class AtlasGenerateService {
         if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework, devServerPort);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
-      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
+      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name, type);
       await this.formatGenerated(root);
       await afterGeneration?.(root);
       return root;
@@ -270,7 +271,7 @@ export default {
     }
   }
 
-  private async writeNxProject(root: string, name: string): Promise<void> {
+  private async writeNxProject(root: string, name: string, type: "host" | "app"): Promise<void> {
     const cwd = relative(this.workspace.root, root) || ".";
     if (cwd === ".." || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
       throw new Error("Nx projects must be generated inside the workspace root.");
@@ -284,6 +285,7 @@ export default {
       }
     };
     targets["atlas:config"] = atlasConfigNxTarget(this.workspace.packageManager, cwd);
+    if (type === "host") ensureHostServerTargets(targets, cwd);
     targets[name] = {
       executor: "nx:run-commands",
       options: { command: `nx run ${name}:dev`, forwardAllArgs: true }

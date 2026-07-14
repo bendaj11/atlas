@@ -49,7 +49,10 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("atlas.config.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
   assert.match(appFiles.get("atlas.config.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
   assert.doesNotMatch(host.get("atlas.config.ts"), /allowOverrides|resourcesTimeoutMs|resourcesRetryCount/);
-  assert.match(host.get("Containerfile"), /CMD \["atlas-host-server"\]/);
+  assert.equal(host.has("Containerfile"), false);
+  assert.match(host.get("server/main.mts"), /runAtlasHostServer/);
+  assert.equal(JSON.parse(host.get("server/tsconfig.json")).compilerOptions.module, "NodeNext");
+  assert.match(host.get("package.json"), /"@atlas\/host-server"/);
   assert.match(host.get("src/host.ts"), /export const mount: AtlasHostClientEntry/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);
   assert.match(host.get("package.json"), /atlas build host/);

@@ -20,7 +20,11 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       dev: `ng serve ${projectName}`,
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "ng build",
-      "atlas:build": `atlas build ${projectName}`
+      "atlas:build": `atlas build ${projectName}`,
+      ...(host ? {
+        "build:server": "tsc -p server/tsconfig.json",
+        "start:server": "node server/dist/main.mjs"
+      } : {})
     },
     dependencies: {
       "@angular/animations": angular,
@@ -32,7 +36,10 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       "@angular-architects/native-federation": `^${profile.major}.0.0`,
       "@atlas/schema": atlasPackageRange(),
       "@atlas/sdk": atlasPackageRange(),
-      ...(host ? { "@atlas/runtime": atlasPackageRange() } : {}),
+      ...(host ? {
+        "@atlas/host-server": atlasPackageRange(),
+        "@atlas/runtime": atlasPackageRange()
+      } : {}),
       "es-module-shims": "^2.7.0",
       rxjs: "^7.8.0",
       tslib: "^2.8.0",
@@ -42,6 +49,7 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       "@angular-devkit/build-angular": angular,
       "@angular/cli": angular,
       "@angular/compiler-cli": angular,
+      ...(host ? { "@types/node": "^22.0.0" } : {}),
       typescript: profile.typescript
     }
   };

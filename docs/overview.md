@@ -86,7 +86,8 @@ offers S3-compatible adapter; registry contract does not require S3.
 
 ## Learn Next
 
-- [Getting started](getting-started.md): choose Angular or React.
-- [Architecture](architecture.md): see runtime loading and failure isolation.
-- [Static registry](registry.md): understand catalogs, indexes, and versions.
-- [Security](security.md): configure trust, integrity, CORS, and CSP.
+Continue with [Zero to production](getting-started.md). It is the canonical
+sequence for generation, local development, deployment, publication,
+verification, and rollback. Use [Architecture](architecture.md), [Static
+registry](registry.md), and [Security](security.md) when the tutorial sends you
+there or when you need deeper design detail.

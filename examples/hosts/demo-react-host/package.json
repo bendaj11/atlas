@@ -7,9 +7,12 @@
     "dev": "vite --host 0.0.0.0",
     "atlas:config": "tsc -p tsconfig.atlas.json",
     "build": "tsc -b && vite build",
-    "atlas:build": "node ../../../packages/cli/dist/index.js build demo-react-host"
+    "atlas:build": "node ../../../packages/cli/dist/index.js build demo-react-host",
+    "build:server": "tsc -p server/tsconfig.json",
+    "start:server": "node server/dist/main.mjs"
   },
   "dependencies": {
+    "@atlas/host-server": "*",
     "@atlas/schema": "*",
     "@atlas/runtime": "*",
     "@atlas/sdk": "*",

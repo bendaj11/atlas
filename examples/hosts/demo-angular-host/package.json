@@ -6,7 +6,9 @@
     "dev": "ng serve demo-angular-host",
     "atlas:config": "tsc -p tsconfig.atlas.json",
     "build": "ng build",
-    "atlas:build": "node ../../../packages/cli/dist/index.js build demo-angular-host"
+    "atlas:build": "node ../../../packages/cli/dist/index.js build demo-angular-host",
+    "build:server": "tsc -p server/tsconfig.json",
+    "start:server": "node server/dist/main.mjs"
   },
   "dependencies": {
     "@angular/animations": "^20.3.0",
@@ -16,6 +18,7 @@
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
     "@angular-architects/native-federation": "^20.3.1",
+    "@atlas/host-server": "*",
     "@atlas/schema": "*",
     "@atlas/runtime": "*",
     "@atlas/sdk": "*",
@@ -28,6 +31,7 @@
     "@angular-devkit/build-angular": "^20.3.0",
     "@angular/cli": "^20.3.0",
     "@angular/compiler-cli": "^20.3.0",
+    "@types/node": "^22.0.0",
     "typescript": "~5.9.0"
   }
 }

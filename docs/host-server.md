@@ -1,45 +1,78 @@
-# Host server and containers
+# Host server
 
-The host server is the stable HTTP entry point for an Atlas product. Generate it with a host project, build its `Containerfile` once, and deploy the image behind your platform's ingress or load balancer.
+Every generated host includes an editable TypeScript server at `server/main.mts`.
+The generated composition root calls `@atlas/host-server`, which owns Atlas'
+HTTP bootstrap contract while leaving product middleware, authentication, routes,
+and error handling in user-owned source.
 
-## What it serves
+Atlas generates no container, infrastructure, or CI/CD files. Build and deploy
+the server with the process, package, VM, function, container, or platform used
+by your organization.
 
-| Path | Result |
-| --- | --- |
-| `/` and browser routes | `index.html` with the loader |
-| `/atlas.loader.js` | framework-neutral Atlas browser loader |
-| `/atlas.runtime.json` | runtime values built from environment variables |
-| `/health/live` | process liveness |
-| `/health/ready` | request readiness |
-| missing `.js`, `.css`, `.json`, or asset path | real `404` |
+## Default server
 
-Deep links such as `/orders/42` receive `index.html`. An asset typo does not receive HTML with status 200. The server also sets CSP and standard security headers, writes logs to stdout/stderr, and handles `SIGTERM` gracefully.
+Generated source needs no Atlas plumbing:
 
-## Required environment
+```ts
+import { runAtlasHostServer } from "@atlas/host-server";
 
-Read the host artifact UUID from the generated host's `atlas.config.ts`. Project
-folder name and artifact UUID are different; runtime configuration requires the
-UUID.
-
-```sh
-ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
-ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json
+await runAtlasHostServer({ hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506" });
 ```
 
-Optional settings:
+The generated `hostId` matches `atlas.config.ts`. Configure environment-specific
+catalog URL. When catalog or artifacts use another origin, also allow that
+origin through `ATLAS_ASSET_ORIGINS`:
+
+```sh
+ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json
+ATLAS_ASSET_ORIGINS=https://cdn.example.com
+```
+
+Atlas does not add catalog origin to CSP automatically. When catalog and all
+artifacts are same-origin with host server, `ATLAS_ASSET_ORIGINS` may be omitted.
+
+Optional environment:
 
 ```sh
 PORT=8080
 ATLAS_ALLOW_OVERRIDES=false
-ATLAS_ASSET_ORIGINS=https://cdn.example.com
 ATLAS_RESOURCE_TIMEOUT_MS=15000
 ATLAS_RESOURCE_RETRY_COUNT=3
 ATLAS_EXTERNAL_REGISTRY_URLS=https://team-a.example/atlas,https://shared-ui.example/atlas
 ```
 
-`ATLAS_ASSET_ORIGINS` is a comma- or space-separated asset/CDN allowlist. `ATLAS_EXTERNAL_REGISTRY_URLS` is a comma- or space-separated registry allowlist used only for apps' `externalAppsDependencies`. Both are environment-specific and browser-visible. Production values require HTTPS; loopback HTTP is accepted for local development. Never put credentials or secrets in runtime values.
+`ATLAS_ASSET_ORIGINS` and `ATLAS_EXTERNAL_REGISTRY_URLS` accept comma- or
+space-separated URLs. Production values require HTTPS; loopback HTTP is accepted
+for local development. These values are browser-visible. Never put credentials
+or secrets in them.
 
-Host server only exposes these URLs through `/atlas.runtime.json` and adds origins to CSP. It does not search buckets, fetch registries, choose provider versions, proxy assets, or hold object-storage credentials. Browser runtime performs lazy resolution after app code calls `getWidget`.
+## HTTP contract
+
+| Path | Result |
+| --- | --- |
+| `/` and browser routes | HTML document with Atlas loader |
+| `/atlas.loader.js` | framework-neutral browser loader |
+| `/atlas.runtime.json` | runtime values derived from environment |
+| `/health/live` | process liveness |
+| `/health/ready` | default readiness |
+| missing asset path | real `404` |
+
+Atlas core also sets baseline security headers, logs requests, handles browser
+deep links, and shuts down on `SIGINT` or `SIGTERM`.
+
+## Build and run
+
+Generated scripts keep client and server builds independent:
+
+```sh
+npm run build:server
+ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
+  npm run start:server
+```
+
+The compiled entry is `server/dist/main.mjs`. It uses the project's normal
+`@atlas/host-server` dependency. Package that output and its production
+dependencies using your existing delivery system.
 
 Checkpoint:
 
@@ -48,55 +81,48 @@ curl --fail http://localhost:8080/health/ready
 curl --fail http://localhost:8080/atlas.runtime.json
 ```
 
-Expected: `ready` and JSON containing the host UUID plus the intended catalog URL.
+Expected: `ready` and runtime JSON containing the generated host UUID and
+configured catalog URL.
 
-## Build and run
+## Add product behavior
 
-The generated `Containerfile` runs the packaged `atlas-host-server` binary. There is no copied Express implementation to maintain.
+Edit `server/main.mts`; do not copy Atlas loader or bootstrap internals:
 
-```sh
-docker build -t customer-host-server:1.0.0 customer-host
+```ts
+import { runAtlasHostServer } from "@atlas/host-server";
+import { productRouter } from "./product-router.js";
 
-docker run --rm -p 8080:8080 \
-  -e ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
-  -e ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
-  -e ATLAS_ASSET_ORIGINS=https://cdn.example.com \
-  customer-host-server:1.0.0
+await runAtlasHostServer({
+  hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
+  configureExpress(app) {
+    app.use("/api", productRouter);
+  }
+});
 ```
 
-The image runs as a non-root user and needs no writable application directory, object-storage credentials, host-client assets, or app assets.
+Use established libraries for authentication, sessions, CSRF protection, and
+authorization. Server checks protect its own routes and BFF operations;
+downstream resource APIs remain responsible for authoritative permission checks.
+The default server stays stateless, but user-added sessions or routes may change
+that operational property.
 
-Common error: `ATLAS_HOST_ID is required.`
+## Deployment boundary
 
-Recovery: provide both required variables in the deployment configuration, restart the container, then check `/health/ready`.
+Connect the product domain to the deployed server process. Browsers load host
+client and app assets from configured storage/CDN URLs. Server and client may
+use separate pipelines and release schedules.
 
-## Connect a domain
-
-Connect the domain to the platform service that targets the host-server container:
-
-```text
-customer.example
-  -> platform ingress / route / load balancer
-  -> customer-host-server service:8080
-```
-
-Do not point the domain at an app artifact or a host-client version directory. Do not add NGINX inside the image unless your organization explicitly standardizes on it; the Node server already owns the required HTTP behavior.
-
-Platform adaptations are small:
-
-- Kubernetes: Deployment + Service + Ingress; probes use `/health/live` and `/health/ready`.
-- OpenShift: Deployment + Service + Route; the Route targets the Service.
-- Cloud/container platform: service points at port `8080`; platform handles TLS and replicas.
-- VM: run the container behind the organization's existing reverse proxy or load balancer.
-
-The platform decides TLS termination, replicas, autoscaling, ConfigMaps/secrets, service discovery, and domain mapping. Atlas decides only the container's HTTP contract.
+Atlas defines HTTP behavior, generated build commands, and runtime inputs. It
+does not decide packaging format, TLS termination, replicas, autoscaling,
+service discovery, secrets injection, or domain mapping.
 
 ## Updating UI
 
-Do not rebuild the server image for a normal host-client change. Run:
+A normal host-client update does not require a server rebuild:
 
 ```sh
 atlas release customer-host
 ```
 
-Atlas publishes a new immutable host client and changes the catalog selection. New page loads select it. Rollback changes the selection back to existing bytes.
+Atlas publishes a new immutable client and changes catalog selection. Rebuild
+and redeploy server only when `server/` code or its dependencies change.

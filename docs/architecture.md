@@ -5,7 +5,7 @@ Atlas separates the stable web entry point from product UI. This lets a host cli
 ```text
 Domain
   ingress, route, or load balancer
-    host-server container
+    generated host server
       Atlas browser loader
         selected host client
           selected routed/slotted apps
@@ -16,11 +16,17 @@ There are four runtime responsibilities.
 
 ## Host server
 
-`@atlas/host-server` is stable infrastructure. It serves the HTML document, `/atlas.loader.js`, dynamic `/atlas.runtime.json`, health endpoints, browser deep-link fallback, security headers, logs, and recovery UI. It is stateless, framework-neutral, and safe to replicate.
+Generated TypeScript server composes stable `@atlas/host-server` core. Core serves
+HTML document, `/atlas.loader.js`, dynamic `/atlas.runtime.json`, health endpoints,
+browser deep-link fallback, security headers, logs, and recovery UI. Generated
+composition root is editable for authentication, BFF routes, middleware, error
+handling, and observability.
 
-It does not contain product UI, choose a host-client version, mount apps, proxy registry assets, or expose secrets. A normal host or app release never rebuilds this image.
+Default server does not contain product UI, choose host-client version, mount
+apps, proxy registry assets, or expose secrets. Normal host or app release does
+not rebuild unchanged server.
 
-Read [Host server and containers](host-server.md) for its complete HTTP contract.
+Read [Host server](host-server.md) for complete HTTP and extension contracts.
 
 ## Browser loader
 
@@ -109,7 +115,9 @@ changed field, while app selections remain unchanged.
 `atlas rollback <app-id>` changes only that app selection. External providers
 roll back in their own registry; host rollback does not roll them back.
 
-The container is independent of both flows. The deployment platform connects the public domain to the host-server service; browsers fetch host and app assets directly from HTTPS object storage or its CDN gateway.
+Host server deployment is independent of both flows. User deployment tooling
+connects public domain to host-server service; browsers fetch host and app assets
+directly from HTTPS object storage or its CDN gateway.
 
 ## Trust boundary
 
@@ -117,4 +125,7 @@ A host override is more powerful than an app override: it controls routing, SDK 
 
 ## Deliberate limits
 
-Atlas currently uses client-side rendering. SSR is out of scope. Storage is static and browser-accessible; the host server does not proxy it. Kubernetes, OpenShift, Cloud Run, Nomad, and other platforms are deployment adapters around the same container rather than Atlas architecture concepts.
+Atlas currently uses client-side rendering. SSR is out of scope. Storage is
+static and browser-accessible; default host server does not proxy it. Packaging,
+CI/CD, and deployment platforms are user concerns rather than Atlas architecture
+concepts.

@@ -26,6 +26,14 @@ test("host server environment requires only host id and catalog URL", () => {
   assert.equal(runtime.allowOverrides, false);
 });
 
+test("host server environment accepts generated runtime identity defaults", () => {
+  const runtime = hostServer.runtime({
+    ATLAS_CATALOG_URL: "https://cdn.example/atlas/hosts/customer-host/catalog.json"
+  }, { hostId: "customer-host" });
+  assert.equal(runtime.hostId, "customer-host");
+  assert.equal(runtime.catalogUrl, "https://cdn.example/atlas/hosts/customer-host/catalog.json");
+});
+
 test("host server exposes explicitly configured external registries", () => {
   const runtime = hostServer.runtime({
     ATLAS_HOST_ID: "customer-host",

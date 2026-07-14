@@ -1,44 +1,56 @@
-# React getting started
+# React Project Guide
 
-Complete the canonical [Getting started](../getting-started.md) first. This page explains the React files you will edit.
+Audience: React host and app developers following or already familiar with
+[Zero to production](../getting-started.md). This guide identifies generated
+React boundaries and routes each task to its detailed guide.
 
-## Generate
+## Choose Your Role
 
-```sh
-atlas g host customer-host --framework=react
-atlas g app orders --framework=react --host=customer-host
-```
+- Host team: [Build a React host client](host-getting-started.md)
+- App team: [Build a React app](app-getting-started.md)
 
-The host has two distinct entry points:
+Both roles use normal React components, hooks, React Router, styles, and tests.
+Atlas owns cross-application discovery and mount lifecycle.
 
-- `src/main.tsx` is a convenient framework-only development entry;
-- `src/host.tsx` exports the versioned `mount` lifecycle used by the stable loader.
+## Host Files
 
-`CustomerHostAtlasProvider.tsx` creates product routing and Atlas SDK services.
-Filename derives from project name. `HostLayout.tsx` owns navigation, slots,
-status, and route outlet. Product teams may customize these. Do not make host
-client fetch a catalog; it receives one in mount request.
+| File | Responsibility | Edit normally? |
+| --- | --- | --- |
+| `src/main.tsx` | Framework-only development entry | Rarely |
+| `src/host.tsx` | Atlas `mount` lifecycle exported as `./host` | Rarely |
+| `src/<HostName>AtlasProvider.tsx` | Router, auth, HTTP, SDK services, monitoring | Yes |
+| `src/app/HostLayout.tsx` | Product shell, navigation, status, slots, route outlet | Yes |
+| `vite.config.ts` | Federation expose and build wiring | Preserve generated Atlas sections |
+| `server/main.mts` | Node.js HTTP composition root | Yes, for server behavior |
 
-The app exports `mount` from `src/entry.tsx`. Feature routes live under `src/app/routes.tsx`. Apps receive host services with `useAtlasSdk()`.
+Provider filename derives from project name: `customer-host` becomes
+`CustomerHostAtlasProvider.tsx`. Host client receives selected catalog in its
+mount request. Do not fetch or choose catalog versions from React code.
 
-## Local checkpoint
+## App Files
 
-```sh
-atlas dev customer-host
-atlas dev orders --host-url=http://127.0.0.1:4300/orders
-```
+| File | Responsibility | Edit normally? |
+| --- | --- | --- |
+| `src/entry.tsx` | Atlas `mount` lifecycle exported as `./entry` | Rarely |
+| `src/app/routes.tsx` | Inner React routes scoped below assigned Atlas base path | Yes |
+| `src/app/` | Feature components and hooks | Yes |
+| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.widget.ts` | Yes |
+| `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |
 
-Expected: host preview loads on port 4300; Orders mounts at `/orders`; Columbus can switch host and app independently.
+Apps obtain host services with `useAtlasSdk()`. They must not import host source
+or assume host implementation details.
 
-## Build checkpoint
+## Task Guides
 
-```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build orders
-```
+| Task | Guide |
+| --- | --- |
+| Configure top-level and inner routes | [React routing](routing.md) |
+| Use HTTP, events, navigation, overlays, and host data | [React SDK](sdk.md) |
+| Package images, fonts, and CSS | [React assets and styles](assets-and-styles.md) |
+| Generate projects or widgets | [React generators](generators.md) |
+| Inspect working projects | [React examples](examples.md) |
+| Diagnose loading or routing failure | [React troubleshooting](troubleshooting.md) |
 
-Expected: host Vite output exposes `./host`, app output exposes `./entry`, and publication paths use `hosts/` and `apps/` respectively.
-
-Generated `Containerfile` runs `atlas-host-server`; it does not contain React
-output. Continue with [React host](host-getting-started.md), [React app](app-getting-started.md),
-[routing](routing.md), [SDK](sdk.md), and [production deployment](production-deployment.md).
+Build and release steps remain framework-neutral. Use [Production
+deployment](../production-deployment.md), not a separate React deployment
+sequence.

@@ -1,250 +1,413 @@
-# Getting started
+# Zero To Production
 
-This guide creates one host and one app, runs them locally, deploys the stable server container, publishes both UI artifacts, and performs a rollback.
+Audience: team evaluating or adopting Atlas. This tutorial starts in an empty
+directory and ends with one host and one app deployed, verified, and ready to
+roll back.
 
-## 1. Know the pieces
+Follow steps in order. Use React or Angular throughout this first run; Atlas can
+mix frameworks after the release model is familiar.
 
-- **Host server:** stable container connected to the public domain. It serves HTML, loader, runtime config, and health checks.
-- **Host client:** versioned product shell in object storage. It owns layout, routing, SDK services, authentication integration, and app mounting.
-- **App:** versioned feature UI in object storage.
-- **Catalog:** one complete selection: one host client plus one version of every app.
-- **Columbus:** local browser tool that replaces selected host/app builds without changing production.
+## Finished System
 
-Read [Architecture](architecture.md) if these boundaries are not yet clear.
+```mermaid
+flowchart LR
+  User["User"] --> Domain["customer.example"]
+  Domain --> Server["Customer host server"]
+  Server --> Runtime["atlas.runtime.json + loader"]
+  Runtime --> Catalog["Public catalog"]
+  Catalog --> Host["Customer host client"]
+  Catalog --> Orders["Orders app"]
+```
 
-Examples use local project names `customer-host`/`orders` and fixed sample
-UUIDs. Keep UUID generated in your own `atlas.config.ts`; replace sample domains,
-buckets, versions, and IDs before running production commands.
+Production contains two delivery paths:
 
-## 2. Generate projects
+1. Deploy generated host-server code through normal server delivery tooling.
+2. Publish immutable host-client and app artifacts plus mutable catalog JSON to
+   public object storage or a CDN.
 
-Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, a package manager,
-and a container runtime for the deployment exercise. These Node ranges satisfy
-the generated Angular and Vite 7 toolchains.
+UI releases do not redeploy an unchanged server. Server releases do not choose
+UI versions.
+
+## 0. Prepare
+
+You need:
+
+- Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`;
+- npm, pnpm, or Yarn;
+- public HTTPS object storage or a CDN for production artifacts;
+- a publication identity allowed to create immutable files, replace mutable
+  JSON, and hold a shared registry lock;
+- a Node.js deployment target for the host server;
+- the Columbus browser extension for local host/app replacement.
+
+Node ranges satisfy generated Angular and Vite 7 toolchains. Check installed
+version:
 
 ```sh
+node --version
+```
+
+Examples use these placeholders:
+
+| Example | Replace with |
+| --- | --- |
+| `customer-host` and `orders` | Local project names |
+| `0a17281f-287b-4d89-a8ca-0ab0e577c506` | Generated host UUID |
+| `2bea9c13-4899-4f93-9211-cd8c55e9c529` | Generated app UUID |
+| `cdn.example.com/atlas` | Public registry base URL |
+| `customer.example` | Public host domain |
+
+Never copy sample UUIDs into generated projects. Atlas creates stable UUIDs in
+each `atlas.config.ts`.
+
+## 1. Create A Workspace And Pin The CLI
+
+Run from a new or existing workspace root:
+
+```sh
+mkdir atlas-walkthrough
+cd atlas-walkthrough
+npm init --yes
 npm install --save-dev --save-exact @atlas/cli
+```
+
+Commit the package lockfile in a real project. Use the local CLI through `npx`
+or a package script; production CI should not depend on a floating global CLI.
+
+Checkpoint:
+
+```sh
+npx atlas --version
+npx atlas --help
+```
+
+Both commands should complete without downloading another Atlas version.
+
+## 2. Generate One Host And One App
+
+Choose one framework. React path:
+
+```sh
 npx atlas g host customer-host --framework=react
 npx atlas g app orders --framework=react --host=customer-host
 ```
 
-Angular uses `--framework=angular`. Starting with one framework reduces learning noise; hosts and apps can use different supported frameworks later.
-
-Host and app configs receive random UUIDv4 identities. Project/folder names remain readable command names; UUIDs prevent collisions across teams and registries.
-
-The host contains one required Atlas source config:
-
-```ts
-export default {
-  type: "host",
-  id: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-  name: "Customer Host",
-  framework: "react"
-} satisfies AtlasHostConfig;
-```
-
-`atlas g app orders --host=customer-host` resolves project name to generated host UUID before writing Orders routes. Do not replace IDs during rename.
-
-Atlas supplies default entry paths, ports, timeouts, manifest names, cache policy, and publication layout. Add config only when behavior changes. `atlas.publish.ts`, Kubernetes YAML, runtime JSON, and a copied Express server are not generated.
-
-Checkpoint: `customer-host/Containerfile`, `customer-host/atlas.config.ts`, and `orders/atlas.config.ts` exist.
-
-## 3. Run locally
-
-Open two terminals from the workspace root.
+Angular path:
 
 ```sh
-# Terminal 1: stable local server + local host client
+npx atlas g host customer-host --framework=angular
+npx atlas g app orders --framework=angular --host=customer-host
+```
+
+Generation installs project dependencies unless `--skip-install` is passed.
+The `--host=customer-host` argument resolves the local host project and writes
+its UUID into the app route declaration.
+
+Checkpoint: these files exist:
+
+```text
+customer-host/
+  atlas.config.ts
+  server/main.mts
+orders/
+  atlas.config.ts
+```
+
+## 3. Understand What You Own
+
+Before editing code, locate ownership boundaries:
+
+| Location | Owner | Purpose |
+| --- | --- | --- |
+| `customer-host/server/main.mts` | Host/server team | HTTP bootstrap, auth middleware, BFF routes, errors, observability |
+| `customer-host/atlas.config.ts` | Host team | Stable host identity and source configuration |
+| Host `src/` | Host team | Product shell, top-level routes, layout, SDK services |
+| `orders/atlas.config.ts` | App team | Stable app identity, host placement, routes, slots, widgets |
+| Orders `src/` | App team | Feature UI, inner routes, assets, tests |
+| `.atlas/` and `dist/` | Atlas and framework tools | Generated local and build output; do not edit |
+
+Project names identify local folders and CLI targets. UUIDs identify published
+artifacts and survive project renames.
+
+Read framework files now:
+
+- [Angular project guide](angular/getting-started.md)
+- [React project guide](react/getting-started.md)
+
+Return here after identifying host layout, host lifecycle, app entry, and app
+route files.
+
+## 4. Run The Complete Local Composition
+
+Open two terminals at workspace root.
+
+```sh
+# Terminal 1: host server and local host client
 npx atlas dev customer-host
-
-# Terminal 2: replace the selected Orders app
-npx atlas dev orders \
-  --host-url=http://127.0.0.1:4300/orders
 ```
-
-Atlas starts the framework server, local control catalog, and host server. Open the printed URL. Columbus shows the host client separately from apps and can reset everything to production.
-
-To run a local host client on a deployed domain:
 
 ```sh
-npx atlas dev customer-host --host-url=https://customer.example
+# Terminal 2: local Orders app mounted at its host route
+npx atlas dev orders --host-url=http://127.0.0.1:4300/orders
 ```
 
-The browser remains on `customer.example`; Columbus selects the loopback host client. This is powerful because host code controls the whole product shell. Review the warning before applying it.
+Open URL printed by the CLI, normally `http://127.0.0.1:4300/orders`. The host
+preview uses port `4300`; framework asset servers commonly use `4200` and `4201`.
 
-Common error: `No host configured for "orders"`.
+Columbus applies local selections in the browser. It can replace the host client
+and app independently, then reset both to deployed production selections. See
+[Local development and Columbus](local-development.md) before using local host
+code on a deployed domain.
 
-Recovery: add a route whose `hostId` exactly matches UUID in
-`customer-host/atlas.config.ts`, or pass that UUID with `--host=<host-id>`.
+Checkpoint:
 
-## 4. Build the server image
+- host shell renders;
+- Orders renders inside the host route;
+- full-page refresh keeps `/orders` working;
+- `http://127.0.0.1:4300/health/ready` returns `ready`;
+- Columbus shows separate host and Orders selections.
+
+If CLI reports `No host configured for "orders"`, compare app route `hostId`
+with host UUID in `customer-host/atlas.config.ts`. They must match exactly.
+
+## 5. Add Tests And Build Before Deployment
+
+Replace generated example UI with smallest useful product slice. Keep host route,
+navigation, status, and slot anchors used by app configuration. Apps should use
+SDK services instead of importing host source.
+
+Standalone generated projects intentionally do not choose a test runner or
+define a `test` script. Add the runner used by your organization and cover
+feature behavior, mount/unmount lifecycle, and required SDK contracts. Do not
+treat `npm test --if-present` as evidence; it succeeds without running anything
+when script is absent.
+
+Run your test commands, then production-build both clients and server:
 
 ```sh
-docker build -t customer-host-server:1.0.0 customer-host
+npm --prefix customer-host run build
+npm --prefix orders run build
+npm --prefix customer-host run build:server
 ```
 
-Run it with the two required values:
+Checkpoint: organization test jobs pass, both framework builds complete, and
+`customer-host/server/dist/main.mjs` exists.
 
-```sh
-docker run --rm -p 8080:8080 \
-  -e ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
-  -e ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
-  customer-host-server:1.0.0
-```
+Use [Consumer testing](consumer-testing.md) for SDK and lifecycle contract tests.
+Use framework routing and SDK guides for product code:
 
-The catalog does not exist until the host client is released, so the loader may show a startup error. The server itself should be healthy:
+- [Angular routing](angular/routing.md) and [Angular SDK](angular/sdk.md)
+- [React routing](react/routing.md) and [React SDK](react/sdk.md)
 
-```sh
-curl --fail http://localhost:8080/health/ready
-```
+## 6. Create A Public Registry
 
-Checkpoint: output is `ready`.
+Atlas registry is a static file contract. It needs no registry service, but
+browsers must reach it over HTTPS with CORS allowing the host origin.
 
-## 5. Choose publication storage
-
-Registry is static file contract, independent from storage provider. Atlas ships
-one optional S3-compatible adapter. Generate explicit adapter config:
-
-```sh
-npx atlas generate publish-config
-```
-
-Edit generated `atlas.publish.ts` with S3 endpoint, bucket, prefix, region, and
-credentials. Atlas itself reads no S3 environment variables. Generated names
-are examples owned by your CI. Teams using another provider implement
-`AtlasPublicationStorage` in this file.
-
-Set public registry URL independently for builds:
+Choose public base URL:
 
 ```sh
 export ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas
 ```
 
-Browser must read public HTTPS registry paths with suitable CORS. CI credentials
-remain private; host-server container never receives them. See [registry
-requirements](registry.md#registry-requirements).
-
-### Reuse widgets from another registry
-
-Same-registry widgets require no dependency config, even when provider app has no route or slot. For a provider in another registry, consumer declares only provider app UUID:
-
-```ts
-export default {
-  type: "app",
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  name: "Orders",
-  framework: "react",
-  externalAppsDependencies: [
-    "5b0b569f-cae0-48d4-8a41-194fdad05a15"
-  ]
-} satisfies AtlasAppConfig;
-```
-
-Host-server deployment supplies environment-specific public registries:
+Generate publication adapter configuration at workspace root:
 
 ```sh
-ATLAS_EXTERNAL_REGISTRY_URLS=https://shared-ui.example/atlas,https://team-a.example/atlas
-ATLAS_ASSET_ORIGINS=https://cdn.example.com,https://shared-ui.example
+npx atlas generate publish-config
 ```
 
-App code does not evaluate environment variables. On first `sdk.getWidget(widgetId)`, browser runtime reads only these approved registries. External production releases become visible after refresh; no catalog sync or hot swap is needed.
+The generated `atlas.publish.ts` uses Atlas's S3-compatible adapter. Configure
+endpoint, bucket, prefix, region, and credentials through protected CI
+environment. For another provider, implement `AtlasPublicationStorage` in that
+file.
 
-## 6. Build without uploading
+Atlas does not infer provider credentials. Browser-visible runtime configuration
+and host-server environment must never contain publication credentials.
+
+Checkpoint: publication identity can acquire the shared lock, create a test
+object, replace a test object, read both, and remove them. Public URL returns
+correct CORS and MIME headers.
+
+Read [Registry and publishing](registry.md) for required layout, permissions,
+cache policy, concurrency, and adapter contract.
+
+## 7. Build The Host-Client Artifact
+
+Build host client first. Command creates exact artifact and ordered publication
+plan without uploading:
 
 ```sh
-ATLAS_VERSION=1.0.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
+ATLAS_VERSION=1.0.0 \
+ATLAS_BUILD_ID="${HOST_BUILD_ID:?HOST_BUILD_ID is required}" \
   npx atlas build customer-host
-
-ATLAS_VERSION=1.0.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-  npx atlas build orders
 ```
 
-Each command builds framework output, hashes it, creates a manifest, prepares symmetric registry/catalog changes, and writes `dist/atlas-publication.json`. It does not upload and needs no storage credentials.
-
-Checkpoint: inspect the plan. Host paths begin `hosts/<host-id>/1.0.0/`; app
-paths begin `apps/<app-id>/1.0.0/`, where each ID is the UUID from
-`atlas.config.ts`. Both include a build-id directory because the version label
-alone does not uniquely identify bytes.
-
-## 7. Release
-
-The preferred CI command combines build, publish, and optional deployment verification:
-
-```sh
-ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json \
-ATLAS_VERSION=1.0.0 \
-ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-  npx atlas release customer-host
-
-ATLAS_RUNTIME_URL=https://customer.example/atlas.runtime.json \
-ATLAS_VERSION=1.0.0 \
-ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-  npx atlas release orders
-```
-
-Atlas locks the registry, checks its live revision, uploads immutable bytes with create-only writes, updates registry/index files, activates catalogs last, verifies the runtime, and releases the lock. If verification fails, Atlas restores the previous mutable selection before releasing the lock.
-
-You can separate preparation from upload:
-
-```sh
-npx atlas build orders
-npx atlas publish --plan=orders/dist/atlas-publication.json --dry-run
-npx atlas publish --plan=orders/dist/atlas-publication.json
-```
-
-PR release:
-
-```sh
-npx atlas release customer-host --channel=pr --pr-number="$PR_NUMBER"
-```
-
-PR builds update the registry/index only. They never activate the production catalog.
-
-## 8. Connect the domain
-
-Configure the deployment platform so the public domain targets the host-server service. For example:
+Project writes:
 
 ```text
-customer.example -> ingress/route/load balancer -> host-server:8080
+dist/atlas-publication/       files to upload
+dist/atlas-publication.json   ordered publication plan
 ```
 
-Set `ATLAS_CATALOG_URL` to the public object-storage/CDN catalog. Read [Host server and containers](host-server.md) for Kubernetes, OpenShift, and generic adaptations.
+Host paths begin `hosts/<host-id>/1.0.0/<build-id>/`. Version label identifies
+release; build ID identifies exact immutable bytes.
 
-## 9. Verify
-
-```sh
-npx atlas verify --runtime-url=https://customer.example/atlas.runtime.json
-```
-
-Expected: runtime, catalog, host manifest, app manifests, CORS, cache headers, integrity, federation exposes, external registry policy, and route ownership pass.
-
-## 10. Roll back
-
-Rollback runs in an authorized CI/CD job or developer workstation with the same
-environment and credentials as release. It never runs in the browser, Columbus,
-host container, or CDN server. Unlike `build` and `release`, rollback receives
-the stable artifact UUID from `atlas.config.ts`, not a local project name.
+Checkpoint: inspect plan and dry-run exact publication:
 
 ```sh
-HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
-
-npx atlas rollback "$HOST_ID" \
-  --version=0.9.0 \
+npx atlas publish \
+  --plan=customer-host/dist/atlas-publication.json \
   --dry-run
 
-npx atlas rollback "$HOST_ID" \
-  --version=0.9.0 \
+```
+
+No public storage should change during dry run.
+
+## 8. Deploy The Host Server
+
+Deploy `customer-host/server/dist/main.mjs`, required production dependencies,
+and runtime environment through existing Node.js delivery tooling. Atlas does
+not generate a container, cloud manifest, or CI pipeline.
+
+Generated server embeds host UUID. Configure environment-specific catalog and
+trusted asset origin:
+
+```sh
+ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json
+ATLAS_ASSET_ORIGINS=https://cdn.example.com
+PORT=8080
+```
+
+Replace sample host UUID in catalog URL with UUID from
+`customer-host/atlas.config.ts`. Connect `customer.example` to this server.
+
+The catalog does not exist until host client is published. Loader may show a
+startup error during this stage; server health must still pass:
+
+```sh
+curl --fail https://customer.example/health/live
+curl --fail https://customer.example/health/ready
+curl --fail https://customer.example/atlas.runtime.json
+```
+
+Read [Host server](host-server.md) for HTTP and extension contracts and
+[Security](security.md) before exposing production traffic.
+
+## 9. Publish Host Client, Then Build And Publish App
+
+Run publication from protected CI with committed `atlas.publish.ts` and storage
+credentials. Publish exact host plan inspected in step 7:
+
+```sh
+npx atlas publish \
+  --plan=customer-host/dist/atlas-publication.json \
   --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
-The same command works for an app:
+Now build Orders against updated public registry, inspect exact plan, then
+publish it:
+
+```sh
+ATLAS_VERSION=1.0.0 \
+ATLAS_BUILD_ID="${APP_BUILD_ID:?APP_BUILD_ID is required}" \
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
+  npx atlas build orders
+
+npx atlas publish \
+  --plan=orders/dist/atlas-publication.json \
+  --dry-run
+
+npx atlas publish \
+  --plan=orders/dist/atlas-publication.json \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+`publish` acquires registry lock, checks live revision, uploads immutable bytes,
+updates indexes, activates host catalogs last, verifies public deployment, and
+releases lock. Verification failure restores previous mutable selection before
+lock release.
+
+Transfer complete `dist/atlas-publication/` plus its plan when build and publish
+use separate jobs. See [Production deployment](production-deployment.md).
+
+Checkpoint: public catalog selects host client and Orders build, while server
+artifact remains unchanged.
+
+## 10. Verify The User Path
+
+Run HTTP verification explicitly after CDN propagation:
+
+```sh
+npx atlas verify \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+Atlas checks runtime, catalog, manifests, route ownership, CORS, MIME and cache
+headers, integrity, federation metadata, styles, and federation expose files.
+External widget providers require separate browser checks against approved
+registries.
+
+Then test in a browser:
+
+- host root loads without console errors;
+- `/orders` loads selected Orders version;
+- a nested route survives full-page refresh;
+- critical assets and lazy chunks load;
+- authenticated HTTP and other host SDK services work;
+- loading and failure UI is usable;
+- monitoring identifies host/app/version/build and failure stage.
+
+Warnings need explicit review; zero command failures alone does not prove
+authentication, rendering, accessibility, monitoring, or incident readiness.
+Complete [Production readiness](production-readiness.md) before traffic.
+
+## 11. Rehearse Rollback
+
+Rollback uses stable artifact UUID, not local project name. Read IDs from each
+`atlas.config.ts`.
+
+First publish a second Orders version so rollback has a real earlier target:
+
+```sh
+ATLAS_VERSION=1.1.0 \
+ATLAS_BUILD_ID="${APP_BUILD_ID_1_1:?APP_BUILD_ID_1_1 is required}" \
+ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
+  npx atlas build orders
+
+npx atlas publish \
+  --plan=orders/dist/atlas-publication.json \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+Preview rollback to published `1.0.0`:
 
 ```sh
 APP_ID=2bea9c13-4899-4f93-9211-cd8c55e9c529
 
-npx atlas rollback "$APP_ID" --version=0.9.0
+npx atlas rollback "$APP_ID" \
+  --version=1.0.0 \
+  --dry-run
 ```
 
-If a version has several builds, add `--build-id=build-123`. Atlas selects existing immutable bytes; no source checkout or application build is needed.
+Publish and verify selection:
 
-Next: [Registry and publishing](registry.md), [Production deployment](production-deployment.md), [Local development](local-development.md), and [Security](security.md).
+```sh
+npx atlas rollback "$APP_ID" \
+  --version=1.0.0 \
+  --runtime-url=https://customer.example/atlas.runtime.json
+```
+
+If a version has several builds, add `--build-id=<exact-build-id>`. Rollback
+selects existing immutable bytes; it does not rebuild app, overwrite artifacts,
+or redeploy server.
+
+Checkpoint: verification passes, browser shows selected earlier build, and team
+can identify previous and current catalog revisions in audit trail.
+
+## Next Work
+
+- Customize host: [Angular host](angular/host-getting-started.md) or [React host](react/host-getting-started.md)
+- Build feature apps: [Angular app](angular/app-getting-started.md) or [React app](react/app-getting-started.md)
+- Operate releases: [Production deployment](production-deployment.md)
+- Review design: [Architecture](architecture.md)
+- Find exact contract: [Documentation map](README.md)

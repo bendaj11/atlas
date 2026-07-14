@@ -1,4 +1,4 @@
-import { atlasAppConfig, atlasHostConfig, atlasHostContainerfile, atlasHostStyles, json, title } from "./common-generator.js";
+import { atlasAppConfig, atlasHostFoundation, atlasHostStyles, json, title } from "./common-generator.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 import { reactVersionProfile } from "./generator-versions.js";
 import { reactHostEntry, reactHostLayout, reactHostMain, reactHostProvider, reactHostProviderName } from "./react-host-generator.js";
@@ -24,8 +24,7 @@ export function generateReactHostFiles(options: AtlasGeneratorOptions): AtlasGen
     { path: "package.json", contents: json(reactPackage({ packageName: options.packageName ?? name, projectName: name, host: true, profile })) },
     { path: "tsconfig.json", contents: json(reactTsconfig()) },
     { path: "vite.config.ts", contents: reactHostViteConfig(profile.compilerTarget, options.devServerPort) },
-    { path: "atlas.config.ts", contents: atlasHostConfig(options) },
-    { path: "Containerfile", contents: atlasHostContainerfile() },
+    ...atlasHostFoundation(options),
     { path: "src/host.tsx", contents: reactHostEntry(name, profile) },
     { path: "index.html", contents: reactIndex("Atlas React Host") },
     { path: "src/styles.css", contents: atlasHostStyles() },

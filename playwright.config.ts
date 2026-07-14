@@ -20,11 +20,10 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI
     },
     {
-      command: "node packages/host-server/dist/cli.js",
+      command: "node examples/hosts/demo-react-host/server/dist/main.mjs",
       url: "http://127.0.0.1:4300/health/ready",
       env: {
         PORT: "4300",
-        ATLAS_HOST_ID: "demo-react-host",
         ATLAS_CATALOG_URL: "http://127.0.0.1:4400/hosts/demo-react-host/catalog.json",
         ATLAS_ASSET_ORIGINS: "http://127.0.0.1:4400,http://127.0.0.1:4401",
         ATLAS_EXTERNAL_REGISTRY_URLS: "http://127.0.0.1:4401",
@@ -33,11 +32,10 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI
     },
     {
-      command: "node packages/host-server/dist/cli.js",
+      command: "node examples/hosts/demo-angular-host/server/dist/main.mjs",
       url: "http://127.0.0.1:4301/health/ready",
       env: {
         PORT: "4301",
-        ATLAS_HOST_ID: "demo-angular-host",
         ATLAS_CATALOG_URL: "http://127.0.0.1:4400/hosts/demo-angular-host/catalog.json",
         ATLAS_ASSET_ORIGINS: "http://127.0.0.1:4400,http://127.0.0.1:4401",
         ATLAS_EXTERNAL_REGISTRY_URLS: "http://127.0.0.1:4401",

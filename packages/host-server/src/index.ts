@@ -6,6 +6,8 @@ import { ATLAS_BROWSER_LOADER } from "./browser-loader.js";
 const DEFAULT_PORT = 8080;
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_RETRY_COUNT = 3;
+const MIN_PORT = 1;
+const MAX_PORT = 65_535;
 
 export interface AtlasHostServerRuntime extends AtlasHostRuntimeConfig {}
 
@@ -21,6 +23,21 @@ export interface AtlasHostServerOptions {
 export interface AtlasHostServer {
   app: Express;
   listen(): Promise<Server>;
+}
+
+export interface AtlasHostServerRuntimeDefaults {
+  hostId?: string;
+  catalogUrl?: string;
+}
+
+export interface AtlasHostServerRunOptions {
+  hostId?: string;
+  catalogUrl?: string;
+  port?: number;
+  environment?: NodeJS.ProcessEnv;
+  loadingHtml?: string;
+  configureExpress?: (app: Express) => void;
+  log?: Pick<Console, "info" | "error">;
 }
 
 export function createAtlasHostServer(options: AtlasHostServerOptions): AtlasHostServer {
@@ -68,9 +85,12 @@ export function createAtlasHostServer(options: AtlasHostServerOptions): AtlasHos
   };
 }
 
-export function runtimeFromEnvironment(environment: NodeJS.ProcessEnv = process.env): AtlasHostServerRuntime {
-  const hostId = requiredEnvironment(environment, "ATLAS_HOST_ID");
-  const catalogUrl = requiredEnvironment(environment, "ATLAS_CATALOG_URL");
+export function runtimeFromEnvironment(
+  environment: NodeJS.ProcessEnv = process.env,
+  defaults: AtlasHostServerRuntimeDefaults = {}
+): AtlasHostServerRuntime {
+  const hostId = requiredEnvironment(environment, "ATLAS_HOST_ID", defaults.hostId);
+  const catalogUrl = requiredEnvironment(environment, "ATLAS_CATALOG_URL", defaults.catalogUrl);
   return {
     schemaVersion: "1",
     hostId,
@@ -83,6 +103,30 @@ export function runtimeFromEnvironment(environment: NodeJS.ProcessEnv = process.
       ? { externalRegistryUrls: parseRegistryUrls(environment.ATLAS_EXTERNAL_REGISTRY_URLS) }
       : {})
   };
+}
+
+export async function runAtlasHostServer(options: AtlasHostServerRunOptions = {}): Promise<Server> {
+  const environment = options.environment ?? process.env;
+  const environmentRuntime = runtimeFromEnvironment(environment, {
+    ...(options.hostId ? { hostId: options.hostId } : {}),
+    ...(options.catalogUrl ? { catalogUrl: options.catalogUrl } : {})
+  });
+  const runtime = {
+    ...environmentRuntime,
+    ...(options.hostId ? { hostId: options.hostId } : {}),
+    ...(options.catalogUrl ? { catalogUrl: options.catalogUrl } : {})
+  };
+  const port = optionalPort(options.port ?? environment.PORT);
+  const hostServer = createAtlasHostServer({
+    runtime,
+    ...(port !== undefined ? { port } : {}),
+    ...(options.loadingHtml !== undefined ? { loadingHtml: options.loadingHtml } : {}),
+    ...(options.configureExpress ? { configureExpress: options.configureExpress } : {}),
+    ...(options.log ? { log: options.log } : {})
+  });
+  const server = await hostServer.listen();
+  registerGracefulShutdown(server, options.log ?? console);
+  return server;
 }
 
 function parseOrigins(value: string): string[] {
@@ -115,10 +159,38 @@ function validateRuntime(runtime: AtlasHostServerRuntime): void {
   catch { throw new Error("Atlas host server requires an absolute ATLAS_CATALOG_URL."); }
 }
 
-function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string): string {
-  const value = environment[name]?.trim();
+function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string, fallback?: string): string {
+  const value = environment[name]?.trim() || fallback?.trim();
   if (!value) throw new Error(`${name} is required.`);
   return value;
+}
+
+function optionalPort(value: string | number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < MIN_PORT || port > MAX_PORT) {
+    throw new Error(`PORT must be an integer between ${MIN_PORT} and ${MAX_PORT}.`);
+  }
+  return port;
+}
+
+function registerGracefulShutdown(server: Server, log: Pick<Console, "error">): void {
+  let closing = false;
+  const shutdown = (): void => {
+    if (closing) return;
+    closing = true;
+    void closeAtlasHostServer(server).catch((error: unknown) => {
+      log.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    });
+  };
+  const cleanup = (): void => {
+    process.removeListener("SIGTERM", shutdown);
+    process.removeListener("SIGINT", shutdown);
+  };
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
+  server.once("close", cleanup);
 }
 
 function positiveInteger(value: string | undefined, fallback: number): number {

@@ -1,12 +1,14 @@
 # Angular production deployment
 
-Angular changes only the host-client/app framework build. Container, storage, release, verification, and rollback follow the canonical [Production deployment](../production-deployment.md).
+Angular changes only the host-client/app framework build. Server packaging,
+storage, release, verification, and rollback follow canonical
+[Production deployment](../production-deployment.md).
 
 ## Host client
 
 Generated Native Federation metadata exposes `./host`. `atlas build customer-host` packages the Angular browser output, `remoteEntry.json`, `host.manifest.json`, styles, and chunks under the immutable host version/build directory.
 
-The stable `@atlas/host-server` container serves HTML and `/atlas.runtime.json`; Angular does not. Do not copy Angular browser output into the container.
+Generated server built on `@atlas/host-server` serves HTML and `/atlas.runtime.json`; Angular does not. Deploy Angular browser output as client artifact, independently from server output.
 
 ```sh
 ATLAS_VERSION=1.4.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
@@ -24,6 +26,6 @@ ATLAS_VERSION=2.1.0 ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
 
 Checkpoint: host manifest path begins `hosts/<host-id>/`; app manifest path
 begins `apps/<app-id>/`. IDs are UUIDs from each `atlas.config.ts`; releasing
-either requires no container rebuild.
+either requires no server rebuild.
 
 See [Angular assets](assets-and-styles.md), [routing](routing.md), and [SDK](sdk.md) for product code details.

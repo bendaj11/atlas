@@ -1,119 +1,80 @@
-# Atlas documentation
+# Atlas Documentation
 
-This page is the documentation map. Start with one path and follow links in
-order; you do not need to read every file before using Atlas.
+Atlas docs have one learning path and separate pages for later work. New users
+should not read every page.
 
-## First, choose your goal
+## Learn Atlas In Order
 
-### I am new to Atlas
+1. [Understand Atlas](overview.md) — learn host, app, manifest, catalog, registry,
+   SDK, and runtime vocabulary.
+2. Begin [Zero to production](getting-started.md) — build one complete system.
+3. At tutorial step 3, open chosen framework guide to identify generated code:
+   - [Angular projects](angular/getting-started.md)
+   - [React projects](react/getting-started.md)
+4. Return to tutorial and finish deployment, verification, and rollback.
+5. [Prepare for production](production-readiness.md) — assign owners, verify
+   security and delivery policy, smoke-test, and rehearse rollback.
 
-1. Read [Overview](overview.md) for vocabulary and ownership boundaries.
-2. Complete [Getting started](getting-started.md) to generate, run, release,
-   verify, and roll back one host and one app.
-3. Continue with [Angular](angular/getting-started.md) or
-   [React](react/getting-started.md).
-4. Before real traffic, complete [Production readiness](production-readiness.md).
+The zero-to-production tutorial is the only canonical end-to-end sequence.
+Framework guides explain generated code; they do not repeat deployment steps.
 
-### I build feature apps
+## Build Or Change Something
 
-1. Use [Angular app tutorial](angular/app-getting-started.md) or
-   [React app tutorial](react/app-getting-started.md).
-2. Learn [routing](routing.md), [SDK usage](sdk.md), and
-   [assets and styles](assets-and-styles.md).
-3. Run inside the real host with [local development](local-development.md).
-4. Add reusable UI with [exported widgets](exported-widgets.md).
-5. Test the host contract with [consumer testing](consumer-testing.md).
+Use these goal-oriented guides after completing the tutorial:
 
-### I own a host
-
-1. Read [Architecture](architecture.md) to separate stable server from
-   versioned host client.
-2. Configure the [host server](host-server.md).
-3. Implement framework routing and services:
-   [Angular routing](angular/routing.md), [Angular SDK](angular/sdk.md),
-   [React routing](react/routing.md), or [React SDK](react/sdk.md).
-4. Review [Security](security.md) and [Production readiness](production-readiness.md).
-
-Detailed host journeys: [Angular host](angular/host-getting-started.md) and
-[React host](react/host-getting-started.md).
-
-### I operate releases
-
-1. Read [Registry and publishing](registry.md).
-2. Follow [Production deployment](production-deployment.md).
-3. Use [Manifests](manifest.md) as generated JSON reference.
-4. Run [Production readiness](production-readiness.md).
-5. Use [Troubleshooting](troubleshooting.md) when verification fails.
-
-### I contribute to Atlas itself
-
-1. Start with [CONTRIBUTING.md](../CONTRIBUTING.md).
-2. Use [Repository testing](testing.md), [Workspaces](workspaces.md), and
-   [Releasing Atlas packages](releasing.md).
-3. Use [Public API](api.md) when changing exported contracts.
-
-## Understand names and IDs
-
-Atlas uses two identifiers that are easy to confuse:
-
-- **Project name or path**, such as `customer-host` or `orders`, identifies a
-  local folder for CLI development and build commands.
-- **Artifact ID** is the stable UUID in that project's `atlas.config.ts`. It is
-  used in manifests, catalogs, registry paths, host runtime configuration, and
-  rollback.
-
-`atlas g app orders --host=customer-host` accepts the local host project name.
-Atlas reads that host's UUID and writes the UUID into the app route. Do not
-replace UUIDs when renaming folders or packages.
-
-| Command or setting | Identifier to pass |
+| Goal | Guide |
 | --- | --- |
-| `atlas dev`, `atlas build`, `atlas release` | local project name or path |
-| `atlas g app ... --host` | local host project name or host ID |
-| `ATLAS_HOST_ID`, catalog URL path | host artifact ID from `atlas.config.ts` |
-| `atlas rollback` | host or app artifact ID from `atlas.config.ts` |
+| Build a host shell | [Angular host](angular/host-getting-started.md) or [React host](react/host-getting-started.md) |
+| Build a feature app | [Angular app](angular/app-getting-started.md) or [React app](react/app-getting-started.md) |
+| Run local code inside a host | [Local development and Columbus](local-development.md) |
+| Add routes and navigation | [Angular routing](angular/routing.md) or [React routing](react/routing.md) |
+| Use or extend host services | [Angular SDK](angular/sdk.md) or [React SDK](react/sdk.md) |
+| Load assets and styles | [Angular assets](angular/assets-and-styles.md) or [React assets](react/assets-and-styles.md) |
+| Export reusable UI | [Exported widgets](exported-widgets.md) |
+| Test a host/app contract | [Consumer testing](consumer-testing.md) |
+| Deploy and release | [Production deployment](production-deployment.md) |
+| Secure a deployment | [Security](security.md) |
+| Diagnose failure | [Angular troubleshooting](angular/troubleshooting.md) or [React troubleshooting](react/troubleshooting.md) |
 
-## Example placeholder convention
+## Understand Why Atlas Works This Way
 
-Commands use readable local projects `customer-host` and `orders`. Runtime JSON,
-catalogs, manifests, routes, and rollback use example UUIDs:
+- [Overview](overview.md) defines vocabulary and team ownership.
+- [Architecture](architecture.md) explains browser bootstrap, selection, loading,
+  isolation, trust boundaries, and rollback boundaries.
+- [Registry and publishing](registry.md) explains immutable artifacts, mutable
+  selections, publication order, concurrency, and recovery.
+- [Routing and navigation](routing.md) explains host-owned top-level routes and
+  app-owned inner routes.
+- [Assets and styles](assets-and-styles.md) explains URL and CSS isolation rules.
 
-- host ID: `0a17281f-287b-4d89-a8ca-0ab0e577c506`;
-- app ID: `2bea9c13-4899-4f93-9211-cd8c55e9c529`;
-- widget ID: `6f4994c1-b95f-4b24-a01a-106dd61aa4fb`.
+## Look Up Exact Contracts
 
-Replace URLs, versions, buckets, and UUIDs with values from your environment;
-do not copy angle-bracket placeholders literally.
+| Subject | Reference |
+| --- | --- |
+| CLI generation and workspace behavior | [Generators](generators.md) and [workspaces](workspaces.md) |
+| Source and generated JSON contracts | [Public API](api.md) and [manifests](manifest.md) |
+| SDK types and services | [SDK reference](sdk.md) |
+| Static storage layout | [Registry reference](registry.md) |
+| Host HTTP behavior and environment | [Host server](host-server.md) |
+| Working examples | [Examples](examples.md) |
 
-## File and folder guide
+CLI help is the source of truth for current flags:
 
-| Location | Owner | Purpose | Edit by hand? |
-| --- | --- | --- | --- |
-| `<project>/atlas.config.ts` | host/app team | Stable identity and small source configuration | Yes |
-| `<host>/Containerfile` | platform team | Stable `@atlas/host-server` image | Only for approved image-policy changes |
-| `<app>/src/exported-widgets/` | app team | UUID-addressed reusable widgets | Yes; generate initial files |
-| `<project>/.atlas/` | Atlas CLI | Local compiled config and override documents | No |
-| `<project>/dist/` | framework + Atlas CLI | Build output, manifest, publication files | No |
-| `<project>/dist/atlas-publication/` | Atlas CLI | Files uploaded by `atlas publish` | No |
-| `<project>/dist/atlas-publication.json` | Atlas CLI | Ordered publication plan | No |
-| `registry.json`, `hosts/`, `apps/` in storage | Atlas publishing | Mutable selections plus immutable releases | Never edit manually |
-| `atlas.publish.ts` | platform team | Explicit publication adapter and optional invalidation hooks | Every non-dry-run publication |
+```sh
+npx atlas --help
+npx atlas build --help
+```
 
-## Reference by subject
+## Maintain Atlas Itself
 
-- Concepts: [Overview](overview.md), [Architecture](architecture.md)
-- CLI: [Generators](generators.md), [Workspaces](workspaces.md)
-- Contracts: [Public API](api.md), [SDK](sdk.md), [Manifests](manifest.md)
-- Composition: [Routing](routing.md), [Assets and styles](assets-and-styles.md),
-  [Exported widgets](exported-widgets.md)
-- Operations: [Host server](host-server.md), [Registry](registry.md),
-  [Production deployment](production-deployment.md), [Security](security.md)
-- Quality: [Consumer testing](consumer-testing.md), [Repository testing](testing.md),
-  [Troubleshooting](troubleshooting.md)
+- [Contributing](../CONTRIBUTING.md)
+- [Repository testing](testing.md)
+- [Releasing Atlas packages](releasing.md)
+- [Documentation guidelines](documentation-guide.md)
 
-## Supported scope
+## Supported Scope
 
-Atlas currently supports Angular and React hosts/apps, client-side rendering,
-static browser-readable registries, and explicit publication adapters. Atlas
-ships S3-compatible adapter as optional implementation.
-Vue generators and server-side rendering are not currently supported.
+Atlas supports Angular and React hosts/apps, client-side rendering, static
+browser-readable registries, exported widgets, and explicit publication
+adapters. Atlas ships an S3-compatible publication adapter. Vue generators and
+server-side rendering are not currently supported.

@@ -11,7 +11,10 @@ Atlas loads executable browser code from object storage. Treat registry publicat
 
 A host client is more privileged than an app. It controls routing, layout, SDK construction, authentication integration, telemetry, and all app mounts. Columbus displays host overrides separately and requires a stronger warning.
 
-The host server is a separate infrastructure boundary. It contains no product UI or storage credentials and does not proxy artifacts.
+The host server is a separate trusted boundary. User extensions may hold OAuth
+client credentials, sessions, or downstream tokens. Never expose them through
+`/atlas.runtime.json`, and do not give server publication-storage credentials.
+Default Atlas core does not proxy registry artifacts.
 
 ## Runtime policy
 
@@ -23,7 +26,11 @@ ATLAS_ASSET_ORIGINS=https://cdn.example.com
 ATLAS_EXTERNAL_REGISTRY_URLS=https://shared-ui.example/atlas
 ```
 
-The catalog origin is allowed automatically. Additional artifact/CDN origins must appear in `ATLAS_ASSET_ORIGINS`. `ATLAS_EXTERNAL_REGISTRY_URLS` explicitly limits cross-registry dependency discovery. Production URLs require HTTPS. Local overrides require HTTP(S) loopback.
+Atlas does not add catalog origin to CSP automatically. Every cross-origin
+catalog or artifact/CDN origin must appear in `ATLAS_ASSET_ORIGINS`.
+`ATLAS_EXTERNAL_REGISTRY_URLS` explicitly limits cross-registry dependency
+discovery and adds those registry origins to CSP. Production URLs require HTTPS.
+Local overrides require HTTP(S) loopback.
 
 `/atlas.runtime.json` is public browser data. Never expose passwords, tokens, connection strings, or private storage credentials through environment values returned there.
 
@@ -82,6 +89,6 @@ An invalid host can fail before product error boundaries exist. The loader owns 
 
 Enable overrides only in environments where developer substitution is intended. When enabled, the server CSP permits loopback HTTP ports so Columbus can connect local host/app builds; non-loopback network assets remain limited to configured origins. A production troubleshooting environment may enable overrides for authorized users, but the setting itself does not provide authentication; browser-extension distribution and environment access remain organizational controls.
 
-## Container hardening
+## Runtime hardening
 
-The generated host-server image is non-root, stateless, compatible with read-only filesystems, logs to stdout/stderr, handles `SIGTERM`, and exposes separate health paths. Give it no object-storage write credentials. Apply platform resource limits, network policy, image scanning, signing, and admission controls according to organizational standards.
+Atlas server core is stateless, logs to stdout/stderr, handles `SIGTERM`, and exposes separate health paths. Generated server extensions determine final state and resource needs. Give server no object-storage write credentials. Apply runtime hardening, resource limits, network policy, scanning, signing, and admission controls according to organizational standards and chosen deployment technology.

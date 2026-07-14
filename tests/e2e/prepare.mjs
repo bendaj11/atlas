@@ -42,6 +42,8 @@ await addBrokenRoute("demo-react-host");
 await addBrokenRoute("demo-angular-host");
 await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build"]);
 await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build"]);
+await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build:server"]);
+await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build:server"]);
 
 async function addSecondCatalogRelease() {
   const entryPath = join(root, "examples/apps/catalog-react/dist/entry.js");

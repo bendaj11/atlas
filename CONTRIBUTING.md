@@ -43,6 +43,14 @@ the Columbus extension.
 Generated `dist`, cache, IDE, and test artifact directories are intentionally
 ignored and must not be committed.
 
+## Documentation
+
+Follow [`docs/documentation-guide.md`](docs/documentation-guide.md). Keep
+[`docs/getting-started.md`](docs/getting-started.md) as the only end-to-end
+tutorial; framework and subject guides should link to it instead of repeating
+the release sequence. Update documentation in the same pull request as user-visible
+behavior.
+
 ## Releases
 
 Atlas publishes verified package tarballs from GitHub Actions. Follow

@@ -70,7 +70,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       const result = await builds.build(invocation.subcommand);
       if (result.artifact === "host") {
         ui.success(`Built host client ${result.manifest.id}@${result.manifest.version}.`);
-        ui.info("Publish dist/atlas-publication; host-server container does not contain client assets.");
+        ui.info("Publish dist/atlas-publication; host server and client artifacts deploy independently.");
       } else {
         ui.success(`Built app ${result.manifest.id}@${result.manifest.version}.`);
         ui.info("Upload dist/atlas-publication with your CI storage tooling.");

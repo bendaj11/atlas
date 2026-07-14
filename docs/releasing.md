@@ -49,7 +49,7 @@ version range emitted by generators. Chrome manifests use the numeric core of
 a prerelease version. `test:generated` packs those packages and proves that the
 packaged CLI can generate and production-build Angular and React hosts and apps.
 `test:container` validates the locally packed host server before its npm version
-exists, so the generated production `Containerfile` can reference that version
+exists, so generated server dependency can reference that version
 after publication.
 
 Review the changes, move the relevant entries from `Unreleased` in the changelog

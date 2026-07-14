@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AtlasGeneratorOptions } from "./generator-types.js";
-import { ATLAS_PACKAGE_VERSION } from "./generator-versions.js";
+import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 
 const MAX_ATLAS_ID_LENGTH = 214;
 const ATLAS_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -16,20 +15,38 @@ export function atlasAppConfig(options: AtlasGeneratorOptions): string {
   return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
 }
 
-export function atlasHostConfig(options: AtlasGeneratorOptions): string {
-  const { name, framework } = options;
-  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
+export function atlasHostFoundation(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
+  const hostId = randomUUID();
+  return [
+    { path: "atlas.config.ts", contents: atlasHostConfig(options, hostId) },
+    { path: "server/main.mts", contents: atlasHostServer(hostId) },
+    { path: "server/tsconfig.json", contents: json(atlasHostServerTsconfig()) }
+  ];
 }
 
-export function atlasHostContainerfile(): string {
-  return `FROM node:22-alpine
+function atlasHostConfig(options: AtlasGeneratorOptions, hostId: string): string {
+  const { name, framework } = options;
+  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${hostId}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
+}
 
-RUN npm install --global @atlas/host-server@${ATLAS_PACKAGE_VERSION}
+function atlasHostServer(hostId: string): string {
+  return `import { runAtlasHostServer } from "@atlas/host-server";\n\nawait runAtlasHostServer({ hostId: "${hostId}" });\n`;
+}
 
-USER node
-EXPOSE 8080
-CMD ["atlas-host-server"]
-`;
+function atlasHostServerTsconfig(): unknown {
+  return {
+    compilerOptions: {
+      target: "ES2022",
+      module: "NodeNext",
+      moduleResolution: "NodeNext",
+      rootDir: ".",
+      outDir: "dist",
+      strict: true,
+      skipLibCheck: true,
+      types: ["node"]
+    },
+    include: ["main.mts"]
+  };
 }
 
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -44,10 +44,10 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.0",
-    "@atlas/generators": "0.3.0",
-    "@atlas/host-server": "0.3.0",
-    "@atlas/runtime": "0.3.0",
+    "@atlas/schema": "0.3.1",
+    "@atlas/generators": "0.3.1",
+    "@atlas/host-server": "0.3.1",
+    "@atlas/runtime": "0.3.1",
     "@inquirer/select": "^4.4.2",
     "typescript": "~5.9.0"
   }

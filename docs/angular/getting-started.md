@@ -1,39 +1,55 @@
-# Angular getting started
+# Angular Project Guide
 
-Complete the canonical [Getting started](../getting-started.md) first. This page explains the Angular files you will edit.
+Audience: Angular host and app developers following or already familiar with
+[Zero to production](../getting-started.md). This guide identifies generated
+Angular boundaries and routes each task to its detailed guide.
 
-## Generate
+## Choose Your Role
 
-```sh
-atlas g host customer-host --framework=angular
-atlas g app orders --framework=angular --host=customer-host
-```
+- Host team: [Build an Angular host client](host-getting-started.md)
+- App team: [Build an Angular app](app-getting-started.md)
 
-The host has two distinct entry points:
+Both roles use normal Angular components, dependency injection, router, styles,
+and tests. Atlas owns cross-application discovery and mount lifecycle.
 
-- `src/main.ts` is a convenient framework development entry;
-- `src/host.ts` exports the versioned `mount` lifecycle used by the stable loader.
+## Host Files
 
-`src/bootstrap.ts` creates the Angular product shell and Atlas runtime services. `src/app/app.component.ts` owns navigation, slots, status, and the route outlet. Product teams may customize these. Do not make the host client fetch a catalog; it receives one in its mount request.
+| File | Responsibility | Edit normally? |
+| --- | --- | --- |
+| `src/main.ts` | Framework-only development entry | Rarely |
+| `src/host.ts` | Atlas `mount` lifecycle exported as `./host` | Rarely |
+| `src/bootstrap.ts` | Router, auth, HTTP, SDK services, monitoring | Yes |
+| `src/app/app.component.ts` | Product shell, navigation, status, slots, route outlet | Yes |
+| `federation.config.js` | Native Federation expose and shared dependency wiring | Preserve generated Atlas sections |
+| `server/main.mts` | Node.js HTTP composition root | Yes, for server behavior |
 
-The app exports its lifecycle from `src/entry.ts`. Feature routes live under `src/app/routes.ts`. Apps receive host services with `injectAtlasSdk()`.
+Host client receives selected catalog in its mount request. Do not fetch or
+choose catalog versions from Angular application code.
 
-## Local checkpoint
+## App Files
 
-```sh
-atlas dev customer-host
-atlas dev orders --host-url=http://127.0.0.1:4300/orders
-```
+| File | Responsibility | Edit normally? |
+| --- | --- | --- |
+| `src/entry.ts` | Atlas `mount` lifecycle exported as `./entry` | Rarely |
+| `src/app/routes.ts` | Inner Angular routes scoped below assigned Atlas base path | Yes |
+| `src/app/` | Feature components and services | Yes |
+| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.widget.ts` | Yes |
+| `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |
 
-Expected: host preview loads on port 4300; Orders mounts at `/orders`; Columbus can switch host and app independently.
+Apps obtain host services with `injectAtlasSdk()`. They must not import host
+source or assume host implementation details.
 
-## Build checkpoint
+## Task Guides
 
-```sh
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build customer-host
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas atlas build orders
-```
+| Task | Guide |
+| --- | --- |
+| Configure top-level and inner routes | [Angular routing](routing.md) |
+| Use HTTP, events, navigation, overlays, and host data | [Angular SDK](sdk.md) |
+| Package images, fonts, and CSS | [Angular assets and styles](assets-and-styles.md) |
+| Generate projects or widgets | [Angular generators](generators.md) |
+| Inspect working projects | [Angular examples](examples.md) |
+| Diagnose loading or routing failure | [Angular troubleshooting](troubleshooting.md) |
 
-Expected: host Native Federation output exposes `./host`, app output exposes `./entry`, and publication paths use `hosts/` and `apps/` respectively.
-
-The generated `Containerfile` runs `atlas-host-server`. It does not contain Angular browser output. Read [Angular host details](host-getting-started.md), [routing](routing.md), [SDK](sdk.md), [assets](assets-and-styles.md), and [production deployment](production-deployment.md) next.
+Build and release steps remain framework-neutral. Use [Production
+deployment](../production-deployment.md), not a separate Angular deployment
+sequence.

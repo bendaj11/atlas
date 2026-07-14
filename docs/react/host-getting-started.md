@@ -1,58 +1,77 @@
-# Build a React host client
+# Build A React Host
 
-Audience: React team owning product shell. Complete [shared getting
-started](../getting-started.md) first. Host client is versioned product UI;
-generated `Containerfile` is stable framework-neutral HTTP server.
+Audience: React team owning product shell and host services. Finished state: host
+shell runs locally, exposes required mount anchors, and provides app services
+through SDK. Complete [Zero to production](../getting-started.md) once before
+using this task guide.
 
 ## 1. Generate
+
+From workspace root:
 
 ```sh
 atlas g host customer-host --framework=react
 ```
 
-Checkpoint: `atlas.config.ts`, `src/CustomerHostAtlasProvider.tsx`,
-`src/host.tsx`, `src/app/HostLayout.tsx`, and `Containerfile` exist. Exact
-provider filename derives from project name; `customer-host` becomes
-`CustomerHostAtlasProvider.tsx`.
-
-## 2. Understand file ownership
+Keep generated UUID in `atlas.config.ts` across folder, package, and display-name
+changes.
 
 | File | Edit for |
 | --- | --- |
-| `atlas.config.ts` | stable UUID and local runtime defaults |
 | `src/app/HostLayout.tsx` | product layout and Atlas anchors |
 | `src/CustomerHostAtlasProvider.tsx` | router, auth, HTTP, SDK services, monitoring |
-| `src/host.tsx` | loader lifecycle adapter; rarely change |
-| `src/main.tsx` | framework-only development entry |
+| `src/host.tsx` | Atlas lifecycle adapter; rarely change |
 | `vite.config.ts` | generated federation wiring; preserve Atlas sections |
-| `Containerfile` | organization image policy, not product UI |
+| `server/main.mts` | auth middleware, BFF routes, errors, observability |
 
-## 3. Build the product shell
+Provider filename derives from project name: `customer-host` becomes
+`CustomerHostAtlasProvider.tsx`.
 
-Keep `data-atlas-host-status`, `data-atlas-navigation`,
-`data-atlas-route-outlet`, and named `data-atlas-slot` anchors used by apps.
-Configure product services through `AtlasHostProvider` options; apps consume
-them through SDK. See [React SDK](sdk.md) and [React routing](routing.md).
+## 2. Build Product Shell
 
-## 4. Run locally
+Keep anchors required by selected apps:
+
+- `data-atlas-host-status` for startup and failure state;
+- `data-atlas-navigation` for host navigation;
+- `data-atlas-route-outlet` for routed apps;
+- named `data-atlas-slot` elements for slot-mounted apps.
+
+Configure product services through `AtlasHostProvider` options. Apps receive
+those services through SDK and must not import host source. See [React SDK](sdk.md)
+and [React routing](routing.md).
+
+Host client does not fetch or choose catalog. Atlas loader passes selected
+catalog into `mount` request.
+
+## 3. Extend Server When Needed
+
+Generated `server/main.mts` is separate Node.js composition root:
+
+```ts
+import { runAtlasHostServer } from "@atlas/host-server";
+
+await runAtlasHostServer({
+  hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
+  configureExpress(app) {
+    app.get("/api/session", (_request, response) => response.json({ authenticated: true }));
+  }
+});
+```
+
+Keep real secrets server-side. Do not add product UI or publication credentials
+to server. See [Host server](../host-server.md).
+
+## 4. Run And Check
 
 ```sh
 atlas dev customer-host
 ```
 
-Open Host Preview URL printed by CLI, normally `http://127.0.0.1:4300`.
-Framework asset server commonly uses port 4200; users should open 4300.
+Open host preview URL printed by CLI, normally `http://127.0.0.1:4300`. Port
+`4200` is lower-level Vite asset server.
 
-## 5. Release
+Checkpoint: shell renders, required anchors exist, `/health/ready` returns
+`ready`, and Columbus identifies local host client.
 
-```sh
-ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="$CI_PIPELINE_ID" \
-ATLAS_REGISTRY_BASE_URL=https://cdn.example.com/atlas \
-atlas release customer-host
-```
-
-Checkpoint: active catalog selects new immutable `hosts/<host-id>/...` build;
-host-server image did not change. Continue with [Host server](../host-server.md),
-[Production deployment](../production-deployment.md), and
-[Production readiness](../production-readiness.md).
+Production server deployment and host-client publication are independent.
+Continue with [Production deployment](../production-deployment.md).

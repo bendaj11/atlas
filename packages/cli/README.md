@@ -1,55 +1,58 @@
 # @atlas/cli
 
-Package-manager-neutral tooling for generating, developing, building,
-publishing, releasing, rolling back, and verifying Atlas hosts/apps.
+Command-line tooling for generating, developing, building, publishing,
+releasing, verifying, and rolling back Atlas hosts and apps.
 
-```sh
-# Choose one:
-npm install --global @atlas/cli
-pnpm add --global @atlas/cli
-yarn global add @atlas/cli
+## Install
 
-atlas --help
-```
-
-For CI, prefer exact project dependency plus committed lockfile:
+Pin CLI in project and commit lockfile:
 
 ```sh
 npm install --save-dev --save-exact @atlas/cli
 npx atlas --help
 ```
 
-Main workflow:
+Equivalent package-manager commands:
 
 ```sh
-atlas g host customer-host --framework=react
-atlas g app orders --framework=react --host=customer-host
-atlas dev customer-host
-atlas build orders --registry-base-url=https://cdn.example.com/atlas
-atlas publish --plan=orders/dist/atlas-publication.json --dry-run
-atlas release orders
-atlas verify --runtime-url=https://customer.example/atlas.runtime.json
+pnpm add --save-dev --save-exact @atlas/cli
+yarn add --dev --exact @atlas/cli
 ```
 
-`dev`, `build`, and `release` accept local project names or paths. `rollback`
-accepts stable host/app artifact UUID from `atlas.config.ts`.
-Non-dry-run `publish`, `release`, and `rollback` require committed
-`atlas.publish.ts` with explicit storage adapter.
+Avoid floating global CLI in CI.
 
-Generation prompts use arrow-key selections and automatically run the detected
-Yarn, pnpm, or npm install command. Use `--skip-install` only when another tool
-owns dependency installation.
+## Commands
 
-In Nx workspaces, Atlas delegates project scaffolding to the installed Nx
-framework generator, then adds Atlas dependencies to the package manifest that
-owns the project: project-level `package.json` when present, otherwise the
-workspace root.
+| Command | Purpose |
+| --- | --- |
+| `atlas generate` | Create host, app, widget, or publication adapter config |
+| `atlas dev` | Run host or mount local app inside host |
+| `atlas build` | Build provider-neutral artifact and publication plan |
+| `atlas publish` | Publish prepared plan with locking and safe activation |
+| `atlas release` | Build and publish one host client or app |
+| `atlas verify` | Verify deployed runtime, catalog, manifests, and assets |
+| `atlas rollback` | Select and publish earlier immutable build |
 
-If that manifest already declares `@angular/core` or `react`, Atlas keeps the
-existing framework version and aligns companion dependencies to it. A conflicting
-`--framework-version` is reported and ignored for delegated Nx projects so Atlas
-does not upgrade or downgrade the monorepo accidentally.
+Use command help as current option reference:
 
-See [documentation map](https://github.com/bendaj11/atlas/blob/main/docs/README.md),
-[getting started](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md),
-and [production deployment](https://github.com/bendaj11/atlas/blob/main/docs/production-deployment.md).
+```sh
+npx atlas build --help
+```
+
+`dev`, `build`, and `release` accept local project name or path. `rollback`
+accepts stable host/app UUID from `atlas.config.ts`. Non-dry-run `publish`,
+`release`, and `rollback` require `atlas.publish.ts` with explicit storage
+adapter.
+
+Generation runs detected Yarn, pnpm, or npm install unless `--skip-install` is
+passed. In Nx workspaces, Atlas delegates project scaffolding to installed Nx
+framework generator, then adds Atlas wiring and dependencies.
+
+If existing Nx manifest declares `@angular/core` or `react`, Atlas keeps that
+framework version and aligns companion dependencies. Conflicting
+`--framework-version` is ignored for delegated Nx project to avoid accidental
+monorepo framework upgrade or downgrade.
+
+Start with [Zero to production](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md).
+Use [documentation map](https://github.com/bendaj11/atlas/blob/main/docs/README.md)
+for task and reference guides.

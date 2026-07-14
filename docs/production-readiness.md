@@ -88,10 +88,8 @@ Name an owner for each domain before release:
   production activation. If that is impossible, release plan documents the
   exposure window and automatic recovery path.
 
-See [static registry](registry.md) for revision and concurrency rules and the
-framework deployment guide for the publication-plan format:
-[Angular](angular/production-deployment.md) or
-[React](react/production-deployment.md).
+See [Static registry](registry.md) for revision and concurrency rules and
+[Production deployment](production-deployment.md) for publication-plan flow.
 
 ## Security Checklist
 
@@ -112,8 +110,8 @@ Read [security](security.md) before approving a new registry origin or publisher
 
 `atlas verify` checks the public runtime file, selected host catalog, manifest
 shape, one-version-per-app selection, route conflicts, external app dependencies,
-remote entries, federation exposes, stylesheets, referenced JavaScript chunks,
-CORS, MIME types, cache headers, and declared SHA-256 integrity. Cache and
+remote entries, federation expose files, stylesheets, CORS, MIME types, cache
+headers, and declared SHA-256 integrity. Cache and
 missing-integrity findings can be warnings, so read the full report instead of
 checking only the exit code.
 
