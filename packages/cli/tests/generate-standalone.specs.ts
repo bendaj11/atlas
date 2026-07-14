@@ -21,7 +21,8 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   const serverMain = await readFile(join(serverTarget, "main.mts"), "utf8");
   const generatedHostId = (await readFile(join(target, "atlas.config.ts"), "utf8")).match(/id: "([^"]+)"/)?.[1] ?? "";
   expect(generatedHostId).not.toBe("");
-  expect(serverMain).toMatch(/runAtlasHostServer/);
+  expect(serverMain).toMatch(/import express from "express"/);
+  expect(serverMain).toMatch(/app\.use\(atlas\(/);
   expect(serverMain).toMatch(new RegExp(generatedHostId));
   expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/catalogUrl/);
   const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
@@ -34,6 +35,8 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   expect(generatedServerPackage.scripts.build).toBe("tsc -p tsconfig.json");
   expect(generatedServerPackage.scripts.start).toBe("node dist/main.mjs");
   expect(typeof generatedServerPackage.dependencies["@atlas/host-server"]).toBe("string");
+  expect(generatedServerPackage.dependencies.express).toBe("^5.2.1");
+  expect(generatedServerPackage.devDependencies["@types/express"]).toBe("^5.0.6");
   const angularJson = JSON.parse(await readFile(join(target, "angular.json"), "utf8"));
   const architect = angularJson.projects["customer-host"].architect;
   expect(architect.build.builder).toBe("@angular-architects/native-federation:build");

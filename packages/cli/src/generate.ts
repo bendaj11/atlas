@@ -34,7 +34,7 @@ import {
   workspaceLabel
 } from "./generate-paths.js";
 import { ui, type AtlasPrompter } from "./ui.js";
-import { defaultDevServerPort, type AtlasWorkspace } from "./workspace.js";
+import { defaultDevServerPort, type AtlasNxProjectType, type AtlasWorkspace } from "./workspace.js";
 
 export class AtlasGenerateService {
   constructor(
@@ -65,7 +65,7 @@ export class AtlasGenerateService {
     const serverTargetExisted = serverRoot ? await exists(serverRoot) : false;
     try {
       this.logGenerationPlan(selectedFramework, root);
-      await this.ensureWorkspaceGenerator(selectedFramework);
+      await this.ensureWorkspaceGenerators(type, selectedFramework);
       const innerRouting = await this.resolveInnerRouting(type);
       const devServerPort = await this.resolveDevServerPort(type);
       if (this.workspace.kind === "nx" && !this.args.hasFlag("skip-workspace-generator") && this.prompts.interactive) {
@@ -81,6 +81,9 @@ export class AtlasGenerateService {
           interactive: this.prompts.interactive,
           routing: innerRouting
         });
+      const serverWorkspaceScaffolded = serverRoot && !this.args.hasFlag("skip-workspace-generator")
+        ? await this.scaffoldHostServer(name, serverRoot)
+        : false;
       const packageName = workspaceScaffolded ? await existingPackageName(root) : undefined;
       const scaffoldedFrameworkVersion = workspaceScaffolded
         ? await existingFrameworkVersionInfo(root, this.workspace.root, selectedFramework)
@@ -113,7 +116,13 @@ export class AtlasGenerateService {
       }
       if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
       if (serverRoot && hostProjects) {
-        await this.writeHostServer(serverRoot, name, hostProjects.server, selectedFramework);
+        await this.writeHostServer({
+          root: serverRoot,
+          hostName: name,
+          files: hostProjects.server,
+          framework: selectedFramework,
+          workspaceScaffolded: serverWorkspaceScaffolded
+        });
       }
       await this.formatGenerated(root);
       if (serverRoot) await this.formatGenerated(serverRoot);
@@ -193,13 +202,29 @@ export default {
     ui.info(`${reason}Atlas will generate the ${frameworkLabel(framework)} scaffold directly at ${target}.`);
   }
 
-  private async ensureWorkspaceGenerator(framework: SupportedFramework): Promise<void> {
+  private async ensureWorkspaceGenerators(type: "host" | "app", framework: SupportedFramework): Promise<void> {
     if (this.args.hasFlag("skip-workspace-generator")) return;
-    const dependency = await this.workspace.missingScaffoldDependency(framework);
+    await this.ensureWorkspaceGenerator(framework);
+    if (type === "host") await this.ensureWorkspaceGenerator("node");
+  }
+
+  private async ensureWorkspaceGenerator(projectType: AtlasNxProjectType): Promise<void> {
+    const dependency = await this.workspace.missingScaffoldDependency(projectType);
     if (!dependency) return;
     const approved = this.args.hasFlag("yes") || await this.confirmPluginInstall(dependency);
     if (!approved) throw new Error(`${dependency} is required to generate this Nx project.`);
-    await this.workspace.installScaffoldDependency(framework);
+    await this.workspace.installScaffoldDependency(projectType);
+  }
+
+  private async scaffoldHostServer(hostName: string, serverRoot: string): Promise<boolean> {
+    if (this.workspace.kind === "nx") {
+      ui.info(`Delegating Node.js scaffolding to @nx/node:application at ${displayTarget(this.workspace.root, serverRoot)}.`);
+    }
+    return await this.workspace.scaffoldHostServer({
+      name: `${hostName}-server`,
+      projectRoot: serverRoot,
+      interactive: this.prompts.interactive
+    });
   }
 
   private async confirmPluginInstall(dependency: string): Promise<boolean> {
@@ -295,19 +320,22 @@ export default {
     await writeFile(join(root, "project.json"), `${JSON.stringify(project, null, 2)}\n`, "utf8");
   }
 
-  private async writeHostServer(
-    root: string,
-    hostName: string,
-    files: AtlasGeneratedFile[],
-    framework: SupportedFramework
-  ): Promise<void> {
-    if (this.workspace.kind === "nx") {
+  private async writeHostServer(options: {
+    root: string;
+    hostName: string;
+    files: AtlasGeneratedFile[];
+    framework: SupportedFramework;
+    workspaceScaffolded: boolean;
+  }): Promise<void> {
+    const { root, hostName, files, framework, workspaceScaffolded } = options;
+    if (this.workspace.kind === "nx" && !workspaceScaffolded) {
       await assertWritable(join(root, "project.json"), this.args.hasFlag("force"), `Host server project "${hostName}-server" already exists. Use --force to replace it.`);
     }
     const serverFiles = this.workspace.kind === "nx"
       ? files.filter((file) => file.path !== "package.json")
       : files;
-    await writeGenerated(root, serverFiles, this.args.hasFlag("force"));
+    if (workspaceScaffolded) await rm(join(root, "src"), { recursive: true, force: true });
+    await writeGenerated(root, serverFiles, workspaceScaffolded || this.args.hasFlag("force"));
     if (this.workspace.kind !== "nx") return;
     await this.writeNxHostServerProject(root, `${hostName}-server`);
     await this.mergeDelegatedDependencies(root, files, framework);
@@ -318,10 +346,17 @@ export default {
     if (cwd === ".." || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
       throw new Error("Nx projects must be generated inside the workspace root.");
     }
+    const projectPath = join(root, "project.json");
+    const scaffoldedProject = await exists(projectPath)
+      ? JSON.parse(await readFile(projectPath, "utf8")) as { targets?: Record<string, unknown>; [key: string]: unknown }
+      : {};
     const project = {
+      ...scaffoldedProject,
       name,
+      sourceRoot: cwd,
       projectType: "application",
       targets: {
+        ...scaffoldedProject.targets,
         build: {
           executor: "nx:run-commands",
           outputs: ["{projectRoot}/dist"],
@@ -334,7 +369,7 @@ export default {
         }
       }
     };
-    await writeFile(join(root, "project.json"), `${JSON.stringify(project, null, 2)}\n`, "utf8");
+    await writeFile(projectPath, `${JSON.stringify(project, null, 2)}\n`, "utf8");
   }
 
   private async mergeDelegatedDependencies(

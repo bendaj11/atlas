@@ -139,7 +139,7 @@ test("atlas dev prepares a versioned local host client", async () => {
   await writeFile(join(projectRoot, "atlas.config.ts"), [
     "export default {",
     '  type: "host",',
-    '  id: "customer-host",',
+    '  id: "stable-customer-host-id",',
     '  framework: "react",',
     "  allowOverrides: true",
     "};"
@@ -176,7 +176,7 @@ test("atlas dev prepares a versioned local host client", async () => {
   expect(localManifest.kind).toBe("host");
   expect(localManifest.channel).toBe("local");
   expect(localManifest.remoteEntryUrl).toBe("http://127.0.0.1:4200/remoteEntry.json");
-  expect(overrides.hostOverride.id).toBe("customer-host");
+  expect(overrides.hostOverride.id).toBe("stable-customer-host-id");
   await expect(access(join(projectRoot, "public/atlas.runtime.json"))).rejects.toMatchObject({ code: "ENOENT" });
 });
 

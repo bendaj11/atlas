@@ -78,12 +78,14 @@ In Nx, generated project names and paths are relative to the directory where
 Atlas is invoked, matching `nx generate`; Atlas does not force an `apps/` layout.
 Atlas first invokes the workspace's installed
 `@nx/angular:application` or `@nx/react:application` generator, then adds the
-Atlas-specific files. Nx therefore remains responsible for `project.json`,
-linting, testing, TypeScript references, and workspace registration. Atlas does
-not emit a nested `angular.json` when the Nx Angular generator succeeds. When
-`@nx/angular` or `@nx/react` is missing, interactive Atlas asks permission
-to add the version matched by Nx. Non-interactive automation can approve this
-with `--yes`.
+Atlas-specific client files. Host generation also invokes
+`@nx/node:application` for the sibling `<host>-server` project before replacing
+its sample entry with Atlas' composition root. Nx therefore remains responsible
+for project metadata, TypeScript references, and workspace registration for both
+projects. Atlas does not emit a nested `angular.json` when the Nx Angular
+generator succeeds. When a required Nx plugin is missing, interactive Atlas
+asks permission to add the version matched by Nx. Non-interactive automation can
+approve this with `--yes`.
 
 In an interactive terminal, Atlas hands control to the native Nx generator for
 supported framework choices such as stylesheets, test runners, and bundler.
@@ -98,10 +100,11 @@ Nx cache restores the compiled `atlas.config.js` needed by `atlas dev` and
 `atlas build`. The target runs `atlas compile-config`, which reads the
 framework-generated project tsconfig and writes `.atlas/atlas.config.js`; Atlas
 does not generate a separate `tsconfig.atlas.json`.
-When Atlas delegates to the native Nx generator, it preserves Nx's generated
-framework targets and adds Atlas targets such as `dev`, `serve`, and
-`atlas:config`. Host generation also creates a sibling `<host>-server` Nx project
-with independent `build` and `start` targets. Generated projects can also be run with native Nx commands:
+When Atlas delegates to native Nx generators, it preserves their generated
+project metadata and unrelated targets while adding or replacing the targets
+required by Atlas. Client projects receive targets such as `dev`, `serve`, and
+`atlas:config`; the sibling server receives independent `build` and `start`
+targets. Generated projects can also be run with native Nx commands:
 
 ```sh
 nx run customer-host

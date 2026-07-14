@@ -73,7 +73,7 @@ export class AtlasDevService {
     const controlPort = this.args.port("control-port", 4400);
     const hostServerPort = this.args.port("host-server-port", 4300);
     if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
-    const manifest = await this.builds.buildLocalHostManifest(config.id, `http://${LOOPBACK_HOST}:${remotePort}`);
+    const manifest = await this.builds.buildLocalHostManifest(project.id, `http://${LOOPBACK_HOST}:${remotePort}`);
     const document: AtlasDevOverrideDocument = {
       schemaVersion: "1",
       hostId: config.id,

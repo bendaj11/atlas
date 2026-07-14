@@ -57,7 +57,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.equal(host.has("Containerfile"), false);
   assert.equal(host.has("server/main.mts"), false);
   assert.doesNotMatch(host.get("package.json"), /"@atlas\/host-server"/);
-  assert.match(server.get("main.mts"), /runAtlasHostServer/);
+  assert.match(server.get("main.mts"), /app\.use\(atlas\(/);
   assert.equal(JSON.parse(server.get("tsconfig.json")).compilerOptions.module, "NodeNext");
   assert.match(server.get("package.json"), /"@atlas\/host-server"/);
   assert.equal(JSON.parse(server.get("package.json")).name, "host-server");

@@ -11,6 +11,20 @@ const MAX_PORT = 65_535;
 
 export interface AtlasHostServerRuntime extends AtlasHostRuntimeConfig {}
 
+export interface AtlasOptions {
+  runtime?: AtlasHostServerRuntime;
+  hostId?: string;
+  catalogUrl?: string;
+  environment?: NodeJS.ProcessEnv;
+  assetOrigins?: string[];
+  loadingHtml?: string;
+  log?: Pick<Console, "info">;
+}
+
+export interface AtlasMiddleware {
+  (request: unknown, response: unknown, next: (error?: unknown) => void): void;
+}
+
 export interface AtlasHostServerOptions {
   runtime: AtlasHostServerRuntime;
   port?: number;
@@ -40,36 +54,47 @@ export interface AtlasHostServerRunOptions {
   log?: Pick<Console, "info" | "error">;
 }
 
-export function createAtlasHostServer(options: AtlasHostServerOptions): AtlasHostServer {
-  validateRuntime(options.runtime);
-  const runtime = { ...options.runtime, ...(options.assetOrigins?.length ? { assetOrigins: options.assetOrigins } : {}) };
+export function atlas(options: AtlasOptions = {}): AtlasMiddleware {
+  const runtime = resolveRuntime(options);
   const contentOrigins = [
     ...(runtime.assetOrigins ?? []),
     ...(runtime.externalRegistryUrls ?? []).map((value) => new URL(value).origin)
   ];
-  const app = express();
+  const router = express.Router();
   const log = options.log ?? console;
-  const port = options.port ?? DEFAULT_PORT;
-  app.disable("x-powered-by");
-  app.use((request, response, next) => {
+  router.use((request, response, next) => {
     response.setHeader("x-content-type-options", "nosniff");
     response.setHeader("referrer-policy", "strict-origin-when-cross-origin");
     response.setHeader("content-security-policy", contentSecurityPolicy(contentOrigins, runtime.allowOverrides === true));
     log.info(`${request.method} ${request.path}`);
     next();
   });
-  app.get("/health/live", (_request, response) => response.status(200).type("text/plain").send("ok\n"));
-  app.get("/health/ready", (_request, response) => response.status(200).type("text/plain").send("ready\n"));
-  app.get("/atlas.runtime.json", (_request, response) => response.set("cache-control", "no-cache").json(runtime));
-  app.get("/atlas.loader.js", (_request, response) => response.set("cache-control", "public, max-age=300").type("text/javascript").send(ATLAS_BROWSER_LOADER));
-  options.configureExpress?.(app);
-  app.get("*path", (request, response) => {
+  router.get("/health/live", (_request, response) => response.status(200).type("text/plain").send("ok\n"));
+  router.get("/health/ready", (_request, response) => response.status(200).type("text/plain").send("ready\n"));
+  router.get("/atlas.runtime.json", (_request, response) => response.set("cache-control", "no-cache").json(runtime));
+  router.get("/atlas.loader.js", (_request, response) => response.set("cache-control", "public, max-age=300").type("text/javascript").send(ATLAS_BROWSER_LOADER));
+  router.get("*path", (request, response) => {
     if (hasAssetExtension(request.path)) {
       response.status(404).type("text/plain").send("Not found\n");
       return;
     }
     response.set("cache-control", "no-cache").type("html").send(indexHtml(options.loadingHtml));
   });
+  return router as unknown as AtlasMiddleware;
+}
+
+export function createAtlasHostServer(options: AtlasHostServerOptions): AtlasHostServer {
+  const app = express();
+  const log = options.log ?? console;
+  const port = options.port ?? DEFAULT_PORT;
+  app.disable("x-powered-by");
+  options.configureExpress?.(app);
+  app.use(atlas({
+    runtime: options.runtime,
+    ...(options.assetOrigins ? { assetOrigins: options.assetOrigins } : {}),
+    ...(options.loadingHtml !== undefined ? { loadingHtml: options.loadingHtml } : {}),
+    ...(options.log ? { log: options.log } : {})
+  }));
   return {
     app,
     listen: () => new Promise((resolve, reject) => {
@@ -83,6 +108,21 @@ export function createAtlasHostServer(options: AtlasHostServerOptions): AtlasHos
       });
     })
   };
+}
+
+function resolveRuntime(options: AtlasOptions): AtlasHostServerRuntime {
+  const runtime = options.runtime ?? runtimeFromEnvironment(options.environment, {
+    ...(options.hostId ? { hostId: options.hostId } : {}),
+    ...(options.catalogUrl ? { catalogUrl: options.catalogUrl } : {})
+  });
+  const resolvedRuntime = {
+    ...runtime,
+    ...(options.hostId ? { hostId: options.hostId } : {}),
+    ...(options.catalogUrl ? { catalogUrl: options.catalogUrl } : {}),
+    ...(options.assetOrigins?.length ? { assetOrigins: options.assetOrigins } : {})
+  };
+  validateRuntime(resolvedRuntime);
+  return resolvedRuntime;
 }
 
 export function runtimeFromEnvironment(

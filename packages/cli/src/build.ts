@@ -76,10 +76,10 @@ export class AtlasBuildService {
     return manifest;
   }
 
-  async buildLocalHostManifest(name: string, baseUrl: string): Promise<AtlasHostManifest> {
-    const project = await this.workspace.findProject(name);
+  async buildLocalHostManifest(projectName: string, baseUrl: string): Promise<AtlasHostManifest> {
+    const project = await this.workspace.findProject(projectName);
     const config = await this.loadConfig(project.root);
-    if (!isHostConfig(config)) throw new Error(`Atlas dev expected "${name}" to be a host.`);
+    if (!isHostConfig(config)) throw new Error(`Atlas dev expected "${projectName}" to be a host.`);
     const manifest: AtlasHostManifest = {
       schemaVersion: "1",
       kind: "host",

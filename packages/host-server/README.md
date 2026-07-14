@@ -1,35 +1,44 @@
 # @atlas/host-server
 
-Framework-neutral Atlas HTTP bootstrap server, browser loader, health endpoints,
-security headers, deep-link fallback, and recovery UI. Generated server projects
-compose this package through editable `main.mts`:
+Express middleware for an Atlas host. Product owns the Express application,
+middleware, routes, errors, listening, and shutdown. Atlas supplies bootstrap
+HTML, browser loader, runtime configuration, health defaults, security headers,
+deep-link fallback, and recovery UI.
 
 ```ts
-import { runAtlasHostServer } from "@atlas/host-server";
+import express from "express";
+import { atlas } from "@atlas/host-server";
+import { productApi } from "./api.js";
 
-await runAtlasHostServer({ hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506" });
+const app = express();
+const port = Number(process.env.PORT ?? 8080);
+
+app.use("/api", productApi);
+app.use(atlas({ hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506" }));
+
+app.listen(port);
 ```
 
-Only environment-specific catalog location is required. `PORT` defaults to
-`8080`:
+Mount Atlas last. Its browser fallback handles unmatched `GET` requests without
+asset extensions.
+
+Only environment-specific catalog location is required:
 
 ```sh
-npm install @atlas/host-server
-
 ATLAS_CATALOG_URL=https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json \
 npm run start
 ```
 
-`runAtlasHostServer` also accepts product middleware through
-`configureExpress`, custom loading HTML, logging, and explicit runtime values.
-It manages listening and graceful shutdown. Lower-level
-`createAtlasHostServer` remains available for custom process lifecycle.
+Optional environment includes `ATLAS_ASSET_ORIGINS`,
+`ATLAS_ALLOW_OVERRIDES`, `ATLAS_RESOURCE_TIMEOUT_MS`,
+`ATLAS_RESOURCE_RETRY_COUNT`, and `ATLAS_EXTERNAL_REGISTRY_URLS`.
 
-Direct `atlas-host-server` CLI remains backward compatible for existing wrappers;
-that generic entry cannot embed project identity and therefore requires both
-`ATLAS_HOST_ID` and `ATLAS_CATALOG_URL`.
+Check `/health/live`, `/health/ready`, and `/atlas.runtime.json`. Versioned host
+client and apps are selected through catalog and released independently from
+server.
 
-Check `/health/live`, `/health/ready`, and `/atlas.runtime.json`. Product UI is
-released independently with `atlas release <host-project>`.
+`runAtlasHostServer` and `createAtlasHostServer` remain compatibility helpers for
+existing consumers. New projects should mount `atlas()` in their own Express
+application.
 
-See the [host-server documentation](https://github.com/bendaj11/atlas/blob/main/docs/host-server.md).
+See [host-server documentation](https://github.com/bendaj11/atlas/blob/main/docs/host-server.md).

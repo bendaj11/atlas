@@ -169,7 +169,7 @@ for (const scenario of [
     expect(packageJson.dependencies["@atlas/host-server"]).toBe(undefined);
     expect(serverPackageJson.name).toBe("customer-host-server");
     expect(serverPackageJson.scripts.build).toBe("tsc -p tsconfig.json");
-    expect(await readFile(join(serverRoot, "main.mts"), "utf8")).toMatch(/runAtlasHostServer/);
+    expect(await readFile(join(serverRoot, "main.mts"), "utf8")).toMatch(/app\.use\(atlas\(/);
     if (scenario.framework === "angular") {
       const appTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.app.json"), "utf8"));
       const angularJson = JSON.parse(await readFile(join(root, scenario.root, "angular.json"), "utf8"));

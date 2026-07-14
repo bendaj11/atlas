@@ -21,9 +21,11 @@ function hostServerPackage(projectName: string): unknown {
       start: "node dist/main.mjs"
     },
     dependencies: {
-      "@atlas/host-server": atlasPackageRange()
+      "@atlas/host-server": atlasPackageRange(),
+      express: "^5.2.1"
     },
     devDependencies: {
+      "@types/express": "^5.0.6",
       "@types/node": "^22.0.0",
       typescript: "~5.9.0"
     }
@@ -31,7 +33,17 @@ function hostServerPackage(projectName: string): unknown {
 }
 
 function hostServerMain(hostId: string): string {
-  return `import { runAtlasHostServer } from "@atlas/host-server";\n\nawait runAtlasHostServer({ hostId: "${hostId}" });\n`;
+  return `import express from "express";
+import { atlas } from "@atlas/host-server";
+
+const app = express();
+const port = Number(process.env.PORT ?? 8080);
+
+app.disable("x-powered-by");
+app.use(atlas({ hostId: "${hostId}" }));
+
+app.listen(port, () => console.info(\`Atlas host server listening on port \${port}.\`));
+`;
 }
 
 function hostServerTsconfig(): unknown {

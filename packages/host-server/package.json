@@ -1,8 +1,8 @@
 {
   "name": "@atlas/host-server",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "type": "module",
-  "description": "Composable TypeScript HTTP bootstrap for Atlas hosts.",
+  "description": "Express middleware for Atlas host bootstrap.",
   "license": "MIT",
   "keywords": [
     "atlas",
@@ -45,7 +45,7 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.3",
+    "@atlas/schema": "0.3.4",
     "@types/express": "^5.0.6",
     "express": "^5.2.1"
   }

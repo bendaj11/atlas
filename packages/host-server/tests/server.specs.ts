@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
+import { atlas } from "../dist/index.js";
 import { HostServerDriver } from "./server.driver.js";
 
 const hostServer = new HostServerDriver();
@@ -49,4 +50,29 @@ test("host server rejects insecure external production registries", () => {
     ATLAS_CATALOG_URL: "https://cdn.example/atlas/hosts/customer-host/catalog.json",
     ATLAS_EXTERNAL_REGISTRY_URLS: "http://team-a.example/atlas"
   }), /must contain HTTPS URLs/);
+});
+
+test("Atlas middleware resolves runtime from host identity and environment", () => {
+  assert.doesNotThrow(() => atlas({
+    hostId: "customer-host",
+    environment: {
+      ATLAS_CATALOG_URL: "https://cdn.example/atlas/hosts/customer-host/catalog.json"
+    },
+    log: { info() {} }
+  }));
+});
+
+test("Atlas middleware rejects missing catalog configuration", () => {
+  assert.throws(() => atlas({
+    hostId: "customer-host",
+    environment: {},
+    log: { info() {} }
+  }), /ATLAS_CATALOG_URL is required/);
+});
+
+test("product routes are registered before Atlas middleware", () => {
+  const routes = hostServer.compositionRoutes((app) => {
+    app.get("/api/session", (_request, result) => result.json({ authenticated: true }));
+  });
+  assert.deepEqual(routes, ["/api/session", "<atlas>"]);
 });
