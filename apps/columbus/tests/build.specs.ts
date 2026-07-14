@@ -97,7 +97,7 @@ test("host override policy prevents dev-session interception", async () => {
 
 test("Columbus extension keeps persisted overrides as fallback without hardcoded hosts", async () => {
   const source = await readColumbusFile("dist/popup.js");
-  const hostSource = await readColumbusFile("src/popup/atlas-host.ts");
+  const hostSource = await readColumbusFile("src/popup/inspect-atlas-host.ts");
   const constants = await readColumbusFile("dist/assets/constants.js");
   assert.match(constants, /atlas\.runtime-overrides/);
   assert.match(hostSource, /manifest\.kind === "host" \? "hosts" : "apps"/);
@@ -125,7 +125,7 @@ test("Columbus extension keeps the override count badge synced from pages", asyn
 });
 
 test("Columbus popup recognizes intercepted local manifests as enabled overrides", async () => {
-  const source = await readColumbusFile("src/popup/atlas-host.ts");
+  const source = await readColumbusFile("src/popup/inspect-atlas-host.ts");
   assert.match(source, /manifest\.channel === "local"/);
   assert.match(source, /reason: "local" as const/);
   assert.match(source, /version\.channel === "production"/);
@@ -133,12 +133,12 @@ test("Columbus popup recognizes intercepted local manifests as enabled overrides
 });
 
 test("Columbus discovers and labels external widget providers", async () => {
-  const host = await readColumbusFile("src/popup/atlas-host.ts");
+  const host = await readColumbusFile("src/popup/inspect-atlas-host.ts");
   const dashboard = await readColumbusFile("src/popup/components/Dashboard.tsx");
   assert.match(host, /externalRegistryUrls/);
   assert.match(host, /externalAppsDependencies/);
   assert.match(host, /registry\.json/);
-  assert.match(host, /widgetProviders: external\.providers/);
+  assert.match(host, /createProductionCatalog\(catalog, versions, external\.providers\)/);
   assert.match(dashboard, /External widget provider · not mounted as app/);
 });
 
@@ -191,12 +191,12 @@ test("Columbus popup displays host identity, version, URL, and environment with 
 });
 
 test("Columbus popup injects a self-contained Atlas host inspector", async () => {
-  const source = await readColumbusFile("src/popup/atlas-host.ts");
-  assert.match(source, /func: inspectAtlasHost,\n\s+args: \[DOCUMENT_KEY\]/);
-  assert.match(source, /async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+function manifestKey/);
-  const inspector = source.slice(source.indexOf("async function inspectAtlasHost"), source.indexOf("function persistOverrides"));
+  const hostSource = await readColumbusFile("src/popup/atlas-host.ts");
+  const inspector = await readColumbusFile("src/popup/inspect-atlas-host.ts");
+  assert.match(hostSource, /func: inspectAtlasHost,\n\s+args: \[DOCUMENT_KEY\]/);
+  assert.match(inspector, /export async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+function manifestKey/);
   assert.doesNotMatch(inspector, /artifactKey\(/);
-  assert.doesNotMatch(source, /return inspectAtlasHostData\(\)/);
+  assert.doesNotMatch(inspector, /^import (?!type)/mu);
 });
 
 test("Columbus popup uses WDS radio group for selected editor options and labels", async () => {
