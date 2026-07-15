@@ -3,11 +3,84 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
+import { ensureDelegatedNxTargets } from "../dist/generate-nx.js";
 import { atlasPackageRange, run } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
 const ATLAS_PACKAGE_RANGE = await atlasPackageRange();
+
+test.each(["host", "app"] as const)("atlas preserves the native Nx React dev target for %s projects when serve aliases it", async (type) => {
+  const root = await mkdtemp(join(tmpdir(), `atlas-nx-react-${type}-dev-alias-`));
+  const projectRoot = join(root, `apps/${type}`);
+  const nativeDevTarget = {
+    executor: "@nx/vite:dev-server",
+    options: { buildTarget: `${type}:build` }
+  };
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "project.json"), JSON.stringify({
+    name: type,
+    targets: {
+      dev: nativeDevTarget,
+      serve: {
+        executor: "nx:run-commands",
+        options: { command: `nx run ${type}:dev`, forwardAllArgs: true }
+      }
+    }
+  }));
+
+  await ensureDelegatedNxTargets(root, projectRoot, type, type, "react", type === "host" ? 4200 : 4201);
+
+  const project = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8"));
+  expect({ dev: project.targets.dev, serve: project.targets.serve }).toStrictEqual({
+    dev: {
+      executor: "nx:run-commands",
+      options: { command: `atlas dev ${type}`, forwardAllArgs: true }
+    },
+    serve: nativeDevTarget
+  });
+});
+
+test("atlas preserves the native Nx Angular dev target before federation wraps serve", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-dev-alias-"));
+  const projectRoot = join(root, "apps/orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "project.json"), JSON.stringify({
+    name: "orders",
+    targets: {
+      build: {
+        executor: "@nx/angular:application",
+        options: { polyfills: [] }
+      },
+      dev: {
+        executor: "@angular-devkit/build-angular:dev-server",
+        options: { buildTarget: "orders:build:development" }
+      },
+      serve: {
+        executor: "nx:run-commands",
+        options: { command: "nx run orders:dev", forwardAllArgs: true }
+      }
+    }
+  }));
+
+  await ensureDelegatedNxTargets(root, projectRoot, "orders", "app", "angular", 4201);
+
+  const project = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8"));
+  expect({ dev: project.targets.dev, serve: project.targets.serve, serveOriginal: project.targets["serve-original"] }).toStrictEqual({
+    dev: {
+      executor: "nx:run-commands",
+      options: { command: "atlas dev orders", forwardAllArgs: true }
+    },
+    serve: {
+      executor: "@angular-architects/native-federation:build",
+      options: { target: "orders:serve-original:development", dev: true, port: 4201 }
+    },
+    serveOriginal: {
+      executor: "@angular-devkit/build-angular:dev-server",
+      options: { buildTarget: "orders:esbuild:development" }
+    }
+  });
+});
 
 test("atlas preserves Nx Angular workspace version after native scaffolding", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-nx-angular-generator-"));

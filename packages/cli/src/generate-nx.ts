@@ -103,6 +103,7 @@ export async function ensureDelegatedNxTargets(
     throw new Error(staleNxProjectRootMessage(project, previousProjectRoot, projectRoot));
   }
   const targets = asObject(project.targets);
+  preserveNativeDevTarget(targets, projectName);
   if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor", devServerPort);
   ensureAtlasConfigTarget(targets, projectName);
   ensureDevTarget({ targets, projectName, projectRoot, type, framework });
@@ -124,7 +125,6 @@ function ensureAtlasConfigTarget(targets: Record<string, unknown>, projectName: 
 function ensureDevTarget(options: NxDevTargetOptions): void {
   const { targets, projectName, projectRoot, type, framework } = options;
   if (!targets.dev || isOutdatedDevTarget(targets.dev, projectName)) {
-    if (type === "host") preserveNativeHostDevTarget(targets);
     targets.dev = {
       executor: "nx:run-commands",
       options: { command: `atlas dev ${projectName}`, forwardAllArgs: true }
@@ -149,8 +149,22 @@ function inferredViteServeTarget(projectRoot: string): Record<string, unknown> {
   };
 }
 
-function preserveNativeHostDevTarget(targets: Record<string, unknown>): void {
-  if (!targets.serve && targets.dev) targets.serve = targets.dev;
+function preserveNativeDevTarget(targets: Record<string, unknown>, projectName: string): void {
+  if (!targets.dev) return;
+  if (!targets.serve || delegatesToDevTarget(targets.serve, projectName)) targets.serve = targets.dev;
+}
+
+function delegatesToDevTarget(value: unknown, projectName: string): boolean {
+  const options = asObject(asObject(value).options);
+  const commands = [options.command, ...commandValues(options.commands)]
+    .filter((command): command is string => typeof command === "string");
+  const aliases = [`nx run ${projectName}:dev`, `nx dev ${projectName}`];
+  return commands.some((command) => aliases.some((alias) => command === alias || command.startsWith(`${alias} `)));
+}
+
+function commandValues(value: unknown): unknown[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((command) => typeof command === "string" ? command : asObject(command).command);
 }
 
 function isOutdatedDevTarget(value: unknown, projectName: string): boolean {
