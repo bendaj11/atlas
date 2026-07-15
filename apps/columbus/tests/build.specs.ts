@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { readColumbusFile, readColumbusManifest, runCatalogInterceptor } from "./build.driver.js";
+import { readColumbusFile, readColumbusJson, readColumbusManifest, runCatalogInterceptor } from "./build.driver.js";
 
 const productionHost = { schemaVersion: "1", kind: "host", id: "test-host", name: "Test Host", version: "1.0.0", buildId: "host-prod", channel: "production", framework: "react", remoteEntryUrl: "https://cdn.test/host/remoteEntry.json", requiredHostSdkVersion: "*", supportedHosts: ["test-host"], placements: [] };
 const productionManifest = { schemaVersion: "1", kind: "app", id: "app", name: "App", version: "1.0.0", buildId: "prod", channel: "production", framework: "react", remoteEntryUrl: "https://cdn.test/remoteEntry.json", requiredHostSdkVersion: "*", supportedHosts: ["test-host"], placements: [] };
@@ -44,6 +44,12 @@ test("Columbus extension build is Manifest V3 with local dev interception", asyn
     128: "icons/atlas-128.png"
   });
   expect(manifest.background.service_worker).toBe("background.js");
+});
+
+test("Columbus typecheck cannot overwrite the bundled extension", async () => {
+  const packageJson = await readColumbusJson("package.json") as { scripts: { typecheck: string } };
+
+  expect(packageJson.scripts.typecheck).toContain("--noEmit");
 });
 
 test("Columbus extension intercepts Atlas catalogs for local dev sessions", async () => {
@@ -120,7 +126,7 @@ test("Columbus extension keeps the override count badge synced from pages", asyn
   expect(badgeScript).toMatch(/atlas\.dev-session\.json/);
   expect(badgeScript).toMatch(/atlas\.disabled-local-apps\./);
   expect(badgeScript).toMatch(/setInterval/);
-  expect(badgeScript).not.toMatch(/^import/u);
+  expect(badgeScript).not.toMatch(/^import/);
 });
 
 test("Columbus popup recognizes intercepted local manifests as enabled overrides", async () => {
@@ -195,7 +201,7 @@ test("Columbus popup injects a self-contained Atlas host inspector", async () =>
   expect(hostSource).toMatch(/func: inspectAtlasHost,\n\s+args: \[DOCUMENT_KEY\]/);
   expect(inspector).toMatch(/export async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+function manifestKey/);
   expect(inspector).not.toMatch(/artifactKey\(/);
-  expect(inspector).not.toMatch(/^import (?!type)/mu);
+  expect(inspector).not.toMatch(/^import (?!type)/m);
 });
 
 test("Columbus popup uses WDS radio group for selected editor options and labels", async () => {

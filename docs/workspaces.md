@@ -63,7 +63,7 @@ Set it in the shell or in the app project's `.env.local` file:
 
 ```dotenv
 ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
-ATLAS_HOST_URL=http://127.0.0.1:4300
+ATLAS_HOST_URL=http://localhost:4200
 ```
 
 Atlas loads the selected project's env files before workspace env files, regardless

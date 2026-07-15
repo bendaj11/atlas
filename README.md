@@ -73,7 +73,7 @@ directory containing both projects:
 npx atlas dev customer-host
 
 # Terminal 2
-npx atlas dev orders --host-url=http://127.0.0.1:4300/orders
+npx atlas dev orders --host-url=http://localhost:4200/orders
 ```
 
 This proves local composition only. Production needs a public registry,

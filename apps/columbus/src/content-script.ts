@@ -33,7 +33,7 @@ interface AtlasInterceptDevSession {
   generatedAt: string;
 }
 
-const ATLAS_DEV_SESSION_URL = "http://127.0.0.1:4400/atlas.dev-session.json";
+const ATLAS_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
 const ATLAS_RUNTIME_CONFIG_PATH = /\/atlas\.runtime\.json$/;
 const DISABLED_LOCAL_APPS_KEY_PREFIX = "atlas.disabled-local-apps.";

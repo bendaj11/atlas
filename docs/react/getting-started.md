@@ -49,8 +49,10 @@ or assume host implementation details.
 | Package images, fonts, and CSS | [React assets and styles](assets-and-styles.md) |
 | Generate projects or widgets | [React generators](generators.md) |
 | Inspect working projects | [React examples](examples.md) |
+| Build and release React artifacts | [React production deployment](production-deployment.md) |
 | Diagnose loading or routing failure | [React troubleshooting](troubleshooting.md) |
 
-Build and release steps remain framework-neutral. Use [Production
-deployment](../production-deployment.md), not a separate React deployment
-sequence.
+Use [React production deployment](production-deployment.md) for framework build
+output and checkpoints. It links to canonical
+[Production deployment](../production-deployment.md) for storage, CI,
+verification, and rollback.

@@ -74,9 +74,10 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [
       { label: "--host <host-id>", description: "Host receiving the local override" },
       { label: "--host-url <url>", description: "Host page opened with the override activated" },
-      { label: "--port <number>", description: "Framework dev-server port (host: 4200, app: 4201)" },
+      { label: "--port <number>", description: "Host browser port or app framework port (host: 4200, app: 4201)" },
       { label: "--control-port <number>", description: "Atlas override-server port (default: 4400)" },
-      { label: "--bootstrap-port <number>", description: "Local static bootstrap port (default: 4300)" },
+      { label: "--bootstrap-port <number>", description: "Override local host bootstrap port (default: host --port)" },
+      { label: "--host-client-port <number>", description: "Internal host-client framework port (default: 4300)" },
       { label: "--no-open", description: "Do not open the resolved host URL automatically" },
       { label: "--prepare-only", description: "Create the override without starting development servers" },
       { label: "-h, --help", description: "Show help for this command" }

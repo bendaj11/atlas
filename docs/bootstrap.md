@@ -70,9 +70,9 @@ caching, headers, and asset-404 behavior.
 ## Local Development
 
 `atlas dev customer-host` starts framework server, Atlas control service, and
-ephemeral static bootstrap at `http://127.0.0.1:4300`. These are local tools,
-not production application-server requirements. Use `--bootstrap-port` to
-change port or `--host-url` to use an already running page.
+ephemeral static bootstrap at `http://localhost:4200` by default. These are local
+tools, not production application-server requirements. Use `--port` to change
+browser-facing port or `--host-url` to use an already running page.
 
 ## When Backend Is Still Needed
 

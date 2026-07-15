@@ -32,7 +32,7 @@ Use these goal-oriented guides after completing the tutorial:
 | Load assets and styles | [Angular assets](angular/assets-and-styles.md) or [React assets](react/assets-and-styles.md) |
 | Export reusable UI | [Exported widgets](exported-widgets.md) |
 | Test a host/app contract | [Consumer testing](consumer-testing.md) |
-| Deploy and release | [Production deployment](production-deployment.md) |
+| Deploy and release | [Production deployment](production-deployment.md), then [Angular steps](angular/production-deployment.md) or [React steps](react/production-deployment.md) |
 | Secure a deployment | [Security](security.md) |
 | Diagnose failure | [Angular troubleshooting](angular/troubleshooting.md) or [React troubleshooting](react/troubleshooting.md) |
 

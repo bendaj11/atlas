@@ -89,7 +89,7 @@ atlas dev customer-host
 
 ```sh
 # Terminal 2
-atlas dev orders --host-url=http://127.0.0.1:4300/orders
+atlas dev orders --host-url=http://localhost:4200/orders
 ```
 
 Checkpoint: host preview renders Orders at `/orders`, nested refresh works, and
@@ -102,4 +102,5 @@ Test feature states plus mount/unmount and required SDK contracts. Run app insid
 real host before release. See [Consumer testing](../consumer-testing.md).
 
 Production build, publication, verification, and rollback are
-framework-neutral. Continue with [Production deployment](../production-deployment.md).
+framework-neutral. Continue with [Angular production deployment](production-deployment.md),
+which links each framework build step to canonical publication and rollback.

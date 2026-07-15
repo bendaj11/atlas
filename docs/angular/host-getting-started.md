@@ -218,18 +218,17 @@ atlas dev customer-host
 
 CLI starts:
 
-- local static bootstrap, normally `http://127.0.0.1:4300`;
-- Angular asset server, normally port `4200`;
+- browser-facing static bootstrap, normally `http://localhost:4200`;
+- internal Angular asset server, normally port `4300`;
 - local catalog/control endpoints used by Columbus.
 
-Open URL printed by CLI. Use port `4300` for product testing. Port `4200` is a
-lower-level asset server and does not represent complete Atlas composition.
+Open URL printed by CLI. Default product URL stays on port `4200`; internal
+asset-server port does not represent complete Atlas composition.
 
 Verify host alone:
 
 ```sh
-curl --fail http://127.0.0.1:4300/atlas.runtime.json
-curl --fail http://127.0.0.1:4300/atlas.runtime.json
+curl --fail http://localhost:4200/atlas.runtime.json
 ```
 
 Expected browser state:
@@ -245,7 +244,7 @@ Expected browser state:
 Run app in another terminal:
 
 ```sh
-atlas dev orders --host-url=http://127.0.0.1:4300/orders
+atlas dev orders --host-url=http://localhost:4200/orders
 ```
 
 Open `/orders`, then verify:
@@ -311,7 +310,7 @@ Build static bootstrap once per environment or bootstrap change:
 atlas build-bootstrap customer-host --registry-base-url=https://cdn.example.com/atlas
 ```
 
-Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host releases use `atlas release customer-host`; app releases use `atlas release <app>`. Catalog activation changes selected UI without rebuilding bootstrap container. See [Production deployment](../production-deployment.md).
+Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host releases use `atlas release customer-host`; app releases use `atlas release <app>`. Catalog activation changes selected UI without rebuilding bootstrap container. Follow [Angular production deployment](production-deployment.md).
 
 ## Common Mistakes
 

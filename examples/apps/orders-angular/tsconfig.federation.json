@@ -8,8 +8,6 @@
     "atlas.config.ts"
   ],
   "include": [
-    "src/**/*.ts",
-    "src/entry.ts",
-    "src/exported-widgets/order-status/index.ts"
+    "src/**/*.ts"
   ]
 }

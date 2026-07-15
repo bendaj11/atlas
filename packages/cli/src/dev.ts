@@ -5,7 +5,14 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { dirname, join } from "node:path";
 import { createAtlasBootstrapFiles } from "@atlas/bootstrap";
 import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
-import type { AtlasConfig, AtlasHostCatalog, AtlasHostConfig, AtlasHostManifest, AtlasHostRuntimeConfig } from "@atlas/schema";
+import type {
+  AtlasConfig,
+  AtlasHostCatalog,
+  AtlasHostConfig,
+  AtlasHostManifest,
+  AtlasHostRuntimeConfig,
+  AtlasStaticRegistry
+} from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
@@ -15,11 +22,16 @@ import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
 const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
-const LOOPBACK_HOST = "127.0.0.1";
+const LOCAL_HOST = "localhost";
 interface DevControlServer {
   port: number;
   markReady(): Promise<void>;
   close(): Promise<void>;
+}
+
+interface HostDevPorts {
+  bootstrapPort: number;
+  clientPort: number;
 }
 
 interface DevTarget {
@@ -69,11 +81,11 @@ export class AtlasDevService {
   }
 
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
-    const remotePort = await this.resolveRemotePort(project, 4200);
+    const configuredPort = await this.resolveRemotePort(project, 4200);
+    const { bootstrapPort, clientPort } = resolveHostDevPorts(this.args, configuredPort);
     const controlPort = this.args.port("control-port", 4400);
-    const bootstrapPort = this.args.port("bootstrap-port", 4300);
     if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
-    const manifest = await this.builds.buildLocalHostManifest(project.id, `http://${LOOPBACK_HOST}:${remotePort}`);
+    const manifest = await this.builds.buildLocalHostManifest(project.id, localOrigin(clientPort));
     const document: AtlasDevOverrideDocument = {
       schemaVersion: "1",
       hostId: config.id,
@@ -84,25 +96,26 @@ export class AtlasDevService {
     const directory = join(project.root, ".atlas");
     await mkdir(directory, { recursive: true });
     await writeFile(join(directory, "local-overrides.json"), `${JSON.stringify(document, null, 2)}\n`, "utf8");
-    const hostUrl = this.args.flag("host-url") ?? `http://${LOOPBACK_HOST}:${bootstrapPort}`;
+    const hostUrl = this.args.flag("host-url") ?? localOrigin(bootstrapPort);
     if (this.args.hasFlag("prepare-only")) {
       console.info(`Host client "${config.id}" is prepared for ${hostUrl}. Run without --prepare-only to start it.`);
       return;
     }
-    const overrideUrl = `http://${LOOPBACK_HOST}:${controlPort}/atlas.local-overrides.json`;
+    const controlOrigin = localOrigin(controlPort);
+    const overrideUrl = `${controlOrigin}/atlas.local-overrides.json`;
     const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
-    const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
+    const frameworkServer = this.workspace.spawn(project, frameworkTask, frameworkServerArguments(config.framework, clientPort));
     const bootstrap = this.args.flag("host-url") ? undefined : await startLocalBootstrapServer({
       port: bootstrapPort,
       runtime: {
         schemaVersion: "1",
         hostId: config.id,
-        catalogUrl: `http://${LOOPBACK_HOST}:${controlPort}/hosts/${config.id}/catalog.json`,
+        catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
         allowOverrides: true,
         resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
         resourcesRetryCount: config.resourcesRetryCount ?? 3,
-        assetOrigins: [`http://${LOOPBACK_HOST}:${remotePort}`, `http://${LOOPBACK_HOST}:${controlPort}`]
+        assetOrigins: [localOrigin(clientPort), controlOrigin]
       }
     });
     try {
@@ -124,7 +137,7 @@ export class AtlasDevService {
   ): Promise<void> {
     const remotePort = await this.resolveRemotePort(project);
     const controlPort = this.args.port("control-port", 4400);
-    const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: `http://localhost:${remotePort}` });
+    const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: localOrigin(remotePort) });
     const target = await this.resolveDevTarget(config, prompts);
     await this.offerToSaveDevTarget(project.root, target, prompts);
     const document: AtlasRuntimeOverrideDocument = {
@@ -136,7 +149,7 @@ export class AtlasDevService {
     const overridePath = join(directory, "local-overrides.json");
     await mkdir(directory, { recursive: true });
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
-    const overrideUrl = `http://${LOOPBACK_HOST}:${controlPort}/atlas.local-overrides.json`;
+    const overrideUrl = `${localOrigin(controlPort)}/atlas.local-overrides.json`;
     const hostActivationUrl = target.hostUrl;
     if (this.args.hasFlag("prepare-only")) {
       logHostViewUrl(hostActivationUrl);
@@ -144,7 +157,7 @@ export class AtlasDevService {
     }
     const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
-    const frameworkServer = this.workspace.spawn(project, frameworkTask, ["--port", String(remotePort)]);
+    const frameworkServer = this.workspace.spawn(project, frameworkTask, frameworkServerArguments(config.framework, remotePort));
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
@@ -239,7 +252,7 @@ interface LocalBootstrapServerOptions {
 export async function startLocalBootstrapServer(options: LocalBootstrapServerOptions): Promise<Server> {
   const files = new Map(createAtlasBootstrapFiles({ runtime: options.runtime }).map((file) => [`/${file.path}`, file.contents]));
   const server = createServer((request, response) => {
-    const path = new URL(request.url ?? "/", `http://${LOOPBACK_HOST}`).pathname;
+    const path = new URL(request.url ?? "/", `http://${LOCAL_HOST}`).pathname;
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.writeHead(405, { allow: "GET, HEAD" });
       response.end();
@@ -286,11 +299,11 @@ function writeBootstrapResponse(options: BootstrapResponseOptions): void {
 function listen(server: Server, port: number, label: string): Promise<Server> {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, LOOPBACK_HOST, () => {
+    server.listen(port, LOCAL_HOST, () => {
       server.off("error", reject);
       const address = server.address();
       const actualPort = typeof address === "object" && address ? address.port : port;
-      console.info(`${label} listening at http://${LOOPBACK_HOST}:${actualPort}.`);
+      console.info(`${label} listening at ${localOrigin(actualPort)}.`);
       resolve(server);
     });
   });
@@ -385,6 +398,10 @@ function startOwnedControlServer(port: number, document: AtlasDevOverrideDocumen
       writeJson(response, current);
       return;
     }
+    if (request.method === "GET" && pathname === "/registry.json") {
+      writeJson(response, session.registry());
+      return;
+    }
     if (request.method === "GET" && pathname === "/health") {
       const ready = session.hasReadySession();
       writeJson(response, ready ? { status: "ok" } : { status: "starting" }, ready ? 200 : 503);
@@ -394,7 +411,7 @@ function startOwnedControlServer(port: number, document: AtlasDevOverrideDocumen
   });
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, LOOPBACK_HOST, () => {
+    server.listen(port, LOCAL_HOST, () => {
       server.off("error", reject);
       const address = server.address();
       if (!address || typeof address === "string") {
@@ -418,7 +435,7 @@ async function joinControlServer(
   port: number,
   document: AtlasDevOverrideDocument
 ): Promise<DevControlServer> {
-  const baseUrl = `http://${LOOPBACK_HOST}:${port}`;
+  const baseUrl = localOrigin(port);
   await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
   const appIds = document.overrides.map((override) => override.manifest.id);
   const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
@@ -453,7 +470,11 @@ export function createLocalDevCatalog(document: AtlasDevOverrideDocument): Atlas
 }
 
 function uniqueManifests(overrides: AtlasRuntimeOverrideDocument["overrides"]): AtlasHostCatalog["apps"] {
-  return [...new Map(overrides.map((override) => [override.manifest.id, override.manifest])).values()];
+  return uniqueArtifacts(overrides.map((override) => override.manifest));
+}
+
+function uniqueArtifacts<T extends { id: string }>(artifacts: T[]): T[] {
+  return [...new Map(artifacts.map((artifact) => [artifact.id, artifact])).values()];
 }
 
 function localHostPlaceholder(hostId: string, createdAt: string): AtlasHostManifest {
@@ -466,7 +487,7 @@ function localHostPlaceholder(hostId: string, createdAt: string): AtlasHostManif
     buildId: "local-placeholder",
     channel: "local",
     framework: "react",
-    remoteEntryUrl: "http://127.0.0.1:4200/remoteEntry.json",
+    remoteEntryUrl: "http://localhost:4200/remoteEntry.json",
     exposes: { entry: "./host" },
     requiredLoaderApiVersion: "^1.0.0",
     createdAt
@@ -504,6 +525,7 @@ interface DevSessionStore {
   document(hostId?: string): AtlasDevOverrideDocument | undefined;
   catalog(hostId: string): AtlasHostCatalog | undefined;
   devSession(hostId?: string): AtlasDevSessionDocument | undefined;
+  registry(): AtlasStaticRegistry;
   hasReadySession(): boolean;
 }
 
@@ -548,6 +570,21 @@ function createDevSessionStore(initial: AtlasDevOverrideDocument, overrideUrl: s
     }
   }
 
+  function registry(): AtlasStaticRegistry {
+    const documents = [...hosts.keys()].flatMap((hostId) => {
+      const document = currentDocument(hostId);
+      return document ? [document] : [];
+    });
+    const updatedAt = documents.map((document) => document.generatedAt).sort().at(-1) ?? initial.generatedAt;
+    return {
+      schemaVersion: "1",
+      revision: `local:${updatedAt}`,
+      updatedAt,
+      hosts: uniqueArtifacts(documents.flatMap((document) => document.hostOverride ? [document.hostOverride] : [])),
+      apps: uniqueArtifacts(documents.flatMap((document) => document.overrides.map((override) => override.manifest)))
+    };
+  }
+
   return {
     register,
     unregister(appId, requestedHostId) {
@@ -581,6 +618,7 @@ function createDevSessionStore(initial: AtlasDevOverrideDocument, overrideUrl: s
       const document = currentDocument(hostId);
       return document ? createLocalDevCatalog(document) : undefined;
     },
+    registry,
     devSession(hostId) {
       const document = currentDocument(hostId);
       if (!document) return undefined;
@@ -590,6 +628,30 @@ function createDevSessionStore(initial: AtlasDevOverrideDocument, overrideUrl: s
       return [...hosts.keys()].some((hostId) => currentDocument(hostId) !== undefined);
     }
   };
+}
+
+export function frameworkServerArguments(framework: AtlasConfig["framework"], port: number): string[] {
+  const portArguments = ["--port", String(port)];
+  return framework === "react" ? [...portArguments, "--host", LOCAL_HOST] : portArguments;
+}
+
+export function resolveHostDevPorts(args: CliArguments, configuredPort: number): HostDevPorts {
+  const bootstrapPort = args.port("bootstrap-port", configuredPort);
+  const clientFallback = hostClientPortFallback(args, configuredPort, bootstrapPort);
+  const clientPort = args.port("host-client-port", clientFallback);
+  if (!args.hasFlag("host-url") && clientPort === bootstrapPort) {
+    throw new Error("Host bootstrap and host client ports must differ. Pass --host-client-port with another port.");
+  }
+  return { bootstrapPort, clientPort };
+}
+
+function hostClientPortFallback(args: CliArguments, configuredPort: number, bootstrapPort: number): number {
+  if (args.hasFlag("host-url") || args.hasFlag("bootstrap-port")) return configuredPort;
+  return bootstrapPort === 4300 ? 4200 : 4300;
+}
+
+function localOrigin(port: number): string {
+  return `http://${LOCAL_HOST}:${port}`;
 }
 
 interface HostDevSession {

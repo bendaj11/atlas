@@ -1,12 +1,12 @@
 {
   "name": "@atlas/columbus",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build && node scripts/copy-static.js",
+    "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && node scripts/copy-static.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='apps/columbus/tests/'",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {
     "@file-services/node": "^9.4.1",

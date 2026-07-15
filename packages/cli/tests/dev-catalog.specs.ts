@@ -9,6 +9,8 @@ import {
   devSessionHostId,
   hostJoiningSharedControlBecomesReady,
   localDocument,
+  localHostDocument,
+  registryArtifactIds,
   run
 } from "./build.driver.js";
 
@@ -70,9 +72,9 @@ test("atlas dev local catalog contains overridden manifests for fresh hosts", ()
     hostId: "mobile-host",
     generatedAt: "2026-07-09T08:02:37.622Z",
     overrides: [{ appId: "login", manifest, reason: "local" }]
-  }, catalog, "http://127.0.0.1:4400/atlas.local-overrides.json");
+  }, catalog, "http://localhost:4400/atlas.local-overrides.json");
   expect(session.hostId).toBe("mobile-host");
-  expect(session.overrideUrl).toBe("http://127.0.0.1:4400/atlas.local-overrides.json");
+  expect(session.overrideUrl).toBe("http://localhost:4400/atlas.local-overrides.json");
   expect(session.catalog).toStrictEqual(catalog);
 });
 
@@ -85,12 +87,15 @@ localNetworkTest("atlas dev control server accepts multiple local apps for one h
   try {
     await first.markReady();
     expect(await catalogManifestIds(first.port, "mobile-host")).toStrictEqual(["login"]);
+    expect(await registryArtifactIds(first.port)).toStrictEqual({ hosts: [], apps: ["login"] });
 
     await second.markReady();
     expect(await catalogManifestIds(first.port, "mobile-host")).toStrictEqual(["login", "profile"]);
+    expect(await registryArtifactIds(first.port)).toStrictEqual({ hosts: [], apps: ["login", "profile"] });
 
     await second.close();
     expect(await catalogManifestIds(first.port, "mobile-host")).toStrictEqual(["login"]);
+    expect(await registryArtifactIds(first.port)).toStrictEqual({ hosts: [], apps: ["login"] });
   } finally {
     await first.close();
   }
@@ -120,6 +125,16 @@ localNetworkTest("atlas dev control server serves local apps for different hosts
 
 localNetworkTest("host dev becomes ready when joining a shared control server", async () => {
   expect(await hostJoiningSharedControlBecomesReady()).toBe("mobile-host");
+});
+
+localNetworkTest("atlas dev registry contains ready local host clients", async () => {
+  const control = await startControlServer(0, localHostDocument(), "");
+  try {
+    await control.markReady();
+    expect(await registryArtifactIds(control.port)).toStrictEqual({ hosts: ["mobile-host"], apps: [] });
+  } finally {
+    await control.close();
+  }
 });
 
 localNetworkTest("closing a joined app keeps the host dev session alive", async () => {

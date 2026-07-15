@@ -2,6 +2,10 @@ const { existsSync, readdirSync } = require("node:fs");
 const { createRequire } = require("node:module");
 const { join } = require("node:path");
 
+function sourcePath(path) {
+  return `./src/${path}`;
+}
+
 function createAngularFederationConfig(options) {
   const requireFromProject = createRequire(join(options.projectRoot, "package.json"));
   const { withNativeFederation } = requireFromProject("@angular-architects/native-federation/config");
@@ -12,7 +16,7 @@ function createAngularFederationConfig(options) {
           .filter((entry) => entry.isDirectory())
           .map((entry) => [
             `./widgets/${entry.name}`,
-            join(widgetsRoot, entry.name, "index.ts")
+            sourcePath(`exported-widgets/${entry.name}/index.ts`)
           ])
       )
     : {};
@@ -20,9 +24,9 @@ function createAngularFederationConfig(options) {
   return withNativeFederation({
     name: options.name,
     exposes: options.expose === "host"
-      ? { "./host": join(options.projectRoot, "src/host.ts") }
+      ? { "./host": sourcePath("host.ts") }
       : options.expose === "app"
-        ? { "./entry": join(options.projectRoot, "src/entry.ts"), ...widgetExposes }
+        ? { "./entry": sourcePath("entry.ts"), ...widgetExposes }
         : {},
     shared: {},
     skip: ["rxjs/ajax", "rxjs/fetch", "rxjs/testing", "rxjs/webSocket"]

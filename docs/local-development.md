@@ -10,11 +10,11 @@ atlas dev customer-host
 
 Atlas starts:
 
-- the host framework dev server, normally port 4200;
+- the browser-facing static bootstrap on the requested host port, normally 4200;
+- the internal host-client framework server, normally port 4300;
 - the local Atlas control/catalog server, normally port 4400;
-- the stable Atlas static bootstrap, normally port 4300.
 
-Framework server exposes `./host`. Control catalog selects its local host manifest. Local static bootstrap loads that catalog exactly like production.
+Framework server exposes `./host`. Control catalog selects its local host manifest. Browser-facing static bootstrap loads that catalog exactly like production. Internal port is implementation detail.
 
 Expected output includes a Host Preview URL. Open it and confirm the product shell renders.
 
@@ -24,7 +24,7 @@ Useful overrides:
 atlas dev customer-host \
   --port=4500 \
   --control-port=4501 \
-  --bootstrap-port=4502
+  --host-client-port=4502
 ```
 
 ## Use a deployed domain
@@ -56,7 +56,7 @@ For a local host:
 ```sh
 atlas dev orders \
   --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
-  --host-url=http://127.0.0.1:4300/orders
+  --host-url=http://localhost:4200/orders
 ```
 
 ## Columbus selection model

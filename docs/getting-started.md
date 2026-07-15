@@ -20,7 +20,7 @@ host project. No sibling server project exists.
 npx atlas dev customer-host
 
 # Terminal 2
-npx atlas dev orders --host-url=http://127.0.0.1:4300/orders
+npx atlas dev orders --host-url=http://localhost:4200/orders
 ```
 
 First command starts host framework server, Atlas control service, and ephemeral
@@ -29,7 +29,7 @@ registers local app override and opens host route.
 
 Checkpoint:
 
-- `http://127.0.0.1:4300/atlas.runtime.json` returns host runtime config;
+- `http://localhost:4200/atlas.runtime.json` returns host runtime config;
 - deep routes load same shell;
 - host and app render together;
 - stopping app removes local override session.

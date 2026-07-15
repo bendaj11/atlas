@@ -48,8 +48,10 @@ source or assume host implementation details.
 | Package images, fonts, and CSS | [Angular assets and styles](assets-and-styles.md) |
 | Generate projects or widgets | [Angular generators](generators.md) |
 | Inspect working projects | [Angular examples](examples.md) |
+| Build and release Angular artifacts | [Angular production deployment](production-deployment.md) |
 | Diagnose loading or routing failure | [Angular troubleshooting](troubleshooting.md) |
 
-Build and release steps remain framework-neutral. Use [Production
-deployment](../production-deployment.md), not a separate Angular deployment
-sequence.
+Use [Angular production deployment](production-deployment.md) for framework
+build output and checkpoints. It links to canonical
+[Production deployment](../production-deployment.md) for storage, CI,
+verification, and rollback.

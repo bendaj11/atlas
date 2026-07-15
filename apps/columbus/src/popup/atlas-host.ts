@@ -5,7 +5,56 @@ import type { Scope } from "./types.js";
 import { normalizeStoredManifest } from "./manifest-utils.js";
 
 export async function readHostData(activeTabId: number | undefined): Promise<{ hostData: HostData; tabId: number }> {
-  const tab = await findInspectableHostTab();
+  const { tab, hostData } = await findAtlasHostTab();
+  if (hostData.config.allowOverrides !== true) throw overridesDisabledError(hostData);
+
+  if (!hostData.overrides) hostData.overrides = await readPersistedOverrides(hostData);
+  await updateActionBadge(tab.id, overrideCount(hostData.overrides));
+
+  if (activeTabId && activeTabId !== tab.id) await updateActionBadge(activeTabId, 0);
+
+  return { hostData, tabId: tab.id };
+}
+
+async function findAtlasHostTab(): Promise<{ tab: InspectableTab; hostData: HostData }> {
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  const activeTab = tabs.find((tab): tab is InspectableTab => tab.active === true && hasTabId(tab));
+  if (!activeTab || !isWebPage(activeTab.url)) throw new Error("Open an Atlas host in the active tab first.");
+
+  let activeHostData: HostData | undefined;
+  let activeError: unknown;
+  try {
+    activeHostData = await inspectTab(activeTab);
+    if (activeHostData.config.allowOverrides === true) return { tab: activeTab, hostData: activeHostData };
+    activeError = overridesDisabledError(activeHostData);
+  } catch (error) {
+    activeError = error;
+  }
+
+  if (!isLoopbackPage(activeTab.url)) throw activeError;
+
+  const expectedHostId = activeHostData?.config.hostId;
+  const matchingPreviews: Array<{ tab: InspectableTab; hostData: HostData }> = [];
+  for (const tab of localPreviewCandidates(tabs, activeTab.id)) {
+    try {
+      const hostData = await inspectTab(tab);
+      if (hostData.config.allowOverrides !== true) continue;
+      if (expectedHostId && hostData.config.hostId !== expectedHostId) continue;
+      matchingPreviews.push({ tab, hostData });
+    } catch {
+      continue;
+    }
+  }
+
+  if (matchingPreviews.length === 1) return matchingPreviews[0]!;
+  if (matchingPreviews.length > 1) {
+    throw new Error("Multiple local Atlas previews are open. Activate the intended App Preview tab, then open Columbus again.");
+  }
+
+  throw new Error(`${errorMessage(activeError)} Open the Atlas App Preview URL printed by atlas dev.`);
+}
+
+async function inspectTab(tab: InspectableTab): Promise<HostData> {
   const [injection] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     world: "MAIN",
@@ -14,17 +63,7 @@ export async function readHostData(activeTabId: number | undefined): Promise<{ h
   });
 
   if (!injection?.result) throw new Error("Active page did not return Atlas runtime information.");
-
-  const hostData = injection.result;
-  if (hostData.config.allowOverrides !== true) {
-    throw new Error(`Atlas host "${hostData.config.hostId}" disables host and app overrides. Set allowOverrides: true in host atlas.config.ts and rebuild bootstrap.`);
-  }
-  if (!hostData.overrides) hostData.overrides = await readPersistedOverrides(hostData);
-  await updateActionBadge(tab.id, overrideCount(hostData.overrides));
-
-  if (activeTabId && activeTabId !== tab.id) await updateActionBadge(activeTabId, 0);
-
-  return { hostData, tabId: tab.id };
+  return injection.result;
 }
 
 export function createOverrideDocument(hostData: HostData, overrides: Map<string, Manifest>): OverrideDocument {
@@ -140,14 +179,30 @@ function isStoredOverride(value: unknown): value is OverrideDocument["apps"][num
     && (override.reason === "local" || override.reason === "pr" || override.reason === "past-production");
 }
 
-async function findInspectableHostTab(): Promise<chrome.tabs.Tab & { id: number; url: string }> {
-  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (isInspectableTab(activeTab)) return activeTab;
-  throw new Error("Open an Atlas host in the active tab first.");
+type InspectableTab = chrome.tabs.Tab & { id: number };
+
+function localPreviewCandidates(tabs: chrome.tabs.Tab[], activeTabId: number): InspectableTab[] {
+  return tabs
+    .filter((tab): tab is InspectableTab => hasTabId(tab) && tab.id !== activeTabId && isLoopbackPage(tab.url))
+    .sort((left, right) => (right.lastAccessed ?? 0) - (left.lastAccessed ?? 0));
 }
 
-function isInspectableTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.Tab & { id: number; url: string } {
-  return typeof tab?.id === "number" && typeof tab.url === "string" && tab.url.startsWith("http");
+function hasTabId(tab: chrome.tabs.Tab): tab is InspectableTab {
+  return typeof tab.id === "number";
+}
+
+function isWebPage(url: string | undefined): url is string {
+  return typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
+}
+
+function isLoopbackPage(url: string | undefined): boolean {
+  if (!isWebPage(url)) return false;
+  const hostname = new URL(url).hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+function overridesDisabledError(hostData: HostData): Error {
+  return new Error(`Atlas host "${hostData.config.hostId}" disables host and app overrides. Set allowOverrides: true in host atlas.config.ts and rebuild bootstrap.`);
 }
 
 function persistOverrides(documentKey: string, urlKey: string, value: string): void {

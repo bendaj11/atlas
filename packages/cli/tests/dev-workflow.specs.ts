@@ -29,14 +29,14 @@ localNetworkTest("local bootstrap serves runtime, deep links, and real asset 404
     runtime: {
       schemaVersion: "1",
       hostId: "customer-host",
-      catalogUrl: "http://127.0.0.1:4400/hosts/customer-host/catalog.json",
+      catalogUrl: "http://localhost:4400/hosts/customer-host/catalog.json",
       allowOverrides: true
     }
   });
   try {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("Expected local TCP address.");
-    const origin = `http://127.0.0.1:${address.port}`;
+    const origin = `http://localhost:${address.port}`;
     expect(await fetch(`${origin}/atlas.runtime.json`).then((response) => response.json())).toMatchObject({ hostId: "customer-host" });
     expect(await fetch(`${origin}/orders/42`).then((response) => response.text())).toMatch(/atlas-host-root/);
     expect((await fetch(`${origin}/missing.js`)).status).toBe(404);
@@ -197,7 +197,7 @@ test("atlas dev prepares a versioned local host client", async () => {
   const overrides = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
   expect(localManifest.kind).toBe("host");
   expect(localManifest.channel).toBe("local");
-  expect(localManifest.remoteEntryUrl).toBe("http://127.0.0.1:4200/remoteEntry.json");
+  expect(localManifest.remoteEntryUrl).toBe("http://localhost:4300/remoteEntry.json");
   expect(overrides.hostOverride.id).toBe("stable-customer-host-id");
   await expect(access(join(projectRoot, "public/atlas.runtime.json"))).rejects.toMatchObject({ code: "ENOENT" });
 });
@@ -261,7 +261,7 @@ localNetworkTest("atlas dev delegates Nx app projects to the serve task", async 
       channel: "local",
       version: "1.0.0",
       buildId: "local",
-      remoteEntryUrl: `http://127.0.0.1:${remoteServer.port}/remoteEntry.json`,
+      remoteEntryUrl: `http://localhost:${remoteServer.port}/remoteEntry.json`,
       placements: [],
       exportedWidgets: [],
       styles: []
@@ -277,7 +277,7 @@ localNetworkTest("atlas dev delegates Nx app projects to the serve task", async 
     await closeServer(remoteServer.server);
   }
 
-  expect(calls).toStrictEqual([["spawn", "serve", ["--port", String(remoteServer.port)]]]);
+  expect(calls).toStrictEqual([["spawn", "serve", ["--port", String(remoteServer.port), "--host", "localhost"]]]);
 });
 
 test("atlas dev rejects corrupt Angular build tooling before spawning", async () => {

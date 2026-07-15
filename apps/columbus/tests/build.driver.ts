@@ -44,7 +44,7 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
     if (url.endsWith("/atlas.runtime.json")) {
       return jsonResponse({ schemaVersion: "1", hostId: "test-host", catalogUrl: "https://registry.test/hosts/test-host/catalog.json", allowOverrides: scenario.allowOverrides ?? true });
     }
-    if (url.startsWith("http://127.0.0.1:4400/atlas.dev-session.json")) {
+    if (url.startsWith("http://localhost:4400/atlas.dev-session.json")) {
       devSessionRequests += 1;
       return jsonResponse(scenario.devSession);
     }
@@ -70,18 +70,23 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
 }
 
 function createStorage(disabledAppIds: string[] = []): { local: Storage; session: Storage } {
-  const values = new Map<string, string>();
-  if (disabledAppIds.length) values.set("atlas.disabled-local-apps.test-host", JSON.stringify(disabledAppIds));
-  const storage: Storage = Object.create(null);
+  const localValues = new Map<string, string>();
+  if (disabledAppIds.length) localValues.set("atlas.disabled-local-apps.test-host", JSON.stringify(disabledAppIds));
+  return {
+    local: createStorageArea(localValues),
+    session: createStorageArea(new Map())
+  };
+}
+
+function createStorageArea(values: Map<string, string>): Storage {
+  const storage = Object.create(null) as Storage;
   Object.defineProperty(storage, "length", { get: () => values.size });
   storage.clear = () => { values.clear(); };
   storage.getItem = (key) => values.get(key) ?? null;
   storage.key = (index) => Array.from(values.keys())[index] ?? null;
   storage.removeItem = (key) => { values.delete(key); };
   storage.setItem = (key, value) => { values.set(key, value); };
-  const session: Storage = Object.create(storage);
-  session.getItem = () => null;
-  return { local: storage, session };
+  return storage;
 }
 
 function jsonResponse(value: unknown): Response {

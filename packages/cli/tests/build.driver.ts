@@ -56,7 +56,7 @@ export async function atlasPackageRange(): Promise<string> {
 
 export async function hostJoiningSharedControlBecomesReady(): Promise<string> {
   const app = await startControlServer(0, appDocument(), "");
-  const host = await startControlServer(app.port, hostDocument(), "");
+  const host = await startControlServer(app.port, localHostDocument(), "");
   try {
     await app.markReady();
     await host.markReady();
@@ -68,7 +68,7 @@ export async function hostJoiningSharedControlBecomesReady(): Promise<string> {
 }
 
 export async function closingJoinedAppPreservesHost(): Promise<string> {
-  const host = await startControlServer(0, hostDocument(), "");
+  const host = await startControlServer(0, localHostDocument(), "");
   const app = await startControlServer(host.port, appDocument(), "");
   try {
     await host.markReady();
@@ -155,7 +155,7 @@ export function localDocument(hostId: string, manifest: AtlasManifest): AtlasRun
 }
 
 export async function catalogManifestIds(port: number, hostId: string): Promise<string[]> {
-  const response = await fetch(`http://127.0.0.1:${port}/hosts/${hostId}/catalog.json`, { cache: "no-store" });
+  const response = await fetch(`http://localhost:${port}/hosts/${hostId}/catalog.json`, { cache: "no-store" });
   expect(response.status).toBe(200);
   const catalog = await response.json();
   if (!hasManifestIds(catalog)) throw new Error("Control server returned an invalid catalog.");
@@ -163,11 +163,22 @@ export async function catalogManifestIds(port: number, hostId: string): Promise<
 }
 
 export async function devSessionHostId(port: number, hostId: string): Promise<string> {
-  const response = await fetch(`http://127.0.0.1:${port}/atlas.dev-session.json?hostId=${encodeURIComponent(hostId)}`, { cache: "no-store" });
+  const response = await fetch(`http://localhost:${port}/atlas.dev-session.json?hostId=${encodeURIComponent(hostId)}`, { cache: "no-store" });
   expect(response.status).toBe(200);
   const session = await response.json();
   if (!hasStringProperty(session, "hostId")) throw new Error("Control server returned an invalid dev session.");
   return session.hostId;
+}
+
+export async function registryArtifactIds(port: number): Promise<{ hosts: string[]; apps: string[] }> {
+  const response = await fetch(`http://localhost:${port}/registry.json`, { cache: "no-store" });
+  expect(response.status).toBe(200);
+  const registry = await response.json();
+  if (!hasRegistryIds(registry)) throw new Error("Control server returned an invalid registry.");
+  return {
+    hosts: registry.hosts.map((manifest) => manifest.id),
+    apps: registry.apps.map((manifest) => manifest.id)
+  };
 }
 
 export function closeServer(server: Server): Promise<void> {
@@ -216,7 +227,7 @@ function nonInteractivePrompts(): Pick<AtlasPrompter, "interactive" | "input" | 
 function listenOnRandomPort(server: Server): Promise<{ server: Server; port: number }> {
   return new Promise<{ server: Server; port: number }>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
+    server.listen(0, "localhost", () => {
       const address = server.address();
       if (!address || typeof address === "string") {
         reject(new Error("Could not allocate a local port."));
@@ -245,6 +256,12 @@ function hasManifestIds(value: unknown): value is { apps: Array<{ id: string }> 
     && value.apps.every((manifest) => hasStringProperty(manifest, "id"));
 }
 
+function hasRegistryIds(value: unknown): value is { hosts: Array<{ id: string }>; apps: Array<{ id: string }> } {
+  return typeof value === "object" && value !== null
+    && "hosts" in value && Array.isArray(value.hosts) && value.hosts.every((manifest) => hasStringProperty(manifest, "id"))
+    && "apps" in value && Array.isArray(value.apps) && value.apps.every((manifest) => hasStringProperty(manifest, "id"));
+}
+
 function appDocument(): AtlasDevOverrideDocument {
   const manifest = createTestManifest({ id: "login", supportedHosts: ["mobile-host"] });
   return {
@@ -255,7 +272,7 @@ function appDocument(): AtlasDevOverrideDocument {
   };
 }
 
-function hostDocument(): AtlasDevOverrideDocument {
+export function localHostDocument(): AtlasDevOverrideDocument {
   return {
     schemaVersion: "1",
     hostId: "mobile-host",
@@ -275,7 +292,7 @@ function localHostManifest(): AtlasHostManifest {
     buildId: "local",
     channel: "local",
     framework: "react",
-    remoteEntryUrl: "http://127.0.0.1:4200/remoteEntry.json",
+    remoteEntryUrl: "http://localhost:4200/remoteEntry.json",
     exposes: { entry: "./host" },
     requiredLoaderApiVersion: "^1.0.0",
     createdAt: "2026-07-09T08:02:37.622Z"
@@ -283,7 +300,7 @@ function localHostManifest(): AtlasHostManifest {
 }
 
 async function selectedHostId(port: number): Promise<string> {
-  const response = await fetch(`http://127.0.0.1:${port}/hosts/mobile-host/catalog.json`, { cache: "no-store" });
+  const response = await fetch(`http://localhost:${port}/hosts/mobile-host/catalog.json`, { cache: "no-store" });
   if (!response.ok) throw new Error(`Control server returned ${response.status}.`);
   const catalog = await response.json() as { host?: { id?: unknown } };
   if (typeof catalog.host?.id !== "string") throw new Error("Control server returned invalid host catalog.");

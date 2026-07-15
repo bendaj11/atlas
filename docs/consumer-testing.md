@@ -73,7 +73,7 @@ atlas dev orders
 ```
 
 Use Host Preview URL printed by Atlas CLI, normally
-`http://127.0.0.1:4300/orders`. Port 4200 is framework asset server.
+`http://localhost:4200/orders`. Host-client asset server uses a separate internal port.
 
 Run both commands from the directory that contains `customer-host/` and
 `orders/`, or from your monorepo root.
@@ -81,8 +81,8 @@ Run both commands from the directory that contains `customer-host/` and
 When testing a non-default host URL, set it explicitly:
 
 ```sh
-ATLAS_HOST_URL=http://127.0.0.1:4300 atlas dev orders
-ATLAS_HOST_URL=http://127.0.0.1:4300/orders atlas dev orders
+ATLAS_HOST_URL=http://localhost:4200 atlas dev orders
+ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
 ```
 
 This validates the app inside the host without editing host source or production

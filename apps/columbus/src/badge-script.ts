@@ -1,5 +1,5 @@
 const DOCUMENT_KEY = "atlas.runtime-overrides";
-const DEV_SESSION_URL = "http://127.0.0.1:4400/atlas.dev-session.json";
+const DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
 const BADGE_DISABLED_LOCAL_APPS_KEY_PREFIX = "atlas.disabled-local-apps.";
 const REFRESH_INTERVAL_MS = 2_000;
 

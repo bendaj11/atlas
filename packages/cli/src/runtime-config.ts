@@ -1,7 +1,7 @@
 import type { AtlasConfig, AtlasHostConfig, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 
-const DEFAULT_LOCAL_REGISTRY_BASE_URL = "http://127.0.0.1:4400";
+const DEFAULT_LOCAL_REGISTRY_BASE_URL = "http://localhost:4400";
 
 export function createHostRuntimeConfig(
   config: AtlasConfig,
