@@ -110,7 +110,7 @@ jobs:
         with:
           name: atlas-package-verification-${{ github.run_id }}
           path: dist/package-verification
-      - run: node scripts/verify-generated-projects.mjs --package-manager=${{ matrix.package-manager }}
+      - run: node scripts/verify-generated-projects.js --package-manager=${{ matrix.package-manager }}
 
   e2e:
     needs: changes
@@ -152,7 +152,7 @@ jobs:
         with:
           name: atlas-package-verification-${{ github.run_id }}
           path: dist/package-verification
-      - run: node scripts/create-release-bundle.mjs
+      - run: node scripts/create-release-bundle.js
       - uses: actions/upload-artifact@v4
         with:
           name: atlas-main-${{ github.run_id }}

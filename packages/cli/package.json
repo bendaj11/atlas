@@ -39,7 +39,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "yarn workspace @atlas-app/catalog-react atlas:config && yarn workspace @atlas-app/catalog-react build && NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/cli/tests/'",
+    "test": "node dist/index.js compile-config catalog-react && yarn workspace @atlas-app/catalog-react build && NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/cli/tests/'",
     "typecheck": "tsc -b --pretty false",
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
