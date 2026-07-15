@@ -16,7 +16,7 @@ import {
   angularRootTsconfig,
   angularWorkspace,
 } from "./angular-workspace-generator.js";
-import { atlasAppConfig, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
+import { atlasAppConfig, atlasBootstrapHtml, atlasHostConfig, atlasHostStyles, json, title } from "./common-generator.js";
 import { angularVersionProfile } from "./generator-versions.js";
 import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
 
@@ -30,6 +30,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions, hostId:
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, true) },
     { path: "atlas.config.ts", contents: atlasHostConfig(options, hostId) },
+    { path: "atlas.bootstrap.html", contents: atlasBootstrapHtml(name) },
     { path: "public/.gitkeep", contents: "" },
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
     { path: "src/styles.css", contents: atlasHostStyles() },

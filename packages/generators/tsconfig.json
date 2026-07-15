@@ -8,12 +8,15 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "baseUrl": ".",
-    "paths": { "@atlas/schema": ["../schema/src/index.ts"] },
+    "paths": {
+      "@atlas/bootstrap": ["../bootstrap/src/index.ts"],
+      "@atlas/schema": ["../schema/src/index.ts"]
+    },
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "../schema" }],
+  "references": [{ "path": "../bootstrap" }, { "path": "../schema" }],
   "include": ["src/**/*.ts"]
 }

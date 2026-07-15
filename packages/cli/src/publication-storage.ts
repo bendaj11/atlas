@@ -1,4 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
+import { extname } from "node:path";
 
 export interface AtlasPublicationStorage {
   read(path: string): Promise<Uint8Array | undefined>;
@@ -30,45 +31,86 @@ export interface S3Options {
   sessionToken?: string;
 }
 
+interface S3Request {
+  method: "DELETE" | "GET" | "HEAD" | "PUT";
+  path: string;
+  body?: Uint8Array;
+  headers?: Record<string, string>;
+}
+
+const CONTENT_TYPES: Readonly<Record<string, string>> = {
+  ".avif": "image/avif",
+  ".css": "text/css; charset=utf-8",
+  ".gif": "image/gif",
+  ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".otf": "font/otf",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".ttf": "font/ttf",
+  ".txt": "text/plain; charset=utf-8",
+  ".wasm": "application/wasm",
+  ".webp": "image/webp",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2"
+};
+
 export class S3PublicationStorage implements AtlasPublicationStorage {
   constructor(private readonly options: S3Options) {}
 
   async read(path: string): Promise<Uint8Array | undefined> {
-    const response = await this.request("GET", path);
+    const response = await this.request({ method: "GET", path });
     if (response.status === 404) return undefined;
     await assertS3Response(response, `read ${path}`);
     return new Uint8Array(await response.arrayBuffer());
   }
 
   async create(path: string, bytes: Uint8Array, cacheControl: string): Promise<void> {
-    const response = await this.request("PUT", path, bytes, { "cache-control": cacheControl, "if-none-match": "*" });
+    const response = await this.request({
+      method: "PUT",
+      path,
+      body: bytes,
+      headers: publicationHeaders(path, cacheControl, { "if-none-match": "*" })
+    });
     if (response.status === 409 || response.status === 412) throw new Error(`Immutable publication object already exists: ${path}`);
     await assertS3Response(response, `create ${path}`);
   }
 
   async replace(path: string, bytes: Uint8Array, cacheControl: string): Promise<void> {
-    await assertS3Response(await this.request("PUT", path, bytes, { "cache-control": cacheControl }), `replace ${path}`);
+    await assertS3Response(await this.request({
+      method: "PUT",
+      path,
+      body: bytes,
+      headers: publicationHeaders(path, cacheControl)
+    }), `replace ${path}`);
   }
 
   async remove(path: string): Promise<void> {
-    const response = await this.request("DELETE", path);
+    const response = await this.request({ method: "DELETE", path });
     if (response.status !== 404) await assertS3Response(response, `remove ${path}`);
   }
 
   async acquireLock(owner: string): Promise<() => Promise<void>> {
     const path = ".atlas-deployment.lock";
-    const response = await this.request("PUT", path, new TextEncoder().encode(owner), { "if-none-match": "*", "cache-control": "no-store" });
+    const response = await this.request({
+      method: "PUT",
+      path,
+      body: new TextEncoder().encode(owner),
+      headers: publicationHeaders(path, "no-store", { "if-none-match": "*" })
+    });
     if (response.status === 409 || response.status === 412) throw new Error("Atlas deployment lock is already held in object storage.");
     await assertS3Response(response, "acquire deployment lock");
-    return async () => { await assertS3Response(await this.request("DELETE", path), "release deployment lock"); };
+    return async () => { await assertS3Response(await this.request({ method: "DELETE", path }), "release deployment lock"); };
   }
 
-  private async request(
-    method: string,
-    path: string,
-    body: Uint8Array = new Uint8Array(),
-    extraHeaders: Record<string, string> = {}
-  ): Promise<Response> {
+  private async request(request: S3Request): Promise<Response> {
+    const { method, path, body = new Uint8Array(), headers: requestHeaders = {} } = request;
     const now = new Date();
     const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
     const date = amzDate.slice(0, 8);
@@ -80,7 +122,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       "x-amz-content-sha256": payloadHash,
       "x-amz-date": amzDate,
       ...(this.options.sessionToken ? { "x-amz-security-token": this.options.sessionToken } : {}),
-      ...extraHeaders
+      ...requestHeaders
     };
     const signedHeaderNames = Object.keys(headers).map((name) => name.toLowerCase()).sort();
     const canonicalHeaders = signedHeaderNames.map((name) => `${name}:${headers[name]!.trim()}\n`).join("");
@@ -91,6 +133,22 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     headers.authorization = `AWS4-HMAC-SHA256 Credential=${this.options.accessKeyId}/${scope}, SignedHeaders=${signedHeaderNames.join(";")}, Signature=${signature}`;
     return fetch(url, { method, headers, ...(method === "GET" || method === "HEAD" ? {} : { body: Buffer.from(body) }) });
   }
+}
+
+function publicationHeaders(
+  path: string,
+  cacheControl: string,
+  headers: Record<string, string> = {}
+): Record<string, string> {
+  return {
+    "cache-control": cacheControl,
+    "content-type": contentTypeForPath(path),
+    ...headers
+  };
+}
+
+function contentTypeForPath(path: string): string {
+  return CONTENT_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream";
 }
 
 function signingKey(secret: string, date: string, region: string): Buffer {

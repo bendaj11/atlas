@@ -63,7 +63,9 @@ customer-host/dist/bootstrap/
   nginx.conf
 ```
 
-Optional customization:
+Customize loading UI by editing generated
+`customer-host/atlas.bootstrap.html`; next build uses it automatically. To use
+another file temporarily:
 
 ```sh
 npx atlas build-bootstrap customer-host \

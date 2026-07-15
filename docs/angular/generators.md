@@ -15,6 +15,7 @@ Generated host files to understand first:
 | File | Owner | Purpose |
 | --- | --- | --- |
 | `atlas.config.ts` | Host team | Stable host id, display name, runtime defaults. |
+| `atlas.bootstrap.html` | Host team | Product-domain HTML and loading UI used automatically by `atlas build-bootstrap`. |
 | `src/bootstrap.ts` | Host team | Calls `startHost`, connects Angular Router, Native Federation, and SDK providers. |
 | `src/app/app.component.ts` | Host team | Replaceable product layout with Atlas DOM anchors. |
 | `federation.config.js` | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone. |

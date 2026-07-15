@@ -16,6 +16,10 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.equal(JSON.parse(files(generateHostFiles({ name: "host", packageName: "@acme/host", framework: "react" })).get("package.json")).name, "@acme/host");
   assert.match(host.get("package.json"), /"react": "\^19\.2\.0"/);
   assert.match(host.get("src/main.tsx"), /<HostAtlasProvider>/);
+  assert.match(host.get("atlas.bootstrap.html"), /<title>Host<\/title>/);
+  assert.match(host.get("atlas.bootstrap.html"), /id="atlas-host-root">Loading product…<\/div>/);
+  assert.match(host.get("atlas.bootstrap.html"), /src="\/atlas\.loader\.js"/);
+  assert.equal(appFiles.has("atlas.bootstrap.html"), false);
   assert.doesNotMatch(host.get("src/main.tsx"), /startHost|createBrowserRouter|atlasConfig/);
   assert.equal(host.has("src/atlas-bootstrap.ts"), false);
   assert.match(host.get("src/HostAtlasProvider.tsx"), /import \{ HostLayout \} from "\.\/app\/HostLayout"/);

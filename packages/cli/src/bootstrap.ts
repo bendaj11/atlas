@@ -1,7 +1,8 @@
-import { readFile, mkdir, writeFile } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { createAtlasBootstrapFiles } from "@atlas/bootstrap";
 import { CliArguments } from "./arguments.js";
+import { loadBootstrapTemplate } from "./bootstrap-template.js";
 import type { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { createHostRuntimeConfig } from "./runtime-config.js";
@@ -26,10 +27,10 @@ export class AtlasBootstrapService {
     if (!this.args.hasFlag("skip-compile")) await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
     const runtime = createHostRuntimeConfig(config, this.args, project.version);
-    const template = await this.loadTemplate(project.root);
+    const template = await loadBootstrapTemplate(project.root, this.args.flag("template"));
     const files = createAtlasBootstrapFiles({
       runtime,
-      ...(template ? { html: template } : {}),
+      ...(template !== undefined ? { html: template } : {}),
       ...(this.args.flag("title") ? { title: this.args.flag("title") } : {}),
       ...(this.args.flag("loading-html") ? { loadingHtml: this.args.flag("loading-html") } : {})
     });
@@ -39,12 +40,5 @@ export class AtlasBootstrapService {
       await writeFile(join(directory, file.path), file.contents, "utf8");
     }));
     return { directory, files: files.map((file) => file.path) };
-  }
-
-  private async loadTemplate(projectRoot: string): Promise<string | undefined> {
-    const configuredPath = this.args.flag("template");
-    if (!configuredPath) return undefined;
-    const templatePath = isAbsolute(configuredPath) ? configuredPath : resolve(projectRoot, configuredPath);
-    return await readFile(templatePath, "utf8");
   }
 }

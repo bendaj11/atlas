@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { createBootstrapHtml } from "@atlas/bootstrap";
 import type { AtlasGeneratorOptions } from "./generator-types.js";
 
 const MAX_ATLAS_ID_LENGTH = 214;
@@ -18,6 +19,10 @@ export function atlasAppConfig(options: AtlasGeneratorOptions): string {
 export function atlasHostConfig(options: AtlasGeneratorOptions, hostId: string): string {
   const { name, framework } = options;
   return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${hostId}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
+}
+
+export function atlasBootstrapHtml(name: string): string {
+  return `${createBootstrapHtml({ title: title(name) })}\n`;
 }
 
 export function assertSupportedGeneratorFramework(options: AtlasGeneratorOptions): asserts options is AtlasGeneratorOptions & { framework: "angular" | "react" } {

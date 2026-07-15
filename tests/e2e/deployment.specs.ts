@@ -14,6 +14,7 @@ const EXTERNAL_SHARED_UI_ID = "745518fc-3b1a-4197-b044-da306b0a02ff";
 test("React host mounts an Angular app with native inner routing", async ({ page }) => {
   await page.goto("http://127.0.0.1:4300/angular-orders");
   await expect(page.getByRole("heading", { name: "Orders Angular" })).toBeVisible();
+  await expect(page.getByText("Loading product…", { exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: "Order 42" }).click();
   await expect(page).toHaveURL(/\/angular-orders\/orders\/42$/);
   await expect(page.getByText("Order details")).toBeVisible();
@@ -22,6 +23,7 @@ test("React host mounts an Angular app with native inner routing", async ({ page
 test("Angular host mounts a React app with native inner routing", async ({ page }) => {
   await page.goto("http://127.0.0.1:4301/react-catalog");
   await expect(page.getByRole("heading", { name: "Catalog React" })).toBeVisible();
+  await expect(page.getByText("Loading product…", { exact: true })).toHaveCount(0);
   const stylesheet = page.locator(`link[data-atlas-style="${CATALOG_REACT_ID}"]`);
   await expect(stylesheet).toHaveAttribute("href", new RegExp(`^http://127\\.0\\.0\\.1:4400/apps/${CATALOG_REACT_ID}/0\\.2\\.0/.+\\.css$`));
   await expect(stylesheet).toHaveAttribute("integrity", /^sha256-/);

@@ -5,10 +5,14 @@ const ATLAS_INTEGRATION_FILES = new Set([
   "atlas.config.ts",
   "federation.config.js"
 ]);
+const ATLAS_HOST_FILES = new Set([
+  ...ATLAS_INTEGRATION_FILES,
+  "atlas.bootstrap.html"
+]);
 
 const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   angular: new Set([
-    ...ATLAS_INTEGRATION_FILES,
+    ...ATLAS_HOST_FILES,
     "src/index.html",
     "src/styles.css",
     "src/app/app.component.ts",
@@ -18,7 +22,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     "src/host.ts"
   ]),
   react: new Set([
-    ...ATLAS_INTEGRATION_FILES,
+    ...ATLAS_HOST_FILES,
     "vite.config.ts",
     "index.html",
     "src/styles.css",

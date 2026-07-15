@@ -15,6 +15,7 @@ async function start() {
   const module = await loadHostModule(effectiveCatalog.host, runtime);
   const entry = module.default && typeof module.default.mount === "function" ? module.default : module;
   if (typeof entry.mount !== "function") throw new Error("Selected host client does not export mount(request).");
+  root.replaceChildren();
   await entry.mount({ container: root, runtimeConfig: runtime, catalog: effectiveCatalog });
 }
 

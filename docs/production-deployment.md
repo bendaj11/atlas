@@ -244,8 +244,7 @@ HTML template, approved origins, or HTTP policy changes:
 
 ```sh
 npx atlas build-bootstrap "$HOST_PROJECT" \
-  --registry-base-url="$REGISTRY_URL" \
-  --title="Customer Portal"
+  --registry-base-url="$REGISTRY_URL"
 ```
 
 Output:
@@ -264,7 +263,8 @@ Inspect runtime config before deployment:
 node -e 'console.log(require("./customer-host/dist/bootstrap/atlas.runtime.json"))'
 ```
 
-For custom HTML:
+Generated hosts own `atlas.bootstrap.html`; edit it for loading UI, metadata,
+and branding. It is selected automatically. To override it with another file:
 
 ```sh
 npx atlas build-bootstrap "$HOST_PROJECT" \

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
 import {
+  ATLAS_BROWSER_LOADER,
   createAtlasBootstrapFiles,
   createBootstrapHtml,
   createNginxConfig,
@@ -43,6 +44,13 @@ test("default HTML escapes title and permits custom loading markup", () => {
   const html = createBootstrapHtml({ title: "A < B", loadingHtml: "<strong>Starting</strong>" });
   assert.match(html, /<title>A &lt; B<\/title>/);
   assert.match(html, /<strong>Starting<\/strong>/);
+});
+
+test("browser loader removes bootstrap loading markup before mounting host", () => {
+  const clearLoadingMarkup = ATLAS_BROWSER_LOADER.indexOf("root.replaceChildren();");
+  const mountHost = ATLAS_BROWSER_LOADER.indexOf("await entry.mount(");
+  assert.ok(clearLoadingMarkup >= 0);
+  assert.ok(clearLoadingMarkup < mountHost);
 });
 
 test("Nginx fallback never turns missing assets into HTML", () => {

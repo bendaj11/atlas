@@ -133,9 +133,9 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [
       { label: "--registry-base-url <url>", description: "Public base URL of static registry" },
       { label: "--out <path>", description: "Output directory (default: <host>/dist/bootstrap)" },
-      { label: "--template <path>", description: "Custom HTML template relative to host project" },
-      { label: "--title <text>", description: "Default template document title" },
-      { label: "--loading-html <html>", description: "Default template loading markup" },
+      { label: "--template <path>", description: "Override atlas.bootstrap.html with another host-relative template" },
+      { label: "--title <text>", description: "Document title when no template file is present" },
+      { label: "--loading-html <html>", description: "Loading markup when no template file is present" },
       { label: "--asset-origins <urls>", description: "Comma-separated approved asset origins" },
       { label: "--external-registry-urls <urls>", description: "Comma-separated external registry base URLs" },
       { label: "--skip-compile", description: "Use already compiled atlas.config.ts" },

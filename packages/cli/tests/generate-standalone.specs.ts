@@ -13,6 +13,7 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   await run(process.execPath, ["packages/cli/dist/index.js", "g", "host", "customer-host", "--framework=angular", "--port=4305", "--skip-install", `--directory=${target}`]);
   const main = await readFile(join(target, "src/main.ts"), "utf8");
   const bootstrap = await readFile(join(target, "src/bootstrap.ts"), "utf8");
+  expect(await readFile(join(target, "atlas.bootstrap.html"), "utf8")).toMatch(/id="atlas-host-root">Loading product…<\/div>/);
   await expect(access(join(target, "public/atlas.runtime.json"))).rejects.toMatchObject({ code: "ENOENT" });
   expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/resourcesTimeoutMs/);
   await expect(access(join(target, "Containerfile"))).rejects.toMatchObject({ code: "ENOENT" });
@@ -158,6 +159,8 @@ test("atlas build-bootstrap emits deployable static files", async () => {
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, workspaces: ["host"] }));
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "host", version: "2.1.0", type: "module" }));
   await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
+  await writeFile(join(projectRoot, "atlas.bootstrap.html"), '<main id="atlas-host-root">Project loading UI</main><script type="module" src="/atlas.loader.js"></script>\n');
+  await writeFile(join(projectRoot, "other.bootstrap.html"), '<main id="atlas-host-root">Explicit loading UI</main><script type="module" src="/atlas.loader.js"></script>\n');
   await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
     type: "host",
     id: "customer-host",
@@ -175,9 +178,17 @@ test("atlas build-bootstrap emits deployable static files", async () => {
   expect(runtime.hostId).toBe("customer-host");
   expect(runtime.hostVersion).toBe("2.1.0");
   expect(runtime.catalogUrl).toBe("https://cdn.example/atlas/hosts/customer-host/catalog.json");
-  expect(await readFile(join(output, "index.html"), "utf8")).toMatch(/atlas-host-root/);
+  expect(await readFile(join(output, "index.html"), "utf8")).toMatch(/Project loading UI/);
   expect(await readFile(join(output, "atlas.loader.js"), "utf8")).toMatch(/requiredLoaderApiVersion/);
   expect(await readFile(join(output, "nginx.conf"), "utf8")).toMatch(/try_files \$uri \$uri\/ \/index\.html/);
+
+  const explicitOutput = join(projectRoot, "dist/explicit-bootstrap");
+  await run(process.execPath, [
+    join(process.cwd(), "packages/cli/dist/index.js"), "build-bootstrap", "host",
+    "--skip-compile", "--registry-base-url=https://cdn.example/atlas",
+    "--template=other.bootstrap.html", `--out=${explicitOutput}`
+  ], { cwd: root });
+  expect(await readFile(join(explicitOutput, "index.html"), "utf8")).toMatch(/Explicit loading UI/);
 });
 
 test("atlas compile-config emits atlas.config.js through the project tsconfig", async () => {

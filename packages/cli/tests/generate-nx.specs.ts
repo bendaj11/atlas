@@ -155,6 +155,7 @@ exit 1
   expect(await readFile(join(root, "products/host/src/app/app.component.ts"), "utf8")).toMatch(/data-atlas-host-status/);
   expect(await readFile(join(root, "products/host/src/app/atlas-host-default-route.component.ts"), "utf8")).toMatch(/standalone: true/);
   expect(await readFile(join(root, "products/host/src/index.html"), "utf8")).toMatch(/<atlas-host-root><\/atlas-host-root>/);
+  expect(await readFile(join(root, "products/host/atlas.bootstrap.html"), "utf8")).toMatch(/id="atlas-host-root">Loading product…<\/div>/);
   expect(await readFile(join(root, "products/host/eslint.config.mjs"), "utf8")).toBe("nx eslint\n");
   expect(await readFile(join(root, "products/host/jest.config.ts"), "utf8")).toBe("nx jest\n");
   expect(JSON.parse(await readFile(join(root, "products/host/tsconfig.json"), "utf8")).marker).toBe("nx-generator");

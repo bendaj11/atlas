@@ -26,14 +26,19 @@ Default output: `<host>/dist/bootstrap`. Generate it during environment or
 bootstrap deployment. Normal host/app releases only publish versioned artifacts
 and catalog changes; they do not rebuild bootstrap.
 
+Generated host projects contain `atlas.bootstrap.html` at project root. Edit
+that source-controlled file to customize loading markup, styles, metadata, or
+branding. `build-bootstrap` uses it automatically. Existing hosts without that
+file continue using Atlas default HTML.
+
 Useful options:
 
 | Option | Purpose |
 | --- | --- |
 | `--out <path>` | Change output directory |
-| `--template <path>` | Use custom HTML relative to host project |
-| `--title <text>` | Set default template title |
-| `--loading-html <html>` | Set default loading markup |
+| `--template <path>` | Override `atlas.bootstrap.html` with another HTML file relative to host project |
+| `--title <text>` | Set document title when no template file is used |
+| `--loading-html <html>` | Set loading markup when no template file is used |
 | `--asset-origins <urls>` | Add approved artifact origins and CSP sources |
 | `--external-registry-urls <urls>` | Add approved external registries |
 
@@ -71,8 +76,10 @@ caching, headers, and asset-404 behavior.
 
 `atlas dev customer-host` starts framework server, Atlas control service, and
 ephemeral static bootstrap at `http://localhost:4200` by default. These are local
-tools, not production application-server requirements. Use `--port` to change
-browser-facing port or `--host-url` to use an already running page.
+tools, not production application-server requirements. Local bootstrap uses the
+same project `atlas.bootstrap.html`, so loading UI changes appear during
+development. Use `--port` to change browser-facing port or `--host-url` to use
+an already running page.
 
 ## When Backend Is Still Needed
 

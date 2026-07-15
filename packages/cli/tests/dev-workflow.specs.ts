@@ -24,8 +24,10 @@ process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 const localNetworkTest = process.env.CODEX_SANDBOX_NETWORK_DISABLED === "1" ? test.skip : test;
 
 localNetworkTest("local bootstrap serves runtime, deep links, and real asset 404s", async () => {
+  const html = '<main id="atlas-host-root">Custom local loading UI</main><script type="module" src="/atlas.loader.js"></script>';
   const server = await startLocalBootstrapServer({
     port: 0,
+    html,
     runtime: {
       schemaVersion: "1",
       hostId: "customer-host",
@@ -38,7 +40,7 @@ localNetworkTest("local bootstrap serves runtime, deep links, and real asset 404
     if (!address || typeof address === "string") throw new Error("Expected local TCP address.");
     const origin = `http://localhost:${address.port}`;
     expect(await fetch(`${origin}/atlas.runtime.json`).then((response) => response.json())).toMatchObject({ hostId: "customer-host" });
-    expect(await fetch(`${origin}/orders/42`).then((response) => response.text())).toMatch(/atlas-host-root/);
+    expect(await fetch(`${origin}/orders/42`).then((response) => response.text())).toContain("Custom local loading UI");
     expect((await fetch(`${origin}/missing.js`)).status).toBe(404);
   } finally {
     await closeServer(server);

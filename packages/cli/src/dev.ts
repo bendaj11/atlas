@@ -14,6 +14,7 @@ import type {
   AtlasStaticRegistry
 } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
+import { loadBootstrapTemplate } from "./bootstrap-template.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { loadEnvFiles, saveWorkspaceLocalEnv } from "./env.js";
@@ -106,8 +107,11 @@ export class AtlasDevService {
     const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
     const frameworkServer = this.workspace.spawn(project, frameworkTask, frameworkServerArguments(config.framework, clientPort));
-    const bootstrap = this.args.flag("host-url") ? undefined : await startLocalBootstrapServer({
+    const usesLocalBootstrap = !this.args.flag("host-url");
+    const template = usesLocalBootstrap ? await loadBootstrapTemplate(project.root) : undefined;
+    const bootstrap = usesLocalBootstrap ? await startLocalBootstrapServer({
       port: bootstrapPort,
+      ...(template !== undefined ? { html: template } : {}),
       runtime: {
         schemaVersion: "1",
         hostId: config.id,
@@ -117,7 +121,7 @@ export class AtlasDevService {
         resourcesRetryCount: config.resourcesRetryCount ?? 3,
         assetOrigins: [localOrigin(clientPort), controlOrigin]
       }
-    });
+    }) : undefined;
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
@@ -247,10 +251,14 @@ export class AtlasDevService {
 interface LocalBootstrapServerOptions {
   port: number;
   runtime: AtlasHostRuntimeConfig;
+  html?: string;
 }
 
 export async function startLocalBootstrapServer(options: LocalBootstrapServerOptions): Promise<Server> {
-  const files = new Map(createAtlasBootstrapFiles({ runtime: options.runtime }).map((file) => [`/${file.path}`, file.contents]));
+  const files = new Map(createAtlasBootstrapFiles({
+    runtime: options.runtime,
+    ...(options.html !== undefined ? { html: options.html } : {})
+  }).map((file) => [`/${file.path}`, file.contents]));
   const server = createServer((request, response) => {
     const path = new URL(request.url ?? "/", `http://${LOCAL_HOST}`).pathname;
     if (request.method !== "GET" && request.method !== "HEAD") {
