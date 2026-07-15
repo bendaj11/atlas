@@ -1,9 +1,10 @@
 const { existsSync, readdirSync } = require("node:fs");
 const { createRequire } = require("node:module");
-const { join } = require("node:path");
+const { join, relative } = require("node:path");
 
-function sourcePath(path) {
-  return `./src/${path}`;
+function sourcePath(projectRoot, path) {
+  const pathFromWorkspace = relative(process.cwd(), join(projectRoot, "src", path)).replaceAll("\\", "/");
+  return pathFromWorkspace.startsWith(".") ? pathFromWorkspace : `./${pathFromWorkspace}`;
 }
 
 function createAngularFederationConfig(options) {
@@ -16,7 +17,7 @@ function createAngularFederationConfig(options) {
           .filter((entry) => entry.isDirectory())
           .map((entry) => [
             `./widgets/${entry.name}`,
-            sourcePath(`exported-widgets/${entry.name}/index.ts`)
+            sourcePath(options.projectRoot, `exported-widgets/${entry.name}/index.ts`)
           ])
       )
     : {};
@@ -24,9 +25,9 @@ function createAngularFederationConfig(options) {
   return withNativeFederation({
     name: options.name,
     exposes: options.expose === "host"
-      ? { "./host": sourcePath("host.ts") }
+      ? { "./host": sourcePath(options.projectRoot, "host.ts") }
       : options.expose === "app"
-        ? { "./entry": sourcePath("entry.ts"), ...widgetExposes }
+        ? { "./entry": sourcePath(options.projectRoot, "entry.ts"), ...widgetExposes }
         : {},
     shared: {},
     skip: ["rxjs/ajax", "rxjs/fetch", "rxjs/testing", "rxjs/webSocket"]

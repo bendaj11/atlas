@@ -1,6 +1,6 @@
 {
   "name": "@atlas/bootstrap",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "type": "module",
   "description": "Static Atlas browser bootstrap assets and Nginx configuration.",
   "license": "MIT",
@@ -42,6 +42,6 @@
     "publish-lib": "npm publish --registry http://localhost:4873"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.7"
+    "@atlas/schema": "0.3.8"
   }
 }
