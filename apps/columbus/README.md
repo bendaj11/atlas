@@ -18,11 +18,11 @@ Chrome 111 or newer is required because Columbus uses main-world static content 
 
 1. Open an Atlas host.
 2. Open the Atlas extension.
-3. Choose one version for each app.
+3. Choose current production, previous production, PR, or local version for each app.
 4. Keep **All tabs** selected (the default), or choose **This tab** for an isolated experiment.
 5. Select **Apply and reload**.
 
-Production is the default. PR and historical versions come from the host static app index. For local development, paste either an app manifest URL or the `atlas.local-overrides.json` URL printed by `atlas dev`.
+Production is default. Labels include semantic version and short build ID, so multiple builds sharing one version remain distinct. PR and historical versions come from static app index. For local development, paste app manifest URL or `atlas.local-overrides.json` URL printed by `atlas dev`.
 
 All-tabs overrides are stored by `hostId` in `chrome.storage.local` and copied to the host origin's `localStorage`. Current-tab overrides use `sessionStorage` and take precedence in that tab. The SDK validates the complete document and every manifest before federation initialization.
 

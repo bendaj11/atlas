@@ -57,24 +57,24 @@ Name an owner for each domain before release:
 - [ ] Asset URLs are imports or relative URLs, not host-root `/assets/...` URLs.
 - [ ] Framework tests cover useful success, empty, loading, and failure states.
 - [ ] Integration testing covers the app inside a real host.
-- [ ] Release uses an immutable version/build identity and an `ATLAS_BUILD_ID`
-  unique within that app version.
+- [ ] Package/workspace release version is correct; Atlas-derived content build
+  ID uniquely identifies bytes and HTTP metadata within that version.
 - [ ] CI uses a project-pinned `@atlas/cli` version and committed lockfile, not a
   floating global CLI.
 
 ## Registry And CDN Checklist
 
 - [ ] Protected CI identity is the only publisher.
-- [ ] Multi-file publication holds a deployment lock from registry snapshot
-  through public verification. A lock-free provider transaction is acceptable
+- [ ] Multi-file publication holds an expiring, renewable deployment lease from
+  live registry read through public verification. A lock-free provider transaction is acceptable
   only when it atomically protects the entire mutable set; single-object
   compare-and-swap is insufficient.
-- [ ] Live registry revision is checked after the snapshot and again immediately
-  before mutable replacement.
+- [ ] Lease ownership is checked before mutable replacement and after verification.
 - [ ] Immutable files upload before mutable indexes and host catalogs.
 - [ ] Immutable host/app bytes publish first, `registry.json` publishes before artifact indexes, and host catalogs publish
   last.
-- [ ] Existing version/build paths are never overwritten.
+- [ ] Existing version/build paths are conditionally created and never overwritten.
+- [ ] Publisher reads and HEADs stored objects to verify SHA-256, MIME, and cache policy.
 - [ ] Immutable assets use long-lived immutable caching.
 - [ ] Runtime files, catalogs, and indexes revalidate or receive explicit CDN
   invalidation.
@@ -89,7 +89,7 @@ Name an owner for each domain before release:
   exposure window and automatic recovery path.
 
 See [Static registry](registry.md) for revision and concurrency rules and
-[Production deployment](production-deployment.md) for publication-plan flow.
+[Production deployment](production-deployment.md) for workspace-native publication flow.
 
 ## Security Checklist
 

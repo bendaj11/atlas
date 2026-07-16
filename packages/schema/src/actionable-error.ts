@@ -14,6 +14,9 @@ export function ensureActionableError(value: unknown, fallbackAction?: string): 
 export function suggestedActionFor(message: string, fallbackAction?: string): string {
   const duplicateApp = /Duplicate app id "([^"]+)"/.exec(message)?.[1];
   if (duplicateApp) return `Remove duplicate manifest entries for "${duplicateApp}" from the host catalog, then retry.`;
+  if (/missing required configuration file ".*atlas\.config\.ts"/i.test(message)) {
+    return "Restore or create atlas.config.ts in the named project, then rerun the same Atlas command.";
+  }
   if (/catalog/i.test(message)) return "Verify configured catalog URL is reachable and catalog JSON matches Atlas schema, then retry.";
   if (/CORS|fetch|network|remote entry|asset|resource/i.test(message)) {
     return "Verify referenced URL is reachable, permits host-origin CORS, and serves expected Atlas artifact, then retry.";

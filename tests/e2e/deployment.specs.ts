@@ -1,11 +1,11 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { copyFile, mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { deploymentCatalog, runCli as runAtlasCli } from "./deployment.driver.js";
 
 const workspaceRoot = resolve(import.meta.dirname, "../..");
 const cdnRoot = join(workspaceRoot, "tests/e2e/.artifacts/cdn");
-const rollbackRoot = join(workspaceRoot, "tests/e2e/.artifacts/rollback");
+const publishConfig = join(workspaceRoot, "tests/e2e/atlas.publish.ts");
 const REACT_HOST_ID = "060a7f62-1c95-402c-9993-55749faf36d9";
 const ANGULAR_HOST_ID = "399e1a5d-f83d-4248-96ed-e4211707ae1b";
 const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
@@ -128,7 +128,7 @@ test("a deployed host rolls back and forward without being rebuilt", async ({ pa
   await expect(page.getByRole("heading", { name: "Catalog React", exact: true })).toBeVisible();
   await expectCatalogVersion(request, "0.1.0");
 
-  await selectCatalogRelease("0.2.0", "release-0.2.0");
+  await selectCatalogRelease("0.2.0");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Catalog React 0.2.0" })).toBeVisible();
   await expectCatalogVersion(request, "0.2.0");
@@ -139,14 +139,10 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
     "packages/cli/dist/index.js", "rollback", CATALOG_REACT_ID,
     `--version=${version}`,
     "--registry-base-url=http://127.0.0.1:4400",
-    `--registry-snapshot=${join(cdnRoot, "registry.json")}`,
-    `--publication-directory=${rollbackRoot}`,
-    `--publication-plan=${rollbackRoot}.json`,
-    "--prepare-only"
+    `--publish-config=${publishConfig}`
   ];
   if (buildId) args.push(`--build-id=${buildId}`);
-  await runCli(args);
-  await replaceMutableFilesAtomically(rollbackRoot);
+  await runCli(args, { ATLAS_E2E_STORAGE: cdnRoot });
 }
 
 async function expectCatalogVersion(request: APIRequestContext, version: string): Promise<void> {
@@ -155,25 +151,6 @@ async function expectCatalogVersion(request: APIRequestContext, version: string)
   expect(catalog.apps.find((manifest) => manifest.id === CATALOG_REACT_ID)?.version).toBe(version);
 }
 
-async function replaceMutableFilesAtomically(sourceRoot: string): Promise<void> {
-  for (const source of await listFiles(sourceRoot)) {
-    const destination = join(cdnRoot, relative(sourceRoot, source));
-    const temporary = `${destination}.atlas-next`;
-    await mkdir(dirname(destination), { recursive: true });
-    await copyFile(source, temporary);
-    await rename(temporary, destination);
-  }
-}
-
-async function listFiles(root: string): Promise<string[]> {
-  const entries = await readdir(root, { withFileTypes: true });
-  const files = await Promise.all(entries.map((entry) => {
-    const path = join(root, entry.name);
-    return entry.isDirectory() ? listFiles(path) : Promise.resolve(entry.isFile() ? [path] : []);
-  }));
-  return files.flat();
-}
-
-async function runCli(args: string[]): Promise<void> {
-  await runAtlasCli(workspaceRoot, args);
+async function runCli(args: string[], environment: NodeJS.ProcessEnv): Promise<void> {
+  await runAtlasCli(workspaceRoot, args, environment);
 }

@@ -163,8 +163,16 @@ for (const scenario of [
     expect(packageJson.scripts.dev).toBe(scenario.dev);
     expect(packageJson.scripts["atlas:config"]).toBe("atlas compile-config customer-host");
     expect(packageJson.scripts.build).toBe(scenario.build);
-    expect(packageJson.scripts["atlas:build"]).toBe("atlas build customer-host");
+    expect(packageJson.scripts["atlas:publish"]).toBe("atlas publish customer-host --from-build-output");
+    expect(packageJson.scripts["atlas:bootstrap"]).toBe("atlas build-bootstrap customer-host --skip-compile");
     expect(packageJson.dependencies["@atlas/bootstrap"]).toBe(undefined);
+    if (scenario.name === "Turborepo") {
+      const turbo = JSON.parse(await readFile(join(root, "turbo.json"), "utf8"));
+      expect(turbo.tasks["atlas:publish"].cache).toBe(false);
+      expect(turbo.tasks["atlas:publish"].dependsOn).toStrictEqual(["build", "atlas:config"]);
+      expect(turbo.tasks["atlas:publish"].env).toEqual(expect.arrayContaining(["ATLAS_*", "AWS_*", "CI_*"]));
+      expect(turbo.tasks["atlas:bootstrap"].outputs).toStrictEqual(["dist/bootstrap/**"]);
+    }
     if (scenario.framework === "angular") {
       const appTsconfig = JSON.parse(await readFile(join(root, scenario.root, "tsconfig.app.json"), "utf8"));
       const angularJson = JSON.parse(await readFile(join(root, scenario.root, "angular.json"), "utf8"));

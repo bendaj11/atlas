@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "atlas:config": "atlas compile-config catalog-react",
     "build": "tsc -b && vite build",
-    "atlas:build": "atlas build catalog-react"
+    "atlas:publish": "atlas publish catalog-react --from-build-output"
   },
   "dependencies": {
     "@atlas/schema": "*",

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
-import { emptyRegistry, run } from "./build.driver.js";
+import { run } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
 
@@ -21,7 +21,8 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/catalogUrl/);
   const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
   expect(generatedPackage.scripts.build).toBe("ng build");
-  expect(generatedPackage.scripts["atlas:build"]).toBe("atlas build customer-host");
+  expect(generatedPackage.scripts["atlas:publish"]).toBe("atlas publish customer-host --from-build-output");
+  expect(generatedPackage.scripts["atlas:bootstrap"]).toBe("atlas build-bootstrap customer-host --skip-compile");
   expect(generatedPackage.scripts["build:server"]).toBe(undefined);
   expect(generatedPackage.dependencies["@atlas/bootstrap"]).toBe(undefined);
   const angularJson = JSON.parse(await readFile(join(target, "angular.json"), "utf8"));
@@ -117,8 +118,6 @@ test("atlas app generation can create single-page apps without inner route files
 test("atlas build identifies and versions a host client", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-runtime-config-"));
   const projectRoot = join(root, "host");
-  const publication = join(root, "publication");
-  const plan = join(root, "publication.json");
   await mkdir(projectRoot, { recursive: true });
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", private: true, workspaces: ["host"] }));
   await writeFile(join(projectRoot, "package.json"), JSON.stringify({ name: "host", version: "0.1.0", type: "module" }));
@@ -127,8 +126,6 @@ test("atlas build identifies and versions a host client", async () => {
   await mkdir(join(projectRoot, "dist"));
   await writeFile(join(projectRoot, "dist/remoteEntry.json"), JSON.stringify({ name: "atlas_host", exposes: [{ key: "./host", outFileName: "host.js" }], shared: [] }));
   await writeFile(join(projectRoot, "dist/host.js"), "export const mount = () => {};\n");
-  const snapshot = join(root, "registry.json");
-  await writeFile(snapshot, JSON.stringify(emptyRegistry()));
   await writeFile(join(projectRoot, ".atlas/atlas.config.js"), `export default {
     type: "host",
     id: "host",
@@ -138,18 +135,14 @@ test("atlas build identifies and versions a host client", async () => {
 
   await run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "build", "host",
-    "--skip-compile", "--registry-base-url=https://cdn.example/atlas",
-    `--registry-snapshot=${snapshot}`,
-    `--publication-directory=${publication}`, `--publication-plan=${plan}`
+    "--skip-compile", "--registry-base-url=https://cdn.example/atlas"
   ], { cwd: root });
 
   const manifest = JSON.parse(await readFile(join(projectRoot, "dist/host.manifest.json"), "utf8"));
-  const catalog = JSON.parse(await readFile(join(publication, "hosts/host/catalog.json"), "utf8"));
   expect(manifest.kind).toBe("host");
   expect(manifest.version).toBe("0.1.0");
   expect(manifest.remoteEntryUrl.startsWith("https://cdn.example/atlas/hosts/host/0.1.0/")).toBe(true);
-  expect(catalog.host.id).toBe("host");
-  expect(catalog.apps).toStrictEqual([]);
+  await expect(access(join(projectRoot, "dist/atlas-publication.json"))).rejects.toMatchObject({ code: "ENOENT" });
 });
 
 test("atlas build-bootstrap emits deployable static files", async () => {

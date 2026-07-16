@@ -3,23 +3,69 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "env": ["NG_BUILD_MAX_WORKERS"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "env": [
+        "NG_BUILD_MAX_WORKERS"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
-    "publish-lib": { "cache": false },
+    "publish-lib": {
+      "cache": false
+    },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
-      "outputs": ["dist/**", "*.tsbuildinfo"]
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "outputs": [
+        "dist/**",
+        "*.tsbuildinfo"
+      ]
     },
     "test": {
-      "dependsOn": ["build", "^build"],
-      "env": ["CODEX_SANDBOX_NETWORK_DISABLED"],
+      "dependsOn": [
+        "build",
+        "^build"
+      ],
+      "env": [
+        "CODEX_SANDBOX_NETWORK_DISABLED"
+      ],
       "outputs": []
     },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "atlas:config": {
+      "outputs": [
+        ".atlas/**"
+      ]
+    },
+    "atlas:publish": {
+      "cache": false,
+      "dependsOn": [
+        "build",
+        "atlas:config"
+      ],
+      "env": [
+        "ATLAS_*",
+        "AWS_*",
+        "CI_*",
+        "GITHUB_*",
+        "BITBUCKET_*",
+        "VERCEL_*"
+      ]
+    },
+    "atlas:bootstrap": {
+      "dependsOn": [
+        "atlas:config"
+      ],
+      "outputs": [
+        "dist/bootstrap/**"
+      ]
     }
   }
 }

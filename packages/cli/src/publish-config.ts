@@ -6,8 +6,8 @@ import { CliArguments } from "./arguments.js";
 import { isPublicationStorage, type AtlasPublicationStorageSource } from "./publication-storage.js";
 
 export interface AtlasPublishConfig {
-  /** Publication storage adapter. Atlas still owns ordering, locking, restore, and verification. */
-  storage: AtlasPublicationStorageSource;
+  /** Optional custom storage adapter. Built-in S3-compatible storage uses environment configuration. */
+  storage?: AtlasPublicationStorageSource;
   /** Deployed hosts verified after catalog activation. */
   runtimeUrls?: string[];
   /** Optional provider-specific CDN invalidation after mutable objects activate. */
@@ -44,7 +44,8 @@ export async function loadAtlasPublishConfig(args: CliArguments): Promise<AtlasP
 function isPublishConfig(value: unknown): value is AtlasPublishConfig {
   if (typeof value !== "object" || value === null) return false;
   const config = value as AtlasPublishConfig;
-  const hasStorage = typeof config.storage === "function"
+  const hasStorage = config.storage === undefined
+    || typeof config.storage === "function"
     || isPublicationStorage(config.storage);
   return (config.runtimeUrls === undefined || (Array.isArray(config.runtimeUrls) && config.runtimeUrls.every((url) => typeof url === "string")))
     && (config.invalidate === undefined || typeof config.invalidate === "function")

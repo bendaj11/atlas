@@ -7,7 +7,8 @@
     "dev": "vite --host 0.0.0.0",
     "atlas:config": "atlas compile-config demo-react-host",
     "build": "tsc -b && vite build",
-    "atlas:build": "atlas build demo-react-host"
+    "atlas:publish": "atlas publish demo-react-host --from-build-output",
+    "atlas:bootstrap": "atlas build-bootstrap demo-react-host --skip-compile"
   },
   "dependencies": {
     "@atlas/schema": "*",

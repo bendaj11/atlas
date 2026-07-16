@@ -1,10 +1,10 @@
-import { mkdtemp } from "node:fs/promises";
+import { access, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
 import type { AtlasHostManifest, AtlasStaticRegistry } from "../../schema/dist/index.js";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import { prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/static-registry.js";
+import { createHostCatalog, prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/static-registry.js";
 import { readCatalog, readManifestIndex, readRegistry } from "./static-registry.driver.js";
 
 test("static registry selects one host client and its apps", async () => {
@@ -48,6 +48,34 @@ test("provider-only apps remain discoverable without entering a host catalog", a
   expect(catalog.apps).toStrictEqual([]);
 });
 
+test("catalog snapshots stay byte-stable when selected contents do not change", () => {
+  const host = hostManifest();
+  const before: AtlasStaticRegistry = {
+    schemaVersion: "1",
+    updatedAt: host.createdAt,
+    hosts: [host],
+    apps: [],
+    selections: { hosts: { host: { version: host.version, buildId: host.buildId } }, apps: {} }
+  };
+  const provider = createTestManifest({
+    id: "provider",
+    placements: [],
+    supportedHosts: ["*"],
+    createdAt: "2026-02-01T00:00:00.000Z"
+  });
+  const after: AtlasStaticRegistry = {
+    ...before,
+    updatedAt: provider.createdAt,
+    apps: [provider],
+    selections: {
+      hosts: before.selections!.hosts,
+      apps: { provider: { version: provider.version, buildId: provider.buildId } }
+    }
+  };
+
+  expect(createHostCatalog("host", after)).toStrictEqual(createHostCatalog("host", before));
+});
+
 test("PR builds enter history without activating catalog", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-static-pr-"));
   await prepareStaticRegistry(hostManifest(), undefined, directory);
@@ -86,6 +114,7 @@ test("rollback selects previous host-client build", async () => {
   expect(result.selected.kind).toBe("host");
   expect(catalog.host.buildId).toBe("one");
   expect(catalog.apps.find((manifest) => manifest.id === "orders")?.buildId).toBe("orders-three");
+  await expect(access(join(directory, `hosts/host/deployments/${catalog.revision.replace(":", "-")}.json`))).resolves.toBeUndefined();
 });
 
 test("rollback requires build id when version has multiple builds", async () => {

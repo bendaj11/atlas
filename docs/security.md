@@ -59,11 +59,12 @@ Integrity does not replace publication authorization. Anyone who can publish bot
 ## Publication controls
 
 - Pin Atlas CLI and dependencies with a committed lockfile.
-- Build once; promote the same publication directory between environments.
+- Let workspace runner build once per environment; publish exact cached output through `atlas:publish`.
 - Grant immutable create and mutable replace permissions only to protected CI.
-- Serialize all host/app releases sharing one registry root.
-- Compare live registry revision before mutation.
+- Allow native runner concurrency; Atlas storage lease serializes registry mutation.
+- Read and compare live registry only while holding expiring, renewable lease.
 - Upload immutable bytes before active catalogs.
+- Read and HEAD uploaded objects; verify SHA-256, MIME, and cache policy.
 - Verify runtime after activation while still holding the lease.
 - Restore previous mutable files on verification failure.
 - Keep deployment and rollback audit logs.

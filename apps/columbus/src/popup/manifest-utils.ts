@@ -78,7 +78,9 @@ export function normalizeStoredManifest(manifest: Manifest): Manifest {
 
 export function productionVersions(hostData: HostData, production: Manifest): Manifest[] {
   const versions = hostData.versions[artifactKey(production)] ?? [];
-  return uniqueVersions([production, ...versions]).filter((manifest) => manifest.channel !== "local" && manifest.channel !== "pr");
+  const historical = uniqueVersions(versions).filter((manifest) =>
+    manifest.channel === "production" && versionKey(manifest) !== versionKey(production));
+  return [production, ...historical];
 }
 
 export function prVersions(hostData: HostData, production: Manifest): Manifest[] {
@@ -108,8 +110,10 @@ export function badgeSkin(type: OverrideType): BadgeSkin {
 }
 
 export function versionLabel(manifest: Manifest): string {
-  if (manifest.channel === "pr") return `${manifest.version} (pr #${manifest.prNumber ?? "unknown"})`;
-  return manifest.version;
+  const identity = `${manifest.version} · ${manifest.buildId.slice(0, 7)}`;
+  if (manifest.channel === "pr") return `${identity} · PR #${manifest.prNumber ?? "unknown"}`;
+  if (manifest.channel === "local") return `${identity} · Local`;
+  return identity;
 }
 
 export function versionDisabled(manifest: Manifest, hostId: string): boolean {

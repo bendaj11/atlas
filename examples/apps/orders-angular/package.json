@@ -6,7 +6,7 @@
     "dev": "ng serve orders-angular",
     "atlas:config": "atlas compile-config orders-angular",
     "build": "ng build",
-    "atlas:build": "atlas build orders-angular"
+    "atlas:publish": "atlas publish orders-angular --from-build-output"
   },
   "dependencies": {
     "@atlas/schema": "*",

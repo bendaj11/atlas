@@ -47,10 +47,9 @@ is documented by the host team.
 
 ## Deployment Domain
 
-`atlas build` places Vite output and generated manifest in local publication
-tree under
-selected immutable app version. CI uploads all immutable files before it
-replaces mutable catalogs.
+Vite owns framework output. `atlas:publish` reads that output, publishes it
+beneath derived immutable version/build path, then replaces mutable catalogs
+under storage lease.
 
 Your CDN must:
 

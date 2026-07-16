@@ -1,89 +1,135 @@
-# Static Bootstrap
+# Host bootstrap
 
-Atlas product domain serves four generated static files:
-
-```text
-dist/bootstrap/
-  index.html
-  atlas.loader.js
-  atlas.runtime.json
-  nginx.conf
-```
-
-`index.html` provides `#atlas-host-root` and loads `/atlas.loader.js`. Loader
-reads runtime config and catalog, applies approved Columbus overrides, loads
-selected host artifact, then mounts it. Bootstrap contains no product UI and
-needs no Node.js application server.
+Bootstrap is small static site that starts Atlas runtime. It is separate from versioned host client so host client and apps can publish independently from web infrastructure.
 
 ## Build
 
-```sh
-atlas build-bootstrap customer-host \
-  --registry-base-url=https://cdn.example.com/atlas
+Nx:
+
+```bash
+npx nx run customer-host:atlas:bootstrap
 ```
 
-Default output: `<host>/dist/bootstrap`. Generate it during environment or
-bootstrap deployment. Normal host/app releases only publish versioned artifacts
-and catalog changes; they do not rebuild bootstrap.
+Direct CLI:
 
-Generated host projects contain `atlas.bootstrap.html` at project root. Edit
-that source-controlled file to customize loading markup, styles, metadata, or
-branding. `build-bootstrap` uses it automatically. Existing hosts without that
-file continue using Atlas default HTML.
+```bash
+npx atlas build-bootstrap customer-host
+```
 
-Useful options:
+Output defaults to `<host>/dist/bootstrap`:
 
-| Option | Purpose |
-| --- | --- |
-| `--out <path>` | Change output directory |
-| `--template <path>` | Override `atlas.bootstrap.html` with another HTML file relative to host project |
-| `--title <text>` | Set document title when no template file is used |
-| `--loading-html <html>` | Set loading markup when no template file is used |
-| `--asset-origins <urls>` | Add approved artifact origins and CSP sources |
-| `--external-registry-urls <urls>` | Add approved external registries |
+```text
+index.html
+atlas.loader.js
+atlas.runtime.json
+nginx.conf
+atlas.bootstrap.json
+```
 
-Custom HTML must retain an element with `id="atlas-host-root"` and a script
-loading `/atlas.loader.js`. Atlas validates both hooks.
+`atlas.bootstrap.json` lists files and deterministic SHA-256 digest. Same inputs produce same digest.
 
-Overrides default off in generated production runtime. Set
-`allowOverrides: true` in host `atlas.config.ts` when Columbus substitution is
-part of environment policy; local `atlas dev` always enables it.
+## Why bootstrap is separate
 
-## Nginx Container
+Host has two deployable parts:
+
+- bootstrap: stable HTML/loader/runtime configuration served by web platform;
+- host client: versioned federated artifact published to Atlas registry.
+
+Combining them forces infrastructure rollout for every host-client release. Separation enables independent rollback and cache policy.
+
+## CI reconciliation
+
+CI should not inspect changed source paths to guess whether bootstrap changed. Generated `atlas:bootstrap` target declares inputs through workspace graph and produces deterministic digest.
+
+Platform `deploy` target depends on `atlas:bootstrap`:
+
+```json
+{
+  "deploy": {
+    "dependsOn": ["atlas:bootstrap"],
+    "executor": "nx:run-commands",
+    "options": {
+      "command": "./scripts/deploy-bootstrap.sh customer-host/dist/bootstrap"
+    }
+  }
+}
+```
+
+Run normal workspace deployment:
+
+```bash
+npx nx affected -t atlas:publish deploy
+```
+
+Deployment platform compares digest, image tag, checksum, or GitOps input. Unchanged digest means no rollout.
+
+## Docker and Nginx
+
+Place Dockerfile in host project:
 
 ```dockerfile
 FROM nginxinc/nginx-unprivileged:alpine
-
 COPY ./dist/bootstrap /usr/share/nginx/html
 COPY ./dist/bootstrap/nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 8080
 ```
 
-Route DNS/ingress for `https://product.com` to this container. Generated Nginx
-config supplies:
+Build after `atlas:bootstrap`:
 
-- SPA fallback to `/index.html` for extensionless browser routes;
-- real `404` responses for missing `.js`, `.css`, and other assets;
-- `no-cache` for mutable HTML/runtime config;
-- CSP, `nosniff`, referrer, and frame restrictions;
-- `/health/live` for container health checks.
+```bash
+docker build -t customer-host:<bootstrap-digest> customer-host
+```
 
-Equivalent CDN/static hosting is valid when it implements same fallback,
-caching, headers, and asset-404 behavior.
+Generated Nginx config serves correct MIME types, prevents stale runtime configuration, applies immutable caching where appropriate, and falls back to `index.html` for routes.
 
-## Local Development
+## Static platforms
 
-`atlas dev customer-host` starts framework server, Atlas control service, and
-ephemeral static bootstrap at `http://localhost:4200` by default. These are local
-tools, not production application-server requirements. Local bootstrap uses the
-same project `atlas.bootstrap.html`, so loading UI changes appear during
-development. Use `--port` to change browser-facing port or `--host-url` to use
-an already running page.
+Deploy `dist/bootstrap` as static output on Vercel, Cloudflare Pages, S3 website hosting, or internal platform. Preserve file metadata and SPA fallback behavior. Registry/app objects remain in Atlas storage unless intentionally colocated.
 
-## When Backend Is Still Needed
+## Runtime configuration
 
-Deploy separate backend/BFF only for server-side sessions, APIs, SSR,
-personalized HTML, or per-request configuration. It is product infrastructure,
-not default Atlas bootstrap. Route `/api/*` to it through ingress while static
-bootstrap continues serving browser routes.
+Example `atlas.runtime.json`:
+
+```json
+{
+  "schemaVersion": "1",
+  "hostId": "7ee210f9-dacd-4aac-939e-237032d44740",
+  "hostVersion": "0.1.0",
+  "catalogUrl": "https://assets.example/atlas/hosts/7ee210f9-dacd-4aac-939e-237032d44740/catalog.json",
+  "allowOverrides": false,
+  "resourcesTimeoutMs": 15000,
+  "resourcesRetryCount": 3
+}
+```
+
+`catalogUrl` is derived from `ATLAS_REGISTRY_BASE_URL`. It is public download URL, not S3 upload endpoint.
+
+## Custom HTML
+
+Generated host includes `atlas.bootstrap.html`. Atlas uses it automatically:
+
+```bash
+npx atlas build-bootstrap customer-host
+```
+
+Choose another template:
+
+```bash
+npx atlas build-bootstrap customer-host --template other.bootstrap.html
+```
+
+Template must retain Atlas loader script and mount element expected by host.
+
+## Verify
+
+```bash
+ATLAS_RUNTIME_URLS=https://portal.example/atlas.runtime.json npx atlas verify
+```
+
+Local container simulation:
+
+```bash
+docker run --rm -p 8080:8080 customer-host:local
+ATLAS_RUNTIME_URLS=http://localhost:8080/atlas.runtime.json npx atlas verify
+```
+
+Local container tests production bytes and browser loading. It does not test remote TLS, ingress, CDN, identity, or network policy.

@@ -70,19 +70,15 @@ version selection.
 
 ## Deployment Domain
 
-CI/CD decides:
+CI/CD decides storage environment, public registry URL, affected comparison,
+bootstrap deployment platform, and verification URLs. Existing release tooling
+decides semantic package version.
 
-- `ATLAS_VERSION` and `ATLAS_BUILD_ID`;
-- immutable upload location;
-- static registry locking or compare-and-swap;
-- mutable catalog replacement;
-- CDN invalidation or revalidation;
-- production verification and rollback.
-
-`atlas build` creates provider-neutral files and publication plan. `atlas
-publish` uses explicitly configured storage adapter while preserving locking,
-immutable writes, activation order, verification, and restore behavior. Atlas
-offers S3-compatible adapter; registry contract does not require S3.
+`atlas build` runs framework build and writes manifest without registry access.
+`atlas publish <project>` derives release identity, acquires storage lease, reads
+live registry, uploads immutable objects, activates catalogs, and verifies
+storage. Built-in provider supports S3-compatible storage through standard AWS
+SDK credentials; registry contract remains provider-neutral.
 
 ## Learn Next
 

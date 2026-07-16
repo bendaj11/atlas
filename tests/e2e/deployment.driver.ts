@@ -1,8 +1,12 @@
 import { spawn } from "node:child_process";
 
-export function runCli(workspaceRoot: string, args: string[]): Promise<void> {
+export function runCli(workspaceRoot: string, args: string[], environment: NodeJS.ProcessEnv = {}): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, args, { cwd: workspaceRoot, stdio: "inherit" });
+    const child = spawn(process.execPath, args, {
+      cwd: workspaceRoot,
+      env: { ...process.env, ...environment },
+      stdio: "inherit"
+    });
     child.once("error", reject);
     child.once("exit", (code) => code === 0
       ? resolve()

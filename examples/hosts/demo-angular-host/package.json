@@ -6,7 +6,8 @@
     "dev": "ng serve demo-angular-host",
     "atlas:config": "atlas compile-config demo-angular-host",
     "build": "ng build",
-    "atlas:build": "atlas build demo-angular-host"
+    "atlas:publish": "atlas publish demo-angular-host --from-build-output",
+    "atlas:bootstrap": "atlas build-bootstrap demo-angular-host --skip-compile"
   },
   "dependencies": {
     "@angular/animations": "^20.3.0",

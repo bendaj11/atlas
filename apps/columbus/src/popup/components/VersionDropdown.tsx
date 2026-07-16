@@ -11,10 +11,11 @@ interface VersionDropdownProps {
   selectedId: string;
   versions: Manifest[];
   hostId: string;
+  currentId?: string;
   onChange: (value: string) => void;
 }
 
-export function VersionDropdown({ id, ariaLabel, disabled, selectedId, versions, hostId, onChange }: VersionDropdownProps): JSX.Element {
+export function VersionDropdown({ id, ariaLabel, disabled, selectedId, versions, hostId, currentId, onChange }: VersionDropdownProps): JSX.Element {
   return (
     <Dropdown
       id={id}
@@ -24,10 +25,16 @@ export function VersionDropdown({ id, ariaLabel, disabled, selectedId, versions,
       placeholder="No versions found"
       options={versions.map((manifest) => ({
         id: versionKey(manifest),
-        value: versionLabel(manifest),
+        value: versionOptionLabel(manifest, currentId),
         disabled: versionDisabled(manifest, hostId)
       }))}
       onSelect={(option: { id: string | number }) => onChange(String(option.id))}
     />
   );
+}
+
+function versionOptionLabel(manifest: Manifest, currentId: string | undefined): string {
+  if (manifest.channel !== "production") return versionLabel(manifest);
+  const status = versionKey(manifest) === currentId ? "Current production" : "Previous production";
+  return `${status} · ${versionLabel(manifest)}`;
 }

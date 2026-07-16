@@ -25,7 +25,8 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       dev: "vite --host 0.0.0.0",
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "tsc -b && vite build",
-      "atlas:build": `atlas build ${projectName}`
+      "atlas:publish": `atlas publish ${projectName} --from-build-output`,
+      ...(host ? { "atlas:bootstrap": `atlas build-bootstrap ${projectName} --skip-compile` } : {})
     },
     dependencies: {
       "@atlas/schema": atlasPackageRange(),

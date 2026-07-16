@@ -1,509 +1,548 @@
-# Production Deployment
+# Production deployment and CI
 
-This guide takes an Atlas host and app from tested source to a verified production
-release. It covers initial environment provisioning, routine releases, CI,
-verification, and rollback.
+This guide covers repeatable publication, bootstrap deployment, PR builds, verification, and rollback. Complete [Zero to production](getting-started.md) once before automating CI.
 
-**Audience:** platform engineers, host/app release engineers, and production
-approvers. **Finished state:** product origin serves static bootstrap, registry
-contains selected host/app versions, public verification passes, and rollback
-target is known.
+## Deployment model
 
-> **Prerequisite:** This guide is relevant only after completing
-> [Zero to production](getting-started.md). You must already have at least one
-> developed and tested Atlas host and one developed and tested Atlas app that
-> are ready to deploy. If you do not, finish the getting-started guide first.
+Atlas has two deployment surfaces:
 
-Atlas deploys two independent layers:
+1. Registry publication stores host-client and app artifacts in S3-compatible object storage.
+2. Bootstrap deployment serves a small static host entry point through your normal web platform.
 
-1. **Static bootstrap** at the product origin, such as
-   `https://product.example`. It contains HTML, the Atlas loader, runtime config,
-   and HTTP policy. Deploy it when creating an environment or changing bootstrap
-   behavior.
-2. **Versioned host and app artifacts** in a browser-readable static registry,
-   such as `https://cdn.example.com/atlas`. Publish these for routine product
-   releases. Atlas activates them by updating mutable catalogs; no bootstrap
-   image rebuild is needed.
+They are independent because they have different lifecycles. Apps and host clients may publish without rebuilding a web server or container. Bootstrap may deploy through Docker, Kubernetes, Vercel, an internal static service, or another platform.
 
-Choose the framework-specific build notes before starting:
+Workspace tools own project selection:
 
-- [Deploy an Angular host or app](angular/production-deployment.md)
-- [Deploy a React host or app](react/production-deployment.md)
+- Nx owns `affected`, dependency order, and caching.
+- Turborepo owns `--affected`, task dependencies, and caching.
+- Yarn and pnpm own workspace filtering.
+- Atlas publishes only projects whose package or project configuration exposes `atlas:publish`.
 
-## Before You Start
+Atlas never calculates a second monorepo graph.
 
-You need:
+## Required configuration
 
-- Node.js 20 or later and the repository's committed lockfile;
-- a developed, tested host and at least one developed, tested app ready for
-  production deployment, each with a stable UUID in `atlas.config.ts`;
-- a public HTTPS origin for the bootstrap;
-- a public HTTPS registry/CDN origin;
-- CI credentials that can create, read, replace, and remove registry objects;
-- one shared deployment lock for every publisher writing to the registry root.
+### Public registry URL
 
-Pin the CLI locally. Commands below use `npx`, which resolves that pinned
-dependency:
-
-```sh
-npm install --save-dev --save-exact @atlas/cli
-npx atlas --version
-npx atlas build --help
+```bash
+ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
 ```
 
-Use equivalent `pnpm exec atlas` or `yarn atlas` commands when those package
-managers own the lockfile. Do not use a floating global CLI in CI.
+Browsers use this URL for `registry.json`, catalogs, manifests, JavaScript, CSS, and fonts. It must be public to host users, but it does not need to be public to the internet.
 
-Examples use these values:
+### S3-compatible storage
 
-```sh
-HOST_PROJECT=customer-host
-APP_PROJECT=orders
-REGISTRY_URL=https://cdn.example.com/atlas
-RUNTIME_URL=https://product.example/atlas.runtime.json
-HOST_ORIGIN=https://product.example
+AWS S3:
+
+```bash
+ATLAS_STORAGE=s3
+ATLAS_S3_BUCKET=company-atlas
+ATLAS_S3_REGION=eu-west-1
+ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
 ```
 
-Replace them with real values. Shell variables do not automatically persist
-between CI steps; configure them as job or environment variables there.
+Cloudflare R2:
 
-## 1. Confirm Release Configuration
-
-Check each project's `atlas.config.ts` before its first release.
-
-Host example:
-
-```ts
-import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };
-
-export default {
-  type: "host",
-  id: "399e1a5d-f83d-4248-96ed-e4211707ae1b",
-  name: "Customer Host",
-  framework: "react",
-  allowOverrides: false
-} satisfies AtlasHostConfig;
+```bash
+ATLAS_STORAGE=s3
+ATLAS_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+ATLAS_S3_BUCKET=company-atlas
+ATLAS_S3_REGION=auto
+ATLAS_REGISTRY_BASE_URL=https://pub-<bucket-id>.r2.dev
 ```
 
-App example:
+MinIO or another private S3-compatible service:
 
-```ts
-import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
-
-export default {
-  type: "app",
-  id: "f856e01e-0fc1-4a6d-a4ec-622c68100d14",
-  name: "Orders",
-  framework: "react",
-  routes: [{
-    hostId: "399e1a5d-f83d-4248-96ed-e4211707ae1b",
-    basePath: "/orders",
-    title: "Orders",
-    nav: { label: "Orders", visible: true }
-  }]
-} satisfies AtlasAppConfig;
+```bash
+ATLAS_STORAGE=s3
+ATLAS_S3_ENDPOINT=https://minio.storage.internal
+ATLAS_S3_BUCKET=company-atlas
+ATLAS_S3_REGION=us-east-1
+ATLAS_S3_FORCE_PATH_STYLE=true
+ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
 ```
 
-Release rules:
+Optional key namespace:
 
-- Never change an existing host or app `id` between releases. Atlas uses it as
-  artifact identity and registry path.
-- Production normally sets `allowOverrides: false`. Enable it only when your
-  environment policy intentionally permits Columbus substitutions.
-- Every app `hostId` must match a deployed host.
-- Route base paths must be unique within one host catalog.
-
-For all config fields, see [Manifest and config contracts](manifest.md).
-
-## 2. Configure Publication Storage
-
-Generate the provider adapter once at workspace root:
-
-```sh
-npx atlas generate publish-config
+```bash
+ATLAS_S3_PREFIX=production
 ```
 
-Generated `atlas.publish.ts` uses Atlas's S3-compatible adapter:
+The prefix is part of storage keys. `ATLAS_REGISTRY_BASE_URL` must serve that same namespace.
 
-```ts
-import { S3PublicationStorage, type AtlasPublishConfig } from "@atlas/cli";
+### Credentials
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is required.`);
-  return value;
+Atlas uses the official AWS SDK credential provider chain. Supported sources include:
+
+- CI workload identity or web identity;
+- container or instance role credentials;
+- shared AWS profile;
+- temporary session credentials;
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optional `AWS_SESSION_TOKEN`;
+- explicit `ATLAS_S3_ACCESS_KEY_ID`, `ATLAS_S3_SECRET_ACCESS_KEY`, and optional `ATLAS_S3_SESSION_TOKEN`.
+
+Prefer short-lived workload identity. Never expose storage write credentials to browser code or commit them to the repository.
+
+Publisher identity needs object read, metadata read, conditional write, and delete permissions for the configured prefix. Atlas does not list buckets. Delete is used for lease release, failed-publication cleanup, and restoring objects that did not previously exist.
+
+### CORS
+
+Allow `GET` and `HEAD` from every deployed host origin. Include local origins only where production simulation is needed. Published objects keep write access private.
+
+### Runtime verification
+
+```bash
+ATLAS_RUNTIME_URLS="https://portal.example.internal/atlas.runtime.json https://admin.example.internal/atlas.runtime.json"
+```
+
+List the public `atlas.runtime.json` URL for every deployed host in the target
+environment. One `atlas verify` invocation checks all listed hosts;
+comma-separated values also work. A failure in any host makes verification
+exit unsuccessfully and fail the deployment gate.
+
+## Version and build identity
+
+Atlas keeps two identities for every publication:
+
+- `version` is the human release identity supplied by existing project or CI
+  release data;
+- `buildId` is the content identity Atlas calculates from artifact bytes,
+  relative paths, MIME types, and the immutable cache contract.
+
+Atlas resolves `version` in this order:
+
+1. explicit `--version`, intended for diagnostics rather than routine CI;
+2. a matching tag when the pipeline is running for that tag;
+3. the project's `package.json` version;
+4. the root workspace `package.json` version;
+5. `0.0.0` when no other version source exists.
+
+Atlas recognizes a shared tag such as `v1.2.3` for every project. It also
+recognizes a project-specific tag such as `login@1.2.3` for the matching
+package or Atlas project. Tag versions are inferred automatically from
+`GITHUB_REF_TYPE=tag` and `GITHUB_REF_NAME` on GitHub, or `CI_COMMIT_TAG` on
+GitLab. Other CI systems can map their checked-out tag name to
+`CI_COMMIT_TAG`.
+
+PR number comes from GitHub, GitLab, Bitbucket, Vercel, or explicit CI
+mapping. Git SHA comes from common CI variables. For PR 42, Atlas changes base
+version `0.1.0` to `0.1.0-pr.42`; PR publication enters history without
+replacing production selection.
+
+Examples:
+
+```text
+Production: version 0.1.0, build a81f29c42d91
+PR 42:      version 0.1.0-pr.42, build c61b302dc35e
+```
+
+Atlas does not decide whether `0.1.0` becomes `0.1.1` or `0.2.0`. Existing release tooling owns semantic version changes. Atlas consumes its result.
+
+Diagnostic overrides exist through `--version`, `--build-id`, `--channel`, and `--pr-number`. Keep them out of standard CI.
+
+### Choose a versioning policy
+
+Versioning policy belongs to the repository, not to `atlas:publish`. The
+publish target uses the version already produced by that policy; it never
+increments a package or creates a release tag.
+
+| Policy | Requirements | Advantages | Costs and risks |
+| --- | --- | --- | --- |
+| Root package version | Root `package.json` contains `version` | Minimal setup; useful for lockstep releases | Every project inherits one version; a person or release tool must update it |
+| Per-project package versions | Each deployable project has a `package.json` with `name` and `version` | Independent, visible project versions; works with release tools | A manual edit can be forgotten unless CI owns the update |
+| Nx Release | Per-project manifests, independent-release configuration, Git history and tag permissions | Nx detects affected projects, updates versions, and creates `{projectName}@{version}` tags | Conventional Commit mode still relies on valid commit messages; release and Atlas publication remain separate stages |
+| Yarn deferred versions | Yarn workspaces with project manifests and the Yarn version workflow | Native Yarn workflow; updates workspace references | A contributor still declares the bump; it is not zero-input automation |
+| Changesets | Workspace manifests, Changesets configuration, committed change files, and usually a release PR bot | Explicit reviewable release intent; handles monorepo dependency bumps | Contributor must add a changeset or CI must reject the PR; `changeset publish` targets package registries, so Atlas publication remains separate |
+| semantic-release | Conventional Commits, full Git history, tag permissions, and per-project monorepo configuration | CI calculates semantic versions and tags | Incorrect commit semantics produce incorrect or missing releases |
+| Automated production tag | Successful `main` checks, a unique numeric CI build number, tag write permission, and a tag-triggered publication pipeline | No package edit, changeset, or commit convention; same workflow for Nx, Turbo, Yarn, and pnpm | Version is a production release number rather than semantic API meaning; all projects published by that run share it |
+
+Use Nx Release when semantic versions and changelogs must describe independent
+Nx projects. Use Yarn's version workflow or Changesets when a person must
+review release intent. Use semantic-release only when commit conventions are a
+reliable release input. For continuous deployment where no developer action
+may be required, use an automated production tag.
+
+Turborepo is a task runner and does not calculate release versions. Yarn and
+pnpm are workspace/package managers, not a universal release policy. Turbo,
+Yarn, and pnpm repositories therefore commonly add Changesets or
+semantic-release when semantic versioning is required. Atlas remains the
+artifact publisher after any of those tools establishes a version.
+
+### Fully automated production tags
+
+A single shared tag is the simplest policy when every successful production
+deployment starts from `main` and developer-supplied version intent is not
+trusted. Generate a valid, unique SemVer tag from the CI build number:
+
+```text
+v0.0.<CI_BUILD_NUMBER>
+```
+
+For example, build 1842 produces `v0.0.1842`. Use a numeric value without
+leading zeroes, and never reuse it.
+
+A provider-neutral tag step looks like this after tests pass:
+
+```bash
+RELEASE_TAG="v0.0.${CI_BUILD_NUMBER}"
+git tag "$RELEASE_TAG"
+git push origin "$RELEASE_TAG"
+```
+
+Map `CI_BUILD_NUMBER` to a monotonically increasing numeric value supplied by
+the CI provider. The CI identity needs permission to push only the protected
+production tag namespace.
+
+The pipeline has two stages:
+
+1. A `main` pipeline runs required tests and checks, creates the one shared tag
+   only after they pass, and pushes it.
+2. A tag-triggered pipeline checks out that tag, runs the workspace's
+   `atlas:publish` tasks, deploys any required bootstrap changes, and finishes
+   with `atlas verify`.
+
+For Nx, the publication step remains:
+
+```bash
+npx nx run-many -t atlas:publish
+```
+
+Turbo, Yarn, and pnpm run their existing Atlas workspace publication scripts;
+the checked-out tag supplies the same version to every published project.
+Projects not published by that run keep their previous selected version.
+
+This policy requires CI credentials that can create tags and a trigger that
+runs publication for `v*` tags. Do not publish from the original branch job:
+Atlas only infers a tag when the publication job is running for that tag. If a
+CI provider does not expose GitHub or GitLab tag variables, set
+`CI_COMMIT_TAG` to the checked-out tag name. A failed tag publication can be
+retried against the same immutable tag.
+
+## What `atlas:publish` does
+
+Generated Nx target:
+
+```text
+atlas:publish
+  depends on native build and atlas:config
+  cache disabled because publication changes external state
+```
+
+Framework build remains cacheable. Publication runs after output exists and performs this transaction:
+
+1. derive manifest and content identity;
+2. acquire expiring object-storage lease with bounded wait and jitter;
+3. recover an expired lease safely with conditional writes;
+4. read live `registry.json` under lease;
+5. create immutable assets and manifests;
+6. write registry, indexes, and catalogs in activation order;
+7. HEAD and read uploaded objects;
+8. verify SHA-256, `Content-Type`, and `Cache-Control`;
+9. run configured runtime verification;
+10. release lease only when token and ETag still match.
+
+If mutable activation or verification fails, Atlas restores previous registry objects and removes immutable objects created by the failed attempt.
+
+Multiple workspace projects may publish concurrently. Storage lease serializes registry mutation; CI does not need `--parallel=1`.
+
+## First environment deployment
+
+Do not use affected selection until CI has a trusted comparison base.
+
+Nx:
+
+```bash
+npx nx run-many -t lint test atlas:publish deploy
+npx atlas verify
+```
+
+Turborepo:
+
+```bash
+npx turbo run lint test atlas:publish deploy
+npx atlas verify
+```
+
+Run publication before final verification. Individual project publications are atomic; final verification confirms the converged multi-project environment.
+
+## Routine Nx CI
+
+```bash
+npx nx affected -t lint test atlas:publish deploy
+npx atlas verify
+```
+
+This command has no project names. Nx runs `atlas:publish` only on affected Atlas projects and `deploy` only on affected projects that define it. A mixed repository may contain API servers, workers, sites, Atlas apps, and Atlas hosts without special Atlas filtering.
+
+Provide explicit `--base` and `--head` when your CI does not configure Nx affected comparison automatically:
+
+```bash
+npx nx affected -t lint test atlas:publish deploy \
+  --base="$NX_BASE" \
+  --head="$NX_HEAD"
+```
+
+### GitHub Actions example
+
+This branch-triggered example assumes package or release-tool versions. When
+using fully automated production tags, replace direct publication in this job
+with the two-stage tag workflow above.
+
+```yaml
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ATLAS_STORAGE: s3
+      ATLAS_S3_BUCKET: company-atlas
+      ATLAS_S3_REGION: eu-west-1
+      ATLAS_REGISTRY_BASE_URL: https://assets.example.internal/atlas
+      ATLAS_RUNTIME_URLS: https://portal.example.internal/atlas.runtime.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx nx affected -t lint test atlas:publish deploy
+      - run: npx atlas verify
+```
+
+Add your cloud's official OIDC credential step before Nx. If OIDC is unavailable, map encrypted repository secrets to standard AWS credential variables.
+
+### Jenkins example
+
+```groovy
+stage('Deploy affected projects') {
+  environment {
+    ATLAS_STORAGE = 's3'
+    ATLAS_S3_BUCKET = credentials('atlas-bucket')
+    ATLAS_S3_REGION = 'eu-west-1'
+    ATLAS_REGISTRY_BASE_URL = 'https://assets.example.internal/atlas'
+    ATLAS_RUNTIME_URLS = 'https://portal.example.internal/atlas.runtime.json'
+  }
+  steps {
+    sh 'npm ci'
+    sh 'npx nx affected -t lint test atlas:publish deploy --base="$GIT_PREVIOUS_SUCCESSFUL_COMMIT" --head="$GIT_COMMIT"'
+    sh 'npx atlas verify'
+  }
 }
-
-export default {
-  storage: new S3PublicationStorage({
-    endpoint: required("S3_ENDPOINT"),
-    bucket: required("S3_BUCKET"),
-    prefix: process.env.S3_PREFIX ?? "",
-    region: required("AWS_REGION"),
-    accessKeyId: required("AWS_ACCESS_KEY_ID"),
-    secretAccessKey: required("AWS_SECRET_ACCESS_KEY"),
-    ...(process.env.AWS_SESSION_TOKEN
-      ? { sessionToken: process.env.AWS_SESSION_TOKEN }
-      : {})
-  }),
-  runtimeUrls: ["https://product.example/atlas.runtime.json"]
-} satisfies AtlasPublishConfig;
 ```
 
-Set secrets only in protected CI storage:
+Use Jenkins credential bindings or workload identity for storage credentials.
 
-```text
-S3_ENDPOINT=https://s3.eu-west-1.amazonaws.com
-S3_BUCKET=customer-production-assets
-S3_PREFIX=atlas
-AWS_REGION=eu-west-1
-AWS_ACCESS_KEY_ID=<secret>
-AWS_SECRET_ACCESS_KEY=<secret>
-AWS_SESSION_TOKEN=<optional-secret>
+## Routine Turborepo CI
+
+Generated packages expose `atlas:config`, `atlas:publish`, and host-only `atlas:bootstrap` scripts. Atlas merges missing tasks into `turbo.json`:
+
+```json
+{
+  "tasks": {
+    "atlas:config": {
+      "outputs": [".atlas/**"]
+    },
+    "atlas:publish": {
+      "cache": false,
+      "dependsOn": ["build", "atlas:config"]
+    },
+    "atlas:bootstrap": {
+      "dependsOn": ["atlas:config"],
+      "outputs": ["dist/bootstrap/**"]
+    }
+  }
+}
 ```
 
-`S3_*` names come from generated config, not hidden Atlas behavior. Change them
-when organization conventions differ. `atlas.publish.ts` may also return a
-custom `AtlasPublicationStorage` or use a secret manager/workload-identity
-helper. Keep credentials out of `atlas.config.ts`, bootstrap files, browser
-environment variables, and logs.
+Routine deployment:
 
-Advanced possibilities:
-
-- Add multiple `runtimeUrls` to verify every host affected by one catalog
-  update.
-- Add `invalidate(paths)` when the CDN requires explicit invalidation for
-  mutable registry objects.
-- Implement custom storage for Azure, GCS, or internal services using the five
-  operations documented in [Registry and publishing](registry.md#publication-adapter-contract).
-- Give each environment its own registry prefix or bucket. Never let staging
-  and production share mutable catalog paths.
-
-## 3. Build And Inspect Host/App Artifacts
-
-Run tests first, then build each artifact with explicit release identity:
-
-```sh
-npm test
-
-ATLAS_VERSION=1.4.0 \
-ATLAS_BUILD_ID="1.4.0-${CI_COMMIT_SHA:-local}" \
-npx atlas build "$HOST_PROJECT" --registry-base-url="$REGISTRY_URL"
-
-ATLAS_VERSION=2.1.0 \
-ATLAS_BUILD_ID="2.1.0-${CI_COMMIT_SHA:-local}" \
-npx atlas build "$APP_PROJECT" --registry-base-url="$REGISTRY_URL"
+```bash
+npx turbo run lint test atlas:publish deploy --affected
+npx atlas verify
 ```
 
-`ATLAS_VERSION` is the human release version. `ATLAS_BUILD_ID` distinguishes
-immutable rebuilds of that version; use a CI run ID or commit SHA. If omitted,
-Atlas derives a build ID from version plus artifact digest.
+Turbo selects affected packages. Packages without Atlas scripts do not publish.
 
-Each build compiles the framework project, finds `remoteEntry.json`, calculates
-integrity, and writes:
+## Yarn and pnpm workspaces
 
-```text
-<project>/dist/
-  app.manifest.json or host.manifest.json
-  atlas-publication/
-    registry.json
-    hosts/<host-id>/<version>/<build-id>/...
-    apps/<app-id>/<version>/<build-id>/...
-  atlas-publication.json
+Workspace managers do not model deployment as deeply as Nx or Turbo, but Atlas still delegates filtering.
+
+Yarn 2+ with the workspace-tools plugin:
+
+```bash
+yarn workspaces foreach --since --topological-dev run atlas:config
+yarn workspaces foreach --since --topological-dev run build
+yarn workspaces foreach --since --topological-dev run atlas:publish
+yarn workspaces foreach --since --topological-dev run deploy
+npx atlas verify
 ```
 
-Inspect before publishing:
+pnpm:
 
-```sh
-node -e 'const p=require("./orders/dist/atlas-publication.json"); console.log({baseRevision:p.baseRevision, registryRevision:p.registryRevision, files:p.files.length})'
-npx atlas publish --plan orders/dist/atlas-publication.json --dry-run
+```bash
+pnpm --filter "...[origin/main]" -r --if-present run atlas:config
+pnpm --filter "...[origin/main]" -r --if-present run build
+pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
+pnpm --filter "...[origin/main]" -r --if-present run deploy
+pnpm exec atlas verify
 ```
 
-Checkpoint:
+These Yarn and pnpm sequences run `atlas:config` explicitly because those
+workspace commands do not apply the Nx or Turbo target dependency graph. Do not
+add a separate `atlas:config` command to Nx or Turbo CI.
 
-- host paths begin `hosts/<host-id>/` and app paths begin `apps/<app-id>/`;
-- remote entry URLs use production registry origin;
-- version and build ID match release metadata;
-- source maps are absent unless `--include-source-maps` was intentional;
-- production manifests contain SHA-256 integrity.
+`--if-present` is important in mixed pnpm repositories. It keeps non-Atlas packages in normal workspace selection without requiring Atlas scripts.
 
-Useful build options:
+Yarn Classic supports Atlas package scripts but has no native changed-workspace or `--if-present` equivalent. In a mixed repository, use the existing Nx, Turbo, or CI selector instead of teaching Atlas a second project graph.
 
-- `--channel=pr --pr-number=<number>` creates preview-channel metadata.
-- `--include-source-maps` publishes maps; restrict access if maps reveal source.
-- `--entry=<path>` supports a deliberately customized remote-entry location.
-- `--skip-compile` packages a framework build produced earlier in same job.
-- `--expected-registry-revision=<hash>` rejects a known-stale registry snapshot.
+## PR publication
 
-Run `npx atlas build --help` for exact current flags.
+PR publication is optional. Many teams build and test PRs without publishing:
 
-## 4. Build The Static Bootstrap
-
-Do this once per environment, then repeat only when loader, runtime config,
-HTML template, approved origins, or HTTP policy changes:
-
-```sh
-npx atlas build-bootstrap "$HOST_PROJECT" \
-  --registry-base-url="$REGISTRY_URL"
+```bash
+npx nx affected -t lint test build
 ```
 
-Output:
+For shared preview environments:
 
-```text
-customer-host/dist/bootstrap/
-  index.html
-  atlas.loader.js
-  atlas.runtime.json
-  nginx.conf
+```bash
+npx nx affected -t lint test atlas:publish
+npx atlas verify
 ```
 
-Inspect runtime config before deployment:
+Atlas infers PR release identity. PR manifests are stored in registry history but do not replace production selections. Columbus exposes them as PR overrides.
 
-```sh
-node -e 'console.log(require("./customer-host/dist/bootstrap/atlas.runtime.json"))'
+If a CI platform does not expose PR number as a standard variable, map it once:
+
+```bash
+ATLAS_PR_NUMBER="$CI_SYSTEM_PR_NUMBER" npx nx affected -t atlas:publish
 ```
 
-Generated hosts own `atlas.bootstrap.html`; edit it for loading UI, metadata,
-and branding. It is selected automatically. To override it with another file:
+## Bootstrap deployment
 
-```sh
-npx atlas build-bootstrap "$HOST_PROJECT" \
-  --registry-base-url="$REGISTRY_URL" \
-  --template=atlas.bootstrap.html \
-  --asset-origins=https://cdn.example.com,https://shared.example.com
-```
+`atlas:bootstrap` is pure and deterministic. It creates:
 
-Custom templates must retain `#atlas-host-root` and the `/atlas.loader.js`
-script. Use `--external-registry-urls` when catalogs can reference additional
-approved registries. Use `--out` for a custom bootstrap output directory.
+- `index.html`;
+- `atlas.loader.js`;
+- `atlas.runtime.json`;
+- `nginx.conf`;
+- `atlas.bootstrap.json` with content digest.
 
-## 5. Deploy The Bootstrap Origin
+Your platform-specific `deploy` target should depend on `atlas:bootstrap`.
 
-### Nginx container
-
-Create a Dockerfile beside the host project:
+Docker example:
 
 ```dockerfile
 FROM nginxinc/nginx-unprivileged:alpine
-
 COPY ./dist/bootstrap /usr/share/nginx/html
 COPY ./dist/bootstrap/nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 8080
 ```
 
-Then build, scan, push, and deploy using organization tooling:
+Use bootstrap digest as container tag, static sync checksum, or GitOps input. Running `deploy` on every affected host is safe: unchanged digest produces no platform change.
 
-```sh
-docker build -t registry.example.com/customer-bootstrap:${CI_COMMIT_SHA:-local} .
-docker push registry.example.com/customer-bootstrap:${CI_COMMIT_SHA}
+Vercel or another static platform can deploy `dist/bootstrap` directly. Object storage still hosts Atlas registry and app artifacts; Vercel hosts only bootstrap unless you intentionally combine them.
+
+## Custom publication behavior
+
+Common S3-compatible publication needs no `atlas.publish.ts`. Create one only for organization-specific behavior:
+
+```ts
+import { defineAtlasPublishConfig } from "@atlas/cli";
+
+export default defineAtlasPublishConfig({
+  runtimeUrls: ["https://portal.example.internal/atlas.runtime.json"],
+  async invalidate(paths) {
+    await companyCdn.invalidate(paths);
+  }
+});
 ```
 
-Route DNS, TLS, and ingress for `https://product.example` to port 8080.
+Built-in S3 storage still comes from environment variables. A fully custom storage adapter may be supplied through `storage`; it must implement read, inspect, conditional create, replace, remove, and leased locking semantics.
 
-### CDN or static hosting
+## Verification
 
-You may upload `dist/bootstrap` without Nginx when hosting implements equivalent
-behavior:
+Run after all project and bootstrap deployment tasks:
 
-- `/index.html` and `/atlas.runtime.json`: `Cache-Control: no-cache`;
-- extensionless browser routes: fall back to `/index.html`;
-- missing `.js`, `.css`, JSON, images, and fonts: real `404`, never HTML;
-- `/atlas.runtime.json`: `application/json`;
-- security headers and CSP equivalent to generated `nginx.conf`;
-- HTTPS on every public URL.
-
-Do not upload versioned host/app output to product origin. Browser loads it from
-the registry selected by `atlas.runtime.json`.
-
-## 6. Publish The First Host And App
-
-Publish host first so its catalog selection exists, then compatible apps:
-
-```sh
-npx atlas publish \
-  --plan customer-host/dist/atlas-publication.json \
-  --runtime-url="$RUNTIME_URL"
-
-npx atlas publish \
-  --plan orders/dist/atlas-publication.json \
-  --runtime-url="$RUNTIME_URL"
+```bash
+npx atlas verify
 ```
 
-Atlas acquires shared storage lock, checks live registry revision, creates
-immutable objects, replaces mutable indexes, activates affected catalogs last,
-verifies configured runtime URLs, and releases lock. If post-activation
-verification fails, Atlas restores previous mutable selections.
+Checks include:
 
-If publication reports a stale revision, rebuild against current registry and
-publish new plan. Do not edit registry JSON or reuse stale plan.
+- runtime configuration and host ID;
+- catalog and selected versions;
+- exact route ownership;
+- remote entry, expose, and stylesheet URLs;
+- CORS;
+- MIME type;
+- immutable or revalidation cache policy;
+- SHA-256 integrity;
+- federation exposes.
 
-After first environment exists, routine release can combine build and publish:
+Per-project publication already verifies stored objects. Final runtime verification checks what browsers receive through public URLs and CDN layers.
+It is read-only and must run after all project publications and bootstrap
+deployments have converged. Include every deployed host in
+`ATLAS_RUNTIME_URLS`: each host has its own runtime configuration, catalog,
+selected host client, apps, and route ownership. Verifying only one host does
+not validate the others.
 
-```sh
-ATLAS_VERSION=2.1.1 \
-ATLAS_BUILD_ID="2.1.1-${CI_PIPELINE_ID}" \
-npx atlas release orders \
-  --registry-base-url="$REGISTRY_URL" \
-  --runtime-url="$RUNTIME_URL"
+## Rollback
+
+Find target version and build ID in Columbus, then run:
+
+```bash
+npx atlas rollback 26c17794-f347-4a68-8cd3-9f2a4265e6ba \
+  --version 0.1.0 \
+  --build-id a81f29c42d91
 ```
 
-Use separate `build` and `publish` jobs when approval or artifact promotion is
-required between them. Preserve both `dist/atlas-publication/` and its sibling
-`dist/atlas-publication.json`; publication needs both.
+`--build-id` is required only when multiple production builds share the requested version. Rollback acquires the same storage lease, changes registry selection, regenerates affected host catalogs, verifies deployment, and preserves immutable history.
 
-## 7. Verify Public Deployment
+## Failure handling
 
-Run verification explicitly even when `publish` already ran it, so CI keeps a
-clear verification step:
+### Lock timeout
 
-```sh
-npx atlas verify \
-  --runtime-url="$RUNTIME_URL" \
-  --host-origin="$HOST_ORIGIN"
-```
+Another publisher holds the registry lease. Atlas waits up to its bounded timeout. A crashed publisher's lease expires and may be recovered conditionally. Do not delete lock objects manually during an active deployment.
 
-Atlas checks runtime, selected catalog, manifests, routes, remote entries,
-federation exposes, styles, CORS, MIME types, cache headers, and integrity.
-Warnings still require review.
+### MIME verification failure
 
-Then smoke-test in a real browser:
+Storage or CDN served wrong `Content-Type`. Confirm public URL maps to the same bucket/prefix and that no proxy strips object metadata. Republish after correcting platform behavior; content identity includes HTTP metadata contract.
 
-1. Open host root with clean session.
-2. Open app base route.
-3. Open nested route directly and refresh it.
-4. Confirm lazy chunks, styles, images, auth, and SDK calls.
-5. Confirm loading/error UI and production monitoring events.
-6. Request a missing asset and confirm `404`, not `index.html`.
+### Catalog missing an app
 
-`atlas verify` cannot prove authentication, UI rendering, accessibility, CSP
-enforcement, monitoring, or storage permissions. See full
-[Production readiness](production-readiness.md) gate.
+Confirm app placement uses host UUID, app publication completed, and final verification ran after all project publications. Republish affected app or host; live registry under lease is source of truth.
 
-## 8. Automate CI/CD
+### Bootstrap changed but platform did not roll out
 
-Provider syntax differs, but keep bootstrap and artifact releases separate.
-This GitHub Actions example shows a routine app release:
+Compare `atlas.bootstrap.json` digest with deployed artifact or image tag. Deployment tooling, not Atlas registry publication, owns bootstrap rollout.
 
-```yaml
-name: Release orders
+### First deployment with `affected` publishes nothing
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Release version
-        required: true
+Use `run-many` or unfiltered Turbo tasks for first environment. Switch to affected selection only after CI has a valid base.
 
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    environment: production
-    env:
-      ATLAS_VERSION: ${{ inputs.version }}
-      ATLAS_BUILD_ID: ${{ inputs.version }}-${{ github.run_id }}
-      ATLAS_REGISTRY_BASE_URL: https://cdn.example.com/atlas
-      ATLAS_RUNTIME_URL: https://product.example/atlas.runtime.json
-      S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
-      S3_BUCKET: ${{ vars.S3_BUCKET }}
-      S3_PREFIX: atlas
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npx atlas release orders --runtime-url="$ATLAS_RUNTIME_URL"
-      - run: npx atlas verify --runtime-url="$ATLAS_RUNTIME_URL" --host-origin=https://product.example
-```
+## Provider references
 
-Production job should use protected environment, least-privilege short-lived
-credentials where possible, approval gates, and concurrency control. Atlas's
-storage lock protects registry mutation; CI concurrency also avoids wasting
-builds and reduces operational ambiguity.
-
-Bootstrap pipeline adds these steps:
-
-1. run tests and build host artifact;
-2. run `atlas build-bootstrap`;
-3. build and scan bootstrap container or upload static files;
-4. deploy bootstrap origin;
-5. publish host artifact;
-6. run `atlas verify` and browser smoke tests.
-
-## 9. Roll Back A Release
-
-Rollback selects already-published immutable bytes. Find stable UUID in
-`atlas.config.ts`, then preview exact mutable changes:
-
-```sh
-APP_ID=f856e01e-0fc1-4a6d-a4ec-622c68100d14
-
-npx atlas rollback "$APP_ID" \
-  --version=2.0.9 \
-  --build-id=2.0.9-build-413 \
-  --registry-base-url="$REGISTRY_URL" \
-  --dry-run
-```
-
-After review, publish rollback and verify:
-
-```sh
-npx atlas rollback "$APP_ID" \
-  --version=2.0.9 \
-  --build-id=2.0.9-build-413 \
-  --registry-base-url="$REGISTRY_URL" \
-  --runtime-url="$RUNTIME_URL"
-```
-
-Omit `--build-id` only when Atlas can select the intended build unambiguously.
-Rollback does not rebuild code, overwrite immutable artifacts, or redeploy
-bootstrap. It changes catalog selection.
-
-## Common Failure Modes
-
-### `--registry-base-url ... is required`
-
-Pass `--registry-base-url` or set `ATLAS_REGISTRY_BASE_URL`. URL must be public
-browser URL, not storage API endpoint.
-
-### Publication storage is required
-
-Generate or point to `atlas.publish.ts`. Dry run needs no storage credentials;
-real `publish`, `release`, and `rollback` do.
-
-### Publication is stale
-
-Another release changed registry after plan was built. Rebuild project, review
-new dry run, then publish. Never bypass revision check.
-
-### Remote entry returns HTML
-
-Static host rewrote missing assets to `index.html`. Restrict SPA fallback to
-browser routes and return real `404` for asset/JSON paths.
-
-### Browser reports CORS or MIME error
-
-Allow product origin to `GET` and `HEAD` registry objects. Serve JSON as
-`application/json`, JavaScript as `text/javascript` or
-`application/javascript`, and CSS as `text/css`.
-
-### New catalog appears but old UI remains
-
-Mutable catalog or index is cached too long. Use `no-cache`/revalidation and
-configure adapter `invalidate(paths)` hook when CDN requires purge.
-
-## Next Steps
-
-- Framework build details: [Angular](angular/production-deployment.md) or
-  [React](react/production-deployment.md)
-- Hosting contract: [Static bootstrap](bootstrap.md)
-- Publication protocol and custom adapters: [Registry and publishing](registry.md)
-- Release approval: [Production readiness](production-readiness.md)
-- Security controls: [Security](security.md)
-- Deployment symptoms: [Troubleshooting](troubleshooting.md)
+- [Nx affected tasks](https://nx.dev/ci/features/affected)
+- [Nx independent releases](https://nx.dev/docs/guides/nx-release/release-projects-independently)
+- [Nx automatic versioning](https://nx.dev/docs/guides/nx-release/automatically-version-with-conventional-commits)
+- [Turborepo affected tasks](https://turborepo.com/docs/crafting-your-repository/constructing-ci#using-changesets)
+- [Yarn workspaces foreach](https://yarnpkg.com/cli/workspaces/foreach)
+- [Yarn release workflow](https://yarnpkg.com/features/release-workflow)
+- [pnpm filtering](https://pnpm.io/filtering)
+- [Changesets](https://github.com/changesets/changesets)
+- [semantic-release](https://semantic-release.gitbook.io/semantic-release)
+- [AWS SDK JavaScript credential providers](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/setting-credentials-node.html)
+- [Amazon S3 conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html)
+- [Cloudflare R2 S3 API](https://developers.cloudflare.com/r2/api/s3/api/)

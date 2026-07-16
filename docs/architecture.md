@@ -86,15 +86,16 @@ Version/build directories are create-only. Mutable registry, index, and catalog 
 ## Release data flow
 
 ```text
-atlas release customer-host
+atlas publish customer-host
   build framework output
-  create host manifest and publication plan
+  create host manifest from project and CI metadata
+  acquire storage lease and read live registry
   upload immutable bytes
   update registry and host index
   activate affected catalogs last
   verify deployed runtime
 
-atlas release orders
+atlas publish orders
   same pipeline, with kind=app
   regenerate affected same-registry host catalogs automatically
 ```
@@ -111,7 +112,7 @@ changed field, while app selections remain unchanged.
 `atlas rollback <app-id>` changes only that app selection. External providers
 roll back in their own registry; host rollback does not roll them back.
 
-Static bootstrap deployment is independent of both flows. User deployment tooling
+Static bootstrap deployment is independent of both flows. Workspace deployment tooling
 connects public domain to static hosting; browsers fetch host and app assets
 directly from HTTPS object storage or its CDN gateway.
 

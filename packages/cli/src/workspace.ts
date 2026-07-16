@@ -5,7 +5,7 @@ import { runProcess, spawnProcess, type ProcessCommand } from "./process.js";
 
 export type AtlasWorkspaceKind = "nx" | "turbo" | "workspace" | "standalone";
 export type AtlasPackageManager = "yarn" | "pnpm" | "npm";
-export type AtlasTask = "atlas:config" | "build" | "dev" | "serve";
+export type AtlasTask = "atlas:config" | "atlas:bootstrap" | "atlas:publish" | "build" | "dev" | "serve";
 
 export interface AtlasProject {
   id: string;
@@ -225,18 +225,24 @@ async function discoverProjects(directory: string, name: string, workspaceRoot: 
 }
 
 async function readProject(root: string, requestedName: string, workspaceRoot: string): Promise<AtlasProject | undefined> {
-  if (!await exists(join(root, "atlas.config.ts"))) return undefined;
   const packageJson = await readJson<{ name?: string; version?: string }>(join(root, "package.json"));
+  const workspacePackageJson = root === workspaceRoot
+    ? packageJson
+    : await readJson<{ version?: string }>(join(workspaceRoot, "package.json"));
   const nxProject = await readJson<NxProjectConfiguration>(join(root, "project.json"));
   const packageName = packageJson?.name ?? nxProject?.name;
   if (!packageName || (!packageJson?.version && !nxProject)) return undefined;
   const identifiers = [packageName, packageName.split("/").at(-1), nxProject?.name, root.split("/").at(-1)];
   if (!identifiers.includes(requestedName) && resolve(requestedName) !== root) return undefined;
+  const configPath = join(root, "atlas.config.ts");
+  if (!await exists(configPath)) {
+    throw new Error(`Atlas project "${requestedName}" is missing required configuration file "${relative(workspaceRoot, configPath)}".`);
+  }
   return {
     id: nxProject?.name ?? packageName,
     root,
     packageName,
-    version: packageJson?.version ?? "0.0.0",
+    version: packageJson?.version ?? workspacePackageJson?.version ?? "0.0.0",
     outputPaths: nxOutputPaths(nxProject, workspaceRoot, relative(workspaceRoot, root))
   };
 }

@@ -39,7 +39,7 @@ export async function prepareStaticRegistry(
 
   const hostIds = manifest.channel === "production" ? affectedHostIds(manifest, registry) : [];
   for (const hostId of hostIds) {
-    const catalog = createHostCatalog(hostId, registry, manifest.createdAt);
+    const catalog = createHostCatalog(hostId, registry);
     if (!catalog) continue;
     await writeJson(outputDirectory, `hosts/${hostId}/deployments/${catalog.revision.replace(":", "-")}.json`, catalog);
     await writeJson(outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
@@ -58,13 +58,13 @@ export function registryRevision(registry: AtlasStaticRegistry | undefined): str
 
 export function createHostCatalog(
   hostId: string,
-  registry: AtlasStaticRegistry,
-  generatedAt = new Date().toISOString()
+  registry: AtlasStaticRegistry
 ): AtlasHostCatalog | undefined {
   const host = selectProductionArtifact(registry.hosts, registry.selections?.hosts?.[hostId]);
   if (!host || host.id !== hostId) return undefined;
   const selectedApps = selectProductionApps(registry.apps, registry.selections?.apps);
   const apps = includeHostApps(hostId, selectedApps);
+  const generatedAt = latestArtifactTimestamp([host, ...apps]);
   const catalogContent = { hostId, host, apps };
   const revision = `sha256:${createHash("sha256").update(JSON.stringify(sortObjectKeys(catalogContent))).digest("hex")}`;
   return { schemaVersion: "1", hostId, revision, generatedAt, host, apps };
@@ -93,10 +93,16 @@ export async function prepareStaticRollback(options: {
   await writeJson(options.outputDirectory, "registry.json", registry);
   const hostIds = affectedHostIds(selected, registry);
   for (const hostId of hostIds) {
-    const catalog = createHostCatalog(hostId, registry, updatedAt);
-    if (catalog) await writeJson(options.outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
+    const catalog = createHostCatalog(hostId, registry);
+    if (!catalog) continue;
+    await writeJson(options.outputDirectory, `hosts/${hostId}/deployments/${catalog.revision.replace(":", "-")}.json`, catalog);
+    await writeJson(options.outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
   }
   return { hostIds, baseRevision, registryRevision: registry.revision, selected };
+}
+
+function latestArtifactTimestamp(manifests: readonly AtlasArtifactManifest[]): string {
+  return manifests.map(({ createdAt }) => createdAt).sort().at(-1)!;
 }
 
 function publishArtifact(current: AtlasStaticRegistry | undefined, manifest: AtlasArtifactManifest): AtlasStaticRegistry {

@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { createAtlasBootstrapFiles } from "@atlas/bootstrap";
 import { CliArguments } from "./arguments.js";
@@ -13,6 +14,7 @@ type BootstrapBuildService = Pick<AtlasBuildService, "loadConfig">;
 export interface AtlasBootstrapBuildResult {
   directory: string;
   files: string[];
+  digest: string;
 }
 
 export class AtlasBootstrapService {
@@ -35,10 +37,28 @@ export class AtlasBootstrapService {
       ...(this.args.flag("loading-html") ? { loadingHtml: this.args.flag("loading-html") } : {})
     });
     const directory = resolve(this.args.flag("out") ?? join(project.root, "dist", "bootstrap"));
+    const digest = bootstrapDigest(files);
+    const metadata = {
+      schemaVersion: "1",
+      digest,
+      files: files.map(({ path }) => path).sort()
+    };
+    await rm(directory, { recursive: true, force: true });
     await mkdir(directory, { recursive: true });
-    await Promise.all(files.map(async (file) => {
+    await Promise.all([...files, { path: "atlas.bootstrap.json", contents: `${JSON.stringify(metadata, null, 2)}\n` }].map(async (file) => {
       await writeFile(join(directory, file.path), file.contents, "utf8");
     }));
-    return { directory, files: files.map((file) => file.path) };
+    return { directory, files: [...files.map((file) => file.path), "atlas.bootstrap.json"], digest };
   }
+}
+
+function bootstrapDigest(files: readonly { path: string; contents: string }[]): string {
+  const hash = createHash("sha256");
+  for (const file of [...files].sort((left, right) => left.path.localeCompare(right.path))) {
+    hash.update(file.path);
+    hash.update("\0");
+    hash.update(file.contents);
+    hash.update("\0");
+  }
+  return `sha256:${hash.digest("hex")}`;
 }

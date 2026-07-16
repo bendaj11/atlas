@@ -37,7 +37,7 @@ test.describe("Atlas Columbus extension", () => {
     const popup = await openPopup(session, firstHost);
     await editApp(popup, "Dashboard React");
     await popup.getByText("Production", { exact: true }).click();
-    await selectDropdown(popup, "#production-version", "0.0.9");
+    await selectDropdown(popup, "#production-version", /^Previous production · 0\.0\.9 · /);
     await saveAndWaitForReload(popup, firstHost);
     expect(await storedVersion(firstHost, "localStorage")).toBe("0.0.9");
     await expect(firstHost.getByRole("heading", { name: "Dashboard React Historical" })).toBeVisible();
@@ -50,7 +50,7 @@ test.describe("Atlas Columbus extension", () => {
     await editApp(tabPopup, "Dashboard React");
     await tabPopup.getByText("This tab", { exact: true }).click();
     await tabPopup.getByText("Production", { exact: true }).click();
-    await selectDropdown(tabPopup, "#production-version", "0.1.0");
+    await selectDropdown(tabPopup, "#production-version", /^Current production · 0\.1\.0 · /);
     await saveAndWaitForReload(tabPopup, firstHost);
     expect(await storedVersion(firstHost, "sessionStorage")).toBe("0.1.0");
     expect(await overrideCount(firstHost, "sessionStorage")).toBe(1);
@@ -71,7 +71,7 @@ test.describe("Atlas Columbus extension", () => {
     const prPopup = await openPopup(session, host);
     await editApp(prPopup, "Dashboard React");
     await prPopup.getByText("PR", { exact: true }).click();
-    await selectDropdown(prPopup, "#pr-version", "0.2.0-pr.42 (pr #42)");
+    await selectDropdown(prPopup, "#pr-version", /^0\.2\.0-pr\.42 · pr-42 · PR #42$/);
     await saveAndWaitForReload(prPopup, host);
     expect(await storedReason(host)).toBe("pr");
 
@@ -150,9 +150,9 @@ async function editApp(popup: Page, appName: string): Promise<void> {
   await popup.locator(".app-card", { hasText: appName }).getByRole("button", { name: "Edit" }).click();
 }
 
-async function selectDropdown(popup: Page, selector: string, option: string): Promise<void> {
+async function selectDropdown(popup: Page, selector: string, option: string | RegExp): Promise<void> {
   await popup.locator(selector).click();
-  await popup.getByRole("option", { name: option, exact: true }).click();
+  await popup.getByRole("option", { name: option, exact: typeof option === "string" }).click();
 }
 
 async function storedVersion(host: Page, storage: BrowserStorage): Promise<string | undefined> {

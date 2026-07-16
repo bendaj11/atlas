@@ -1,62 +1,61 @@
 # @atlas/cli
 
-Command-line tooling for generating, developing, building, publishing,
-releasing, verifying, and rolling back Atlas hosts and apps.
+CLI for generating, developing, building, publishing, verifying, and rolling back Atlas hosts and apps.
 
 ## Install
 
-Pin CLI in project and commit lockfile:
+Pin CLI and commit lockfile:
 
-```sh
+```bash
 npm install --save-dev --save-exact @atlas/cli
 npx atlas --help
 ```
 
-Equivalent package-manager commands:
-
-```sh
-pnpm add --save-dev --save-exact @atlas/cli
-yarn add --dev --exact @atlas/cli
-```
-
-Avoid floating global CLI in CI.
+Atlas requires Node.js 20 or newer. Avoid floating global CLI in CI.
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `atlas generate` | Create host, app, widget, or publication adapter config |
+| `atlas generate` | Create host, app, or exported widget |
 | `atlas dev` | Run host or mount local app inside host |
-| `atlas build` | Build provider-neutral artifact and publication plan |
-| `atlas publish` | Publish prepared plan with locking and safe activation |
-| `atlas release` | Build and publish one host client or app |
+| `atlas build` | Run native build and write immutable manifest |
+| `atlas build-bootstrap` | Build static host startup files and digest |
+| `atlas publish <project>` | Build and publish one project under storage lease |
 | `atlas verify` | Verify deployed runtime, catalog, manifests, and assets |
 | `atlas rollback` | Select and publish earlier immutable build |
 
-Use command help as current option reference:
+Use command help for current options:
 
-```sh
-npx atlas build --help
+```bash
+npx atlas publish --help
 ```
 
-`dev`, `build`, and `release` accept local project name or path. `rollback`
-accepts stable host/app UUID from `atlas.config.ts`. Non-dry-run `publish`,
-`release`, and `rollback` require `atlas.publish.ts` with explicit storage
-adapter.
+## Workspace integration
 
-Generation runs detected Yarn, pnpm, or npm install unless `--skip-install` is
-passed. In Nx workspaces, Atlas delegates project scaffolding to installed Nx
-framework generator, then adds Atlas wiring and dependencies.
+Generation delegates framework scaffolding to Nx when available and adds `atlas:config`, `atlas:publish`, and host-only `atlas:bootstrap` targets. Non-Atlas projects are untouched.
 
-`atlas g host customer-host` creates one framework host project.
-`atlas build-bootstrap customer-host` emits static HTML, loader, runtime JSON,
-and Nginx config under `dist/bootstrap`.
+Routine Nx CI:
 
-If existing Nx manifest declares `@angular/core` or `react`, Atlas keeps that
-framework version and aligns companion dependencies. Conflicting
-`--framework-version` is ignored for delegated Nx project to avoid accidental
-monorepo framework upgrade or downgrade.
+```bash
+npx nx affected -t lint test atlas:publish deploy
+npx atlas verify
+```
 
-Start with [Zero to production](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md).
-Use [documentation map](https://github.com/bendaj11/atlas/blob/main/docs/README.md)
-for task and reference guides.
+Turbo, Yarn, pnpm, and standalone patterns: [Workspace integration](https://github.com/bendaj11/atlas/blob/main/docs/workspaces.md).
+
+## Storage
+
+Common S3-compatible publication uses environment configuration; no `atlas.publish.ts` required:
+
+```bash
+ATLAS_STORAGE=s3
+ATLAS_S3_ENDPOINT=https://<provider-endpoint>
+ATLAS_S3_BUCKET=atlas
+ATLAS_S3_REGION=us-east-1
+ATLAS_REGISTRY_BASE_URL=https://assets.example/atlas
+```
+
+Credentials use standard AWS SDK chain. `atlas.publish.ts` remains optional for custom storage, CDN invalidation, or runtime URL defaults.
+
+Start with [Zero to production](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md). Use [Production deployment](https://github.com/bendaj11/atlas/blob/main/docs/production-deployment.md) for CI, R2, AWS S3, MinIO, Docker/Nginx, PR builds, verification, and rollback.

@@ -18,8 +18,7 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "dev", description: "Run a host, or run one app locally inside a host" },
   { label: "build", description: "Build a host or app for deployment" },
   { label: "build-bootstrap", description: "Build static host bootstrap files" },
-  { label: "publish", description: "Publish a prepared deployment safely" },
-  { label: "release", description: "Build and publish a host client or app" },
+  { label: "publish", description: "Build and publish one host client or app safely" },
   { label: "rollback", description: "Select and publish a previous host or app version" },
   { label: "verify", description: "Verify a deployed Atlas host and its assets" }
 ];
@@ -29,21 +28,21 @@ export const ROOT_EXAMPLES = [
   "atlas g app orders",
   "atlas dev customer-host",
   "atlas dev orders",
-  "atlas build customer-host",
+  "atlas publish orders",
   "atlas build-bootstrap customer-host",
-  "atlas build orders"
+  "atlas verify --runtime-url https://customer.example/atlas.runtime.json"
 ] as const;
 
 export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
   generate: {
-    summary: "Generate an Atlas project, exported widget, or publication adapter config.",
+    summary: "Generate an Atlas project or exported widget.",
     usage: "atlas generate <type> [name] [options]",
     arguments: [
-      { label: "type", description: "Resource to generate: host, app, widget, or publish-config" },
+      { label: "type", description: "Resource to generate: host, app, or widget" },
       { label: "name", description: "Resource name; prompted when omitted" }
     ],
     options: [{ label: "-h, --help", description: "Show help for this command" }],
-    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders", "atlas generate publish-config"]
+    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders"]
   },
   "generate host": generationProjectHelp("host", "host client"),
   "generate app": generationProjectHelp("app", "app"),
@@ -57,15 +56,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "-h, --help", description: "Show help for this command" }
     ],
     examples: ["atlas g widget order-summary --app orders"]
-  },
-  "generate publish-config": {
-    summary: "Generate explicit S3 publication adapter configuration.",
-    usage: "atlas generate publish-config [options]",
-    options: [
-      { label: "--directory <path>", description: "Target directory; defaults to workspace root" },
-      { label: "--force", description: "Replace an existing atlas.publish.ts" }
-    ],
-    examples: ["atlas generate publish-config"]
   },
   dev: {
     summary: "Run a host, or run one app locally inside an Atlas host.",
@@ -95,35 +85,29 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ]
   },
   build: {
-    summary: "Build a host or app and prepare its deployment artifacts.",
+    summary: "Build a host client or app and write its immutable manifest.",
     usage: "atlas build <project> [options]",
     arguments: [{ label: "project", description: "Atlas project name or directory; prompted when omitted" }],
     options: [
       { label: "--registry-base-url <url>", description: "Public base URL of the static registry" },
-      { label: "--registry-snapshot <path>", description: "Existing registry snapshot to update" },
-      { label: "--expected-registry-revision <hash>", description: "Reject conflicting registry updates" },
-      { label: "--include-source-maps", description: "Include source maps in the publication" },
-      { label: "--version <version>", description: "Version assigned to the build" },
-      { label: "--build-id <id>", description: "Unique build identifier" },
-      { label: "--channel <channel>", description: "production, pr, or local" },
-      { label: "--pr-number <number>", description: "Pull request number for a PR artifact" },
+      { label: "--include-source-maps", description: "Include source maps in artifact identity" },
+      { label: "--channel <channel>", description: "Override inferred production, pr, or local channel" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     advancedOptions: [
       { label: "--entry <path>", description: "Override the generated remote entry path" },
-      { label: "--publication-directory <path>", description: "Override the publication output directory" },
-      { label: "--publication-plan <path>", description: "Override the publication plan output path" },
-      { label: "--skip-compile", description: "Prepare metadata from an existing framework build" }
+      { label: "--version <version>", description: "Override package version for diagnostics" },
+      { label: "--build-id <id>", description: "Override content build ID for diagnostics" },
+      { label: "--pr-number <number>", description: "Override CI pull request detection" },
+      { label: "--from-build-output", description: "Use output produced by workspace runner" },
+      { label: "--skip-compile", description: "Alias for --from-build-output" }
     ],
     environment: [
-      { label: "ATLAS_VERSION", description: "Default build version" },
-      { label: "ATLAS_BUILD_ID", description: "Default unique build identifier" },
       { label: "ATLAS_CREATED_AT", description: "Build creation timestamp" },
       { label: "ATLAS_REGISTRY_BASE_URL", description: "Default static-registry base URL" }
     ],
     examples: [
-      "atlas build orders --registry-base-url https://cdn.example.com/atlas",
-      "ATLAS_VERSION=1.4.0 atlas build orders --registry-base-url https://cdn.example.com/atlas"
+      "atlas build orders --registry-base-url https://cdn.example.com/atlas"
     ]
   },
   "build-bootstrap": {
@@ -148,31 +132,29 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ]
   },
   publish: {
-    summary: "Publish a prepared Atlas publication with locking and safe activation order.",
-    usage: "atlas publish --plan <path> [options]",
+    summary: "Build and publish one Atlas project under a storage lease.",
+    usage: "atlas publish <project> [options]",
+    arguments: [{ label: "project", description: "Atlas project name or directory" }],
     options: [
-      { label: "--plan <path>", description: "Publication plan (default: dist/atlas-publication.json)" },
       { label: "--runtime-url <url>", description: "Verify after activation and restore mutable files on failure" },
       { label: "--runtime-urls <urls>", description: "Comma-separated deployed hosts to verify" },
-      { label: "--publish-config <path>", description: "Publication adapter config (default: atlas.publish.ts)" },
+      { label: "--from-build-output", description: "Reuse build output from Nx, Turbo, or workspace scripts" },
+      { label: "--publish-config <path>", description: "Optional custom storage or invalidation config" },
       { label: "--dry-run", description: "Validate and print publication order without writes" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
-    examples: ["atlas publish --plan dist/atlas-publication.json --dry-run", "atlas publish --plan dist/atlas-publication.json"]
-  },
-  release: {
-    summary: "Build and publish one versioned host client or app.",
-    usage: "atlas release <project> [build and publish options]",
-    arguments: [{ label: "project", description: "Host or app project name" }],
-    options: [
-      { label: "--version <version>", description: "Human release version" },
-      { label: "--build-id <id>", description: "Exact immutable build identifier" },
-      { label: "--channel <channel>", description: "production or pr" },
-      { label: "--pr-number <number>", description: "Pull request number for a PR release" },
-      { label: "--runtime-url <url>", description: "Verify after activation and restore mutable files on failure" },
-      { label: "--dry-run", description: "Build and preview publication without upload" }
+    environment: [
+      { label: "ATLAS_STORAGE", description: "Storage provider; s3" },
+      { label: "ATLAS_S3_BUCKET", description: "S3-compatible bucket" },
+      { label: "ATLAS_S3_ENDPOINT", description: "S3-compatible API endpoint; omit for AWS S3" },
+      { label: "ATLAS_S3_PREFIX", description: "Optional object key prefix" },
+      { label: "ATLAS_S3_REGION", description: "Storage signing region" },
+      { label: "ATLAS_S3_FORCE_PATH_STYLE", description: "Enable path-style access for providers such as MinIO" },
+      { label: "ATLAS_REGISTRY_BASE_URL", description: "Public URL serving published objects" },
+      { label: "AWS_ACCESS_KEY_ID", description: "Standard SDK credential; short-lived identity is preferred" },
+      { label: "ATLAS_RUNTIME_URLS", description: "Deployed runtime URLs verified after publication" }
     ],
-    examples: ["atlas release customer-host", "atlas release orders --channel pr"]
+    examples: ["atlas publish orders", "atlas publish orders --from-build-output", "atlas publish orders --dry-run"]
   },
   rollback: {
     summary: "Select and publish a previously released host-client or app build.",
@@ -181,34 +163,35 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [
       { label: "--version <version>", description: "Production version to restore; prompted when omitted" },
       { label: "--build-id <id>", description: "Specific build of the selected version" },
-      { label: "--registry-base-url <url>", description: "Public base URL of the static registry" },
-      { label: "--registry-snapshot <path>", description: "Existing registry snapshot to update" },
       { label: "--expected-registry-revision <hash>", description: "Reject conflicting registry updates" },
-      { label: "--dry-run", description: "Preview selected files without mutation" },
-      { label: "--prepare-only", description: "Write rollback files and plan without publishing" },
       { label: "--runtime-url <url>", description: "Verify rollback and restore the prior selection on failure" },
+      { label: "--runtime-urls <urls>", description: "Comma-separated deployed hosts to verify" },
+      { label: "--publish-config <path>", description: "Optional custom storage or invalidation config" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
-    advancedOptions: [
-      { label: "--publication-directory <path>", description: "Override the publication output directory" },
-      { label: "--publication-plan <path>", description: "Override the publication plan output path" }
+    environment: [
+      { label: "ATLAS_STORAGE", description: "Storage provider; s3" },
+      { label: "ATLAS_S3_BUCKET", description: "S3-compatible bucket" },
+      { label: "ATLAS_RUNTIME_URLS", description: "Deployments verified after rollback" }
     ],
     examples: [
-      "atlas rollback 2bea9c13-4899-4f93-9211-cd8c55e9c529 --version 1.3.2 --registry-base-url https://cdn.example.com/atlas",
-      "atlas rollback 2bea9c13-4899-4f93-9211-cd8c55e9c529 --version 1.3.2 --build-id 1.3.2-a81f29c204e1"
+      "atlas rollback 2bea9c13-4899-4f93-9211-cd8c55e9c529 --version 1.3.2",
+      "atlas rollback 2bea9c13-4899-4f93-9211-cd8c55e9c529 --version 1.3.2 --build-id a81f29c204e1"
     ]
   },
   verify: {
     summary: "Verify a deployed Atlas host, catalog, manifests, and assets.",
-    usage: "atlas verify --runtime-url <url> [options]",
+    usage: "atlas verify [--runtime-url <url>] [options]",
     options: [
-      { label: "--runtime-url <url>", description: "Deployed atlas.runtime.json URL (required)" },
+      { label: "--runtime-url <url>", description: "One deployed atlas.runtime.json URL" },
+      { label: "--runtime-urls <urls>", description: "Comma-separated deployed runtime URLs" },
       { label: "--host-origin <url>", description: "Expected host origin used for policy checks" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
+    environment: [{ label: "ATLAS_RUNTIME_URLS", description: "Space or comma-separated deployed runtime URLs" }],
     examples: [
       "atlas verify --runtime-url https://customer.example/atlas.runtime.json",
-      "atlas verify --runtime-url https://customer.example/atlas.runtime.json --host-origin https://customer.example"
+      "ATLAS_RUNTIME_URLS=https://customer.example/atlas.runtime.json atlas verify"
     ]
   }
 };

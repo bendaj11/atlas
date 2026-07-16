@@ -37,7 +37,7 @@ function formatRootHelp(): string {
   return [
     "Atlas CLI",
     "",
-    "Build and run TypeScript hosts and apps with Angular or React.",
+    "Build, publish, and run Angular or React hosts and apps.",
     "",
     "Usage:",
     "  atlas <command> [options]",

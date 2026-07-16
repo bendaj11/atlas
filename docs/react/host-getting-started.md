@@ -338,7 +338,7 @@ Build static bootstrap once per environment or bootstrap change:
 atlas build-bootstrap customer-host --registry-base-url=https://cdn.example.com/atlas
 ```
 
-Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host releases use `atlas release customer-host`; app releases use `atlas release <app>`. Catalog activation changes selected UI without rebuilding bootstrap container. Follow [React production deployment](production-deployment.md).
+Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host and app publication uses native workspace `atlas:publish` targets. Catalog activation changes selected UI without rebuilding bootstrap container. Follow [React production deployment](production-deployment.md).
 
 ## Common Mistakes
 

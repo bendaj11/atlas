@@ -40,10 +40,9 @@ is documented by the host team.
 
 ## Deployment Domain
 
-`atlas build` places Angular browser output and generated manifest in local
-publication tree under
-the selected immutable app version. CI uploads all immutable files before it
-replaces mutable catalogs.
+Angular build owns browser output. `atlas:publish` reads that output, publishes
+it beneath derived immutable version/build path, then replaces mutable catalogs
+under storage lease.
 
 Your CDN must:
 

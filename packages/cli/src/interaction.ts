@@ -21,17 +21,16 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
     subcommand ??= await prompts.select("What would you like to generate?", [
       { label: "App app", value: "app" },
       { label: "Host application", value: "host" },
-      { label: "Exported widget", value: "widget" },
-      { label: "Publication adapter config", value: "publish-config" }
+      { label: "Exported widget", value: "widget" }
     ]);
-    if (subcommand !== "publish-config") name ??= await prompts.input(subcommand === "widget" ? "Widget name" : `${title(subcommand)} name`);
+    name ??= await prompts.input(subcommand === "widget" ? "Widget name" : `${title(subcommand)} name`);
     if ((subcommand === "host" || subcommand === "app") && !framework) {
       framework = await prompts.select<SupportedFramework>("Framework", [
         { label: "React", value: "react" },
         { label: "Angular", value: "angular" },
       ]);
     }
-  } else if ((command === "build" || command === "build-bootstrap" || command === "release") && !subcommand) {
+  } else if ((command === "build" || command === "build-bootstrap" || command === "publish") && !subcommand) {
     subcommand = await prompts.input("Atlas project name or directory");
   } else if (command === "rollback" && !subcommand) {
     subcommand = await prompts.input("Stable host or app ID from atlas.config.ts");

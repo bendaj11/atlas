@@ -6,7 +6,7 @@ const root = resolve(import.meta.dirname, "../..");
 const artifacts = join(root, "tests/e2e/.artifacts");
 const cdn = join(artifacts, "cdn");
 const externalCdn = join(artifacts, "external-cdn");
-const registrySnapshot = join(cdn, "registry.json");
+const publishConfig = join(root, "tests/e2e/atlas.publish.ts");
 const REACT_HOST_ID = "060a7f62-1c95-402c-9993-55749faf36d9";
 const ANGULAR_HOST_ID = "399e1a5d-f83d-4248-96ed-e4211707ae1b";
 const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
@@ -24,26 +24,16 @@ const projects = [
 await rm(artifacts, { recursive: true, force: true });
 await mkdir(cdn, { recursive: true });
 await mkdir(externalCdn, { recursive: true });
-await writeJson(registrySnapshot, {
-  schemaVersion: "1",
-  updatedAt: "1970-01-01T00:00:00.000Z",
-  hosts: [],
-  apps: [],
-  selections: { hosts: {}, apps: {} }
-});
 await run("yarn", ["build"]);
+if (process.env.ATLAS_E2E_REUSE_BUILD_OUTPUT !== "1") await run("yarn", ["build:examples"]);
 
 for (const project of projects) {
-  const publication = join(artifacts, "publications", project);
   await run("node", [
-    "packages/cli/dist/index.js", "build", project,
-    "--version=0.1.0",
+    "packages/cli/dist/index.js", "publish", project,
+    "--from-build-output",
     "--registry-base-url=http://127.0.0.1:4400",
-    `--registry-snapshot=${registrySnapshot}`,
-    `--publication-directory=${publication}`,
-    `--publication-plan=${publication}.json`
-  ], { ATLAS_CREATED_AT: "2026-01-01T00:00:00.000Z" });
-  await cp(publication, cdn, { recursive: true, force: true });
+    `--publish-config=${publishConfig}`
+  ], publicationEnvironment({ ATLAS_CREATED_AT: "2026-01-01T00:00:00.000Z" }));
 }
 
 await addSecondCatalogRelease();
@@ -51,8 +41,6 @@ await createExternalWidgetRegistry();
 await addVersionFixtures(DASHBOARD_REACT_ID);
 await addBrokenRoute(REACT_HOST_ID, "49f9e422-c726-46ee-840b-ad33b8a8faa3");
 await addBrokenRoute(ANGULAR_HOST_ID, "a7d07dd4-49c8-47cb-b020-e99b0b738587");
-await run("yarn", ["workspace", "@atlas-example/demo-react-host", "build"]);
-await run("yarn", ["workspace", "@atlas-example/demo-angular-host", "build"]);
 await buildBootstrap("demo-react-host", join(artifacts, "react-bootstrap"));
 await buildBootstrap("demo-angular-host", join(artifacts, "angular-bootstrap"));
 
@@ -74,22 +62,19 @@ async function addSecondCatalogRelease() {
   if (releaseEntry === originalEntry) throw new Error("Could not mark the second catalog-react release.");
   await writeFile(entryPath, releaseEntry, "utf8");
 
-  const publication = join(artifacts, "publications", "catalog-react-0.2.0");
   await run("node", [
-    "packages/cli/dist/index.js", "build", "catalog-react",
+    "packages/cli/dist/index.js", "publish", "catalog-react",
     "--skip-compile",
-    "--version=0.2.0",
-    "--build-id=release-0.2.0",
     "--registry-base-url=http://127.0.0.1:4400",
-    `--registry-snapshot=${registrySnapshot}`,
-    `--publication-directory=${publication}`,
-    `--publication-plan=${publication}.json`
-  ], { ATLAS_CREATED_AT: "2026-01-02T00:00:00.000Z" });
-  await cp(publication, cdn, { recursive: true, force: true });
+    `--publish-config=${publishConfig}`
+  ], publicationEnvironment({
+    ATLAS_CREATED_AT: "2026-01-02T00:00:00.000Z",
+    CI_COMMIT_TAG: "v0.2.0"
+  }));
 }
 
 async function createExternalWidgetRegistry() {
-  const sourceRegistry = JSON.parse(await readFile(registrySnapshot, "utf8"));
+  const sourceRegistry = JSON.parse(await readFile(join(cdn, "registry.json"), "utf8"));
   const sourceManifests = sourceRegistry.apps.filter((manifest) => manifest.id === CATALOG_REACT_ID && manifest.channel === "production");
   const manifests = [];
   for (const source of sourceManifests) {
@@ -201,6 +186,10 @@ async function run(command, args, environment = {}) {
     child.once("error", reject);
     child.once("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`${command} ${args.join(" ")} exited with code ${code}.`)));
   });
+}
+
+function publicationEnvironment(environment = {}) {
+  return { ATLAS_E2E_STORAGE: cdn, ...environment };
 }
 
 async function writeJson(path, value) {

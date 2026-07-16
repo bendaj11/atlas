@@ -90,8 +90,7 @@ catalogs.
 
 ## Deployment Domain
 
-After `atlas build orders`, CI should test the generated publication before
-promoting it:
+After workspace publication and bootstrap deployment, CI verifies public runtime:
 
 ```sh
 atlas verify --runtime-url=https://customer.example/atlas.runtime.json
@@ -99,11 +98,10 @@ atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 
 Deployment tests should check:
 
-- immutable files from `dist/atlas-publication` are uploaded before mutable JSON;
-- mutable JSON paths from `dist/atlas-publication.json` are replaced atomically or
-  under a deployment lock;
+- `atlas:publish` uploads immutable files before mutable JSON under leased lock;
+- every stored object passes SHA-256, MIME, and cache-policy checks;
 - CDN serves `remoteEntry.json` as JSON and JavaScript chunks as JavaScript;
 - CORS allows each host origin;
-- `atlas rollback <artifact-id> --runtime-url=...` selects existing immutable
-  build, activates mutable files last, verifies, and restores prior selection
-  on failure.
+- `atlas rollback <artifact-id> --version=... --runtime-url=...` selects existing
+  immutable build, activates mutable files last, verifies, and restores prior
+  selection on failure.

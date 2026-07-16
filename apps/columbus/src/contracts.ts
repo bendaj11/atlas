@@ -9,6 +9,7 @@ export interface AtlasExtensionManifest {
   buildId: string;
   channel: AtlasReleaseChannel;
   framework: "angular" | "react" | "vue";
+  gitSha?: string;
   prNumber?: number;
   createdAt?: string;
   remoteEntryUrl: string;

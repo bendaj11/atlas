@@ -106,9 +106,31 @@ export async function ensureDelegatedNxTargets(
   preserveNativeDevTarget(targets, projectName);
   if (framework === "angular") ensureAngularNativeFederationTargets(targets, projectName, type, "executor", devServerPort);
   ensureAtlasConfigTarget(targets, projectName);
+  ensureAtlasPublicationTargets(targets, projectName, type);
   ensureDevTarget({ targets, projectName, projectRoot, type, framework });
   project.targets = targets;
   await writeJsonFile(projectFile, project);
+}
+
+function ensureAtlasPublicationTargets(
+  targets: Record<string, unknown>,
+  projectName: string,
+  type: ProjectType
+): void {
+  targets["atlas:publish"] = {
+    cache: false,
+    dependsOn: ["build", "atlas:config"],
+    executor: "nx:run-commands",
+    options: { command: `atlas publish ${projectName} --from-build-output`, forwardAllArgs: true }
+  };
+  if (type === "host") {
+    targets["atlas:bootstrap"] = {
+      dependsOn: ["atlas:config"],
+      outputs: ["{projectRoot}/dist/bootstrap"],
+      executor: "nx:run-commands",
+      options: { command: `atlas build-bootstrap ${projectName} --skip-compile`, forwardAllArgs: true }
+    };
+  }
 }
 
 function ensureAtlasConfigTarget(targets: Record<string, unknown>, projectName: string): void {

@@ -1,30 +1,39 @@
 import { mkdir, mkdtemp, open, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AtlasPublicationStorage } from "../dist/publish.js";
+import { createTestManifest } from "../../testkit/dist/index.js";
+import type { AtlasProjectBuilder, AtlasPublicationLease, AtlasPublicationObjectMetadata, AtlasPublicationStorage } from "../dist/publish.js";
+import { publicationContentType } from "../dist/publication-metadata.js";
 
-export async function publicationFixture(baseRevision: string) {
+export async function publicationFixture() {
   const root = await mkdtemp(join(tmpdir(), "atlas-publish-"));
-  const source = join(root, "publication");
+  const source = join(root, "build");
   const storage = join(root, "storage");
-  const plan = `${source}.json`;
-  const files = [
-    { path: "hosts/customer-host/catalog.json", cache: "revalidate" },
-    { path: "apps/orders/index.json", cache: "revalidate" },
-    { path: "registry.json", cache: "revalidate" },
-    { path: "apps/orders/1.0.0/build-1/entry.js", cache: "immutable" }
-  ] as const;
-  for (const file of files) {
-    const target = join(source, file.path);
-    await mkdir(join(target, ".."), { recursive: true });
-    await writeFile(target, file.cache === "immutable" ? "export {};\n" : `${JSON.stringify({ path: file.path, revision: "sha256:new" })}\n`);
-  }
-  await writeFile(plan, `${JSON.stringify({ schemaVersion: "1", baseRevision, registryRevision: "sha256:new", files })}\n`);
-  return { plan, storage };
+  await mkdir(source, { recursive: true });
+  await writeFile(join(source, "entry.js"), "export {};\n");
+  const manifest = createTestManifest({
+    id: "orders",
+    version: "1.0.0",
+    buildId: "build-1",
+    remoteEntryUrl: "https://cdn.example/apps/orders/1.0.0/build-1/entry.js"
+  });
+  const builds: AtlasProjectBuilder = {
+    async build() {
+      return {
+        artifact: "app",
+        manifest,
+        project: { id: "orders", root, packageName: "orders", version: "1.0.0", outputPaths: [source] },
+        sourceDirectory: source,
+        files: ["entry.js"]
+      };
+    }
+  };
+  return { builds, storage };
 }
 
 export class DirectoryPublicationStorage implements AtlasPublicationStorage {
   private readonly lockPath: string;
+  private readonly metadata = new Map<string, AtlasPublicationObjectMetadata>();
 
   constructor(private readonly root: string) {
     this.lockPath = join(root, ".atlas-deployment.lock");
@@ -35,33 +44,45 @@ export class DirectoryPublicationStorage implements AtlasPublicationStorage {
     catch (error) { if (isMissingFile(error)) return undefined; throw error; }
   }
 
-  async create(path: string, bytes: Uint8Array): Promise<void> {
+  async inspect(path: string): Promise<AtlasPublicationObjectMetadata | undefined> {
+    if (!await this.read(path)) return undefined;
+    return this.metadata.get(path) ?? { cacheControl: "no-cache", contentType: publicationContentType(path) };
+  }
+
+  async create(path: string, bytes: Uint8Array, metadata: AtlasPublicationObjectMetadata): Promise<void> {
     const target = join(this.root, path);
     await mkdir(join(target, ".."), { recursive: true });
     const handle = await open(target, "wx");
     try { await handle.writeFile(bytes); }
     finally { await handle.close(); }
+    this.metadata.set(path, metadata);
   }
 
-  async replace(path: string, bytes: Uint8Array): Promise<void> {
+  async replace(path: string, bytes: Uint8Array, metadata: AtlasPublicationObjectMetadata): Promise<void> {
     const target = join(this.root, path);
     await mkdir(join(target, ".."), { recursive: true });
     await writeFile(target, bytes);
+    this.metadata.set(path, metadata);
   }
 
   async remove(path: string): Promise<void> {
     await rm(join(this.root, path), { force: true });
+    this.metadata.delete(path);
   }
 
-  async acquireLock(owner: string): Promise<() => Promise<void>> {
+  async acquireLock(owner: string): Promise<AtlasPublicationLease> {
     await mkdir(this.root, { recursive: true });
     await writeFile(this.lockPath, owner, { flag: "wx" });
-    return async () => { await rm(this.lockPath, { force: true }); };
+    return {
+      assertHeld: async () => undefined,
+      release: async () => { await rm(this.lockPath, { force: true }); }
+    };
   }
 }
 
 export class FailingMutableStorage implements AtlasPublicationStorage {
   readonly files = new Map<string, Uint8Array>();
+  readonly metadata = new Map<string, AtlasPublicationObjectMetadata>();
   private failed = false;
 
   constructor(private readonly failingPath: string) {}
@@ -70,24 +91,32 @@ export class FailingMutableStorage implements AtlasPublicationStorage {
     return this.files.get(path);
   }
 
-  async create(path: string, bytes: Uint8Array): Promise<void> {
-    this.files.set(path, bytes);
+  async inspect(path: string): Promise<AtlasPublicationObjectMetadata | undefined> {
+    if (!this.files.has(path)) return undefined;
+    return this.metadata.get(path) ?? { cacheControl: "no-cache", contentType: publicationContentType(path) };
   }
 
-  async replace(path: string, bytes: Uint8Array): Promise<void> {
+  async create(path: string, bytes: Uint8Array, metadata: AtlasPublicationObjectMetadata): Promise<void> {
+    this.files.set(path, bytes);
+    this.metadata.set(path, metadata);
+  }
+
+  async replace(path: string, bytes: Uint8Array, metadata: AtlasPublicationObjectMetadata): Promise<void> {
     if (path === this.failingPath && !this.failed) {
       this.failed = true;
       throw new Error(`simulated write failure: ${path}`);
     }
     this.files.set(path, bytes);
+    this.metadata.set(path, metadata);
   }
 
   async remove(path: string): Promise<void> {
     this.files.delete(path);
+    this.metadata.delete(path);
   }
 
-  async acquireLock(): Promise<() => Promise<void>> {
-    return async () => undefined;
+  async acquireLock(): Promise<AtlasPublicationLease> {
+    return { assertHeld: async () => undefined, release: async () => undefined };
   }
 
   seed(path: string, value: string): void {

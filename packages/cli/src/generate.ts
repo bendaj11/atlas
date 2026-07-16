@@ -34,6 +34,7 @@ import {
   workspaceLabel
 } from "./generate-paths.js";
 import { ui, type AtlasPrompter } from "./ui.js";
+import { readJsonFile, writeJsonFile } from "./generate-json.js";
 import { defaultDevServerPort, type AtlasNxProjectType, type AtlasWorkspace } from "./workspace.js";
 
 export class AtlasGenerateService {
@@ -108,7 +109,8 @@ export class AtlasGenerateService {
         if (this.workspace.kind === "nx") await ensureDelegatedNxTargets(this.workspace.root, root, name, type, selectedFramework, devServerPort);
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
-      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name);
+      if (this.workspace.kind === "nx" && !workspaceScaffolded) await this.writeNxProject(root, name, type);
+      if (this.workspace.kind === "turbo") await this.ensureTurboTasks();
       await this.formatGenerated(root);
       const roots = [root];
       await afterGeneration?.(roots);
@@ -140,36 +142,6 @@ export class AtlasGenerateService {
       await writeFile(target, file.contents, "utf8");
     }
     await this.formatGenerated(project.root);
-  }
-
-  async publishConfig(): Promise<string> {
-    const root = resolve(this.args.flag("directory") ?? this.workspace.root);
-    const target = resolveContainedPath(root, "atlas.publish.ts");
-    await assertWritable(target, this.args.hasFlag("force"), "atlas.publish.ts already exists. Use --force to replace it.");
-    await mkdir(root, { recursive: true });
-    await writeFile(target, `import { S3PublicationStorage, type AtlasPublishConfig } from "@atlas/cli";
-
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(\`\${name} is required.\`);
-  return value;
-}
-
-export default {
-  storage: new S3PublicationStorage({
-    endpoint: required("S3_ENDPOINT"),
-    bucket: required("S3_BUCKET"),
-    prefix: process.env.S3_PREFIX ?? "",
-    region: required("AWS_REGION"),
-    accessKeyId: required("AWS_ACCESS_KEY_ID"),
-    secretAccessKey: required("AWS_SECRET_ACCESS_KEY"),
-    ...(process.env.AWS_SESSION_TOKEN ? { sessionToken: process.env.AWS_SESSION_TOKEN } : {})
-  }),
-  runtimeUrls: []
-} satisfies AtlasPublishConfig;
-`, "utf8");
-    await this.formatGenerated(root);
-    return target;
   }
 
   private logGenerationPlan(framework: SupportedFramework, root: string): void {
@@ -269,7 +241,7 @@ export default {
     return this.workspace.generationRoot(type, name);
   }
 
-  private async writeNxProject(root: string, name: string): Promise<void> {
+  private async writeNxProject(root: string, name: string, type: "host" | "app"): Promise<void> {
     const cwd = relative(this.workspace.root, root) || ".";
     if (cwd === ".." || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
       throw new Error("Nx projects must be generated inside the workspace root.");
@@ -283,6 +255,20 @@ export default {
       }
     };
     targets["atlas:config"] = atlasConfigNxTarget(this.workspace.packageManager, cwd);
+    targets["atlas:publish"] = {
+      cache: false,
+      dependsOn: ["build", "atlas:config"],
+      executor: "nx:run-commands",
+      options: { command: `atlas publish ${name} --from-build-output`, forwardAllArgs: true }
+    };
+    if (type === "host") {
+      targets["atlas:bootstrap"] = {
+        dependsOn: ["atlas:config"],
+        outputs: ["{projectRoot}/dist/bootstrap"],
+        executor: "nx:run-commands",
+        options: { command: `atlas build-bootstrap ${name} --skip-compile`, forwardAllArgs: true }
+      };
+    }
     targets[name] = {
       executor: "nx:run-commands",
       options: { command: `nx run ${name}:dev`, forwardAllArgs: true }
@@ -301,6 +287,29 @@ export default {
     const target = await dependencyManifestPath(root, this.workspace.root);
     const changed = await mergePackageDependencies(target, packageFile.contents, framework);
     if (changed) ui.info(`Added Atlas dependencies to ${displayTarget(this.workspace.root, target)}.`);
+  }
+
+  private async ensureTurboTasks(): Promise<void> {
+    const turboPath = join(this.workspace.root, "turbo.json");
+    const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
+    if (!turbo) return;
+    const tasks = turbo.tasks && typeof turbo.tasks === "object" && !Array.isArray(turbo.tasks)
+      ? turbo.tasks as Record<string, unknown>
+      : {};
+    tasks["atlas:config"] ??= { outputs: [".atlas/**"] };
+    tasks["atlas:publish"] ??= {
+      cache: false,
+      dependsOn: ["build", "atlas:config"],
+      env: [
+        "ATLAS_*", "AWS_*", "CI_*", "GITHUB_*", "BITBUCKET_*", "VERCEL_*"
+      ]
+    };
+    tasks["atlas:bootstrap"] ??= {
+      dependsOn: ["atlas:config"],
+      outputs: ["dist/bootstrap/**"]
+    };
+    turbo.tasks = tasks;
+    await writeJsonFile(turboPath, turbo);
   }
 
   private async formatGenerated(root: string): Promise<void> {

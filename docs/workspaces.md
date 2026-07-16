@@ -1,214 +1,195 @@
-# Workspaces And Monorepos
+# Workspace integration
 
-Audience: developers adding Atlas to existing repository. Run commands from
-workspace root unless section says otherwise. First confirm root contains one of
-files in detection table below.
+Atlas integrates through native project targets or package scripts. Workspace tool remains source of truth for project discovery, affected selection, dependencies, caching, and execution order.
 
-## Developing Atlas Itself
+Workspace execution and release versioning are separate concerns. Nx Release,
+Yarn's version workflow, Changesets, semantic-release, package versions, and
+fully automated production tags can all establish a version before Atlas
+publishes. Turbo does not calculate a release version, and `atlas:publish`
+never increments one. See
+[Version and build identity](production-deployment.md#version-and-build-identity)
+for requirements, advantages, costs, and the recommended zero-manual-input tag
+workflow.
 
-The Atlas repository uses Yarn workspaces with Turborepo. The root commands are
-the stable interface for contributors:
+## Mixed repositories
 
-```sh
-yarn build
-yarn typecheck
-yarn build:examples
+Atlas repositories may also contain API servers, workers, libraries, mobile apps, and ordinary frontends. Atlas adds targets only to generated Atlas hosts and apps.
+
+Use native target discovery when auditing a workspace:
+
+```bash
+npx nx show projects --with-target atlas:publish
 ```
 
-Turbo derives package order from workspace dependencies and caches `dist`
-outputs. Atlas consumers do not need Turborepo: generated projects also work in
-Nx, Turborepo, Yarn workspaces, or standalone repositories through the workspace
-discovery implemented by the CLI.
-
-Atlas uses the same commands in Nx, Turborepo, package-manager workspaces, and standalone projects. There is no Atlas workspace setting to maintain.
-
-## Automatic Detection
-
-Atlas walks up from the current directory and selects the first matching workspace:
-
-| File | Behavior |
-| --- | --- |
-| `nx.json` | Runs project targets through Nx |
-| `turbo.json` | Runs package tasks through Turborepo filters |
-| `package.json` with `workspaces` | Runs the selected package through Yarn, pnpm, or npm |
-| `pnpm-workspace.yaml` | Runs the selected package through pnpm workspace filters |
-| None | Runs scripts from the Atlas project's directory |
-
-The package manager comes from `packageManager` in the root `package.json`, then the lockfile. Yarn, pnpm, and npm are supported.
-
-The globally installed CLI is invoked identically in every workspace. Atlas
-then uses the detected package manager internally, so developers do not prefix
-Atlas commands with `yarn`, `pnpm`, or `npm exec`.
-
-```sh
-atlas dev customer-host
-atlas dev orders
-atlas build orders
-```
-
-When the shell is already inside an Atlas host or app directory, the project
-name is optional:
-
-```sh
-atlas dev
-```
-
-For `atlas dev <app>`, Atlas infers the host when the app config declares only
-one host. For multiple hosts, interactive terminals ask which host to use; in
-non-interactive shells, pass `--host` or set `ATLAS_HOST_ID` to stable host UUID.
-`ATLAS_HOST_URL` accepts either exact host page URL or base URL. For base
-URL, Atlas appends the route base path from `atlas.config.ts`; when several
-routes match the selected host, interactive terminals ask which route to use.
-Set it in the shell or in the app project's `.env.local` file:
-
-```dotenv
-ATLAS_HOST_ID=0a17281f-287b-4d89-a8ca-0ab0e577c506
-ATLAS_HOST_URL=http://localhost:4200
-```
-
-Atlas loads the selected project's env files before workspace env files, regardless
-of invocation directory. Shell environment variables override both. Flags override all env values.
-
-Atlas finds a project by Nx project name, package name, unscoped package name, directory name, or explicit directory. An Atlas project is identified by `atlas.config.ts`.
-Atlas also detects a workspace root from `package.json#workspaces` before a lockfile exists.
+Do not maintain a separate CI list of Atlas projects.
 
 ## Nx
 
-In Nx, generated project names and paths are relative to the directory where
-Atlas is invoked, matching `nx generate`; Atlas does not force an `apps/` layout.
-Atlas first invokes the workspace's installed
-`@nx/angular:application` or `@nx/react:application` generator, then adds the
-Atlas-specific client files. Host generation also invokes
-`@nx/node:application` for the sibling `<host>-server` project before replacing
-its sample entry with Atlas' composition root. Nx therefore remains responsible
-for project metadata, TypeScript references, and workspace registration for both
-projects. Atlas does not emit a nested `angular.json` when the Nx Angular
-generator succeeds. When a required Nx plugin is missing, interactive Atlas
-asks permission to add the version matched by Nx. Non-interactive automation can
-approve this with `--yes`.
+When `atlas g host` or `atlas g app` creates a project in an Nx workspace,
+Atlas preserves the framework generator's project metadata and native `build`
+target, then writes the required Atlas targets to that project's `project.json`.
+No manual target setup is required. This automatic update belongs to the Atlas
+generator; projects created directly with `nx generate` are not converted into
+Atlas projects.
 
-In an interactive terminal, Atlas hands control to the native Nx generator for
-supported framework choices such as stylesheets, test runners, and bundler.
-Atlas always disables Angular SSR because Atlas currently supports client-side
-rendering only. In CI or another non-interactive environment, Atlas disables Nx
-prompts and supplies deterministic defaults instead.
+Generated app targets:
 
-Atlas invokes targets such as `orders:build`, `orders:dev`, `orders:serve`, and
-`orders:atlas:config`, so Nx caching and affected-project workflows remain active.
-Generated `atlas:config` targets declare `{projectRoot}/.atlas` as an output, so
-Nx cache restores the compiled `atlas.config.js` needed by `atlas dev` and
-`atlas build`. The target runs `atlas compile-config`, which reads the
-framework-generated project tsconfig and writes `.atlas/atlas.config.js`; Atlas
-does not generate a separate `tsconfig.atlas.json`.
-When Atlas delegates to native Nx generators, it preserves their generated
-project metadata and unrelated targets while adding or replacing the targets
-required by Atlas. Client projects receive targets such as `dev`, `serve`, and
-`atlas:config`. Generated projects can also be run with native Nx commands:
-
-```sh
-nx run customer-host
-nx run customer-host:dev
-nx run orders
-nx run orders:dev
-nx run orders:serve
-nx run orders:atlas:config
+```json
+{
+  "atlas:config": {
+    "executor": "nx:run-commands",
+    "outputs": ["{projectRoot}/.atlas"],
+    "options": {
+      "command": "atlas compile-config orders"
+    }
+  },
+  "atlas:publish": {
+    "cache": false,
+    "dependsOn": ["build", "atlas:config"],
+    "executor": "nx:run-commands",
+    "options": {
+      "command": "atlas publish orders --from-build-output",
+      "forwardAllArgs": true
+    }
+  }
+}
 ```
 
-Nx treats `nx run <project>` as `nx run <project>:<project>`. Atlas adds that
-project-named target as a compatibility alias for `dev`, so the shorter command
-starts the generated host or app. For app projects, `dev` runs Atlas local
-development and `serve` is the lower-level framework dev server used by Atlas.
+Hosts also receive:
 
-Use `--skip-workspace-generator` only in automation that deliberately needs the
-portable Atlas template instead of native Nx scaffolding.
+```json
+{
+  "atlas:bootstrap": {
+    "dependsOn": ["atlas:config"],
+    "outputs": ["{projectRoot}/dist/bootstrap"],
+    "executor": "nx:run-commands",
+    "options": {
+      "command": "atlas build-bootstrap customer-host --skip-compile",
+      "forwardAllArgs": true
+    }
+  }
+}
+```
 
-Dependency ownership follows the Nx layout. If the native Nx generator creates
-a project-level `package.json`, Atlas merges its required dependencies there and
-runs install from that project. If the generated project has no package
-manifest, Atlas merges dependencies into the workspace-root `package.json` and
-runs install at the root. Atlas does not create a project-local `package.json`
-or `node_modules` for integrated Nx workspaces.
+Native framework `build` remains intact. `atlas:publish` is non-cacheable because it mutates storage; its build dependencies remain cacheable.
 
-Atlas never uses its default framework version to upgrade an existing Nx package
-manifest. When the owning manifest already declares `@angular/core` or `react`,
-Atlas keeps that version and aligns only the companion dependencies it must add.
-If the CLI also receives `--framework-version` with a different major, Atlas
-prints a warning and ignores the flag for that delegated project. To use another
-major, change the workspace framework version before generation, let the Nx
-generator create a project-level package manifest with its own framework
-version, or use `--skip-workspace-generator` for a portable Atlas-generated
-package.
+First deployment:
 
-When integrating Atlas into an existing Nx project, expose these three targets. Their commands remain the framework's normal build and development commands.
-Atlas reads the build target's `options.outputPath`, configuration-specific
-`outputPath` values, and declared `outputs`. It also recognizes the conventional
-workspace output `dist/apps/<project>`, including Angular's `browser`
-subdirectory. A candidate is accepted only when it contains `remoteEntry.json`.
+```bash
+npx nx run-many -t atlas:publish deploy
+npx atlas verify
+```
+
+Routine deployment:
+
+```bash
+npx nx affected -t atlas:publish deploy
+npx atlas verify
+```
+
+Nx skips projects lacking requested targets. No Atlas-specific graph or affected command exists.
 
 ## Turborepo
 
-Generated projects go under `apps/`. Atlas invokes package scripts through `turbo run <task> --filter=<package>`, preserving the dependency graph and cache policy from `turbo.json`.
+Generated package scripts:
 
-Turborepo does not provide framework application generators. Atlas creates a
-normal package under the repository's declared workspace pattern (for example,
-`apps/*` or `packages/*`) so Turbo discovers it without extra configuration.
-
-Generated Atlas packages include `build`, `dev`, and `atlas:config` scripts.
-When integrating Atlas into an existing package, expose those scripts and include
-them in the Turbo task graph where appropriate.
-
-Atlas starts generated hosts with the same top-level command used everywhere:
-
-```sh
-atlas dev customer-host
+```json
+{
+  "scripts": {
+    "atlas:config": "atlas compile-config orders",
+    "build": "vite build",
+    "atlas:publish": "atlas publish orders --from-build-output"
+  }
+}
 ```
 
-Under the hood, Atlas uses the same filter syntax as other Turbo tasks:
+Hosts also expose `atlas:bootstrap`. Atlas merges missing task definitions into root `turbo.json` without replacing existing tasks.
 
-```sh
-turbo run dev --filter=customer-host
-pnpm exec turbo run dev --filter=customer-host
-yarn exec -- turbo run dev --filter=customer-host
+First deployment:
+
+```bash
+npx turbo run atlas:publish deploy
+npx atlas verify
 ```
 
-pnpm, Yarn, npm, and Turbo still require a task name in their native syntax, so
-their direct commands use `run dev`. Use plain `atlas dev` from inside a
-generated package when you want the shortest workspace-agnostic command.
+Routine deployment:
 
-## Package-Manager Workspaces
-
-Atlas uses native workspace commands:
-
-- Yarn: `yarn workspace <package> run <task>`
-- pnpm: `pnpm --filter <package> run <task>`
-- npm: `npm run <task> --workspace <package>`
-
-No global Nx or Turbo installation is required. Atlas uses the workspace-local tool through the selected package manager.
-
-Generated Atlas packages include the scripts Atlas needs. Start a generated host
-with the same top-level command used everywhere:
-
-```sh
-atlas dev customer-host
+```bash
+npx turbo run atlas:publish deploy --affected
+npx atlas verify
 ```
 
-Under the hood, Atlas uses the package manager command for your workspace:
+Turbo `dependsOn` ensures build/config output exists before publication.
 
-```sh
-pnpm --filter customer-host run dev
-yarn workspace customer-host run dev
-npm run dev --workspace customer-host
+## Yarn workspaces
+
+Generated package scripts are workspace-native. Yarn 2+ with the workspace-tools plugin can select changed workspaces without listing packages:
+
+```bash
+yarn workspaces foreach --since --topological-dev run atlas:config
+yarn workspaces foreach --since --topological-dev run build
+yarn workspaces foreach --since --topological-dev run atlas:publish
+yarn workspaces foreach --since --topological-dev run deploy
+npx atlas verify
 ```
 
-## Styles And Assets
+Unlike Nx and Turbo, this Yarn command sequence does not infer the
+`atlas:publish` task dependencies, so it runs `atlas:config` and `build`
+explicitly.
 
-Atlas does not replace a framework's style configuration. Nx or Angular may list
-global styles and assets in `project.json` or `angular.json`; Vite may discover
-them through imports. Atlas runs the workspace's normal production target and
-then describes the emitted CSS in the app manifest. The host therefore loads the
-same build output regardless of whether the source lives in Nx, Turbo, a Yarn
-workspace, or a standalone project.
+For first environment, omit `--since`.
 
-## Troubleshooting
+Yarn Classic does not provide `workspaces foreach`, changed-workspace selection, or `--if-present`. Atlas still supports its workspace scripts, but routine mixed-repository CI should delegate selection to the repository's existing Nx, Turbo, or CI change-selection tool. Do not add a second Atlas graph to compensate for Yarn Classic's missing orchestration.
 
-Run Atlas from inside the monorepo. If two projects share a name, pass the project directory explicitly. Keep generated script and target names unchanged unless the workspace target delegates to them.
+## pnpm workspaces
+
+Use pnpm filtering and `--if-present` in mixed repositories:
+
+```bash
+pnpm --filter "...[origin/main]" -r --if-present run atlas:config
+pnpm --filter "...[origin/main]" -r --if-present run build
+pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
+pnpm --filter "...[origin/main]" -r --if-present run deploy
+pnpm exec atlas verify
+```
+
+These pnpm commands also run configuration and build explicitly because pnpm
+filtering selects package scripts but does not apply the Nx or Turbo task graph.
+
+For first environment:
+
+```bash
+pnpm -r --if-present run atlas:config
+pnpm -r --if-present run build
+pnpm -r --if-present run atlas:publish
+pnpm -r --if-present run deploy
+pnpm exec atlas verify
+```
+
+## Standalone projects
+
+```bash
+npm run atlas:config
+npm run build
+npm run atlas:publish
+npm run atlas:bootstrap  # host only
+npx atlas verify
+```
+
+## Bootstrap and platform deployment
+
+Atlas generates bootstrap bytes but does not invent Docker, Kubernetes, Vercel, CDN, or internal platform commands. Define organization-owned `deploy` script/target that consumes `dist/bootstrap` and its `atlas.bootstrap.json` digest.
+
+CI always invokes normal workspace deployment target. Native affected selection and digest reconciliation decide whether rollout is needed.
+
+## Why `--from-build-output` exists
+
+Direct manual command is self-contained:
+
+```bash
+npx atlas publish orders
+```
+
+It runs native build before publishing.
+
+Workspace targets already depend on native build, so generated scripts pass `--from-build-output`. This prevents nested Nx/Turbo execution and preserves workspace cache decisions.

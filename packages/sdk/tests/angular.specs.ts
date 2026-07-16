@@ -57,7 +57,8 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.doesNotMatch(host.get("package.json"), /"@atlas\/bootstrap"/);
   assert.match(host.get("src/host.ts"), /export const mount: AtlasHostClientEntry/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);
-  assert.match(host.get("package.json"), /atlas build host/);
+  assert.match(host.get("package.json"), /atlas publish host --from-build-output/);
+  assert.match(host.get("package.json"), /atlas build-bootstrap host --skip-compile/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /localhost:4300/);
   assert.match(host.get("angular.json"), /"input": "public"/);
   assert.equal(JSON.parse(appFiles.get("angular.json")).projects.orders.architect["serve-original"].options.port, 4201);

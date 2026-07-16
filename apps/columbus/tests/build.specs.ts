@@ -186,7 +186,7 @@ test("Columbus popup displays host identity, version, URL, and environment with 
   const dashboard = await readColumbusFile("src/popup/components/Dashboard.tsx");
   const summary = await readColumbusFile("src/popup/components/HostSummary.tsx");
   expect(dashboard).toMatch(/<HostSummary hostData=\{hostData\}/);
-  expect(summary).toMatch(/hostData\.catalog\.host\.version/);
+  expect(summary).toMatch(/versionLabel\(hostData\.catalog\.host\)/);
   expect(summary).toMatch(/Server stable · client/);
   expect(summary).toMatch(/hostData\.pageUrl/);
   expect(summary).toMatch(/<Card/);

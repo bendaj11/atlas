@@ -61,7 +61,8 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.match(host.get("src/host.tsx"), /export const mount: AtlasHostClientEntry/);
   assert.match(host.get("vite.config.ts"), /key: "\.\/host"/);
   assert.doesNotMatch(host.get("package.json"), /runtime-config/);
-  assert.match(host.get("package.json"), /atlas build host/);
+  assert.match(host.get("package.json"), /atlas publish host --from-build-output/);
+  assert.match(host.get("package.json"), /atlas build-bootstrap host --skip-compile/);
   assert.match(appFiles.get("vite.config.ts"), /remoteEntry\.json/);
   assert.doesNotMatch(appFiles.get("package.json"), /@softarc\/native-federation-runtime/);
   assert.match(appFiles.get("vite.config.ts"), /server: \{ port: 4201, cors: true \}/);

@@ -361,3 +361,11 @@ test("Atlas errors preserve details and always include one suggested action", ()
   ensureActionableError(error);
   assert.equal(error.message.match(/Suggested action:/g)?.length, 1);
 });
+
+test("missing Atlas project configuration has a precise suggested action", () => {
+  const error = ensureActionableError(new Error(
+    'Atlas project "react-host" is missing required configuration file "apps/react-host/atlas.config.ts".'
+  ));
+
+  assert.match(error.message, /Restore or create atlas\.config\.ts in the named project/);
+});

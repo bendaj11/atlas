@@ -85,7 +85,7 @@ async function waitForHealthyControlServer(port: number, process: ChildProcess):
       throw new Error(`atlas dev exited before startup.\n${output.join("")}`);
     }
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/health`);
+      const response = await fetch(`http://localhost:${port}/health`);
       if (response.ok) return;
     } catch {
       await delay(200);
@@ -130,7 +130,7 @@ async function stopAtlasDev(process: ChildProcess): Promise<void> {
 async function expectPortReleased(port: number): Promise<void> {
   await expect.poll(async () => {
     try {
-      await fetch(`http://127.0.0.1:${port}/health`);
+      await fetch(`http://localhost:${port}/health`);
       return false;
     } catch {
       return true;

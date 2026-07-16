@@ -1,132 +1,289 @@
-# Zero To Production
+# Zero to production
 
-This path creates one host, one app, static bootstrap, and normal release flow.
+This tutorial creates one host, publishes Angular and React apps, serves the host bootstrap, and verifies the deployed system. It uses Nx in commands because Nx is common for mixed monorepos. [Workspace CI](workspaces.md) shows Turbo, Yarn, and pnpm equivalents.
 
-## 1. Install And Generate
+Atlas delegates project selection, dependency order, caching, and framework builds to the workspace tool. Atlas handles only Atlas manifests, immutable assets, registry updates, locking, and verification.
 
-```sh
-npm install --save-dev --save-exact @atlas/cli
-npx atlas g host customer-host --framework=react
-npx atlas g app orders --framework=react --host-id=<id-from-host-atlas.config.ts>
+## 1. Install Atlas
+
+From the workspace root:
+
+```bash
+npm install --save-dev @atlas/cli
 ```
 
-Use `--framework=angular` when needed. Host generation creates only framework
-host project. No sibling server project exists.
+Atlas requires Node.js 20 or newer.
 
-## 2. Develop Locally
+## 2. Generate the projects
 
-```sh
-# Terminal 1
-npx atlas dev customer-host
-
-# Terminal 2
-npx atlas dev orders --host-url=http://localhost:4200/orders
+```bash
+npx atlas g host angular-host --framework angular
+npx atlas g app angular-app --framework angular
+npx atlas g app react-app --framework react
 ```
 
-First command starts host framework server, Atlas control service, and ephemeral
-static bootstrap. Columbus can override host/app selections. Second command
-registers local app override and opens host route.
+Atlas delegates the framework scaffold to Nx when it detects an Nx workspace,
+then updates each generated project's `project.json` with the Atlas targets
+listed below. No manual Nx target setup is required. Existing non-Atlas
+projects are untouched, and projects created directly with `nx generate` do not
+receive Atlas targets automatically.
 
-Checkpoint:
+Each generated Atlas project contains:
 
-- `http://localhost:4200/atlas.runtime.json` returns host runtime config;
-- deep routes load same shell;
-- host and app render together;
-- stopping app removes local override session.
+- `atlas.config.ts`: stable UUID, framework, routes, placements, and compatibility;
+- native `build` target: owned by Angular, React, Nx, or another framework tool;
+- `atlas:config`: compiles Atlas configuration;
+- `atlas:publish`: depends on native build and publishes this project;
+- host only: `atlas:bootstrap`, which creates static host startup files.
 
-## 3. Test And Build Artifacts
+`atlas:config` is a local preparation step. It reads and validates
+`atlas.config.ts`, then compiles the deployment metadata into the project's
+`.atlas/` directory for `atlas:publish` and, for hosts, `atlas:bootstrap` to
+consume. It does not upload artifacts or deploy anything. In an Nx or Turbo
+deployment, do not run `atlas:config` separately: `atlas:publish` and
+`atlas:bootstrap` declare it as a dependency, so the workspace runner executes
+it when needed.
 
-```sh
-npm test
-npx atlas build customer-host --registry-base-url=https://cdn.example.com/atlas
-npx atlas build orders --registry-base-url=https://cdn.example.com/atlas
+Only Atlas projects receive Atlas targets. Therefore this command ignores servers and frontends that are not Atlas projects:
+
+```bash
+npx nx show projects --with-target atlas:publish
 ```
 
-Each build creates immutable framework files, manifest, registry mutations, and
-publication plan. Publishing only these files is not enough for brand-new
-environment; product domain still needs static bootstrap.
+## 3. Connect apps to the host
 
-## 4. Build Bootstrap
+Open `angular-host/atlas.config.ts` and copy its `id`. Add that UUID to each app route or placement in its `atlas.config.ts`.
 
-```sh
-npx atlas build-bootstrap customer-host \
-  --registry-base-url=https://cdn.example.com/atlas
+Example app route:
+
+```ts
+export default {
+  id: "b793d518-ee46-43cb-a57c-e0bcf85043c9",
+  name: "Login",
+  framework: "angular",
+  routes: [
+    {
+      hostId: "7ee210f9-dacd-4aac-939e-237032d44740",
+      basePath: "/login",
+      title: "Login"
+    }
+  ]
+};
 ```
 
-Output:
+IDs identify artifacts permanently. Project names and directories may change; IDs should not.
+
+## 4. Test locally
+
+Run the host:
+
+```bash
+npx atlas dev angular-host
+```
+
+In another terminal, run one app inside that host:
+
+```bash
+npx atlas dev angular-app
+```
+
+Repeat with `react-app`. Atlas uses local runtime overrides, so no registry publication is needed during development.
+
+## 5. Create S3-compatible storage
+
+Atlas supports AWS S3 and S3-compatible services such as Cloudflare R2 and MinIO.
+
+You need two different URLs:
+
+- storage endpoint: private S3 API used by Atlas to upload objects;
+- registry base URL: public HTTP URL used by browsers to download those objects.
+
+For Cloudflare R2 they commonly look like:
 
 ```text
-customer-host/dist/bootstrap/
-  index.html
-  atlas.loader.js
-  atlas.runtime.json
-  nginx.conf
+Storage API: https://<account-id>.r2.cloudflarestorage.com
+Public URL:  https://pub-<bucket-id>.r2.dev
 ```
 
-Customize loading UI by editing generated
-`customer-host/atlas.bootstrap.html`; next build uses it automatically. To use
-another file temporarily:
+Do not use the public URL as the S3 endpoint. Do not expose the S3 API endpoint to browsers.
 
-```sh
-npx atlas build-bootstrap customer-host \
-  --registry-base-url=https://cdn.example.com/atlas \
-  --template=atlas.bootstrap.html
+Set CI secrets and environment variables:
+
+```bash
+ATLAS_STORAGE=s3
+ATLAS_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+ATLAS_S3_BUCKET=parliament-atlas
+ATLAS_S3_REGION=auto
+ATLAS_REGISTRY_BASE_URL=https://pub-<bucket-id>.r2.dev
+
+AWS_ACCESS_KEY_ID=<access-key-id>
+AWS_SECRET_ACCESS_KEY=<secret-access-key>
 ```
 
-Template must retain `#atlas-host-root` and `/atlas.loader.js` script.
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are standard AWS SDK credential names, not an AWS-only storage choice. Atlas also supports profiles, temporary credentials, container credentials, and CI workload identity through the standard AWS SDK credential chain. Prefer short-lived workload identity in production CI.
 
-## 5. Deploy Product Domain
+Optional storage settings:
+
+```bash
+ATLAS_S3_PREFIX=production
+ATLAS_S3_FORCE_PATH_STYLE=true
+```
+
+Path-style access is commonly needed by local MinIO installations. R2 and AWS S3 normally do not need it.
+
+No `atlas.publish.ts` is required. That file exists only for organizations implementing custom storage, authentication, or CDN invalidation.
+
+## 6. Configure browser access
+
+Published JavaScript, JSON, CSS, and fonts must allow the host origin through CORS. Configure the bucket for `GET` and `HEAD` from the deployed host origin. During local production simulation, also allow `http://localhost:8080`.
+
+Example policy shape:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://portal.example.internal",
+      "http://localhost:8080"
+    ],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"]
+  }
+]
+```
+
+Provider consoles use slightly different field names. Keep write operations private.
+
+## 7. Publish the first environment
+
+First deployment should publish every Atlas project because there may be no reliable affected baseline yet:
+
+```bash
+npx nx run-many -t atlas:publish
+```
+
+Nx runs only projects containing `atlas:publish`. Each target builds through the project's native framework target. Atlas then:
+
+1. compiles `atlas.config.ts` through the `atlas:config` dependency;
+2. derives version from a matching CI tag, project package, workspace package,
+   or the documented fallback;
+3. derives PR channel and PR number from CI metadata when available;
+4. creates content build ID from output bytes and HTTP metadata contract;
+5. waits for an expiring storage lease;
+6. reads the live registry while holding that lease;
+7. uploads immutable artifacts;
+8. activates registry indexes and host catalogs;
+9. verifies bytes, SHA-256, MIME type, and cache policy.
+
+CI does not need to pass a version flag, build ID, publication plan, or app
+list. A tag-triggered pipeline exposes its release tag through normal CI
+metadata. Atlas uses that tag before package versions. See
+[Version and build identity](production-deployment.md#version-and-build-identity)
+for root and per-project versions, Nx Release, Yarn, Changesets,
+semantic-release, and fully automated production tags.
+Publication includes versioned app and host-client artifacts, but not the host
+bootstrap website. Bootstrap build and platform deployment remain the separate
+next step.
+
+## 8. Build and deploy host bootstrap
+
+Build static host startup files:
+
+```bash
+npx nx run angular-host:atlas:bootstrap
+```
+
+`atlas:bootstrap` compiles the host's Atlas configuration and writes a small,
+static startup site to `angular-host/dist/bootstrap`:
+
+- `index.html`: provides the host mount element and loads the Atlas browser
+  loader;
+- `atlas.loader.js`: reads runtime configuration and starts the selected host
+  client from the Atlas registry;
+- `atlas.runtime.json`: identifies the host and its public catalog URL, plus
+  runtime override, timeout, and retry settings;
+- `nginx.conf`: provides static serving, SPA fallback, health endpoints, cache
+  behavior, and baseline security headers;
+- `atlas.bootstrap.json`: lists generated files and records their deterministic
+  SHA-256 digest.
+
+The target is deterministic: identical inputs produce the same bootstrap
+digest, which deployment tooling can use to skip unchanged rollouts. It does
+not publish app or host-client artifacts, upload files, or deploy the website.
+Those versioned artifacts are handled by `atlas:publish`; the platform-specific
+deployment below owns delivery of this static directory.
+
+Atlas cannot choose your deployment platform. Connect your normal `deploy` target to `atlas:bootstrap`. Example Nx target:
+
+```json
+{
+  "deploy": {
+    "dependsOn": ["atlas:bootstrap"],
+    "executor": "nx:run-commands",
+    "options": {
+      "command": "./scripts/deploy-bootstrap.sh angular-host/dist/bootstrap"
+    }
+  }
+}
+```
+
+CI may run `deploy` every time. Native caching and digest-based platform reconciliation decide whether anything changes. CI does not inspect source paths to guess whether bootstrap was affected.
+
+For a local production simulation, use Nginx:
 
 ```dockerfile
 FROM nginxinc/nginx-unprivileged:alpine
 COPY ./dist/bootstrap /usr/share/nginx/html
 COPY ./dist/bootstrap/nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 8080
 ```
 
-Build image from host directory, push to image registry, deploy container, then
-route `https://product.com` to it. This matches normal frontend container flow;
-difference is image contains Atlas bootstrap rather than full host framework
-build. Selected host is downloaded from registry/CDN at runtime.
-
-## 6. Publish Host And App
-
-Configure publication adapter, then publish plans:
-
-```sh
-npx atlas generate publish-config
-npx atlas publish --plan customer-host/dist/atlas-publication.json \
-  --runtime-url=https://product.com/atlas.runtime.json
-npx atlas publish --plan orders/dist/atlas-publication.json \
-  --runtime-url=https://product.com/atlas.runtime.json
+```bash
+docker build -t atlas-host:local angular-host
+docker run --rm -p 8080:8080 atlas-host:local
 ```
 
-Host/app releases normally do not rebuild or redeploy Nginx container. Catalog
-activation makes new version visible after browser refresh.
+This reproduces production builds, static bootstrap, public registry loading, browser CORS, MIME checks, and runtime federation. It does not reproduce your remote ingress, TLS, CDN, or identity controls.
 
-## 7. Verify And Roll Back
+## 9. Verify the deployed host
 
-```sh
-npx atlas verify \
-  --runtime-url=https://product.com/atlas.runtime.json \
-  --host-origin=https://product.com
+After bootstrap is reachable:
 
-npx atlas rollback <artifact-id> --version=<previous-version> \
-  --registry-base-url=https://cdn.example.com/atlas \
-  --runtime-url=https://product.com/atlas.runtime.json
+```bash
+ATLAS_RUNTIME_URLS=https://portal.example.internal/atlas.runtime.json \
+  npx atlas verify
 ```
 
-Rollback changes catalog pointer. Bootstrap container stays unchanged.
+For multiple hosts, pass every public runtime URL to one verification command:
 
-## Ownership
+```bash
+ATLAS_RUNTIME_URLS="https://portal.example.internal/atlas.runtime.json https://admin.example.internal/atlas.runtime.json" \
+  npx atlas verify
+```
 
-| Piece | Owner | Release frequency |
-| --- | --- | --- |
-| Static bootstrap template/config | Atlas/platform team | Loader/runtime/HTTP policy changes |
-| Nginx image, domain, TLS, ingress | Platform delivery | Environment/bootstrap changes |
-| Versioned host client | Host team | Product-shell changes |
-| Versioned apps | App teams | Feature changes |
-| Registry/catalog | Publication pipeline | Every activation/rollback |
+Atlas verifies every listed host and exits unsuccessfully if any host fails.
+Run this read-only final gate only after all app and host-client publications
+and all bootstrap deployments are complete. Each host has an independent
+runtime configuration, catalog, selected host client, apps, and route
+ownership, so verifying one host does not validate another.
 
-Backend/BFF remains optional for APIs, server-side sessions, SSR, personalized
-HTML, or per-request config. Route it separately; Atlas does not generate it.
+For local Nginx:
+
+```bash
+ATLAS_RUNTIME_URLS=http://localhost:8080/atlas.runtime.json \
+  npx atlas verify
+```
+
+Open the host and visit each app route. Verification catches configuration, catalog, CORS, MIME, cache, integrity, and federation metadata failures before browser testing.
+
+## 10. Switch to routine CI
+
+Once CI has a trusted comparison base:
+
+```bash
+npx nx affected -t lint test atlas:publish deploy
+npx atlas verify
+```
+
+Nx decides what changed. Atlas projects publish through `atlas:publish`; unrelated servers and sites deploy through their own `deploy` targets. Atlas does not reproduce the Nx project graph.
+
+Next: [production deployment and CI](production-deployment.md), [workspace commands](workspaces.md), and [rollback](production-deployment.md#rollback).

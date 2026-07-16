@@ -21,7 +21,8 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       dev: `ng serve ${projectName}`,
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "ng build",
-      "atlas:build": `atlas build ${projectName}`
+      "atlas:publish": `atlas publish ${projectName} --from-build-output`,
+      ...(host ? { "atlas:bootstrap": `atlas build-bootstrap ${projectName} --skip-compile` } : {})
     },
     dependencies: {
       "@angular/animations": angular,

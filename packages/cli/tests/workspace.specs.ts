@@ -29,6 +29,34 @@ test("workspace detection discovers an Nx project without consumer configuration
   expect(workspace.generationRoot("app", "catalog")).toBe(join(root, "apps", "catalog"));
 });
 
+test("package-less Nx projects inherit existing workspace release version", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-nx-workspace-version-"));
+  const projectRoot = join(root, "apps", "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(root, "nx.json"), "{}\n");
+  await writeFile(join(root, "package.json"), JSON.stringify({ name: "acme", version: "3.2.1" }));
+  await writeFile(join(projectRoot, "project.json"), JSON.stringify({ name: "orders", targets: {} }));
+  await writeFile(join(projectRoot, "atlas.config.ts"), "export default {};\n");
+
+  const project = await (await detectWorkspace(projectRoot)).findProject("orders");
+
+  expect(project.version).toBe("3.2.1");
+});
+
+test("Nx discovery identifies a project with missing Atlas configuration", async () => {
+  const root = await createWorkspaceFixture("atlas-nx-missing-config-", {
+    "nx.json": "{}\n",
+    "package.json": JSON.stringify({ name: "acme", version: "3.2.1" }),
+    "apps/react-host/project.json": JSON.stringify({ name: "react-host", targets: {} })
+  });
+
+  const workspace = await detectWorkspace(root);
+
+  await expect(workspace.findProject("react-host")).rejects.toThrow(
+    'Atlas project "react-host" is missing required configuration file "apps/react-host/atlas.config.ts".'
+  );
+});
+
 test("Nx generation respects a direct child working directory", async () => {
   const root = await createWorkspaceFixture("atlas-nx-generation-root-", {
     "nx.json": "{}\n",

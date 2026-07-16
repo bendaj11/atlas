@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge, Box, Card, Text } from "@wix/design-system";
 import type { AtlasHostData } from "../../contracts.js";
+import { versionLabel } from "../manifest-utils.js";
 
 interface HostSummaryProps {
   hostData: AtlasHostData;
@@ -20,7 +21,7 @@ export function HostSummary({ hostData }: HostSummaryProps): JSX.Element {
         <Box direction="vertical" gap="6px">
           <Box gap="6px">
             <Text size="small" weight="bold">Version</Text>
-            <Text size="small">Server stable · client {hostData.catalog.host.version}</Text>
+            <Text size="small">Server stable · client {versionLabel(hostData.catalog.host)}</Text>
           </Box>
           <Text size="tiny" secondary ellipsis>{hostData.pageUrl}</Text>
         </Box>

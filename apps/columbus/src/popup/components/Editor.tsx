@@ -3,6 +3,7 @@ import { Box, Button, Card, Divider, Input, RadioGroup, Text } from "@wix/design
 import { createEditorDraft, selectedManifest } from "../manifest-utils.js";
 import type { EditorDraft, EditorModel, SaveOverrideValue, Scope } from "../types.js";
 import { arrowLeftIcon } from "../wds-icons.js";
+import { versionKey } from "../../manifest-versions.js";
 import { EditorOption } from "./EditorOption.js";
 import { EmptyFrame } from "./EmptyFrame.js";
 import { ScopePicker } from "./ScopePicker.js";
@@ -83,6 +84,7 @@ export function Editor({ model, busy, scope, onCancel, onError, onSave, onScopeC
                     selectedId={draft.productionKey}
                     versions={model.productionOptions}
                     hostId={model.hostId}
+                    currentId={versionKey(model.production)}
                     onChange={(productionKey) => setDraft({ ...draft, productionKey })}
                   />
                 </EditorOption>
