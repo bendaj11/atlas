@@ -8,7 +8,9 @@ export interface AtlasHostRuntimeConfig {
   hostVersion?: string;
   /** Full URL of the catalog JSON this host should load. */
   catalogUrl: string;
-  /** Allow Atlas tools to override selected host and app manifests. Defaults to false. */
+  /** Allow arbitrary localhost or custom-URL overrides. Registry-backed overrides are always available. */
+  allowCustomOverrides?: boolean;
+  /** @deprecated Compatibility alias for allowCustomOverrides. */
   allowOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
   resourcesTimeoutMs?: number;

@@ -19,6 +19,8 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
   { label: "build", description: "Build a host or app for deployment" },
   { label: "build-bootstrap", description: "Build static host bootstrap files" },
   { label: "publish", description: "Build and publish one host client or app safely" },
+  { label: "remove-pr", description: "Remove this workspace's builds for a closed or merged PR" },
+  { label: "prune-prs", description: "Reconcile stored PR builds against live Git state" },
   { label: "rollback", description: "Select and publish a previous host or app version" },
   { label: "verify", description: "Verify a deployed Atlas host and its assets" }
 ];
@@ -99,6 +101,9 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--version <version>", description: "Override package version for diagnostics" },
       { label: "--build-id <id>", description: "Override content build ID for diagnostics" },
       { label: "--pr-number <number>", description: "Override CI pull request detection" },
+      { label: "--git-sha <sha>", description: "Actual source commit SHA" },
+      { label: "--git-branch <name>", description: "Source branch displayed by Columbus" },
+      { label: "--git-commit-title <text>", description: "Commit title displayed by Columbus" },
       { label: "--from-build-output", description: "Use output produced by workspace runner" },
       { label: "--skip-compile", description: "Alias for --from-build-output" }
     ],
@@ -141,6 +146,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--from-build-output", description: "Reuse build output from Nx, Turbo, or workspace scripts" },
       { label: "--publish-config <path>", description: "Optional custom storage or invalidation config" },
       { label: "--dry-run", description: "Validate and print publication order without writes" },
+      { label: "--require-publication", description: "Fail instead of skipping an ordinary branch build" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
     environment: [
@@ -152,9 +158,39 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "ATLAS_S3_FORCE_PATH_STYLE", description: "Enable path-style access for providers such as MinIO" },
       { label: "ATLAS_REGISTRY_BASE_URL", description: "Public URL serving published objects" },
       { label: "AWS_ACCESS_KEY_ID", description: "Standard SDK credential; short-lived identity is preferred" },
-      { label: "ATLAS_RUNTIME_URLS", description: "Deployed runtime URLs verified after publication" }
+      { label: "ATLAS_RUNTIME_URLS", description: "Deployed runtime URLs verified after publication" },
+      { label: "ATLAS_PR_NUMBER", description: "Custom pull-request number when provider variables are unavailable" },
+      { label: "ATLAS_GIT_SHA", description: "Actual pull-request head SHA; must not be a synthetic merge SHA" },
+      { label: "ATLAS_GIT_BRANCH", description: "Custom source branch name" },
+      { label: "ATLAS_GIT_COMMIT_TITLE", description: "Commit title displayed by Columbus" },
+      { label: "ATLAS_DEFAULT_BRANCH", description: "Production branch when CI does not expose one" },
+      { label: "ATLAS_REQUIRE_PUBLICATION", description: "Set true to fail when no PR, tag, or production context exists" }
     ],
     examples: ["atlas publish orders", "atlas publish orders --from-build-output", "atlas publish orders --dry-run"]
+  },
+  "remove-pr": {
+    summary: "Remove this workspace's stored builds for one closed or merged pull request.",
+    usage: "atlas remove-pr --pr-number <number> [options]",
+    options: [
+      { label: "--pr-number <number>", description: "Closed or merged pull-request number" },
+      { label: "--artifact-ids <ids>", description: "Comma-separated Atlas IDs; otherwise discover workspace configs" },
+      { label: "--publish-config <path>", description: "Optional custom storage or invalidation config" },
+      { label: "--skip-compile", description: "Read existing compiled Atlas configs during workspace discovery" },
+      { label: "-h, --help", description: "Show help for this command" }
+    ],
+    examples: ["atlas remove-pr --pr-number 42", "atlas remove-pr --pr-number 42 --artifact-ids orders,login"]
+  },
+  "prune-prs": {
+    summary: "Remove closed PR builds while preserving every open pull request.",
+    usage: "atlas prune-prs [options]",
+    options: [
+      { label: "--state-file <path>", description: "Authoritative provider-neutral JSON list of all open PR numbers" },
+      { label: "--artifact-ids <ids>", description: "Comma-separated Atlas IDs; otherwise discover workspace configs" },
+      { label: "--publish-config <path>", description: "Custom storage and optional pull-request resolver" },
+      { label: "--skip-compile", description: "Read existing compiled Atlas configs during workspace discovery" },
+      { label: "-h, --help", description: "Show help for this command" }
+    ],
+    examples: ["atlas prune-prs", "atlas prune-prs --state-file .atlas/open-prs.json"]
   },
   rollback: {
     summary: "Select and publish a previously released host-client or app build.",

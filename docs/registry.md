@@ -8,11 +8,13 @@ Atlas registry is versioned JSON stored beside immutable host-client and app art
 registry.json
 apps/<app-id>/index.json
 apps/<app-id>/<version>/<build-id>/app.manifest.json
+apps/<app-id>/<version>/<build-id>/atlas-publication.json
 apps/<app-id>/<version>/<build-id>/<artifact files>
 hosts/<host-id>/index.json
 hosts/<host-id>/catalog.json
 hosts/<host-id>/deployments/<catalog-revision>.json
 hosts/<host-id>/<version>/<build-id>/host.manifest.json
+hosts/<host-id>/<version>/<build-id>/atlas-publication.json
 hosts/<host-id>/<version>/<build-id>/<artifact files>
 ```
 
@@ -46,6 +48,11 @@ no-cache
 
 `no-cache` permits caching but requires revalidation. This avoids stale active selections while preserving HTTP semantics.
 
+Atlas itself does not retain a separate cache. The one-year immutable policy
+instructs browsers and CDNs. Removing an origin object does not guarantee that
+an already cached CDN response disappears; configure exact-path CDN
+invalidation when that matters.
+
 ## Publication transaction
 
 `atlas publish <project>` owns publication. Build no longer fetches registry state or creates a publication plan.
@@ -78,7 +85,21 @@ This serializes registry mutation even when Nx, Turbo, Yarn, or pnpm run multipl
 
 ## Registry selection
 
-Production publication adds manifest history and updates production selection for that artifact. PR publication adds history but does not change production selection. Local builds use runtime overrides and are not production registry selections.
+Production publication adds manifest history and updates production selection
+for that artifact. PR publication does not change production selection. The
+registry retains one successful manifest per artifact ID and PR number; a new
+commit replaces that artifact's older PR build. Different affected artifacts
+publish independently and may temporarily show different SHAs after a partial
+CI failure. Retrying converges them.
+
+Every new build contains `atlas-publication.json`, an exact list of its own
+immutable paths. Atlas uses it to remove superseded or closed PR objects
+without bucket listing or broad prefix deletion. Older builds without an
+inventory are removed from registry discovery but their objects are retained
+with a cleanup warning.
+
+Local builds use runtime overrides and are not registry selections. See
+[Pull-request previews](pr-previews.md) for freshness and cleanup lifecycle.
 
 Host catalog contains:
 

@@ -45,7 +45,7 @@ Generated app targets:
   },
   "atlas:publish": {
     "cache": false,
-    "dependsOn": ["build", "atlas:config"],
+    "dependsOn": ["build"],
     "executor": "nx:run-commands",
     "options": {
       "command": "atlas publish orders --from-build-output",
@@ -119,14 +119,14 @@ npx turbo run atlas:publish deploy --affected
 npx atlas verify
 ```
 
-Turbo `dependsOn` ensures build/config output exists before publication.
+Turbo `dependsOn` ensures framework build output exists before publication.
+`atlas:publish` compiles and validates Atlas config itself.
 
 ## Yarn workspaces
 
 Generated package scripts are workspace-native. Yarn 2+ with the workspace-tools plugin can select changed workspaces without listing packages:
 
 ```bash
-yarn workspaces foreach --since --topological-dev run atlas:config
 yarn workspaces foreach --since --topological-dev run build
 yarn workspaces foreach --since --topological-dev run atlas:publish
 yarn workspaces foreach --since --topological-dev run deploy
@@ -134,8 +134,8 @@ npx atlas verify
 ```
 
 Unlike Nx and Turbo, this Yarn command sequence does not infer the
-`atlas:publish` task dependencies, so it runs `atlas:config` and `build`
-explicitly.
+`atlas:publish` task dependency, so it runs the framework `build` explicitly.
+Do not run `atlas:config` separately; publish owns config compilation.
 
 For first environment, omit `--since`.
 
@@ -146,20 +146,19 @@ Yarn Classic does not provide `workspaces foreach`, changed-workspace selection,
 Use pnpm filtering and `--if-present` in mixed repositories:
 
 ```bash
-pnpm --filter "...[origin/main]" -r --if-present run atlas:config
 pnpm --filter "...[origin/main]" -r --if-present run build
 pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
 pnpm --filter "...[origin/main]" -r --if-present run deploy
 pnpm exec atlas verify
 ```
 
-These pnpm commands also run configuration and build explicitly because pnpm
-filtering selects package scripts but does not apply the Nx or Turbo task graph.
+These pnpm commands run the framework build explicitly because pnpm filtering
+selects package scripts but does not apply the Nx or Turbo task graph. Publish
+compiles Atlas config itself.
 
 For first environment:
 
 ```bash
-pnpm -r --if-present run atlas:config
 pnpm -r --if-present run build
 pnpm -r --if-present run atlas:publish
 pnpm -r --if-present run deploy
@@ -169,7 +168,6 @@ pnpm exec atlas verify
 ## Standalone projects
 
 ```bash
-npm run atlas:config
 npm run build
 npm run atlas:publish
 npm run atlas:bootstrap  # host only

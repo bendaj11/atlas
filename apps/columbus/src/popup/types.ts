@@ -23,6 +23,7 @@ export interface EditorDraft {
 
 export interface EditorModel {
   hostId: string;
+  allowCustomOverrides: boolean;
   production: Manifest;
   selected: Manifest | undefined;
   productionOptions: Manifest[];

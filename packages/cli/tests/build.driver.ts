@@ -25,6 +25,7 @@ export function createTestWorkspace(overrides: Partial<AtlasWorkspace> = {}): At
     root: "/workspace",
     packageManager: "npm",
     async findProject() { return defaultProject; },
+    async listProjects() { return [defaultProject]; },
     async run() {},
     spawn() { throw new Error("Workspace spawn was not expected."); },
     async formatGenerated() { return false; },

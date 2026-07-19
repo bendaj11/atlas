@@ -13,10 +13,23 @@ import {
 } from "./publication-storage.js";
 import { publicationContentType } from "./publication-metadata.js";
 import type { AtlasPublishConfig } from "./publish-config.js";
-import { prepareStaticRegistry, prepareStaticRollback, registryRevision } from "./static-registry.js";
+import { resolvePullRequestStatus } from "./pull-request.js";
+import {
+  prepareStaticRegistry,
+  prepareStaticPrRemoval,
+  prepareStaticPrReconciliation,
+  prepareStaticRollback,
+  registryRevision,
+  type AtlasArtifactManifest
+} from "./static-registry.js";
 
 export { defineAtlasPublishConfig, loadAtlasPublishConfig } from "./publish-config.js";
-export type { AtlasPublishConfig } from "./publish-config.js";
+export type {
+  AtlasPublishConfig,
+  AtlasPullRequestLookup,
+  AtlasPullRequestResolver,
+  AtlasPullRequestStatus
+} from "./publish-config.js";
 export { S3PublicationStorage } from "./publication-storage.js";
 export type { AtlasPublicationLease, AtlasPublicationObjectMetadata, AtlasPublicationStorage, S3Options } from "./publication-storage.js";
 
@@ -34,9 +47,21 @@ interface StoredPublicationObject {
   readonly metadata: AtlasPublicationObjectMetadata;
 }
 
+interface AtlasPublicationInventory {
+  readonly schemaVersion: "1";
+  readonly paths: string[];
+}
+
+interface MutablePublication {
+  readonly files: PublicationFile[];
+  readonly replaced: AtlasArtifactManifest[];
+}
+
 export interface AtlasPublishResult {
   uploaded: string[];
   dryRun: boolean;
+  skippedReason?: string;
+  cleanupWarnings: string[];
 }
 
 export interface AtlasPublishOptions {
@@ -53,6 +78,15 @@ export interface AtlasRollbackResult extends AtlasPublishResult {
   readonly buildId: string;
 }
 
+export interface AtlasPrRemovalResult extends AtlasPublishResult {
+  readonly removedBuilds: number;
+}
+
+export interface AtlasPrPruneResult extends AtlasPublishResult {
+  readonly removedBuilds: number;
+  readonly checkedPullRequests: number;
+}
+
 export class AtlasPublishService {
   constructor(
     private readonly args: CliArguments,
@@ -65,18 +99,25 @@ export class AtlasPublishService {
     if (this.args.hasFlag("dry-run")) {
       return {
         uploaded: [...immutableFiles.map(({ path }) => path), "registry.json", artifactIndexPath(build)],
-        dryRun: true
+        dryRun: true,
+        cleanupWarnings: []
       };
     }
 
     const storage = await createPublicationStorage(options.config?.storage);
     return withPublicationLease(storage, async (lease) => {
       await lease.assertHeld();
+      const staleReason = await stalePullRequestReason(build, options.config);
+      if (staleReason) {
+        return { uploaded: [], dryRun: false, skippedReason: staleReason, cleanupWarnings: [] };
+      }
       const current = await readRegistry(storage);
       assertExpectedRegistryRevision(this.args, current);
-      const mutableFiles = await mutablePublicationFiles(build, current);
-      const orderedFiles = [...immutableFiles, ...publicationOrder(mutableFiles)];
-      return await publishFiles(storage, lease, orderedFiles, options);
+      const mutable = await mutablePublicationFiles(build, current);
+      const orderedFiles = [...immutableFiles, ...publicationOrder(mutable.files)];
+      const result = await publishFiles(storage, lease, orderedFiles, options);
+      const cleanupWarnings = await cleanupSupersededPublications(storage, mutable.replaced, options.config, lease);
+      return { ...result, cleanupWarnings };
     });
   }
 
@@ -111,6 +152,124 @@ export class AtlasPublishService {
       }
     });
   }
+
+  async removePr(
+    artifactIds: readonly string[],
+    prNumber: number,
+    options: AtlasPublishOptions = {}
+  ): Promise<AtlasPrRemovalResult> {
+    if (this.args.hasFlag("dry-run")) {
+      throw new Error("PR removal dry runs require live storage and are not supported.");
+    }
+    const storage = await createPublicationStorage(options.config?.storage);
+    return withPublicationLease(storage, async (lease) => {
+      await lease.assertHeld();
+      const current = await readRegistry(storage);
+      if (!current) throw new Error("Atlas cannot remove PR builds because publication storage has no registry.json.");
+      assertExpectedRegistryRevision(this.args, current);
+      const output = await mkdtemp(join(tmpdir(), "atlas-remove-pr-"));
+      try {
+        const removal = await prepareStaticPrRemoval({
+          artifactIds,
+          prNumber,
+          current,
+          outputDirectory: output
+        });
+        if (removal.removed.length === 0) {
+          return { uploaded: [], dryRun: false, cleanupWarnings: [], removedBuilds: 0 };
+        }
+        const result = await publishFiles(
+          storage,
+          lease,
+          publicationOrder(await readPublicationDirectory(output)),
+          options
+        );
+        const cleanupWarnings = await cleanupSupersededPublications(storage, removal.removed, options.config, lease);
+        return { ...result, cleanupWarnings, removedBuilds: removal.removed.length };
+      } finally {
+        await rm(output, { recursive: true, force: true });
+      }
+    });
+  }
+
+  async prunePrs(
+    artifactIds: readonly string[],
+    authoritativeOpenPrNumbers: ReadonlySet<number> | undefined,
+    options: AtlasPublishOptions = {}
+  ): Promise<AtlasPrPruneResult> {
+    if (this.args.hasFlag("dry-run")) {
+      throw new Error("PR pruning dry runs require live storage and are not supported.");
+    }
+    const storage = await createPublicationStorage(options.config?.storage);
+    return withPublicationLease(storage, async (lease) => {
+      await lease.assertHeld();
+      const current = await readRegistry(storage);
+      if (!current) throw new Error("Atlas cannot prune PR builds because publication storage has no registry.json.");
+      assertExpectedRegistryRevision(this.args, current);
+      const scoped = [...current.hosts, ...current.apps].filter((manifest): manifest is PullRequestManifest =>
+        artifactIds.includes(manifest.id) && manifest.channel === "pr" && manifest.prNumber !== undefined);
+      const pullRequests = uniquePullRequests(scoped);
+      const closedPrNumbers = authoritativeOpenPrNumbers
+        ? new Set(pullRequests.filter(({ prNumber }) => !authoritativeOpenPrNumbers.has(prNumber)).map(({ prNumber }) => prNumber))
+        : await closedPullRequests(pullRequests, options.config);
+      if (closedPrNumbers.size === 0) {
+        return {
+          uploaded: [], dryRun: false, cleanupWarnings: [], removedBuilds: 0,
+          checkedPullRequests: pullRequests.length
+        };
+      }
+
+      const output = await mkdtemp(join(tmpdir(), "atlas-prune-prs-"));
+      try {
+        const cleanup = await prepareStaticPrReconciliation({
+          artifactIds,
+          closedPrNumbers,
+          current,
+          outputDirectory: output
+        });
+        const result = await publishFiles(storage, lease, publicationOrder(await readPublicationDirectory(output)), options);
+        const cleanupWarnings = await cleanupSupersededPublications(storage, cleanup.removed, options.config, lease);
+        return {
+          ...result,
+          cleanupWarnings,
+          removedBuilds: cleanup.removed.length,
+          checkedPullRequests: pullRequests.length
+        };
+      } finally {
+        await rm(output, { recursive: true, force: true });
+      }
+    });
+  }
+}
+
+type PullRequestManifest = AtlasArtifactManifest & { prNumber: number };
+
+function uniquePullRequests(manifests: readonly PullRequestManifest[]): PullRequestManifest[] {
+  const pullRequests = new Map<number, PullRequestManifest>();
+  for (const manifest of manifests) {
+    if (!pullRequests.has(manifest.prNumber)) pullRequests.set(manifest.prNumber, manifest);
+  }
+  return [...pullRequests.values()];
+}
+
+async function closedPullRequests(
+  pullRequests: readonly PullRequestManifest[],
+  config: AtlasPublishConfig | undefined
+): Promise<Set<number>> {
+  const closed = new Set<number>();
+  for (const manifest of pullRequests) {
+    if (!manifest.gitSha) {
+      throw new Error(`Atlas cannot reconcile PR build "${manifest.id}" because its manifest lacks prNumber or gitSha.`);
+    }
+    const status = await resolvePullRequestStatus({
+      artifactId: manifest.id,
+      prNumber: manifest.prNumber,
+      gitSha: manifest.gitSha,
+      ...(manifest.gitBranch ? { gitBranch: manifest.gitBranch } : {})
+    }, config);
+    if (status.state !== "open") closed.add(manifest.prNumber);
+  }
+  return closed;
 }
 
 async function withPublicationLease<T>(
@@ -178,7 +337,29 @@ async function publishFiles(
     }
     throw error;
   }
-  return { uploaded, dryRun: false };
+  return { uploaded, dryRun: false, cleanupWarnings: [] };
+}
+
+async function stalePullRequestReason(
+  build: AtlasBuildResult,
+  config: AtlasPublishConfig | undefined
+): Promise<string | undefined> {
+  if (build.manifest.channel !== "pr") return undefined;
+  const { id: artifactId, prNumber, gitSha, gitBranch } = build.manifest;
+  if (!prNumber || !gitSha) {
+    throw new Error(
+      `Atlas PR publication for "${artifactId}" requires both a pull-request number and the actual pull-request head SHA.`
+    );
+  }
+  const status = await resolvePullRequestStatus(
+    { artifactId, prNumber, gitSha, ...(gitBranch ? { gitBranch } : {}) },
+    config
+  );
+  if (status.state !== "open") return `pull request #${prNumber} is ${status.state}`;
+  if (status.headSha !== gitSha) {
+    return `pull request #${prNumber} moved from commit ${gitSha} to ${status.headSha} while this build was running`;
+  }
+  return undefined;
 }
 
 async function immutablePublicationFiles(build: AtlasBuildResult): Promise<PublicationFile[]> {
@@ -194,20 +375,82 @@ async function immutablePublicationFiles(build: AtlasBuildResult): Promise<Publi
     bytes: new TextEncoder().encode(`${JSON.stringify(build.manifest, null, 2)}\n`),
     cache: "immutable" as const
   };
-  return [...artifactFiles, manifest].sort((left, right) => left.path.localeCompare(right.path));
+  const paths = [...artifactFiles.map(({ path }) => path), manifest.path, `${prefix}/atlas-publication.json`].sort();
+  const inventory = {
+    path: `${prefix}/atlas-publication.json`,
+    bytes: new TextEncoder().encode(`${JSON.stringify({ schemaVersion: "1", paths }, null, 2)}\n`),
+    cache: "immutable" as const
+  };
+  return [...artifactFiles, manifest, inventory].sort((left, right) => left.path.localeCompare(right.path));
 }
 
 async function mutablePublicationFiles(
   build: AtlasBuildResult,
   current: AtlasStaticRegistry | undefined
-): Promise<PublicationFile[]> {
+): Promise<MutablePublication> {
   const output = await mkdtemp(join(tmpdir(), "atlas-registry-"));
   try {
-    await prepareStaticRegistry(build.manifest, current, output);
-    return await readPublicationDirectory(output);
+    const registry = await prepareStaticRegistry(build.manifest, current, output);
+    return { files: await readPublicationDirectory(output), replaced: registry.replaced };
   } finally {
     await rm(output, { recursive: true, force: true });
   }
+}
+
+async function cleanupSupersededPublications(
+  storage: AtlasPublicationStorage,
+  replaced: readonly AtlasArtifactManifest[],
+  config: AtlasPublishConfig | undefined,
+  lease?: AtlasPublicationLease
+): Promise<string[]> {
+  const warnings: string[] = [];
+  for (const manifest of replaced) {
+    const prefix = manifestPrefix(manifest);
+    try {
+      const inventory = await readPublicationInventory(storage, prefix);
+      if (!inventory) {
+        warnings.push(`Atlas replaced the previous PR build for "${manifest.id}", but ${prefix}/atlas-publication.json is missing; its old immutable objects were retained.`);
+        continue;
+      }
+      for (const path of inventory.paths) {
+        await lease?.assertHeld();
+        await storage.remove(path);
+      }
+      await config?.invalidate?.(inventory.paths);
+    } catch (error) {
+      warnings.push(`Atlas replaced the previous PR build for "${manifest.id}", but could not remove every old object under ${prefix}: ${errorMessage(error)}`);
+    }
+  }
+  return warnings;
+}
+
+async function readPublicationInventory(
+  storage: AtlasPublicationStorage,
+  prefix: string
+): Promise<AtlasPublicationInventory | undefined> {
+  const bytes = await storage.read(`${prefix}/atlas-publication.json`);
+  if (!bytes) return undefined;
+  let value: unknown;
+  try {
+    value = JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    throw new Error("publication inventory is not valid JSON", { cause: error });
+  }
+  if (!isPublicationInventory(value) || value.paths.some((path) => !path.startsWith(`${prefix}/`))) {
+    throw new Error("publication inventory contains invalid or out-of-scope paths");
+  }
+  return value;
+}
+
+function isPublicationInventory(value: unknown): value is AtlasPublicationInventory {
+  if (typeof value !== "object" || value === null) return false;
+  const inventory = value as Partial<AtlasPublicationInventory>;
+  return inventory.schemaVersion === "1" && Array.isArray(inventory.paths)
+    && inventory.paths.every((path) => typeof path === "string" && !path.includes(".."));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function readPublicationDirectory(
@@ -332,6 +575,11 @@ function mutableRank(path: string): number {
 function artifactPrefix(build: AtlasBuildResult): string {
   const collection = build.artifact === "host" ? "hosts" : "apps";
   return `${collection}/${build.manifest.id}/${build.manifest.version}/${build.manifest.buildId}`;
+}
+
+function manifestPrefix(manifest: AtlasArtifactManifest): string {
+  const collection = manifest.kind === "host" ? "hosts" : "apps";
+  return `${collection}/${manifest.id}/${manifest.version}/${manifest.buildId}`;
 }
 
 function artifactIndexPath(build: AtlasBuildResult): string {

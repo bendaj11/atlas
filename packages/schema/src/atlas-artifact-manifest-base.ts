@@ -16,6 +16,8 @@ export interface AtlasArtifactManifestBase {
   styles?: AtlasStylesheet[];
   integrity?: string;
   gitSha?: string;
+  gitBranch?: string;
+  gitCommitTitle?: string;
   prNumber?: number;
   createdAt: string;
 }

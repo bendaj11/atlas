@@ -116,7 +116,7 @@ export class AtlasDevService {
         schemaVersion: "1",
         hostId: config.id,
         catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
-        allowOverrides: true,
+        allowCustomOverrides: true,
         resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
         resourcesRetryCount: config.resourcesRetryCount ?? 3,
         assetOrigins: [localOrigin(clientPort), controlOrigin]
@@ -847,7 +847,8 @@ export function browserOpenCommand(url: string, platform: NodeJS.Platform = proc
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === "host";
-  return "allowOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
+  return "allowCustomOverrides" in config || "allowOverrides" in config
+    || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
 }
 
 interface CorruptAngularBuildPackage {

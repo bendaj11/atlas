@@ -12,7 +12,29 @@ export interface AtlasPublishConfig {
   runtimeUrls?: string[];
   /** Optional provider-specific CDN invalidation after mutable objects activate. */
   invalidate?: (paths: string[]) => void | Promise<void>;
+  /**
+   * Resolves the live state of a pull request immediately before Atlas changes the registry.
+   * Use this for unsupported Git providers or custom CI metadata. Atlas has built-in resolvers
+   * for GitHub, GitLab, and Bitbucket when their standard CI variables are available.
+   */
+  resolvePullRequest?: AtlasPullRequestResolver;
 }
+
+export interface AtlasPullRequestLookup {
+  artifactId: string;
+  prNumber: number;
+  gitSha: string;
+  gitBranch?: string;
+}
+
+export interface AtlasPullRequestStatus {
+  state: "open" | "closed" | "merged";
+  headSha: string;
+}
+
+export type AtlasPullRequestResolver = (
+  pullRequest: AtlasPullRequestLookup
+) => AtlasPullRequestStatus | Promise<AtlasPullRequestStatus>;
 
 export function defineAtlasPublishConfig(config: AtlasPublishConfig): AtlasPublishConfig {
   return config;
@@ -49,6 +71,7 @@ function isPublishConfig(value: unknown): value is AtlasPublishConfig {
     || isPublicationStorage(config.storage);
   return (config.runtimeUrls === undefined || (Array.isArray(config.runtimeUrls) && config.runtimeUrls.every((url) => typeof url === "string")))
     && (config.invalidate === undefined || typeof config.invalidate === "function")
+    && (config.resolvePullRequest === undefined || typeof config.resolvePullRequest === "function")
     && hasStorage;
 }
 

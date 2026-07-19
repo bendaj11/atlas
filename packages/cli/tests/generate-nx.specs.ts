@@ -131,7 +131,7 @@ exit 1
   expect(project.targets["atlas:config"].options.command).toBe("atlas compile-config mobile-host");
   expect(project.targets["atlas:config"].outputs).toStrictEqual(["{projectRoot}/.atlas"]);
   expect(project.targets["atlas:publish"].cache).toBe(false);
-  expect(project.targets["atlas:publish"].dependsOn).toStrictEqual(["build", "atlas:config"]);
+  expect(project.targets["atlas:publish"].dependsOn).toStrictEqual(["build"]);
   expect(project.targets["atlas:publish"].options.command).toBe("atlas publish mobile-host --from-build-output");
   expect(project.targets["atlas:bootstrap"].outputs).toStrictEqual(["{projectRoot}/dist/bootstrap"]);
   expect(project.targets["atlas:bootstrap"].options.command).toBe("atlas build-bootstrap mobile-host --skip-compile");

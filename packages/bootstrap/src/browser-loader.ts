@@ -49,17 +49,18 @@ async function fetchJson(url, runtime = {}, integrity) {
 }
 
 async function applyOverrides(runtime, catalog) {
-  if (runtime.allowOverrides !== true) return catalog;
-  const overrideUrl = new URLSearchParams(location.search).get("atlas-override");
+  const allowCustom = runtime.allowCustomOverrides === true || runtime.allowOverrides === true;
+  const overrideUrl = allowCustom ? new URLSearchParams(location.search).get("atlas-override") : undefined;
   const stored = overrideUrl
     ? JSON.stringify(await fetchJson(overrideUrl, runtime))
     : sessionStorage.getItem(DOCUMENT_KEY) || localStorage.getItem(DOCUMENT_KEY);
   if (!stored) return catalog;
   const overrides = JSON.parse(stored);
   if (overrides.hostId !== runtime.hostId) return catalog;
-  const host = overrides.host && overrides.host.manifest
+  const selectedHost = overrides.host && overrides.host.manifest
     ? overrides.host.manifest
     : overrides.hostOverride || catalog.host;
+  const host = await resolveOverrideManifest(selectedHost, runtime) || catalog.host;
   const appsById = new Map(catalog.apps.map((manifest) => [manifest.id, manifest]));
   const providersById = new Map((catalog.widgetProviders || []).map((manifest) => [manifest.id, manifest]));
   const externalDependencyIds = new Set(catalog.apps.flatMap((manifest) => manifest.externalAppsDependencies || []));
@@ -67,11 +68,40 @@ async function applyOverrides(runtime, catalog) {
     if (!override.manifest || override.manifest.kind !== "app" || override.manifest.id !== (override.appId || override.manifest.id)) {
       throw new Error("Atlas app override is invalid.");
     }
-    if (appsById.has(override.manifest.id)) appsById.set(override.manifest.id, override.manifest);
-    else if (externalDependencyIds.has(override.manifest.id)) providersById.set(override.manifest.id, override.manifest);
+    const manifest = await resolveOverrideManifest(override.manifest, runtime);
+    if (!manifest) continue;
+    if (appsById.has(manifest.id)) appsById.set(manifest.id, manifest);
+    else if (externalDependencyIds.has(manifest.id)) providersById.set(manifest.id, manifest);
     else throw new Error("Atlas app override does not target a selected app or external widget provider.");
   }
   return { ...catalog, host, apps: [...appsById.values()], widgetProviders: [...providersById.values()] };
+}
+
+async function resolveOverrideManifest(manifest, runtime) {
+  const allowCustom = runtime.allowCustomOverrides === true || runtime.allowOverrides === true;
+  if (manifest.channel === "local") return allowCustom ? manifest : undefined;
+  if (manifest.channel !== "pr" || !manifest.prNumber) return manifest;
+  const indexUrl = artifactIndexUrl(manifest);
+  if (!indexUrl) return manifest;
+  try {
+    const index = await fetchJson(indexUrl, runtime);
+    if (!Array.isArray(index.manifests)) return manifest;
+    return index.manifests.find((candidate) => candidate.prNumber === manifest.prNumber);
+  } catch {
+    return manifest;
+  }
+}
+
+function artifactIndexUrl(manifest) {
+  const collection = manifest.kind === "host" ? "hosts" : "apps";
+  const marker = "/" + collection + "/" + manifest.id + "/";
+  const url = new URL(manifest.remoteEntryUrl);
+  const markerIndex = url.pathname.indexOf(marker);
+  if (markerIndex < 0) return undefined;
+  url.pathname = url.pathname.slice(0, markerIndex) + marker + "index.json";
+  url.search = "";
+  url.hash = "";
+  return url.href;
 }
 
 function validateCatalog(runtime, catalog) {
@@ -101,7 +131,11 @@ function validateArtifactUrl(url, manifest, runtime) {
   if (url.protocol === "http:" && loopbackHosts.includes(url.hostname) && loopbackHosts.includes(catalogUrl.hostname)) return;
   if (url.protocol !== "https:") throw new Error("Published host URL must use HTTPS.");
   const catalogOrigin = catalogUrl.origin;
-  const allowed = new Set([catalogOrigin, ...(runtime.assetOrigins || []).map((value) => new URL(value).origin)]);
+  const allowed = new Set([
+    catalogOrigin,
+    ...(runtime.assetOrigins || []).map((value) => new URL(value).origin),
+    ...(runtime.externalRegistryUrls || []).map((value) => new URL(value).origin)
+  ]);
   if (!allowed.has(url.origin)) throw new Error("Selected host URL uses an origin not approved by bootstrap assetOrigins.");
 }
 

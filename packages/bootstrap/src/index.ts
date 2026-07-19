@@ -30,7 +30,13 @@ export function createAtlasBootstrapFiles(options: AtlasBootstrapOptions): Atlas
     { path: "index.html", contents: html.endsWith("\n") ? html : `${html}\n` },
     { path: "atlas.loader.js", contents: `${ATLAS_BROWSER_LOADER.trimEnd()}\n` },
     { path: "atlas.runtime.json", contents: `${JSON.stringify(options.runtime, null, 2)}\n` },
-    { path: "nginx.conf", contents: createNginxConfig(options.assetOrigins ?? runtimeAssetOrigins(options.runtime), options.runtime.allowOverrides) }
+    {
+      path: "nginx.conf",
+      contents: createNginxConfig(
+        options.assetOrigins ?? runtimeAssetOrigins(options.runtime),
+        options.runtime.allowCustomOverrides ?? options.runtime.allowOverrides
+      )
+    }
   ];
 }
 

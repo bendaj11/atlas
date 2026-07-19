@@ -13,6 +13,7 @@ import {
   validateSha256Integrity,
   type UnknownRecord
 } from "./validation.js";
+import { validateArtifactReleaseMetadata } from "./validate-artifact-release-metadata.js";
 
 const FRAMEWORKS = ["angular", "react", "vue"] as const;
 
@@ -41,6 +42,7 @@ export function validateManifest(value: unknown, prefix?: string): AtlasValidati
   validateSemanticVersionRange(manifest?.requiredHostSdkVersion, path("requiredHostSdkVersion"), issues);
   validateHttpUrl(manifest?.remoteEntryUrl, path("remoteEntryUrl"), issues);
   validateSha256Integrity(manifest?.integrity, path("integrity"), issues);
+  validateArtifactReleaseMetadata(manifest, path, issues);
   validateMetadata(manifest?.metadata, path("metadata"), issues);
   validateSupportedHosts(manifest?.supportedHosts, path("supportedHosts"), issues);
   validatePlacements(manifest?.placements, path("placements"), issues);

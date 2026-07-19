@@ -23,12 +23,18 @@ interface AtlasArtifactManifestBase {
   remoteEntryUrl: string;
   integrity?: string;
   gitSha?: string;
+  gitBranch?: string;
+  gitCommitTitle?: string;
   prNumber?: number;
   createdAt: string;
 }
 ```
 
-`version` is the release label people use. `buildId` identifies exact bytes. `kind` keeps host and app ids unambiguous. PR manifests include `prNumber`; local manifests use loopback and are never published.
+`version` is the release label people use. `buildId` identifies exact bytes.
+`kind` keeps host and app ids unambiguous. PR manifests include PR number,
+actual head SHA, branch, and commit title so freshness can be verified and
+Columbus can identify the preview. Local manifests use loopback and are never
+published.
 
 ## Host manifest
 

@@ -33,6 +33,7 @@ Use these goal-oriented guides after completing the tutorial:
 | Export reusable UI | [Exported widgets](exported-widgets.md) |
 | Test a host/app contract | [Consumer testing](consumer-testing.md) |
 | Deploy and release | [Production deployment](production-deployment.md), then [Angular steps](angular/production-deployment.md) or [React steps](react/production-deployment.md) |
+| Publish and clean up PR previews | [Pull-request previews](pr-previews.md) |
 | Secure a deployment | [Security](security.md) |
 | Diagnose failure | [Angular troubleshooting](angular/troubleshooting.md) or [React troubleshooting](react/troubleshooting.md) |
 

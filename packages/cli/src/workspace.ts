@@ -1,5 +1,5 @@
 import { access, readFile, readdir } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import type { ChildProcess } from "node:child_process";
 import { runProcess, spawnProcess, type ProcessCommand } from "./process.js";
 
@@ -20,6 +20,7 @@ export interface AtlasWorkspace {
   root: string;
   packageManager: AtlasPackageManager;
   findProject(name: string): Promise<AtlasProject>;
+  listProjects(): Promise<AtlasProject[]>;
   run(project: AtlasProject, task: AtlasTask, args?: string[]): Promise<void>;
   spawn(project: AtlasProject, task: AtlasTask, args?: string[]): ChildProcess;
   formatGenerated(projectRoot: string): Promise<boolean>;
@@ -53,6 +54,7 @@ export async function detectWorkspace(start = process.cwd()): Promise<AtlasWorks
     root,
     packageManager,
     findProject: (name) => findAtlasProject(root, name, resolvedStart),
+    listProjects: () => discoverAtlasProjects(root, root, 0),
     run: (project, task, args = []) => runProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     spawn: (project, task, args = []) => spawnProcess(createTaskCommand(kind, packageManager, root, project, task, args)),
     formatGenerated: async (projectRoot) => {
@@ -222,6 +224,21 @@ async function discoverProjects(directory: string, name: string, workspaceRoot: 
     .filter((entry) => entry.isDirectory() && !ignored.has(entry.name) && !entry.name.startsWith("."))
     .map((entry) => discoverProjects(join(directory, entry.name), name, workspaceRoot, depth + 1)));
   return nested.flat();
+}
+
+async function discoverAtlasProjects(directory: string, workspaceRoot: string, depth: number): Promise<AtlasProject[]> {
+  if (depth > 5) return [];
+  if (await exists(join(directory, "atlas.config.ts"))) {
+    const project = await readProject(directory, basename(directory), workspaceRoot);
+    return project ? [project] : [];
+  }
+  let entries;
+  try { entries = await readdir(directory, { withFileTypes: true }); } catch { return []; }
+  const ignored = new Set(["node_modules", ".git", "dist", ".atlas", ".nx", ".turbo", "coverage"]);
+  const nested = await Promise.all(entries
+    .filter((entry) => entry.isDirectory() && !ignored.has(entry.name) && !entry.name.startsWith("."))
+    .map((entry) => discoverAtlasProjects(join(directory, entry.name), workspaceRoot, depth + 1)));
+  return nested.flat().sort((left, right) => left.root.localeCompare(right.root));
 }
 
 async function readProject(root: string, requestedName: string, workspaceRoot: string): Promise<AtlasProject | undefined> {

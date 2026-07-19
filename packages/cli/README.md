@@ -22,6 +22,8 @@ Atlas requires Node.js 20 or newer. Avoid floating global CLI in CI.
 | `atlas build` | Run native build and write immutable manifest |
 | `atlas build-bootstrap` | Build static host startup files and digest |
 | `atlas publish <project>` | Build and publish one project under storage lease |
+| `atlas remove-pr --pr-number <n>` | Remove workspace builds after PR close or merge |
+| `atlas prune-prs` | Reconcile stored previews and remove closed PRs |
 | `atlas verify` | Verify deployed runtime, catalog, manifests, and assets |
 | `atlas rollback` | Select and publish earlier immutable build |
 
@@ -56,6 +58,8 @@ ATLAS_S3_REGION=us-east-1
 ATLAS_REGISTRY_BASE_URL=https://assets.example/atlas
 ```
 
-Credentials use standard AWS SDK chain. `atlas.publish.ts` remains optional for custom storage, CDN invalidation, or runtime URL defaults.
+Credentials use standard AWS SDK chain. `atlas.publish.ts` remains optional
+for custom storage, CDN invalidation, runtime URL defaults, or a custom Git
+provider PR resolver.
 
-Start with [Zero to production](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md). Use [Production deployment](https://github.com/bendaj11/atlas/blob/main/docs/production-deployment.md) for CI, R2, AWS S3, MinIO, Docker/Nginx, PR builds, verification, and rollback.
+Start with [Zero to production](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md). Use [Production deployment](https://github.com/bendaj11/atlas/blob/main/docs/production-deployment.md) for CI, R2, AWS S3, MinIO, Docker/Nginx, verification, and rollback. Use [Pull-request previews](https://github.com/bendaj11/atlas/blob/main/docs/pr-previews.md) for PR metadata, freshness, Columbus, and cleanup jobs.

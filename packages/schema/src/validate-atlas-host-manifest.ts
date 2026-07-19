@@ -10,6 +10,7 @@ import {
   validateSemanticVersionRange,
   validateSha256Integrity
 } from "./validation.js";
+import { validateArtifactReleaseMetadata } from "./validate-artifact-release-metadata.js";
 
 /** Checks unknown JSON and returns all host-client manifest problems. */
 export function validateAtlasHostManifest(value: unknown): AtlasValidationIssue[] {
@@ -27,6 +28,7 @@ export function validateAtlasHostManifest(value: unknown): AtlasValidationIssue[
   validateSemanticVersionRange(manifest?.requiredLoaderApiVersion, "requiredLoaderApiVersion", issues);
   validateHttpUrl(manifest?.remoteEntryUrl, "remoteEntryUrl", issues);
   validateSha256Integrity(manifest?.integrity, "integrity", issues);
+  validateArtifactReleaseMetadata(manifest, (field) => field, issues);
   const exposes = asRecord(manifest?.exposes);
   if (!exposes) addIssue(issues, "exposes", "Expected exposes to be an object.");
   else requiredString(exposes, "entry", issues, "exposes");

@@ -169,7 +169,7 @@ for (const scenario of [
     if (scenario.name === "Turborepo") {
       const turbo = JSON.parse(await readFile(join(root, "turbo.json"), "utf8"));
       expect(turbo.tasks["atlas:publish"].cache).toBe(false);
-      expect(turbo.tasks["atlas:publish"].dependsOn).toStrictEqual(["build", "atlas:config"]);
+      expect(turbo.tasks["atlas:publish"].dependsOn).toStrictEqual(["build"]);
       expect(turbo.tasks["atlas:publish"].env).toEqual(expect.arrayContaining(["ATLAS_*", "AWS_*", "CI_*"]));
       expect(turbo.tasks["atlas:bootstrap"].outputs).toStrictEqual(["dist/bootstrap/**"]);
     }

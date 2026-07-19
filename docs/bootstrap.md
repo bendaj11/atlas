@@ -95,13 +95,18 @@ Example `atlas.runtime.json`:
   "hostId": "7ee210f9-dacd-4aac-939e-237032d44740",
   "hostVersion": "0.1.0",
   "catalogUrl": "https://assets.example/atlas/hosts/7ee210f9-dacd-4aac-939e-237032d44740/catalog.json",
-  "allowOverrides": false,
+  "allowCustomOverrides": false,
   "resourcesTimeoutMs": 15000,
   "resourcesRetryCount": 3
 }
 ```
 
 `catalogUrl` is derived from `ATLAS_REGISTRY_BASE_URL`. It is public download URL, not S3 upload endpoint.
+
+Registry-backed PR and previous-production overrides are always available and
+do not require a host flag. `allowCustomOverrides` controls only arbitrary
+localhost/custom-URL execution. It defaults to false. The deprecated
+`allowOverrides` field remains accepted as a compatibility alias.
 
 ## Custom HTML
 

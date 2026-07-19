@@ -40,6 +40,14 @@ export function createManifestFromConfig(input: CreateManifestFromConfigInput): 
     manifest.gitSha = input.gitSha;
   }
 
+  if (input.gitBranch) {
+    manifest.gitBranch = input.gitBranch;
+  }
+
+  if (input.gitCommitTitle) {
+    manifest.gitCommitTitle = input.gitCommitTitle;
+  }
+
   if (input.prNumber) {
     manifest.prNumber = input.prNumber;
   }

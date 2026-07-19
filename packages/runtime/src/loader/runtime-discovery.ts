@@ -27,8 +27,10 @@ export interface AtlasRuntimeOverrideDocument {
 
 export interface AtlasBrowserOverrideOptions {
   hostId: string;
-  /** Runtime overrides are ignored unless the host explicitly enables them. */
+  /** @deprecated Compatibility alias for allowCustomOverrides. */
   enabled?: boolean;
+  /** Allows localhost/custom-URL overrides. Registry-backed PR and historical overrides need no opt-in. */
+  allowCustomOverrides?: boolean;
   search?: string;
   storage?: Pick<Storage, "getItem">;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
@@ -79,6 +81,9 @@ export async function loadHostRuntimeConfig(
   if (config.allowOverrides !== undefined && typeof config.allowOverrides !== "boolean") {
     throw new Error("Atlas host allowOverrides must be a boolean.");
   }
+  if (config.allowCustomOverrides !== undefined && typeof config.allowCustomOverrides !== "boolean") {
+    throw new Error("Atlas host allowCustomOverrides must be a boolean.");
+  }
   validateRuntimeUrls(config.externalRegistryUrls, "externalRegistryUrls");
   validateRuntimeUrls(config.assetOrigins, "assetOrigins");
   return config;
@@ -106,13 +111,13 @@ function validateRequestPolicy(config: AtlasHostRuntimeConfig): void {
 }
 
 export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideOptions): Promise<AtlasRuntimeOverride[]> {
-  if (options.enabled !== true) return [];
   const search = options.search ?? globalThis.location?.search ?? "";
   const queryUrl = new URLSearchParams(search).get(ATLAS_OVERRIDE_QUERY_PARAM);
   const storage = options.storage ?? globalThis.localStorage;
   const sessionStorage = options.sessionStorage ?? globalThis.sessionStorage;
   const storedUrl = storage?.getItem(ATLAS_OVERRIDE_STORAGE_KEY) ?? undefined;
-  const url = queryUrl ?? storedUrl;
+  const allowCustomOverrides = options.allowCustomOverrides ?? options.enabled ?? false;
+  const url = allowCustomOverrides ? queryUrl ?? storedUrl : undefined;
   const storedDocument = sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY)
     ?? storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY)
     ?? undefined;
@@ -127,7 +132,8 @@ export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideO
     : parseOverrideDocument(storedDocument!);
   validateOverrideShape(document);
   validateOverrideDocument(document, options.hostId, url ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY);
-  return document.overrides;
+  return document.overrides.filter((override) => allowCustomOverrides
+    || (override.reason !== "local" && override.manifest.channel !== "local"));
 }
 
 export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: AtlasRuntimeOverride[] = []): AtlasManifest[] {

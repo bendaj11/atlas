@@ -36,7 +36,9 @@ export async function startDomHostRuntime<THostSdk extends object>(
 
   const overrides = options.catalog ? [] : await loadBrowserRuntimeOverrides({
     hostId: config.hostId,
-    enabled: options.allowAppOverrides ?? config.allowOverrides === true,
+    allowCustomOverrides: options.allowAppOverrides
+      ?? config.allowCustomOverrides
+      ?? config.allowOverrides === true,
     requestPolicy
   });
   const manifests = resolveRuntimeManifests(catalog, overrides);

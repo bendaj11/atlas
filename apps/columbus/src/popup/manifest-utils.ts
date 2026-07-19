@@ -111,7 +111,12 @@ export function badgeSkin(type: OverrideType): BadgeSkin {
 
 export function versionLabel(manifest: Manifest): string {
   const identity = `${manifest.version} · ${manifest.buildId.slice(0, 7)}`;
-  if (manifest.channel === "pr") return `${identity} · PR #${manifest.prNumber ?? "unknown"}`;
+  if (manifest.channel === "pr") {
+    const branch = manifest.gitBranch ? ` · ${manifest.gitBranch}` : "";
+    const commit = manifest.gitSha ? ` · ${manifest.gitSha.slice(0, 7)}` : "";
+    const title = manifest.gitCommitTitle ? ` · ${manifest.gitCommitTitle}` : "";
+    return `${identity} · PR #${manifest.prNumber ?? "unknown"}${branch}${commit}${title}`;
+  }
   if (manifest.channel === "local") return `${identity} · Local`;
   return identity;
 }

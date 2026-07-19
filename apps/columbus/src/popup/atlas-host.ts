@@ -6,14 +6,36 @@ import { normalizeStoredManifest } from "./manifest-utils.js";
 
 export async function readHostData(activeTabId: number | undefined): Promise<{ hostData: HostData; tabId: number }> {
   const { tab, hostData } = await findAtlasHostTab();
-  if (hostData.config.allowOverrides !== true) throw overridesDisabledError(hostData);
 
   if (!hostData.overrides) hostData.overrides = await readPersistedOverrides(hostData);
+  hostData.overrides = resolveLatestPrOverrides(hostData, hostData.overrides);
   await updateActionBadge(tab.id, overrideCount(hostData.overrides));
 
   if (activeTabId && activeTabId !== tab.id) await updateActionBadge(activeTabId, 0);
 
   return { hostData, tabId: tab.id };
+}
+
+function resolveLatestPrOverrides(
+  hostData: HostData,
+  documentValue: OverrideDocument | undefined
+): OverrideDocument | undefined {
+  if (!documentValue || hostData.versionErrors.length > 0) return documentValue;
+  const latest = (override: OverrideDocument["apps"][number]): OverrideDocument["apps"][number] | undefined => {
+    if (override.manifest.channel !== "pr" || !override.manifest.prNumber) return override;
+    const manifest = hostData.versions[artifactKey(override.manifest)]
+      ?.find((candidate) => candidate.channel === "pr" && candidate.prNumber === override.manifest.prNumber);
+    return manifest ? { ...override, manifest } : undefined;
+  };
+  const host = documentValue.host ? latest(documentValue.host) : undefined;
+  const apps = documentValue.apps.flatMap((override) => {
+    const resolved = latest(override);
+    return resolved ? [resolved] : [];
+  });
+  const resolved: OverrideDocument = { ...documentValue, apps };
+  if (host) resolved.host = host;
+  else delete resolved.host;
+  return resolved;
 }
 
 async function findAtlasHostTab(): Promise<{ tab: InspectableTab; hostData: HostData }> {
@@ -25,8 +47,7 @@ async function findAtlasHostTab(): Promise<{ tab: InspectableTab; hostData: Host
   let activeError: unknown;
   try {
     activeHostData = await inspectTab(activeTab);
-    if (activeHostData.config.allowOverrides === true) return { tab: activeTab, hostData: activeHostData };
-    activeError = overridesDisabledError(activeHostData);
+    return { tab: activeTab, hostData: activeHostData };
   } catch (error) {
     activeError = error;
   }
@@ -38,7 +59,6 @@ async function findAtlasHostTab(): Promise<{ tab: InspectableTab; hostData: Host
   for (const tab of localPreviewCandidates(tabs, activeTab.id)) {
     try {
       const hostData = await inspectTab(tab);
-      if (hostData.config.allowOverrides !== true) continue;
       if (expectedHostId && hostData.config.hostId !== expectedHostId) continue;
       matchingPreviews.push({ tab, hostData });
     } catch {
@@ -199,10 +219,6 @@ function isLoopbackPage(url: string | undefined): boolean {
   if (!isWebPage(url)) return false;
   const hostname = new URL(url).hostname;
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
-}
-
-function overridesDisabledError(hostData: HostData): Error {
-  return new Error(`Atlas host "${hostData.config.hostId}" disables host and app overrides. Set allowOverrides: true in host atlas.config.ts and rebuild bootstrap.`);
 }
 
 function persistOverrides(documentKey: string, urlKey: string, value: string): void {

@@ -125,7 +125,8 @@ GitLab. Other CI systems can map their checked-out tag name to
 `CI_COMMIT_TAG`.
 
 PR number comes from GitHub, GitLab, Bitbucket, Vercel, or explicit CI
-mapping. Git SHA comes from common CI variables. For PR 42, Atlas changes base
+mapping. Git SHA, branch, and commit title come from common CI variables or
+explicit `ATLAS_GIT_*` mapping. For PR 42, Atlas changes base
 version `0.1.0` to `0.1.0-pr.42`; PR publication enters history without
 replacing production selection.
 
@@ -224,22 +225,26 @@ Generated Nx target:
 
 ```text
 atlas:publish
-  depends on native build and atlas:config
+  depends on native build
+  compiles atlas.config.ts inside publish
   cache disabled because publication changes external state
 ```
 
 Framework build remains cacheable. Publication runs after output exists and performs this transaction:
 
-1. derive manifest and content identity;
-2. acquire expiring object-storage lease with bounded wait and jitter;
-3. recover an expired lease safely with conditional writes;
-4. read live `registry.json` under lease;
-5. create immutable assets and manifests;
-6. write registry, indexes, and catalogs in activation order;
-7. HEAD and read uploaded objects;
-8. verify SHA-256, `Content-Type`, and `Cache-Control`;
-9. run configured runtime verification;
-10. release lease only when token and ETag still match.
+1. determine publication context; ordinary branches without a PR are skipped;
+2. derive manifest, Git metadata, and content identity;
+3. acquire expiring object-storage lease with bounded wait and jitter;
+4. for a PR, compare its built SHA with the provider's live head SHA;
+5. recover an expired lease safely with conditional writes;
+6. read live `registry.json` under lease;
+7. create immutable assets, manifest, and exact-path publication inventory;
+8. write registry, indexes, and catalogs in activation order;
+9. HEAD and read uploaded objects;
+10. verify SHA-256, `Content-Type`, and `Cache-Control`;
+11. run configured runtime verification;
+12. remove the previous successful build for the same artifact and PR;
+13. release lease only when token and ETag still match.
 
 If mutable activation or verification fails, Atlas restores previous registry objects and removes immutable objects created by the failed attempt.
 
@@ -356,7 +361,7 @@ Generated packages expose `atlas:config`, `atlas:publish`, and host-only `atlas:
     },
     "atlas:publish": {
       "cache": false,
-      "dependsOn": ["build", "atlas:config"]
+      "dependsOn": ["build"]
     },
     "atlas:bootstrap": {
       "dependsOn": ["atlas:config"],
@@ -382,7 +387,6 @@ Workspace managers do not model deployment as deeply as Nx or Turbo, but Atlas s
 Yarn 2+ with the workspace-tools plugin:
 
 ```bash
-yarn workspaces foreach --since --topological-dev run atlas:config
 yarn workspaces foreach --since --topological-dev run build
 yarn workspaces foreach --since --topological-dev run atlas:publish
 yarn workspaces foreach --since --topological-dev run deploy
@@ -392,16 +396,17 @@ npx atlas verify
 pnpm:
 
 ```bash
-pnpm --filter "...[origin/main]" -r --if-present run atlas:config
 pnpm --filter "...[origin/main]" -r --if-present run build
 pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
 pnpm --filter "...[origin/main]" -r --if-present run deploy
 pnpm exec atlas verify
 ```
 
-These Yarn and pnpm sequences run `atlas:config` explicitly because those
-workspace commands do not apply the Nx or Turbo target dependency graph. Do not
-add a separate `atlas:config` command to Nx or Turbo CI.
+Do not add a separate `atlas:config` command. Normal `atlas:publish` compiles
+and validates `atlas.config.ts`; only explicit `--skip-compile` opts out.
+`--from-build-output` reuses only the native framework build. Yarn and pnpm
+still run `build` explicitly because their workspace loops do not apply Nx or
+Turbo task dependencies.
 
 `--if-present` is important in mixed pnpm repositories. It keeps non-Atlas packages in normal workspace selection without requiring Atlas scripts.
 
@@ -422,13 +427,47 @@ npx nx affected -t lint test atlas:publish
 npx atlas verify
 ```
 
-Atlas infers PR release identity. PR manifests are stored in registry history but do not replace production selections. Columbus exposes them as PR overrides.
+Atlas infers PR release identity. PR manifests never replace production
+selections. For each artifact and PR, Atlas retains only the latest successful
+build. Columbus exposes it as a PR override and shows branch, short SHA, commit
+title, and PR number.
 
 If a CI platform does not expose PR number as a standard variable, map it once:
 
 ```bash
 ATLAS_PR_NUMBER="$CI_SYSTEM_PR_NUMBER" npx nx affected -t atlas:publish
 ```
+
+Map the actual PR head SHA too when CI checks out a synthetic merge commit:
+
+```bash
+ATLAS_PR_NUMBER="$CI_SYSTEM_PR_NUMBER" \
+ATLAS_GIT_SHA="$CI_SYSTEM_PR_HEAD_SHA" \
+ATLAS_GIT_BRANCH="$CI_SYSTEM_SOURCE_BRANCH" \
+npx nx affected -t atlas:publish
+```
+
+Atlas verifies the live provider head immediately before registry mutation.
+Stale, closed, or merged PR builds skip successfully. Provider lookup errors
+fail without mutation. An ordinary branch with no PR also skips successfully;
+set `ATLAS_REQUIRE_PUBLICATION=true` only in jobs where a skip indicates broken
+CI configuration.
+
+PR close/merge event jobs run:
+
+```bash
+npx atlas remove-pr --pr-number "$PR_NUMBER"
+```
+
+A scheduled safety job runs:
+
+```bash
+npx atlas prune-prs
+```
+
+See [Pull-request previews](pr-previews.md) for the complete branch-to-merge
+journey, provider metadata, custom resolvers, provider-neutral state files,
+cleanup ownership, cache behavior, and exact commands.
 
 ## Bootstrap deployment
 
@@ -465,6 +504,10 @@ export default defineAtlasPublishConfig({
   runtimeUrls: ["https://portal.example.internal/atlas.runtime.json"],
   async invalidate(paths) {
     await companyCdn.invalidate(paths);
+  },
+  async resolvePullRequest({ prNumber }) {
+    const pullRequest = await companyGit.getPullRequest(prNumber);
+    return { state: pullRequest.state, headSha: pullRequest.headSha };
   }
 });
 ```

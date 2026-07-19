@@ -10,6 +10,8 @@ export interface AtlasExtensionManifest {
   channel: AtlasReleaseChannel;
   framework: "angular" | "react" | "vue";
   gitSha?: string;
+  gitBranch?: string;
+  gitCommitTitle?: string;
   prNumber?: number;
   createdAt?: string;
   remoteEntryUrl: string;
@@ -35,7 +37,14 @@ export interface AtlasOverrideDocument {
 }
 
 export interface AtlasHostData {
-  config: { schemaVersion: "1"; hostId: string; catalogUrl: string; allowOverrides?: boolean; externalRegistryUrls?: string[] };
+  config: {
+    schemaVersion: "1";
+    hostId: string;
+    catalogUrl: string;
+    allowCustomOverrides?: boolean;
+    allowOverrides?: boolean;
+    externalRegistryUrls?: string[];
+  };
   pageUrl: string;
   catalog: {
     schemaVersion: "1";

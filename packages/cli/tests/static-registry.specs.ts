@@ -91,6 +91,24 @@ test("PR builds enter history without activating catalog", async () => {
   expect(catalog.apps[0]?.version).toBe("1.0.0");
 });
 
+test("a newer PR build replaces the previous build for the same artifact and PR", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "atlas-static-pr-replace-"));
+  const first = createTestManifest({
+    version: "1.0.0-pr.8", buildId: "first", channel: "pr", prNumber: 8, gitSha: "first-sha"
+  });
+  await prepareStaticRegistry(first, undefined, directory);
+  const current = await readRegistry(join(directory, "registry.json"));
+  const second = createTestManifest({
+    version: "1.0.0-pr.8", buildId: "second", channel: "pr", prNumber: 8, gitSha: "second-sha"
+  });
+
+  const result = await prepareStaticRegistry(second, current, directory);
+  const index = await readManifestIndex(join(directory, "apps/catalog/index.json"));
+
+  expect(result.replaced.map(({ buildId }) => buildId)).toStrictEqual(["first"]);
+  expect(index.manifests.map(({ buildId }) => buildId)).toStrictEqual(["second"]);
+});
+
 test("rollback selects previous host-client build", async () => {
   const directory = await mkdtemp(join(tmpdir(), "atlas-static-host-rollback-"));
   const first = hostManifest({ version: "1.0.0", buildId: "one" });

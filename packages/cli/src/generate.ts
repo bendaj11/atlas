@@ -257,7 +257,7 @@ export class AtlasGenerateService {
     targets["atlas:config"] = atlasConfigNxTarget(this.workspace.packageManager, cwd);
     targets["atlas:publish"] = {
       cache: false,
-      dependsOn: ["build", "atlas:config"],
+      dependsOn: ["build"],
       executor: "nx:run-commands",
       options: { command: `atlas publish ${name} --from-build-output`, forwardAllArgs: true }
     };
@@ -299,7 +299,7 @@ export class AtlasGenerateService {
     tasks["atlas:config"] ??= { outputs: [".atlas/**"] };
     tasks["atlas:publish"] ??= {
       cache: false,
-      dependsOn: ["build", "atlas:config"],
+      dependsOn: ["build"],
       env: [
         "ATLAS_*", "AWS_*", "CI_*", "GITHUB_*", "BITBUCKET_*", "VERCEL_*"
       ]

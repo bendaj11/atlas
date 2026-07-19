@@ -177,7 +177,7 @@ test("Columbus writes valid semantic versions and persists disabled toggle selec
   expect(host).toMatch(/disabledAppIds/);
   expect(host).toMatch(/atlas\.disabled-local-apps\./);
   expect(controller).toMatch(/includeDisabledApps/);
-  expect(host).toMatch(/disables host and app overrides/);
+  expect(host).not.toMatch(/disables host and app overrides/);
   expect(host).toMatch(/\.tab\.\$\{tabId\}/);
   expect(host).toMatch(/legacyKey/);
 });

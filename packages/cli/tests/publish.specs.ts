@@ -16,6 +16,7 @@ test("publisher writes immutable files before activating mutable metadata", asyn
 
   expect(result.uploaded).toStrictEqual([
     "apps/orders/1.0.0/build-1/app.manifest.json",
+    "apps/orders/1.0.0/build-1/atlas-publication.json",
     "apps/orders/1.0.0/build-1/entry.js",
     "registry.json",
     "apps/orders/index.json"
@@ -111,7 +112,7 @@ test("rollback selects a stored production build under the same publication lock
 
 test("publisher stops before mutable activation when deployment lease is lost", async () => {
   const fixture = await publicationFixture();
-  const storage = new LeaseLossStorage(fixture.storage, 4);
+  const storage = new LeaseLossStorage(fixture.storage, 5);
 
   await expect(new AtlasPublishService(new CliArguments(["publish"]), fixture.builds).run("orders", {
     config: { storage }
@@ -119,6 +120,110 @@ test("publisher stops before mutable activation when deployment lease is lost", 
 
   await expect(access(join(fixture.storage, "registry.json"))).rejects.toMatchObject({ code: "ENOENT" });
   await expect(access(join(fixture.storage, "apps/orders/index.json"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("publisher skips a PR build when the provider head moved", async () => {
+  const fixture = await publicationFixture();
+  const original = await fixture.builds.build("orders");
+  const builds = {
+    async build() {
+      return {
+        ...original,
+        manifest: { ...original.manifest, channel: "pr" as const, prNumber: 42, gitSha: "old-sha" }
+      };
+    }
+  };
+
+  const result = await new AtlasPublishService(new CliArguments(["publish"]), builds).run("orders", {
+    config: {
+      storage: new DirectoryPublicationStorage(fixture.storage),
+      resolvePullRequest: async () => ({ state: "open", headSha: "new-sha" })
+    }
+  });
+
+  expect(result.skippedReason).toMatch(/moved from commit old-sha to new-sha/);
+  await expect(access(join(fixture.storage, "registry.json"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("publisher keeps only the latest successful build for one artifact and PR", async () => {
+  const fixture = await publicationFixture();
+  const original = await fixture.builds.build("orders");
+  const firstManifest = {
+    ...original.manifest,
+    version: "1.0.0-pr.42",
+    buildId: "first",
+    channel: "pr" as const,
+    prNumber: 42,
+    gitSha: "first-sha"
+  };
+  const storage = new DirectoryPublicationStorage(fixture.storage);
+  const firstBuilds = { async build() { return { ...original, manifest: firstManifest }; } };
+  await new AtlasPublishService(new CliArguments(["publish"]), firstBuilds).run("orders", {
+    config: { storage, resolvePullRequest: async () => ({ state: "open", headSha: "first-sha" }) }
+  });
+
+  const secondManifest = { ...firstManifest, buildId: "second", gitSha: "second-sha" };
+  const secondBuilds = { async build() { return { ...original, manifest: secondManifest }; } };
+  const result = await new AtlasPublishService(new CliArguments(["publish"]), secondBuilds).run("orders", {
+    config: { storage, resolvePullRequest: async () => ({ state: "open", headSha: "second-sha" }) }
+  });
+
+  const registry = JSON.parse(await readFile(join(fixture.storage, "registry.json"), "utf8"));
+  expect(registry.apps.map(({ buildId }: { buildId: string }) => buildId)).toStrictEqual(["second"]);
+  expect(result.cleanupWarnings).toStrictEqual([]);
+  await expect(access(join(fixture.storage, "apps/orders/1.0.0-pr.42/first/entry.js"))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(access(join(fixture.storage, "apps/orders/1.0.0-pr.42/second/entry.js"))).resolves.toBeUndefined();
+});
+
+test("remove-pr removes matching registry entries and their inventory-listed objects", async () => {
+  const fixture = await publicationFixture();
+  const original = await fixture.builds.build("orders");
+  const manifest = {
+    ...original.manifest,
+    version: "1.0.0-pr.12",
+    buildId: "preview",
+    channel: "pr" as const,
+    prNumber: 12,
+    gitSha: "preview-sha"
+  };
+  const builds = { async build() { return { ...original, manifest }; } };
+  const storage = new DirectoryPublicationStorage(fixture.storage);
+  await new AtlasPublishService(new CliArguments(["publish"]), builds).run("orders", {
+    config: { storage, resolvePullRequest: async () => ({ state: "open", headSha: "preview-sha" }) }
+  });
+
+  const result = await new AtlasPublishService(new CliArguments(["remove-pr"]), builds)
+    .removePr(["orders"], 12, { config: { storage } });
+
+  const registry = JSON.parse(await readFile(join(fixture.storage, "registry.json"), "utf8"));
+  expect(result.removedBuilds).toBe(1);
+  expect(registry.apps).toStrictEqual([]);
+  await expect(access(join(fixture.storage, "apps/orders/1.0.0-pr.12/preview/entry.js"))).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("prune-prs preserves open PRs and removes PRs missing from an authoritative state file", async () => {
+  const fixture = await publicationFixture();
+  const original = await fixture.builds.build("orders");
+  const manifest = {
+    ...original.manifest,
+    version: "1.0.0-pr.19",
+    buildId: "preview",
+    channel: "pr" as const,
+    prNumber: 19,
+    gitSha: "preview-sha"
+  };
+  const builds = { async build() { return { ...original, manifest }; } };
+  const storage = new DirectoryPublicationStorage(fixture.storage);
+  await new AtlasPublishService(new CliArguments(["publish"]), builds).run("orders", {
+    config: { storage, resolvePullRequest: async () => ({ state: "open", headSha: "preview-sha" }) }
+  });
+
+  const service = new AtlasPublishService(new CliArguments(["prune-prs"]), builds);
+  const preserved = await service.prunePrs(["orders"], new Set([19]), { config: { storage } });
+  const removed = await service.prunePrs(["orders"], new Set(), { config: { storage } });
+
+  expect(preserved.removedBuilds).toBe(0);
+  expect(removed.removedBuilds).toBe(1);
 });
 
 function emptyRegistryText(): string {

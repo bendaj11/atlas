@@ -32,7 +32,11 @@ export function Editor({ model, busy, scope, onCancel, onError, onSave, onScopeC
 
   const save = (): void => {
     try {
-      onSave({ production: model.production, selected: selectedManifest({ ...model, draft }) });
+      const selected = selectedManifest({ ...model, draft });
+      if (selected?.channel === "local" && !model.allowCustomOverrides) {
+        throw new Error("This host does not allow localhost or custom-URL overrides.");
+      }
+      onSave({ production: model.production, selected });
     } catch (error) {
       onError(error instanceof Error ? error.message : String(error));
     }
@@ -56,6 +60,7 @@ export function Editor({ model, busy, scope, onCancel, onError, onSave, onScopeC
           >
             <RadioGroup.Radio
               value="custom"
+              disabled={!model.allowCustomOverrides}
               content={(
                 <EditorOption>
                   <Text size="small" weight="bold">Base URL</Text>
@@ -63,7 +68,7 @@ export function Editor({ model, busy, scope, onCancel, onError, onSave, onScopeC
                     id="custom-url"
                     ariaLabel="Base URL"
                     value={draft.customUrl}
-                    disabled={draft.type !== "custom"}
+                    disabled={draft.type !== "custom" || !model.allowCustomOverrides}
                     placeholder="http://localhost:4513"
                     onChange={(event) => setDraft({ ...draft, customUrl: event.target.value })}
                   />

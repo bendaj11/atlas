@@ -14,12 +14,13 @@ import {
   type AtlasStaticRegistry
 } from "@atlas/schema";
 
-type AtlasArtifactManifest = AtlasHostManifest | AtlasManifest;
+export type AtlasArtifactManifest = AtlasHostManifest | AtlasManifest;
 
 export interface AtlasRegistryResult {
   hostIds: string[];
   baseRevision: string;
   registryRevision: string;
+  replaced: AtlasArtifactManifest[];
 }
 
 export async function prepareStaticRegistry(
@@ -31,6 +32,7 @@ export async function prepareStaticRegistry(
   assertArtifactManifest(manifest);
   assertSafeRegistryId(manifest.id, `${manifest.kind} ID`);
 
+  const replaced = supersededPullRequestArtifacts(current, manifest);
   const registry = publishArtifact(current, manifest);
   const baseRevision = registryRevision(current);
   registry.revision = registryRevision(registry);
@@ -44,7 +46,7 @@ export async function prepareStaticRegistry(
     await writeJson(outputDirectory, `hosts/${hostId}/deployments/${catalog.revision.replace(":", "-")}.json`, catalog);
     await writeJson(outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
   }
-  return { hostIds, baseRevision, registryRevision: registry.revision };
+  return { hostIds, baseRevision, registryRevision: registry.revision, replaced };
 }
 
 export function registryRevision(registry: AtlasStaticRegistry | undefined): string {
@@ -98,7 +100,67 @@ export async function prepareStaticRollback(options: {
     await writeJson(options.outputDirectory, `hosts/${hostId}/deployments/${catalog.revision.replace(":", "-")}.json`, catalog);
     await writeJson(options.outputDirectory, `hosts/${hostId}/catalog.json`, catalog);
   }
-  return { hostIds, baseRevision, registryRevision: registry.revision, selected };
+  return { hostIds, baseRevision, registryRevision: registry.revision, replaced: [], selected };
+}
+
+export async function prepareStaticPrRemoval(options: {
+  artifactIds: readonly string[];
+  prNumber: number;
+  current: AtlasStaticRegistry;
+  outputDirectory: string;
+  updatedAt?: string;
+}): Promise<AtlasRegistryResult & { removed: AtlasArtifactManifest[] }> {
+  if (!Number.isSafeInteger(options.prNumber) || options.prNumber < 1) {
+    throw new Error("Atlas PR removal requires a positive integer pull-request number.");
+  }
+  return prepareStaticPrCleanup(options, (manifest) => manifest.prNumber === options.prNumber);
+}
+
+export async function prepareStaticPrReconciliation(options: {
+  artifactIds: readonly string[];
+  closedPrNumbers: ReadonlySet<number>;
+  current: AtlasStaticRegistry;
+  outputDirectory: string;
+  updatedAt?: string;
+}): Promise<AtlasRegistryResult & { removed: AtlasArtifactManifest[] }> {
+  return prepareStaticPrCleanup(options, (manifest) => manifest.prNumber !== undefined
+    && options.closedPrNumbers.has(manifest.prNumber));
+}
+
+async function prepareStaticPrCleanup(
+  options: {
+    artifactIds: readonly string[];
+    current: AtlasStaticRegistry;
+    outputDirectory: string;
+    updatedAt?: string;
+  },
+  shouldRemove: (manifest: AtlasArtifactManifest) => boolean
+): Promise<AtlasRegistryResult & { removed: AtlasArtifactManifest[] }> {
+  assertStaticRegistry(options.current);
+  const artifactIds = new Set(options.artifactIds);
+  options.artifactIds.forEach((id) => assertSafeRegistryId(id, "artifact ID"));
+  const candidates = [...options.current.hosts, ...options.current.apps];
+  const removed = candidates.filter((manifest) => artifactIds.has(manifest.id)
+    && manifest.channel === "pr" && shouldRemove(manifest));
+  const registry: AtlasStaticRegistry = {
+    ...options.current,
+    updatedAt: options.updatedAt ?? new Date().toISOString(),
+    hosts: options.current.hosts.filter((manifest) => !removed.includes(manifest)),
+    apps: options.current.apps.filter((manifest) => !removed.includes(manifest))
+  };
+  const baseRevision = registryRevision(options.current);
+  registry.revision = registryRevision(registry);
+  await writeJson(options.outputDirectory, "registry.json", registry);
+  for (const manifest of removed) {
+    await writeArtifactIndex(options.outputDirectory, manifest, registry, registry.updatedAt);
+  }
+  return {
+    hostIds: [],
+    baseRevision,
+    registryRevision: registry.revision,
+    replaced: [],
+    removed
+  };
 }
 
 function latestArtifactTimestamp(manifests: readonly AtlasArtifactManifest[]): string {
@@ -147,21 +209,41 @@ function selectionOf(manifest: AtlasArtifactManifestBase): AtlasProductionSelect
 function replaceArtifact<T extends AtlasArtifactManifest>(manifests: T[], published: T | undefined): T[] {
   if (!published) return [...manifests];
   const key = artifactKey(published);
-  return [...manifests.filter((manifest) => artifactKey(manifest) !== key), published]
+  return [...manifests.filter((manifest) => artifactKey(manifest) !== key && !samePullRequest(manifest, published)), published]
     .sort((left, right) => left.id.localeCompare(right.id) || compareNewestFirst(left, right));
 }
 
-async function writeArtifactIndex(output: string, published: AtlasArtifactManifest, registry: AtlasStaticRegistry): Promise<void> {
+function supersededPullRequestArtifacts(
+  current: AtlasStaticRegistry | undefined,
+  published: AtlasArtifactManifest
+): AtlasArtifactManifest[] {
+  if (published.channel !== "pr") return [];
+  const manifests = published.kind === "host" ? current?.hosts ?? [] : current?.apps ?? [];
+  return manifests.filter((manifest) => samePullRequest(manifest, published) && artifactKey(manifest) !== artifactKey(published));
+}
+
+function samePullRequest(left: AtlasArtifactManifestBase, right: AtlasArtifactManifestBase): boolean {
+  return left.channel === "pr" && right.channel === "pr"
+    && left.kind === right.kind && left.id === right.id
+    && left.prNumber !== undefined && left.prNumber === right.prNumber;
+}
+
+async function writeArtifactIndex(
+  output: string,
+  published: AtlasArtifactManifest,
+  registry: AtlasStaticRegistry,
+  updatedAt = published.createdAt
+): Promise<void> {
   if (published.kind === "host") {
     const index: AtlasHostIndex = {
-      schemaVersion: "1", kind: "host", id: published.id, updatedAt: published.createdAt,
+      schemaVersion: "1", kind: "host", id: published.id, updatedAt,
       manifests: registry.hosts.filter((candidate) => candidate.id === published.id).sort(compareNewestFirst)
     };
     await writeJson(output, `hosts/${published.id}/index.json`, index);
     return;
   }
   const index: AtlasAppIndex = {
-    schemaVersion: "1", kind: "app", id: published.id, updatedAt: published.createdAt,
+    schemaVersion: "1", kind: "app", id: published.id, updatedAt,
     manifests: registry.apps.filter((candidate) => candidate.id === published.id).sort(compareNewestFirst)
   };
   await writeJson(output, `apps/${published.id}/index.json`, index);

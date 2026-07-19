@@ -79,9 +79,14 @@ function installAtlasCatalogInterceptor(): void {
 async function rememberOverridePolicy(response: Response, policies: Map<string, boolean>): Promise<void> {
   if (!response.ok) return;
   try {
-    const config = await response.clone().json() as { schemaVersion?: unknown; hostId?: unknown; allowOverrides?: unknown };
+    const config = await response.clone().json() as {
+      schemaVersion?: unknown;
+      hostId?: unknown;
+      allowCustomOverrides?: unknown;
+      allowOverrides?: unknown;
+    };
     if (config.schemaVersion === "1" && typeof config.hostId === "string") {
-      policies.set(config.hostId, config.allowOverrides === true);
+      policies.set(config.hostId, config.allowCustomOverrides === true || config.allowOverrides === true);
     }
   } catch {
     return;

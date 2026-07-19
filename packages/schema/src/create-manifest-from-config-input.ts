@@ -17,6 +17,10 @@ export interface CreateManifestFromConfigInput {
   channel?: AtlasVersionChannel;
   /** Git commit used for this build. */
   gitSha?: string;
+  /** Git branch used for this build. */
+  gitBranch?: string;
+  /** First line of the Git commit message used for this build. */
+  gitCommitTitle?: string;
   /** Pull request number when this is a preview build. */
   prNumber?: number;
   /** Creation time to write into the manifest. Defaults to now. */

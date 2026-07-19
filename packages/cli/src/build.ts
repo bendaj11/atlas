@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { access, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -16,6 +17,13 @@ import {
 } from "@atlas/schema";
 import ts from "typescript";
 import { CliArguments } from "./arguments.js";
+import {
+  inferredGitBranch,
+  inferredGitCommitTitle,
+  inferredGitSha,
+  inferredGitTag,
+  inferredPullRequestNumber
+} from "./ci-metadata.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { publicationContentType } from "./publication-metadata.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
@@ -36,7 +44,7 @@ export class AtlasBuildService {
   async build(name: string): Promise<AtlasBuildResult> {
     const project = await this.workspace.findProject(name);
     const reuseBuildOutput = this.args.hasFlag("from-build-output") || this.args.hasFlag("skip-compile");
-    if (!reuseBuildOutput) await compileAtlasConfig(this.workspace, project);
+    if (!this.args.hasFlag("skip-compile")) await compileAtlasConfig(this.workspace, project);
     const config = await this.loadConfig(project.root);
     if (!reuseBuildOutput) await this.workspace.run(project, "build");
     const manifest = await this.buildArtifactManifest(project, config);
@@ -72,6 +80,8 @@ export class AtlasBuildService {
     const manifest = createManifestFromConfig({
       config, version, buildId, remoteEntryUrl, channel,
       gitSha: release.gitSha,
+      gitBranch: release.gitBranch,
+      gitCommitTitle: release.gitCommitTitle,
       prNumber: release.prNumber,
       createdAt: buildTimestamp(),
       exportedWidgets,
@@ -133,6 +143,8 @@ export class AtlasBuildService {
       integrity: `sha256-${createHash("sha256").update(await readFile(join(artifactRoot, entryPath))).digest("base64")}`,
       ...(styles.length ? { styles } : {}),
       ...(release.gitSha ? { gitSha: release.gitSha } : {}),
+      ...(release.gitBranch ? { gitBranch: release.gitBranch } : {}),
+      ...(release.gitCommitTitle ? { gitCommitTitle: release.gitCommitTitle } : {}),
       ...(release.prNumber ? { prNumber: release.prNumber } : {})
     };
     await mkdir(join(project.root, "dist"), { recursive: true });
@@ -301,7 +313,8 @@ function isAtlasBuildMetadata(path: string): boolean {
 function isAtlasConfig(value: unknown): value is AtlasConfig { return typeof value === "object" && value !== null && "id" in value && "framework" in value; }
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === "host";
-  return "allowOverrides" in config || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
+  return "allowCustomOverrides" in config || "allowOverrides" in config
+    || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
 }
 function assertAppConfig(config: AtlasConfig): AtlasAppConfig {
   if (isHostConfig(config)) {
@@ -325,6 +338,8 @@ interface ReleaseIdentity {
   channel: AtlasVersionChannel;
   version: string;
   gitSha?: string;
+  gitBranch?: string;
+  gitCommitTitle?: string;
   prNumber?: number;
 }
 
@@ -336,26 +351,21 @@ function releaseIdentity(args: CliArguments, project: AtlasProject): ReleaseIden
   const version = channel === "pr" && prNumber
     ? `${packageVersion.split("+")[0]!.split("-")[0]}-pr.${prNumber}`
     : packageVersion;
-  const gitSha = firstEnvironmentValue([
-    "ATLAS_GIT_SHA", "GIT_SHA", "GITHUB_SHA", "CI_COMMIT_SHA",
-    "BITBUCKET_COMMIT", "VERCEL_GIT_COMMIT_SHA"
-  ]);
-  return { channel, version, ...(gitSha ? { gitSha } : {}), ...(prNumber ? { prNumber } : {}) };
-}
-
-function inferredPullRequestNumber(): string | undefined {
-  const explicit = firstEnvironmentValue([
-    "ATLAS_PR_NUMBER", "PR_NUMBER", "GITHUB_PR_NUMBER", "CI_MERGE_REQUEST_IID",
-    "BITBUCKET_PR_ID", "VERCEL_GIT_PULL_REQUEST_ID"
-  ]);
-  if (explicit) return explicit;
-  return process.env.GITHUB_REF?.match(/^refs\/pull\/(\d+)\//)?.[1]
-    ?? process.env.GITHUB_REF_NAME?.match(/^(\d+)\//)?.[1];
+  const gitSha = args.flag("git-sha") ?? inferredGitSha() ?? gitOutput(project.root, ["rev-parse", "HEAD"]);
+  const gitBranch = args.flag("git-branch") ?? inferredGitBranch() ?? gitOutput(project.root, ["branch", "--show-current"]);
+  const gitCommitTitle = args.flag("git-commit-title") ?? inferredGitCommitTitle() ?? gitOutput(project.root, ["log", "-1", "--pretty=%s"]);
+  return {
+    channel,
+    version,
+    ...(gitSha ? { gitSha } : {}),
+    ...(gitBranch ? { gitBranch } : {}),
+    ...(gitCommitTitle ? { gitCommitTitle } : {}),
+    ...(prNumber ? { prNumber } : {})
+  };
 }
 
 function inferredTagVersion(project: AtlasProject): string | undefined {
-  const tag = process.env.CI_COMMIT_TAG
-    ?? (process.env.GITHUB_REF_TYPE === "tag" ? process.env.GITHUB_REF_NAME : undefined);
+  const tag = inferredGitTag();
   if (!tag) return undefined;
   const escapedNames = [project.packageName, project.id]
     .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
@@ -363,8 +373,12 @@ function inferredTagVersion(project: AtlasProject): string | undefined {
   return match?.[1];
 }
 
-function firstEnvironmentValue(names: readonly string[]): string | undefined {
-  return names.map((name) => process.env[name]).find((value) => Boolean(value));
+function gitOutput(root: string, args: readonly string[]): string | undefined {
+  try {
+    return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function buildTimestamp(): string {

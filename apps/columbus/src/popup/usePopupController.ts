@@ -132,6 +132,7 @@ export function usePopupController() {
 
     return {
       hostId: hostData.config.hostId,
+      allowCustomOverrides: hostData.config.allowCustomOverrides ?? hostData.config.allowOverrides ?? false,
       production,
       selected: activeOverrides.current.get(view.artifactKey) ?? savedDisabledOverrides.current.get(view.artifactKey),
       productionOptions: productionVersions(hostData, production),

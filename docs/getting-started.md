@@ -36,13 +36,12 @@ Each generated Atlas project contains:
 - `atlas:publish`: depends on native build and publishes this project;
 - host only: `atlas:bootstrap`, which creates static host startup files.
 
-`atlas:config` is a local preparation step. It reads and validates
-`atlas.config.ts`, then compiles the deployment metadata into the project's
-`.atlas/` directory for `atlas:publish` and, for hosts, `atlas:bootstrap` to
-consume. It does not upload artifacts or deploy anything. In an Nx or Turbo
-deployment, do not run `atlas:config` separately: `atlas:publish` and
-`atlas:bootstrap` declare it as a dependency, so the workspace runner executes
-it when needed.
+`atlas:config` is a local preparation and diagnostic step. It reads and
+validates `atlas.config.ts`, then compiles deployment metadata into the
+project's `.atlas/` directory. It does not upload artifacts or deploy anything.
+Do not run it separately in normal CI: `atlas:publish` performs this work
+itself. Only the diagnostic `--skip-compile` flag opts out. Generated host
+`atlas:bootstrap` targets declare config compilation as a task dependency.
 
 Only Atlas projects receive Atlas targets. Therefore this command ignores servers and frontends that are not Atlas projects:
 
@@ -164,16 +163,19 @@ npx nx run-many -t atlas:publish
 
 Nx runs only projects containing `atlas:publish`. Each target builds through the project's native framework target. Atlas then:
 
-1. compiles `atlas.config.ts` through the `atlas:config` dependency;
+1. compiles and validates `atlas.config.ts` inside publication;
 2. derives version from a matching CI tag, project package, workspace package,
    or the documented fallback;
 3. derives PR channel and PR number from CI metadata when available;
-4. creates content build ID from output bytes and HTTP metadata contract;
-5. waits for an expiring storage lease;
-6. reads the live registry while holding that lease;
-7. uploads immutable artifacts;
-8. activates registry indexes and host catalogs;
-9. verifies bytes, SHA-256, MIME type, and cache policy.
+4. skips successfully if this is an ordinary branch with no PR;
+5. creates content build ID from output bytes and HTTP metadata contract;
+6. waits for an expiring storage lease;
+7. verifies a PR build still matches the provider's live head commit;
+8. reads the live registry while holding that lease;
+9. uploads immutable artifacts and an exact-path cleanup inventory;
+10. activates registry indexes and host catalogs;
+11. verifies bytes, SHA-256, MIME type, and cache policy;
+12. replaces the prior successful build for the same artifact and PR.
 
 CI does not need to pass a version flag, build ID, publication plan, or app
 list. A tag-triggered pipeline exposes its release tag through normal CI
@@ -181,6 +183,8 @@ metadata. Atlas uses that tag before package versions. See
 [Version and build identity](production-deployment.md#version-and-build-identity)
 for root and per-project versions, Nx Release, Yarn, Changesets,
 semantic-release, and fully automated production tags.
+See [Pull-request previews](pr-previews.md) before adding PR publication or
+merge/close cleanup jobs.
 Publication includes versioned app and host-client artifacts, but not the host
 bootstrap website. Bootstrap build and platform deployment remain the separate
 next step.

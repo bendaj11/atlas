@@ -35,7 +35,12 @@ atlas dev customer-host --host-url=https://customer.example
 
 Local static bootstrap is not started. Columbus discovers local host manifest from loopback control server and stores tab- or all-tabs override. Reloading `customer.example` causes deployed loader to select local host client.
 
-Deployed bootstrap must expose `allowOverrides: true` for intended development environment. Production defaults to false. Local manifest URLs must use loopback; Columbus and loader reject other HTTP origins.
+Deployed bootstrap must expose `allowCustomOverrides: true` when developers
+should run localhost or custom-URL code inside that origin. Production defaults
+to false. Local manifest URLs must use loopback; Columbus and loader reject
+other HTTP origins. Registry-backed PR and previous-production overrides are
+always available and do not require this flag. `allowOverrides` is a deprecated
+compatibility alias.
 
 ## Run a local app
 
@@ -130,6 +135,9 @@ Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`.
 
 `Framework dev server did not serve ... remoteEntry.json`: check the framework process, selected port, and federation config.
 
-Columbus shows no controls: verify `/atlas.runtime.json` returns `allowOverrides: true` and the catalog URL follows `.../hosts/<hostId>/catalog.json`.
+Columbus cannot select a custom URL: verify `/atlas.runtime.json` returns
+`allowCustomOverrides: true`. If registry versions are missing, verify the
+catalog URL follows `.../hosts/<hostId>/catalog.json` and each artifact index is
+publicly readable.
 
 Local host rejected as non-loopback: use `localhost`, `127.0.0.1`, or `::1`; do not weaken the production origin policy.

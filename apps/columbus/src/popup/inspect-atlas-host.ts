@@ -38,6 +38,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     return config?.schemaVersion === "1"
       && typeof config.hostId === "string"
       && typeof config.catalogUrl === "string"
+      && (config.allowCustomOverrides === undefined || typeof config.allowCustomOverrides === "boolean")
       && (config.allowOverrides === undefined || typeof config.allowOverrides === "boolean")
       && (config.externalRegistryUrls === undefined || isStringArray(config.externalRegistryUrls));
   }

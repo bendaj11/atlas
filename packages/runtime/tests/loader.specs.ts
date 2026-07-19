@@ -455,16 +455,16 @@ test("tab-scoped browser overrides take precedence over all-tab overrides", asyn
   assert.equal(resolveRuntimeManifests(catalog, overrides)[0].version, "3.0.0");
 });
 
-test("browser override URL and storage access are disabled by default", async () => {
-  let accessed = false;
+test("custom override URLs are disabled by default", async () => {
+  let fetched = false;
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
     search: "?atlas-override=https://attacker.example/override.json",
-    storage: { getItem() { accessed = true; return "ignored"; } },
-    async fetchJson() { accessed = true; throw new Error("must not fetch"); }
+    storage: { getItem() { return null; } },
+    async fetchJson() { fetched = true; throw new Error("must not fetch"); }
   });
   assert.deepEqual(overrides, []);
-  assert.equal(accessed, false);
+  assert.equal(fetched, false);
 });
 
 test("local override assets must use loopback URLs", () => {

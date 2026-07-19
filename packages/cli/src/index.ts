@@ -11,8 +11,19 @@ import { AtlasGenerateService } from "./generate.js";
 import { loadEnvFiles } from "./env.js";
 import { formatHelp, requestedHelpTopic } from "./help.js";
 import { AtlasPublishService, loadAtlasPublishConfig } from "./publish.js";
+import { resolvePublicationContext } from "./publication-context.js";
+import { readOpenPullRequests } from "./pr-state-file.js";
 export { defineAtlasPublishConfig, S3PublicationStorage } from "./publish.js";
-export type { AtlasPublicationLease, AtlasPublicationObjectMetadata, AtlasPublicationStorage, AtlasPublishConfig, S3Options } from "./publish.js";
+export type {
+  AtlasPublicationLease,
+  AtlasPublicationObjectMetadata,
+  AtlasPublicationStorage,
+  AtlasPublishConfig,
+  AtlasPullRequestLookup,
+  AtlasPullRequestResolver,
+  AtlasPullRequestStatus,
+  S3Options
+} from "./publish.js";
 import { AtlasVerifyService, type AtlasVerificationCheck } from "./verify.js";
 import { resolveInvocation } from "./interaction.js";
 import { TerminalPrompter, ui, type AtlasPrompter } from "./ui.js";
@@ -81,10 +92,20 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
     }
 
     if (invocation.command === "publish" && invocation.subcommand) {
+      const publicationContext = resolvePublicationContext(args, workspace.root);
+      if (!publicationContext.publish) {
+        ui.info(`Atlas publication skipped: ${publicationContext.reason}.`);
+        return;
+      }
       ui.heading(`Publishing ${invocation.subcommand}`);
       const result = await publishAndVerify(args, builds, invocation.subcommand);
+      if (result.skippedReason) {
+        ui.info(`Atlas publication skipped: ${result.skippedReason}.`);
+        return;
+      }
       if (result.dryRun) result.uploaded.forEach((path) => ui.info(path));
       ui.success(result.dryRun ? `Dry run: ${result.uploaded.length} file(s).` : `Published ${result.uploaded.length} file(s).`);
+      result.cleanupWarnings.forEach((warning) => ui.warning(warning));
       return;
     }
 
@@ -101,6 +122,34 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       const result = await rollbackAndVerify(args, builds, invocation.subcommand, invocation.version);
       ui.success(`Selected ${invocation.subcommand}@${result.version} (${result.buildId}).`);
       ui.success(`Published rollback with ${result.uploaded.length} file(s).`);
+      return;
+    }
+
+    if (invocation.command === "remove-pr") {
+      const prNumber = positiveInteger(args.flag("pr-number"), "--pr-number");
+      const artifactIds = await configuredArtifactIds(args, workspace, builds);
+      const config = await loadAtlasPublishConfig(args);
+      ui.heading(`Removing Atlas builds for pull request #${prNumber}`);
+      const result = await new AtlasPublishService(args, builds).removePr(artifactIds, prNumber, {
+        ...(config ? { config } : {})
+      });
+      if (result.removedBuilds === 0) ui.info(`No builds for pull request #${prNumber} matched this workspace.`);
+      else ui.success(`Removed ${result.removedBuilds} build(s) for pull request #${prNumber}.`);
+      result.cleanupWarnings.forEach((warning) => ui.warning(warning));
+      return;
+    }
+
+    if (invocation.command === "prune-prs") {
+      const artifactIds = await configuredArtifactIds(args, workspace, builds);
+      const config = await loadAtlasPublishConfig(args);
+      const stateFile = args.flag("state-file");
+      const openPullRequests = stateFile ? await readOpenPullRequests(stateFile) : undefined;
+      ui.heading("Reconciling Atlas pull-request builds");
+      const result = await new AtlasPublishService(args, builds).prunePrs(artifactIds, openPullRequests, {
+        ...(config ? { config } : {})
+      });
+      ui.success(`Checked ${result.checkedPullRequests} pull request(s); removed ${result.removedBuilds} closed build(s).`);
+      result.cleanupWarnings.forEach((warning) => ui.warning(warning));
       return;
     }
 
@@ -127,6 +176,29 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
   } finally {
     prompts.close();
   }
+}
+
+async function configuredArtifactIds(
+  args: CliArguments,
+  workspace: Awaited<ReturnType<typeof detectWorkspace>>,
+  builds: AtlasBuildService
+): Promise<string[]> {
+  const explicit = splitUrls(args.flag("artifact-ids"));
+  if (explicit.length) return explicit;
+  const projects = await workspace.listProjects();
+  if (projects.length === 0) throw new Error("Atlas found no configured projects in this workspace. Pass --artifact-ids explicitly.");
+  return Promise.all(projects.map(async (project) => {
+    if (!args.hasFlag("skip-compile")) await compileAtlasConfig(workspace, project);
+    return (await builds.loadConfig(project.root)).id;
+  }));
+}
+
+function positiveInteger(value: string | undefined, flag: string): number {
+  const parsed = Number(value);
+  if (!value || !Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new Error(`${flag} must be a positive integer.`);
+  }
+  return parsed;
 }
 
 function cliVersion(): string {

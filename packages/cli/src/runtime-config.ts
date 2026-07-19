@@ -14,7 +14,7 @@ export function createHostRuntimeConfig(
     hostId: config.id,
     ...(hostVersion ? { hostVersion } : {}),
     catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? DEFAULT_LOCAL_REGISTRY_BASE_URL)}/hosts/${config.id}/catalog.json`,
-    allowOverrides: config.allowOverrides ?? false,
+    allowCustomOverrides: config.allowCustomOverrides ?? config.allowOverrides ?? false,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3,
     ...optionalUrlList("asset-origins", args.flag("asset-origins")),

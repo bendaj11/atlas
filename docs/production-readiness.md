@@ -32,8 +32,10 @@ Name an owner for each domain before release:
 - [ ] Production serves `/atlas.runtime.json` as JSON.
 - [ ] Runtime `hostId` matches app route and slot declarations.
 - [ ] Runtime `catalogUrl` points to the intended environment.
-- [ ] Runtime `allowOverrides` matches environment policy. If enabled, extension
-  distribution and environment access restrict who may substitute code.
+- [ ] Runtime `allowCustomOverrides` matches environment policy. Registry PR
+  and historical overrides are always available. If custom overrides are
+  enabled, extension distribution and environment access restrict who may
+  substitute code. Deprecated `allowOverrides` is migrated.
 - [ ] Resource timeout and retry values match product reliability targets.
 - [ ] Host layout retains route, navigation, status, and required slot anchors.
 - [ ] Host returns `index.html` for browser navigation routes such as
