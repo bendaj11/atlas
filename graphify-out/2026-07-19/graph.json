@@ -466,10 +466,21 @@
       "norm_label": "readoverridecount()"
     },
     {
-      "label": "readDevOverrideCount()",
+      "label": "isLoopbackBadgeHost()",
       "file_type": "code",
       "source_file": "apps/columbus/src/badge-script.ts",
       "source_location": "L38",
+      "_origin": "ast",
+      "id": "apps_columbus_src_badge_script_isloopbackbadgehost",
+      "community": 107,
+      "community_name": "Community 107",
+      "norm_label": "isloopbackbadgehost()"
+    },
+    {
+      "label": "readDevOverrideCount()",
+      "file_type": "code",
+      "source_file": "apps/columbus/src/badge-script.ts",
+      "source_location": "L42",
       "_origin": "ast",
       "id": "apps_columbus_src_badge_script_readdevoverridecount",
       "community": 107,
@@ -480,7 +491,7 @@
       "label": "readBadgeDisabledAppIds()",
       "file_type": "code",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L57",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "apps_columbus_src_badge_script_readbadgedisabledappids",
       "community": 107,
@@ -491,7 +502,7 @@
       "label": "readAtlasConfig()",
       "file_type": "code",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L64",
+      "source_location": "L68",
       "_origin": "ast",
       "id": "apps_columbus_src_badge_script_readatlasconfig",
       "community": 107,
@@ -502,7 +513,7 @@
       "label": "overrideCount()",
       "file_type": "code",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L83",
+      "source_location": "L87",
       "_origin": "ast",
       "id": "apps_columbus_src_badge_script_overridecount",
       "community": 107,
@@ -513,7 +524,7 @@
       "label": "parseJson()",
       "file_type": "code",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L90",
+      "source_location": "L94",
       "_origin": "ast",
       "id": "apps_columbus_src_badge_script_parsejson",
       "community": 107,
@@ -524,7 +535,7 @@
       "label": "isOverrideDocument()",
       "file_type": "code",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L98",
+      "source_location": "L102",
       "_origin": "ast",
       "id": "apps_columbus_src_badge_script_isoverridedocument",
       "community": 107,
@@ -711,7 +722,7 @@
       "label": "atlasWindow",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L40",
+      "source_location": "L41",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_atlaswindow",
       "community": 64,
@@ -722,7 +733,7 @@
       "label": "installAtlasCatalogInterceptor()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L47",
+      "source_location": "L48",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_installatlascataloginterceptor",
       "community": 64,
@@ -730,10 +741,32 @@
       "norm_label": "installatlascataloginterceptor()"
     },
     {
+      "label": "hasLocalDevelopmentIntent()",
+      "file_type": "code",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "apps_columbus_src_content_script_haslocaldevelopmentintent",
+      "community": 64,
+      "community_name": "Community 64",
+      "norm_label": "haslocaldevelopmentintent()"
+    },
+    {
+      "label": "isLoopbackContentHost()",
+      "file_type": "code",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L102",
+      "_origin": "ast",
+      "id": "apps_columbus_src_content_script_isloopbackcontenthost",
+      "community": 64,
+      "community_name": "Community 64",
+      "norm_label": "isloopbackcontenthost()"
+    },
+    {
       "label": "rememberOverridePolicy()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L79",
+      "source_location": "L106",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_rememberoverridepolicy",
       "community": 64,
@@ -744,7 +777,7 @@
       "label": "isDevSession()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L95",
+      "source_location": "L122",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_isdevsession",
       "community": 64,
@@ -755,7 +788,7 @@
       "label": "isMatchingOverride()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L109",
+      "source_location": "L136",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_ismatchingoverride",
       "community": 64,
@@ -766,7 +799,7 @@
       "label": "devSessionUrl()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L115",
+      "source_location": "L142",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_devsessionurl",
       "community": 64,
@@ -777,7 +810,7 @@
       "label": "mergeCatalogResponse()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L121",
+      "source_location": "L148",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_mergecatalogresponse",
       "community": 64,
@@ -788,7 +821,7 @@
       "label": "localCatalogResponse()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L131",
+      "source_location": "L158",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_localcatalogresponse",
       "community": 64,
@@ -799,7 +832,7 @@
       "label": "mergeCatalog()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L139",
+      "source_location": "L166",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_mergecatalog",
       "community": 64,
@@ -810,7 +843,7 @@
       "label": "readDisabledAppIds()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L157",
+      "source_location": "L184",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_readdisabledappids",
       "community": 64,
@@ -821,7 +854,7 @@
       "label": "jsonResponse()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L169",
+      "source_location": "L196",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_jsonresponse",
       "community": 64,
@@ -832,7 +865,7 @@
       "label": "requestHref()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L176",
+      "source_location": "L203",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_requesthref",
       "community": 64,
@@ -843,7 +876,7 @@
       "label": "catalogRequestHostId()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L182",
+      "source_location": "L209",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_catalogrequesthostid",
       "community": 64,
@@ -854,7 +887,7 @@
       "label": "isRuntimeConfigRequest()",
       "file_type": "code",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L191",
+      "source_location": "L218",
       "_origin": "ast",
       "id": "apps_columbus_src_content_script_isruntimeconfigrequest",
       "community": 64,
@@ -2482,7 +2515,7 @@
       "label": "runCatalogInterceptor()",
       "file_type": "code",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L38",
+      "source_location": "L40",
       "_origin": "ast",
       "id": "apps_columbus_tests_build_driver_runcataloginterceptor",
       "community": 39,
@@ -2493,7 +2526,7 @@
       "label": "createStorage()",
       "file_type": "code",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L72",
+      "source_location": "L74",
       "_origin": "ast",
       "id": "apps_columbus_tests_build_driver_createstorage",
       "community": 39,
@@ -2504,7 +2537,7 @@
       "label": "createStorageArea()",
       "file_type": "code",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L81",
+      "source_location": "L93",
       "_origin": "ast",
       "id": "apps_columbus_tests_build_driver_createstoragearea",
       "community": 39,
@@ -2515,7 +2548,7 @@
       "label": "jsonResponse()",
       "file_type": "code",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L92",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "apps_columbus_tests_build_driver_jsonresponse",
       "community": 39,
@@ -2526,7 +2559,7 @@
       "label": "isColumbusManifest()",
       "file_type": "code",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L96",
+      "source_location": "L108",
       "_origin": "ast",
       "id": "apps_columbus_tests_build_driver_iscolumbusmanifest",
       "community": 39,
@@ -2537,7 +2570,7 @@
       "label": "isRecord()",
       "file_type": "code",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L102",
+      "source_location": "L114",
       "_origin": "ast",
       "id": "apps_columbus_tests_build_driver_isrecord",
       "community": 39,
@@ -8260,8 +8293,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_dependencies_angular_animations",
-      "community": 122,
-      "community_name": ".project",
+      "community": 7,
+      "community_name": "Community 7",
       "norm_label": "@angular/animations"
     },
     {
@@ -8271,8 +8304,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_json_angular_animations",
-      "community": 122,
-      "community_name": ".project",
+      "community": 7,
+      "community_name": "Community 7",
       "norm_label": "@angular/animations"
     },
     {
@@ -8282,8 +8315,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_dependencies_angular_common",
-      "community": 7,
-      "community_name": "Community 7",
+      "community": 258,
+      "community_name": "React Assets And Styles",
       "norm_label": "@angular/common"
     },
     {
@@ -8293,8 +8326,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_json_angular_common",
-      "community": 7,
-      "community_name": "Community 7",
+      "community": 258,
+      "community_name": "React Assets And Styles",
       "norm_label": "@angular/common"
     },
     {
@@ -12044,8 +12077,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_arguments",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "arguments.ts"
     },
     {
@@ -12055,8 +12088,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_supportedframework",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "supportedframework"
     },
     {
@@ -12066,8 +12099,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_cliarguments",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 60,
+      "community_name": "Community 60",
       "norm_label": "cliarguments"
     },
     {
@@ -12077,8 +12110,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_cliarguments_constructor",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 60,
+      "community_name": "Community 60",
       "norm_label": ".constructor()"
     },
     {
@@ -12088,8 +12121,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_cliarguments_command",
-      "community": 4,
-      "community_name": "Community 4",
+      "community": 60,
+      "community_name": "Community 60",
       "norm_label": ".command()"
     },
     {
@@ -12099,8 +12132,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_cliarguments_subcommand",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 60,
+      "community_name": "Community 60",
       "norm_label": ".subcommand()"
     },
     {
@@ -12165,8 +12198,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_cliarguments_channel",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": ".channel()"
     },
     {
@@ -12176,8 +12209,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "packages_cli_src_arguments_cliarguments_port",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".port()"
     },
     {
@@ -12583,8 +12616,8 @@
       "source_location": "L330",
       "_origin": "ast",
       "id": "packages_cli_src_build_optionalnumber",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "optionalnumber()"
     },
     {
@@ -12594,8 +12627,8 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "packages_cli_src_build_releaseidentity",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "releaseidentity"
     },
     {
@@ -12605,8 +12638,8 @@
       "source_location": "L367",
       "_origin": "ast",
       "id": "packages_cli_src_build_inferredtagversion",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferredtagversion()"
     },
     {
@@ -12616,8 +12649,8 @@
       "source_location": "L376",
       "_origin": "ast",
       "id": "packages_cli_src_build_gitoutput",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "gitoutput()"
     },
     {
@@ -12638,8 +12671,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "ci-metadata.ts"
     },
     {
@@ -12649,8 +12682,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_firstenvironmentvalue",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "firstenvironmentvalue()"
     },
     {
@@ -12660,8 +12693,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_inferredpullrequestnumber",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferredpullrequestnumber()"
     },
     {
@@ -12671,8 +12704,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_inferredgitsha",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferredgitsha()"
     },
     {
@@ -12682,8 +12715,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_inferredgitbranch",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferredgitbranch()"
     },
     {
@@ -12693,8 +12726,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_inferredgitcommittitle",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferredgitcommittitle()"
     },
     {
@@ -12704,8 +12737,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_inferredgittag",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferredgittag()"
     },
     {
@@ -12715,8 +12748,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_inferreddefaultbranch",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "inferreddefaultbranch()"
     },
     {
@@ -12726,8 +12759,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "packages_cli_src_ci_metadata_publicationrequired",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "publicationrequired()"
     },
     {
@@ -12814,8 +12847,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "packages_cli_src_dev_devcontrolserver",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 260,
+      "community_name": "DevControlServer",
       "norm_label": "devcontrolserver"
     },
     {
@@ -12825,8 +12858,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "packages_cli_src_dev_devcontrolserver_markready",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 260,
+      "community_name": "DevControlServer",
       "norm_label": ".markready()"
     },
     {
@@ -12836,8 +12869,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_cli_src_dev_devcontrolserver_close",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".close()"
     },
     {
@@ -12869,8 +12902,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevbuildservice",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "atlasdevbuildservice"
     },
     {
@@ -12902,8 +12935,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "atlasdevservice"
     },
     {
@@ -12924,8 +12957,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_run",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".run()"
     },
     {
@@ -12935,8 +12968,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_runhost",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".runhost()"
     },
     {
@@ -12946,8 +12979,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_runapp",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".runapp()"
     },
     {
@@ -12957,8 +12990,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_resolveremoteport",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".resolveremoteport()"
     },
     {
@@ -12968,8 +13001,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_resolvedevtarget",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".resolvedevtarget()"
     },
     {
@@ -12979,8 +13012,8 @@
       "source_location": "L197",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_offertosavedevtarget",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".offertosavedevtarget()"
     },
     {
@@ -12990,8 +13023,8 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_resolvehostid",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".resolvehostid()"
     },
     {
@@ -13001,8 +13034,8 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_resolvehosturl",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".resolvehosturl()"
     },
     {
@@ -13012,8 +13045,8 @@
       "source_location": "L245",
       "_origin": "ast",
       "id": "packages_cli_src_dev_atlasdevservice_promptforhosturl",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".promptforhosturl()"
     },
     {
@@ -13023,8 +13056,8 @@
       "source_location": "L251",
       "_origin": "ast",
       "id": "packages_cli_src_dev_localbootstrapserveroptions",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 21,
+      "community_name": "Community 21",
       "norm_label": "localbootstrapserveroptions"
     },
     {
@@ -13320,8 +13353,8 @@
       "source_location": "L641",
       "_origin": "ast",
       "id": "packages_cli_src_dev_frameworkserverarguments",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "frameworkserverarguments()"
     },
     {
@@ -13331,8 +13364,8 @@
       "source_location": "L646",
       "_origin": "ast",
       "id": "packages_cli_src_dev_resolvehostdevports",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 3,
+      "community_name": "Community 3",
       "norm_label": "resolvehostdevports()"
     },
     {
@@ -13342,8 +13375,8 @@
       "source_location": "L656",
       "_origin": "ast",
       "id": "packages_cli_src_dev_hostclientportfallback",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 3,
+      "community_name": "Community 3",
       "norm_label": "hostclientportfallback()"
     },
     {
@@ -13364,8 +13397,8 @@
       "source_location": "L665",
       "_origin": "ast",
       "id": "packages_cli_src_dev_hostdevsession",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 251,
+      "community_name": "ensureActionableError",
       "norm_label": "hostdevsession"
     },
     {
@@ -13474,8 +13507,8 @@
       "source_location": "L727",
       "_origin": "ast",
       "id": "packages_cli_src_dev_closeserver",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "closeserver()"
     },
     {
@@ -13507,8 +13540,8 @@
       "source_location": "L763",
       "_origin": "ast",
       "id": "packages_cli_src_dev_waitforshutdown",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "waitforshutdown()"
     },
     {
@@ -13518,8 +13551,8 @@
       "source_location": "L822",
       "_origin": "ast",
       "id": "packages_cli_src_dev_loghostviewurl",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "loghostviewurl()"
     },
     {
@@ -13529,8 +13562,8 @@
       "source_location": "L830",
       "_origin": "ast",
       "id": "packages_cli_src_dev_openbrowserwhenready",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "openbrowserwhenready()"
     },
     {
@@ -13551,8 +13584,8 @@
       "source_location": "L848",
       "_origin": "ast",
       "id": "packages_cli_src_dev_ishostconfig",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "ishostconfig()"
     },
     {
@@ -13595,8 +13628,8 @@
       "source_location": "L889",
       "_origin": "ast",
       "id": "packages_cli_src_dev_configuredhostids",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "configuredhostids()"
     },
     {
@@ -13606,8 +13639,8 @@
       "source_location": "L897",
       "_origin": "ast",
       "id": "packages_cli_src_dev_routebasepaths",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "routebasepaths()"
     },
     {
@@ -13639,8 +13672,8 @@
       "source_location": "L911",
       "_origin": "ast",
       "id": "packages_cli_src_dev_readconfigureddevserverport",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "readconfigureddevserverport()"
     },
     {
@@ -13650,8 +13683,8 @@
       "source_location": "L923",
       "_origin": "ast",
       "id": "packages_cli_src_dev_readangularprojectport",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "readangularprojectport()"
     },
     {
@@ -13661,8 +13694,8 @@
       "source_location": "L929",
       "_origin": "ast",
       "id": "packages_cli_src_dev_readportfromtargets",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "readportfromtargets()"
     },
     {
@@ -13672,8 +13705,8 @@
       "source_location": "L933",
       "_origin": "ast",
       "id": "packages_cli_src_dev_readtargetport",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "readtargetport()"
     },
     {
@@ -13683,8 +13716,8 @@
       "source_location": "L938",
       "_origin": "ast",
       "id": "packages_cli_src_dev_readvitedevserverport",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "readvitedevserverport()"
     },
     {
@@ -13694,8 +13727,8 @@
       "source_location": "L948",
       "_origin": "ast",
       "id": "packages_cli_src_dev_parseport",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "parseport()"
     },
     {
@@ -13705,8 +13738,8 @@
       "source_location": "L953",
       "_origin": "ast",
       "id": "packages_cli_src_dev_objectvalue",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "objectvalue()"
     },
     {
@@ -13716,8 +13749,8 @@
       "source_location": "L959",
       "_origin": "ast",
       "id": "packages_cli_src_dev_firstobjectvalue",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "firstobjectvalue()"
     },
     {
@@ -13738,8 +13771,8 @@
       "source_location": "L971",
       "_origin": "ast",
       "id": "packages_cli_src_dev_asobject",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 233,
+      "community_name": "readAngularProjectPort",
       "norm_label": "asobject()"
     },
     {
@@ -13848,8 +13881,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "generate-angular.ts"
     },
     {
@@ -13859,8 +13892,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_projecttype",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "projecttype"
     },
     {
@@ -13870,8 +13903,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_runnerkey",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "runnerkey"
     },
     {
@@ -13881,8 +13914,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_ensureangularworkspacefederationconfig",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "ensureangularworkspacefederationconfig()"
     },
     {
@@ -13892,8 +13925,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_ensureangularnativefederationtargets",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "ensureangularnativefederationtargets()"
     },
     {
@@ -13903,8 +13936,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_defaultdevserverport",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "defaultdevserverport()"
     },
     {
@@ -13914,8 +13947,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_ensureangularfederationpolyfills",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "ensureangularfederationpolyfills()"
     },
     {
@@ -13925,8 +13958,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_adduniquepolyfill",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "adduniquepolyfill()"
     },
     {
@@ -13936,8 +13969,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_retargetangularservebuild",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "retargetangularservebuild()"
     },
     {
@@ -13947,8 +13980,8 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_retargetangularbuildreference",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "retargetangularbuildreference()"
     },
     {
@@ -13958,8 +13991,8 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_retargetangularbuildtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "retargetangularbuildtarget()"
     },
     {
@@ -13969,8 +14002,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_isnativefederationtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "isnativefederationtarget()"
     },
     {
@@ -13980,8 +14013,8 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "packages_cli_src_generate_angular_asobject",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 221,
+      "community_name": "angular-injection.ts",
       "norm_label": "asobject()"
     },
     {
@@ -14189,8 +14222,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "packages_cli_src_generate_files_adduniquestring",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "adduniquestring()"
     },
     {
@@ -14222,8 +14255,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_cli_src_generate_json_writejsonfile",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "writejsonfile()"
     },
     {
@@ -14233,8 +14266,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_generate_labels",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "generate-labels.ts"
     },
     {
@@ -14244,8 +14277,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_cli_src_generate_labels_frameworklabel",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "frameworklabel()"
     },
     {
@@ -14255,8 +14288,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "generate-nx.ts"
     },
     {
@@ -14266,8 +14299,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_projecttype",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "projecttype"
     },
     {
@@ -14277,8 +14310,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_packagemanager",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "packagemanager"
     },
     {
@@ -14288,8 +14321,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_nxdevtargetoptions",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "nxdevtargetoptions"
     },
     {
@@ -14299,8 +14332,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_nxtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "nxtarget()"
     },
     {
@@ -14310,8 +14343,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_atlasconfignxtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "atlasconfignxtarget()"
     },
     {
@@ -14321,8 +14354,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_aligndelegatedtsconfig",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "aligndelegatedtsconfig()"
     },
     {
@@ -14332,8 +14365,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_aligndelegatedangularfederationconfig",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "aligndelegatedangularfederationconfig()"
     },
     {
@@ -14343,8 +14376,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_escaperegexp",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "escaperegexp()"
     },
     {
@@ -14354,8 +14387,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_ensuredelegatednxtargets",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "ensuredelegatednxtargets()"
     },
     {
@@ -14365,8 +14398,8 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_ensureatlaspublicationtargets",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "ensureatlaspublicationtargets()"
     },
     {
@@ -14376,8 +14409,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_ensureatlasconfigtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "ensureatlasconfigtarget()"
     },
     {
@@ -14387,8 +14420,8 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_ensuredevtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "ensuredevtarget()"
     },
     {
@@ -14398,8 +14431,8 @@
       "source_location": "L169",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_inferredviteservetarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "inferredviteservetarget()"
     },
     {
@@ -14409,8 +14442,8 @@
       "source_location": "L177",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_preservenativedevtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "preservenativedevtarget()"
     },
     {
@@ -14420,8 +14453,8 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_delegatestodevtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "delegatestodevtarget()"
     },
     {
@@ -14431,8 +14464,8 @@
       "source_location": "L190",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_commandvalues",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "commandvalues()"
     },
     {
@@ -14442,8 +14475,8 @@
       "source_location": "L195",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_isoutdateddevtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "isoutdateddevtarget()"
     },
     {
@@ -14453,8 +14486,8 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_asobject",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "asobject()"
     },
     {
@@ -14464,8 +14497,8 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_isoutdatedatlasconfigtarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "isoutdatedatlasconfigtarget()"
     },
     {
@@ -14475,8 +14508,8 @@
       "source_location": "L213",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_declaresatlasconfigoutput",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "declaresatlasconfigoutput()"
     },
     {
@@ -14486,8 +14519,8 @@
       "source_location": "L217",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_projectrootfromnxproject",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "projectrootfromnxproject()"
     },
     {
@@ -14497,8 +14530,8 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_normalizedprojectroot",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "normalizedprojectroot()"
     },
     {
@@ -14508,8 +14541,8 @@
       "source_location": "L226",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_stalenxprojectrootmessage",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "stalenxprojectrootmessage()"
     },
     {
@@ -14519,8 +14552,8 @@
       "source_location": "L232",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_stalenxprojectpaths",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "stalenxprojectpaths()"
     },
     {
@@ -14530,8 +14563,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_collectnxpathvalues",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "collectnxpathvalues()"
     },
     {
@@ -14541,8 +14574,8 @@
       "source_location": "L252",
       "_origin": "ast",
       "id": "packages_cli_src_generate_nx_nxpathoptions",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": "nxpathoptions()"
     },
     {
@@ -14552,8 +14585,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "generate-overlay.ts"
     },
     {
@@ -14563,8 +14596,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay_atlas_integration_files",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "atlas_integration_files"
     },
     {
@@ -14574,8 +14607,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay_atlas_host_files",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "atlas_host_files"
     },
     {
@@ -14585,8 +14618,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay_delegated_host_files",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "delegated_host_files"
     },
     {
@@ -14596,8 +14629,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay_delegated_app_files",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "delegated_app_files"
     },
     {
@@ -14607,8 +14640,8 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay_generatedoverlay",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "generatedoverlay()"
     },
     {
@@ -14618,8 +14651,8 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "packages_cli_src_generate_overlay_isreacthostprovider",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 248,
+      "community_name": "arguments.ts",
       "norm_label": "isreacthostprovider()"
     },
     {
@@ -14651,8 +14684,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_cli_src_generate_paths_displaytarget",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "displaytarget()"
     },
     {
@@ -14739,8 +14772,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "atlasgenerateservice"
     },
     {
@@ -14761,8 +14794,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_project",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".project()"
     },
     {
@@ -14772,8 +14805,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_installdependencies",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 60,
+      "community_name": "Community 60",
       "norm_label": ".installdependencies()"
     },
     {
@@ -14794,8 +14827,8 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_loggenerationplan",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".loggenerationplan()"
     },
     {
@@ -14805,8 +14838,8 @@
       "source_location": "L161",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_ensureworkspacegeneratoravailable",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".ensureworkspacegeneratoravailable()"
     },
     {
@@ -14816,8 +14849,8 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_ensureworkspacegenerator",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".ensureworkspacegenerator()"
     },
     {
@@ -14827,8 +14860,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_confirmplugininstall",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".confirmplugininstall()"
     },
     {
@@ -14838,8 +14871,8 @@
       "source_location": "L184",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_logframeworkversionselection",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".logframeworkversionselection()"
     },
     {
@@ -14871,8 +14904,8 @@
       "source_location": "L217",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_options",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".options()"
     },
     {
@@ -14882,8 +14915,8 @@
       "source_location": "L238",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_defaultroot",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".defaultroot()"
     },
     {
@@ -14893,8 +14926,8 @@
       "source_location": "L245",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_writenxproject",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 48,
+      "community_name": "Community 48",
       "norm_label": ".writenxproject()"
     },
     {
@@ -14904,8 +14937,8 @@
       "source_location": "L281",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_mergedelegateddependencies",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".mergedelegateddependencies()"
     },
     {
@@ -14915,8 +14948,8 @@
       "source_location": "L293",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_ensureturbotasks",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".ensureturbotasks()"
     },
     {
@@ -14926,8 +14959,8 @@
       "source_location": "L316",
       "_origin": "ast",
       "id": "packages_cli_src_generate_atlasgenerateservice_formatgenerated",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".formatgenerated()"
     },
     {
@@ -15300,8 +15333,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_cli_src_interaction_atlasinvocation",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "atlasinvocation"
     },
     {
@@ -15421,8 +15454,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_publication_context",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "publication-context.ts"
     },
     {
@@ -15432,8 +15465,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "packages_cli_src_publication_context_atlaspublicationcontext",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "atlaspublicationcontext"
     },
     {
@@ -15443,8 +15476,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "packages_cli_src_publication_context_resolvepublicationcontext",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "resolvepublicationcontext()"
     },
     {
@@ -15454,8 +15487,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_cli_src_publication_context_currentgitbranch",
-      "community": 10,
-      "community_name": "Community 10",
+      "community": 202,
+      "community_name": "publication-context.ts",
       "norm_label": "currentgitbranch()"
     },
     {
@@ -15465,8 +15498,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_publication_metadata",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 10,
+      "community_name": "Community 10",
       "norm_label": "publication-metadata.ts"
     },
     {
@@ -15476,8 +15509,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_cli_src_publication_metadata_content_types",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 10,
+      "community_name": "Community 10",
       "norm_label": "content_types"
     },
     {
@@ -15487,8 +15520,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_cli_src_publication_metadata_publicationcontenttype",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 10,
+      "community_name": "Community 10",
       "norm_label": "publicationcontenttype()"
     },
     {
@@ -15619,8 +15652,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "packages_cli_src_publication_storage_atlaspublicationobjectmetadata",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "atlaspublicationobjectmetadata"
     },
     {
@@ -15630,8 +15663,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "packages_cli_src_publication_storage_atlaspublicationstoragesource",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "atlaspublicationstoragesource"
     },
     {
@@ -15982,8 +16015,8 @@
       "source_location": "L367",
       "_origin": "ast",
       "id": "packages_cli_src_publication_storage_ispublicationstorage",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "ispublicationstorage()"
     },
     {
@@ -15993,8 +16026,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "publish-config.ts"
     },
     {
@@ -16004,8 +16037,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_atlaspublishconfig",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "atlaspublishconfig"
     },
     {
@@ -16015,8 +16048,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_atlaspullrequestlookup",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "atlaspullrequestlookup"
     },
     {
@@ -16026,8 +16059,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_atlaspullrequeststatus",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "atlaspullrequeststatus"
     },
     {
@@ -16037,8 +16070,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_atlaspullrequestresolver",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "atlaspullrequestresolver"
     },
     {
@@ -16048,8 +16081,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_defineatlaspublishconfig",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "defineatlaspublishconfig()"
     },
     {
@@ -16070,8 +16103,8 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_ispublishconfig",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "ispublishconfig()"
     },
     {
@@ -16081,8 +16114,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "packages_cli_src_publish_config_isnodeerror",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "isnodeerror()"
     },
     {
@@ -16114,8 +16147,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "packages_cli_src_publish_storedpublicationobject",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "storedpublicationobject"
     },
     {
@@ -16158,8 +16191,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "packages_cli_src_publish_atlaspublishoptions",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "atlaspublishoptions"
     },
     {
@@ -16312,8 +16345,8 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "packages_cli_src_publish_closedpullrequests",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "closedpullrequests()"
     },
     {
@@ -16345,8 +16378,8 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "packages_cli_src_publish_stalepullrequestreason",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "stalepullrequestreason()"
     },
     {
@@ -16620,8 +16653,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "pull-request.ts"
     },
     {
@@ -16631,8 +16664,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_resolvepullrequeststatus",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "resolvepullrequeststatus()"
     },
     {
@@ -16642,8 +16675,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_resolvegithubpullrequest",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "resolvegithubpullrequest()"
     },
     {
@@ -16653,8 +16686,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_resolvegitlabmergerequest",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "resolvegitlabmergerequest()"
     },
     {
@@ -16664,8 +16697,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_resolvebitbucketpullrequest",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "resolvebitbucketpullrequest()"
     },
     {
@@ -16675,8 +16708,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_providerfetch",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "providerfetch()"
     },
     {
@@ -16686,8 +16719,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_providertoken",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "providertoken()"
     },
     {
@@ -16697,8 +16730,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "packages_cli_src_pull_request_requiredstring",
-      "community": 61,
-      "community_name": "Community 61",
+      "community": 190,
+      "community_name": "publish-config.ts",
       "norm_label": "requiredstring()"
     },
     {
@@ -17115,8 +17148,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_cli_src_ui_atlasprompter",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "atlasprompter"
     },
     {
@@ -17148,8 +17181,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_cli_src_ui_atlasprompter_close",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".close()"
     },
     {
@@ -17159,8 +17192,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_cli_src_ui_terminalprompter",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 17,
+      "community_name": "Community 17",
       "norm_label": "terminalprompter"
     },
     {
@@ -17170,8 +17203,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "packages_cli_src_ui_terminalprompter_input",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 17,
+      "community_name": "Community 17",
       "norm_label": ".input()"
     },
     {
@@ -17181,8 +17214,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "packages_cli_src_ui_terminalprompter_select",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 17,
+      "community_name": "Community 17",
       "norm_label": ".select()"
     },
     {
@@ -17192,8 +17225,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "packages_cli_src_ui_terminalprompter_close",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 17,
+      "community_name": "Community 17",
       "norm_label": ".close()"
     },
     {
@@ -17203,8 +17236,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "packages_cli_src_ui_terminalprompter_reader",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 17,
+      "community_name": "Community 17",
       "norm_label": ".reader()"
     },
     {
@@ -17225,8 +17258,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "packages_cli_src_ui_style",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 17,
+      "community_name": "Community 17",
       "norm_label": "style()"
     },
     {
@@ -17258,8 +17291,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_cli_src_verify_atlasverificationcheck",
-      "community": 21,
-      "community_name": "Community 21",
+      "community": 30,
+      "community_name": "Community 30",
       "norm_label": "atlasverificationcheck"
     },
     {
@@ -17731,8 +17764,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_atlasproject",
-      "community": 98,
-      "community_name": "Community 98",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": "atlasproject"
     },
     {
@@ -17786,8 +17819,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_atlasworkspace_spawn",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 122,
+      "community_name": ".project",
       "norm_label": ".spawn()"
     },
     {
@@ -17808,8 +17841,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_atlasworkspace_installdependencies",
-      "community": 30,
-      "community_name": "Community 30",
+      "community": 60,
+      "community_name": "Community 60",
       "norm_label": ".installdependencies()"
     },
     {
@@ -17819,8 +17852,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_atlasworkspace_missingscaffolddependency",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".missingscaffolddependency()"
     },
     {
@@ -17830,8 +17863,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_atlasworkspace_installscaffolddependency",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": ".installscaffolddependency()"
     },
     {
@@ -17863,8 +17896,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_atlasnxprojecttype",
-      "community": 42,
-      "community_name": "Community 42",
+      "community": 98,
+      "community_name": "Community 98",
       "norm_label": "atlasnxprojecttype"
     },
     {
@@ -17907,8 +17940,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "packages_cli_src_workspace_defaultdevserverport",
-      "community": 4,
-      "community_name": "Community 4",
+      "community": 42,
+      "community_name": "Community 42",
       "norm_label": "defaultdevserverport()"
     },
     {
@@ -18985,8 +19018,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "publish.driver.ts"
     },
     {
@@ -18996,8 +19029,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_publicationfixture",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "publicationfixture()"
     },
     {
@@ -19007,8 +19040,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "directorypublicationstorage"
     },
     {
@@ -19018,8 +19051,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_constructor",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".constructor()"
     },
     {
@@ -19029,8 +19062,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_read",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".read()"
     },
     {
@@ -19040,8 +19073,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_inspect",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".inspect()"
     },
     {
@@ -19051,8 +19084,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_create",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".create()"
     },
     {
@@ -19062,8 +19095,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_replace",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".replace()"
     },
     {
@@ -19073,8 +19106,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_remove",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".remove()"
     },
     {
@@ -19084,8 +19117,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_directorypublicationstorage_acquirelock",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".acquirelock()"
     },
     {
@@ -19095,8 +19128,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "failingmutablestorage"
     },
     {
@@ -19106,8 +19139,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_constructor",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".constructor()"
     },
     {
@@ -19117,8 +19150,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_read",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".read()"
     },
     {
@@ -19128,8 +19161,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_inspect",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".inspect()"
     },
     {
@@ -19139,8 +19172,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_create",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".create()"
     },
     {
@@ -19150,8 +19183,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_replace",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".replace()"
     },
     {
@@ -19161,8 +19194,8 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_remove",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".remove()"
     },
     {
@@ -19172,8 +19205,8 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_acquirelock",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".acquirelock()"
     },
     {
@@ -19183,8 +19216,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_seed",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".seed()"
     },
     {
@@ -19194,8 +19227,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_failingmutablestorage_text",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".text()"
     },
     {
@@ -19205,8 +19238,8 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_filetext",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "filetext()"
     },
     {
@@ -19216,8 +19249,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_driver_ismissingfile",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "ismissingfile()"
     },
     {
@@ -19227,8 +19260,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "publish.specs.ts"
     },
     {
@@ -19238,8 +19271,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs_invalidate",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "invalidate()"
     },
     {
@@ -19249,8 +19282,8 @@
       "source_location": "L129",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs_build",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "build()"
     },
     {
@@ -19260,8 +19293,8 @@
       "source_location": "L229",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs_emptyregistrytext",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "emptyregistrytext()"
     },
     {
@@ -19271,8 +19304,8 @@
       "source_location": "L240",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs_leaselossstorage",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": "leaselossstorage"
     },
     {
@@ -19282,8 +19315,8 @@
       "source_location": "L243",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs_leaselossstorage_constructor",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".constructor()"
     },
     {
@@ -19293,8 +19326,8 @@
       "source_location": "L247",
       "_origin": "ast",
       "id": "packages_cli_tests_publish_specs_leaselossstorage_acquirelock",
-      "community": 2,
-      "community_name": "Community 2",
+      "community": 40,
+      "community_name": "Community 40",
       "norm_label": ".acquirelock()"
     },
     {
@@ -22461,8 +22494,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_sdk",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "dom-host-sdk.ts"
     },
     {
@@ -22472,8 +22505,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_sdk_non_sdk_option_names",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "non_sdk_option_names"
     },
     {
@@ -22494,8 +22527,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_sdk_createsdkproviders",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "createsdkproviders()"
     },
     {
@@ -22505,8 +22538,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_sdk_createdomhostsdk",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "createdomhostsdk()"
     },
     {
@@ -22516,8 +22549,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_sdk_readsdkproperties",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "readsdkproperties()"
     },
     {
@@ -22637,8 +22670,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "host-navigation.ts"
     },
     {
@@ -22681,8 +22714,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_documentnavigationitems",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "documentnavigationitems"
     },
     {
@@ -22736,8 +22769,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_routeplacementsforhost",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "routeplacementsforhost()"
     },
     {
@@ -22747,8 +22780,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_uniquerouteplacements",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "uniquerouteplacements()"
     },
     {
@@ -22758,8 +22791,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_routematches",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "routematches()"
     },
     {
@@ -22769,8 +22802,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_normalizeroutepath",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "normalizeroutepath()"
     },
     {
@@ -22780,8 +22813,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "host-ui.ts"
     },
     {
@@ -22791,8 +22824,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostuioptions",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "atlashostuioptions"
     },
     {
@@ -22802,8 +22835,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "atlashostui"
     },
     {
@@ -22813,8 +22846,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui_showloading",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": ".showloading()"
     },
     {
@@ -22824,8 +22857,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui_showerror",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": ".showerror()"
     },
     {
@@ -22835,8 +22868,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui_clear",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": ".clear()"
     },
     {
@@ -22857,8 +22890,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_sethoststate",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "sethoststate()"
     },
     {
@@ -22868,8 +22901,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_renderdefaultloading",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "renderdefaultloading()"
     },
     {
@@ -22879,8 +22912,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_renderdefaulterror",
-      "community": 48,
-      "community_name": "Community 48",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "renderdefaulterror()"
     },
     {
@@ -22901,8 +22934,8 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlaswidgetrendercontext",
-      "community": 35,
-      "community_name": "Community 35",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "atlaswidgetrendercontext"
     },
     {
@@ -22912,8 +22945,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlaswidgeterrorrendercontext",
-      "community": 35,
-      "community_name": "Community 35",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "atlaswidgeterrorrendercontext"
     },
     {
@@ -22923,8 +22956,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlaswidgetuioptions",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 20,
+      "community_name": "Community 20",
       "norm_label": "atlaswidgetuioptions"
     },
     {
@@ -23407,8 +23440,8 @@
       "source_location": "L554",
       "_origin": "ast",
       "id": "packages_runtime_src_index_mountresolvedwidgetinput",
-      "community": 35,
-      "community_name": "Community 35",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "mountresolvedwidgetinput"
     },
     {
@@ -23902,8 +23935,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_atlasbrowseroverrideoptions",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "atlasbrowseroverrideoptions"
     },
     {
@@ -24089,8 +24122,8 @@
       "source_location": "L274",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_defaultfetchjson",
-      "community": 20,
-      "community_name": "Community 20",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "defaultfetchjson()"
     },
     {
@@ -24232,8 +24265,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_runtime_src_observability_atlasruntimeobserver",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "atlasruntimeobserver"
     },
     {
@@ -24298,8 +24331,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "packages_runtime_src_observability_eventtimestamp",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "eventtimestamp()"
     },
     {
@@ -24771,8 +24804,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "resilience.ts"
     },
     {
@@ -24782,8 +24815,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasretrypolicy",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "atlasretrypolicy"
     },
     {
@@ -24793,8 +24826,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasretrypolicysource",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "atlasretrypolicysource"
     },
     {
@@ -24804,8 +24837,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasoperationcontext",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "atlasoperationcontext"
     },
     {
@@ -24815,8 +24848,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasloaderror",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "atlasloaderror"
     },
     {
@@ -24826,8 +24859,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasloaderror_constructor",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": ".constructor()"
     },
     {
@@ -24837,8 +24870,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_actionforstage",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "actionforstage()"
     },
     {
@@ -24859,8 +24892,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_runresiliently",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "runresiliently()"
     },
     {
@@ -24870,8 +24903,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_operationeventinput",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "operationeventinput"
     },
     {
@@ -24881,8 +24914,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_emitoperationevent",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "emitoperationevent()"
     },
     {
@@ -24892,8 +24925,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_validatepolicy",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "validatepolicy()"
     },
     {
@@ -24903,8 +24936,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_withtimeout",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "withtimeout()"
     },
     {
@@ -24914,8 +24947,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_delay",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "delay()"
     },
     {
@@ -24925,8 +24958,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_errormessage",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "errormessage()"
     },
     {
@@ -24936,8 +24969,8 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_toerror",
-      "community": 36,
-      "community_name": "Community 36",
+      "community": 51,
+      "community_name": "Community 51",
       "norm_label": "toerror()"
     },
     {
@@ -24947,8 +24980,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "stylesheets.ts"
     },
     {
@@ -24958,8 +24991,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_atlasstylerelease",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "atlasstylerelease"
     },
     {
@@ -24969,8 +25002,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_loadedstylesheet",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "loadedstylesheet"
     },
     {
@@ -24980,8 +25013,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_documentstyles",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "documentstyles"
     },
     {
@@ -25002,8 +25035,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_defaultmanifestpolicy",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "defaultmanifestpolicy()"
     },
     {
@@ -25013,8 +25046,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_acquirestylesheet",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "acquirestylesheet()"
     },
     {
@@ -25024,8 +25057,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_stylesheetready",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "stylesheetready()"
     },
     {
@@ -25035,8 +25068,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_stylesfor",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "stylesfor()"
     },
     {
@@ -25046,8 +25079,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_createrelease",
-      "community": 40,
-      "community_name": "Community 40",
+      "community": 35,
+      "community_name": "Community 35",
       "norm_label": "createrelease()"
     },
     {
@@ -25068,8 +25101,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_runtime_src_widget_registry_atlasresolvedwidget",
-      "community": 35,
-      "community_name": "Community 35",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasresolvedwidget"
     },
     {
@@ -25112,8 +25145,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_runtime_src_widget_registry_widgetregistryoptions",
-      "community": 251,
-      "community_name": "ensureActionableError",
+      "community": 21,
+      "community_name": "Community 21",
       "norm_label": "widgetregistryoptions"
     },
     {
@@ -26872,8 +26905,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_config_atlasconfig",
-      "community": 3,
-      "community_name": "Community 3",
+      "community": 10,
+      "community_name": "Community 10",
       "norm_label": "atlasconfig"
     },
     {
@@ -26927,8 +26960,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_expose_map",
-      "community": 251,
-      "community_name": "ensureActionableError",
+      "community": 89,
+      "community_name": "Community 89",
       "norm_label": "atlas-expose-map.ts"
     },
     {
@@ -26938,8 +26971,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_expose_map_atlasexposemap",
-      "community": 251,
-      "community_name": "ensureActionableError",
+      "community": 89,
+      "community_name": "Community 89",
       "norm_label": "atlasexposemap"
     },
     {
@@ -27026,8 +27059,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_host_manifest",
-      "community": 251,
-      "community_name": "ensureActionableError",
+      "community": 89,
+      "community_name": "Community 89",
       "norm_label": "atlas-host-manifest.ts"
     },
     {
@@ -27048,8 +27081,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_host_runtime_config",
-      "community": 89,
-      "community_name": "Community 89",
+      "community": 21,
+      "community_name": "Community 21",
       "norm_label": "atlas-host-runtime-config.ts"
     },
     {
@@ -29072,8 +29105,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_app",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "angular-app.ts"
     },
     {
@@ -29083,8 +29116,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_app_appbootstrap",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "appbootstrap"
     },
     {
@@ -29094,8 +29127,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_app_defineapp",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "defineapp()"
     },
     {
@@ -29105,8 +29138,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_app_defineexportedwidget",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "defineexportedwidget()"
     },
     {
@@ -29160,8 +29193,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "angular-injection.ts"
     },
     {
@@ -29171,8 +29204,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_atlas_sdk",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlas_sdk"
     },
     {
@@ -29182,8 +29215,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_atlas_app_context",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlas_app_context"
     },
     {
@@ -29193,8 +29226,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_atlassdk",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlassdk"
     },
     {
@@ -29204,8 +29237,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_provideatlassdk",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "provideatlassdk()"
     },
     {
@@ -29215,8 +29248,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_provideatlasappcontext",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "provideatlasappcontext()"
     },
     {
@@ -29226,8 +29259,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_injectatlassdk",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "injectatlassdk()"
     },
     {
@@ -29237,8 +29270,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_injectatlasappcontext",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "injectatlasappcontext()"
     },
     {
@@ -29248,8 +29281,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_injectapploaded",
-      "community": 221,
-      "community_name": "angular-injection.ts",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "injectapploaded()"
     },
     {
@@ -29666,8 +29699,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "packages_sdk_src_dom_overlay_provider_rendererror",
-      "community": 251,
-      "community_name": "ensureActionableError",
+      "community": 6,
+      "community_name": "Community 6",
       "norm_label": "rendererror()"
     },
     {
@@ -29875,8 +29908,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "packages_sdk_src_event_bus_notifylistener",
-      "community": 251,
-      "community_name": "ensureActionableError",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "notifylistener()"
     },
     {
@@ -30117,8 +30150,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_host",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "host.ts"
     },
     {
@@ -30150,8 +30183,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": "atlashttpclient"
     },
     {
@@ -30161,8 +30194,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_request",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".request()"
     },
     {
@@ -30172,8 +30205,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_get",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".get()"
     },
     {
@@ -30183,8 +30216,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_post",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".post()"
     },
     {
@@ -30194,8 +30227,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_put",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".put()"
     },
     {
@@ -30205,8 +30238,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_patch",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".patch()"
     },
     {
@@ -30216,8 +30249,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_delete",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".delete()"
     },
     {
@@ -30227,8 +30260,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_head",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".head()"
     },
     {
@@ -30238,8 +30271,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_atlashttpclient_options",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".options()"
     },
     {
@@ -30271,8 +30304,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": "httpclient"
     },
     {
@@ -30282,8 +30315,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_constructor",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".constructor()"
     },
     {
@@ -30293,8 +30326,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_request",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".request()"
     },
     {
@@ -30304,8 +30337,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_get",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".get()"
     },
     {
@@ -30315,8 +30348,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_post",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".post()"
     },
     {
@@ -30326,8 +30359,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_put",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".put()"
     },
     {
@@ -30337,8 +30370,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_patch",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".patch()"
     },
     {
@@ -30348,8 +30381,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_delete",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".delete()"
     },
     {
@@ -30359,8 +30392,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_head",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".head()"
     },
     {
@@ -30370,8 +30403,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_httpclient_options",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": ".options()"
     },
     {
@@ -30392,8 +30425,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "packages_sdk_src_http_client_withbody",
-      "community": 8,
-      "community_name": "Community 8",
+      "community": 194,
+      "community_name": "AtlasHttpClient",
       "norm_label": "withbody()"
     },
     {
@@ -30403,8 +30436,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_index",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "index.ts"
     },
     {
@@ -30414,8 +30447,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "lifecycle.ts"
     },
     {
@@ -30425,8 +30458,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasappcontext",
-      "community": 23,
-      "community_name": "Community 23",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasappcontext"
     },
     {
@@ -30436,8 +30469,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_show",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "show()"
     },
     {
@@ -30447,8 +30480,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_hide",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "hide()"
     },
     {
@@ -30458,8 +30491,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_waituntilready",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "waituntilready()"
     },
     {
@@ -30469,8 +30502,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasappmountrequest",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasappmountrequest"
     },
     {
@@ -30480,8 +30513,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasappmountresult",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasappmountresult"
     },
     {
@@ -30535,8 +30568,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasexportedwidgetmountrequest",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasexportedwidgetmountrequest"
     },
     {
@@ -30612,8 +30645,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlaswidgetloader_getwidget",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": ".getwidget()"
     },
     {
@@ -30832,8 +30865,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "packages_sdk_src_navigation_types_atlasnavigation_createhref",
-      "community": 23,
-      "community_name": "Community 23",
+      "community": 20,
+      "community_name": "Community 20",
       "norm_label": ".createhref()"
     },
     {
@@ -30887,8 +30920,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "packages_sdk_src_navigation_types_atlasscopednavigation",
-      "community": 23,
-      "community_name": "Community 23",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasscopednavigation"
     },
     {
@@ -30898,8 +30931,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_sdk_src_navigation_types_atlasscopednavigation_toinnerpath",
-      "community": 23,
-      "community_name": "Community 23",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": ".toinnerpath()"
     },
     {
@@ -31206,8 +31239,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "react-app.ts"
     },
     {
@@ -31217,8 +31250,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_rootadapter",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "rootadapter"
     },
     {
@@ -31228,8 +31261,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_rootadapter_render",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": ".render()"
     },
     {
@@ -31239,8 +31272,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_rootadapter_unmount",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": ".unmount()"
     },
     {
@@ -31250,8 +31283,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_appoptions",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "appoptions"
     },
     {
@@ -31261,8 +31294,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_appoptions_createroot",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": ".createroot()"
     },
     {
@@ -31272,8 +31305,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_appoptions_createelement",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": ".createelement()"
     },
     {
@@ -31283,8 +31316,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_defineapp",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "defineapp()"
     },
     {
@@ -31294,8 +31327,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_createroutedapp",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "createroutedapp()"
     },
     {
@@ -31305,8 +31338,8 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_defineexportedwidget",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "defineexportedwidget()"
     },
     {
@@ -31316,8 +31349,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_renderwithatlasproviders",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "renderwithatlasproviders()"
     },
     {
@@ -31327,8 +31360,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "react-context.ts"
     },
     {
@@ -31338,8 +31371,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlassdkcontext",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlassdkcontext"
     },
     {
@@ -31349,8 +31382,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlasruntimecontext",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlasruntimecontext"
     },
     {
@@ -31371,8 +31404,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_useatlassdk",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "useatlassdk()"
     },
     {
@@ -31382,8 +31415,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_useapploaded",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "useapploaded()"
     },
     {
@@ -31393,8 +31426,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_react_host_navigation",
-      "community": 193,
-      "community_name": "react-router.ts",
+      "community": 23,
+      "community_name": "Community 23",
       "norm_label": "react-host-navigation.ts"
     },
     {
@@ -31415,8 +31448,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "packages_sdk_src_react_host_navigation_navigationoptions",
-      "community": 193,
-      "community_name": "react-router.ts",
+      "community": 23,
+      "community_name": "Community 23",
       "norm_label": "navigationoptions()"
     },
     {
@@ -31712,8 +31745,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "packages_sdk_src_sdk_factory_connectatlaswidgetresolver",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "connectatlaswidgetresolver()"
     },
     {
@@ -31800,8 +31833,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_sdk_src_sdk_types_atlaswidgethandle",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": "atlaswidgethandle"
     },
     {
@@ -31811,8 +31844,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_sdk_src_sdk_types_atlaswidgethandle_mount",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 8,
+      "community_name": "Community 8",
       "norm_label": ".mount()"
     },
     {
@@ -31888,8 +31921,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "packages_sdk_src_sdk_types_atlassdk",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 193,
+      "community_name": "react-router.ts",
       "norm_label": "atlassdk"
     },
     {
@@ -37344,8 +37377,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_angular_generators",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 18,
+      "community_name": "Community 18",
       "norm_label": "generators.md"
     },
     {
@@ -37355,8 +37388,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_angular_generators_angular_generators",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 253,
+      "community_name": "Angular Generators",
       "norm_label": "angular generators"
     },
     {
@@ -37366,8 +37399,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "docs_angular_generators_host_domain",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 253,
+      "community_name": "Angular Generators",
       "norm_label": "host domain"
     },
     {
@@ -37377,8 +37410,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "docs_angular_generators_app_domain",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 253,
+      "community_name": "Angular Generators",
       "norm_label": "app domain"
     },
     {
@@ -37388,8 +37421,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "docs_angular_generators_widgets",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 253,
+      "community_name": "Angular Generators",
       "norm_label": "widgets"
     },
     {
@@ -37399,8 +37432,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "docs_angular_generators_workspaces",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 253,
+      "community_name": "Angular Generators",
       "norm_label": "workspaces"
     },
     {
@@ -37410,8 +37443,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "docs_angular_generators_framework_versions",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 253,
+      "community_name": "Angular Generators",
       "norm_label": "framework versions"
     },
     {
@@ -38312,8 +38345,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_assets_and_styles",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "assets-and-styles.md"
     },
     {
@@ -38323,8 +38356,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_assets_and_styles_assets_and_styles",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "assets and styles"
     },
     {
@@ -38730,8 +38763,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_generators",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 18,
+      "community_name": "Community 18",
       "norm_label": "generators.md"
     },
     {
@@ -38741,8 +38774,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_generators_generators",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 18,
+      "community_name": "Community 18",
       "norm_label": "generators"
     },
     {
@@ -38884,8 +38917,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_local_development",
-      "community": 186,
-      "community_name": "Local development and Columbus",
+      "community": 18,
+      "community_name": "Community 18",
       "norm_label": "local-development.md"
     },
     {
@@ -39720,8 +39753,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_app_getting_started",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "app-getting-started.md"
     },
     {
@@ -39797,8 +39830,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_assets_and_styles",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "assets-and-styles.md"
     },
     {
@@ -39808,8 +39841,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_assets_and_styles_react_assets_and_styles",
-      "community": 258,
-      "community_name": "React Assets And Styles",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "react assets and styles"
     },
     {
@@ -39819,8 +39852,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "docs_react_assets_and_styles_app_domain",
-      "community": 258,
-      "community_name": "React Assets And Styles",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "app domain"
     },
     {
@@ -39830,8 +39863,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "docs_react_assets_and_styles_host_domain",
-      "community": 258,
-      "community_name": "React Assets And Styles",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "host domain"
     },
     {
@@ -39841,8 +39874,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "docs_react_assets_and_styles_deployment_domain",
-      "community": 258,
-      "community_name": "React Assets And Styles",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "deployment domain"
     },
     {
@@ -39852,8 +39885,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "docs_react_assets_and_styles_monorepos",
-      "community": 258,
-      "community_name": "React Assets And Styles",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "monorepos"
     },
     {
@@ -39929,8 +39962,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_generators",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "generators.md"
     },
     {
@@ -39940,8 +39973,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_generators_react_generators",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "react generators"
     },
     {
@@ -39951,8 +39984,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "docs_react_generators_host_domain",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "host domain"
     },
     {
@@ -39962,8 +39995,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "docs_react_generators_app_domain",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "app domain"
     },
     {
@@ -39973,8 +40006,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "docs_react_generators_widgets",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "widgets"
     },
     {
@@ -39984,8 +40017,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "docs_react_generators_workspaces",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "workspaces"
     },
     {
@@ -39995,8 +40028,8 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "docs_react_generators_framework_versions",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 252,
+      "community_name": "React Generators",
       "norm_label": "framework versions"
     },
     {
@@ -40006,8 +40039,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_getting_started",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "getting-started.md"
     },
     {
@@ -40072,8 +40105,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_host_getting_started",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "host-getting-started.md"
     },
     {
@@ -40215,8 +40248,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_production_deployment",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "production-deployment.md"
     },
     {
@@ -40358,8 +40391,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_routing",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "routing.md"
     },
     {
@@ -40457,8 +40490,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_sdk",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "sdk.md"
     },
     {
@@ -40754,8 +40787,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_releasing",
-      "community": 220,
-      "community_name": "Releasing Atlas packages",
+      "community": 18,
+      "community_name": "Community 18",
       "norm_label": "releasing.md"
     },
     {
@@ -40809,8 +40842,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_routing",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "routing.md"
     },
     {
@@ -40820,8 +40853,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_routing_routing_and_navigation",
-      "community": 18,
-      "community_name": "Community 18",
+      "community": 214,
+      "community_name": "React Project Guide",
       "norm_label": "routing and navigation"
     },
     {
@@ -41139,8 +41172,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_workspaces",
-      "community": 68,
-      "community_name": "Community 68",
+      "community": 18,
+      "community_name": "Community 18",
       "norm_label": "workspaces.md"
     },
     {
@@ -41954,7 +41987,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L98",
+      "source_location": "L38",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_badge_script",
+      "target": "apps_columbus_src_badge_script_isloopbackbadgehost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/badge-script.ts",
+      "source_location": "L102",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script",
@@ -41965,7 +42009,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L83",
+      "source_location": "L87",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script",
@@ -41976,7 +42020,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L90",
+      "source_location": "L94",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script",
@@ -41987,7 +42031,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L64",
+      "source_location": "L68",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script",
@@ -41998,7 +42042,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L57",
+      "source_location": "L61",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script",
@@ -42009,7 +42053,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L38",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script",
@@ -42055,6 +42099,18 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_badge_script_readoverridecount",
+      "target": "apps_columbus_src_badge_script_isloopbackbadgehost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/badge-script.ts",
       "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
@@ -42091,7 +42147,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L47",
+      "source_location": "L51",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script_readdevoverridecount",
@@ -42103,7 +42159,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L60",
+      "source_location": "L64",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script_readbadgedisabledappids",
@@ -42115,7 +42171,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L85",
+      "source_location": "L89",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script_overridecount",
@@ -42127,7 +42183,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/badge-script.ts",
-      "source_location": "L84",
+      "source_location": "L88",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_badge_script_overridecount",
@@ -42292,7 +42348,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42303,7 +42359,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L182",
+      "source_location": "L209",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42314,7 +42370,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L115",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42325,7 +42381,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L47",
+      "source_location": "L81",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script",
+      "target": "apps_columbus_src_content_script_haslocaldevelopmentintent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42336,7 +42403,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L95",
+      "source_location": "L122",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42347,7 +42414,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L109",
+      "source_location": "L102",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script",
+      "target": "apps_columbus_src_content_script_isloopbackcontenthost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L136",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42358,7 +42436,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L191",
+      "source_location": "L218",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42369,7 +42447,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L169",
+      "source_location": "L196",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42380,7 +42458,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L131",
+      "source_location": "L158",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42391,7 +42469,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L139",
+      "source_location": "L166",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42402,7 +42480,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L121",
+      "source_location": "L148",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42413,7 +42491,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L157",
+      "source_location": "L184",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42424,7 +42502,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L79",
+      "source_location": "L106",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42435,7 +42513,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L176",
+      "source_location": "L203",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script",
@@ -42447,11 +42525,71 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
       "target": "apps_columbus_src_content_script_catalogrequesthostid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L63",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
+      "target": "apps_columbus_src_content_script_haslocaldevelopmentintent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L54",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
+      "target": "apps_columbus_src_content_script_isruntimeconfigrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
+      "target": "apps_columbus_src_content_script_localcatalogresponse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L69",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
+      "target": "apps_columbus_src_content_script_mergecatalogresponse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
+      "target": "apps_columbus_src_content_script_rememberoverridepolicy",
       "confidence_score": 1.0
     },
     {
@@ -42463,55 +42601,19 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
-      "target": "apps_columbus_src_content_script_isruntimeconfigrequest",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L68",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
-      "target": "apps_columbus_src_content_script_localcatalogresponse",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L67",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
-      "target": "apps_columbus_src_content_script_mergecatalogresponse",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L55",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
-      "target": "apps_columbus_src_content_script_rememberoverridepolicy",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L52",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "apps_columbus_src_content_script_installatlascataloginterceptor",
       "target": "apps_columbus_src_content_script_requesthref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "apps/columbus/src/content-script.ts",
+      "source_location": "L82",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "apps_columbus_src_content_script_haslocaldevelopmentintent",
+      "target": "apps_columbus_src_content_script_isloopbackcontenthost",
       "confidence_score": 1.0
     },
     {
@@ -42519,7 +42621,7 @@
       "context": "argument",
       "confidence": "INFERRED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L106",
+      "source_location": "L133",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_isdevsession",
@@ -42531,7 +42633,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L125",
+      "source_location": "L152",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_mergecatalogresponse",
@@ -42543,7 +42645,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L125",
+      "source_location": "L152",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_mergecatalogresponse",
@@ -42555,7 +42657,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L133",
+      "source_location": "L160",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_localcatalogresponse",
@@ -42567,7 +42669,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L132",
+      "source_location": "L159",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_localcatalogresponse",
@@ -42579,7 +42681,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/content-script.ts",
-      "source_location": "L140",
+      "source_location": "L167",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_content_script_mergecatalog",
@@ -46566,7 +46668,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L72",
+      "source_location": "L74",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver",
@@ -46577,7 +46679,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L81",
+      "source_location": "L93",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver",
@@ -46599,7 +46701,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L96",
+      "source_location": "L108",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver",
@@ -46610,7 +46712,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L102",
+      "source_location": "L114",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver",
@@ -46621,7 +46723,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L92",
+      "source_location": "L104",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver",
@@ -46665,7 +46767,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L38",
+      "source_location": "L40",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver",
@@ -46701,7 +46803,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L39",
+      "source_location": "L41",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver_runcataloginterceptor",
@@ -46773,7 +46875,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L40",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver_runcataloginterceptor",
@@ -46785,7 +46887,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L45",
+      "source_location": "L47",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver_runcataloginterceptor",
@@ -46798,7 +46900,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L43",
+      "source_location": "L45",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver_runcataloginterceptor",
@@ -46821,7 +46923,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L76",
+      "source_location": "L88",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver_createstorage",
@@ -46833,7 +46935,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/build.driver.ts",
-      "source_location": "L97",
+      "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_build_driver_iscolumbusmanifest",
