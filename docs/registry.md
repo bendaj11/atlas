@@ -125,14 +125,14 @@ Common S3-compatible publication uses environment variables:
 
 ```bash
 ATLAS_STORAGE=s3
-ATLAS_S3_ENDPOINT=https://storage.example.internal
+ATLAS_STORAGE_API_URL=https://storage.example.internal
 ATLAS_S3_BUCKET=atlas
 ATLAS_S3_REGION=us-east-1
-ATLAS_S3_PREFIX=production
-ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
+ATLAS_STORAGE_KEY_PREFIX=production
+ATLAS_REGISTRY_URL=https://assets.example.internal/atlas
 ```
 
-Endpoint is upload API. Registry base URL is browser download URL. They are often different.
+Storage API URL is private upload surface. Registry URL is browser download surface. They are often different.
 
 See [Production deployment](production-deployment.md) for AWS S3, R2, MinIO, credentials, CI, CORS, and verification.
 

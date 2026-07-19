@@ -273,21 +273,21 @@ function storageFromEnvironment(): AtlasPublicationStorage | undefined {
   if (!provider && !bucket) return undefined;
   if (provider && provider !== "s3") throw new Error(`Unsupported ATLAS_STORAGE provider "${provider}".`);
   if (!bucket) throw new Error("ATLAS_S3_BUCKET is required when ATLAS_STORAGE=s3.");
-  const accessKeyId = process.env.ATLAS_S3_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.ATLAS_S3_SECRET_ACCESS_KEY;
+  const accessKeyId = process.env.ATLAS_STORAGE_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.ATLAS_STORAGE_SECRET_ACCESS_KEY;
   if (Boolean(accessKeyId) !== Boolean(secretAccessKey)) {
-    throw new Error("ATLAS_S3_ACCESS_KEY_ID and ATLAS_S3_SECRET_ACCESS_KEY must be set together.");
+    throw new Error("ATLAS_STORAGE_ACCESS_KEY_ID and ATLAS_STORAGE_SECRET_ACCESS_KEY must be set together.");
   }
   return new S3PublicationStorage({
     bucket,
-    ...(process.env.ATLAS_S3_ENDPOINT ? { endpoint: process.env.ATLAS_S3_ENDPOINT } : {}),
-    ...(process.env.ATLAS_S3_PREFIX ? { prefix: process.env.ATLAS_S3_PREFIX } : {}),
+    ...(process.env.ATLAS_STORAGE_API_URL ? { endpoint: process.env.ATLAS_STORAGE_API_URL } : {}),
+    ...(process.env.ATLAS_STORAGE_KEY_PREFIX ? { prefix: process.env.ATLAS_STORAGE_KEY_PREFIX } : {}),
     region: process.env.ATLAS_S3_REGION ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-1",
     forcePathStyle: environmentBoolean("ATLAS_S3_FORCE_PATH_STYLE"),
     ...(accessKeyId && secretAccessKey ? {
       accessKeyId,
       secretAccessKey,
-      ...(process.env.ATLAS_S3_SESSION_TOKEN ? { sessionToken: process.env.ATLAS_S3_SESSION_TOKEN } : {})
+      ...(process.env.ATLAS_STORAGE_SESSION_TOKEN ? { sessionToken: process.env.ATLAS_STORAGE_SESSION_TOKEN } : {})
     } : {})
   });
 }

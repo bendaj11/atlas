@@ -1,6 +1,7 @@
 import { access, readFile, readdir } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { ChildProcess } from "node:child_process";
+import { ATLAS_NX_TAG } from "./generate-nx.js";
 import { runProcess, spawnProcess, type ProcessCommand } from "./process.js";
 
 export type AtlasWorkspaceKind = "nx" | "turbo" | "workspace" | "standalone";
@@ -110,7 +111,8 @@ export function createNxGenerationCommand(
   const port = options.devServerPort ?? defaultDevServerPort(options.type);
   const args = [
     "nx", "generate", generator, options.directory,
-    `--interactive=${options.interactive}`, "--skipFormat", `--routing=${options.routing}`, `--port=${port}`,
+    `--interactive=${options.interactive}`, "--skipFormat", `--tags=${ATLAS_NX_TAG}`,
+    `--routing=${options.routing}`, `--port=${port}`,
     ...(options.framework === "angular" ? ["--ssr=false"] : []),
     ...(!options.interactive ? [
       "--e2eTestRunner=none", "--unitTestRunner=none",

@@ -18,19 +18,31 @@ Atlas repositories may also contain API servers, workers, libraries, mobile apps
 Use native target discovery when auditing a workspace:
 
 ```bash
+npx nx show projects --projects 'tag:atlas'
 npx nx show projects --with-target atlas:publish
 ```
 
-Do not maintain a separate CI list of Atlas projects.
+The tag identifies Atlas-generated projects in the Nx graph. Target discovery
+answers the narrower deployment question: which projects can publish. Do not
+maintain a separate CI list of Atlas projects.
 
 ## Nx
 
 When `atlas g host` or `atlas g app` creates a project in an Nx workspace,
 Atlas preserves the framework generator's project metadata and native `build`
-target, then writes the required Atlas targets to that project's `project.json`.
-No manual target setup is required. This automatic update belongs to the Atlas
-generator; projects created directly with `nx generate` are not converted into
-Atlas projects.
+target, adds the `atlas` project tag without removing existing tags, then writes
+the required Atlas targets to that project's `project.json`. No manual target
+or tag setup is required. This automatic update belongs to the Atlas generator;
+projects created directly with `nx generate` are not converted into Atlas
+projects.
+
+Generated project metadata includes:
+
+```json
+{
+  "tags": ["atlas"]
+}
+```
 
 Generated app targets:
 
@@ -104,6 +116,11 @@ Generated package scripts:
 ```
 
 Hosts also expose `atlas:bootstrap`. Atlas merges missing task definitions into root `turbo.json` without replacing existing tasks.
+
+Turborepo has no project-tag metadata or tag filter equivalent. Atlas therefore
+does not add a synthetic Turbo tag. Use normal Turbo package-name or directory
+filters for selection, and use the generated `atlas:publish` package script when
+auditing which packages are Atlas projects capable of publication.
 
 First deployment:
 

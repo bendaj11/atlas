@@ -237,7 +237,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/host",
-      "--interactive=false", "--skipFormat", "--routing=true", "--port=4200",
+      "--interactive=false", "--skipFormat", "--tags=atlas", "--routing=true", "--port=4200",
       "--ssr=false",
       "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
     ],
@@ -247,7 +247,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     command: "yarn",
     args: [
       "nx", "generate", "@nx/react:application", "apps/orders",
-      "--interactive=false", "--skipFormat", "--routing=false", "--port=4201",
+      "--interactive=false", "--skipFormat", "--tags=atlas", "--routing=false", "--port=4201",
       "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
     ],
     cwd: "/repo"
@@ -258,7 +258,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/angular:application", "apps/orders",
-      "--interactive=false", "--skipFormat", "--routing=true", "--port=4202",
+      "--interactive=false", "--skipFormat", "--tags=atlas", "--routing=true", "--port=4202",
       "--ssr=false",
       "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=esbuild"
     ],
@@ -270,7 +270,7 @@ test("non-interactive Nx projects use deterministic framework generator defaults
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/react:application", "apps/host",
-      "--interactive=false", "--skipFormat", "--routing=true", "--port=4300",
+      "--interactive=false", "--skipFormat", "--tags=atlas", "--routing=true", "--port=4300",
       "--e2eTestRunner=none", "--unitTestRunner=none", "--bundler=vite"
     ],
     cwd: "/repo"
@@ -284,7 +284,7 @@ test("interactive Nx projects delegate supported framework choices to the native
     command: "yarn",
     args: [
       "nx", "generate", "@nx/angular:application", "apps/host",
-      "--interactive=true", "--skipFormat", "--routing=true", "--port=4200", "--ssr=false"
+      "--interactive=true", "--skipFormat", "--tags=atlas", "--routing=true", "--port=4200", "--ssr=false"
     ],
     cwd: "/repo"
   });
@@ -294,7 +294,7 @@ test("interactive Nx projects delegate supported framework choices to the native
     command: "pnpm",
     args: [
       "exec", "nx", "generate", "@nx/react:application", "apps/host",
-      "--interactive=true", "--skipFormat", "--routing=true", "--port=4200"
+      "--interactive=true", "--skipFormat", "--tags=atlas", "--routing=true", "--port=4200"
     ],
     cwd: "/repo"
   });

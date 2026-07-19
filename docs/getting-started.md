@@ -23,10 +23,11 @@ npx atlas g app react-app --framework react
 ```
 
 Atlas delegates the framework scaffold to Nx when it detects an Nx workspace,
-then updates each generated project's `project.json` with the Atlas targets
-listed below. No manual Nx target setup is required. Existing non-Atlas
-projects are untouched, and projects created directly with `nx generate` do not
-receive Atlas targets automatically.
+then updates each generated project's `project.json` with the `atlas` project
+tag and the Atlas targets listed below. Existing tags are preserved. No manual
+Nx target or tag setup is required. Existing non-Atlas projects are untouched,
+and projects created directly with `nx generate` do not receive Atlas targets
+or the `atlas` tag automatically.
 
 Each generated Atlas project contains:
 
@@ -47,6 +48,13 @@ Only Atlas projects receive Atlas targets. Therefore this command ignores server
 
 ```bash
 npx nx show projects --with-target atlas:publish
+```
+
+To list every Atlas-generated Nx project, including projects not selected for a
+specific deployment target:
+
+```bash
+npx nx show projects --projects 'tag:atlas'
 ```
 
 ## 3. Connect apps to the host
@@ -110,21 +118,23 @@ Set CI secrets and environment variables:
 
 ```bash
 ATLAS_STORAGE=s3
-ATLAS_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+ATLAS_STORAGE_API_URL=https://<account-id>.r2.cloudflarestorage.com
 ATLAS_S3_BUCKET=parliament-atlas
 ATLAS_S3_REGION=auto
-ATLAS_REGISTRY_BASE_URL=https://pub-<bucket-id>.r2.dev
+ATLAS_REGISTRY_URL=https://pub-<bucket-id>.r2.dev
 
-AWS_ACCESS_KEY_ID=<access-key-id>
-AWS_SECRET_ACCESS_KEY=<secret-access-key>
+ATLAS_STORAGE_ACCESS_KEY_ID=<access-key-id>
+ATLAS_STORAGE_SECRET_ACCESS_KEY=<secret-access-key>
 ```
 
-`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are standard AWS SDK credential names, not an AWS-only storage choice. Atlas also supports profiles, temporary credentials, container credentials, and CI workload identity through the standard AWS SDK credential chain. Prefer short-lived workload identity in production CI.
+Atlas also supports standard AWS SDK credentials, profiles, temporary
+credentials, container credentials, and CI workload identity through the SDK
+credential chain. Prefer short-lived workload identity in production CI.
 
 Optional storage settings:
 
 ```bash
-ATLAS_S3_PREFIX=production
+ATLAS_STORAGE_KEY_PREFIX=production
 ATLAS_S3_FORCE_PATH_STYLE=true
 ```
 

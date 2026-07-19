@@ -1,7 +1,7 @@
 import type { AtlasConfig, AtlasHostConfig, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { CliArguments } from "./arguments.js";
 
-const DEFAULT_LOCAL_REGISTRY_BASE_URL = "http://localhost:4400";
+const DEFAULT_LOCAL_REGISTRY_URL = "http://localhost:4400";
 
 export function createHostRuntimeConfig(
   config: AtlasConfig,
@@ -13,7 +13,7 @@ export function createHostRuntimeConfig(
     schemaVersion: "1",
     hostId: config.id,
     ...(hostVersion ? { hostVersion } : {}),
-    catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL ?? DEFAULT_LOCAL_REGISTRY_BASE_URL)}/hosts/${config.id}/catalog.json`,
+    catalogUrl: `${trimSlash(args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_URL ?? DEFAULT_LOCAL_REGISTRY_URL)}/hosts/${config.id}/catalog.json`,
     allowCustomOverrides: config.allowCustomOverrides ?? config.allowOverrides ?? false,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3,

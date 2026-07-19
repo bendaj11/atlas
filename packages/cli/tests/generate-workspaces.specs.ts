@@ -14,6 +14,7 @@ test("atlas generation registers projects with Nx automatically", async () => {
   const stdout = await run(process.execPath, [join(process.cwd(), "packages/cli/dist/index.js"), "g", "app", "orders", "--framework=react", "--skip-install", "--skip-workspace-generator"], { cwd: root });
   const project = JSON.parse(await readFile(join(root, "orders/project.json"), "utf8"));
   expect(project.name).toBe("orders");
+  expect(project.tags).toStrictEqual(["atlas"]);
   expect(project.targets.build.executor).toBe("nx:run-commands");
   expect(project.targets["atlas:config"].options.cwd).toBe("orders");
   expect(project.targets["atlas:config"].outputs).toStrictEqual(["{projectRoot}/.atlas"]);

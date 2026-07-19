@@ -9,6 +9,8 @@ import { exists } from "./generate-paths.js";
 type ProjectType = "host" | "app";
 type PackageManager = "yarn" | "pnpm" | "npm";
 
+export const ATLAS_NX_TAG = "atlas";
+
 interface NxDevTargetOptions {
   targets: Record<string, unknown>;
   projectName: string;
@@ -108,6 +110,7 @@ export async function ensureDelegatedNxTargets(
   ensureAtlasConfigTarget(targets, projectName);
   ensureAtlasPublicationTargets(targets, projectName, type);
   ensureDevTarget({ targets, projectName, projectRoot, type, framework });
+  project.tags = addUniqueString(Array.isArray(project.tags) ? project.tags : [], ATLAS_NX_TAG);
   project.targets = targets;
   await writeJsonFile(projectFile, project);
 }

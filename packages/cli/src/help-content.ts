@@ -109,7 +109,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     environment: [
       { label: "ATLAS_CREATED_AT", description: "Build creation timestamp" },
-      { label: "ATLAS_REGISTRY_BASE_URL", description: "Default static-registry base URL" }
+      { label: "ATLAS_REGISTRY_URL", description: "Default public registry URL" }
     ],
     examples: [
       "atlas build orders --registry-base-url https://cdn.example.com/atlas"
@@ -130,7 +130,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "--skip-compile", description: "Use already compiled atlas.config.ts" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
-    environment: [{ label: "ATLAS_REGISTRY_BASE_URL", description: "Default static-registry base URL" }],
+    environment: [{ label: "ATLAS_REGISTRY_URL", description: "Default public registry URL" }],
     examples: [
       "atlas build-bootstrap customer-host --registry-base-url https://cdn.example.com/atlas",
       "atlas build-bootstrap customer-host --template atlas.bootstrap.html"
@@ -152,12 +152,14 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     environment: [
       { label: "ATLAS_STORAGE", description: "Storage provider; s3" },
       { label: "ATLAS_S3_BUCKET", description: "S3-compatible bucket" },
-      { label: "ATLAS_S3_ENDPOINT", description: "S3-compatible API endpoint; omit for AWS S3" },
-      { label: "ATLAS_S3_PREFIX", description: "Optional object key prefix" },
+      { label: "ATLAS_STORAGE_API_URL", description: "Private S3-compatible upload API; omit for AWS S3" },
+      { label: "ATLAS_STORAGE_KEY_PREFIX", description: "Optional object key namespace" },
       { label: "ATLAS_S3_REGION", description: "Storage signing region" },
       { label: "ATLAS_S3_FORCE_PATH_STYLE", description: "Enable path-style access for providers such as MinIO" },
-      { label: "ATLAS_REGISTRY_BASE_URL", description: "Public URL serving published objects" },
-      { label: "AWS_ACCESS_KEY_ID", description: "Standard SDK credential; short-lived identity is preferred" },
+      { label: "ATLAS_REGISTRY_URL", description: "Public download URL serving published objects" },
+      { label: "ATLAS_STORAGE_ACCESS_KEY_ID", description: "Explicit storage access key; short-lived identity is preferred" },
+      { label: "ATLAS_STORAGE_SECRET_ACCESS_KEY", description: "Explicit storage secret key" },
+      { label: "ATLAS_STORAGE_SESSION_TOKEN", description: "Optional temporary storage session token" },
       { label: "ATLAS_RUNTIME_URLS", description: "Deployed runtime URLs verified after publication" },
       { label: "ATLAS_PR_NUMBER", description: "Custom pull-request number when provider variables are unavailable" },
       { label: "ATLAS_GIT_SHA", description: "Actual pull-request head SHA; must not be a synthetic merge SHA" },

@@ -20,6 +20,7 @@ import { frameworkLabel } from "./generate-labels.js";
 import {
   alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
+  ATLAS_NX_TAG,
   atlasConfigNxTarget,
   ensureDelegatedNxTargets,
   nxTarget
@@ -273,7 +274,7 @@ export class AtlasGenerateService {
       executor: "nx:run-commands",
       options: { command: `nx run ${name}:dev`, forwardAllArgs: true }
     };
-    const project = { name, sourceRoot: `${cwd}/src`, projectType: "application", targets };
+    const project = { name, sourceRoot: `${cwd}/src`, projectType: "application", tags: [ATLAS_NX_TAG], targets };
     await writeFile(join(root, "project.json"), `${JSON.stringify(project, null, 2)}\n`, "utf8");
   }
 

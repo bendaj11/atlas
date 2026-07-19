@@ -20,6 +20,7 @@ test.each(["host", "app"] as const)("atlas preserves the native Nx React dev tar
   await mkdir(projectRoot, { recursive: true });
   await writeFile(join(projectRoot, "project.json"), JSON.stringify({
     name: type,
+    tags: ["scope:test"],
     targets: {
       dev: nativeDevTarget,
       serve: {
@@ -32,6 +33,7 @@ test.each(["host", "app"] as const)("atlas preserves the native Nx React dev tar
   await ensureDelegatedNxTargets(root, projectRoot, type, type, "react", type === "host" ? 4200 : 4201);
 
   const project = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8"));
+  expect(project.tags).toStrictEqual(["scope:test", "atlas"]);
   expect({ dev: project.targets.dev, serve: project.targets.serve }).toStrictEqual({
     dev: {
       executor: "nx:run-commands",
@@ -66,6 +68,7 @@ test("atlas preserves the native Nx Angular dev target before federation wraps s
   await ensureDelegatedNxTargets(root, projectRoot, "orders", "app", "angular", 4201);
 
   const project = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8"));
+  expect(project.tags).toStrictEqual(["atlas"]);
   expect({ dev: project.targets.dev, serve: project.targets.serve, serveOriginal: project.targets["serve-original"] }).toStrictEqual({
     dev: {
       executor: "nx:run-commands",

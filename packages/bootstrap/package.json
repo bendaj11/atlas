@@ -1,6 +1,6 @@
 {
   "name": "@atlas/bootstrap",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "type": "module",
   "description": "Static Atlas browser bootstrap assets and Nginx configuration.",
   "license": "MIT",
@@ -39,9 +39,9 @@
     "build": "tsc -b",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/bootstrap/tests/'",
     "typecheck": "tsc -b --pretty false",
-    "publish-lib": "npm publish --registry http://localhost:4873"
+    "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.11"
+    "@atlas/schema": "0.3.12"
   }
 }

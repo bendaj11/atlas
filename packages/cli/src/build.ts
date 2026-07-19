@@ -166,10 +166,10 @@ export class AtlasBuildService {
   }
 
   private registryBaseUrl(channel: AtlasVersionChannel = "production"): string {
-    const explicit = this.args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_BASE_URL;
+    const explicit = this.args.flag("registry-base-url") ?? process.env.ATLAS_REGISTRY_URL;
     if (explicit) return explicit;
     if (channel === "local") return "http://localhost:4400";
-    throw new Error("--registry-base-url or ATLAS_REGISTRY_BASE_URL is required for non-local builds.");
+    throw new Error("--registry-base-url or ATLAS_REGISTRY_URL is required for non-local builds.");
   }
 
   private shouldPublish(path: string): boolean {

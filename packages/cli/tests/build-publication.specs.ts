@@ -29,7 +29,7 @@ test("atlas build emits a deployable manifest without publication plans", async 
 test("atlas build requires public registry URL outside local development", async () => {
   await expect(run(process.execPath, [
     "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile"
-  ], { env: { ...process.env, ATLAS_REGISTRY_BASE_URL: "" } })).rejects.toThrow(/registry-base-url.*required/);
+  ], { env: { ...process.env, ATLAS_REGISTRY_URL: "" } })).rejects.toThrow(/registry-base-url.*required/);
 });
 
 test("excluded source maps do not affect content build ID", async () => {

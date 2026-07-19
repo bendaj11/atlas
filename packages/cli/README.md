@@ -35,7 +35,14 @@ npx atlas publish --help
 
 ## Workspace integration
 
-Generation delegates framework scaffolding to Nx when available and adds `atlas:config`, `atlas:publish`, and host-only `atlas:bootstrap` targets. Non-Atlas projects are untouched.
+Generation delegates framework scaffolding to Nx when available, adds the
+`atlas` project tag, and adds `atlas:config`, `atlas:publish`, and host-only
+`atlas:bootstrap` targets. Existing tags are preserved. Non-Atlas projects are
+untouched.
+
+```bash
+npx nx show projects --projects 'tag:atlas'
+```
 
 Routine Nx CI:
 
@@ -52,10 +59,10 @@ Common S3-compatible publication uses environment configuration; no `atlas.publi
 
 ```bash
 ATLAS_STORAGE=s3
-ATLAS_S3_ENDPOINT=https://<provider-endpoint>
+ATLAS_STORAGE_API_URL=https://<provider-endpoint>
 ATLAS_S3_BUCKET=atlas
 ATLAS_S3_REGION=us-east-1
-ATLAS_REGISTRY_BASE_URL=https://assets.example/atlas
+ATLAS_REGISTRY_URL=https://assets.example/atlas
 ```
 
 Credentials use standard AWS SDK chain. `atlas.publish.ts` remains optional

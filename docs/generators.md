@@ -22,9 +22,11 @@ projects. See [Workspaces and monorepos](workspaces.md) before generating in a
 large repository.
 
 In an Nx workspace, `atlas g host` and `atlas g app` automatically add Atlas
-targets to the generated project's `project.json`. No manual Nx target setup is
+targets and the `atlas` project tag to the generated project's `project.json`.
+Existing project tags are preserved. No manual Nx target or tag setup is
 required. This applies to projects created through the Atlas generator; running
-`nx generate` directly does not add Atlas configuration to that project.
+`nx generate` directly does not add Atlas configuration or the `atlas` tag to
+that project.
 
 Host generation creates one framework client project plus user-owned
 `atlas.bootstrap.html` for product-domain loading UI. `atlas build-bootstrap`

@@ -25,7 +25,7 @@ Atlas never calculates a second monorepo graph.
 ### Public registry URL
 
 ```bash
-ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
+ATLAS_REGISTRY_URL=https://assets.example.internal/atlas
 ```
 
 Browsers use this URL for `registry.json`, catalogs, manifests, JavaScript, CSS, and fonts. It must be public to host users, but it does not need to be public to the internet.
@@ -38,37 +38,37 @@ AWS S3:
 ATLAS_STORAGE=s3
 ATLAS_S3_BUCKET=company-atlas
 ATLAS_S3_REGION=eu-west-1
-ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
+ATLAS_REGISTRY_URL=https://assets.example.internal/atlas
 ```
 
 Cloudflare R2:
 
 ```bash
 ATLAS_STORAGE=s3
-ATLAS_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+ATLAS_STORAGE_API_URL=https://<account-id>.r2.cloudflarestorage.com
 ATLAS_S3_BUCKET=company-atlas
 ATLAS_S3_REGION=auto
-ATLAS_REGISTRY_BASE_URL=https://pub-<bucket-id>.r2.dev
+ATLAS_REGISTRY_URL=https://pub-<bucket-id>.r2.dev
 ```
 
 MinIO or another private S3-compatible service:
 
 ```bash
 ATLAS_STORAGE=s3
-ATLAS_S3_ENDPOINT=https://minio.storage.internal
+ATLAS_STORAGE_API_URL=https://minio.storage.internal
 ATLAS_S3_BUCKET=company-atlas
 ATLAS_S3_REGION=us-east-1
 ATLAS_S3_FORCE_PATH_STYLE=true
-ATLAS_REGISTRY_BASE_URL=https://assets.example.internal/atlas
+ATLAS_REGISTRY_URL=https://assets.example.internal/atlas
 ```
 
 Optional key namespace:
 
 ```bash
-ATLAS_S3_PREFIX=production
+ATLAS_STORAGE_KEY_PREFIX=production
 ```
 
-The prefix is part of storage keys. `ATLAS_REGISTRY_BASE_URL` must serve that same namespace.
+The key prefix defines storage namespace. `ATLAS_REGISTRY_URL` must serve that same namespace.
 
 ### Credentials
 
@@ -79,7 +79,7 @@ Atlas uses the official AWS SDK credential provider chain. Supported sources inc
 - shared AWS profile;
 - temporary session credentials;
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optional `AWS_SESSION_TOKEN`;
-- explicit `ATLAS_S3_ACCESS_KEY_ID`, `ATLAS_S3_SECRET_ACCESS_KEY`, and optional `ATLAS_S3_SESSION_TOKEN`.
+- explicit `ATLAS_STORAGE_ACCESS_KEY_ID`, `ATLAS_STORAGE_SECRET_ACCESS_KEY`, and optional `ATLAS_STORAGE_SESSION_TOKEN`.
 
 Prefer short-lived workload identity. Never expose storage write credentials to browser code or commit them to the repository.
 
@@ -311,7 +311,7 @@ jobs:
       ATLAS_STORAGE: s3
       ATLAS_S3_BUCKET: company-atlas
       ATLAS_S3_REGION: eu-west-1
-      ATLAS_REGISTRY_BASE_URL: https://assets.example.internal/atlas
+      ATLAS_REGISTRY_URL: https://assets.example.internal/atlas
       ATLAS_RUNTIME_URLS: https://portal.example.internal/atlas.runtime.json
     steps:
       - uses: actions/checkout@v4
@@ -336,7 +336,7 @@ stage('Deploy affected projects') {
     ATLAS_STORAGE = 's3'
     ATLAS_S3_BUCKET = credentials('atlas-bucket')
     ATLAS_S3_REGION = 'eu-west-1'
-    ATLAS_REGISTRY_BASE_URL = 'https://assets.example.internal/atlas'
+    ATLAS_REGISTRY_URL = 'https://assets.example.internal/atlas'
     ATLAS_RUNTIME_URLS = 'https://portal.example.internal/atlas.runtime.json'
   }
   steps {

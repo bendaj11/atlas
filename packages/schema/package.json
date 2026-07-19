@@ -1,6 +1,6 @@
 {
   "name": "@atlas/schema",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "type": "module",
   "description": "Stable Atlas manifests, static indexes, catalogs, and configuration schemas.",
   "license": "MIT",
@@ -38,6 +38,6 @@
     "build": "tsc -b",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/schema/tests/'",
     "typecheck": "tsc -b --pretty false",
-    "publish-lib": "npm publish --registry http://localhost:4873"
+    "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   }
 }

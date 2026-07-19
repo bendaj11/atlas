@@ -101,7 +101,7 @@ Example `atlas.runtime.json`:
 }
 ```
 
-`catalogUrl` is derived from `ATLAS_REGISTRY_BASE_URL`. It is public download URL, not S3 upload endpoint.
+`catalogUrl` is derived from `ATLAS_REGISTRY_URL`. It is public download URL, not private storage API URL.
 
 Registry-backed PR and previous-production overrides are always available and
 do not require a host flag. `allowCustomOverrides` controls only arbitrary
