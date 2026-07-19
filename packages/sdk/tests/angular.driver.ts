@@ -43,7 +43,6 @@ export function createAppContext(initialUrl: string) {
   const context: AtlasAppContext = {
     manifest: createTestManifest(), hostId: "host", basePath: "/orders", navigation,
     route: { basePath: "/orders", getCurrent: inner, match: () => undefined, setTabTitle() {}, subscribe(listener) { routeListeners.add(listener); return () => { routeListeners.delete(listener); }; } },
-    widgets: { list: () => [], async getWidget() { throw new Error("Widget lookup not used."); }, async mount() { throw new Error("Widget mount not used."); } },
     loading: { show() {}, hide() {}, waitUntilReady: () => () => undefined }
   };
   return {

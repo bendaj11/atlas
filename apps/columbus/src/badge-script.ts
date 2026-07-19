@@ -25,7 +25,7 @@ async function readOverrideCount(): Promise<number> {
   const config = await readAtlasConfig();
   if (!config?.hostId) return 0;
 
-  if (config.allowCustomOverrides === true || config.allowOverrides === true) {
+  if (config.allowCustomOverrides === true && isLoopbackBadgeHost(location.hostname)) {
     const devOverrideCount = await readDevOverrideCount(config.hostId);
     if (devOverrideCount !== undefined) return devOverrideCount;
   }
@@ -33,6 +33,10 @@ async function readOverrideCount(): Promise<number> {
   const key = `atlas.overrides.${config.hostId}`;
   const persisted = await chrome.storage.local.get(key);
   return overrideCount(persisted[key]);
+}
+
+function isLoopbackBadgeHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
 
 async function readDevOverrideCount(hostId: string): Promise<number | undefined> {
@@ -64,7 +68,6 @@ function readBadgeDisabledAppIds(hostId: string): Set<string> {
 async function readAtlasConfig(): Promise<{
   hostId?: string;
   allowCustomOverrides?: boolean;
-  allowOverrides?: boolean;
 } | undefined> {
   try {
     const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
@@ -74,7 +77,6 @@ async function readAtlasConfig(): Promise<{
       schemaVersion?: string;
       hostId?: string;
       allowCustomOverrides?: boolean;
-      allowOverrides?: boolean;
     };
     return value.schemaVersion === "1" ? value : undefined;
   } catch {

@@ -129,16 +129,7 @@ export async function updateActionBadge(tabId: number, overrideCount: number): P
 export async function readDisabledOverrides(hostId: string, tabId: number, scope: Scope): Promise<Map<string, Manifest>> {
   const key = disabledOverridesKey(hostId, tabId, scope);
   const stored = await chrome.storage.local.get(key);
-  let value = stored[key];
-  if (!Array.isArray(value) && scope === "all") {
-    const legacyKey = `atlas.disabled-overrides.${hostId}`;
-    const legacyStored = await chrome.storage.local.get(legacyKey);
-    value = legacyStored[legacyKey];
-    if (Array.isArray(value)) {
-      await chrome.storage.local.set({ [key]: value });
-      await chrome.storage.local.remove(legacyKey);
-    }
-  }
+  const value = stored[key];
   const manifests = Array.isArray(value) ? value.filter(isStoredManifest) : [];
   return new Map(manifests.map((manifest) => {
     const normalized = normalizeStoredManifest(manifest);

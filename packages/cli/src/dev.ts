@@ -847,7 +847,7 @@ export function browserOpenCommand(url: string, platform: NodeJS.Platform = proc
 
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === "host";
-  return "allowCustomOverrides" in config || "allowOverrides" in config
+  return "allowCustomOverrides" in config
     || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
 }
 

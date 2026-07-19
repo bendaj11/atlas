@@ -18,8 +18,6 @@ export interface AtlasHostConfig extends AtlasBaseConfig {
   type?: "host";
   /** Allow arbitrary localhost or custom-URL overrides. Registry-backed PR and release overrides are always available. */
   allowCustomOverrides?: boolean;
-  /** @deprecated Use allowCustomOverrides. Registry-backed overrides no longer require a host flag. */
-  allowOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */

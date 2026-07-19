@@ -10,7 +10,6 @@ export interface AtlasAppContext {
   basePath: string;
   navigation: AtlasScopedNavigation;
   route: AtlasRouteContext;
-  widgets: AtlasWidgetLoader;
   readonly loading: {
     show(): void;
     hide(): void;

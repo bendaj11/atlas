@@ -32,7 +32,7 @@ localNetworkTest("local bootstrap serves runtime, deep links, and real asset 404
       schemaVersion: "1",
       hostId: "customer-host",
       catalogUrl: "http://localhost:4400/hosts/customer-host/catalog.json",
-      allowOverrides: true
+      allowCustomOverrides: true
     }
   });
   try {
@@ -165,7 +165,7 @@ test("atlas dev prepares a versioned local host client", async () => {
     '  type: "host",',
     '  id: "stable-customer-host-id",',
     '  framework: "react",',
-    "  allowOverrides: true",
+    "  allowCustomOverrides: true",
     "};"
   ].join("\n"));
 
@@ -300,7 +300,7 @@ test("atlas dev rejects corrupt Angular build tooling before spawning", async ()
     '  type: "host",',
     '  id: "mobile-host",',
     '  framework: "angular",',
-    "  allowOverrides: true",
+    "  allowCustomOverrides: true",
     "};"
   ].join("\n"));
 
@@ -331,7 +331,7 @@ test("atlas dev compiles atlas.config.ts with the project tsconfig", async () =>
     '  type: "host",',
     '  id: "mobile-host",',
     '  framework: "react",',
-    "  allowOverrides: true",
+    "  allowCustomOverrides: true",
     "};"
   ].join("\n"));
 
@@ -373,7 +373,7 @@ test("atlas dev prefers tsconfig.app.json for atlas.config.ts compilation", asyn
     '  type: "host",',
     '  id: "mobile-host",',
     '  framework: "react",',
-    "  allowOverrides: true",
+    "  allowCustomOverrides: true",
     "};"
   ].join("\n"));
 

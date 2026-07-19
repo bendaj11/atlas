@@ -251,7 +251,7 @@ that returns all open PRs, not merely the first page or recently updated PRs.
 ## Override policy
 
 Registry-backed PR and previous-production overrides are always available to
-Columbus; production hosts no longer need `allowOverrides: true`. These
+Columbus without a host opt-in flag. These
 artifacts were published through Atlas, use approved registry origins, and
 still pass compatibility and integrity checks.
 
@@ -264,8 +264,7 @@ export default {
 };
 ```
 
-The old `allowOverrides` field remains a deprecated compatibility alias. New
-configuration and generated runtime JSON use `allowCustomOverrides`. Leave it
+Configuration and generated runtime JSON use `allowCustomOverrides`. Leave it
 false in production unless developers intentionally need local code to run
 inside that deployed origin.
 

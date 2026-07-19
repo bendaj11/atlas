@@ -68,7 +68,7 @@ test("Columbus extension intercepts Atlas catalogs for local dev sessions", asyn
   expect(source).toMatch(/atlas\.disabled-local-apps\./);
   expect(sourceModule).toMatch(/enabledOverrides/);
   expect(sourceModule).toMatch(/sessionStorage\.getItem/);
-  expect(sourceModule).toMatch(/allowOverrides/);
+  expect(sourceModule).toMatch(/allowCustomOverrides/);
   expect(sourceModule).toMatch(/isDevSession/);
   expect(sourceModule).toMatch(/manifest\.channel !== "local"/);
 });
@@ -77,7 +77,8 @@ test("disabled local override falls back to production manifest", async () => {
   const result = await runCatalogInterceptor({
     catalog: catalog([productionManifest]),
     devSession: devSession([localManifest]),
-    disabledAppIds: ["app"]
+    disabledAppIds: ["app"],
+    localDevelopmentIntent: true
   });
   expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([productionManifest]);
 });
@@ -86,18 +87,49 @@ test("disabled local-only app is removed from local catalog", async () => {
   const result = await runCatalogInterceptor({
     catalog: catalog([localManifest]),
     devSession: devSession([localManifest]),
-    disabledAppIds: ["app"]
+    disabledAppIds: ["app"],
+    localDevelopmentIntent: true
   });
   expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([]);
 });
 
 test("host override policy prevents dev-session interception", async () => {
   const result = await runCatalogInterceptor({
-    allowOverrides: false,
+    allowCustomOverrides: false,
+    catalog: catalog([productionManifest]),
+    devSession: devSession([localManifest]),
+    localDevelopmentIntent: true
+  });
+  expect(result.devSessionRequests).toBe(0);
+});
+
+test("production host does not probe localhost without local development intent", async () => {
+  const result = await runCatalogInterceptor({
     catalog: catalog([productionManifest]),
     devSession: devSession([localManifest])
   });
   expect(result.devSessionRequests).toBe(0);
+  expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([productionManifest]);
+});
+
+test("production host reads local dev session after local override selection", async () => {
+  const result = await runCatalogInterceptor({
+    catalog: catalog([productionManifest]),
+    devSession: devSession([localManifest]),
+    localDevelopmentIntent: true
+  });
+  expect(result.devSessionRequests).toBe(1);
+  expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([localManifest]);
+});
+
+test("loopback host keeps automatic local dev-session discovery", async () => {
+  const result = await runCatalogInterceptor({
+    catalog: catalog([productionManifest]),
+    devSession: devSession([localManifest]),
+    pageHostname: "127.0.0.1"
+  });
+  expect(result.devSessionRequests).toBe(1);
+  expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([localManifest]);
 });
 
 test("Columbus extension keeps persisted overrides as fallback without hardcoded hosts", async () => {
@@ -179,7 +211,6 @@ test("Columbus writes valid semantic versions and persists disabled toggle selec
   expect(controller).toMatch(/includeDisabledApps/);
   expect(host).not.toMatch(/disables host and app overrides/);
   expect(host).toMatch(/\.tab\.\$\{tabId\}/);
-  expect(host).toMatch(/legacyKey/);
 });
 
 test("Columbus popup displays host identity, version, URL, and environment with WDS", async () => {

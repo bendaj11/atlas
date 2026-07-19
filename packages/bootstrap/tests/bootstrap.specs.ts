@@ -12,7 +12,7 @@ const runtime = {
   schemaVersion: "1" as const,
   hostId: "customer-host",
   catalogUrl: "https://cdn.example/atlas/hosts/customer-host/catalog.json",
-  allowOverrides: true,
+  allowCustomOverrides: true,
   assetOrigins: ["https://assets.example"]
 };
 

@@ -34,11 +34,10 @@ export async function startDomHostRuntime<THostSdk extends object>(
   if (options.catalog) assertAtlasHostCatalog(catalog);
   assertCatalogMatchesConfig(catalog.hostId, config.hostId);
 
+  const allowCustomOverrides = options.allowAppOverrides ?? config.allowCustomOverrides;
   const overrides = options.catalog ? [] : await loadBrowserRuntimeOverrides({
     hostId: config.hostId,
-    allowCustomOverrides: options.allowAppOverrides
-      ?? config.allowCustomOverrides
-      ?? config.allowOverrides === true,
+    ...(allowCustomOverrides !== undefined ? { allowCustomOverrides } : {}),
     requestPolicy
   });
   const manifests = resolveRuntimeManifests(catalog, overrides);
@@ -85,13 +84,12 @@ export async function startDomHostRuntime<THostSdk extends object>(
     resolveRouteContainer: () => document.querySelector<HTMLElement>("[data-atlas-route-outlet]") ?? undefined,
     resolveSlotContainer: (manifest, placement) => resolveDomSlotContainer(document, manifest.id, placement.id, placement.slot!),
     ...(config.resourcesTimeoutMs ? { resourcesTimeoutMs: config.resourcesTimeoutMs } : {}),
-    onStateChange(event) {
+    onMountStateChange(event) {
       if (event.state === "error" && event.error) {
         console.error(`Atlas app "${event.manifest.id}" failed to load:`, ensureActionableError(event.error));
       }
       renderHostMountState(document, event, () => { void runtime?.retry(event.manifest.id); }, options);
       emitMountState(options.observe, config.hostId, event);
-      options.onStateChange?.(event);
     }
   });
   return {

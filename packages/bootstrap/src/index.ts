@@ -34,7 +34,7 @@ export function createAtlasBootstrapFiles(options: AtlasBootstrapOptions): Atlas
       path: "nginx.conf",
       contents: createNginxConfig(
         options.assetOrigins ?? runtimeAssetOrigins(options.runtime),
-        options.runtime.allowCustomOverrides ?? options.runtime.allowOverrides
+        options.runtime.allowCustomOverrides
       )
     }
   ];
@@ -64,9 +64,9 @@ export function validateBootstrapHtml(html: string): void {
   }
 }
 
-export function createNginxConfig(assetOrigins: readonly string[] = [], allowOverrides = false): string {
+export function createNginxConfig(assetOrigins: readonly string[] = [], allowCustomOverrides = false): string {
   const contentOrigins = normalizedOrigins(assetOrigins);
-  const developmentOrigins = allowOverrides ? ["http://localhost:*", "http://127.0.0.1:*"] : [];
+  const developmentOrigins = allowCustomOverrides ? ["http://localhost:*", "http://127.0.0.1:*"] : [];
   const origins = [...contentOrigins, ...developmentOrigins].join(" ");
   const sources = origins ? ` ${origins}` : "";
   return `server {

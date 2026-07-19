@@ -391,7 +391,7 @@ test("browser overrides are discovered from the host URL and validated", async (
   let requestedUrl;
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
-    enabled: true,
+    allowCustomOverrides: true,
     search: "?atlas-override=http%3A%2F%2Flocalhost%3A4400%2Fatlas.local-overrides.json",
     storage: { getItem() { return null; } },
     async fetchJson(url) {
@@ -406,7 +406,7 @@ test("browser overrides are discovered from the host URL and validated", async (
 test("browser overrides cannot cross host boundaries", async () => {
   await assert.rejects(() => loadBrowserRuntimeOverrides({
     hostId: "host",
-    enabled: true,
+    allowCustomOverrides: true,
     search: "?atlas-override=http://localhost/override.json",
     storage: { getItem() { return null; } },
     async fetchJson() { return { schemaVersion: "1", hostId: "admin", generatedAt: "now", overrides: [] }; }
@@ -417,7 +417,7 @@ test("invalid browser overrides name the app and provide a Columbus recovery act
   const manifest = createTestManifest({ id: "angular-app", version: "custom-url" });
   await assert.rejects(() => loadBrowserRuntimeOverrides({
     hostId: "host",
-    enabled: true,
+    allowCustomOverrides: true,
     search: "",
     storage: {
       getItem(key) {
@@ -433,7 +433,7 @@ test("browser overrides load a directly persisted extension document", async () 
   const manifest = createTestManifest({ channel: "production", version: "0.8.0" });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
-    enabled: true,
+    allowCustomOverrides: true,
     search: "",
     storage: { getItem(key) { return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY ? JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: "now", overrides: [{ appId: manifest.id, manifest, reason: "historical" }] }) : null; } }
   });
@@ -447,7 +447,7 @@ test("tab-scoped browser overrides take precedence over all-tab overrides", asyn
   const documentFor = (manifest: AtlasManifest) => JSON.stringify({ schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: "orders", manifest, reason: "historical" }] });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
-    enabled: true,
+    allowCustomOverrides: true,
     storage: { getItem: (key) => key === "atlas.runtime-overrides" ? documentFor(all) : null },
     sessionStorage: { getItem: (key) => key === "atlas.runtime-overrides" ? documentFor(tab) : null }
   });
@@ -638,20 +638,22 @@ test("widget registry retries after a transient registry failure", async () => {
   assert.equal(registry.requests, 2);
 });
 
-test("page apps receive the shared widget loader", async () => {
+test("page apps receive widget access through the SDK only", async () => {
   let received: AtlasAppContext | undefined;
-  const widgetLoader = createWidgetLoader([], createTestHostSdk());
+  const sdk = createTestHostSdk();
+  const widgetLoader = createWidgetLoader([], sdk);
   await mountApp({
     hostId: "host",
     catalogUrl: "",
-    sdk: createTestHostSdk(),
+    sdk,
     manifest: createTestManifest(),
     container: createTestElement(),
     widgetLoader,
     async importRemote() { return { mount({ context }) { received = context; } }; }
   });
   if (!received) throw new Error("App context was not received.");
-  assert.equal(received.widgets, widgetLoader);
+  assert.equal("widgets" in received, false);
+  assert.equal((await sdk.getWidget("missing-widget")).id, "missing-widget");
   assert.equal("components" in received, false);
 });
 
@@ -839,7 +841,7 @@ test("host runtime renders the first exact route and logs duplicate routes", asy
       sdk,
       resolveRouteContainer() { return createTestElement(); },
       resolveSlotContainer() { return undefined; },
-      onStateChange(event) { states.push(event); },
+      onMountStateChange(event) { states.push(event); },
       async importRemote(manifest) {
         imported.push(manifest.id);
         return { mount() {} };
@@ -990,7 +992,7 @@ test("host runtime reports and cleans up an app that opts into readiness but nev
     resourcesTimeoutMs: 5,
     resolveRouteContainer() { return undefined; },
     resolveSlotContainer() { return createTestElement(); },
-    onStateChange(event) { states.push(event); },
+    onMountStateChange(event) { states.push(event); },
     async importRemote() { return { mount({ context }) { context.loading.waitUntilReady(); return { unmount() { unmounted = true; } }; } }; }
   });
   assert.equal(unmounted, true);

@@ -23,7 +23,7 @@ export function createDeploymentFetch(manifests: unknown[], options: { includeCo
   };
   return async (input: URL | RequestInfo, _init?: RequestInit) => {
     const url = input.toString();
-    if (url.endsWith("atlas.runtime.json")) return Response.json({ schemaVersion: "1", hostId: "host", catalogUrl: "https://cdn.example/hosts/host/catalog.json", allowOverrides: true, resourcesTimeoutMs: 15000, resourcesRetryCount: 3 }, { headers: jsonHeaders });
+    if (url.endsWith("atlas.runtime.json")) return Response.json({ schemaVersion: "1", hostId: "host", catalogUrl: "https://cdn.example/hosts/host/catalog.json", allowCustomOverrides: true, resourcesTimeoutMs: 15000, resourcesRetryCount: 3 }, { headers: jsonHeaders });
     if (url.endsWith("catalog.json")) return Response.json({
       schemaVersion: "1",
       hostId: "host",

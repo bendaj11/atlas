@@ -10,7 +10,7 @@ yarn workspace @atlas/columbus build
 
 Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/columbus/dist`.
 
-The extension requests `activeTab`, `scripting`, and `storage`. Static content scripts run on HTTP and HTTPS pages so Columbus can detect Atlas hosts, keep badges current, and connect production hosts to loopback development sessions before Atlas starts. The interceptor only acts after a valid Atlas runtime configuration and catalog request are observed, respects `allowOverrides`, and only reads development sessions from `localhost:4400`. Atlas uses a small main-world script to inspect the public runtime catalog and update that origin's Atlas override storage. No remote JavaScript is executed by the extension.
+The extension requests `activeTab`, `scripting`, and `storage`. Static content scripts run on HTTP and HTTPS pages so Columbus can detect Atlas hosts, keep badges current, and connect local selections to loopback development sessions before Atlas starts. The interceptor only acts after a valid Atlas runtime configuration and catalog request are observed, respects `allowCustomOverrides`, and only reads development sessions from `localhost:4400`. Loopback hosts discover local sessions automatically. Remote hosts query a local session only after a local selection has been saved, so ordinary production browsing does not generate failed localhost requests. Atlas uses a small main-world script to inspect the public runtime catalog and update that origin's Atlas override storage. No remote JavaScript is executed by the extension.
 
 Chrome 111 or newer is required because Columbus uses main-world static content scripts.
 

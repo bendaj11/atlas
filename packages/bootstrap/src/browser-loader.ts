@@ -49,7 +49,7 @@ async function fetchJson(url, runtime = {}, integrity) {
 }
 
 async function applyOverrides(runtime, catalog) {
-  const allowCustom = runtime.allowCustomOverrides === true || runtime.allowOverrides === true;
+  const allowCustom = runtime.allowCustomOverrides === true;
   const overrideUrl = allowCustom ? new URLSearchParams(location.search).get("atlas-override") : undefined;
   const stored = overrideUrl
     ? JSON.stringify(await fetchJson(overrideUrl, runtime))
@@ -78,7 +78,7 @@ async function applyOverrides(runtime, catalog) {
 }
 
 async function resolveOverrideManifest(manifest, runtime) {
-  const allowCustom = runtime.allowCustomOverrides === true || runtime.allowOverrides === true;
+  const allowCustom = runtime.allowCustomOverrides === true;
   if (manifest.channel === "local") return allowCustom ? manifest : undefined;
   if (manifest.channel !== "pr" || !manifest.prNumber) return manifest;
   const indexUrl = artifactIndexUrl(manifest);

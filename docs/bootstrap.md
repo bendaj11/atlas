@@ -105,8 +105,7 @@ Example `atlas.runtime.json`:
 
 Registry-backed PR and previous-production overrides are always available and
 do not require a host flag. `allowCustomOverrides` controls only arbitrary
-localhost/custom-URL execution. It defaults to false. The deprecated
-`allowOverrides` field remains accepted as a compatibility alias.
+localhost/custom-URL execution. It defaults to false.
 
 ## Custom HTML
 

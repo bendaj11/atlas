@@ -19,7 +19,6 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   allowAppOverrides?: boolean;
   document?: Document;
   onNavigationChange?: (items: readonly AtlasHostNavigationItem[]) => void;
-  onStateChange?: (event: AtlasHostMountEvent) => void;
   renderLoading?: (container: HTMLElement, event: AtlasHostMountEvent) => void;
   renderError?: (container: HTMLElement, event: AtlasHostMountEvent, retry: () => void) => void;
   renderHostLoading?: (container: HTMLElement) => void | (() => void);

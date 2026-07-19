@@ -10,8 +10,6 @@ export interface AtlasHostRuntimeConfig {
   catalogUrl: string;
   /** Allow arbitrary localhost or custom-URL overrides. Registry-backed overrides are always available. */
   allowCustomOverrides?: boolean;
-  /** @deprecated Compatibility alias for allowCustomOverrides. */
-  allowOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */

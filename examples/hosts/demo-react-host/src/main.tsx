@@ -18,6 +18,5 @@ flushSync(() => reactRoot.render(<StrictMode><RouterProvider router={router} /><
 void startHost({
   router,
   federation: { initFederation, loadRemoteModule },
-  hostData,
-  onStateChange: (event) => { if (event.error) console.error("[Atlas app error]", event.manifest.id, event.error); }
+  hostData
 }).catch((error) => console.error("Atlas host failed to start", error));

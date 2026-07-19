@@ -105,7 +105,7 @@ function installChromeMock(options: ChromeMockOptions): void {
   Object.assign(globalThis, { chrome: chromeMock });
 }
 
-function createHostData(id: string, allowOverrides: boolean): AtlasHostData {
+function createHostData(id: string, allowCustomOverrides: boolean): AtlasHostData {
   const host = {
     schemaVersion: "1" as const,
     kind: "host" as const,
@@ -122,7 +122,7 @@ function createHostData(id: string, allowOverrides: boolean): AtlasHostData {
       schemaVersion: "1",
       hostId: id,
       catalogUrl: `http://127.0.0.1:4400/hosts/${id}/catalog.json`,
-      allowOverrides
+      allowCustomOverrides
     },
     pageUrl: "http://127.0.0.1:4300/",
     catalog: { schemaVersion: "1", hostId: id, revision: "test", host, apps: [] },

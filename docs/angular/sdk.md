@@ -38,8 +38,6 @@ or a company HTTP wrapper.
 
 Use `observe` for runtime monitoring and telemetry. It receives all Atlas runtime
 events, including resource loading, retries, host readiness, and app mount state.
-Use `onStateChange` only for legacy code that expects the older per-placement
-mount-state callback.
 
 ## App Domain
 

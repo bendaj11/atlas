@@ -1,4 +1,5 @@
 import type { AtlasExportedWidgetManifest, AtlasManifest, AtlasPlacement } from "@atlas/schema";
+import { connectAtlasWidgetResolver } from "@atlas/sdk";
 import type { AtlasSdk, AtlasWidgetHandle } from "@atlas/sdk/host";
 import type {
   AtlasExportedWidgetEntry,
@@ -135,7 +136,7 @@ export interface AtlasHostRuntimeOptions extends AtlasWidgetUiOptions {
   widgetLoader?: AtlasWidgetLoader;
   resolveRouteContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
   resolveSlotContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
-  onStateChange?: (event: AtlasHostMountEvent) => void;
+  onMountStateChange?: (event: AtlasHostMountEvent) => void;
   resourcesTimeoutMs?: number;
   trustPolicy?: AtlasRemoteTrustPolicy;
 }
@@ -340,7 +341,7 @@ class AtlasRuntimeController {
   }
 
   private emit(mount: RuntimeMount, state: AtlasHostMountState, error?: Error): void {
-    this.options.onStateChange?.({ manifest: mount.manifest, placement: mount.placement, state, ...(error ? { error } : {}) });
+    this.options.onMountStateChange?.({ manifest: mount.manifest, placement: mount.placement, state, ...(error ? { error } : {}) });
   }
 }
 
@@ -374,6 +375,7 @@ export async function mountApp(options: AtlasLoaderOptions & {
       ...(options.renderWidgetLoading ? { renderWidgetLoading: options.renderWidgetLoading } : {}),
       ...(options.renderWidgetError ? { renderWidgetError: options.renderWidgetError } : {})
     });
+    connectAtlasWidgetResolver(options.sdk, widgets.getWidget);
     result = await entry.mount({
       container: boundary.container,
       sdk: options.sdk,
@@ -383,7 +385,6 @@ export async function mountApp(options: AtlasLoaderOptions & {
         basePath: navigation.basePath,
         navigation,
         route: createRouteContext(navigation.basePath, options.sdk.navigation, { setTabTitle: titleController.set }),
-        widgets,
         loading: {
           show: () => options.onLoadingChange?.(true),
           hide: () => options.onLoadingChange?.(false),

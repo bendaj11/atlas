@@ -109,8 +109,6 @@ const widget = await sdk.getWidget("6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
 const mounted = await widget.mount(container, props);
 ```
 
-`context.widgets` remains a lower-level compatibility API. New code should use `sdk.getWidget`.
-
 Hosts may use `@atlas/sdk/overlay` utilities when building their own typed SDK
 extensions. Overlay APIs are not injected into Atlas core.
 

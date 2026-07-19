@@ -158,7 +158,7 @@ test("atlas build-bootstrap emits deployable static files", async () => {
     type: "host",
     id: "customer-host",
     framework: "react",
-    allowOverrides: true
+    allowCustomOverrides: true
   };\n`);
 
   await run(process.execPath, [

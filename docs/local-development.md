@@ -39,8 +39,7 @@ Deployed bootstrap must expose `allowCustomOverrides: true` when developers
 should run localhost or custom-URL code inside that origin. Production defaults
 to false. Local manifest URLs must use loopback; Columbus and loader reject
 other HTTP origins. Registry-backed PR and previous-production overrides are
-always available and do not require this flag. `allowOverrides` is a deprecated
-compatibility alias.
+always available and do not require this flag.
 
 ## Run a local app
 

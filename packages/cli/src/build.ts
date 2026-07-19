@@ -313,7 +313,7 @@ function isAtlasBuildMetadata(path: string): boolean {
 function isAtlasConfig(value: unknown): value is AtlasConfig { return typeof value === "object" && value !== null && "id" in value && "framework" in value; }
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === "host";
-  return "allowCustomOverrides" in config || "allowOverrides" in config
+  return "allowCustomOverrides" in config
     || "resourcesTimeoutMs" in config || "resourcesRetryCount" in config;
 }
 function assertAppConfig(config: AtlasConfig): AtlasAppConfig {

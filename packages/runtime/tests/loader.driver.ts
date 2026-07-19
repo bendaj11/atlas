@@ -270,7 +270,7 @@ export class HostRuntimeDriver {
         resourcesTimeoutMs: this.#resourcesTimeoutMs,
         resolveRouteContainer: () => Object.create(null),
         resolveSlotContainer: () => Object.create(null),
-        onStateChange: (event) => this.#recordState(event),
+        onMountStateChange: (event) => this.#recordState(event),
         importRemote: async (manifest) => {
           this.imports.push(manifest.id);
           return this.#importRemote(manifest);
