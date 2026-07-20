@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-07-20T12:12:43.437082+00:00",
+  "generated_at": "2026-07-20T13:00:28.446191+00:00",
   "nodes": {
     "docs_local_development_local_development_and_columbus": {
-      "code_fingerprint": "781ec720d49b8f901988b8f6d6532b45faecfc011f0254416bddf88b3fcc5189",
+      "code_fingerprint": "c339610f197dbb85f55f509ddbd7a70f2ee9780693a7e29d09b5a36d8c9980bc",
       "label": "Local development and Columbus",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -12,13 +12,13 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.99949546,
+      "score": 0.998729985,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
     },
     "docs_local_development_run_a_local_app": {
-      "code_fingerprint": "781ec720d49b8f901988b8f6d6532b45faecfc011f0254416bddf88b3fcc5189",
+      "code_fingerprint": "c339610f197dbb85f55f509ddbd7a70f2ee9780693a7e29d09b5a36d8c9980bc",
       "label": "Run a local app",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -28,7 +28,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.99949546,
+      "score": 0.998729985,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -49,7 +49,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.998946312,
+      "score": 1.997415396,
       "source_file": "packages/cli/src/dev.ts",
       "status": "preferred",
       "uses": 2
@@ -76,14 +76,14 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.999561329,
+      "score": 0.998795804,
       "source_file": "packages/cli/src/dev.ts",
       "status": "contested",
       "uses": 2,
       "verdict": "useful"
     },
     "packages_runtime_src_loader_runtime_discovery_atlasruntimeoverridedocument": {
-      "code_fingerprint": "9746329635ede53a5287842710caa127bbcb883ff0079285a8a9227a18a34d3f",
+      "code_fingerprint": "63a836516a6dc54ef96c74104db76507196df06c7aac011e0a61dc987ae92f18",
       "label": "AtlasRuntimeOverrideDocument",
       "last": "2026-07-20T11:37:03.996118+00:00",
       "provenance": [
@@ -93,13 +93,13 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.999428039,
+      "score": 0.998662616,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_loader_runtime_discovery_loadhostruntimeconfig": {
-      "code_fingerprint": "9746329635ede53a5287842710caa127bbcb883ff0079285a8a9227a18a34d3f",
+      "code_fingerprint": "63a836516a6dc54ef96c74104db76507196df06c7aac011e0a61dc987ae92f18",
       "label": "loadHostRuntimeConfig()",
       "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
@@ -120,7 +120,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.999634964,
+      "score": 0.998869383,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -137,7 +137,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.999354404,
+      "score": 0.998589037,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -164,7 +164,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.999634964,
+      "score": 0.998869383,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,

@@ -1425,8 +1425,8 @@
     "semantic_hash": ""
   },
   "tests/e2e/extension.specs.ts": {
-    "mtime": 1784551126.303845,
-    "ast_hash": "d76dae987601a4bd50209f8e5bd65a91",
+    "mtime": 1784552305.730787,
+    "ast_hash": "471298de91085c5bc2ea4ca1e3426744",
     "semantic_hash": ""
   },
   "tests/e2e/local-development.driver.ts": {
