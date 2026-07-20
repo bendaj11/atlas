@@ -38,3 +38,15 @@ test("unsupported Vue adapter is not a public SDK subpath", async () => {
   assert.notEqual(packageJson.exports["./federation-config"], undefined);
   assert.equal(packageJson.exports["./vue"], undefined);
 });
+
+test("Vite integration accepts every installed version", async () => {
+  const packageJson = await readSdkPackage();
+
+  assert.deepEqual(
+    {
+      range: packageJson.peerDependencies.vite,
+      optional: packageJson.peerDependenciesMeta.vite?.optional,
+    },
+    { range: "*", optional: true },
+  );
+});

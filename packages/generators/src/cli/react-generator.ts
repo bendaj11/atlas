@@ -61,11 +61,7 @@ export function generateReactHostFiles(
     { path: 'tsconfig.json', contents: json(reactTsconfig()) },
     {
       path: 'vite.config.ts',
-      contents: reactHostViteConfig(
-        name,
-        profile.compilerTarget,
-        options.devServerPort,
-      ),
+      contents: reactHostViteConfig(name, options.devServerPort),
     },
     { path: 'atlas.config.ts', contents: atlasHostConfig(options, hostId) },
     { path: 'atlas.bootstrap.html', contents: atlasBootstrapHtml(name) },
@@ -105,7 +101,7 @@ export function generateReactAppFiles(
       path: 'vite.config.ts',
       contents: reactAppViteConfig(
         name,
-        profile.compilerTarget,
+        profile.major,
         options.devServerPort,
       ),
     },

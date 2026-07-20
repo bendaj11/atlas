@@ -79,5 +79,7 @@ large repository.
 ## Framework Versions
 
 Atlas targets React 19 by default and accepts React 17-19 generation profiles.
-React 19 uses React Router 7 and the compiler runtime built into React. React 17
-and 18 receive `react-compiler-runtime` automatically when needed.
+React 19 uses React Router 7. Generated Vite configuration uses the stable
+`react()` plugin API so existing projects can keep either
+`@vitejs/plugin-react` 5 or 6. React Compiler setup remains project-owned
+because its Babel integration differs between those plugin versions.

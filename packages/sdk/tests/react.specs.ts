@@ -114,12 +114,12 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     host.get('src/main.tsx'),
     /function AtlasDefaultHostLayout/,
   );
-  assert.match(host.get('vite.config.ts'), /babel-plugin-react-compiler/);
   assert.match(host.get('vite.config.ts'), /createReactHostViteConfig/);
-  assert.match(host.get('vite.config.ts'), /target: "19"/);
-  assert.match(host.get('vite.config.ts'), /panicThreshold: "none"/);
-  assert.match(host.get('vite.config.ts'), /babel: \{/);
-  assert.doesNotMatch(host.get('vite.config.ts'), /ReactBabelOptions/);
+  assert.match(host.get('vite.config.ts'), /plugins: \[react\(\)\]/);
+  assert.doesNotMatch(
+    host.get('vite.config.ts'),
+    /babel|reactCompilerPreset|ReactBabelOptions/,
+  );
   assert.match(host.get('index.html'), /"shimMode": true/);
   assert.match(host.get('index.html'), /<head>\n    <meta charset="UTF-8">/);
   assert.equal(host.has('public/atlas.runtime.json'), false);
@@ -159,7 +159,11 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     appFiles.get('vite.config.ts'),
     /server: \{ port: 4201, cors: true \}/,
   );
-  assert.match(appFiles.get('vite.config.ts'), /babel-plugin-react-compiler/);
+  assert.match(appFiles.get('vite.config.ts'), /plugins: \[react\(\)\]/);
+  assert.doesNotMatch(
+    appFiles.get('vite.config.ts'),
+    /babel|reactCompilerPreset/,
+  );
   assert.doesNotMatch(appFiles.get('src/app/App.tsx'), /showToast|toast\.open/);
   assert.match(
     appFiles.get('src/app/routes.tsx'),
@@ -229,7 +233,7 @@ test('React Router app bridge synchronizes native and host navigation', async ()
   disconnect();
 });
 
-test('React generator targets selected supported majors with React Compiler', () => {
+test('React generator targets selected supported majors without owning compiler setup', () => {
   const react17Host = files(
     generateHostFiles({
       name: 'oldest-host',
@@ -265,10 +269,7 @@ test('React generator targets selected supported majors with React Compiler', ()
       frameworkVersion: '^19.2.0',
     }),
   );
-  assert.match(
-    react17.get('package.json'),
-    /"react-compiler-runtime": "1\.0\.0"/,
-  );
+  assert.doesNotMatch(react17.get('package.json'), /react-compiler-runtime/);
   assert.match(react17.get('package.json'), /"react-router-dom": "\^6\.30\.1"/);
   assert.doesNotMatch(react17.get('package.json'), /"react-router": "\^7/);
   assert.match(
@@ -294,13 +295,10 @@ test('React generator targets selected supported majors with React Compiler', ()
     /createReactAppViteConfig\(\{ projectRoot: __dirname, projectName: "oldest", reactMajor: 17 \}\)/,
   );
   assert.match(react18.get('package.json'), /"react": "\^18\.3\.0"/);
-  assert.match(
-    react18.get('package.json'),
-    /"react-compiler-runtime": "1\.0\.0"/,
-  );
-  assert.match(
+  assert.doesNotMatch(react18.get('package.json'), /react-compiler-runtime/);
+  assert.doesNotMatch(
     react19.get('package.json'),
-    /"babel-plugin-react-compiler": "1\.0\.0"/,
+    /babel-plugin-react-compiler/,
   );
   assert.match(
     react19.get('package.json'),
@@ -313,7 +311,7 @@ test('React generator targets selected supported majors with React Compiler', ()
   assert.match(react19.get('package.json'), /"vite": "\^7\.3\.6"/);
   assert.doesNotMatch(react19.get('package.json'), /"react-compiler-runtime"/);
   assert.doesNotMatch(react19.get('package.json'), /"latest"/);
-  assert.match(react18.get('vite.config.ts'), /target: "18"/);
+  assert.match(react18.get('vite.config.ts'), /reactMajor: 18/);
   assert.throws(
     () =>
       generateHostFiles({

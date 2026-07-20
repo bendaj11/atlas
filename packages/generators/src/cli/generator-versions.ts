@@ -1,6 +1,6 @@
 import type { AtlasGeneratorOptions } from "./generator-types.js";
 
-export const ATLAS_PACKAGE_VERSION = "0.3.19";
+export const ATLAS_PACKAGE_VERSION = "0.3.20";
 
 export function atlasPackageRange(): string {
   return `^${ATLAS_PACKAGE_VERSION}`;
@@ -9,7 +9,6 @@ export function atlasPackageRange(): string {
 export interface ReactVersionProfile {
   version: string;
   major: number;
-  compilerTarget: string;
   routerVersion: string;
 }
 
@@ -26,7 +25,7 @@ export function reactVersionProfile(options: AtlasGeneratorOptions): ReactVersio
   if (![17, 18, 19].includes(major) && !options.allowUnsupportedVersion) {
     throw new Error(`React ${major} is not verified by Atlas. Pass allowUnsupportedVersion to generate it explicitly.`);
   }
-  return { version, major, compilerTarget: String(major), routerVersion: major === 17 ? "^6.30.1" : "^7.9.0" };
+  return { version, major, routerVersion: major === 17 ? "^6.30.1" : "^7.9.0" };
 }
 
 export function angularVersionProfile(options: AtlasGeneratorOptions): AngularVersionProfile {

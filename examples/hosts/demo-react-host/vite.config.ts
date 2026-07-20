@@ -11,18 +11,7 @@ export default defineConfig(
     }),
     {
       base: './',
-      plugins: [
-        react({
-          babel: {
-            plugins: [
-              [
-                'babel-plugin-react-compiler',
-                { target: '19', panicThreshold: 'none' },
-              ],
-            ],
-          },
-        }),
-      ],
+      plugins: [react()],
       resolve: {
         alias: [
           {

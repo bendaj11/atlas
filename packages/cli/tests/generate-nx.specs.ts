@@ -457,10 +457,10 @@ exit 1
   );
   expect(hostViteConfig).toMatch(/createReactHostViteConfig/);
   expect(hostViteConfig).not.toMatch(/remoteEntry\.json|rollupOptions/);
-  expect(hostViteConfig).not.toMatch(/ReactBabelOptions/);
-  expect(hostViteConfig).toMatch(/babel: \{/);
-  expect(hostViteConfig).toMatch(/panicThreshold: "none"/);
-  expect(hostViteConfig).toMatch(/target: "19"/);
+  expect(hostViteConfig).toMatch(/plugins: \[react\(\)\]/);
+  expect(hostViteConfig).not.toMatch(
+    /babel|reactCompilerPreset|ReactBabelOptions/,
+  );
   expect(hostViteConfig).toMatch(/server: \{ port: 4200, cors: true \}/);
   await expect(
     access(join(root, 'apps/host/vite.config.mts')),
@@ -735,7 +735,11 @@ test('atlas adds required React app files after Nx scaffolding', async () => {
       private: true,
       packageManager: 'yarn@1.22.22',
       dependencies: { react: '^19.2.0', 'react-dom': '^19.2.0' },
-      devDependencies: { '@nx/react': '22.0.0' },
+      devDependencies: {
+        '@nx/react': '22.0.0',
+        '@vitejs/plugin-react': '^6.0.3',
+        vite: '^8.1.5',
+      },
     }),
   );
   await writeFile(
@@ -815,10 +819,15 @@ exit 1
   expect(reactViteConfig).not.toMatch(
     /remoteEntry\.json|atlasReactRefreshPreamble|rollupOptions/,
   );
-  expect(reactViteConfig).not.toMatch(/ReactBabelOptions/);
-  expect(reactViteConfig).toMatch(/babel: \{/);
-  expect(reactViteConfig).toMatch(/panicThreshold: "none"/);
-  expect(reactViteConfig).toMatch(/target: "19"/);
+  expect(reactViteConfig).toMatch(/plugins: \[react\(\)\]/);
+  expect(reactViteConfig).not.toMatch(
+    /babel|reactCompilerPreset|ReactBabelOptions/,
+  );
+  const packageJson = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
+  expect(packageJson.devDependencies['@vitejs/plugin-react']).toBe('^6.0.3');
+  expect(packageJson.devDependencies.vite).toBe('^8.1.5');
   await expect(
     access(join(root, 'orders/vite.config.mts')),
   ).rejects.toMatchObject({ code: 'ENOENT' });

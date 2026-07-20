@@ -4,6 +4,14 @@ import * as react from "../dist/react.js";
 
 export const frameworkApis = { angular, react };
 
-export async function readSdkPackage(): Promise<any> {
+interface SdkPackage {
+  readonly exports: Readonly<Record<string, unknown>>;
+  readonly peerDependencies: Readonly<Record<string, string>>;
+  readonly peerDependenciesMeta: Readonly<
+    Record<string, { readonly optional?: boolean }>
+  >;
+}
+
+export async function readSdkPackage(): Promise<SdkPackage> {
   return JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 }

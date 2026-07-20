@@ -1,6 +1,5 @@
 import { atlasPackageRange, type ReactVersionProfile } from "./generator-versions.js";
 
-const REACT_COMPILER_VERSION = "1.0.0";
 const VITE_REACT_PLUGIN_VERSION = "^5.0.4";
 const VITE_VERSION = "^7.3.6";
 
@@ -38,14 +37,12 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       react: profile.version,
       "react-dom": profile.version,
       ...(routed ? { "react-router-dom": profile.routerVersion } : {}),
-      ...(profile.major < 19 ? { "react-compiler-runtime": REACT_COMPILER_VERSION } : {})
     },
     devDependencies: {
       "@types/node": "^22.0.0",
       "@types/react": `^${profile.major}.0.0`,
       "@types/react-dom": `^${profile.major}.0.0`,
       "@vitejs/plugin-react": VITE_REACT_PLUGIN_VERSION,
-      "babel-plugin-react-compiler": REACT_COMPILER_VERSION,
       typescript: "~5.9.0",
       vite: VITE_VERSION
     }
