@@ -43,24 +43,21 @@ always available and do not require this flag.
 
 ## Run a local app
 
-When `--host` is needed, pass stable host UUID from host `atlas.config.ts`, not
-local project folder name. Omit it when app declares only one host; Atlas infers
-that UUID.
+Pass the host page where the app should run. When app configuration does not
+identify exactly one host, Atlas discovers host identity from the page origin's
+public `/atlas.runtime.json`.
 
 ```sh
 atlas dev orders \
-  --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
   --host-url=https://customer.example/orders
 ```
 
-Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, waits for valid federation metadata, then prints the preview URL.
-When browser opening is enabled, Atlas adds its loopback override document to the opened URL. Columbus uses that explicit local-development intent to select the current CLI manifest automatically, including framework-generated stylesheet URLs.
+Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, waits for valid federation metadata, then prints and opens the preview URL unchanged. Override-enabled hosts discover the matching loopback development session by host id; Atlas does not add activation parameters to the page URL.
 
 For a local host:
 
 ```sh
 atlas dev orders \
-  --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 \
   --host-url=http://localhost:4200/orders
 ```
 
@@ -122,7 +119,7 @@ Apps retain their host compatibility, integrity, URL, route, and widget validati
 
 ```sh
 atlas dev customer-host --prepare-only
-atlas dev orders --host=0a17281f-287b-4d89-a8ca-0ab0e577c506 --host-url=https://customer.example/orders --prepare-only
+atlas dev orders --host-url=https://customer.example/orders --prepare-only
 ```
 
 Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`. It does not publish local artifacts.
@@ -131,7 +128,8 @@ Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`.
 
 `Host URL is required`: pass `--host-url` or set `ATLAS_HOST_URL`.
 
-`No host configured`: pass `--host`, or add the host id to an app route/slot.
+`Host URL identifies ..., but app ... has no route or slot for that host`: use a
+host URL supported by the app, or add a placement for that host.
 
 `Framework dev server did not serve ... remoteEntry.json`: check the framework process, selected port, and federation config.
 

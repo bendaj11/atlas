@@ -1,17 +1,14 @@
 import { artifactKey, type AtlasExtensionManifest as Manifest, type AtlasHostData as HostData, type AtlasOverrideDocument as OverrideDocument } from "../contracts.js";
-import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR, DOCUMENT_KEY, URL_KEY } from "./constants.js";
+import { DOCUMENT_KEY, URL_KEY } from "./constants.js";
 import { inspectAtlasHost } from "./inspect-atlas-host.js";
 import type { Scope } from "./types.js";
 import { normalizeStoredManifest } from "./manifest-utils.js";
 
-export async function readHostData(activeTabId: number | undefined): Promise<{ hostData: HostData; tabId: number }> {
+export async function readHostData(): Promise<{ hostData: HostData; tabId: number }> {
   const { tab, hostData } = await findAtlasHostTab();
 
   if (!hostData.overrides) hostData.overrides = await readPersistedOverrides(hostData);
   hostData.overrides = resolveLatestPrOverrides(hostData, hostData.overrides);
-  await updateActionBadge(tab.id, overrideCount(hostData.overrides));
-
-  if (activeTabId && activeTabId !== tab.id) await updateActionBadge(activeTabId, 0);
 
   return { hostData, tabId: tab.id };
 }
@@ -116,14 +113,7 @@ export async function writeOverrides({ tabId, hostData, documentValue, scope, di
   const count = overrideCount(documentValue);
   if (scope === "all" && count) await chrome.storage.local.set({ [storageKey]: documentValue });
   if (scope === "all" && !count) await chrome.storage.local.remove(storageKey);
-  await updateActionBadge(tabId, count);
   await chrome.tabs.reload(tabId);
-}
-
-export async function updateActionBadge(tabId: number, overrideCount: number): Promise<void> {
-  await chrome.action.setBadgeBackgroundColor({ color: BADGE_BACKGROUND_COLOR });
-  await chrome.action.setBadgeTextColor?.({ color: BADGE_TEXT_COLOR });
-  await chrome.action.setBadgeText({ tabId, text: overrideCount > 0 ? String(overrideCount) : "" });
 }
 
 export async function readDisabledOverrides(hostId: string, tabId: number, scope: Scope): Promise<Map<string, Manifest>> {

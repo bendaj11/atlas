@@ -64,8 +64,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     usage: "atlas dev [project] [options]",
     arguments: [{ label: "project", description: "Atlas project name or directory; defaults to the current directory" }],
     options: [
-      { label: "--host <host-id>", description: "Host receiving the local override" },
-      { label: "--host-url <url>", description: "Host page opened with the override activated" },
+      { label: "--host-url <url>", description: "Host page where the local app should run" },
       { label: "--port <number>", description: "Host browser port or app framework port (host: 4200, app: 4201)" },
       { label: "--control-port <number>", description: "Atlas override-server port (default: 4400)" },
       { label: "--bootstrap-port <number>", description: "Override local host bootstrap port (default: host --port)" },
@@ -75,15 +74,14 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "-h, --help", description: "Show help for this command" }
     ],
     environment: [
-      { label: "ATLAS_HOST_ID", description: "Default host id when an app supports multiple hosts" },
-      { label: "ATLAS_HOST_URL", description: "Host base URL or full page URL opened with the override activated" }
+      { label: "ATLAS_HOST_URL", description: "Host base URL or full page URL where the local app should run" }
     ],
     examples: [
       "atlas dev customer-host",
       "atlas dev orders",
       "atlas dev",
       "ATLAS_HOST_URL=http://localhost:4200 atlas dev orders",
-      "atlas dev orders --host 0a17281f-287b-4d89-a8ca-0ab0e577c506 --host-url https://customer.example/orders"
+      "atlas dev orders --host-url https://customer.example/orders"
     ]
   },
   build: {

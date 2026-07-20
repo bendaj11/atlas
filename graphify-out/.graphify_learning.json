@@ -1,0 +1,123 @@
+{
+  "generated_at": "2026-07-20T11:40:03.571665+00:00",
+  "nodes": {
+    "packages_cli_src_dev_atlasdevservice": {
+      "code_fingerprint": "93e25bc39bdac34386a4c3674655124d2d0c00bb03675a87eadf8b1f85a05f39",
+      "label": "AtlasDevService",
+      "last": "2026-07-20T11:32:28.471655+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-20T11:32:28.471655+00:00",
+          "outcome": "useful",
+          "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
+        }
+      ],
+      "score": 0.999878306,
+      "source_file": "packages/cli/src/dev.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "packages_cli_src_dev_resolvehostid": {
+      "code_fingerprint": "93e25bc39bdac34386a4c3674655124d2d0c00bb03675a87eadf8b1f85a05f39",
+      "label": "resolveHostId()",
+      "last": "2026-07-20T11:34:22.893146+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-07-20T11:34:22.893146+00:00",
+          "outcome": "corrected",
+          "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
+        },
+        {
+          "date": "2026-07-20T11:32:28.471655+00:00",
+          "outcome": "useful",
+          "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
+        }
+      ],
+      "score": -3.0595e-05,
+      "source_file": "packages/cli/src/dev.ts",
+      "status": "contested",
+      "uses": 1,
+      "verdict": "dead end"
+    },
+    "packages_runtime_src_loader_runtime_discovery_atlasruntimeoverridedocument": {
+      "code_fingerprint": "9746329635ede53a5287842710caa127bbcb883ff0079285a8a9227a18a34d3f",
+      "label": "AtlasRuntimeOverrideDocument",
+      "last": "2026-07-20T11:37:03.996118+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-20T11:37:03.996118+00:00",
+          "outcome": "useful",
+          "q": "Local app development should never require host id; user supplies only launch URL."
+        }
+      ],
+      "score": 0.999951979,
+      "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "packages_runtime_src_loader_runtime_discovery_loadhostruntimeconfig": {
+      "code_fingerprint": "9746329635ede53a5287842710caa127bbcb883ff0079285a8a9227a18a34d3f",
+      "label": "loadHostRuntimeConfig()",
+      "last": "2026-07-20T11:37:03.996118+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-07-20T11:37:03.996118+00:00",
+          "outcome": "useful",
+          "q": "Local app development should never require host id; user supplies only launch URL."
+        },
+        {
+          "date": "2026-07-20T11:34:22.893146+00:00",
+          "outcome": "corrected",
+          "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
+        }
+      ],
+      "score": 4.3079e-05,
+      "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
+      "status": "contested",
+      "uses": 1,
+      "verdict": "useful"
+    },
+    "packages_schema_src_atlas_config_atlasroutemount": {
+      "code_fingerprint": "60eed1d3b2311f77d6c2eba95e3d915b07f3dd57db7c03db6afb621857858aff",
+      "label": "AtlasRouteMount",
+      "last": "2026-07-20T11:32:28.471655+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-20T11:32:28.471655+00:00",
+          "outcome": "useful",
+          "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
+        }
+      ],
+      "score": 0.999878306,
+      "source_file": "packages/schema/src/atlas-config.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "packages_schema_src_atlas_host_runtime_config_atlashostruntimeconfig": {
+      "code_fingerprint": "e9832d8ae74a06214333dd114b52687e858751cbc17aa2c27a23d1a3216736b8",
+      "label": "AtlasHostRuntimeConfig",
+      "last": "2026-07-20T11:37:03.996118+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-07-20T11:37:03.996118+00:00",
+          "outcome": "useful",
+          "q": "Local app development should never require host id; user supplies only launch URL."
+        },
+        {
+          "date": "2026-07-20T11:34:22.893146+00:00",
+          "outcome": "corrected",
+          "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
+        }
+      ],
+      "score": 4.3079e-05,
+      "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
+      "status": "contested",
+      "uses": 1,
+      "verdict": "useful"
+    }
+  },
+  "version": 1
+}

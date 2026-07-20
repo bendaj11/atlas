@@ -1,35 +1,63 @@
-import { Loader } from '@wix/design-system';
+import {
+  EmptyState,
+  Loader,
+  LoaderStatus,
+  TextButton,
+} from '@wix/design-system';
 import { useEffect } from 'react';
-import { EmptyHostDataState } from './EmptyHostDataState/EmptyHostDataState.js';
-import { PopupApp } from './popup/components/PopupApp.js';
-import { usePopupHost } from './context';
+import { usePopupHost, usePopupOverrides } from './context';
+import { Refresh } from '@wix/wix-ui-icons-common';
+import { AppRoutes } from './popup/components/AppRoutes/AppRoutes';
 
 export function App() {
   const { hostData, loadHost, message, status } = usePopupHost();
+  const { message: overrideMessage } = usePopupOverrides();
 
   useEffect(() => {
     void loadHost();
   }, [loadHost]);
 
-  if (!hostData && status === 'LOADING') {
+  const getLoaderStatus = (): LoaderStatus => {
+    if (status === 'LOADING') {
+      return 'loading';
+    }
+
+    if (status === 'ERROR') {
+      return 'error';
+    }
+
+    return 'success';
+  };
+
+  const getEmptyStateTitle = (): string => {
+    if (status === 'LOADING') {
+      return 'Loading host artifacts';
+    }
+
+    if (status === 'ERROR') {
+      return 'Failed to load host artifacts';
+    }
+
+    return 'Not host artifacts found';
+  };
+
+  const shouldShowEmptyState = status !== 'LOADED' || !hostData;
+
+  if (shouldShowEmptyState) {
     return (
-      <Loader
-        size="large"
-        status="loading"
-        text="Loading host data"
-        statusMessage={message}
-      />
+      <EmptyState
+        image={<Loader status={getLoaderStatus()} />}
+        title={getEmptyStateTitle()}
+        subtitle={message || overrideMessage}
+      >
+        {status !== 'LOADING' && (
+          <TextButton prefixIcon={<Refresh />} onClick={loadHost}>
+            Refresh
+          </TextButton>
+        )}
+      </EmptyState>
     );
   }
 
-  if (!hostData) {
-    return (
-      <EmptyHostDataState
-        onRefresh={loadHost}
-        message={message}
-        disableRefresh={status === 'LOADING'}
-      />
-    );
-  }
-  return <PopupApp />;
+  return <AppRoutes />;
 }

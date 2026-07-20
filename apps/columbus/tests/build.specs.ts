@@ -166,34 +166,10 @@ test('host override policy prevents dev-session interception', async () => {
   expect(result.devSessionRequests).toBe(0);
 });
 
-test('production host does not probe localhost without local development intent', async () => {
+test('override-enabled production host discovers a matching local dev session without URL parameters', async () => {
   const result = await runCatalogInterceptor({
     catalog: catalog([productionManifest]),
     devSession: devSession([localManifest]),
-  });
-  expect(result.devSessionRequests).toBe(0);
-  expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([
-    productionManifest,
-  ]);
-});
-
-test('production host reads local dev session after local override selection', async () => {
-  const result = await runCatalogInterceptor({
-    catalog: catalog([productionManifest]),
-    devSession: devSession([localManifest]),
-    localDevelopmentIntent: true,
-  });
-  expect(result.devSessionRequests).toBe(1);
-  expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([
-    localManifest,
-  ]);
-});
-
-test('Atlas dev activation query enables local dev-session discovery', async () => {
-  const result = await runCatalogInterceptor({
-    catalog: catalog([productionManifest]),
-    devSession: devSession([localManifest]),
-    overrideQueryUrl: 'http://localhost:4400/atlas.local-overrides.json',
   });
   expect(result.devSessionRequests).toBe(1);
   expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([
@@ -203,6 +179,7 @@ test('Atlas dev activation query enables local dev-session discovery', async () 
     hostId: 'test-host',
     apps: [{ manifest: localManifest, reason: 'local' }],
   });
+  expect(result.storedOverrideScope).toBe('all');
 });
 
 test('Atlas dev session replaces a stale custom override', async () => {
@@ -217,15 +194,6 @@ test('Atlas dev session replaces a stale custom override', async () => {
   });
 });
 
-test('non-loopback override query does not probe local dev session', async () => {
-  const result = await runCatalogInterceptor({
-    catalog: catalog([productionManifest]),
-    devSession: devSession([localManifest]),
-    overrideQueryUrl: 'https://registry.test/overrides.json',
-  });
-  expect(result.devSessionRequests).toBe(0);
-});
-
 test('loopback host keeps automatic local dev-session discovery', async () => {
   const result = await runCatalogInterceptor({
     catalog: catalog([productionManifest]),
@@ -236,6 +204,17 @@ test('loopback host keeps automatic local dev-session discovery', async () => {
   expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([
     localManifest,
   ]);
+  expect(result.storedOverrideScope).toBe('all');
+});
+
+test('automatic local dev-session discovery preserves explicit tab scope', async () => {
+  const result = await runCatalogInterceptor({
+    catalog: catalog([productionManifest]),
+    devSession: devSession([localManifest]),
+    localDevelopmentIntent: true,
+    localDevelopmentScope: 'tab',
+  });
+  expect(result.storedOverrideScope).toBe('tab');
 });
 
 test('Columbus extension keeps persisted overrides as fallback without hardcoded hosts', async () => {

@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import { createAtlasBootstrapFiles } from "@atlas/bootstrap";
-import { ATLAS_OVERRIDE_QUERY_PARAM, type AtlasRuntimeOverrideDocument } from "@atlas/runtime";
+import { loadHostRuntimeConfig, type AtlasRuntimeOverrideDocument } from "@atlas/runtime";
 import type {
   AtlasConfig,
   AtlasHostCatalog,
@@ -23,6 +23,7 @@ import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
 const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
+const HOST_DISCOVERY_TIMEOUT_MS = 5_000;
 const LOCAL_HOST = "localhost";
 interface DevControlServer {
   port: number;
@@ -38,7 +39,7 @@ interface HostDevPorts {
 interface DevTarget {
   hostId: string;
   hostUrl: string;
-  promptedForConfiguration: boolean;
+  promptedForHostUrl: boolean;
 }
 
 type AtlasDevBuildService = Pick<AtlasBuildService, "loadConfig" | "buildManifest">
@@ -126,7 +127,7 @@ export class AtlasDevService {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
       logHostViewUrl(hostUrl);
-      openBrowserWhenReady(this.args, atlasDevActivationUrl(hostUrl, overrideUrl));
+      openBrowserWhenReady(this.args, hostUrl);
       await waitForShutdown(frameworkServer, control);
     } finally {
       if (bootstrap) await closeServer(bootstrap);
@@ -166,7 +167,7 @@ export class AtlasDevService {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
       logHostViewUrl(hostActivationUrl);
-      openBrowserWhenReady(this.args, atlasDevActivationUrl(hostActivationUrl, overrideUrl));
+      openBrowserWhenReady(this.args, hostActivationUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill("SIGTERM");
       await control.close();
@@ -181,16 +182,14 @@ export class AtlasDevService {
   }
 
   private async resolveDevTarget(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">): Promise<DevTarget> {
-    const configuredHostId = this.args.flag("host") ?? process.env.ATLAS_HOST_ID;
     const configuredHostUrl = this.args.flag("host-url") ?? process.env.ATLAS_HOST_URL;
-    const hostId = await this.resolveHostId(config, prompts);
-    const hostUrl = await this.resolveHostUrl(config, hostId, prompts);
+    const baseHostUrl = configuredHostUrl ?? await this.promptForHostUrl(prompts);
+    const hostId = await this.resolveHostId(config, baseHostUrl);
+    const hostUrl = await this.resolveHostUrl(config, { hostId, hostUrl: baseHostUrl }, prompts);
     return {
       hostId,
       hostUrl,
-      promptedForConfiguration: prompts.interactive && (
-        (!configuredHostId && configuredHostIds(config).length > 1) || !configuredHostUrl
-      )
+      promptedForHostUrl: prompts.interactive && !configuredHostUrl
     };
   }
 
@@ -199,38 +198,47 @@ export class AtlasDevService {
     target: DevTarget,
     prompts: Pick<AtlasPrompter, "interactive" | "select">
   ): Promise<void> {
-    if (!target.promptedForConfiguration) return;
-    const answer = await prompts.select("Save this host configuration to project .env.local?", [
+    if (!target.promptedForHostUrl) return;
+    const answer = await prompts.select("Save this host URL to project .env.local?", [
       { label: "Yes", value: "yes" },
       { label: "No", value: "no" }
     ]);
     if (answer === "no") return;
-    await saveWorkspaceLocalEnv(projectRoot, {
-      ATLAS_HOST_ID: target.hostId,
-      ATLAS_HOST_URL: target.hostUrl
-    });
-    console.info(`Saved local host configuration to ${join(projectRoot, ".env.local")}.`);
+    await saveWorkspaceLocalEnv(projectRoot, { ATLAS_HOST_URL: target.hostUrl });
+    console.info(`Saved local host URL to ${join(projectRoot, ".env.local")}.`);
   }
 
-  private async resolveHostId(config: AtlasConfig, prompts: Pick<AtlasPrompter, "interactive" | "select">): Promise<string> {
-    const explicit = this.args.flag("host") ?? process.env.ATLAS_HOST_ID;
-    if (explicit) return explicit;
+  private async resolveHostId(config: AtlasConfig, hostUrl: string): Promise<string> {
     const hostIds = configuredHostIds(config);
     if (hostIds.length === 1) return hostIds[0]!;
-    if (hostIds.length > 1 && prompts.interactive) {
-      return prompts.select("Host receiving the local override", hostIds.map((hostId) => ({ label: hostId, value: hostId })));
+    const routeHostId = hostIdFromRoute(config, hostUrl);
+    if (routeHostId) return routeHostId;
+    const hostId = await this.discoverHostId(hostUrl);
+    if (hostIds.length > 0 && !supportsAnyHost(config) && !hostIds.includes(hostId)) {
+      throw new Error(`Host URL identifies "${hostId}", but app "${config.id}" has no route or slot for that host.`);
     }
-    if (hostIds.length > 1) throw new Error(`Multiple hosts found for "${config.id}". Pass --host or set ATLAS_HOST_ID.`);
-    throw new Error(`No host configured for "${config.id}". Add a route or slot with hostId, or pass --host.`);
+    return hostId;
+  }
+
+  private async discoverHostId(hostUrl: string): Promise<string> {
+    try {
+      const runtimeUrl = new URL("/atlas.runtime.json", hostUrl).href;
+      const runtime = await loadHostRuntimeConfig(runtimeUrl, undefined, {
+        timeoutMs: HOST_DISCOVERY_TIMEOUT_MS,
+        retryCount: 0
+      });
+      return runtime.hostId;
+    } catch (cause) {
+      throw new Error(`Host URL "${hostUrl}" does not expose a valid Atlas runtime at /atlas.runtime.json.`, { cause });
+    }
   }
 
   private async resolveHostUrl(
     config: AtlasConfig,
-    hostId: string,
+    target: Pick<DevTarget, "hostId" | "hostUrl">,
     prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">
   ): Promise<string> {
-    const configuredUrl = this.args.flag("host-url") ?? process.env.ATLAS_HOST_URL;
-    const hostUrl = configuredUrl ?? await this.promptForHostUrl(prompts);
+    const { hostId, hostUrl } = target;
     if (!isBaseHostUrl(hostUrl)) return hostUrl;
     const basePaths = routeBasePaths(config, hostId);
     if (basePaths.length === 0) return hostUrl;
@@ -839,12 +847,6 @@ function openBrowserWhenReady(args: CliArguments, url: string | undefined): void
   }
 }
 
-export function atlasDevActivationUrl(hostUrl: string, overrideUrl: string): string {
-  const url = new URL(hostUrl);
-  url.searchParams.set(ATLAS_OVERRIDE_QUERY_PARAM, overrideUrl);
-  return url.href;
-}
-
 export function browserOpenCommand(url: string, platform: NodeJS.Platform = process.platform): { command: string; args: string[] } {
   if (platform === "darwin") return { command: "open", args: [url] };
   if (platform === "win32") return { command: "cmd", args: ["/c", "start", "", url] };
@@ -900,9 +902,30 @@ function configuredHostIds(config: AtlasConfig): string[] {
   ])].filter((hostId) => hostId !== "*");
 }
 
+function supportsAnyHost(config: AtlasConfig): boolean {
+  if (isHostConfig(config)) return false;
+  return [...config.routes ?? [], ...config.slots ?? []].some((placement) => placement.hostId === "*");
+}
+
 function routeBasePaths(config: AtlasConfig, hostId: string): string[] {
   if (isHostConfig(config)) return [];
-  return config.routes?.filter((route) => route.hostId === hostId).map((route) => route.basePath) ?? [];
+  return config.routes
+    ?.filter((route) => route.hostId === hostId || route.hostId === "*")
+    .map((route) => route.basePath) ?? [];
+}
+
+function hostIdFromRoute(config: AtlasConfig, hostUrl: string): string | undefined {
+  if (isHostConfig(config)) return undefined;
+  const pathname = new URL(hostUrl).pathname;
+  const matchingHostIds = new Set(config.routes
+    ?.filter((route) => route.hostId !== "*" && routeMatchesPath(route.basePath, pathname))
+    .map((route) => route.hostId));
+  return matchingHostIds.size === 1 ? matchingHostIds.values().next().value : undefined;
+}
+
+function routeMatchesPath(basePath: string, pathname: string): boolean {
+  const normalizedBasePath = basePath === "/" ? "/" : basePath.replace(/\/+$/, "");
+  return normalizedBasePath === "/" || pathname === normalizedBasePath || pathname.startsWith(`${normalizedBasePath}/`);
 }
 
 function isBaseHostUrl(value: string): boolean {

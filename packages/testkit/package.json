@@ -1,6 +1,6 @@
 {
   "name": "@atlas/testkit",
-  "version": "0.3.16",
+  "version": "0.3.19",
   "type": "module",
   "description": "Test fixtures and in-memory utilities for Atlas hosts and apps.",
   "license": "MIT",
@@ -41,7 +41,7 @@
     "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.16",
-    "@atlas/sdk": "0.3.16"
+    "@atlas/schema": "0.3.19",
+    "@atlas/sdk": "0.3.19"
   }
 }

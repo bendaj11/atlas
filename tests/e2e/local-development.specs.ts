@@ -9,7 +9,6 @@ const APP_MOUNT_TIMEOUT = 15_000;
 interface LocalDevelopmentCase {
   app: string;
   heading: string;
-  hostId: string;
   hostUrl: string;
   remotePort: number;
   controlPort: number;
@@ -19,7 +18,6 @@ const cases: LocalDevelopmentCase[] = [
   {
     app: "dashboard-react",
     heading: "Dashboard React",
-    hostId: "060a7f62-1c95-402c-9993-55749faf36d9",
     hostUrl: "http://127.0.0.1:4300/dashboard",
     remotePort: 4211,
     controlPort: 4411
@@ -27,7 +25,6 @@ const cases: LocalDevelopmentCase[] = [
   {
     app: "dashboard-angular",
     heading: "Dashboard Angular",
-    hostId: "399e1a5d-f83d-4248-96ed-e4211707ae1b",
     hostUrl: "http://127.0.0.1:4301/dashboard-angular",
     remotePort: 4212,
     controlPort: 4412
@@ -43,7 +40,7 @@ test.describe("atlas dev", () => {
       try {
         await waitForHealthyControlServer(scenario.controlPort, process);
         const remoteEntryRequest = waitForRemoteEntry(page, scenario.remotePort);
-        await page.goto(activationUrl(scenario));
+        await page.goto(scenario.hostUrl);
         await remoteEntryRequest;
         await expect(page.getByRole("heading", { name: scenario.heading })).toBeVisible({
           timeout: APP_MOUNT_TIMEOUT
@@ -63,7 +60,6 @@ function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
     "packages/cli/dist/index.js",
     "dev",
     scenario.app,
-    `--host=${scenario.hostId}`,
     `--host-url=${scenario.hostUrl}`,
     `--port=${scenario.remotePort}`,
     `--control-port=${scenario.controlPort}`
@@ -102,12 +98,6 @@ function waitForRemoteEntry(page: Page, port: number): Promise<void> {
     },
     { timeout: PROCESS_START_TIMEOUT }
   ).then(() => undefined);
-}
-
-function activationUrl(scenario: LocalDevelopmentCase): string {
-  const host = new URL(scenario.hostUrl);
-  host.searchParams.set("atlas-override", `http://localhost:${scenario.controlPort}/atlas.local-overrides.json`);
-  return host.toString();
 }
 
 async function stopAtlasDev(process: ChildProcess): Promise<void> {

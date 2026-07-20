@@ -15,7 +15,14 @@ import {
   mergePackageDependencies,
   type FrameworkVersionInfo
 } from "./generate-dependencies.js";
-import { existingPackageName, exists, removeDelegatedReactViteConfigs, takeOverAppSource, writeGenerated } from "./generate-files.js";
+import {
+  ensureAtlasGeneratedFilesIgnored,
+  existingPackageName,
+  exists,
+  removeDelegatedReactViteConfigs,
+  takeOverAppSource,
+  writeGenerated
+} from "./generate-files.js";
 import { frameworkLabel } from "./generate-labels.js";
 import {
   alignDelegatedAngularFederationConfig,
@@ -122,6 +129,7 @@ export class AtlasGenerateService {
       await this.formatGenerated(root);
       const roots = [root];
       await afterGeneration?.(roots);
+      await ensureAtlasGeneratedFilesIgnored(this.workspace.root, root);
       return roots;
     } catch (error) {
       if (!targetExisted) await rm(root, { recursive: true, force: true });

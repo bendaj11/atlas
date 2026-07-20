@@ -300,7 +300,7 @@ so a monitoring outage cannot prevent the application from loading.
 | --- | --- |
 | `createWidgetLoader` | Resolves widgets from the selected owner version. |
 
-Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It discovers an override document through the `atlas-override` query parameter or the `atlas.runtime-override-url` local-storage key, then validates its host and manifests. Product code does not parse this protocol.
+Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It discovers an override document from tab or origin storage, a matching loopback development session, or the legacy `atlas-override` query parameter, then validates its host and manifests. Product code does not parse this protocol.
 
 Infrastructure-only example for custom DOM host runtime:
 

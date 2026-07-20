@@ -1,6 +1,6 @@
 {
   "name": "@atlas/columbus",
-  "version": "0.3.16",
+  "version": "0.3.19",
   "private": true,
   "type": "module",
   "scripts": {

@@ -34,11 +34,16 @@ interface InterceptorScenario {
   devSession: Record<string, unknown>;
   disabledAppIds?: string[];
   localDevelopmentIntent?: boolean;
-  overrideQueryUrl?: string;
+  localDevelopmentScope?: "all" | "tab";
   pageHostname?: string;
 }
 
-export async function runCatalogInterceptor(scenario: InterceptorScenario): Promise<{ catalog: unknown; devSessionRequests: number; storedOverrides: unknown }> {
+export async function runCatalogInterceptor(scenario: InterceptorScenario): Promise<{
+  catalog: unknown;
+  devSessionRequests: number;
+  storedOverrideScope: "all" | "tab" | undefined;
+  storedOverrides: unknown;
+}> {
   const source = await readColumbusFile("dist/content-script.js");
   const storage = createStorage(scenario);
   let devSessionRequests = 0;
@@ -55,10 +60,9 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
   };
   const pageWindow = { fetch: nativeFetch };
   const pageUrl = new URL("https://host.test/dashboard");
-  if (scenario.overrideQueryUrl) pageUrl.searchParams.set("atlas-override", scenario.overrideQueryUrl);
   runInNewContext(source, {
     window: pageWindow,
-    location: { href: pageUrl.href, hostname: scenario.pageHostname ?? "host.test", search: pageUrl.search },
+    location: { href: pageUrl.href, hostname: scenario.pageHostname ?? "host.test" },
     localStorage: storage.local,
     sessionStorage: storage.session,
     Request,
@@ -72,22 +76,26 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
   await pageWindow.fetch("https://host.test/atlas.runtime.json");
   const response = await pageWindow.fetch("https://registry.test/hosts/test-host/catalog.json");
   const catalog: unknown = JSON.parse(JSON.stringify(await response.json()));
-  const storedOverrides = storage.session.getItem("atlas.runtime-overrides")
-    ?? storage.local.getItem("atlas.runtime-overrides");
+  const sessionOverrides = storage.session.getItem("atlas.runtime-overrides");
+  const localOverrides = storage.local.getItem("atlas.runtime-overrides");
+  const storedOverrides = sessionOverrides ?? localOverrides;
   return {
     catalog,
     devSessionRequests,
+    storedOverrideScope: sessionOverrides ? "tab" : localOverrides ? "all" : undefined,
     storedOverrides: storedOverrides ? JSON.parse(storedOverrides) as unknown : undefined
   };
 }
 
 function createStorage(scenario: InterceptorScenario): { local: Storage; session: Storage } {
   const localValues = new Map<string, string>();
+  const sessionValues = new Map<string, string>();
   if (scenario.disabledAppIds?.length) {
     localValues.set("atlas.disabled-local-apps.test-host", JSON.stringify(scenario.disabledAppIds));
   }
   if (scenario.localDevelopmentIntent) {
-    localValues.set("atlas.runtime-overrides", JSON.stringify({
+    const values = scenario.localDevelopmentScope === "tab" ? sessionValues : localValues;
+    values.set("atlas.runtime-overrides", JSON.stringify({
       schemaVersion: "1",
       hostId: "test-host",
       apps: [{ manifest: { channel: "local" } }],
@@ -96,7 +104,7 @@ function createStorage(scenario: InterceptorScenario): { local: Storage; session
   }
   return {
     local: createStorageArea(localValues),
-    session: createStorageArea(new Map())
+    session: createStorageArea(sessionValues)
   };
 }
 

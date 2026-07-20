@@ -45,6 +45,8 @@ export interface AtlasRemoteTrustPolicy {
 export const ATLAS_OVERRIDE_QUERY_PARAM = "atlas-override";
 export const ATLAS_OVERRIDE_STORAGE_KEY = "atlas.runtime-override-url";
 export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = "atlas.runtime-overrides";
+const ATLAS_LOCAL_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
+const LOCAL_DEV_DISCOVERY_TIMEOUT_MS = 500;
 
 export async function loadHostCatalog(options: {
   catalogUrl: string;
@@ -116,19 +118,41 @@ export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideO
   const storedDocument = sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY)
     ?? storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY)
     ?? undefined;
-  if (!url && !storedDocument) return [];
-
-  const document = url
-    ? await runResiliently(
+  let source = url ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
+  let document: unknown;
+  if (url) {
+    document = await runResiliently(
       (signal) => (options.fetchJson ?? defaultFetchJson)(url, signal),
       { stage: "runtime-overrides", resource: url },
       options.requestPolicy
-    )
-    : parseOverrideDocument(storedDocument!);
+    );
+  } else if (storedDocument) {
+    document = parseOverrideDocument(storedDocument);
+  } else if (allowCustomOverrides) {
+    source = localDevSessionUrl(options.hostId);
+    document = await discoverLocalDevSession(source, options.fetchJson);
+    if (document === undefined) return [];
+  } else {
+    return [];
+  }
   validateOverrideShape(document);
-  validateOverrideDocument(document, options.hostId, url ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY);
+  validateOverrideDocument(document, options.hostId, source);
   return document.overrides.filter((override) => allowCustomOverrides
     || (override.reason !== "local" && override.manifest.channel !== "local"));
+}
+
+function localDevSessionUrl(hostId: string): string {
+  const url = new URL(ATLAS_LOCAL_DEV_SESSION_URL);
+  url.searchParams.set("hostId", hostId);
+  return url.href;
+}
+
+async function discoverLocalDevSession(url: string, fetchJson: FetchJson = defaultFetchJson): Promise<unknown | undefined> {
+  try {
+    return await fetchJson(url, AbortSignal.timeout(LOCAL_DEV_DISCOVERY_TIMEOUT_MS));
+  } catch {
+    return undefined;
+  }
 }
 
 export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: AtlasRuntimeOverride[] = []): AtlasManifest[] {

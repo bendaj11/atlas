@@ -16,7 +16,7 @@ test("reads the active Atlas preview tab", async () => {
     inspections: new Map([[7, hostData]])
   });
 
-  const result = await readHostData(undefined);
+  const result = await readHostData();
 
   expect(result.tabId).toBe(7);
 });
@@ -30,7 +30,7 @@ test("finds an open local preview when an app framework tab is active", async ()
     inspections: new Map([[7, hostData]])
   });
 
-  const result = await readHostData(undefined);
+  const result = await readHostData();
 
   expect(result.tabId).toBe(7);
 });
@@ -44,7 +44,7 @@ test("does not scan other tabs from a non-local page", async () => {
     inspections: new Map([[7, hostData]])
   });
 
-  await expect(readHostData(undefined)).rejects.toThrow("No Atlas runtime");
+  await expect(readHostData()).rejects.toThrow("No Atlas runtime");
 });
 
 test("rejects ambiguous local preview tabs", async () => {
@@ -60,7 +60,7 @@ test("rejects ambiguous local preview tabs", async () => {
     ])
   });
 
-  await expect(readHostData(undefined)).rejects.toThrow("Multiple local Atlas previews are open");
+  await expect(readHostData()).rejects.toThrow("Multiple local Atlas previews are open");
 });
 
 interface ChromeMockOptions {

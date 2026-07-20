@@ -19,6 +19,7 @@ test("atlas generates a portable Angular host at an explicit directory", async (
   await expect(access(join(target, "Containerfile"))).rejects.toMatchObject({ code: "ENOENT" });
   await expect(access(join(target, "server"))).rejects.toMatchObject({ code: "ENOENT" });
   expect(await readFile(join(target, "atlas.config.ts"), "utf8")).not.toMatch(/catalogUrl/);
+  expect(await readFile(join(target, ".gitignore"), "utf8")).toBe(".atlas/\n");
   const generatedPackage = JSON.parse(await readFile(join(target, "package.json"), "utf8"));
   expect(generatedPackage.scripts.build).toBe("ng build");
   expect(generatedPackage.scripts["atlas:publish"]).toBe("atlas publish customer-host --from-build-output");

@@ -17,14 +17,14 @@ Copy host UUID from host project's `atlas.config.ts`. Generator creates initial
 `/orders` route for that exact host ID. Keep generated app UUID stable across
 renames.
 
-| File | Edit for |
-| --- | --- |
-| `atlas.config.ts` | app UUID, routes, slots, external app dependencies |
-| `src/app/App.tsx` | feature root UI |
-| `src/app/routes.tsx` | app-relative inner routes |
-| `src/entry.tsx` | Atlas lifecycle adapter; rarely change |
-| `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata |
-| `vite.config.ts` | generated federation wiring; preserve Atlas sections |
+| File                                          | Edit for                                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`                             | app UUID, routes, slots, external app dependencies                                                                  |
+| `src/app/App.tsx`                             | feature root UI                                                                                                     |
+| `src/app/routes.tsx`                          | app-relative inner routes                                                                                           |
+| `src/entry.tsx`                               | Atlas lifecycle adapter; rarely change                                                                              |
+| `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata                                                                                   |
+| `vite.config.ts`                              | React plugin, dev server, aliases, and product-specific Vite overrides; keep `createReactAppViteConfig` composition |
 
 ## 2. Declare Placement
 
@@ -32,19 +32,21 @@ App owns its placement declarations. Route `hostId` must equal stable UUID from
 host `atlas.config.ts`:
 
 ```ts
-import type { AtlasAppConfig } from "@atlas/schema";
+import type { AtlasAppConfig } from '@atlas/schema';
 
 export default {
-  type: "app",
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  name: "Orders",
-  framework: "react",
-  routes: [{
-    hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-    basePath: "/orders",
-    title: "Orders",
-    nav: { label: "Orders", visible: true, order: 10 }
-  }]
+  type: 'app',
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  name: 'Orders',
+  framework: 'react',
+  routes: [
+    {
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      basePath: '/orders',
+      title: 'Orders',
+      nav: { label: 'Orders', visible: true, order: 10 },
+    },
+  ],
 } satisfies AtlasAppConfig;
 ```
 
@@ -57,12 +59,16 @@ Create normal React components and hooks under `src/app`. Obtain host services
 from Atlas context:
 
 ```tsx
-import { useAtlasSdk } from "@atlas/sdk/react";
+import { useAtlasSdk } from '@atlas/sdk/react';
 
 export function OrdersToolbar() {
   const atlas = useAtlasSdk();
   return (
-    <button onClick={() => atlas.toast.open({ title: "Order saved", state: "success" })}>
+    <button
+      onClick={() =>
+        atlas.toast.open({ title: 'Order saved', state: 'success' })
+      }
+    >
       Save order
     </button>
   );

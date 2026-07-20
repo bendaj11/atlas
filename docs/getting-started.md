@@ -40,6 +40,8 @@ Each generated Atlas project contains:
 `atlas:config` is a local preparation and diagnostic step. It reads and
 validates `atlas.config.ts`, then compiles deployment metadata into the
 project's `.atlas/` directory. It does not upload artifacts or deploy anything.
+Project generation adds `.atlas/` to the detected workspace's `.gitignore`, or
+to the generated project's `.gitignore` when it is outside that workspace.
 Do not run it separately in normal CI: `atlas:publish` performs this work
 itself. Only the diagnostic `--skip-compile` flag opts out. Generated host
 `atlas:bootstrap` targets declare config compilation as a task dependency.

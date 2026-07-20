@@ -41,14 +41,14 @@ customer-host/
 
 Responsibilities:
 
-| File | Owner | Edit for |
-| --- | --- | --- |
-| `atlas.config.ts` | Host team | Stable host identity and display name |
-| `src/app/HostLayout.tsx` | Host UI team | Product layout and Atlas mount anchors |
-| `src/CustomerHostAtlasProvider.tsx` | Host platform team | Router, auth-aware HTTP, SDK services, UI renderers, monitoring |
-| `src/host.tsx` | Atlas lifecycle adapter | Rarely change |
-| `src/main.tsx` | Standalone development entry | Usually generated wiring only |
-| `vite.config.ts` | Federation build | Preserve generated Atlas exposure and sharing rules |
+| File                                | Owner                        | Edit for                                                                                                   |
+| ----------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`                   | Host team                    | Stable host identity and display name                                                                      |
+| `src/app/HostLayout.tsx`            | Host UI team                 | Product layout and Atlas mount anchors                                                                     |
+| `src/CustomerHostAtlasProvider.tsx` | Host platform team           | Router, auth-aware HTTP, SDK services, UI renderers, monitoring                                            |
+| `src/host.tsx`                      | Atlas lifecycle adapter      | Rarely change                                                                                              |
+| `src/main.tsx`                      | Standalone development entry | Usually generated wiring only                                                                              |
+| `vite.config.ts`                    | Host build                   | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
 
 Provider filename derives from project name: `customer-host` becomes
 `CustomerHostAtlasProvider.tsx`.
@@ -56,13 +56,15 @@ Provider filename derives from project name: `customer-host` becomes
 Generated host config resembles:
 
 ```ts
-import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasHostConfig } from '@atlas/schema' with {
+  'resolution-mode': 'import',
+};
 
 export default {
-  type: "host",
-  id: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-  name: "Customer Host",
-  framework: "react"
+  type: 'host',
+  id: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+  name: 'Customer Host',
+  framework: 'react',
 } satisfies AtlasHostConfig;
 ```
 
@@ -104,7 +106,9 @@ export function HostLayout() {
       <div data-atlas-host-status />
 
       <header className="product-header">
-        <a href="/" className="product-brand">Customer Portal</a>
+        <a href="/" className="product-brand">
+          Customer Portal
+        </a>
         <div data-atlas-slot="header" />
       </header>
 
@@ -125,12 +129,12 @@ export function HostLayout() {
 
 Anchor behavior:
 
-| Anchor | Purpose | Required when |
-| --- | --- | --- |
-| `data-atlas-host-status` | Host startup and failure UI container | Host must display default or custom startup state |
-| `data-atlas-navigation` | Atlas-generated top-level links | Optional; omit when rendering custom navigation |
-| `data-atlas-route-outlet` | Active routed app mount point | Host contains routed apps |
-| `data-atlas-slot="header"` | Apps assigned to named `header` slot | Catalog contains that slot placement |
+| Anchor                     | Purpose                               | Required when                                     |
+| -------------------------- | ------------------------------------- | ------------------------------------------------- |
+| `data-atlas-host-status`   | Host startup and failure UI container | Host must display default or custom startup state |
+| `data-atlas-navigation`    | Atlas-generated top-level links       | Optional; omit when rendering custom navigation   |
+| `data-atlas-route-outlet`  | Active routed app mount point         | Host contains routed apps                         |
+| `data-atlas-slot="header"` | Apps assigned to named `header` slot  | Catalog contains that slot placement              |
 
 Anchors must render as real DOM elements. Putting an Atlas attribute on a React
 component does not pass it through unless that component explicitly forwards the
@@ -160,9 +164,9 @@ Example extension:
 placeholders. Replace them with hooks and services from host project.
 
 ```tsx
-import type { PropsWithChildren } from "react";
-import { AtlasHostProvider } from "@atlas/runtime/react";
-import atlasConfig from "../atlas.config";
+import type { PropsWithChildren } from 'react';
+import { AtlasHostProvider } from '@atlas/runtime/react';
+import atlasConfig from '../atlas.config';
 
 interface CustomerHostSdk {
   hostData: {
@@ -174,7 +178,7 @@ interface CustomerHostSdk {
 export function CustomerHostAtlasProvider({
   children,
   runtimeConfig,
-  catalog
+  catalog,
 }: HostProviderProps) {
   const toast = useToast();
 
@@ -187,13 +191,13 @@ export function CustomerHostAtlasProvider({
         hostData: {
           hostId: atlasConfig.id,
           name: atlasConfig.name,
-          projectId: "customer-portal"
+          projectId: 'customer-portal',
         },
         httpClient: authenticatedHttpClient,
         showToast: toast.show,
-        observe: (event) => monitoring.capture("atlas.runtime", event),
+        observe: (event) => monitoring.capture('atlas.runtime', event),
         ...(runtimeConfig ? { runtimeConfig } : {}),
-        ...(catalog ? { catalog } : {})
+        ...(catalog ? { catalog } : {}),
       }}
     >
       {children}
@@ -295,7 +299,7 @@ connect design-system renderers through provider options:
     renderLoading: (container, event) =>
       renderAppSkeleton(container, event.manifest.name),
     renderError: (container, event, retry) =>
-      renderAppFailure(container, { app: event.manifest.name, retry })
+      renderAppFailure(container, { app: event.manifest.name, retry }),
   }}
 >
   {children}

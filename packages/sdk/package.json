@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.3.16",
+  "version": "0.3.19",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -40,6 +40,8 @@
       "default": "./dist/federation.js"
     },
     "./federation-config": {
+      "types": "./federation-config.d.cts",
+      "import": "./federation-config.mjs",
       "require": "./federation-config.cjs"
     },
     "./overlay": {
@@ -58,7 +60,9 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
-    "federation-config.cjs"
+    "federation-config.cjs",
+    "federation-config.d.cts",
+    "federation-config.mjs"
   ],
   "publishConfig": {
     "access": "public"
@@ -73,13 +77,14 @@
     "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.16",
+    "@atlas/schema": "0.3.19",
     "@softarc/native-federation-runtime": "^3.5.5"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",
     "@angular/platform-browser": ">=19 <23",
-    "react": ">=17 <20"
+    "react": ">=17 <20",
+    "vite": ">=7 <8"
   },
   "peerDependenciesMeta": {
     "@angular/core": {
@@ -89,6 +94,9 @@
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "vite": {
       "optional": true
     }
   }

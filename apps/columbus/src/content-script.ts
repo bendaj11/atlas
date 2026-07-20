@@ -36,7 +36,6 @@ interface AtlasInterceptDevSession {
 const ATLAS_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
 const ATLAS_RUNTIME_CONFIG_PATH = /\/atlas\.runtime\.json$/;
-const ATLAS_OVERRIDE_QUERY_PARAM = "atlas-override";
 const ATLAS_OVERRIDE_DOCUMENT_KEY = "atlas.runtime-overrides";
 const DISABLED_LOCAL_APPS_KEY_PREFIX = "atlas.disabled-local-apps.";
 const atlasWindow = window as Window & { __atlasExtensionInterceptorInstalled?: boolean };
@@ -61,8 +60,6 @@ function installAtlasCatalogInterceptor(): void {
     const hostId = catalogRequestHostId(requestUrl);
     if (!hostId) return nativeFetch(input, init);
     if (overridePolicies.get(hostId) !== true) return nativeFetch(input, init);
-    if (!hasLocalDevelopmentIntent(hostId)) return nativeFetch(input, init);
-
     const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession(hostId)]);
 
     if (!session || session.hostId !== hostId) return catalogResponse;
@@ -97,43 +94,7 @@ function persistDevSessionOverrides(session: AtlasInterceptDevSession): void {
 function overrideStorage(): Storage {
   if (sessionStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY) !== null) return sessionStorage;
   if (localStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY) !== null) return localStorage;
-  return sessionStorage;
-}
-
-function hasLocalDevelopmentIntent(hostId: string): boolean {
-  if (isLoopbackContentHost(location.hostname)) return true;
-  if (hasLoopbackOverrideQuery()) return true;
-
-  try {
-    const stored = sessionStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY)
-      ?? localStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY);
-    if (!stored) return false;
-
-    const documentValue = JSON.parse(stored) as {
-      hostId?: unknown;
-      host?: { manifest?: { channel?: unknown } };
-      apps?: Array<{ manifest?: { channel?: unknown } }>;
-    };
-    return documentValue.hostId === hostId
-      && (documentValue.host?.manifest?.channel === "local"
-        || documentValue.apps?.some((override) => override.manifest?.channel === "local") === true);
-  } catch {
-    return false;
-  }
-}
-
-function hasLoopbackOverrideQuery(): boolean {
-  const overrideUrl = new URLSearchParams(location.search).get(ATLAS_OVERRIDE_QUERY_PARAM);
-  if (!overrideUrl) return false;
-  try {
-    return isLoopbackContentHost(new URL(overrideUrl).hostname);
-  } catch {
-    return false;
-  }
-}
-
-function isLoopbackContentHost(hostname: string): boolean {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+  return localStorage;
 }
 
 async function rememberOverridePolicy(response: Response, policies: Map<string, boolean>): Promise<void> {

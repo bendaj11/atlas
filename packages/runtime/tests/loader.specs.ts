@@ -403,6 +403,38 @@ test("browser overrides are discovered from the host URL and validated", async (
   assert.equal(overrides[0].manifest.remoteEntryUrl, "http://localhost:4201/remoteEntry.json");
 });
 
+test("browser overrides discover the matching local dev session without URL parameters", async () => {
+  const manifest = createTestManifest({ channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
+  let requestedUrl;
+  const overrides = await loadBrowserRuntimeOverrides({
+    hostId: "host",
+    allowCustomOverrides: true,
+    search: "",
+    storage: { getItem() { return null; } },
+    sessionStorage: { getItem() { return null; } },
+    async fetchJson(url) {
+      requestedUrl = url;
+      return { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [{ appId: manifest.id, manifest, reason: "local" }] };
+    }
+  });
+
+  assert.equal(requestedUrl, "http://localhost:4400/atlas.dev-session.json?hostId=host");
+  assert.equal(overrides[0].manifest.remoteEntryUrl, "http://localhost:4201/remoteEntry.json");
+});
+
+test("missing local dev session leaves browser overrides empty", async () => {
+  const overrides = await loadBrowserRuntimeOverrides({
+    hostId: "host",
+    allowCustomOverrides: true,
+    search: "",
+    storage: { getItem() { return null; } },
+    sessionStorage: { getItem() { return null; } },
+    async fetchJson() { throw new Error("No local Atlas dev session"); }
+  });
+
+  assert.deepEqual(overrides, []);
+});
+
 test("browser overrides cannot cross host boundaries", async () => {
   await assert.rejects(() => loadBrowserRuntimeOverrides({
     hostId: "host",

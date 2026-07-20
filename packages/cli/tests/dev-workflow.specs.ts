@@ -47,7 +47,7 @@ localNetworkTest("local bootstrap serves runtime, deep links, and real asset 404
   }
 });
 
-test("atlas dev rejects apps without a configured host", async () => {
+test("atlas dev discovers a host for apps with wildcard host support", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-missing-host-"));
   const projectRoot = join(root, "orders");
   await mkdir(projectRoot, { recursive: true });
@@ -61,13 +61,25 @@ test("atlas dev rejects apps without a configured host", async () => {
     "};"
   ].join("\n"));
 
-  await expect(runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"])).rejects.toThrow(/No host configured for "orders"\. Add a route or slot with hostId, or pass --host\./);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    schemaVersion: "1",
+    hostId: "customer-host",
+    catalogUrl: "https://registry.example/hosts/customer-host/catalog.json"
+  });
+  try {
+    await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://host.example/orders", "--prepare-only"]);
+    const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
+    expect(document.hostId).toBe("customer-host");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("atlas dev prepares a React Native Federation override", async () => {
   const stdout = await run(process.execPath, [
     "packages/cli/dist/index.js", "dev", "dashboard-react",
-    "--host=060a7f62-1c95-402c-9993-55749faf36d9", "--host-url=https://host.example/dashboard",
+    "--host-url=https://host.example/dashboard",
     "--port=4513", "--control-port=4514", "--prepare-only"
   ]);
   const document = JSON.parse(await readFile("examples/apps/dashboard-react/.atlas/local-overrides.json", "utf8"));
@@ -243,7 +255,6 @@ localNetworkTest("atlas dev delegates Nx app projects to the serve task", async 
   });
   const args = new CliArguments([
     "dev", "orders",
-    "--host=customer-host",
     "--host-url=https://host.example/orders",
     `--port=${remoteServer.port}`,
     `--control-port=${controlPort}`,

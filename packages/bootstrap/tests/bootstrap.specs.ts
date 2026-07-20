@@ -53,6 +53,12 @@ test("browser loader removes bootstrap loading markup before mounting host", () 
   assert.ok(clearLoadingMarkup < mountHost);
 });
 
+test("browser loader discovers local dev sessions without changing the page URL", () => {
+  assert.match(ATLAS_BROWSER_LOADER, /http:\/\/localhost:4400\/atlas\.dev-session\.json/);
+  assert.match(ATLAS_BROWSER_LOADER, /searchParams\.set\("hostId", hostId\)/);
+  assert.match(ATLAS_BROWSER_LOADER, /if \(!present\.has\(override\.appId\)\) apps\.push\(override\.manifest\)/);
+});
+
 test("Nginx fallback never turns missing assets into HTML", () => {
   const config = createNginxConfig();
   assert.match(config, /location ~ \\\.\[\^\/\]\+\$ \{\n    try_files \$uri =404;/);

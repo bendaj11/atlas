@@ -1,6 +1,8 @@
 export const ATLAS_BROWSER_LOADER = String.raw`
 const DOCUMENT_KEY = "atlas.runtime-overrides";
 const URL_KEY = "atlas.runtime-override-url";
+const DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
+const DEV_SESSION_TIMEOUT_MS = 500;
 const LOADER_API_VERSION = "1.0.0";
 
 start().catch(showFatalError);
@@ -51,9 +53,16 @@ async function fetchJson(url, runtime = {}, integrity) {
 async function applyOverrides(runtime, catalog) {
   const allowCustom = runtime.allowCustomOverrides === true;
   const overrideUrl = allowCustom ? new URLSearchParams(location.search).get("atlas-override") : undefined;
-  const stored = overrideUrl
+  let stored = overrideUrl
     ? JSON.stringify(await fetchJson(overrideUrl, runtime))
     : sessionStorage.getItem(DOCUMENT_KEY) || localStorage.getItem(DOCUMENT_KEY);
+  if (!stored && allowCustom) {
+    const devSession = await discoverDevSession(runtime.hostId);
+    if (devSession) {
+      catalog = mergeDevSessionCatalog(catalog, devSession);
+      stored = JSON.stringify(devSession);
+    }
+  }
   if (!stored) return catalog;
   const overrides = JSON.parse(stored);
   if (overrides.hostId !== runtime.hostId) return catalog;
@@ -75,6 +84,34 @@ async function applyOverrides(runtime, catalog) {
     else throw new Error("Atlas app override does not target a selected app or external widget provider.");
   }
   return { ...catalog, host, apps: [...appsById.values()], widgetProviders: [...providersById.values()] };
+}
+
+function mergeDevSessionCatalog(catalog, session) {
+  const overrides = new Map((session.overrides || []).map((override) => [override.appId, override.manifest]));
+  const apps = catalog.apps.map((manifest) => overrides.get(manifest.id) || manifest);
+  const present = new Set(apps.map((manifest) => manifest.id));
+  for (const override of session.overrides || []) {
+    if (!present.has(override.appId)) apps.push(override.manifest);
+  }
+  return {
+    ...catalog,
+    generatedAt: session.generatedAt,
+    host: session.hostOverride || catalog.host,
+    apps
+  };
+}
+
+async function discoverDevSession(hostId) {
+  try {
+    const url = new URL(DEV_SESSION_URL);
+    url.searchParams.set("hostId", hostId);
+    const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(DEV_SESSION_TIMEOUT_MS) });
+    if (!response.ok) return undefined;
+    const session = await response.json();
+    return session && session.schemaVersion === "1" && session.hostId === hostId ? session : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function resolveOverrideManifest(manifest, runtime) {

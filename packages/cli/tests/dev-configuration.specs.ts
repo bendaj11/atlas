@@ -42,12 +42,12 @@ test("atlas dev without a project uses the current Atlas project directory", asy
 
 test("workspace env files supply Atlas dev defaults without overriding shell env", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-env-"));
-  const originalHost = process.env.ATLAS_HOST_ID;
+  const originalRegistryUrl = process.env.ATLAS_REGISTRY_URL;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  process.env.ATLAS_HOST_ID = "shell-host";
+  process.env.ATLAS_REGISTRY_URL = "https://shell-registry.example";
   delete process.env.ATLAS_HOST_URL;
   await writeFile(join(root, ".env"), [
-    "ATLAS_HOST_ID=file-host",
+    "ATLAS_REGISTRY_URL=https://file-registry.example",
     "ATLAS_HOST_URL=http://localhost:4200",
     "# ignored"
   ].join("\n"));
@@ -55,10 +55,10 @@ test("workspace env files supply Atlas dev defaults without overriding shell env
 
   try {
     await loadEnvFiles(root);
-    expect(process.env.ATLAS_HOST_ID).toBe("shell-host");
+    expect(process.env.ATLAS_REGISTRY_URL).toBe("https://shell-registry.example");
     expect(process.env.ATLAS_HOST_URL).toBe("http://localhost:4300");
   } finally {
-    restoreEnv("ATLAS_HOST_ID", originalHost);
+    restoreEnv("ATLAS_REGISTRY_URL", originalRegistryUrl);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
@@ -75,9 +75,7 @@ test("atlas dev appends a single route to a base ATLAS_HOST_URL", async () => {
     '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
     "};"
   ].join("\n"));
-  const originalHost = process.env.ATLAS_HOST_ID;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  delete process.env.ATLAS_HOST_ID;
   process.env.ATLAS_HOST_URL = "http://localhost:5173";
 
   try {
@@ -87,7 +85,6 @@ test("atlas dev appends a single route to a base ATLAS_HOST_URL", async () => {
     expect(stdout).toMatch(/http:\/\/localhost:5173\/orders/);
     expect(stdout).not.toMatch(/atlas-override/);
   } finally {
-    restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
@@ -137,7 +134,7 @@ test("atlas dev prompts for a missing host URL in interactive mode", async () =>
         return "https://customer.example/orders";
       },
       select: async (message, choices) => {
-        expect(message).toBe("Save this host configuration to project .env.local?");
+        expect(message).toBe("Save this host URL to project .env.local?");
         return choices.find((choice) => choice.value === "no")!.value;
       }
     });
@@ -209,7 +206,7 @@ test("atlas dev keeps a full ATLAS_HOST_URL with multiple routes", async () => {
   }
 });
 
-test("atlas dev prompts when multiple configured hosts are possible", async () => {
+test("atlas dev discovers the host from its runtime configuration", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-multi-host-"));
   const projectRoot = join(root, "orders");
   await mkdir(projectRoot, { recursive: true });
@@ -220,38 +217,67 @@ test("atlas dev prompts when multiple configured hosts are possible", async () =
     '  framework: "angular",',
     '  routes: [',
     '    { hostId: "customer-host", basePath: "/orders" },',
-    '    { hostId: "admin-host", basePath: "/admin/orders" }',
+    '    { hostId: "admin-host", basePath: "/orders" }',
     "  ]",
     "};"
   ].join("\n"));
-  const originalHost = process.env.ATLAS_HOST_ID;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  delete process.env.ATLAS_HOST_ID;
   delete process.env.ATLAS_HOST_URL;
+  const originalFetch = globalThis.fetch;
+  let requestedRuntimeUrl = "";
+  globalThis.fetch = async (input) => {
+    requestedRuntimeUrl = String(input);
+    return Response.json({
+      schemaVersion: "1",
+      hostId: "admin-host",
+      catalogUrl: "https://registry.example/hosts/admin-host/catalog.json"
+    });
+  };
 
   try {
-    await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://admin.example/admin/orders", "--prepare-only"], {
-      interactive: true,
-      input: async () => { throw new Error("Host input should not be prompted."); },
-      select: async (message, choices) => {
-        if (message === "Save this host configuration to project .env.local?") {
-          return choices.find((choice) => choice.value === "no")!.value;
-        }
-        const selected = choices.find((choice) => choice.value === "admin-host");
-        if (!selected) throw new Error("Expected admin host choice.");
-        return selected.value;
-      }
-    });
+    await runDevService(root, projectRoot, ["dev", "orders", "--host-url=https://admin.example/orders", "--prepare-only"]);
 
     const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
     expect(document.hostId).toBe("admin-host");
+    expect(requestedRuntimeUrl).toBe("https://admin.example/atlas.runtime.json");
   } finally {
-    restoreEnv("ATLAS_HOST_ID", originalHost);
+    globalThis.fetch = originalFetch;
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
 
-test("atlas dev offers to save prompted host configuration to project .env.local", async () => {
+test("atlas dev rejects a discovered host unsupported by the app", async () => {
+  const root = await mkdtemp(join(tmpdir(), "atlas-dev-unsupported-host-"));
+  const projectRoot = join(root, "orders");
+  await mkdir(projectRoot, { recursive: true });
+  await writeFile(join(projectRoot, "tsconfig.json"), JSON.stringify(testTypeScriptConfig()));
+  await writeFile(join(projectRoot, "atlas.config.ts"), [
+    "export default {",
+    '  id: "orders",',
+    '  framework: "react",',
+    "  routes: [",
+    '    { hostId: "customer-host", basePath: "/orders" },',
+    '    { hostId: "admin-host", basePath: "/orders" }',
+    "  ]",
+    "};"
+  ].join("\n"));
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    schemaVersion: "1",
+    hostId: "unknown-host",
+    catalogUrl: "https://registry.example/hosts/unknown-host/catalog.json"
+  });
+
+  try {
+    await expect(runDevService(root, projectRoot, [
+      "dev", "orders", "--host-url=https://unknown.example/orders", "--prepare-only"
+    ])).rejects.toThrow(/Host URL identifies "unknown-host", but app "orders" has no route or slot for that host\./);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("atlas dev offers to save a prompted host URL to project .env.local", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-dev-save-host-env-"));
   const projectRoot = join(root, "orders");
   await mkdir(projectRoot, { recursive: true });
@@ -264,9 +290,7 @@ test("atlas dev offers to save prompted host configuration to project .env.local
     '  routes: [{ hostId: "customer-host", basePath: "/orders" }]',
     "};"
   ].join("\n"));
-  const originalHost = process.env.ATLAS_HOST_ID;
   const originalHostUrl = process.env.ATLAS_HOST_URL;
-  delete process.env.ATLAS_HOST_ID;
   delete process.env.ATLAS_HOST_URL;
 
   try {
@@ -274,24 +298,19 @@ test("atlas dev offers to save prompted host configuration to project .env.local
       interactive: true,
       input: async () => "https://customer.example/orders",
       select: async (message, choices) => {
-        expect(message).toBe("Save this host configuration to project .env.local?");
+        expect(message).toBe("Save this host URL to project .env.local?");
         return choices.find((choice) => choice.value === "yes")!.value;
       }
     });
     expect(await readFile(join(projectRoot, ".env.local"), "utf8")).toBe([
       "UNCHANGED=value",
-      "ATLAS_HOST_ID=customer-host",
       "ATLAS_HOST_URL=https://customer.example/orders",
       ""
     ].join("\n"));
-    delete process.env.ATLAS_HOST_ID;
     delete process.env.ATLAS_HOST_URL;
     await loadEnvFiles(projectRoot);
-    expect(process.env.ATLAS_HOST_ID).toBe("customer-host");
     expect(process.env.ATLAS_HOST_URL).toBe("https://customer.example/orders");
   } finally {
-    restoreEnv("ATLAS_HOST_ID", originalHost);
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
 });
-
