@@ -1,18 +1,21 @@
 import { createContext, createElement as createReactElement, useContext, type ReactElement, type ReactNode } from "react";
 import type { AtlasAppContext } from "./lifecycle.js";
-import type { AtlasSdk } from "./host.js";
+import type { AtlasSdk as AtlasSdkValue } from "./host.js";
+import { createReactAtlasSdk, type ReactAtlasSdk } from "./react-widget.js";
 
-export const AtlasSdkContext = createContext<AtlasSdk | undefined>(undefined);
+export type AtlasSdk<THostSdk extends object = {}> = ReactAtlasSdk<THostSdk>;
+
+export const AtlasSdkContext = createContext<AtlasSdkValue | undefined>(undefined);
 export const AtlasRuntimeContext = createContext<AtlasAppContext | undefined>(undefined);
 
-export function AtlasSdkProvider({ sdk, children }: { sdk: AtlasSdk; children: ReactNode }): ReactElement {
+export function AtlasSdkProvider({ sdk, children }: { sdk: AtlasSdkValue; children: ReactNode }): ReactElement {
   return createReactElement(AtlasSdkContext.Provider, { value: sdk }, children);
 }
 
 export function useAtlasSdk<THostSdk extends object = {}>(): AtlasSdk<THostSdk> {
   const sdk = useContext(AtlasSdkContext);
   if (!sdk) throw new Error("useAtlasSdk must be used inside an Atlas SDK provider.");
-  return sdk as AtlasSdk<THostSdk>;
+  return createReactAtlasSdk(sdk as AtlasSdkValue<THostSdk>);
 }
 
 export function useAppLoaded(): () => void {

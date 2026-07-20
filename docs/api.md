@@ -41,7 +41,7 @@ import { startHost } from "@atlas/runtime/react";
 | --- | --- | --- |
 | Start a host | `startHost` | `startHost` |
 | Create an app entry | `defineApp` | `defineApp` |
-| Create an exported widget | `defineExportedWidget` | `defineExportedWidget` |
+| Create an exported widget | Export a native component | Export a native component |
 | Adapt host navigation | `createHostNavigation` | `createHostNavigation` |
 | Configure inner routing | `createLocationStrategy` | `createRouterOptions` |
 
@@ -119,7 +119,7 @@ Import lifecycle types from `@atlas/sdk/lifecycle`:
 | `AtlasExportedWidgetEntry` | Framework-neutral widget mount contract |
 | `AtlasWidgetHandle` | UUID-resolved widget with `mount(container, props)` |
 
-`AtlasCoreSdk.getWidget(widgetId)` is preferred consumer API. Same-registry providers resolve automatically; `externalAppsDependencies` permits named providers from bootstrap-approved external registries.
+Framework SDK `getWidget(...)` is the preferred consumer API. React receives a stable component; Angular supplies widget id plus `{ containerId, inputs, loadingComponent? }`. Same-registry providers resolve automatically; `externalAppsDependencies` permits named providers from bootstrap-approved external registries.
 
 Framework adapters implement these boundaries. Product code should not create
 manual mount wrappers unless it is integrating another framework.
@@ -156,7 +156,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 | `injectAtlasSdk<TExtensions, TEvents, THostData>()` | Read the typed SDK from Angular injection |
 | `provideAtlasSdk()` | Register the host-provided SDK during app mount |
 | `defineApp()` | Expose an Angular app lifecycle entry |
-| `defineExportedWidget()` | Expose an Angular widget lifecycle entry |
+| `defineExportedWidget()` | Low-level Angular widget lifecycle adapter; generated widgets do not call it |
 | `createLocationStrategy()` | Scope Angular Router to the app base path |
 | `AtlasDefaultHostRouteComponent` | Catch-all Angular host route component used with the generated default host layout |
 | `AtlasNavigationItemsService` | Read runtime-resolved route navigation items for custom Angular host navigation |
@@ -177,7 +177,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 | `useAtlasSdk<TExtensions, TEvents, THostData>()` | Read the typed SDK from React context |
 | `defineApp()` | Expose a router-free React app lifecycle entry |
 | `createRoutedApp()` | Expose a React Router app lifecycle entry |
-| `defineExportedWidget()` | Expose a React widget lifecycle entry |
+| `defineExportedWidget()` | Low-level React widget lifecycle adapter; generated widgets do not call it |
 | `createRouterOptions()` | Scope a memory router to the app base path |
 | `connectRouter()` | Synchronize React Router and host navigation |
 | `AtlasHostProvider` | Create and provide the host SDK, then start Atlas after the React tree commits |

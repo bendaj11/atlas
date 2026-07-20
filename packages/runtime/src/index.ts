@@ -1,8 +1,9 @@
 import type { AtlasExportedWidgetManifest, AtlasManifest, AtlasPlacement } from "@atlas/schema";
 import { connectAtlasWidgetResolver } from "@atlas/sdk";
-import type { AtlasSdk, AtlasWidgetHandle } from "@atlas/sdk/host";
+import type { AtlasGetWidgetOptions, AtlasSdk, AtlasWidgetHandle, AtlasWidgetLoadingRenderer } from "@atlas/sdk/host";
 import type {
   AtlasExportedWidgetEntry,
+  AtlasExportedWidgetMountResult,
   AtlasAppEntry,
   AtlasAppMountResult,
   AtlasMountedWidget,
@@ -523,7 +524,10 @@ export function createWidgetLoader(
     return resolved;
   };
 
-  const getWidget = async (widgetId: string): Promise<AtlasWidgetHandle> => ({
+  const getWidget = <TInputs extends object>(
+    widgetId: string,
+    widgetOptions?: AtlasGetWidgetOptions
+  ): AtlasWidgetHandle<TInputs> => ({
     id: widgetId,
     name: entries.get(widgetId)?.widget.name ?? widgetId,
     mount: (container, props) => mountResolvedWidget({
@@ -533,7 +537,8 @@ export function createWidgetLoader(
       sdk,
       resolve,
       initialContext: widgetRenderContext(widgetId, entries.get(widgetId)),
-      options
+      options,
+      ...(widgetOptions?.renderLoading ? { renderLoading: widgetOptions.renderLoading } : {})
     })
   });
 
@@ -545,8 +550,8 @@ export function createWidgetLoader(
         .filter((widget, index, widgets) => widgets.findIndex((candidate) => candidate.id === widget.id) === index);
     },
     getWidget,
-    async mount<TProps extends object>(widgetId: string, container: HTMLElement, props: TProps): Promise<AtlasMountedWidget> {
-      return (await getWidget(widgetId)).mount(container, props) as Promise<AtlasMountedWidget>;
+    async mount<TProps extends object>(widgetId: string, container: HTMLElement, props: TProps): Promise<AtlasMountedWidget<TProps>> {
+      return getWidget<TProps>(widgetId).mount(container, props) as Promise<AtlasMountedWidget<TProps>>;
     }
   };
 }
@@ -559,13 +564,18 @@ interface MountResolvedWidgetInput<TProps extends object> {
   resolve: (widgetId: string) => Promise<AtlasResolvedWidget>;
   initialContext: AtlasWidgetRenderContext;
   options: AtlasWidgetLoaderOptions;
+  renderLoading?: AtlasWidgetLoadingRenderer;
 }
 
-async function mountResolvedWidget<TProps extends object>(input: MountResolvedWidgetInput<TProps>): Promise<AtlasMountedWidget> {
-  const state: MountedWidgetState = { disposed: false };
+async function mountResolvedWidget<TProps extends object>(input: MountResolvedWidgetInput<TProps>): Promise<AtlasMountedWidget<TProps>> {
+  const state: MountedWidgetState<TProps> = { disposed: false };
   await mountWidgetAttempt(input, state);
   return {
     get widget() { return state.current?.widget; },
+    setInputs(inputs) {
+      input.props = inputs;
+      state.current?.setInputs?.(inputs);
+    },
     async unmount() {
       state.disposed = true;
       await state.current?.unmount();
@@ -573,21 +583,22 @@ async function mountResolvedWidget<TProps extends object>(input: MountResolvedWi
   };
 }
 
-interface MountedWidgetState {
-  current?: AtlasMountedWidget;
+interface MountedWidgetState<TInputs extends object> {
+  current?: AtlasMountedWidget<TInputs>;
   disposed: boolean;
 }
 
 async function mountWidgetAttempt<TProps extends object>(
   input: MountResolvedWidgetInput<TProps>,
-  state: MountedWidgetState
+  state: MountedWidgetState<TProps>
 ): Promise<void> {
   const card = createWidgetCard({
     parent: input.container,
     context: input.initialContext,
-    options: input.options
+    options: input.options,
+    ...(input.renderLoading ? { renderLoading: input.renderLoading } : {})
   });
-  state.current = { widget: undefined, async unmount() { card.remove(); } };
+  state.current = { widget: undefined, setInputs() {}, async unmount() { card.remove(); } };
   card.showLoading();
   let resolved: AtlasResolvedWidget | undefined;
   try {
@@ -604,7 +615,7 @@ async function mountWidgetAttempt<TProps extends object>(
     card.clearStatus();
     const boundary = createMountBoundary(card.element, resolved.widget.id, resolved.ownerManifest.isolation ?? "scoped", "widget");
     const releaseAssetRewrite = startRemoteAssetRewrite(resolved.ownerManifest, boundary.container, card.element.ownerDocument ?? globalThis.document);
-    let result: void | AtlasAppMountResult;
+    let result: void | AtlasExportedWidgetMountResult<TProps>;
     try {
       result = await entry.mount({ container: boundary.container, props: input.props, sdk: input.sdk, ...resolved });
     } catch (error) {
@@ -613,8 +624,11 @@ async function mountWidgetAttempt<TProps extends object>(
       releaseStyles();
       throw error;
     }
-    const mounted: AtlasMountedWidget = {
+    const mounted: AtlasMountedWidget<TProps> = {
       widget: resolved.widget,
+      setInputs(inputs) {
+        result?.setInputs?.(inputs);
+      },
       async unmount() {
         try { await result?.unmount?.(); }
         finally { releaseAssetRewrite(); boundary.remove(); releaseStyles(); card.remove(); }
@@ -638,6 +652,7 @@ interface WidgetCardInput {
   parent: HTMLElement;
   context: AtlasWidgetRenderContext;
   options: AtlasWidgetUiOptions;
+  renderLoading?: AtlasWidgetLoadingRenderer;
 }
 
 function createWidgetCard(input: WidgetCardInput): {
@@ -671,6 +686,10 @@ function createWidgetCard(input: WidgetCardInput): {
     clearStatus,
     showLoading() {
       clearStatus();
+      if (input.renderLoading) {
+        disposeStatus = input.renderLoading(element) || undefined;
+        return;
+      }
       if (input.options.renderWidgetLoading) {
         disposeStatus = input.options.renderWidgetLoading(element, input.context) || undefined;
         return;

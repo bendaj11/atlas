@@ -61,10 +61,10 @@ package dependency remain visible because Angular CLI resolves them by package n
 Create an Angular exported widget inside an app:
 
 ```sh
-atlas g widget order-status --app=orders
+atlas g widget order-status --app-id=f856e01e-0fc1-4a6d-a4ec-622c68100d14
 ```
 
-Atlas creates `atlas.widget.ts` (stable UUID and display name) plus `index.ts`
+Atlas creates `atlas.config.ts` (stable UUID and display name) plus `index.ts`
 (Angular implementation). Consumers call `sdk.getWidget("<widget-uuid>")`;
 folder/expose path is internal federation wiring.
 

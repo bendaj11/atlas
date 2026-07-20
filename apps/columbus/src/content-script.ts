@@ -36,6 +36,7 @@ interface AtlasInterceptDevSession {
 const ATLAS_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
 const ATLAS_RUNTIME_CONFIG_PATH = /\/atlas\.runtime\.json$/;
+const ATLAS_OVERRIDE_QUERY_PARAM = "atlas-override";
 const ATLAS_OVERRIDE_DOCUMENT_KEY = "atlas.runtime-overrides";
 const DISABLED_LOCAL_APPS_KEY_PREFIX = "atlas.disabled-local-apps.";
 const atlasWindow = window as Window & { __atlasExtensionInterceptorInstalled?: boolean };
@@ -65,6 +66,7 @@ function installAtlasCatalogInterceptor(): void {
     const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession(hostId)]);
 
     if (!session || session.hostId !== hostId) return catalogResponse;
+    persistDevSessionOverrides(session);
     return catalogResponse.ok
       ? mergeCatalogResponse(catalogResponse, session)
       : localCatalogResponse(session);
@@ -78,8 +80,29 @@ function installAtlasCatalogInterceptor(): void {
   }
 }
 
+function persistDevSessionOverrides(session: AtlasInterceptDevSession): void {
+  const disabledAppIds = readDisabledAppIds(session.hostId);
+  const documentValue = {
+    schemaVersion: "1",
+    hostId: session.hostId,
+    generatedAt: session.generatedAt,
+    ...(session.hostOverride ? { host: { manifest: session.hostOverride, reason: "local" } } : {}),
+    apps: session.overrides
+      .filter((override) => !disabledAppIds.has(override.appId))
+      .map((override) => ({ manifest: override.manifest, reason: "local" }))
+  };
+  overrideStorage().setItem(ATLAS_OVERRIDE_DOCUMENT_KEY, JSON.stringify(documentValue));
+}
+
+function overrideStorage(): Storage {
+  if (sessionStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY) !== null) return sessionStorage;
+  if (localStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY) !== null) return localStorage;
+  return sessionStorage;
+}
+
 function hasLocalDevelopmentIntent(hostId: string): boolean {
   if (isLoopbackContentHost(location.hostname)) return true;
+  if (hasLoopbackOverrideQuery()) return true;
 
   try {
     const stored = sessionStorage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY)
@@ -94,6 +117,16 @@ function hasLocalDevelopmentIntent(hostId: string): boolean {
     return documentValue.hostId === hostId
       && (documentValue.host?.manifest?.channel === "local"
         || documentValue.apps?.some((override) => override.manifest?.channel === "local") === true);
+  } catch {
+    return false;
+  }
+}
+
+function hasLoopbackOverrideQuery(): boolean {
+  const overrideUrl = new URLSearchParams(location.search).get(ATLAS_OVERRIDE_QUERY_PARAM);
+  if (!overrideUrl) return false;
+  try {
+    return isLoopbackContentHost(new URL(overrideUrl).hostname);
   } catch {
     return false;
   }

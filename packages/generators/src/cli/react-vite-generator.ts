@@ -51,22 +51,22 @@ export default defineConfig({
 }
 
 export function reactAppViteConfig(name: string, compilerTarget: string, devServerPort = 4201): string {
-  return `import { existsSync, readdirSync, writeFileSync } from "node:fs";
+  return `import { writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
-const widgetsRoot = resolve(__dirname, "src/exported-widgets");
-const widgetIds = existsSync(widgetsRoot)
-  ? readdirSync(widgetsRoot, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-  : [];
+const require = createRequire(import.meta.url);
+const { createReactWidgetEntries } = require("@atlas/sdk/federation-config") as {
+  createReactWidgetEntries(options: { projectRoot: string; reactMajor: number }): Array<{ name: string; entryPoint: string }>;
+};
+const widgetEntries = createReactWidgetEntries({ projectRoot: __dirname, reactMajor: ${compilerTarget} });
 const exposes = [
   { key: "./entry", outFileName: "entry.js" },
-  ...widgetIds.map((id) => ({
-    key: \`./widgets/\${id}\`,
-    outFileName: \`widgets/\${id}.js\`
+  ...widgetEntries.map(({ name }) => ({
+    key: \`./widgets/\${name}\`,
+    outFileName: \`widgets/\${name}.js\`
   }))
 ];
 const reactCompilerConfig = { target: "${compilerTarget}", panicThreshold: "none" };
@@ -88,10 +88,10 @@ function atlasFederationMetadata(): Plugin {
                 outFileName: "src/entry.tsx",
                 dev: { entryPoint: "src/entry.tsx" }
               },
-              ...widgetIds.map((id) => ({
-                key: \`./widgets/\${id}\`,
-                outFileName: \`src/exported-widgets/\${id}/index.tsx\`,
-                dev: { entryPoint: \`src/exported-widgets/\${id}/index.tsx\` }
+              ...widgetEntries.map(({ name, entryPoint }) => ({
+                key: \`./widgets/\${name}\`,
+                outFileName: entryPoint,
+                dev: { entryPoint }
               }))
             ]
           })
@@ -107,7 +107,7 @@ function atlasFederationMetadata(): Plugin {
 function atlasReactRefreshPreamble(): Plugin {
   const sourceEntries = new Set([
     "src/entry.tsx",
-    ...widgetIds.map((id) => \`src/exported-widgets/\${id}/index.tsx\`)
+    ...widgetEntries.map(({ entryPoint }) => entryPoint)
   ]);
 
   return {
@@ -116,7 +116,7 @@ function atlasReactRefreshPreamble(): Plugin {
     enforce: "pre",
     transform(code, id) {
       const sourcePath = id.split("?")[0].replaceAll("\\\\", "/");
-      if (!sourceEntries.has(sourcePath.slice(sourcePath.lastIndexOf("src/")))) return;
+      if (![...sourceEntries].some((entryPoint) => sourcePath.endsWith(entryPoint))) return;
       return \`import "@vitejs/plugin-react/preamble";\\n\${code}\`;
     }
   };
@@ -139,7 +139,7 @@ export default defineConfig({
     rollupOptions: {
       input: Object.fromEntries([
         ["entry", resolve(__dirname, "src/entry.tsx")],
-        ...widgetIds.map((id) => [\`widgets/\${id}\`, resolve(widgetsRoot, id, "index.tsx")])
+        ...widgetEntries.map(({ name, entryPoint }) => [\`widgets/\${name}\`, resolve(__dirname, entryPoint)])
       ]),
       output: {
         entryFileNames: "[name].js",

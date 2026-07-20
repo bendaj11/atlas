@@ -23,7 +23,7 @@ renames.
 | `src/app/App.tsx` | feature root UI |
 | `src/app/routes.tsx` | app-relative inner routes |
 | `src/entry.tsx` | Atlas lifecycle adapter; rarely change |
-| `src/exported-widgets/<name>/atlas.widget.ts` | exported widget UUID and metadata |
+| `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata |
 | `vite.config.ts` | generated federation wiring; preserve Atlas sections |
 
 ## 2. Declare Placement

@@ -6,7 +6,7 @@ import { createPromptDriver } from "./interaction.driver.js";
 test("interactive generation asks only for missing configuration", async () => {
   const prompts = createPromptDriver(["app", "orders", "angular"]);
   const invocation = await resolveInvocation(new CliArguments(["g"]), prompts);
-  expect(invocation).toStrictEqual({ command: "g", subcommand: "app", name: "orders", framework: "angular", version: undefined });
+  expect(invocation).toStrictEqual({ command: "g", subcommand: "app", name: "orders", appId: undefined, framework: "angular", version: undefined });
   expect(prompts.questions).toStrictEqual([
     "select:What would you like to generate?",
     "input:App name",
@@ -17,7 +17,7 @@ test("interactive generation asks only for missing configuration", async () => {
 test("fully configured and non-interactive commands never prompt", async () => {
   const prompts = createPromptDriver([], false);
   const invocation = await resolveInvocation(new CliArguments(["g", "host", "host", "--framework=react"]), prompts);
-  expect(invocation).toStrictEqual({ command: "g", subcommand: "host", name: "host", framework: "react", version: undefined });
+  expect(invocation).toStrictEqual({ command: "g", subcommand: "host", name: "host", appId: undefined, framework: "react", version: undefined });
   expect(prompts.questions).toStrictEqual([]);
 });
 
@@ -29,6 +29,7 @@ test("interactive rollback asks for its missing artifact ID and version", async 
     command: "rollback",
     subcommand: artifactId,
     name: undefined,
+    appId: undefined,
     framework: undefined,
     version: "1.2.0"
   });
@@ -36,4 +37,28 @@ test("interactive rollback asks for its missing artifact ID and version", async 
     "input:Stable host or app ID from atlas.config.ts",
     "input:Production version to restore"
   ]);
+});
+
+test("widget app selection is deferred until configured projects are available", async () => {
+  const prompts = createPromptDriver([]);
+  const invocation = await resolveInvocation(new CliArguments(["g", "widget", "home-widget"]), prompts);
+  expect(invocation).toStrictEqual({
+    command: "g",
+    subcommand: "widget",
+    name: "home-widget",
+    appId: undefined,
+    framework: undefined,
+    version: undefined
+  });
+  expect(prompts.questions).toStrictEqual([]);
+});
+
+test("widget generation reads the explicit stable app ID flag", async () => {
+  const appId = "2bea9c13-4899-4f93-9211-cd8c55e9c529";
+  const prompts = createPromptDriver([], false);
+  const invocation = await resolveInvocation(new CliArguments([
+    "g", "widget", "home-widget", `--app-id=${appId}`
+  ]), prompts);
+  expect(invocation.appId).toBe(appId);
+  expect(prompts.questions).toStrictEqual([]);
 });

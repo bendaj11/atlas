@@ -73,6 +73,6 @@ hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/1.4.0/build-123/host.manifest.json
 
 Normal developers do not hand-write manifests. They edit the small `atlas.config.ts`; `atlas build` generates and validates the full artifact contract. Source `routes` and `slots` become app manifest placements. Framework output inspection supplies asset paths and SHA-256 integrity.
 
-`externalAppsDependencies` is only an array of provider app IDs. It contains no versions: runtime selects current external production build on refresh. Individual consumed widget IDs never appear in app config. Exported widget UUID/name live beside widget source in `atlas.widget.ts`.
+`externalAppsDependencies` is only an array of provider app IDs. It contains no versions: runtime selects current external production build on refresh. Individual consumed widget IDs never appear in app config. Exported widget UUID/name live beside widget source in `atlas.config.ts`.
 
 See [Registry and publishing](registry.md) for indexes and catalog selection, and [Security](security.md) for trust rules.

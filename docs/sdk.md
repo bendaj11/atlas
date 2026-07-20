@@ -102,12 +102,29 @@ Core SDK contains only host identity/data, HTTP, navigation, and events. Add
 product-specific APIs directly to the SDK shape. Atlas does not define toast,
 modal, popup, auth, config, or session contracts.
 
-Every mounted app receives `sdk.getWidget(widgetId)`. Widget IDs are UUIDv4 values generated in each producer's `atlas.widget.ts`. Consumers never list widget ids in `atlas.config.ts`:
+Every mounted app receives synchronous, framework-native `sdk.getWidget(...)` access. Widget IDs are UUIDv4 values generated in each producer's `atlas.config.ts`. Consumers never list widget ids in `atlas.config.ts`.
+
+React returns a stable component and owns asynchronous mounting internally:
+
+```tsx
+const ProductCount = sdk.getWidget<{ count: number }>(widgetId, {
+  loadingComponent: ProductCountSkeleton
+});
+
+return <ProductCount count={24} />;
+```
+
+Angular accepts exactly the widget id and one options object:
 
 ```ts
-const widget = await sdk.getWidget("6f4994c1-b95f-4b24-a01a-106dd61aa4fb");
-const mounted = await widget.mount(container, props);
+const productCount = sdk.getWidget<{ count: number }>(widgetId, {
+  containerId: "product-count",
+  inputs: { count: 24 },
+  loadingComponent: ProductCountSkeleton
+});
 ```
+
+Both loading components are optional. Without one, Atlas uses the host's `renderWidgetLoading`, then its accessible default. Returned Angular refs expose `ready`, `setInputs(...)`, and `destroy()`.
 
 Hosts may use `@atlas/sdk/overlay` utilities when building their own typed SDK
 extensions. Overlay APIs are not injected into Atlas core.
@@ -215,6 +232,7 @@ The host configures UI once; individual apps never choose a spinner or fallback.
 - `renderLoading` is the one renderer shared by every app placement. It appears only when an app calls `context.loading.show()` or opts into manual readiness, and is removed by `hide()` or the app-loaded callback.
 - `renderError` is the one fallback shared by every app placement. Atlas supplies the failed manifest, error, and retry action.
 - `renderWidgetLoading` is the renderer shared by every independent widget card. Atlas supplies the widget id and resolved widget/provider manifests when already known.
+- A `loadingComponent` passed to framework SDK `getWidget(...)` replaces `renderWidgetLoading` for that widget mount only.
 - `renderWidgetError` receives the same context, the error, and a retry action. Failure stays inside that widget card.
 
 If an app never requests loading or manual readiness, its route or slot is ready as soon as mount completes.
@@ -313,7 +331,10 @@ Adapters convert framework-native app bootstrapping into the Atlas `mount/unmoun
 
 Angular hosts use `startHost`. It loads runtime configuration and catalog metadata, applies overrides, verifies integrity, initializes Native Federation, synchronizes Angular Router deep links, creates the host SDK, renders navigation, and starts route/slot lifecycle management.
 
-Angular apps use `defineApp` and `defineExportedWidget`. They receive `AtlasAppContext`, including `navigation`, `route`, and `widgets`; no product app bootstraps standalone.
+Angular apps use `defineApp`. Exported widgets stay native Angular components;
+Atlas generates their lifecycle adapters internally. Apps receive
+`AtlasAppContext`, including `navigation`, `route`, and `widgets`; no product app
+bootstraps standalone.
 
 React hosts use `AtlasHostProvider` with React Router and the framework-agnostic Native Federation runtime. The provider makes the host SDK available to host components and starts the runtime after the tree commits. Imperative integrations may still use `startHost`. Routed React apps use `createRoutedApp`; router-free apps use `defineApp`. Each mount owns one React root and Atlas calls `root.unmount()` during teardown.
 

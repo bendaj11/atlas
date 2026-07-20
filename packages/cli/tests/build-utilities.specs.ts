@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
 import { generateAppFiles, generateHostFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { CliArguments } from "../dist/arguments.js";
-import { browserOpenCommand, frameworkServerArguments, resolveHostDevPorts } from "../dist/dev.js";
+import { atlasDevActivationUrl, browserOpenCommand, frameworkServerArguments, resolveHostDevPorts } from "../dist/dev.js";
 import { alignDelegatedAngularFederationConfig } from "../dist/generate-nx.js";
 import { createHostRuntimeConfig } from "../dist/runtime-config.js";
 import { assertSingleComponentDeclaration } from "./build.driver.js";
@@ -31,6 +31,17 @@ test("Windows browser opener always opens the URL", () => {
     command: "cmd",
     args: ["/c", "start", "", "http://localhost/app"]
   });
+});
+
+test("Atlas dev browser URL activates its local override document", () => {
+  const url = new URL(atlasDevActivationUrl(
+    "https://host.example/login?mode=dev",
+    "http://localhost:4400/atlas.local-overrides.json"
+  ));
+
+  expect(url.pathname).toBe("/login");
+  expect(url.searchParams.get("mode")).toBe("dev");
+  expect(url.searchParams.get("atlas-override")).toBe("http://localhost:4400/atlas.local-overrides.json");
 });
 
 test("local runtime configuration uses localhost", () => {

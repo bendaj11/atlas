@@ -35,6 +35,7 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.equal(appFiles.has("tsconfig.atlas.json"), false);
   assert.deepEqual(JSON.parse(host.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
   assert.deepEqual(JSON.parse(appFiles.get("tsconfig.app.json")).files, ["src/main.ts", "atlas.config.ts"]);
+  assert.deepEqual(JSON.parse(appFiles.get("tsconfig.app.json")).include, ["src/**/*.ts", ".atlas/**/*.ts"]);
   assert.match(host.get("src/bootstrap.ts"), /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \}/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /showToast|openModal|openPopup|createDomOverlayProviders/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /const hostData: AtlasHostData/);
@@ -133,10 +134,10 @@ test("Angular generator validates IDs before using them in paths and source", ()
 test("Angular widget generator creates a typed independently deployed widget", () => {
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "angular" }));
   const source = widget.get("src/exported-widgets/entity-popup/index.ts");
-  const config = widget.get("src/exported-widgets/entity-popup/atlas.widget.ts");
-  assert.match(source, /EntityPopupWidgetProps/);
-  assert.match(source, /defineExportedWidget/);
-  assert.match(source, /import "zone\.js"/);
+  const config = widget.get("src/exported-widgets/entity-popup/atlas.config.ts");
+  assert.match(source, /readonly title = input\("Entity Popup"\)/);
+  assert.match(source, /export default class EntityPopupWidget/);
+  assert.doesNotMatch(source, /defineExportedWidget|InjectionToken|inject\(|bootstrapApplication|zone\.js/);
   assert.match(config, /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
 });
 

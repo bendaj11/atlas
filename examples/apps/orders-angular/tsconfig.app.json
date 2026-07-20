@@ -8,6 +8,7 @@
     "atlas.config.ts"
   ],
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    ".atlas/**/*.ts"
   ]
 }

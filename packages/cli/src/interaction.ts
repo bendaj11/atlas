@@ -5,6 +5,7 @@ export interface AtlasInvocation {
   command?: string;
   subcommand?: string;
   name?: string;
+  appId?: string;
   framework?: SupportedFramework;
   version?: string;
 }
@@ -13,9 +14,10 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
   let command = args.command;
   let subcommand = args.subcommand;
   let name = args.name;
+  const appId = args.flag("app-id");
   let framework = args.flag("framework") ? args.framework() : undefined;
   let version = args.flag("version");
-  if (!prompts.interactive) return { command, subcommand, name, framework, version };
+  if (!prompts.interactive) return { command, subcommand, name, appId, framework, version };
 
   if (command === "g" || command === "generate") {
     subcommand ??= await prompts.select("What would you like to generate?", [
@@ -36,7 +38,7 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
     subcommand = await prompts.input("Stable host or app ID from atlas.config.ts");
   }
   if (command === "rollback" && !version) version = await prompts.input("Production version to restore");
-  return { command, subcommand, name, framework, version };
+  return { command, subcommand, name, appId, framework, version };
 }
 
 function title(value: string): string { return value.charAt(0).toUpperCase() + value.slice(1); }

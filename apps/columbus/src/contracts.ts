@@ -15,6 +15,9 @@ export interface AtlasExtensionManifest {
   prNumber?: number;
   createdAt?: string;
   remoteEntryUrl: string;
+  integrity?: string;
+  styles?: Array<{ href: string; integrity?: string }>;
+  exportedWidgets?: Array<{ remoteEntryUrl: string }>;
   requiredHostSdkVersion?: string;
   requiredLoaderApiVersion?: string;
   supportedHosts?: string[];

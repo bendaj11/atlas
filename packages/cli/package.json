@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.3.13",
+  "version": "0.3.16",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -44,10 +44,10 @@
     "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.3.13",
-    "@atlas/schema": "0.3.13",
-    "@atlas/generators": "0.3.13",
-    "@atlas/runtime": "0.3.13",
+    "@atlas/bootstrap": "0.3.16",
+    "@atlas/schema": "0.3.16",
+    "@atlas/generators": "0.3.16",
+    "@atlas/runtime": "0.3.16",
     "@aws-sdk/client-s3": "^3.850.0",
     "@aws-sdk/credential-provider-node": "^3.850.0",
     "@inquirer/select": "^4.4.2",

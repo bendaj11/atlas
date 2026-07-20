@@ -212,12 +212,12 @@ async function discoverExportedWidgets(root: string, config: AtlasConfig, ownerR
     const extension = config.framework === "react" ? "tsx" : "ts";
     try { await access(join(directory, entry.name, `index.${extension}`)); }
     catch { throw new Error(`Exported widget "${entry.name}" must contain src/exported-widgets/${entry.name}/index.${extension}.`); }
-    const widgetConfigPath = join(directory, entry.name, "atlas.widget.ts");
+    const widgetConfigPath = join(directory, entry.name, "atlas.config.ts");
     let widgetConfig: AtlasWidgetConfig;
     try { widgetConfig = await loadWidgetConfig(widgetConfigPath); }
     catch (error) {
       if (isNodeError(error) && error.code === "ENOENT") {
-        throw new Error(`Exported widget "${entry.name}" must contain src/exported-widgets/${entry.name}/atlas.widget.ts. Run atlas g widget ${entry.name} --app=${config.id} or add a stable UUIDv4 id and name.`);
+        throw new Error(`Exported widget "${entry.name}" must contain src/exported-widgets/${entry.name}/atlas.config.ts. Run atlas g widget ${entry.name} --app-id=${config.id} or add a stable UUIDv4 id and name.`);
       }
       throw error;
     }

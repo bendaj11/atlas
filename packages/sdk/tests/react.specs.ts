@@ -67,7 +67,7 @@ test("React generator emits React 19 Vite Native Federation projects", () => {
   assert.doesNotMatch(appFiles.get("package.json"), /@softarc\/native-federation-runtime/);
   assert.match(appFiles.get("vite.config.ts"), /server: \{ port: 4201, cors: true \}/);
   assert.match(appFiles.get("vite.config.ts"), /babel-plugin-react-compiler/);
-  assert.match(appFiles.get("vite.config.ts"), /widgets\/\$\{id\}/);
+  assert.match(appFiles.get("vite.config.ts"), /widgets\/\$\{name\}/);
   assert.doesNotMatch(appFiles.get("src/app/App.tsx"), /showToast|toast\.open/);
   assert.match(appFiles.get("src/app/routes.tsx"), /export const routes: RouteObject\[\]/);
   assert.match(appFiles.get("src/app/App.tsx"), /<Outlet \/>/);
@@ -126,7 +126,8 @@ test("React generator targets selected supported majors with React Compiler", ()
   assert.doesNotMatch(react17Host.get("src/main.tsx"), /react-dom\/client/);
   assert.match(react17.get("src/entry.tsx"), /function createRoot\(container: Element\)/);
   assert.doesNotMatch(react17.get("src/entry.tsx"), /react-dom\/client/);
-  assert.match(react17Widget.get("src\/exported-widgets\/oldest-widget\/index.tsx"), /unmountComponentAtNode/);
+  assert.doesNotMatch(react17Widget.get("src/exported-widgets/oldest-widget/index.tsx"), /unmountComponentAtNode|defineExportedWidget|createRoot/);
+  assert.match(react17.get("vite.config.ts"), /createReactWidgetEntries\(\{ projectRoot: __dirname, reactMajor: 17 \}\)/);
   assert.match(react18.get("package.json"), /"react": "\^18\.3\.0"/);
   assert.match(react18.get("package.json"), /"react-compiler-runtime": "1\.0\.0"/);
   assert.match(react19.get("package.json"), /"babel-plugin-react-compiler": "1\.0\.0"/);
@@ -158,9 +159,10 @@ test("React generator targets a supplied compatible host and keeps framework dep
 
 test("React widget generator creates a typed independently deployed widget", () => {
   const widget = files(generateWidgetFiles({ name: "entity-popup", framework: "react" }));
-  assert.match(widget.get("src/exported-widgets/entity-popup/atlas.widget.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
+  assert.match(widget.get("src/exported-widgets/entity-popup/atlas.config.ts"), /id: "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"/);
   assert.match(widget.get("src/exported-widgets/entity-popup/index.tsx"), /EntityPopupWidgetProps/);
-  assert.match(widget.get("src/exported-widgets/entity-popup/index.tsx"), /defineExportedWidget/);
+  assert.match(widget.get("src/exported-widgets/entity-popup/index.tsx"), /export default function EntityPopupWidget/);
+  assert.doesNotMatch(widget.get("src/exported-widgets/entity-popup/index.tsx"), /defineExportedWidget|createRoot|createElement/);
   assert.doesNotMatch(widget.get("src/exported-widgets/entity-popup/index.tsx"), /@vitejs\/plugin-react\/preamble/);
   assert.doesNotMatch(widget.get("src/exported-widgets/entity-popup/index.tsx"), /await import/);
 });

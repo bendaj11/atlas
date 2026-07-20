@@ -52,7 +52,7 @@ export function angularAppTsconfig(): unknown {
     extends: "./tsconfig.json",
     compilerOptions: { outDir: "./out-tsc/app" },
     files: ["src/main.ts", "atlas.config.ts"],
-    include: ["src/**/*.ts"]
+    include: ["src/**/*.ts", ".atlas/**/*.ts"]
   };
 }
 

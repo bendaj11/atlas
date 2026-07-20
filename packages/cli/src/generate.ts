@@ -36,7 +36,14 @@ import {
 } from "./generate-paths.js";
 import { ui, type AtlasPrompter } from "./ui.js";
 import { readJsonFile, writeJsonFile } from "./generate-json.js";
-import { defaultDevServerPort, type AtlasNxProjectType, type AtlasWorkspace } from "./workspace.js";
+import { defaultDevServerPort, type AtlasNxProjectType, type AtlasProject, type AtlasWorkspace } from "./workspace.js";
+
+interface WidgetAppSelection {
+  id: string;
+  name: string;
+  framework: SupportedFramework;
+  project: AtlasProject;
+}
 
 export class AtlasGenerateService {
   constructor(
@@ -130,19 +137,43 @@ export class AtlasGenerateService {
     for (const projectRoot of projectRoots) await this.workspace.installDependencies(projectRoot);
   }
 
-  async widget(name: string, app: string): Promise<void> {
+  async widget(name: string, requestedAppId?: string): Promise<void> {
     assertSafeId(name, "widget name");
-    const project = await this.workspace.findProject(app);
-    const source = await readFile(join(project.root, "atlas.config.ts"), "utf8");
-    const framework = source.match(/framework\s*:\s*["'](angular|react)["']/)?.[1] as SupportedFramework | undefined;
-    if (!framework) throw new Error(`Could not determine the framework from ${join(project.root, "atlas.config.ts")}.`);
-    for (const file of generateWidgetFiles({ name, framework })) {
-      const target = resolveContainedPath(project.root, file.path);
+    const app = await this.resolveWidgetApp(requestedAppId);
+    for (const file of generateWidgetFiles({ name, framework: app.framework })) {
+      const target = resolveContainedPath(app.project.root, file.path);
       await assertWritable(target, this.args.hasFlag("force"), `Widget "${name}" already exists. Use --force to replace it.`);
       await mkdir(join(target, ".."), { recursive: true });
       await writeFile(target, file.contents, "utf8");
     }
-    await this.formatGenerated(project.root);
+    await this.formatGenerated(app.project.root);
+  }
+
+  private async resolveWidgetApp(requestedAppId?: string): Promise<WidgetAppSelection> {
+    const apps = await this.configuredWidgetApps();
+    if (apps.length === 0) throw new Error(`Atlas found no configured apps in workspace ${this.workspace.root}.`);
+    if (requestedAppId) {
+      const requestedApp = apps.find(({ id }) => id === requestedAppId);
+      if (requestedApp) return requestedApp;
+      throw new Error(`Could not find Atlas app ID "${requestedAppId}". ${availableAppsMessage(apps)}`);
+    }
+    if (!this.prompts.interactive) {
+      throw new Error(`--app-id <app-id> is required to generate a widget in non-interactive mode. ${availableAppsMessage(apps)}`);
+    }
+    const selectedAppId = await this.prompts.select("Which Atlas app should own this widget?", apps.map((app) => ({
+      label: `${app.name} (${app.id})`,
+      value: app.id
+    })));
+    const selectedApp = apps.find(({ id }) => id === selectedAppId);
+    if (!selectedApp) throw new Error(`Could not find selected Atlas app ID "${selectedAppId}".`);
+    return selectedApp;
+  }
+
+  private async configuredWidgetApps(): Promise<WidgetAppSelection[]> {
+    const projects = await this.workspace.listProjects();
+    const apps = await Promise.all(projects.map((project) => readWidgetApp(project)));
+    return apps.filter((app): app is WidgetAppSelection => app !== undefined)
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   private logGenerationPlan(framework: SupportedFramework, root: string): void {
@@ -319,4 +350,30 @@ export class AtlasGenerateService {
       ui.info(`Formatted generated files in ${displayTarget(this.workspace.root, root)}.`);
     }
   }
+}
+
+async function readWidgetApp(project: AtlasProject): Promise<WidgetAppSelection | undefined> {
+  const configPath = join(project.root, "atlas.config.ts");
+  const source = await readFile(configPath, "utf8");
+  if (literalConfigValue(source, "type") === "host") return undefined;
+  const id = literalConfigValue(source, "id");
+  if (!id) throw new Error(`Could not determine the stable Atlas app ID from ${configPath}.`);
+  const framework = literalConfigValue(source, "framework");
+  if (framework !== "angular" && framework !== "react") {
+    throw new Error(`Could not determine a supported app framework from ${configPath}.`);
+  }
+  return {
+    id,
+    name: literalConfigValue(source, "name") ?? id,
+    framework,
+    project
+  };
+}
+
+function literalConfigValue(source: string, field: "type" | "id" | "name" | "framework"): string | undefined {
+  return source.match(new RegExp(`(?:["']${field}["']|\\b${field})\\s*:\\s*["']([^"']+)["']`))?.[1];
+}
+
+function availableAppsMessage(apps: readonly WidgetAppSelection[]): string {
+  return `Available apps: ${apps.map(({ id, name }) => `${name} (${id})`).join(", ")}.`;
 }

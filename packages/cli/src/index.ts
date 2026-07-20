@@ -73,7 +73,7 @@ export async function runAtlasCli(values = process.argv.slice(2), prompts: Atlas
       }
       if (invocation.subcommand === "widget") {
         ui.heading("Creating Atlas widget");
-        await generate.widget(invocation.name, args.flag("app") ?? ".");
+        await generate.widget(invocation.name, invocation.appId);
         ui.success(`Created widget "${invocation.name}".`);
         return;
       }

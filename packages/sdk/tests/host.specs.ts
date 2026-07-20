@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
-import { HttpClient, connectAtlasWidgetResolver, createAtlasEventBus, createAtlasSdk } from "../dist/host.js";
+import { HttpClient, connectAtlasWidgetResolver, createAtlasEventBus, createAtlasSdk, type AtlasWidgetLoadingRenderer } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 import { createHostSdk } from "./host.driver.js";
 
@@ -55,15 +55,33 @@ test("host SDK uses HttpClient by default", () => {
   assert.ok(sdk.httpClient instanceof HttpClient);
 });
 
-test("host runtime connects getWidget after SDK construction", async () => {
+test("host runtime connects synchronous getWidget after SDK construction", () => {
   const sdk = createHostSdk();
-  await assert.rejects(() => sdk.getWidget("widget-id"), /not ready/);
-  connectAtlasWidgetResolver(sdk, async (id) => ({
+  assert.throws(() => sdk.getWidget("widget-id"), /not ready/);
+  connectAtlasWidgetResolver(sdk, (id) => ({
     id,
     name: "Widget",
     async mount() { return { async unmount() {} }; }
   }));
-  assert.equal((await sdk.getWidget("widget-id")).name, "Widget");
+  assert.equal(sdk.getWidget("widget-id").name, "Widget");
+});
+
+test("host SDK forwards per-widget loading options to runtime", () => {
+  const sdk = createHostSdk();
+  const renderLoading: AtlasWidgetLoadingRenderer = () => undefined;
+  let receivedRenderLoading: AtlasWidgetLoadingRenderer | undefined;
+  connectAtlasWidgetResolver(sdk, (_id, options) => {
+    receivedRenderLoading = options?.renderLoading;
+    return {
+      id: "widget-id",
+      name: "Widget",
+      async mount() { return { async unmount() {} }; }
+    };
+  });
+
+  sdk.getWidget("widget-id", { renderLoading });
+
+  assert.equal(receivedRenderLoading, renderLoading);
 });
 
 test("HttpClient wraps fetch with HTTP helpers", async () => {

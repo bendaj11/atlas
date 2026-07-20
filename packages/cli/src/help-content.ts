@@ -44,20 +44,20 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       { label: "name", description: "Resource name; prompted when omitted" }
     ],
     options: [{ label: "-h, --help", description: "Show help for this command" }],
-    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app orders"]
+    examples: ["atlas g host customer-host", "atlas g app orders", "atlas g widget order-summary --app-id <app-id>"]
   },
   "generate host": generationProjectHelp("host", "host client"),
   "generate app": generationProjectHelp("app", "app"),
   "generate widget": {
     summary: "Generate an exported widget inside an existing app.",
-    usage: "atlas generate widget <name> --app <project> [options]",
+    usage: "atlas generate widget <name> [--app-id <app-id>] [options]",
     arguments: [{ label: "name", description: "Widget name" }],
     options: [
-      { label: "--app <project>", description: "Owning app name or directory" },
+      { label: "--app-id <app-id>", description: "Stable owning app ID; prompted from configured apps when omitted" },
       { label: "--force", description: "Replace an existing widget with the same name" },
       { label: "-h, --help", description: "Show help for this command" }
     ],
-    examples: ["atlas g widget order-summary --app orders"]
+    examples: ["atlas g widget order-summary", "atlas g widget order-summary --app-id <app-id>"]
   },
   dev: {
     summary: "Run a host, or run one app locally inside an Atlas host.",

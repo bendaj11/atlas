@@ -495,6 +495,28 @@ test("widget loader mounts from the selected owner version", async () => {
   assert.equal(unmounted, true);
 });
 
+test("mounted widget forwards input updates to framework entry", async () => {
+  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerAppId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
+  const manifest = createTestManifest({ exportedWidgets: [widget] });
+  const receivedInputs: object[] = [];
+  const loader = createWidgetLoader([manifest], createTestHostSdk(), {
+    async importWidget() {
+      return {
+        mount({ props }) {
+          receivedInputs.push(props);
+          return { setInputs(inputs) { receivedInputs.push(inputs); } };
+        }
+      };
+    }
+  });
+  const mounted = await loader.mount(widget.id, createWidgetRendererContainer(), { count: 1 });
+
+  mounted.setInputs?.({ count: 2 });
+
+  assert.deepEqual(receivedInputs, [{ count: 1 }, { count: 2 }]);
+  await mounted.unmount();
+});
+
 test("widget loader contains unresolved widget failure inside its mount card", async () => {
   const loader = createWidgetLoader([], createTestHostSdk());
   const mounted = await loader.mount("unknown/widget", createTestElement(), {});
@@ -517,6 +539,29 @@ test("widget loader uses host-owned loading UI and clears it after mount", async
   const mounted = await loader.mount(widget.id, createWidgetRendererContainer(), {});
 
   assert.deepEqual(events, ["loading:Product Count:catalog", "loading-disposed"]);
+  await mounted.unmount();
+});
+
+test("widget getWidget loading renderer overrides host loading UI", async () => {
+  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "product-count", name: "Product Count", ownerAppId: "catalog", framework: "react", remoteEntryUrl: "https://cdn.example/widget.js", expose: "./widgets/product-count", contractVersion: "1" };
+  const manifest = createTestManifest({ exportedWidgets: [widget] });
+  const events: string[] = [];
+  const loader = createWidgetLoader([manifest], createTestHostSdk(), {
+    async importWidget() { return { mount() {} }; },
+    renderWidgetLoading() {
+      events.push("host-loading");
+    }
+  });
+
+  const handle = loader.getWidget(widget.id, {
+    renderLoading() {
+      events.push("widget-loading");
+      return () => { events.push("widget-loading-disposed"); };
+    }
+  });
+  const mounted = await handle.mount(createWidgetRendererContainer(), {});
+
+  assert.deepEqual(events, ["widget-loading", "widget-loading-disposed"]);
   await mounted.unmount();
 });
 
@@ -653,7 +698,7 @@ test("page apps receive widget access through the SDK only", async () => {
   });
   if (!received) throw new Error("App context was not received.");
   assert.equal("widgets" in received, false);
-  assert.equal((await sdk.getWidget("missing-widget")).id, "missing-widget");
+  assert.equal(sdk.getWidget("missing-widget").id, "missing-widget");
   assert.equal("components" in received, false);
 });
 

@@ -1,6 +1,6 @@
 import { createAtlasEventBus, type AtlasEventMap } from "./event-bus.js";
 import { normalizeHttpClient } from "./http-client.js";
-import type { AtlasCoreSdk, AtlasGetWidget, AtlasHostData, AtlasSdk, AtlasSdkOptions } from "./sdk-types.js";
+import type { AtlasCoreSdk, AtlasGetWidget, AtlasGetWidgetOptions, AtlasHostData, AtlasSdk, AtlasSdkOptions, AtlasWidgetHandle } from "./sdk-types.js";
 
 const widgetResolvers = new WeakMap<object, AtlasGetWidget>();
 
@@ -24,7 +24,7 @@ function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
     navigation: options.navigation,
     events: options.eventBus ?? createAtlasEventBus<TEvents>(),
     httpClient: normalizeHttpClient(options.httpClient),
-    getWidget: (widgetId) => resolveWidget(core, widgetId)
+    getWidget: (widgetId, widgetOptions) => resolveWidget(core, widgetId, widgetOptions)
   };
   return core;
 }
@@ -34,10 +34,14 @@ export function connectAtlasWidgetResolver(sdk: object, resolver: AtlasGetWidget
   widgetResolvers.set(sdk, resolver);
 }
 
-function resolveWidget(sdk: object, widgetId: string): ReturnType<AtlasGetWidget> {
+function resolveWidget<TInputs extends object>(
+  sdk: object,
+  widgetId: string,
+  options?: AtlasGetWidgetOptions
+): AtlasWidgetHandle<TInputs> {
   const resolver = widgetResolvers.get(sdk);
-  if (!resolver) return Promise.reject(new Error("Atlas widget runtime is not ready."));
-  return resolver(widgetId);
+  if (!resolver) throw new Error("Atlas widget runtime is not ready.");
+  return resolver<TInputs>(widgetId, options);
 }
 
 function createHostData<THostSdk extends object, TEvents extends object>(

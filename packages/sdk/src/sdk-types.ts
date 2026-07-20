@@ -2,21 +2,31 @@ import type { AtlasNavigation } from "./navigation.js";
 import type { AtlasEventBus, AtlasEventMap } from "./event-bus.js";
 import type { AtlasHttpClient, AtlasHttpClientInput } from "./http-client.js";
 
-export interface AtlasMountedWidgetHandle {
+export interface AtlasMountedWidgetHandle<TInputs extends object = Record<string, unknown>> {
+  setInputs?(inputs: TInputs): void;
   unmount(): Promise<void>;
 }
 
-/** Widget selected by UUID and mounted into a caller-owned card/container. */
-export interface AtlasWidgetHandle {
-  readonly id: string;
-  readonly name: string;
-  mount<TProps extends object = Record<string, unknown>>(
-    container: HTMLElement,
-    props: TProps
-  ): Promise<AtlasMountedWidgetHandle>;
+export type AtlasWidgetLoadingRenderer = (container: HTMLElement) => void | (() => void);
+
+export interface AtlasGetWidgetOptions {
+  renderLoading?: AtlasWidgetLoadingRenderer;
 }
 
-export type AtlasGetWidget = (widgetId: string) => Promise<AtlasWidgetHandle>;
+/** Widget selected by UUID and mounted into a caller-owned card/container. */
+export interface AtlasWidgetHandle<TInputs extends object = Record<string, unknown>> {
+  readonly id: string;
+  readonly name: string;
+  mount(
+    container: HTMLElement,
+    inputs: TInputs
+  ): Promise<AtlasMountedWidgetHandle<TInputs>>;
+}
+
+export type AtlasGetWidget = <TInputs extends object = Record<string, unknown>>(
+  widgetId: string,
+  options?: AtlasGetWidgetOptions
+) => AtlasWidgetHandle<TInputs>;
 
 export interface AtlasHostData {
   readonly hostId: string;

@@ -54,6 +54,7 @@ atlas dev orders \
 ```
 
 Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, waits for valid federation metadata, then prints the preview URL.
+When browser opening is enabled, Atlas adds its loopback override document to the opened URL. Columbus uses that explicit local-development intent to select the current CLI manifest automatically, including framework-generated stylesheet URLs.
 
 For a local host:
 

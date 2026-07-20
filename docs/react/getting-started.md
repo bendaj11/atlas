@@ -34,7 +34,7 @@ mount request. Do not fetch or choose catalog versions from React code.
 | `src/entry.tsx` | Atlas `mount` lifecycle exported as `./entry` | Rarely |
 | `src/app/routes.tsx` | Inner React routes scoped below assigned Atlas base path | Yes |
 | `src/app/` | Feature components and hooks | Yes |
-| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.widget.ts` | Yes |
+| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes |
 | `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |
 
 Apps obtain host services with `useAtlasSdk()`. They must not import host source

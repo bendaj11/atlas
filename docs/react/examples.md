@@ -34,11 +34,12 @@ React apps can run in Angular hosts, and Angular apps can run in React hosts.
 That works because Atlas crosses framework boundaries through DOM mount/unmount
 lifecycles, not through Angular modules or React components.
 
-A React app may consume an Angular-owned widget through the widget loader:
+A React app consumes an Angular-owned widget as a React component:
 
 ```tsx
-const widget = await sdk.getWidget("98abc74d-a11f-4eca-8255-c6f2f49e3d6e");
-const mounted = await widget.mount(container, { orderId: "42" });
+const OrderSummary = sdk.getWidget<{ orderId: string }>("98abc74d-a11f-4eca-8255-c6f2f49e3d6e");
+
+return <OrderSummary orderId="42" />;
 ```
 
 The React app does not install Angular and does not know the widget URL. The

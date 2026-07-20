@@ -341,7 +341,7 @@ exit 1
   const federationConfig = await readFile(join(root, "orders/federation.config.js"), "utf8");
   expect(federationConfig).toMatch(/@atlas\/sdk\/federation-config/);
   expect(federationConfig).toMatch(/expose: "app"/);
-  expect(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8")).toMatch(/atlas g widget <name> --app=\./);
+  expect(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8")).toMatch(/atlas g widget <name>.*--app-id=<app-id>/);
   expect(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8")).toMatch(/sdk\.getWidget\(widgetId\)/);
   expect(await readFile(join(root, "orders/public/nx.txt"), "utf8")).toBe("nx angular public asset\n");
   expect(await readFile(join(root, "orders/eslint.config.mjs"), "utf8")).toBe("nx eslint\n");
@@ -461,7 +461,7 @@ exit 1
   expect(reactViteConfig).toMatch(/target: "19"/);
   await expect(access(join(root, "orders/vite.config.mts"))).rejects.toMatchObject({ code: "ENOENT" });
   expect(await readFile(join(root, "orders/index.html"), "utf8")).toMatch(/Orders assets/);
-  expect(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8")).toMatch(/atlas g widget <name> --app=\./);
+  expect(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8")).toMatch(/atlas g widget <name>.*--app-id=<app-id>/);
   expect(await readFile(join(root, "orders/src/exported-widgets/README.md"), "utf8")).toMatch(/sdk\.getWidget\(widgetId\)/);
   expect(await readFile(join(root, "orders/public/nx.txt"), "utf8")).toBe("nx react public asset\n");
   expect(await readFile(join(root, "orders/eslint.config.mjs"), "utf8")).toBe("nx eslint\n");

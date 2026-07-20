@@ -34,10 +34,11 @@ interface InterceptorScenario {
   devSession: Record<string, unknown>;
   disabledAppIds?: string[];
   localDevelopmentIntent?: boolean;
+  overrideQueryUrl?: string;
   pageHostname?: string;
 }
 
-export async function runCatalogInterceptor(scenario: InterceptorScenario): Promise<{ catalog: unknown; devSessionRequests: number }> {
+export async function runCatalogInterceptor(scenario: InterceptorScenario): Promise<{ catalog: unknown; devSessionRequests: number; storedOverrides: unknown }> {
   const source = await readColumbusFile("dist/content-script.js");
   const storage = createStorage(scenario);
   let devSessionRequests = 0;
@@ -53,14 +54,17 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
     return jsonResponse(scenario.catalog);
   };
   const pageWindow = { fetch: nativeFetch };
+  const pageUrl = new URL("https://host.test/dashboard");
+  if (scenario.overrideQueryUrl) pageUrl.searchParams.set("atlas-override", scenario.overrideQueryUrl);
   runInNewContext(source, {
     window: pageWindow,
-    location: { href: "https://host.test/dashboard", hostname: scenario.pageHostname ?? "host.test" },
+    location: { href: pageUrl.href, hostname: scenario.pageHostname ?? "host.test", search: pageUrl.search },
     localStorage: storage.local,
     sessionStorage: storage.session,
     Request,
     Response,
     URL,
+    URLSearchParams,
     Map,
     Set
   });
@@ -68,7 +72,13 @@ export async function runCatalogInterceptor(scenario: InterceptorScenario): Prom
   await pageWindow.fetch("https://host.test/atlas.runtime.json");
   const response = await pageWindow.fetch("https://registry.test/hosts/test-host/catalog.json");
   const catalog: unknown = JSON.parse(JSON.stringify(await response.json()));
-  return { catalog, devSessionRequests };
+  const storedOverrides = storage.session.getItem("atlas.runtime-overrides")
+    ?? storage.local.getItem("atlas.runtime-overrides");
+  return {
+    catalog,
+    devSessionRequests,
+    storedOverrides: storedOverrides ? JSON.parse(storedOverrides) as unknown : undefined
+  };
 }
 
 function createStorage(scenario: InterceptorScenario): { local: Storage; session: Storage } {

@@ -57,6 +57,6 @@ export function generateReactAppFiles(options: AtlasGeneratorOptions): AtlasGene
       { path: "src/app/App.tsx", contents: reactSinglePageApp(name) },
       { path: "src/entry.tsx", contents: reactSinglePageAppEntry(name, profile) },
     ]),
-    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nRun \`atlas g widget <name> --app=.\`. Atlas generates widget source plus \`atlas.widget.ts\` with stable UUIDv4 identity. Consumers call \`sdk.getWidget(widgetId)\`; do not maintain widget lists in app config.\n` }
+    { path: "src/exported-widgets/README.md", contents: `# Exported widgets\n\nRun \`atlas g widget <name>\` to choose an app, or pass its stable config ID with \`--app-id=<app-id>\`. Atlas generates widget source plus \`atlas.config.ts\` with stable UUIDv4 identity. Consumers call \`sdk.getWidget(widgetId)\`; do not maintain widget lists in app config.\n` }
   ];
 }

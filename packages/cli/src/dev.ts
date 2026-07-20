@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import { createAtlasBootstrapFiles } from "@atlas/bootstrap";
-import type { AtlasRuntimeOverrideDocument } from "@atlas/runtime";
+import { ATLAS_OVERRIDE_QUERY_PARAM, type AtlasRuntimeOverrideDocument } from "@atlas/runtime";
 import type {
   AtlasConfig,
   AtlasHostCatalog,
@@ -126,7 +126,7 @@ export class AtlasDevService {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
       logHostViewUrl(hostUrl);
-      openBrowserWhenReady(this.args, hostUrl);
+      openBrowserWhenReady(this.args, atlasDevActivationUrl(hostUrl, overrideUrl));
       await waitForShutdown(frameworkServer, control);
     } finally {
       if (bootstrap) await closeServer(bootstrap);
@@ -166,7 +166,7 @@ export class AtlasDevService {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
       logHostViewUrl(hostActivationUrl);
-      openBrowserWhenReady(this.args, hostActivationUrl);
+      openBrowserWhenReady(this.args, atlasDevActivationUrl(hostActivationUrl, overrideUrl));
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill("SIGTERM");
       await control.close();
@@ -837,6 +837,12 @@ function openBrowserWhenReady(args: CliArguments, url: string | undefined): void
   } catch {
     // The logged URL remains the fallback when the platform opener is unavailable.
   }
+}
+
+export function atlasDevActivationUrl(hostUrl: string, overrideUrl: string): string {
+  const url = new URL(hostUrl);
+  url.searchParams.set(ATLAS_OVERRIDE_QUERY_PARAM, overrideUrl);
+  return url.href;
 }
 
 export function browserOpenCommand(url: string, platform: NodeJS.Platform = process.platform): { command: string; args: string[] } {

@@ -3,12 +3,19 @@ body,
 #root {
   margin: 0;
   width: 560px;
-  height: 620px;
+  height: 600px;
   overflow: hidden;
+  position: relative;
 }
 
-.scope-card,
-.app-card {
+.popup-error {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 16px;
+}
+
+.scope-card {
   border: 1px solid #e7edf5;
   box-shadow: none;
 }
@@ -22,5 +29,5 @@ body,
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 6px 0 4px 28px;
+  width: 100%;
 }

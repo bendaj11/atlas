@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
 import { injectAtlasSdk, type AtlasSdk as AngularAtlasSdk } from "../dist/angular.js";
-import { useAtlasSdk } from "../dist/react.js";
-import type { AtlasSdk } from "../dist/host.js";
+import { useAtlasSdk, type AtlasSdk as ReactAtlasSdk } from "../dist/react.js";
 import { frameworkApis, readSdkPackage } from "./framework-api.driver.js";
 
 const { angular, react } = frameworkApis;
@@ -12,7 +11,7 @@ interface CustomerHostSdk {
 }
 
 const readAngularSdk: () => AngularAtlasSdk<CustomerHostSdk> = injectAtlasSdk<CustomerHostSdk>;
-const readReactSdk: () => AtlasSdk<CustomerHostSdk> = useAtlasSdk<CustomerHostSdk>;
+const readReactSdk: () => ReactAtlasSdk<CustomerHostSdk> = useAtlasSdk<CustomerHostSdk>;
 
 test("framework subpaths share one Atlas API vocabulary", () => {
   const sharedApiNames: Array<"defineApp" | "defineExportedWidget" | "createHostNavigation"> = ["defineApp", "defineExportedWidget", "createHostNavigation"];

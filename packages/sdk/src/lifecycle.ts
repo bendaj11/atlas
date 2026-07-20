@@ -1,6 +1,6 @@
 import type { AtlasDeploymentCatalog, AtlasExportedWidgetManifest, AtlasHostRuntimeConfig, AtlasManifest } from "@atlas/schema";
 import type { AtlasSdk } from "./host.js";
-import type { AtlasWidgetHandle } from "./sdk-types.js";
+import type { AtlasGetWidgetOptions, AtlasWidgetHandle } from "./sdk-types.js";
 import type { AtlasRouteContext, AtlasScopedNavigation } from "./navigation.js";
 
 /** Runtime context scoped to one mounted app and its assigned host route. */
@@ -53,21 +53,29 @@ export interface AtlasExportedWidgetMountRequest<
 }
 
 export interface AtlasExportedWidgetEntry<TProps extends object = Record<string, unknown>> {
-  mount(request: AtlasExportedWidgetMountRequest<TProps>): void | AtlasAppMountResult | Promise<void | AtlasAppMountResult>;
+  mount(request: AtlasExportedWidgetMountRequest<TProps>): void | AtlasExportedWidgetMountResult<TProps> | Promise<void | AtlasExportedWidgetMountResult<TProps>>;
 }
 
-export interface AtlasMountedWidget {
+export interface AtlasExportedWidgetMountResult<TInputs extends object = Record<string, unknown>> extends AtlasAppMountResult {
+  setInputs?(inputs: TInputs): void;
+}
+
+export interface AtlasMountedWidget<TInputs extends object = Record<string, unknown>> {
   widget: AtlasExportedWidgetManifest | undefined;
+  setInputs?(inputs: TInputs): void;
   unmount(): Promise<void>;
 }
 
 /** Loads widgets only from owner versions selected in the current host catalog. */
 export interface AtlasWidgetLoader {
   list(ownerAppId?: string): AtlasExportedWidgetManifest[];
-  getWidget(widgetId: string): Promise<AtlasWidgetHandle>;
+  getWidget<TInputs extends object = Record<string, unknown>>(
+    widgetId: string,
+    options?: AtlasGetWidgetOptions
+  ): AtlasWidgetHandle<TInputs>;
   mount<TProps extends object = Record<string, unknown>>(
     widgetId: string,
     container: HTMLElement,
     props: TProps
-  ): Promise<AtlasMountedWidget>;
+  ): Promise<AtlasMountedWidget<TProps>>;
 }

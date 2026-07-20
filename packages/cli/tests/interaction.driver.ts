@@ -2,6 +2,7 @@ import type { AtlasPrompter } from "../dist/ui.js";
 
 export class PromptDriver implements AtlasPrompter {
   readonly questions: string[] = [];
+  readonly choiceLabels: string[][] = [];
 
   constructor(private readonly answers: string[], readonly interactive = true) {}
 
@@ -14,6 +15,7 @@ export class PromptDriver implements AtlasPrompter {
 
   async select<T extends string>(message: string, choices: readonly { label: string; value: T }[]): Promise<T> {
     this.questions.push(`select:${message}`);
+    this.choiceLabels.push(choices.map(({ label }) => label));
     const answer = this.answers.shift();
     const choice = choices.find(({ value }) => value === answer);
     if (!choice) throw new Error(`Test answer "${answer ?? "missing"}" is not valid for "${message}".`);

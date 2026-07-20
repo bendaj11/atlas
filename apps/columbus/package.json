@@ -1,6 +1,6 @@
 {
   "name": "@atlas/columbus",
-  "version": "0.3.13",
+  "version": "0.3.16",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,12 +14,14 @@
     "@stylable/node": "^6.1.1",
     "@stylable/optimizer": "^6.1.1",
     "@stylable/runtime": "^6.1.1",
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "@wix/design-system": "^1.297.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "babel-plugin-react-compiler": "1.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.0",
     "vite": "^7.3.6"
   }
 }

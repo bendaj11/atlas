@@ -1,5 +1,5 @@
 import { createElement as createReactElement, type ReactNode } from "react";
-import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasAppEntry, AtlasAppMountRequest, AtlasAppMountResult } from "./lifecycle.js";
+import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasExportedWidgetMountResult, AtlasAppEntry, AtlasAppMountRequest, AtlasAppMountResult } from "./lifecycle.js";
 import { AtlasRuntimeContext, AtlasSdkContext } from "./react-context.js";
 import { connectRouter, type AppRouterLike } from "./react-router.js";
 
@@ -56,10 +56,15 @@ export function defineExportedWidget<TProps extends object>(options: {
   createElement(request: AtlasExportedWidgetMountRequest<TProps>): unknown;
 }): AtlasExportedWidgetEntry<TProps> {
   return {
-    mount(request): AtlasAppMountResult {
+    mount(request): AtlasExportedWidgetMountResult<TProps> {
       const root = options.createRoot(request.container);
       root.render(options.createElement(request));
-      return { unmount: () => root.unmount() };
+      return {
+        setInputs(inputs) {
+          root.render(options.createElement({ ...request, props: inputs }));
+        },
+        unmount: () => root.unmount()
+      };
     }
   };
 }

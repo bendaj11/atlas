@@ -267,7 +267,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const versionResults = await Promise.all(selectedArtifacts.map((manifest) => readManifestVersions(manifest, registryRoot)));
   const versions = Object.fromEntries([...versionResults.map(({ entry }) => entry), ...external.versions]);
   const storedSelection = readStoredOverrideDocument();
-  const overrides = storedSelection.overrides ?? createLocalOverrides(config, selectedArtifacts);
+  const overrides = createLocalOverrides(config, selectedArtifacts) ?? storedSelection.overrides;
   const productionCatalog = createProductionCatalog(catalog, versions, external.providers);
 
   return {

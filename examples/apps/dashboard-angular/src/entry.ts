@@ -18,10 +18,10 @@ export default defineApp(async ({ container, sdk, context }) => {
   container.append(widgetContainer, internalWidgetContainer);
   const app = await bootstrapApplication(AtlasAppRootComponent, { providers: [provideAtlasAppContext(context), provideAtlasSdk(sdk)] });
   const [externalWidget, internalWidget] = await Promise.all([
-    sdk.getWidget("55ca3323-c62f-44de-9194-6ab42375e578")
-      .then((widget) => widget.mount(widgetContainer, { count: 24, label: "External products" })),
-    sdk.getWidget("6f4994c1-b95f-4b24-a01a-106dd61aa4fb")
-      .then((widget) => widget.mount(internalWidgetContainer, { count: 12, label: "Internal products" }))
+    sdk.getWidget<{ count: number; label: string }>("55ca3323-c62f-44de-9194-6ab42375e578")
+      .mount(widgetContainer, { count: 24, label: "External products" }),
+    sdk.getWidget<{ count: number; label: string }>("6f4994c1-b95f-4b24-a01a-106dd61aa4fb")
+      .mount(internalWidgetContainer, { count: 12, label: "Internal products" })
   ]);
   return {
     async unmount() {

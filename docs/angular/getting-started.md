@@ -33,7 +33,7 @@ choose catalog versions from Angular application code.
 | `src/entry.ts` | Atlas `mount` lifecycle exported as `./entry` | Rarely |
 | `src/app/routes.ts` | Inner Angular routes scoped below assigned Atlas base path | Yes |
 | `src/app/` | Feature components and services | Yes |
-| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.widget.ts` | Yes |
+| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes |
 | `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |
 
 Apps obtain host services with `injectAtlasSdk()`. They must not import host

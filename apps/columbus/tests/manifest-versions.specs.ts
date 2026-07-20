@@ -1,7 +1,7 @@
 import { expect, test } from "@jest/globals";
 import type { AtlasExtensionManifest, AtlasHostData } from "../src/contracts.js";
 import { uniqueVersions } from "../src/manifest-versions.js";
-import { productionVersions, versionLabel } from "../src/popup/manifest-utils.js";
+import { createAppViewModel, productionVersions, versionLabel } from "../src/popup/manifest-utils.js";
 
 test("release history sorts production, PR, then local builds", () => {
   const production = manifest({ channel: "production", buildId: "production", createdAt: "2026-01-01T00:00:00.000Z" });
@@ -24,6 +24,51 @@ test("current production remains first when same version has multiple builds", (
 test("release labels distinguish builds sharing one version", () => {
   expect(versionLabel(manifest({ version: "1.2.3", buildId: "abcdef123456" })))
     .toBe("1.2.3 · abcdef1");
+});
+
+test("PR labels show only branch and latest commit details", () => {
+  const pullRequest = manifest({
+    channel: "pr",
+    version: "1.2.3-pr.42",
+    buildId: "build-identifier",
+    prNumber: 42,
+    gitBranch: "feature/compact-pr-labels",
+    gitSha: "abcdef123456",
+    gitCommitTitle: "Simplify override selection"
+  });
+
+  expect(versionLabel(pullRequest)).toBe("feature/compact-pr-labels · abcdef1 · Simplify override selection");
+  expect(createAppViewModel(
+    manifest({}),
+    new Map([["app:orders", pullRequest]]),
+    new Map()
+  ).sourceDescription).toBe("feature/compact-pr-labels · abcdef1 · Simplify override selection");
+});
+
+test("main-page rows omit source details without an override", () => {
+  expect(createAppViewModel(manifest({}), new Map(), new Map()).sourceDescription).toBe("");
+});
+
+test("disabled overrides retain their selection details", () => {
+  const pullRequest = manifest({
+    channel: "pr",
+    gitBranch: "feature/remember-disabled",
+    gitSha: "1234567890",
+    gitCommitTitle: "Remember disabled override"
+  });
+  const viewModel = createAppViewModel(
+    manifest({}),
+    new Map(),
+    new Map([["app:orders", pullRequest]])
+  );
+
+  expect(viewModel).toMatchObject({
+    selected: pullRequest,
+    overrideType: "pr",
+    sourceDescription: "feature/remember-disabled · 1234567 · Remember disabled override",
+    overrideEnabled: false,
+    canToggle: true
+  });
 });
 
 function manifest(overrides: Partial<AtlasExtensionManifest>): AtlasExtensionManifest {

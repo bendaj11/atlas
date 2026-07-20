@@ -14,7 +14,7 @@ atlas g host customer-host --framework=angular
 atlas g app orders --framework=angular
 atlas g host customer-host --framework=react
 atlas g app orders --framework=react
-atlas g widget entity-popup --app=orders
+atlas g widget entity-popup --app-id=2bea9c13-4899-4f93-9211-cd8c55e9c529
 ```
 
 Atlas detects Nx, Turborepo, package-manager workspaces, and standalone

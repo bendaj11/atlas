@@ -40,7 +40,7 @@ test("generation subcommand help is available without a resource name", async ()
   const result = await runCli(["g", "widget", "--help"]);
   expect(result.code).toBe(0);
   expect(result.stdout).toMatch(/atlas generate widget <name>/);
-  expect(result.stdout).toMatch(/--app <project>/);
+  expect(result.stdout).toMatch(/--app-id <app-id>/);
 });
 
 test("generation help documents automatic dependency installation control", async () => {
@@ -68,4 +68,11 @@ test("unknown commands explain the error and exit unsuccessfully", async () => {
   expect(result.code).toBe(1);
   expect(result.stderr).toMatch(/Unknown or incomplete command "buidl"/);
   expect(result.stderr).toMatch(/Suggested action:/);
+});
+
+test("non-interactive widget generation requires an explicit app", async () => {
+  const result = await runCli(["g", "widget", "home-widget"]);
+  expect(result.code).toBe(1);
+  expect(result.stderr).toMatch(/--app-id <app-id> is required to generate a widget in non-interactive mode/);
+  expect(result.stderr).toMatch(/Available apps:/);
 });
