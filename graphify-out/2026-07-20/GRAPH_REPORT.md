@@ -1,11 +1,11 @@
 # Graph Report - atlas  (2026-07-20)
 
 ## Corpus Check
-- 411 files · ~149,776 words
+- 412 files · ~149,733 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3916 nodes · 7045 edges · 260 communities (220 shown, 40 thin omitted)
+- 3913 nodes · 7044 edges · 276 communities (236 shown, 40 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 109 edges (avg confidence: 0.72)
 - Token cost: 0 input · 0 output
 
@@ -211,6 +211,7 @@
 - @atlas/cli
 - Atlas
 - EmptyHostDataState.tsx
+- resilience.ts
 - react-context.ts
 - Changelog
 - graphify reference: add a URL and watch a folder
@@ -219,6 +220,7 @@
 - Project Instructions
 - graphify reference: GitHub clone and cross-repo merge
 - graphify reference: transcribe video and audio
+- AtlasHostManifest
 - extraction-spec.md
 - README.md
 - README.md
@@ -239,20 +241,39 @@
 - README.md
 - README.md
 - bootstrap.ts
+- AtlasWorkspace
 - publish-config.ts
 - readAngularProjectPort
 - ui.ts
+- publication-context.ts
 - generate-dependencies.ts
+- generate-angular.ts
 - local-development.specs.ts
 - generate-overlay.ts
 - Workspace integration
 - @angular/animations
+- generate-dependencies.ts
 - Static registry
 - Atlas
+- publishFiles
 - publishConfig
 - Angular Assets And Styles
+- AtlasManifest
 - AtlasFederationAdapter
 - engines
+- host-ui.ts
+- create-manifest-from-config.ts
+- env.ts
+- .writeNxProject
+- NetworkLimiter
+- ./federation
+- ./react
+- {
+  createAngularFederationConfig,
+  createReactAppViteConfig,
+  createReactHostViteConfig,
+  createReactWidgetEntries,
+}
 - @angular/common
 
 ## God Nodes (most connected - your core abstractions)
@@ -291,27 +312,27 @@
 - 5-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/stylesheets.ts -> packages/runtime/src/loader/runtime-discovery.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 5-file cycle: `packages/cli/src/generate-angular.ts -> packages/cli/src/generate-json.ts -> packages/cli/src/generate-paths.ts -> packages/cli/src/workspace.ts -> packages/cli/src/generate-nx.ts -> packages/cli/src/generate-angular.ts`
 
-## Communities (260 total, 40 thin omitted)
+## Communities (276 total, 40 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
 Nodes (73): angularAppAppComponent(), angularAppDetailsComponent(), angularAppEntry(), angularAppHomeComponent(), angularAppRoutes(), angularSinglePageAppComponent(), angularSinglePageAppEntry(), appSourceReadme() (+65 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.10
-Nodes (24): SdkProviderInput, RoutePlacement, AtlasHostRuntimeOptions, AtlasLoaderOptions, AtlasWidgetLoaderOptions, RuntimeMount, RuntimePlacement, AtlasNativeFederationImporters (+16 more)
+Cohesion: 0.16
+Nodes (16): createMountBoundary(), createRouteTitleController(), createWidgetCard(), defaultManifestTrustPolicy(), findDefaultBasePath(), importExportedWidget(), mountApp(), mountWidgetAttempt() (+8 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.15
-Nodes (19): CONTENT_TYPES, publicationContentType(), assertLease(), DeploymentLease, encodeLease(), environmentBoolean(), errorName(), errorStatus() (+11 more)
+Cohesion: 0.16
+Nodes (17): CONTENT_TYPES, publicationContentType(), assertLease(), DeploymentLease, encodeLease(), errorName(), errorStatus(), isMissingObject() (+9 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.05
-Nodes (65): asObject(), assertUsableAngularBuildPackage(), AtlasDevBuildService, AtlasDevService, BootstrapResponseOptions, browserOpenCommand(), closeServer(), configuredHostIds() (+57 more)
+Cohesion: 0.07
+Nodes (41): asObject(), assertUsableAngularBuildPackage(), AtlasDevOverrideDocument, BootstrapResponseOptions, browserOpenCommand(), configuredHostIds(), CorruptAngularBuildPackage, createLocalDevCatalog() (+33 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.08
-Nodes (46): ProcessCommand, runProcess(), spawnProcess(), asDependencyMap(), AtlasPackageManager, AtlasScaffoldOptions, AtlasTask, AtlasWorkspaceKind (+38 more)
+Nodes (47): ProcessCommand, runProcess(), spawnProcess(), asDependencyMap(), AtlasPackageManager, AtlasScaffoldOptions, AtlasTask, AtlasWorkspaceKind (+39 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.22
@@ -319,23 +340,19 @@ Nodes (9): Build, CI reconciliation, Custom HTML, Docker and Nginx, Host bootstr
 
 ### Community 6 - "Community 6"
 Cohesion: 0.08
-Nodes (29): createPopupElement(), renderError(), applyBounds(), createPopupBar(), enableDrag(), overlayStyle, popupBarStyle(), popupStyle (+21 more)
+Nodes (28): createPopupElement(), applyBounds(), createPopupBar(), enableDrag(), overlayStyle, popupBarStyle(), popupStyle, styleOverlay() (+20 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.15
 Nodes (13): dependencies, @angular/animations, @angular/platform-browser, @angular/router, @atlas/schema, rxjs, tslib, @angular/animations (+5 more)
-
-### Community 8 - "Community 8"
-Cohesion: 0.12
-Nodes (6): AtlasFetchHttpClient, AtlasHttpClient, AtlasHttpClientInput, AtlasHttpRequestOptions, HttpClient, withBody()
 
 ### Community 9 - "Community 9"
 Cohesion: 0.05
 Nodes (46): build, esbuild, serve, serve-original, builder, configurations, options, development (+38 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.06
-Nodes (41): AtlasGenerateService, availableAppsMessage(), asStringRecord(), DEPENDENCY_FIELDS, dependencyDeclared(), DependencyField, dependencyManifestPath(), existingFrameworkVersionInfo() (+33 more)
+Cohesion: 0.16
+Nodes (23): availableAppsMessage(), ensureAtlasGeneratedFilesIgnored(), EQUIVALENT_ATLAS_IGNORE_PATTERNS, existingPackageName(), hasAtlasIgnorePattern(), isContainedBy(), isMissingFileError(), readFileIfPresent() (+15 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.05
@@ -354,16 +371,16 @@ Cohesion: 0.04
 Nodes (44): dependencies, @angular/animations, @angular-architects/native-federation, @angular/common, @angular/compiler, @angular/core, @angular/platform-browser, @angular/router (+36 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.08
-Nodes (47): AtlasDevOverrideDocument, AtlasDevSessionDocument, AtlasRuntimeOverrideDocument, RegistrySnapshot, WidgetRegistryOptions, actionableMessage(), ensureActionableError(), suggestedActionFor() (+39 more)
+Cohesion: 0.16
+Nodes (20): AtlasAppIndex, AtlasArtifactIndex, AtlasArtifactManifestBase, AtlasAppConfig, AtlasBaseConfig, AtlasHostConfig, AtlasRouteMount, AtlasSlotMount (+12 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.26
-Nodes (8): AtlasBrowserNavigation, AtlasInnerLocation, AtlasLocation, AtlasNavigateOptions, AtlasNavigationListener, createTestHostSdk(), createMemoryNavigation(), splitPath()
+Cohesion: 0.50
+Nodes (4): createTestHostSdk(), createTestManifest(), createMemoryNavigation(), splitPath()
 
 ### Community 17 - "Community 17"
-Cohesion: 0.19
-Nodes (38): AtlasValidationIssue, validateHostCatalog(), validateUniqueManifestIds(), FRAMEWORKS, normalizeRoutePath(), PlacementUniqueness, validateExportedWidget(), validateExportedWidgets() (+30 more)
+Cohesion: 0.18
+Nodes (40): AtlasValidationIssue, validateHostCatalog(), validateUniqueManifestIds(), FRAMEWORKS, normalizeRoutePath(), PlacementUniqueness, validateExportedWidget(), validateExportedWidgets() (+32 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.15
@@ -374,11 +391,11 @@ Cohesion: 0.10
 Nodes (28): angularComponentCount(), appDocument(), assertSingleComponentDeclaration(), atlasPackageRange(), availablePort(), catalogManifestIds(), closeServer(), closingJoinedAppPreservesHost() (+20 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.06
-Nodes (60): Injectable, AtlasDefaultHostRouteComponent, AtlasNavigationItemsService, HostOptions, startHost(), syncAngularRouterWithBrowserUrl(), Component, emitHostError() (+52 more)
+Cohesion: 0.12
+Nodes (32): DomHostOptions, DomHostServices, DomRuntimeOptions, assertCatalogMatchesConfig(), DomHostRuntimeInput, resolveDomSlotContainer(), resolveHostConfig(), startDomHostRuntime() (+24 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.14
+Cohesion: 0.16
 Nodes (25): absoluteHttpUrl(), asRecord(), AssetExpectation, AtlasVerificationReport, AtlasVerificationStatus, AtlasVerifyOptions, AtlasVerifyService, createReport() (+17 more)
 
 ### Community 22 - "Community 22"
@@ -433,6 +450,10 @@ Nodes (13): createTestContainer(), createTestElement(), createAssetElement(), cr
 Cohesion: 0.06
 Nodes (30): bugs, description, engines, node, exports, files, homepage, app (+22 more)
 
+### Community 35 - "Community 35"
+Cohesion: 0.11
+Nodes (30): Injectable, AtlasDefaultHostRouteComponent, AtlasNavigationItemsService, HostOptions, startHost(), syncAngularRouterWithBrowserUrl(), Component, emitHostError() (+22 more)
+
 ### Community 36 - "Community 36"
 Cohesion: 0.19
 Nodes (15): createDeferred(), createHostCatalog(), createRouteManifest(), createRoutePlacement(), createSlotManifest(), createTestDocument(), duplicateRegistryWidgetResult(), duplicateWidgetResult() (+7 more)
@@ -450,8 +471,8 @@ Cohesion: 0.11
 Nodes (20): ColumbusManifest, createStorage(), createStorageArea(), InterceptorScenario, isColumbusManifest(), isRecord(), jsonResponse(), readColumbusFile() (+12 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.42
-Nodes (8): createPublicationStorage(), assertExpectedRegistryRevision(), AtlasPublishService, cleanupSupersededPublications(), publicationOrder(), publishFiles(), readRegistry(), withPublicationLease()
+Cohesion: 0.17
+Nodes (13): AtlasPublicationLease, createPublicationStorage(), environmentBoolean(), storageFromEnvironment(), artifactIndexPath(), assertExpectedRegistryRevision(), AtlasPublishService, mutableRank() (+5 more)
 
 ### Community 41 - "Community 41"
 Cohesion: 0.08
@@ -462,8 +483,8 @@ Cohesion: 0.17
 Nodes (29): affectedHostIds(), artifactKey(), assertArtifactManifest(), assertSafeRegistryId(), assertStaticRegistry(), AtlasRegistryResult, compareArtifactIdentity(), compareNewestFirst() (+21 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.10
-Nodes (27): ATLAS_BROWSER_LOADER, AtlasBootstrapFile, AtlasBootstrapOptions, createAtlasBootstrapFiles(), createBootstrapHtml(), createNginxConfig(), escapeHtml(), normalizedOrigins() (+19 more)
+Cohesion: 0.12
+Nodes (22): ATLAS_BROWSER_LOADER, AtlasBootstrapFile, AtlasBootstrapOptions, createAtlasBootstrapFiles(), createBootstrapHtml(), createNginxConfig(), escapeHtml(), normalizedOrigins() (+14 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.08
@@ -530,8 +551,8 @@ Cohesion: 0.10
 Nodes (20): compilerOptions, allowImportingTsExtensions, jsx, lib, module, moduleResolution, noEmit, skipLibCheck (+12 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.08
-Nodes (34): AtlasBuildResult, AtlasPublicationLease, AtlasPublicationStorage, artifactIndexPath(), artifactPrefix(), assertPublicationMetadata(), AtlasProjectBuilder, AtlasPrPruneResult (+26 more)
+Cohesion: 0.14
+Nodes (22): AtlasBuildResult, artifactPrefix(), AtlasProjectBuilder, AtlasPrPruneResult, AtlasPrRemovalResult, AtlasPublicationInventory, AtlasPublishResult, AtlasRollbackResult (+14 more)
 
 ### Community 62 - "Community 62"
 Cohesion: 0.17
@@ -554,8 +575,8 @@ Cohesion: 0.20
 Nodes (17): PopupOverridesContext, PopupOverridesContextValue, PopupSessionContext, PopupSessionContextValue, AtlasExtensionManifest, ScopePicker(), ScopePickerProps, clearAllOverridesInSession() (+9 more)
 
 ### Community 68 - "Community 68"
-Cohesion: 0.06
-Nodes (50): AtlasHostUi, AtlasHostUiOptions, AtlasHostMountState, AtlasWidgetErrorRenderContext, AtlasWidgetRenderContext, createMountBoundary(), createRoutePlacementPlan(), createRouteTitleController() (+42 more)
+Cohesion: 0.08
+Nodes (38): createDomHostSdk(), createSdkProviders(), NON_SDK_OPTION_NAMES, readSdkProperties(), SdkProviderInput, AtlasHostMountState, AtlasHostRuntimeOptions, AtlasLoaderOptions (+30 more)
 
 ### Community 69 - "Community 69"
 Cohesion: 0.23
@@ -578,8 +599,8 @@ Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
 ### Community 74 - "AtlasManifest"
-Cohesion: 0.23
-Nodes (16): assertRegistry(), assertWidgetId(), compareNewestFirst(), createRegistryWidgetResolver(), fetchRegistry(), isRecord(), LazyRegistry, matchesSelection() (+8 more)
+Cohesion: 0.17
+Nodes (19): assertRegistry(), assertWidgetId(), compareNewestFirst(), createRegistryWidgetResolver(), fetchRegistry(), isRecord(), LazyRegistry, matchesSelection() (+11 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.24
@@ -607,7 +628,7 @@ Nodes (14): bin, atlas, bugs, description, exports, homepage, license, main (+6 
 
 ### Community 81 - "Community 81"
 Cohesion: 0.12
-Nodes (16): default, types, exports, ./angular, ./federation, ./host, ./overlay, ./react (+8 more)
+Nodes (16): default, types, exports, ./angular, ./host, ./lifecycle, ./navigation, ./overlay (+8 more)
 
 ### Community 82 - "Community 82"
 Cohesion: 0.18
@@ -758,16 +779,16 @@ Cohesion: 0.18
 Nodes (11): 10. Switch to routine CI, 1. Install Atlas, 2. Generate the projects, 3. Connect apps to the host, 4. Test locally, 5. Create S3-compatible storage, 6. Configure browser access, 7. Publish the first environment (+3 more)
 
 ### Community 122 - "angular-generator.ts"
-Cohesion: 0.21
-Nodes (10): renderLoading(), AtlasRuntimeContext, AtlasSdk, AtlasSdkContext, useAtlasSdk(), createReactAtlasSdk(), createWidgetComponent(), ReactAtlasSdk (+2 more)
+Cohesion: 0.11
+Nodes (13): renderLoading(), AtlasAppMountRequest, AppOptions, RootAdapter, AtlasRuntimeContext, AtlasSdk, AtlasSdkContext, useAtlasSdk() (+5 more)
 
 ### Community 123 - "Manifests"
-Cohesion: 0.15
-Nodes (11): AppReadiness, AtlasMountedApp, AtlasRuntimeController, createAppReadiness(), createLoadingEmitter(), createRuntimeMount(), hostPlacements(), placementKey() (+3 more)
+Cohesion: 0.14
+Nodes (12): AppReadiness, AtlasMountedApp, AtlasRuntimeController, createAppReadiness(), createLoadingEmitter(), createRuntimeMount(), hostPlacements(), placementKey() (+4 more)
 
 ### Community 124 - "Community 124"
-Cohesion: 0.18
-Nodes (7): AtlasVitePlugin, executeFile, factoryPath, federationConfig, federationExposes(), Middleware, workspaceRoot
+Cohesion: 0.10
+Nodes (9): { createAngularFederationConfig }, { createAngularFederationConfig }, { createAngularFederationConfig }, AtlasVitePlugin, executeFile, factoryPath, federationExposes(), Middleware (+1 more)
 
 ### Community 125 - "Community 125"
 Cohesion: 0.47
@@ -784,6 +805,14 @@ Nodes (5): docker(), execute, requireOk(), root, waitForHealth()
 ### Community 128 - "Community 128"
 Cohesion: 0.40
 Nodes (5): App Domain, Deployment Domain, Host Domain, Monorepos, React Assets And Styles
+
+### Community 130 - "Community 130"
+Cohesion: 0.18
+Nodes (14): AtlasDevBuildService, AtlasDevService, closeServer(), DevControlServer, frameworkServerArguments(), hostClientPortFallback(), joinControlServer(), localOrigin() (+6 more)
+
+### Community 131 - "Community 131"
+Cohesion: 0.13
+Nodes (15): mount(), artifactDirectoryUrl(), AtlasFederationAdapter, AtlasNativeFederationImporters, createNativeFederationImporters(), createTrustedNativeFederationImporters(), federationRemoteName(), hasMountFunction() (+7 more)
 
 ### Community 132 - "Community 132"
 Cohesion: 0.40
@@ -846,8 +875,8 @@ Cohesion: 0.50
 Nodes (4): repository, directory, type, url
 
 ### Community 149 - "Community 149"
-Cohesion: 0.40
-Nodes (5): files, dist/**/*.d.ts, dist/**/*.js, federation-config.cjs, federation-config.d.cts
+Cohesion: 0.33
+Nodes (6): files, dist/**/*.d.ts, dist/**/*.js, federation-config.cjs, federation-config.d.cts, federation-config.mjs
 
 ### Community 150 - "Community 150"
 Cohesion: 0.50
@@ -861,6 +890,10 @@ Nodes (4): repository, directory, type, url
 Cohesion: 0.16
 Nodes (14): createReleaseWorkspace(), packageDirectories, writeJson(), main(), nextVersion(), prepareRelease(), releaseTypes, root (+6 more)
 
+### Community 154 - "Community 154"
+Cohesion: 0.13
+Nodes (15): ATLAS_APP_CONTEXT, ATLAS_SDK, AtlasSdk, injectAppLoaded(), injectAtlasAppContext(), injectAtlasSdk(), AngularAtlasSdk, AngularGetWidgetOptions (+7 more)
+
 ### Community 156 - "Community 156"
 Cohesion: 0.67
 Nodes (3): files, dist/**/*.d.ts, dist/**/*.js
@@ -868,6 +901,10 @@ Nodes (3): files, dist/**/*.d.ts, dist/**/*.js
 ### Community 158 - "Community 158"
 Cohesion: 0.67
 Nodes (3): files, dist/**/*.d.ts, dist/**/*.js
+
+### Community 159 - "Community 159"
+Cohesion: 0.11
+Nodes (9): AppBootstrap, createExportedWidget(), defineExportedWidget(), AtlasAppContext, AtlasAppMountResult, AtlasExportedWidgetMountRequest, AtlasExportedWidgetMountResult, AtlasRouteContext (+1 more)
 
 ### Community 160 - "Community 160"
 Cohesion: 0.25
@@ -882,8 +919,8 @@ Cohesion: 0.20
 Nodes (10): Apps, Architecture, Browser loader, Deliberate limits, Host client, One selection model, Release data flow, Rollback boundaries (+2 more)
 
 ### Community 164 - "Community 164"
-Cohesion: 0.20
-Nodes (6): { createAngularFederationConfig }, { createAngularFederationConfig }, { createAngularFederationConfig }, ReactHostViteConfigOptions, ReactViteConfigOptions, ReactWidgetEntry
+Cohesion: 0.50
+Nodes (3): ReactHostViteConfigOptions, ReactViteConfigOptions, ReactWidgetEntry
 
 ### Community 166 - "Community 166"
 Cohesion: 0.40
@@ -894,8 +931,8 @@ Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Can Atlas infer host id from a configured host URL when an app declares multiple hosts?, Source Nodes
 
 ### Community 169 - "Community 169"
-Cohesion: 0.09
-Nodes (26): CliArguments, SupportedFramework, NxDevTargetOptions, WidgetAppSelection, formatHelp(), cliVersion(), configuredArtifactIds(), configuredRuntimeUrls() (+18 more)
+Cohesion: 0.13
+Nodes (20): CliArguments, formatHelp(), cliVersion(), configuredArtifactIds(), configuredRuntimeUrls(), positiveInteger(), printVerificationCheck(), publishAndVerify() (+12 more)
 
 ### Community 172 - "Community 172"
 Cohesion: 0.50
@@ -914,8 +951,8 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 185 - "Host bootstrap"
-Cohesion: 0.05
-Nodes (21): ATLAS_APP_CONTEXT, ATLAS_SDK, AtlasSdk, injectAppLoaded(), injectAtlasAppContext(), injectAtlasSdk(), createLocationStrategy(), notifyPopState() (+13 more)
+Cohesion: 0.09
+Nodes (7): createLocationStrategy(), notifyPopState(), PopStateListener, readInnerUrl(), LocationLike, LocationStrategyAdapter, RouterLike
 
 ### Community 186 - "Local development and Columbus"
 Cohesion: 0.22
@@ -942,8 +979,8 @@ Cohesion: 0.25
 Nodes (8): Angular Routing, App Domain, Common Mistakes, Cross-App Navigation, Deployment Domain, Host Domain, How The Host Chooses An App, Inner Angular Routes
 
 ### Community 192 - "Angular SDK"
-Cohesion: 0.67
-Nodes (3): ./lifecycle, default, types
+Cohesion: 0.19
+Nodes (5): SupportedFramework, AtlasGenerateService, NxDevTargetOptions, displayTarget(), AtlasNxProjectType
 
 ### Community 194 - "Exported Widgets"
 Cohesion: 0.67
@@ -958,8 +995,8 @@ Cohesion: 0.25
 Nodes (8): App Domain, Events, Host Domain, Host-Owned UI, Loading And Readiness, Navigation, React SDK, Testing
 
 ### Community 197 - "Atlas Overview"
-Cohesion: 0.67
-Nodes (3): ./navigation, default, types
+Cohesion: 0.15
+Nodes (8): isBaseHostUrl(), resolveHostId(), urlWithBasePath(), AtlasPrompter, style(), TerminalPrompter, ui, AtlasConfig
 
 ### Community 198 - "Documentation Guidelines"
 Cohesion: 0.29
@@ -1005,9 +1042,13 @@ Nodes (5): @atlas/cli, Commands, Install, Storage, Workspace integration
 Cohesion: 0.29
 Nodes (7): App Domain, Atlas Overview, Deployment Domain, Host Domain, Learn Next, Mental Model, Vocabulary
 
+### Community 214 - "resilience.ts"
+Cohesion: 0.18
+Nodes (16): AtlasBrowserOverrideOptions, AtlasRuntimeObserver, eventTimestamp(), actionForStage(), AtlasLoadError, AtlasOperationContext, AtlasRetryPolicy, AtlasRetryPolicySource (+8 more)
+
 ### Community 215 - "react-context.ts"
-Cohesion: 0.05
-Nodes (43): createDomHostSdk(), createSdkProviders(), NON_SDK_OPTION_NAMES, readSdkProperties(), AtlasDeploymentCatalog, AppBootstrap, createExportedWidget(), defineExportedWidget() (+35 more)
+Cohesion: 0.07
+Nodes (27): AtlasEventBus, AtlasEventMap, createAtlasEventBus(), EventKey, notifyListener(), StoredEventListener, AtlasFetchHttpClient, AtlasHttpClient (+19 more)
 
 ### Community 216 - "Changelog"
 Cohesion: 0.50
@@ -1025,13 +1066,17 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
+### Community 226 - "AtlasHostManifest"
+Cohesion: 0.18
+Nodes (9): AtlasDevSessionDocument, WidgetRegistryOptions, suggestedActionFor(), AtlasDeploymentCatalog, AtlasHostCatalog, AtlasHostManifest, AtlasValidationError, formatAtlasValidationMessage() (+1 more)
+
 ### Community 232 - "publication-context.ts"
-Cohesion: 0.12
-Nodes (32): assertAppConfig(), AtlasArtifactManifest, AtlasBuildService, buildTimestamp(), discoverExportedWidgets(), discoverStylesheets(), findArtifactRoot(), findArtifactRootIfPresent() (+24 more)
+Cohesion: 0.17
+Nodes (19): assertAppConfig(), AtlasArtifactManifest, AtlasBuildService, buildTimestamp(), discoverExportedWidgets(), discoverStylesheets(), findArtifactRoot(), findArtifactRootIfPresent() (+11 more)
 
 ### Community 233 - "React Project Guide"
-Cohesion: 0.30
-Nodes (11): appendQueryValue(), matchRoutePart(), matchRoutePattern(), normalizeBasePath(), parseQuery(), scopePath(), splitRoutePath(), toInnerPath() (+3 more)
+Cohesion: 0.12
+Nodes (17): appendQueryValue(), matchRoutePart(), matchRoutePattern(), normalizeBasePath(), parseQuery(), scopePath(), splitRoutePath(), toInnerPath() (+9 more)
 
 ### Community 234 - "package.json"
 Cohesion: 0.50
@@ -1042,24 +1087,36 @@ Cohesion: 0.29
 Nodes (7): Asset URLs Break In Production, Host APIs Are Missing, Inner Routing Escapes The App, Install Fails With Peer Conflicts, React Troubleshooting, Spinner Never Disappears, The App Does Not Load
 
 ### Community 246 - "bootstrap.ts"
-Cohesion: 0.12
-Nodes (13): AppComponent, Component, bootstrap(), DemoRouteAnchorComponent, HostMountRequest, Component, mount(), mount() (+5 more)
+Cohesion: 0.14
+Nodes (11): AppComponent, Component, bootstrap(), DemoRouteAnchorComponent, HostMountRequest, Component, mount(), hostData (+3 more)
+
+### Community 247 - "AtlasWorkspace"
+Cohesion: 0.17
+Nodes (6): compileAtlasConfig(), compileAtlasConfigFile(), compiledAtlasConfigExists(), findCompilerConfig(), formatDiagnostics(), AtlasWorkspace
 
 ### Community 248 - "publish-config.ts"
 Cohesion: 0.18
 Nodes (19): AtlasPublicationStorageSource, isPublicationStorage(), AtlasPublishOptions, closedPullRequests(), AtlasPublishConfig, AtlasPullRequestLookup, AtlasPullRequestResolver, AtlasPullRequestStatus (+11 more)
 
 ### Community 249 - "readAngularProjectPort"
-Cohesion: 0.33
+Cohesion: 0.29
 Nodes (6): ATLAS_HOST_FILES, ATLAS_INTEGRATION_FILES, DELEGATED_APP_FILES, DELEGATED_HOST_FILES, generatedOverlay(), isReactHostProvider()
 
 ### Community 250 - "ui.ts"
-Cohesion: 0.67
-Nodes (3): ./federation-config, require, types
+Cohesion: 0.50
+Nodes (4): ./federation-config, import, require, types
+
+### Community 251 - "publication-context.ts"
+Cohesion: 0.32
+Nodes (13): inferredTagVersion(), ReleaseIdentity, firstEnvironmentValue(), inferredDefaultBranch(), inferredGitBranch(), inferredGitCommitTitle(), inferredGitSha(), inferredGitTag() (+5 more)
 
 ### Community 252 - "generate-dependencies.ts"
-Cohesion: 0.11
-Nodes (36): addUniquePolyfill(), asObject(), ensureAngularFederationPolyfills(), ensureAngularNativeFederationTargets(), ensureAngularWorkspaceFederationConfig(), isNativeFederationTarget(), ProjectType, retargetAngularBuildReference() (+28 more)
+Cohesion: 0.17
+Nodes (25): addUniqueString(), writeJsonFile(), alignDelegatedAngularFederationConfig(), alignDelegatedTsconfig(), asObject(), collectNxPathValues(), commandValues(), declaresAtlasConfigOutput() (+17 more)
+
+### Community 253 - "generate-angular.ts"
+Cohesion: 0.29
+Nodes (11): addUniquePolyfill(), asObject(), ensureAngularFederationPolyfills(), ensureAngularNativeFederationTargets(), ensureAngularWorkspaceFederationConfig(), isNativeFederationTarget(), ProjectType, retargetAngularBuildReference() (+3 more)
 
 ### Community 254 - "local-development.specs.ts"
 Cohesion: 0.13
@@ -1069,6 +1126,10 @@ Nodes (9): contentType(), DirectoryPublicationStorage, isMutable(), metadata(), 
 Cohesion: 0.08
 Nodes (22): Angular Generators, App Domain, Framework Versions, Host Domain, Widgets, Workspaces, Generators, App Domain (+14 more)
 
+### Community 258 - "generate-dependencies.ts"
+Cohesion: 0.27
+Nodes (12): asStringRecord(), DEPENDENCY_FIELDS, dependencyDeclared(), DependencyField, dependencyManifestPath(), existingFrameworkVersionInfo(), frameworkPrimaryDependency(), FrameworkVersionInfo (+4 more)
+
 ### Community 259 - "Static registry"
 Cohesion: 0.22
 Nodes (9): Custom adapters, Lease safety, Mutable and immutable objects, Publication transaction, Registry selection, Rollback, Static registry, Storage configuration (+1 more)
@@ -1076,6 +1137,10 @@ Nodes (9): Custom adapters, Lease safety, Mutable and immutable objects, Publica
 ### Community 260 - "Atlas"
 Cohesion: 0.50
 Nodes (4): CI, Deployment E2E, Faster Browser Iteration, Testing The Atlas Repository
+
+### Community 261 - "publishFiles"
+Cohesion: 0.29
+Nodes (9): AtlasPublicationStorage, assertPublicationMetadata(), createImmutable(), publicationMetadata(), publishFiles(), readStoredObject(), restoreMutableFiles(), sha256() (+1 more)
 
 ### Community 262 - "publishConfig"
 Cohesion: 0.29
@@ -1085,29 +1150,49 @@ Nodes (7): Before a Pull Request, Contributing to Atlas, Documentation, File Ext
 Cohesion: 0.40
 Nodes (5): Angular Assets And Styles, App Domain, Deployment Domain, Host Domain, Monorepos
 
+### Community 264 - "AtlasManifest"
+Cohesion: 0.24
+Nodes (8): RoutePlacement, RuntimeMount, RuntimePlacement, AtlasManifest, AtlasPlacement, AtlasPlacementKind, AtlasRouteContribution, AtlasSlotRenderRequest
+
 ### Community 265 - "AtlasFederationAdapter"
-Cohesion: 0.09
-Nodes (38): mapWithConcurrency(), loadAndMountHostCatalog(), artifactDirectoryUrl(), createNativeFederationImporters(), federationRemoteName(), hasMountFunction(), importNativeFederationRemote(), normalizeAppEntry() (+30 more)
+Cohesion: 0.13
+Nodes (27): mapWithConcurrency(), loadAndMountHostCatalog(), assertLocalManifestUrls(), assertManifestAssetTrust(), assertManifestStylesTrust(), assertManifestSupportsHost(), assertTrustedAssetUrl(), bytesToBase64() (+19 more)
+
+### Community 268 - "create-manifest-from-config.ts"
+Cohesion: 0.44
+Nodes (8): assertAtlasManifest(), createManifestFromConfig(), identifierFromRoute(), identifierFromSlot(), placements(), routePlacementId(), slotPlacementId(), supportedHosts()
+
+### Community 269 - "env.ts"
+Cohesion: 0.46
+Nodes (7): formatEnvValue(), isMissingFileError(), loadEnvFile(), loadEnvFiles(), parseEnvLine(), parseEnvValue(), saveWorkspaceLocalEnv()
+
+### Community 272 - "./federation"
+Cohesion: 0.67
+Nodes (3): ./federation, default, types
+
+### Community 273 - "./react"
+Cohesion: 0.67
+Nodes (3): ./react, default, types
 
 ## Knowledge Gaps
-- **1397 isolated node(s):** `name`, `version`, `private`, `type`, `build` (+1392 more)
+- **1393 isolated node(s):** `name`, `version`, `private`, `type`, `build` (+1388 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **40 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `manifest()` connect `Community 98` to `Community 33`, `Community 68`, `Community 36`, `Community 39`, `Community 40`, `AtlasFederationAdapter`, `Community 42`, `AtlasManifest`, `Community 49`, `Community 17`, `Community 19`, `Community 20`, `Community 21`, `Community 55`, `Manifests`, `Community 61`, `Community 30`?**
-  _High betweenness centrality (0.073) - this node is a cross-community bridge._
-- **Why does `cleanupSupersededPublications()` connect `Community 40` to `publication-context.ts`, `Community 98`, `Community 61`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `manifest()` connect `Community 98` to `Community 1`, `Community 33`, `Community 36`, `Community 39`, `Community 40`, `AtlasFederationAdapter`, `Community 42`, `AtlasManifest`, `Community 49`, `Community 17`, `Community 19`, `Community 20`, `Community 21`, `Community 55`, `Manifests`, `Community 61`, `Community 30`?**
+  _High betweenness centrality (0.077) - this node is a cross-community bridge._
+- **Why does `cleanupSupersededPublications()` connect `Community 61` to `Community 40`, `publication-context.ts`, `Community 98`, `publishFiles`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Why does `run()` connect `Community 82` to `publication-context.ts`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **Are the 35 inferred relationships involving `manifest()` (e.g. with `createOverrideDocument()` and `readDisabledOverrides()`) actually correct?**
   _`manifest()` has 35 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `name`, `version`, `private` to the rest of the system?**
-  _1397 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1393 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.07238413760152891 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.0957983193277311 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.07123034227567067 - nodes in this community are weakly interconnected._

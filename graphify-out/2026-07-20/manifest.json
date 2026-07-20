@@ -145,8 +145,8 @@
     "semantic_hash": "d731c712b96e2780b542ef9707c8a169"
   },
   "examples/apps/catalog-react/vite.config.ts": {
-    "mtime": 1784547719.3530989,
-    "ast_hash": "979bd52ebcb1a5933bd3f393a2be2278",
+    "mtime": 1784548306.7967868,
+    "ast_hash": "09ff7b3b1c564fad109d18950201c4bd",
     "semantic_hash": ""
   },
   "examples/apps/dashboard-angular/angular.json": {
@@ -215,8 +215,8 @@
     "semantic_hash": "d731c712b96e2780b542ef9707c8a169"
   },
   "examples/apps/dashboard-react/vite.config.ts": {
-    "mtime": 1784547719.3576612,
-    "ast_hash": "7265e231b8296e975fe49acb0a50b273",
+    "mtime": 1784548306.9549556,
+    "ast_hash": "74845743b48b84925d566cd87c7783ba",
     "semantic_hash": ""
   },
   "examples/apps/orders-angular/angular.json": {
@@ -355,8 +355,8 @@
     "semantic_hash": "d731c712b96e2780b542ef9707c8a169"
   },
   "examples/hosts/demo-react-host/vite.config.ts": {
-    "mtime": 1784547719.3626058,
-    "ast_hash": "13283e012b334dfe12fd77e4c5747415",
+    "mtime": 1784548307.1173158,
+    "ast_hash": "0173a014ddce387de7930f4c538c359d",
     "semantic_hash": ""
   },
   "jest.config.json": {
@@ -740,8 +740,8 @@
     "semantic_hash": "f4d35b2218418ad6433c2394fada3822"
   },
   "packages/generators/src/cli/react-vite-generator.ts": {
-    "mtime": 1784547743.9353688,
-    "ast_hash": "d477012fadd670fa5f15c033742c3422",
+    "mtime": 1784548306.6414764,
+    "ast_hash": "4472f7ef66eae8f4dd179f0805f7b500",
     "semantic_hash": ""
   },
   "packages/generators/src/cli/widget-generator.ts": {
@@ -1085,8 +1085,8 @@
     "semantic_hash": "76435d7b0314d456db1dcbe5a5071128"
   },
   "packages/sdk/package.json": {
-    "mtime": 1784547755.0315533,
-    "ast_hash": "9c8e8cc16e640630f59e3d2e287b5d1d",
+    "mtime": 1784548306.4833145,
+    "ast_hash": "e0b5eede422380036ca347586ca18fea",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-app.ts": {
@@ -1275,8 +1275,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/tests/federation-config.specs.ts": {
-    "mtime": 1784548079.4887295,
-    "ast_hash": "020c3b2965a19041a95032b8d6e51fa5",
+    "mtime": 1784548307.273815,
+    "ast_hash": "e0636b2f159d64a39ff9b7d884f6990c",
     "semantic_hash": ""
   },
   "packages/sdk/tests/framework-api.driver.ts": {
@@ -2127,6 +2127,11 @@
   "graphify-out/memory/query_20260720_114717_remove_host_id_input_from_atlas_dev_app_and_derive.md": {
     "mtime": 1784548037.080686,
     "ast_hash": "f4187d76ff68d313c86cb998afdac78d",
+    "semantic_hash": ""
+  },
+  "packages/sdk/federation-config.mjs": {
+    "mtime": 1784548306.3243363,
+    "ast_hash": "c07652369cdbc236b5c92a21c414ad69",
     "semantic_hash": ""
   }
 }

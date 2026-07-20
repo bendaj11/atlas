@@ -271,7 +271,6 @@
   "269": "env.ts",
   "270": ".writeNxProject",
   "271": "NetworkLimiter",
-  "272": "./federation",
   "273": "./react",
   "274": "{\n  createAngularFederationConfig,\n  createReactAppViteConfig,\n  createReactHostViteConfig,\n  createReactWidgetEntries,\n}",
   "283": "@angular/common"

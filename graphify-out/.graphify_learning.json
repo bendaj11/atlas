@@ -1,28 +1,70 @@
 {
-  "generated_at": "2026-07-20T11:40:03.571665+00:00",
+  "generated_at": "2026-07-20T11:53:42.417534+00:00",
   "nodes": {
-    "packages_cli_src_dev_atlasdevservice": {
-      "code_fingerprint": "93e25bc39bdac34386a4c3674655124d2d0c00bb03675a87eadf8b1f85a05f39",
-      "label": "AtlasDevService",
-      "last": "2026-07-20T11:32:28.471655+00:00",
+    "docs_local_development_local_development_and_columbus": {
+      "code_fingerprint": "781ec720d49b8f901988b8f6d6532b45faecfc011f0254416bddf88b3fcc5189",
+      "label": "Local development and Columbus",
+      "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
+        {
+          "date": "2026-07-20T11:41:16.249997+00:00",
+          "outcome": "useful",
+          "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
+        }
+      ],
+      "score": 0.999800481,
+      "source_file": "docs/local-development.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "docs_local_development_run_a_local_app": {
+      "code_fingerprint": "781ec720d49b8f901988b8f6d6532b45faecfc011f0254416bddf88b3fcc5189",
+      "label": "Run a local app",
+      "last": "2026-07-20T11:41:16.249997+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-20T11:41:16.249997+00:00",
+          "outcome": "useful",
+          "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
+        }
+      ],
+      "score": 0.999800481,
+      "source_file": "docs/local-development.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "packages_cli_src_dev_atlasdevservice": {
+      "code_fingerprint": "d3cbecc86252f4052293e65acc09e4e4c0a6614b4307c8d3badb4486199f99e2",
+      "label": "AtlasDevService",
+      "last": "2026-07-20T11:47:17.080303+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-20T11:47:17.080303+00:00",
+          "outcome": "useful",
+          "q": "Remove host ID input from atlas dev app and derive target from launch URL."
+        },
         {
           "date": "2026-07-20T11:32:28.471655+00:00",
           "outcome": "useful",
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.999878306,
+      "score": 1.999556341,
       "source_file": "packages/cli/src/dev.ts",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "packages_cli_src_dev_resolvehostid": {
-      "code_fingerprint": "93e25bc39bdac34386a4c3674655124d2d0c00bb03675a87eadf8b1f85a05f39",
+      "code_fingerprint": "d3cbecc86252f4052293e65acc09e4e4c0a6614b4307c8d3badb4486199f99e2",
       "label": "resolveHostId()",
-      "last": "2026-07-20T11:34:22.893146+00:00",
+      "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
       "provenance": [
+        {
+          "date": "2026-07-20T11:47:17.080303+00:00",
+          "outcome": "useful",
+          "q": "Remove host ID input from atlas dev app and derive target from launch URL."
+        },
         {
           "date": "2026-07-20T11:34:22.893146+00:00",
           "outcome": "corrected",
@@ -34,11 +76,11 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": -3.0595e-05,
+      "score": 0.999866371,
       "source_file": "packages/cli/src/dev.ts",
       "status": "contested",
-      "uses": 1,
-      "verdict": "dead end"
+      "uses": 2,
+      "verdict": "useful"
     },
     "packages_runtime_src_loader_runtime_discovery_atlasruntimeoverridedocument": {
       "code_fingerprint": "9746329635ede53a5287842710caa127bbcb883ff0079285a8a9227a18a34d3f",
@@ -51,7 +93,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.999951979,
+      "score": 0.99973304,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -59,9 +101,14 @@
     "packages_runtime_src_loader_runtime_discovery_loadhostruntimeconfig": {
       "code_fingerprint": "9746329635ede53a5287842710caa127bbcb883ff0079285a8a9227a18a34d3f",
       "label": "loadHostRuntimeConfig()",
-      "last": "2026-07-20T11:37:03.996118+00:00",
+      "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
       "provenance": [
+        {
+          "date": "2026-07-20T11:47:17.080303+00:00",
+          "outcome": "useful",
+          "q": "Remove host ID input from atlas dev app and derive target from launch URL."
+        },
         {
           "date": "2026-07-20T11:37:03.996118+00:00",
           "outcome": "useful",
@@ -73,10 +120,10 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 4.3079e-05,
+      "score": 0.999940029,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
-      "uses": 1,
+      "uses": 2,
       "verdict": "useful"
     },
     "packages_schema_src_atlas_config_atlasroutemount": {
@@ -90,7 +137,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.999878306,
+      "score": 0.999659382,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -98,9 +145,14 @@
     "packages_schema_src_atlas_host_runtime_config_atlashostruntimeconfig": {
       "code_fingerprint": "e9832d8ae74a06214333dd114b52687e858751cbc17aa2c27a23d1a3216736b8",
       "label": "AtlasHostRuntimeConfig",
-      "last": "2026-07-20T11:37:03.996118+00:00",
+      "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
       "provenance": [
+        {
+          "date": "2026-07-20T11:47:17.080303+00:00",
+          "outcome": "useful",
+          "q": "Remove host ID input from atlas dev app and derive target from launch URL."
+        },
         {
           "date": "2026-07-20T11:37:03.996118+00:00",
           "outcome": "useful",
@@ -112,10 +164,10 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 4.3079e-05,
+      "score": 0.999940029,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
-      "uses": 1,
+      "uses": 2,
       "verdict": "useful"
     }
   },
