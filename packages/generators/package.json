@@ -1,6 +1,6 @@
 {
   "name": "@atlas/generators",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",
@@ -41,7 +41,7 @@
     "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.3.20",
-    "@atlas/schema": "0.3.20"
+    "@atlas/bootstrap": "0.3.21",
+    "@atlas/schema": "0.3.21"
   }
 }

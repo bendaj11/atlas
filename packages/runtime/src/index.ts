@@ -10,7 +10,7 @@ import type {
   AtlasWidgetLoader
 } from "@atlas/sdk/lifecycle";
 import { createRouteContext, createScopedNavigation } from "@atlas/sdk/navigation";
-import { assertManifestAssetTrust, loadHostCatalog, resolveRuntimeManifests, verifyManifestIntegrity, type AtlasRemoteTrustPolicy, type AtlasRuntimeOverride } from "./loader/runtime-discovery.js";
+import { assertManifestAssetTrust, loadHostCatalog, resolveRuntimeCatalog, resolveRuntimeManifests, verifyManifestIntegrity, type AtlasRemoteTrustPolicy, type AtlasRuntimeOverride } from "./loader/runtime-discovery.js";
 import { importNativeFederationRemote } from "./loader/native-federation.js";
 import { startRemoteAssetRewrite } from "./remote-assets.js";
 import { loadManifestStyles } from "./stylesheets.js";
@@ -55,6 +55,7 @@ export {
   findManifestTrustErrors,
   loadHostCatalog,
   loadHostRuntimeConfig,
+  resolveRuntimeCatalog,
   resolveRuntimeManifests,
   verifyManifestIntegrity,
   type AtlasBrowserOverrideOptions,

@@ -20,23 +20,23 @@ Chrome 111 or newer is required because Columbus uses main-world static content 
 2. Open the Atlas extension.
 3. Choose current production, previous production, PR, or local version for each app.
 4. Keep **All tabs** selected (the default), or choose **This tab** for an isolated experiment.
-5. Select **Apply and reload**.
+5. Select **Save**. Columbus persists the selection, then reloads the host.
 
-Production is default. Labels include semantic version and short build ID, so multiple builds sharing one version remain distinct. PR and historical versions come from static app index. For local development, paste app manifest URL or `atlas.local-overrides.json` URL printed by `atlas dev`.
+Production is default. Labels include semantic version and short build ID, so multiple builds sharing one version remain distinct. PR and historical versions come from static app index. For local development, paste the loopback base URL printed by `atlas dev`. Columbus accepts `localhost`, `127.0.0.1`, or `[::1]` and derives `remoteEntry.json` from that URL.
 
 All-tabs overrides are stored by `hostId` in `chrome.storage.local` and copied to the host origin's `localStorage`. Current-tab overrides use `sessionStorage` and take precedence in that tab. The SDK validates the complete document and every manifest before federation initialization.
 
-Choosing **Use production** updates the current selection; choose **Apply and reload** to commit it. With **All tabs**, Atlas removes the origin-wide override. With **This tab**, Atlas stores an empty tab override so that one tab can stay on production while other tabs continue using an all-tabs override.
+Choosing the current production version creates an explicit production selection. With **All tabs**, it replaces the origin-wide selection. With **This tab**, it takes precedence over any all-tabs override in that tab.
 
 If one app version index is unavailable, the extension keeps the host usable, shows a warning, and still offers that app's production version. Local manifests are validated for structure, app identity, and host compatibility before they can be applied.
 
 ## Verification
 
-`yarn test:e2e` loads the built Manifest V3 extension in Playwright's bundled Chromium and exercises historical, PR, local, reset, all-tabs, current-tab, and invalid-manifest workflows against the example Atlas deployment. The harness adds localhost access to a temporary extension copy because headless Chromium cannot reliably expose a toolbar popup's transient `activeTab` grant. The built extension is separately asserted to contain no permanent `host_permissions`.
+`yarn test:e2e` loads the built Manifest V3 extension in Playwright's bundled Chromium and exercises historical, PR, local, reset, all-tabs, current-tab, and invalid-URL workflows against the example Atlas deployment. Columbus has permanent loopback-only host permissions for local development discovery; all non-loopback page access still depends on the active tab and static content-script matches.
 
 ## Troubleshooting
 
 - **This page does not expose a valid Atlas runtime configuration**: the active page must serve `/atlas.runtime.json`.
 - **Catalog URL does not identify the static registry**: the extension expects `/hosts/<hostId>/catalog.json` under the Atlas storage root.
-- **Local manifest returned an error**: keep `atlas dev` running and use its control URL.
+- **Custom URL is rejected**: keep `atlas dev` running and use its loopback base URL.
 - **A version is disabled**: its manifest does not declare compatibility with the current host.

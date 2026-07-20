@@ -156,10 +156,24 @@ async function discoverLocalDevSession(url: string, fetchJson: FetchJson = defau
 }
 
 export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: AtlasRuntimeOverride[] = []): AtlasManifest[] {
-  const byId = new Map<string, AtlasManifest>();
+  return resolveRuntimeCatalog(catalog, overrides).apps;
+}
+
+export function resolveRuntimeCatalog(
+  catalog: AtlasHostCatalog,
+  overrides: AtlasRuntimeOverride[] = [],
+): AtlasHostCatalog {
+  const appsById = new Map<string, AtlasManifest>();
   for (const manifest of catalog.apps) {
-    if (byId.has(manifest.id)) throw new Error(`Atlas catalog contains multiple selected versions for app "${manifest.id}".`);
-    byId.set(manifest.id, manifest);
+    if (appsById.has(manifest.id)) throw new Error(`Atlas catalog contains multiple selected versions for app "${manifest.id}".`);
+    appsById.set(manifest.id, manifest);
+  }
+  const providersById = new Map<string, AtlasManifest>();
+  for (const manifest of catalog.widgetProviders ?? []) {
+    if (appsById.has(manifest.id) || providersById.has(manifest.id)) {
+      throw new Error(`Atlas catalog contains multiple selected versions for app "${manifest.id}".`);
+    }
+    providersById.set(manifest.id, manifest);
   }
   const overriddenIds = new Set<string>();
   for (const override of overrides) {
@@ -170,25 +184,33 @@ export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: At
     if (overriddenIds.has(override.appId)) {
       throw new Error(`Atlas overrides contain duplicate entries for app "${override.appId}".`);
     }
-    if (!byId.has(override.appId)) {
-      throw new Error(`Atlas override targets app "${override.appId}", which is not selected by the host catalog.`);
+    const selected = appsById.get(override.appId) ?? providersById.get(override.appId);
+    if (!selected) {
+      throw new Error(`Atlas override targets app "${override.appId}", which is not selected by the host catalog as an app or widget provider.`);
     }
     assertManifestSupportsHost(override.manifest, catalog.hostId, "override");
     assertLocalManifestUrls(override.manifest);
-    const selected = byId.get(override.appId)!;
     overriddenIds.add(override.appId);
-    byId.set(override.appId, {
+    const resolved = {
       ...override.manifest,
       supportedHosts: selected.supportedHosts,
       placements: selected.placements
-    });
+    };
+    if (appsById.has(override.appId)) appsById.set(override.appId, resolved);
+    else providersById.set(override.appId, resolved);
   }
-  const manifests = [...byId.values()];
+  const manifests = [...appsById.values(), ...providersById.values()];
   for (const manifest of manifests) {
     assertManifestSupportsHost(manifest, catalog.hostId, "catalog");
     assertLocalManifestUrls(manifest);
   }
-  return manifests;
+  return {
+    ...catalog,
+    apps: [...appsById.values()],
+    ...(catalog.widgetProviders || providersById.size > 0
+      ? { widgetProviders: [...providersById.values()] }
+      : {}),
+  };
 }
 
 export async function verifyManifestIntegrity(

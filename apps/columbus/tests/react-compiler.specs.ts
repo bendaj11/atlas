@@ -1,16 +1,13 @@
 import { expect, test } from '@jest/globals';
 import { transformSync } from '@babel/core';
-import compilerPlugin, {
-  type LoggerEvent,
-} from 'babel-plugin-react-compiler';
+import compilerPlugin, { type LoggerEvent } from 'babel-plugin-react-compiler';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 test('React Compiler compiles the popup host provider', async () => {
-  const filename = join(
-    process.cwd(),
-    'apps/columbus/src/context/PopupHostContext.tsx',
-  );
+  const filename = new URL(
+    '../src/context/PopupHostContext.tsx',
+    import.meta.url,
+  ).pathname;
   const source = await readFile(filename, 'utf8');
   const events: LoggerEvent[] = [];
 

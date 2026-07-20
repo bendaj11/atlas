@@ -457,7 +457,7 @@ exit 1
   );
   expect(hostViteConfig).toMatch(/createReactHostViteConfig/);
   expect(hostViteConfig).not.toMatch(/remoteEntry\.json|rollupOptions/);
-  expect(hostViteConfig).toMatch(/plugins: \[react\(\)\]/);
+  expect(hostViteConfig).toMatch(/plugins: \[react\(\{\}\)\]/);
   expect(hostViteConfig).not.toMatch(
     /babel|reactCompilerPreset|ReactBabelOptions/,
   );
@@ -819,7 +819,7 @@ exit 1
   expect(reactViteConfig).not.toMatch(
     /remoteEntry\.json|atlasReactRefreshPreamble|rollupOptions/,
   );
-  expect(reactViteConfig).toMatch(/plugins: \[react\(\)\]/);
+  expect(reactViteConfig).toMatch(/plugins: \[react\(\{\}\)\]/);
   expect(reactViteConfig).not.toMatch(
     /babel|reactCompilerPreset|ReactBabelOptions/,
   );

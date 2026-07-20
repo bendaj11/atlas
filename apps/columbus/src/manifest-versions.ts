@@ -1,11 +1,5 @@
 import type { AtlasExtensionManifest } from "./contracts.js";
 
-export function assertExtensionManifest(value: AtlasExtensionManifest): void {
-  if (value.schemaVersion !== "1" || !value.kind || !value.id || !value.version || !value.buildId || !value.remoteEntryUrl) {
-    throw new Error("The local URL did not return a valid Atlas manifest.");
-  }
-}
-
 export function supportsHost(manifest: AtlasExtensionManifest, hostId: string): boolean {
   if (manifest.kind === "host") return manifest.id === hostId;
   return manifest.supportedHosts?.includes("*") === true

@@ -12,7 +12,7 @@ import {
   loadBrowserRuntimeOverrides,
   loadHostCatalog,
   loadHostRuntimeConfig,
-  resolveRuntimeManifests,
+  resolveRuntimeCatalog,
   startAtlasHostRuntime,
   type AtlasHostRuntime
 } from "./index.js";
@@ -40,7 +40,8 @@ export async function startDomHostRuntime<THostSdk extends object>(
     ...(allowCustomOverrides !== undefined ? { allowCustomOverrides } : {}),
     requestPolicy
   });
-  const manifests = resolveRuntimeManifests(catalog, overrides);
+  const resolvedCatalog = resolveRuntimeCatalog(catalog, overrides);
+  const manifests = resolvedCatalog.apps;
   const trustPolicy = createRemoteTrustPolicy(config);
   const federation = await createTrustedNativeFederationImporters(
     options.federation,
@@ -58,7 +59,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     navigation,
     manifests,
     importWidget: federation.importWidget,
-    resolveWidget: createRegistryWidgetResolver({ runtimeConfig: config, catalog }),
+    resolveWidget: createRegistryWidgetResolver({ runtimeConfig: config, catalog: resolvedCatalog }),
     trustPolicy
   });
 

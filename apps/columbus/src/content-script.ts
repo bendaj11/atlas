@@ -33,6 +33,18 @@ interface AtlasInterceptDevSession {
   generatedAt: string;
 }
 
+interface AtlasInterceptOverrideDocument {
+  schemaVersion: "1";
+  hostId: string;
+  overrides: Array<{
+    appId: string;
+    manifest: AtlasInterceptManifest;
+    reason: "local" | "pr" | "historical";
+  }>;
+  hostOverride?: AtlasInterceptManifest;
+  generatedAt: string;
+}
+
 const ATLAS_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
 const ATLAS_CATALOG_PATH = /\/hosts\/([^/]+)\/catalog\.json$/;
 const ATLAS_RUNTIME_CONFIG_PATH = /\/atlas\.runtime\.json$/;
@@ -63,10 +75,14 @@ function installAtlasCatalogInterceptor(): void {
     const [catalogResponse, session] = await Promise.all([nativeFetch(input, init), readDevSession(hostId)]);
 
     if (!session || session.hostId !== hostId) return catalogResponse;
-    persistDevSessionOverrides(session);
-    return catalogResponse.ok
-      ? mergeCatalogResponse(catalogResponse, session)
-      : localCatalogResponse(session);
+    try {
+      persistDevSessionOverrides(session);
+      return catalogResponse.ok
+        ? mergeCatalogResponse(catalogResponse, session)
+        : localCatalogResponse(session);
+    } catch {
+      return catalogResponse;
+    }
   };
 
   async function readDevSession(hostId: string): Promise<AtlasInterceptDevSession | undefined> {
@@ -79,16 +95,40 @@ function installAtlasCatalogInterceptor(): void {
 
 function persistDevSessionOverrides(session: AtlasInterceptDevSession): void {
   const disabledAppIds = readDisabledAppIds(session.hostId);
-  const documentValue = {
+  const storage = overrideStorage();
+  const existing = readOverrideDocument(
+    storage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY),
+    session.hostId,
+  );
+  const explicitAppOverrides = new Map(
+    (existing?.overrides ?? [])
+      .filter((override) => override.manifest.channel !== "local")
+      .map((override) => [override.appId, override]),
+  );
+  const localOverrides = session.overrides
+    .filter((override) => !disabledAppIds.has(override.appId))
+    .map((override) => ({ ...override, reason: "local" as const }));
+  const explicitHostOverride = existing?.hostOverride?.channel !== "local"
+    ? existing?.hostOverride
+    : undefined;
+  const documentValue: AtlasInterceptOverrideDocument = {
     schemaVersion: "1",
     hostId: session.hostId,
     generatedAt: session.generatedAt,
-    ...(session.hostOverride ? { host: { manifest: session.hostOverride, reason: "local" } } : {}),
-    apps: session.overrides
-      .filter((override) => !disabledAppIds.has(override.appId))
-      .map((override) => ({ manifest: override.manifest, reason: "local" }))
+    ...(explicitHostOverride
+      ? { hostOverride: explicitHostOverride }
+      : session.hostOverride
+        ? { hostOverride: session.hostOverride }
+        : {}),
+    overrides: localOverrides.map(
+      (override) => explicitAppOverrides.get(override.appId) ?? override,
+    ),
   };
-  overrideStorage().setItem(ATLAS_OVERRIDE_DOCUMENT_KEY, JSON.stringify(documentValue));
+  for (const [appId, override] of explicitAppOverrides) {
+    if (!documentValue.overrides.some((candidate) => candidate.appId === appId))
+      documentValue.overrides.push(override);
+  }
+  storage.setItem(ATLAS_OVERRIDE_DOCUMENT_KEY, JSON.stringify(documentValue));
 }
 
 function overrideStorage(): Storage {
@@ -120,17 +160,78 @@ function isDevSession(value: unknown, hostId: string): value is AtlasInterceptDe
     && session.hostId === hostId
     && session.catalog?.schemaVersion === "1"
     && session.catalog.hostId === hostId
-    && session.catalog.host?.kind === "host"
-    && (!session.hostOverride || (session.hostOverride.kind === "host" && session.hostOverride.id === hostId))
+    && isManifest(session.catalog.host, "host", hostId)
     && Array.isArray(session.catalog.apps)
+    && session.catalog.apps.every((manifest) => isManifest(manifest, "app"))
     && Array.isArray(session.overrides)
-    && session.overrides.every(isMatchingOverride);
+    && session.overrides.every(isMatchingOverride)
+    && (session.hostOverride === undefined || isManifest(session.hostOverride, "host", hostId))
+    && typeof session.generatedAt === "string";
 }
 
 function isMatchingOverride(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
-  const override = value as { appId?: unknown; manifest?: { id?: unknown } };
-  return typeof override.appId === "string" && override.appId === override.manifest?.id;
+  const override = value as { appId?: unknown; manifest?: unknown };
+  return typeof override.appId === "string"
+    && isManifest(override.manifest, "app", override.appId);
+}
+
+function isManifest(
+  value: unknown,
+  kind?: AtlasInterceptManifest["kind"],
+  id?: string,
+): value is AtlasInterceptManifest {
+  if (typeof value !== "object" || value === null) return false;
+  const manifest = value as Partial<AtlasInterceptManifest>;
+  return manifest.schemaVersion === "1"
+    && (manifest.kind === "host" || manifest.kind === "app")
+    && (kind === undefined || manifest.kind === kind)
+    && typeof manifest.id === "string"
+    && (id === undefined || manifest.id === id)
+    && typeof manifest.name === "string"
+    && typeof manifest.version === "string"
+    && typeof manifest.buildId === "string"
+    && (manifest.channel === "production" || manifest.channel === "pr" || manifest.channel === "local")
+    && (manifest.framework === "angular" || manifest.framework === "react" || manifest.framework === "vue")
+    && typeof manifest.remoteEntryUrl === "string"
+    && Array.isArray(manifest.supportedHosts)
+    && Array.isArray(manifest.placements);
+}
+
+function readOverrideDocument(
+  stored: string | null,
+  hostId: string,
+): AtlasInterceptOverrideDocument | undefined {
+  if (!stored) return undefined;
+  try {
+    const value: unknown = JSON.parse(stored);
+    if (typeof value !== "object" || value === null) return undefined;
+    const documentValue = value as Partial<AtlasInterceptOverrideDocument>;
+    if (documentValue.schemaVersion !== "1"
+      || documentValue.hostId !== hostId
+      || typeof documentValue.generatedAt !== "string"
+      || !Array.isArray(documentValue.overrides)
+      || !documentValue.overrides.every(isStoredOverride)
+      || (documentValue.hostOverride !== undefined
+        && !isManifest(documentValue.hostOverride, "host", hostId))) return undefined;
+    return documentValue as AtlasInterceptOverrideDocument;
+  } catch {
+    return undefined;
+  }
+}
+
+function isStoredOverride(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const override = value as {
+    appId?: unknown;
+    manifest?: unknown;
+    reason?: unknown;
+  };
+  return typeof override.appId === "string"
+    && isManifest(override.manifest, "app", override.appId)
+    && (override.reason === "local"
+      || override.reason === "pr"
+      || override.reason === "historical");
 }
 
 function devSessionUrl(hostId: string): string {

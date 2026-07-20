@@ -7,6 +7,10 @@ const DOCUMENT_KEY = "atlas.runtime-overrides";
 const DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
 const BADGE_DISABLED_LOCAL_APPS_KEY_PREFIX = "atlas.disabled-local-apps.";
 const REFRESH_INTERVAL_MS = 2_000;
+let atlasConfigPromise: Promise<{
+  hostId?: string;
+  allowCustomOverrides?: boolean;
+} | undefined> | undefined;
 
 const refreshBadge = createBadgeRefresher({
   readCount: readOverrideCount,
@@ -15,11 +19,17 @@ const refreshBadge = createBadgeRefresher({
   }
 });
 
-void refreshBadge();
+void startBadgeRefresh();
 window.addEventListener("focus", () => void refreshBadge());
 window.addEventListener("pageshow", () => void refreshBadge());
 window.addEventListener("storage", () => void refreshBadge());
-window.setInterval(() => void refreshBadge(), REFRESH_INTERVAL_MS);
+
+async function startBadgeRefresh(): Promise<void> {
+  await refreshBadge();
+  if (await readAtlasConfig()) {
+    window.setInterval(() => void refreshBadge(), REFRESH_INTERVAL_MS);
+  }
+}
 
 async function readOverrideCount(): Promise<number> {
   const stored = sessionStorage.getItem(DOCUMENT_KEY) ?? localStorage.getItem(DOCUMENT_KEY);
@@ -77,6 +87,14 @@ async function readAtlasConfig(): Promise<{
   hostId?: string;
   allowCustomOverrides?: boolean;
 } | undefined> {
+  atlasConfigPromise ??= fetchAtlasConfig();
+  return atlasConfigPromise;
+}
+
+async function fetchAtlasConfig(): Promise<{
+  hostId?: string;
+  allowCustomOverrides?: boolean;
+} | undefined> {
   try {
     const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
     if (!response.ok) return undefined;
@@ -96,7 +114,7 @@ function overrideCount(value: unknown): number {
   const documentValue = typeof value === "string" ? parseJson(value) : value;
   if (!isOverrideDocument(documentValue)) return 0;
 
-  return documentValue.apps.length + (documentValue.host ? 1 : 0);
+  return documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0);
 }
 
 function parseJson(value: string): unknown {
@@ -107,9 +125,9 @@ function parseJson(value: string): unknown {
   }
 }
 
-function isOverrideDocument(value: unknown): value is { apps: unknown[]; host?: unknown } {
+function isOverrideDocument(value: unknown): value is { overrides: unknown[]; hostOverride?: unknown } {
   return typeof value === "object"
     && value !== null
-    && "apps" in value
-    && Array.isArray(value.apps);
+    && "overrides" in value
+    && Array.isArray(value.overrides);
 }

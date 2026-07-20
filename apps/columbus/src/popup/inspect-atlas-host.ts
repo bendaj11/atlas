@@ -2,6 +2,9 @@ import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData, Atl
 import type { Scope } from "./types.js";
 
 export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
+  const fetchTimeoutMs = 5_000;
+  const versionLookupConcurrency = 8;
+
   function manifestKey(manifest: Manifest): string {
     return `${manifest.kind}:${manifest.id}`;
   }
@@ -48,8 +51,10 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
       && typeof catalog.hostId === "string"
       && typeof catalog.revision === "string"
       && isManifest(catalog.host)
+      && catalog.host.kind === "host"
+      && catalog.host.id === catalog.hostId
       && Array.isArray(catalog.apps)
-      && catalog.apps.every(isManifest);
+      && catalog.apps.every((manifest) => isManifest(manifest) && manifest.kind === "app");
   }
 
   function isArtifactSelection(value: unknown): value is ArtifactSelection {
@@ -73,10 +78,12 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
       && isSelectionDocument(registry.selections);
   }
 
-  function isOverride(value: unknown): value is OverrideDocument["apps"][number] {
+  function isOverride(value: unknown): value is OverrideDocument["overrides"][number] {
     const override = objectValue(value);
-    return isManifest(override?.manifest)
-      && (override.reason === "local" || override.reason === "pr" || override.reason === "past-production");
+    return typeof override?.appId === "string"
+      && isManifest(override.manifest)
+      && override.appId === override.manifest.id
+      && (override.reason === "local" || override.reason === "pr" || override.reason === "historical");
   }
 
   function isOverrideDocument(value: unknown): value is OverrideDocument {
@@ -84,13 +91,13 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     return documentValue?.schemaVersion === "1"
       && typeof documentValue.hostId === "string"
       && typeof documentValue.generatedAt === "string"
-      && (documentValue.host === undefined || isOverride(documentValue.host))
-      && Array.isArray(documentValue.apps)
-      && documentValue.apps.every(isOverride);
+      && (documentValue.hostOverride === undefined || isManifest(documentValue.hostOverride))
+      && Array.isArray(documentValue.overrides)
+      && documentValue.overrides.every(isOverride);
   }
 
   async function readAtlasConfig(): Promise<HostData["config"]> {
-    const response = await fetch("/atlas.runtime.json", { cache: "no-store" });
+    const response = await fetchWithTimeout("/atlas.runtime.json");
     if (!response.ok) throw new Error(`Atlas runtime configuration returned ${response.status}.`);
 
     const config: unknown = await response.json();
@@ -100,7 +107,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   }
 
   async function readAtlasCatalog(catalogUrl: URL): Promise<HostData["catalog"]> {
-    const response = await fetch(catalogUrl, { cache: "no-store" });
+    const response = await fetchWithTimeout(catalogUrl);
     if (!response.ok) throw new Error(`Atlas catalog returned ${response.status}.`);
 
     const catalog: unknown = await response.json();
@@ -110,12 +117,15 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
 
   async function readManifestVersions(manifest: Manifest, registryRoot: string): Promise<{ entry: readonly [string, Manifest[]]; error?: string }> {
     try {
-      const response = await fetch(`${registryRoot}/${manifest.kind === "host" ? "hosts" : "apps"}/${encodeURIComponent(manifest.id)}/index.json`, { cache: "no-store" });
+      const response = await fetchWithTimeout(`${registryRoot}/${manifest.kind === "host" ? "hosts" : "apps"}/${encodeURIComponent(manifest.id)}/index.json`);
       if (!response.ok) throw new Error(`Version lookup for ${manifest.id} returned ${response.status}.`);
 
       const index = objectValue(await response.json());
       if (!Array.isArray(index?.manifests) || !index.manifests.every(isManifest)) {
         throw new Error(`Version lookup for ${manifest.id} returned an invalid index.`);
+      }
+      if (index.manifests.some((candidate) => candidate.kind !== manifest.kind || candidate.id !== manifest.id)) {
+        throw new Error(`Version lookup for ${manifest.id} returned versions for another artifact.`);
       }
 
       return { entry: [manifestKey(manifest), index.manifests] as const };
@@ -126,7 +136,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
 
   async function readExternalRegistry(baseUrl: string): Promise<ExternalRegistryResult> {
     try {
-      const response = await fetch(`${baseUrl.replace(/\/$/, "")}/registry.json`, { cache: "no-store" });
+      const response = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/registry.json`);
       if (!response.ok) throw new Error(`External registry ${baseUrl} returned ${response.status}.`);
       const registry: unknown = await response.json();
       if (!isExternalRegistry(registry)) throw new Error(`External registry ${baseUrl} returned invalid apps.`);
@@ -189,7 +199,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     return `${catalogUrl.origin}${catalogUrl.pathname.slice(0, markerIndex)}`;
   }
 
-  function readStoredOverrideDocument(): { overrides: OverrideDocument | undefined; overrideScope: Scope | undefined } {
+  function readStoredOverrideDocument(hostId: string): { overrides: OverrideDocument | undefined; overrideScope: Scope | undefined } {
     const tabStored = sessionStorage.getItem(documentKey);
     const stored = tabStored ?? localStorage.getItem(documentKey);
 
@@ -198,7 +208,9 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     try {
       const overrides: unknown = JSON.parse(stored);
       return {
-        overrides: isOverrideDocument(overrides) ? overrides : undefined,
+        overrides: isOverrideDocument(overrides) && overrides.hostId === hostId
+          ? overrides
+          : undefined,
         overrideScope: tabStored ? "tab" : "all"
       };
     } catch {
@@ -218,11 +230,55 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
       schemaVersion: "1" as const,
       hostId: config.hostId,
       generatedAt: new Date().toISOString(),
-      ...(host ? { host: { manifest: host, reason: "local" as const } } : {}),
-      apps: localSelections
+      ...(host ? { hostOverride: host } : {}),
+      overrides: localSelections
         .filter((manifest) => manifest.kind === "app")
-        .map((manifest) => ({ manifest, reason: "local" as const }))
+        .map((manifest) => ({ appId: manifest.id, manifest, reason: "local" as const }))
     };
+  }
+
+  function mergeOverrideDocuments(
+    local: OverrideDocument | undefined,
+    stored: OverrideDocument | undefined
+  ): OverrideDocument | undefined {
+    if (!local) return stored;
+    if (!stored) return local;
+    const overrides = new Map(local.overrides.map((override) => [override.appId, override]));
+    for (const override of stored.overrides) overrides.set(override.appId, override);
+    return {
+      ...local,
+      generatedAt: stored.generatedAt,
+      ...(stored.hostOverride
+        ? { hostOverride: stored.hostOverride }
+        : local.hostOverride
+          ? { hostOverride: local.hostOverride }
+          : {}),
+      overrides: [...overrides.values()]
+    };
+  }
+
+  async function fetchWithTimeout(input: string | URL): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
+    try {
+      return await fetch(input, { cache: "no-store", signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function readManifestVersionBatch(manifests: Manifest[], registryRoot: string): Promise<Array<{ entry: readonly [string, Manifest[]]; error?: string }>> {
+    const results = new Array<{ entry: readonly [string, Manifest[]]; error?: string }>(manifests.length);
+    let nextIndex = 0;
+    async function worker(): Promise<void> {
+      while (nextIndex < manifests.length) {
+        const index = nextIndex++;
+        results[index] = await readManifestVersions(manifests[index]!, registryRoot);
+      }
+    }
+    const workerCount = Math.min(versionLookupConcurrency, manifests.length);
+    await Promise.all(Array.from({ length: workerCount }, worker));
+    return results;
   }
 
   function productionManifest(manifest: Manifest, versions: HostData["versions"]): Manifest {
@@ -261,13 +317,19 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const config = await readAtlasConfig();
   const catalogUrl = new URL(config.catalogUrl, location.href);
   const catalog = await readAtlasCatalog(catalogUrl);
+  if (catalog.hostId !== config.hostId) {
+    throw new Error(`Atlas catalog targets host ${catalog.hostId}, but runtime configuration targets ${config.hostId}.`);
+  }
   const external = await readExternalProviders(config, catalog);
   const registryRoot = atlasRegistryRoot(catalogUrl);
   const selectedArtifacts = [catalog.host, ...catalog.apps];
-  const versionResults = await Promise.all(selectedArtifacts.map((manifest) => readManifestVersions(manifest, registryRoot)));
+  const versionResults = await readManifestVersionBatch(selectedArtifacts, registryRoot);
   const versions = Object.fromEntries([...versionResults.map(({ entry }) => entry), ...external.versions]);
-  const storedSelection = readStoredOverrideDocument();
-  const overrides = createLocalOverrides(config, selectedArtifacts) ?? storedSelection.overrides;
+  const storedSelection = readStoredOverrideDocument(config.hostId);
+  const overrides = mergeOverrideDocuments(
+    createLocalOverrides(config, selectedArtifacts),
+    storedSelection.overrides
+  );
   const productionCatalog = createProductionCatalog(catalog, versions, external.providers);
 
   return {

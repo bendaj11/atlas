@@ -17,28 +17,44 @@ function resolveLatestPrOverrides(
   hostData: HostData,
   documentValue: OverrideDocument | undefined
 ): OverrideDocument | undefined {
-  if (!documentValue || hostData.versionErrors.length > 0) return documentValue;
-  const latest = (override: OverrideDocument["apps"][number]): OverrideDocument["apps"][number] | undefined => {
-    if (override.manifest.channel !== "pr" || !override.manifest.prNumber) return override;
-    const manifest = hostData.versions[artifactKey(override.manifest)]
-      ?.find((candidate) => candidate.channel === "pr" && candidate.prNumber === override.manifest.prNumber);
+  if (!documentValue) return documentValue;
+  const latestManifest = (manifest: Manifest): Manifest | undefined => {
+    if (manifest.channel !== "pr" || !manifest.prNumber) return manifest;
+    const versions = hostData.versions[artifactKey(manifest)];
+    if (!versions) return manifest;
+    return versions.find((candidate) => candidate.channel === "pr" && candidate.prNumber === manifest.prNumber)
+      ?? manifest;
+  };
+  const latest = (override: OverrideDocument["overrides"][number]): OverrideDocument["overrides"][number] | undefined => {
+    const manifest = latestManifest(override.manifest);
     return manifest ? { ...override, manifest } : undefined;
   };
-  const host = documentValue.host ? latest(documentValue.host) : undefined;
-  const apps = documentValue.apps.flatMap((override) => {
+  const hostOverride = documentValue.hostOverride ? latestManifest(documentValue.hostOverride) : undefined;
+  const overrides = documentValue.overrides.flatMap((override) => {
     const resolved = latest(override);
     return resolved ? [resolved] : [];
   });
-  const resolved: OverrideDocument = { ...documentValue, apps };
-  if (host) resolved.host = host;
-  else delete resolved.host;
+  const resolved: OverrideDocument = { ...documentValue, overrides };
+  if (hostOverride) resolved.hostOverride = hostOverride;
+  else delete resolved.hostOverride;
   return resolved;
 }
 
 async function findAtlasHostTab(): Promise<{ tab: InspectableTab; hostData: HostData }> {
   const tabs = await chrome.tabs.query({ currentWindow: true });
   const activeTab = tabs.find((tab): tab is InspectableTab => tab.active === true && hasTabId(tab));
-  if (!activeTab || !isWebPage(activeTab.url)) throw new Error("Open an Atlas host in the active tab first.");
+  if (!activeTab) throw new Error("Open an Atlas host in the active tab first.");
+  if (isExtensionPage(activeTab.url)) {
+    for (const tab of recentWebTabs(tabs, activeTab.id)) {
+      try {
+        return { tab, hostData: await inspectTab(tab) };
+      } catch {
+        continue;
+      }
+    }
+    throw new Error("Open an Atlas host in the active tab first.");
+  }
+  if (!isWebPage(activeTab.url)) throw new Error("Open an Atlas host in the active tab first.");
 
   let activeHostData: HostData | undefined;
   let activeError: unknown;
@@ -90,8 +106,12 @@ export function createOverrideDocument(hostData: HostData, overrides: Map<string
     schemaVersion: "1",
     hostId: hostData.config.hostId,
     generatedAt: new Date().toISOString(),
-    ...(host ? { host: { manifest: host, reason: overrideReason(host) } } : {}),
-    apps: selected.filter((manifest) => manifest.kind === "app").map((manifest) => ({ manifest, reason: overrideReason(manifest) }))
+    ...(host ? { hostOverride: host } : {}),
+    overrides: selected.filter((manifest) => manifest.kind === "app").map((manifest) => ({
+      appId: manifest.id,
+      manifest,
+      reason: overrideReason(manifest)
+    }))
   };
 }
 
@@ -113,6 +133,9 @@ export async function writeOverrides({ tabId, hostData, documentValue, scope, di
   const count = overrideCount(documentValue);
   if (scope === "all" && count) await chrome.storage.local.set({ [storageKey]: documentValue });
   if (scope === "all" && !count) await chrome.storage.local.remove(storageKey);
+}
+
+export async function reloadHostTab(tabId: number): Promise<void> {
   await chrome.tabs.reload(tabId);
 }
 
@@ -131,9 +154,13 @@ function isStoredManifest(value: unknown): value is Manifest {
   if (typeof value !== "object" || value === null) return false;
   const manifest = value as Partial<Manifest>;
   return manifest.schemaVersion === "1"
+    && (manifest.kind === "host" || manifest.kind === "app")
     && typeof manifest.id === "string"
+    && typeof manifest.name === "string"
     && typeof manifest.version === "string"
     && typeof manifest.buildId === "string"
+    && (manifest.channel === "production" || manifest.channel === "pr" || manifest.channel === "local")
+    && (manifest.framework === "angular" || manifest.framework === "react" || manifest.framework === "vue")
     && typeof manifest.remoteEntryUrl === "string";
 }
 
@@ -159,7 +186,9 @@ async function readPersistedOverrides(hostData: HostData): Promise<OverrideDocum
   const key = `atlas.overrides.${hostData.config.hostId}`;
   const persisted = await chrome.storage.local.get(key);
   const value = persisted[key];
-  return isStoredOverrideDocument(value) ? value : undefined;
+  return isStoredOverrideDocument(value) && value.hostId === hostData.config.hostId
+    ? value
+    : undefined;
 }
 
 function isStoredOverrideDocument(value: unknown): value is OverrideDocument {
@@ -168,16 +197,18 @@ function isStoredOverrideDocument(value: unknown): value is OverrideDocument {
   return documentValue.schemaVersion === "1"
     && typeof documentValue.hostId === "string"
     && typeof documentValue.generatedAt === "string"
-    && (documentValue.host === undefined || isStoredOverride(documentValue.host))
-    && Array.isArray(documentValue.apps)
-    && documentValue.apps.every(isStoredOverride);
+    && (documentValue.hostOverride === undefined || isStoredManifest(documentValue.hostOverride))
+    && Array.isArray(documentValue.overrides)
+    && documentValue.overrides.every(isStoredOverride);
 }
 
-function isStoredOverride(value: unknown): value is OverrideDocument["apps"][number] {
+function isStoredOverride(value: unknown): value is OverrideDocument["overrides"][number] {
   if (typeof value !== "object" || value === null) return false;
-  const override = value as Partial<OverrideDocument["apps"][number]>;
-  return isStoredManifest(override.manifest)
-    && (override.reason === "local" || override.reason === "pr" || override.reason === "past-production");
+  const override = value as Partial<OverrideDocument["overrides"][number]>;
+  return typeof override.appId === "string"
+    && isStoredManifest(override.manifest)
+    && override.appId === override.manifest.id
+    && (override.reason === "local" || override.reason === "pr" || override.reason === "historical");
 }
 
 type InspectableTab = chrome.tabs.Tab & { id: number };
@@ -188,12 +219,22 @@ function localPreviewCandidates(tabs: chrome.tabs.Tab[], activeTabId: number): I
     .sort((left, right) => (right.lastAccessed ?? 0) - (left.lastAccessed ?? 0));
 }
 
+function recentWebTabs(tabs: chrome.tabs.Tab[], activeTabId: number): InspectableTab[] {
+  return tabs
+    .filter((tab): tab is InspectableTab => hasTabId(tab) && tab.id !== activeTabId && isWebPage(tab.url))
+    .sort((left, right) => (right.lastAccessed ?? 0) - (left.lastAccessed ?? 0));
+}
+
 function hasTabId(tab: chrome.tabs.Tab): tab is InspectableTab {
   return typeof tab.id === "number";
 }
 
 function isWebPage(url: string | undefined): url is string {
   return typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
+}
+
+function isExtensionPage(url: string | undefined): boolean {
+  return typeof url === "string" && url.startsWith("chrome-extension://");
 }
 
 function isLoopbackPage(url: string | undefined): boolean {
@@ -211,7 +252,7 @@ function persistOverrides(documentKey: string, urlKey: string, value: string): v
   const serializedDocument = JSON.stringify(documentValue);
 
   if (scope === "all") {
-    if (documentValue.apps.length + (documentValue.host ? 1 : 0)) localStorage.setItem(documentKey, serializedDocument);
+    if (documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0)) localStorage.setItem(documentKey, serializedDocument);
     else localStorage.removeItem(documentKey);
     sessionStorage.removeItem(documentKey);
   } else {
@@ -233,14 +274,14 @@ function persistOverrides(documentKey: string, urlKey: string, value: string): v
   history.replaceState(history.state, "", url);
 }
 
-function overrideReason(manifest: Manifest): "local" | "pr" | "past-production" {
+function overrideReason(manifest: Manifest): "local" | "pr" | "historical" {
   if (manifest.channel === "local") return "local";
   if (manifest.channel === "pr") return "pr";
-  return "past-production";
+  return "historical";
 }
 
 function overrideCount(documentValue: OverrideDocument | undefined): number {
-  return documentValue ? documentValue.apps.length + (documentValue.host ? 1 : 0) : 0;
+  return documentValue ? documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0) : 0;
 }
 
 function disabledOverridesKey(hostId: string, tabId: number, scope: Scope): string {

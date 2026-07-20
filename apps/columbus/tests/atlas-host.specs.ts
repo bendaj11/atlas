@@ -1,7 +1,9 @@
 import { afterEach, expect, test } from "@jest/globals";
 import type {} from "../src/chrome.js";
 import type { AtlasHostData } from "../src/contracts.js";
-import { readHostData } from "../src/popup/atlas-host.js";
+import { loadBrowserRuntimeOverrides } from "../../../packages/runtime/src/loader/runtime-discovery.js";
+import { createOverrideDocument, readHostData } from "../src/popup/atlas-host.js";
+import { customManifest } from "../src/popup/manifest-utils.js";
 
 const hostId = "060a7f62-1c95-402c-9993-55749faf36d9";
 const hostData = createHostData(hostId, true);
@@ -13,6 +15,20 @@ afterEach(() => {
 test("reads the active Atlas preview tab", async () => {
   installChromeMock({
     tabs: [{ id: 7, active: true, url: "http://127.0.0.1:4300/orders" }],
+    inspections: new Map([[7, hostData]])
+  });
+
+  const result = await readHostData();
+
+  expect(result.tabId).toBe(7);
+});
+
+test("finds the most recent host when Columbus itself is the active tab", async () => {
+  installChromeMock({
+    tabs: [
+      { id: 9, active: true, lastAccessed: 30, url: "chrome-extension://atlas/popup.html" },
+      { id: 7, active: false, lastAccessed: 20, url: "http://127.0.0.1:4300/orders" }
+    ],
     inspections: new Map([[7, hostData]])
   });
 
@@ -61,6 +77,32 @@ test("rejects ambiguous local preview tabs", async () => {
   });
 
   await expect(readHostData()).rejects.toThrow("Multiple local Atlas previews are open");
+});
+
+test("writes custom URL overrides in the runtime document format", async () => {
+  const production = appManifest();
+  const local = customManifest(production, "http://localhost:4513");
+  const documentValue = createOverrideDocument(
+    { ...hostData, catalog: { ...hostData.catalog, apps: [production] } },
+    new Map([["app:orders", local]])
+  );
+
+  const overrides = await loadBrowserRuntimeOverrides({
+    hostId,
+    allowCustomOverrides: true,
+    search: "",
+    storage: {
+      getItem: (key) => key === "atlas.runtime-overrides" ? JSON.stringify(documentValue) : null
+    },
+    sessionStorage: { getItem: () => null }
+  });
+
+  expect(overrides).toHaveLength(1);
+  expect(overrides[0]).toMatchObject({
+    appId: "orders",
+    reason: "local",
+    manifest: { remoteEntryUrl: "http://localhost:4513/remoteEntry.json" }
+  });
 });
 
 interface ChromeMockOptions {
@@ -131,5 +173,24 @@ function createHostData(id: string, allowCustomOverrides: boolean): AtlasHostDat
     overrideScope: undefined,
     runtimeErrors: [],
     versionErrors: []
+  };
+}
+
+function appManifest(): AtlasHostData["catalog"]["apps"][number] {
+  return {
+    schemaVersion: "1",
+    kind: "app",
+    id: "orders",
+    name: "Orders",
+    version: "1.0.0",
+    buildId: "orders-build",
+    channel: "production",
+    createdAt: "2026-07-20T00:00:00.000Z",
+    framework: "react",
+    remoteEntryUrl: "https://cdn.example/orders/remoteEntry.json",
+    exposes: { entry: "./entry" },
+    requiredHostSdkVersion: "^1.0.0",
+    supportedHosts: [hostId],
+    placements: []
   };
 }

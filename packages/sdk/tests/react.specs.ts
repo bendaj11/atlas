@@ -115,7 +115,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     /function AtlasDefaultHostLayout/,
   );
   assert.match(host.get('vite.config.ts'), /createReactHostViteConfig/);
-  assert.match(host.get('vite.config.ts'), /plugins: \[react\(\)\]/);
+  assert.match(host.get('vite.config.ts'), /plugins: \[react\(\{\}\)\]/);
   assert.doesNotMatch(
     host.get('vite.config.ts'),
     /babel|reactCompilerPreset|ReactBabelOptions/,
@@ -159,7 +159,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     appFiles.get('vite.config.ts'),
     /server: \{ port: 4201, cors: true \}/,
   );
-  assert.match(appFiles.get('vite.config.ts'), /plugins: \[react\(\)\]/);
+  assert.match(appFiles.get('vite.config.ts'), /plugins: \[react\(\{\}\)\]/);
   assert.doesNotMatch(
     appFiles.get('vite.config.ts'),
     /babel|reactCompilerPreset/,

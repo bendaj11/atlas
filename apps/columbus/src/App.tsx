@@ -1,7 +1,9 @@
 import {
+  Box,
   EmptyState,
   Loader,
   LoaderStatus,
+  SectionHelper,
   TextButton,
 } from '@wix/design-system';
 import { useEffect } from 'react';
@@ -11,7 +13,8 @@ import { AppRoutes } from './popup/components/AppRoutes/AppRoutes';
 
 export function App() {
   const { hostData, loadHost, message, status } = usePopupHost();
-  const { message: overrideMessage } = usePopupOverrides();
+  const { message: overrideMessage, status: overrideStatus } =
+    usePopupOverrides();
 
   useEffect(() => {
     void loadHost();
@@ -38,7 +41,7 @@ export function App() {
       return 'Failed to load host artifacts';
     }
 
-    return 'Not host artifacts found';
+    return 'No host artifacts found';
   };
 
   const shouldShowEmptyState = status !== 'LOADED' || !hostData;
@@ -59,5 +62,27 @@ export function App() {
     );
   }
 
-  return <AppRoutes />;
+  return (
+    <Box direction="vertical" gap="12px">
+      {message && (
+        <SectionHelper
+          dataHook="host-warning"
+          skin="warning"
+          title="Host warning"
+        >
+          {message}
+        </SectionHelper>
+      )}
+      {overrideStatus === 'ERROR' && (
+        <SectionHelper
+          dataHook="override-error"
+          skin="danger"
+          title="Could not apply override"
+        >
+          {overrideMessage}
+        </SectionHelper>
+      )}
+      <AppRoutes />
+    </Box>
+  );
 }

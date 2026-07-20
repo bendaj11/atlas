@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -77,7 +77,7 @@
     "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.20",
+    "@atlas/schema": "0.3.21",
     "@softarc/native-federation-runtime": "^3.5.5"
   },
   "peerDependencies": {

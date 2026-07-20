@@ -29,6 +29,18 @@ test("bootstrap emits complete static deployment bundle", () => {
   assert.match(files.get("nginx.conf")!, /http:\/\/localhost:\*/);
 });
 
+test("custom overrides permit loopback Vite HMR connections", () => {
+  const config = createNginxConfig([], true);
+  assert.match(config, /connect-src[^;]*ws:\/\/localhost:\*/);
+  assert.match(config, /connect-src[^;]*ws:\/\/127\.0\.0\.1:\*/);
+  assert.match(config, /connect-src[^;]*ws:\/\/\[::1\]:\*/);
+});
+
+test("production-only bootstrap rejects loopback Vite HMR connections", () => {
+  const config = createNginxConfig([], false);
+  assert.doesNotMatch(config, /ws:\/\//);
+});
+
 test("custom bootstrap HTML keeps required runtime hooks", () => {
   const html = '<main id="atlas-host-root">Custom</main><script type="module" src="/atlas.loader.js"></script>';
   const files = createAtlasBootstrapFiles({ runtime, html });

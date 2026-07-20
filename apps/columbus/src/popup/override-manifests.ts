@@ -10,8 +10,8 @@ export function extractActiveOverrideManifests(
 ): Map<string, Manifest> {
   const overrideDocument = hostData.overrides;
   const selectedManifests = [
-    ...(overrideDocument?.host ? [overrideDocument.host.manifest] : []),
-    ...(overrideDocument?.apps ?? []).map((override) => override.manifest),
+    ...(overrideDocument?.hostOverride ? [overrideDocument.hostOverride] : []),
+    ...(overrideDocument?.overrides ?? []).map((override) => override.manifest),
   ];
 
   return new Map(

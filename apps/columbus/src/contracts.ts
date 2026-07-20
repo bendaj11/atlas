@@ -27,15 +27,16 @@ export interface AtlasExtensionManifest {
 }
 
 export interface AtlasArtifactOverride {
+  appId: string;
   manifest: AtlasExtensionManifest;
-  reason: "local" | "pr" | "past-production";
+  reason: "local" | "pr" | "historical";
 }
 
 export interface AtlasOverrideDocument {
   schemaVersion: "1";
   hostId: string;
-  host?: AtlasArtifactOverride;
-  apps: AtlasArtifactOverride[];
+  overrides: AtlasArtifactOverride[];
+  hostOverride?: AtlasExtensionManifest;
   generatedAt: string;
 }
 

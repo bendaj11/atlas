@@ -177,7 +177,7 @@ test('override-enabled production host discovers a matching local dev session wi
   ]);
   expect(result.storedOverrides).toMatchObject({
     hostId: 'test-host',
-    apps: [{ manifest: localManifest, reason: 'local' }],
+    overrides: [{ appId: 'app', manifest: localManifest, reason: 'local' }],
   });
   expect(result.storedOverrideScope).toBe('all');
 });
@@ -190,8 +190,58 @@ test('Atlas dev session replaces a stale custom override', async () => {
   });
 
   expect(result.storedOverrides).toMatchObject({
-    apps: [{ manifest: localManifest }],
+    overrides: [{ appId: 'app', manifest: localManifest }],
   });
+});
+
+test('Atlas dev session preserves an explicit historical override', async () => {
+  const historicalManifest = {
+    ...productionManifest,
+    version: '0.9.0',
+    buildId: 'historical',
+  };
+  const result = await runCatalogInterceptor({
+    catalog: catalog([productionManifest]),
+    devSession: devSession([localManifest]),
+    localDevelopmentIntent: true,
+    storedOverrideDocument: {
+      schemaVersion: '1',
+      hostId: 'test-host',
+      overrides: [
+        {
+          appId: 'app',
+          manifest: historicalManifest,
+          reason: 'historical',
+        },
+      ],
+      generatedAt: '2026-01-01T00:00:00.000Z',
+    },
+  });
+
+  expect(result.storedOverrides).toMatchObject({
+    overrides: [
+      {
+        appId: 'app',
+        manifest: historicalManifest,
+        reason: 'historical',
+      },
+    ],
+  });
+});
+
+test('malformed dev session leaves the production catalog unchanged', async () => {
+  const result = await runCatalogInterceptor({
+    catalog: catalog([productionManifest]),
+    devSession: {
+      ...devSession([localManifest]),
+      overrides: [{ appId: 'app', manifest: { id: 'app' } }],
+    },
+  });
+
+  expect((result.catalog as { apps: unknown[] }).apps).toStrictEqual([
+    productionManifest,
+  ]);
+  expect(result.storedOverrides).toBeUndefined();
 });
 
 test('loopback host keeps automatic local dev-session discovery', async () => {
@@ -252,9 +302,7 @@ test('Columbus popup recognizes intercepted local manifests as enabled overrides
   expect(source).toMatch(/reason: "local" as const/);
   expect(source).toMatch(/version\.channel === "production"/);
   expect(source).toMatch(/catalog: productionCatalog/);
-  expect(source).toMatch(
-    /createLocalOverrides\(config, selectedArtifacts\) \?\? storedSelection\.overrides/,
-  );
+  expect(source).toMatch(/mergeOverrideDocuments\(/);
 });
 
 test('Columbus discovers and labels external widget providers', async () => {
@@ -273,7 +321,7 @@ test('Columbus discovers and labels external widget providers', async () => {
 
 test('Columbus popup delegates scrolling to the WDS page', async () => {
   const main = await readColumbusFile('src/main.tsx');
-  const popup = await readColumbusFile('src/popup/components/PopupApp.tsx');
+  const popup = await readColumbusFile('src/App.tsx');
   const dashboard = await readColumbusFile(
     'src/popup/components/ArtifactsListPage.tsx',
   );
@@ -370,7 +418,7 @@ test('Columbus popup injects a self-contained Atlas host inspector', async () =>
     /func: inspectAtlasHost,\n\s+args: \[DOCUMENT_KEY\]/,
   );
   expect(inspector).toMatch(
-    /export async function inspectAtlasHost\(documentKey: string\): Promise<HostData> {\n\s+function manifestKey/,
+    /export async function inspectAtlasHost\(documentKey: string\): Promise<HostData>/,
   );
   expect(inspector).not.toMatch(/artifactKey\(/);
   expect(inspector).not.toMatch(/^import (?!type)/m);
@@ -394,7 +442,7 @@ test('Columbus artifact editor labels each WDS radio option and its input togeth
   const editor = await readColumbusFile(
     'src/popup/components/ArtifactConfigurationPage.tsx',
   );
-  const popup = await readColumbusFile('src/popup/components/PopupApp.tsx');
+  const popup = await readColumbusFile('src/App.tsx');
   expect(editor).toMatch(/<RadioGroup/);
   expect(editor).toMatch(/<RadioGroup\.Radio/);
   expect(editor).toMatch(/value=\{draft\.type\}/);
@@ -406,7 +454,7 @@ test('Columbus artifact editor labels each WDS radio option and its input togeth
 });
 
 test('Columbus popup hides routine discovery status', async () => {
-  const popup = await readColumbusFile('src/popup/components/PopupApp.tsx');
+  const popup = await readColumbusFile('src/App.tsx');
   const status = await readColumbusFile('src/popup/host-warning.ts');
   expect(popup).toMatch(/overrideStatus === 'ERROR'/);
   expect(status).not.toMatch(/external widget providers discovered/);
@@ -427,8 +475,7 @@ test('Columbus models host and override lifecycles without busy or tone flags', 
     /\b(busy|tone)\b/,
   );
   expect(hostContext).toMatch(/setStatus\('LOADING'\)/);
-  expect(hostContext).toMatch(/setStatus\('LOADED'\)/);
-  expect(hostContext).toMatch(/setStatus\('ERROR'\)/);
+  expect(hostContext).toMatch(/setStatus\(result\.status\)/);
   expect(overridesContext).toMatch(/setStatus\('APPLYING'\)/);
 });
 
@@ -484,7 +531,7 @@ test('Columbus popup shares focused contexts without prop drilling', async () =>
   );
   const components = await Promise.all([
     readColumbusFile('src/App.tsx'),
-    readColumbusFile('src/popup/components/PopupApp.tsx'),
+    readColumbusFile('src/popup/components/AppRoutes/AppRoutes.tsx'),
     readColumbusFile('src/popup/components/ArtifactsListPage.tsx'),
     readColumbusFile(
       'src/popup/components/ArtifactConfigurationPage.tsx',
@@ -550,7 +597,7 @@ test('Columbus extension can remove an all-tabs override and preserve a tab prod
   const source = await readColumbusFile('dist/popup.js');
   const hostSource = await readColumbusFile('src/popup/atlas-host.ts');
   expect(source).toMatch(/chrome\.storage\.local\.remove/);
-  expect(hostSource).toMatch(/documentValue\.apps\.length/);
-  expect(hostSource).toMatch(/documentValue\.host/);
+  expect(hostSource).toMatch(/documentValue\.overrides\.length/);
+  expect(hostSource).toMatch(/documentValue\.hostOverride/);
   expect(source).toMatch(/sessionStorage\.setItem/);
 });

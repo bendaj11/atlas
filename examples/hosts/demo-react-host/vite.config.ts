@@ -11,7 +11,7 @@ export default defineConfig(
     }),
     {
       base: './',
-      plugins: [react()],
+      plugins: [react({})],
       resolve: {
         alias: [
           {

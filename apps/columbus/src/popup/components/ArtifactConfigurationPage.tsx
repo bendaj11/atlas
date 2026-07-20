@@ -161,7 +161,10 @@ export function ArtifactConfigurationPage() {
                 />
               </EditorOption>
             </RadioGroup.Radio>
-            <RadioGroup.Radio value="pr">
+            <RadioGroup.Radio
+              value="pr"
+              disabled={model.prOptions.length === 0}
+            >
               <EditorOption>
                 <Text size="small" weight="bold">
                   PR

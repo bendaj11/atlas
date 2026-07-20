@@ -89,7 +89,7 @@ test.describe("Atlas Columbus extension", () => {
     const nonAtlasPage = await session.context.newPage();
     await nonAtlasPage.goto("data:text/html,<title>Not Atlas</title>");
     const unavailablePopup = await openPopupDocument(session, nonAtlasPage);
-    await expect(unavailablePopup.getByRole("status")).toContainText("Open an Atlas host");
+    await expect(unavailablePopup.getByText(/Open an Atlas host/)).toBeVisible();
     await unavailablePopup.close();
 
     const host = await session.context.newPage();
@@ -99,7 +99,7 @@ test.describe("Atlas Columbus extension", () => {
     await popup.getByText("Custom URL", { exact: true }).click();
     await popup.locator("#custom-url").fill("not-a-url");
     await popup.getByRole("button", { name: "Save" }).click();
-    await expect(popup.getByRole("status")).toContainText("Base URL must be absolute HTTP URL.");
+    await expect(popup.getByText("Base URL must be absolute HTTP URL.")).toBeVisible();
   });
 });
 
@@ -118,16 +118,18 @@ async function launchExtension(): Promise<ExtensionSession> {
 
 async function openPopup(session: ExtensionSession, host: Page): Promise<Page> {
   const popup = await openPopupDocument(session, host);
-  await expect(popup.getByRole("status")).toContainText("external widget providers discovered");
+  await expect(popup.getByText(/artifacts found$/)).toBeVisible();
   return popup;
 }
 
 async function openPopupDocument(session: ExtensionSession, activePage: Page): Promise<Page> {
   const popup = await session.context.newPage();
   await popup.goto(`chrome-extension://${session.extensionId}/popup.html`);
+  const refresh = popup.getByRole("button", { name: "Refresh" });
+  await refresh.waitFor();
   await activePage.bringToFront();
-  await popup.getByRole("button", { name: "Refresh host data" }).click();
-  await expect(popup.getByRole("status")).not.toContainText("Reading the active Atlas host");
+  await refresh.click();
+  await expect(popup.locator("body")).toContainText(/artifacts found|Failed to load host artifacts/);
   return popup;
 }
 
@@ -147,7 +149,7 @@ async function saveAndWaitForReload(popup: Page, host: Page): Promise<void> {
 }
 
 async function editApp(popup: Page, appName: string): Promise<void> {
-  await popup.locator(".app-card", { hasText: appName }).getByRole("button", { name: "Edit" }).click();
+  await popup.getByRole("row").filter({ hasText: appName }).getByRole("button", { name: "Edit" }).click();
 }
 
 async function selectDropdown(popup: Page, selector: string, option: string | RegExp): Promise<void> {
@@ -156,16 +158,18 @@ async function selectDropdown(popup: Page, selector: string, option: string | Re
 }
 
 async function storedVersion(host: Page, storage: BrowserStorage): Promise<string | undefined> {
-  return (await readOverride(host, storage))?.apps[0]?.manifest.version;
+  return (await readOverride(host, storage))?.overrides[0]?.manifest.version;
 }
 
 async function storedReason(host: Page): Promise<string | undefined> {
-  return (await readOverride(host, "localStorage"))?.apps[0]?.reason;
+  return (await readOverride(host, "localStorage"))?.overrides[0]?.reason;
 }
 
 async function overrideCount(host: Page, storage: BrowserStorage): Promise<number | undefined> {
   const documentValue = await readOverride(host, storage);
-  return documentValue ? documentValue.apps.length + (documentValue.host ? 1 : 0) : undefined;
+  return documentValue
+    ? documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0)
+    : undefined;
 }
 
 async function hasOverrideDocument(host: Page, storage: BrowserStorage): Promise<boolean> {

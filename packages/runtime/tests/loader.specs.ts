@@ -1,6 +1,6 @@
 import { test } from "@jest/globals";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRegistryWidgetResolver, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRegistryWidgetResolver, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeCatalog, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { renderHostMountState } from "../dist/dom-rendering.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
@@ -27,6 +27,25 @@ test("resolveRuntimeManifests applies overrides", () => {
   const manifests = resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: local, reason: "local" }]);
 
   assert.equal(manifests[0].version, "2.0.0");
+});
+
+test("resolveRuntimeCatalog applies widget provider overrides", () => {
+  const provider = createTestManifest({ id: "provider" });
+  const replacement = createTestManifest({
+    id: "provider",
+    channel: "local",
+    remoteEntryUrl: "http://localhost:4202/remoteEntry.json",
+  });
+  const catalog = {
+    ...createHostCatalog([createTestManifest({ id: "catalog" })]),
+    widgetProviders: [provider],
+  };
+
+  const resolved = resolveRuntimeCatalog(catalog, [
+    { appId: "provider", manifest: replacement, reason: "local" },
+  ]);
+
+  assert.equal(resolved.widgetProviders?.[0]?.remoteEntryUrl, replacement.remoteEntryUrl);
 });
 
 test("resolveRuntimeManifests treats wildcard supportedHosts as universal", () => {

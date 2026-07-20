@@ -72,25 +72,23 @@ export function selectedManifest({
 }): Manifest | undefined {
   if (draft.type === 'custom')
     return customManifest(production, draft.customUrl);
-  if (draft.type === 'production')
-    return productionOptions.find(
+  if (draft.type === 'production') {
+    const selected = productionOptions.find(
       (manifest) => versionKey(manifest) === draft.productionKey,
     );
-  return prOptions.find((manifest) => versionKey(manifest) === draft.prKey);
+    if (!selected) throw new Error('Choose a production version.');
+    return selected;
+  }
+
+  const selected = prOptions.find(
+    (manifest) => versionKey(manifest) === draft.prKey,
+  );
+  if (!selected) throw new Error('Choose a PR version.');
+  return selected;
 }
 
 export function customManifest(production: Manifest, rawUrl: string): Manifest {
-  const baseUrl = normalizeBaseUrl(rawUrl);
-
-  if (!baseUrl) throw new Error('Enter base URL.');
-
-  try {
-    const url = new URL(baseUrl);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:')
-      throw new Error();
-  } catch {
-    throw new Error('Base URL must be absolute HTTP URL.');
-  }
+  const baseUrl = validatedBaseUrl(rawUrl);
 
   const manifest: Manifest = {
     ...production,
@@ -187,6 +185,37 @@ function normalizeBaseUrl(value: string): string {
     .trim()
     .replace(/\/remoteEntry\.json$/u, '')
     .replace(/\/$/u, '');
+}
+
+function validatedBaseUrl(value: string): string {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized) throw new Error('Enter base URL.');
+
+  let url: URL;
+  try {
+    url = new URL(normalized);
+  } catch {
+    throw new Error('Base URL must be absolute HTTP URL.');
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    throw new Error('Base URL must be absolute HTTP URL.');
+  if (!isLoopbackHostname(url.hostname))
+    throw new Error('Custom URL must use localhost, 127.0.0.1, or [::1].');
+  if (url.username || url.password)
+    throw new Error('Base URL must not include credentials.');
+  if (url.search || url.hash)
+    throw new Error(
+      'Base URL must not include query parameters or a fragment.',
+    );
+
+  return url.href.replace(/\/$/u, '');
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return (
+    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  );
 }
 
 function versionKeyOrEmpty(manifest: Manifest | undefined): string {

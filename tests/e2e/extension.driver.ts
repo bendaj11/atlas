@@ -4,8 +4,12 @@ import { readFile, writeFile } from "node:fs/promises";
 export type BrowserStorage = "localStorage" | "sessionStorage";
 
 export interface StoredOverrideDocument {
-  host?: { manifest: { version: string }; reason: string };
-  apps: Array<{ manifest: { version: string }; reason: string }>;
+  hostOverride?: { version: string };
+  overrides: Array<{
+    appId: string;
+    manifest: { version: string };
+    reason: string;
+  }>;
 }
 
 export async function readOverride(host: Page, storage: BrowserStorage): Promise<StoredOverrideDocument | undefined> {

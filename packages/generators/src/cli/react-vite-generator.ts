@@ -30,7 +30,7 @@ export default defineConfig(mergeConfig(
   createReact${type}ViteConfig({ projectRoot: __dirname, projectName: "${name}"${type === 'App' ? `, reactMajor: ${reactMajor}` : ''} }),
   {
     base: "./",
-    plugins: [react()],
+    plugins: [react({})],
     server: { port: ${devServerPort}, cors: true }
   }
 ));

@@ -36,6 +36,7 @@ interface InterceptorScenario {
   localDevelopmentIntent?: boolean;
   localDevelopmentScope?: "all" | "tab";
   pageHostname?: string;
+  storedOverrideDocument?: Record<string, unknown>;
 }
 
 export async function runCatalogInterceptor(scenario: InterceptorScenario): Promise<{
@@ -95,12 +96,20 @@ function createStorage(scenario: InterceptorScenario): { local: Storage; session
   }
   if (scenario.localDevelopmentIntent) {
     const values = scenario.localDevelopmentScope === "tab" ? sessionValues : localValues;
-    values.set("atlas.runtime-overrides", JSON.stringify({
-      schemaVersion: "1",
-      hostId: "test-host",
-      apps: [{ manifest: { channel: "local" } }],
-      generatedAt: "2026-01-01T00:00:00.000Z"
-    }));
+    const overrides = Array.isArray(scenario.devSession.overrides)
+      ? scenario.devSession.overrides
+      : [];
+    values.set("atlas.runtime-overrides", JSON.stringify(
+      scenario.storedOverrideDocument ?? {
+        schemaVersion: "1",
+        hostId: "test-host",
+        overrides: overrides.map((override) => ({
+          ...(override as Record<string, unknown>),
+          reason: "local",
+        })),
+        generatedAt: "2026-01-01T00:00:00.000Z"
+      },
+    ));
   }
   return {
     local: createStorageArea(localValues),
