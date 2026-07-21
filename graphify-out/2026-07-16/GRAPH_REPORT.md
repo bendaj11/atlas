@@ -551,7 +551,7 @@ Nodes (18): compilerOptions, composite, declaration, declarationMap, exactOption
 
 ### Community 67 - "Community 67"
 Cohesion: 0.22
-Nodes (12): AtlasExtensionManifest, EditorProps, EditorOption(), EditorOptionProps, ScopePicker(), ScopePickerProps, EditorDraft, EditorModel (+4 more)
+Nodes (12): AtlasExtensionManifest, EditorProps, EditorOption(), EditorOptionProps, BrowserOverrideScopePicker(), ScopePickerProps, EditorDraft, EditorModel (+4 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.08

@@ -1,9 +1,14 @@
 import {
-  artifactKey,
   type AtlasExtensionManifest as Manifest,
   type AtlasHostData as HostData,
+  getArtifactKey,
 } from '../contracts.js';
 import { normalizeStoredManifest } from './manifest-utils.js';
+
+interface IncludeDisabledAppsOptions {
+  hostData: HostData;
+  disabledOverrides: ReadonlyMap<string, Manifest>;
+}
 
 export function extractActiveOverrideManifests(
   hostData: HostData,
@@ -16,25 +21,28 @@ export function extractActiveOverrideManifests(
 
   return new Map(
     selectedManifests.map((manifest) => [
-      artifactKey(manifest),
+      getArtifactKey(manifest),
       normalizeStoredManifest(manifest),
     ]),
   );
 }
 
-export function includeDisabledAppsInCatalog(
-  hostData: HostData,
-  disabledOverrides: ReadonlyMap<string, Manifest>,
-): HostData {
+export function includeDisabledAppsInCatalog({
+  hostData,
+  disabledOverrides,
+}: IncludeDisabledAppsOptions): HostData {
   const apps = [...hostData.catalog.apps];
   const widgetProviders = [...(hostData.catalog.widgetProviders ?? [])];
-  const knownArtifactKeys = new Set(apps.map(artifactKey));
+  const knownArtifactKeys = new Set(apps.map(getArtifactKey));
   const dependencyIds = new Set(
     apps.flatMap((manifest) => manifest.externalAppsDependencies ?? []),
   );
 
   for (const manifest of disabledOverrides.values()) {
-    if (manifest.kind !== 'app' || knownArtifactKeys.has(artifactKey(manifest)))
+    if (
+      manifest.kind !== 'app' ||
+      knownArtifactKeys.has(getArtifactKey(manifest))
+    )
       continue;
     if (dependencyIds.has(manifest.id)) widgetProviders.push(manifest);
     else apps.push(manifest);

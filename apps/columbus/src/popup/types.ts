@@ -5,14 +5,19 @@ import type {
 
 export type OverrideType = 'none' | 'custom' | 'production' | 'pr';
 export type Scope = 'all' | 'tab';
-export type HostStatus = 'LOADING' | 'ERROR' | 'LOADED';
+export type HostStatus = 'RESTORING' | 'LOADING' | 'ERROR' | 'LOADED';
 export type OverrideStatus = 'IDLE' | 'APPLYING' | 'ERROR';
 
-export interface AppViewModel {
-  production: Manifest;
-  selected: Manifest | undefined;
+export interface ArtifactSelection {
+  productionManifest: Manifest;
+  selectedManifest: Manifest | undefined;
+}
+
+export interface Artifact extends ArtifactSelection {
+  id: string;
   overrideType: OverrideType;
   sourceDescription: string;
+  loadError: string | undefined;
   overrideEnabled: boolean;
   canToggle: boolean;
 }
@@ -24,18 +29,18 @@ export interface EditorDraft {
   prKey: string;
 }
 
-export interface EditorModel {
+export interface ArtifactConfiguration extends Pick<
+  Artifact,
+  'id' | 'productionManifest' | 'selectedManifest'
+> {
   hostId: string;
   allowCustomOverrides: boolean;
-  production: Manifest;
-  selected: Manifest | undefined;
   productionOptions: Manifest[];
   prOptions: Manifest[];
 }
 
-export interface SaveOverrideValue {
-  production: Manifest;
-  selected: Manifest | undefined;
+export interface ArtifactProps {
+  artifact: Artifact;
 }
 
 export interface PopupSession {

@@ -67,10 +67,13 @@ async function readDevOverrideCount(hostId: string): Promise<number | undefined>
     };
     if (session.schemaVersion !== "1" || session.hostId !== hostId || !Array.isArray(session.overrides)) return undefined;
     const disabledAppIds = readBadgeDisabledAppIds(hostId);
-    return countDevSessionOverrides(
-      { overrides: session.overrides, hostOverride: session.hostOverride },
-      disabledAppIds
-    );
+    return countDevSessionOverrides({
+      session: {
+        overrides: session.overrides,
+        hostOverride: session.hostOverride,
+      },
+      disabledAppIds,
+    });
   } catch {
     return undefined;
   }

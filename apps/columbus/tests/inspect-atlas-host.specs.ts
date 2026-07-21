@@ -18,26 +18,28 @@ afterEach(() => {
 });
 
 test('stored PR selection wins over an automatically discovered local app', async () => {
-  const production = manifest({ channel: 'production' });
-  const local = manifest({
+  const productionManifest = manifest({ channel: 'production' });
+  const localManifest = manifest({
     channel: 'local',
     version: '0.0.0-local',
     buildId: 'local',
     remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
   });
-  const pullRequest = manifest({
+  const pullRequestManifest = manifest({
     channel: 'pr',
     version: '1.1.0-pr.42',
     buildId: 'pr-42',
     prNumber: 42,
   });
   installPage({
-    app: local,
-    appVersions: [production, pullRequest, local],
+    app: localManifest,
+    appVersions: [productionManifest, pullRequestManifest, localManifest],
     stored: {
       schemaVersion: '1',
       hostId,
-      overrides: [{ appId: 'orders', manifest: pullRequest, reason: 'pr' }],
+      overrides: [
+        { appId: 'orders', manifest: pullRequestManifest, reason: 'pr' },
+      ],
       generatedAt: '2026-07-20T00:00:00.000Z',
     },
   });
@@ -71,10 +73,46 @@ test('version index for another artifact is rejected without hiding catalog', as
   ]);
 });
 
+test('runtime errors retain their artifact identity', async () => {
+  installPage({
+    runtimeError: {
+      appId: 'orders',
+      message: 'Unable to load Orders.',
+    },
+  });
+
+  const result = await inspectAtlasHost(documentKey);
+
+  expect(result.runtimeErrors).toEqual([
+    {
+      artifactId: 'app:orders',
+      message: 'Unable to load Orders.',
+    },
+  ]);
+});
+
+test('runtime errors use the catalog name when legacy DOM omits artifact identity', async () => {
+  installPage({
+    runtimeError: {
+      message: 'Unable to load Orders. Retry',
+    },
+  });
+
+  const result = await inspectAtlasHost(documentKey);
+
+  expect(result.runtimeErrors).toEqual([
+    {
+      artifactId: 'app:orders',
+      message: 'Unable to load Orders. Retry',
+    },
+  ]);
+});
+
 interface PageOptions {
   app?: AtlasExtensionManifest;
   appVersions?: AtlasExtensionManifest[];
   catalogHostId?: string;
+  runtimeError?: { appId?: string; message: string };
   stored?: Record<string, unknown>;
 }
 
@@ -91,7 +129,20 @@ function installPage(options: PageOptions = {}): void {
     localValues.set(documentKey, JSON.stringify(options.stored));
 
   Object.assign(globalThis, {
-    document: { querySelectorAll: () => [] },
+    document: {
+      querySelectorAll: () =>
+        options.runtimeError
+          ? [
+              {
+                textContent: options.runtimeError.message,
+                getAttribute: (name: string) =>
+                  name === 'data-atlas-app-id'
+                    ? (options.runtimeError?.appId ?? null)
+                    : null,
+              },
+            ]
+          : [],
+    },
     location: {
       href: 'https://host.example/dashboard',
       hostname: 'host.example',

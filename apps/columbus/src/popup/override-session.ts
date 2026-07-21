@@ -1,38 +1,45 @@
-import { artifactKey } from '../contracts.js';
-import type { PopupSession, SaveOverrideValue, Scope } from './types.js';
+import { getArtifactKey } from '../contracts.js';
+import type { ArtifactSelection, PopupSession, Scope } from './types.js';
 
-export function toggleOverrideInSession(
-  session: PopupSession,
-  key: string,
-): PopupSession | undefined {
+export function toggleOverrideInSession({
+  session,
+  artifactKey,
+}: {
+  session: PopupSession;
+  artifactKey: string;
+}): PopupSession | undefined {
   const activeOverrides = new Map(session.activeOverrides);
   const disabledOverrides = new Map(session.disabledOverrides);
-  const activeManifest = activeOverrides.get(key);
+  const activeManifest = activeOverrides.get(artifactKey);
 
   if (activeManifest) {
-    disabledOverrides.set(key, activeManifest);
-    activeOverrides.delete(key);
+    disabledOverrides.set(artifactKey, activeManifest);
+    activeOverrides.delete(artifactKey);
   } else {
-    const disabledManifest = disabledOverrides.get(key);
+    const disabledManifest = disabledOverrides.get(artifactKey);
     if (!disabledManifest) return undefined;
-    activeOverrides.set(key, disabledManifest);
-    disabledOverrides.delete(key);
+    activeOverrides.set(artifactKey, disabledManifest);
+    disabledOverrides.delete(artifactKey);
   }
 
   return { ...session, activeOverrides, disabledOverrides };
 }
 
-export function saveOverrideInSession(
-  session: PopupSession,
-  value: SaveOverrideValue,
-): PopupSession {
-  const key = artifactKey(value.production);
+export function saveOverrideInSession({
+  session,
+  selection,
+}: {
+  session: PopupSession;
+  selection: ArtifactSelection;
+}): PopupSession {
+  const artifactKey = getArtifactKey(selection.productionManifest);
   const activeOverrides = new Map(session.activeOverrides);
   const disabledOverrides = new Map(session.disabledOverrides);
-  disabledOverrides.delete(key);
+  disabledOverrides.delete(artifactKey);
 
-  if (value.selected) activeOverrides.set(key, value.selected);
-  else activeOverrides.delete(key);
+  if (selection.selectedManifest)
+    activeOverrides.set(artifactKey, selection.selectedManifest);
+  else activeOverrides.delete(artifactKey);
 
   return { ...session, activeOverrides, disabledOverrides };
 }
@@ -47,20 +54,26 @@ export function clearAllOverridesInSession(
   };
 }
 
-export function clearOverrideInSession(
-  session: PopupSession,
-  key: string,
-): PopupSession {
+export function clearOverrideInSession({
+  session,
+  artifactKey,
+}: {
+  session: PopupSession;
+  artifactKey: string;
+}): PopupSession {
   const activeOverrides = new Map(session.activeOverrides);
   const disabledOverrides = new Map(session.disabledOverrides);
-  activeOverrides.delete(key);
-  disabledOverrides.delete(key);
+  activeOverrides.delete(artifactKey);
+  disabledOverrides.delete(artifactKey);
   return { ...session, activeOverrides, disabledOverrides };
 }
 
-export function setOverrideScopeInSession(
-  session: PopupSession,
-  scope: Scope,
-): PopupSession {
+export function setOverrideScopeInSession({
+  session,
+  scope,
+}: {
+  session: PopupSession;
+  scope: Scope;
+}): PopupSession {
   return { ...session, scope };
 }

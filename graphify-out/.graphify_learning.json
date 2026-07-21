@@ -1,8 +1,45 @@
 {
-  "generated_at": "2026-07-20T13:00:28.446191+00:00",
+  "generated_at": "2026-07-21T19:50:45.305423+00:00",
   "nodes": {
+    "apps_columbus_src_popup_manifest_utils": {
+      "code_fingerprint": "61c779141b716fa26206be69ab667d24b6d196ee76733cfb050192f6ee72786a",
+      "label": "manifest-utils.ts",
+      "last": "2026-07-21T19:46:08.999634+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-21T19:46:08.999634+00:00",
+          "outcome": "useful",
+          "q": "columbus should allow any url its an internal extension"
+        }
+      ],
+      "score": 0.999926114,
+      "source_file": "apps/columbus/src/popup/manifest-utils.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "docs_exported_widgets_columbus": {
+      "code_fingerprint": "846d83943890668c7525267aa8ff759c3bfbb810d1d1eb1971d429182f01166e",
+      "label": "Columbus",
+      "last": "2026-07-21T19:46:08.999634+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-21T19:46:08.999634+00:00",
+          "outcome": "useful",
+          "q": "columbus should allow any url its an internal extension"
+        },
+        {
+          "date": "2026-07-21T19:37:51.864062+00:00",
+          "outcome": "useful",
+          "q": "why am I seeing this error in columbus: Could not apply override; Custom URL must use localhost, 127.0.0.1, or [::1]."
+        }
+      ],
+      "score": 1.999719303,
+      "source_file": "docs/exported-widgets.md",
+      "status": "preferred",
+      "uses": 2
+    },
     "docs_local_development_local_development_and_columbus": {
-      "code_fingerprint": "c339610f197dbb85f55f509ddbd7a70f2ee9780693a7e29d09b5a36d8c9980bc",
+      "code_fingerprint": "569c2a0466f69d3951213322365d48f129b06e24dd0851e0a96010e457b98907",
       "label": "Local development and Columbus",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -12,13 +49,13 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.998729985,
+      "score": 0.969515597,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
     },
     "docs_local_development_run_a_local_app": {
-      "code_fingerprint": "c339610f197dbb85f55f509ddbd7a70f2ee9780693a7e29d09b5a36d8c9980bc",
+      "code_fingerprint": "569c2a0466f69d3951213322365d48f129b06e24dd0851e0a96010e457b98907",
       "label": "Run a local app",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -28,7 +65,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.998729985,
+      "score": 0.969515597,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -49,7 +86,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.997415396,
+      "score": 1.938987924,
       "source_file": "packages/cli/src/dev.ts",
       "status": "preferred",
       "uses": 2
@@ -76,7 +113,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.998795804,
+      "score": 0.96957949,
       "source_file": "packages/cli/src/dev.ts",
       "status": "contested",
       "uses": 2,
@@ -93,7 +130,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.998662616,
+      "score": 0.969450198,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -120,7 +157,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.998869383,
+      "score": 0.969650917,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -137,7 +174,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.998589037,
+      "score": 0.969378772,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -164,7 +201,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.998869383,
+      "score": 0.969650917,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,

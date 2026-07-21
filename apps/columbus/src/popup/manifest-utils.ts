@@ -1,112 +1,111 @@
-import {
-  artifactKey,
-  type AtlasExtensionManifest as Manifest,
-  type AtlasHostData as HostData,
-} from '../contracts.js';
-import {
-  supportsHost,
-  uniqueVersions,
-  versionKey,
-} from '../manifest-versions.js';
+import { type AtlasExtensionManifest as Manifest } from '../contracts.js';
+import { supportsHost, versionKey } from '../manifest-versions.js';
 import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from './constants.js';
 import type { BadgeSkin } from '@wix/design-system';
-import type { EditorDraft, OverrideType } from './types.js';
+import type {
+  ArtifactConfiguration,
+  ArtifactSelection,
+  EditorDraft,
+  OverrideType,
+} from './types.js';
 
-export function createAppViewModel(
-  production: Manifest,
-  activeOverrides: ReadonlyMap<string, Manifest>,
-  savedDisabledOverrides: ReadonlyMap<string, Manifest>,
-) {
-  const key = artifactKey(production);
-  const selected = activeOverrides.get(key) ?? savedDisabledOverrides.get(key);
-  const overrideEnabled = activeOverrides.has(key);
+interface ResolveSelectedManifestOptions extends Pick<
+  ArtifactConfiguration,
+  'productionManifest' | 'productionOptions' | 'prOptions'
+> {
+  draft: EditorDraft;
+}
 
-  return {
-    production,
-    selected,
-    overrideType: overrideTypeFor(production, selected),
-    sourceDescription: selectedSourceDescription(selected),
-    overrideEnabled,
-    canToggle: Boolean(selected),
-  };
+interface CreateCustomManifestOptions extends Pick<
+  ArtifactSelection,
+  'productionManifest'
+> {
+  rawUrl: string;
 }
 
 export function createEditorDraft(
-  production: Manifest | undefined,
-  selected: Manifest | undefined,
-  productionOptions: Manifest[],
-  prOptions: Manifest[],
+  configuration: ArtifactConfiguration | undefined,
 ): EditorDraft {
-  const type = selected
-    ? overrideTypeFor(production ?? selected, selected)
+  const productionManifest = configuration?.productionManifest;
+  const selectedManifest = configuration?.selectedManifest;
+  const type = selectedManifest
+    ? overrideTypeFor({
+        productionManifest: productionManifest ?? selectedManifest,
+        selectedManifest,
+      })
     : 'custom';
   const selectedType = type === 'none' ? 'custom' : type;
 
   return {
     type: selectedType,
     customUrl:
-      selected?.channel === 'local'
-        ? baseUrlFromRemoteEntry(selected.remoteEntryUrl)
-        : baseUrlFromRemoteEntry(production?.remoteEntryUrl ?? ''),
+      selectedManifest?.channel === 'local'
+        ? baseUrlFromRemoteEntry(selectedManifest.remoteEntryUrl)
+        : '',
     productionKey: versionKeyOrEmpty(
-      selectedType === 'production' && selected
-        ? selected
-        : (productionOptions[0] ?? production),
+      selectedType === 'production' && selectedManifest
+        ? selectedManifest
+        : (configuration?.productionOptions[0] ?? productionManifest),
     ),
     prKey: versionKeyOrEmpty(
-      selectedType === 'pr' && selected ? selected : prOptions[0],
+      selectedType === 'pr' && selectedManifest
+        ? selectedManifest
+        : configuration?.prOptions[0],
     ),
   };
 }
 
-export function selectedManifest({
-  production,
+export function resolveSelectedManifest({
+  productionManifest,
   draft,
   productionOptions,
   prOptions,
-}: {
-  production: Manifest;
-  draft: EditorDraft;
-  productionOptions: Manifest[];
-  prOptions: Manifest[];
-}): Manifest | undefined {
+}: ResolveSelectedManifestOptions): Manifest | undefined {
   if (draft.type === 'custom')
-    return customManifest(production, draft.customUrl);
+    return createCustomManifest({
+      productionManifest,
+      rawUrl: draft.customUrl,
+    });
   if (draft.type === 'production') {
-    const selected = productionOptions.find(
+    const selectedManifest = productionOptions.find(
       (manifest) => versionKey(manifest) === draft.productionKey,
     );
-    if (!selected) throw new Error('Choose a production version.');
-    return selected;
+    if (!selectedManifest) throw new Error('Choose a production version.');
+    return selectedManifest;
   }
 
-  const selected = prOptions.find(
+  const selectedManifest = prOptions.find(
     (manifest) => versionKey(manifest) === draft.prKey,
   );
-  if (!selected) throw new Error('Choose a PR version.');
-  return selected;
+  if (!selectedManifest) throw new Error('Choose a PR version.');
+  return selectedManifest;
 }
 
-export function customManifest(production: Manifest, rawUrl: string): Manifest {
+export function createCustomManifest({
+  productionManifest,
+  rawUrl,
+}: CreateCustomManifestOptions): Manifest {
   const baseUrl = validatedBaseUrl(rawUrl);
 
   const manifest: Manifest = {
-    ...production,
+    ...productionManifest,
     version: CUSTOM_VERSION,
     buildId: CUSTOM_BUILD_ID,
     channel: 'local',
     remoteEntryUrl: `${baseUrl}/remoteEntry.json`,
     styles:
-      production.framework === 'angular'
+      productionManifest.framework === 'angular'
         ? [{ href: `${baseUrl}/styles.css` }]
         : [],
   };
   delete manifest.integrity;
-  if (production.exportedWidgets) {
-    manifest.exportedWidgets = production.exportedWidgets.map((widget) => ({
-      ...widget,
-      remoteEntryUrl: manifest.remoteEntryUrl,
-    }));
+  if (productionManifest.exportedWidgets) {
+    manifest.exportedWidgets = productionManifest.exportedWidgets.map(
+      (widget) => ({
+        ...widget,
+        remoteEntryUrl: manifest.remoteEntryUrl,
+      }),
+    );
   }
   return manifest;
 }
@@ -117,36 +116,15 @@ export function normalizeStoredManifest(manifest: Manifest): Manifest {
   return { ...manifest, version: CUSTOM_VERSION };
 }
 
-export function productionVersions(
-  hostData: HostData,
-  production: Manifest,
-): Manifest[] {
-  const versions = hostData.versions[artifactKey(production)] ?? [];
-  const historical = uniqueVersions(versions).filter(
-    (manifest) =>
-      manifest.channel === 'production' &&
-      versionKey(manifest) !== versionKey(production),
-  );
-  return [production, ...historical];
-}
-
-export function prVersions(
-  hostData: HostData,
-  production: Manifest,
-): Manifest[] {
-  return uniqueVersions(
-    hostData.versions[artifactKey(production)] ?? [],
-  ).filter((manifest) => manifest.channel === 'pr');
-}
-
-export function overrideTypeFor(
-  production: Manifest,
-  selected: Manifest | undefined,
-): OverrideType {
-  if (!selected) return 'none';
-  if (selected.channel === 'local') return 'custom';
-  if (selected.channel === 'pr') return 'pr';
-  if (versionKey(selected) === versionKey(production)) return 'none';
+export function overrideTypeFor({
+  productionManifest,
+  selectedManifest,
+}: ArtifactSelection): OverrideType {
+  if (!selectedManifest) return 'none';
+  if (selectedManifest.channel === 'local') return 'custom';
+  if (selectedManifest.channel === 'pr') return 'pr';
+  if (versionKey(selectedManifest) === versionKey(productionManifest))
+    return 'none';
   return 'production';
 }
 
@@ -167,13 +145,20 @@ export function versionLabel(manifest: Manifest): string {
       .filter((part): part is string => Boolean(part))
       .join(' · ');
   }
+  if (manifest.channel === 'production') return manifest.version;
+
   const identity = `${manifest.version} · ${manifest.buildId.slice(0, 7)}`;
-  if (manifest.channel === 'local') return `${identity} · Local`;
-  return identity;
+  return `${identity} · Local`;
 }
 
-export function versionDisabled(manifest: Manifest, hostId: string): boolean {
-  return !supportsHost(manifest, hostId);
+export function versionDisabled({
+  manifest,
+  hostId,
+}: {
+  manifest: Manifest;
+  hostId: string;
+}): boolean {
+  return !supportsHost({ manifest, hostId });
 }
 
 function baseUrlFromRemoteEntry(remoteEntryUrl: string): string {
@@ -200,8 +185,6 @@ function validatedBaseUrl(value: string): string {
 
   if (url.protocol !== 'http:' && url.protocol !== 'https:')
     throw new Error('Base URL must be absolute HTTP URL.');
-  if (!isLoopbackHostname(url.hostname))
-    throw new Error('Custom URL must use localhost, 127.0.0.1, or [::1].');
   if (url.username || url.password)
     throw new Error('Base URL must not include credentials.');
   if (url.search || url.hash)
@@ -212,19 +195,15 @@ function validatedBaseUrl(value: string): string {
   return url.href.replace(/\/$/u, '');
 }
 
-function isLoopbackHostname(hostname: string): boolean {
-  return (
-    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
-  );
-}
-
 function versionKeyOrEmpty(manifest: Manifest | undefined): string {
   return manifest ? versionKey(manifest) : '';
 }
 
-function selectedSourceDescription(selected: Manifest | undefined): string {
-  if (!selected) return '';
-  return selected.channel === 'pr'
-    ? versionLabel(selected)
-    : baseUrlFromRemoteEntry(selected.remoteEntryUrl);
+export function artifactSourceDescription(
+  selectedManifest: Manifest | undefined,
+): string {
+  if (!selectedManifest) return '';
+  return selectedManifest.channel === 'local'
+    ? baseUrlFromRemoteEntry(selectedManifest.remoteEntryUrl)
+    : versionLabel(selectedManifest);
 }

@@ -524,7 +524,7 @@ Nodes (17): artifacts, atlasPackages, buildProject(), dependencyOverrides(), exe
 
 ### Community 54 - "Community 54"
 Cohesion: 0.14
-Nodes (20): App(), usePopupHost(), usePopupNavigation(), usePopupOverrides(), root, AppRoutes(), ArtifactConfigurationPage(), ArtifactsListPage() (+12 more)
+Nodes (20): App(), usePopupHost(), usePopupNavigation(), usePopupOverrides(), root, AppRoutes(), ArtifactConfigurationPage(), ArtifactsOverridesPage() (+12 more)
 
 ### Community 55 - "Community 55"
 Cohesion: 0.13
@@ -572,7 +572,7 @@ Nodes (18): compilerOptions, composite, declaration, declarationMap, exactOption
 
 ### Community 67 - "Community 67"
 Cohesion: 0.21
-Nodes (19): PopupOverridesContext, PopupOverridesContextValue, AtlasExtensionManifest, ScopePicker(), ScopePickerProps, clearAllOverridesInSession(), clearOverrideInSession(), saveOverrideInSession() (+11 more)
+Nodes (19): PopupOverridesContext, PopupOverridesContextValue, AtlasExtensionManifest, BrowserOverrideScopePicker(), ScopePickerProps, clearAllOverridesInSession(), clearOverrideInSession(), saveOverrideInSession() (+11 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.20

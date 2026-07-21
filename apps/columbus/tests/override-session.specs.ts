@@ -13,45 +13,57 @@ import {
 import type { PopupSession } from '../src/popup/types.js';
 
 test('saving an override replaces disabled state for that artifact', () => {
-  const production = manifest({ channel: 'production' });
-  const selected = manifest({ channel: 'pr', buildId: 'pr-build' });
+  const productionManifest = manifest({ channel: 'production' });
+  const selectedManifest = manifest({ channel: 'pr', buildId: 'pr-build' });
   const session = createSession({
-    disabledOverrides: new Map([['app:orders', selected]]),
+    disabledOverrides: new Map([['app:orders', selectedManifest]]),
   });
 
-  const result = saveOverrideInSession(session, { production, selected });
+  const result = saveOverrideInSession({
+    session,
+    selection: {
+      productionManifest,
+      selectedManifest,
+    },
+  });
 
-  expect(result.activeOverrides.get('app:orders')).toBe(selected);
+  expect(result.activeOverrides.get('app:orders')).toBe(selectedManifest);
   expect(result.disabledOverrides.has('app:orders')).toBe(false);
 });
 
 test('toggling an active override disables it without losing selection', () => {
-  const selected = manifest({ channel: 'pr' });
+  const selectedManifest = manifest({ channel: 'pr' });
   const session = createSession({
-    activeOverrides: new Map([['app:orders', selected]]),
+    activeOverrides: new Map([['app:orders', selectedManifest]]),
   });
 
-  const result = toggleOverrideInSession(session, 'app:orders');
+  const result = toggleOverrideInSession({
+    session,
+    artifactKey: 'app:orders',
+  });
 
   expect(result?.activeOverrides.has('app:orders')).toBe(false);
-  expect(result?.disabledOverrides.get('app:orders')).toBe(selected);
+  expect(result?.disabledOverrides.get('app:orders')).toBe(selectedManifest);
 });
 
 test('toggling an unknown artifact changes nothing', () => {
   expect(
-    toggleOverrideInSession(createSession(), 'app:missing'),
+    toggleOverrideInSession({
+      session: createSession(),
+      artifactKey: 'app:missing',
+    }),
   ).toBeUndefined();
 });
 
 test('clearing one override removes active and disabled copies', () => {
-  const selected = manifest({ channel: 'local' });
-  const result = clearOverrideInSession(
-    createSession({
-      activeOverrides: new Map([['app:orders', selected]]),
-      disabledOverrides: new Map([['app:orders', selected]]),
+  const selectedManifest = manifest({ channel: 'local' });
+  const result = clearOverrideInSession({
+    session: createSession({
+      activeOverrides: new Map([['app:orders', selectedManifest]]),
+      disabledOverrides: new Map([['app:orders', selectedManifest]]),
     }),
-    'app:orders',
-  );
+    artifactKey: 'app:orders',
+  });
 
   expect(result.activeOverrides.size).toBe(0);
   expect(result.disabledOverrides.size).toBe(0);
@@ -71,15 +83,15 @@ test('clearing all overrides preserves host and scope metadata', () => {
 });
 
 test('changing scope leaves selections intact', () => {
-  const selected = manifest({ channel: 'pr' });
+  const selectedManifest = manifest({ channel: 'pr' });
   const session = createSession({
-    activeOverrides: new Map([['app:orders', selected]]),
+    activeOverrides: new Map([['app:orders', selectedManifest]]),
   });
 
-  const result = setOverrideScopeInSession(session, 'tab');
+  const result = setOverrideScopeInSession({ session, scope: 'tab' });
 
   expect(result.scope).toBe('tab');
-  expect(result.activeOverrides.get('app:orders')).toBe(selected);
+  expect(result.activeOverrides.get('app:orders')).toBe(selectedManifest);
 });
 
 function createSession(overrides: Partial<PopupSession> = {}): PopupSession {

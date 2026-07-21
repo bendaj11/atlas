@@ -1,5 +1,9 @@
-import type { AtlasExtensionManifest as Manifest, AtlasHostData as HostData, AtlasOverrideDocument as OverrideDocument } from "../contracts.js";
-import type { Scope } from "./types.js";
+import type {
+  AtlasExtensionManifest as Manifest,
+  AtlasHostData as HostData,
+  AtlasOverrideDocument as OverrideDocument,
+} from '../contracts.js';
+import type { Scope } from './types.js';
 
 export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const fetchTimeoutMs = 5_000;
@@ -146,14 +150,14 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     }
   }
 
-  function selectedProvider(appId: string, registry: ExternalRegistry): { selected?: Manifest; versions: Manifest[] } {
+  function resolveSelectedProvider({ appId, registry }: { appId: string; registry: ExternalRegistry }): { selectedManifest?: Manifest; versions: Manifest[] } {
     const versions = registry.apps.filter((manifest) => manifest.id === appId);
-    const production = versions.filter((manifest) => manifest.channel === "production");
+    const productionManifests = versions.filter((manifest) => manifest.channel === "production");
     const selection = registry.selections?.apps?.[appId];
-    const selected = selection
-      ? production.find((manifest) => manifest.version === selection.version && manifest.buildId === selection.buildId)
-      : production.sort((left, right) => (right.createdAt ?? "").localeCompare(left.createdAt ?? ""))[0];
-    return { ...(selected ? { selected } : {}), versions };
+    const selectedManifest = selection
+      ? productionManifests.find((manifest) => manifest.version === selection.version && manifest.buildId === selection.buildId)
+      : productionManifests.sort((left, right) => (right.createdAt ?? "").localeCompare(left.createdAt ?? ""))[0];
+    return { ...(selectedManifest ? { selectedManifest } : {}), versions };
   }
 
   function resolveExternalProviders(dependencyIds: Set<string>, registries: ExternalRegistry[]): Omit<ExternalProviders, "errors"> {
@@ -165,13 +169,13 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
       const appId = pending.shift();
       if (appId === undefined) break;
       if (resolved.has(appId)) continue;
-      const matches = registries.map((registry) => selectedProvider(appId, registry));
+      const matches = registries.map((registry) => resolveSelectedProvider({ appId, registry }));
       versions.push(...matches.filter((match) => match.versions.length > 0).map((match) => [`app:${appId}`, match.versions] as const));
-      const candidates = matches.flatMap(({ selected }) => selected ? [selected] : []);
-      const provider = candidates.length === 1 ? candidates[0] : undefined;
-      if (provider) {
-        providers.push(provider);
-        pending.push(...(provider.externalAppsDependencies ?? []));
+      const candidateManifests = matches.flatMap(({ selectedManifest }) => selectedManifest ? [selectedManifest] : []);
+      const providerManifest = candidateManifests.length === 1 ? candidateManifests[0] : undefined;
+      if (providerManifest) {
+        providers.push(providerManifest);
+        pending.push(...(providerManifest.externalAppsDependencies ?? []));
       }
       resolved.add(appId);
     }
@@ -299,9 +303,20 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     };
   }
 
-  function readRuntimeErrors(): string[] {
+  function readRuntimeErrors(catalog: HostData["catalog"]): HostData["runtimeErrors"] {
+    const manifests = [catalog.host, ...catalog.apps, ...(catalog.widgetProviders ?? [])];
     return [...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]')]
-      .map((element) => element.textContent?.trim() || element.getAttribute("data-atlas-app") || "Unknown app error");
+      .map((element) => {
+        const appId = element.getAttribute("data-atlas-app-id") ?? element.getAttribute("data-atlas-app");
+        const message = element.textContent?.trim() || "Unknown app error";
+        const matchingManifests = manifests.filter((manifest) => message.startsWith(`Unable to load ${manifest.name}.`));
+        const matchingManifest = matchingManifests.length === 1 ? matchingManifests[0] : undefined;
+        const artifactId = appId ? `app:${appId}` : matchingManifest ? manifestKey(matchingManifest) : undefined;
+        return {
+          ...(artifactId ? { artifactId } : {}),
+          message
+        };
+      });
   }
 
   function readVersionErrors(
@@ -339,7 +354,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     versions,
     overrides,
     overrideScope: storedSelection.overrideScope,
-    runtimeErrors: readRuntimeErrors(),
+    runtimeErrors: readRuntimeErrors(productionCatalog),
     versionErrors: readVersionErrors(versionResults, external.errors)
   };
 }

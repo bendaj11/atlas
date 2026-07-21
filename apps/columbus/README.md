@@ -22,7 +22,7 @@ Chrome 111 or newer is required because Columbus uses main-world static content 
 4. Keep **All tabs** selected (the default), or choose **This tab** for an isolated experiment.
 5. Select **Save**. Columbus persists the selection, then reloads the host.
 
-Production is default. Labels include semantic version and short build ID, so multiple builds sharing one version remain distinct. PR and historical versions come from static app index. For local development, paste the loopback base URL printed by `atlas dev`. Columbus accepts `localhost`, `127.0.0.1`, or `[::1]` and derives `remoteEntry.json` from that URL.
+Production is default. Labels include semantic version and short build ID, so multiple builds sharing one version remain distinct. PR and historical versions come from static app index. For custom development, paste any HTTP or HTTPS base URL. Columbus derives `remoteEntry.json` from that URL. Remote origins must be permitted by host's Content Security Policy.
 
 All-tabs overrides are stored by `hostId` in `chrome.storage.local` and copied to the host origin's `localStorage`. Current-tab overrides use `sessionStorage` and take precedence in that tab. The SDK validates the complete document and every manifest before federation initialization.
 
@@ -38,5 +38,5 @@ If one app version index is unavailable, the extension keeps the host usable, sh
 
 - **This page does not expose a valid Atlas runtime configuration**: the active page must serve `/atlas.runtime.json`.
 - **Catalog URL does not identify the static registry**: the extension expects `/hosts/<hostId>/catalog.json` under the Atlas storage root.
-- **Custom URL is rejected**: keep `atlas dev` running and use its loopback base URL.
+- **Custom URL is rejected**: use absolute HTTP or HTTPS URL without credentials, query parameters, or fragment.
 - **A version is disabled**: its manifest does not declare compatibility with the current host.

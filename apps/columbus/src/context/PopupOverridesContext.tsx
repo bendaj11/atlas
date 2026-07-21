@@ -15,29 +15,24 @@ import {
 } from '../popup/override-session';
 import { persistOverrideSession } from '../popup/persist-overrides';
 import { usePopupSession } from './PopupSessionContext';
-import { createArtifactViewModels } from '../popup/popup-view-models';
 import type {
-  AppViewModel,
+  ArtifactSelection,
   OverrideStatus,
   PopupSession,
-  SaveOverrideValue,
   Scope,
 } from '../popup/types';
 
 interface PopupOverridesContextValue {
-  apps: AppViewModel[];
-  widgetProviders: AppViewModel[];
-  host: AppViewModel | undefined;
   hasOverrides: boolean;
   scope: Scope;
   status: OverrideStatus;
   message: string;
   clearAllOverrides: () => Promise<void>;
-  clearOverride: (key: string) => Promise<void>;
+  clearOverride: (artifactKey: string) => Promise<void>;
   reportError: (message: string) => void;
-  saveOverride: (value: SaveOverrideValue) => void;
+  saveOverride: (selection: ArtifactSelection) => void;
   setScope: (scope: Scope) => void;
-  toggleOverride: (key: string) => Promise<void>;
+  toggleOverride: (artifactKey: string) => Promise<void>;
 }
 
 const PopupOverridesContext = createContext<
@@ -70,17 +65,17 @@ export function PopupOverridesProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function toggleOverride(key: string): Promise<void> {
+  async function toggleOverride(artifactKey: string): Promise<void> {
     if (!session || applying.current) return;
-    const nextSession = toggleOverrideInSession(session, key);
+    const nextSession = toggleOverrideInSession({ session, artifactKey });
     if (!nextSession) return;
     setSession(nextSession);
     await persistOverrides(nextSession);
   }
 
-  function saveOverride(value: SaveOverrideValue): void {
+  function saveOverride(selection: ArtifactSelection): void {
     if (!session || applying.current) return;
-    const nextSession = saveOverrideInSession(session, value);
+    const nextSession = saveOverrideInSession({ session, selection });
     setSession(nextSession);
     void persistOverrides(nextSession);
   }
@@ -92,16 +87,18 @@ export function PopupOverridesProvider({ children }: { children: ReactNode }) {
     await persistOverrides(nextSession);
   }
 
-  async function clearOverride(key: string): Promise<void> {
+  async function clearOverride(artifactKey: string): Promise<void> {
     if (!session || applying.current) return;
-    const nextSession = clearOverrideInSession(session, key);
+    const nextSession = clearOverrideInSession({ session, artifactKey });
     setSession(nextSession);
     await persistOverrides(nextSession);
   }
 
   function setScope(scope: Scope): void {
     setSession((current) =>
-      current ? setOverrideScopeInSession(current, scope) : current,
+      current
+        ? setOverrideScopeInSession({ session: current, scope })
+        : current,
     );
   }
 
@@ -112,30 +109,9 @@ export function PopupOverridesProvider({ children }: { children: ReactNode }) {
 
   const activeOverrides = session?.activeOverrides ?? new Map();
   const disabledOverrides = session?.disabledOverrides ?? new Map();
-  const apps = createArtifactViewModels(
-    session?.hostData.catalog.apps ?? [],
-    activeOverrides,
-    disabledOverrides,
-  );
-  const widgetProviders = createArtifactViewModels(
-    session?.hostData.catalog.widgetProviders ?? [],
-    activeOverrides,
-    disabledOverrides,
-  );
-  const host = session
-    ? createArtifactViewModels(
-        [session.hostData.catalog.host],
-        activeOverrides,
-        disabledOverrides,
-      )[0]
-    : undefined;
-
   return (
     <PopupOverridesContext.Provider
       value={{
-        apps,
-        widgetProviders,
-        host,
         hasOverrides: activeOverrides.size > 0 || disabledOverrides.size > 0,
         scope: session?.scope ?? 'all',
         status,

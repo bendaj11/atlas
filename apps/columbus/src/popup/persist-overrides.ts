@@ -9,10 +9,10 @@ import type { PopupSession } from './types.js';
 export async function persistOverrideSession(
   session: PopupSession,
 ): Promise<void> {
-  const documentValue = createOverrideDocument(
-    session.hostData,
-    session.activeOverrides,
-  );
+  const documentValue = createOverrideDocument({
+    hostData: session.hostData,
+    overrides: session.activeOverrides,
+  });
   await writeOverrides({
     tabId: session.tabId,
     hostData: session.hostData,

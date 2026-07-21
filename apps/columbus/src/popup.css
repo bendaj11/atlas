@@ -2,17 +2,10 @@ html,
 body,
 #root {
   margin: 0;
-  width: 560px;
+  width: 600px;
   height: 600px;
   overflow: hidden;
   position: relative;
-}
-
-.popup-error {
-  position: absolute;
-  z-index: 1;
-  top: 8px;
-  right: 16px;
 }
 
 .scope-card {

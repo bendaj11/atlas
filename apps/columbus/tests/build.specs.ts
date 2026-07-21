@@ -6,6 +6,38 @@ import {
   runCatalogInterceptor,
 } from './build.driver.js';
 
+const ARTIFACTS_OVERRIDES_PAGE =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesPage.tsx';
+const ARTIFACT_CONFIGURATION_PAGE =
+  'src/ArtifactConfigurationPage/ArtifactConfigurationPage.tsx';
+const ARTIFACT_CONFIGURATION_HOOK =
+  'src/ArtifactConfigurationPage/useArtifactConfiguration/useArtifactConfiguration.ts';
+const ARTIFACT_CONFIGURATION_ACTIONS =
+  'src/ArtifactConfigurationPage/ArtifactConfigurationActions/ArtifactConfigurationActions.tsx';
+const OVERRIDES_SELECTION_FORM =
+  'src/ArtifactConfigurationPage/OverridesForm/OverridesSelectionForm.tsx';
+const OVERRIDE_RADIO_CARD =
+  'src/ArtifactConfigurationPage/OverridesForm/OverrideRadioCard/OverrideRadioCard.tsx';
+const OVERRIDES_TABLE =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactsOverridesTable.tsx';
+const OVERRIDE_ACTIONS =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactOverrideActions/ArtifactOverrideActions.tsx';
+const OVERRIDE_TOGGLE =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactOverrideToggle/ArtifactOverrideToggle.tsx';
+const OVERRIDE_VERSION =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactOverrideVersion/ArtifactOverrideVersion.tsx';
+const OVERRIDES_TOOLBAR =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesTable/OverridesTableToolbar/OverridesTableToolbar.tsx';
+const ARTIFACT_NAME =
+  'src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactName/ArtifactName.tsx';
+const USE_ARTIFACTS = 'src/ArtifactsOverridesPage/useArtifacts/useArtifacts.ts';
+
+async function readColumbusSource(...paths: string[]): Promise<string> {
+  return (await Promise.all(paths.map((path) => readColumbusFile(path)))).join(
+    '\n',
+  );
+}
+
 const productionHost = {
   schemaVersion: '1',
   kind: 'host',
@@ -270,9 +302,11 @@ test('automatic local dev-session discovery preserves explicit tab scope', async
 test('Columbus extension keeps persisted overrides as fallback without hardcoded hosts', async () => {
   const source = await readColumbusFile('dist/popup.js');
   const hostSource = await readColumbusFile('src/popup/inspect-atlas-host.ts');
-  const constants = await readColumbusFile('dist/assets/constants.js');
+  const constants = await readColumbusFile('src/popup/constants.ts');
   expect(constants).toMatch(/atlas\.runtime-overrides/);
-  expect(hostSource).toMatch(/manifest\.kind === "host" \? "hosts" : "apps"/);
+  expect(hostSource).toMatch(
+    /manifest\.kind === ['"]host['"] \? ['"]hosts['"] : ['"]apps['"]/,
+  );
   expect(source).toMatch(/index\.json/);
   expect(source).not.toMatch(/demo-angular-host|localhost:4300/);
   expect(source).toMatch(/sessionStorage/);
@@ -298,73 +332,109 @@ test('Columbus extension keeps the override count badge synced from pages', asyn
 
 test('Columbus popup recognizes intercepted local manifests as enabled overrides', async () => {
   const source = await readColumbusFile('src/popup/inspect-atlas-host.ts');
-  expect(source).toMatch(/manifest\.channel === "local"/);
-  expect(source).toMatch(/reason: "local" as const/);
-  expect(source).toMatch(/version\.channel === "production"/);
+  expect(source).toMatch(/manifest\.channel === ['"]local['"]/);
+  expect(source).toMatch(/reason: ['"]local['"] as const/);
+  expect(source).toMatch(/version\.channel === ['"]production['"]/);
   expect(source).toMatch(/catalog: productionCatalog/);
   expect(source).toMatch(/mergeOverrideDocuments\(/);
 });
 
 test('Columbus discovers and labels external widget providers', async () => {
   const host = await readColumbusFile('src/popup/inspect-atlas-host.ts');
-  const table = await readColumbusFile(
-    'src/popup/components/OverrideTable.tsx',
-  );
+  const table = await readColumbusFile(OVERRIDES_TABLE);
+  const artifactsHook = await readColumbusFile(USE_ARTIFACTS);
   expect(host).toMatch(/externalRegistryUrls/);
   expect(host).toMatch(/externalAppsDependencies/);
   expect(host).toMatch(/registry\.json/);
   expect(host).toMatch(
-    /createProductionCatalog\(catalog, versions, external\.providers\)/,
+    /createProductionCatalog\([\s\S]*catalog,[\s\S]*versions,[\s\S]*external\.providers/,
   );
-  expect(table).toMatch(/\.\.\.widgetProviders/);
+  expect(artifactsHook).toMatch(/catalog\.widgetProviders/);
+  expect(table).toMatch(/const artifacts = useArtifacts\(\)/);
 });
 
 test('Columbus popup delegates scrolling to the WDS page', async () => {
   const main = await readColumbusFile('src/main.tsx');
   const popup = await readColumbusFile('src/App.tsx');
-  const dashboard = await readColumbusFile(
-    'src/popup/components/ArtifactsListPage.tsx',
-  );
+  const dashboard = await readColumbusFile(ARTIFACTS_OVERRIDES_PAGE);
+  const provider = await readColumbusFile('src/popup/PopupProvider.tsx');
   const styles = await readColumbusFile('src/popup.css');
-  expect(main).toMatch(/<WixDesignSystemProvider mobile>/);
+  expect(main).toMatch(/<PopupProvider>/);
+  expect(provider).toMatch(/<WixDesignSystemProvider>/);
   expect(popup).not.toMatch(/WixDesignSystemProvider/);
   expect(popup).not.toMatch(/overflowY=/);
   expect(popup).not.toMatch(/<Box padding="16px" direction="vertical"/);
   expect(popup).not.toMatch(/popup-shell/);
-  expect(dashboard).toMatch(/<Page>/);
-  expect(dashboard).not.toMatch(/<Page\s+[^>]+>/);
+  expect(dashboard).toMatch(/<Page height="100%" minWidth=\{0\}>/);
   expect(styles).toMatch(/height: 600px;/);
   expect(styles).not.toMatch(/\.popup-shell/);
 });
 
 test('Columbus popup uses a searchable WDS override table', async () => {
-  const table = await readColumbusFile(
-    'src/popup/components/OverrideTable.tsx',
+  const table = await readColumbusSource(
+    OVERRIDES_TABLE,
+    OVERRIDE_ACTIONS,
+    OVERRIDE_VERSION,
+    OVERRIDES_TOOLBAR,
   );
   expect(table).toMatch(/<Search/);
-  expect(table).toMatch(/<Table[\s\S]*data=\{filteredArtifacts\}/);
+  expect(table).toMatch(/<Table[\s\S]*data=\{sortedArtifacts\}/);
+  expect(table).toMatch(
+    /Number\(right\.overrideEnabled\) - Number\(left\.overrideEnabled\)/,
+  );
+  expect(table).toMatch(
+    /Number\(right\.canToggle\) - Number\(left\.canToggle\)/,
+  );
+  expect(table).toMatch(
+    /artifact\.canToggle \? \([\s\S]*<ArtifactOverrideToggle/,
+  );
   expect(table).toMatch(/<TableActionCell/);
   expect(table.indexOf("title: ''")).toBeLessThan(
     table.indexOf("title: 'Name'"),
   );
   expect(table.indexOf("title: 'Name'")).toBeLessThan(
-    table.indexOf("title: 'Type'"),
+    table.indexOf("title: 'Version'"),
   );
-  expect(table.indexOf("title: 'Type'")).toBeLessThan(
-    table.indexOf("title: 'Actions'"),
-  );
-  expect(table).toMatch(/if \(type === 'custom'\) return 'LOCAL'/);
+  expect(table).toMatch(/custom: 'Custom URL override'/);
+  expect(table).toMatch(/pr: 'Pull request override'/);
+  expect(table).toMatch(/production: 'Production override'/);
+  expect(table).toMatch(/content=\{[\s\S]*<Text size="tiny" light>/);
+  expect(table).not.toMatch(/<Badge/);
 });
 
-test('Columbus labels local selections as LOCAL before comparing build identity', async () => {
+test('Columbus shows production versions without override tooltips', async () => {
+  const version = await readColumbusFile(OVERRIDE_VERSION);
+
+  expect(version).toMatch(/: artifact\.productionManifest\.version/);
+  expect(version).toMatch(/if \(hasOverride\) return 'standard'/);
+  expect(version).toMatch(/return 'disabled'/);
+  expect(version).toMatch(/skin=\{getTextSkin\(\)\}/);
+  expect(version).toMatch(/disabled=\{!artifact\.loadError && !hasOverride\}/);
+});
+
+test('Columbus shows artifact load failures in the version cell', async () => {
+  const version = await readColumbusFile(OVERRIDE_VERSION);
+  const artifacts = await readColumbusFile(USE_ARTIFACTS);
+
+  expect(artifacts).toMatch(/error\.artifactId === id/);
+  expect(artifacts).toMatch(/replace\(\/\\s\*\\bRetry\\b/);
+  expect(artifacts).toMatch(/Check override URL and server/);
+  expect(version).toMatch(/if \(artifact\.loadError\) return 'error'/);
+  expect(version).toMatch(/skin=\{getTextSkin\(\)\}/);
+  expect(version).toMatch(
+    /artifact\.loadError \?\? OVERRIDE_TYPE_LABELS\[artifact\.overrideType\]/,
+  );
+});
+
+test('Columbus labels custom URLs before comparing build identity', async () => {
   const source = await readColumbusFile('src/popup/manifest-utils.ts');
-  const table = await readColumbusFile(
-    'src/popup/components/OverrideTable.tsx',
+  const table = await readColumbusFile(OVERRIDE_VERSION);
+  expect(source.indexOf("selectedManifest.channel === 'local'")).toBeLessThan(
+    source.indexOf(
+      'versionKey(selectedManifest) === versionKey(productionManifest)',
+    ),
   );
-  expect(source.indexOf('selected.channel === "local"')).toBeLessThan(
-    source.indexOf('versionKey(selected) === versionKey(production)'),
-  );
-  expect(table).toMatch(/if \(type === 'custom'\) return 'LOCAL'/);
+  expect(table).toMatch(/custom: 'Custom URL override'/);
 });
 
 test('Columbus writes valid semantic versions and persists disabled toggle selections', async () => {
@@ -398,17 +468,44 @@ test('Columbus writes valid semantic versions and persists disabled toggle selec
   expect(host).toMatch(/\.tab\.\$\{tabId\}/);
 });
 
-test('Columbus popup displays host identity and actions in a WDS collection page header', async () => {
-  const dashboard = await readColumbusFile(
-    'src/popup/components/ArtifactsListPage.tsx',
-  );
+test('Columbus popup keeps product identity and actions in its page header', async () => {
+  const dashboard = await readColumbusFile(ARTIFACTS_OVERRIDES_PAGE);
   expect(dashboard).toMatch(/<Page[\s\S]*<Page\.Header/);
-  expect(dashboard).toMatch(/title=\{hostData\.catalog\.host\.name\}/);
-  expect(dashboard).toMatch(/subtitle=\{hostData\.config\.hostId\}/);
+  expect(dashboard).toMatch(/<Heading size="medium">Columbus<\/Heading>/);
+  expect(dashboard).toMatch(/Inspect artifacts and manage runtime overrides/);
+  expect(dashboard).not.toMatch(/hostData/);
   expect(dashboard).toMatch(/actionsBar=\{/);
-  expect(dashboard).toMatch(/<Page\.Content>[\s\S]*<OverrideTable/);
-  expect(dashboard).not.toMatch(/hostData\.pageUrl/);
+  expect(dashboard).toMatch(/<Page\.Content>[\s\S]*<ArtifactsOverridesTable/);
   expect(dashboard).not.toMatch(/<Badge/);
+});
+
+test('Columbus keeps page shell visible while host data loads or fails', async () => {
+  const app = await readColumbusFile('src/App.tsx');
+  const page = await readColumbusFile(ARTIFACTS_OVERRIDES_PAGE);
+
+  expect(app).toMatch(/<Routes>/);
+  expect(app).not.toMatch(/shouldShowEmptyState|<EmptyState|<Loader/);
+  expect(page).toMatch(/status === 'LOADING'[\s\S]*<Loader/);
+  expect(page).toMatch(/status === 'ERROR'[\s\S]*<EmptyHostDataState/);
+  expect(page).toMatch(/status === 'LOADED'[\s\S]*<ArtifactsOverridesTable/);
+});
+
+test('Columbus loads host data only when the popup mounts', async () => {
+  const app = await readColumbusFile('src/App.tsx');
+
+  expect(app).toMatch(
+    /useEffect\(\(\) => \{[\s\S]*void loadHost\(\);[\s\S]*\}, \[\]\)/,
+  );
+  expect(app).not.toMatch(/\}, \[loadHost\]\)/);
+});
+
+test('Columbus labels the host artifact in the name column', async () => {
+  const artifactName = await readColumbusFile(ARTIFACT_NAME);
+
+  expect(artifactName).toMatch(/productionManifest\.kind === 'host'/);
+  expect(artifactName).toMatch(
+    /\{isHost && \([\s\S]*<Text size="tiny" skin="primary">[\s\S]*\(Host\)/,
+  );
 });
 
 test('Columbus popup injects a self-contained Atlas host inspector', async () => {
@@ -425,42 +522,46 @@ test('Columbus popup injects a self-contained Atlas host inspector', async () =>
 });
 
 test('Columbus artifact editor uses WDS page layout with header actions', async () => {
-  const editor = await readColumbusFile(
-    'src/popup/components/ArtifactConfigurationPage.tsx',
+  const editor = await readColumbusSource(
+    ARTIFACT_CONFIGURATION_PAGE,
+    ARTIFACT_CONFIGURATION_ACTIONS,
   );
-  expect(editor).toMatch(/<Page>/);
-  expect(editor).not.toMatch(/<Page\s+[^>]+>/);
+  expect(editor).toMatch(/<Page minWidth=\{0\}>/);
   expect(editor).toMatch(/<Page\.Header[\s\S]*actionsBar=\{/);
   expect(editor).toMatch(/showBackButton/);
   expect(editor).toMatch(/Clear override[\s\S]*Cancel[\s\S]*Save/);
-  expect(editor.match(/priority="secondary"/g)).toHaveLength(3);
+  expect(editor.match(/priority="secondary"/g)).toHaveLength(2);
+  expect(editor).toMatch(/actionsBar=\{[\s\S]*<ArtifactConfigurationActions/);
+  expect(editor).not.toMatch(/<Page\.Footer/);
   expect(editor).not.toMatch(/<Card/);
   expect(editor).not.toMatch(/<Divider/);
 });
 
 test('Columbus artifact editor labels each WDS radio option and its input together', async () => {
-  const editor = await readColumbusFile(
-    'src/popup/components/ArtifactConfigurationPage.tsx',
+  const editor = await readColumbusSource(
+    OVERRIDES_SELECTION_FORM,
+    OVERRIDE_RADIO_CARD,
   );
   const popup = await readColumbusFile('src/App.tsx');
-  expect(editor).toMatch(/<RadioGroup/);
-  expect(editor).toMatch(/<RadioGroup\.Radio/);
-  expect(editor).toMatch(/value=\{draft\.type\}/);
+  expect(editor).toMatch(/<Radio/);
+  expect(editor).toMatch(/checked=\{currentSelectedType === type\}/);
   expect(editor).not.toMatch(/content=\{\(/);
-  expect(editor).toMatch(/<RadioGroup\.Radio[\s\S]*Custom URL[\s\S]*<Input/);
-  expect(editor).toMatch(/Production version/);
-  expect(editor).toMatch(/PR version/);
+  expect(editor).toMatch(/Custom URL[\s\S]*<Input/);
+  expect(editor).toMatch(/placeholder="http:\/\/localhost:4200"/);
+  expect(editor).toMatch(/title="Production"/);
+  expect(editor).toMatch(/title="PR"/);
   expect(popup).not.toMatch(/StatusCard/);
 });
 
-test('Columbus popup hides routine discovery status', async () => {
+test('Columbus popup omits global status banners', async () => {
   const popup = await readColumbusFile('src/App.tsx');
-  const status = await readColumbusFile('src/popup/host-warning.ts');
-  expect(popup).toMatch(/overrideStatus === 'ERROR'/);
-  expect(status).not.toMatch(/external widget providers discovered/);
+  expect(popup).not.toMatch(
+    /overrideStatus|override-error|Could not apply override|SectionHelper/,
+  );
+  expect(popup).not.toMatch(/host-warning|Host warning/);
 });
 
-test('Columbus models host and override lifecycles without busy or tone flags', async () => {
+test('Columbus tracks host and override lifecycles without busy or tone flags', async () => {
   const types = await readColumbusFile('src/popup/types.ts');
   const hostContext = await readColumbusFile(
     'src/context/PopupHostContext.tsx',
@@ -469,7 +570,9 @@ test('Columbus models host and override lifecycles without busy or tone flags', 
     'src/context/PopupOverridesContext.tsx',
   );
 
-  expect(types).toMatch(/HostStatus = 'LOADING' \| 'ERROR' \| 'LOADED'/);
+  expect(types).toMatch(
+    /HostStatus = 'RESTORING' \| 'LOADING' \| 'ERROR' \| 'LOADED'/,
+  );
   expect(types).toMatch(/OverrideStatus = 'IDLE' \| 'APPLYING' \| 'ERROR'/);
   expect([types, hostContext, overridesContext].join('\n')).not.toMatch(
     /\b(busy|tone)\b/,
@@ -480,22 +583,18 @@ test('Columbus models host and override lifecycles without busy or tone flags', 
 });
 
 test('Columbus popup omits host trust explanation', async () => {
-  const dashboard = await readColumbusFile(
-    'src/popup/components/ArtifactsListPage.tsx',
-  );
+  const dashboard = await readColumbusFile(ARTIFACTS_OVERRIDES_PAGE);
   expect(dashboard).not.toMatch(/selected host code controls/);
 });
 
 test('Columbus offers individual and global override clearing', async () => {
-  const editor = await readColumbusFile(
-    'src/popup/components/ArtifactConfigurationPage.tsx',
+  const editor = await readColumbusSource(
+    ARTIFACT_CONFIGURATION_PAGE,
+    ARTIFACT_CONFIGURATION_ACTIONS,
+    ARTIFACT_CONFIGURATION_HOOK,
   );
-  const dashboard = await readColumbusFile(
-    'src/popup/components/ArtifactsListPage.tsx',
-  );
-  const table = await readColumbusFile(
-    'src/popup/components/OverrideTable.tsx',
-  );
+  const dashboard = await readColumbusFile(ARTIFACTS_OVERRIDES_PAGE);
+  const table = await readColumbusFile(OVERRIDE_ACTIONS);
   const context = await readColumbusFile(
     'src/context/PopupOverridesContext.tsx',
   );
@@ -505,6 +604,7 @@ test('Columbus offers individual and global override clearing', async () => {
   expect(dashboard).toMatch(/>\s*Clear\s*<\/Button>/);
   expect(table).toMatch(/text: 'Clear'/);
   expect(table).toMatch(/text: 'Edit'/);
+  expect(table).toMatch(/\.\.\.\(artifact\.canToggle/);
   expect(dashboard).not.toMatch(/Clear all overrides/);
   expect(session).toMatch(/activeOverrides: new Map\(\)/);
   expect(session).toMatch(/disabledOverrides: new Map\(\)/);
@@ -526,17 +626,12 @@ test('Columbus popup shares focused contexts without prop drilling', async () =>
   const overridesContext = await readColumbusFile(
     'src/context/PopupOverridesContext.tsx',
   );
-  const navigationContext = await readColumbusFile(
-    'src/context/PopupNavigationContext.tsx',
-  );
   const components = await Promise.all([
     readColumbusFile('src/App.tsx'),
-    readColumbusFile('src/popup/components/AppRoutes/AppRoutes.tsx'),
-    readColumbusFile('src/popup/components/ArtifactsListPage.tsx'),
-    readColumbusFile(
-      'src/popup/components/ArtifactConfigurationPage.tsx',
-    ),
-    readColumbusFile('src/popup/components/OverrideTable.tsx'),
+    readColumbusFile(ARTIFACTS_OVERRIDES_PAGE),
+    readColumbusFile(ARTIFACT_CONFIGURATION_PAGE),
+    readColumbusFile(ARTIFACT_CONFIGURATION_HOOK),
+    readColumbusFile(OVERRIDES_TABLE),
   ]);
 
   expect(main).toMatch(/<PopupProvider>/);
@@ -544,7 +639,7 @@ test('Columbus popup shares focused contexts without prop drilling', async () =>
   expect(provider).toMatch(/<PopupHostProvider>/);
   expect(provider).toMatch(/<PopupOverridesProvider>/);
   expect(provider).toMatch(/<MemoryRouter>/);
-  expect(provider).toMatch(/<PopupNavigationProvider>/);
+  expect(provider).not.toMatch(/NavigationProvider/);
   expect(hostContext).toMatch(
     /createContext<PopupHostContextValue \| undefined>/,
   );
@@ -553,17 +648,51 @@ test('Columbus popup shares focused contexts without prop drilling', async () =>
     /createContext<PopupSessionContextValue \| undefined>/,
   );
   expect(overridesContext).toMatch(/PopupOverridesContextValue \| undefined/);
-  expect(navigationContext).toMatch(/PopupNavigationContextValue \| undefined/);
-  expect(navigationContext).toMatch(/useNavigate\(\)/);
-  expect(navigationContext).toMatch(/useMatch\(ARTIFACT_CONFIGURATION_ROUTE\)/);
+  expect(overridesContext).not.toMatch(/artifacts: Artifact\[\]/);
+  expect(components.join('\n')).toMatch(/useNavigate\(\)/);
+  expect(components.join('\n')).toMatch(/useLocation\(\)/);
   expect(components.join('\n')).toMatch(/<Routes>/);
   expect(components.join('\n')).toMatch(/ARTIFACT_CONFIGURATION_ROUTE/);
   expect(components.join('\n')).toMatch(/usePopupHost\(\)/);
   expect(components.join('\n')).toMatch(/usePopupOverrides\(\)/);
-  expect(components.join('\n')).toMatch(/usePopupNavigation\(\)/);
+  expect(components.join('\n')).toMatch(/usePopupSession\(\)/);
   expect(components.join('\n')).not.toMatch(
-    /interface (ArtifactsListPage|ArtifactConfigurationPage|OverrideTable)Props/,
+    /interface (ArtifactsOverridesPage|ArtifactConfigurationPage|OverrideTable)Props/,
   );
+});
+
+test('Columbus passes selected artifacts through router state', async () => {
+  const actions = await readColumbusFile(OVERRIDE_ACTIONS);
+  const configurationHook = await readColumbusFile(ARTIFACT_CONFIGURATION_HOOK);
+
+  expect(actions).toMatch(
+    /navigate\(ARTIFACT_CONFIGURATION_ROUTE,[\s\S]*state: \{ artifact \}/,
+  );
+  expect(configurationHook).toMatch(/useLocation\(\)/);
+  expect(configurationHook).toMatch(/\?\.artifact/);
+  expect(configurationHook).not.toMatch(/useParams/);
+});
+
+test('Columbus computes artifact ids once when creating artifacts', async () => {
+  const artifactsHook = await readColumbusFile(USE_ARTIFACTS);
+  const consumers = await readColumbusSource(
+    ARTIFACT_CONFIGURATION_HOOK,
+    OVERRIDE_ACTIONS,
+    OVERRIDE_TOGGLE,
+  );
+
+  expect(artifactsHook).toMatch(/id = getArtifactKey/);
+  expect(consumers).toMatch(/artifact\.id/);
+  expect(consumers).not.toMatch(/getArtifactKey/);
+});
+
+test('Columbus reuses artifact types for selections, configuration, and props', async () => {
+  const types = await readColumbusFile('src/popup/types.ts');
+
+  expect(types).toMatch(/interface Artifact extends ArtifactSelection/);
+  expect(types).toMatch(/interface ArtifactConfiguration[\s\S]*extends Pick</);
+  expect(types).toMatch(/interface ArtifactProps[\s\S]*artifact: Artifact/);
+  expect(types).not.toMatch(/SaveOverrideValue/);
 });
 
 test('Columbus uses React 19 with React Compiler instead of manual memoization', async () => {
@@ -573,8 +702,11 @@ test('Columbus uses React 19 with React Compiler instead of manual memoization',
     readColumbusFile('src/context/PopupHostContext.tsx'),
     readColumbusFile('src/context/PopupSessionContext.tsx'),
     readColumbusFile('src/context/PopupOverridesContext.tsx'),
-    readColumbusFile('src/context/PopupNavigationContext.tsx'),
-    readColumbusFile('src/popup/components/OverrideTable.tsx'),
+    readColumbusFile(ARTIFACT_CONFIGURATION_HOOK),
+    readColumbusFile(OVERRIDES_TABLE),
+    readColumbusFile(OVERRIDE_ACTIONS),
+    readColumbusFile(OVERRIDE_TOGGLE),
+    readColumbusFile(USE_ARTIFACTS),
   ]);
 
   expect(packageJson).toMatch(/"react": "\^19\.2\.0"/);

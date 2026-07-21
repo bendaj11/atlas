@@ -27,13 +27,17 @@ export function renderHostMountState(
   const container = findMountContainer(document, event);
   if (!container) return;
   container.dataset.atlasState = event.state;
+  container.dataset.atlasAppId = event.manifest.id;
   container.setAttribute("aria-busy", event.state === "loading" ? "true" : "false");
 
   const existingStatus = container.querySelector<HTMLElement>(":scope > [data-atlas-placement-status]");
   if (event.state === "mounting" || event.state === "mounted") existingStatus?.remove();
   if (event.state === "loading") renderLoadingState(document, container, event, existingStatus, options);
   if (event.state === "error") renderErrorState(document, container, event, retry, existingStatus, options);
-  if (event.state === "unmounted") container.replaceChildren();
+  if (event.state === "unmounted") {
+    container.replaceChildren();
+    delete container.dataset.atlasAppId;
+  }
 }
 
 export function cssEscape(value: string): string {

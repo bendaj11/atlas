@@ -1,4 +1,5 @@
 import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR } from "./popup/constants.js";
+import { clearHostDataCache } from "./popup/host-data-cache.js";
 
 interface BadgeCountMessage {
   type: "atlas.override-count";
@@ -6,6 +7,10 @@ interface BadgeCountMessage {
 }
 
 chrome.runtime.onInstalled.addListener(() => undefined);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "loading") void clearHostDataCache(tabId);
+});
+chrome.tabs.onRemoved.addListener((tabId) => void clearHostDataCache(tabId));
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (!isBadgeCountMessage(message) || typeof sender.tab?.id !== "number") return;
   void updateActionBadge(sender.tab.id, message.overrideCount);

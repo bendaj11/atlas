@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   PopupHostProvider,
-  PopupNavigationProvider,
   PopupOverridesProvider,
   PopupSessionProvider,
 } from '../context';
+import { WixDesignSystemProvider } from '@wix/design-system';
 
 export function PopupProvider({ children }: { children: ReactNode }) {
   return (
@@ -13,7 +13,7 @@ export function PopupProvider({ children }: { children: ReactNode }) {
       <PopupSessionProvider>
         <PopupHostProvider>
           <PopupOverridesProvider>
-            <PopupNavigationProvider>{children}</PopupNavigationProvider>
+            <WixDesignSystemProvider>{children}</WixDesignSystemProvider>
           </PopupOverridesProvider>
         </PopupHostProvider>
       </PopupSessionProvider>

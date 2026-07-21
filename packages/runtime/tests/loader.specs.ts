@@ -405,6 +405,28 @@ test("host placement state never removes a nested widget status", () => {
   assert.equal(widgetStatusRemoved, false);
 });
 
+test("host placement state exposes the artifact id", () => {
+  const container = createTestElement();
+  container.setAttribute = () => undefined;
+  container.querySelector = () => null;
+  const document = createTestDocument();
+  document.querySelector = () => container;
+  const manifest = createTestManifest();
+
+  renderHostMountState(document, {
+    manifest,
+    placement: manifest.placements[0]!,
+    state: "mounted"
+  }, () => undefined, {
+    federation: {
+      async initFederation() {},
+      async loadRemoteModule() { return {}; }
+    }
+  });
+
+  assert.equal(container.dataset.atlasAppId, manifest.id);
+});
+
 test("browser overrides are discovered from the host URL and validated", async () => {
   const manifest = createTestManifest({ channel: "local", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" });
   let requestedUrl;

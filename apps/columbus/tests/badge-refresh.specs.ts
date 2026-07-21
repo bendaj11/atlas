@@ -3,6 +3,7 @@ import {
   countDevSessionOverrides,
   createBadgeRefresher,
 } from '../src/badge-refresh.js';
+import { BadgeTestkit } from '@wix/design-system/dist/testkit/testing-library.js';
 
 test('badge refreshes run serially and publish newest queued count', async () => {
   const firstCount = deferred<number>();
@@ -25,6 +26,7 @@ test('badge refreshes run serially and publish newest queued count', async () =>
 
 test('badge refresh suppresses unchanged counts', async () => {
   const published: number[] = [];
+  BadgeTestkit;
   const refresh = createBadgeRefresher({
     readCount: async () => 2,
     publishCount: async (count) => {
@@ -59,22 +61,22 @@ test('badge refresh preserves published count after transient failure', async ()
 });
 
 test('development badge includes host override', () => {
-  const count = countDevSessionOverrides(
-    { overrides: [{ appId: 'orders' }], hostOverride: {} },
-    new Set(),
-  );
+  const count = countDevSessionOverrides({
+    session: { overrides: [{ appId: 'orders' }], hostOverride: {} },
+    disabledAppIds: new Set(),
+  });
 
   expect(count).toBe(2);
 });
 
 test('development badge excludes disabled app overrides', () => {
-  const count = countDevSessionOverrides(
-    {
+  const count = countDevSessionOverrides({
+    session: {
       overrides: [{ appId: 'orders' }, { appId: 'dashboard' }],
       hostOverride: {},
     },
-    new Set(['orders']),
-  );
+    disabledAppIds: new Set(['orders']),
+  });
 
   expect(count).toBe(2);
 });

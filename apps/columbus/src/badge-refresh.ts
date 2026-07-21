@@ -8,6 +8,11 @@ interface DevSessionBadgeState {
   hostOverride?: unknown;
 }
 
+interface CountDevSessionOverridesOptions {
+  session: DevSessionBadgeState;
+  disabledAppIds: ReadonlySet<string>;
+}
+
 export function createBadgeRefresher({
   readCount,
   publishCount,
@@ -44,16 +49,15 @@ export function createBadgeRefresher({
   return refresh;
 }
 
-export function countDevSessionOverrides(
-  session: DevSessionBadgeState,
-  disabledAppIds: ReadonlySet<string>,
-): number {
+export function countDevSessionOverrides({
+  session,
+  disabledAppIds,
+}: CountDevSessionOverridesOptions): number {
   const enabledApps = session.overrides.filter((override) => {
     if (typeof override !== 'object' || override === null) return false;
     if (!('appId' in override)) return false;
     return (
-      typeof override.appId === 'string' &&
-      !disabledAppIds.has(override.appId)
+      typeof override.appId === 'string' && !disabledAppIds.has(override.appId)
     );
   });
   return enabledApps.length + (session.hostOverride ? 1 : 0);

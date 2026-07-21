@@ -140,4 +140,4 @@ Columbus cannot select a custom URL: verify `/atlas.runtime.json` returns
 catalog URL follows `.../hosts/<hostId>/catalog.json` and each artifact index is
 publicly readable.
 
-Local host rejected as non-loopback: use `localhost`, `127.0.0.1`, or `::1`; do not weaken the production origin policy.
+Remote custom assets blocked by browser: allow their origin in host's Content Security Policy.
