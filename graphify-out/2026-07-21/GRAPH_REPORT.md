@@ -1,11 +1,11 @@
 # Graph Report - atlas  (2026-07-21)
 
 ## Corpus Check
-- 423 files · ~153,682 words
+- 423 files · ~153,693 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3969 nodes · 7128 edges · 270 communities (234 shown, 36 thin omitted)
+- 3969 nodes · 7128 edges · 269 communities (233 shown, 36 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 78 edges (avg confidence: 0.68)
 - Token cost: 0 input · 0 output
 
@@ -260,7 +260,6 @@
 - @angular/core
 - AtlasFederationAdapter
 - Releasing Atlas packages
-- package.json
 - @atlas/runtime
 - Manifests
 - {
@@ -298,15 +297,15 @@
 - 2-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 3-file cycle: `packages/cli/src/generate-nx.ts -> packages/cli/src/generate-paths.ts -> packages/cli/src/workspace.ts -> packages/cli/src/generate-nx.ts`
 - 3-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
-- 4-file cycle: `packages/cli/src/generate-files.ts -> packages/cli/src/generate-paths.ts -> packages/cli/src/workspace.ts -> packages/cli/src/generate-nx.ts -> packages/cli/src/generate-files.ts`
 - 4-file cycle: `packages/cli/src/generate-json.ts -> packages/cli/src/generate-paths.ts -> packages/cli/src/workspace.ts -> packages/cli/src/generate-nx.ts -> packages/cli/src/generate-json.ts`
-- 4-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/loader/runtime-discovery.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
+- 4-file cycle: `packages/cli/src/generate-files.ts -> packages/cli/src/generate-paths.ts -> packages/cli/src/workspace.ts -> packages/cli/src/generate-nx.ts -> packages/cli/src/generate-files.ts`
 - 4-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/loader/native-federation.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
+- 4-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/loader/runtime-discovery.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 5-file cycle: `packages/cli/src/generate-angular.ts -> packages/cli/src/generate-json.ts -> packages/cli/src/generate-paths.ts -> packages/cli/src/workspace.ts -> packages/cli/src/generate-nx.ts -> packages/cli/src/generate-angular.ts`
 - 5-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/loader/native-federation.ts -> packages/runtime/src/loader/runtime-discovery.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 5-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/stylesheets.ts -> packages/runtime/src/loader/runtime-discovery.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 
-## Communities (270 total, 36 thin omitted)
+## Communities (269 total, 36 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -334,7 +333,7 @@ Nodes (28): createPopupElement(), applyBounds(), createPopupBar(), enableDrag(),
 
 ### Community 7 - "Community 7"
 Cohesion: 0.15
-Nodes (13): dependencies, @angular/animations, @angular/platform-browser, @angular/router, @atlas/schema, rxjs, tslib, @angular/animations (+5 more)
+Nodes (13): dependencies, @angular/compiler, @angular/platform-browser, @angular/router, @atlas/schema, rxjs, tslib, @angular/compiler (+5 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.19
@@ -1025,8 +1024,8 @@ Cohesion: 0.17
 Nodes (20): AtlasDevSessionDocument, assertRegistry(), assertWidgetId(), compareNewestFirst(), createRegistryWidgetResolver(), fetchRegistry(), isRecord(), LazyRegistry (+12 more)
 
 ### Community 208 - "scripts"
-Cohesion: 0.33
-Nodes (6): scripts, atlas:bootstrap, atlas:config, atlas:publish, build, dev
+Cohesion: 0.20
+Nodes (9): name, private, scripts, atlas:bootstrap, atlas:config, atlas:publish, build, dev (+1 more)
 
 ### Community 209 - "@atlas/cli"
 Cohesion: 0.33
@@ -1151,10 +1150,6 @@ Nodes (28): loadAndMountHostCatalog(), assertLocalManifestUrls(), assertManifest
 ### Community 266 - "Releasing Atlas packages"
 Cohesion: 0.50
 Nodes (4): Package checks, Prepare a release, Publishing policy, Releasing Atlas packages
-
-### Community 267 - "package.json"
-Cohesion: 0.50
-Nodes (3): name, private, version
 
 ### Community 269 - "Manifests"
 Cohesion: 0.67

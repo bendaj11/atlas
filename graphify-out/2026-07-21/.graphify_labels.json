@@ -265,7 +265,6 @@
   "263": "@angular/core",
   "265": "AtlasFederationAdapter",
   "266": "Releasing Atlas packages",
-  "267": "package.json",
   "268": "@atlas/runtime",
   "269": "Manifests",
   "274": "{\n  createAngularFederationConfig,\n  createReactAppViteConfig,\n  createReactHostViteConfig,\n  createReactWidgetEntries,\n}"

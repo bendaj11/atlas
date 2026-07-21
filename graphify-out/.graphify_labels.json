@@ -264,7 +264,6 @@
   "262": "Q: default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder",
   "263": "@angular/core",
   "265": "AtlasFederationAdapter",
-  "266": "Releasing Atlas packages",
   "268": "@atlas/runtime",
   "269": "Manifests",
   "274": "{\n  createAngularFederationConfig,\n  createReactAppViteConfig,\n  createReactHostViteConfig,\n  createReactWidgetEntries,\n}"

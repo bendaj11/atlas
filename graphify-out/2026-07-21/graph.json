@@ -785,15 +785,15 @@
       "norm_label": "artifactoverrideversion.tsx"
     },
     {
-      "label": "BADGE_LABELS",
+      "label": "OVERRIDE_TYPE_LABELS",
       "file_type": "code",
       "source_file": "apps/columbus/src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactOverrideVersion/ArtifactOverrideVersion.tsx",
       "source_location": "L4",
       "_origin": "ast",
-      "id": "apps_columbus_src_artifactsoverridespage_artifactsoverridestable_artifactoverrideversion_artifactoverrideversion_badge_labels",
+      "id": "apps_columbus_src_artifactsoverridespage_artifactsoverridestable_artifactoverrideversion_artifactoverrideversion_override_type_labels",
       "community": 48,
       "community_name": "Community 48",
-      "norm_label": "badge_labels"
+      "norm_label": "override_type_labels"
     },
     {
       "label": "ArtifactOverrideVersion()",
@@ -3274,7 +3274,7 @@
       "label": "Deferred",
       "file_type": "code",
       "source_file": "apps/columbus/tests/badge-refresh.specs.ts",
-      "source_location": "L82",
+      "source_location": "L84",
       "_origin": "ast",
       "id": "apps_columbus_tests_badge_refresh_specs_deferred",
       "community": 107,
@@ -8997,8 +8997,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package",
-      "community": 267,
-      "community_name": "package.json",
+      "community": 208,
+      "community_name": "scripts",
       "norm_label": "package.json"
     },
     {
@@ -9008,8 +9008,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_name",
-      "community": 267,
-      "community_name": "package.json",
+      "community": 208,
+      "community_name": "scripts",
       "norm_label": "name"
     },
     {
@@ -9019,8 +9019,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_version",
-      "community": 267,
-      "community_name": "package.json",
+      "community": 208,
+      "community_name": "scripts",
       "norm_label": "version"
     },
     {
@@ -9030,8 +9030,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_private",
-      "community": 267,
-      "community_name": "package.json",
+      "community": 208,
+      "community_name": "scripts",
       "norm_label": "private"
     },
     {
@@ -9118,8 +9118,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_dependencies_angular_animations",
-      "community": 7,
-      "community_name": "Community 7",
+      "community": 253,
+      "community_name": "@angular/compiler",
       "norm_label": "@angular/animations"
     },
     {
@@ -9129,8 +9129,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_json_angular_animations",
-      "community": 7,
-      "community_name": "Community 7",
+      "community": 253,
+      "community_name": "@angular/compiler",
       "norm_label": "@angular/animations"
     },
     {
@@ -9162,8 +9162,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_dependencies_angular_compiler",
-      "community": 253,
-      "community_name": "@angular/compiler",
+      "community": 7,
+      "community_name": "Community 7",
       "norm_label": "@angular/compiler"
     },
     {
@@ -9173,8 +9173,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_json_angular_compiler",
-      "community": 253,
-      "community_name": "@angular/compiler",
+      "community": 7,
+      "community_name": "Community 7",
       "norm_label": "@angular/compiler"
     },
     {
@@ -45549,7 +45549,7 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_artifactsoverridespage_artifactsoverridestable_artifactoverrideversion_artifactoverrideversion",
-      "target": "apps_columbus_src_artifactsoverridespage_artifactsoverridestable_artifactoverrideversion_artifactoverrideversion_badge_labels",
+      "target": "apps_columbus_src_artifactsoverridespage_artifactsoverridestable_artifactoverrideversion_artifactoverrideversion_override_type_labels",
       "confidence_score": 1.0
     },
     {
@@ -51248,7 +51248,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/tests/badge-refresh.specs.ts",
-      "source_location": "L87",
+      "source_location": "L89",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_tests_badge_refresh_specs",

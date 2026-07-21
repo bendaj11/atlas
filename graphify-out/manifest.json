@@ -2160,8 +2160,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactName/ArtifactName.tsx": {
-    "mtime": 1784662519.6491134,
-    "ast_hash": "253e4e3af7af86cb0b732e2ca5dc8dd1",
+    "mtime": 1784666999.654095,
+    "ast_hash": "f3daa657db4d3a80149a894bf2803c9d",
     "semantic_hash": ""
   },
   "apps/columbus/src/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactOverrideActions/ArtifactOverrideActions.tsx": {
