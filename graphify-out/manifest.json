@@ -2099,11 +2099,6 @@
     "ast_hash": "ac345382631636b4947eb55cf51d2de2",
     "semantic_hash": ""
   },
-  "apps/columbus/src/scripts/app/main.tsx": {
-    "mtime": 1784708153.7227204,
-    "ast_hash": "1ac8b77813b1e088825e7b63024a9017",
-    "semantic_hash": ""
-  },
   "apps/columbus/src/scripts/background/background.ts": {
     "mtime": 1784708190.3846262,
     "ast_hash": "e2bdaef667467bcf0d40b658b801ff4d",
@@ -2260,13 +2255,18 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/index.html": {
-    "mtime": 1784708190.3638742,
-    "ast_hash": "bcf90269e60ec85df585506c84fbd243",
+    "mtime": 1784708847.159707,
+    "ast_hash": "e001f11c7b5e40c11b5cc59b69577d00",
     "semantic_hash": ""
   },
   "apps/columbus/tsconfig.node.json": {
     "mtime": 1784708606.0398605,
     "ast_hash": "559e7821dc823f5dae4491665e296c4a",
+    "semantic_hash": ""
+  },
+  "apps/columbus/src/main.tsx": {
+    "mtime": 1784708736.136053,
+    "ast_hash": "713fbed4c43f0f8e4d2f3e5d377a4294",
     "semantic_hash": ""
   }
 }
