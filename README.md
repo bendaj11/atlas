@@ -95,10 +95,10 @@ Continue with [Zero to production](docs/getting-started.md).
 ## Contributing
 
 ```sh
-yarn install --frozen-lockfile
-yarn build
-yarn typecheck
-yarn test
+pnpm install --frozen-lockfile
+pnpm build
+pnpm typecheck
+pnpm test
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for repository checks and

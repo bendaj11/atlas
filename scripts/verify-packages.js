@@ -12,7 +12,7 @@ const canonicalLicense = normalizeText(await readFile(join(root, "LICENSE"), "ut
 
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
-await execute("yarn", ["build"], { cwd: root });
+await execute("pnpm", ["run", "build"], { cwd: root });
 
 for (const directory of packageDirectories) {
   await verifyPackage(directory);
@@ -26,7 +26,7 @@ async function verifyPackage(directory) {
   validateManifest(manifest, directory);
 
   const archive = join(outputDirectory, `${directory}.tgz`);
-  await execute("yarn", ["pack", "--filename", archive], { cwd: packageRoot });
+  await execute("pnpm", ["pack", "--out", archive], { cwd: packageRoot });
   const { stdout } = await execute("tar", ["-tzf", archive]);
   const entries = stdout.trim().split("\n");
   assertPacked(entries, "./LICENSE", manifest.name);

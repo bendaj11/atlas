@@ -1,15 +1,15 @@
 import '@wix/design-system/styles.global.css';
 import { createRoot } from 'react-dom/client';
-import './popup.css';
-import { App } from './App';
-import { PopupProvider } from './popup/PopupProvider.js';
+import './styles/app.css';
+import { App } from './components/App/App';
+import { AppProvider } from './components/providers/AppProvider/AppProvider';
 
 const root = document.getElementById('root');
 
 if (!root) throw new Error('Missing extension element #root.');
 
 createRoot(root).render(
-  <PopupProvider>
+  <AppProvider>
     <App />
-  </PopupProvider>,
+  </AppProvider>,
 );

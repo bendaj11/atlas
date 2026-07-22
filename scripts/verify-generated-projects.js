@@ -40,7 +40,7 @@ for (const project of generatedProjects) await buildProject(project);
 console.info(`Built ${generatedProjects.length} clean-room projects with ${packageManager}.`);
 
 function readPackageManager(args) {
-  const value = args.find((argument) => argument.startsWith("--package-manager="))?.split("=")[1] ?? "yarn";
+  const value = args.find((argument) => argument.startsWith("--package-manager="))?.split("=")[1] ?? "pnpm";
   if (value === "yarn" || value === "pnpm") return value;
   throw new Error(`Unsupported package manager "${value}". Use yarn or pnpm.`);
 }

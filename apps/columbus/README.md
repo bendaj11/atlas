@@ -14,6 +14,14 @@ The extension requests `activeTab`, `scripting`, and `storage`. Static content s
 
 Chrome 111 or newer is required because Columbus uses main-world static content scripts.
 
+## Source Layout
+
+- `src/components` contains React components, providers, feature hooks, and their colocated tests and drivers.
+- `src/scripts` contains browser entry points and domain scripts grouped by responsibility. A tested script owns a same-named folder containing its implementation, driver, and specs.
+- `src/types` contains shared extension contracts and Chrome declarations.
+- `src/index.html` is the Vite and extension UI entry document.
+- `src/styles` and `src/icons` contain UI styles and extension assets.
+
 ## Use
 
 1. Open an Atlas host.

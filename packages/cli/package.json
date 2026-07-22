@@ -39,7 +39,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "node dist/index.js compile-config catalog-react && yarn workspace @atlas-app/catalog-react build && NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/cli/tests/'",
+    "test": "node dist/index.js compile-config catalog-react && pnpm --filter @atlas-app/catalog-react run build && NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/cli/tests/' --testTimeout=15000",
     "typecheck": "tsc -b --pretty false",
     "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
   },

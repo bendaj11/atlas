@@ -1,0 +1,26 @@
+html,
+body,
+#root {
+  margin: 0;
+  width: 600px;
+  height: 600px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scope-card {
+  border: 1px solid #e7edf5;
+  box-shadow: none;
+}
+
+.scope-card [role='radiogroup'] {
+  display: flex;
+  gap: 14px;
+}
+
+.editor-option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}

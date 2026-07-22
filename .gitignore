@@ -2,6 +2,7 @@ node_modules
 dist
 .pnpm-store
 yarn-error.log
+pnpm-debug.log*
 .turbo
 .angular
 .nx

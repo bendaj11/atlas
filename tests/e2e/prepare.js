@@ -24,8 +24,8 @@ const projects = [
 await rm(artifacts, { recursive: true, force: true });
 await mkdir(cdn, { recursive: true });
 await mkdir(externalCdn, { recursive: true });
-await run("yarn", ["build"]);
-if (process.env.ATLAS_E2E_REUSE_BUILD_OUTPUT !== "1") await run("yarn", ["build:examples"]);
+await run("pnpm", ["run", "build"]);
+if (process.env.ATLAS_E2E_REUSE_BUILD_OUTPUT !== "1") await run("pnpm", ["run", "build:examples"]);
 
 for (const project of projects) {
   await run("node", [

@@ -7,7 +7,7 @@ const packageDirectories = ["schema", "sdk", "runtime", "bootstrap", "generators
 
 export async function versionPackages(version, workspaceRoot = root) {
   if (!version || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
-    throw new Error("Usage: yarn release:version <major.minor.patch[-prerelease]>");
+    throw new Error("Usage: pnpm release:version <major.minor.patch[-prerelease]>");
   }
 
   const manifestPaths = [

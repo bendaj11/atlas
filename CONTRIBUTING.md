@@ -1,34 +1,40 @@
 # Contributing to Atlas
 
-Atlas uses Yarn workspaces and Turborepo. Node.js 20 or newer and Yarn 1.x are
-required.
+Atlas uses pnpm workspaces and Turborepo. Node.js 20 or newer and pnpm 10 are
+required. Corepack installs the pinned pnpm version from `package.json`.
 
 ## Setup
 
 ```sh
-yarn install --frozen-lockfile
-yarn build
-yarn test
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
 ```
 
-`yarn build` builds the publishable `@atlas/*` packages and the Chrome
-extension in dependency order. `yarn build:examples` builds every example when
+pnpm keeps every supported platform in the lockfile but downloads optional
+native binaries only for the current machine. A private registry therefore
+needs the binaries for its actual Windows, macOS, and Linux targets, not every
+published platform variant.
+
+`pnpm build` builds the publishable `@atlas/*` packages and the Chrome
+extension in dependency order. `pnpm build:examples` builds every example when
 you are changing generated framework integration. Example builds run
 sequentially because Angular production compilers are memory intensive.
 
 ## Before a Pull Request
 
 ```sh
-yarn typecheck
-yarn check:unused
-yarn test
-yarn test:generated
-yarn test:e2e
+pnpm typecheck
+pnpm check:unused
+pnpm test
+pnpm test:generated
+pnpm test:e2e
 ```
 
-Use `yarn test:generated` after changing generators or package boundaries. It
+Use `pnpm test:generated` after changing generators or package boundaries. It
 packs the real packages and validates clean Angular and React projects. Use
-`yarn test:e2e` after changing runtime loading, navigation, static catalogs, or
+`pnpm test:e2e` after changing runtime loading, navigation, static catalogs, or
 the Columbus extension.
 
 ## Repository Layout

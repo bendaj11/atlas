@@ -1,0 +1,551 @@
+import type {
+  AtlasExtensionManifest as Manifest,
+  AtlasHostData as HostData,
+  AtlasOverrideDocument as OverrideDocument,
+} from '../../../types/contracts.js';
+import type { Scope } from '../../../types/app.js';
+
+export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
+  const fetchTimeoutMs = 5_000;
+  const versionLookupConcurrency = 8;
+
+  function manifestKey(manifest: Manifest): string {
+    return `${manifest.kind}:${manifest.id}`;
+  }
+
+  type ArtifactSelection = { version: string; buildId: string };
+  type ExternalRegistry = {
+    apps: Manifest[];
+    selections?: { apps?: Record<string, ArtifactSelection> };
+  };
+  type ExternalRegistryResult = { registry?: ExternalRegistry; error?: string };
+  type ExternalProviders = {
+    providers: Manifest[];
+    versions: Array<readonly [string, Manifest[]]>;
+    errors: string[];
+  };
+
+  function objectValue(value: unknown): Record<string, unknown> | undefined {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
+  function isStringArray(value: unknown): value is string[] {
+    return (
+      Array.isArray(value) && value.every((item) => typeof item === 'string')
+    );
+  }
+
+  function isManifest(value: unknown): value is Manifest {
+    const manifest = objectValue(value);
+    return (
+      manifest?.schemaVersion === '1' &&
+      (manifest.kind === 'host' || manifest.kind === 'app') &&
+      typeof manifest.id === 'string' &&
+      typeof manifest.name === 'string' &&
+      typeof manifest.version === 'string' &&
+      typeof manifest.buildId === 'string' &&
+      (manifest.channel === 'production' ||
+        manifest.channel === 'pr' ||
+        manifest.channel === 'local') &&
+      (manifest.framework === 'angular' ||
+        manifest.framework === 'react' ||
+        manifest.framework === 'vue') &&
+      typeof manifest.remoteEntryUrl === 'string' &&
+      (manifest.externalAppsDependencies === undefined ||
+        isStringArray(manifest.externalAppsDependencies))
+    );
+  }
+
+  function isRuntimeConfig(value: unknown): value is HostData['config'] {
+    const config = objectValue(value);
+    return (
+      config?.schemaVersion === '1' &&
+      typeof config.hostId === 'string' &&
+      typeof config.catalogUrl === 'string' &&
+      (config.allowCustomOverrides === undefined ||
+        typeof config.allowCustomOverrides === 'boolean') &&
+      (config.externalRegistryUrls === undefined ||
+        isStringArray(config.externalRegistryUrls))
+    );
+  }
+
+  function isCatalog(value: unknown): value is HostData['catalog'] {
+    const catalog = objectValue(value);
+    return (
+      catalog?.schemaVersion === '1' &&
+      typeof catalog.hostId === 'string' &&
+      typeof catalog.revision === 'string' &&
+      isManifest(catalog.host) &&
+      catalog.host.kind === 'host' &&
+      catalog.host.id === catalog.hostId &&
+      Array.isArray(catalog.apps) &&
+      catalog.apps.every(
+        (manifest) => isManifest(manifest) && manifest.kind === 'app',
+      )
+    );
+  }
+
+  function isArtifactSelection(value: unknown): value is ArtifactSelection {
+    const selection = objectValue(value);
+    return (
+      typeof selection?.version === 'string' &&
+      typeof selection.buildId === 'string'
+    );
+  }
+
+  function isSelectionDocument(
+    value: unknown,
+  ): value is ExternalRegistry['selections'] {
+    if (value === undefined) return true;
+    const selections = objectValue(value);
+    if (!selections) return false;
+    if (selections.apps === undefined) return true;
+    const apps = objectValue(selections.apps);
+    return apps !== undefined && Object.values(apps).every(isArtifactSelection);
+  }
+
+  function isExternalRegistry(value: unknown): value is ExternalRegistry {
+    const registry = objectValue(value);
+    return (
+      Array.isArray(registry?.apps) &&
+      registry.apps.every(isManifest) &&
+      isSelectionDocument(registry.selections)
+    );
+  }
+
+  function isOverride(
+    value: unknown,
+  ): value is OverrideDocument['overrides'][number] {
+    const override = objectValue(value);
+    return (
+      typeof override?.appId === 'string' &&
+      isManifest(override.manifest) &&
+      override.appId === override.manifest.id &&
+      (override.reason === 'local' ||
+        override.reason === 'pr' ||
+        override.reason === 'historical')
+    );
+  }
+
+  function isOverrideDocument(value: unknown): value is OverrideDocument {
+    const documentValue = objectValue(value);
+    return (
+      documentValue?.schemaVersion === '1' &&
+      typeof documentValue.hostId === 'string' &&
+      typeof documentValue.generatedAt === 'string' &&
+      (documentValue.hostOverride === undefined ||
+        isManifest(documentValue.hostOverride)) &&
+      Array.isArray(documentValue.overrides) &&
+      documentValue.overrides.every(isOverride)
+    );
+  }
+
+  async function readAtlasConfig(): Promise<HostData['config']> {
+    const response = await fetchWithTimeout('/atlas.runtime.json');
+    if (!response.ok)
+      throw new Error(
+        `Atlas runtime configuration returned ${response.status}.`,
+      );
+
+    const config: unknown = await response.json();
+    if (!isRuntimeConfig(config))
+      throw new Error(
+        'This page does not expose a valid Atlas runtime configuration.',
+      );
+
+    return config;
+  }
+
+  async function readAtlasCatalog(
+    catalogUrl: URL,
+  ): Promise<HostData['catalog']> {
+    const response = await fetchWithTimeout(catalogUrl);
+    if (!response.ok)
+      throw new Error(`Atlas catalog returned ${response.status}.`);
+
+    const catalog: unknown = await response.json();
+    if (!isCatalog(catalog))
+      throw new Error('Atlas catalog returned invalid data.');
+    return catalog;
+  }
+
+  async function readManifestVersions(
+    manifest: Manifest,
+    registryRoot: string,
+  ): Promise<{ entry: readonly [string, Manifest[]]; error?: string }> {
+    try {
+      const response = await fetchWithTimeout(
+        `${registryRoot}/${manifest.kind === 'host' ? 'hosts' : 'apps'}/${encodeURIComponent(manifest.id)}/index.json`,
+      );
+      if (!response.ok)
+        throw new Error(
+          `Version lookup for ${manifest.id} returned ${response.status}.`,
+        );
+
+      const index = objectValue(await response.json());
+      if (
+        !Array.isArray(index?.manifests) ||
+        !index.manifests.every(isManifest)
+      ) {
+        throw new Error(
+          `Version lookup for ${manifest.id} returned an invalid index.`,
+        );
+      }
+      if (
+        index.manifests.some(
+          (candidate) =>
+            candidate.kind !== manifest.kind || candidate.id !== manifest.id,
+        )
+      ) {
+        throw new Error(
+          `Version lookup for ${manifest.id} returned versions for another artifact.`,
+        );
+      }
+
+      return { entry: [manifestKey(manifest), index.manifests] as const };
+    } catch (error) {
+      return {
+        entry: [manifestKey(manifest), [manifest]] as const,
+        error: messageFromError(error),
+      };
+    }
+  }
+
+  async function readExternalRegistry(
+    baseUrl: string,
+  ): Promise<ExternalRegistryResult> {
+    try {
+      const response = await fetchWithTimeout(
+        `${baseUrl.replace(/\/$/, '')}/registry.json`,
+      );
+      if (!response.ok)
+        throw new Error(
+          `External registry ${baseUrl} returned ${response.status}.`,
+        );
+      const registry: unknown = await response.json();
+      if (!isExternalRegistry(registry))
+        throw new Error(`External registry ${baseUrl} returned invalid apps.`);
+      return { registry };
+    } catch (error) {
+      return { error: messageFromError(error) };
+    }
+  }
+
+  function resolveSelectedProvider({
+    appId,
+    registry,
+  }: {
+    appId: string;
+    registry: ExternalRegistry;
+  }): { selectedManifest?: Manifest; versions: Manifest[] } {
+    const versions = registry.apps.filter((manifest) => manifest.id === appId);
+    const productionManifests = versions.filter(
+      (manifest) => manifest.channel === 'production',
+    );
+    const selection = registry.selections?.apps?.[appId];
+    const selectedManifest = selection
+      ? productionManifests.find(
+          (manifest) =>
+            manifest.version === selection.version &&
+            manifest.buildId === selection.buildId,
+        )
+      : productionManifests.sort((left, right) =>
+          (right.createdAt ?? '').localeCompare(left.createdAt ?? ''),
+        )[0];
+    return { ...(selectedManifest ? { selectedManifest } : {}), versions };
+  }
+
+  function resolveExternalProviders(
+    dependencyIds: Set<string>,
+    registries: ExternalRegistry[],
+  ): Omit<ExternalProviders, 'errors'> {
+    const providers: Manifest[] = [];
+    const versions: Array<readonly [string, Manifest[]]> = [];
+    const pending = [...dependencyIds];
+    const resolved = new Set<string>();
+    while (pending.length) {
+      const appId = pending.shift();
+      if (appId === undefined) break;
+      if (resolved.has(appId)) continue;
+      const matches = registries.map((registry) =>
+        resolveSelectedProvider({ appId, registry }),
+      );
+      versions.push(
+        ...matches
+          .filter((match) => match.versions.length > 0)
+          .map((match) => [`app:${appId}`, match.versions] as const),
+      );
+      const candidateManifests = matches.flatMap(({ selectedManifest }) =>
+        selectedManifest ? [selectedManifest] : [],
+      );
+      const providerManifest =
+        candidateManifests.length === 1 ? candidateManifests[0] : undefined;
+      if (providerManifest) {
+        providers.push(providerManifest);
+        pending.push(...(providerManifest.externalAppsDependencies ?? []));
+      }
+      resolved.add(appId);
+    }
+    return { providers, versions };
+  }
+
+  async function readExternalProviders(
+    config: HostData['config'],
+    catalog: HostData['catalog'],
+  ): Promise<ExternalProviders> {
+    const dependencyIds = new Set(
+      catalog.apps.flatMap(
+        (manifest) => manifest.externalAppsDependencies ?? [],
+      ),
+    );
+    if (dependencyIds.size === 0)
+      return { providers: [], versions: [], errors: [] };
+    const results = await Promise.all(
+      (config.externalRegistryUrls ?? []).map(readExternalRegistry),
+    );
+    const registries = results.flatMap(({ registry }) =>
+      registry ? [registry] : [],
+    );
+    const resolved = resolveExternalProviders(dependencyIds, registries);
+    return {
+      ...resolved,
+      errors: results.flatMap(({ error }) => (error ? [error] : [])),
+    };
+  }
+
+  function atlasRegistryRoot(catalogUrl: URL): string {
+    const hostsMarker = '/hosts/';
+    const markerIndex = catalogUrl.pathname.indexOf(hostsMarker);
+
+    if (markerIndex < 0)
+      throw new Error(
+        'Atlas catalog URL does not identify a static Atlas registry.',
+      );
+
+    return `${catalogUrl.origin}${catalogUrl.pathname.slice(0, markerIndex)}`;
+  }
+
+  function readStoredOverrideDocument(hostId: string): {
+    overrides: OverrideDocument | undefined;
+    overrideScope: Scope | undefined;
+  } {
+    const tabStored = sessionStorage.getItem(documentKey);
+    const stored = tabStored ?? localStorage.getItem(documentKey);
+
+    if (!stored) return { overrides: undefined, overrideScope: undefined };
+
+    try {
+      const overrides: unknown = JSON.parse(stored);
+      return {
+        overrides:
+          isOverrideDocument(overrides) && overrides.hostId === hostId
+            ? overrides
+            : undefined,
+        overrideScope: tabStored ? 'tab' : 'all',
+      };
+    } catch {
+      return { overrides: undefined, overrideScope: tabStored ? 'tab' : 'all' };
+    }
+  }
+
+  function messageFromError(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  function createLocalOverrides(
+    config: HostData['config'],
+    selectedArtifacts: Manifest[],
+  ): OverrideDocument | undefined {
+    const localSelections = selectedArtifacts.filter(
+      (manifest) => manifest.channel === 'local',
+    );
+    if (localSelections.length === 0) return undefined;
+    const host = localSelections.find((manifest) => manifest.kind === 'host');
+    return {
+      schemaVersion: '1' as const,
+      hostId: config.hostId,
+      generatedAt: new Date().toISOString(),
+      ...(host ? { hostOverride: host } : {}),
+      overrides: localSelections
+        .filter((manifest) => manifest.kind === 'app')
+        .map((manifest) => ({
+          appId: manifest.id,
+          manifest,
+          reason: 'local' as const,
+        })),
+    };
+  }
+
+  function mergeOverrideDocuments(
+    local: OverrideDocument | undefined,
+    stored: OverrideDocument | undefined,
+  ): OverrideDocument | undefined {
+    if (!local) return stored;
+    if (!stored) return local;
+    const overrides = new Map(
+      local.overrides.map((override) => [override.appId, override]),
+    );
+    for (const override of stored.overrides)
+      overrides.set(override.appId, override);
+    return {
+      ...local,
+      generatedAt: stored.generatedAt,
+      ...(stored.hostOverride
+        ? { hostOverride: stored.hostOverride }
+        : local.hostOverride
+          ? { hostOverride: local.hostOverride }
+          : {}),
+      overrides: [...overrides.values()],
+    };
+  }
+
+  async function fetchWithTimeout(input: string | URL): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
+    try {
+      return await fetch(input, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function readManifestVersionBatch(
+    manifests: Manifest[],
+    registryRoot: string,
+  ): Promise<Array<{ entry: readonly [string, Manifest[]]; error?: string }>> {
+    const results = new Array<{
+      entry: readonly [string, Manifest[]];
+      error?: string;
+    }>(manifests.length);
+    let nextIndex = 0;
+    async function worker(): Promise<void> {
+      while (nextIndex < manifests.length) {
+        const index = nextIndex++;
+        results[index] = await readManifestVersions(
+          manifests[index]!,
+          registryRoot,
+        );
+      }
+    }
+    const workerCount = Math.min(versionLookupConcurrency, manifests.length);
+    await Promise.all(Array.from({ length: workerCount }, worker));
+    return results;
+  }
+
+  function productionManifest(
+    manifest: Manifest,
+    versions: HostData['versions'],
+  ): Manifest {
+    if (manifest.channel !== 'local') return manifest;
+    return (
+      versions[manifestKey(manifest)]?.find(
+        (version) => version.channel === 'production',
+      ) ?? manifest
+    );
+  }
+
+  function createProductionCatalog(
+    catalog: HostData['catalog'],
+    versions: HostData['versions'],
+    widgetProviders: Manifest[],
+  ): HostData['catalog'] {
+    return {
+      ...catalog,
+      host: productionManifest(catalog.host, versions),
+      apps: catalog.apps.map((manifest) =>
+        productionManifest(manifest, versions),
+      ),
+      widgetProviders,
+    };
+  }
+
+  function readRuntimeErrors(
+    catalog: HostData['catalog'],
+  ): HostData['runtimeErrors'] {
+    const manifests = [
+      catalog.host,
+      ...catalog.apps,
+      ...(catalog.widgetProviders ?? []),
+    ];
+    return [
+      ...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]'),
+    ].map((element) => {
+      const appId =
+        element.getAttribute('data-atlas-app-id') ??
+        element.getAttribute('data-atlas-app');
+      const message = element.textContent?.trim() || 'Unknown app error';
+      const matchingManifests = manifests.filter((manifest) =>
+        message.startsWith(`Unable to load ${manifest.name}.`),
+      );
+      const matchingManifest =
+        matchingManifests.length === 1 ? matchingManifests[0] : undefined;
+      const artifactId = appId
+        ? `app:${appId}`
+        : matchingManifest
+          ? manifestKey(matchingManifest)
+          : undefined;
+      return {
+        ...(artifactId ? { artifactId } : {}),
+        message,
+      };
+    });
+  }
+
+  function readVersionErrors(
+    results: Array<{ entry: readonly [string, Manifest[]]; error?: string }>,
+    externalErrors: string[],
+  ): string[] {
+    return [
+      ...results
+        .map(({ error }) => error)
+        .filter((error): error is string => Boolean(error)),
+      ...externalErrors,
+    ];
+  }
+
+  const config = await readAtlasConfig();
+  const catalogUrl = new URL(config.catalogUrl, location.href);
+  const catalog = await readAtlasCatalog(catalogUrl);
+  if (catalog.hostId !== config.hostId) {
+    throw new Error(
+      `Atlas catalog targets host ${catalog.hostId}, but runtime configuration targets ${config.hostId}.`,
+    );
+  }
+  const external = await readExternalProviders(config, catalog);
+  const registryRoot = atlasRegistryRoot(catalogUrl);
+  const selectedArtifacts = [catalog.host, ...catalog.apps];
+  const versionResults = await readManifestVersionBatch(
+    selectedArtifacts,
+    registryRoot,
+  );
+  const versions = Object.fromEntries([
+    ...versionResults.map(({ entry }) => entry),
+    ...external.versions,
+  ]);
+  const storedSelection = readStoredOverrideDocument(config.hostId);
+  const overrides = mergeOverrideDocuments(
+    createLocalOverrides(config, selectedArtifacts),
+    storedSelection.overrides,
+  );
+  const productionCatalog = createProductionCatalog(
+    catalog,
+    versions,
+    external.providers,
+  );
+
+  return {
+    config,
+    pageUrl: location.href,
+    catalog: productionCatalog,
+    versions,
+    overrides,
+    overrideScope: storedSelection.overrideScope,
+    runtimeErrors: readRuntimeErrors(productionCatalog),
+    versionErrors: readVersionErrors(versionResults, external.errors),
+  };
+}

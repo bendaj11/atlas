@@ -1,30 +1,30 @@
 # Testing The Atlas Repository
 
 This page documents development of the Atlas source repository, which uses
-Yarn. Generated consumer projects are verified with both Yarn and pnpm, and
+pnpm. Generated consumer projects are verified with both Yarn and pnpm, and
 Atlas also supports npm workspaces.
 
 For host and app teams testing generated products, read
 [Consumer testing](consumer-testing.md) instead.
 
-Atlas has two test layers. `yarn test` runs fast contract, SDK, runtime, generator, CLI, and Columbus extension tests. `yarn test:e2e` proves that production-built applications work together in a browser.
+Atlas has two test layers. `pnpm test` runs fast contract, SDK, runtime, generator, CLI, and Columbus extension tests. `pnpm test:e2e` proves that production-built applications work together in a browser.
 
-`yarn test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and apps with both package managers.
+`pnpm test:generated` adds a package-boundary gate. It packs every public Atlas package, installs those tarballs in isolated Yarn and pnpm projects, invokes the packaged CLI, and production-builds newly generated Angular and React hosts and apps with both package managers.
 
-`yarn test:container` builds the bootstrap image from locally packed tarballs, runs it with a read-only filesystem, checks its non-root user and HTTP endpoints, then verifies graceful `SIGTERM` shutdown. Docker must be running.
+`pnpm test:container` builds the bootstrap image from locally packed tarballs, runs it with a read-only filesystem, checks its non-root user and HTTP endpoints, then verifies graceful `SIGTERM` shutdown. Docker must be running.
 
 ## Deployment E2E
 
 Install the pinned browser once:
 
 ```sh
-yarn playwright install chromium
+pnpm exec playwright install chromium
 ```
 
 Run the complete workflow:
 
 ```sh
-yarn test:e2e
+pnpm test:e2e
 ```
 
 The command performs the following work without requiring a real cloud account:
@@ -49,15 +49,15 @@ Generated deployment files live under `tests/e2e/.artifacts` and are not committ
 Prepare production files once, then rerun only Playwright:
 
 ```sh
-yarn test:e2e:prepare
-yarn playwright test
+pnpm test:e2e:prepare
+pnpm exec playwright test
 ```
 
 Use Playwright's normal filtering and debugging flags when working on one scenario:
 
 ```sh
-yarn playwright test -g "Angular host mounts a React app"
-yarn playwright test --headed
+pnpm exec playwright test -g "Angular host mounts a React app"
+pnpm exec playwright test --headed
 ```
 
 ## CI

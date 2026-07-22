@@ -32,7 +32,7 @@ export async function prepareRelease(releaseType, workspaceRoot = root) {
 
 async function selectReleaseType(currentVersion) {
   if (!process.stdin.isTTY) {
-    throw new Error("Choose a release type: yarn release patch|minor|major");
+    throw new Error("Choose a release type: pnpm release patch|minor|major");
   }
 
   const choices = releaseTypes.map((type, index) =>

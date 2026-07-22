@@ -1,7 +1,7 @@
 # Releasing Atlas packages
 
 These commands are for maintainers of the Atlas source repository, which uses
-Yarn. They do not require Atlas consumers to use Yarn.
+pnpm. They do not require Atlas consumers to use pnpm.
 
 Atlas publishes seven packages as one compatible release set:
 
@@ -20,27 +20,27 @@ They intentionally use the same version. Runtime packages pin other Atlas packag
 Prepare the next version interactively:
 
 ```sh
-yarn release
+pnpm release
 ```
 
 Select `patch`, `minor`, or `major`. For scripts and other non-interactive
 environments, pass the release type explicitly:
 
 ```sh
-yarn release patch
+pnpm release patch
 ```
 
 The command calculates and propagates the next version but does not commit,
 push, or publish. You can still set an exact version with
-`yarn release:version 0.2.0` when needed. Then run:
+`pnpm release:version 0.2.0` when needed. Then run:
 
 ```sh
-yarn typecheck
-yarn test
-yarn test:generated
-yarn test:e2e
-yarn test:container
-yarn release:bundle
+pnpm typecheck
+pnpm test
+pnpm test:generated
+pnpm test:e2e
+pnpm test:container
+pnpm release:bundle
 ```
 
 The release command updates the root manifest, every public package, internal
@@ -68,7 +68,7 @@ Every successful push to `main` creates a verified release bundle and starts
 the npm publish job. The job verifies checksums and publishes the packages in
 dependency order with npm provenance. Package versions are immutable, so a
 package already available at the repository's current version is skipped. Run
-`yarn release` before merging changes that should produce a new public release.
+`pnpm release` before merging changes that should produce a new public release.
 
 Configure the `npm-publish` GitHub environment with npm trusted publishing. For
 each `@atlas/*` package, select GitHub Actions as the trusted publisher and set
@@ -102,7 +102,7 @@ For npmjs.org, use trusted publishing or a short-lived token, require approval t
 
 ## Package checks
 
-`yarn pack:verify` rejects:
+`pnpm pack:verify` rejects:
 
 - a package missing its JavaScript or TypeScript entry point;
 - internal Atlas dependencies pointing at another release;

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && node scripts/copy-static.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='apps/columbus/tests/'",
+    "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && node src/scripts/build/copy-static.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --testPathPattern='apps/columbus/src/'",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {
@@ -14,11 +14,15 @@
     "@stylable/node": "^6.1.1",
     "@stylable/optimizer": "^6.1.1",
     "@stylable/runtime": "^6.1.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "@wix/design-system": "^1.297.0",
     "babel-plugin-react-compiler": "1.0.0",
+    "jest-environment-jsdom": "29.7.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.0",

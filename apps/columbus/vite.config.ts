@@ -31,10 +31,13 @@ export default defineConfig({
     outDir: '../dist',
     rollupOptions: {
       input: {
-        'badge-script': resolve(directory, 'src/badge-script.ts'),
-        background: resolve(directory, 'src/background.ts'),
-        'content-script': resolve(directory, 'src/content-script.ts'),
-        popup: resolve(directory, 'src/popup.html'),
+        'badge-script': resolve(directory, 'src/scripts/badge/badge-script.ts'),
+        background: resolve(directory, 'src/scripts/background/background.ts'),
+        'content-script': resolve(
+          directory,
+          'src/scripts/content/content-script.ts',
+        ),
+        index: resolve(directory, 'src/index.html'),
       },
       output: {
         assetFileNames: 'assets/[name][extname]',
@@ -79,8 +82,12 @@ function stylableVitePlugin(): Plugin {
         namespace: meta.namespace,
         varType: 'const',
       });
+      const transformedCss = meta.targetAst?.toString();
+      if (transformedCss === undefined) {
+        throw new Error(`Stylable did not transform ${path}`);
+      }
       return {
-        code: `${injectStyleSource(path, meta.targetAst.toString())}\n${moduleCode}`,
+        code: `${injectStyleSource(path, transformedCss)}\n${moduleCode}`,
         map: { mappings: '' },
       };
     },

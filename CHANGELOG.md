@@ -5,6 +5,11 @@ All notable changes to Atlas are documented in this file. Atlas follows
 
 ## [Unreleased]
 
+### Changed
+
+- Migrated the source workspace and CI from Yarn 1 to pnpm 10 with a committed
+  cross-platform lockfile.
+
 ### Added
 
 - Initial TypeScript-first Atlas platform with Angular and React support.
