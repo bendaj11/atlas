@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Atlas App Versions",
-  "version": "0.3.21",
+  "version": "0.3.22",
   "minimum_chrome_version": "111",
   "description": "Switch Atlas apps between production, PR, historical, and local versions.",
   "icons": {
@@ -10,22 +10,39 @@
     "48": "icons/atlas-48.png",
     "128": "icons/atlas-128.png"
   },
-  "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content-script.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["badge-script.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "badge-script.js"
+      ],
       "run_at": "document_idle"
     }
   ],
