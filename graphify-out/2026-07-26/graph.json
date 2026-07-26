@@ -13001,8 +13001,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_cli_package_publishconfig",
-      "community": 80,
-      "community_name": "Community 80",
+      "community": 170,
+      "community_name": "engines",
       "norm_label": "publishconfig"
     },
     {
@@ -13012,8 +13012,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "packages_cli_package_publishconfig_access",
-      "community": 80,
-      "community_name": "Community 80",
+      "community": 170,
+      "community_name": "engines",
       "norm_label": "access"
     },
     {
@@ -13023,8 +13023,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "packages_cli_package_engines",
-      "community": 170,
-      "community_name": "engines",
+      "community": 80,
+      "community_name": "Community 80",
       "norm_label": "engines"
     },
     {
@@ -13034,8 +13034,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "packages_cli_package_engines_node",
-      "community": 170,
-      "community_name": "engines",
+      "community": 80,
+      "community_name": "Community 80",
       "norm_label": "node"
     },
     {
@@ -23737,8 +23737,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_concurrency",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "concurrency.ts"
     },
     {
@@ -23748,8 +23748,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_runtime_src_concurrency_mapwithconcurrency",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "mapwithconcurrency()"
     },
     {
@@ -23836,8 +23836,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_options",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "dom-host-options.ts"
     },
     {
@@ -23847,8 +23847,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_options_domruntimeoptions",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "domruntimeoptions"
     },
     {
@@ -23858,8 +23858,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_options_domhostoptions",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "domhostoptions"
     },
     {
@@ -23869,8 +23869,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_options_domhostservices",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "domhostservices"
     },
     {
@@ -23880,8 +23880,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_options_domhostservices_createnavigation",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": ".createnavigation()"
     },
     {
@@ -23891,8 +23891,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_options_domhostservices_beforenavigation",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": ".beforenavigation()"
     },
     {
@@ -23902,8 +23902,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_runtime",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "dom-host-runtime.ts"
     },
     {
@@ -23913,8 +23913,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_runtime_domhostruntimeinput",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "domhostruntimeinput"
     },
     {
@@ -23924,8 +23924,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_runtime_startdomhostruntime",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "startdomhostruntime()"
     },
     {
@@ -23935,8 +23935,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_runtime_resolvehostconfig",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "resolvehostconfig()"
     },
     {
@@ -23946,8 +23946,8 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_runtime_assertcatalogmatchesconfig",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "assertcatalogmatchesconfig()"
     },
     {
@@ -23957,8 +23957,8 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_runtime_resolvedomslotcontainer",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "resolvedomslotcontainer()"
     },
     {
@@ -24001,8 +24001,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_host_sdk_createsdkproviders",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "createsdkproviders()"
     },
     {
@@ -24056,8 +24056,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "dom-rendering.ts"
     },
     {
@@ -24067,8 +24067,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_renderhostnavigation",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "renderhostnavigation()"
     },
     {
@@ -24078,8 +24078,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_renderhostmountstate",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "renderhostmountstate()"
     },
     {
@@ -24089,8 +24089,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_cssescape",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "cssescape()"
     },
     {
@@ -24100,8 +24100,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_findmountcontainer",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "findmountcontainer()"
     },
     {
@@ -24111,8 +24111,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_renderloadingstate",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "renderloadingstate()"
     },
     {
@@ -24122,8 +24122,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_rendererrorstate",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "rendererrorstate()"
     },
     {
@@ -24133,8 +24133,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "packages_runtime_src_dom_rendering_preparestatuselement",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "preparestatuselement()"
     },
     {
@@ -24144,8 +24144,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "host-navigation.ts"
     },
     {
@@ -24155,8 +24155,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_atlashostnavigationitem",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "atlashostnavigationitem"
     },
     {
@@ -24166,8 +24166,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_atlashostnavigationitem_navigate",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": ".navigate()"
     },
     {
@@ -24177,8 +24177,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_routeplacement",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "routeplacement"
     },
     {
@@ -24188,8 +24188,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_documentnavigationitems",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "documentnavigationitems"
     },
     {
@@ -24199,8 +24199,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_createhostnavigationitems",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "createhostnavigationitems()"
     },
     {
@@ -24221,8 +24221,8 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_publishatlasnavigationitems",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "publishatlasnavigationitems()"
     },
     {
@@ -24243,8 +24243,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_routeplacementsforhost",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "routeplacementsforhost()"
     },
     {
@@ -24254,8 +24254,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_uniquerouteplacements",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "uniquerouteplacements()"
     },
     {
@@ -24265,8 +24265,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_routematches",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "routematches()"
     },
     {
@@ -24276,8 +24276,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "packages_runtime_src_host_navigation_normalizeroutepath",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "normalizeroutepath()"
     },
     {
@@ -24287,8 +24287,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "host-ui.ts"
     },
     {
@@ -24298,8 +24298,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostuioptions",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "atlashostuioptions"
     },
     {
@@ -24309,8 +24309,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "atlashostui"
     },
     {
@@ -24320,8 +24320,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui_showloading",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": ".showloading()"
     },
     {
@@ -24331,8 +24331,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui_showerror",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": ".showerror()"
     },
     {
@@ -24342,8 +24342,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_atlashostui_clear",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": ".clear()"
     },
     {
@@ -24364,8 +24364,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_sethoststate",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "sethoststate()"
     },
     {
@@ -24375,8 +24375,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_renderdefaultloading",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "renderdefaultloading()"
     },
     {
@@ -24386,8 +24386,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "packages_runtime_src_host_ui_renderdefaulterror",
-      "community": 102,
-      "community_name": "host-ui.ts",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "renderdefaulterror()"
     },
     {
@@ -24463,8 +24463,8 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlasmountedapp",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "atlasmountedapp"
     },
     {
@@ -24496,8 +24496,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlashostmountevent",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "atlashostmountevent"
     },
     {
@@ -24518,8 +24518,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlashostruntimeoptions_resolveroutecontainer",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": ".resolveroutecontainer()"
     },
     {
@@ -24529,8 +24529,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "packages_runtime_src_index_atlashostruntimeoptions_resolveslotcontainer",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": ".resolveslotcontainer()"
     },
     {
@@ -24573,8 +24573,8 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "packages_runtime_src_index_runtimemount",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "runtimemount"
     },
     {
@@ -24584,8 +24584,8 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "packages_runtime_src_index_runtimeplacement",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "runtimeplacement"
     },
     {
@@ -24936,8 +24936,8 @@
       "source_location": "L587",
       "_origin": "ast",
       "id": "packages_runtime_src_index_mountedwidgetstate",
-      "community": 160,
-      "community_name": "Community 160",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "mountedwidgetstate"
     },
     {
@@ -25178,8 +25178,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_native_federation_atlasnativefederationimporters",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "atlasnativefederationimporters"
     },
     {
@@ -25189,8 +25189,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_native_federation_atlasnativefederationimporters_initialize",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": ".initialize()"
     },
     {
@@ -25200,8 +25200,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_native_federation_atlasnativefederationimporters_importremote",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": ".importremote()"
     },
     {
@@ -25233,8 +25233,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_native_federation_createtrustednativefederationimporters",
-      "community": 16,
-      "community_name": "Community 16",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "createtrustednativefederationimporters()"
     },
     {
@@ -25387,8 +25387,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_atlasruntimeoverride",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "atlasruntimeoverride"
     },
     {
@@ -25431,8 +25431,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_loadhostcatalog",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "loadhostcatalog()"
     },
     {
@@ -25541,8 +25541,8 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_verifymanifestintegrity",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "verifymanifestintegrity()"
     },
     {
@@ -25552,8 +25552,8 @@
       "source_location": "L236",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_findmanifesttrusterrors",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "findmanifesttrusterrors()"
     },
     {
@@ -25563,8 +25563,8 @@
       "source_location": "L258",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_createremotetrustpolicy",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "createremotetrustpolicy()"
     },
     {
@@ -25629,8 +25629,8 @@
       "source_location": "L320",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_defaultfetchjson",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "defaultfetchjson()"
     },
     {
@@ -25651,8 +25651,8 @@
       "source_location": "L332",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_bytestobase64",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "bytestobase64()"
     },
     {
@@ -25739,8 +25739,8 @@
       "source_location": "L394",
       "_origin": "ast",
       "id": "packages_runtime_src_loader_runtime_discovery_toerror",
-      "community": 265,
-      "community_name": "AtlasFederationAdapter",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "toerror()"
     },
     {
@@ -25838,8 +25838,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "packages_runtime_src_observability_eventtimestamp",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "eventtimestamp()"
     },
     {
@@ -26311,8 +26311,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "resilience.ts"
     },
     {
@@ -26333,8 +26333,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasretrypolicysource",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "atlasretrypolicysource"
     },
     {
@@ -26344,8 +26344,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasoperationcontext",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "atlasoperationcontext"
     },
     {
@@ -26355,8 +26355,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasloaderror",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "atlasloaderror"
     },
     {
@@ -26366,8 +26366,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_atlasloaderror_constructor",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": ".constructor()"
     },
     {
@@ -26377,8 +26377,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_actionforstage",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "actionforstage()"
     },
     {
@@ -26388,8 +26388,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_createretrypolicy",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "createretrypolicy()"
     },
     {
@@ -26399,8 +26399,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_runresiliently",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "runresiliently()"
     },
     {
@@ -26410,8 +26410,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_operationeventinput",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "operationeventinput"
     },
     {
@@ -26421,8 +26421,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_emitoperationevent",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "emitoperationevent()"
     },
     {
@@ -26432,8 +26432,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_validatepolicy",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "validatepolicy()"
     },
     {
@@ -26443,8 +26443,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_withtimeout",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "withtimeout()"
     },
     {
@@ -26454,8 +26454,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_delay",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "delay()"
     },
     {
@@ -26465,8 +26465,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_errormessage",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "errormessage()"
     },
     {
@@ -26476,8 +26476,8 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "packages_runtime_src_resilience_toerror",
-      "community": 96,
-      "community_name": "Community 96",
+      "community": 16,
+      "community_name": "Community 16",
       "norm_label": "toerror()"
     },
     {
@@ -26487,8 +26487,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "stylesheets.ts"
     },
     {
@@ -26498,8 +26498,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_atlasstylerelease",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "atlasstylerelease"
     },
     {
@@ -26509,8 +26509,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_loadedstylesheet",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "loadedstylesheet"
     },
     {
@@ -26520,8 +26520,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_documentstyles",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "documentstyles"
     },
     {
@@ -26531,8 +26531,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_loadmanifeststyles",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "loadmanifeststyles()"
     },
     {
@@ -26542,8 +26542,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_defaultmanifestpolicy",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "defaultmanifestpolicy()"
     },
     {
@@ -26553,8 +26553,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_acquirestylesheet",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "acquirestylesheet()"
     },
     {
@@ -26564,8 +26564,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_stylesheetready",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "stylesheetready()"
     },
     {
@@ -26575,8 +26575,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_stylesfor",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "stylesfor()"
     },
     {
@@ -26586,8 +26586,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "packages_runtime_src_stylesheets_createrelease",
-      "community": 210,
-      "community_name": "Atlas",
+      "community": 265,
+      "community_name": "AtlasFederationAdapter",
       "norm_label": "createrelease()"
     },
     {
@@ -28192,8 +28192,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "packages_schema_src_actionable_error_ensureactionableerror",
-      "community": 43,
-      "community_name": "Community 43",
+      "community": 132,
+      "community_name": "Q: assert is deprecated. why did you make the change across the project? some projects using atlas could use the newer formatter version",
       "norm_label": "ensureactionableerror()"
     },
     {
@@ -28225,8 +28225,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_schema_src_assert_atlas_host_catalog_assertatlashostcatalog",
-      "community": 132,
-      "community_name": "Q: assert is deprecated. why did you make the change across the project? some projects using atlas could use the newer formatter version",
+      "community": 102,
+      "community_name": "host-ui.ts",
       "norm_label": "assertatlashostcatalog()"
     },
     {
@@ -28643,8 +28643,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_manifest_atlasmanifest",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "atlasmanifest"
     },
     {
@@ -28731,8 +28731,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_placement_atlasplacement",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "atlasplacement"
     },
     {
@@ -30917,7 +30917,7 @@
       "label": "ATLAS_SDK",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L15",
+      "source_location": "L6",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_atlas_sdk",
       "community": 194,
@@ -30928,7 +30928,7 @@
       "label": "ATLAS_APP_CONTEXT",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L16",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_atlas_app_context",
       "community": 194,
@@ -30939,7 +30939,7 @@
       "label": "AtlasSdk",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L20",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_atlassdk",
       "community": 194,
@@ -30950,7 +30950,7 @@
       "label": "provideAtlasSdk()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L25",
+      "source_location": "L11",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_provideatlassdk",
       "community": 194,
@@ -30961,7 +30961,7 @@
       "label": "provideAtlasAppContext()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L32",
+      "source_location": "L15",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_provideatlasappcontext",
       "community": 194,
@@ -30972,7 +30972,7 @@
       "label": "injectAtlasSdk()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L36",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_injectatlassdk",
       "community": 194,
@@ -30983,7 +30983,7 @@
       "label": "injectAtlasAppContext()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L47",
+      "source_location": "L27",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_injectatlasappcontext",
       "community": 194,
@@ -30994,7 +30994,7 @@
       "label": "injectAppLoaded()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L51",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_injection_injectapploaded",
       "community": 194,
@@ -31346,7 +31346,7 @@
       "label": "MountAngularWidgetInput",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L36",
+      "source_location": "L33",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_widget_mountangularwidgetinput",
       "community": 194,
@@ -31357,7 +31357,7 @@
       "label": "createAngularAtlasSdk()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L44",
+      "source_location": "L41",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_widget_createangularatlassdk",
       "community": 194,
@@ -31368,7 +31368,7 @@
       "label": "mountWidget()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L69",
+      "source_location": "L56",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_widget_mountwidget",
       "community": 194,
@@ -31379,7 +31379,7 @@
       "label": "createAngularLoadingRenderer()",
       "file_type": "code",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L120",
+      "source_location": "L98",
       "_origin": "ast",
       "id": "packages_sdk_src_angular_widget_createangularloadingrenderer",
       "community": 194,
@@ -31943,8 +31943,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_host_slots",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "host-slots.ts"
     },
     {
@@ -31954,8 +31954,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_sdk_src_host_slots_atlasslotrenderrequest",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "atlasslotrenderrequest"
     },
     {
@@ -31965,8 +31965,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_sdk_src_host_slots_findmanifestsforslot",
-      "community": 239,
-      "community_name": "create-manifest-from-config.ts",
+      "community": 160,
+      "community_name": "Community 160",
       "norm_label": "findmanifestsforslot()"
     },
     {
@@ -32449,8 +32449,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasmountedwidget",
-      "community": 160,
-      "community_name": "Community 160",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": "atlasmountedwidget"
     },
     {
@@ -32460,8 +32460,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasmountedwidget_setinputs",
-      "community": 160,
-      "community_name": "Community 160",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": ".setinputs()"
     },
     {
@@ -32471,8 +32471,8 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "packages_sdk_src_lifecycle_atlasmountedwidget_unmount",
-      "community": 160,
-      "community_name": "Community 160",
+      "community": 96,
+      "community_name": "Community 96",
       "norm_label": ".unmount()"
     },
     {
@@ -33227,7 +33227,7 @@
       "label": "AtlasSdk",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L12",
+      "source_location": "L6",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlassdk",
       "community": 122,
@@ -33238,7 +33238,7 @@
       "label": "AtlasSdkContext",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L17",
+      "source_location": "L8",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlassdkcontext",
       "community": 122,
@@ -33249,7 +33249,7 @@
       "label": "AtlasRuntimeContext",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L18",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlasruntimecontext",
       "community": 122,
@@ -33260,7 +33260,7 @@
       "label": "AtlasSdkProvider()",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L22",
+      "source_location": "L11",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlassdkprovider",
       "community": 43,
@@ -33271,7 +33271,7 @@
       "label": "useAtlasSdk()",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L35",
+      "source_location": "L15",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_useatlassdk",
       "community": 122,
@@ -33282,7 +33282,7 @@
       "label": "useAppLoaded()",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L45",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_useapploaded",
       "community": 122,
@@ -33458,7 +33458,7 @@
       "label": "ReactGetWidgetOptions",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L16",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "packages_sdk_src_react_widget_reactgetwidgetoptions",
       "community": 122,
@@ -33469,7 +33469,7 @@
       "label": "ReactAtlasSdk",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L20",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "packages_sdk_src_react_widget_reactatlassdk",
       "community": 122,
@@ -33480,7 +33480,7 @@
       "label": "sdkFacades",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L30",
+      "source_location": "L23",
       "_origin": "ast",
       "id": "packages_sdk_src_react_widget_sdkfacades",
       "community": 122,
@@ -33491,7 +33491,7 @@
       "label": "createReactAtlasSdk()",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L32",
+      "source_location": "L25",
       "_origin": "ast",
       "id": "packages_sdk_src_react_widget_createreactatlassdk",
       "community": 122,
@@ -33502,7 +33502,7 @@
       "label": "createWidgetComponent()",
       "file_type": "code",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L71",
+      "source_location": "L50",
       "_origin": "ast",
       "id": "packages_sdk_src_react_widget_createwidgetcomponent",
       "community": 122,
@@ -34217,7 +34217,7 @@
       "label": "CustomerHostSdk",
       "file_type": "code",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L12",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "packages_sdk_tests_framework_api_specs_customerhostsdk",
       "community": 125,
@@ -34228,7 +34228,7 @@
       "label": ".showToast()",
       "file_type": "code",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L13",
+      "source_location": "L10",
       "_origin": "ast",
       "id": "packages_sdk_tests_framework_api_specs_customerhostsdk_showtoast",
       "community": 125,
@@ -34239,7 +34239,7 @@
       "label": "ProductEvents",
       "file_type": "code",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L16",
+      "source_location": "L13",
       "_origin": "ast",
       "id": "packages_sdk_tests_framework_api_specs_productevents",
       "community": 125,
@@ -34250,7 +34250,7 @@
       "label": "verifyFrameworkEventTypes()",
       "file_type": "code",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L25",
+      "source_location": "L20",
       "_origin": "ast",
       "id": "packages_sdk_tests_framework_api_specs_verifyframeworkeventtypes",
       "community": 125,
@@ -43050,7 +43050,7 @@
       "label": "`@atlas/sdk/overlay`",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L152",
+      "source_location": "L134",
       "_origin": "ast",
       "id": "docs_sdk_atlas_sdk_overlay",
       "community": 120,
@@ -43061,7 +43061,7 @@
       "label": "`@atlas/runtime`",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L214",
+      "source_location": "L192",
       "_origin": "ast",
       "id": "docs_sdk_atlas_runtime",
       "community": 120,
@@ -43072,7 +43072,7 @@
       "label": "Events between apps",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L230",
+      "source_location": "L208",
       "_origin": "ast",
       "id": "docs_sdk_events_between_apps",
       "community": 120,
@@ -43083,7 +43083,7 @@
       "label": "Loading and failure UI",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L249",
+      "source_location": "L225",
       "_origin": "ast",
       "id": "docs_sdk_loading_and_failure_ui",
       "community": 120,
@@ -43094,7 +43094,7 @@
       "label": "Runtime Observability",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L294",
+      "source_location": "L270",
       "_origin": "ast",
       "id": "docs_sdk_runtime_observability",
       "community": 120,
@@ -43105,7 +43105,7 @@
       "label": "Framework Adapters",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L340",
+      "source_location": "L314",
       "_origin": "ast",
       "id": "docs_sdk_framework_adapters",
       "community": 120,
@@ -43116,7 +43116,7 @@
       "label": "Testing",
       "file_type": "document",
       "source_file": "docs/sdk.md",
-      "source_location": "L365",
+      "source_location": "L339",
       "_origin": "ast",
       "id": "docs_sdk_testing",
       "community": 120,
@@ -100773,7 +100773,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L100",
+      "source_location": "L73",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget_createwidgetcomponent",
@@ -108928,7 +108928,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L16",
+      "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -108939,7 +108939,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L15",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -108950,7 +108950,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L20",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -108961,7 +108961,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L51",
+      "source_location": "L31",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -108972,7 +108972,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L47",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -108983,7 +108983,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L36",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -108994,7 +108994,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L32",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109005,7 +109005,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L25",
+      "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109017,7 +109017,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L10",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109029,7 +109029,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L10",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109041,7 +109041,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L10",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109053,7 +109053,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L9",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109065,7 +109065,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L9",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109077,7 +109077,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L8",
+      "source_location": "L2",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109089,7 +109089,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L8",
+      "source_location": "L2",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109101,7 +109101,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L9",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection",
@@ -109114,7 +109114,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L40",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection_injectatlassdk",
@@ -109125,7 +109125,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-injection.ts",
-      "source_location": "L52",
+      "source_location": "L32",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_injection_injectapploaded",
@@ -109554,7 +109554,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L44",
+      "source_location": "L41",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget",
@@ -109565,7 +109565,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L120",
+      "source_location": "L98",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget",
@@ -109576,7 +109576,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L36",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget",
@@ -109587,7 +109587,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L69",
+      "source_location": "L56",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget",
@@ -109705,7 +109705,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L102",
+      "source_location": "L78",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget_mountwidget",
@@ -109717,7 +109717,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L136",
+      "source_location": "L111",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget_createangularloadingrenderer",
@@ -109729,7 +109729,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L37",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget_mountangularwidgetinput",
@@ -109741,7 +109741,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L58",
+      "source_location": "L51",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget_createangularatlassdk",
@@ -109753,7 +109753,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/angular-widget.ts",
-      "source_location": "L85",
+      "source_location": "L68",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_angular_widget_mountwidget",
@@ -110412,7 +110412,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L9",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -111064,7 +111064,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L9",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -111879,7 +111879,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L8",
+      "source_location": "L2",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -111927,7 +111927,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L8",
+      "source_location": "L2",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113626,7 +113626,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L18",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113637,7 +113637,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L12",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113648,7 +113648,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L17",
+      "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113659,7 +113659,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L22",
+      "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113670,7 +113670,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L45",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113681,7 +113681,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L35",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113693,7 +113693,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L10",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113705,7 +113705,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L10",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113717,7 +113717,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L10",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113729,7 +113729,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L9",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context",
@@ -113742,7 +113742,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "packages/sdk/src/react-context.ts",
-      "source_location": "L42",
+      "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_context_useatlassdk",
@@ -114064,7 +114064,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L32",
+      "source_location": "L25",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget",
@@ -114075,7 +114075,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L71",
+      "source_location": "L50",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget",
@@ -114086,7 +114086,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L20",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget",
@@ -114097,7 +114097,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L16",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget",
@@ -114108,7 +114108,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L30",
+      "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget",
@@ -114156,7 +114156,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/src/react-widget.ts",
-      "source_location": "L55",
+      "source_location": "L41",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_src_react_widget_createreactatlassdk",
@@ -115016,7 +115016,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs",
@@ -115028,7 +115028,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs",
@@ -115040,7 +115040,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs",
@@ -115051,7 +115051,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L12",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs",
@@ -115062,7 +115062,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L16",
+      "source_location": "L13",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs",
@@ -115073,7 +115073,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L25",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs",
@@ -115084,7 +115084,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "packages/sdk/tests/framework-api.specs.ts",
-      "source_location": "L13",
+      "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
       "source": "packages_sdk_tests_framework_api_specs_customerhostsdk",
@@ -125859,7 +125859,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L214",
+      "source_location": "L192",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
@@ -125892,7 +125892,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L152",
+      "source_location": "L134",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
@@ -125903,7 +125903,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L230",
+      "source_location": "L208",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
@@ -125914,7 +125914,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L340",
+      "source_location": "L314",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
@@ -125925,7 +125925,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L249",
+      "source_location": "L225",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
@@ -125936,7 +125936,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L294",
+      "source_location": "L270",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
@@ -125947,7 +125947,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/sdk.md",
-      "source_location": "L365",
+      "source_location": "L339",
       "weight": 1.0,
       "_origin": "ast",
       "source": "docs_sdk_sdk_reference",
