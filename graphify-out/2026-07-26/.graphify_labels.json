@@ -266,7 +266,12 @@
   "264": "HostContext.compiler.driver.ts",
   "265": "AtlasFederationAdapter",
   "266": "@angular/animations",
+  "267": "NetworkLimiter",
   "268": "@atlas/runtime",
   "269": "Q: when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected",
+  "270": "./host",
+  "271": "@angular/core",
+  "272": "DevControlServer",
+  "273": ".mount",
   "274": "{\n  createAngularFederationConfig,\n  createReactAppViteConfig,\n  createReactHostViteConfig,\n  createReactWidgetEntries,\n}"
 }
