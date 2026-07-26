@@ -1,6 +1,6 @@
 {
   "name": "@atlas/bootstrap",
-  "version": "0.3.24",
+  "version": "0.3.27",
   "type": "module",
   "description": "Static Atlas browser bootstrap assets and Nginx configuration.",
   "license": "MIT",
@@ -39,7 +39,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.24",
+    "@atlas/schema": "0.3.27",
     "es-module-shims": "^2.7.0"
   }
 }
