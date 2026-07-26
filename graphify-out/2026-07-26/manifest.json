@@ -1040,9 +1040,9 @@
     "semantic_hash": "4b41386dd65889b204f4ed5a33b8bce2"
   },
   "packages/sdk/src/event-bus.ts": {
-    "mtime": 1785054576.2798495,
-    "ast_hash": "83e1b1778e3f9c76834ffeab711836a7",
-    "semantic_hash": "83e1b1778e3f9c76834ffeab711836a7"
+    "mtime": 1785071084.9661834,
+    "ast_hash": "ea3831f85116ade05eadf6d9d4a5443e",
+    "semantic_hash": ""
   },
   "packages/sdk/src/federation.ts": {
     "mtime": 1783863222.9195507,
@@ -1190,8 +1190,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/tests/framework-api.specs.ts": {
-    "mtime": 1785070086.9347465,
-    "ast_hash": "30397c4692045a7df2757550c9aa277e",
+    "mtime": 1785071029.3744612,
+    "ast_hash": "223d9c4eab766fc1651ecf4471f0d3bc",
     "semantic_hash": ""
   },
   "packages/sdk/tests/host.driver.ts": {
@@ -1200,8 +1200,8 @@
     "semantic_hash": "71a2873ab7f226515f4f4ffc4eab4321"
   },
   "packages/sdk/tests/host.specs.ts": {
-    "mtime": 1785054576.2848852,
-    "ast_hash": "04824bdaa963e772b1db090aa84f299e",
+    "mtime": 1785071029.225982,
+    "ast_hash": "fa3545c69635762a1636d979cb29eba6",
     "semantic_hash": ""
   },
   "packages/sdk/tests/navigation.driver.ts": {
@@ -1510,8 +1510,8 @@
     "semantic_hash": ""
   },
   "docs/angular/sdk.md": {
-    "mtime": 1785070087.2460406,
-    "ast_hash": "0146980dc6e6755faf4e0ca07d7ded12",
+    "mtime": 1785071114.8670845,
+    "ast_hash": "8c34f9e0170271f0fe043df4a339304e",
     "semantic_hash": ""
   },
   "docs/angular/troubleshooting.md": {
@@ -1635,8 +1635,8 @@
     "semantic_hash": ""
   },
   "docs/react/sdk.md": {
-    "mtime": 1785070087.400054,
-    "ast_hash": "b003d31b4f5cb6418bc0a2a8004af856",
+    "mtime": 1785071115.023263,
+    "ast_hash": "74392d7d49284480df6acf137efe4612",
     "semantic_hash": ""
   },
   "docs/react/troubleshooting.md": {
@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sdk.md": {
-    "mtime": 1785070087.0904534,
-    "ast_hash": "117b8cf9d42ef2701e581915fbf2dbff",
+    "mtime": 1785071029.5309503,
+    "ast_hash": "1f36bde5f1b98edb7496c02965213649",
     "semantic_hash": ""
   },
   "docs/security.md": {
