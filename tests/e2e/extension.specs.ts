@@ -5,9 +5,8 @@ import { join, resolve } from "node:path";
 import { readOverride, restrictExtensionHosts, type BrowserStorage } from "./extension.driver.js";
 
 const builtExtensionPath = resolve("apps/columbus/dist");
-const hostUrl = "http://127.0.0.1:4300/dashboard";
-const overrideKey = "atlas.runtime-overrides";
-
+const hostUrl = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? "4300"}/dashboard`;
+const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? "4400"}`;
 interface ExtensionSession {
   context: BrowserContext;
   extensionId: string;
@@ -37,7 +36,7 @@ test.describe("Atlas Columbus extension", () => {
     const popup = await openPopup(session, firstHost);
     await editApp(popup, "Dashboard React");
     await popup.getByText("Production", { exact: true }).click();
-    await selectDropdown(popup, "#production-version", /^Previous production · 0\.0\.9 · /);
+    await selectActiveDropdown(popup, /^0\.0\.9$/);
     await saveAndWaitForReload(popup, firstHost);
     expect(await storedVersion(firstHost, "localStorage")).toBe("0.0.9");
     await expect(firstHost.getByRole("heading", { name: "Dashboard React Historical" })).toBeVisible();
@@ -50,7 +49,7 @@ test.describe("Atlas Columbus extension", () => {
     await editApp(tabPopup, "Dashboard React");
     await tabPopup.getByText("This tab", { exact: true }).click();
     await tabPopup.getByText("Production", { exact: true }).click();
-    await selectDropdown(tabPopup, "#production-version", /^Current production · 0\.1\.0 · /);
+    await selectActiveDropdown(tabPopup, /0\.1\.0/);
     await saveAndWaitForReload(tabPopup, firstHost);
     expect(await storedVersion(firstHost, "sessionStorage")).toBe("0.1.0");
     expect(await overrideCount(firstHost, "sessionStorage")).toBe(1);
@@ -71,14 +70,14 @@ test.describe("Atlas Columbus extension", () => {
     const prPopup = await openPopup(session, host);
     await editApp(prPopup, "Dashboard React");
     await prPopup.getByText("PR", { exact: true }).click();
-    await selectDropdown(prPopup, "#pr-version", /^0\.2\.0-pr\.42 · pr-42 · PR #42$/);
+    await selectActiveDropdown(prPopup);
     await saveAndWaitForReload(prPopup, host);
     expect(await storedReason(host)).toBe("pr");
 
     const localPopup = await openPopup(session, host);
     await editApp(localPopup, "Dashboard React");
     await localPopup.getByText("Custom URL", { exact: true }).click();
-    await localPopup.locator("#custom-url").fill("http://127.0.0.1:4400/apps/56e41bf1-d1b4-486f-a340-5782ee632bad/0.2.0-local/local-dev");
+    await localPopup.getByPlaceholder("http://localhost:4200").fill(`${cdnOrigin}/apps/56e41bf1-d1b4-486f-a340-5782ee632bad/0.2.0-local/local-dev`);
     await saveAndWaitForReload(localPopup, host);
     expect(await storedVersion(host, "localStorage")).toBe("0.0.0-local");
     expect(await storedReason(host)).toBe("local");
@@ -97,7 +96,7 @@ test.describe("Atlas Columbus extension", () => {
     const popup = await openPopup(session, host);
     await editApp(popup, "Dashboard React");
     await popup.getByText("Custom URL", { exact: true }).click();
-    await popup.locator("#custom-url").fill("not-a-url");
+    await popup.getByPlaceholder("http://localhost:4200").fill("not-a-url");
     await popup.getByRole("button", { name: "Save" }).click();
     await expect(popup.getByText("Base URL must be absolute HTTP URL.")).toBeVisible();
   });
@@ -124,12 +123,12 @@ async function openPopup(session: ExtensionSession, host: Page): Promise<Page> {
 
 async function openPopupDocument(session: ExtensionSession, activePage: Page): Promise<Page> {
   const popup = await session.context.newPage();
-  await popup.goto(`chrome-extension://${session.extensionId}/popup.html`);
+  await popup.goto(`chrome-extension://${session.extensionId}/index.html`);
   const refresh = popup.getByRole("button", { name: "Refresh" });
   await refresh.waitFor();
   await activePage.bringToFront();
   await refresh.click();
-  await expect(popup.locator("body")).toContainText(/artifacts found|Failed to load host artifacts/);
+  await expect(popup.locator("body")).toContainText(/artifacts found|No Atlas host found/);
   return popup;
 }
 
@@ -152,9 +151,13 @@ async function editApp(popup: Page, appName: string): Promise<void> {
   await popup.getByRole("row").filter({ hasText: appName }).getByRole("button", { name: "Edit" }).click();
 }
 
-async function selectDropdown(popup: Page, selector: string, option: string | RegExp): Promise<void> {
-  await popup.locator(selector).click();
-  await popup.getByRole("option", { name: option, exact: typeof option === "string" }).click();
+async function selectActiveDropdown(popup: Page, option?: string | RegExp): Promise<void> {
+  await popup.locator('input[role="combobox"]:not(:disabled)').click();
+  const options = popup.getByRole("option");
+  await (option === undefined
+    ? options.first()
+    : options.filter({ hasText: option }).first()
+  ).click();
 }
 
 async function storedVersion(host: Page, storage: BrowserStorage): Promise<string | undefined> {

@@ -1,6 +1,6 @@
 import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
 import { run } from "./build.driver.js";
@@ -215,6 +215,6 @@ test("atlas removes a newly generated project when dependency installation fails
   await expect(run(process.execPath, [
     join(process.cwd(), "packages/cli/dist/index.js"), "g", "host", "customer-host",
     "--framework=angular", "--skip-workspace-generator", `--directory=${target}`
-  ], { cwd: temporary, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } })).rejects.toThrow(/npm exited with code 1/);
+  ], { cwd: temporary, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } })).rejects.toThrow(/npm exited with code 1/);
   await expect(access(target)).rejects.toMatchObject({ code: "ENOENT" });
 });

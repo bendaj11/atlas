@@ -1,7 +1,7 @@
 import { title } from "./common-generator.js";
 import type { ReactVersionProfile } from "./generator-versions.js";
 
-export function reactAppEntry(name: string, profile: ReactVersionProfile): string {
+export function reactAppEntry(profile: ReactVersionProfile): string {
   const root = profile.major === 17
     ? `import type { ReactNode } from "react";
 import { render, unmountComponentAtNode } from "react-dom";

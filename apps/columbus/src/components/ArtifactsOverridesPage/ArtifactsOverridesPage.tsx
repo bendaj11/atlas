@@ -1,4 +1,12 @@
-import { Box, Button, Heading, Loader, Page, Text } from '@wix/design-system';
+import {
+  Box,
+  Button,
+  Heading,
+  Image,
+  Loader,
+  Page,
+  Text,
+} from '@wix/design-system';
 import { Delete } from '@wix/wix-ui-icons-common';
 import { useHost, useOverrides } from '../providers/index.js';
 import { EmptyHostDataState } from '../EmptyHostDataState/EmptyHostDataState';
@@ -17,7 +25,16 @@ export function ArtifactsOverridesPage() {
   return (
     <Page height="100%" minWidth={0}>
       <Page.Header
-        title={<Heading size="medium">Columbus</Heading>}
+        title={
+          <Box gap="8px" verticalAlign="middle">
+            <Image
+              src="icons/columbus-main-logo.png"
+              transparent
+              width="35px"
+            />
+            <Heading size="medium">Columbus</Heading>
+          </Box>
+        }
         subtitle={
           <Text size="small" secondary>
             Inspect artifacts and manage runtime overrides.

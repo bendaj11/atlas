@@ -28,17 +28,13 @@
     "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
+  "sideEffects": false,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -b",
-    "test": "node -e \"\"",
-    "typecheck": "tsc -b --pretty false",
-    "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
+    "build": "node ../../scripts/clean-package-output.js && tsc -b",
+    "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
     "@atlas/schema": "0.3.24",

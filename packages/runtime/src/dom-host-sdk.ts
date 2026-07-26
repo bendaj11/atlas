@@ -23,7 +23,10 @@ interface SdkProviderInput<THostSdk extends object> {
   document: Document;
   navigation: AtlasNavigation;
   manifests: AtlasManifest[];
-  importWidget: (widget: AtlasExportedWidgetManifest) => Promise<AtlasExportedWidgetEntry>;
+  importWidget: (
+    widget: AtlasExportedWidgetManifest,
+    ownerManifest: AtlasManifest
+  ) => Promise<AtlasExportedWidgetEntry>;
   resolveWidget?: AtlasWidgetResolver;
   trustPolicy?: AtlasRemoteTrustPolicy;
 }

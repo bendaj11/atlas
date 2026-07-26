@@ -29,19 +29,17 @@
     "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
+  "sideEffects": false,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -b",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ../../jest.config.json --testPathPattern='packages/bootstrap/tests/'",
-    "typecheck": "tsc -b --pretty false",
-    "publish-lib": "npm publish --registry https://private-npm-registry.onrender.com/"
+    "build": "node ../../scripts/clean-package-output.js && tsc -b",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/bootstrap/tests/",
+    "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.24"
+    "@atlas/schema": "0.3.24",
+    "es-module-shims": "^2.7.0"
   }
 }

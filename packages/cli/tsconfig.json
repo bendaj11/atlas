@@ -19,6 +19,8 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": true
   },
   "references": [

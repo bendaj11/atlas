@@ -10,6 +10,7 @@ import type {
   AtlasSdk as AtlasSdkValue,
   AtlasWidgetLoadingRenderer
 } from "./host.js";
+import { sdkError } from "./sdk-error.js";
 
 export interface AngularGetWidgetOptions<TInputs extends object> {
   containerId: string;
@@ -57,7 +58,13 @@ function mountWidget<TInputs extends object>(input: MountAngularWidgetInput<TInp
   const { sdk, applicationRef, environmentInjector, widgetId, options } = input;
   const container = globalThis.document?.getElementById(options.containerId);
   if (!container) {
-    throw new Error(`Atlas widget container "${options.containerId}" was not found. Call getWidget after the container is rendered.`);
+    throw sdkError(
+      `Atlas cannot mount widget "${widgetId}" because container "${options.containerId}" was not found in the page.`,
+      {
+        suggestedActions: `Render an element with id="${options.containerId}" before calling getWidget, then retry.`,
+        code: "ATLAS_WIDGET_CONTAINER_MISSING"
+      }
+    );
   }
 
   let inputs = options.inputs;

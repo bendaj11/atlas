@@ -4,15 +4,30 @@ import { join, resolve } from "node:path";
 import { deploymentCatalog, runCli as runAtlasCli } from "./deployment.driver.js";
 
 const workspaceRoot = resolve(import.meta.dirname, "../..");
-const cdnRoot = join(workspaceRoot, "tests/e2e/.artifacts/cdn");
+const artifactsRoot = resolve(
+  workspaceRoot,
+  process.env.ATLAS_E2E_ARTIFACTS_DIR ?? "tests/e2e/.artifacts"
+);
+const cdnRoot = join(artifactsRoot, "cdn");
+const externalCdnRoot = join(artifactsRoot, "external-cdn");
 const publishConfig = join(workspaceRoot, "tests/e2e/atlas.publish.ts");
 const REACT_HOST_ID = "060a7f62-1c95-402c-9993-55749faf36d9";
 const ANGULAR_HOST_ID = "399e1a5d-f83d-4248-96ed-e4211707ae1b";
 const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
 const EXTERNAL_SHARED_UI_ID = "745518fc-3b1a-4197-b044-da306b0a02ff";
+const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? "4400"}`;
+const externalCdnPort = process.env.ATLAS_E2E_EXTERNAL_CDN_PORT ?? "4401";
+const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? "4300"}`;
+const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? "4301"}`;
+
+test.beforeEach(async ({ page }) => {
+  await page.route("http://localhost:4400/atlas.dev-session.json?*", (route) =>
+    route.abort(),
+  );
+});
 
 test("React host mounts an Angular app with native inner routing", async ({ page }) => {
-  await page.goto("http://127.0.0.1:4300/angular-orders");
+  await page.goto(`${reactHostOrigin}/angular-orders`);
   await expect(page.getByRole("heading", { name: "Orders Angular" })).toBeVisible();
   await expect(page.getByText("Loading product…", { exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: "Order 42" }).click();
@@ -21,11 +36,11 @@ test("React host mounts an Angular app with native inner routing", async ({ page
 });
 
 test("Angular host mounts a React app with native inner routing", async ({ page }) => {
-  await page.goto("http://127.0.0.1:4301/react-catalog");
+  await page.goto(`${angularHostOrigin}/react-catalog`);
   await expect(page.getByRole("heading", { name: "Catalog React" })).toBeVisible();
   await expect(page.getByText("Loading product…", { exact: true })).toHaveCount(0);
   const stylesheet = page.locator(`link[data-atlas-style="${CATALOG_REACT_ID}"]`);
-  await expect(stylesheet).toHaveAttribute("href", new RegExp(`^http://127\\.0\\.0\\.1:4400/apps/${CATALOG_REACT_ID}/0\\.2\\.0/.+\\.css$`));
+  await expect(stylesheet).toHaveAttribute("href", new RegExp(`^${escapeRegex(cdnOrigin)}/apps/${CATALOG_REACT_ID}/0\\.2\\.0/.+\\.css$`));
   await expect(stylesheet).toHaveAttribute("integrity", /^sha256-/);
   await page.getByRole("link", { name: "Product 42" }).click();
   await expect(page).toHaveURL(/\/react-catalog\/products\/42$/);
@@ -37,7 +52,7 @@ test("host displays its spinner only after an app requests loading state", async
     await new Promise((resolve) => setTimeout(resolve, 750));
     await route.continue();
   });
-  await page.goto("http://127.0.0.1:4300/dashboard");
+  await page.goto(`${reactHostOrigin}/dashboard`);
   await expect(page.getByRole("heading", { name: "Dashboard React" })).toBeVisible();
   await expect(page.getByRole("status")).toContainText("Loading widget");
   await expect(page.getByText("Status: paid")).toBeVisible();
@@ -45,13 +60,13 @@ test("host displays its spinner only after an app requests loading state", async
 });
 
 test("React page app mounts an Angular widget", async ({ page }) => {
-  await page.goto("http://127.0.0.1:4300/dashboard");
+  await page.goto(`${reactHostOrigin}/dashboard`);
   await expect(page.getByRole("heading", { name: "Dashboard React" })).toBeVisible();
   await expect(page.getByText("Status: paid")).toBeVisible();
 });
 
 test("Angular page app mounts a React widget", async ({ page }) => {
-  await page.goto("http://127.0.0.1:4301/dashboard-angular");
+  await page.goto(`${angularHostOrigin}/dashboard-angular`);
   await expect(page.getByRole("heading", { name: "Dashboard Angular" })).toBeVisible();
   await expect(page.getByText("External products: 24")).toBeVisible();
   await expect(page.getByText("Internal products: 12")).toBeVisible();
@@ -59,11 +74,11 @@ test("Angular page app mounts a React widget", async ({ page }) => {
 
 test("failed external widget keeps app and successful sibling widget visible", async ({ page }) => {
   let blockedExternalRequests = 0;
-  await page.route((url) => url.hostname === "127.0.0.1" && url.port === "4401", (route) => {
+  await page.route((url) => url.hostname === "127.0.0.1" && url.port === externalCdnPort, (route) => {
     blockedExternalRequests += 1;
     return route.abort();
   });
-  await page.goto("http://127.0.0.1:4301/dashboard-angular");
+  await page.goto(`${angularHostOrigin}/dashboard-angular`);
   await expect(page.getByRole("heading", { name: "Dashboard Angular" })).toBeVisible();
   await expect(page.getByText("Internal products: 12")).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Unable to load widget");
@@ -72,14 +87,14 @@ test("failed external widget keeps app and successful sibling widget visible", a
 });
 
 test("external widget release becomes visible after refresh without catalog sync", async ({ page }) => {
-  const registryPath = join(workspaceRoot, "tests/e2e/.artifacts/external-cdn/registry.json");
+  const registryPath = join(externalCdnRoot, "registry.json");
   const original = await readFile(registryPath, "utf8");
   const requested: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes(`/apps/${EXTERNAL_SHARED_UI_ID}/`)) requested.push(request.url());
   });
   try {
-    await page.goto("http://127.0.0.1:4301/dashboard-angular");
+    await page.goto(`${angularHostOrigin}/dashboard-angular`);
     await expect(page.getByText("External products: 24")).toBeVisible();
     expect(requested.some((url) => url.includes("/0.1.0/"))).toBe(true);
 
@@ -98,7 +113,7 @@ test("external widget release becomes visible after refresh without catalog sync
   }
 });
 
-const hostFallbackCases: Array<[string, string]> = [["React", "http://127.0.0.1:4300"], ["Angular", "http://127.0.0.1:4301"]];
+const hostFallbackCases: Array<[string, string]> = [["React", reactHostOrigin], ["Angular", angularHostOrigin]];
 for (const [name, origin] of hostFallbackCases) {
   test(`${name} host renders fallback UI when a remote fails`, async ({ page }) => {
     await page.goto(`${origin}/broken`);
@@ -108,7 +123,7 @@ for (const [name, origin] of hostFallbackCases) {
 }
 
 test("CDN serves mutable catalogs and immutable app assets with appropriate headers", async ({ request }) => {
-  const catalogResponse = await request.get(`http://127.0.0.1:4400/hosts/${REACT_HOST_ID}/catalog.json`);
+  const catalogResponse = await request.get(`${cdnOrigin}/hosts/${REACT_HOST_ID}/catalog.json`);
   expect(catalogResponse.headers()["access-control-allow-origin"]).toBe("*");
   expect(catalogResponse.headers()["cache-control"]).toBe("no-cache");
   const catalog = deploymentCatalog(await catalogResponse.json());
@@ -120,7 +135,7 @@ test("CDN serves mutable catalogs and immutable app assets with appropriate head
 });
 
 test("a deployed host rolls back and forward without being rebuilt", async ({ page, request }) => {
-  await page.goto("http://127.0.0.1:4301/react-catalog");
+  await page.goto(`${angularHostOrigin}/react-catalog`);
   await expect(page.getByRole("heading", { name: "Catalog React 0.2.0" })).toBeVisible();
 
   await selectCatalogRelease("0.1.0");
@@ -138,7 +153,7 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
   const args = [
     "packages/cli/dist/index.js", "rollback", CATALOG_REACT_ID,
     `--version=${version}`,
-    "--registry-base-url=http://127.0.0.1:4400",
+    `--registry-base-url=${cdnOrigin}`,
     `--publish-config=${publishConfig}`
   ];
   if (buildId) args.push(`--build-id=${buildId}`);
@@ -146,11 +161,15 @@ async function selectCatalogRelease(version: string, buildId?: string): Promise<
 }
 
 async function expectCatalogVersion(request: APIRequestContext, version: string): Promise<void> {
-  const response = await request.get(`http://127.0.0.1:4400/hosts/${ANGULAR_HOST_ID}/catalog.json?version=${version}`);
+  const response = await request.get(`${cdnOrigin}/hosts/${ANGULAR_HOST_ID}/catalog.json?version=${version}`);
   const catalog = deploymentCatalog(await response.json());
   expect(catalog.apps.find((manifest) => manifest.id === CATALOG_REACT_ID)?.version).toBe(version);
 }
 
 async function runCli(args: string[], environment: NodeJS.ProcessEnv): Promise<void> {
   await runAtlasCli(workspaceRoot, args, environment);
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

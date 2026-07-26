@@ -251,7 +251,7 @@ async function readProject(root: string, requestedName: string, workspaceRoot: s
   const nxProject = await readJson<NxProjectConfiguration>(join(root, "project.json"));
   const packageName = packageJson?.name ?? nxProject?.name;
   if (!packageName || (!packageJson?.version && !nxProject)) return undefined;
-  const identifiers = [packageName, packageName.split("/").at(-1), nxProject?.name, root.split("/").at(-1)];
+  const identifiers = [packageName, packageName.split("/").at(-1), nxProject?.name, basename(root)];
   if (!identifiers.includes(requestedName) && resolve(requestedName) !== root) return undefined;
   const configPath = join(root, "atlas.config.ts");
   if (!await exists(configPath)) {

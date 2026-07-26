@@ -64,32 +64,28 @@ Rerunning the tag workflow replaces existing GitHub release assets with the newl
 
 ## Publishing policy
 
-Every successful push to `main` creates a verified release bundle and starts
-the npm publish job. The job verifies checksums and publishes the packages in
-dependency order with npm provenance. Package versions are immutable, so a
-package already available at the repository's current version is skipped. Run
-`pnpm release` before merging changes that should produce a new public release.
+Publish the complete package set with one command:
 
-Configure the `npm-publish` GitHub environment with npm trusted publishing. For
-each `@atlas/*` package, select GitHub Actions as the trusted publisher and set
-the repository and workflow filename to this repository and `verify.yml`
-exactly. Atlas uses Node 24 and npm 11 in that job because npm's OIDC support
-requires Node 22.14 or newer and npm 11.5.1 or newer.
+```sh
+pnpm release:publish
+```
 
-An unpublished package cannot yet have a trusted publisher configured. The
-first release therefore needs a granular npm automation token named
-`NPM_TOKEN` in the `npm-publish` GitHub environment. After the packages exist,
-configure trusted publishing for all seven packages and remove the long-lived
-token. Environment protection rules may require approval before the publish
-job proceeds. Pull requests only run verification and never publish.
+The command builds and verifies the release bundle, validates every SHA-256
+digest, and publishes packages in dependency order. Existing immutable
+versions are skipped. Use `--dry-run` to validate without uploading.
 
-The optional manual package-publishing action in `release.yml` is a recovery
-path and always requires `NPM_TOKEN`; npm permits only one trusted publisher
-configuration per package. Normal releases publish from `verify.yml`.
+Registry URLs, scoped registries, authentication, proxies, and custom
+certificate authorities come from normal pnpm configuration, including the
+workspace or user `.npmrc`. `--registry`, `--tag`, `--access`, `--otp`, and
+`--provenance` are optional command-line overrides:
 
-Organizations using Artifactory, GitHub Packages, or another compatible
-registry can replace that protected job while retaining the same artifact,
-checksum, approval, and package-order guarantees.
+```sh
+pnpm release:publish --registry https://registry.example.com --access restricted
+```
+
+Do not commit authentication tokens. Prefer `pnpm login`, a user-level
+`.npmrc`, or CI secret configuration. Registries differ on scoped-package
+visibility, so configure `access=public` only when the target requires it.
 
 Atlas is released under the MIT License. Every package tarball includes the
 license text, and package verification rejects different license metadata.

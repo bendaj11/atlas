@@ -16,6 +16,8 @@ test("--help prints a concise command catalog", async () => {
   const result = await runCli(["--help"]);
   expect(result.code).toBe(0);
   expect(result.stdout).toMatch(/Commands:\n\s+generate, g\s+Generate a host/);
+  expect(result.stdout).toMatch(/--no-input\s+Disable interactive prompts/);
+  expect(result.stdout).toMatch(/NO_COLOR\s+Disable ANSI color output/);
   expect(result.stdout).not.toMatch(/--registry-base-url/);
 });
 
@@ -66,8 +68,8 @@ test("command help ignores positional values after the command", async () => {
 test("unknown commands explain the error and exit unsuccessfully", async () => {
   const result = await runCli(["buidl"]);
   expect(result.code).toBe(1);
-  expect(result.stderr).toMatch(/Unknown or incomplete command "buidl"/);
-  expect(result.stderr).toMatch(/Suggested action:/);
+  expect(result.stderr).toMatch(/^✖ Unknown or incomplete command "buidl"/);
+  expect(result.stderr).toMatch(/\n  Suggested action:/);
 });
 
 test("non-interactive widget generation requires an explicit app", async () => {

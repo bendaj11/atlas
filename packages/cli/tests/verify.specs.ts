@@ -1,6 +1,6 @@
 import { expect, test } from "@jest/globals";
 import { AtlasVerifyService } from "../dist/verify.js";
-import { createDeploymentFetch, deploymentManifest, remoteIntegrity } from "./verify.driver.js";
+import { createDeploymentFetch, deploymentManifest } from "./verify.driver.js";
 
 test("verify accepts a healthy cross-origin deployment", async () => {
   const manifest = deploymentManifest();
@@ -72,6 +72,58 @@ test("verify accepts asset origins selected by the catalog", async () => {
   expect(report.checks.some((check) => check.status === "failure")).toBe(false);
 });
 
+test("verify checks every shared fallback bundle", async () => {
+  const baseFetch = createDeploymentFetch([deploymentManifest()]);
+  const service = new AtlasVerifyService(async (input, init) => {
+    if (input.toString().endsWith("/shared/react.js")) {
+      return new Response("missing", { status: 404, statusText: "Not Found" });
+    }
+    return baseFetch(input, init);
+  });
+
+  const report = await service.run({
+    runtimeUrl: "https://host.example/atlas.runtime.json"
+  });
+
+  expect(report.checks).toContainEqual(expect.objectContaining({
+    status: "failure",
+    subject: "orders shared react"
+  }));
+});
+
+test("verify rejects incomplete shared dependency metadata", async () => {
+  const baseFetch = createDeploymentFetch([deploymentManifest()]);
+  const invalidMetadata = JSON.stringify({
+    name: "orders",
+    exposes: [{ key: "./entry", outFileName: "entry.js" }],
+    shared: [{ packageName: "react", outFileName: "shared/react.js" }]
+  });
+  const service = new AtlasVerifyService(async (input, init) => {
+    if (
+      input.toString().includes("/orders/") &&
+      input.toString().endsWith("/remoteEntry.json")
+    ) {
+      return new Response(invalidMetadata, {
+        headers: {
+          "access-control-allow-origin": "https://host.example",
+          "cache-control": "public, max-age=31536000, immutable",
+          "content-type": "application/json"
+        }
+      });
+    }
+    return baseFetch(input, init);
+  });
+
+  const report = await service.run({
+    runtimeUrl: "https://host.example/atlas.runtime.json"
+  });
+
+  expect(report.checks).toContainEqual(expect.objectContaining({
+    status: "failure",
+    subject: "orders federation metadata"
+  }));
+});
+
 test("verify bounds concurrent network requests", async () => {
   const manifests = Array.from({ length: 12 }, (_, index) => deploymentManifest({
     id: `orders-${index}`,
@@ -90,6 +142,34 @@ test("verify bounds concurrent network requests", async () => {
 
   await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
   expect(maximum).toBe(3);
+});
+
+test("verify keeps response body consumption inside the network limit", async () => {
+  const manifests = Array.from({ length: 8 }, (_, index) => deploymentManifest({
+    id: `orders-${index}`,
+    remoteEntryUrl: `https://cdn.example/orders-${index}/remoteEntry.json`
+  }));
+  let activeBodies = 0;
+  let maximumBodies = 0;
+  const baseFetch = createDeploymentFetch(manifests);
+  const service = new AtlasVerifyService(async (...args) => {
+    const response = await baseFetch(...args);
+    const readBody = response.arrayBuffer.bind(response);
+    Object.defineProperty(response, "arrayBuffer", {
+      value: async () => {
+        activeBodies += 1;
+        maximumBodies = Math.max(maximumBodies, activeBodies);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        try { return await readBody(); }
+        finally { activeBodies -= 1; }
+      }
+    });
+    return response;
+  }, 2);
+
+  await service.run({ runtimeUrl: "https://host.example/atlas.runtime.json" });
+
+  expect(maximumBodies).toBe(2);
 });
 
 test("verify aborts network requests after the configured timeout", async () => {

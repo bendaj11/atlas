@@ -8,6 +8,12 @@ Angular Atlas projects keep Angular/Nx build as native `build` target. Atlas add
 
 Angular Native Federation produces `remoteEntry.json`, JavaScript chunks, styles, and assets. Atlas discovers output from Nx/Angular target configuration, including Angular `browser` output directories.
 
+Generated federation configuration uses `shareAll` with singleton sharing,
+strict versions, and automatic required-version lookup. Matching host and app
+versions therefore reuse one host-provided package; incompatible versions stay
+isolated or fail according to Native Federation's strict-version policy. Keep
+the generated sharing rules when composing custom federation configuration.
+
 ## Local production build
 
 Nx:

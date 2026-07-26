@@ -89,7 +89,7 @@ export function run(command: string, args: string[], options: SpawnOptions = {})
     child.stdout?.on("data", (chunk) => { stdout += String(chunk); });
     child.stderr?.on("data", (chunk) => { stderr += String(chunk); });
     child.once("error", reject);
-    child.once("exit", (code) => code === 0 ? resolve(stdout) : reject(new Error(stderr)));
+    child.once("exit", (code) => code === 0 ? resolve(stdout + stderr) : reject(new Error(stderr)));
   });
 }
 
@@ -191,16 +191,6 @@ export function closeServer(server: Server): Promise<void> {
 export function assertSingleComponentDeclaration(path: string, contents: string): void {
   const componentCount = angularComponentCount(contents) + reactComponentCount(contents);
   if (componentCount > 1) throw new Error(`${path} contains ${componentCount} component declarations`);
-}
-
-export function emptyRegistry() {
-  return {
-    schemaVersion: "1",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-    hosts: [],
-    apps: [],
-    selections: { hosts: {}, apps: {} }
-  };
 }
 
 export function testTypeScriptConfig(compilerOptions: Record<string, unknown> = {}) {

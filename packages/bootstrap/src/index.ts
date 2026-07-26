@@ -1,10 +1,14 @@
 import type { AtlasHostRuntimeConfig } from "@atlas/schema";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { ATLAS_BROWSER_LOADER } from "./browser-loader.js";
 
 export { ATLAS_BROWSER_LOADER } from "./browser-loader.js";
 
 const DEFAULT_TITLE = "Atlas";
 const DEFAULT_LOADING_HTML = "Loading product…";
+const require = createRequire(import.meta.url);
+const MODULE_SHIM_SOURCE = readFileSync(require.resolve("es-module-shims"), "utf8");
 
 export interface AtlasBootstrapOptions {
   runtime: AtlasHostRuntimeConfig;
@@ -15,7 +19,7 @@ export interface AtlasBootstrapOptions {
 }
 
 export interface AtlasBootstrapFile {
-  path: "index.html" | "atlas.loader.js" | "atlas.runtime.json" | "nginx.conf";
+  path: "index.html" | "atlas.loader.js" | "es-module-shims.js" | "atlas.runtime.json" | "nginx.conf";
   contents: string;
 }
 
@@ -29,6 +33,7 @@ export function createAtlasBootstrapFiles(options: AtlasBootstrapOptions): Atlas
   return [
     { path: "index.html", contents: html.endsWith("\n") ? html : `${html}\n` },
     { path: "atlas.loader.js", contents: `${ATLAS_BROWSER_LOADER.trimEnd()}\n` },
+    { path: "es-module-shims.js", contents: MODULE_SHIM_SOURCE },
     { path: "atlas.runtime.json", contents: `${JSON.stringify(options.runtime, null, 2)}\n` },
     {
       path: "nginx.conf",

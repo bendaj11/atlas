@@ -7,7 +7,6 @@ import {
   S3Client,
   type S3ClientConfig
 } from "@aws-sdk/client-s3";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { publicationContentType } from "./publication-metadata.js";
 
 export interface AtlasPublicationStorage {
@@ -295,10 +294,10 @@ function storageFromEnvironment(): AtlasPublicationStorage | undefined {
 function s3ClientConfig(options: S3Options): S3ClientConfig {
   const credentials = options.accessKeyId && options.secretAccessKey
     ? { accessKeyId: options.accessKeyId, secretAccessKey: options.secretAccessKey, ...(options.sessionToken ? { sessionToken: options.sessionToken } : {}) }
-    : defaultProvider();
+    : undefined;
   return {
     region: options.region ?? "us-east-1",
-    credentials,
+    ...(credentials ? { credentials } : {}),
     ...(options.endpoint ? { endpoint: options.endpoint } : {}),
     ...(options.forcePathStyle !== undefined ? { forcePathStyle: options.forcePathStyle } : {})
   };

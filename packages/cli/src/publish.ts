@@ -38,7 +38,8 @@ const MUTABLE_CACHE_CONTROL = "no-cache";
 
 interface PublicationFile {
   readonly path: string;
-  readonly bytes: Uint8Array;
+  readonly bytes?: Uint8Array;
+  readonly sourcePath?: string;
   readonly cache: "immutable" | "revalidate";
 }
 
@@ -319,7 +320,7 @@ async function publishFiles(
   try {
     for (const file of mutableFiles) {
       await lease.assertHeld();
-      await storage.replace(file.path, file.bytes, publicationMetadata(file));
+      await storage.replace(file.path, await publicationBytes(file), publicationMetadata(file));
       uploaded.push(file.path);
     }
     await verifyStoredFiles(storage, files);
@@ -364,11 +365,11 @@ async function stalePullRequestReason(
 
 async function immutablePublicationFiles(build: AtlasBuildResult): Promise<PublicationFile[]> {
   const prefix = artifactPrefix(build);
-  const artifactFiles = await Promise.all(build.files.map(async (relativePath) => ({
+  const artifactFiles = build.files.map((relativePath) => ({
     path: `${prefix}/${normalizePath(relativePath)}`,
-    bytes: new Uint8Array(await readFile(join(build.sourceDirectory, relativePath))),
+    sourcePath: join(build.sourceDirectory, relativePath),
     cache: "immutable" as const
-  })));
+  }));
   const manifestName = build.artifact === "host" ? "host.manifest.json" : "app.manifest.json";
   const manifest = {
     path: `${prefix}/${manifestName}`,
@@ -472,13 +473,14 @@ async function readPublicationDirectory(
 }
 
 async function createImmutable(storage: AtlasPublicationStorage, file: PublicationFile): Promise<boolean> {
+  const bytes = await publicationBytes(file);
   try {
-    await storage.create(file.path, file.bytes, publicationMetadata(file));
+    await storage.create(file.path, bytes, publicationMetadata(file));
     return true;
   } catch (error) {
     const existing = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
-    if (existing && metadata && sha256(existing) === sha256(file.bytes)) {
+    if (existing && metadata && sha256(existing) === sha256(bytes)) {
       assertPublicationMetadata(file.path, metadata, publicationMetadata(file));
       return false;
     }
@@ -514,11 +516,17 @@ async function verifyStoredFiles(
   for (const file of files) {
     const stored = await readStoredObject(storage, file.path);
     if (!stored) throw new Error(`Published object ${file.path} is missing from storage.`);
-    if (sha256(stored.bytes) !== sha256(file.bytes)) {
+    if (sha256(stored.bytes) !== sha256(await publicationBytes(file))) {
       throw new Error(`Published object ${file.path} does not match local SHA-256.`);
     }
     assertPublicationMetadata(file.path, stored.metadata, publicationMetadata(file));
   }
+}
+
+async function publicationBytes(file: PublicationFile): Promise<Uint8Array> {
+  if (file.bytes) return file.bytes;
+  if (file.sourcePath) return new Uint8Array(await readFile(file.sourcePath));
+  throw new Error(`Publication file ${file.path} has no bytes or source path.`);
 }
 
 function publicationMetadata(file: PublicationFile): AtlasPublicationObjectMetadata {

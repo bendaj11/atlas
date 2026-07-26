@@ -73,7 +73,14 @@ async function readActiveHost(): Promise<HostLoadResult> {
     const result = await readHostData();
     return createLoadedHost(result);
   } catch (error) {
-    return { status: 'ERROR', message: errorMessage(error) };
+    return {
+      status: 'ERROR',
+      message: errorMessage(
+        error,
+        'read Atlas data from the active browser tab',
+        'Open an Atlas host or App Preview tab, activate it, then retry.',
+      ),
+    };
   }
 }
 

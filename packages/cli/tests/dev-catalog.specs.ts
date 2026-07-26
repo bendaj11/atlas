@@ -34,7 +34,7 @@ test("atlas dev prepares an Angular local override without manual URL editing", 
   expect(document.overrides[0].manifest.channel).toBe("local");
   expect(document.overrides[0].manifest.remoteEntryUrl).toBe("http://localhost:4511/remoteEntry.json");
   expect(document.overrides[0].manifest.integrity).toBe(undefined);
-  expect(stdout).toMatch(/App Preview: https:\/\/host\.example\/orders-angular/);
+  expect(stdout).toMatch(/App preview: https:\/\/host\.example\/orders-angular/);
   expect(stdout).not.toMatch(/atlas-override/);
 });
 

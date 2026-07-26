@@ -18,7 +18,7 @@ import { loadBootstrapTemplate } from "./bootstrap-template.js";
 import { AtlasBuildService } from "./build.js";
 import { compileAtlasConfig } from "./config-compiler.js";
 import { loadEnvFiles, saveWorkspaceLocalEnv } from "./env.js";
-import type { AtlasPrompter } from "./ui.js";
+import { ui, type AtlasPrompter } from "./ui.js";
 import type { AtlasProject, AtlasWorkspace } from "./workspace.js";
 
 const REMOTE_START_TIMEOUT_MS = 120_000;
@@ -27,6 +27,8 @@ const HOST_DISCOVERY_TIMEOUT_MS = 5_000;
 const LOCAL_HOST = "localhost";
 const DEFAULT_HOST_BOOTSTRAP_PORT = 4200;
 const DEFAULT_HOST_CLIENT_PORT = 4300;
+const DEFAULT_CONTROL_PORT = 4400;
+const DEV_SESSION_PORT_PARAM = "atlas-dev-port";
 interface DevControlServer {
   port: number;
   markReady(): Promise<void>;
@@ -87,7 +89,7 @@ export class AtlasDevService {
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
     const configuredPort = await this.resolveRemotePort(project, DEFAULT_HOST_BOOTSTRAP_PORT);
     const { bootstrapPort, clientPort } = resolveHostDevPorts(this.args, configuredPort);
-    const controlPort = this.args.port("control-port", 4400);
+    const controlPort = this.args.port("control-port", DEFAULT_CONTROL_PORT);
     if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
     const manifest = await this.builds.buildLocalHostManifest(project.id, localOrigin(clientPort));
     const document: AtlasDevOverrideDocument = {
@@ -102,7 +104,8 @@ export class AtlasDevService {
     await writeFile(join(directory, "local-overrides.json"), `${JSON.stringify(document, null, 2)}\n`, "utf8");
     const hostUrl = this.args.flag("host-url") ?? localOrigin(bootstrapPort);
     if (this.args.hasFlag("prepare-only")) {
-      console.info(`Host client "${config.id}" is prepared for ${hostUrl}. Run without --prepare-only to start it.`);
+      ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
+      ui.info("Run without --prepare-only to start development servers.");
       return;
     }
     const controlOrigin = localOrigin(controlPort);
@@ -129,8 +132,9 @@ export class AtlasDevService {
         }
       }) : undefined;
       await control.markReady();
-      logHostViewUrl(hostUrl);
-      openBrowserWhenReady(this.args, hostUrl);
+      const hostActivationUrl = withDevSessionPort(hostUrl, controlPort);
+      logHostViewUrl(hostActivationUrl);
+      openBrowserWhenReady(this.args, hostActivationUrl);
       await waitForShutdown(frameworkServer, control);
     } finally {
       if (bootstrap) await closeServer(bootstrap);
@@ -144,7 +148,7 @@ export class AtlasDevService {
     prompts: Pick<AtlasPrompter, "interactive" | "input" | "select">
   ): Promise<void> {
     const remotePort = await this.resolveRemotePort(project);
-    const controlPort = this.args.port("control-port", 4400);
+    const controlPort = this.args.port("control-port", DEFAULT_CONTROL_PORT);
     const manifest = await this.builds.buildManifest(name, "local", { skipCompile: true, baseUrl: localOrigin(remotePort) });
     const target = await this.resolveDevTarget(config, prompts);
     await this.offerToSaveDevTarget(project.root, target, prompts);
@@ -158,11 +162,11 @@ export class AtlasDevService {
     await mkdir(directory, { recursive: true });
     await writeFile(overridePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
     const overrideUrl = `${localOrigin(controlPort)}/atlas.local-overrides.json`;
-    const hostActivationUrl = target.hostUrl;
     if (this.args.hasFlag("prepare-only")) {
-      logHostViewUrl(hostActivationUrl);
+      logHostViewUrl(target.hostUrl);
       return;
     }
+    const hostActivationUrl = withDevSessionPort(target.hostUrl, controlPort);
     const control = await startControlServer(controlPort, document, overrideUrl);
     const frameworkTask = this.workspace.kind === "nx" ? "serve" : "dev";
     const frameworkServer = this.workspace.spawn(project, frameworkTask, frameworkServerArguments(config.framework, remotePort));
@@ -208,7 +212,7 @@ export class AtlasDevService {
     ]);
     if (answer === "no") return;
     await saveWorkspaceLocalEnv(projectRoot, { ATLAS_HOST_URL: target.hostUrl });
-    console.info(`Saved local host URL to ${join(projectRoot, ".env.local")}.`);
+    ui.success(`Saved local host URL to ${join(projectRoot, ".env.local")}.`);
   }
 
   private async resolveHostId(config: AtlasConfig, hostUrl: string): Promise<string> {
@@ -322,7 +326,7 @@ function listen(server: Server, port: number, label: string): Promise<Server> {
       server.off("error", reject);
       const address = server.address();
       const actualPort = typeof address === "object" && address ? address.port : port;
-      console.info(`${label} listening at ${localOrigin(actualPort)}.`);
+      ui.info(`${label} listening at ${localOrigin(actualPort)}.`);
       resolve(server);
     });
   });
@@ -834,10 +838,17 @@ function waitForShutdown(child: ChildProcess, control: DevControlServer): Promis
 
 function logHostViewUrl(url: string | undefined): void {
   if (url) {
-    console.info(`App Preview: ${url}`);
+    ui.result("App preview", url);
   } else {
-    console.info("App Preview: unresolved; pass --host-url or set ATLAS_HOST_URL.");
+    ui.warning("App preview unresolved. Pass --host-url or set ATLAS_HOST_URL.");
   }
+}
+
+function withDevSessionPort(hostUrl: string, controlPort: number): string {
+  if (controlPort === DEFAULT_CONTROL_PORT) return hostUrl;
+  const url = new URL(hostUrl);
+  url.searchParams.set(DEV_SESSION_PORT_PARAM, String(controlPort));
+  return url.href;
 }
 
 function openBrowserWhenReady(args: CliArguments, url: string | undefined): void {

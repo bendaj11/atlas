@@ -1,7 +1,15 @@
+import { sdkError } from "./sdk-error.js";
+
 export function scopePath(basePath: string, to: string): string {
   const normalizedBasePath = normalizeBasePath(basePath);
   if (/^https?:\/\//.test(to)) {
-    throw new Error("Atlas scoped navigation only accepts same-origin paths.");
+    throw sdkError(
+      `Atlas cannot navigate to absolute URL "${to}" through scoped app navigation.`,
+      {
+        suggestedActions: "Pass a same-origin path such as /orders; use the browser or host navigation API for external URLs.",
+        code: "ATLAS_EXTERNAL_SCOPED_NAVIGATION"
+      }
+    );
   }
 
   if (to.startsWith(normalizedBasePath)) {

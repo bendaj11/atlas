@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Card, RadioGroup, Text } from '@wix/design-system';
 import type { Scope } from '../../../types/app.js';
 

@@ -4,7 +4,7 @@ import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigati
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { renderHostMountState } from "../dist/dom-rendering.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
-import type { AtlasExportedWidgetManifest, AtlasHostCatalog, AtlasManifest, AtlasPlacement } from "../../schema/dist/index.js";
+import type { AtlasError, AtlasExportedWidgetManifest, AtlasManifest, AtlasPlacement } from "../../schema/dist/index.js";
 import type { AtlasNavigation } from "../../sdk/dist/index.js";
 import type { AtlasAppContext, AtlasExportedWidgetMountRequest } from "../../sdk/dist/lifecycle.js";
 import type { AtlasHostMountEvent, AtlasRuntimeEvent } from "../dist/index.js";
@@ -16,7 +16,10 @@ test("resolveRuntimeManifests rejects duplicate selected app versions", () => {
       createTestManifest({ version: "2.0.0" })
   ]);
 
-  assert.throws(() => resolveRuntimeManifests(catalog), /multiple selected versions/);
+  assert.throws(
+    () => resolveRuntimeManifests(catalog),
+    /selects multiple versions of app "catalog".*Suggested action: Correct the host catalog/u
+  );
 });
 
 test("resolveRuntimeManifests applies overrides", () => {
@@ -62,14 +65,14 @@ test("resolveRuntimeManifests rejects unknown, duplicate, and host-incompatible 
 
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ appId: "unknown", manifest: createTestManifest({ id: "unknown" }), reason: "local" }]),
-    /not selected by the host catalog/
+    /does not select that app or widget provider.*Suggested action: Open Columbus/u
   );
   assert.throws(
     () => resolveRuntimeManifests(catalog, [
       { appId: "catalog", manifest: replacement, reason: "local" },
       { appId: "catalog", manifest: replacement, reason: "historical" }
     ]),
-    /duplicate entries/
+    /more than one entry for app "catalog".*Suggested action: Open Columbus/u
   );
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: createTestManifest({ id: "catalog", supportedHosts: ["admin"] }), reason: "local" }]),
@@ -463,6 +466,23 @@ test("browser overrides discover the matching local dev session without URL para
   assert.equal(overrides[0].manifest.remoteEntryUrl, "http://localhost:4201/remoteEntry.json");
 });
 
+test("browser overrides discover a local dev session on the requested control port", async () => {
+  let requestedUrl;
+  await loadBrowserRuntimeOverrides({
+    hostId: "host",
+    allowCustomOverrides: true,
+    search: "?atlas-dev-port=4411",
+    storage: { getItem() { return null; } },
+    sessionStorage: { getItem() { return null; } },
+    async fetchJson(url) {
+      requestedUrl = url;
+      return { schemaVersion: "1", hostId: "host", generatedAt: new Date().toISOString(), overrides: [] };
+    }
+  });
+
+  assert.equal(requestedUrl, "http://localhost:4411/atlas.dev-session.json?hostId=host");
+});
+
 test("missing local dev session leaves browser overrides empty", async () => {
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: "host",
@@ -499,7 +519,7 @@ test("invalid browser overrides name the app and provide a Columbus recovery act
           : null;
       }
     }
-  }), /Invalid Atlas override for app "angular-app".*Suggested action: Open Columbus, correct or disable this app override/u);
+  }), /Atlas override for app "angular-app" is invalid.*Suggested action: Open Columbus/u);
 });
 
 test("browser overrides load a directly persisted extension document", async () => {
@@ -546,7 +566,7 @@ test("local override assets must use loopback URLs", () => {
   const catalog = createHostCatalog([selected]);
   assert.throws(
     () => resolveRuntimeManifests(catalog, [{ appId: "catalog", manifest: replacement, reason: "local" }]),
-    /must use loopback/
+    /uses non-loopback asset URL.*Suggested action: Correct the app manifest/u
   );
 });
 
@@ -566,6 +586,32 @@ test("widget loader mounts from the selected owner version", async () => {
   assert.equal(request.container.isConnected, true);
   await mounted.unmount();
   assert.equal(unmounted, true);
+});
+
+test("widget loader shares concurrent resolution and module imports", async () => {
+  const widget: AtlasExportedWidgetManifest = {
+    schemaVersion: "1", id: "product-count", name: "Product Count",
+    ownerAppId: "catalog", framework: "react",
+    remoteEntryUrl: "https://cdn.example/widget.js",
+    expose: "./widgets/product-count", contractVersion: "1"
+  };
+  const manifest = createTestManifest({ exportedWidgets: [widget] });
+  let imports = 0;
+  const loader = createWidgetLoader([manifest], createTestHostSdk(), {
+    async importWidget() {
+      imports += 1;
+      await tick();
+      return { mount() {} };
+    }
+  });
+
+  const mounted = await Promise.all([
+    loader.mount(widget.id, createWidgetRendererContainer(), {}),
+    loader.mount(widget.id, createWidgetRendererContainer(), {})
+  ]);
+
+  assert.equal(imports, 1);
+  await Promise.all(mounted.map(({ unmount }) => unmount()));
 });
 
 test("mounted widget forwards input updates to framework entry", async () => {
@@ -657,11 +703,9 @@ test("widget loader uses host-owned error UI and disposes it on unmount", async 
   const mounted = await loader.mount("unknown/widget", createWidgetRendererContainer(), {});
 
   assert.equal(typeof retry, "function");
-  assert.deepEqual(events, [
-    "loading:unknown/widget",
-    "loading-disposed",
-    'error:unknown/widget:Atlas exported widget "unknown/widget" is not available.'
-  ]);
+  assert.deepEqual(events.slice(0, 2), ["loading:unknown/widget", "loading-disposed"]);
+  assert.match(events[2] ?? "", /Atlas could not mount widget "unknown\/widget"/);
+  assert.match(events[2] ?? "", /Suggested actions:/);
   await mounted.unmount();
   assert.equal(events.at(-1), "error-disposed");
 });
@@ -677,13 +721,15 @@ test("widget retry remains owned by original mount lifecycle", async () => {
 test("duplicate widget ids warn and keep first selected match", async () => {
   const result = await duplicateWidgetResult();
   assert.equal(result.name, "First Widget");
-  assert.match(result.warning, /multiple apps; using first match from "first"/);
+  assert.match(result.warning, /multiple apps and selected "first"/);
+  assert.match(result.warning, /Suggested action:/);
 });
 
 test("duplicate registry widget ids warn and keep first match", async () => {
   const result = await duplicateRegistryWidgetResult();
   assert.equal(result.ownerId, "first");
-  assert.match(result.warning, /multiple apps; using first match from "first"/);
+  assert.match(result.warning, /multiple apps and selected "first"/);
+  assert.match(result.warning, /Suggested action:/);
 });
 
 test("widget registry resolves widgets from non-routed apps in the primary registry", async () => {
@@ -704,6 +750,26 @@ test("widget registry resolves widgets from non-routed apps in the primary regis
   assert.equal((await resolver(widgetId)).ownerManifest.id, "internal-provider");
   assert.equal(requests, 1);
   assert.equal((await resolver(widgetId)).ownerManifest.id, "internal-provider");
+  assert.equal(requests, 1);
+});
+
+test("widget registry coalesces concurrent graph discovery", async () => {
+  const widgetId = "6f4994c1-b95f-4b24-a01a-106dd61aa4fb";
+  let requests = 0;
+  const resolver = createRegistryWidgetResolver({
+    runtimeConfig: { schemaVersion: "1", hostId: "host", catalogUrl: "https://platform.example/atlas/hosts/host/catalog.json" },
+    catalog: createHostCatalog([]),
+    async fetchJson() {
+      requests += 1;
+      await tick();
+      return widgetRegistry([widgetProvider("internal-provider", widgetId, "1.0.0")]);
+    }
+  });
+
+  const [first, second] = await Promise.all([resolver(widgetId), resolver(widgetId)]);
+
+  assert.equal(first.ownerManifest.id, "internal-provider");
+  assert.equal(second.ownerManifest.id, "internal-provider");
   assert.equal(requests, 1);
 });
 
@@ -868,6 +934,18 @@ test("remote asset URLs are rewritten before inserted nodes enter the host docum
   assert.equal(appendedSrc, "http://localhost:4202/assets/images/image.jpg");
 });
 
+test("remote asset rewriting does not patch or retain descendant insertion methods", () => {
+  const manifest = createTestManifest({ remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
+  const child = createAssetElement("div");
+  const originalAppend = child.append;
+  const boundary = createAssetElement("div", {}, [child]);
+
+  const release = startRemoteAssetRewrite(manifest, boundary, undefined);
+  release();
+
+  assert.equal(child.append, originalAppend);
+});
+
 test("host loads app styles before mount and releases them after the final unmount", async () => {
   const events: string[] = [];
   const document = createStylesheetDocument(events);
@@ -940,14 +1018,54 @@ test("host runtime mounts only the active route and unmounts during navigation",
   assert.ok(unmounted.includes("details"));
 });
 
+test("host runtime lets the latest navigation supersede a pending mount", async () => {
+  const pendingMount = createDeferred();
+  const sdk = createTestHostSdk();
+  const mounted: string[] = [];
+  const unmounted: string[] = [];
+  const runtime = await startAtlasHostRuntime({
+    hostId: "host",
+    manifests: [
+      createRouteManifest("slow", "/slow"),
+      createRouteManifest("latest", "/latest")
+    ],
+    sdk,
+    resolveRouteContainer: () => createTestElement(),
+    resolveSlotContainer: () => undefined,
+    async importRemote(manifest) {
+      return {
+        async mount() {
+          if (manifest.id === "slow") await pendingMount.promise;
+          mounted.push(manifest.id);
+          return { unmount: () => { unmounted.push(manifest.id); } };
+        }
+      };
+    }
+  });
+
+  sdk.navigation.navigate("/slow");
+  await tick();
+  sdk.navigation.navigate("/latest");
+  await tick();
+  assert.deepEqual(mounted, ["latest"]);
+
+  pendingMount.resolve();
+  await tick();
+  await tick();
+  assert.deepEqual(mounted, ["latest", "slow"]);
+  assert.deepEqual(unmounted, ["slow"]);
+  await runtime.stop();
+  assert.deepEqual(unmounted, ["slow", "latest"]);
+});
+
 test("host runtime renders the first exact route and logs duplicate routes", async () => {
   const route = (id: string, basePath: string): AtlasPlacement[] => [createRoutePlacement(id, basePath)];
   const states: AtlasHostMountEvent[] = [];
   const imported: string[] = [];
   const sdk = createTestHostSdk();
-  const errors: unknown[] = [];
+  const errors: unknown[][] = [];
   const originalError = console.error;
-  console.error = (message) => errors.push(message);
+  console.error = (...values) => errors.push(values);
   try {
     const runtime = await startAtlasHostRuntime({
       hostId: "host",
@@ -966,8 +1084,12 @@ test("host runtime renders the first exact route and logs duplicate routes", asy
       }
     });
 
-    assert.match(String(errors[0]), /ignored duplicate route basePath "\/orders" from app "second"/);
-    assert.match(String(errors[0]), /each hostId can use a basePath only once/);
+    assert.equal(errors[0]?.[0], "Atlas ignored a conflicting route.");
+    assert.match(String((errors[0]?.[1] as { message?: string }).message), /two apps assigned to the same host route/);
+    assert.deepEqual((errors[0]?.[1] as { suggestedActions?: string[] }).suggestedActions, [
+      'Give route "/orders" to only one app for host "host".',
+      "Update atlas.config.ts in the conflicting app, rebuild it, and republish its manifest."
+    ]);
     assert.deepEqual(states, []);
     sdk.navigation.navigate("/orders");
     await tick();
@@ -989,6 +1111,8 @@ test("host runtime mounts slots independently and reports remote failures", asyn
 
   assert.deepEqual(driver.states, ["mounting", "error"]);
   assert.match(driver.lastError?.message ?? "", /CDN unavailable/);
+  assert.equal((driver.lastError as AtlasError | undefined)?.surface, "browser");
+  assert.doesNotMatch(driver.lastError?.message ?? "", /atlas --help/);
   await driver.when.stopped();
 });
 
@@ -1016,7 +1140,8 @@ test("DOM host warns and skips app import when a declared slot is missing", asyn
     });
 
     assert.equal(imported, false);
-    assert.match(String(warnings[0]), /does not contain \[data-atlas-slot="header"\]/);
+    assert.match(String(warnings[0]), /host slot "header" is missing/);
+    assert.match(String(warnings[0]), /Suggested action:/);
     await runtime.stop();
   } finally {
     console.warn = originalWarn;
@@ -1214,7 +1339,7 @@ test("remote entry integrity rejects modified production assets", async () => {
   await verifyManifestIntegrity([manifest], async () => new TextEncoder().encode("hello").buffer);
   await assert.rejects(
     () => verifyManifestIntegrity([manifest], async () => new TextEncoder().encode("changed").buffer),
-    /failed remote entry integrity/
+    /remote entry bytes do not match.*Suggested action: Correct the app manifest/u
   );
 });
 
@@ -1271,7 +1396,35 @@ test("federation isolates rejected remotes while trusted apps remain loadable", 
     async loadRemoteModule() { return { mount() {} }; }
   }, [rejected, local], {});
 
-  assert.deepEqual(initialized, ["atlas_rejected", "atlas_local"]);
+  assert.deepEqual(initialized, []);
   assert.equal(typeof (await federation.importRemote(rejected)).mount, "function");
+  assert.deepEqual(initialized, ["atlas_rejected"]);
   assert.equal(typeof (await federation.importRemote(local)).mount, "function");
+  assert.deepEqual(initialized, ["atlas_rejected", "atlas_local"]);
+});
+
+test("federation trusts a registry-resolved widget owner manifest", async () => {
+  const widget: AtlasExportedWidgetManifest = {
+    schemaVersion: "1",
+    id: "external-widget",
+    name: "External Widget",
+    ownerAppId: "external-provider",
+    framework: "react",
+    remoteEntryUrl: "https://external.example/remoteEntry.json",
+    expose: "./widgets/external",
+    contractVersion: "1"
+  };
+  const owner = createTestManifest({
+    id: widget.ownerAppId,
+    remoteEntryUrl: widget.remoteEntryUrl,
+    exportedWidgets: [widget]
+  });
+  const initialized: string[] = [];
+  const federation = await createTrustedNativeFederationImporters({
+    async initFederation(remotes) { initialized.push(...Object.keys(remotes)); },
+    async loadRemoteModule() { return { mount() {} }; }
+  }, [], {});
+
+  assert.equal(typeof (await federation.importWidget(widget, owner)).mount, "function");
+  assert.deepEqual(initialized, ["atlas_external_provider"]);
 });

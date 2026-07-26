@@ -10,6 +10,7 @@ import {
   resolveSelectedManifest,
 } from '../../../scripts/manifests/manifest-utils/manifest-utils.js';
 import { ARTIFACTS_ROUTE } from '../../../scripts/routing/routes/routes.js';
+import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host.js';
 import type {
   ArtifactConfiguration,
   ArtifactProps,
@@ -24,6 +25,7 @@ export function useArtifactConfiguration() {
   const { status: hostStatus } = useHost();
   const { session } = useSession();
   const {
+    message: overrideMessage,
     reportError,
     saveOverride,
     scope,
@@ -100,7 +102,13 @@ export function useArtifactConfiguration() {
         selectedManifest,
       });
     } catch (error) {
-      reportError(error instanceof Error ? error.message : String(error));
+      reportError(
+        errorMessage(
+          error,
+          'save this artifact override',
+          'Correct the selected version or URL, verify this host allows the override, then retry.',
+        ),
+      );
     }
   }
 
@@ -110,6 +118,7 @@ export function useArtifactConfiguration() {
     close,
     configuration,
     draft,
+    errorMessage: overrideStatus === 'ERROR' ? overrideMessage : undefined,
     save,
     scope,
     setScope,

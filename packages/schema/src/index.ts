@@ -27,7 +27,14 @@ export type { CreateManifestFromConfigInput } from "./create-manifest-from-confi
 export { assertAtlasHostCatalog } from "./assert-atlas-host-catalog.js";
 export { assertAtlasHostManifest } from "./assert-atlas-host-manifest.js";
 export { assertAtlasManifest } from "./assert-atlas-manifest.js";
-export { actionableMessage, ensureActionableError, suggestedActionFor } from "./actionable-error.js";
+export {
+  actionableMessage,
+  AtlasError,
+  ensureActionableError,
+  errorSummary,
+  suggestedActionFor
+} from "./actionable-error.js";
+export type { AtlasErrorOptions, AtlasErrorSurface } from "./actionable-error.js";
 export { AtlasValidationError } from "./atlas-validation-error.js";
 export { createManifestFromConfig } from "./create-manifest-from-config.js";
 export { validateAtlasHostCatalog } from "./validate-atlas-host-catalog.js";

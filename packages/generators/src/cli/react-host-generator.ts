@@ -25,14 +25,25 @@ flushSync(() =>
     </StrictMode>
   )
 );`;
-  return `import { StrictMode } from "react";
+  return `import "es-module-shims";
+import { StrictMode } from "react";
 ${rootImport}
 import { RouterProvider } from "react-router-dom";
+import { AtlasError } from "@atlas/schema";
 import { ${providerName}, router } from "./${providerName}";
 import "./styles.css";
 
 const root = document.getElementById("root");
-if (!root) throw new Error('Atlas React host root was not found. Suggested action: Add <div id="root"></div> to host index.html, then reload.');
+if (!root) {
+  throw new AtlasError("Atlas cannot start the React host because element #root is missing.", {
+    suggestedActions: [
+      'Add <div id="root"></div> to the host index.html.',
+      "Rebuild and redeploy the host, then reload the page."
+    ],
+    code: "ATLAS_REACT_HOST_ROOT_MISSING",
+    surface: "browser"
+  });
+}
 
 ${mount}
 `;
@@ -40,8 +51,7 @@ ${mount}
 
 export function reactHostProvider(name: string): string {
   const providerName = reactHostProviderName(name);
-  return `import "es-module-shims";
-import type { PropsWithChildren } from "react";
+  return `import type { PropsWithChildren } from "react";
 import type { AtlasDeploymentCatalog, AtlasHostRuntimeConfig } from "@atlas/schema";
 import { createBrowserRouter } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
@@ -79,10 +89,10 @@ export function reactHostEntry(name: string, profile: ReactVersionProfile): stri
   const providerName = reactHostProviderName(name);
   const imports = profile.major === 17
     ? 'import { render, unmountComponentAtNode } from "react-dom";'
-    : 'import { createRoot } from "react-dom/client";';
+    : 'import { flushSync } from "react-dom";\nimport { createRoot } from "react-dom/client";';
   const renderHost = profile.major === 17
     ? `render(element, request.container);\n  return { unmount: () => unmountComponentAtNode(request.container) };`
-    : `const root = createRoot(request.container);\n  root.render(element);\n  return { unmount: () => root.unmount() };`;
+    : `const root = createRoot(request.container);\n  flushSync(() => root.render(element));\n  return { unmount: () => root.unmount() };`;
   return `import { StrictMode } from "react";
 ${imports}
 import { RouterProvider } from "react-router-dom";

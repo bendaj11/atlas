@@ -53,11 +53,21 @@ interface AtlasHostClientEntry {
 }
 ```
 
-It does not serve HTTP, expose health checks, set HTTP headers, select itself, or fetch a second catalog. It bundles its own framework and product dependencies; the loader shares no React, Angular, router, or product packages with it.
+It does not serve HTTP, expose health checks, set HTTP headers, select itself, or fetch a second catalog. Its federation metadata establishes the host share scope before the host entry loads. Apps reuse matching host dependency versions through Native Federation import maps; a different package version remains isolated in the app scope.
 
 ## Apps
 
 Apps are versioned feature artifacts. The host client mounts the app versions already selected in the effective catalog. Apps receive SDK services and own their feature UI; they do not own the page document or product-wide routing.
+
+Generated React builds share React, React DOM, React Router, Atlas SDK, and their
+required secondary entry points when those packages are declared by the project.
+Atlas also walks every exposed React module's local import graph and
+automatically shares runtime package entry points declared in dependencies or
+peer dependencies. Type-only imports, unused dependencies, and non-JavaScript
+assets stay inside the normal build. Generated Angular builds use Native
+Federation's singleton, strict-version `shareAll` configuration. Runtime reuse
+requires published package versions to match exactly; other versions keep their
+remote-owned fallback.
 
 Apps may also export UUID-addressed widgets. Every production widget in the primary registry is discoverable even when its owner app has no route or slot in this host. Cross-registry providers are named by app id in the consumer's `externalAppsDependencies`; bootstrap environment provides explicit registry URLs. `sdk.getWidget(widgetId)` resolves and mounts code lazily with one independent loading/error card per mount.
 

@@ -46,7 +46,12 @@ function formatRootHelp(): string {
     "",
     formatEntries("Global options", [
       { label: "-h, --help", description: "Show help" },
-      { label: "-v, --version", description: "Show the installed Atlas version" }
+      { label: "-v, --version", description: "Show the installed Atlas version" },
+      { label: "--no-input", description: "Disable interactive prompts" }
+    ]),
+    "",
+    formatEntries("Environment", [
+      { label: "NO_COLOR", description: "Disable ANSI color output" }
     ]),
     "",
     formatExamples(ROOT_EXAMPLES),

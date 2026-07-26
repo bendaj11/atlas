@@ -1,4 +1,3 @@
-import React from 'react';
 import { OverrideRadioCard } from './OverrideRadioCard/OverrideRadioCard';
 import { type ArtifactConfiguration, EditorDraft } from '../../../types/app.js';
 import { Box, Input } from '@wix/design-system';

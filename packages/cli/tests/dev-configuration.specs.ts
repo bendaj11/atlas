@@ -35,8 +35,8 @@ test("atlas dev without a project uses the current Atlas project directory", asy
 
   const document = JSON.parse(await readFile(join(projectRoot, ".atlas/local-overrides.json"), "utf8"));
   expect(document.hostId).toBe("customer-host");
-  expect(stdout).toMatch(/Starting \./);
-  expect(stdout).toMatch(/App Preview: http:\/\/localhost:5173\/orders/);
+  expect(stdout).toMatch(/Develop · \./);
+  expect(stdout).toMatch(/App preview: http:\/\/localhost:5173\/orders/);
   expect(stdout).not.toMatch(/atlas-override/);
 });
 
@@ -138,7 +138,7 @@ test("atlas dev prompts for a missing host URL in interactive mode", async () =>
         return choices.find((choice) => choice.value === "no")!.value;
       }
     });
-    expect(stdout).toMatch(/App Preview: https:\/\/customer\.example\/orders/);
+    expect(stdout).toMatch(/App preview: https:\/\/customer\.example\/orders/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -174,7 +174,7 @@ test("atlas dev prompts for a route when a base host URL matches multiple routes
         return selected.value;
       }
     });
-    expect(stdout).toMatch(/App Preview: https:\/\/customer\.example\/admin\/orders/);
+    expect(stdout).toMatch(/App preview: https:\/\/customer\.example\/admin\/orders/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }
@@ -200,7 +200,7 @@ test("atlas dev keeps a full ATLAS_HOST_URL with multiple routes", async () => {
 
   try {
     const stdout = await runDevService(root, projectRoot, ["dev", "orders", "--prepare-only"]);
-    expect(stdout).toMatch(/App Preview: https:\/\/customer\.example\/custom\/path\?mode=dev/);
+    expect(stdout).toMatch(/App preview: https:\/\/customer\.example\/custom\/path\?mode=dev/);
   } finally {
     restoreEnv("ATLAS_HOST_URL", originalHostUrl);
   }

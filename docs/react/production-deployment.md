@@ -8,6 +8,24 @@ React Atlas projects keep Vite or Nx Vite build as native `build` target. Atlas 
 
 Vite Federation produces `remoteEntry.json`, JavaScript chunks, styles, and assets. Atlas discovers output through workspace target configuration and conventional Vite `dist` directory.
 
+The generated Vite factory discovers sharing automatically. Atlas walks local
+imports reachable from every exposed entry and widget, selects runtime package
+entry points declared in dependencies or peer dependencies, emits fallback
+bundles, and marks those exact specifiers external. React, React DOM, and Atlas
+SDK companion entry points are retained even when JSX transformation introduces
+them after source analysis.
+
+No `shared` or `sharedDependencies` configuration belongs in product Vite
+files. Declare product libraries normally and import them from exposed source.
+Type-only imports, unused dependencies, CSS, JSON, and other non-JavaScript
+assets are not federated. Computed dynamic package names cannot be discovered;
+use a literal dynamic import such as `import("@company/design-system/modal")`.
+
+Bootstrap installs the host import map before importing `host.js`. App
+federation then reuses host URLs for exact matching package versions and keeps
+its own emitted fallback for other versions. CI should inspect
+`dist/remoteEntry.json` and verify that every referenced shared file exists.
+
 ## Local production build
 
 Nx:

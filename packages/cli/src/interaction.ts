@@ -21,8 +21,8 @@ export async function resolveInvocation(args: CliArguments, prompts: AtlasPrompt
 
   if (command === "g" || command === "generate") {
     subcommand ??= await prompts.select("What would you like to generate?", [
-      { label: "App app", value: "app" },
-      { label: "Host application", value: "host" },
+      { label: "Application", value: "app" },
+      { label: "Host", value: "host" },
       { label: "Exported widget", value: "widget" }
     ]);
     name ??= await prompts.input(subcommand === "widget" ? "Widget name" : `${title(subcommand)} name`);

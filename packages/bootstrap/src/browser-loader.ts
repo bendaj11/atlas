@@ -2,12 +2,15 @@ export const ATLAS_BROWSER_LOADER = String.raw`
 const DOCUMENT_KEY = "atlas.runtime-overrides";
 const URL_KEY = "atlas.runtime-override-url";
 const DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
+const DEV_SESSION_PORT_PARAM = "atlas-dev-port";
 const DEV_SESSION_TIMEOUT_MS = 500;
 const LOADER_API_VERSION = "1.0.0";
+const MODULE_SHIM_URL = "/es-module-shims.js";
 
 start().catch(showFatalError);
 
 async function start() {
+  await installModuleShim();
   const runtime = await fetchJson("/atlas.runtime.json");
   const catalog = await fetchJson(runtime.catalogUrl, runtime);
   const effectiveCatalog = await applyOverrides(runtime, catalog);
@@ -26,9 +29,33 @@ async function loadHostModule(manifest, runtime) {
   const metadata = await fetchJson(manifest.remoteEntryUrl, runtime, manifest.integrity);
   const expose = metadata.exposes && metadata.exposes.find((candidate) => candidate.key === manifest.exposes.entry);
   if (!expose || typeof expose.outFileName !== "string") throw new Error("Selected host remote does not expose " + manifest.exposes.entry + ".");
+  installHostSharedDependencies(metadata, manifest.remoteEntryUrl);
   const moduleUrl = new URL(expose.outFileName, manifest.remoteEntryUrl);
   validateArtifactUrl(moduleUrl, manifest, runtime);
-  return import(moduleUrl.href);
+  return globalThis.importShim(moduleUrl.href);
+}
+
+async function installModuleShim() {
+  globalThis.esmsInitOptions = { shimMode: true };
+  await import(MODULE_SHIM_URL);
+  if (typeof globalThis.importShim !== "function") {
+    throw new Error("Atlas could not initialize the ES module loader.");
+  }
+}
+
+function installHostSharedDependencies(metadata, remoteEntryUrl) {
+  if (!Array.isArray(metadata.shared) || metadata.shared.length === 0) return;
+  const imports = {};
+  for (const shared of metadata.shared) {
+    if (!shared || typeof shared.packageName !== "string" || typeof shared.outFileName !== "string") {
+      throw new Error("Selected host remote contains invalid shared dependency metadata.");
+    }
+    imports[shared.packageName] = new URL(shared.outFileName, remoteEntryUrl).href;
+  }
+  const importMap = document.createElement("script");
+  importMap.type = "importmap-shim";
+  importMap.textContent = JSON.stringify({ imports });
+  document.head.append(importMap);
 }
 
 async function fetchJson(url, runtime = {}, integrity) {
@@ -104,6 +131,9 @@ function mergeDevSessionCatalog(catalog, session) {
 async function discoverDevSession(hostId) {
   try {
     const url = new URL(DEV_SESSION_URL);
+    const requestedPort = new URLSearchParams(location.search).get(DEV_SESSION_PORT_PARAM);
+    const port = Number(requestedPort);
+    if (requestedPort && Number.isInteger(port) && port > 0 && port <= 65535) url.port = requestedPort;
     url.searchParams.set("hostId", hostId);
     const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(DEV_SESSION_TIMEOUT_MS) });
     if (!response.ok) return undefined;
@@ -185,6 +215,7 @@ async function validateIntegrity(bytes, expected) {
 }
 
 function showFatalError(error) {
+  const failure = describeFatalError(error);
   const root = document.getElementById("atlas-host-root") || document.body;
   root.replaceChildren();
   const panel = document.createElement("main");
@@ -192,7 +223,15 @@ function showFatalError(error) {
   const heading = document.createElement("h1");
   heading.textContent = "Product failed to start";
   const message = document.createElement("p");
-  message.textContent = error instanceof Error ? error.message : String(error);
+  message.textContent = failure.message;
+  const actionHeading = document.createElement("strong");
+  actionHeading.textContent = failure.suggestedActions.length === 1 ? "Suggested action" : "Suggested actions";
+  const actions = document.createElement("ol");
+  for (const action of failure.suggestedActions) {
+    const item = document.createElement("li");
+    item.textContent = action;
+    actions.append(item);
+  }
   const retry = document.createElement("button");
   retry.textContent = "Retry";
   retry.onclick = () => location.reload();
@@ -204,8 +243,56 @@ function showFatalError(error) {
     localStorage.removeItem(URL_KEY);
     location.reload();
   };
-  panel.append(heading, message, retry, reset);
+  panel.append(heading, message, actionHeading, actions, retry, reset);
   root.append(panel);
-  console.error("Atlas host client failed to start:", error);
+  console.error("Atlas bootstrap could not start the product.", failure);
+}
+
+function describeFatalError(error) {
+  const cause = error instanceof Error ? error : new Error(String(error));
+  const detail = cause.message.replace(/\s+Suggested actions?:[\s\S]*$/, "").trim();
+  return {
+    message: "Atlas could not start this page: " + detail,
+    suggestedActions: bootstrapActions(detail),
+    code: "ATLAS_BOOTSTRAP_FAILED",
+    cause
+  };
+}
+
+function bootstrapActions(message) {
+  if (/override/i.test(message)) {
+    return [
+      "Select Clear overrides and reload below.",
+      "If the page then works, correct or disable the invalid override in Columbus before enabling it again."
+    ];
+  }
+  if (/integrity|HTTPS|origin|assetOrigins|loopback|protocol/i.test(message)) {
+    return [
+      "Verify atlas.runtime.json assetOrigins and the selected host remote-entry URL.",
+      "Publish the host client from an approved HTTPS origin with matching SHA-256 integrity, then reload."
+    ];
+  }
+  if (/host root|mount/i.test(message)) {
+    return [
+      "Verify the bootstrap page contains #atlas-host-root and the selected host client exports mount(request).",
+      "Rebuild and redeploy the host bootstrap and host client, then reload."
+    ];
+  }
+  if (/catalog|runtime|JSON|schemaVersion|host client|manifest|expose|loader API|shared dependency/i.test(message)) {
+    return [
+      "Verify /atlas.runtime.json and its catalogUrl return valid Atlas JSON for this host.",
+      "Publish a host client compatible with this Atlas loader, then reload."
+    ];
+  }
+  if (/fetch|HTTP|network|timed out|abort/i.test(message)) {
+    return [
+      "Open the failed URL from the error details and verify it is reachable.",
+      "Correct the deployment, authentication, or CORS policy, then reload."
+    ];
+  }
+  return [
+    "Inspect the preserved cause in the browser console for the first failing URL or configuration value.",
+    "Correct the deployed host configuration or artifact, then reload."
+  ];
 }
 `;

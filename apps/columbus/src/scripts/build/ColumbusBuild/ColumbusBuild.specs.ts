@@ -56,6 +56,25 @@ describe('Columbus extension build', () => {
       action: { default_popup: 'index.html' },
     });
   });
+
+  it('should use the dark Columbus mark as the default Chrome icon', async () => {
+    await driver.when.manifestRead();
+
+    expect(driver.get.manifest()).toMatchObject({
+      icons: {
+        16: 'icons/columbus-dark-16.png',
+        32: 'icons/columbus-dark-32.png',
+        48: 'icons/columbus-dark-48.png',
+        128: 'icons/columbus-dark-128.png',
+      },
+      action: {
+        default_icon: {
+          16: 'icons/columbus-dark-16.png',
+          32: 'icons/columbus-dark-32.png',
+        },
+      },
+    });
+  });
 });
 
 describe('catalog interception', () => {

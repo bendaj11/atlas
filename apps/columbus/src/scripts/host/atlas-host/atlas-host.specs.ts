@@ -1,5 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { AtlasHostDriver } from './atlas-host.driver.js';
+import { errorMessage } from './atlas-host.js';
+
+it('should replace terminal guidance when a CLI-shaped error reaches Columbus', () => {
+  const message = errorMessage(
+    new Error('Runtime unavailable. Suggested action: Run atlas --help.'),
+    'inspect the active host page',
+    'Activate the Atlas host tab, then retry.',
+  );
+
+  expect(message).toContain(
+    'Columbus could not inspect the active host page: Runtime unavailable.',
+  );
+  expect(message).toContain(
+    'Suggested action: Activate the Atlas host tab, then retry.',
+  );
+  expect(message).not.toContain('atlas --help');
+});
 
 describe('active Atlas host selection', () => {
   let driver: AtlasHostDriver;

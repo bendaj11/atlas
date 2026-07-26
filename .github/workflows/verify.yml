@@ -94,14 +94,41 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  portability:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.heavy == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run pack:verify
+
   generated-projects:
     needs: [changes, package-artifacts]
     if: github.event_name == 'push' || needs.changes.outputs.heavy == 'true'
     strategy:
       fail-fast: false
       matrix:
-        package-manager: [yarn, pnpm]
-    runs-on: ubuntu-latest
+        include:
+          - os: ubuntu-latest
+            package-manager: yarn
+          - os: ubuntu-latest
+            package-manager: pnpm
+          - os: windows-latest
+            package-manager: pnpm
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -150,7 +177,7 @@ jobs:
 
   release-bundle:
     if: github.event_name == 'push'
-    needs: [quality, package-artifacts, generated-projects, e2e]
+    needs: [quality, package-artifacts, portability, generated-projects, e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

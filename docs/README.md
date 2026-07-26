@@ -72,6 +72,8 @@ npx atlas build --help
 - [Repository testing](testing.md)
 - [Releasing Atlas packages](releasing.md)
 - [Documentation guidelines](documentation-guide.md)
+- [Error handling standard](error-handling.md)
+- [CLI user-experience standard](cli-user-experience.md)
 
 ## Supported Scope
 

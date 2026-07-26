@@ -5,6 +5,8 @@ import { delay } from "./local-development.driver.js";
 const PROCESS_START_TIMEOUT = 120_000;
 const PROCESS_STOP_TIMEOUT = 15_000;
 const APP_MOUNT_TIMEOUT = 15_000;
+const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? "4300"}`;
+const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? "4301"}`;
 
 interface LocalDevelopmentCase {
   app: string;
@@ -18,14 +20,14 @@ const cases: LocalDevelopmentCase[] = [
   {
     app: "dashboard-react",
     heading: "Dashboard React",
-    hostUrl: "http://127.0.0.1:4300/dashboard",
+    hostUrl: `${reactHostOrigin}/dashboard`,
     remotePort: 4211,
     controlPort: 4411
   },
   {
     app: "dashboard-angular",
     heading: "Dashboard Angular",
-    hostUrl: "http://127.0.0.1:4301/dashboard-angular",
+    hostUrl: `${angularHostOrigin}/dashboard-angular`,
     remotePort: 4212,
     controlPort: 4412
   }
@@ -40,7 +42,7 @@ test.describe("atlas dev", () => {
       try {
         await waitForHealthyControlServer(scenario.controlPort, process);
         const remoteEntryRequest = waitForRemoteEntry(page, scenario.remotePort);
-        await page.goto(scenario.hostUrl);
+        await page.goto(hostActivationUrl(scenario));
         await remoteEntryRequest;
         await expect(page.getByRole("heading", { name: scenario.heading })).toBeVisible({
           timeout: APP_MOUNT_TIMEOUT
@@ -68,6 +70,12 @@ function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"]
   });
+}
+
+function hostActivationUrl(scenario: LocalDevelopmentCase): string {
+  const url = new URL(scenario.hostUrl);
+  url.searchParams.set("atlas-dev-port", String(scenario.controlPort));
+  return url.href;
 }
 
 async function waitForHealthyControlServer(port: number, process: ChildProcess): Promise<void> {

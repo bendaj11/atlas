@@ -19,7 +19,13 @@ export class HttpClient implements AtlasHttpClient {
 
   request = <TResponse = Response>(method: string, url: RequestInfo | URL, options?: AtlasHttpRequestOptions): Promise<TResponse> => {
     if (typeof this.fetchClient !== "function") {
-      throw new Error("This Atlas host has not configured an HTTP client.");
+      throw sdkError(
+        "Atlas cannot send the HTTP request because this host has no HTTP client.",
+        {
+          suggestedActions: "Configure httpClient when creating the host SDK, then retry the request.",
+          code: "ATLAS_HTTP_CLIENT_MISSING"
+        }
+      );
     }
     return this.fetchClient(url, { ...options, method }) as Promise<TResponse>;
   };
@@ -62,3 +68,4 @@ export function normalizeHttpClient(httpClient: AtlasHttpClientInput | undefined
 function withBody(options: AtlasHttpRequestOptions | undefined, body: BodyInit | null | undefined): AtlasHttpRequestOptions | undefined {
   return body === undefined ? options : { ...options, body };
 }
+import { sdkError } from "./sdk-error.js";

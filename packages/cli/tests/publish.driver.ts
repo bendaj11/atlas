@@ -129,10 +129,6 @@ export class FailingMutableStorage implements AtlasPublicationStorage {
   }
 }
 
-export async function fileText(path: string): Promise<string> {
-  return readFile(path, "utf8");
-}
-
 function isMissingFile(error: unknown): error is NodeJS.ErrnoException {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }

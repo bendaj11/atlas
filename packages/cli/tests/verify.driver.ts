@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { createTestManifest } from "../../testkit/dist/index.js";
 
-const remoteBytes = new TextEncoder().encode('{"name":"orders","exposes":[{"key":"./entry","outFileName":"entry.js"}]}');
-const hostRemoteBytes = new TextEncoder().encode('{"name":"host","exposes":[{"key":"./host","outFileName":"host.js"}]}');
+const shared = '{"packageName":"react","outFileName":"shared/react.js","requiredVersion":"^19.0.0","singleton":true,"strictVersion":true,"version":"19.2.0"}';
+const remoteBytes = new TextEncoder().encode(`{"name":"orders","exposes":[{"key":"./entry","outFileName":"entry.js"}],"shared":[${shared}]}`);
+const hostRemoteBytes = new TextEncoder().encode(`{"name":"host","exposes":[{"key":"./host","outFileName":"host.js"}],"shared":[${shared}]}`);
 export const remoteIntegrity = `sha256-${createHash("sha256").update(remoteBytes).digest("base64")}`;
 
 export function deploymentManifest(overrides: Record<string, unknown> = {}) {

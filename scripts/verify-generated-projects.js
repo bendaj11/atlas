@@ -1,11 +1,10 @@
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
+import { execute } from "./process.js";
 
-const execute = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
 const artifacts = join(root, "dist/package-verification");
 const packageManager = readPackageManager(process.argv.slice(2));
@@ -54,7 +53,7 @@ async function stagePackageArchives() {
     const digest = createHash("sha256").update(contents).digest("hex").slice(0, 12);
     const destination = join(packageDirectory, `${name}-${digest}.tgz`);
     await copyFile(source, destination);
-    return [`@atlas/${name}`, `file:${destination}`];
+    return [`@atlas/${name}`, pathToFileURL(destination).href];
   }));
   return Object.fromEntries(entries);
 }
@@ -110,11 +109,8 @@ async function assertGeneratedAtlasRanges() {
 }
 
 async function runAtlas(args) {
-  if (packageManager === "pnpm") {
-    await run("pnpm", ["exec", "atlas", ...args], cleanRoom);
-    return;
-  }
-  await run(join(cleanRoom, "node_modules/.bin/atlas"), args, cleanRoom);
+  const cli = join(cleanRoom, "node_modules", "@atlas", "cli", "dist", "index.js");
+  await run(process.execPath, [cli, ...args], cleanRoom);
 }
 
 async function installDependencies(cwd) {
@@ -154,9 +150,9 @@ async function buildProject(project) {
 }
 
 async function run(command, args, cwd) {
-  const binPath = `${join(cleanRoom, "node_modules/.bin")}:${join(root, "node_modules/.bin")}`;
-  const environment = { ...process.env, PATH: `${binPath}:${process.env.PATH ?? ""}` };
-  const { stdout, stderr } = await execute(command, args, { cwd, env: environment, maxBuffer: 20 * 1024 * 1024 });
+  const binPath = [join(cleanRoom, "node_modules", ".bin"), join(root, "node_modules", ".bin")].join(delimiter);
+  const environment = { ...process.env, PATH: [binPath, process.env.PATH].filter(Boolean).join(delimiter) };
+  const { stdout, stderr } = await execute(command, args, { cwd, env: environment });
   if (stdout) process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
 }

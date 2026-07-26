@@ -10,6 +10,7 @@ export function ArtifactConfigurationPage() {
     draft,
     configuration,
     actionsDisabled,
+    errorMessage,
     close,
     save,
     setScope,
@@ -48,6 +49,8 @@ export function ArtifactConfigurationPage() {
 
       <Page.Content>
         <Box direction="vertical" gap="SP4">
+          {errorMessage && <div role="alert">{errorMessage}</div>}
+
           <BrowserOverrideScopePicker
             value={scope}
             onChange={setScope}

@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -86,7 +85,7 @@ test("atlas dev prepares a React Native Federation override", async () => {
   expect(document.overrides[0].manifest.framework).toBe("react");
   expect(document.overrides[0].manifest.remoteEntryUrl).toBe("http://localhost:4513/remoteEntry.json");
   expect(document.overrides[0].manifest.integrity).toBe(undefined);
-  expect(stdout).toMatch(/App Preview: https:\/\/host\.example\/dashboard/);
+  expect(stdout).toMatch(/App preview: https:\/\/host\.example\/dashboard/);
   expect(stdout).not.toMatch(/atlas-override/);
 });
 

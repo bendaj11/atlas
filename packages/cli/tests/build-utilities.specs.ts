@@ -152,7 +152,7 @@ test('generators keep component declarations split across files', () => {
   }
 });
 
-test('generated Atlas configs use parser-compatible import assertions', () => {
+test('generated Atlas configs use parser-compatible import attributes', () => {
   const configs = [
     ...generateHostFiles({ name: 'host', framework: 'react' }),
     ...generateAppFiles({ name: 'orders', framework: 'react' }),
@@ -161,8 +161,7 @@ test('generated Atlas configs use parser-compatible import assertions', () => {
 
   expect(configs).toHaveLength(3);
   for (const { contents } of configs) {
-    expect(contents).toMatch(/assert \{ "resolution-mode": "import" \}/);
-    expect(contents).not.toMatch(/\bwith \{/);
+    expect(contents).toMatch(/with \{ "resolution-mode": "import" \}/);
   }
 });
 

@@ -8,7 +8,7 @@ import {
   type AtlasManifest
 } from "@atlas/schema";
 
-export type AtlasVerificationStatus = "pass" | "warning" | "failure";
+type AtlasVerificationStatus = "pass" | "warning" | "failure";
 
 export interface AtlasVerificationCheck {
   status: AtlasVerificationStatus;
@@ -77,10 +77,15 @@ export class AtlasVerifyService {
   }
 
   private async fetchRuntime(context: VerificationContext): Promise<AtlasHostRuntimeConfig | undefined> {
-    const response = await this.fetch(context.runtimeUrl, "runtime configuration", context);
+    let value: unknown;
+    const response = await this.fetch(
+      context.runtimeUrl,
+      "runtime configuration",
+      context,
+      async (loaded) => { value = await parseJson(loaded, "runtime configuration", context); }
+    );
     if (!response) return undefined;
     this.verifyMutableCache(response, "runtime configuration", context);
-    const value = await parseJson(response, "runtime configuration", context);
     if (!isRuntimeConfig(value)) {
       fail(context, "runtime configuration", "Expected schemaVersion, hostId, and catalogUrl.");
       return undefined;
@@ -91,11 +96,16 @@ export class AtlasVerifyService {
 
   private async fetchCatalog(runtime: AtlasHostRuntimeConfig, context: VerificationContext): Promise<AtlasHostCatalog | undefined> {
     const catalogUrl = new URL(runtime.catalogUrl, context.runtimeUrl);
-    const response = await this.fetch(catalogUrl, "host catalog", context);
+    let value: unknown;
+    const response = await this.fetch(
+      catalogUrl,
+      "host catalog",
+      context,
+      async (loaded) => { value = await parseJson(loaded, "host catalog", context); }
+    );
     if (!response) return undefined;
     this.verifyCors(response, catalogUrl, "host catalog", context);
     this.verifyMutableCache(response, "host catalog", context);
-    const value = await parseJson(response, "host catalog", context);
     if (!isHostCatalog(value)) {
       fail(context, "host catalog", "Expected schemaVersion, hostId, revision, host, and apps.");
       return undefined;
@@ -173,12 +183,15 @@ export class AtlasVerifyService {
   private async verifyAsset(asset: AssetExpectation, manifest: AtlasManifest | AtlasHostManifest, context: VerificationContext): Promise<void> {
     const url = new URL(asset.url, context.runtimeUrl);
     pass(context, `${asset.subject} URL`, url.href);
-    const response = await this.fetch(url, asset.subject, context);
+    let bytes: Uint8Array | undefined;
+    const response = await this.fetch(url, asset.subject, context, async (loaded) => {
+      bytes = new Uint8Array(await loaded.arrayBuffer());
+    });
     if (!response) return;
     this.verifyCors(response, url, asset.subject, context);
     verifyContentType(response, asset, context);
     verifyImmutableCache(response, asset.subject, manifest.channel, context);
-    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!bytes) return;
     verifyIntegrity(bytes, asset, manifest.channel, context);
     if (asset.inspectFederationReferences) await this.verifyFederationReferences(bytes, url, manifest, context);
   }
@@ -191,7 +204,7 @@ export class AtlasVerifyService {
   ): Promise<void> {
     const metadata = parseFederationMetadata(bytes, manifest.id, context);
     if (!metadata) return;
-    const exposedKeys = new Set(metadata.map((entry) => entry.key));
+    const exposedKeys = new Set(metadata.exposes.map((entry) => entry.key));
     const requiredExposes = new Set([
       ...Object.values(manifest.exposes),
       ...(manifest.kind === "app" ? (manifest.exportedWidgets ?? []).map((component) => component.expose) : [])
@@ -200,9 +213,19 @@ export class AtlasVerifyService {
     if (missingExposes.length > 0) fail(context, `${manifest.id} federation exposes`, `Missing: ${missingExposes.join(", ")}.`);
     else pass(context, `${manifest.id} federation exposes`, "Manifest exposes are present in remote metadata.");
 
-    await Promise.all(metadata.map(async (entry) => {
-      const subject = `${manifest.id} expose ${entry.key}`;
-      const url = new URL(entry.outFileName, remoteEntryUrl);
+    const references = [
+      ...metadata.exposes.map((entry) => ({
+        subject: `${manifest.id} expose ${entry.key}`,
+        outFileName: entry.outFileName
+      })),
+      ...metadata.shared.map((entry) => ({
+        subject: `${manifest.id} shared ${entry.packageName}`,
+        outFileName: entry.outFileName
+      }))
+    ];
+    await Promise.all(references.map(async (reference) => {
+      const url = new URL(reference.outFileName, remoteEntryUrl);
+      const subject = reference.subject;
       const response = await this.fetch(url, subject, context);
       if (!response) return;
       this.verifyCors(response, url, subject, context);
@@ -211,13 +234,22 @@ export class AtlasVerifyService {
     }));
   }
 
-  private async fetch(url: URL, subject: string, context: VerificationContext): Promise<Response | undefined> {
+  private async fetch(
+    url: URL,
+    subject: string,
+    context: VerificationContext,
+    consume?: (response: Response) => Promise<void>
+  ): Promise<Response | undefined> {
     try {
-      const response = await this.network.run(() => this.fetchResource(url, {
-        headers: { Origin: context.hostOrigin },
-        cache: "no-store",
-        signal: AbortSignal.timeout(context.timeoutMs)
-      }));
+      const response = await this.network.run(async () => {
+        const loaded = await this.fetchResource(url, {
+          headers: { Origin: context.hostOrigin },
+          cache: "no-store",
+          signal: AbortSignal.timeout(context.timeoutMs)
+        });
+        if (loaded.ok) await consume?.(loaded);
+        return loaded;
+      });
       if (!response.ok) {
         fail(context, subject, `${url.href} returned ${response.status} ${response.statusText}.`);
         return undefined;
@@ -320,22 +352,46 @@ function parseFederationMetadata(
   bytes: Uint8Array,
   appId: string,
   context: VerificationContext
-): { key: string; outFileName: string }[] | undefined {
+): FederationMetadata | undefined {
   try {
     const value = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
     const record = asRecord(value);
     if (!Array.isArray(record?.exposes)) throw new Error("Expected an exposes array.");
-    return record.exposes.map((candidate) => {
+    if (!Array.isArray(record.shared)) throw new Error("Expected a shared array.");
+    const exposes = record.exposes.map((candidate) => {
       const expose = asRecord(candidate);
       if (!nonEmptyString(expose?.key) || !nonEmptyString(expose.outFileName)) {
         throw new Error("Every expose requires key and outFileName.");
       }
       return { key: expose.key, outFileName: expose.outFileName };
     });
+    const shared = record.shared.map((candidate) => {
+      const dependency = asRecord(candidate);
+      if (
+        !nonEmptyString(dependency?.packageName) ||
+        !nonEmptyString(dependency.outFileName) ||
+        !nonEmptyString(dependency.version) ||
+        !nonEmptyString(dependency.requiredVersion) ||
+        typeof dependency.singleton !== "boolean" ||
+        typeof dependency.strictVersion !== "boolean"
+      ) {
+        throw new Error("Every shared dependency requires packageName, outFileName, version, requiredVersion, singleton, and strictVersion.");
+      }
+      return {
+        packageName: dependency.packageName,
+        outFileName: dependency.outFileName
+      };
+    });
+    return { exposes, shared };
   } catch (error) {
     fail(context, `${appId} federation metadata`, errorMessage(error));
     return undefined;
   }
+}
+
+interface FederationMetadata {
+  exposes: Array<{ key: string; outFileName: string }>;
+  shared: Array<{ packageName: string; outFileName: string }>;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

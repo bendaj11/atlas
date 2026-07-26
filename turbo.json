@@ -1,5 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    "scripts/clean-package-output.js"
+  ],
   "ui": "tui",
   "tasks": {
     "build": {
@@ -12,9 +15,6 @@
       "outputs": [
         "dist/**"
       ]
-    },
-    "publish-lib": {
-      "cache": false
     },
     "typecheck": {
       "dependsOn": [

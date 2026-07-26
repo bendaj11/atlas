@@ -1,5 +1,5 @@
-import "es-module-shims";
 import { StrictMode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
@@ -11,7 +11,9 @@ import "./styles.css";
 export const mount: AtlasHostClientEntry["mount"] = async (request) => {
   const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
   const root = createRoot(request.container);
-  root.render(<StrictMode><RouterProvider router={router} /></StrictMode>);
+  flushSync(() =>
+    root.render(<StrictMode><RouterProvider router={router} /></StrictMode>)
+  );
   const runtime = await startHost({
     router,
     federation: { initFederation, loadRemoteModule },

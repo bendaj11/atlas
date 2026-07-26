@@ -8,6 +8,7 @@ import {
   type AtlasProductionSelection,
   type AtlasStaticRegistry
 } from "@atlas/schema";
+import { runtimeError } from "./runtime-error.js";
 
 export interface AtlasResolvedWidget {
   widget: AtlasExportedWidgetManifest;
@@ -34,42 +35,88 @@ export function createRegistryWidgetResolver(options: WidgetRegistryOptions): At
   const selectedApps = new Map(options.catalog.apps.map((manifest) => [manifest.id, manifest]));
   const overriddenProviders = new Map((options.catalog.widgetProviders ?? []).map((manifest) => [manifest.id, manifest]));
   const warnedDuplicateWidgetIds = new Set<string>();
+  const selectedWidgets = indexWidgets([...selectedApps.values()], warnedDuplicateWidgetIds);
+  const overriddenWidgets = indexWidgets([...overriddenProviders.values()], warnedDuplicateWidgetIds);
+  const resolvedWidgets = new Map([...overriddenWidgets, ...selectedWidgets]);
+  const resolvingWidgets = new Map<string, Promise<AtlasResolvedWidget>>();
   const primaryRegistry = lazyRegistry(() => primaryRegistryUrl(options.runtimeConfig.catalogUrl), options.fetchJson);
   const externalRegistries = (options.runtimeConfig.externalRegistryUrls ?? [])
     .map((url) => lazyRegistry(registryJsonUrl(url), options.fetchJson));
   const externalRootIds = [...new Set(options.catalog.apps.flatMap((manifest) => manifest.externalAppsDependencies ?? []))];
-  const firstWidget = (widgetId: string, manifests: AtlasManifest[]): AtlasResolvedWidget | undefined =>
-    uniqueWidget(widgetId, manifests, (firstOwnerId) => {
-      if (warnedDuplicateWidgetIds.has(widgetId)) return;
-      warnedDuplicateWidgetIds.add(widgetId);
-      console.warn(`Atlas widget id "${widgetId}" is exported by multiple apps; using first match from "${firstOwnerId}".`);
+  let primaryLoading: Promise<{ result: Awaited<ReturnType<typeof settleRegistry>>; widgets: Map<string, AtlasResolvedWidget> }> | undefined;
+  let externalLoading: Promise<{
+    results: Awaited<ReturnType<typeof settleRegistry>>[];
+    widgets: Map<string, AtlasResolvedWidget>;
+    error?: Error;
+  }> | undefined;
+
+  const startDiscovery = (): void => {
+    primaryLoading ??= settleRegistry(primaryRegistry()).then((result) => ({
+      result,
+      widgets: indexWidgets(
+        result.snapshot
+          ? selectProductionApps(result.snapshot.registry).filter((manifest) => !selectedApps.has(manifest.id))
+          : [],
+        warnedDuplicateWidgetIds
+      )
+    }));
+    externalLoading ??= Promise.all(externalRegistries.map((load) => settleRegistry(load()))).then((results) => {
+      const snapshots = results.flatMap((result) => result.snapshot ? [result.snapshot] : []);
+      try {
+        const manifests = resolveExternalDependencyGraph(externalRootIds, snapshots)
+          .filter((manifest) => !overriddenProviders.has(manifest.id));
+        return { results, widgets: indexWidgets(manifests, warnedDuplicateWidgetIds) };
+      } catch (error) {
+        return { results, widgets: new Map<string, AtlasResolvedWidget>(), error: toError(error) };
+      }
     });
+  };
 
-  return async (widgetId) => {
-    assertWidgetId(widgetId);
-    const selectedMatch = firstWidget(widgetId, [...selectedApps.values()]);
-    if (selectedMatch) return selectedMatch;
-    const overrideMatch = firstWidget(widgetId, [...overriddenProviders.values()]);
-    if (overrideMatch) return overrideMatch;
+  const resolveUnknownWidget = async (widgetId: string): Promise<AtlasResolvedWidget> => {
+    startDiscovery();
+    const primary = await primaryLoading!;
+    const primaryMatch = primary.widgets.get(widgetId);
+    if (primaryMatch) return primaryMatch;
 
-    const externalLoading = externalRegistries.map((load) => settleRegistry(load()));
-    const primary = await settleRegistry(primaryRegistry());
-    if (primary.snapshot) {
-      const primaryMatch = firstWidget(widgetId, selectProductionApps(primary.snapshot.registry)
-        .filter((manifest) => !selectedApps.has(manifest.id)));
-      if (primaryMatch) return primaryMatch;
-    }
-
-    const external = await Promise.all(externalLoading);
-    const snapshots = external.flatMap((result) => result.snapshot ? [result.snapshot] : []);
-    const externalApps = resolveExternalDependencyGraph(externalRootIds, snapshots)
-      .filter((manifest) => !overriddenProviders.has(manifest.id));
-    const externalMatch = firstWidget(widgetId, externalApps);
+    const external = await externalLoading!;
+    const externalMatch = external.widgets.get(widgetId);
     if (externalMatch) return externalMatch;
 
-    const failures = [primary, ...external].flatMap((result) => result.error ? [result.error.message] : []);
+    const failures = [
+      ...[primary.result, ...external.results].flatMap((result) => result.error ? [result.error.message] : []),
+      ...(external.error ? [external.error.message] : [])
+    ];
     const detail = failures.length ? ` Unavailable registries: ${failures.join("; ")}` : "";
-    throw new Error(`Atlas widget "${widgetId}" is not exported by an available app.${detail}`);
+    if (failures.length > 0) {
+      primaryLoading = undefined;
+      externalLoading = undefined;
+    }
+    throw runtimeError(
+      `Atlas could not find widget "${widgetId}" in any available app.${detail}`,
+      {
+        code: "ATLAS_WIDGET_NOT_FOUND",
+        suggestedActions: [
+          "Confirm the widget UUID matches an exportedWidgets entry in the owning app manifest.",
+          "Publish the owning app to the configured registry, then reload the page."
+        ]
+      }
+    );
+  };
+
+  return (widgetId) => {
+    assertWidgetId(widgetId);
+    const known = resolvedWidgets.get(widgetId);
+    if (known) return Promise.resolve(known);
+    const pending = resolvingWidgets.get(widgetId);
+    if (pending) return pending;
+    const resolving = resolveUnknownWidget(widgetId)
+      .then((resolved) => {
+        resolvedWidgets.set(widgetId, resolved);
+        return resolved;
+      })
+      .finally(() => resolvingWidgets.delete(widgetId));
+    resolvingWidgets.set(widgetId, resolving);
+    return resolving;
   };
 }
 
@@ -94,14 +141,33 @@ async function settleRegistry(promise: Promise<RegistrySnapshot>): Promise<{ sna
 
 async function fetchRegistry(url: string): Promise<unknown> {
   const response = await fetch(url, { cache: "no-cache" });
-  if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`);
+  if (!response.ok) {
+    throw runtimeError(
+      `Atlas could not load the widget registry at "${url}" because the server returned HTTP ${response.status}.`,
+      {
+        code: "ATLAS_REGISTRY_HTTP_ERROR",
+        suggestedActions: [
+          "Confirm the registry URL is correct and the registry is deployed.",
+          "Check the registry server and browser network response, including CORS settings."
+        ]
+      }
+    );
+  }
   return response.json();
 }
 
 function primaryRegistryUrl(catalogUrl: string): string {
   const url = new URL(catalogUrl, globalThis.location?.href ?? "http://atlas.local");
   const match = url.pathname.match(/^(.*)\/hosts\/[^/]+\/catalog\.json$/);
-  if (!match) throw new Error(`Atlas catalog URL "${url.href}" does not use hosts/<host-id>/catalog.json layout.`);
+  if (!match) {
+    throw runtimeError(
+      `Atlas cannot locate the registry from catalog URL "${url.href}" because it does not follow the expected host catalog layout.`,
+      {
+        code: "ATLAS_CATALOG_URL_LAYOUT_INVALID",
+        suggestedActions: `Set catalogUrl to a URL ending in "hosts/<host-id>/catalog.json".`
+      }
+    );
+  }
   url.pathname = `${match[1]}/registry.json`.replace(/\/+/g, "/");
   url.search = "";
   url.hash = "";
@@ -114,7 +180,13 @@ function registryJsonUrl(baseUrl: string): string {
 
 function assertRegistry(value: unknown, url: string): AtlasStaticRegistry {
   if (!isRecord(value) || value.schemaVersion !== "1" || !Array.isArray(value.apps) || !Array.isArray(value.hosts)) {
-    throw new Error(`${url} is not an Atlas registry`);
+    throw runtimeError(
+      `Atlas received an invalid registry document from "${url}".`,
+      {
+        code: "ATLAS_REGISTRY_INVALID",
+        suggestedActions: "Deploy a valid Atlas registry.json document with schemaVersion \"1\", apps, and hosts arrays."
+      }
+    );
   }
   value.apps.forEach(assertAtlasManifest);
   value.hosts.forEach(assertAtlasHostManifest);
@@ -122,10 +194,19 @@ function assertRegistry(value: unknown, url: string): AtlasStaticRegistry {
 }
 
 function selectProductionApps(registry: AtlasStaticRegistry): AtlasManifest[] {
-  const ids = [...new Set(registry.apps.map((manifest) => manifest.id))];
-  return ids.flatMap((id) => {
-    const manifest = selectProductionApp(registry, id);
-    return manifest ? [manifest] : [];
+  const byId = new Map<string, AtlasManifest[]>();
+  for (const manifest of registry.apps) {
+    if (manifest.channel !== "production") continue;
+    const versions = byId.get(manifest.id) ?? [];
+    versions.push(manifest);
+    byId.set(manifest.id, versions);
+  }
+  return [...byId].flatMap(([id, production]) => {
+    const selection = registry.selections?.apps?.[id];
+    const selected = selection
+      ? production.find((manifest) => matchesSelection(manifest, selection))
+      : production.sort(compareNewestFirst)[0];
+    return selected ? [selected] : [];
   });
 }
 
@@ -156,8 +237,30 @@ function resolveExternalDependencyGraph(rootIds: string[], snapshots: RegistrySn
       const manifest = selectProductionApp(registry, appId);
       return manifest ? [manifest] : [];
     });
-    if (candidates.length === 0) throw new Error(`External Atlas app dependency "${appId}" was not found in configured registries.`);
-    if (candidates.length > 1) throw new Error(`External Atlas app dependency "${appId}" exists in multiple configured registries.`);
+    if (candidates.length === 0) {
+      throw runtimeError(
+        `Atlas could not find external app dependency "${appId}" in any configured registry.`,
+        {
+          code: "ATLAS_EXTERNAL_APP_NOT_FOUND",
+          suggestedActions: [
+            `Publish app "${appId}" to one of the configured external registries.`,
+            "Confirm externalRegistryUrls includes the registry that owns this app."
+          ]
+        }
+      );
+    }
+    if (candidates.length > 1) {
+      throw runtimeError(
+        `Atlas found external app dependency "${appId}" in more than one configured registry and cannot choose one safely.`,
+        {
+          code: "ATLAS_EXTERNAL_APP_AMBIGUOUS",
+          suggestedActions: [
+            `Keep app "${appId}" in only one configured external registry.`,
+            "Remove duplicate or unintended URLs from externalRegistryUrls."
+          ]
+        }
+      );
+    }
     const manifest = candidates[0]!;
     resolved.set(appId, manifest);
     pending.push(...(manifest.externalAppsDependencies ?? []));
@@ -165,21 +268,38 @@ function resolveExternalDependencyGraph(rootIds: string[], snapshots: RegistrySn
   return [...resolved.values()];
 }
 
-function uniqueWidget(
-  widgetId: string,
-  manifests: AtlasManifest[],
-  onDuplicate: (firstOwnerId: string) => void
-): AtlasResolvedWidget | undefined {
-  const candidates = manifests.flatMap((ownerManifest) => (ownerManifest.exportedWidgets ?? [])
-    .filter((widget) => widget.id === widgetId)
-    .map((widget) => ({ widget, ownerManifest })));
-  if (candidates.length > 1) onDuplicate(candidates[0]!.ownerManifest.id);
-  return candidates[0];
+function indexWidgets(
+  manifests: readonly AtlasManifest[],
+  warnedDuplicateWidgetIds: Set<string>
+): Map<string, AtlasResolvedWidget> {
+  const entries = new Map<string, AtlasResolvedWidget>();
+  for (const ownerManifest of manifests) {
+    for (const widget of ownerManifest.exportedWidgets ?? []) {
+      const existing = entries.get(widget.id);
+      if (!existing) {
+        entries.set(widget.id, { widget, ownerManifest });
+        continue;
+      }
+      if (existing.ownerManifest.id === ownerManifest.id || warnedDuplicateWidgetIds.has(widget.id)) continue;
+      warnedDuplicateWidgetIds.add(widget.id);
+      console.warn(
+        `Atlas found widget id "${widget.id}" in multiple apps and selected "${existing.ownerManifest.id}". ` +
+        "Suggested action: Assign a unique UUIDv4 to each exported widget, rebuild the affected apps, and republish their manifests."
+      );
+    }
+  }
+  return entries;
 }
 
 function assertWidgetId(widgetId: string): void {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(widgetId)) {
-    throw new Error(`Atlas getWidget requires a UUIDv4 widget id. Received "${widgetId}".`);
+    throw runtimeError(
+      `Atlas cannot load widget "${widgetId}" because its identifier is not a valid UUIDv4.`,
+      {
+        code: "ATLAS_WIDGET_ID_INVALID",
+        suggestedActions: "Pass the UUIDv4 from the widget's exportedWidgets manifest entry to getWidget."
+      }
+    );
   }
 }
 

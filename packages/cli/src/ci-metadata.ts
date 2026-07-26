@@ -1,4 +1,4 @@
-export function firstEnvironmentValue(names: readonly string[]): string | undefined {
+function firstEnvironmentValue(names: readonly string[]): string | undefined {
   return names.map((name) => process.env[name]).find((value) => Boolean(value));
 }
 

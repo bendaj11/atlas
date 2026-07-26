@@ -11,7 +11,7 @@ export interface AtlasWidgetContent {
 }
 
 export interface AtlasModalRequest<
-  TResult = unknown,
+  _TResult = unknown,
   TProps extends object = Record<string, unknown>
 > {
   id?: string;

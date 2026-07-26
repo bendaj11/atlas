@@ -33,6 +33,28 @@ Use command help for current options:
 npx atlas publish --help
 ```
 
+## Output and automation
+
+Atlas uses one presentation system across every command:
+
+- headings identify the active command and target;
+- `i`, `✓`, `!`, and `✖` consistently mark information, success, warnings, and errors;
+- command results and help use standard output, while warnings and errors use standard error;
+- errors end with a concrete suggested action;
+- prompts run only in an interactive terminal. Pass `--no-input` to disable them explicitly;
+- set `NO_COLOR=1` for plain output in logs, CI, or assistive tooling.
+
+Maintainers: [CLI user-experience standard](../../docs/cli-user-experience.md).
+
+Commands return zero on success and non-zero on failure. Redirect or pipe standard
+output without losing warnings and errors:
+
+```bash
+npx atlas publish orders > publication.log
+NO_COLOR=1 npx atlas verify --runtime-url "$ATLAS_RUNTIME_URL"
+npx atlas generate app orders --framework react --no-input
+```
+
 ## Workspace integration
 
 Generation delegates framework scaffolding to Nx when available, adds the

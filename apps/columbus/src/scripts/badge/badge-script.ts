@@ -2,11 +2,13 @@ import {
   countDevSessionOverrides,
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh.js';
+import { actionThemeMessage } from '../shared/action-icon-theme.js';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
 const BADGE_DISABLED_LOCAL_APPS_KEY_PREFIX = 'atlas.disabled-local-apps.';
 const REFRESH_INTERVAL_MS = 2_000;
+const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
 let atlasConfigPromise:
   | Promise<
       | {
@@ -28,9 +30,17 @@ const refreshBadge = createBadgeRefresher({
 });
 
 void startBadgeRefresh();
+void publishActionTheme();
 window.addEventListener('focus', () => void refreshBadge());
 window.addEventListener('pageshow', () => void refreshBadge());
 window.addEventListener('storage', () => void refreshBadge());
+darkColorScheme.addEventListener('change', () => void publishActionTheme());
+
+async function publishActionTheme(): Promise<void> {
+  await chrome.runtime.sendMessage(
+    actionThemeMessage(darkColorScheme.matches ? 'dark' : 'light'),
+  );
+}
 
 async function startBadgeRefresh(): Promise<void> {
   await refreshBadge();

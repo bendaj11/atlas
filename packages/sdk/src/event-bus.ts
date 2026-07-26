@@ -1,4 +1,4 @@
-import { ensureActionableError } from "@atlas/schema";
+import { AtlasError, errorSummary } from "@atlas/schema";
 
 export type AtlasEventMap = Record<string, unknown>;
 
@@ -64,7 +64,16 @@ function notifyListener<TEvents extends object>(
     listener(payload);
   } catch (error) {
     queueMicrotask(() => {
-      throw ensureActionableError(error, "Fix failing Atlas event listener named in stack trace, then publish event again.");
+      const cause = error instanceof Error ? error : new Error(String(error));
+      throw new AtlasError(`Atlas event listener failed: ${errorSummary(cause.message)}`, {
+        suggestedActions: [
+          "Use the stack trace to identify the failing event listener.",
+          "Handle the listener failure or correct its input before publishing this event again."
+        ],
+        cause,
+        code: "ATLAS_EVENT_LISTENER_FAILED",
+        surface: "browser"
+      });
     });
   }
 }

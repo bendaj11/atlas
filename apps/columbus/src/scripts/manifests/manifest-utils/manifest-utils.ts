@@ -4,7 +4,6 @@ import {
   versionKey,
 } from '../manifest-versions/manifest-versions.js';
 import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants.js';
-import type { BadgeSkin } from '@wix/design-system';
 import type {
   ArtifactConfiguration,
   ArtifactSelection,
@@ -129,13 +128,6 @@ export function overrideTypeFor({
   if (versionKey(selectedManifest) === versionKey(productionManifest))
     return 'none';
   return 'production';
-}
-
-export function badgeSkin(type: OverrideType): BadgeSkin {
-  if (type === 'none') return 'neutralStandard';
-  if (type === 'custom') return 'warning';
-  if (type === 'pr') return 'premium';
-  return 'standard';
 }
 
 export function versionLabel(manifest: Manifest): string {

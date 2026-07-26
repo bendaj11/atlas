@@ -8,6 +8,8 @@ linkWorkspacePackages: true
 
 allowBuilds:
   '@parcel/watcher': true
+  core-js: set this to true or false
   esbuild: true
   lmdb: true
   msgpackr-extract: true
+  sinon: set this to true or false

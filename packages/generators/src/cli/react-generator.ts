@@ -28,7 +28,6 @@ import {
   reactSinglePageApp,
   reactSinglePageAppEntry,
 } from './react-app-generator.js';
-import { reactRemoteName } from './react-names.js';
 import {
   reactAppIndex,
   reactIndex,
@@ -118,7 +117,7 @@ export function generateReactAppFiles(
           { path: 'src/app/home/Home.tsx', contents: reactAppHome(name) },
           { path: 'src/app/details/Details.tsx', contents: reactAppDetails() },
           { path: 'src/app/routes.tsx', contents: reactAppRoutes() },
-          { path: 'src/entry.tsx', contents: reactAppEntry(name, profile) },
+          { path: 'src/entry.tsx', contents: reactAppEntry(profile) },
         ]
       : [
           { path: 'src/app/App.tsx', contents: reactSinglePageApp(name) },

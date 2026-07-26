@@ -10,7 +10,7 @@ export async function compileAtlasConfig(workspace: AtlasWorkspace, project: Atl
   }
 }
 
-export async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
+async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   const configPath = findCompilerConfig(projectRoot);
   const raw = ts.readConfigFile(configPath, ts.sys.readFile);
   if (raw.error) throw new Error(formatDiagnostics([raw.error], projectRoot));
@@ -28,6 +28,7 @@ export async function compileAtlasConfigFile(projectRoot: string): Promise<void>
     allowImportingTsExtensions: false,
     module: ts.ModuleKind.Node16,
     moduleResolution: ts.ModuleResolutionKind.Node16,
+    types: [],
     outDir: join(projectRoot, ".atlas"),
     rootDir: projectRoot
   };

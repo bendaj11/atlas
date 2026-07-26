@@ -19,11 +19,6 @@ export async function readManifestIndex(path: string): Promise<{ manifests: Atla
   return { manifests: value.manifests.filter(isManifest) };
 }
 
-export function manifestFromUnknown(value: unknown): AtlasManifest {
-  if (!isManifest(value)) throw new Error("Manifest fixture has an invalid shape.");
-  return value;
-}
-
 async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8"));
 }

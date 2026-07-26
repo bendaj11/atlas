@@ -54,8 +54,8 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
       try {
         runtime = await startHost(options);
         if (!active) await runtime.stop();
-      } catch (error) {
-        if (active) console.error("Atlas host failed to start:", error);
+      } catch {
+        // startDomHost already renders and reports one structured browser error.
       }
     });
 

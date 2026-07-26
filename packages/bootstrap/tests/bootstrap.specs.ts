@@ -18,10 +18,17 @@ const runtime = {
 
 test("bootstrap emits complete static deployment bundle", () => {
   const files = new Map(createAtlasBootstrapFiles({ runtime }).map((file) => [file.path, file.contents]));
-  assert.deepEqual([...files.keys()], ["index.html", "atlas.loader.js", "atlas.runtime.json", "nginx.conf"]);
+  assert.deepEqual([...files.keys()], [
+    "index.html",
+    "atlas.loader.js",
+    "es-module-shims.js",
+    "atlas.runtime.json",
+    "nginx.conf"
+  ]);
   assert.match(files.get("index.html")!, /atlas-host-root/);
   assert.match(files.get("index.html")!, /atlas\.loader\.js/);
   assert.match(files.get("atlas.loader.js")!, /requiredLoaderApiVersion/);
+  assert.match(files.get("es-module-shims.js")!, /ES Module Shims/);
   assert.deepEqual(JSON.parse(files.get("atlas.runtime.json")!), runtime);
   assert.match(files.get("nginx.conf")!, /try_files \$uri \$uri\/ \/index\.html/);
   assert.match(files.get("nginx.conf")!, /location ~ \\\.\[\^\/\]\+\$/);
@@ -65,10 +72,32 @@ test("browser loader removes bootstrap loading markup before mounting host", () 
   assert.ok(clearLoadingMarkup < mountHost);
 });
 
+test("browser loader installs host shared imports before importing its entry", () => {
+  const installShared = ATLAS_BROWSER_LOADER.indexOf(
+    "installHostSharedDependencies(metadata, manifest.remoteEntryUrl);"
+  );
+  const importHost = ATLAS_BROWSER_LOADER.indexOf(
+    "return globalThis.importShim(moduleUrl.href);"
+  );
+  assert.ok(installShared >= 0);
+  assert.ok(installShared < importHost);
+  assert.match(ATLAS_BROWSER_LOADER, /await installModuleShim\(\)/);
+  assert.match(ATLAS_BROWSER_LOADER, /importMap\.type = "importmap-shim"/);
+});
+
 test("browser loader discovers local dev sessions without changing the page URL", () => {
   assert.match(ATLAS_BROWSER_LOADER, /http:\/\/localhost:4400\/atlas\.dev-session\.json/);
+  assert.match(ATLAS_BROWSER_LOADER, /atlas-dev-port/);
   assert.match(ATLAS_BROWSER_LOADER, /searchParams\.set\("hostId", hostId\)/);
   assert.match(ATLAS_BROWSER_LOADER, /if \(!present\.has\(override\.appId\)\) apps\.push\(override\.manifest\)/);
+});
+
+test("browser loader renders and logs structured browser recovery without CLI advice", () => {
+  assert.match(ATLAS_BROWSER_LOADER, /Atlas could not start this page:/);
+  assert.match(ATLAS_BROWSER_LOADER, /suggestedActions: bootstrapActions/);
+  assert.match(ATLAS_BROWSER_LOADER, /ATLAS_BOOTSTRAP_FAILED/);
+  assert.match(ATLAS_BROWSER_LOADER, /Correct the deployment, authentication, or CORS policy, then reload/);
+  assert.doesNotMatch(ATLAS_BROWSER_LOADER, /atlas --help/);
 });
 
 test("Nginx fallback never turns missing assets into HTML", () => {

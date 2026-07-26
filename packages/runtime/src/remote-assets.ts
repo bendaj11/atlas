@@ -17,20 +17,17 @@ const URL_ATTRIBUTE_NAMES = [
 export function startRemoteAssetRewrite(
   manifest: AtlasManifest,
   boundary: HTMLElement,
-  document: Document | undefined = boundary.ownerDocument ?? globalThis.document
+  _document: Document | undefined = boundary.ownerDocument ?? globalThis.document
 ): AtlasAssetRewriteRelease {
   if (!isElement(boundary)) return () => undefined;
   const resolver = createRemoteAssetResolver(manifest);
   rewriteAssetUrls(boundary, resolver);
-  const releaseInsertionRewrite = patchElementInsertion(boundary, resolver);
-  const observers = [
-    observeBoundaryAssets(boundary, resolver),
-    observeRemoteStyleAssets(document, resolver)
-  ].filter((observer): observer is MutationObserver => observer !== undefined);
+  const releaseInsertionRewrite = patchBoundaryInsertion(boundary, resolver);
+  const observer = observeBoundaryAssets(boundary, resolver);
 
   return () => {
     releaseInsertionRewrite();
-    observers.forEach((observer) => observer.disconnect());
+    observer?.disconnect();
   };
 }
 
@@ -80,35 +77,6 @@ function observeBoundaryAssets(boundary: HTMLElement, resolver: AssetResolver): 
   return observer;
 }
 
-function observeRemoteStyleAssets(document: Document | undefined, resolver: AssetResolver): MutationObserver | undefined {
-  if (!document?.head) return undefined;
-  const MutationObserverConstructor = document.defaultView?.MutationObserver ?? globalThis.MutationObserver;
-  if (!MutationObserverConstructor) return undefined;
-
-  const knownStyleElements = new WeakSet<HTMLStyleElement>();
-  document.head.querySelectorAll?.("style").forEach((element) => knownStyleElements.add(element));
-  const observer = new MutationObserverConstructor((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => rewriteNewStyleNode(node, knownStyleElements, resolver));
-    }
-  });
-  observer.observe(document.head, { childList: true, subtree: true });
-  return observer;
-}
-
-function rewriteNewStyleNode(node: Node, knownStyleElements: WeakSet<HTMLStyleElement>, resolver: AssetResolver): void {
-  if (isStyleElement(node)) {
-    if (!knownStyleElements.has(node as HTMLStyleElement)) {
-      knownStyleElements.add(node as HTMLStyleElement);
-      node.textContent = rewriteCssUrls(node.textContent ?? "", resolver);
-    }
-    return;
-  }
-
-  if (!isElement(node)) return;
-  node.querySelectorAll?.("style").forEach((styleElement) => rewriteNewStyleNode(styleElement, knownStyleElements, resolver));
-}
-
 function rewriteAssetUrls(root: Element, resolver: AssetResolver): void {
   rewriteElementAssetUrls(root, resolver);
   root.querySelectorAll?.("*").forEach((element) => rewriteElementAssetUrls(element, resolver));
@@ -118,50 +86,20 @@ function rewriteNodeAssetUrls(node: Node, resolver: AssetResolver): void {
   if (isElement(node)) rewriteAssetUrls(node, resolver);
 }
 
-function patchElementInsertion(element: Element, resolver: AssetResolver): AtlasAssetRewriteRelease {
-  const state: ElementInsertionPatchState = { patchedElements: new WeakSet(), releases: [] };
-  patchElementAndChildren(element, resolver, state);
-
-  return () => state.releases.forEach((release) => release());
-}
-
-interface ElementInsertionPatchState {
-  patchedElements: WeakSet<Element>;
-  releases: AtlasAssetRewriteRelease[];
-}
-
-function patchElementAndChildren(
-  element: Element,
-  resolver: AssetResolver,
-  state: ElementInsertionPatchState
-): void {
-  patchSingleElementInsertion(element, resolver, state);
-  element.querySelectorAll?.("*").forEach((child) => {
-    if (isElement(child)) patchSingleElementInsertion(child, resolver, state);
-  });
-}
-
-function patchSingleElementInsertion(
-  element: Element,
-  resolver: AssetResolver,
-  state: ElementInsertionPatchState
-): void {
-  if (state.patchedElements.has(element)) return;
-  state.patchedElements.add(element);
-  state.releases.push(patchElementInsertionMethods(element, resolver, state));
+function patchBoundaryInsertion(element: Element, resolver: AssetResolver): AtlasAssetRewriteRelease {
+  return patchElementInsertionMethods(element, resolver);
 }
 
 function patchElementInsertionMethods(
   element: Element,
-  resolver: AssetResolver,
-  state: ElementInsertionPatchState
+  resolver: AssetResolver
 ): AtlasAssetRewriteRelease {
-  const releaseAppend = patchVariadicInsertionMethod(element, "append", resolver, state);
-  const releasePrepend = patchVariadicInsertionMethod(element, "prepend", resolver, state);
-  const releaseReplaceChildren = patchVariadicInsertionMethod(element, "replaceChildren", resolver, state);
-  const releaseAppendChild = patchSingleNodeInsertionMethod(element, "appendChild", resolver, state);
-  const releaseInsertBefore = patchSingleNodeInsertionMethod(element, "insertBefore", resolver, state);
-  const releaseReplaceChild = patchSingleNodeInsertionMethod(element, "replaceChild", resolver, state);
+  const releaseAppend = patchVariadicInsertionMethod(element, "append", resolver);
+  const releasePrepend = patchVariadicInsertionMethod(element, "prepend", resolver);
+  const releaseReplaceChildren = patchVariadicInsertionMethod(element, "replaceChildren", resolver);
+  const releaseAppendChild = patchSingleNodeInsertionMethod(element, "appendChild", resolver);
+  const releaseInsertBefore = patchSingleNodeInsertionMethod(element, "insertBefore", resolver);
+  const releaseReplaceChild = patchSingleNodeInsertionMethod(element, "replaceChild", resolver);
 
   return () => {
     releaseAppend();
@@ -176,14 +114,13 @@ function patchElementInsertionMethods(
 function patchVariadicInsertionMethod(
   element: Element,
   methodName: "append" | "prepend" | "replaceChildren",
-  resolver: AssetResolver,
-  state: ElementInsertionPatchState
+  resolver: AssetResolver
 ): AtlasAssetRewriteRelease {
   const method = element[methodName];
   if (typeof method !== "function") return () => undefined;
   return patchElementMethod(element, methodName, (...args: unknown[]) => {
     const nodes = args.filter(isNodeOrString);
-    prepareInsertedNodes(nodes, resolver, state);
+    prepareInsertedNodes(nodes, resolver);
     return (method as (...methodArgs: unknown[]) => unknown).apply(element, args);
   });
 }
@@ -191,14 +128,13 @@ function patchVariadicInsertionMethod(
 function patchSingleNodeInsertionMethod(
   element: Element,
   methodName: "appendChild" | "insertBefore" | "replaceChild",
-  resolver: AssetResolver,
-  state: ElementInsertionPatchState
+  resolver: AssetResolver
 ): AtlasAssetRewriteRelease {
   const method = element[methodName];
   if (typeof method !== "function") return () => undefined;
   return patchElementMethod(element, methodName, (node: unknown, otherNode?: unknown) => {
     if (!isNode(node)) return (method as (...methodArgs: unknown[]) => unknown).call(element, node, otherNode);
-    prepareInsertedNodes([node], resolver, state);
+    prepareInsertedNodes([node], resolver);
     return (method as (...methodArgs: unknown[]) => unknown).call(element, node, otherNode);
   });
 }
@@ -219,13 +155,11 @@ function patchElementMethod(element: Element, methodName: string, patched: (...a
 
 function prepareInsertedNodes(
   nodes: readonly (Node | string)[],
-  resolver: AssetResolver,
-  state: ElementInsertionPatchState
+  resolver: AssetResolver
 ): void {
   for (const node of nodes) {
     if (typeof node === "string" || !isElement(node)) continue;
     rewriteAssetUrls(node, resolver);
-    patchElementAndChildren(node, resolver, state);
   }
 }
 
@@ -296,10 +230,4 @@ function isElement(node: Node | EventTarget): node is Element {
   return typeof Element === "undefined"
     ? "getAttribute" in node && "setAttribute" in node
     : node instanceof Element;
-}
-
-function isStyleElement(node: Node): node is HTMLStyleElement {
-  return typeof HTMLStyleElement === "undefined"
-    ? isElement(node) && node.tagName?.toLowerCase() === "style"
-    : node instanceof HTMLStyleElement;
 }

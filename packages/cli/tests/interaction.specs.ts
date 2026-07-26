@@ -12,6 +12,7 @@ test("interactive generation asks only for missing configuration", async () => {
     "input:App name",
     "select:Framework"
   ]);
+  expect(prompts.choiceLabels[0]).toStrictEqual(["Application", "Host", "Exported widget"]);
 });
 
 test("fully configured and non-interactive commands never prompt", async () => {

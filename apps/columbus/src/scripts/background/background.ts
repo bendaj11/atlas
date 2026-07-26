@@ -3,6 +3,10 @@ import {
   BADGE_TEXT_COLOR,
 } from '../shared/constants.js';
 import { clearHostDataCache } from '../host/host-data-cache.js';
+import {
+  actionIconPathsFor,
+  isActionThemeMessage,
+} from '../shared/action-icon-theme.js';
 
 interface BadgeCountMessage {
   type: 'atlas.override-count';
@@ -15,9 +19,16 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 chrome.tabs.onRemoved.addListener((tabId) => void clearHostDataCache(tabId));
 chrome.runtime.onMessage.addListener((message, sender) => {
-  if (!isBadgeCountMessage(message) || typeof sender.tab?.id !== 'number')
+  if (isActionThemeMessage(message)) {
+    void chrome.action.setIcon({
+      path: actionIconPathsFor(message.colorScheme),
+    });
     return;
-  void updateActionBadge(sender.tab.id, message.overrideCount);
+  }
+
+  if (isBadgeCountMessage(message) && typeof sender.tab?.id === 'number') {
+    void updateActionBadge(sender.tab.id, message.overrideCount);
+  }
 });
 
 async function updateActionBadge(

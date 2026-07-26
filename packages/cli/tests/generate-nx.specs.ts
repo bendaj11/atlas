@@ -7,7 +7,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@jest/globals';
 import { ensureDelegatedNxTargets } from '../dist/generate-nx.js';
@@ -199,7 +199,7 @@ exit 1
     ],
     {
       cwd: products,
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+      env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) },
     },
   );
 
@@ -414,7 +414,7 @@ exit 1
       '--framework=react',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } },
+    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
   );
 
   const project = JSON.parse(
@@ -480,9 +480,16 @@ exit 1
   await expect(
     access(join(root, 'apps/host/public/remoteEntry.json')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
-  expect(await readFile(join(root, 'apps/host/src/host.tsx'), 'utf8')).toMatch(
-    /AtlasHostClientEntry/,
+  const reactHostEntry = await readFile(
+    join(root, 'apps/host/src/host.tsx'),
+    'utf8',
   );
+  expect(reactHostEntry).toMatch(/AtlasHostClientEntry/);
+  expect(reactHostEntry).toMatch(/flushSync\(\(\) => root\.render\(element\)\)/);
+  expect(reactHostEntry).not.toMatch(/import "es-module-shims"/);
+  expect(
+    await readFile(join(root, 'apps/host/src/main.tsx'), 'utf8'),
+  ).toMatch(/import "es-module-shims"/);
   const reactHostTsconfig = JSON.parse(
     await readFile(join(root, 'apps/host/tsconfig.json'), 'utf8'),
   );
@@ -562,7 +569,7 @@ exit 1
       '--framework=angular',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } },
+    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
   );
 
   expect(await readFile(join(root, 'orders/src/entry.ts'), 'utf8')).toMatch(
@@ -715,7 +722,7 @@ exit 1
       ],
       {
         cwd: root,
-        env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+        env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) },
       },
     ),
   ).rejects.toThrow(
@@ -779,7 +786,7 @@ exit 1
       '--framework=react',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } },
+    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
   );
 
   const reactEntry = await readFile(join(root, 'orders/src/entry.tsx'), 'utf8');
@@ -910,7 +917,7 @@ exit 1
       '--framework-version=^19.2.0',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } },
+    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
   );
 
   const rootPackage = JSON.parse(

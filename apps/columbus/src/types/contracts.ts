@@ -1,4 +1,4 @@
-export type AtlasReleaseChannel = 'production' | 'pr' | 'local';
+type AtlasReleaseChannel = 'production' | 'pr' | 'local';
 
 export interface AtlasExtensionManifest {
   schemaVersion: '1';
@@ -26,7 +26,7 @@ export interface AtlasExtensionManifest {
   externalAppsDependencies?: string[];
 }
 
-export interface AtlasArtifactOverride {
+interface AtlasArtifactOverride {
   appId: string;
   manifest: AtlasExtensionManifest;
   reason: 'local' | 'pr' | 'historical';
@@ -40,7 +40,7 @@ export interface AtlasOverrideDocument {
   generatedAt: string;
 }
 
-export interface AtlasRuntimeError {
+interface AtlasRuntimeError {
   artifactId?: string;
   message: string;
 }

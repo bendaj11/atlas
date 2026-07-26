@@ -1,6 +1,7 @@
 import type { AtlasModalControls, AtlasModalRef, AtlasModalRequest, AtlasPopupRef } from "./host-overlays.js";
 import type { AtlasWidgetLoader } from "./lifecycle.js";
 import { createOverlayContentMount } from "./overlay-content.js";
+import { sdkError } from "./sdk-error.js";
 import type { AtlasModalProvider, AtlasOverlayController, AtlasOverlayContentMount, AtlasOverlayProviders } from "./overlay-types.js";
 
 type ModalControlOutcome<TResult> =
@@ -26,7 +27,15 @@ export function createAtlasOverlayController(options: {
     openPopup(request) {
       const content = createOverlayContentMount(request.content, options.getWidgetLoader);
       const popupRef = options.providers.openPopup?.(request, content);
-      if (!popupRef) throw new Error("This Atlas host has not configured a popup provider.");
+      if (!popupRef) {
+        throw sdkError(
+          "Atlas cannot open the popup because this host has no popup provider.",
+          {
+            suggestedActions: "Configure openPopup in the host overlay providers, then retry opening the popup.",
+            code: "ATLAS_POPUP_PROVIDER_MISSING"
+          }
+        );
+      }
       return createManagedPopupRef(popupRef, content);
     }
   };

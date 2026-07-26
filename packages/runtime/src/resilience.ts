@@ -1,5 +1,6 @@
 import { emitRuntimeEvent, eventTimestamp, type AtlasRuntimeObserver } from "./observability.js";
-import { actionableMessage } from "@atlas/schema";
+import { AtlasError, errorSummary } from "@atlas/schema";
+import { runtimeError } from "./runtime-error.js";
 
 export interface AtlasRetryPolicy {
   timeoutMs?: number;
@@ -19,7 +20,7 @@ export interface AtlasOperationContext {
   version?: string;
 }
 
-export class AtlasLoadError extends Error {
+export class AtlasLoadError extends AtlasError {
   readonly stage: string;
   readonly resource: string | undefined;
   readonly appId: string | undefined;
@@ -34,10 +35,12 @@ export class AtlasLoadError extends Error {
       context.resource ? `resource=${context.resource}` : undefined,
       `attempts=${attempts}`
     ].filter(Boolean).join(", ");
-    super(actionableMessage(
-      `Atlas loading failed (${details}): ${errorMessage(cause)}`,
-      actionForStage(context.stage)
-    ), { cause });
+    super(`Atlas could not load a required resource (${details}): ${errorSummary(errorMessage(cause))}`, {
+      suggestedActions: actionForStage(context.stage),
+      cause,
+      code: "ATLAS_RESOURCE_LOAD_FAILED",
+      surface: "browser"
+    });
     this.name = "AtlasLoadError";
     this.stage = context.stage;
     this.resource = context.resource;
@@ -94,7 +97,10 @@ export async function runResiliently<T>(
       await delay(retryDelayMs);
     }
   }
-  throw new Error("Atlas retry loop completed unexpectedly.");
+  throw runtimeError("Atlas stopped retrying without completing or reporting the resource request.", {
+    suggestedActions: "Capture this error and report it as an Atlas runtime defect; include the operation events and preserved stack trace.",
+    code: "ATLAS_RETRY_STATE_INVALID"
+  });
 }
 
 interface OperationEventInput {
@@ -124,10 +130,16 @@ function emitOperationEvent(input: OperationEventInput): void {
 
 function validatePolicy(policy: { timeoutMs: number; retryCount: number }): void {
   if (!Number.isInteger(policy.timeoutMs) || policy.timeoutMs < 1) {
-    throw new Error("Atlas request timeoutMs must be a positive integer.");
+    throw runtimeError(`Atlas request timeoutMs must be a positive integer; received ${policy.timeoutMs}.`, {
+      suggestedActions: "Set resourcesTimeoutMs to an integer greater than zero in the host runtime configuration.",
+      code: "ATLAS_INVALID_TIMEOUT"
+    });
   }
   if (!Number.isInteger(policy.retryCount) || policy.retryCount < 0) {
-    throw new Error("Atlas retryCount must be a non-negative integer.");
+    throw runtimeError(`Atlas retryCount must be a non-negative integer; received ${policy.retryCount}.`, {
+      suggestedActions: "Set resourcesRetryCount to zero or a positive integer in the host runtime configuration.",
+      code: "ATLAS_INVALID_RETRY_COUNT"
+    });
   }
 }
 

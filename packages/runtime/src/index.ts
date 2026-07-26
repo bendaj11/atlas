@@ -10,11 +10,13 @@ import type {
   AtlasWidgetLoader
 } from "@atlas/sdk/lifecycle";
 import { createRouteContext, createScopedNavigation } from "@atlas/sdk/navigation";
-import { assertManifestAssetTrust, loadHostCatalog, resolveRuntimeCatalog, resolveRuntimeManifests, verifyManifestIntegrity, type AtlasRemoteTrustPolicy, type AtlasRuntimeOverride } from "./loader/runtime-discovery.js";
+import { assertManifestAssetTrust, loadHostCatalog, resolveRuntimeManifests, verifyManifestIntegrity, type AtlasRemoteTrustPolicy, type AtlasRuntimeOverride } from "./loader/runtime-discovery.js";
 import { importNativeFederationRemote } from "./loader/native-federation.js";
 import { startRemoteAssetRewrite } from "./remote-assets.js";
 import { loadManifestStyles } from "./stylesheets.js";
 import { mapWithConcurrency } from "./concurrency.js";
+import { createBrowserError, logBrowserError } from "./browser-error.js";
+import { runtimeError } from "./runtime-error.js";
 import type { AtlasResolvedWidget, AtlasWidgetResolver } from "./widget-registry.js";
 export { createRegistryWidgetResolver, type AtlasResolvedWidget, type AtlasWidgetResolver } from "./widget-registry.js";
 export { AtlasLoadError, createRetryPolicy, runResiliently, type AtlasOperationContext, type AtlasRetryPolicy, type AtlasRetryPolicySource } from "./resilience.js";
@@ -98,7 +100,10 @@ export interface AtlasWidgetUiOptions {
 }
 
 export interface AtlasWidgetLoaderOptions extends AtlasWidgetUiOptions {
-  importWidget?: (widget: AtlasExportedWidgetManifest) => Promise<AtlasExportedWidgetEntry>;
+  importWidget?: (
+    widget: AtlasExportedWidgetManifest,
+    ownerManifest: AtlasManifest
+  ) => Promise<AtlasExportedWidgetEntry>;
   resolveWidget?: AtlasWidgetResolver;
   trustPolicy?: AtlasRemoteTrustPolicy;
 }
@@ -110,7 +115,10 @@ export interface AtlasLoaderOptions extends AtlasWidgetUiOptions {
   fetchJson?: <T>(url: string) => Promise<T>;
   importRemote?: (manifest: AtlasManifest) => Promise<AtlasAppEntry>;
   overrides?: AtlasRuntimeOverride[];
-  importWidget?: (widget: AtlasExportedWidgetManifest) => Promise<AtlasExportedWidgetEntry>;
+  importWidget?: (
+    widget: AtlasExportedWidgetManifest,
+    ownerManifest: AtlasManifest
+  ) => Promise<AtlasExportedWidgetEntry>;
   widgetLoader?: AtlasWidgetLoader;
   trustPolicy?: AtlasRemoteTrustPolicy;
 }
@@ -201,7 +209,11 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
 class AtlasRuntimeController {
   private readonly mounts = new Map<string, RuntimeMount>();
   private readonly timeoutMs: number;
+  private desiredRoute: { pathname: string; revision: number } | undefined;
   private routeKey: string | undefined;
+  private routeRevision = 0;
+  private routeDrainActive = false;
+  private supersedeRoute: (() => void) | undefined;
   private stopped = false;
   private queue = Promise.resolve();
 
@@ -221,19 +233,51 @@ class AtlasRuntimeController {
   }
 
   enqueueRouteReconcile(pathname: string): void {
-    this.queue = this.queue.then(() => this.reconcileRoute(pathname));
+    this.routeRevision += 1;
+    this.desiredRoute = { pathname, revision: this.routeRevision };
+    this.supersedeRoute?.();
+    if (this.routeDrainActive) return;
+    this.routeDrainActive = true;
+    this.queue = this.queue
+      .catch((error) => this.reportRouteError(error))
+      .then(() => this.drainRouteRequests())
+      .finally(() => {
+        this.routeDrainActive = false;
+        if (this.desiredRoute && !this.stopped) this.enqueueRouteReconcile(this.desiredRoute.pathname);
+      });
   }
 
-  async reconcileRoute(pathname: string): Promise<void> {
+  async reconcileRoute(pathname: string, revision = this.routeRevision): Promise<void> {
     const selected = findRoutePlacement(this.routePlacements, pathname);
     const nextKey = selected ? placementKey(selected.manifest, selected.placement) : undefined;
     if (this.routeKey === nextKey) return;
-    if (this.routeKey) await this.unmountOne(this.routeKey);
+    if (this.routeKey) {
+      const previousKey = this.routeKey;
+      this.routeKey = undefined;
+      await this.unmountOne(previousKey);
+    }
+    if (revision !== this.routeRevision) return;
     this.routeKey = nextKey;
-    if (!selected) return;
+    if (!selected || !nextKey) return;
 
     const container = this.options.resolveRouteContainer(selected.manifest, selected.placement);
-    if (container) await this.mountOne(createRuntimeMount(selected, container));
+    if (!container) return;
+    const mounting = this.mountOne(createRuntimeMount(selected, container));
+    let superseded = false;
+    const supersededRoute = new Promise<void>((resolve) => {
+      this.supersedeRoute = () => {
+        superseded = true;
+        resolve();
+      };
+    });
+    await Promise.race([mounting, supersededRoute]);
+    if (this.supersedeRoute) this.supersedeRoute = undefined;
+    if (!superseded) return;
+    void mounting.catch((error) => this.reportRouteError(error));
+    if (this.routeKey === nextKey) {
+      await this.unmountOne(nextKey);
+      this.routeKey = undefined;
+    }
   }
 
   async retry(appId: string): Promise<void> {
@@ -244,6 +288,8 @@ class AtlasRuntimeController {
   async stop(unsubscribe: () => void): Promise<void> {
     if (this.stopped) return;
     this.stopped = true;
+    this.desiredRoute = undefined;
+    this.supersedeRoute?.();
     unsubscribe();
     await this.queue;
     await Promise.all([...this.mounts.keys()].map((key) => this.unmountOne(key)));
@@ -288,9 +334,12 @@ class AtlasRuntimeController {
       ...(this.options.trustPolicy ? { trustPolicy: this.options.trustPolicy } : {}),
       ...(this.options.importWidget ? { importWidget: this.options.importWidget } : {})
     });
-    void unmountIfStale(mounting, isCurrent);
-
-    mount.mounted = await withTimeout(mounting, this.timeoutMs, `Loading Atlas app "${mount.manifest.id}" timed out after ${this.timeoutMs}ms.`);
+    try {
+      mount.mounted = await withTimeout(mounting, this.timeoutMs, `Loading Atlas app "${mount.manifest.id}" timed out after ${this.timeoutMs}ms.`);
+    } catch (error) {
+      void unmountIfStale(mounting, isCurrent);
+      throw error;
+    }
     if (!isCurrent()) {
       await mount.mounted.unmount();
       delete mount.mounted;
@@ -320,7 +369,14 @@ class AtlasRuntimeController {
     delete mount.pending;
     await mount.mounted?.unmount();
     delete mount.mounted;
-    this.emit(mount, "error", toError(error));
+    this.emit(mount, "error", createBrowserError(error, {
+      summary: `Atlas could not mount app "${mount.manifest.id}"`,
+      suggestedActions: [
+        "Verify the app remote entry, federation metadata, and host placement configuration.",
+        "Correct the app build or catalog entry, then retry loading the app."
+      ],
+      code: "ATLAS_APP_MOUNT_FAILED"
+    }));
   }
 
   private async unmountOne(key: string): Promise<void> {
@@ -344,6 +400,25 @@ class AtlasRuntimeController {
 
   private emit(mount: RuntimeMount, state: AtlasHostMountState, error?: Error): void {
     this.options.onMountStateChange?.({ manifest: mount.manifest, placement: mount.placement, state, ...(error ? { error } : {}) });
+  }
+
+  private async drainRouteRequests(): Promise<void> {
+    while (this.desiredRoute && !this.stopped) {
+      const request = this.desiredRoute;
+      this.desiredRoute = undefined;
+      await this.reconcileRoute(request.pathname, request.revision);
+    }
+  }
+
+  private reportRouteError(error: unknown): void {
+    logBrowserError("Atlas route reconciliation failed.", createBrowserError(error, {
+      summary: "Atlas could not update the active route",
+      suggestedActions: [
+        "Verify the route placement and app mount lifecycle named in the error details.",
+        "Correct the host or app route configuration, then navigate again."
+      ],
+      code: "ATLAS_ROUTE_RECONCILIATION_FAILED"
+    }));
   }
 }
 
@@ -501,6 +576,9 @@ export function createWidgetLoader(
   options: AtlasWidgetLoaderOptions = {}
 ): AtlasWidgetLoader {
   const entries = new Map<string, AtlasResolvedWidget>();
+  const resolvingEntries = new Map<string, Promise<AtlasResolvedWidget>>();
+  const importedEntries = new Map<string, Promise<AtlasExportedWidgetEntry>>();
+  const integrityChecks = new Map<string, Promise<void>>();
   const warnedDuplicateWidgetIds = new Set<string>();
   for (const ownerManifest of manifests) {
     for (const widget of ownerManifest.exportedWidgets ?? []) {
@@ -511,7 +589,10 @@ export function createWidgetLoader(
         entries.set(widget.id, resolved);
       } else if (existing.ownerManifest.id !== ownerManifest.id && !warnedDuplicateWidgetIds.has(widget.id)) {
         warnedDuplicateWidgetIds.add(widget.id);
-        console.warn(`Atlas widget id "${widget.id}" is exported by multiple apps; using first match from "${existing.ownerManifest.id}".`);
+        console.warn(
+          `Atlas found widget id "${widget.id}" in multiple apps and selected "${existing.ownerManifest.id}". ` +
+          "Suggested action: Assign a unique UUIDv4 to each exported widget, rebuild the affected apps, and republish their manifests."
+        );
       }
     }
   }
@@ -519,10 +600,54 @@ export function createWidgetLoader(
   const resolve = async (widgetId: string): Promise<AtlasResolvedWidget> => {
     const known = entries.get(widgetId);
     if (known) return known;
-    if (!options.resolveWidget) throw new Error(`Atlas exported widget "${widgetId}" is not available.`);
-    const resolved = await options.resolveWidget(widgetId);
-    entries.set(resolved.widget.id, resolved);
-    return resolved;
+    if (!options.resolveWidget) {
+      throw runtimeError(
+        `Atlas cannot load widget "${widgetId}" because no widget resolver is configured and the widget is not already known.`,
+        {
+          code: "ATLAS_WIDGET_RESOLVER_MISSING",
+          suggestedActions: "Configure the host SDK with createRegistryWidgetResolver, or register the widget before calling getWidget."
+        }
+      );
+    }
+    const pending = resolvingEntries.get(widgetId);
+    if (pending) return pending;
+    const resolving = options.resolveWidget(widgetId)
+      .then((resolved) => {
+        entries.set(resolved.widget.id, resolved);
+        return resolved;
+      })
+      .finally(() => resolvingEntries.delete(widgetId));
+    resolvingEntries.set(widgetId, resolving);
+    return resolving;
+  };
+  const verifyIntegrity = (resolved: AtlasResolvedWidget): Promise<void> => {
+    const key = `${resolved.ownerManifest.remoteEntryUrl}\0${resolved.ownerManifest.integrity ?? ""}`;
+    const existing = integrityChecks.get(key);
+    if (existing) return existing;
+    const checking = verifyManifestIntegrity(
+      [resolved.ownerManifest],
+      undefined,
+      options.trustPolicy ?? defaultManifestTrustPolicy(resolved.ownerManifest)
+    ).catch((error) => {
+      integrityChecks.delete(key);
+      throw error;
+    });
+    integrityChecks.set(key, checking);
+    return checking;
+  };
+  const importEntry = (resolved: AtlasResolvedWidget): Promise<AtlasExportedWidgetEntry> => {
+    const key = `${resolved.widget.ownerAppId}/${resolved.widget.expose}@${resolved.widget.remoteEntryUrl}`;
+    const existing = importedEntries.get(key);
+    if (existing) return existing;
+    const importing = (options.importWidget
+      ? options.importWidget(resolved.widget, resolved.ownerManifest)
+      : importExportedWidget(resolved.widget, resolved.ownerManifest)
+    ).catch((error) => {
+      importedEntries.delete(key);
+      throw error;
+    });
+    importedEntries.set(key, importing);
+    return importing;
   };
 
   const getWidget = <TInputs extends object>(
@@ -537,6 +662,8 @@ export function createWidgetLoader(
       props,
       sdk,
       resolve,
+      verifyIntegrity,
+      importEntry,
       initialContext: widgetRenderContext(widgetId, entries.get(widgetId)),
       options,
       ...(widgetOptions?.renderLoading ? { renderLoading: widgetOptions.renderLoading } : {})
@@ -563,6 +690,8 @@ interface MountResolvedWidgetInput<TProps extends object> {
   props: TProps;
   sdk: AtlasSdk;
   resolve: (widgetId: string) => Promise<AtlasResolvedWidget>;
+  verifyIntegrity: (resolved: AtlasResolvedWidget) => Promise<void>;
+  importEntry: (resolved: AtlasResolvedWidget) => Promise<AtlasExportedWidgetEntry>;
   initialContext: AtlasWidgetRenderContext;
   options: AtlasWidgetLoaderOptions;
   renderLoading?: AtlasWidgetLoadingRenderer;
@@ -604,14 +733,8 @@ async function mountWidgetAttempt<TProps extends object>(
   let resolved: AtlasResolvedWidget | undefined;
   try {
     resolved = await input.resolve(input.widgetId);
-    await verifyManifestIntegrity(
-      [resolved.ownerManifest],
-      undefined,
-      input.options.trustPolicy ?? defaultManifestTrustPolicy(resolved.ownerManifest)
-    );
-    const entry = await (input.options.importWidget
-      ? input.options.importWidget(resolved.widget)
-      : importExportedWidget(resolved.widget, resolved.ownerManifest)) as AtlasExportedWidgetEntry<TProps>;
+    await input.verifyIntegrity(resolved);
+    const entry = await input.importEntry(resolved) as AtlasExportedWidgetEntry<TProps>;
     const releaseStyles = await loadManifestStyles(resolved.ownerManifest, card.element.ownerDocument ?? globalThis.document);
     card.clearStatus();
     const boundary = createMountBoundary(card.element, resolved.widget.id, resolved.ownerManifest.isolation ?? "scoped", "widget");
@@ -642,7 +765,14 @@ async function mountWidgetAttempt<TProps extends object>(
       card.remove();
       return;
     }
-    card.showError(toError(error), () => {
+    card.showError(createBrowserError(error, {
+      summary: `Atlas could not mount widget "${input.widgetId}"`,
+      suggestedActions: [
+        "Verify the widget ID, owner app manifest, remote entry, and exported mount function.",
+        "Correct and republish the widget owner app, then retry loading the widget."
+      ],
+      code: "ATLAS_WIDGET_MOUNT_FAILED"
+    }), () => {
       card.remove();
       if (!state.disposed) void mountWidgetAttempt(input, state);
     }, resolved);
@@ -756,19 +886,37 @@ export async function importExportedWidget(
   if (!ownerManifest) {
     const url = new URL(widget.remoteEntryUrl, globalThis.location?.href ?? "http://atlas.local");
     if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1" && url.hostname !== "[::1]") {
-      throw new Error(`Atlas exported widget "${widget.ownerAppId}/${widget.id}" requires its trusted owner manifest.`);
+      throw runtimeError(
+        `Atlas blocked widget "${widget.ownerAppId}/${widget.id}" because its owning app manifest is unavailable for trust verification.`,
+        {
+          code: "ATLAS_WIDGET_OWNER_UNTRUSTED",
+          suggestedActions: `Add app "${widget.ownerAppId}" to the host catalog or registry, then reload the page.`
+        }
+      );
     }
   } else {
     const baseUrl = globalThis.location?.href ?? "http://atlas.local";
     if (new URL(widget.remoteEntryUrl, baseUrl).href !== new URL(ownerManifest.remoteEntryUrl, baseUrl).href) {
-      throw new Error(`Atlas exported widget "${widget.ownerAppId}/${widget.id}" does not use its owner manifest remote entry.`);
+      throw runtimeError(
+        `Atlas blocked widget "${widget.ownerAppId}/${widget.id}" because its remote entry does not match the owning app manifest.`,
+        {
+          code: "ATLAS_WIDGET_REMOTE_MISMATCH",
+          suggestedActions: "Correct the widget remoteEntryUrl in the published manifest so it matches the owning app remote entry."
+        }
+      );
     }
     await verifyManifestIntegrity([ownerManifest], undefined, defaultManifestTrustPolicy(ownerManifest));
   }
   const remote = await import(/* @vite-ignore */ widget.remoteEntryUrl);
   const entry = remote.default ?? remote;
   if (!entry || typeof entry.mount !== "function") {
-    throw new Error(`Atlas exported widget "${widget.ownerAppId}/${widget.id}" does not expose a mount function.`);
+    throw runtimeError(
+      `Atlas loaded widget "${widget.ownerAppId}/${widget.id}", but the module does not export the required mount function.`,
+      {
+        code: "ATLAS_WIDGET_MOUNT_MISSING",
+        suggestedActions: "Rebuild the owning app with the Atlas widget entry template, verify its mount export, and republish it."
+      }
+    );
   }
   return entry as AtlasExportedWidgetEntry;
 }
@@ -778,7 +926,13 @@ export async function loadAndMountHostCatalog(options: AtlasLoaderOptions & {
 }): Promise<AtlasMountedApp[]> {
   const catalog = await loadHostCatalog(options);
   if (catalog.hostId !== options.hostId) {
-    throw new Error(`Atlas catalog targets host "${catalog.hostId}", but loader targets "${options.hostId}".`);
+    throw runtimeError(
+      `Atlas loaded a catalog for host "${catalog.hostId}", but this page is configured as host "${options.hostId}".`,
+      {
+        code: "ATLAS_HOST_CATALOG_MISMATCH",
+        suggestedActions: `Point catalogUrl to the catalog for host "${options.hostId}", or correct the configured hostId.`
+      }
+    );
   }
   const manifests = resolveRuntimeManifests(catalog, options.overrides);
   const trustPolicy = options.trustPolicy ?? {};
@@ -845,7 +999,17 @@ function routeMatches(basePath: string, pathname: string): boolean {
 
 function logRouteConflict(hostId: string, conflict: RuntimePlacement): void {
   const path = normalizeRoutePath(conflict.placement.route!.basePath);
-  globalThis.console?.error?.(`Atlas host "${hostId}" ignored duplicate route basePath "${path}" from app "${conflict.manifest.id}". Suggested action: In atlas.config.ts routes, use a different basePath or hostId; each hostId can use a basePath only once.`);
+  logBrowserError("Atlas ignored a conflicting route.", createBrowserError(
+    new Error(`Host "${hostId}" already has an app assigned to route "${path}", so app "${conflict.manifest.id}" was not mounted there.`),
+    {
+      summary: "Atlas found two apps assigned to the same host route",
+      suggestedActions: [
+        `Give route "${path}" to only one app for host "${hostId}".`,
+        "Update atlas.config.ts in the conflicting app, rebuild it, and republish its manifest."
+      ],
+      code: "ATLAS_DUPLICATE_ROUTE"
+    }
+  ));
 }
 
 function normalizeRoutePath(path: string): string {
@@ -866,8 +1030,4 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: s
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-
-function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
 }

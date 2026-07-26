@@ -139,7 +139,11 @@ async function findAtlasHostTab(): Promise<{
   }
 
   throw new Error(
-    `${errorMessage(activeError)} Open the Atlas App Preview URL printed by atlas dev.`,
+    errorMessage(
+      activeError,
+      'inspect the active host page',
+      'Open the Atlas App Preview URL printed by atlas dev, activate that browser tab, then reopen Columbus.',
+    ),
   );
 }
 
@@ -265,8 +269,15 @@ export async function writeDisabledOverrides({
   await chrome.storage.local.set({ [key]: [...overrides.values()] });
 }
 
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+export function errorMessage(
+  error: unknown,
+  operation = 'complete the requested action',
+  suggestedAction = 'Reload the Atlas host page, reopen Columbus, and retry.',
+): string {
+  const detail = (error instanceof Error ? error.message : String(error))
+    .replace(/\s+Suggested actions?:[\s\S]*$/u, '')
+    .trim();
+  return `Columbus could not ${operation}: ${detail} Suggested action: ${suggestedAction}`;
 }
 
 async function readPersistedOverrides(

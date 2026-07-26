@@ -1,6 +1,7 @@
 import { createAtlasEventBus, type AtlasEventMap } from "./event-bus.js";
 import { normalizeHttpClient } from "./http-client.js";
 import type { AtlasCoreSdk, AtlasGetWidget, AtlasGetWidgetOptions, AtlasHostData, AtlasSdk, AtlasSdkOptions, AtlasWidgetHandle } from "./sdk-types.js";
+import { sdkError } from "./sdk-error.js";
 
 const widgetResolvers = new WeakMap<object, AtlasGetWidget>();
 
@@ -40,7 +41,15 @@ function resolveWidget<TInputs extends object>(
   options?: AtlasGetWidgetOptions
 ): AtlasWidgetHandle<TInputs> {
   const resolver = widgetResolvers.get(sdk);
-  if (!resolver) throw new Error("Atlas widget runtime is not ready.");
+  if (!resolver) {
+    throw sdkError(
+      `Atlas cannot resolve widget "${widgetId}" because the host widget runtime is not ready.`,
+      {
+        suggestedActions: "Wait for the Atlas host to finish starting before requesting the widget.",
+        code: "ATLAS_WIDGET_RUNTIME_NOT_READY"
+      }
+    );
+  }
   return resolver<TInputs>(widgetId, options);
 }
 
@@ -64,6 +73,12 @@ function readSdkProperties<THostSdk extends object, TEvents extends object>(
 function assertPropertiesDoNotReplaceCore(properties: object, core: object): void {
   const reservedName = Object.keys(properties).find((name) => name in core);
   if (reservedName) {
-    throw new Error(`Atlas SDK property "${reservedName}" conflicts with a core SDK capability.`);
+    throw sdkError(
+      `Atlas host SDK property "${reservedName}" conflicts with a core SDK capability.`,
+      {
+        suggestedActions: `Rename the custom "${reservedName}" property in the host SDK configuration, then restart the host.`,
+        code: "ATLAS_SDK_PROPERTY_CONFLICT"
+      }
+    );
   }
 }

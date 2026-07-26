@@ -61,7 +61,13 @@ export function OverridesProvider({ children }: { children: ReactNode }) {
       window.close();
     } catch (error) {
       setStatus('ERROR');
-      setMessage(errorMessage(error));
+      setMessage(
+        errorMessage(
+          error,
+          'apply the selected overrides',
+          'Reload the Atlas host tab, reopen Columbus, verify the selected build is available, and retry.',
+        ),
+      );
     } finally {
       applying.current = false;
     }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "@jest/globals";
 import { HttpClient, connectAtlasWidgetResolver, createAtlasEventBus, createAtlasSdk, type AtlasWidgetLoadingRenderer } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
+import { AtlasError } from "../../schema/dist/index.js";
 import { createHostSdk } from "./host.driver.js";
 
 test("event bus publishes across apps and supports unsubscribe", () => {
@@ -57,7 +58,13 @@ test("host SDK uses HttpClient by default", () => {
 
 test("host runtime connects synchronous getWidget after SDK construction", () => {
   const sdk = createHostSdk();
-  assert.throws(() => sdk.getWidget("widget-id"), /not ready/);
+  assert.throws(
+    () => sdk.getWidget("widget-id"),
+    (error) => error instanceof AtlasError
+      && error.code === "ATLAS_WIDGET_RUNTIME_NOT_READY"
+      && error.surface === "browser"
+      && error.suggestedActions[0]?.includes("Wait for the Atlas host")
+  );
   connectAtlasWidgetResolver(sdk, (id) => ({
     id,
     name: "Widget",

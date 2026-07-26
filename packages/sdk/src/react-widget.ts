@@ -95,7 +95,7 @@ function createWidgetComponent<TInputs extends object>(
     return createElement(
       Fragment,
       undefined,
-      isLoading && LoadingComponent ? createElement(LoadingComponent) : undefined,
+      isLoading && LoadingComponent ? createElement(LoadingComponent, {}) : undefined,
       createElement("div", { ref: container, "data-atlas-widget-container": widgetId })
     );
   };

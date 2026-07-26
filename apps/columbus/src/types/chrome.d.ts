@@ -53,6 +53,10 @@ declare global {
       function set(items: Record<string, unknown>): Promise<void>;
     }
     namespace action {
+      function setIcon(details: {
+        path: Record<string, string>;
+        tabId?: number;
+      }): Promise<void>;
       function setBadgeBackgroundColor(details: {
         color: string;
       }): Promise<void>;

@@ -1,5 +1,5 @@
 import type { AtlasPopupRef, AtlasPopupRequest } from "./host-overlays.js";
-import { ensureActionableError } from "@atlas/schema";
+import { AtlasError, errorSummary } from "@atlas/schema";
 import { applyBounds, createPopupBar, styleOverlay } from "./dom-overlay-style.js";
 import { renderOverlayContent } from "./overlay-content.js";
 import type { AtlasOverlayContentMount, AtlasOverlayProviders } from "./overlay-types.js";
@@ -62,7 +62,16 @@ function createOverlayId(kind: "popup"): string {
 }
 
 function renderError(document: Document, outlet: HTMLElement, value: unknown): void {
-  const error = ensureActionableError(value, "Verify overlay content provider and referenced widget are configured, then reopen overlay.");
+  const cause = value instanceof Error ? value : new Error(String(value));
+  const error = new AtlasError(`Atlas could not load overlay content: ${errorSummary(cause.message)}`, {
+    suggestedActions: [
+      "Verify the overlay content provider and referenced widget are configured.",
+      "Close and reopen the overlay after correcting the problem."
+    ],
+    cause,
+    code: "ATLAS_OVERLAY_CONTENT_FAILED",
+    surface: "browser"
+  });
   const message = document.createElement("p");
   message.setAttribute("role", "alert");
   message.textContent = `Unable to load overlay content: ${error.message}`;

@@ -1,9 +1,8 @@
-import { execFile } from "node:child_process";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import { promisify } from "node:util";
+import { extract, list } from "tar";
+import { execute } from "./process.js";
 
-const execute = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
 const outputDirectory = join(root, "dist/package-verification");
 const packageDirectories = ["schema", "sdk", "runtime", "bootstrap", "generators", "testkit", "cli"];
@@ -12,7 +11,7 @@ const canonicalLicense = normalizeText(await readFile(join(root, "LICENSE"), "ut
 
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
-await execute("pnpm", ["run", "build"], { cwd: root });
+await execute("pnpm", ["run", "build"], { cwd: root, stdio: "inherit" });
 
 for (const directory of packageDirectories) {
   await verifyPackage(directory);
@@ -27,8 +26,8 @@ async function verifyPackage(directory) {
 
   const archive = join(outputDirectory, `${directory}.tgz`);
   await execute("pnpm", ["pack", "--out", archive], { cwd: packageRoot });
-  const { stdout } = await execute("tar", ["-tzf", archive]);
-  const entries = stdout.trim().split("\n");
+  const entries = [];
+  await list({ file: archive, onReadEntry: (entry) => entries.push(entry.path) });
   assertPacked(entries, "./LICENSE", manifest.name);
   assertPacked(entries, "./README.md", manifest.name);
   assertPacked(entries, manifest.main, manifest.name);
@@ -49,7 +48,6 @@ function validateManifest(manifest, directory) {
     throw new Error(`${manifest.name} is missing release metadata.`);
   }
   if (manifest.license !== "MIT") throw new Error(`${manifest.name} must use the approved MIT license.`);
-  if (manifest.publishConfig?.access !== "public") throw new Error(`${manifest.name} must publish with public access.`);
   if (manifest.version !== expectedVersion) {
     throw new Error(`${manifest.name}@${manifest.version} does not match the generator version ${expectedVersion}.`);
   }
@@ -82,8 +80,15 @@ function assertPacked(entries, target, packageName) {
 }
 
 async function readArchiveFile(archive, path) {
-  const { stdout } = await execute("tar", ["-xOzf", archive, path], { encoding: "utf8" });
-  return stdout;
+  const extractionDirectory = join(outputDirectory, ".extracted", basename(archive, ".tgz"));
+  await rm(extractionDirectory, { recursive: true, force: true });
+  await mkdir(extractionDirectory, { recursive: true });
+  await extract({
+    file: archive,
+    cwd: extractionDirectory,
+    filter: (entryPath) => entryPath === path
+  });
+  return readFile(join(extractionDirectory, path), "utf8");
 }
 
 function normalizeText(value) {

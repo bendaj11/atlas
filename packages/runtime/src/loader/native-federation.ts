@@ -1,8 +1,9 @@
 import type { AtlasExportedWidgetManifest, AtlasManifest } from "@atlas/schema";
 import type { AtlasExportedWidgetEntry, AtlasAppEntry } from "@atlas/sdk/lifecycle";
-import { findManifestTrustErrors, verifyManifestIntegrity, type AtlasRemoteTrustPolicy } from "./runtime-discovery.js";
+import { verifyManifestIntegrity, type AtlasRemoteTrustPolicy } from "./runtime-discovery.js";
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
+import { runtimeError } from "../runtime-error.js";
 
 export interface AtlasFederationAdapter {
   initFederation(remotes: Record<string, string>, options?: { deployUrl?: string }): Promise<unknown>;
@@ -12,7 +13,10 @@ export interface AtlasFederationAdapter {
 export interface AtlasNativeFederationImporters {
   initialize(manifests: AtlasManifest[]): Promise<void>;
   importRemote(manifest: AtlasManifest): Promise<AtlasAppEntry>;
-  importWidget(widget: AtlasExportedWidgetManifest): Promise<AtlasExportedWidgetEntry>;
+  importWidget(
+    widget: AtlasExportedWidgetManifest,
+    ownerManifest?: AtlasManifest
+  ): Promise<AtlasExportedWidgetEntry>;
 }
 
 export function createNativeFederationImporters(
@@ -53,6 +57,7 @@ export function createNativeFederationImporters(
       });
     },
     async importRemote(manifest) {
+      if (!remoteNames.has(manifest.id)) await initializeRemote(manifest.id, manifest.remoteEntryUrl);
       const initializationError = initializationErrors.get(manifest.id);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
@@ -84,22 +89,66 @@ export async function createTrustedNativeFederationImporters(
   requestPolicy?: AtlasRetryPolicy,
   hostRemoteEntryUrl?: string
 ): Promise<AtlasNativeFederationImporters> {
-  const trustErrors = await findManifestTrustErrors(manifests, policy, undefined, requestPolicy);
+  const manifestsById = new Map(manifests.map((manifest) => [manifest.id, manifest]));
+  const trustTasks = new Map<string, Promise<void>>();
   const importers = createNativeFederationImporters(runtime, requestPolicy, hostRemoteEntryUrl);
-  await importers.initialize(manifests.filter((manifest) => !trustErrors.has(manifest.id)));
+  const ensureTrusted = (manifest: AtlasManifest): Promise<void> => {
+    const existing = trustTasks.get(manifest.id);
+    if (existing) return existing;
+    const checking = verifyManifestIntegrity([manifest], (url) => runResiliently(
+      (signal) => fetchRemoteBytes(url, signal),
+      { stage: "integrity", resource: url, appId: manifest.id, version: manifest.version },
+      requestPolicy
+    ), policy);
+    trustTasks.set(manifest.id, checking);
+    return checking;
+  };
   return {
-    initialize: importers.initialize,
+    async initialize(selectedManifests) {
+      const trusted: AtlasManifest[] = [];
+      await mapWithConcurrency(selectedManifests, async (manifest) => {
+        try {
+          await ensureTrusted(manifest);
+          trusted.push(manifest);
+        } catch {
+          return;
+        }
+      });
+      await importers.initialize(trusted);
+    },
     async importRemote(manifest) {
-      const error = trustErrors.get(manifest.id);
-      if (error) throw error;
+      await ensureTrusted(manifest);
       return importers.importRemote(manifest);
     },
-    async importWidget(widget) {
-      const error = trustErrors.get(widget.ownerAppId);
-      if (error) throw error;
+    async importWidget(widget, ownerManifest) {
+      const manifest = manifestsById.get(widget.ownerAppId) ?? ownerManifest;
+      if (!manifest) {
+        throw runtimeError(`Atlas cannot load widget "${widget.id}" because owner app "${widget.ownerAppId}" is not trusted by this host.`, {
+          suggestedActions: "Add the owner app manifest to the selected host catalog, then republish the catalog and reload.",
+          code: "ATLAS_WIDGET_OWNER_UNTRUSTED"
+        });
+      }
+      if (manifest.id !== widget.ownerAppId) {
+        throw runtimeError(`Atlas cannot load widget "${widget.id}" because its owner manifest does not match app "${widget.ownerAppId}".`, {
+          suggestedActions: "Correct the widget ownerAppId or registry manifest, then republish the owning app.",
+          code: "ATLAS_WIDGET_OWNER_MISMATCH"
+        });
+      }
+      await ensureTrusted(manifest);
       return importers.importWidget(widget);
     }
   };
+}
+
+async function fetchRemoteBytes(url: string, signal: AbortSignal): Promise<ArrayBuffer> {
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw runtimeError(`Atlas could not download remote entry "${url}": HTTP ${response.status}.`, {
+      suggestedActions: "Deploy the remote entry at the manifest URL and verify the host can fetch it through CORS, then retry.",
+      code: "ATLAS_REMOTE_ENTRY_HTTP_ERROR"
+    });
+  }
+  return response.arrayBuffer();
 }
 
 function artifactDirectoryUrl(remoteEntryUrl: string): string {
@@ -123,13 +172,23 @@ function defaultManifestPolicy(manifest: AtlasManifest): AtlasRemoteTrustPolicy 
 
 function normalizeAppEntry(value: unknown, id: string): AtlasAppEntry {
   const entry = unwrapDefault(value);
-  if (!hasMountFunction(entry)) throw new Error(`Atlas app "${id}" does not expose a mount function.`);
+  if (!hasMountFunction(entry)) {
+    throw runtimeError(`Atlas cannot mount app "${id}" because its remote module does not export mount(request).`, {
+      suggestedActions: "Export the Atlas app lifecycle entry from the configured federation expose, rebuild the app, and republish it.",
+      code: "ATLAS_APP_MOUNT_EXPORT_MISSING"
+    });
+  }
   return entry;
 }
 
 function normalizeWidgetEntry(value: unknown, ref: string): AtlasExportedWidgetEntry {
   const entry = unwrapDefault(value);
-  if (!hasMountFunction(entry)) throw new Error(`Atlas exported widget "${ref}" does not expose a mount function.`);
+  if (!hasMountFunction(entry)) {
+    throw runtimeError(`Atlas cannot mount exported widget "${ref}" because its remote module does not export mount(request).`, {
+      suggestedActions: "Regenerate or correct the widget federation expose, rebuild its owner app, and republish it.",
+      code: "ATLAS_WIDGET_MOUNT_EXPORT_MISSING"
+    });
+  }
   return entry;
 }
 
@@ -148,7 +207,12 @@ function federationRemoteName(id: string): string {
 
 function requireInitializedRemoteName(remotes: Map<string, string>, appId: string): string {
   const remoteName = remotes.get(appId);
-  if (!remoteName) throw new Error(`Native Federation was not initialized for Atlas app "${appId}".`);
+  if (!remoteName) {
+    throw runtimeError(`Atlas cannot load app "${appId}" because Native Federation was not initialized for it.`, {
+      suggestedActions: "Verify the app manifest remoteEntryUrl and federation initialization failure, then retry loading the app.",
+      code: "ATLAS_FEDERATION_NOT_INITIALIZED"
+    });
+  }
   return remoteName;
 }
 

@@ -1,5 +1,6 @@
 import type { DomRuntimeOptions } from "./dom-host-options.js";
-import { ensureActionableError } from "@atlas/schema";
+import { AtlasError } from "@atlas/schema";
+import { createBrowserError, logBrowserError } from "./browser-error.js";
 import {
   emitRuntimeEvent,
   type AtlasHostMountEvent,
@@ -25,13 +26,14 @@ export function emitHostReady(observer: AtlasRuntimeObserver | undefined, runtim
 }
 
 export function emitHostError(options: DomRuntimeOptions, error: Error, startedAt: number): void {
-  console.error("Atlas host failed to start:", error);
+  const failure = error instanceof AtlasError ? error : toError(error);
+  logBrowserError("Atlas host failed to start.", failure);
   emitRuntimeEvent(options.observe, {
     type: "host.error",
     timestamp: new Date().toISOString(),
     ...(options.runtimeConfig?.hostId ? { hostId: options.runtimeConfig.hostId } : {}),
     durationMs: Date.now() - startedAt,
-    error
+    error: failure
   });
 }
 
@@ -49,9 +51,23 @@ export function emitMountState(observer: AtlasRuntimeObserver | undefined, hostI
 }
 
 export function reportRetryFailure(error: unknown): void {
-  console.error("Atlas host retry failed:", ensureActionableError(error).message);
+  logBrowserError("Atlas host retry failed.", createBrowserError(error, {
+    summary: "Atlas could not restart this page",
+    suggestedActions: [
+      "Check the first failed URL or configuration value in the error details.",
+      "Correct the deployment or atlas.runtime.json, then reload the page."
+    ],
+    code: "ATLAS_HOST_RETRY_FAILED"
+  }));
 }
 
-export function toError(error: unknown): Error {
-  return ensureActionableError(error, "Correct reported host configuration or unavailable resource, then reload host.");
+export function toError(error: unknown): AtlasError {
+  return createBrowserError(error, {
+    summary: "Atlas could not start this page",
+    suggestedActions: [
+      "Check the first failed URL or configuration value in the error details.",
+      "Correct the host deployment or atlas.runtime.json, then reload the page."
+    ],
+    code: "ATLAS_HOST_START_FAILED"
+  });
 }

@@ -1,5 +1,5 @@
 import { Box, Card, Cell, Layout, Radio, Text } from '@wix/design-system';
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { EditorDraft } from '../../../../types/app.js';
 import './OverrideRadioCard.css';
 

@@ -1,4 +1,6 @@
-import { assertAtlasHostCatalog, ensureActionableError, type AtlasHostRuntimeConfig } from "@atlas/schema";
+import { assertAtlasHostCatalog, type AtlasHostRuntimeConfig } from "@atlas/schema";
+import { createBrowserError, logBrowserError } from "./browser-error.js";
+import { runtimeError } from "./runtime-error.js";
 import { emitMountState } from "./dom-host-events.js";
 import type { DomHostOptions, DomHostServices, DomRuntimeOptions } from "./dom-host-options.js";
 import { createSdkProviders } from "./dom-host-sdk.js";
@@ -42,10 +44,14 @@ export async function startDomHostRuntime<THostSdk extends object>(
   });
   const resolvedCatalog = resolveRuntimeCatalog(catalog, overrides);
   const manifests = resolvedCatalog.apps;
+  const federationManifests = [
+    ...manifests,
+    ...(resolvedCatalog.widgetProviders ?? []),
+  ];
   const trustPolicy = createRemoteTrustPolicy(config);
   const federation = await createTrustedNativeFederationImporters(
     options.federation,
-    manifests,
+    federationManifests,
     trustPolicy,
     requestPolicy,
     catalog.host.remoteEntryUrl
@@ -87,7 +93,14 @@ export async function startDomHostRuntime<THostSdk extends object>(
     ...(config.resourcesTimeoutMs ? { resourcesTimeoutMs: config.resourcesTimeoutMs } : {}),
     onMountStateChange(event) {
       if (event.state === "error" && event.error) {
-        console.error(`Atlas app "${event.manifest.id}" failed to load:`, ensureActionableError(event.error));
+        logBrowserError(`Atlas app "${event.manifest.id}" failed to load.`, createBrowserError(event.error, {
+          summary: `Atlas could not load app "${event.manifest.id}"`,
+          suggestedActions: [
+            "Verify the app remote entry URL is deployed, reachable, and allowed by the host CORS and asset-origin policy.",
+            "Correct the app build or host catalog, then use Retry in the page."
+          ],
+          code: "ATLAS_APP_LOAD_FAILED"
+        }));
       }
       renderHostMountState(document, event, () => { void runtime?.retry(event.manifest.id); }, options);
       emitMountState(options.observe, config.hostId, event);
@@ -114,14 +127,23 @@ async function resolveHostConfig(options: DomRuntimeOptions): Promise<AtlasHostR
 
 function assertCatalogMatchesConfig(catalogHostId: string, configHostId: string): void {
   if (catalogHostId !== configHostId) {
-    throw new Error(`Atlas catalog targets host "${catalogHostId}", but runtime configuration targets "${configHostId}".`);
+    throw runtimeError(
+      `Atlas cannot start host "${configHostId}" because its catalog belongs to host "${catalogHostId}".`,
+      {
+        suggestedActions: "Point atlas.runtime.json catalogUrl to the catalog for this host, then reload the page.",
+        code: "ATLAS_CATALOG_HOST_MISMATCH"
+      }
+    );
   }
 }
 
 function resolveDomSlotContainer(document: Document, appId: string, placementId: string, slot: string): HTMLElement | undefined {
   const slotContainer = document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(slot)}"]`);
   if (!slotContainer) {
-    console.warn(`Atlas app "${appId}" declares slot placement "${placementId}" for host slot "${slot}", but the host DOM does not contain [data-atlas-slot="${slot}"]. Add <div data-atlas-slot="${slot}"></div> to the host layout or remove the slot placement from the app manifest.`);
+    console.warn(
+      `Atlas skipped slot placement "${placementId}" for app "${appId}" because host slot "${slot}" is missing. ` +
+      `Suggested action: Add <div data-atlas-slot="${slot}"></div> to the host layout, or remove this placement from the app manifest.`
+    );
     return undefined;
   }
 

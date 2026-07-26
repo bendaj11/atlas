@@ -352,13 +352,19 @@ test("manifest validation error messages include actionable issue details", () =
 });
 
 test("Atlas errors preserve details and always include one suggested action", () => {
-  const error = new Error("Catalog request returned 503.");
+  const cause = new Error("Catalog request returned 503.");
+  const error = ensureActionableError(cause);
 
-  assert.equal(ensureActionableError(error), error);
+  assert.notEqual(error, cause);
+  assert.equal(error.cause, cause);
+  assert.equal(error.summary, "Catalog request returned 503.");
+  assert.deepEqual(error.suggestedActions, [
+    "Verify the catalog URL is reachable and its JSON matches the Atlas catalog schema, then retry."
+  ]);
   assert.match(error.message, /Catalog request returned 503\./);
-  assert.match(error.message, /Suggested action: Verify configured catalog URL/);
+  assert.match(error.message, /Suggested action: Verify the catalog URL/);
   assert.equal(error.message.match(/Suggested action:/g)?.length, 1);
-  ensureActionableError(error);
+  assert.equal(ensureActionableError(error), error);
   assert.equal(error.message.match(/Suggested action:/g)?.length, 1);
 });
 
@@ -368,4 +374,23 @@ test("missing Atlas project configuration has a precise suggested action", () =>
   ));
 
   assert.match(error.message, /Restore or create atlas\.config\.ts in the named project/);
+});
+
+test("explicit browser guidance replaces an existing CLI action without mutating its cause", () => {
+  const cause = ensureActionableError(new Error("Host runtime failed."), {
+    suggestedActions: "Run `atlas --help`.",
+    surface: "cli"
+  });
+
+  const browserError = ensureActionableError(cause, {
+    suggestedActions: "Correct atlas.runtime.json, then reload this page.",
+    surface: "browser"
+  });
+
+  assert.equal(cause.surface, "cli");
+  assert.match(cause.message, /atlas --help/);
+  assert.equal(browserError.surface, "browser");
+  assert.doesNotMatch(browserError.message, /atlas --help/);
+  assert.match(browserError.message, /reload this page/);
+  assert.equal(browserError.cause, cause);
 });
