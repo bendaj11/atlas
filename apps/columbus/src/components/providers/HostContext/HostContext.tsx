@@ -4,13 +4,17 @@ import {
   errorMessage,
   readDisabledOverrides,
   readHostData,
+  readSuppressedArtifactIds,
 } from '../../../scripts/host/atlas-host/atlas-host.js';
-import { readHostDataCache } from '../../../scripts/host/host-data-cache.js';
 import {
   extractActiveOverrideManifests,
   includeDisabledAppsInCatalog,
 } from '../../../scripts/overrides/override-manifests.js';
-import type { HostStatus, ExtensionSession } from '../../../types/app.js';
+import type {
+  HostStatus,
+  ExtensionSession,
+  Scope,
+} from '../../../types/app.js';
 import { useSession } from '../SessionContext/SessionContext.js';
 
 interface HostContextValue {
@@ -35,13 +39,17 @@ type HostLoadResult =
 async function createLoadedHost(
   result: Awaited<ReturnType<typeof readHostData>>,
 ): Promise<HostLoadResult> {
-  const scope = result.hostData.overrideScope === 'tab' ? 'tab' : 'all';
+  const scope: Scope = result.hostData.overrideScope === 'tab' ? 'tab' : 'all';
   const activeOverrides = extractActiveOverrideManifests(result.hostData);
-  const disabledOverrides = await readDisabledOverrides({
+  const storageLocation = {
     hostId: result.hostData.config.hostId,
     tabId: result.tabId,
     scope,
-  });
+  };
+  const [disabledOverrides, suppressedArtifactIds] = await Promise.all([
+    readDisabledOverrides(storageLocation),
+    readSuppressedArtifactIds(storageLocation),
+  ]);
   const hostData = includeDisabledAppsInCatalog({
     hostData: result.hostData,
     disabledOverrides,
@@ -54,18 +62,10 @@ async function createLoadedHost(
       tabId: result.tabId,
       activeOverrides,
       disabledOverrides,
+      suppressedArtifactIds,
       scope,
     },
   };
-}
-
-async function loadCachedHost(): Promise<HostLoadResult | undefined> {
-  try {
-    const cached = await readHostDataCache();
-    return cached ? createLoadedHost(cached) : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 async function readActiveHost(): Promise<HostLoadResult> {
@@ -90,16 +90,6 @@ export function HostProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState('Reading active Atlas host...');
 
   async function loadHost(): Promise<void> {
-    if (!session) {
-      const cached = await loadCachedHost();
-      if (cached?.status === 'LOADED') {
-        setSession(cached.session);
-        setStatus(cached.status);
-        setMessage('');
-        return;
-      }
-    }
-
     setStatus('LOADING');
     setMessage('Reading active Atlas host...');
 

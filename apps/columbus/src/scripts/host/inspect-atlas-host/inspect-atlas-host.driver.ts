@@ -18,6 +18,22 @@ export class InspectAtlasHostDriver {
   private error: unknown;
 
   readonly given = {
+    localCatalogWithEmptyStoredSelection: (): this => {
+      this.options = {
+        app: manifest({
+          channel: 'local',
+          buildId: 'local',
+          remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
+        }),
+        stored: {
+          schemaVersion: '1',
+          hostId,
+          overrides: [],
+          generatedAt: '2026-07-20T00:00:00.000Z',
+        },
+      };
+      return this;
+    },
     localAppWithStoredPr: (): this => {
       const productionManifest = manifest({ channel: 'production' });
       const localManifest = manifest({

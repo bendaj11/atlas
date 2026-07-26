@@ -39,22 +39,37 @@ export function saveOverrideInSession({
   const artifactKey = getArtifactKey(selection.productionManifest);
   const activeOverrides = new Map(session.activeOverrides);
   const disabledOverrides = new Map(session.disabledOverrides);
+  const suppressedArtifactIds = new Set(session.suppressedArtifactIds);
   disabledOverrides.delete(artifactKey);
+  suppressedArtifactIds.delete(selection.productionManifest.id);
 
   if (selection.selectedManifest)
     activeOverrides.set(artifactKey, selection.selectedManifest);
   else activeOverrides.delete(artifactKey);
 
-  return { ...session, activeOverrides, disabledOverrides };
+  return {
+    ...session,
+    activeOverrides,
+    disabledOverrides,
+    suppressedArtifactIds,
+  };
 }
 
 export function clearAllOverridesInSession(
   session: ExtensionSession,
 ): ExtensionSession {
+  const suppressedArtifactIds = new Set(session.suppressedArtifactIds);
+  for (const manifest of [
+    ...session.activeOverrides.values(),
+    ...session.disabledOverrides.values(),
+  ]) {
+    if (manifest.channel === 'local') suppressedArtifactIds.add(manifest.id);
+  }
   return {
     ...session,
     activeOverrides: new Map(),
     disabledOverrides: new Map(),
+    suppressedArtifactIds,
   };
 }
 
@@ -67,9 +82,19 @@ export function clearOverrideInSession({
 }): ExtensionSession {
   const activeOverrides = new Map(session.activeOverrides);
   const disabledOverrides = new Map(session.disabledOverrides);
+  const selectedManifest =
+    activeOverrides.get(artifactKey) ?? disabledOverrides.get(artifactKey);
+  const suppressedArtifactIds = new Set(session.suppressedArtifactIds);
   activeOverrides.delete(artifactKey);
   disabledOverrides.delete(artifactKey);
-  return { ...session, activeOverrides, disabledOverrides };
+  if (selectedManifest?.channel === 'local')
+    suppressedArtifactIds.add(selectedManifest.id);
+  return {
+    ...session,
+    activeOverrides,
+    disabledOverrides,
+    suppressedArtifactIds,
+  };
 }
 
 export function setOverrideScopeInSession({

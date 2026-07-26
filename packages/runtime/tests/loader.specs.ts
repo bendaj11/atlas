@@ -915,6 +915,165 @@ test("remote CSS asset URLs resolve against the owning app remote entry", () => 
   );
 });
 
+test("Angular component style assets resolve before the style enters the host document", () => {
+  const manifest = createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
+  const boundary = createAssetElement("div");
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const style = createAssetElement("style");
+  style.textContent = ".aaa[_ngcontent-orders-c0]{background:url('/assets/photo.png')}";
+
+  const release = startRemoteAssetRewrite(manifest, boundary, document);
+  head.appendChild(style);
+  release();
+
+  assert.equal(style.textContent, ".aaa[_ngcontent-orders-c0]{background:url('http://localhost:4202/assets/photo.png')}");
+});
+
+test("remote asset rewriting leaves another Angular app's document styles unchanged", () => {
+  const manifest = createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
+  const boundary = createAssetElement("div");
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const style = createAssetElement("style");
+  style.textContent = ".aaa[_ngcontent-catalog-c0]{background:url('/assets/photo.png')}";
+
+  const release = startRemoteAssetRewrite(manifest, boundary, document);
+  head.appendChild(style);
+  release();
+
+  assert.equal(style.textContent, ".aaa[_ngcontent-catalog-c0]{background:url('/assets/photo.png')}");
+});
+
+test("concurrent Angular apps resolve document styles against their own remote origins", () => {
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const ordersStyle = createAssetElement("style");
+  const catalogStyle = createAssetElement("style");
+  ordersStyle.textContent = ".aaa[_ngcontent-orders-c0]{background:url('/assets/photo.png')}";
+  catalogStyle.textContent = ".aaa[_ngcontent-catalog-c0]{background:url('/assets/photo.png')}";
+
+  const releaseOrders = startRemoteAssetRewrite(
+    createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  const releaseCatalog = startRemoteAssetRewrite(
+    createTestManifest({ id: "catalog", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  head.appendChild(ordersStyle);
+  head.appendChild(catalogStyle);
+  releaseOrders();
+  releaseCatalog();
+
+  assert.deepEqual(
+    [ordersStyle.textContent, catalogStyle.textContent],
+    [
+      ".aaa[_ngcontent-orders-c0]{background:url('http://localhost:4201/assets/photo.png')}",
+      ".aaa[_ngcontent-catalog-c0]{background:url('http://localhost:4202/assets/photo.png')}"
+    ]
+  );
+});
+
+test("Angular app IDs with shared prefixes keep exact stylesheet ownership", () => {
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const style = createAssetElement("style");
+  style.textContent = ".aaa[_ngcontent-orders-admin-c0]{background:url('/assets/photo.png')}";
+
+  const releaseOrders = startRemoteAssetRewrite(
+    createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  const releaseAdmin = startRemoteAssetRewrite(
+    createTestManifest({ id: "orders-admin", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  head.appendChild(style);
+  releaseOrders();
+  releaseAdmin();
+
+  assert.equal(style.textContent, ".aaa[_ngcontent-orders-admin-c0]{background:url('http://localhost:4202/assets/photo.png')}");
+});
+
+test("document style rewrite release stays idempotent across later app mounts", () => {
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const firstRelease = startRemoteAssetRewrite(
+    createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4201/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  firstRelease();
+  const secondRelease = startRemoteAssetRewrite(
+    createTestManifest({ id: "catalog", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  const style = createAssetElement("style");
+  style.textContent = ".aaa[_ngcontent-catalog-c0]{background:url('/assets/photo.png')}";
+
+  firstRelease();
+  head.appendChild(style);
+  secondRelease();
+
+  assert.equal(style.textContent, ".aaa[_ngcontent-catalog-c0]{background:url('http://localhost:4202/assets/photo.png')}");
+});
+
+test("document fragments rewrite nested app styles before insertion", () => {
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const style = createAssetElement("style");
+  style.textContent = ".aaa[_ngcontent-orders-c0]{background:url('/assets/photo.png')}";
+  const fragment: DocumentFragment = Object.create(null);
+  Object.defineProperty(fragment, "nodeType", { value: 11 });
+  Object.defineProperty(fragment, "querySelectorAll", { value: () => [style] });
+
+  const release = startRemoteAssetRewrite(
+    createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  head.appendChild(fragment);
+  release();
+
+  assert.equal(style.textContent, ".aaa[_ngcontent-orders-c0]{background:url('http://localhost:4202/assets/photo.png')}");
+});
+
+test("document styles without asset URLs bypass rewriting", () => {
+  const head = createAssetElement("head");
+  const document = Object.assign(Object.create(null), { head }) as Document;
+  const style = createAssetElement("style");
+  style.textContent = ".aaa[_ngcontent-orders-c0]{color:rebeccapurple}";
+
+  const release = startRemoteAssetRewrite(
+    createTestManifest({ id: "orders", remoteEntryUrl: "http://localhost:4202/remoteEntry.json" }),
+    createAssetElement("div"),
+    document
+  );
+  head.appendChild(style);
+  release();
+
+  assert.equal(style.textContent, ".aaa[_ngcontent-orders-c0]{color:rebeccapurple}");
+});
+
+test("style elements inside the app boundary resolve remote assets", () => {
+  const manifest = createTestManifest({ remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
+  const boundary = createAssetElement("div");
+  const style = createAssetElement("style");
+  style.textContent = ".aaa{background:url('/assets/photo.png')}";
+
+  const release = startRemoteAssetRewrite(manifest, boundary, undefined);
+  boundary.appendChild(style);
+  release();
+
+  assert.equal(style.textContent, ".aaa{background:url('http://localhost:4202/assets/photo.png')}");
+});
+
 test("remote asset URLs are rewritten before inserted nodes enter the host document", () => {
   const manifest = createTestManifest({ remoteEntryUrl: "http://localhost:4202/remoteEntry.json" });
   const image = createAssetElement("img", { src: "/assets/images/image.jpg" });

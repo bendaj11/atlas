@@ -1,6 +1,6 @@
 {
   "name": "@atlas/runtime",
-  "version": "0.3.27",
+  "version": "0.3.28",
   "type": "module",
   "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
   "license": "MIT",
@@ -46,8 +46,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.27",
-    "@atlas/sdk": "0.3.27"
+    "@atlas/schema": "0.3.28",
+    "@atlas/sdk": "0.3.28"
   },
   "peerDependencies": {
     "@angular/core": ">=20 <22",

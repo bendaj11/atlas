@@ -23,6 +23,14 @@ describe('Atlas host inspection', () => {
     );
   });
 
+  it('should keep empty stored selection when local catalog is discovered', async () => {
+    driver.given.localCatalogWithEmptyStoredSelection();
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.result().overrides).toMatchObject({ overrides: [] });
+  });
+
   it('should reject catalog when host identity differs from runtime', async () => {
     driver.given.catalogHostId('other-host');
 

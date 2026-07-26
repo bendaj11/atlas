@@ -39,6 +39,7 @@ test.describe("Atlas Columbus extension", () => {
     await selectActiveDropdown(popup, /^0\.0\.9$/);
     await saveAndWaitForReload(popup, firstHost);
     expect(await storedVersion(firstHost, "localStorage")).toBe("0.0.9");
+    await expect.poll(() => badgeText(session.serviceWorker, firstHost.url())).toBe("1");
     await expect(firstHost.getByRole("heading", { name: "Dashboard React Historical" })).toBeVisible();
 
     const secondHost = await session.context.newPage();
@@ -60,7 +61,11 @@ test.describe("Atlas Columbus extension", () => {
     const resetReload = secondHost.waitForEvent("load");
     await resetPopup.getByLabel("Disable Dashboard React override").click();
     await resetReload;
-    expect(await hasOverrideDocument(secondHost, "localStorage")).toBe(false);
+    expect(await overrideCount(secondHost, "localStorage")).toBe(0);
+    await expect.poll(() => badgeText(session.serviceWorker, secondHost.url())).toBe("");
+
+    const reopenedPopup = await openPopup(session, secondHost);
+    await expect(reopenedPopup.getByLabel("Enable Dashboard React override")).toBeVisible();
   });
 
   test("switches between PR and local manifests", async () => {
@@ -82,6 +87,26 @@ test.describe("Atlas Columbus extension", () => {
     expect(await storedVersion(host, "localStorage")).toBe("0.0.0-local");
     expect(await storedReason(host)).toBe("local");
     await expect(host.getByRole("heading", { name: "Dashboard React Local" })).toBeVisible();
+
+    const togglePopup = await openPopup(session, host);
+    const toggleReload = host.waitForEvent("load");
+    await togglePopup.getByLabel("Disable Dashboard React override").click();
+    await toggleReload;
+
+    const toggledPopup = await openPopup(session, host);
+    await expect(toggledPopup.getByLabel("Enable Dashboard React override")).toBeVisible();
+    const enableReload = host.waitForEvent("load");
+    await toggledPopup.getByLabel("Enable Dashboard React override").click();
+    await enableReload;
+
+    const clearPopup = await openPopup(session, host);
+    const clearReload = host.waitForEvent("load");
+    await clearPopup.getByRole("button", { name: "Clear" }).first().click();
+    await clearReload;
+    await expect.poll(() => badgeText(session.serviceWorker, host.url())).toBe("");
+
+    const reopenedPopup = await openPopup(session, host);
+    await expect(reopenedPopup.getByRole("button", { name: "Clear" }).first()).toBeDisabled();
   });
 
   test("shows actionable errors for non-Atlas pages and invalid local manifests", async () => {
@@ -100,7 +125,31 @@ test.describe("Atlas Columbus extension", () => {
     await popup.getByRole("button", { name: "Save" }).click();
     await expect(popup.getByText("Base URL must be absolute HTTP URL.")).toBeVisible();
   });
+
+  test("shows active override count on the extension action", async () => {
+    const host = await session.context.newPage();
+    await host.goto(hostUrl);
+    await host.evaluate(() => {
+      localStorage.setItem("atlas.runtime-overrides", JSON.stringify({
+        schemaVersion: "1",
+        hostId: "test-host",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        overrides: [{ appId: "orders" }, { appId: "dashboard" }]
+      }));
+    });
+
+    await host.reload();
+
+    await expect.poll(() => badgeText(session.serviceWorker, host.url())).toBe("2");
+  });
 });
+
+async function badgeText(serviceWorker: Worker, pageUrl: string): Promise<string> {
+  return serviceWorker.evaluate(async (url) => {
+    const tab = (await chrome.tabs.query({})).find((candidate) => candidate.url === url);
+    return tab?.id === undefined ? "" : chrome.action.getBadgeText({ tabId: tab.id });
+  }, pageUrl);
+}
 
 async function launchExtension(): Promise<ExtensionSession> {
   const extensionDirectory = await createTestExtension();
@@ -173,8 +222,4 @@ async function overrideCount(host: Page, storage: BrowserStorage): Promise<numbe
   return documentValue
     ? documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0)
     : undefined;
-}
-
-async function hasOverrideDocument(host: Page, storage: BrowserStorage): Promise<boolean> {
-  return (await readOverride(host, storage)) !== undefined;
 }

@@ -1,6 +1,6 @@
 {
   "name": "atlas-platform",
-  "version": "0.3.27",
+  "version": "0.3.28",
   "private": true,
   "description": "TypeScript-first app platform with focused SDK, runtime, static registry, generators and test tooling.",
   "license": "MIT",
@@ -11,7 +11,7 @@
   "homepage": "https://github.com/bendaj11/atlas#readme",
   "bugs": "https://github.com/bendaj11/atlas/issues",
   "type": "module",
-  "packageManager": "pnpm@10.34.4",
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "build": "turbo run build --filter=\"@atlas/*\"",
     "build:examples": "turbo run build --concurrency=1 --filter=\"@atlas-example/*\" --filter=\"@atlas-app/*\"",
@@ -46,6 +46,7 @@
     "typescript": "^5.5.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "pnpm": ">=10 <11"
   }
 }

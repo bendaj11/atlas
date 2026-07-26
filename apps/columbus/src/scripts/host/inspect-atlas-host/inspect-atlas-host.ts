@@ -378,29 +378,6 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     };
   }
 
-  function mergeOverrideDocuments(
-    local: OverrideDocument | undefined,
-    stored: OverrideDocument | undefined,
-  ): OverrideDocument | undefined {
-    if (!local) return stored;
-    if (!stored) return local;
-    const overrides = new Map(
-      local.overrides.map((override) => [override.appId, override]),
-    );
-    for (const override of stored.overrides)
-      overrides.set(override.appId, override);
-    return {
-      ...local,
-      generatedAt: stored.generatedAt,
-      ...(stored.hostOverride
-        ? { hostOverride: stored.hostOverride }
-        : local.hostOverride
-          ? { hostOverride: local.hostOverride }
-          : {}),
-      overrides: [...overrides.values()],
-    };
-  }
-
   async function fetchWithTimeout(input: string | URL): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
@@ -528,10 +505,9 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     ...external.versions,
   ]);
   const storedSelection = readStoredOverrideDocument(config.hostId);
-  const overrides = mergeOverrideDocuments(
-    createLocalOverrides(config, selectedArtifacts),
-    storedSelection.overrides,
-  );
+  const overrides =
+    storedSelection.overrides ??
+    createLocalOverrides(config, selectedArtifacts);
   const productionCatalog = createProductionCatalog(
     catalog,
     versions,

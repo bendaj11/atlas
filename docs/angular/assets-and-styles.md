@@ -10,24 +10,31 @@ Use Angular's normal asset and style configuration:
 - put static files under `src/assets`;
 - keep global styles in the Angular `styles` configuration;
 - prefer component styles for feature UI;
-- reference assets with relative URLs from CSS or Angular-managed imports.
+- reference copied static assets from component CSS with root-relative `/assets/...`
+  URLs. Atlas rewrites Angular-owned component styles to the app's remote origin
+  before Angular inserts them into the host document.
 
-Avoid absolute `/assets/...` paths inside mounted apps. The browser would
-resolve them against the host origin, not the app's immutable CDN directory.
+Do not change these references to `./assets/...` merely to make them relative.
+Angular resolves that form as a CSS source import and fails the build when no
+matching path exists beside the component stylesheet.
 
 Good:
 
 ```css
 .orders-hero {
-  background-image: url("./assets/orders-hero.png");
+  background-image: url("/assets/orders-hero.png");
 }
 ```
 
-Risky in an app:
+For global stylesheets emitted as standalone CSS, configure Angular's deploy URL
+to the published artifact base. Those files load outside the component-style
+ownership boundary and keep normal browser URL resolution.
+
+Wrong when `assets` is not beside the component stylesheet:
 
 ```css
 .orders-hero {
-  background-image: url("/assets/orders-hero.png");
+  background-image: url("./assets/orders-hero.png");
 }
 ```
 

@@ -138,4 +138,11 @@ describe('browser runtime override document', () => {
       }),
     ]);
   });
+
+  it('should preserve empty document while local override is suppressed', async () => {
+    expect(await driver.get.localSuppressionDocument()).toMatchObject({
+      hostId: '060a7f62-1c95-402c-9993-55749faf36d9',
+      overrides: [],
+    });
+  });
 });

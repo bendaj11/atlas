@@ -68,10 +68,39 @@ describe('clearing overrides', () => {
     expect(driver.get.disabledOverride()).toBeUndefined();
   });
 
+  it('should suppress active local selection when it is cleared', () => {
+    driver.given.activeLocalOverride().when.overrideCleared();
+
+    expect(driver.get.suppressedArtifactIds()).toStrictEqual(['orders']);
+  });
+
+  it('should hide disabled local selection when it is cleared', () => {
+    driver.given.disabledLocalOverride().when.overrideCleared();
+
+    expect(driver.get.disabledOverride()).toBeUndefined();
+    expect(driver.get.suppressedArtifactIds()).toStrictEqual(['orders']);
+  });
+
+  it('should suppress local selections when all overrides are cleared', () => {
+    driver.given.activeLocalOverride().when.allOverridesCleared();
+
+    expect(driver.get.disabledOverride()).toBeUndefined();
+    expect(driver.get.suppressedArtifactIds()).toStrictEqual(['orders']);
+  });
+
   it('should preserve scope when all overrides are cleared', () => {
     driver.given.scope('tab').given.activeOverride().when.allOverridesCleared();
 
     expect(driver.get.session().scope).toBe('tab');
+  });
+});
+
+describe('disabled local discovery', () => {
+  it('should persist raw artifact id instead of typed session key', () => {
+    const driver = new OverrideSessionDriver();
+    driver.given.disabledOverride();
+
+    expect(driver.get.disabledOverrideIds()).toStrictEqual(['orders']);
   });
 });
 

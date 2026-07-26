@@ -1,7 +1,11 @@
 import type {} from '../../../types/chrome.js';
 import type { AtlasHostData } from '../../../types/contracts.js';
 import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/runtime-discovery.js';
-import { createOverrideDocument, readHostData } from './atlas-host.js';
+import {
+  createOverrideDocument,
+  readHostData,
+  writeOverrides,
+} from './atlas-host.js';
 import { readHostDataCache } from '../host-data-cache.js';
 import { createCustomManifest } from '../../manifests/manifest-utils/manifest-utils.js';
 
@@ -78,6 +82,57 @@ export class AtlasHostDriver {
         sessionStorage: { getItem: () => null },
       });
     },
+    localSuppressionDocument: async (): Promise<unknown> => {
+      const localValues = new Map<string, string>();
+      const sessionValues = new Map<string, string>();
+      Object.assign(globalThis, {
+        localStorage: pageStorageArea(localValues),
+        sessionStorage: pageStorageArea(sessionValues),
+        location: { href: 'http://localhost:4300/dashboard' },
+        history: {
+          state: undefined,
+          replaceState: () => undefined,
+        },
+        chrome: {
+          scripting: {
+            executeScript: async ({
+              func,
+              args,
+            }: {
+              func: (...values: string[]) => void;
+              args: string[];
+            }) => {
+              func(...args);
+              return [{ result: undefined }];
+            },
+          },
+          storage: { local: storageArea(new Map()) },
+        },
+      });
+      try {
+        const hostData = createHostData(hostId, true);
+        await writeOverrides({
+          tabId: 7,
+          hostData,
+          documentValue: {
+            schemaVersion: '1',
+            hostId,
+            overrides: [],
+            generatedAt: '2026-07-26T00:00:00.000Z',
+          },
+          scope: 'all',
+          disabledAppIds: ['orders'],
+        });
+        const stored = localValues.get('atlas.runtime-overrides');
+        return stored ? JSON.parse(stored) : undefined;
+      } finally {
+        Reflect.deleteProperty(globalThis, 'localStorage');
+        Reflect.deleteProperty(globalThis, 'sessionStorage');
+        Reflect.deleteProperty(globalThis, 'location');
+        Reflect.deleteProperty(globalThis, 'history');
+        Reflect.deleteProperty(globalThis, 'chrome');
+      }
+    },
   };
 
   dispose(): void {
@@ -122,6 +177,19 @@ function storageArea(values: Map<string, unknown>) {
     set: async (items: Record<string, unknown>) => {
       Object.entries(items).forEach(([key, value]) => values.set(key, value));
     },
+  };
+}
+
+function pageStorageArea(values: Map<string, string>): Storage {
+  return {
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    get length() {
+      return values.size;
+    },
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, value),
   };
 }
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
-import { createHostNavigation, createLocationStrategy } from "../dist/angular.js";
+import { APP_ID, type ValueProvider } from "@angular/core";
+import { createHostNavigation, createLocationStrategy, provideAtlasAppContext } from "../dist/angular.js";
 import type { RouterLike } from "../dist/angular-types.js";
 import { generateHostFiles, generateAppFiles, generateWidgetFiles } from "../../generators/dist/index.js";
 import { createNativeFederationImporters } from "../../runtime/dist/index.js";
@@ -104,6 +105,16 @@ test("Angular app LocationStrategy scopes Router URLs and receives host navigati
   assert.equal(strategy.path(), "/settings");
   assert.equal(events.length, 1);
   strategy.ngOnDestroy();
+});
+
+test("Angular app context uses the manifest ID for component style ownership", () => {
+  const atlas = createAppContext("/orders");
+  const providers = provideAtlasAppContext(atlas.context);
+  const appIdProvider = providers.find((provider): provider is ValueProvider =>
+    typeof provider === "object" && provider !== null && !Array.isArray(provider) && "provide" in provider && provider.provide === APP_ID
+  );
+
+  assert.equal(appIdProvider?.useValue, atlas.context.manifest.id);
 });
 
 test("Angular generator keeps framework tooling on the selected major", () => {

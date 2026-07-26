@@ -20,6 +20,10 @@ interface WriteDisabledOverridesOptions extends DisabledOverrideStorageLocation 
   overrides: Map<string, Manifest>;
 }
 
+interface WriteSuppressedArtifactIdsOptions extends DisabledOverrideStorageLocation {
+  artifactIds: Set<string>;
+}
+
 interface CreateOverrideDocumentOptions {
   hostData: HostData;
   overrides: Map<string, Manifest>;
@@ -269,6 +273,38 @@ export async function writeDisabledOverrides({
   await chrome.storage.local.set({ [key]: [...overrides.values()] });
 }
 
+export async function readSuppressedArtifactIds({
+  hostId,
+  tabId,
+  scope,
+}: DisabledOverrideStorageLocation): Promise<Set<string>> {
+  const key = suppressedArtifactIdsKey(hostId, tabId, scope);
+  const stored = await chrome.storage.local.get(key);
+  const value = stored[key];
+  return new Set(
+    Array.isArray(value)
+      ? value.filter(
+          (artifactId): artifactId is string =>
+            typeof artifactId === 'string' && artifactId.length > 0,
+        )
+      : [],
+  );
+}
+
+export async function writeSuppressedArtifactIds({
+  hostId,
+  tabId,
+  scope,
+  artifactIds,
+}: WriteSuppressedArtifactIdsOptions): Promise<void> {
+  const key = suppressedArtifactIdsKey(hostId, tabId, scope);
+  if (artifactIds.size === 0) {
+    await chrome.storage.local.remove(key);
+    return;
+  }
+  await chrome.storage.local.set({ [key]: [...artifactIds] });
+}
+
 export function errorMessage(
   error: unknown,
   operation = 'complete the requested action',
@@ -387,7 +423,10 @@ function persistOverrides(
   const serializedDocument = JSON.stringify(documentValue);
 
   if (scope === 'all') {
-    if (documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0))
+    const shouldPersistDocument =
+      documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0) >
+        0 || disabledAppIds.length > 0;
+    if (shouldPersistDocument)
       localStorage.setItem(documentKey, serializedDocument);
     else localStorage.removeItem(documentKey);
     sessionStorage.removeItem(documentKey);
@@ -431,4 +470,14 @@ function disabledOverridesKey(
   return scope === 'tab'
     ? `atlas.disabled-overrides.${hostId}.tab.${tabId}`
     : `atlas.disabled-overrides.${hostId}.all`;
+}
+
+function suppressedArtifactIdsKey(
+  hostId: string,
+  tabId: number,
+  scope: Scope,
+): string {
+  return scope === 'tab'
+    ? `atlas.suppressed-artifacts.${hostId}.tab.${tabId}`
+    : `atlas.suppressed-artifacts.${hostId}.all`;
 }

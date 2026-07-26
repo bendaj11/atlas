@@ -24,6 +24,7 @@ interface InterceptorScenario {
   disabledAppIds?: string[];
   localDevelopmentIntent?: boolean;
   localDevelopmentScope?: 'all' | 'tab';
+  runtimeConfigFetched?: boolean;
   pageHostname?: string;
   storedOverrideDocument?: Record<string, unknown>;
 }
@@ -38,6 +39,7 @@ interface InterceptorResult {
 export class ColumbusBuildDriver {
   private scenario: InterceptorScenario | undefined;
   private manifest: ColumbusManifest | undefined;
+  private contentScriptSources = new Map<string, string>();
   private interceptorResult: InterceptorResult | undefined;
 
   readonly given = {
@@ -50,6 +52,17 @@ export class ColumbusBuildDriver {
   readonly when = {
     manifestRead: async (): Promise<this> => {
       this.manifest = await readColumbusManifest();
+      const scriptPaths = this.manifest.content_scripts.flatMap(
+        (contentScript) => contentScript.js,
+      );
+      this.contentScriptSources = new Map(
+        await Promise.all(
+          scriptPaths.map(
+            async (path) =>
+              [path, await readColumbusFile(`dist/${path}`)] as const,
+          ),
+        ),
+      );
       return this;
     },
     catalogIntercepted: async (): Promise<this> => {
@@ -64,6 +77,9 @@ export class ColumbusBuildDriver {
       if (!this.manifest) throw new Error('Manifest was not read.');
       return this.manifest;
     },
+    contentScriptSources: (): string[] => [
+      ...this.contentScriptSources.values(),
+    ],
     interceptedApps: (): unknown[] => {
       const catalog = this.get.interceptorResult().catalog as {
         apps: unknown[];
@@ -132,7 +148,8 @@ async function runCatalogInterceptor(
     Set,
   });
 
-  await pageWindow.fetch('https://host.test/atlas.runtime.json');
+  if (scenario.runtimeConfigFetched !== false)
+    await pageWindow.fetch('https://host.test/atlas.runtime.json');
   const response = await pageWindow.fetch(
     'https://registry.test/hosts/test-host/catalog.json',
   );

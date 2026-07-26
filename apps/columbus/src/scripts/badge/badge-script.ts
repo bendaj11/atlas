@@ -2,7 +2,6 @@ import {
   countDevSessionOverrides,
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh.js';
-import { actionThemeMessage } from '../shared/action-icon-theme.js';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
@@ -37,9 +36,10 @@ window.addEventListener('storage', () => void refreshBadge());
 darkColorScheme.addEventListener('change', () => void publishActionTheme());
 
 async function publishActionTheme(): Promise<void> {
-  await chrome.runtime.sendMessage(
-    actionThemeMessage(darkColorScheme.matches ? 'dark' : 'light'),
-  );
+  await chrome.runtime.sendMessage({
+    type: 'columbus.action-theme',
+    colorScheme: darkColorScheme.matches ? 'dark' : 'light',
+  });
 }
 
 async function startBadgeRefresh(): Promise<void> {

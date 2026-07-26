@@ -48,6 +48,7 @@ export interface ExtensionSession {
   tabId: number;
   activeOverrides: Map<string, Manifest>;
   disabledOverrides: Map<string, Manifest>;
+  suppressedArtifactIds: Set<string>;
   scope: Scope;
 }
 

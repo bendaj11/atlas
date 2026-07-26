@@ -10,6 +10,7 @@ import {
   toggleOverrideInSession,
 } from './override-session.js';
 import type { ExtensionSession } from '../../../types/app.js';
+import { disabledOverrideIds } from '../persist-overrides.js';
 
 export class OverrideSessionDriver {
   private session = createSession();
@@ -22,10 +23,24 @@ export class OverrideSessionDriver {
       );
       return this;
     },
+    activeLocalOverride: (): this => {
+      this.session.activeOverrides.set(
+        'app:orders',
+        manifest({ channel: 'local' }),
+      );
+      return this;
+    },
     disabledOverride: (): this => {
       this.session.disabledOverrides.set(
         'app:orders',
         manifest({ channel: 'pr', buildId: 'pr-build' }),
+      );
+      return this;
+    },
+    disabledLocalOverride: (): this => {
+      this.session.disabledOverrides.set(
+        'app:orders',
+        manifest({ channel: 'local' }),
       );
       return this;
     },
@@ -80,6 +95,10 @@ export class OverrideSessionDriver {
       this.session.activeOverrides.get('app:orders'),
     disabledOverride: (): AtlasExtensionManifest | undefined =>
       this.session.disabledOverrides.get('app:orders'),
+    disabledOverrideIds: (): string[] => disabledOverrideIds(this.session),
+    suppressedArtifactIds: (): string[] => [
+      ...this.session.suppressedArtifactIds,
+    ],
   };
 }
 
@@ -110,6 +129,7 @@ function createSession(): ExtensionSession {
     tabId: 7,
     activeOverrides: new Map(),
     disabledOverrides: new Map(),
+    suppressedArtifactIds: new Set(),
     scope: 'all',
   };
 }

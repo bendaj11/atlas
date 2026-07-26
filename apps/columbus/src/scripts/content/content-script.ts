@@ -10,9 +10,9 @@ interface AtlasInterceptManifest {
   channel: AtlasReleaseChannel;
   framework: 'angular' | 'react' | 'vue';
   remoteEntryUrl: string;
-  requiredHostSdkVersion: string;
-  supportedHosts: string[];
-  placements: Array<{ hostId: string }>;
+  requiredHostSdkVersion?: string;
+  supportedHosts?: string[];
+  placements?: Array<{ hostId: string }>;
 }
 
 interface AtlasInterceptCatalog {
@@ -76,7 +76,8 @@ function installAtlasCatalogInterceptor(): void {
 
     const hostId = catalogRequestHostId(requestUrl);
     if (!hostId) return nativeFetch(input, init);
-    if (overridePolicies.get(hostId) !== true) return nativeFetch(input, init);
+    if (!(await allowsOverrides(hostId, overridePolicies, nativeFetch)))
+      return nativeFetch(input, init);
     const [catalogResponse, session] = await Promise.all([
       nativeFetch(input, init),
       readDevSession(hostId),
@@ -107,8 +108,26 @@ function installAtlasCatalogInterceptor(): void {
   }
 }
 
+async function allowsOverrides(
+  hostId: string,
+  policies: Map<string, boolean>,
+  nativeFetch: typeof window.fetch,
+): Promise<boolean> {
+  if (!policies.has(hostId)) {
+    try {
+      const response = await nativeFetch('/atlas.runtime.json', {
+        cache: 'no-store',
+      });
+      await rememberOverridePolicy(response, policies);
+    } catch {
+      policies.set(hostId, false);
+    }
+  }
+  return policies.get(hostId) === true;
+}
+
 function persistDevSessionOverrides(session: AtlasInterceptDevSession): void {
-  const disabledAppIds = readDisabledAppIds(session.hostId);
+  const disabledArtifactIds = readDisabledAppIds(session.hostId);
   const storage = overrideStorage();
   const existing = readOverrideDocument(
     storage.getItem(ATLAS_OVERRIDE_DOCUMENT_KEY),
@@ -120,11 +139,15 @@ function persistDevSessionOverrides(session: AtlasInterceptDevSession): void {
       .map((override) => [override.appId, override]),
   );
   const localOverrides = session.overrides
-    .filter((override) => !disabledAppIds.has(override.appId))
+    .filter((override) => !disabledArtifactIds.has(override.appId))
     .map((override) => ({ ...override, reason: 'local' as const }));
   const explicitHostOverride =
     existing?.hostOverride?.channel !== 'local'
       ? existing?.hostOverride
+      : undefined;
+  const localHostOverride =
+    session.hostOverride && !disabledArtifactIds.has(session.hostOverride.id)
+      ? session.hostOverride
       : undefined;
   const documentValue: AtlasInterceptOverrideDocument = {
     schemaVersion: '1',
@@ -132,8 +155,8 @@ function persistDevSessionOverrides(session: AtlasInterceptDevSession): void {
     generatedAt: session.generatedAt,
     ...(explicitHostOverride
       ? { hostOverride: explicitHostOverride }
-      : session.hostOverride
-        ? { hostOverride: session.hostOverride }
+      : localHostOverride
+        ? { hostOverride: localHostOverride }
         : {}),
     overrides: localOverrides.map(
       (override) => explicitAppOverrides.get(override.appId) ?? override,
@@ -227,8 +250,10 @@ function isManifest(
       manifest.framework === 'react' ||
       manifest.framework === 'vue') &&
     typeof manifest.remoteEntryUrl === 'string' &&
-    Array.isArray(manifest.supportedHosts) &&
-    Array.isArray(manifest.placements)
+    (manifest.kind === 'host' ||
+      (typeof manifest.requiredHostSdkVersion === 'string' &&
+        Array.isArray(manifest.supportedHosts) &&
+        Array.isArray(manifest.placements)))
   );
 }
 
@@ -307,16 +332,16 @@ function mergeCatalog(
   catalog: AtlasInterceptCatalog,
   session: AtlasInterceptDevSession,
 ): AtlasInterceptCatalog {
-  const disabledAppIds = readDisabledAppIds(session.hostId);
+  const disabledArtifactIds = readDisabledAppIds(session.hostId);
   const enabledOverrides = session.overrides.filter(
-    (override) => !disabledAppIds.has(override.appId),
+    (override) => !disabledArtifactIds.has(override.appId),
   );
   const overrides = new Map(
     enabledOverrides.map((override) => [override.appId, override.manifest]),
   );
   const baseManifests = catalog.apps.filter(
     (manifest) =>
-      manifest.channel !== 'local' || !disabledAppIds.has(manifest.id),
+      manifest.channel !== 'local' || !disabledArtifactIds.has(manifest.id),
   );
   const merged = baseManifests.map(
     (manifest) => overrides.get(manifest.id) ?? manifest,
@@ -329,7 +354,8 @@ function mergeCatalog(
     ...catalog,
     generatedAt: session.generatedAt,
     host:
-      session.hostOverride?.kind === 'host'
+      session.hostOverride?.kind === 'host' &&
+      !disabledArtifactIds.has(session.hostOverride.id)
         ? session.hostOverride
         : catalog.host,
     apps: merged,

@@ -11,9 +11,6 @@ const productionHost = {
   channel: 'production',
   framework: 'react',
   remoteEntryUrl: 'https://cdn.test/host/remoteEntry.json',
-  requiredHostSdkVersion: '*',
-  supportedHosts: ['test-host'],
-  placements: [],
 };
 const productionManifest = {
   schemaVersion: '1',
@@ -57,6 +54,14 @@ describe('Columbus extension build', () => {
     });
   });
 
+  it('should build classic content scripts without module imports', async () => {
+    await driver.when.manifestRead();
+
+    expect(driver.get.contentScriptSources()).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^\s*import\s/m)]),
+    );
+  });
+
   it('should use the dark Columbus mark as the default Chrome icon', async () => {
     await driver.when.manifestRead();
 
@@ -90,6 +95,20 @@ describe('catalog interception', () => {
       devSession: devSession([localManifest]),
       disabledAppIds: ['app'],
       localDevelopmentIntent: true,
+    });
+
+    await driver.when.catalogIntercepted();
+
+    expect(driver.get.interceptedApps()).toStrictEqual([productionManifest]);
+  });
+
+  it('should read host policy when runtime config was loaded without fetch', async () => {
+    driver.given.interceptorScenario({
+      catalog: catalog([productionManifest]),
+      devSession: devSession([localManifest]),
+      disabledAppIds: ['app'],
+      localDevelopmentIntent: true,
+      runtimeConfigFetched: false,
     });
 
     await driver.when.catalogIntercepted();

@@ -2,10 +2,27 @@ import type { AtlasManifest } from "@atlas/schema";
 
 export type AtlasAssetRewriteRelease = () => void;
 
+interface DocumentStyleRewriteSession {
+  appId: string;
+  boundary: HTMLElement;
+  resolver: AssetResolver;
+}
+
+interface DocumentStyleRewriteRegistry {
+  sessions: Set<DocumentStyleRewriteSession>;
+  sessionsByAppId: Map<string, Set<DocumentStyleRewriteSession>>;
+  releaseInsertionRewrite: AtlasAssetRewriteRelease;
+}
+
+const ASSET_PATH_TOKEN = "assets/";
 const ASSET_PATH_PATTERN = /^(?:\.\/)?assets\//;
 const ABSOLUTE_ASSET_PATH_PATTERN = /^\/assets\//;
 const URL_FUNCTION_PATTERN = /url\(\s*(?:(["'])(.*?)\1|([^)]*?))\s*\)/g;
 const SRCSET_CANDIDATE_PATTERN = /\s*,\s*/;
+const ANGULAR_STYLE_SCOPE_PATTERN = /\[(_ng(?:content|host)-[^\]\s=]+)(?:\s*=\s*[^\]]+)?\]/gi;
+const ANGULAR_STYLE_APP_ID_PATTERN = /\[_ng(?:content|host)-([^\]\s=]+)-c\d+(?:\s*=\s*[^\]]+)?\]/gi;
+
+const documentStyleRewriteRegistries = new WeakMap<Document, DocumentStyleRewriteRegistry>();
 
 const URL_ATTRIBUTE_NAMES = [
   "src",
@@ -17,16 +34,22 @@ const URL_ATTRIBUTE_NAMES = [
 export function startRemoteAssetRewrite(
   manifest: AtlasManifest,
   boundary: HTMLElement,
-  _document: Document | undefined = boundary.ownerDocument ?? globalThis.document
+  document: Document | undefined = boundary.ownerDocument ?? globalThis.document
 ): AtlasAssetRewriteRelease {
   if (!isElement(boundary)) return () => undefined;
   const resolver = createRemoteAssetResolver(manifest);
   rewriteAssetUrls(boundary, resolver);
   const releaseInsertionRewrite = patchBoundaryInsertion(boundary, resolver);
+  const releaseDocumentStyleRewrite = registerDocumentStyleRewrite(document, {
+    appId: manifest.id,
+    boundary,
+    resolver
+  });
   const observer = observeBoundaryAssets(boundary, resolver);
 
   return () => {
     releaseInsertionRewrite();
+    releaseDocumentStyleRewrite();
     observer?.disconnect();
   };
 }
@@ -40,6 +63,7 @@ export function rewriteCssAssetUrls(cssText: string, manifest: AtlasManifest): s
 }
 
 type AssetResolver = (value: string) => string;
+type InsertedNodePreparer = (nodes: readonly (Node | string)[]) => void;
 
 function createRemoteAssetResolver(manifest: AtlasManifest): AssetResolver {
   const remoteEntryUrl = new URL(manifest.remoteEntryUrl, globalThis.location?.href ?? "http://atlas.local");
@@ -83,23 +107,29 @@ function rewriteAssetUrls(root: Element, resolver: AssetResolver): void {
 }
 
 function rewriteNodeAssetUrls(node: Node, resolver: AssetResolver): void {
-  if (isElement(node)) rewriteAssetUrls(node, resolver);
+  if (isElement(node)) {
+    rewriteAssetUrls(node, resolver);
+    return;
+  }
+  if (hasQuerySelectorAll(node)) {
+    node.querySelectorAll("*").forEach((element) => rewriteElementAssetUrls(element, resolver));
+  }
 }
 
 function patchBoundaryInsertion(element: Element, resolver: AssetResolver): AtlasAssetRewriteRelease {
-  return patchElementInsertionMethods(element, resolver);
+  return patchElementInsertionMethods(element, (nodes) => prepareInsertedNodes(nodes, resolver));
 }
 
 function patchElementInsertionMethods(
   element: Element,
-  resolver: AssetResolver
+  prepareInsertedNodes: InsertedNodePreparer
 ): AtlasAssetRewriteRelease {
-  const releaseAppend = patchVariadicInsertionMethod(element, "append", resolver);
-  const releasePrepend = patchVariadicInsertionMethod(element, "prepend", resolver);
-  const releaseReplaceChildren = patchVariadicInsertionMethod(element, "replaceChildren", resolver);
-  const releaseAppendChild = patchSingleNodeInsertionMethod(element, "appendChild", resolver);
-  const releaseInsertBefore = patchSingleNodeInsertionMethod(element, "insertBefore", resolver);
-  const releaseReplaceChild = patchSingleNodeInsertionMethod(element, "replaceChild", resolver);
+  const releaseAppend = patchVariadicInsertionMethod(element, "append", prepareInsertedNodes);
+  const releasePrepend = patchVariadicInsertionMethod(element, "prepend", prepareInsertedNodes);
+  const releaseReplaceChildren = patchVariadicInsertionMethod(element, "replaceChildren", prepareInsertedNodes);
+  const releaseAppendChild = patchSingleNodeInsertionMethod(element, "appendChild", prepareInsertedNodes);
+  const releaseInsertBefore = patchSingleNodeInsertionMethod(element, "insertBefore", prepareInsertedNodes);
+  const releaseReplaceChild = patchSingleNodeInsertionMethod(element, "replaceChild", prepareInsertedNodes);
 
   return () => {
     releaseAppend();
@@ -114,13 +144,13 @@ function patchElementInsertionMethods(
 function patchVariadicInsertionMethod(
   element: Element,
   methodName: "append" | "prepend" | "replaceChildren",
-  resolver: AssetResolver
+  prepareInsertedNodes: InsertedNodePreparer
 ): AtlasAssetRewriteRelease {
   const method = element[methodName];
   if (typeof method !== "function") return () => undefined;
   return patchElementMethod(element, methodName, (...args: unknown[]) => {
     const nodes = args.filter(isNodeOrString);
-    prepareInsertedNodes(nodes, resolver);
+    prepareInsertedNodes(nodes);
     return (method as (...methodArgs: unknown[]) => unknown).apply(element, args);
   });
 }
@@ -128,28 +158,32 @@ function patchVariadicInsertionMethod(
 function patchSingleNodeInsertionMethod(
   element: Element,
   methodName: "appendChild" | "insertBefore" | "replaceChild",
-  resolver: AssetResolver
+  prepareInsertedNodes: InsertedNodePreparer
 ): AtlasAssetRewriteRelease {
   const method = element[methodName];
   if (typeof method !== "function") return () => undefined;
-  return patchElementMethod(element, methodName, (node: unknown, otherNode?: unknown) => {
-    if (!isNode(node)) return (method as (...methodArgs: unknown[]) => unknown).call(element, node, otherNode);
-    prepareInsertedNodes([node], resolver);
-    return (method as (...methodArgs: unknown[]) => unknown).call(element, node, otherNode);
+  return patchElementMethod(element, methodName, (...args: unknown[]) => {
+    const [node] = args;
+    if (isNode(node)) prepareInsertedNodes([node]);
+    return (method as (...methodArgs: unknown[]) => unknown).apply(element, args);
   });
 }
 
 function patchElementMethod(element: Element, methodName: string, patched: (...args: unknown[]) => unknown): AtlasAssetRewriteRelease {
-  const hadOwnMethod = Object.hasOwn(element, methodName);
-  const originalOwnMethod = (element as unknown as Record<string, unknown>)[methodName];
-  Object.defineProperty(element, methodName, { configurable: true, value: patched });
+  const originalDescriptor = Object.getOwnPropertyDescriptor(element, methodName);
+  const methods = element as unknown as Record<string, unknown>;
+  Object.defineProperty(element, methodName, { configurable: true, writable: true, value: patched });
+  let active = true;
 
   return () => {
-    if (hadOwnMethod) {
-      Object.defineProperty(element, methodName, { configurable: true, value: originalOwnMethod });
+    if (!active) return;
+    active = false;
+    if (methods[methodName] !== patched) return;
+    if (originalDescriptor) {
+      Object.defineProperty(element, methodName, originalDescriptor);
       return;
     }
-    delete (element as unknown as Record<string, unknown>)[methodName];
+    delete methods[methodName];
   };
 }
 
@@ -158,8 +192,7 @@ function prepareInsertedNodes(
   resolver: AssetResolver
 ): void {
   for (const node of nodes) {
-    if (typeof node === "string" || !isElement(node)) continue;
-    rewriteAssetUrls(node, resolver);
+    if (typeof node !== "string") rewriteNodeAssetUrls(node, resolver);
   }
 }
 
@@ -173,6 +206,7 @@ function rewriteElementAssetUrls(element: Element, resolver: AssetResolver): voi
   }
   rewriteSrcsetAttribute(element, resolver);
   rewriteStyleAttribute(element, resolver);
+  rewriteStyleElement(element, resolver);
 }
 
 function rewriteAttribute(element: Element, attributeName: string, resolver: AssetResolver): void {
@@ -205,7 +239,145 @@ function rewriteStyleAttribute(element: Element, resolver: AssetResolver): void 
   if (rewritten !== style) element.setAttribute("style", rewritten);
 }
 
+function rewriteStyleElement(element: Element, resolver: AssetResolver): void {
+  if (element.tagName.toLowerCase() !== "style" || !element.textContent) return;
+  const rewritten = rewriteCssUrls(element.textContent, resolver);
+  if (rewritten !== element.textContent) element.textContent = rewritten;
+}
+
+function registerDocumentStyleRewrite(
+  document: Document | undefined,
+  session: DocumentStyleRewriteSession
+): AtlasAssetRewriteRelease {
+  if (!document?.head || !isElement(document.head)) return () => undefined;
+  let registry = documentStyleRewriteRegistries.get(document);
+  if (!registry) {
+    const sessions = new Set<DocumentStyleRewriteSession>();
+    registry = {
+      sessions,
+      sessionsByAppId: new Map(),
+      releaseInsertionRewrite: () => undefined
+    };
+    registry.releaseInsertionRewrite = patchDocumentStyleInsertion(document.head, registry);
+    documentStyleRewriteRegistries.set(document, registry);
+  }
+
+  addDocumentStyleRewriteSession(registry, session);
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    if (!registry) return;
+    removeDocumentStyleRewriteSession(registry, session);
+    if (registry.sessions.size) return;
+    registry.releaseInsertionRewrite();
+    if (documentStyleRewriteRegistries.get(document) === registry) documentStyleRewriteRegistries.delete(document);
+  };
+}
+
+function addDocumentStyleRewriteSession(
+  registry: DocumentStyleRewriteRegistry,
+  session: DocumentStyleRewriteSession
+): void {
+  registry.sessions.add(session);
+  const appId = normalizedAppId(session.appId);
+  const sessions = registry.sessionsByAppId.get(appId) ?? new Set<DocumentStyleRewriteSession>();
+  sessions.add(session);
+  registry.sessionsByAppId.set(appId, sessions);
+}
+
+function removeDocumentStyleRewriteSession(
+  registry: DocumentStyleRewriteRegistry,
+  session: DocumentStyleRewriteSession
+): void {
+  registry.sessions.delete(session);
+  const appId = normalizedAppId(session.appId);
+  const sessions = registry.sessionsByAppId.get(appId);
+  sessions?.delete(session);
+  if (!sessions?.size) registry.sessionsByAppId.delete(appId);
+}
+
+function patchDocumentStyleInsertion(
+  head: HTMLElement,
+  registry: DocumentStyleRewriteRegistry
+): AtlasAssetRewriteRelease {
+  const prepareStyles = (nodes: readonly (Node | string)[]): void => {
+    for (const node of nodes) {
+      if (typeof node !== "string") rewriteOwnedDocumentStyles(node, registry);
+    }
+  };
+  return patchSingleNodeInsertionMethod(head, "appendChild", prepareStyles);
+}
+
+function rewriteOwnedDocumentStyles(
+  root: Node,
+  registry: DocumentStyleRewriteRegistry
+): void {
+  if (isElement(root) && root.tagName.toLowerCase() === "style") {
+    rewriteOwnedDocumentStyle(root, registry);
+    return;
+  }
+  if (hasQuerySelectorAll(root)) {
+    root.querySelectorAll("style").forEach((style) => rewriteOwnedDocumentStyle(style, registry));
+  }
+}
+
+function rewriteOwnedDocumentStyle(
+  style: Element,
+  registry: DocumentStyleRewriteRegistry
+): void {
+  const cssText = style.textContent;
+  if (!cssText?.includes(ASSET_PATH_TOKEN)) return;
+  const owner = findDocumentStyleOwner(cssText, registry);
+  if (owner) rewriteStyleElement(style, owner.resolver);
+}
+
+function findDocumentStyleOwner(
+  cssText: string,
+  registry: DocumentStyleRewriteRegistry
+): DocumentStyleRewriteSession | undefined {
+  const exactOwner = findExactAngularStyleOwner(cssText, registry.sessionsByAppId);
+  if (exactOwner) return exactOwner;
+  if (registry.sessions.size !== 1) return undefined;
+
+  const scopedAttributeNames = angularStyleScopeAttributeNames(cssText);
+  if (!scopedAttributeNames.length) return undefined;
+  const [legacyOwner] = registry.sessions;
+  return legacyOwner && scopedAttributeNames.some((name) => legacyOwner.boundary.querySelector?.(`[${cssEscape(name)}]`))
+    ? legacyOwner
+    : undefined;
+}
+
+function findExactAngularStyleOwner(
+  cssText: string,
+  sessionsByAppId: ReadonlyMap<string, ReadonlySet<DocumentStyleRewriteSession>>
+): DocumentStyleRewriteSession | undefined {
+  let owner: DocumentStyleRewriteSession | undefined;
+  for (const match of cssText.matchAll(ANGULAR_STYLE_APP_ID_PATTERN)) {
+    const appId = match[1];
+    if (!appId) continue;
+    const candidate = sessionsByAppId.get(normalizedAppId(appId))?.values().next().value;
+    if (!candidate) continue;
+    if (owner && normalizedAppId(owner.appId) !== normalizedAppId(candidate.appId)) return undefined;
+    owner = candidate;
+  }
+  return owner;
+}
+
+function angularStyleScopeAttributeNames(cssText: string): string[] {
+  return [...new Set([...cssText.matchAll(ANGULAR_STYLE_SCOPE_PATTERN)].flatMap((match) => match[1] ? [match[1]] : []))];
+}
+
+function normalizedAppId(appId: string): string {
+  return appId.toLowerCase();
+}
+
+function cssEscape(value: string): string {
+  return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
+}
+
 function rewriteCssUrls(cssText: string, resolver: AssetResolver): string {
+  if (!cssText.includes(ASSET_PATH_TOKEN)) return cssText;
   return cssText.replace(URL_FUNCTION_PATTERN, (_match, quote: string | undefined, quotedValue: string | undefined, unquotedValue: string | undefined) => {
     const rawValue = quotedValue ?? unquotedValue ?? "";
     const rewritten = resolver(rawValue);
@@ -230,4 +402,8 @@ function isElement(node: Node | EventTarget): node is Element {
   return typeof Element === "undefined"
     ? "getAttribute" in node && "setAttribute" in node
     : node instanceof Element;
+}
+
+function hasQuerySelectorAll(node: Node): node is Node & ParentNode {
+  return "querySelectorAll" in node && typeof node.querySelectorAll === "function";
 }

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.3.27",
+  "version": "0.3.28",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -74,7 +74,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.27",
+    "@atlas/schema": "0.3.28",
     "@softarc/native-federation-runtime": "^3.5.5",
     "cjs-module-lexer": "^1.4.3"
   },
