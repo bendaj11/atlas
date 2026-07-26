@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T12:08:09.437350+00:00",
+  "generated_at": "2026-07-26T12:09:43.586704+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
       "code_fingerprint": "a0f9a5a1890543ae9b64396d067a920cb7eb30e630ae5e5c3dec1d99cab94522",
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.897469625,
+      "score": 0.897447029,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.897563216,
+      "score": 0.897540618,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
@@ -49,7 +49,7 @@
           "q": "why am I seeing this error in columbus: Could not apply override; Custom URL must use localhost, 127.0.0.1, or [::1]."
         }
       ],
-      "score": 1.794819945,
+      "score": 1.794774757,
       "source_file": "docs/exported-widgets.md",
       "status": "preferred",
       "uses": 2
@@ -65,7 +65,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.870175093,
+      "score": 0.870153185,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -81,7 +81,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.870175093,
+      "score": 0.870153185,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -97,7 +97,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.996704348,
+      "score": 0.996679254,
       "source_file": "packages/cli/src/config-compiler.ts",
       "status": "tentative",
       "uses": 1
@@ -118,7 +118,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.74031135,
+      "score": 1.740267534,
       "source_file": "packages/cli/src/dev.ts",
       "status": "preferred",
       "uses": 2
@@ -145,7 +145,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.87023244,
+      "score": 0.87021053,
       "source_file": "packages/cli/src/dev.ts",
       "status": "contested",
       "uses": 2,
@@ -162,7 +162,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.996704348,
+      "score": 0.996679254,
       "source_file": "packages/cli/src/generate.ts",
       "status": "tentative",
       "uses": 1
@@ -178,7 +178,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.870116395,
+      "score": 0.870094489,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -205,7 +205,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.870296548,
+      "score": 0.870274636,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -222,7 +222,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.870052287,
+      "score": 0.870030382,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -249,7 +249,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.870296548,
+      "score": 0.870274636,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
