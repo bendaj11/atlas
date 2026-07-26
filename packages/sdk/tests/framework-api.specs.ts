@@ -12,6 +12,7 @@ interface CustomerHostSdk {
 
 interface ProductEvents {
   "orders.updated": { orderId: string };
+  "cart.cleared": undefined;
 }
 
 const readAngularSdk: () => AngularAtlasSdk<CustomerHostSdk, ProductEvents> = injectAtlasSdk<CustomerHostSdk, ProductEvents>;
@@ -22,12 +23,17 @@ function verifyFrameworkEventTypes(
   reactSdk: ReactAtlasSdk<CustomerHostSdk, ProductEvents>
 ): void {
   angularSdk.events.publish("orders.updated", { orderId: "42" });
+  angularSdk.events.publish("cart.cleared");
   reactSdk.events.subscribe("orders.updated", ({ orderId }) => orderId.toUpperCase());
 
   // @ts-expect-error Unknown event names must be rejected.
   angularSdk.events.publish("orders.created", { orderId: "42" });
   // @ts-expect-error Payload must match the selected event name.
   reactSdk.events.publish("orders.updated", { id: "42" });
+  // @ts-expect-error Payload-bearing events require a payload.
+  reactSdk.events.publish("orders.updated");
+  // @ts-expect-error Payloadless events reject payload values.
+  angularSdk.events.publish("cart.cleared", {});
 }
 
 void verifyFrameworkEventTypes;

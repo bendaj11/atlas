@@ -218,6 +218,7 @@ type ProductEvents = {
 const atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
 const unsubscribe = atlas.events.subscribe("orders.updated", ({ orderId }) => refresh(orderId));
 atlas.events.publish("orders.updated", { orderId: "42" });
+atlas.events.publish("cart.cleared");
 ```
 
 `subscribe` returns an unsubscribe function and `once` automatically removes its listener after the first event. Event names should use an owning domain prefix. Events are in-memory notifications, so durable business workflows still belong in backend APIs or messaging infrastructure.

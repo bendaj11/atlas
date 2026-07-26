@@ -102,10 +102,12 @@ for durable business workflows.
 ```ts
 type ProductEvents = {
   "orders.updated": { orderId: string };
+  "cart.cleared": undefined;
 };
 
 const atlas = useAtlasSdk<CustomerHostSdk, ProductEvents>();
 atlas.events.publish("orders.updated", { orderId: "42" });
+atlas.events.publish("cart.cleared");
 ```
 
 Event contracts should live in shared TypeScript source so publishers and

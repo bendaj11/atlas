@@ -89,10 +89,12 @@ for durable business workflows.
 ```ts
 type ProductEvents = {
   "orders.updated": { orderId: string };
+  "cart.cleared": undefined;
 };
 
 private readonly atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
 this.atlas.events.publish("orders.updated", { orderId: "42" });
+this.atlas.events.publish("cart.cleared");
 ```
 
 Event contracts should live in shared TypeScript source so publishers and

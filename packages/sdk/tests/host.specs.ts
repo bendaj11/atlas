@@ -103,11 +103,11 @@ test("host properties cannot replace core SDK capabilities", () => {
 });
 
 test("event bus once listener is removed after its first event", () => {
-  const bus = createAtlasEventBus();
+  const bus = createAtlasEventBus<{ "session.expired": undefined }>();
   let calls = 0;
   bus.once("session.expired", () => { calls += 1; });
-  bus.publish("session.expired", undefined);
-  bus.publish("session.expired", undefined);
+  bus.publish("session.expired");
+  bus.publish("session.expired");
   assert.equal(calls, 1);
 });
 
