@@ -296,5 +296,17 @@
   "294": "host.driver.ts",
   "295": "constants.ts",
   "296": "interaction.specs.ts",
-  "297": "schema.specs.ts"
+  "297": "schema.specs.ts",
+  "298": "host-navigation.ts",
+  "299": "SDK Reference",
+  "300": "create-manifest-from-config.ts",
+  "301": "nxOutputPaths",
+  "302": "AtlasWidgetLoader",
+  "303": "Atlas CLI user experience",
+  "304": "@atlas/cli",
+  "305": "process.ts",
+  "306": "Angular Project Guide",
+  "307": "ts-jest",
+  "308": "@types/jest",
+  "309": "DevControlServer"
 }

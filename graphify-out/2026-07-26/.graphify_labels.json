@@ -282,5 +282,19 @@
   "280": "typescript",
   "281": "DevControlServer",
   "282": "cli-error.specs.ts",
-  "283": "ui.specs.ts"
+  "283": "ui.specs.ts",
+  "284": "react-vite-generator.ts",
+  "285": "./react",
+  "286": "@babel/core",
+  "287": "react-router-dom",
+  "288": "@testing-library/user-event",
+  "289": "@wix/wix-ui-icons-common",
+  "290": "tar",
+  "291": "cli.specs.ts",
+  "292": "react-tsconfig-generator.ts",
+  "293": "concurrency.ts",
+  "294": "host.driver.ts",
+  "295": "constants.ts",
+  "296": "interaction.specs.ts",
+  "297": "schema.specs.ts"
 }

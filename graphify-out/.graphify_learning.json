@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T15:16:55.575681+00:00",
+  "generated_at": "2026-07-26T15:26:34.301489+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
       "code_fingerprint": "ddff1175150c947a93d925d808515febad6b4268ca298eddec6c8f8bdd8cb2b5",
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.89475547,
+      "score": 0.894617007,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.894848778,
+      "score": 0.894710301,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
@@ -44,7 +44,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.867543484,
+      "score": 0.867409231,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -60,7 +60,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.867543484,
+      "score": 0.867409231,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -76,7 +76,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.993690085,
+      "score": 0.993536312,
       "source_file": "packages/cli/src/config-compiler.ts",
       "status": "tentative",
       "uses": 1
@@ -97,7 +97,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.735048248,
+      "score": 1.73477975,
       "source_file": "packages/cli/src/dev.ts",
       "status": "preferred",
       "uses": 2
@@ -124,7 +124,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.867600657,
+      "score": 0.867466396,
       "source_file": "packages/cli/src/dev.ts",
       "status": "contested",
       "uses": 2,
@@ -141,7 +141,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.993690085,
+      "score": 0.993536312,
       "source_file": "packages/cli/src/generate.ts",
       "status": "tentative",
       "uses": 1
@@ -157,7 +157,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.867484963,
+      "score": 0.86735072,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -184,7 +184,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.867664571,
+      "score": 0.8675303,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -201,7 +201,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.867421049,
+      "score": 0.867286816,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -228,7 +228,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.867664571,
+      "score": 0.8675303,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
