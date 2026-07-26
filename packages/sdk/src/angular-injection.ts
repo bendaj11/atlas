@@ -1,14 +1,14 @@
 import { ApplicationRef, EnvironmentInjector, inject, InjectionToken, type Provider } from "@angular/core";
 import type { AtlasAppContext } from "./lifecycle.js";
-import type { AtlasSdk as AtlasSdkValue } from "./host.js";
+import type { AtlasEventMap, AtlasSdk as AtlasSdkValue } from "./host.js";
 import { createAngularAtlasSdk, type AngularAtlasSdk } from "./angular-widget.js";
 
 const ATLAS_SDK = new InjectionToken<AtlasSdkValue>("AtlasSdk");
 const ATLAS_APP_CONTEXT = new InjectionToken<AtlasAppContext>("AtlasAppContext");
 
-export type AtlasSdk<THostSdk extends object = {}> = AngularAtlasSdk<THostSdk>;
+export type AtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap> = AngularAtlasSdk<THostSdk, TEvents>;
 
-export function provideAtlasSdk<THostSdk extends object>(sdk: AtlasSdkValue<THostSdk>): Provider {
+export function provideAtlasSdk<THostSdk extends object, TEvents extends object>(sdk: AtlasSdkValue<THostSdk, TEvents>): Provider {
   return { provide: ATLAS_SDK, useValue: sdk };
 }
 
@@ -16,9 +16,9 @@ export function provideAtlasAppContext(context: AtlasAppContext): Provider {
   return { provide: ATLAS_APP_CONTEXT, useValue: context };
 }
 
-export function injectAtlasSdk<THostSdk extends object = {}>(): AtlasSdk<THostSdk> {
+export function injectAtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap>(): AtlasSdk<THostSdk, TEvents> {
   return createAngularAtlasSdk(
-    inject(ATLAS_SDK) as AtlasSdkValue<THostSdk>,
+    inject(ATLAS_SDK) as AtlasSdkValue<THostSdk, TEvents>,
     inject(ApplicationRef),
     inject(EnvironmentInjector)
   );

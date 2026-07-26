@@ -7,29 +7,29 @@ import {
   type ComponentType,
   type FunctionComponent
 } from "react";
-import type { AtlasMountedWidgetHandle, AtlasSdk as AtlasSdkValue } from "./host.js";
+import type { AtlasEventMap, AtlasMountedWidgetHandle, AtlasSdk as AtlasSdkValue } from "./host.js";
 
 export interface ReactGetWidgetOptions {
   loadingComponent?: ComponentType;
 }
 
-export type ReactAtlasSdk<THostSdk extends object = {}> = Omit<AtlasSdkValue<THostSdk>, "getWidget"> & {
+export type ReactAtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap> = Omit<AtlasSdkValue<THostSdk, TEvents>, "getWidget"> & {
   getWidget<TInputs extends object>(
     widgetId: string,
     options?: ReactGetWidgetOptions
   ): ComponentType<TInputs>;
 };
 
-const sdkFacades = new WeakMap<object, ReactAtlasSdk<object>>();
+const sdkFacades = new WeakMap<object, object>();
 
-export function createReactAtlasSdk<THostSdk extends object>(
-  sdk: AtlasSdkValue<THostSdk>
-): ReactAtlasSdk<THostSdk> {
+export function createReactAtlasSdk<THostSdk extends object, TEvents extends object>(
+  sdk: AtlasSdkValue<THostSdk, TEvents>
+): ReactAtlasSdk<THostSdk, TEvents> {
   const cached = sdkFacades.get(sdk);
-  if (cached) return cached as ReactAtlasSdk<THostSdk>;
+  if (cached) return cached as ReactAtlasSdk<THostSdk, TEvents>;
 
   const widgets = new Map<string, Map<ComponentType | undefined, ComponentType<object>>>();
-  const facade = Object.create(sdk) as ReactAtlasSdk<THostSdk>;
+  const facade = Object.create(sdk) as ReactAtlasSdk<THostSdk, TEvents>;
   Object.defineProperty(facade, "getWidget", {
     value: <TInputs extends object>(widgetId: string, options?: ReactGetWidgetOptions): ComponentType<TInputs> => {
       const loadingComponent = options?.loadingComponent;
@@ -43,18 +43,18 @@ export function createReactAtlasSdk<THostSdk extends object>(
       return widget;
     }
   });
-  sdkFacades.set(sdk, facade as ReactAtlasSdk<object>);
+  sdkFacades.set(sdk, facade);
   return facade;
 }
 
 function createWidgetComponent<TInputs extends object>(
-  sdk: AtlasSdkValue,
+  sdk: Pick<AtlasSdkValue, "getWidget">,
   widgetId: string,
   LoadingComponent?: ComponentType
 ): FunctionComponent<TInputs> {
   const Widget: FunctionComponent<TInputs> = (inputs) => {
     const container = useRef<HTMLDivElement>(null);
-    const mountedWidget = useRef<AtlasMountedWidgetHandle<TInputs>>();
+    const mountedWidget = useRef<AtlasMountedWidgetHandle<TInputs> | undefined>(undefined);
     const latestInputs = useRef(inputs);
     const [isLoading, setIsLoading] = useState(false);
     latestInputs.current = inputs;

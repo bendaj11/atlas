@@ -10,8 +10,27 @@ interface CustomerHostSdk {
   showToast(message: string): void;
 }
 
-const readAngularSdk: () => AngularAtlasSdk<CustomerHostSdk> = injectAtlasSdk<CustomerHostSdk>;
-const readReactSdk: () => ReactAtlasSdk<CustomerHostSdk> = useAtlasSdk<CustomerHostSdk>;
+interface ProductEvents {
+  "orders.updated": { orderId: string };
+}
+
+const readAngularSdk: () => AngularAtlasSdk<CustomerHostSdk, ProductEvents> = injectAtlasSdk<CustomerHostSdk, ProductEvents>;
+const readReactSdk: () => ReactAtlasSdk<CustomerHostSdk, ProductEvents> = useAtlasSdk<CustomerHostSdk, ProductEvents>;
+
+function verifyFrameworkEventTypes(
+  angularSdk: AngularAtlasSdk<CustomerHostSdk, ProductEvents>,
+  reactSdk: ReactAtlasSdk<CustomerHostSdk, ProductEvents>
+): void {
+  angularSdk.events.publish("orders.updated", { orderId: "42" });
+  reactSdk.events.subscribe("orders.updated", ({ orderId }) => orderId.toUpperCase());
+
+  // @ts-expect-error Unknown event names must be rejected.
+  angularSdk.events.publish("orders.created", { orderId: "42" });
+  // @ts-expect-error Payload must match the selected event name.
+  reactSdk.events.publish("orders.updated", { id: "42" });
+}
+
+void verifyFrameworkEventTypes;
 
 test("framework subpaths share one Atlas API vocabulary", () => {
   const sharedApiNames: Array<"defineApp" | "defineExportedWidget" | "createHostNavigation"> = ["defineApp", "defineExportedWidget", "createHostNavigation"];

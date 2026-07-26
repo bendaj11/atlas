@@ -1005,8 +1005,8 @@
     "semantic_hash": "a99efe4dcb220fd72747cd26a2f03bfb"
   },
   "packages/sdk/src/angular-injection.ts": {
-    "mtime": 1784541545.2982812,
-    "ast_hash": "d3836d18b305c3e316364e079c1836de",
+    "mtime": 1785070086.3146193,
+    "ast_hash": "235a5e256be82648bac880fe33d51e9a",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-location-strategy.ts": {
@@ -1120,8 +1120,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/react-context.ts": {
-    "mtime": 1785054576.2837126,
-    "ast_hash": "05c68e44ff1eb7833aba17b7dcb5641a",
+    "mtime": 1785070574.0411246,
+    "ast_hash": "6fd9dfa79a2e934568fb047b77d94b92",
     "semantic_hash": ""
   },
   "packages/sdk/src/react-host-navigation.ts": {
@@ -1190,8 +1190,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/tests/framework-api.specs.ts": {
-    "mtime": 1784548836.7745094,
-    "ast_hash": "14b354b8648e5cd834c225de070702e8",
+    "mtime": 1785070086.9347465,
+    "ast_hash": "30397c4692045a7df2757550c9aa277e",
     "semantic_hash": ""
   },
   "packages/sdk/tests/host.driver.ts": {
@@ -1510,8 +1510,8 @@
     "semantic_hash": ""
   },
   "docs/angular/sdk.md": {
-    "mtime": 1784463277.9847639,
-    "ast_hash": "fb3b5c75f8f47afaf44077fcb17f941c",
+    "mtime": 1785070087.2460406,
+    "ast_hash": "0146980dc6e6755faf4e0ca07d7ded12",
     "semantic_hash": ""
   },
   "docs/angular/troubleshooting.md": {
@@ -1520,8 +1520,8 @@
     "semantic_hash": ""
   },
   "docs/api.md": {
-    "mtime": 1784541850.6445808,
-    "ast_hash": "16f455c3d22185a96c940cdc23ede86b",
+    "mtime": 1785070087.5536213,
+    "ast_hash": "a397450201925775aa48db5085ad87d0",
     "semantic_hash": ""
   },
   "docs/architecture.md": {
@@ -1635,8 +1635,8 @@
     "semantic_hash": ""
   },
   "docs/react/sdk.md": {
-    "mtime": 1784463277.828331,
-    "ast_hash": "7c04b6a6c7bc43260cb3041653ec6a7c",
+    "mtime": 1785070087.400054,
+    "ast_hash": "b003d31b4f5cb6418bc0a2a8004af856",
     "semantic_hash": ""
   },
   "docs/react/troubleshooting.md": {
@@ -1660,8 +1660,8 @@
     "semantic_hash": ""
   },
   "docs/sdk.md": {
-    "mtime": 1784547018.6019177,
-    "ast_hash": "404b3ee65aeb72ff30243d0a35bb54a1",
+    "mtime": 1785070087.0904534,
+    "ast_hash": "117b8cf9d42ef2701e581915fbf2dbff",
     "semantic_hash": ""
   },
   "docs/security.md": {
@@ -1860,13 +1860,13 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-widget.ts": {
-    "mtime": 1785054576.279334,
-    "ast_hash": "ad66b00177239a5d47eee189cb6285bd",
+    "mtime": 1785070086.469705,
+    "ast_hash": "66dc70ef13b1af113cc790bb1e8a30ca",
     "semantic_hash": ""
   },
   "packages/sdk/src/react-widget.ts": {
-    "mtime": 1785054576.2838483,
-    "ast_hash": "b8a66586b56b539d20d9a67b31534579",
+    "mtime": 1785070086.7799997,
+    "ast_hash": "7a6d31cb707e5206e9da7b1d6018a526",
     "semantic_hash": ""
   },
   "packages/sdk/tests/widget-adapters.specs.ts": {

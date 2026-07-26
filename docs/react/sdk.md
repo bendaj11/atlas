@@ -104,6 +104,7 @@ type ProductEvents = {
   "orders.updated": { orderId: string };
 };
 
+const atlas = useAtlasSdk<CustomerHostSdk, ProductEvents>();
 atlas.events.publish("orders.updated", { orderId: "42" });
 ```
 

@@ -5,6 +5,7 @@ import {
   type Type
 } from "@angular/core";
 import type {
+  AtlasEventMap,
   AtlasMountedWidgetHandle,
   AtlasSdk as AtlasSdkValue,
   AtlasWidgetLoadingRenderer
@@ -22,7 +23,7 @@ export interface AngularWidgetRef<TInputs extends object> {
   destroy(): Promise<void>;
 }
 
-export type AngularAtlasSdk<THostSdk extends object = {}> = Omit<AtlasSdkValue<THostSdk>, "getWidget"> & {
+export type AngularAtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap> = Omit<AtlasSdkValue<THostSdk, TEvents>, "getWidget"> & {
   getWidget<TInputs extends object>(
     widgetId: string,
     options: AngularGetWidgetOptions<TInputs>
@@ -30,19 +31,19 @@ export type AngularAtlasSdk<THostSdk extends object = {}> = Omit<AtlasSdkValue<T
 };
 
 interface MountAngularWidgetInput<TInputs extends object> {
-  sdk: AtlasSdkValue;
+  sdk: Pick<AtlasSdkValue, "getWidget">;
   applicationRef: ApplicationRef;
   environmentInjector: EnvironmentInjector;
   widgetId: string;
   options: AngularGetWidgetOptions<TInputs>;
 }
 
-export function createAngularAtlasSdk<THostSdk extends object>(
-  sdk: AtlasSdkValue<THostSdk>,
+export function createAngularAtlasSdk<THostSdk extends object, TEvents extends object>(
+  sdk: AtlasSdkValue<THostSdk, TEvents>,
   applicationRef: ApplicationRef,
   environmentInjector: EnvironmentInjector
-): AngularAtlasSdk<THostSdk> {
-  const facade = Object.create(sdk) as AngularAtlasSdk<THostSdk>;
+): AngularAtlasSdk<THostSdk, TEvents> {
+  const facade = Object.create(sdk) as AngularAtlasSdk<THostSdk, TEvents>;
   Object.defineProperty(facade, "getWidget", {
     value: <TInputs extends object>(
       widgetId: string,

@@ -153,7 +153,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 
 | API | Purpose |
 | --- | --- |
-| `injectAtlasSdk<TExtensions, TEvents, THostData>()` | Read the typed SDK from Angular injection |
+| `injectAtlasSdk<THostSdk, TEvents>()` | Read the typed SDK from Angular injection |
 | `provideAtlasSdk()` | Register the host-provided SDK during app mount |
 | `defineApp()` | Expose an Angular app lifecycle entry |
 | `defineExportedWidget()` | Low-level Angular widget lifecycle adapter; generated widgets do not call it |
@@ -174,7 +174,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 
 | API | Purpose |
 | --- | --- |
-| `useAtlasSdk<TExtensions, TEvents, THostData>()` | Read the typed SDK from React context |
+| `useAtlasSdk<THostSdk, TEvents>()` | Read the typed SDK from React context |
 | `defineApp()` | Expose a router-free React app lifecycle entry |
 | `createRoutedApp()` | Expose a React Router app lifecycle entry |
 | `defineExportedWidget()` | Low-level React widget lifecycle adapter; generated widgets do not call it |

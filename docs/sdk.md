@@ -210,16 +210,14 @@ Important production APIs:
 Apps communicate without importing each other through the host-scoped event bus at `atlas.events`. Define the event contract in shared TypeScript source, then use the same type from publishers and subscribers:
 
 ```ts
-import type { AtlasEventBus } from "@atlas/sdk/host";
-
 type ProductEvents = {
   "orders.updated": { orderId: string };
   "cart.cleared": undefined;
 };
 
-const events = atlas.events as AtlasEventBus<ProductEvents>;
-const unsubscribe = events.subscribe("orders.updated", ({ orderId }) => refresh(orderId));
-events.publish("orders.updated", { orderId: "42" });
+const atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
+const unsubscribe = atlas.events.subscribe("orders.updated", ({ orderId }) => refresh(orderId));
+atlas.events.publish("orders.updated", { orderId: "42" });
 ```
 
 `subscribe` returns an unsubscribe function and `once` automatically removes its listener after the first event. Event names should use an owning domain prefix. Events are in-memory notifications, so durable business workflows still belong in backend APIs or messaging infrastructure.

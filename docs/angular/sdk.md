@@ -91,6 +91,7 @@ type ProductEvents = {
   "orders.updated": { orderId: string };
 };
 
+private readonly atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
 this.atlas.events.publish("orders.updated", { orderId: "42" });
 ```
 
