@@ -86,7 +86,7 @@ export class AtlasDevService {
 
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
     const configuredPort = await this.resolveRemotePort(project, DEFAULT_HOST_BOOTSTRAP_PORT);
-    const { bootstrapPort, clientPort } = resolveHostDevPorts(this.args, configuredPort, config.framework);
+    const { bootstrapPort, clientPort } = resolveHostDevPorts(this.args, configuredPort);
     const controlPort = this.args.port("control-port", 4400);
     if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
     const manifest = await this.builds.buildLocalHostManifest(project.id, localOrigin(clientPort));
@@ -112,21 +112,22 @@ export class AtlasDevService {
     const frameworkServer = this.workspace.spawn(project, frameworkTask, frameworkServerArguments(config.framework, clientPort));
     const usesLocalBootstrap = !this.args.flag("host-url");
     const template = usesLocalBootstrap ? await loadBootstrapTemplate(project.root) : undefined;
-    const bootstrap = usesLocalBootstrap ? await startLocalBootstrapServer({
-      port: bootstrapPort,
-      ...(template !== undefined ? { html: template } : {}),
-      runtime: {
-        schemaVersion: "1",
-        hostId: config.id,
-        catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
-        allowCustomOverrides: true,
-        resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
-        resourcesRetryCount: config.resourcesRetryCount ?? 3,
-        assetOrigins: [localOrigin(clientPort), controlOrigin]
-      }
-    }) : undefined;
+    let bootstrap: Server | undefined;
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
+      bootstrap = usesLocalBootstrap ? await startLocalBootstrapServer({
+        port: bootstrapPort,
+        ...(template !== undefined ? { html: template } : {}),
+        runtime: {
+          schemaVersion: "1",
+          hostId: config.id,
+          catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
+          allowCustomOverrides: true,
+          resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
+          resourcesRetryCount: config.resourcesRetryCount ?? 3,
+          assetOrigins: [localOrigin(clientPort), controlOrigin]
+        }
+      }) : undefined;
       await control.markReady();
       logHostViewUrl(hostUrl);
       openBrowserWhenReady(this.args, hostUrl);
@@ -653,19 +654,7 @@ export function frameworkServerArguments(framework: AtlasConfig["framework"], po
   return framework === "react" ? [...portArguments, "--host", LOCAL_HOST] : portArguments;
 }
 
-export function resolveHostDevPorts(
-  args: CliArguments,
-  configuredPort: number,
-  framework: AtlasConfig["framework"]
-): HostDevPorts {
-  if (usesDefaultAngularHostPorts(args, framework)) {
-    return {
-      bootstrapPort: configuredPort === DEFAULT_HOST_BOOTSTRAP_PORT
-        ? DEFAULT_HOST_CLIENT_PORT
-        : DEFAULT_HOST_BOOTSTRAP_PORT,
-      clientPort: configuredPort
-    };
-  }
+export function resolveHostDevPorts(args: CliArguments, configuredPort: number): HostDevPorts {
   const bootstrapPort = args.port("bootstrap-port", configuredPort);
   const clientFallback = hostClientPortFallback(args, configuredPort, bootstrapPort);
   const clientPort = args.port("host-client-port", clientFallback);
@@ -673,13 +662,6 @@ export function resolveHostDevPorts(
     throw new Error("Host bootstrap and host client ports must differ. Pass --host-client-port with another port.");
   }
   return { bootstrapPort, clientPort };
-}
-
-function usesDefaultAngularHostPorts(args: CliArguments, framework: AtlasConfig["framework"]): boolean {
-  return framework === "angular"
-    && !args.hasFlag("host-url")
-    && !args.hasFlag("bootstrap-port")
-    && !args.hasFlag("host-client-port");
 }
 
 function hostClientPortFallback(args: CliArguments, configuredPort: number, bootstrapPort: number): number {

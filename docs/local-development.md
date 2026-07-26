@@ -16,9 +16,9 @@ Atlas starts:
 
 Framework server exposes `./host`. Control catalog selects its local host manifest. Browser-facing static bootstrap loads that catalog exactly like production. Internal port is implementation detail.
 
-Angular Native Federation keeps the port configured in `angular.json` for the
-internal host client. Atlas selects 4200 for the bootstrap when available, or
-4300 when the Angular client already uses 4200. Use the printed Host Preview URL.
+The port selected during host generation remains the browser-facing preview
+port. Atlas manages the separate framework port and starts the bootstrap only
+after the framework server is ready.
 
 Expected output includes a Host Preview URL. Open it and confirm the product shell renders.
 

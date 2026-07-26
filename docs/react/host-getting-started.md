@@ -56,7 +56,7 @@ Provider filename derives from project name: `customer-host` becomes
 Generated host config resembles:
 
 ```ts
-import type { AtlasHostConfig } from '@atlas/schema' assert {
+import type { AtlasHostConfig } from '@atlas/schema' with {
   'resolution-mode': 'import',
 };
 
