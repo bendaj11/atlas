@@ -25,6 +25,8 @@ const REMOTE_START_TIMEOUT_MS = 120_000;
 const REMOTE_POLL_INTERVAL_MS = 200;
 const HOST_DISCOVERY_TIMEOUT_MS = 5_000;
 const LOCAL_HOST = "localhost";
+const DEFAULT_HOST_BOOTSTRAP_PORT = 4200;
+const DEFAULT_HOST_CLIENT_PORT = 4300;
 interface DevControlServer {
   port: number;
   markReady(): Promise<void>;
@@ -83,8 +85,8 @@ export class AtlasDevService {
   }
 
   private async runHost(project: AtlasProject, config: AtlasHostConfig): Promise<void> {
-    const configuredPort = await this.resolveRemotePort(project, 4200);
-    const { bootstrapPort, clientPort } = resolveHostDevPorts(this.args, configuredPort);
+    const configuredPort = await this.resolveRemotePort(project, DEFAULT_HOST_BOOTSTRAP_PORT);
+    const { bootstrapPort, clientPort } = resolveHostDevPorts(this.args, configuredPort, config.framework);
     const controlPort = this.args.port("control-port", 4400);
     if (!this.builds.buildLocalHostManifest) throw new Error("Atlas host development requires host-client build support.");
     const manifest = await this.builds.buildLocalHostManifest(project.id, localOrigin(clientPort));
@@ -651,7 +653,19 @@ export function frameworkServerArguments(framework: AtlasConfig["framework"], po
   return framework === "react" ? [...portArguments, "--host", LOCAL_HOST] : portArguments;
 }
 
-export function resolveHostDevPorts(args: CliArguments, configuredPort: number): HostDevPorts {
+export function resolveHostDevPorts(
+  args: CliArguments,
+  configuredPort: number,
+  framework: AtlasConfig["framework"]
+): HostDevPorts {
+  if (usesDefaultAngularHostPorts(args, framework)) {
+    return {
+      bootstrapPort: configuredPort === DEFAULT_HOST_BOOTSTRAP_PORT
+        ? DEFAULT_HOST_CLIENT_PORT
+        : DEFAULT_HOST_BOOTSTRAP_PORT,
+      clientPort: configuredPort
+    };
+  }
   const bootstrapPort = args.port("bootstrap-port", configuredPort);
   const clientFallback = hostClientPortFallback(args, configuredPort, bootstrapPort);
   const clientPort = args.port("host-client-port", clientFallback);
@@ -661,9 +675,18 @@ export function resolveHostDevPorts(args: CliArguments, configuredPort: number):
   return { bootstrapPort, clientPort };
 }
 
+function usesDefaultAngularHostPorts(args: CliArguments, framework: AtlasConfig["framework"]): boolean {
+  return framework === "angular"
+    && !args.hasFlag("host-url")
+    && !args.hasFlag("bootstrap-port")
+    && !args.hasFlag("host-client-port");
+}
+
 function hostClientPortFallback(args: CliArguments, configuredPort: number, bootstrapPort: number): number {
   if (args.hasFlag("host-url") || args.hasFlag("bootstrap-port")) return configuredPort;
-  return bootstrapPort === 4300 ? 4200 : 4300;
+  return bootstrapPort === DEFAULT_HOST_CLIENT_PORT
+    ? DEFAULT_HOST_BOOTSTRAP_PORT
+    : DEFAULT_HOST_CLIENT_PORT;
 }
 
 function localOrigin(port: number): string {

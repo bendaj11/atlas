@@ -90,6 +90,7 @@ bus
 but
 bytes
 cache
+cached
 caching
 can
 candidate
@@ -177,6 +178,7 @@ core
 corrupt
 cors
 cost
+could
 count
 create
 credential
@@ -301,6 +303,7 @@ exported
 exports
 expose
 exposes
+exte
 extends
 extension
 extensions
@@ -345,7 +348,6 @@ formatter
 forward
 found
 fragment
-frame
 framework
 frameworks
 freshness
@@ -378,6 +380,7 @@ hardening
 has
 hash
 hashing
+have
 head
 header
 health
@@ -387,6 +390,7 @@ help
 here
 hide
 history
+holder
 home
 homepage
 honesty
@@ -448,6 +452,7 @@ interaction
 interactive
 intercept
 interceptor
+internal
 interop
 interpolate
 interpreter
@@ -463,6 +468,7 @@ item
 items
 iterable
 iteration
+its
 itself
 java
 jenkins
@@ -470,6 +476,7 @@ jest
 join
 joined
 joining
+jsdom
 json
 jsx
 keep
@@ -490,6 +497,7 @@ learn
 lease
 levels
 lib
+library
 license
 lifecycle
 like
@@ -647,6 +655,7 @@ persist
 persisted
 persistent
 picker
+place
 placeholder
 placement
 placements
@@ -668,6 +677,7 @@ ports
 positive
 post
 precondition
+predefined
 prefix
 prepare
 present
@@ -752,6 +762,7 @@ remember
 remote
 removal
 remove
+removed
 render
 renderer
 rendering
@@ -805,7 +816,6 @@ same
 sandbox
 save
 scaffold
-scenario
 schema
 scope
 scoped
@@ -816,6 +826,7 @@ sdk
 second
 security
 seed
+seeing
 select
 selected
 selection
@@ -839,6 +850,7 @@ shape
 shared
 shell
 shims
+shoul
 should
 show
 shutdown
@@ -974,6 +986,7 @@ until
 unused
 unwrap
 update
+updated
 url
 urls
 usable

@@ -115,7 +115,7 @@ await startHost({
 The Angular app declares where it can mount in its own `atlas.config.ts`:
 
 ```ts
-import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasAppConfig } from "@atlas/schema" assert { "resolution-mode": "import" };
 
 export default {
   id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",

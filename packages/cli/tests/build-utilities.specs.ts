@@ -72,7 +72,7 @@ test('framework dev servers receive compatible localhost arguments', () => {
 test('host development keeps the configured port browser-facing', () => {
   const args = new CliArguments(['dev', 'customer-host']);
 
-  expect(resolveHostDevPorts(args, 4200)).toStrictEqual({
+  expect(resolveHostDevPorts(args, 4200, 'react')).toStrictEqual({
     bootstrapPort: 4200,
     clientPort: 4300,
   });
@@ -81,7 +81,7 @@ test('host development keeps the configured port browser-facing', () => {
 test('host development supports any custom browser port', () => {
   const args = new CliArguments(['dev', 'customer-host', '--port=4500']);
 
-  expect(resolveHostDevPorts(args, 4500)).toStrictEqual({
+  expect(resolveHostDevPorts(args, 4500, 'react')).toStrictEqual({
     bootstrapPort: 4500,
     clientPort: 4300,
   });
@@ -95,7 +95,7 @@ test('explicit bootstrap port preserves the split-port contract', () => {
     '--bootstrap-port=4502',
   ]);
 
-  expect(resolveHostDevPorts(args, 4500)).toStrictEqual({
+  expect(resolveHostDevPorts(args, 4500, 'react')).toStrictEqual({
     bootstrapPort: 4502,
     clientPort: 4500,
   });
@@ -109,7 +109,7 @@ test('deployed host development keeps the configured client port', () => {
     '--host-url=https://customer.example',
   ]);
 
-  expect(resolveHostDevPorts(args, 4500)).toStrictEqual({
+  expect(resolveHostDevPorts(args, 4500, 'react')).toStrictEqual({
     bootstrapPort: 4500,
     clientPort: 4500,
   });
@@ -123,7 +123,25 @@ test('host development rejects one port for both local servers', () => {
     '--host-client-port=4500',
   ]);
 
-  expect(() => resolveHostDevPorts(args, 4500)).toThrow(/must differ/);
+  expect(() => resolveHostDevPorts(args, 4500, 'react')).toThrow(/must differ/);
+});
+
+test('Angular host development keeps its configured framework port', () => {
+  const args = new CliArguments(['dev', 'customer-host']);
+
+  expect(resolveHostDevPorts(args, 5200, 'angular')).toStrictEqual({
+    bootstrapPort: 4200,
+    clientPort: 5200,
+  });
+});
+
+test('Angular host development moves bootstrap away from configured port 4200', () => {
+  const args = new CliArguments(['dev', 'customer-host']);
+
+  expect(resolveHostDevPorts(args, 4200, 'angular')).toStrictEqual({
+    bootstrapPort: 4300,
+    clientPort: 4200,
+  });
 });
 
 test('generators keep component declarations split across files', () => {
@@ -140,6 +158,20 @@ test('generators keep component declarations split across files', () => {
       if (framework === 'react')
         expect(file.contents).not.toMatch(/import\.meta\.hot/);
     }
+  }
+});
+
+test('generated Atlas configs use parser-compatible import assertions', () => {
+  const configs = [
+    ...generateHostFiles({ name: 'host', framework: 'react' }),
+    ...generateAppFiles({ name: 'orders', framework: 'react' }),
+    ...generateWidgetFiles({ name: 'order-status', framework: 'react' }),
+  ].filter(({ path }) => path.endsWith('atlas.config.ts'));
+
+  expect(configs).toHaveLength(3);
+  for (const { contents } of configs) {
+    expect(contents).toMatch(/assert \{ "resolution-mode": "import" \}/);
+    expect(contents).not.toMatch(/\bwith \{/);
   }
 });
 

@@ -111,6 +111,7 @@ for (const scenario of [
     config: 'vite.config.ts',
     match: /createRoutedApp/,
     configMatch: /createReactAppViteConfig/,
+    turboTaskKey: 'tasks',
   },
   {
     name: 'Turborepo',
@@ -122,7 +123,11 @@ for (const scenario of [
         packageManager: 'pnpm@10.0.0',
         workspaces: ['apps/*'],
       }),
-      'turbo.json': '{}\n',
+      'turbo.json': JSON.stringify({
+        pipeline: {
+          build: { outputs: ['dist/**'] },
+        },
+      }),
     },
     framework: 'angular',
     root: 'apps/orders',
@@ -130,6 +135,7 @@ for (const scenario of [
     config: 'federation.config.js',
     match: /defineApp/,
     configMatch: /@atlas\/sdk\/federation-config/,
+    turboTaskKey: 'pipeline',
   },
 ]) {
   test(`atlas generates complete app files in a ${scenario.name}`, async () => {
@@ -166,6 +172,18 @@ for (const scenario of [
         .name,
     ).toBe('orders');
     expect(await readFile(join(root, '.gitignore'), 'utf8')).toBe('.atlas/\n');
+    const turboTaskKey = scenario.turboTaskKey;
+    if (turboTaskKey) {
+      const turbo = JSON.parse(
+        await readFile(join(root, 'turbo.json'), 'utf8'),
+      );
+      const tasks = turbo[turboTaskKey];
+      expect(tasks.dev).toStrictEqual({ cache: false, persistent: true });
+      if (turboTaskKey === 'pipeline') {
+        expect(tasks.build.outputs).toStrictEqual(['dist/**']);
+        expect(turbo.tasks).toBe(undefined);
+      }
+    }
     if (scenario.framework === 'angular') {
       const angularJson = JSON.parse(
         await readFile(join(projectRoot, 'angular.json'), 'utf8'),
@@ -285,6 +303,7 @@ for (const scenario of [
       const turbo = JSON.parse(
         await readFile(join(root, 'turbo.json'), 'utf8'),
       );
+      expect(turbo.tasks.dev).toStrictEqual({ cache: false, persistent: true });
       expect(turbo.tasks['atlas:publish'].cache).toBe(false);
       expect(turbo.tasks['atlas:publish'].dependsOn).toStrictEqual(['build']);
       expect(turbo.tasks['atlas:publish'].env).toEqual(

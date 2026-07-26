@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-22T08:28:49.532639+00:00",
+  "generated_at": "2026-07-26T08:32:22.508253+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
       "code_fingerprint": "a0f9a5a1890543ae9b64396d067a920cb7eb30e630ae5e5c3dec1d99cab94522",
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.987837385,
+      "score": 0.900582266,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.987940399,
+      "score": 0.900676181,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
@@ -49,7 +49,7 @@
           "q": "why am I seeing this error in columbus: Could not apply override; Custom URL must use localhost, 127.0.0.1, or [::1]."
         }
       ],
-      "score": 1.975543452,
+      "score": 1.801044813,
       "source_file": "docs/exported-widgets.md",
       "status": "preferred",
       "uses": 2
@@ -65,7 +65,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.957794519,
+      "score": 0.87319307,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -81,7 +81,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.957794519,
+      "score": 0.87319307,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -102,7 +102,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.915546292,
+      "score": 1.746347169,
       "source_file": "packages/cli/src/dev.ts",
       "status": "preferred",
       "uses": 2
@@ -129,7 +129,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.957857641,
+      "score": 0.873250616,
       "source_file": "packages/cli/src/dev.ts",
       "status": "contested",
       "uses": 2,
@@ -146,7 +146,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.957729911,
+      "score": 0.873134169,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -173,7 +173,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.957928204,
+      "score": 0.873314946,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -190,7 +190,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.957659348,
+      "score": 0.873069838,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -217,7 +217,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.957928204,
+      "score": 0.873314946,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,

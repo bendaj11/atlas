@@ -46,7 +46,7 @@ export default class ${componentName} {
 function widgetConfig(name: string): AtlasGeneratedFile {
   return {
     path: `src/exported-widgets/${name}/atlas.config.ts`,
-    contents: `import type { AtlasWidgetConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+    contents: `import type { AtlasWidgetConfig } from "@atlas/schema" assert { "resolution-mode": "import" };
 
 export default {
   id: "${randomUUID()}",

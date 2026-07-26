@@ -1,4 +1,4 @@
-import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasAppConfig } from "@atlas/schema" assert { "resolution-mode": "import" };
 
 export default {
   type: "app",

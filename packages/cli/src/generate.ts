@@ -333,9 +333,8 @@ export class AtlasGenerateService {
     const turboPath = join(this.workspace.root, "turbo.json");
     const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
     if (!turbo) return;
-    const tasks = turbo.tasks && typeof turbo.tasks === "object" && !Array.isArray(turbo.tasks)
-      ? turbo.tasks as Record<string, unknown>
-      : {};
+    const [taskKey, tasks] = turboTasks(turbo);
+    tasks.dev ??= { cache: false, persistent: true };
     tasks["atlas:config"] ??= { outputs: [".atlas/**"] };
     tasks["atlas:publish"] ??= {
       cache: false,
@@ -348,7 +347,7 @@ export class AtlasGenerateService {
       dependsOn: ["atlas:config"],
       outputs: ["dist/bootstrap/**"]
     };
-    turbo.tasks = tasks;
+    turbo[taskKey] = tasks;
     await writeJsonFile(turboPath, turbo);
   }
 
@@ -358,6 +357,16 @@ export class AtlasGenerateService {
       ui.info(`Formatted generated files in ${displayTarget(this.workspace.root, root)}.`);
     }
   }
+}
+
+function turboTasks(turbo: Record<string, unknown>): ["tasks" | "pipeline", Record<string, unknown>] {
+  if (isRecord(turbo.tasks)) return ["tasks", turbo.tasks];
+  if (isRecord(turbo.pipeline)) return ["pipeline", turbo.pipeline];
+  return ["tasks", {}];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function readWidgetApp(project: AtlasProject): Promise<WidgetAppSelection | undefined> {

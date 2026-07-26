@@ -13,12 +13,12 @@ export function assertValidGeneratorOptions(options: AtlasGeneratorOptions): voi
 export function atlasAppConfig(options: AtlasGeneratorOptions): string {
   const { name, framework } = options;
   const appFields = options.hostId ? `,\n  ${appConfig(name, options.hostId)}` : "";
-  return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
+  return `import type { AtlasAppConfig } from "@atlas/schema" assert { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
 }
 
 export function atlasHostConfig(options: AtlasGeneratorOptions, hostId: string): string {
   const { name, framework } = options;
-  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${hostId}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
+  return `import type { AtlasHostConfig } from "@atlas/schema" assert { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${hostId}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
 }
 
 export function atlasBootstrapHtml(name: string): string {

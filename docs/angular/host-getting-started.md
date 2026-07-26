@@ -52,7 +52,7 @@ Responsibilities:
 Generated host config resembles:
 
 ```ts
-import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasHostConfig } from "@atlas/schema" assert { "resolution-mode": "import" };
 
 export default {
   type: "host",
