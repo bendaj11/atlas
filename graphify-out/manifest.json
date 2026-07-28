@@ -1450,18 +1450,18 @@
     "semantic_hash": ""
   },
   "docs/react/generators.md": {
-    "mtime": 1784549705.6688719,
-    "ast_hash": "5082038ea1a8545449bc0ada65061f5d",
+    "mtime": 1785238084.140257,
+    "ast_hash": "a88e35a1ccbf3b6f09aeb4954c7398ea",
     "semantic_hash": ""
   },
   "docs/react/getting-started.md": {
-    "mtime": 1784537343.2325652,
-    "ast_hash": "5ca65cd2f31f4873201be7bd67d571e5",
+    "mtime": 1785238083.9820356,
+    "ast_hash": "2282bd3bb2d19b5701ea01fb334be97d",
     "semantic_hash": ""
   },
   "docs/react/host-getting-started.md": {
-    "mtime": 1785067216.5322335,
-    "ast_hash": "ad113a30bd3dec8308e5ce8fc7f0f213",
+    "mtime": 1785238127.7624896,
+    "ast_hash": "e4840240e2e23e5b348c25721c90f453",
     "semantic_hash": ""
   },
   "docs/react/production-deployment.md": {
@@ -1470,13 +1470,13 @@
     "semantic_hash": ""
   },
   "docs/react/routing.md": {
-    "mtime": 1785063848.2050598,
-    "ast_hash": "98722e57a2cf3d94185db520dfe94009",
+    "mtime": 1785238128.0641446,
+    "ast_hash": "e738e6c7d6c05c83e52e19bc8c2a66a5",
     "semantic_hash": ""
   },
   "docs/react/sdk.md": {
-    "mtime": 1785071115.023263,
-    "ast_hash": "74392d7d49284480df6acf137efe4612",
+    "mtime": 1785238127.915465,
+    "ast_hash": "66a79aed02973e873dc9a25e1361179b",
     "semantic_hash": ""
   },
   "docs/react/troubleshooting.md": {

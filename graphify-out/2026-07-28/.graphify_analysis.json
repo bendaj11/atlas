@@ -2303,29 +2303,20 @@
       "docs_workspaces_yarn_workspaces"
     ],
     "54": [
-      "packages_cli_src_cli_arguments_supportedframework",
       "packages_cli_src_cli_ui_atlasprompter_select",
-      "packages_cli_src_generation_dependencies_frameworkversioninfo",
       "packages_cli_src_generation_generate_service_atlasgenerateservice",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_configuredwidgetapps",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_confirmplugininstall",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_ensureworkspacegenerator",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_ensureworkspacegeneratoravailable",
-      "packages_cli_src_generation_generate_service_atlasgenerateservice_formatgenerated",
-      "packages_cli_src_generation_generate_service_atlasgenerateservice_logframeworkversionselection",
-      "packages_cli_src_generation_generate_service_atlasgenerateservice_loggenerationplan",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_resolveinnerrouting",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_resolvewidgetapp",
       "packages_cli_src_generation_generate_service_atlasgenerateservice_widget",
+      "packages_cli_src_generation_generate_service_atlasgenerateservice_writenxproject",
       "packages_cli_src_generation_generate_service_availableappsmessage",
-      "packages_cli_src_generation_generate_service_widgetappselection",
-      "packages_cli_src_generation_labels",
-      "packages_cli_src_generation_labels_frameworklabel",
-      "packages_cli_src_generation_nx_nxdevtargetoptions",
-      "packages_cli_src_generation_paths_displaytarget",
-      "packages_cli_src_generation_paths_workspacelabel",
+      "packages_cli_src_generation_nx_atlasconfignxtarget",
+      "packages_cli_src_generation_nx_nxtarget",
       "packages_cli_src_workspace_workspace_atlasnxprojecttype",
-      "packages_cli_src_workspace_workspace_atlasworkspace_formatgenerated",
       "packages_cli_src_workspace_workspace_atlasworkspace_installscaffolddependency",
       "packages_cli_src_workspace_workspace_atlasworkspace_listprojects",
       "packages_cli_src_workspace_workspace_atlasworkspace_missingscaffolddependency"
@@ -3112,17 +3103,18 @@
       "packages_sdk_package_angular_types",
       "packages_sdk_package_exports",
       "packages_sdk_package_exports_angular",
-      "packages_sdk_package_exports_federation",
+      "packages_sdk_package_exports_federation_config",
       "packages_sdk_package_exports_host",
-      "packages_sdk_package_exports_lifecycle",
+      "packages_sdk_package_exports_navigation",
       "packages_sdk_package_exports_overlay",
       "packages_sdk_package_exports_react",
-      "packages_sdk_package_federation_default",
-      "packages_sdk_package_federation_types",
+      "packages_sdk_package_federation_config_import",
+      "packages_sdk_package_federation_config_require",
+      "packages_sdk_package_federation_config_types",
       "packages_sdk_package_host_default",
       "packages_sdk_package_host_types",
-      "packages_sdk_package_lifecycle_default",
-      "packages_sdk_package_lifecycle_types",
+      "packages_sdk_package_navigation_default",
+      "packages_sdk_package_navigation_types",
       "packages_sdk_package_overlay_default",
       "packages_sdk_package_overlay_types",
       "packages_sdk_package_react_default",
@@ -4483,10 +4475,18 @@
       "packages_sdk_federation_config_d_reactwidgetentry"
     ],
     "211": [
-      "packages_sdk_package_exports_federation_config",
-      "packages_sdk_package_federation_config_import",
-      "packages_sdk_package_federation_config_require",
-      "packages_sdk_package_federation_config_types"
+      "packages_cli_src_cli_arguments_supportedframework",
+      "packages_cli_src_generation_dependencies_frameworkversioninfo",
+      "packages_cli_src_generation_generate_service_atlasgenerateservice_formatgenerated",
+      "packages_cli_src_generation_generate_service_atlasgenerateservice_logframeworkversionselection",
+      "packages_cli_src_generation_generate_service_atlasgenerateservice_loggenerationplan",
+      "packages_cli_src_generation_generate_service_widgetappselection",
+      "packages_cli_src_generation_labels",
+      "packages_cli_src_generation_labels_frameworklabel",
+      "packages_cli_src_generation_nx_nxdevtargetoptions",
+      "packages_cli_src_generation_paths_displaytarget",
+      "packages_cli_src_generation_paths_workspacelabel",
+      "packages_cli_src_workspace_workspace_atlasworkspace_formatgenerated"
     ],
     "212": [
       "packages_sdk_package_files",
@@ -4553,9 +4553,9 @@
       "package_engines_pnpm"
     ],
     "224": [
-      "packages_cli_src_generation_generate_service_atlasgenerateservice_writenxproject",
-      "packages_cli_src_generation_nx_atlasconfignxtarget",
-      "packages_cli_src_generation_nx_nxtarget"
+      "packages_sdk_package_exports_federation",
+      "packages_sdk_package_federation_default",
+      "packages_sdk_package_federation_types"
     ],
     "225": [
       "packages_cli_tests_workspace_driver",
@@ -4568,9 +4568,9 @@
       "packages_runtime_package_json_ref_dist_js"
     ],
     "227": [
-      "packages_sdk_package_exports_navigation",
-      "packages_sdk_package_navigation_default",
-      "packages_sdk_package_navigation_types"
+      "packages_sdk_package_exports_lifecycle",
+      "packages_sdk_package_lifecycle_default",
+      "packages_sdk_package_lifecycle_types"
     ],
     "228": [
       "packages_sdk_tests_federation_runtime_specs",
@@ -4872,7 +4872,7 @@
     "51": 0.1282051282051282,
     "52": 0.1476923076923077,
     "53": 0.08307692307692308,
-    "54": 0.11692307692307692,
+    "54": 0.16911764705882354,
     "55": 0.15384615384615385,
     "56": 0.18153846153846154,
     "57": 0.07692307692307693,
@@ -4905,7 +4905,7 @@
     "84": 0.19298245614035087,
     "85": 0.2046783625730994,
     "86": 0.19883040935672514,
-    "87": 0.10526315789473684,
+    "87": 0.1,
     "88": 0.20915032679738563,
     "89": 0.18382352941176472,
     "90": 0.16911764705882354,
@@ -5029,7 +5029,7 @@
     "208": 0.5,
     "209": 0.5,
     "210": 0.5,
-    "211": 0.5,
+    "211": 0.21212121212121213,
     "212": 0.5,
     "213": 0.5,
     "214": 0.5,
@@ -5042,7 +5042,7 @@
     "221": 0.6666666666666666,
     "222": 0.6666666666666666,
     "223": 0.6666666666666666,
-    "224": 1.0,
+    "224": 0.6666666666666666,
     "225": 1.0,
     "226": 0.6666666666666666,
     "227": 0.6666666666666666,
@@ -5220,8 +5220,41 @@
       "why": "inferred connection - not explicitly stated in source; bridges separate communities"
     }
   ],
-  "tokens": {
-    "input": 0,
-    "output": 0
-  }
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `updateGeneratedManifests()` connect `verify-generated-projects.js` to `.project`?",
+      "why": "High betweenness centrality (0.023) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `createWidgetComponent()` connect `AtlasNavigation` to `loader.specs.ts`?",
+      "why": "High betweenness centrality (0.022) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `renderLoading()` connect `loader.specs.ts` to `AtlasNavigation`?",
+      "why": "High betweenness centrality (0.022) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `name`, `version`, `private` to the rest of the system?",
+      "why": "1495 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `index.ts` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05218352681039248 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `react-generator.ts` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.07515605493133583 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `AtlasManifest` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.06498015873015874 - nodes in this community are weakly interconnected."
+    }
+  ]
 }
