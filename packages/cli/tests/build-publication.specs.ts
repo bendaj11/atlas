@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
-import { CliArguments } from "../dist/arguments.js";
-import { AtlasBuildService } from "../dist/build.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { AtlasBuildService } from "../dist/build/build.service.js";
 import { createTestWorkspace, run } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -13,7 +13,7 @@ const CATALOG_REACT_ID = "3ae54928-c2c6-491d-b766-6996ce0ef3c8";
 
 test("atlas build emits a deployable manifest without publication plans", async () => {
   await run(process.execPath, [
-    "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile",
+    "packages/cli/dist/cli/entrypoint.js", "build", "catalog-react", "--skip-compile",
     "--registry-base-url=https://cdn.example/atlas"
   ]);
 
@@ -28,7 +28,7 @@ test("atlas build emits a deployable manifest without publication plans", async 
 
 test("atlas build requires public registry URL outside local development", async () => {
   await expect(run(process.execPath, [
-    "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile"
+    "packages/cli/dist/cli/entrypoint.js", "build", "catalog-react", "--skip-compile"
   ], { env: { ...process.env, ATLAS_REGISTRY_URL: "" } })).rejects.toThrow(/registry-base-url.*required/);
 });
 
@@ -108,19 +108,19 @@ test("Angular artifact discovery separates workspace name from public UUID", asy
 
 test("atlas generation rejects project names escaping target directory", async () => {
   await expect(run(process.execPath, [
-    "packages/cli/dist/index.js", "g", "app", "../outside", "--framework=react"
+    "packages/cli/dist/cli/entrypoint.js", "g", "app", "../outside", "--framework=react"
   ])).rejects.toThrow(/Invalid project name/);
 });
 
 test("atlas build is deterministic with fixed build metadata", async () => {
   const environment = { ...process.env, ATLAS_CREATED_AT: "2026-02-03T04:05:06.000Z" };
   await run(process.execPath, [
-    "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile",
+    "packages/cli/dist/cli/entrypoint.js", "build", "catalog-react", "--skip-compile",
     "--registry-base-url=https://cdn.example/atlas"
   ], { env: environment });
   const first = await readFile("examples/apps/catalog-react/dist/app.manifest.json", "utf8");
   await run(process.execPath, [
-    "packages/cli/dist/index.js", "build", "catalog-react", "--skip-compile",
+    "packages/cli/dist/cli/entrypoint.js", "build", "catalog-react", "--skip-compile",
     "--registry-base-url=https://cdn.example/atlas"
   ], { env: environment });
   expect(await readFile("examples/apps/catalog-react/dist/app.manifest.json", "utf8")).toBe(first);

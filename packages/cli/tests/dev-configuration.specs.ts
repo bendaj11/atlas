@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
-import { loadEnvFiles } from "../dist/env.js";
+import { loadEnvFiles } from "../dist/workspace/env.js";
 import { restoreEnv, run, runDevService, testTypeScriptConfig } from "./build.driver.js";
 
 process.chdir(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -27,7 +27,7 @@ test("atlas dev without a project uses the current Atlas project directory", asy
   ].join("\n"));
 
   const stdout = await run(process.execPath, [
-    join(process.cwd(), "packages/cli/dist/index.js"),
+    join(process.cwd(), "packages/cli/dist/cli/entrypoint.js"),
     "dev",
     "--prepare-only",
     "--control-port=4521"

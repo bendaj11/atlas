@@ -21,7 +21,7 @@ test('atlas generation registers projects with Nx automatically', async () => {
   const stdout = await run(
     process.execPath,
     [
-      join(process.cwd(), 'packages/cli/dist/index.js'),
+      join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
       'g',
       'app',
       'orders',
@@ -147,7 +147,7 @@ for (const scenario of [
     const stdout = await run(
       process.execPath,
       [
-        join(process.cwd(), 'packages/cli/dist/index.js'),
+        join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
         'g',
         'app',
         'orders',
@@ -179,6 +179,10 @@ for (const scenario of [
       );
       const tasks = turbo[turboTaskKey];
       expect(tasks.dev).toStrictEqual({ cache: false, persistent: true });
+      expect(tasks['framework:dev']).toStrictEqual({
+        cache: false,
+        persistent: true,
+      });
       if (turboTaskKey === 'pipeline') {
         expect(tasks.build.outputs).toStrictEqual(['dist/**']);
         expect(turbo.tasks).toBe(undefined);
@@ -228,7 +232,7 @@ for (const scenario of [
     },
     framework: 'react',
     root: 'packages/customer-host',
-    dev: 'vite --host 0.0.0.0',
+    frameworkDev: 'vite --host 0.0.0.0',
     build: 'tsc -b && vite build',
   },
   {
@@ -244,7 +248,7 @@ for (const scenario of [
     },
     framework: 'angular',
     root: 'packages/customer-host',
-    dev: 'ng serve customer-host',
+    frameworkDev: 'ng serve customer-host',
     build: 'ng build',
   },
   {
@@ -261,7 +265,7 @@ for (const scenario of [
     },
     framework: 'react',
     root: 'apps/customer-host',
-    dev: 'vite --host 0.0.0.0',
+    frameworkDev: 'vite --host 0.0.0.0',
     build: 'tsc -b && vite build',
   },
 ]) {
@@ -274,7 +278,7 @@ for (const scenario of [
     await run(
       process.execPath,
       [
-        join(process.cwd(), 'packages/cli/dist/index.js'),
+        join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
         'g',
         'host',
         'customer-host',
@@ -287,7 +291,9 @@ for (const scenario of [
     const packageJson = JSON.parse(
       await readFile(join(root, scenario.root, 'package.json'), 'utf8'),
     );
-    expect(packageJson.scripts.dev).toBe(scenario.dev);
+    expect(packageJson.scripts.dev).toBe('atlas dev customer-host');
+    expect(packageJson.scripts['framework:dev']).toBe(scenario.frameworkDev);
+    expect(packageJson.devDependencies['@atlas/cli']).toBeDefined();
     expect(packageJson.scripts['atlas:config']).toBe(
       'atlas compile-config customer-host',
     );
@@ -304,6 +310,10 @@ for (const scenario of [
         await readFile(join(root, 'turbo.json'), 'utf8'),
       );
       expect(turbo.tasks.dev).toStrictEqual({ cache: false, persistent: true });
+      expect(turbo.tasks['framework:dev']).toStrictEqual({
+        cache: false,
+        persistent: true,
+      });
       expect(turbo.tasks['atlas:publish'].cache).toBe(false);
       expect(turbo.tasks['atlas:publish'].dependsOn).toStrictEqual(['build']);
       expect(turbo.tasks['atlas:publish'].env).toEqual(
@@ -338,7 +348,7 @@ for (const scenario of [
         'customer-host:serve-original:development',
       );
       expect(architect.serve.options.port).toBe(4200);
-      expect(architect['serve-original'].options.port).toBe(4200);
+      expect(architect['serve-original'].options.port).toBe(4300);
       expect(appTsconfig.files).toStrictEqual([
         'src/main.ts',
         'atlas.config.ts',

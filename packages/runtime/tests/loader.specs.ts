@@ -1,6 +1,6 @@
 import { test } from "@jest/globals";
 import assert from "node:assert/strict";
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRegistryWidgetResolver, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeCatalog, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
+import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY, AtlasHostAnchorRegistry, AtlasLoadError, createHostNavigationItems, createHostUi, createNativeFederationImporters, createRegistryWidgetResolver, createRemoteTrustPolicy, createTrustedNativeFederationImporters, createWidgetLoader, loadBrowserRuntimeOverrides, loadHostCatalog, loadHostRuntimeConfig, mountApp, resolveRuntimeCatalog, resolveRuntimeManifests, rewriteAssetUrl, rewriteCssAssetUrls, runResiliently, startAtlasHostRuntime, startRemoteAssetRewrite, verifyManifestIntegrity } from "../dist/index.js";
 import { startDomHostRuntime } from "../dist/dom-host-runtime.js";
 import { renderHostMountState } from "../dist/dom-rendering.js";
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
@@ -343,12 +343,14 @@ test("Native Federation keeps healthy remotes loadable when another initializati
 test("host UI uses one host-owned outlet and supports custom loading and fallback renderers", () => {
   const container = createHostStatusContainer();
   const document = createTestDocument();
-  document.querySelector = () => container;
+  const anchors = new AtlasHostAnchorRegistry();
+  anchors.register("status", container);
   let retry: (() => void) | undefined;
   let disposed = false;
   const states: string[] = [];
   const ui = createHostUi({
     document,
+    anchors,
     renderHostLoading(target) { states.push("loading"); target.textContent = "Preparing workspace"; return () => { disposed = true; }; },
     renderHostError(target, error, retryAction) { states.push(error.message); target.textContent = "Custom fallback"; retry = retryAction; }
   });
@@ -366,7 +368,8 @@ test("host UI uses one host-owned outlet and supports custom loading and fallbac
 test("default host UI hides diagnostic details", () => {
   const container = createHostStatusContainer();
   const document = createTestDocument();
-  document.querySelector = () => container;
+  const anchors = new AtlasHostAnchorRegistry();
+  anchors.register("status", container);
   document.createElement = () => {
     const element = createTestElement();
     element.textContent = "";
@@ -375,7 +378,7 @@ test("default host UI hides diagnostic details", () => {
     element.append = (...children) => { element.textContent = children.map((child) => typeof child === "string" ? child : child.textContent).join(""); };
     return element;
   };
-  const ui = createHostUi({ document });
+  const ui = createHostUi({ document, anchors });
 
   ui.showError(new Error('Invalid Atlas host catalog. manifests.1.id: Duplicate app id "angular-app".'), () => undefined);
 
@@ -397,6 +400,7 @@ test("host placement state never removes a nested widget status", () => {
   renderHostMountState(document, {
     manifest,
     placement: manifest.placements[0]!,
+    container,
     state: "mounted"
   }, () => undefined, {
     federation: {
@@ -419,6 +423,7 @@ test("host placement state exposes the artifact id", () => {
   renderHostMountState(document, {
     manifest,
     placement: manifest.placements[0]!,
+    container,
     state: "mounted"
   }, () => undefined, {
     federation: {
@@ -1273,6 +1278,39 @@ test("host runtime mounts slots independently and reports remote failures", asyn
   assert.equal((driver.lastError as AtlasError | undefined)?.surface, "browser");
   assert.doesNotMatch(driver.lastError?.message ?? "", /atlas --help/);
   await driver.when.stopped();
+});
+
+test("host runtime remounts route-gated slots when native anchors return", async () => {
+  const sdk = createTestHostSdk();
+  const anchors = new AtlasHostAnchorRegistry();
+  const placement: AtlasPlacement = { id: "sidebar", kind: "slot", hostId: "host", slot: "sidebar", activeOn: ["/orders"] };
+  const manifest = createTestManifest({ id: "widget", placements: [placement] });
+  let unmounted = 0;
+  let mounted = 0;
+  const registerFirst = anchors.register("slot", createTestElement(), "sidebar");
+  const runtime = await startAtlasHostRuntime({
+    hostId: "host",
+    manifests: [manifest],
+    sdk,
+    resolveRouteContainer: () => undefined,
+    resolveSlotContainer: () => anchors.get("slot", "sidebar"),
+    subscribeAnchors: (listener) => anchors.subscribe(listener),
+    async importRemote() {
+      return { mount() { mounted += 1; return { unmount() { unmounted += 1; } }; } };
+    }
+  });
+
+  sdk.navigation.navigate("/orders/42");
+  await tick();
+  registerFirst();
+  await tick();
+  anchors.register("slot", createTestElement(), "sidebar");
+  await tick();
+
+  assert.equal(mounted, 2);
+  assert.equal(unmounted, 1);
+  await runtime.stop();
+  assert.equal(unmounted, 2);
 });
 
 test("DOM host warns and skips app import when a declared slot is missing", async () => {

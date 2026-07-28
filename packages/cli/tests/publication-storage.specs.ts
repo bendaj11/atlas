@@ -1,6 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { publicationContentType } from "../dist/publication-metadata.js";
-import { createPublicationStorage } from "../dist/publication-storage.js";
+import { publicationContentType } from "../dist/publication/publication-metadata.js";
+import { createPublicationStorage } from "../dist/publication/publication-storage.js";
 
 test.each([
   ["registry.json", "application/json; charset=utf-8"],

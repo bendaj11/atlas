@@ -1,22 +1,25 @@
-import { createElement, Fragment, useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { createContext, createElement, Fragment, useContext, useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { AtlasSdkProvider, createHostNavigation, type RouterLike } from "@atlas/sdk/react";
 import { startDomHost, type DomHostOptions } from "./dom-host.js";
 import { createDomHostSdk } from "./dom-host-sdk.js";
 import { readAtlasNavigationItems, subscribeAtlasNavigationItems, type AtlasHostNavigationItem, type AtlasHostRuntime } from "./index.js";
+import { AtlasHostAnchorRegistry, type AtlasHostAnchorKind } from "./host-anchors.js";
+
+const AtlasHostAnchorsContext = createContext<AtlasHostAnchorRegistry | undefined>(undefined);
 
 export function AtlasDefaultHostLayout(): ReactElement {
   return createElement(
     Fragment,
     null,
-    createElement("div", { "data-atlas-host-status": "" }),
+    createElement(AtlasHostStatus),
     createElement(
       "header",
       null,
       createElement("strong", null, "Atlas"),
-      createElement("div", { "data-atlas-slot": "header" })
+      createElement(AtlasSlot, { name: "header" })
     ),
-    createElement("nav", { "data-atlas-navigation": "", "aria-label": "Application" }),
-    createElement("main", { "data-atlas-route-outlet": "" })
+    createElement(AtlasNavigation, { "aria-label": "Application" }),
+    createElement(AtlasRouteOutlet)
   );
 }
 
@@ -43,7 +46,7 @@ export async function startHost<THostSdk extends object = {}>(
 export function AtlasHostProvider<THostSdk extends object = {}>(
   props: AtlasHostProviderProps<THostSdk>
 ): ReactElement {
-  const [{ options, sdk }] = useState(() => createProviderState(props));
+  const [{ options, sdk, anchors }] = useState(() => createProviderState(props));
 
   useEffect(() => {
     let active = true;
@@ -65,16 +68,37 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
     };
   }, [options]);
 
-  return createElement(AtlasSdkProvider, { sdk, children: props.children });
+  return createElement(AtlasHostAnchorsContext.Provider, {
+    value: anchors,
+    children: createElement(AtlasSdkProvider, { sdk, children: props.children })
+  });
 }
 
 function createProviderState<THostSdk extends object>(
   props: AtlasHostProviderProps<THostSdk>
-): { options: HostOptions<THostSdk>; sdk: ReturnType<typeof createDomHostSdk<THostSdk>> } {
+): { options: HostOptions<THostSdk>; sdk: ReturnType<typeof createDomHostSdk<THostSdk>>; anchors: AtlasHostAnchorRegistry } {
   const { hostId, options: hostOptions } = props;
   const navigation = hostOptions.navigation ?? createHostNavigation(hostOptions.router);
   const sdk = createDomHostSdk(hostOptions, hostId, navigation);
-  return { options: { ...hostOptions, navigation, sdk }, sdk };
+  const anchors = new AtlasHostAnchorRegistry();
+  return { options: { ...hostOptions, navigation, sdk, anchors }, sdk, anchors };
+}
+
+export function AtlasHostStatus(): ReactElement { return useHostAnchor("status"); }
+export function AtlasNavigation(props: { "aria-label"?: string }): ReactElement { return useHostAnchor("navigation", undefined, props); }
+export function AtlasRouteOutlet(): ReactElement { return useHostAnchor("route-outlet"); }
+export function AtlasSlot(props: { name: string }): ReactElement { return useHostAnchor("slot", props.name); }
+
+function useHostAnchor(kind: AtlasHostAnchorKind, name?: string, props?: Record<string, string | undefined>): ReactElement {
+  const anchors = useContext(AtlasHostAnchorsContext);
+  if (!anchors) throw new Error("Atlas host anchors must be rendered inside AtlasHostProvider.");
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  useEffect(() => element ? anchors.register(kind, element, name) : undefined, [anchors, element, kind, name]);
+  return createElement(anchorTag(kind), { ...props, ref: setElement });
+}
+
+function anchorTag(kind: AtlasHostAnchorKind): string {
+  return `atlas-${kind}`;
 }
 
 export function useAtlasNavigationItems(document: Document = globalThis.document): readonly AtlasHostNavigationItem[] {

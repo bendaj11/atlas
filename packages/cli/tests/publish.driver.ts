@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, open, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import type { AtlasProjectBuilder, AtlasPublicationLease, AtlasPublicationObjectMetadata, AtlasPublicationStorage } from "../dist/publish.js";
-import { publicationContentType } from "../dist/publication-metadata.js";
+import type { AtlasProjectBuilder, AtlasPublicationLease, AtlasPublicationObjectMetadata, AtlasPublicationStorage } from "../dist/publication/publish.service.js";
+import { publicationContentType } from "../dist/publication/publication-metadata.js";
 
 export async function publicationFixture() {
   const root = await mkdtemp(join(tmpdir(), "atlas-publish-"));

@@ -14,15 +14,13 @@ The React host owns:
 - navigation UI, either through `data-atlas-navigation` or custom rendering;
 - route and slot mount points.
 
-Generated hosts use `AtlasDefaultHostLayout` until you replace it with the
-product layout:
+Generated hosts include a `HostLayout` function in `src/main.tsx`. Replace it
+with product layout while keeping Atlas anchors:
 
 ```tsx
-import { AtlasDefaultHostLayout } from "@atlas/runtime/react";
-
-const router = createBrowserRouter([
-  { path: "*", Component: AtlasDefaultHostLayout }
-]);
+function HostLayout() {
+  return <main data-atlas-route-outlet />;
+}
 ```
 
 Your product layout must keep Atlas anchors:
@@ -106,14 +104,12 @@ The host owns the markup and design system components. Atlas still owns runtime
 catalog resolution, route ordering, hidden navigation entries, href creation,
 navigation, and active-route matching.
 
-The host starts Atlas from `src/main.tsx`:
+`src/main.tsx` exports lifecycle used by Atlas bootstrap:
 
 ```tsx
-void startHost({
-  router,
-  federation: { initFederation, loadRemoteModule },
-  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host" }
-});
+export const mount: AtlasHostClientEntry["mount"] = (request) => {
+  // Create router and render HostLayout into request.container.
+};
 ```
 
 ## App Domain

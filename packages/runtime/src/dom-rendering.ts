@@ -2,8 +2,7 @@ import type { DomRuntimeOptions } from "./dom-host-options.js";
 import type { AtlasHostNavigationItem } from "./host-navigation.js";
 import type { AtlasHostMountEvent } from "./index.js";
 
-export function renderHostNavigation(document: Document, items: readonly AtlasHostNavigationItem[]): void {
-  const nav = document.querySelector<HTMLElement>("[data-atlas-navigation]");
+export function renderHostNavigation(document: Document, nav: HTMLElement | undefined, items: readonly AtlasHostNavigationItem[]): void {
   if (!nav) return;
   nav.replaceChildren(...items.map((item) => {
     const link = document.createElement("a");
@@ -24,8 +23,7 @@ export function renderHostMountState(
   retry: () => void,
   options: DomRuntimeOptions
 ): void {
-  const container = findMountContainer(document, event);
-  if (!container) return;
+  const container = event.container;
   container.dataset.atlasState = event.state;
   container.dataset.atlasAppId = event.manifest.id;
   container.setAttribute("aria-busy", event.state === "loading" ? "true" : "false");
@@ -38,19 +36,6 @@ export function renderHostMountState(
     container.replaceChildren();
     delete container.dataset.atlasAppId;
   }
-}
-
-export function cssEscape(value: string): string {
-  return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
-}
-
-function findMountContainer(document: Document, event: AtlasHostMountEvent): HTMLElement | null {
-  if (event.placement.kind === "route") {
-    return document.querySelector<HTMLElement>("[data-atlas-route-outlet]");
-  }
-
-  return document.querySelector<HTMLElement>(`[data-atlas-slot-mount="${cssEscape(`${event.manifest.id}:${event.placement.id}`)}"]`)
-    ?? document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(event.placement.slot!)}"]`);
 }
 
 function renderLoadingState(

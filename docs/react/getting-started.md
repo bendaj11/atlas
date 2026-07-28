@@ -16,16 +16,12 @@ Atlas owns cross-application discovery and mount lifecycle.
 
 | File | Responsibility | Edit normally? |
 | --- | --- | --- |
-| `src/main.tsx` | Framework-only development entry | Rarely |
-| `src/host.tsx` | Atlas `mount` lifecycle exported as `./host` | Rarely |
-| `src/<HostName>AtlasProvider.tsx` | Router, auth, HTTP, SDK services, monitoring | Yes |
-| `src/app/HostLayout.tsx` | Product shell, navigation, status, slots, route outlet | Yes |
+| `src/main.tsx` | React entry, Atlas `mount` lifecycle exported as `./host`, and product shell | Yes |
 | `vite.config.ts` | Federation expose and build wiring | Preserve generated Atlas sections |
 | `dist/bootstrap/` | Generated static product-domain entry | Regenerate through CLI |
 
-Provider filename derives from project name: `customer-host` becomes
-`CustomerHostAtlasProvider.tsx`. Host client receives selected catalog in its
-mount request. Do not fetch or choose catalog versions from React code.
+Host client receives selected catalog in its mount request. Do not fetch or
+choose catalog versions from React code.
 
 ## App Files
 

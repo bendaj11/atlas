@@ -21,7 +21,8 @@ export function reactPackage(options: ReactPackageOptions): unknown {
     private: true,
     type: "module",
     scripts: {
-      dev: "vite --host 0.0.0.0",
+      dev: `atlas dev ${projectName}`,
+      "framework:dev": "vite --host 0.0.0.0",
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "tsc -b && vite build",
       "atlas:publish": `atlas publish ${projectName} --from-build-output`,
@@ -39,6 +40,7 @@ export function reactPackage(options: ReactPackageOptions): unknown {
       ...(routed ? { "react-router-dom": profile.routerVersion } : {}),
     },
     devDependencies: {
+      "@atlas/cli": atlasPackageRange(),
       "@types/node": "^22.0.0",
       "@types/react": `^${profile.major}.0.0`,
       "@types/react-dom": `^${profile.major}.0.0`,

@@ -4,7 +4,8 @@ import { runtimeError } from "./runtime-error.js";
 import { emitMountState } from "./dom-host-events.js";
 import type { DomHostOptions, DomHostServices, DomRuntimeOptions } from "./dom-host-options.js";
 import { createSdkProviders } from "./dom-host-sdk.js";
-import { cssEscape, renderHostMountState, renderHostNavigation } from "./dom-rendering.js";
+import { renderHostMountState, renderHostNavigation } from "./dom-rendering.js";
+import { AtlasHostAnchorRegistry } from "./host-anchors.js";
 import { createHostNavigationItems, publishAtlasNavigationItems } from "./host-navigation.js";
 import {
   createRemoteTrustPolicy,
@@ -30,6 +31,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
   input: DomHostRuntimeInput<THostSdk>
 ): Promise<AtlasHostRuntime> {
   const { options, services, document, onInfrastructureReady } = input;
+  const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
   const config = await resolveHostConfig(options);
   const requestPolicy = createRetryPolicy(config, options.observe);
   const catalog = options.catalog ?? await loadHostCatalog({ catalogUrl: config.catalogUrl, requestPolicy });
@@ -71,7 +73,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
 
   const updateNavigationItems = (): void => {
     const items = createHostNavigationItems(manifests, config.hostId, navigation);
-    renderHostNavigation(document, items);
+    renderHostNavigation(document, anchors.get("navigation"), items);
     publishAtlasNavigationItems(document, items);
     options.onNavigationChange?.(items);
   };
@@ -88,8 +90,9 @@ export async function startDomHostRuntime<THostSdk extends object>(
     importWidget: federation.importWidget,
     widgetLoader,
     trustPolicy,
-    resolveRouteContainer: () => document.querySelector<HTMLElement>("[data-atlas-route-outlet]") ?? undefined,
-    resolveSlotContainer: (manifest, placement) => resolveDomSlotContainer(document, manifest.id, placement.id, placement.slot!),
+    resolveRouteContainer: () => anchors.get("route-outlet"),
+    resolveSlotContainer: (manifest, placement) => resolveDomSlotContainer(anchors, manifest.id, placement.id, placement.slot!),
+    subscribeAnchors: (listener) => anchors.subscribe(listener),
     ...(config.resourcesTimeoutMs ? { resourcesTimeoutMs: config.resourcesTimeoutMs } : {}),
     onMountStateChange(event) {
       if (event.state === "error" && event.error) {
@@ -137,19 +140,18 @@ function assertCatalogMatchesConfig(catalogHostId: string, configHostId: string)
   }
 }
 
-function resolveDomSlotContainer(document: Document, appId: string, placementId: string, slot: string): HTMLElement | undefined {
-  const slotContainer = document.querySelector<HTMLElement>(`[data-atlas-slot="${cssEscape(slot)}"]`);
+function resolveDomSlotContainer(anchors: AtlasHostAnchorRegistry, appId: string, placementId: string, slot: string): HTMLElement | undefined {
+  const slotContainer = anchors.get("slot", slot);
   if (!slotContainer) {
     console.warn(
       `Atlas skipped slot placement "${placementId}" for app "${appId}" because host slot "${slot}" is missing. ` +
-      `Suggested action: Add <div data-atlas-slot="${slot}"></div> to the host layout, or remove this placement from the app manifest.`
+      `Suggested action: Add <atlas-slot name="${slot}"></atlas-slot> to the host layout, or remove this placement from the app manifest.`
     );
     return undefined;
   }
 
   const key = `${appId}:${placementId}`;
-  const selector = `[data-atlas-slot-mount="${cssEscape(key)}"]`;
-  const existing = slotContainer.querySelector<HTMLElement>(selector);
+  const existing = slotContainer.querySelector<HTMLElement>(`[data-atlas-slot-mount="${key}"]`);
   if (existing) return existing;
 
   const container = document.createElement("div");

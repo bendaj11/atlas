@@ -1,5 +1,8 @@
+import type { AtlasHostAnchorRegistry } from "./host-anchors.js";
+
 export interface AtlasHostUiOptions {
   document: Document;
+  anchors: AtlasHostAnchorRegistry;
   renderHostLoading?: (container: HTMLElement) => void | (() => void);
   renderHostError?: (container: HTMLElement, error: Error, retry: () => void) => void | (() => void);
 }
@@ -12,12 +15,44 @@ export interface AtlasHostUi {
 
 /** Controls the single host-owned status outlet used while Atlas starts. */
 export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
-  const container = options.document.querySelector<HTMLElement>("[data-atlas-host-status]");
   let disposeRenderer: (() => void) | undefined;
+  let state: "loading" | "error" | undefined;
+  let error: Error | undefined;
+  let retry: (() => void) | undefined;
+
+  const render = (): void => {
+    const container = options.anchors.get("status");
+    if (!container || !state) return;
+    disposeRenderer?.();
+    disposeRenderer = undefined;
+    container.replaceChildren();
+    setHostState(container, state);
+    if (state === "loading") {
+      if (options.renderHostLoading) {
+        disposeRenderer = options.renderHostLoading(container) || undefined;
+        return;
+      }
+      renderDefaultLoading(options.document, container);
+      return;
+    }
+    const currentError = error!;
+    const currentRetry = retry!;
+    if (options.renderHostError) {
+      disposeRenderer = options.renderHostError(container, currentError, currentRetry) || undefined;
+      return;
+    }
+    renderDefaultError(options.document, container, currentRetry);
+  };
+
+  options.anchors.subscribe(render);
 
   const clear = (): void => {
     disposeRenderer?.();
     disposeRenderer = undefined;
+    state = undefined;
+    error = undefined;
+    retry = undefined;
+    const container = options.anchors.get("status");
     container?.replaceChildren();
     container?.removeAttribute("data-atlas-state");
     container?.removeAttribute("aria-busy");
@@ -25,24 +60,16 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
 
   return {
     showLoading() {
-      if (!container) return;
       clear();
-      setHostState(container, "loading");
-      if (options.renderHostLoading) {
-        disposeRenderer = options.renderHostLoading(container) || undefined;
-        return;
-      }
-      renderDefaultLoading(options.document, container);
+      state = "loading";
+      render();
     },
-    showError(error, retry) {
-      if (!container) return;
+    showError(nextError, nextRetry) {
       clear();
-      setHostState(container, "error");
-      if (options.renderHostError) {
-        disposeRenderer = options.renderHostError(container, error, retry) || undefined;
-        return;
-      }
-      renderDefaultError(options.document, container, retry);
+      state = "error";
+      error = nextError;
+      retry = nextRetry;
+      render();
     },
     clear
   };

@@ -23,9 +23,10 @@ import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-type
 export function generateAngularHostFiles(options: AtlasGeneratorOptions, hostId: string): AtlasGeneratedFile[] {
   const { name } = options;
   const profile = angularVersionProfile(options);
+  const stylesheetPath = `src/styles.${options.stylesheetFormat ?? "css"}`;
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, type: "host", profile })) },
-    { path: "angular.json", contents: json(angularWorkspace(name, true, options.devServerPort)) },
+    { path: "angular.json", contents: json(angularWorkspace(name, true, options.devServerPort, options.stylesheetFormat)) },
     { path: "tsconfig.json", contents: json(angularRootTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, true) },
@@ -33,7 +34,7 @@ export function generateAngularHostFiles(options: AtlasGeneratorOptions, hostId:
     { path: "atlas.bootstrap.html", contents: atlasBootstrapHtml(name) },
     { path: "public/.gitkeep", contents: "" },
     { path: "src/index.html", contents: angularIndex("Atlas Host", "<atlas-host-root></atlas-host-root>") },
-    { path: "src/styles.css", contents: atlasHostStyles() },
+    { path: stylesheetPath, contents: atlasHostStyles() },
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/app/app.component.ts", contents: angularHostComponent() },
     { path: "src/app/atlas-host-default-route.component.ts", contents: angularHostDefaultRouteComponent() },
@@ -47,16 +48,17 @@ export function generateAngularAppFiles(options: AtlasGeneratorOptions): AtlasGe
   const { name } = options;
   const profile = angularVersionProfile(options);
   const routed = options.routing ?? true;
+  const stylesheetPath = `src/styles.${options.stylesheetFormat ?? "css"}`;
   return [
     { path: "package.json", contents: json(angularPackage({ packageName: options.packageName ?? name, projectName: name, type: "app", profile, routed })) },
-    { path: "angular.json", contents: json(angularWorkspace(name, false, options.devServerPort)) },
+    { path: "angular.json", contents: json(angularWorkspace(name, false, options.devServerPort, options.stylesheetFormat)) },
     { path: "tsconfig.json", contents: json(angularRootTsconfig()) },
     { path: "tsconfig.app.json", contents: json(angularAppTsconfig()) },
     { path: "federation.config.js", contents: angularFederationConfig(name, false) },
     { path: "atlas.config.ts", contents: atlasAppConfig(options) },
     { path: "public/.gitkeep", contents: "" },
     { path: "src/index.html", contents: angularIndex(title(name), "<div>Atlas app assets</div>") },
-    { path: "src/styles.css", contents: "" },
+    { path: stylesheetPath, contents: "" },
     { path: "src/assets/.gitkeep", contents: "" },
     { path: "src/main.ts", contents: `import { initFederation } from "@atlas/sdk/federation";\n\nvoid initFederation();\n` },
     { path: "src/app/README.md", contents: appSourceReadme() },

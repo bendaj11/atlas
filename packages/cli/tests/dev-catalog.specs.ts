@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import { createDevSession, createLocalDevCatalog, startControlServer } from "../dist/dev.js";
+import { createDevSession, createLocalDevCatalog, startControlServer } from "../dist/development/index.js";
 import {
   catalogManifestIds,
   closingJoinedAppPreservesHost,
@@ -20,7 +20,7 @@ const localNetworkTest = process.env.CODEX_SANDBOX_NETWORK_DISABLED === "1" ? te
 
 test("atlas dev prepares an Angular local override without manual URL editing", async () => {
   const stdout = await run(process.execPath, [
-    "packages/cli/dist/index.js",
+    "packages/cli/dist/cli/entrypoint.js",
     "dev",
     "orders-angular",
     "--host-url=https://host.example/orders-angular",

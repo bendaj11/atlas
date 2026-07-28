@@ -20,11 +20,11 @@ src/exported-widgets/product-count/
 `atlas.config.ts` contains identity only:
 
 ```ts
-import type { AtlasWidgetConfig } from "@atlas/schema";
+import type { AtlasWidgetConfig } from '@atlas/schema';
 
 export default {
-  id: "6f4994c1-b95f-4b24-a01a-106dd61aa4fb",
-  name: "Product Count"
+  id: '6f4994c1-b95f-4b24-a01a-106dd61aa4fb',
+  name: 'Product Count',
 } satisfies AtlasWidgetConfig;
 ```
 
@@ -35,9 +35,9 @@ standalone Angular component with native signal inputs:
 
 ```ts
 @Component({
-  selector: "atlas-product-count-widget",
+  selector: 'atlas-product-count-widget',
   standalone: true,
-  template: `<span>{{ count() }}</span>`
+  template: `<span>{{ count() }}</span>`,
 })
 export default class ProductCountWidget {
   readonly count = input.required<number>();
@@ -58,20 +58,26 @@ Consumers keep widget references where code uses them. App config never lists in
 
 ```tsx
 const ProductCount = sdk.getWidget<{ count: number }>(widgetId, {
-  loadingComponent: ProductCountSkeleton
+  loadingComponent: ProductCountSkeleton,
 });
 
 return <ProductCount count={24} />;
 ```
 
-Angular SDK mounts using the widget id and one options object:
+Angular components create a typed binding in TypeScript:
 
 ```ts
 const productCount = sdk.getWidget<{ count: number }>(widgetId, {
-  containerId: "product-count",
   inputs: { count: 24 },
-  loadingComponent: ProductCountSkeleton
+  loadingComponent: ProductCountSkeleton,
 });
+```
+
+Import `WidgetOutlet` from `@atlas/sdk/angular`, then bind the widget to a
+normal element. The directive owns mounting, input updates, and unmounting:
+
+```html
+<section [atlasWidget]="productCount"></section>
 ```
 
 Atlas renders loading and error UI inside that widget's own card. A slow or failed widget does not replace its app, route, slot, or sibling widgets. Retry stays inside the failed card.
@@ -90,13 +96,11 @@ When provider app lives in another configured registry, consuming app declares p
 
 ```ts
 export default {
-  type: "app",
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  name: "Orders",
-  framework: "angular",
-  externalAppsDependencies: [
-    "5b0b569f-cae0-48d4-8a41-194fdad05a15"
-  ]
+  type: 'app',
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  name: 'Orders',
+  framework: 'angular',
+  externalAppsDependencies: ['5b0b569f-cae0-48d4-8a41-194fdad05a15'],
 } satisfies AtlasAppConfig;
 ```
 

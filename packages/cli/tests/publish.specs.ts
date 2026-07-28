@@ -2,10 +2,10 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import { CliArguments } from "../dist/arguments.js";
-import { AtlasPublishService } from "../dist/publish.js";
-import type { AtlasPublicationLease } from "../dist/publish.js";
-import { registryRevision } from "../dist/static-registry.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { AtlasPublishService } from "../dist/publication/publish.service.js";
+import type { AtlasPublicationLease } from "../dist/publication/publish.service.js";
+import { registryRevision } from "../dist/publication/static-registry.js";
 import { DirectoryPublicationStorage, FailingMutableStorage, publicationFixture } from "./publish.driver.js";
 
 test("publisher writes immutable files before activating mutable metadata", async () => {

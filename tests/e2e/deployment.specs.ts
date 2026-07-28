@@ -151,7 +151,7 @@ test("a deployed host rolls back and forward without being rebuilt", async ({ pa
 
 async function selectCatalogRelease(version: string, buildId?: string): Promise<void> {
   const args = [
-    "packages/cli/dist/index.js", "rollback", CATALOG_REACT_ID,
+    "packages/cli/dist/cli/entrypoint.js", "rollback", CATALOG_REACT_ID,
     `--version=${version}`,
     `--registry-base-url=${cdnOrigin}`,
     `--publish-config=${publishConfig}`

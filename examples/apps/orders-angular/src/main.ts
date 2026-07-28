@@ -1,3 +1,3 @@
-import { initFederation } from "@atlas/sdk/federation";
+import { initFederation } from "@angular-architects/native-federation";
 
 void initFederation();

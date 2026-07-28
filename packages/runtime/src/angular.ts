@@ -2,6 +2,7 @@ import { Component, Injectable, signal, type OnDestroy, type Signal } from "@ang
 import { createHostNavigation, type LocationLike, type RouterLike } from "@atlas/sdk/angular";
 import { startDomHost, type DomHostOptions } from "./dom-host.js";
 import { readAtlasNavigationItems, subscribeAtlasNavigationItems, type AtlasHostNavigationItem, type AtlasHostRuntime } from "./index.js";
+export { AtlasAngularHostAnchors, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot } from "./angular-anchors.js";
 
 @Component({ selector: "atlas-default-host-route", standalone: true, template: "" })
 export class AtlasDefaultHostRouteComponent {}

@@ -1,0 +1,9 @@
+export const REMOTE_START_TIMEOUT_MS = 120_000;
+export const REMOTE_POLL_INTERVAL_MS = 200;
+export const HOST_DISCOVERY_TIMEOUT_MS = 5_000;
+export const DEFAULT_HOST_BOOTSTRAP_PORT = 4200;
+export const DEFAULT_HOST_CLIENT_PORT = 4300;
+export const DEFAULT_APP_DEV_PORT = 4201;
+export const DEFAULT_CONTROL_PORT = 4400;
+export const LOCAL_HOST_PLACEHOLDER_PORT = 4200;
+export const DEV_SESSION_PORT_PARAM = 'atlas-dev-port';

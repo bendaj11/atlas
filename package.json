@@ -30,7 +30,7 @@
     "test:e2e:prepare": "node tests/e2e/prepare.js",
     "typecheck": "turbo run typecheck --filter=\"@atlas/*\" && tsc -p tsconfig.tests.json",
     "typecheck:affected": "turbo run typecheck --affected --filter=\"@atlas/*\"",
-    "atlas": "node packages/cli/dist/index.js"
+    "atlas": "node packages/cli/dist/cli/entrypoint.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

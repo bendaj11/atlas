@@ -1,5 +1,5 @@
 import { afterEach, expect, jest, test } from "@jest/globals";
-import { resolvePullRequestStatus } from "../dist/pull-request.js";
+import { resolvePullRequestStatus } from "../dist/publication/pull-request.js";
 
 const originalFetch = globalThis.fetch;
 const originalRepository = process.env.GITHUB_REPOSITORY;

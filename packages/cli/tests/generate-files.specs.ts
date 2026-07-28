@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
-import { ensureAtlasGeneratedFilesIgnored } from "../dist/generate-files.js";
+import { ensureAtlasGeneratedFilesIgnored } from "../dist/generation/files.js";
 
 test("Atlas ignores generated directories from the workspace root", async () => {
   const workspaceRoot = await mkdtemp(join(tmpdir(), "atlas-ignore-workspace-"));

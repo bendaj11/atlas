@@ -41,7 +41,7 @@ if (process.env.ATLAS_E2E_REUSE_BUILD_OUTPUT !== "1") await run("pnpm", ["run", 
 
 for (const project of projects) {
   await run("node", [
-    "packages/cli/dist/index.js", "publish", project,
+    "packages/cli/dist/cli/entrypoint.js", "publish", project,
     "--from-build-output",
     `--registry-base-url=${cdnOrigin}`,
     `--publish-config=${publishConfig}`
@@ -58,7 +58,7 @@ await buildBootstrap("demo-angular-host", join(artifacts, "angular-bootstrap"));
 
 async function buildBootstrap(project, output) {
   await run("node", [
-    "packages/cli/dist/index.js", "build-bootstrap", project,
+    "packages/cli/dist/cli/entrypoint.js", "build-bootstrap", project,
     "--skip-compile",
     `--registry-base-url=${cdnOrigin}`,
     `--asset-origins=${cdnOrigin},${externalCdnOrigin}`,
@@ -75,7 +75,7 @@ async function addSecondCatalogRelease() {
   try {
     await writeFile(entryPath, releaseEntry, "utf8");
     await run("node", [
-      "packages/cli/dist/index.js", "publish", "catalog-react",
+      "packages/cli/dist/cli/entrypoint.js", "publish", "catalog-react",
       "--skip-compile",
       `--registry-base-url=${cdnOrigin}`,
       `--publish-config=${publishConfig}`

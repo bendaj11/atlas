@@ -1,6 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { CliArguments } from "../dist/arguments.js";
-import { resolveInvocation } from "../dist/interaction.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { resolveInvocation } from "../dist/cli/interaction.js";
 import { createPromptDriver } from "./interaction.driver.js";
 
 test("interactive generation asks only for missing configuration", async () => {

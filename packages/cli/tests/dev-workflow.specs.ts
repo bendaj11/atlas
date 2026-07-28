@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import { CliArguments } from "../dist/arguments.js";
-import { AtlasBuildService } from "../dist/build.js";
-import { AtlasDevService, remoteEntryIsReady, startLocalBootstrapServer } from "../dist/dev.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { AtlasBuildService } from "../dist/build/build.service.js";
+import { AtlasDevService, remoteEntryIsReady, startLocalBootstrapServer } from "../dist/development/index.js";
 import {
   availablePort,
   closeServer,
@@ -77,7 +77,7 @@ test("atlas dev discovers a host for apps with wildcard host support", async () 
 
 test("atlas dev prepares a React Native Federation override", async () => {
   const stdout = await run(process.execPath, [
-    "packages/cli/dist/index.js", "dev", "dashboard-react",
+    "packages/cli/dist/cli/entrypoint.js", "dev", "dashboard-react",
     "--host-url=https://host.example/dashboard",
     "--port=4513", "--control-port=4514", "--prepare-only"
   ]);

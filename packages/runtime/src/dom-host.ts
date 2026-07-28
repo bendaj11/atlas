@@ -1,6 +1,7 @@
 import { emitHostError, emitHostReady, emitHostStart, reportRetryFailure, toError } from "./dom-host-events.js";
 import type { DomHostOptions, DomHostServices } from "./dom-host-options.js";
 import { startDomHostRuntime } from "./dom-host-runtime.js";
+import { AtlasHostAnchorRegistry } from "./host-anchors.js";
 import {
   createHostUi,
   type AtlasHostRuntime
@@ -13,10 +14,13 @@ export async function startDomHost<THostSdk extends object = {}>(
   services: DomHostServices
 ): Promise<AtlasHostRuntime> {
   const startedAt = Date.now();
+  const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
+  const runtimeOptions = { ...options, anchors };
   emitHostStart(options);
   const document = options.document ?? globalThis.document;
   const hostUi = createHostUi({
     document,
+    anchors,
     ...(options.renderHostLoading ? { renderHostLoading: options.renderHostLoading } : {}),
     ...(options.renderHostError ? { renderHostError: options.renderHostError } : {})
   });
@@ -24,7 +28,7 @@ export async function startDomHost<THostSdk extends object = {}>(
 
   try {
     const runtime = await startDomHostRuntime({
-      options,
+      options: runtimeOptions,
       services,
       document,
       onInfrastructureReady: hostUi.clear
@@ -35,7 +39,7 @@ export async function startDomHost<THostSdk extends object = {}>(
   } catch (error) {
     const failure = toError(error);
     emitHostError(options, failure, startedAt);
-    hostUi.showError(failure, () => { void startDomHost(options, services).catch(reportRetryFailure); });
+    hostUi.showError(failure, () => { void startDomHost(runtimeOptions, services).catch(reportRetryFailure); });
     throw failure;
   }
 }

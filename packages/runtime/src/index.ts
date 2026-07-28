@@ -21,6 +21,7 @@ import type { AtlasResolvedWidget, AtlasWidgetResolver } from "./widget-registry
 export { createRegistryWidgetResolver, type AtlasResolvedWidget, type AtlasWidgetResolver } from "./widget-registry.js";
 export { AtlasLoadError, createRetryPolicy, runResiliently, type AtlasOperationContext, type AtlasRetryPolicy, type AtlasRetryPolicySource } from "./resilience.js";
 export { createHostUi, type AtlasHostUi, type AtlasHostUiOptions } from "./host-ui.js";
+export { AtlasHostAnchorRegistry, type AtlasHostAnchorKind, type AtlasHostAnchorListener } from "./host-anchors.js";
 export {
   emitRuntimeEvent,
   type AtlasHostEvent,
@@ -133,6 +134,7 @@ export type AtlasHostMountState = "mounting" | "loading" | "mounted" | "error" |
 export interface AtlasHostMountEvent {
   manifest: AtlasManifest;
   placement: AtlasPlacement;
+  container: HTMLElement;
   state: AtlasHostMountState;
   error?: Error;
 }
@@ -146,6 +148,7 @@ export interface AtlasHostRuntimeOptions extends AtlasWidgetUiOptions {
   widgetLoader?: AtlasWidgetLoader;
   resolveRouteContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
   resolveSlotContainer(manifest: AtlasManifest, placement: AtlasPlacement): HTMLElement | undefined;
+  subscribeAnchors?: (listener: () => void) => () => void;
   onMountStateChange?: (event: AtlasHostMountEvent) => void;
   resourcesTimeoutMs?: number;
   trustPolicy?: AtlasRemoteTrustPolicy;
@@ -190,19 +193,24 @@ export async function startAtlasHostRuntime(options: AtlasHostRuntimeOptions): P
   for (const conflict of routePlan.conflicts) {
     logRouteConflict(options.hostId, conflict);
   }
-  const controller = new AtlasRuntimeController(options, widgetLoader, routePlan.available);
+  const controller = new AtlasRuntimeController(options, widgetLoader, routePlan.available, slotPlacements);
 
-  await controller.mountSlots(slotPlacements);
+  await controller.reconcileSlots();
   await controller.reconcileRoute(options.sdk.navigation.getCurrentLocation().pathname);
   const unsubscribe = options.sdk.navigation.subscribe((location) => {
     controller.enqueueRouteReconcile(location.pathname);
+    if (slotPlacements.some(({ placement }) => placement.activeOn?.length)) controller.enqueueSlotReconcile();
   });
+  const unsubscribeAnchors = options.subscribeAnchors?.(() => {
+    controller.enqueueRouteReconcile(options.sdk.navigation.getCurrentLocation().pathname);
+    controller.enqueueSlotReconcile();
+  }) ?? (() => undefined);
 
   return {
     hostId: options.hostId,
     manifests: options.manifests,
     retry: (appId) => controller.retry(appId),
-    stop: () => controller.stop(unsubscribe)
+    stop: () => controller.stop(() => { unsubscribe(); unsubscribeAnchors(); })
   };
 }
 
@@ -220,16 +228,26 @@ class AtlasRuntimeController {
   constructor(
     private readonly options: AtlasHostRuntimeOptions,
     private readonly widgetLoader: AtlasWidgetLoader,
-    private readonly routePlacements: RuntimePlacement[]
+    private readonly routePlacements: RuntimePlacement[],
+    private readonly slotPlacements: RuntimePlacement[]
   ) {
     this.timeoutMs = options.resourcesTimeoutMs ?? DEFAULT_RUNTIME_TIMEOUT_MS;
   }
 
-  async mountSlots(slotPlacements: RuntimePlacement[]): Promise<void> {
-    await mapWithConcurrency(slotPlacements, async (selected) => {
-      const container = this.options.resolveSlotContainer(selected.manifest, selected.placement);
-      if (container) await this.mountOne(createRuntimeMount(selected, container));
+  async reconcileSlots(): Promise<void> {
+    await mapWithConcurrency(this.slotPlacements, async (selected) => {
+      const key = placementKey(selected.manifest, selected.placement);
+      const container = slotMatchesPath(selected.placement, this.options.sdk.navigation.getCurrentLocation().pathname)
+        ? this.options.resolveSlotContainer(selected.manifest, selected.placement)
+        : undefined;
+      const current = this.mounts.get(key);
+      if (current && current.container !== container) await this.unmountOne(key);
+      if (container && this.mounts.get(key)?.container !== container) await this.mountOne(createRuntimeMount(selected, container));
     });
+  }
+
+  enqueueSlotReconcile(): void {
+    this.queue = this.queue.catch((error) => this.reportRouteError(error)).then(() => this.reconcileSlots());
   }
 
   enqueueRouteReconcile(pathname: string): void {
@@ -250,7 +268,8 @@ class AtlasRuntimeController {
   async reconcileRoute(pathname: string, revision = this.routeRevision): Promise<void> {
     const selected = findRoutePlacement(this.routePlacements, pathname);
     const nextKey = selected ? placementKey(selected.manifest, selected.placement) : undefined;
-    if (this.routeKey === nextKey) return;
+    const container = selected ? this.options.resolveRouteContainer(selected.manifest, selected.placement) : undefined;
+    if (this.routeKey === nextKey && this.mounts.get(nextKey ?? "")?.container === container) return;
     if (this.routeKey) {
       const previousKey = this.routeKey;
       this.routeKey = undefined;
@@ -260,7 +279,6 @@ class AtlasRuntimeController {
     this.routeKey = nextKey;
     if (!selected || !nextKey) return;
 
-    const container = this.options.resolveRouteContainer(selected.manifest, selected.placement);
     if (!container) return;
     const mounting = this.mountOne(createRuntimeMount(selected, container));
     let superseded = false;
@@ -399,7 +417,7 @@ class AtlasRuntimeController {
   }
 
   private emit(mount: RuntimeMount, state: AtlasHostMountState, error?: Error): void {
-    this.options.onMountStateChange?.({ manifest: mount.manifest, placement: mount.placement, state, ...(error ? { error } : {}) });
+    this.options.onMountStateChange?.({ manifest: mount.manifest, placement: mount.placement, container: mount.container, state, ...(error ? { error } : {}) });
   }
 
   private async drainRouteRequests(): Promise<void> {
@@ -973,6 +991,10 @@ function findRoutePlacement(
   return placements
     .filter(({ placement }) => routeMatches(placement.route!.basePath, pathname))
     .sort((left, right) => right.placement.route!.basePath.length - left.placement.route!.basePath.length)[0];
+}
+
+function slotMatchesPath(placement: AtlasPlacement, pathname: string): boolean {
+  return placement.activeOn?.some((route) => routeMatches(route, pathname)) ?? true;
 }
 
 function createRoutePlacementPlan(placements: RuntimePlacement[]): { available: RuntimePlacement[]; conflicts: RuntimePlacement[] } {

@@ -1,13 +1,15 @@
-import type { AtlasPrompter } from "../dist/ui.js";
+import type { AtlasPrompter } from "../dist/cli/ui.js";
 
 export class PromptDriver implements AtlasPrompter {
   readonly questions: string[] = [];
   readonly choiceLabels: string[][] = [];
+  readonly inputDefaults: (string | undefined)[] = [];
 
   constructor(private readonly answers: string[], readonly interactive = true) {}
 
-  async input(message: string): Promise<string> {
+  async input(message: string, defaultValue?: string): Promise<string> {
     this.questions.push(`input:${message}`);
+    this.inputDefaults.push(defaultValue);
     const answer = this.answers.shift();
     if (answer === undefined) throw new Error(`No test answer configured for "${message}".`);
     return answer;

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import "@angular/compiler";
 import { test } from "@jest/globals";
-import { injectAtlasSdk, type AtlasSdk as AngularAtlasSdk } from "../dist/angular.js";
+import { injectAtlasSdk, WidgetOutlet, type AtlasSdk as AngularAtlasSdk, type WidgetBinding } from "../dist/angular.js";
 import { useAtlasSdk, type AtlasSdk as ReactAtlasSdk } from "../dist/react.js";
 import { frameworkApis, readSdkPackage } from "./framework-api.driver.js";
 
@@ -18,10 +19,7 @@ interface ProductEvents {
 const readAngularSdk: () => AngularAtlasSdk<CustomerHostSdk, ProductEvents> = injectAtlasSdk<CustomerHostSdk, ProductEvents>;
 const readReactSdk: () => ReactAtlasSdk<CustomerHostSdk, ProductEvents> = useAtlasSdk<CustomerHostSdk, ProductEvents>;
 
-function verifyFrameworkEventTypes(
-  angularSdk: AngularAtlasSdk<CustomerHostSdk, ProductEvents>,
-  reactSdk: ReactAtlasSdk<CustomerHostSdk, ProductEvents>
-): void {
+function verifyFrameworkEventTypes(angularSdk: AngularAtlasSdk<CustomerHostSdk, ProductEvents>, reactSdk: ReactAtlasSdk<CustomerHostSdk, ProductEvents>): void {
   angularSdk.events.publish("orders.updated", { orderId: "42" });
   angularSdk.events.publish("cart.cleared");
   reactSdk.events.subscribe("orders.updated", ({ orderId }) => orderId.toUpperCase());
@@ -36,7 +34,14 @@ function verifyFrameworkEventTypes(
   angularSdk.events.publish("cart.cleared", {});
 }
 
+function verifyAngularWidgetTypes(sdk: AngularAtlasSdk): WidgetBinding<{ orderId: string }> {
+  return sdk.getWidget<{ orderId: string }>("widget-id", {
+    inputs: { orderId: "42" }
+  });
+}
+
 void verifyFrameworkEventTypes;
+void verifyAngularWidgetTypes;
 
 test("framework subpaths share one Atlas API vocabulary", () => {
   const sharedApiNames: Array<"defineApp" | "defineExportedWidget" | "createHostNavigation"> = ["defineApp", "defineExportedWidget", "createHostNavigation"];
@@ -46,6 +51,7 @@ test("framework subpaths share one Atlas API vocabulary", () => {
   }
 
   assert.equal(typeof angular.injectAtlasSdk, "function");
+  assert.equal(typeof WidgetOutlet, "function");
   assert.equal(typeof angular.provideAtlasSdk, "function");
   assert.equal(typeof react.useAtlasSdk, "function");
   assert.equal(typeof react.AtlasSdkProvider, "function");
@@ -70,8 +76,8 @@ test("Vite integration accepts every installed version", async () => {
   assert.deepEqual(
     {
       range: packageJson.peerDependencies.vite,
-      optional: packageJson.peerDependenciesMeta.vite?.optional,
+      optional: packageJson.peerDependenciesMeta.vite?.optional
     },
-    { range: "*", optional: true },
+    { range: "*", optional: true }
   );
 });

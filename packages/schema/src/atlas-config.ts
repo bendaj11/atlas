@@ -66,6 +66,8 @@ export interface AtlasSlotMount {
   slotId: string;
   /** Host app this slot belongs to. */
   hostId: string;
+  /** Host paths where this slot is active. Matches the path and its descendants. */
+  activeOn?: string[];
 }
 
 /** Source config developers write so Atlas can build manifests and runtime files. */

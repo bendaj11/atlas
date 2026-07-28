@@ -1,19 +1,20 @@
 export function angularHostComponent(): string {
   return `import { Component } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
+import { AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot } from "@atlas/runtime/angular";
 
 @Component({
   selector: "atlas-host-root",
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot],
   template: \`
-    <div data-atlas-host-status></div>
+    <atlas-host-status />
     <header>
       <strong>Atlas</strong>
-      <div data-atlas-slot="header"></div>
+      <atlas-slot name="header" />
     </header>
-    <nav data-atlas-navigation aria-label="Application"></nav>
-    <main data-atlas-route-outlet></main>
+    <atlas-navigation aria-label="Application" />
+    <atlas-route-outlet />
     <router-outlet hidden />
   \`
 })
@@ -53,7 +54,7 @@ import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
 import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
-import { startHost } from "@atlas/runtime/angular";
+import { AtlasAngularHostAnchors, startHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { AppComponent } from "./app/app.component";
 import { AtlasHostDefaultRouteComponent } from "./app/atlas-host-default-route.component";
@@ -70,6 +71,7 @@ export async function bootstrap(request?: HostMountRequest) {
   const runtime = await startHost({
     router: app.injector.get(Router),
     location: app.injector.get(Location),
+    anchors: app.injector.get(AtlasAngularHostAnchors),
     federation: { initFederation, loadRemoteModule },
     hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
     ...(request ? { runtimeConfig: request.runtimeConfig, catalog: request.catalog } : {})

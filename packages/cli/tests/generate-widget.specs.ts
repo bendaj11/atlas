@@ -2,9 +2,9 @@ import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
-import { CliArguments } from "../dist/arguments.js";
-import { AtlasGenerateService } from "../dist/generate.js";
-import { detectWorkspace } from "../dist/workspace.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { AtlasGenerateService } from "../dist/generation/generate.service.js";
+import { detectWorkspace } from "../dist/workspace/workspace.js";
 import { createPromptDriver } from "./interaction.driver.js";
 
 const CATALOG_APP_ID = "1af74c0e-61ac-4638-8493-b459d740b75e";

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "@angular/compiler";
 import { test } from "@jest/globals";
 import { APP_ID, type ValueProvider } from "@angular/core";
 import { createHostNavigation, createLocationStrategy, provideAtlasAppContext } from "../dist/angular.js";
@@ -15,7 +16,18 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   const appFiles = files(generateAppFiles({ name: "orders", framework: "angular" }));
   assert.equal(JSON.parse(host.get("package.json")).name, "host");
   assert.equal(JSON.parse(appFiles.get("package.json")).name, "orders");
-  assert.equal(JSON.parse(files(generateHostFiles({ name: "host", packageName: "@acme/host", framework: "angular" })).get("package.json")).name, "@acme/host");
+  assert.equal(
+    JSON.parse(
+      files(
+        generateHostFiles({
+          name: "host",
+          packageName: "@acme/host",
+          framework: "angular"
+        })
+      ).get("package.json")
+    ).name,
+    "@acme/host"
+  );
   assert.match(host.get("package.json"), /"@angular\/core": "\^20\.3\.0"/);
   assert.match(host.get("angular.json"), /@angular-architects\/native-federation:build/);
   assert.match(host.get("federation.config.js"), /@atlas\/sdk\/federation-config/);
@@ -29,6 +41,8 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/main.ts"), /from "@atlas\/sdk\/federation"/);
   assert.doesNotMatch(host.get("src/main.ts"), /from "@angular-architects\/native-federation"/);
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
+  assert.match(host.get("src/bootstrap.ts"), /from "@atlas\/sdk\/federation"/);
+  assert.doesNotMatch(host.get("src/bootstrap.ts"), /from "@angular-architects\/native-federation"/);
   assert.match(host.get("src/bootstrap.ts"), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.equal(JSON.parse(host.get("tsconfig.json")).compilerOptions.moduleResolution, "bundler");
   assert.equal(JSON.parse(appFiles.get("tsconfig.json")).angularCompilerOptions.strictTemplates, true);
@@ -45,8 +59,8 @@ test("Angular generator emits Angular 20 Native Federation projects", () => {
   assert.match(host.get("src/bootstrap.ts"), /startHost/);
   assert.doesNotMatch(host.get("src/bootstrap.ts"), /import \{ AppComponent, AtlasDefaultHostRouteComponent \}/);
   assert.equal(host.has("src/app.component.ts"), false);
-  assert.match(host.get("src/app/app.component.ts"), /data-atlas-host-status/);
-  assert.match(host.get("src/app/app.component.ts"), /template: `\n    <div data-atlas-host-status><\/div>/);
+  assert.match(host.get("src/app/app.component.ts"), /<atlas-host-status/);
+  assert.match(host.get("src/app/app.component.ts"), /imports: \[RouterOutlet, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot\]/);
   assert.doesNotMatch(host.get("src/app/app.component.ts"), /AtlasDefaultHostRouteComponent/);
   assert.equal(host.has("public/atlas.runtime.json"), false);
   assert.doesNotMatch(host.get("atlas.config.ts"), /catalogUrl/);
@@ -110,24 +124,42 @@ test("Angular app LocationStrategy scopes Router URLs and receives host navigati
 test("Angular app context uses the manifest ID for component style ownership", () => {
   const atlas = createAppContext("/orders");
   const providers = provideAtlasAppContext(atlas.context);
-  const appIdProvider = providers.find((provider): provider is ValueProvider =>
-    typeof provider === "object" && provider !== null && !Array.isArray(provider) && "provide" in provider && provider.provide === APP_ID
-  );
+  const appIdProvider = providers.find((provider): provider is ValueProvider => typeof provider === "object" && provider !== null && !Array.isArray(provider) && "provide" in provider && provider.provide === APP_ID);
 
   assert.equal(appIdProvider?.useValue, atlas.context.manifest.id);
 });
 
 test("Angular generator keeps framework tooling on the selected major", () => {
-  const angular21 = files(generateAppFiles({ name: "next-orders", framework: "angular", frameworkVersion: "^21.2.0" }));
+  const angular21 = files(
+    generateAppFiles({
+      name: "next-orders",
+      framework: "angular",
+      frameworkVersion: "^21.2.0"
+    })
+  );
   assert.match(angular21.get("package.json"), /"@angular\/core": "\^21\.2\.0"/);
   assert.match(angular21.get("package.json"), /"@angular\/cli": "\^21\.2\.0"/);
   assert.match(angular21.get("package.json"), /"@angular-architects\/native-federation": "\^21\.0\.0"/);
   assert.match(angular21.get("package.json"), /"typescript": ">=5\.9\.0 <6\.0\.0"/);
-  assert.throws(() => generateHostFiles({ name: "old", framework: "angular", frameworkVersion: "^18.0.0" }), /not verified/);
+  assert.throws(
+    () =>
+      generateHostFiles({
+        name: "old",
+        framework: "angular",
+        frameworkVersion: "^18.0.0"
+      }),
+    /not verified/
+  );
 });
 
 test("Angular generator targets a supplied compatible host without sharing framework dependencies", () => {
-  const appFiles = files(generateAppFiles({ name: "orders", framework: "angular", hostId: "customer-host" }));
+  const appFiles = files(
+    generateAppFiles({
+      name: "orders",
+      framework: "angular",
+      hostId: "customer-host"
+    })
+  );
   assert.doesNotMatch(appFiles.get("atlas.config.ts"), /hostCompatibility/);
   assert.match(appFiles.get("atlas.config.ts"), /routes: \[/);
   assert.match(appFiles.get("atlas.config.ts"), /hostId: "customer-host"/);
@@ -139,7 +171,15 @@ test("Angular generator validates IDs before using them in paths and source", ()
   assert.throws(() => generateHostFiles({ name: "", framework: "angular" }), /Invalid generator name/);
   assert.throws(() => generateAppFiles({ name: "orders--admin", framework: "angular" }), /Invalid generator name/);
   assert.throws(() => generateWidgetFiles({ name: "../summary", framework: "angular" }), /Invalid generator name/);
-  assert.throws(() => generateAppFiles({ name: "orders", framework: "angular", hostId: "../host" }), /Invalid generator hostId/);
+  assert.throws(
+    () =>
+      generateAppFiles({
+        name: "orders",
+        framework: "angular",
+        hostId: "../host"
+      }),
+    /Invalid generator hostId/
+  );
 });
 
 test("Angular widget generator creates a typed independently deployed widget", () => {
@@ -155,11 +195,29 @@ test("Angular widget generator creates a typed independently deployed widget", (
 test("Native Federation bridge initializes catalog remotes and loads exposes", async () => {
   const calls: Array<["init", Record<string, string>] | ["load", string, string]> = [];
   const runtime: AtlasFederationAdapter = {
-    async initFederation(remotes) { calls.push(["init", remotes]); },
-    async loadRemoteModule(remote, expose) { calls.push(["load", remote, expose]); return { default: { mount() {} } }; }
+    async initFederation(remotes) {
+      calls.push(["init", remotes]);
+    },
+    async loadRemoteModule(remote, expose) {
+      calls.push(["load", remote, expose]);
+      return { default: { mount() {} } };
+    }
   };
-  const widget: AtlasExportedWidgetManifest = { schemaVersion: "1", id: "summary", name: "Summary", ownerAppId: "orders-app", framework: "angular", remoteEntryUrl: "https://cdn/remoteEntry.json", expose: "./widgets/summary", contractVersion: "1" };
-  const manifest = createTestManifest({ id: "orders-app", remoteEntryUrl: "https://cdn/remoteEntry.json", exportedWidgets: [widget] });
+  const widget: AtlasExportedWidgetManifest = {
+    schemaVersion: "1",
+    id: "summary",
+    name: "Summary",
+    ownerAppId: "orders-app",
+    framework: "angular",
+    remoteEntryUrl: "https://cdn/remoteEntry.json",
+    expose: "./widgets/summary",
+    contractVersion: "1"
+  };
+  const manifest = createTestManifest({
+    id: "orders-app",
+    remoteEntryUrl: "https://cdn/remoteEntry.json",
+    exportedWidgets: [widget]
+  });
   const bridge = createNativeFederationImporters(runtime);
   await bridge.initialize([manifest]);
   await bridge.importRemote(manifest);
@@ -172,11 +230,21 @@ test("Native Federation bridge initializes catalog remotes and loads exposes", a
 });
 
 test("Native Federation bridge isolates initialization failures per remote", async () => {
-  const healthy = createTestManifest({ id: "healthy", remoteEntryUrl: "https://cdn/healthy/remoteEntry.json" });
-  const broken = createTestManifest({ id: "broken", remoteEntryUrl: "https://cdn/broken/remoteEntry.json" });
+  const healthy = createTestManifest({
+    id: "healthy",
+    remoteEntryUrl: "https://cdn/healthy/remoteEntry.json"
+  });
+  const broken = createTestManifest({
+    id: "broken",
+    remoteEntryUrl: "https://cdn/broken/remoteEntry.json"
+  });
   const bridge = createNativeFederationImporters({
-    async initFederation(remotes) { if ("atlas_broken" in remotes) throw new Error("CDN unavailable"); },
-    async loadRemoteModule() { return { default: { mount() {} } }; }
+    async initFederation(remotes) {
+      if ("atlas_broken" in remotes) throw new Error("CDN unavailable");
+    },
+    async loadRemoteModule() {
+      return { default: { mount() {} } };
+    }
   });
   await bridge.initialize([healthy, broken]);
   await bridge.importRemote(healthy);
@@ -188,12 +256,36 @@ test("Angular Router adapter owns navigation and subscriptions", async () => {
   let currentUrl = "/orders?tab=open";
   const navigations: Array<[string, { replaceUrl?: boolean; state?: unknown } | undefined]> = [];
   const router: RouterLike = {
-    get url() { return currentUrl; },
-    async navigateByUrl(url, options) { navigations.push([url, options]); currentUrl = url; listener?.(); return true; },
-    events: { subscribe(value) { listener = value; return { unsubscribe() { listener = undefined; } }; } }
+    get url() {
+      return currentUrl;
+    },
+    async navigateByUrl(url, options) {
+      navigations.push([url, options]);
+      currentUrl = url;
+      listener?.();
+      return true;
+    },
+    events: {
+      subscribe(value) {
+        listener = value;
+        return {
+          unsubscribe() {
+            listener = undefined;
+          }
+        };
+      }
+    }
   };
   let backed = false;
-  const navigation = createHostNavigation(router, { back() { backed = true; } }, "https://host.example");
+  const navigation = createHostNavigation(
+    router,
+    {
+      back() {
+        backed = true;
+      }
+    },
+    "https://host.example"
+  );
   const seen: string[] = [];
   const unsubscribe = navigation.subscribe((location) => seen.push(location.pathname));
   navigation.navigate("/orders/42");
@@ -201,7 +293,10 @@ test("Angular Router adapter owns navigation and subscriptions", async () => {
   navigation.replace("/orders/43");
   navigation.back();
   unsubscribe();
-  assert.deepEqual(navigations.map(([url]) => url), ["/orders/42", "/orders/43"]);
+  assert.deepEqual(
+    navigations.map(([url]) => url),
+    ["/orders/42", "/orders/43"]
+  );
   assert.equal(navigations[1]?.[1]?.replaceUrl, true);
   assert.equal(backed, true);
   assert.deepEqual(seen, ["/orders", "/orders/42", "/orders/43"]);
@@ -211,9 +306,24 @@ test("Angular Router adapter ignores duplicate router events for the same URL", 
   let listener: (() => void) | undefined;
   let currentUrl = "/orders";
   const router: RouterLike = {
-    get url() { return currentUrl; },
-    async navigateByUrl(url) { currentUrl = url; listener?.(); return true; },
-    events: { subscribe(value) { listener = value; return { unsubscribe() { listener = undefined; } }; } }
+    get url() {
+      return currentUrl;
+    },
+    async navigateByUrl(url) {
+      currentUrl = url;
+      listener?.();
+      return true;
+    },
+    events: {
+      subscribe(value) {
+        listener = value;
+        return {
+          unsubscribe() {
+            listener = undefined;
+          }
+        };
+      }
+    }
   };
   const navigation = createHostNavigation(router, { back() {} }, "https://host.example");
   const seen: string[] = [];

@@ -51,6 +51,17 @@ test("createManifestFromConfig writes source routes and slots to manifest placem
   ]);
 });
 
+test("createManifestFromConfig preserves route-gated slot placements", () => {
+  const manifest = createManifestFromConfig({
+    config: { id: "catalog", framework: "react", slots: [{ slotId: "sidebar", hostId: "host", activeOn: ["/catalog"] }] },
+    version: "1.0.0",
+    buildId: "build-1",
+    remoteEntryUrl: "https://cdn.example.com/catalog/remoteEntry.js"
+  });
+
+  assert.deepEqual(manifest.placements, [{ id: "host-sidebar-slot", kind: "slot", hostId: "host", slot: "sidebar", activeOn: ["/catalog"] }]);
+});
+
 test("createManifestFromConfig derives unique internal route placement ids", () => {
   const manifest = createManifestFromConfig({
     config: {

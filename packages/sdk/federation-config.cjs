@@ -121,6 +121,14 @@ const REACT_FRAMEWORK_SHARED_SPECIFIERS = {
     '@atlas/sdk/react',
   ],
 };
+const ANGULAR_FEDERATION_SKIP = [
+  '@atlas/runtime/react',
+  '@atlas/sdk/react',
+  'rxjs/ajax',
+  'rxjs/fetch',
+  'rxjs/testing',
+  'rxjs/webSocket',
+];
 const SOURCE_EXTENSIONS = new Set([
   '.cjs',
   '.cts',
@@ -588,7 +596,7 @@ function reactSourceReloadPlugin(projectRoot) {
 
 function createReactHostViteConfig(options) {
   const federation = reactFederationBuild(options, {
-    host: resolve(options.projectRoot, 'src/host.tsx'),
+    host: resolve(options.projectRoot, 'src/main.tsx'),
   });
   const metadata = {
     name: reactRemoteName(options.projectName),
@@ -598,11 +606,12 @@ function createReactHostViteConfig(options) {
   return {
     plugins: [
       federation.sharedFallbackPlugin,
+      reactRefreshPreamblePlugin(['src/main.tsx']),
       federationMetadataPlugin({
         projectRoot: options.projectRoot,
         pluginName: 'atlas-host-metadata',
         metadata,
-        devExposes: [{ key: './host', outFileName: 'src/host.tsx' }],
+        devExposes: [{ key: './host', outFileName: 'src/main.tsx' }],
         devShared: federation.shared.map(({ devMetadata }) => devMetadata),
       }),
     ],
@@ -748,7 +757,7 @@ function createAngularFederationConfig(options) {
         requiredVersion: 'auto',
       }),
     },
-    skip: ['rxjs/ajax', 'rxjs/fetch', 'rxjs/testing', 'rxjs/webSocket'],
+    skip: ANGULAR_FEDERATION_SKIP,
   });
 }
 

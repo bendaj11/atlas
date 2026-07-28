@@ -1,6 +1,15 @@
 import { angularRemoteName } from "./angular-names.js";
+import type { AngularStylesheetFormat } from "./generator-types.js";
 
-export function angularWorkspace(name: string, host: boolean, devServerPort = defaultDevServerPort(host)): unknown {
+export function angularWorkspace(
+  name: string,
+  host: boolean,
+  devServerPort = defaultDevServerPort(host),
+  stylesheetFormat: AngularStylesheetFormat = "css"
+): unknown {
+  const originalDevServerPort = host
+    ? hostClientPort(devServerPort)
+    : devServerPort;
   return {
     version: 1,
     projects: {
@@ -11,12 +20,12 @@ export function angularWorkspace(name: string, host: boolean, devServerPort = de
           serve: { builder: "@angular-architects/native-federation:build", options: { target: `${name}:serve-original:development`, dev: true, port: devServerPort } },
           esbuild: {
             builder: "@angular-devkit/build-angular:application",
-            options: { outputPath: `dist/${name}`, index: "src/index.html", browser: "src/main.ts", polyfills: ["zone.js", "es-module-shims"], tsConfig: "tsconfig.app.json", assets: [{ glob: "**/*", input: "public" }, { glob: "**/*", input: "src/assets", output: "assets" }], styles: ["src/styles.css"] },
+            options: { outputPath: `dist/${name}`, index: "src/index.html", browser: "src/main.ts", polyfills: ["zone.js", "es-module-shims"], tsConfig: "tsconfig.app.json", assets: [{ glob: "**/*", input: "public" }, { glob: "**/*", input: "src/assets", output: "assets" }], styles: [`src/styles.${stylesheetFormat}`] },
             configurations: { production: { outputHashing: "all" }, development: { optimization: false, sourceMap: true } }
           },
           "serve-original": {
             builder: "@angular-devkit/build-angular:dev-server",
-            options: { port: devServerPort },
+            options: { port: originalDevServerPort },
             configurations: { production: { buildTarget: `${name}:esbuild:production` }, development: { buildTarget: `${name}:esbuild:development` } },
             defaultConfiguration: "development"
           }
@@ -28,6 +37,10 @@ export function angularWorkspace(name: string, host: boolean, devServerPort = de
 
 function defaultDevServerPort(host: boolean): number {
   return host ? 4200 : 4201;
+}
+
+function hostClientPort(bootstrapPort: number): number {
+  return bootstrapPort === 4300 ? 4200 : 4300;
 }
 
 function angularCompilerOptions(): Record<string, unknown> {

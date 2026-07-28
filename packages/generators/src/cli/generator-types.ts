@@ -1,5 +1,7 @@
 import type { AtlasFramework } from "@atlas/schema";
 
+export type AngularStylesheetFormat = "css" | "scss" | "sass" | "less";
+
 export interface AtlasGeneratorOptions {
   name: string;
   /** Package name written to package.json. Defaults to the unscoped project name. */
@@ -9,6 +11,8 @@ export interface AtlasGeneratorOptions {
   hostId?: string;
   /** Whether to generate inner app routes. Defaults to true. */
   routing?: boolean;
+  /** Stylesheet format for generated Angular projects. Defaults to CSS. */
+  stylesheetFormat?: AngularStylesheetFormat;
   /** Dev-server port written to generated framework config. Defaults to host 4200, app 4201. */
   devServerPort?: number;
   /** Exact version or semver range used by the generated framework dependencies. */

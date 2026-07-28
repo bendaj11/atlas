@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@jest/globals';
-import { ensureDelegatedNxTargets } from '../dist/generate-nx.js';
+import { ensureDelegatedNxTargets } from '../dist/generation/nx.js';
 import { atlasPackageRange, run } from './build.driver.js';
 
 process.chdir(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -189,7 +189,7 @@ exit 1
   const stdout = await run(
     process.execPath,
     [
-      join(process.cwd(), 'packages/cli/dist/index.js'),
+      join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
       'g',
       'host',
       'host',
@@ -282,7 +282,7 @@ exit 1
       join(root, 'products/host/src/app/app.component.ts'),
       'utf8',
     ),
-  ).toMatch(/data-atlas-host-status/);
+  ).toMatch(/<atlas-host-status/);
   expect(
     await readFile(
       join(root, 'products/host/src/app/atlas-host-default-route.component.ts'),
@@ -407,7 +407,7 @@ exit 1
   const stdout = await run(
     process.execPath,
     [
-      join(process.cwd(), 'packages/cli/dist/index.js'),
+      join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
       'g',
       'host',
       'apps/host',
@@ -432,25 +432,21 @@ exit 1
     code: 'ENOENT',
   });
   const hostMain = await readFile(join(root, 'apps/host/src/main.tsx'), 'utf8');
-  expect(hostMain).toMatch(/<HostAtlasProvider>/);
-  expect(hostMain).not.toMatch(/startHost|createBrowserRouter|atlasConfig/);
+  expect(hostMain).toMatch(/export const mount: AtlasHostClientEntry/);
+  expect(hostMain).toMatch(/createBrowserRouter/);
+  expect(hostMain).toMatch(/AtlasHostProvider/);
+  expect(hostMain).toMatch(/Component: HostLayout/);
+  expect(hostMain).toMatch(/<AtlasRouteOutlet/);
   expect(hostMain).not.toMatch(/import\.meta\.hot/);
   await expect(
     access(join(root, 'apps/host/src/atlas-bootstrap.ts')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
-  const atlasProvider = await readFile(
-    join(root, 'apps/host/src/HostAtlasProvider.tsx'),
-    'utf8',
-  );
-  expect(atlasProvider).toMatch(/AtlasHostProvider/);
-  expect(atlasProvider).toMatch(/createBrowserRouter/);
-  expect(atlasProvider).toMatch(/Component: HostLayout/);
-  expect(atlasProvider).toMatch(/hostId=\{atlasConfig\.id\}/);
-  const hostLayout = await readFile(
-    join(root, 'apps/host/src/app/HostLayout.tsx'),
-    'utf8',
-  );
-  expect(hostLayout).toMatch(/data-atlas-route-outlet/);
+  await expect(
+    access(join(root, 'apps/host/src/HostAtlasProvider.tsx')),
+  ).rejects.toMatchObject({ code: 'ENOENT' });
+  await expect(
+    access(join(root, 'apps/host/src/app/HostLayout.tsx')),
+  ).rejects.toMatchObject({ code: 'ENOENT' });
   const hostViteConfig = await readFile(
     join(root, 'apps/host/vite.config.ts'),
     'utf8',
@@ -470,7 +466,7 @@ exit 1
   );
   expect(
     await readFile(join(root, 'apps/host/src/styles.css'), 'utf8'),
-  ).toMatch(/data-atlas-route-outlet/);
+  ).toMatch(/atlas-route-outlet/);
   expect(
     await readFile(join(root, 'apps/host/eslint.config.mjs'), 'utf8'),
   ).toBe('nx eslint\n');
@@ -480,16 +476,12 @@ exit 1
   await expect(
     access(join(root, 'apps/host/public/remoteEntry.json')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
-  const reactHostEntry = await readFile(
-    join(root, 'apps/host/src/host.tsx'),
-    'utf8',
-  );
-  expect(reactHostEntry).toMatch(/AtlasHostClientEntry/);
-  expect(reactHostEntry).toMatch(/flushSync\(\(\) => root\.render\(element\)\)/);
-  expect(reactHostEntry).not.toMatch(/import "es-module-shims"/);
+  await expect(
+    access(join(root, 'apps/host/src/host.tsx')),
+  ).rejects.toMatchObject({ code: 'ENOENT' });
   expect(
     await readFile(join(root, 'apps/host/src/main.tsx'), 'utf8'),
-  ).toMatch(/import "es-module-shims"/);
+  ).toMatch(/import "es-module-shims"|import 'es-module-shims'/);
   const reactHostTsconfig = JSON.parse(
     await readFile(join(root, 'apps/host/tsconfig.json'), 'utf8'),
   );
@@ -562,7 +554,7 @@ exit 1
   const stdout = await run(
     process.execPath,
     [
-      join(process.cwd(), 'packages/cli/dist/index.js'),
+      join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
       'g',
       'app',
       'orders',
@@ -713,7 +705,7 @@ exit 1
     run(
       process.execPath,
       [
-        join(process.cwd(), 'packages/cli/dist/index.js'),
+        join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
         'g',
         'app',
         'orders',
@@ -779,7 +771,7 @@ exit 1
   const stdout = await run(
     process.execPath,
     [
-      join(process.cwd(), 'packages/cli/dist/index.js'),
+      join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
       'g',
       'app',
       'orders',
@@ -909,7 +901,7 @@ exit 1
   const stdout = await run(
     process.execPath,
     [
-      join(process.cwd(), 'packages/cli/dist/index.js'),
+      join(process.cwd(), 'packages/cli/dist/cli/entrypoint.js'),
       'g',
       'app',
       'packages/orders',

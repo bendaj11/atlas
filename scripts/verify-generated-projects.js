@@ -32,9 +32,12 @@ for (const project of projects) {
 
 await assertGeneratedAtlasRanges();
 const generatedProjects = await updateGeneratedManifests(localPackages);
-await writeJson(join(cleanRoom, "package.json"), rootManifest(localPackages, generatedProjects));
-await installDependencies(cleanRoom);
-for (const project of generatedProjects) await buildProject(project);
+for (const framework of ["angular", "react"]) {
+  const frameworkProjects = generatedProjects.filter((project) => project.framework === framework);
+  await writeJson(join(cleanRoom, "package.json"), rootManifest(localPackages, frameworkProjects));
+  await installDependencies(cleanRoom);
+  for (const project of frameworkProjects) await buildProject(project);
+}
 
 console.info(`Built ${generatedProjects.length} clean-room projects with ${packageManager}.`);
 

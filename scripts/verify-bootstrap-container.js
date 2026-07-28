@@ -8,7 +8,7 @@ const image = "atlas-bootstrap-verification:local";
 const container = `atlas-bootstrap-verification-${process.pid}`;
 
 await execute(process.execPath, [
-  "packages/cli/dist/index.js", "build-bootstrap", "demo-react-host", "--skip-compile",
+  "packages/cli/dist/cli/entrypoint.js", "build-bootstrap", "demo-react-host", "--skip-compile",
   "--registry-base-url=https://cdn.example/atlas", "--out=dist/container-bootstrap"
 ], { cwd: root });
 await docker(["build", "-f", "tests/container/Containerfile", "-t", image, "."]);

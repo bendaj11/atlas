@@ -2,7 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
-import { readOpenPullRequests } from "../dist/pr-state-file.js";
+import { readOpenPullRequests } from "../dist/publication/pr-state-file.js";
 
 test("provider-neutral PR state files must be explicitly complete", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-pr-state-"));

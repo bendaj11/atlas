@@ -8,6 +8,7 @@ import type {
   AtlasWidgetUiOptions
 } from "./index.js";
 import type { AtlasHostNavigationItem } from "./host-navigation.js";
+import type { AtlasHostAnchorRegistry } from "./host-anchors.js";
 
 export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   federation: AtlasFederationAdapter;
@@ -18,6 +19,8 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   /** Enables URL and storage app overrides for Atlas tool workflows. */
   allowAppOverrides?: boolean;
   document?: Document;
+  /** Native Angular or React anchors used as Atlas render targets. */
+  anchors?: AtlasHostAnchorRegistry;
   onNavigationChange?: (items: readonly AtlasHostNavigationItem[]) => void;
   renderLoading?: (container: HTMLElement, event: AtlasHostMountEvent) => void;
   renderError?: (container: HTMLElement, event: AtlasHostMountEvent, retry: () => void) => void;

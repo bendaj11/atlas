@@ -1,5 +1,5 @@
 import { afterEach, expect, jest, test } from "@jest/globals";
-import { ui } from "../dist/ui.js";
+import { ui } from "../dist/cli/ui.js";
 
 afterEach(() => {
   jest.restoreAllMocks();

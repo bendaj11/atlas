@@ -59,7 +59,7 @@ test.describe("atlas dev", () => {
 
 function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
   return spawn(process.execPath, [
-    "packages/cli/dist/index.js",
+    "packages/cli/dist/cli/entrypoint.js",
     "dev",
     scenario.app,
     `--host-url=${scenario.hostUrl}`,

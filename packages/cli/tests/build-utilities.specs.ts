@@ -2,20 +2,23 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test } from '@jest/globals';
+import { PassThrough } from 'node:stream';
+import { expect, jest, test } from '@jest/globals';
 import {
   generateAppFiles,
   generateHostFiles,
   generateWidgetFiles,
 } from '../../generators/dist/index.js';
-import { CliArguments } from '../dist/arguments.js';
+import { CliArguments } from '../dist/cli/arguments.js';
 import {
   browserOpenCommand,
   frameworkServerArguments,
   resolveHostDevPorts,
-} from '../dist/dev.js';
-import { alignDelegatedAngularFederationConfig } from '../dist/generate-nx.js';
-import { createHostRuntimeConfig } from '../dist/runtime-config.js';
+} from '../dist/development/index.js';
+import { captureProcessOutput } from '../dist/cli/process.js';
+import { formatFrameworkServerError } from '../dist/development/process.js';
+import { alignDelegatedAngularFederationConfig } from '../dist/generation/nx.js';
+import { createHostRuntimeConfig } from '../dist/build/runtime-config.js';
 import { assertSingleComponentDeclaration } from './build.driver.js';
 
 process.chdir(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -67,6 +70,37 @@ test('framework dev servers receive compatible localhost arguments', () => {
     '--port',
     '4201',
   ]);
+});
+
+test('framework server failures include captured output', () => {
+  const stdout = new PassThrough();
+  const stderr = new PassThrough();
+  const output = captureProcessOutput({ stdout, stderr });
+  const writeStdout = jest
+    .spyOn(process.stdout, 'write')
+    .mockImplementation(() => true);
+  const writeStderr = jest
+    .spyOn(process.stderr, 'write')
+    .mockImplementation(() => true);
+
+  try {
+    stdout.write('Build failed\n');
+    stderr.end('Cannot find module "missing"\n');
+  } finally {
+    writeStdout.mockRestore();
+    writeStderr.mockRestore();
+  }
+
+  expect(
+    formatFrameworkServerError(
+      'Framework dev server exited with code 1.',
+      output(),
+    ),
+  ).toHaveProperty(
+    'message',
+    'Framework dev server exited with code 1.\n\nFramework server output:\nBuild failed\nCannot find module "missing"',
+  );
+  expect(output()).toContain('Cannot find module "missing"');
 });
 
 test('host development keeps the configured port browser-facing', () => {
@@ -133,6 +167,17 @@ test('generated host port remains browser-facing', () => {
     bootstrapPort: 4321,
     clientPort: 4300,
   });
+});
+
+test('Angular host generator keeps 4300 available for the bootstrap server', () => {
+  const angularJson = JSON.parse(
+    generateHostFiles({ name: 'customer-host', framework: 'angular', devServerPort: 4300 })
+      .find((file) => file.path === 'angular.json')!.contents,
+  );
+  const architect = angularJson.projects['customer-host'].architect;
+
+  expect(architect.serve.options.port).toBe(4300);
+  expect(architect['serve-original'].options.port).toBe(4200);
 });
 
 test('generators keep component declarations split across files', () => {

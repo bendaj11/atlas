@@ -4,19 +4,58 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import { AtlasDefaultHostLayout, startHost } from "@atlas/runtime/react";
-import type { AtlasHostData } from "@atlas/sdk";
+import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
+import {
+  AtlasHostProvider,
+  AtlasHostStatus,
+  AtlasNavigation,
+  AtlasRouteOutlet,
+  AtlasSlot,
+} from "@atlas/runtime/react";
 import atlasConfig from "../atlas.config";
 import "./styles.css";
 
-const router = createBrowserRouter([{ path: "*", Component: AtlasDefaultHostLayout }]);
+type HostMountRequest = Pick<Parameters<AtlasHostClientEntry["mount"]>[0], "container"> &
+  Partial<Omit<Parameters<AtlasHostClientEntry["mount"]>[0], "container">>;
+
+function HostLayout() {
+  return (
+    <>
+      <AtlasHostStatus />
+      <header>
+        <strong>Atlas</strong>
+        <AtlasSlot name="header" />
+      </header>
+      <AtlasNavigation aria-label="Application" />
+      <AtlasRouteOutlet />
+    </>
+  );
+}
+
+function mountHost(request: HostMountRequest) {
+  const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
+  const element = (
+    <StrictMode>
+      <AtlasHostProvider
+        hostId={atlasConfig.id}
+        options={{
+          router,
+          federation: { initFederation, loadRemoteModule },
+          hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
+          ...(request.runtimeConfig ? { runtimeConfig: request.runtimeConfig } : {}),
+          ...(request.catalog ? { catalog: request.catalog } : {}),
+        }}
+      >
+        <RouterProvider router={router} />
+      </AtlasHostProvider>
+    </StrictMode>
+  );
+  const root = createRoot(request.container);
+  flushSync(() => root.render(element));
+  return { unmount: () => root.unmount() };
+};
+
+export const mount: AtlasHostClientEntry["mount"] = mountHost;
+
 const root = document.getElementById("root");
-if (!root) throw new Error("Atlas React host root was not found.");
-const hostData: AtlasHostData = { hostId: atlasConfig.id, name: atlasConfig.name ?? atlasConfig.id };
-const reactRoot = createRoot(root);
-flushSync(() => reactRoot.render(<StrictMode><RouterProvider router={router} /></StrictMode>));
-void startHost({
-  router,
-  federation: { initFederation, loadRemoteModule },
-  hostData
-}).catch((error) => console.error("Atlas host failed to start", error));
+if (root) mountHost({ container: root });

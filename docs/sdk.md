@@ -42,12 +42,16 @@ interface CustomerHostSdk {
 }
 
 const sdk = createAtlasSdk<CustomerHostSdk>({
-  hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host", projectId: "project-42" },
+  hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+  hostData: {
+    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    name: 'Customer Host',
+    projectId: 'project-42',
+  },
   navigation,
   httpClient: authenticatedHttpClient,
   showToast: (message) => toastService.show(message),
-  openOrder: (orderId) => orderService.open(orderId)
+  openOrder: (orderId) => orderService.open(orderId),
 });
 ```
 
@@ -60,10 +64,10 @@ fields on the host SDK type. Atlas merges those fields with `AtlasHostData`.
 Use `HttpClient` directly when you want the default fetch-backed behavior:
 
 ```ts
-import { HttpClient } from "@atlas/sdk";
+import { HttpClient } from '@atlas/sdk';
 
 const httpClient = new HttpClient();
-await httpClient.get("/api/projects");
+await httpClient.get('/api/projects');
 ```
 
 Replace `httpClient` in `startHost` or `createAtlasSdk` when the host needs
@@ -74,18 +78,32 @@ const authenticatedHttpClient = {
   request(method, url, options) {
     return axios.request({ url: String(url), method, data: options?.body });
   },
-  get(url, options) { return this.request("GET", url, options); },
-  post(url, body, options) { return this.request("POST", url, { ...options, body }); },
-  put(url, body, options) { return this.request("PUT", url, { ...options, body }); },
-  patch(url, body, options) { return this.request("PATCH", url, { ...options, body }); },
-  delete(url, options) { return this.request("DELETE", url, options); },
-  head(url, options) { return this.request("HEAD", url, options); },
-  options(url, options) { return this.request("OPTIONS", url, options); }
+  get(url, options) {
+    return this.request('GET', url, options);
+  },
+  post(url, body, options) {
+    return this.request('POST', url, { ...options, body });
+  },
+  put(url, body, options) {
+    return this.request('PUT', url, { ...options, body });
+  },
+  patch(url, body, options) {
+    return this.request('PATCH', url, { ...options, body });
+  },
+  delete(url, options) {
+    return this.request('DELETE', url, options);
+  },
+  head(url, options) {
+    return this.request('HEAD', url, options);
+  },
+  options(url, options) {
+    return this.request('OPTIONS', url, options);
+  },
 };
 ```
 
 ```ts
-import type { AtlasEventMap } from "@atlas/sdk";
+import type { AtlasEventMap } from '@atlas/sdk';
 
 interface CustomerHostSdk {
   showToast(message: string): void;
@@ -93,7 +111,7 @@ interface CustomerHostSdk {
 }
 
 const atlas = useAtlasSdk<CustomerHostSdk>();
-atlas.showToast("Order saved");
+atlas.showToast('Order saved');
 ```
 
 Angular apps use `injectAtlasSdk<CustomerHostSdk>()`;
@@ -102,29 +120,112 @@ Core SDK contains only host identity/data, HTTP, navigation, and events. Add
 product-specific APIs directly to the SDK shape. Atlas does not define toast,
 modal, popup, auth, config, or session contracts.
 
+### Custom SDK methods
+
+Define each product-specific method in a shared TypeScript contract, implement
+it in the host, and call it from the SDK object returned by the framework
+adapter. The `this` parameter shown below is a TypeScript receiver annotation;
+it is not an argument that consumers pass.
+
+```ts
+import type { AtlasSdk } from '@atlas/sdk';
+
+interface CustomerHostSdk {
+  refreshSession(this: AtlasSdk<CustomerHostSdk>): Promise<void>;
+}
+
+await startHost<CustomerHostSdk>({
+  // router, federation, and other host options
+  refreshSession: async function () {
+    await this.httpClient.post('/api/session/refresh');
+  },
+});
+```
+
+Consumers call the method normally:
+
+```ts
+const atlas = injectAtlasSdk<CustomerHostSdk>();
+await atlas.refreshSession();
+```
+
+Use a regular function when an implementation calls another SDK capability
+through `this`. Do not use an arrow function for that implementation because
+arrow functions do not receive the SDK object as their receiver. Call the
+method through the SDK object (`atlas.refreshSession()`); destructuring it loses
+the receiver.
+
+Methods that only close over host services do not need `this` and may use arrow
+functions:
+
+```ts
+await startHost<CustomerHostSdk>({
+  refreshSession: () => sessionService.refresh(),
+});
+```
+
+Framework adapters preserve custom methods and replace framework-sensitive core
+APIs with their framework-native form. If a custom method uses one of those APIs,
+type its receiver from the matching framework subpath. For example, Angular's
+`getWidget` accepts typed inputs and returns a declarative `WidgetBinding`:
+
+```ts
+import type { AtlasSdk, WidgetBinding } from '@atlas/sdk/angular';
+
+interface CustomerHostSdk {
+  renderOrderSummary(
+    this: AtlasSdk<CustomerHostSdk>,
+    orderId: string,
+  ): WidgetBinding<{ orderId: string }>;
+}
+
+await startHost<CustomerHostSdk>({
+  // router, federation, and other host options
+  renderOrderSummary: function (orderId) {
+    return this.getWidget(ORDER_SUMMARY_WIDGET_ID, {
+      inputs: { orderId },
+    });
+  },
+});
+```
+
+This receiver behavior is part of method invocation, not dependency injection:
+the host supplies the implementation once, while each consumer framework calls
+it with that framework's SDK facade as the receiver.
+
 Every mounted app receives synchronous, framework-native `sdk.getWidget(...)` access. Widget IDs are UUIDv4 values generated in each producer's `atlas.config.ts`. Consumers never list widget ids in `atlas.config.ts`.
 
 React returns a stable component and owns asynchronous mounting internally:
 
 ```tsx
 const ProductCount = sdk.getWidget<{ count: number }>(widgetId, {
-  loadingComponent: ProductCountSkeleton
+  loadingComponent: ProductCountSkeleton,
 });
 
 return <ProductCount count={24} />;
 ```
 
-Angular accepts exactly the widget id and one options object:
+Angular creates a typed widget binding in component TypeScript:
 
 ```ts
 const productCount = sdk.getWidget<{ count: number }>(widgetId, {
-  containerId: "product-count",
   inputs: { count: 24 },
-  loadingComponent: ProductCountSkeleton
+  loadingComponent: ProductCountSkeleton,
 });
 ```
 
-Both loading components are optional. Without one, Atlas uses the host's `renderWidgetLoading`, then its accessible default. Returned Angular refs expose `ready`, `setInputs(...)`, and `destroy()`.
+Import `WidgetOutlet` in the standalone component and render the binding on any
+normal element:
+
+```html
+<section [atlasWidget]="productCount"></section>
+```
+
+Both loading components are optional. Without one, Atlas uses the host's
+`renderWidgetLoading`, then its accessible default. Angular's `WidgetOutlet`
+directive updates inputs when its binding changes and unmounts automatically
+when Angular destroys the host element through `@if`, `@for`, routing, or normal
+component teardown.
 
 Hosts may use `@atlas/sdk/overlay` utilities when building their own typed SDK
 extensions. Overlay APIs are not injected into Atlas core.
@@ -144,9 +245,13 @@ startHost({
     return reactModalService.open({
       id: request.id,
       component: request.component,
-      props: { ...request.props, close: controls.close, dismiss: controls.dismiss }
+      props: {
+        ...request.props,
+        close: controls.close,
+        dismiss: controls.dismiss,
+      },
     });
-  }
+  },
 });
 ```
 
@@ -161,18 +266,18 @@ startHost({
       componentProps: {
         ...request.props,
         close: controls.close,
-        dismiss: controls.dismiss
-      }
+        dismiss: controls.dismiss,
+      },
     });
     void modal.present();
     const closed = modal.onDidDismiss().then((result) => result.data);
     return {
-      id: request.id ?? "modal",
+      id: request.id ?? 'modal',
       closed,
       close: (value) => modal.dismiss(value),
-      dismiss: () => modal.dismiss()
+      dismiss: () => modal.dismiss(),
     };
-  }
+  },
 });
 ```
 
@@ -181,7 +286,7 @@ Apps request modals through the SDK and never render the modal frame, backdrop, 
 ```ts
 const result = await atlas.modal.open({
   component: ConfirmDeleteModal,
-  props: { orderId: "42" }
+  props: { orderId: '42' },
 });
 ```
 
@@ -195,15 +300,15 @@ Loads catalogs and mounts apps.
 
 Important production APIs:
 
-| API | Purpose |
-| --- | --- |
-| `loadHostRuntimeConfig` | Reads deployment-specific host and catalog settings. |
-| `resolveRuntimeManifests` | Applies one override per app while enforcing one runtime version. |
-| `verifyManifestIntegrity` | Validates SHA-256 remote entries before federation initialization. |
-| `createRemoteTrustPolicy` | Trusts the catalog origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |
-| `startAtlasHostRuntime` | Owns route/slot mount, timeout, retry, and teardown lifecycle. |
-| `context.loading.show()` / `hide()` | Asks the host to show or remove its own loading UI. Atlas never dictates the loader design. |
-| `context.loading.waitUntilReady()` | Opts the app into manual readiness and returns the callback the app calls after its first useful render. |
+| API                                 | Purpose                                                                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `loadHostRuntimeConfig`             | Reads deployment-specific host and catalog settings.                                                                        |
+| `resolveRuntimeManifests`           | Applies one override per app while enforcing one runtime version.                                                           |
+| `verifyManifestIntegrity`           | Validates SHA-256 remote entries before federation initialization.                                                          |
+| `createRemoteTrustPolicy`           | Trusts the catalog origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |
+| `startAtlasHostRuntime`             | Owns route/slot mount, timeout, retry, and teardown lifecycle.                                                              |
+| `context.loading.show()` / `hide()` | Asks the host to show or remove its own loading UI. Atlas never dictates the loader design.                                 |
+| `context.loading.waitUntilReady()`  | Opts the app into manual readiness and returns the callback the app calls after its first useful render.                    |
 
 ## Events between apps
 
@@ -211,14 +316,16 @@ Apps communicate without importing each other through the host-scoped event bus 
 
 ```ts
 type ProductEvents = {
-  "orders.updated": { orderId: string };
-  "cart.cleared": undefined;
+  'orders.updated': { orderId: string };
+  'cart.cleared': undefined;
 };
 
 const atlas = injectAtlasSdk<CustomerHostSdk, ProductEvents>();
-const unsubscribe = atlas.events.subscribe("orders.updated", ({ orderId }) => refresh(orderId));
-atlas.events.publish("orders.updated", { orderId: "42" });
-atlas.events.publish("cart.cleared");
+const unsubscribe = atlas.events.subscribe('orders.updated', ({ orderId }) =>
+  refresh(orderId),
+);
+atlas.events.publish('orders.updated', { orderId: '42' });
+atlas.events.publish('cart.cleared');
 ```
 
 `subscribe` returns an unsubscribe function and `once` automatically removes its listener after the first event. Event names should use an owning domain prefix. Events are in-memory notifications, so durable business workflows still belong in backend APIs or messaging infrastructure.
@@ -262,7 +369,7 @@ await startHost({
   renderWidgetError(container, context, retry) {
     const view = mountWidgetFallback(container, { ...context, retry });
     return () => view.destroy();
-  }
+  },
 });
 ```
 
@@ -278,25 +385,25 @@ another vendor.
 await startHost({
   // router, federation, SDK providers...
   observe(event) {
-    monitoring.capture("atlas.runtime", event);
-  }
+    monitoring.capture('atlas.runtime', event);
+  },
 });
 ```
 
 The callback receives a discriminated `AtlasRuntimeEvent` union:
 
-| Events | Meaning |
-| --- | --- |
-| `host.start`, `host.ready`, and `host.error` | Host bootstrap. |
-| `operation.success`, `operation.retry`, and `operation.error` | Catalog, integrity, override, and federation work. |
-| `app.state` | Mounting, app-requested loading, mounted, failed, and unmounted placement states. |
+| Events                                                        | Meaning                                                                           |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `host.start`, `host.ready`, and `host.error`                  | Host bootstrap.                                                                   |
+| `operation.success`, `operation.retry`, and `operation.error` | Catalog, integrity, override, and federation work.                                |
+| `app.state`                                                   | Mounting, app-requested loading, mounted, failed, and unmounted placement states. |
 
 Events include durations and relevant host, app, version, placement, URL,
 attempt, stage, and error fields. Atlas catches errors thrown by the observer,
 so a monitoring outage cannot prevent the application from loading.
 
-| API | Purpose |
-| --- | --- |
+| API                  | Purpose                                           |
+| -------------------- | ------------------------------------------------- |
 | `createWidgetLoader` | Resolves widgets from the selected owner version. |
 
 Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It discovers an override document from tab or origin storage, a matching loopback development session, or the legacy `atlas-override` query parameter, then validates its host and manifests. Product code does not parse this protocol.
@@ -306,9 +413,11 @@ Infrastructure-only example for custom DOM host runtime:
 ```ts
 await loadAndMountHostCatalog({
   hostId: sdk.hostId,
-  catalogUrl: "https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json",
+  catalogUrl:
+    'https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json',
   sdk: sdk,
-  resolveContainer: (manifest) => document.querySelector(`[data-atlas-app="${manifest.id}"]`) ?? undefined
+  resolveContainer: (manifest) =>
+    document.querySelector(`[data-atlas-app="${manifest.id}"]`) ?? undefined,
 });
 ```
 

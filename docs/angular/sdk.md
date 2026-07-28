@@ -19,13 +19,13 @@ await startHost<CustomerHostSdk>({
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
   hostData: {
-    hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-    name: "Customer Host",
-    projectId: "project-42"
+    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    name: 'Customer Host',
+    projectId: 'project-42',
   },
   httpClient: authenticatedHttpClient,
   showToast: (message) => toastService.show(message),
-  observe: (event) => monitoring.capture("atlas.runtime", event)
+  observe: (event) => monitoring.capture('atlas.runtime', event),
 });
 ```
 
@@ -44,25 +44,25 @@ events, including resource loading, retries, host readiness, and app mount state
 Angular apps read the SDK with `injectAtlasSdk()`:
 
 ```ts
-import { Component } from "@angular/core";
-import { injectAtlasSdk } from "@atlas/sdk/angular";
-import type { AtlasEventMap } from "@atlas/sdk";
+import { Component } from '@angular/core';
+import { injectAtlasSdk } from '@atlas/sdk/angular';
+import type { AtlasEventMap } from '@atlas/sdk';
 
 interface CustomerHostSdk {
   showToast(message: string): void;
 }
 
 @Component({
-  selector: "orders-toolbar",
+  selector: 'orders-toolbar',
   standalone: true,
-  template: `<button type="button" (click)="save()">Save order</button>`
+  template: `<button type="button" (click)="save()">Save order</button>`,
 })
 export class OrdersToolbarComponent {
   private readonly atlas = injectAtlasSdk<CustomerHostSdk>();
 
   async save(): Promise<void> {
-    await this.atlas.httpClient.post("/api/orders");
-    this.atlas.showToast("Order saved");
+    await this.atlas.httpClient.post('/api/orders');
+    this.atlas.showToast('Order saved');
   }
 }
 ```
@@ -70,13 +70,59 @@ export class OrdersToolbarComponent {
 Use SDK capabilities for cross-app communication, host-owned UI, and host
 services. Use normal Angular services for app-internal state.
 
+Custom SDK methods that call other SDK capabilities must use regular functions
+so Atlas can supply the Angular SDK facade as their receiver. Type that receiver
+with `AtlasSdk` from `@atlas/sdk/angular`; consumers still call the method with
+only its declared business arguments. Arrow functions remain appropriate when a
+method only closes over host services. See
+[Custom SDK methods](../sdk.md#custom-sdk-methods) for complete host and consumer
+examples.
+
+## Widgets
+
+Create widget bindings in component TypeScript so widget inputs are checked by
+TypeScript. Import `WidgetOutlet` into the standalone component and bind the
+result to a normal element:
+
+```ts
+import { Component, computed, input } from '@angular/core';
+import { injectAtlasSdk, WidgetOutlet } from '@atlas/sdk/angular';
+
+interface OrderSummaryInputs {
+  orderId: string;
+}
+
+@Component({
+  selector: 'order-summary',
+  standalone: true,
+  imports: [WidgetOutlet],
+  template: `<section [atlasWidget]="widget()"></section>`,
+})
+export class OrderSummaryComponent {
+  readonly orderId = input.required<string>();
+  private readonly atlas = injectAtlasSdk();
+  readonly widget = computed(() =>
+    this.atlas.getWidget<OrderSummaryInputs>(
+      '6f4994c1-b95f-4b24-a01a-106dd61aa4fb',
+      { inputs: { orderId: this.orderId() } },
+    ),
+  );
+}
+```
+
+`getWidget()` creates a typed binding; it does not query the document or mount
+immediately. `[atlasWidget]` mounts into its host element, forwards changed
+inputs without remounting when the widget supports updates, and unmounts when
+Angular destroys the element. This works naturally inside `@if` and `@for`
+blocks without container IDs or manual lifecycle calls.
+
 ## Navigation
 
 Inside the app, use Angular Router for app-owned screens. Use SDK navigation for
 host-level or cross-app destinations:
 
 ```ts
-this.atlas.navigation.navigate("/catalog");
+this.atlas.navigation.navigate('/catalog');
 ```
 
 See [Angular routing](routing.md).
@@ -118,10 +164,10 @@ If an app never opts in, Atlas treats mount completion as ready.
 Apps request UI; hosts render it:
 
 ```ts
-this.atlas.toast.open({ title: "Saved", state: "success" });
+this.atlas.toast.open({ title: 'Saved', state: 'success' });
 const result = await this.atlas.modal.open({
   component: ConfirmDeleteComponent,
-  props: { orderId: "42" }
+  props: { orderId: '42' },
 });
 ```
 

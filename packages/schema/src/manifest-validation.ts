@@ -88,6 +88,7 @@ function validatePlacement(value: unknown, path: string, uniqueness: PlacementUn
 
 function validateRoutePlacement(input: { placement: UnknownRecord; hostId: string | undefined; path: string; routeBasePaths: Set<string>; issues: AtlasValidationIssue[] }): void {
   if (input.placement.slot !== undefined) addIssue(input.issues, `${input.path}.slot`, "Route placements must not define a slot.");
+  if (input.placement.activeOn !== undefined) addIssue(input.issues, `${input.path}.activeOn`, "Route placements must not define slot route conditions.");
   const route = asRecord(input.placement.route);
   if (!route) {
     addIssue(input.issues, `${input.path}.route`, "Expected route details for a route placement.");
@@ -117,6 +118,16 @@ function validateNavigation(value: unknown, path: string, issues: AtlasValidatio
 function validateSlotPlacement(placement: UnknownRecord, path: string, issues: AtlasValidationIssue[]): void {
   requiredString(placement, "slot", issues, path);
   if (placement.route !== undefined) addIssue(issues, `${path}.route`, "Slot placements must not define a route.");
+  if (placement.activeOn === undefined) return;
+  if (!Array.isArray(placement.activeOn) || placement.activeOn.length === 0) {
+    addIssue(issues, `${path}.activeOn`, "Expected activeOn to be a non-empty array of absolute route paths.");
+    return;
+  }
+  placement.activeOn.forEach((route, index) => {
+    if (typeof route !== "string" || route.trim() === "" || !route.startsWith("/") || route.includes("?") || route.includes("#")) {
+      addIssue(issues, `${path}.activeOn.${index}`, "Expected an absolute route path without a query or fragment.");
+    }
+  });
 }
 
 function validateExposes(value: unknown, path: string, issues: AtlasValidationIssue[]): void {

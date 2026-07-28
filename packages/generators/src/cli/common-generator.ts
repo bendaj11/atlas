@@ -55,13 +55,13 @@ export function atlasHostStyles(): string {
   font-family: system-ui, sans-serif;
 }
 
-[data-atlas-navigation] {
+atlas-navigation {
   display: flex;
   gap: 1rem;
   padding: 1rem;
 }
 
-[data-atlas-route-outlet] {
+atlas-route-outlet {
   padding: 1rem;
 }
 

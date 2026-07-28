@@ -31,10 +31,6 @@ customer-host/
   atlas.config.ts
   vite.config.ts
   src/
-    app/
-      HostLayout.tsx
-    CustomerHostAtlasProvider.tsx
-    host.tsx
     main.tsx
     styles.css
 ```
@@ -44,14 +40,8 @@ Responsibilities:
 | File                                | Owner                        | Edit for                                                                                                   |
 | ----------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `atlas.config.ts`                   | Host team                    | Stable host identity and display name                                                                      |
-| `src/app/HostLayout.tsx`            | Host UI team                 | Product layout and Atlas mount anchors                                                                     |
-| `src/CustomerHostAtlasProvider.tsx` | Host platform team           | Router, auth-aware HTTP, SDK services, UI renderers, monitoring                                            |
-| `src/host.tsx`                      | Atlas lifecycle adapter      | Rarely change                                                                                              |
-| `src/main.tsx`                      | Standalone development entry | Usually generated wiring only                                                                              |
+| `src/main.tsx`                      | Host team                    | React entry, Atlas lifecycle, and initial product shell                                                    |
 | `vite.config.ts`                    | Host build                   | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
-
-Provider filename derives from project name: `customer-host` becomes
-`CustomerHostAtlasProvider.tsx`.
 
 Generated host config resembles:
 
@@ -74,30 +64,29 @@ Apps use it when declaring routes and slots for this host.
 ## 2. Understand The React Bootstrap
 
 Atlas loader selects a published or locally overridden host client, creates a DOM
-container, and calls the exported `mount` lifecycle in `src/host.tsx`.
+container, and calls exported `mount` lifecycle in `src/main.tsx`.
 
 Generated lifecycle:
 
 1. creates one React root inside loader-owned container;
-2. renders `CustomerHostAtlasProvider` and React Router;
+2. renders product shell and React Router;
 3. passes selected catalog and runtime configuration to provider;
 4. creates one host-owned Atlas SDK while initializing provider;
 5. starts Atlas after React tree commits;
 6. mounts routed and slotted apps selected by catalog;
 7. unmounts React root when loader replaces or stops host client.
 
-`src/main.tsx` is framework entry used when bootstrapping directly through Vite.
-It does not provide Atlas runtime or catalog endpoints by itself, so opening Vite
-port is not complete host composition. `atlas dev` uses federated lifecycle from
-`src/host.tsx` behind local static bootstrap.
+`src/main.tsx` is both normal Vite entry and federated lifecycle entry. Opening
+Vite port has no Atlas runtime or catalog endpoints, so it is not complete host
+composition. `atlas dev` loads same file behind local static bootstrap.
 
 Do not fetch another catalog or select app versions in React code. Loader passes
 the already-selected catalog and runtime configuration into `mount`.
 
 ## 3. Build The Product Shell
 
-Replace generated branding and layout in `src/app/HostLayout.tsx`, while keeping
-anchors needed by product placements:
+Replace generated `HostLayout` function in `src/main.tsx`, while keeping anchors
+needed by product placements:
 
 ```tsx
 export function HostLayout() {
@@ -156,9 +145,9 @@ app routes, and deep links.
 ## 4. Provide Host Services Through The SDK
 
 Apps must not import host source. Put product-wide capabilities into
-`AtlasHostProvider` options in `CustomerHostAtlasProvider.tsx`.
+`AtlasHostProvider` options in `src/main.tsx`.
 
-Example extension:
+Example extension inside `main.tsx`:
 
 `useToast`, `authenticatedHttpClient`, and `monitoring` below are product-owned
 placeholders. Replace them with hooks and services from host project.
@@ -175,11 +164,7 @@ interface CustomerHostSdk {
   showToast(message: string): void;
 }
 
-export function CustomerHostAtlasProvider({
-  children,
-  runtimeConfig,
-  catalog,
-}: HostProviderProps) {
+function HostApplication({ runtimeConfig, catalog }: HostProviderProps) {
   const toast = useToast();
 
   return (
@@ -200,14 +185,14 @@ export function CustomerHostAtlasProvider({
         ...(catalog ? { catalog } : {}),
       }}
     >
-      {children}
+      <RouterProvider router={router} />
     </AtlasHostProvider>
   );
 }
 ```
 
-Keep generated `HostProviderProps`, router, and federation imports around this
-example. Hooks are valid here because provider is part of host's React tree.
+Keep lifecycle request, router, and federation imports around this example.
+Hooks are valid in `HostApplication` because it is part of host's React tree.
 
 Typical host-provided capabilities:
 
@@ -318,7 +303,7 @@ or subscription they create.
 
 Add organization-standard React tests for:
 
-- required anchors in `HostLayout`;
+- required anchors in `src/main.tsx` `HostLayout`;
 - custom navigation and active state;
 - host SDK wiring for auth, HTTP, overlays, and monitoring;
 - mount and unmount cleanup;

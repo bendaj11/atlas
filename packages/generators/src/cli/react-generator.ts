@@ -12,11 +12,7 @@ import type {
 } from './generator-types.js';
 import { reactVersionProfile } from './generator-versions.js';
 import {
-  reactHostEntry,
-  reactHostLayout,
   reactHostMain,
-  reactHostProvider,
-  reactHostProviderName,
 } from './react-host-generator.js';
 import {
   appSourceReadme,
@@ -64,15 +60,9 @@ export function generateReactHostFiles(
     },
     { path: 'atlas.config.ts', contents: atlasHostConfig(options, hostId) },
     { path: 'atlas.bootstrap.html', contents: atlasBootstrapHtml(name) },
-    { path: 'src/host.tsx', contents: reactHostEntry(name, profile) },
     { path: 'index.html', contents: reactIndex('Atlas React Host') },
     { path: 'src/styles.css', contents: atlasHostStyles() },
-    { path: 'src/app/HostLayout.tsx', contents: reactHostLayout() },
-    {
-      path: `src/${reactHostProviderName(name)}.tsx`,
-      contents: reactHostProvider(name),
-    },
-    { path: 'src/main.tsx', contents: reactHostMain(name, profile) },
+    { path: 'src/main.tsx', contents: reactHostMain(profile) },
   ];
 }
 

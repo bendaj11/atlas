@@ -5,7 +5,7 @@ import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./cli/generator-
 import { generateReactHostFiles, generateReactAppFiles } from "./cli/react-generator.js";
 import { generateWidgetFiles as generateWidgetTemplates } from "./cli/widget-generator.js";
 
-export type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./cli/generator-types.js";
+export type { AngularStylesheetFormat, AtlasGeneratedFile, AtlasGeneratorOptions } from "./cli/generator-types.js";
 
 export function generateHostFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
   assertValidGeneratorOptions(options);

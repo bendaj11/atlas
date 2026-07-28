@@ -25,7 +25,7 @@
     }
   },
   "bin": {
-    "atlas": "./dist/index.js"
+    "atlas": "./dist/cli/entrypoint.js"
   },
   "files": [
     "dist/**/*.js",
@@ -36,7 +36,7 @@
   },
   "scripts": {
     "build": "node ../../scripts/clean-package-output.js && tsc -b",
-    "test": "node dist/index.js compile-config catalog-react && pnpm --filter @atlas-app/catalog-react run build && node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/cli/tests/ --testTimeout=15000",
+    "test": "node dist/cli/entrypoint.js compile-config catalog-react && pnpm --filter @atlas-app/catalog-react run build && node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/cli/tests/ --testTimeout=15000",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {

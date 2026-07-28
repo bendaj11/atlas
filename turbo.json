@@ -66,6 +66,10 @@
       "outputs": [
         "dist/bootstrap/**"
       ]
+    },
+    "framework:dev": {
+      "cache": false,
+      "persistent": true
     }
   }
 }

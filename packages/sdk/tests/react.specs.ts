@@ -41,7 +41,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     '@acme/host',
   );
   assert.match(host.get('package.json'), /"react": "\^19\.2\.0"/);
-  assert.match(host.get('src/main.tsx'), /<HostAtlasProvider>/);
+  assert.match(host.get('src/main.tsx'), /export const mount: AtlasHostClientEntry/);
   assert.match(host.get('atlas.bootstrap.html'), /<title>Host<\/title>/);
   assert.match(
     host.get('atlas.bootstrap.html'),
@@ -49,41 +49,32 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   );
   assert.match(host.get('atlas.bootstrap.html'), /src="\/atlas\.loader\.js"/);
   assert.equal(appFiles.has('atlas.bootstrap.html'), false);
-  assert.doesNotMatch(
-    host.get('src/main.tsx'),
-    /startHost|createBrowserRouter|atlasConfig/,
-  );
+  assert.match(host.get('src/main.tsx'), /createBrowserRouter/);
   assert.equal(host.has('src/atlas-bootstrap.ts'), false);
   assert.match(
-    host.get('src/HostAtlasProvider.tsx'),
-    /import \{ HostLayout \} from "\.\/app\/HostLayout"/,
+    host.get('src/main.tsx'),
+    /Component: HostLayout/,
   );
-  assert.match(host.get('src/HostAtlasProvider.tsx'), /Component: HostLayout/);
-  assert.match(host.get('src/HostAtlasProvider.tsx'), /createBrowserRouter/);
-  assert.match(host.get('src/HostAtlasProvider.tsx'), /AtlasHostProvider/);
-  assert.match(host.get('src/app/HostLayout.tsx'), /data-atlas-host-status/);
-  assert.match(host.get('src/app/HostLayout.tsx'), /data-atlas-slot="header"/);
-  assert.match(host.get('src/app/HostLayout.tsx'), /data-atlas-navigation/);
-  assert.match(host.get('src/app/HostLayout.tsx'), /data-atlas-route-outlet/);
+  assert.match(host.get('src/main.tsx'), /AtlasHostProvider/);
+  assert.match(host.get('src/main.tsx'), /<AtlasHostStatus/);
+  assert.match(host.get('src/main.tsx'), /<AtlasSlot name="header"/);
+  assert.match(host.get('src/main.tsx'), /<AtlasNavigation/);
+  assert.match(host.get('src/main.tsx'), /<AtlasRouteOutlet/);
   assert.match(
-    host.get('src/HostAtlasProvider.tsx'),
+    host.get('src/main.tsx'),
     /from "@atlas\/sdk\/federation"/,
   );
   assert.doesNotMatch(
-    host.get('src/HostAtlasProvider.tsx'),
+    host.get('src/main.tsx'),
     /@softarc\/native-federation-runtime/,
   );
   assert.match(
-    host.get('src/HostAtlasProvider.tsx'),
-    /export function HostAtlasProvider/,
+    host.get('src/main.tsx'),
+    /function HostLayout/,
   );
-  assert.equal(customerHost.has('src/CustomerHostAtlasProvider.tsx'), true);
-  assert.match(customerHost.get('src/main.tsx'), /<CustomerHostAtlasProvider>/);
-  assert.equal(numericHost.has('src/Host123HostAtlasProvider.tsx'), true);
-  assert.match(
-    host.get('src/HostAtlasProvider.tsx'),
-    /import atlasConfig from "\.\.\/atlas\.config"/,
-  );
+  assert.equal(customerHost.has('src/CustomerHostAtlasProvider.tsx'), false);
+  assert.equal(numericHost.has('src/Host123HostAtlasProvider.tsx'), false);
+  assert.match(host.get('src/main.tsx'), /import atlasConfig from "\.\.\/atlas\.config"/);
   assert.equal(host.has('tsconfig.atlas.json'), false);
   assert.equal(appFiles.has('tsconfig.atlas.json'), false);
   assert.deepEqual(JSON.parse(host.get('tsconfig.json')).include, [
@@ -97,11 +88,11 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     'atlas.config.ts',
   ]);
   assert.match(
-    host.get('src/HostAtlasProvider.tsx'),
+    host.get('src/main.tsx'),
     /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \}/,
   );
   assert.doesNotMatch(
-    host.get('src/HostAtlasProvider.tsx'),
+    host.get('src/main.tsx'),
     /showToast|openModal|openPopup|createDomOverlayProviders/,
   );
   assert.doesNotMatch(
@@ -129,10 +120,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   );
   assert.equal(host.has('Containerfile'), false);
   assert.doesNotMatch(host.get('package.json'), /"@atlas\/bootstrap"/);
-  assert.match(
-    host.get('src/host.tsx'),
-    /export const mount: AtlasHostClientEntry/,
-  );
+  assert.equal(host.has('src/host.tsx'), false);
   assert.doesNotMatch(
     host.get('vite.config.ts'),
     /remoteEntry\.json|closeBundle|rollupOptions/,
@@ -274,12 +262,9 @@ test('React generator targets selected supported majors without owning compiler 
   assert.doesNotMatch(react17.get('package.json'), /"react-router": "\^7/);
   assert.match(
     react17Host.get('src/main.tsx'),
-    /import \{ render \} from "react-dom"/,
+    /import \{ render, unmountComponentAtNode \} from "react-dom"/,
   );
-  assert.doesNotMatch(
-    react17Host.get('src/main.tsx'),
-    /unmountComponentAtNode/,
-  );
+  assert.match(react17Host.get('src/main.tsx'), /unmountComponentAtNode/);
   assert.doesNotMatch(react17Host.get('src/main.tsx'), /react-dom\/client/);
   assert.match(
     react17.get('src/entry.tsx'),

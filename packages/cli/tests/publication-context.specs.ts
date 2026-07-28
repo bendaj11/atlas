@@ -1,6 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { CliArguments } from "../dist/arguments.js";
-import { resolvePublicationContext } from "../dist/publication-context.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { resolvePublicationContext } from "../dist/publication/publication-context.js";
 
 test("ordinary branches skip publication without failing", () => {
   expect(resolvePublicationContext(

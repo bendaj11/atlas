@@ -3,7 +3,7 @@ import { Component } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideRouter, Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import { startHost } from "@atlas/runtime/angular";
+import { AtlasAngularHostAnchors, startHost } from "@atlas/runtime/angular";
 import type { AtlasHostData } from "@atlas/sdk";
 import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
 import atlasConfig from "../atlas.config";
@@ -22,6 +22,7 @@ export async function bootstrap(request?: HostMountRequest) {
   const runtime = await startHost({
     router: app.injector.get(Router),
     location: app.injector.get(Location),
+    anchors: app.injector.get(AtlasAngularHostAnchors),
     federation: { initFederation, loadRemoteModule },
     hostData,
     ...(request ? { runtimeConfig: request.runtimeConfig, catalog: request.catalog } : {})

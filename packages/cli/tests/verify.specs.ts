@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { AtlasVerifyService } from "../dist/verify.js";
+import { AtlasVerifyService } from "../dist/verification/verify.service.js";
 import { createDeploymentFetch, deploymentManifest } from "./verify.driver.js";
 
 test("verify accepts a healthy cross-origin deployment", async () => {

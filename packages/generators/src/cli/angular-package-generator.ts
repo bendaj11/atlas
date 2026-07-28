@@ -18,7 +18,8 @@ export function angularPackage(options: AngularPackageOptions): unknown {
     version: "0.1.0",
     private: true,
     scripts: {
-      dev: `ng serve ${projectName}`,
+      dev: `atlas dev ${projectName}`,
+      "framework:dev": `ng serve ${projectName}`,
       "atlas:config": `atlas compile-config ${projectName}`,
       build: "ng build",
       "atlas:publish": `atlas publish ${projectName} --from-build-output`,
@@ -43,6 +44,7 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       "zone.js": profile.zone
     },
     devDependencies: {
+      "@atlas/cli": atlasPackageRange(),
       "@angular-devkit/build-angular": angular,
       "@angular/cli": angular,
       "@angular/compiler-cli": angular,

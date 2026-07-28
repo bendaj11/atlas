@@ -1,116 +1,240 @@
 import {
   ApplicationRef,
+  Directive,
+  DestroyRef,
+  effect,
+  ElementRef,
+  ErrorHandler,
+  inject,
+  input,
   createComponent,
   type EnvironmentInjector,
-  type Type
-} from "@angular/core";
+  type Type,
+} from '@angular/core';
 import type {
   AtlasEventMap,
   AtlasMountedWidgetHandle,
   AtlasSdk as AtlasSdkValue,
-  AtlasWidgetLoadingRenderer
-} from "./host.js";
-import { sdkError } from "./sdk-error.js";
+  AtlasWidgetHandle,
+  AtlasWidgetLoadingRenderer,
+} from './host.js';
+import { sdkError } from './sdk-error.js';
 
 export interface AngularGetWidgetOptions<TInputs extends object> {
-  containerId: string;
-  inputs: TInputs;
-  loadingComponent?: Type<unknown>;
+  readonly inputs: TInputs;
+  readonly loadingComponent?: Type<unknown>;
 }
 
-export interface AngularWidgetRef<TInputs extends object> {
-  readonly ready: Promise<void>;
-  setInputs(inputs: TInputs): void;
-  destroy(): Promise<void>;
+export interface AngularWidgetBinding<TInputs extends object> {
+  readonly widgetId: string;
+  readonly inputs: TInputs;
 }
 
-export type AngularAtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap> = Omit<AtlasSdkValue<THostSdk, TEvents>, "getWidget"> & {
+export type AngularAtlasSdk<
+  THostSdk extends object = {},
+  TEvents extends object = AtlasEventMap,
+> = Omit<AtlasSdkValue<THostSdk, TEvents>, 'getWidget'> & {
   getWidget<TInputs extends object>(
     widgetId: string,
-    options: AngularGetWidgetOptions<TInputs>
-  ): AngularWidgetRef<TInputs>;
+    options: AngularGetWidgetOptions<TInputs>,
+  ): AngularWidgetBinding<TInputs>;
 };
 
-interface MountAngularWidgetInput<TInputs extends object> {
-  sdk: Pick<AtlasSdkValue, "getWidget">;
-  applicationRef: ApplicationRef;
-  environmentInjector: EnvironmentInjector;
-  widgetId: string;
-  options: AngularGetWidgetOptions<TInputs>;
+interface AngularWidgetRuntime {
+  readonly widgetId: string;
+  readonly handle: AtlasWidgetHandle<object>;
+  readonly loadingComponent?: Type<unknown>;
 }
 
-export function createAngularAtlasSdk<THostSdk extends object, TEvents extends object>(
+interface ActiveWidget {
+  readonly widgetId: string;
+  readonly loadingComponent?: Type<unknown>;
+  readonly mounted: AtlasMountedWidgetHandle<object>;
+}
+
+const widgetRuntimes = new WeakMap<object, AngularWidgetRuntime>();
+
+type WidgetErrorHandler = (error: unknown) => void;
+
+export function createAngularAtlasSdk<
+  THostSdk extends object,
+  TEvents extends object,
+>(
   sdk: AtlasSdkValue<THostSdk, TEvents>,
   applicationRef: ApplicationRef,
-  environmentInjector: EnvironmentInjector
+  environmentInjector: EnvironmentInjector,
 ): AngularAtlasSdk<THostSdk, TEvents> {
   const facade = Object.create(sdk) as AngularAtlasSdk<THostSdk, TEvents>;
-  Object.defineProperty(facade, "getWidget", {
+  Object.defineProperty(facade, 'getWidget', {
     value: <TInputs extends object>(
       widgetId: string,
-      options: AngularGetWidgetOptions<TInputs>
-    ): AngularWidgetRef<TInputs> => mountWidget({ sdk, applicationRef, environmentInjector, widgetId, options })
+      options: AngularGetWidgetOptions<TInputs>,
+    ): AngularWidgetBinding<TInputs> =>
+      createWidgetBinding({
+        sdk,
+        applicationRef,
+        environmentInjector,
+        widgetId,
+        options,
+      }),
   });
   return facade;
 }
 
-function mountWidget<TInputs extends object>(input: MountAngularWidgetInput<TInputs>): AngularWidgetRef<TInputs> {
-  const { sdk, applicationRef, environmentInjector, widgetId, options } = input;
-  const container = globalThis.document?.getElementById(options.containerId);
-  if (!container) {
-    throw sdkError(
-      `Atlas cannot mount widget "${widgetId}" because container "${options.containerId}" was not found in the page.`,
-      {
-        suggestedActions: `Render an element with id="${options.containerId}" before calling getWidget, then retry.`,
-        code: "ATLAS_WIDGET_CONTAINER_MISSING"
-      }
-    );
+interface CreateWidgetBindingInput<TInputs extends object> {
+  readonly sdk: Pick<AtlasSdkValue, 'getWidget'>;
+  readonly applicationRef: ApplicationRef;
+  readonly environmentInjector: EnvironmentInjector;
+  readonly widgetId: string;
+  readonly options: AngularGetWidgetOptions<TInputs>;
+}
+
+function createWidgetBinding<TInputs extends object>(
+  input: CreateWidgetBindingInput<TInputs>,
+): AngularWidgetBinding<TInputs> {
+  const renderLoading = input.options.loadingComponent
+    ? createAngularLoadingRenderer(
+        input.options.loadingComponent,
+        input.applicationRef,
+        input.environmentInjector,
+      )
+    : undefined;
+  const handle = input.sdk.getWidget<object>(
+    input.widgetId,
+    renderLoading ? { renderLoading } : undefined,
+  );
+  const binding: AngularWidgetBinding<TInputs> = Object.freeze({
+    widgetId: input.widgetId,
+    inputs: input.options.inputs,
+  });
+  widgetRuntimes.set(binding, {
+    widgetId: input.widgetId,
+    handle,
+    ...(input.options.loadingComponent
+      ? { loadingComponent: input.options.loadingComponent }
+      : {}),
+  });
+  return binding;
+}
+
+@Directive({ selector: '[atlasWidget]', standalone: true })
+export class WidgetOutlet<TInputs extends object> {
+  readonly atlasWidget = input.required<AngularWidgetBinding<TInputs>>();
+
+  private readonly container =
+    inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly errorHandler = inject(ErrorHandler);
+  private readonly controller = new AngularWidgetOutletController<TInputs>(
+    this.container,
+    (error) => this.errorHandler.handleError(error),
+  );
+
+  constructor() {
+    effect(() => {
+      void this.controller.render(this.atlasWidget());
+    });
+    this.destroyRef.onDestroy(() => {
+      void this.controller.destroy();
+    });
+  }
+}
+
+export class AngularWidgetOutletController<TInputs extends object> {
+  private updateQueue = Promise.resolve();
+  private activeWidget: ActiveWidget | undefined;
+  private destroyed = false;
+
+  constructor(
+    private readonly container: HTMLElement,
+    private readonly handleError: WidgetErrorHandler,
+  ) {}
+
+  render(binding: AngularWidgetBinding<TInputs>): Promise<void> {
+    return this.enqueueUpdate(() => this.applyBinding(binding));
   }
 
-  let inputs = options.inputs;
-  let mountedWidget: AtlasMountedWidgetHandle<TInputs> | undefined;
-  let destroyed = false;
-  let destroyPromise: Promise<void> | undefined;
-  const renderLoading = options.loadingComponent
-    ? createAngularLoadingRenderer(options.loadingComponent, applicationRef, environmentInjector)
-    : undefined;
-  const handle = sdk.getWidget<TInputs>(widgetId, renderLoading ? { renderLoading } : undefined);
-  const mountedWidgetPromise = handle.mount(container, inputs);
-  const ready = mountedWidgetPromise.then(async (mounted) => {
-    mountedWidget = mounted;
-    if (destroyed) {
+  destroy(): Promise<void> {
+    this.destroyed = true;
+    return this.enqueueUpdate(() => this.unmountActiveWidget());
+  }
+
+  private enqueueUpdate(update: () => Promise<void>): Promise<void> {
+    this.updateQueue = this.updateQueue.then(update, update);
+    void this.updateQueue.catch(this.handleError);
+    return this.updateQueue;
+  }
+
+  private async applyBinding(
+    binding: AngularWidgetBinding<TInputs>,
+  ): Promise<void> {
+    if (this.destroyed) return;
+    const runtime = readWidgetRuntime(binding);
+    const updatableWidget = this.getUpdatableWidget(runtime);
+    if (updatableWidget?.setInputs) {
+      updatableWidget.setInputs(binding.inputs);
+      return;
+    }
+
+    await this.unmountActiveWidget();
+    if (this.destroyed) return;
+    const mounted = await runtime.handle.mount(this.container, binding.inputs);
+    if (this.destroyed) {
       await mounted.unmount();
       return;
     }
-    if (inputs !== options.inputs) mounted.setInputs?.(inputs);
-  });
+    this.activeWidget = {
+      widgetId: binding.widgetId,
+      ...(runtime.loadingComponent
+        ? { loadingComponent: runtime.loadingComponent }
+        : {}),
+      mounted,
+    };
+  }
 
-  return {
-    ready,
-    setInputs(nextInputs) {
-      inputs = nextInputs;
-      mountedWidget?.setInputs?.(nextInputs);
+  private getUpdatableWidget(
+    runtime: AngularWidgetRuntime,
+  ): AtlasMountedWidgetHandle<object> | undefined {
+    if (this.activeWidget?.widgetId !== runtime.widgetId) return undefined;
+    if (this.activeWidget.loadingComponent !== runtime.loadingComponent)
+      return undefined;
+    return this.activeWidget.mounted;
+  }
+
+  private async unmountActiveWidget(): Promise<void> {
+    const activeWidget = this.activeWidget;
+    this.activeWidget = undefined;
+    await activeWidget?.mounted.unmount();
+  }
+}
+
+function readWidgetRuntime(
+  binding: AngularWidgetBinding<object>,
+): AngularWidgetRuntime {
+  const runtime = widgetRuntimes.get(binding);
+  if (runtime) return runtime;
+  throw sdkError(
+    `Atlas cannot render widget "${binding.widgetId}" because its Angular binding was not created by sdk.getWidget().`,
+    {
+      suggestedActions:
+        'Create the binding with the injected Angular Atlas SDK, then pass it to [atlasWidget].',
+      code: 'ATLAS_WIDGET_BINDING_INVALID',
     },
-    destroy() {
-      if (destroyPromise) return destroyPromise;
-      destroyed = true;
-      destroyPromise = mountedWidget
-        ? mountedWidget.unmount()
-        : ready;
-      return destroyPromise;
-    }
-  };
+  );
 }
 
 function createAngularLoadingRenderer(
   loadingComponent: Type<unknown>,
   applicationRef: ApplicationRef,
-  environmentInjector: EnvironmentInjector
+  environmentInjector: EnvironmentInjector,
 ): AtlasWidgetLoadingRenderer {
   return (container) => {
-    const hostElement = container.ownerDocument.createElement("div");
+    const hostElement = container.ownerDocument.createElement('div');
     container.append(hostElement);
-    const component = createComponent(loadingComponent, { environmentInjector, hostElement });
+    const component = createComponent(loadingComponent, {
+      environmentInjector,
+      hostElement,
+    });
     applicationRef.attachView(component.hostView);
     component.changeDetectorRef.detectChanges();
     return () => {

@@ -5,9 +5,8 @@ source code. It receives typed capabilities through Atlas at mount time.
 
 ## Host Domain
 
-The React host provides SDK capabilities in its generated
-`CustomerHostAtlasProvider` component. Hooks can enrich the SDK because this
-provider runs inside the host's React tree:
+The React host provides SDK capabilities from `src/main.tsx`. Extract a child
+component when hooks enrich the SDK:
 
 ```tsx
 interface CustomerHostSdk {
@@ -15,7 +14,7 @@ interface CustomerHostSdk {
   showToast(message: string): void;
 }
 
-export function CustomerHostAtlasProvider({ children }: PropsWithChildren) {
+function HostApplication() {
   const toast = useToast();
 
   return (
@@ -34,7 +33,7 @@ export function CustomerHostAtlasProvider({ children }: PropsWithChildren) {
         observe: (event) => monitoring.capture("atlas.runtime", event)
       }}
     >
-      {children}
+      <RouterProvider router={router} />
     </AtlasHostProvider>
   );
 }

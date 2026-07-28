@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, test } from "@jest/globals";
 import type { AtlasHostManifest, AtlasStaticRegistry } from "../../schema/dist/index.js";
 import { createTestManifest } from "../../testkit/dist/index.js";
-import { createHostCatalog, prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/static-registry.js";
+import { createHostCatalog, prepareStaticRegistry, prepareStaticRollback, registryRevision } from "../dist/publication/static-registry.js";
 import { readCatalog, readManifestIndex, readRegistry } from "./static-registry.driver.js";
 
 test("static registry selects one host client and its apps", async () => {

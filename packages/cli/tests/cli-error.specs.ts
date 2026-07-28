@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { createCliError } from "../dist/cli-error.js";
+import { createCliError } from "../dist/cli/cli-error.js";
 
 test("unknown commands receive CLI help guidance", () => {
   const error = createCliError("buidl", new Error('Unknown or incomplete command "buidl".'));

@@ -70,6 +70,20 @@ test('Angular app federation exposes workspace-relative entry and widgets', asyn
   expect(widgetEntry).toMatch(/src\/exported-widgets\/order-status\/index/);
 });
 
+test('Angular federation skips React-only Atlas adapters', async () => {
+  const projectRoot = fileURLToPath(
+    new URL('../../../examples/hosts/demo-angular-host', import.meta.url),
+  );
+  const skippedAtlasPackages = (await angularFederationSkipEntries(
+    projectRoot,
+  )).filter((packageName) => packageName.startsWith('@atlas/'));
+
+  expect(skippedAtlasPackages).toStrictEqual([
+    '@atlas/runtime/react',
+    '@atlas/sdk/react',
+  ]);
+});
+
 test('React federation generates ignored widget lifecycle entries', async () => {
   const projectRoot = fileURLToPath(
     new URL('../../../examples/apps/catalog-react', import.meta.url),
@@ -187,6 +201,16 @@ test('React host Vite factory serves Atlas metadata', () => {
     projectRoot,
     projectName: 'demo-react-host',
   });
+  const plugins = config.plugins as AtlasVitePlugin[];
+  const refreshPlugin = plugins.find(
+    ({ name }) => name === 'atlas-react-refresh-preamble',
+  );
+  expect(
+    refreshPlugin?.transform?.(
+      'export default {};',
+      join(projectRoot, 'src/main.tsx'),
+    ),
+  ).toMatch(/plugin-react\/preamble/);
   const metadataPlugin = (config.plugins as AtlasVitePlugin[]).find(
     ({ name }) => name === 'atlas-host-metadata',
   );
@@ -222,7 +246,7 @@ test('React host Vite factory serves Atlas metadata', () => {
   };
   expect(metadata.name).toBe('atlas_demo_react_host');
   expect(metadata.exposes).toStrictEqual([
-    { key: './host', outFileName: 'src/host.tsx' },
+    { key: './host', outFileName: 'src/main.tsx' },
   ]);
   expect(
     metadata.shared.map(({ packageName }) => packageName),
@@ -404,6 +428,20 @@ async function federationExposes(
     cwd: workspaceRoot,
   });
   return JSON.parse(stdout) as Record<string, string>;
+}
+
+async function angularFederationSkipEntries(
+  projectRoot: string,
+): Promise<string[]> {
+  const script = [
+    `const { createAngularFederationConfig } = require(${JSON.stringify(factoryPath)});`,
+    `const config = createAngularFederationConfig(${JSON.stringify({ projectRoot, name: 'test', expose: 'host' })});`,
+    'process.stdout.write(JSON.stringify([...config.skip.strings]));',
+  ].join('\n');
+  const { stdout } = await executeFile(process.execPath, ['-e', script], {
+    cwd: workspaceRoot,
+  });
+  return JSON.parse(stdout) as string[];
 }
 
 interface FederationMetadata {

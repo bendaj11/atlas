@@ -5,11 +5,11 @@ import { expect } from "@jest/globals";
 import { createTestManifest } from "../../testkit/dist/index.js";
 import type { AtlasHostManifest, AtlasManifest } from "../../schema/dist/index.js";
 import type { AtlasRuntimeOverrideDocument } from "../../runtime/dist/index.js";
-import { CliArguments } from "../dist/arguments.js";
-import { AtlasBuildService } from "../dist/build.js";
-import { AtlasDevService, startControlServer, type AtlasDevOverrideDocument } from "../dist/dev.js";
-import type { AtlasPrompter } from "../dist/ui.js";
-import type { AtlasProject, AtlasWorkspace } from "../dist/workspace.js";
+import { CliArguments } from "../dist/cli/arguments.js";
+import { AtlasBuildService } from "../dist/build/build.service.js";
+import { AtlasDevService, startControlServer, type AtlasDevOverrideDocument } from "../dist/development/index.js";
+import type { AtlasPrompter } from "../dist/cli/ui.js";
+import type { AtlasProject, AtlasWorkspace } from "../dist/workspace/workspace.js";
 
 const defaultProject: AtlasProject = {
   id: "test-project",
