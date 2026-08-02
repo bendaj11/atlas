@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-28T13:24:51.188447+00:00",
+  "generated_at": "2026-08-02T11:23:21.577656+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
       "code_fingerprint": "ddff1175150c947a93d925d808515febad6b4268ca298eddec6c8f8bdd8cb2b5",
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.855887441,
+      "score": 0.763996887,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.855976695,
+      "score": 0.764076559,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
@@ -44,7 +44,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.829857538,
+      "score": 0.740761631,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -60,7 +60,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.829857538,
+      "score": 0.740761631,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -81,7 +81,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.659678039,
+      "score": 1.481490201,
       "source_file": "packages/cli/src/development/dev.service.ts",
       "status": "preferred",
       "uses": 2
@@ -103,14 +103,14 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": -2.5389e-05,
+      "score": -2.2663e-05,
       "source_file": "packages/cli/src/development/target.ts",
       "status": "contested",
       "uses": 1,
       "verdict": "dead end"
     },
     "packages_cli_src_generation_generate_service_atlasgenerateservice": {
-      "code_fingerprint": "3d1b873746ae3297d63f2378eff66846de99fc7408f6781f4ec90e27ef0ea8a0",
+      "code_fingerprint": "2d530ff8ca37084cb60e8ba0e7c5d22956adf92868f05f3af9950405a9f3ca1b",
       "label": "AtlasGenerateService",
       "last": "2026-07-26T08:42:25.107357+00:00",
       "provenance": [
@@ -120,7 +120,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.950524352,
+      "score": 0.848473306,
       "source_file": "packages/cli/src/generation/generate.service.ts",
       "status": "tentative",
       "uses": 1
@@ -136,7 +136,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.975345312,
+      "score": 0.870629416,
       "source_file": "packages/runtime/src/index.ts",
       "status": "tentative",
       "uses": 1
@@ -152,7 +152,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.82980156,
+      "score": 0.740711663,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -179,7 +179,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.829973365,
+      "score": 0.740865022,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -196,7 +196,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.829740422,
+      "score": 0.740657089,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -223,7 +223,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.829973365,
+      "score": 0.740865022,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
@@ -240,7 +240,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.975345312,
+      "score": 0.870629416,
       "source_file": "packages/sdk/src/host-slots.ts",
       "status": "tentative",
       "uses": 1
@@ -256,13 +256,13 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.975345312,
+      "score": 0.870629416,
       "source_file": "packages/sdk/src/route-context.ts",
       "status": "tentative",
       "uses": 1
     },
     "scripts_publish_release": {
-      "code_fingerprint": "78a5459b846bfcc3f4c21bbcd2a0d2b5b96d0d46c2c0ebfcf795352e2593a15c",
+      "code_fingerprint": "0af6486b63bbf612205b52ef6a9c8bc72d319eacfd9a13bc2383b5266b745fdb",
       "label": "publish-release.js",
       "last": "2026-07-26T19:22:46.501102+00:00",
       "provenance": [
@@ -272,7 +272,7 @@
           "q": "when running pnpm release:publish --access public im getting error Could not resolve workspace. Missing devEngines.packageManager or legacy packageManager field in package.json"
         }
       ],
-      "score": 0.960340923,
+      "score": 0.857235942,
       "source_file": "scripts/publish-release.js",
       "status": "tentative",
       "uses": 1

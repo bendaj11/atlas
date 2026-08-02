@@ -312,5 +312,22 @@
   "310": "atlas.config.ts",
   "311": "verify.specs.ts",
   "312": "workspace.specs.ts",
-  "313": "schema.specs.ts"
+  "313": "schema.specs.ts",
+  "314": "process.js",
+  "315": "repository",
+  "316": "angular-names.ts",
+  "317": "AtlasNavigationItemsService",
+  "318": "./react",
+  "319": "react-router-dom",
+  "320": "@testing-library/react",
+  "321": "@vitejs/plugin-react",
+  "322": "@wix/wix-ui-icons-common",
+  "323": "ts-jest",
+  "324": "@types/jest",
+  "325": "version-packages.driver.ts",
+  "326": "mount",
+  "327": "generate-nx.specs.ts",
+  "328": "generate-standalone.specs.ts",
+  "329": "generate-workspaces.specs.ts",
+  "330": "{\n  createReactAppViteConfig,\n  createReactHostViteConfig,\n  createReactWidgetEntries,\n}"
 }
