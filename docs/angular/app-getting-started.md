@@ -21,8 +21,9 @@ renames.
 | --- | --- |
 | `atlas.config.ts` | app UUID, routes, slots, external app dependencies |
 | `src/app/app.component.ts` | feature root UI |
-| `src/app/routes.ts` | app-relative inner routes |
-| `src/entry.ts` | Atlas lifecycle adapter; rarely change |
+| `src/app/app.config.ts` | Angular and Atlas providers |
+| `src/app/app.routes.ts` | app-relative inner routes |
+| `src/main.ts` | Angular entry and Atlas lifecycle adapter; rarely change |
 | `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata |
 | `federation.config.js` | generated federation wiring; preserve Atlas sections |
 

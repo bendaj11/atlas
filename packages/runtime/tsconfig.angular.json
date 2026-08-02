@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@atlas/schema": ["../schema/dist/index.d.ts"],
+      "@atlas/sdk": ["../sdk/dist/index.d.ts"],
+      "@atlas/sdk/*": ["../sdk/dist/*.d.ts"]
+    }
+  },
+  "angularCompilerOptions": {
+    "compilationMode": "partial"
+  }
+}

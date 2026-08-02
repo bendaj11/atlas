@@ -14,39 +14,40 @@ Atlas owns cross-application discovery and mount lifecycle.
 
 ## Host Files
 
-| File | Responsibility | Edit normally? |
-| --- | --- | --- |
-| `src/main.tsx` | React entry, Atlas `mount` lifecycle exported as `./host`, and product shell | Yes |
-| `vite.config.ts` | Federation expose and build wiring | Preserve generated Atlas sections |
-| `dist/bootstrap/` | Generated static product-domain entry | Regenerate through CLI |
+| File                | Responsibility                                                 | Edit normally?                    |
+| ------------------- | -------------------------------------------------------------- | --------------------------------- |
+| `src/main.tsx`      | Normal Vite/React preview entry                                | Yes                               |
+| `src/bootstrap.tsx` | Atlas `mount` lifecycle exported as `./host` and product shell | Rarely                            |
+| `vite.config.ts`    | Federation expose and build wiring                             | Preserve generated Atlas sections |
+| `dist/bootstrap/`   | Generated static product-domain entry                          | Regenerate through CLI            |
 
 Host client receives selected catalog in its mount request. Do not fetch or
 choose catalog versions from React code.
 
 ## App Files
 
-| File | Responsibility | Edit normally? |
-| --- | --- | --- |
-| `src/entry.tsx` | Atlas `mount` lifecycle exported as `./entry` | Rarely |
-| `src/app/routes.tsx` | Inner React routes scoped below assigned Atlas base path | Yes |
-| `src/app/` | Feature components and hooks | Yes |
-| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes |
-| `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |
+| File                    | Responsibility                                               | Edit normally?        |
+| ----------------------- | ------------------------------------------------------------ | --------------------- |
+| `src/bootstrap.tsx`     | Atlas `mount` lifecycle exported as `./entry`                | Rarely                |
+| `src/routes.tsx`        | Inner React routes scoped below assigned Atlas base path     | Yes                   |
+| `src/`                  | Feature components and hooks                                 | Yes                   |
+| `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes                   |
+| `atlas.config.ts`       | App identity, routes, slots, external app dependencies       | When contract changes |
 
 Apps obtain host services with `useAtlasSdk()`. They must not import host source
 or assume host implementation details.
 
 ## Task Guides
 
-| Task | Guide |
-| --- | --- |
-| Configure top-level and inner routes | [React routing](routing.md) |
-| Use HTTP, events, navigation, overlays, and host data | [React SDK](sdk.md) |
-| Package images, fonts, and CSS | [React assets and styles](assets-and-styles.md) |
-| Generate projects or widgets | [React generators](generators.md) |
-| Inspect working projects | [React examples](examples.md) |
-| Build and release React artifacts | [React production deployment](production-deployment.md) |
-| Diagnose loading or routing failure | [React troubleshooting](troubleshooting.md) |
+| Task                                                  | Guide                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------- |
+| Configure top-level and inner routes                  | [React routing](routing.md)                             |
+| Use HTTP, events, navigation, overlays, and host data | [React SDK](sdk.md)                                     |
+| Package images, fonts, and CSS                        | [React assets and styles](assets-and-styles.md)         |
+| Generate projects or widgets                          | [React generators](generators.md)                       |
+| Inspect working projects                              | [React examples](examples.md)                           |
+| Build and release React artifacts                     | [React production deployment](production-deployment.md) |
+| Diagnose loading or routing failure                   | [React troubleshooting](troubleshooting.md)             |
 
 Use [React production deployment](production-deployment.md) for framework build
 output and checkpoints. It links to canonical

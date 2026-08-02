@@ -1,30 +1,89 @@
-import { angularRootSelector } from "./angular-names.js";
-import { title } from "./common-generator.js";
+import { angularRootSelector } from './angular-names.js';
+import { title } from './common-generator.js';
 
-export function angularAppEntry(name: string): string {
-  const selector = angularRootSelector(name);
-  return `import "zone.js";
-import { LocationStrategy } from "@angular/common";
-import { bootstrapApplication } from "@angular/platform-browser";
+export function angularAppConfig(zoneless: boolean): string {
+  const zonelessImport = zoneless
+    ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
+    : 'import type { ApplicationConfig } from "@angular/core";\n';
+  const zonelessProvider = zoneless
+    ? 'provideZonelessChangeDetection(),\n      '
+    : '';
+  return `${zonelessImport}import { LocationStrategy } from "@angular/common";
 import { provideRouter } from "@angular/router";
-import { createLocationStrategy, defineApp, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
-import { routes } from "./app/routes";
+import { provideAtlasAppContext, provideAtlasSdk, type LocationStrategyAdapter } from "@atlas/sdk/angular";
+import type { AtlasSdk } from "@atlas/sdk";
+import type { AtlasAppContext } from "@atlas/sdk/lifecycle";
+import { routes } from "./app.routes";
+
+interface AtlasAppConfigOptions {
+  context: AtlasAppContext;
+  sdk: AtlasSdk;
+  locationStrategy: LocationStrategyAdapter;
+}
+
+export function createAppConfig({ context, sdk, locationStrategy }: AtlasAppConfigOptions): ApplicationConfig {
+  return {
+    providers: [
+      ${zonelessProvider}provideRouter(routes),
+      ...provideAtlasAppContext(context),
+      provideAtlasSdk(sdk),
+      { provide: LocationStrategy, useValue: locationStrategy }
+    ]
+  };
+}
+`;
+}
+
+export function angularSinglePageAppConfig(zoneless: boolean): string {
+  const zonelessImport = zoneless
+    ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
+    : 'import type { ApplicationConfig } from "@angular/core";\n';
+  const zonelessProvider = zoneless
+    ? 'provideZonelessChangeDetection(),\n      '
+    : '';
+  return `${zonelessImport}import { provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
+import type { AtlasSdk } from "@atlas/sdk";
+import type { AtlasAppContext } from "@atlas/sdk/lifecycle";
+
+interface AtlasAppConfigOptions {
+  context: AtlasAppContext;
+  sdk: AtlasSdk;
+}
+
+export function createAppConfig({ context, sdk }: AtlasAppConfigOptions): ApplicationConfig {
+  return {
+    providers: [
+      ${zonelessProvider}...provideAtlasAppContext(context),
+      provideAtlasSdk(sdk)
+    ]
+  };
+}
+`;
+}
+
+export function angularAppMain(): string {
+  return `import { initFederation } from "@atlas/sdk/federation";
+
+void initFederation();
+
+export { default } from "./entry";
+`;
+}
+
+export function angularAppEntry(name: string, zoneless: boolean): string {
+  const selector = angularRootSelector(name);
+  const zoneImport = zoneless ? '' : 'import "zone.js";\n';
+  return `${zoneImport}import { bootstrapApplication } from "@angular/platform-browser";
+import { createLocationStrategy, defineApp } from "@atlas/sdk/angular";
 import { AppComponent } from "./app/app.component";
+import { createAppConfig } from "./app/app.config";
 
 export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
   const locationStrategy = createLocationStrategy(context);
-
   container.append(element);
 
-  const app = await bootstrapApplication(AppComponent, {
-    providers: [
-      provideRouter(routes),
-      provideAtlasAppContext(context),
-      provideAtlasSdk(sdk),
-      { provide: LocationStrategy, useValue: locationStrategy }
-    ]
-  });
+  const app = await bootstrapApplication(AppComponent, createAppConfig({ context, sdk, locationStrategy }));
 
   return {
     unmount() {
@@ -37,23 +96,31 @@ export default defineApp(async ({ container, sdk, context }) => {
 `;
 }
 
-export function angularSinglePageAppEntry(name: string): string {
+export function angularSinglePageAppMain(): string {
+  return `import { initFederation } from "@atlas/sdk/federation";
+
+void initFederation();
+
+export { default } from "./entry";
+`;
+}
+
+export function angularSinglePageAppEntry(
+  name: string,
+  zoneless: boolean,
+): string {
   const selector = angularRootSelector(name);
-  return `import "zone.js";
-import { bootstrapApplication } from "@angular/platform-browser";
-import { defineApp, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
+  const zoneImport = zoneless ? '' : 'import "zone.js";\n';
+  return `${zoneImport}import { bootstrapApplication } from "@angular/platform-browser";
+import { defineApp } from "@atlas/sdk/angular";
 import { AppComponent } from "./app/app.component";
+import { createAppConfig } from "./app/app.config";
 
 export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
   container.append(element);
 
-  const app = await bootstrapApplication(AppComponent, {
-    providers: [
-      provideAtlasAppContext(context),
-      provideAtlasSdk(sdk)
-    ]
-  });
+  const app = await bootstrapApplication(AppComponent, createAppConfig({ context, sdk }));
 
   return {
     unmount() {
@@ -140,16 +207,5 @@ export const routes: Routes = [
   { path: "", component: HomeComponent },
   { path: "details/:id", component: DetailsComponent }
 ];
-`;
-}
-
-export function appSourceReadme(): string {
-  return `# App source
-
-Required Atlas wiring lives in \`src/entry.ts\`, \`atlas.config.ts\`, and \`federation.config.js\`. Keep those files aligned with Atlas docs when changing platform wiring.
-
-Main app component lives in \`src/app/app.component.ts\`. Add screens under feature folders in \`src/app\`.
-
-When inner routing is enabled, \`src/app/routes.ts\` connects app screens to the router. Update it when adding routes.
 `;
 }

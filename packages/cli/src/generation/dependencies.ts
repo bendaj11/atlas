@@ -101,6 +101,7 @@ function isFrameworkManagedDependency(framework: SupportedFramework, name: strin
   if (framework === "angular") {
     return name.startsWith("@angular/")
       || name === "@angular-architects/native-federation"
+      || name === "@angular-architects/native-federation-v4"
       || name === "typescript"
       || name === "zone.js";
   }

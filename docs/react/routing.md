@@ -46,7 +46,9 @@ export function CustomerWorkspaceLayout() {
   return (
     <div className="workspace-layout">
       <header className="workspace-header">
-        <a href="/" className="brand">Customer Portal</a>
+        <a href="/" className="brand">
+          Customer Portal
+        </a>
         <div data-atlas-slot="header" />
       </header>
       <aside className="workspace-sidebar">
@@ -63,7 +65,7 @@ export function CustomerWorkspaceLayout() {
 }
 
 const router = createBrowserRouter([
-  { path: "*", Component: CustomerWorkspaceLayout }
+  { path: '*', Component: CustomerWorkspaceLayout },
 ]);
 ```
 
@@ -75,7 +77,7 @@ from the runtime catalog. Product hosts can instead render custom navigation
 with the same resolved route data:
 
 ```tsx
-import { useAtlasNavigationItems } from "@atlas/runtime/react";
+import { useAtlasNavigationItems } from '@atlas/runtime/react';
 
 export function CustomerWorkspaceLayout() {
   const items = useAtlasNavigationItems();
@@ -87,7 +89,7 @@ export function CustomerWorkspaceLayout() {
           <button
             key={item.id}
             type="button"
-            aria-current={item.active ? "page" : undefined}
+            aria-current={item.active ? 'page' : undefined}
             onClick={item.navigate}
           >
             {item.label}
@@ -107,7 +109,7 @@ navigation, and active-route matching.
 `src/main.tsx` exports lifecycle used by Atlas bootstrap:
 
 ```tsx
-export const mount: AtlasHostClientEntry["mount"] = (request) => {
+export const mount: AtlasHostClientEntry['mount'] = (request) => {
   // Create router and render HostLayout into request.container.
 };
 ```
@@ -117,26 +119,28 @@ export const mount: AtlasHostClientEntry["mount"] = (request) => {
 The React app declares where it can mount in its own `atlas.config.ts`:
 
 ```ts
-import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasAppConfig } from '@atlas/schema' with {
+  'resolution-mode': 'import',
+};
 
 export default {
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  name: "Orders",
-  framework: "react",
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  name: 'Orders',
+  framework: 'react',
   routes: [
     {
-      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-      basePath: "/orders",
-      title: "Orders",
-      nav: { label: "Orders", visible: true, order: 10 }
-    }
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      basePath: '/orders',
+      title: 'Orders',
+      nav: { label: 'Orders', visible: true, order: 10 },
+    },
   ],
   slots: [
     {
-      slotId: "header",
-      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"
-    }
-  ]
+      slotId: 'header',
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    },
+  ],
 } satisfies AtlasAppConfig;
 ```
 
@@ -170,18 +174,18 @@ The host should not need hard-coded route ownership to resolve that conflict.
 
 ## Inner React Routes
 
-Generated React apps keep route definitions in `src/app/routes.tsx`:
+Generated React apps keep route definitions in `src/routes.tsx`:
 
 ```tsx
 export const routes = [
   {
-    path: "/",
+    path: '/',
     Component: OrdersLayout,
     children: [
       { index: true, Component: OrdersHome },
-      { path: ":orderId", Component: OrderDetails }
-    ]
-  }
+      { path: ':orderId', Component: OrderDetails },
+    ],
+  },
 ];
 ```
 
@@ -193,7 +197,7 @@ export default createRoutedApp({
   createRoot,
   createRouter: ({ context }) =>
     createMemoryRouter(routes, createRouterOptions(context)),
-  createElement: (router) => <RouterProvider router={router} />
+  createElement: (router) => <RouterProvider router={router} />,
 });
 ```
 
@@ -213,7 +217,7 @@ Use the SDK for navigation outside the current app:
 
 ```tsx
 const atlas = useAtlasSdk();
-atlas.navigation.navigate("/catalog");
+atlas.navigation.navigate('/catalog');
 ```
 
 Use relative React Router links only for screens owned by the same app.

@@ -7,7 +7,7 @@ work after the app is loaded by a host from a CDN.
 
 Use Angular's normal asset and style configuration:
 
-- put static files under `src/assets`;
+- put static files under `public`;
 - keep global styles in the Angular `styles` configuration;
 - prefer component styles for feature UI;
 - reference copied static assets from component CSS with root-relative `/assets/...`

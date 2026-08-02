@@ -1,3 +1,5 @@
-import { initFederation } from "@angular-architects/native-federation";
+import { initFederation } from '@angular-architects/native-federation';
 
 void initFederation();
+
+export { default } from './entry';

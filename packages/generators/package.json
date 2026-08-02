@@ -1,6 +1,6 @@
 {
   "name": "@atlas/generators",
-  "version": "0.3.28",
+  "version": "0.3.37",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",
@@ -37,7 +37,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.3.28",
-    "@atlas/schema": "0.3.28"
+    "@atlas/bootstrap": "0.3.37",
+    "@atlas/schema": "0.3.37"
   }
 }

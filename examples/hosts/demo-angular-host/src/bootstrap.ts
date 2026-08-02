@@ -1,3 +1,4 @@
+import "zone.js";
 import { Location } from "@angular/common";
 import { Component } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
@@ -29,3 +30,5 @@ export async function bootstrap(request?: HostMountRequest) {
   });
   return { async unmount() { await runtime.stop(); app.destroy(); root?.remove(); } };
 }
+
+export const mount: AtlasHostClientEntry["mount"] = bootstrap;

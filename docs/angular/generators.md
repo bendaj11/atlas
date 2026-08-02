@@ -16,7 +16,9 @@ Generated host files to understand first:
 | --- | --- | --- |
 | `atlas.config.ts` | Host team | Stable host id, display name, runtime defaults. |
 | `atlas.bootstrap.html` | Host team | Product-domain HTML and loading UI used automatically by `atlas build-bootstrap`. |
-| `src/bootstrap.ts` | Host team | Calls `startHost`, connects Angular Router, Native Federation, and SDK providers. |
+| `src/bootstrap.ts` | Atlas/platform | Exports normal `bootstrap()` plus Atlas `mount()`. |
+| `src/app/app.config.ts` | Host team | Angular providers, router, and version-appropriate zoneless setup. |
+| `src/app/host.config.ts` | Host team | Product SDK capabilities and host runtime customization. |
 | `src/app/app.component.ts` | Host team | Replaceable product layout with Atlas DOM anchors. |
 | `federation.config.js` | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone. |
 | `dist/bootstrap/` | Atlas CLI | Static product-domain files from `atlas build-bootstrap`. |
@@ -41,15 +43,15 @@ Generated app files to understand first:
 | File | Owner | Purpose |
 | --- | --- | --- |
 | `atlas.config.ts` | App team | App id, name, framework, host routes, slots, widgets, manifest metadata. |
-| `src/entry.ts` | Atlas/platform | Mount/unmount lifecycle exposed through Native Federation. |
-| `src/main.ts` | Atlas/platform | Initializes Native Federation for asset serving only; it does not bootstrap the app. |
+| `src/main.ts` | Atlas/platform | Angular entry plus mount/unmount lifecycle exposed through Native Federation. |
+| `src/app/app.config.ts` | App team | Angular and Atlas providers. |
 | `src/app/app.component.ts` | App team | App root component. |
-| `src/app/routes.ts` | App team | Inner Angular routes scoped under the host base path. |
+| `src/app/app.routes.ts` | App team | Inner Angular routes scoped under the host base path. |
 | `federation.config.js` | Atlas/platform | Native Federation compatibility file. |
 
 Product developers usually edit Angular components, services, styles, tests,
 and `atlas.config.ts`. Angular app bootstrap happens only when Atlas runtime
-mounts `src/entry.ts` inside a host. The host supplies SDK and app context;
+mounts `src/main.ts` inside a host. The host supplies SDK and app context;
 generated apps do not create either one.
 Generated `main.ts` and host bootstrap files import federation runtime functions
 from `@atlas/sdk/federation`. The required `federation.config.js` delegates to

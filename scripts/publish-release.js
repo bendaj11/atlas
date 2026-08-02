@@ -9,7 +9,7 @@ const packageOrder = ["schema", "sdk", "runtime", "bootstrap", "generators", "te
 const options = parseOptions(process.argv.slice(2));
 
 if (!options.skipBuild) {
-  await execute("pnpm", ["run", "release:bundle"], { cwd: root, stdio: "inherit" });
+  await execute("pnpm", ["run", "release", "--verify"], { cwd: root, stdio: "inherit" });
 }
 
 const release = JSON.parse(await readFile(join(releaseDirectory, "release.json"), "utf8"));

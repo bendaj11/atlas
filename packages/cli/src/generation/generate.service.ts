@@ -176,6 +176,7 @@ export class AtlasGenerateService {
             type,
             selectedFramework,
             devServerPort,
+            generatorOptions.frameworkVersion,
           );
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }

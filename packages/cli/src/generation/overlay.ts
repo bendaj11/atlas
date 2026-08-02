@@ -4,6 +4,7 @@ import type { SupportedFramework } from '../cli/arguments.js';
 const ATLAS_INTEGRATION_FILES = new Set([
   'atlas.config.ts',
   'federation.config.js',
+  'federation.config.mjs',
 ]);
 const ATLAS_HOST_FILES = new Set([
   ...ATLAS_INTEGRATION_FILES,
@@ -15,10 +16,10 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     ...ATLAS_HOST_FILES,
     'src/index.html',
     'src/app/app.component.ts',
-    'src/app/atlas-host-default-route.component.ts',
+    'src/app/app.config.ts',
+    'src/app/app.routes.ts',
     'src/main.ts',
     'src/bootstrap.ts',
-    'src/host.ts',
   ]),
   react: new Set([
     ...ATLAS_HOST_FILES,
@@ -26,6 +27,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     'index.html',
     'src/styles.css',
     'src/main.tsx',
+    'src/bootstrap.tsx',
   ]),
 };
 
@@ -33,27 +35,25 @@ const DELEGATED_APP_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
   angular: new Set([
     ...ATLAS_INTEGRATION_FILES,
     'src/index.html',
-    'src/assets/.gitkeep',
     'src/main.ts',
-    'src/app/README.md',
+    'src/entry.ts',
     'src/app/app.component.ts',
+    'src/app/app.config.ts',
     'src/app/home/home.component.ts',
     'src/app/details/details.component.ts',
-    'src/app/routes.ts',
-    'src/entry.ts',
+    'src/app/app.routes.ts',
     'src/exported-widgets/README.md',
   ]),
   react: new Set([
     ...ATLAS_INTEGRATION_FILES,
     'vite.config.ts',
     'index.html',
-    'src/app/README.md',
-    'src/app/App.tsx',
-    'src/app/home/Home.tsx',
-    'src/app/details/Details.tsx',
-    'src/app/routes.tsx',
-    'src/main.tsx',
-    'src/entry.tsx',
+    'src/App.tsx',
+    'src/home/Home.tsx',
+    'src/details/Details.tsx',
+    'src/routes.tsx',
+    'src/index.css',
+    'src/bootstrap.tsx',
     'src/exported-widgets/README.md',
   ]),
 };
@@ -71,8 +71,7 @@ export function generatedOverlay(
       : DELEGATED_APP_FILES[framework];
   return files.filter(
     (file) =>
-      overlay.has(file.path) ||
-      isAngularStylesheet(file.path, framework),
+      overlay.has(file.path) || isAngularStylesheet(file.path, framework),
   );
 }
 

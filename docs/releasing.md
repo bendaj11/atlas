@@ -30,32 +30,26 @@ environments, pass the release type explicitly:
 pnpm release patch
 ```
 
-The command calculates and propagates the next version but does not commit,
-push, or publish. You can still set an exact version with
-`pnpm release:version 0.2.0` when needed. Then run:
+The command calculates and propagates the next version, builds verified package
+archives, and creates `dist/release`. It does not commit, push, or publish. CI
+can build an already-versioned tag without changing files:
 
 ```sh
-pnpm typecheck
-pnpm test
-pnpm test:generated
-pnpm test:e2e
-pnpm test:container
-pnpm release:bundle
+pnpm release --verify
 ```
+
+For an exact version, pass it directly: `pnpm release 0.2.0`.
 
 The release command updates the root manifest, every public package, internal
 Atlas dependency pins, the Columbus extension package and manifest, and the
 version range emitted by generators. Chrome manifests use the numeric core of
-a prerelease version. `test:generated` packs those packages and proves that the
-packaged CLI can generate and production-build Angular and React hosts and apps.
-`test:container` validates generated bootstrap files inside non-root, read-only
-Nginx container before publication.
+a prerelease version. Tests remain separate test and CI commands.
 
 Review the changes, move the relevant entries from `Unreleased` in the changelog
 to a section for the new version, and tag the reviewed commit as `v<version>`.
 The tag must exactly match the package version.
 
-`release:bundle` creates `dist/release` with the seven verified tarballs,
+`pnpm release` creates `dist/release` with the seven verified tarballs,
 `SHA256SUMS`, and `release.json`. Release CI preserves this exact directory as
 an artifact and attaches it to the tag's GitHub release. Publishing automation must consume that artifact instead of
 rebuilding packages from the tag. Package order is schema, SDK, runtime,
@@ -70,7 +64,7 @@ Publish the complete package set with one command:
 pnpm release:publish
 ```
 
-The command builds and verifies the release bundle, validates every SHA-256
+The command verifies the release bundle, validates every SHA-256
 digest, and publishes packages in dependency order. Existing immutable
 versions are skipped. Use `--dry-run` to validate without uploading.
 

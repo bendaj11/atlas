@@ -7,7 +7,7 @@ const packageDirectories = ["schema", "sdk", "runtime", "bootstrap", "generators
 
 export async function versionPackages(version, workspaceRoot = root) {
   if (!version || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
-    throw new Error("Usage: pnpm release:version <major.minor.patch[-prerelease]>");
+    throw new Error("Usage: pnpm release <major.minor.patch[-prerelease]>");
   }
 
   const manifestPaths = [
@@ -31,11 +31,12 @@ export async function versionPackages(version, workspaceRoot = root) {
 
   const generatorVersionsPath = join(workspaceRoot, "packages/generators/src/cli/generator-versions.ts");
   const generatorVersions = await readFile(generatorVersionsPath, "utf8");
-  if (!/ATLAS_PACKAGE_VERSION = "[^"]+"/.test(generatorVersions)) {
+  const versionDeclaration = /ATLAS_PACKAGE_VERSION = (["'])[^"']+\1/;
+  if (!versionDeclaration.test(generatorVersions)) {
     throw new Error("Atlas generator version declaration was not found.");
   }
   await writeFile(generatorVersionsPath, generatorVersions.replace(
-    /ATLAS_PACKAGE_VERSION = "[^"]+"/,
+    versionDeclaration,
     `ATLAS_PACKAGE_VERSION = "${version}"`
   ), "utf8");
 

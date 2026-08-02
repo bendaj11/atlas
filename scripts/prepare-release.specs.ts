@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "@jest/globals";
-import { nextVersion, prepareRelease } from "./prepare-release.js";
+import { nextVersion, prepareRelease } from "./release.js";
 import { createReleaseWorkspace } from "./prepare-release.driver.js";
 
 test("nextVersion calculates semantic release increments", () => {

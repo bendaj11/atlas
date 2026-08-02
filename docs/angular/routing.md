@@ -168,7 +168,7 @@ The host should not need hard-coded route ownership to resolve that conflict.
 
 ## Inner Angular Routes
 
-Define normal Angular routes in the app, usually in `src/app/routes.ts`:
+Define normal Angular routes in the app, usually in `src/app/app.routes.ts`:
 
 ```ts
 import type { Routes } from "@angular/router";

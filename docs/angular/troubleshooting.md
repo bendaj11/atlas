@@ -4,7 +4,7 @@ Start by identifying the domain:
 
 - **Host domain:** page shell, runtime config, catalog URL, DOM anchors,
   `startHost`, host SDK providers.
-- **App domain:** Angular app source, `atlas.config.ts`, `src/entry.ts`,
+- **App domain:** Angular app source, `atlas.config.ts`, `src/main.ts`,
   inner routes, assets.
 - **Deployment domain:** CDN files, CORS, MIME types, catalogs, registry,
   integrity, cache.
@@ -55,7 +55,7 @@ project's `tsconfig.app.json`.
 ## Inner Routing Escapes The App
 
 The app should use `createLocationStrategy(context)` through generated
-`src/entry.ts`. Do not provide `PathLocationStrategy` inside a mounted Angular
+`src/main.ts`. Do not provide `PathLocationStrategy` inside a mounted Angular
 app. Use Angular Router for app-relative paths and SDK navigation for
 cross-app destinations.
 

@@ -1,9 +1,10 @@
-import { Component, ElementRef, inject, Input, Injectable, OnDestroy, OnInit } from "@angular/core";
+import { Component, Directive, ElementRef, inject, Input, Injectable, OnDestroy, OnInit } from "@angular/core";
 import { AtlasHostAnchorRegistry, type AtlasHostAnchorKind } from "./host-anchors.js";
 
 @Injectable({ providedIn: "root" })
 export class AtlasAngularHostAnchors extends AtlasHostAnchorRegistry {}
 
+@Directive()
 abstract class AtlasAnchorComponent implements OnInit, OnDestroy {
   private release: (() => void) | undefined;
   protected readonly element = inject(ElementRef<HTMLElement>);

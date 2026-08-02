@@ -28,15 +28,20 @@ export function ensureAngularNativeFederationTargets(
   projectName: string,
   type: ProjectType,
   runnerKey: RunnerKey,
-  devServerPort = defaultDevServerPort(type)
+  devServerPort = defaultDevServerPort(type),
+  nativeFederationBuilder = '@angular-architects/native-federation:build',
 ): void {
+  const builder = existingNativeFederationBuilder(
+    targets.build,
+    runnerKey,
+  ) ?? nativeFederationBuilder;
   if (targets.build && !isNativeFederationTarget(targets.build, runnerKey)) {
     targets.esbuild ??= targets.build;
   }
   if (targets.esbuild) {
     ensureAngularFederationPolyfills(targets.esbuild);
     targets.build = {
-      [runnerKey]: "@angular-architects/native-federation:build",
+      [runnerKey]: builder,
       options: { target: `${projectName}:esbuild:production` },
       configurations: {
         development: { target: `${projectName}:esbuild:development`, dev: true }
@@ -55,7 +60,7 @@ export function ensureAngularNativeFederationTargets(
         hostClientPort(devServerPort),
       );
     targets.serve = {
-      [runnerKey]: "@angular-architects/native-federation:build",
+      [runnerKey]: builder,
       options: {
         target: `${projectName}:serve-original:development`,
         dev: true,
@@ -118,7 +123,20 @@ function retargetAngularBuildTarget(value: string, projectName: string): string 
 }
 
 function isNativeFederationTarget(value: unknown, runnerKey: RunnerKey): boolean {
-  return asObject(value)[runnerKey] === "@angular-architects/native-federation:build";
+  return existingNativeFederationBuilder(value, runnerKey) !== undefined;
+}
+
+function existingNativeFederationBuilder(
+  value: unknown,
+  runnerKey: RunnerKey,
+): string | undefined {
+  const builder = asObject(value)[runnerKey];
+  return isNativeFederationBuilder(builder) ? builder : undefined;
+}
+
+function isNativeFederationBuilder(value: unknown): value is string {
+  return value === '@angular-architects/native-federation:build'
+    || value === '@angular-architects/native-federation-v4:build';
 }
 
 function asObject(value: unknown): Record<string, unknown> {

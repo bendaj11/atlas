@@ -70,7 +70,7 @@ for (const scenario of [
     },
     framework: 'react',
     root: 'packages/orders',
-    entry: 'src/entry.tsx',
+    entry: 'src/bootstrap.tsx',
     config: 'vite.config.ts',
     match: /createRoutedApp/,
     configMatch: /createReactAppViteConfig/,
@@ -89,9 +89,9 @@ for (const scenario of [
     framework: 'angular',
     root: 'packages/orders',
     entry: 'src/entry.ts',
-    config: 'federation.config.js',
+    config: 'federation.config.mjs',
     match: /defineApp/,
-    configMatch: /@atlas\/sdk\/federation-config/,
+    configMatch: /createAngularV4FederationConfig/,
   },
   {
     name: 'Turborepo',
@@ -107,7 +107,7 @@ for (const scenario of [
     },
     framework: 'react',
     root: 'apps/orders',
-    entry: 'src/entry.tsx',
+    entry: 'src/bootstrap.tsx',
     config: 'vite.config.ts',
     match: /createRoutedApp/,
     configMatch: /createReactAppViteConfig/,
@@ -132,9 +132,9 @@ for (const scenario of [
     framework: 'angular',
     root: 'apps/orders',
     entry: 'src/entry.ts',
-    config: 'federation.config.js',
+    config: 'federation.config.mjs',
     match: /defineApp/,
-    configMatch: /@atlas\/sdk\/federation-config/,
+    configMatch: /createAngularV4FederationConfig/,
     turboTaskKey: 'pipeline',
   },
 ]) {
@@ -194,15 +194,15 @@ for (const scenario of [
       );
       const architect = angularJson.projects.orders.architect;
       expect(architect.build.builder).toBe(
-        '@angular-architects/native-federation:build',
+        '@angular-architects/native-federation-v4:build',
       );
       expect(architect.build.options.target).toBe('orders:esbuild:production');
+      expect(architect.esbuild.options.preserveSymlinks).toBe(true);
       expect(architect.esbuild.options.polyfills).toStrictEqual([
-        'zone.js',
         'es-module-shims',
       ]);
       expect(architect.serve.builder).toBe(
-        '@angular-architects/native-federation:build',
+        '@angular-architects/native-federation-v4:build',
       );
       expect(architect.serve.options.target).toBe(
         'orders:serve-original:development',
@@ -332,17 +332,17 @@ for (const scenario of [
       );
       const architect = angularJson.projects['customer-host'].architect;
       expect(architect.build.builder).toBe(
-        '@angular-architects/native-federation:build',
+        '@angular-architects/native-federation-v4:build',
       );
       expect(architect.build.options.target).toBe(
         'customer-host:esbuild:production',
       );
+      expect(architect.esbuild.options.preserveSymlinks).toBe(true);
       expect(architect.esbuild.options.polyfills).toStrictEqual([
-        'zone.js',
         'es-module-shims',
       ]);
       expect(architect.serve.builder).toBe(
-        '@angular-architects/native-federation:build',
+        '@angular-architects/native-federation-v4:build',
       );
       expect(architect.serve.options.target).toBe(
         'customer-host:serve-original:development',

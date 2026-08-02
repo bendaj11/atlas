@@ -1,53 +1,62 @@
-import { atlasPackageRange, type ReactVersionProfile } from "./generator-versions.js";
+import {
+  atlasPackageRange,
+  type ReactVersionProfile,
+} from './generator-versions.js';
 
-const VITE_REACT_PLUGIN_VERSION = "^5.0.4";
-const VITE_VERSION = "^7.3.6";
+const VITE_REACT_PLUGIN_VERSION = '^5.0.4';
+const VITE_VERSION = '^7.3.6';
 
 interface ReactPackageOptions {
   packageName: string;
   projectName: string;
-  type: "host" | "app";
+  type: 'host' | 'app';
   profile: ReactVersionProfile;
   routed?: boolean;
 }
 
 export function reactPackage(options: ReactPackageOptions): unknown {
   const { packageName, projectName, profile } = options;
-  const host = options.type === "host";
+  const host = options.type === 'host';
   const routed = host || (options.routed ?? true);
   return {
     name: packageName,
-    version: "0.1.0",
+    version: '0.1.0',
     private: true,
-    type: "module",
+    type: 'module',
     scripts: {
       dev: `atlas dev ${projectName}`,
-      "framework:dev": "vite --host 0.0.0.0",
-      "atlas:config": `atlas compile-config ${projectName}`,
-      build: "tsc -b && vite build",
-      "atlas:publish": `atlas publish ${projectName} --from-build-output`,
-      ...(host ? { "atlas:bootstrap": `atlas build-bootstrap ${projectName} --skip-compile` } : {})
+      'framework:dev': 'vite --host 0.0.0.0',
+      'atlas:config': `atlas compile-config ${projectName}`,
+      build: 'tsc -b && vite build',
+      'atlas:publish': `atlas publish ${projectName} --from-build-output`,
+      ...(host
+        ? {
+            'atlas:bootstrap': `atlas build-bootstrap ${projectName} --skip-compile`,
+          }
+        : {}),
     },
     dependencies: {
-      "@atlas/schema": atlasPackageRange(),
-      "@atlas/sdk": atlasPackageRange(),
-      ...(host ? {
-        "@atlas/runtime": atlasPackageRange()
-      } : {}),
-      "es-module-shims": "^2.7.0",
+      '@atlas/schema': atlasPackageRange(),
+      '@atlas/sdk': atlasPackageRange(),
+      ...(host
+        ? {
+            '@atlas/runtime': atlasPackageRange(),
+          }
+        : {}),
+      'es-module-shims': '^2.7.0',
       react: profile.version,
-      "react-dom": profile.version,
-      ...(routed ? { "react-router-dom": profile.routerVersion } : {}),
+      'react-dom': profile.version,
+      ...(routed ? { 'react-router-dom': profile.routerVersion } : {}),
     },
     devDependencies: {
-      "@atlas/cli": atlasPackageRange(),
-      "@types/node": "^22.0.0",
-      "@types/react": `^${profile.major}.0.0`,
-      "@types/react-dom": `^${profile.major}.0.0`,
-      "@vitejs/plugin-react": VITE_REACT_PLUGIN_VERSION,
-      typescript: "~5.9.0",
-      vite: VITE_VERSION
-    }
+      '@atlas/cli': atlasPackageRange(),
+      '@types/node': '^22.0.0',
+      '@types/react': `^${profile.major}.0.0`,
+      '@types/react-dom': `^${profile.major}.0.0`,
+      '@vitejs/plugin-react': VITE_REACT_PLUGIN_VERSION,
+      typescript: '~5.9.0',
+      vite: VITE_VERSION,
+    },
   };
 }
 

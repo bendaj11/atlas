@@ -1,57 +1,79 @@
-import { atlasPackageRange, type AngularVersionProfile } from "./generator-versions.js";
+import {
+  atlasPackageRange,
+  type AngularVersionProfile,
+} from './generator-versions.js';
 
 interface AngularPackageOptions {
   packageName: string;
   projectName: string;
-  type: "host" | "app";
+  type: 'host' | 'app';
   profile: AngularVersionProfile;
   routed?: boolean;
 }
 
 export function angularPackage(options: AngularPackageOptions): unknown {
   const { packageName, projectName, profile } = options;
-  const host = options.type === "host";
+  const host = options.type === 'host';
   const angular = profile.version;
   const routed = host || (options.routed ?? true);
   return {
     name: packageName,
-    version: "0.1.0",
+    version: '0.1.0',
     private: true,
     scripts: {
       dev: `atlas dev ${projectName}`,
-      "framework:dev": `ng serve ${projectName}`,
-      "atlas:config": `atlas compile-config ${projectName}`,
-      build: "ng build",
-      "atlas:publish": `atlas publish ${projectName} --from-build-output`,
-      ...(host ? { "atlas:bootstrap": `atlas build-bootstrap ${projectName} --skip-compile` } : {})
+      'framework:dev': `ng serve ${projectName}`,
+      'atlas:config': `atlas compile-config ${projectName}`,
+      build: 'ng build',
+      'atlas:publish': `atlas publish ${projectName} --from-build-output`,
+      ...(host
+        ? {
+            'atlas:bootstrap': `atlas build-bootstrap ${projectName} --skip-compile`,
+          }
+        : {}),
     },
     dependencies: {
-      "@angular/animations": angular,
-      "@angular/common": angular,
-      "@angular/compiler": angular,
-      "@angular/core": angular,
-      "@angular/platform-browser": angular,
-      ...(routed ? { "@angular/router": angular } : {}),
-      "@angular-architects/native-federation": `^${profile.major}.0.0`,
-      "@atlas/schema": atlasPackageRange(),
-      "@atlas/sdk": atlasPackageRange(),
-      ...(host ? {
-        "@atlas/runtime": atlasPackageRange()
-      } : {}),
-      "es-module-shims": "^2.7.0",
-      rxjs: "^7.8.0",
-      tslib: "^2.8.0",
-      "zone.js": profile.zone
+      '@angular/animations': angular,
+      '@angular/common': angular,
+      '@angular/compiler': angular,
+      '@angular/core': angular,
+      '@angular/platform-browser': angular,
+      ...(routed ? { '@angular/router': angular } : {}),
+      [nativeFederationPackage(profile)]: `^${profile.major}.0.0`,
+      ...(usesNativeFederationV4(profile)
+        ? { '@softarc/native-federation': '^4.3.2' }
+        : {}),
+      '@atlas/schema': atlasPackageRange(),
+      '@atlas/sdk': atlasPackageRange(),
+      ...(host
+        ? {
+            '@atlas/runtime': atlasPackageRange(),
+          }
+        : {}),
+      'es-module-shims': '^2.7.0',
+      rxjs: '^7.8.0',
+      tslib: '^2.8.0',
+      ...(!profile.zoneless ? { 'zone.js': profile.zone } : {}),
     },
     devDependencies: {
-      "@atlas/cli": atlasPackageRange(),
-      "@angular-devkit/build-angular": angular,
-      "@angular/cli": angular,
-      "@angular/compiler-cli": angular,
-      ...(host ? { "@types/node": "^22.0.0" } : {}),
-      typescript: profile.typescript
-    }
+      '@atlas/cli': atlasPackageRange(),
+      '@angular-devkit/build-angular': angular,
+      '@angular/cli': angular,
+      '@angular/compiler-cli': angular,
+      ...(host ? { '@types/node': '^22.0.0' } : {}),
+      typescript: profile.typescript,
+    },
   };
+}
+
+function nativeFederationPackage(profile: AngularVersionProfile): string {
+  return usesNativeFederationV4(profile)
+    ? '@angular-architects/native-federation-v4'
+    : '@angular-architects/native-federation';
+}
+
+function usesNativeFederationV4(profile: AngularVersionProfile): boolean {
+  return profile.major === 20 || profile.major === 21;
 }
 
 export function angularIndex(pageTitle: string, body: string): string {

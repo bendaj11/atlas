@@ -4,7 +4,7 @@ Start by identifying the domain:
 
 - **Host domain:** page shell, runtime config, catalog URL, DOM anchors,
   `startHost`, host SDK providers.
-- **App domain:** React app source, `atlas.config.ts`, `src/entry.tsx`,
+- **App domain:** React app source, `atlas.config.ts`, `src/bootstrap.tsx`,
   inner routes, assets.
 - **Deployment domain:** CDN files, CORS, MIME types, catalogs, registry,
   integrity, cache.

@@ -45,7 +45,7 @@ test('Angular host federation exposes workspace-relative source', async () => {
   const exposes = await federationExposes(projectRoot, 'host');
 
   expect(exposes).toStrictEqual({
-    './host': './examples/hosts/demo-angular-host/src/host.ts',
+    './host': './examples/hosts/demo-angular-host/src/bootstrap.ts',
   });
   await expectSourcesToResolve(exposes);
 });
@@ -74,9 +74,9 @@ test('Angular federation skips React-only Atlas adapters', async () => {
   const projectRoot = fileURLToPath(
     new URL('../../../examples/hosts/demo-angular-host', import.meta.url),
   );
-  const skippedAtlasPackages = (await angularFederationSkipEntries(
-    projectRoot,
-  )).filter((packageName) => packageName.startsWith('@atlas/'));
+  const skippedAtlasPackages = (
+    await angularFederationSkipEntries(projectRoot)
+  ).filter((packageName) => packageName.startsWith('@atlas/'));
 
   expect(skippedAtlasPackages).toStrictEqual([
     '@atlas/runtime/react',
@@ -208,7 +208,7 @@ test('React host Vite factory serves Atlas metadata', () => {
   expect(
     refreshPlugin?.transform?.(
       'export default {};',
-      join(projectRoot, 'src/main.tsx'),
+      join(projectRoot, 'src/bootstrap.tsx'),
     ),
   ).toMatch(/plugin-react\/preamble/);
   const metadataPlugin = (config.plugins as AtlasVitePlugin[]).find(
@@ -246,11 +246,9 @@ test('React host Vite factory serves Atlas metadata', () => {
   };
   expect(metadata.name).toBe('atlas_demo_react_host');
   expect(metadata.exposes).toStrictEqual([
-    { key: './host', outFileName: 'src/main.tsx' },
+    { key: './host', outFileName: 'src/bootstrap.tsx' },
   ]);
-  expect(
-    metadata.shared.map(({ packageName }) => packageName),
-  ).toEqual(
+  expect(metadata.shared.map(({ packageName }) => packageName)).toEqual(
     expect.arrayContaining([
       'react',
       'react/jsx-runtime',
@@ -385,9 +383,9 @@ test('React production build emits every shared fallback referenced by metadata'
       access(join(projectRoot, 'dist', outFileName)),
     ),
   );
-  expect(
-    await readFile(join(projectRoot, 'dist/entry.js'), 'utf8'),
-  ).toMatch(/from"@company\/design-system\/button"/);
+  expect(await readFile(join(projectRoot, 'dist/entry.js'), 'utf8')).toMatch(
+    /from"@company\/design-system\/button"/,
+  );
   const commonJsFallback = await import(
     pathToFileURL(join(projectRoot, 'dist/shared/cjs-lib.js')).href
   );
@@ -457,8 +455,12 @@ interface FederationMetadata {
   }>;
 }
 
-function sharedPackageNames(config: ReturnType<typeof createReactAppViteConfig>) {
-  return developmentMetadata(config).shared.map(({ packageName }) => packageName);
+function sharedPackageNames(
+  config: ReturnType<typeof createReactAppViteConfig>,
+) {
+  return developmentMetadata(config).shared.map(
+    ({ packageName }) => packageName,
+  );
 }
 
 function developmentMetadata(
@@ -469,17 +471,24 @@ function developmentMetadata(
   );
   let middleware: Middleware | undefined;
   metadataPlugin?.configureServer?.({
-    middlewares: { use: (_path, handler) => { middleware = handler; } },
+    middlewares: {
+      use: (_path, handler) => {
+        middleware = handler;
+      },
+    },
   });
   let body = '';
   middleware?.(
     {},
     {
       setHeader() {},
-      end(value) { body = value; },
+      end(value) {
+        body = value;
+      },
     },
   );
-  if (!body) throw new Error('Federation metadata middleware was not installed.');
+  if (!body)
+    throw new Error('Federation metadata middleware was not installed.');
   return JSON.parse(body) as FederationMetadata;
 }
 
@@ -629,10 +638,15 @@ async function createStyleFixturePackage(projectRoot: string): Promise<void> {
     version: '1.0.0',
     exports: { './styles.css': './styles.css' },
   });
-  await writeFile(join(packageRoot, 'styles.css'), '.fixture { color: red; }\n');
+  await writeFile(
+    join(packageRoot, 'styles.css'),
+    '.fixture { color: red; }\n',
+  );
 }
 
-async function createCommonJsFixturePackage(projectRoot: string): Promise<void> {
+async function createCommonJsFixturePackage(
+  projectRoot: string,
+): Promise<void> {
   const packageRoot = join(projectRoot, 'node_modules/cjs-lib');
   await mkdir(packageRoot, { recursive: true });
   await writeJson(join(packageRoot, 'package.json'), {

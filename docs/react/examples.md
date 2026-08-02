@@ -23,7 +23,7 @@ Use it to study:
 They show:
 
 - `atlas.config.ts` route and slot declarations;
-- `src/entry.tsx` lifecycle wiring;
+- `src/bootstrap.tsx` lifecycle wiring;
 - inner React Router routes;
 - SDK access through `useAtlasSdk()`;
 - exported widgets under `src/exported-widgets`.
@@ -37,7 +37,9 @@ lifecycles, not through Angular modules or React components.
 A React app consumes an Angular-owned widget as a React component:
 
 ```tsx
-const OrderSummary = sdk.getWidget<{ orderId: string }>("98abc74d-a11f-4eca-8255-c6f2f49e3d6e");
+const OrderSummary = sdk.getWidget<{ orderId: string }>(
+  '98abc74d-a11f-4eca-8255-c6f2f49e3d6e',
+);
 
 return <OrderSummary orderId="42" />;
 ```

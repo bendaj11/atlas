@@ -17,8 +17,9 @@ and tests. Atlas owns cross-application discovery and mount lifecycle.
 | File | Responsibility | Edit normally? |
 | --- | --- | --- |
 | `src/main.ts` | Framework-only development entry | Rarely |
-| `src/host.ts` | Atlas `mount` lifecycle exported as `./host` | Rarely |
-| `src/bootstrap.ts` | Router, auth, HTTP, SDK services, monitoring | Yes |
+| `src/bootstrap.ts` | Atlas `mount` lifecycle exported as `./host` | Rarely |
+| `src/app/app.config.ts` | Angular providers, router, and zoneless configuration | Yes |
+| `src/app/host.config.ts` | Auth, HTTP, SDK services, monitoring | Yes |
 | `src/app/app.component.ts` | Product shell, navigation, status, slots, route outlet | Yes |
 | `federation.config.js` | Native Federation expose and shared dependency wiring | Preserve generated Atlas sections |
 | `dist/bootstrap/` | Generated static product-domain entry | Regenerate through CLI |
@@ -30,8 +31,9 @@ choose catalog versions from Angular application code.
 
 | File | Responsibility | Edit normally? |
 | --- | --- | --- |
-| `src/entry.ts` | Atlas `mount` lifecycle exported as `./entry` | Rarely |
-| `src/app/routes.ts` | Inner Angular routes scoped below assigned Atlas base path | Yes |
+| `src/main.ts` | Angular entry and Atlas `mount` lifecycle exported as `./entry` | Rarely |
+| `src/app/app.config.ts` | Angular and Atlas providers | Yes |
+| `src/app/app.routes.ts` | Inner Angular routes scoped below assigned Atlas base path | Yes |
 | `src/app/` | Feature components and services | Yes |
 | `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes |
 | `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |

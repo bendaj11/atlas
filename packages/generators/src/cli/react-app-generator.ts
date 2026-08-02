@@ -1,9 +1,10 @@
-import { title } from "./common-generator.js";
-import type { ReactVersionProfile } from "./generator-versions.js";
+import { title } from './common-generator.js';
+import type { ReactVersionProfile } from './generator-versions.js';
 
-export function reactAppEntry(profile: ReactVersionProfile): string {
-  const root = profile.major === 17
-    ? `import type { ReactNode } from "react";
+export function reactAppBootstrap(profile: ReactVersionProfile): string {
+  const root =
+    profile.major === 17
+      ? `import type { ReactNode } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
 
 function createRoot(container: Element) {
@@ -16,13 +17,17 @@ function createRoot(container: Element) {
     }
   };
 }`
-    : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";\nimport { routes } from "./app/routes";\n\nexport default createRoutedApp({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+      : 'import { createRoot } from "react-dom/client";';
+  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";\nimport { routes } from "./routes";\nimport "./index.css";\n\nexport default createRoutedApp({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
 }
 
-export function reactSinglePageAppEntry(name: string, profile: ReactVersionProfile): string {
-  const root = profile.major === 17
-    ? `import type { ReactNode } from "react";
+export function reactSinglePageAppBootstrap(
+  name: string,
+  profile: ReactVersionProfile,
+): string {
+  const root =
+    profile.major === 17
+      ? `import type { ReactNode } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
 
 function createRoot(container: Element) {
@@ -35,14 +40,12 @@ function createRoot(container: Element) {
     }
   };
 }`
-    : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { defineApp } from "@atlas/sdk/react";\nimport { App } from "./app/App";\n\nexport default defineApp({\n  createRoot,\n  createElement: () => createElement(App, { name: "${title(name)}" })\n});\n`;
+      : 'import { createRoot } from "react-dom/client";';
+  return `import { createElement } from "react";\n${root}\nimport { defineApp } from "@atlas/sdk/react";\nimport { App } from "./App";\nimport "./index.css";\n\nexport default defineApp({\n  createRoot,\n  createElement: () => createElement(App, { name: "${title(name)}" })\n});\n`;
 }
 
 export function reactAppApp(name: string): string {
   return `import { Link, Outlet } from "react-router-dom";
-import "../styles.css";
-
 export function App() {
   return (
     <section>
@@ -59,9 +62,7 @@ export function App() {
 }
 
 export function reactSinglePageApp(name: string): string {
-  return `import "../styles.css";
-
-interface AppProps {
+  return `interface AppProps {
   name?: string;
 }
 
@@ -106,16 +107,5 @@ export const routes: RouteObject[] = [
     ]
   }
 ];
-`;
-}
-
-export function appSourceReadme(entryFile: string, bundlerFile: string): string {
-  return `# App source
-
-Required Atlas wiring lives in \`${entryFile}\`, \`atlas.config.ts\`, and \`${bundlerFile}\`. Keep those files aligned with Atlas docs when changing platform wiring.
-
-Main app component lives in \`src/app/App.tsx\`. Add screens under feature folders in \`src/app\`.
-
-When inner routing is enabled, \`src/app/routes.tsx\` connects app screens to the router. Update it when adding routes.
 `;
 }

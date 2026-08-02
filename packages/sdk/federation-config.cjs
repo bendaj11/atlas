@@ -7,7 +7,10 @@ const {
 } = require('node:fs');
 const { createRequire } = require('node:module');
 const { extname, join, relative, resolve, sep } = require('node:path');
-const { initSync: initializeCommonJsLexer, parse: parseCommonJs } = require('cjs-module-lexer');
+const {
+  initSync: initializeCommonJsLexer,
+  parse: parseCommonJs,
+} = require('cjs-module-lexer');
 
 initializeCommonJsLexer();
 
@@ -29,6 +32,13 @@ function projectPath(projectRoot, path) {
   return pathFromWorkspace.startsWith('.')
     ? pathFromWorkspace
     : `./${pathFromWorkspace}`;
+}
+
+function reactBootstrapPath(projectRoot, legacyEntry) {
+  const bootstrap = resolve(projectRoot, 'src/bootstrap.tsx');
+  return existsSync(bootstrap)
+    ? bootstrap
+    : resolve(projectRoot, 'src', legacyEntry);
 }
 
 function widgetNames(projectRoot) {
@@ -162,10 +172,9 @@ function reactSharedDependencies(options, exposedEntryPoints) {
   ).flatMap(([packageName, specifiers]) =>
     declared[packageName] ? specifiers : [],
   );
-  const specifiers = [...new Set([
-    ...frameworkSpecifiers,
-    ...importedSpecifiers,
-  ])].sort();
+  const specifiers = [
+    ...new Set([...frameworkSpecifiers, ...importedSpecifiers]),
+  ].sort();
   return specifiers.flatMap((specifier) => {
     const packageName = rootPackageName(specifier);
     const entryPoint = resolveSharedEntry(requireFromProject, specifier);
@@ -177,33 +186,33 @@ function reactSharedDependencies(options, exposedEntryPoints) {
     );
     const entryName = `shared/${sharedFileName(specifier)}`;
     const commonJs = isCommonJsEntry(entryPoint);
-    return [{
-      specifier,
-      entryName,
-      entryPoint,
-      commonJs,
-      namedExports: commonJs
-        ? commonJsNamedExports(entryPoint)
-        : [],
-      hasDefaultExport: commonJs ||
-        hasEsmDefaultExport(typescript, entryPoint),
-      metadata: {
-        packageName: specifier,
-        outFileName: `${entryName}.js`,
-        requiredVersion: declared[packageName] || packageInfo.version,
-        singleton: true,
-        strictVersion: true,
-        version: packageInfo.version,
+    return [
+      {
+        specifier,
+        entryName,
+        entryPoint,
+        commonJs,
+        namedExports: commonJs ? commonJsNamedExports(entryPoint) : [],
+        hasDefaultExport:
+          commonJs || hasEsmDefaultExport(typescript, entryPoint),
+        metadata: {
+          packageName: specifier,
+          outFileName: `${entryName}.js`,
+          requiredVersion: declared[packageName] || packageInfo.version,
+          singleton: true,
+          strictVersion: true,
+          version: packageInfo.version,
+        },
+        devMetadata: {
+          packageName: specifier,
+          outFileName: `@id/${specifier}`,
+          requiredVersion: declared[packageName] || packageInfo.version,
+          singleton: true,
+          strictVersion: true,
+          version: packageInfo.version,
+        },
       },
-      devMetadata: {
-        packageName: specifier,
-        outFileName: `@id/${specifier}`,
-        requiredVersion: declared[packageName] || packageInfo.version,
-        singleton: true,
-        strictVersion: true,
-        version: packageInfo.version,
-      },
-    }];
+    ];
   });
 }
 
@@ -211,7 +220,9 @@ function resolveSharedEntry(requireFromProject, specifier) {
   try {
     return requireFromProject.resolve(specifier);
   } catch {
-    throw new Error(`Atlas could not resolve shared dependency entry "${specifier}".`);
+    throw new Error(
+      `Atlas could not resolve shared dependency entry "${specifier}".`,
+    );
   }
 }
 
@@ -377,24 +388,34 @@ function rootPackageName(specifier) {
 
 function readPackageInfo(requireFromProject, packageName, specifier) {
   try {
-    return JSON.parse(readFileSync(requireFromProject.resolve(`${packageName}/package.json`), 'utf8'));
+    return JSON.parse(
+      readFileSync(
+        requireFromProject.resolve(`${packageName}/package.json`),
+        'utf8',
+      ),
+    );
   } catch {
     let resolvedEntry;
     try {
       resolvedEntry = requireFromProject.resolve(specifier);
     } catch {
-      throw new Error(`Atlas could not resolve package metadata for shared dependency "${specifier}".`);
+      throw new Error(
+        `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
+      );
     }
     let directory = resolve(resolvedEntry, '..');
     while (directory !== resolve(directory, '..')) {
       const candidate = join(directory, 'package.json');
       if (existsSync(candidate)) {
         const value = JSON.parse(readFileSync(candidate, 'utf8'));
-        if (value.name === packageName && typeof value.version === 'string') return value;
+        if (value.name === packageName && typeof value.version === 'string')
+          return value;
       }
       directory = resolve(directory, '..');
     }
-    throw new Error(`Atlas could not resolve package metadata for shared dependency "${specifier}".`);
+    throw new Error(
+      `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
+    );
   }
 }
 
@@ -432,10 +453,11 @@ function commonJsNamedExports(entryPoint, visited = new Set()) {
     }
   });
   return [...new Set([...parsed.exports, ...reexported])]
-    .filter((name) =>
-      name !== 'default' &&
-      name !== '__esModule' &&
-      /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name),
+    .filter(
+      (name) =>
+        name !== 'default' &&
+        name !== '__esModule' &&
+        /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name),
     )
     .sort();
 }
@@ -478,13 +500,8 @@ function sharedFileName(specifier) {
 }
 
 function reactFederationBuild(options, exposedInputs) {
-  const shared = reactSharedDependencies(
-    options,
-    Object.values(exposedInputs),
-  );
-  const sharedSpecifiers = new Set(
-    shared.map(({ specifier }) => specifier),
-  );
+  const shared = reactSharedDependencies(options, Object.values(exposedInputs));
+  const sharedSpecifiers = new Set(shared.map(({ specifier }) => specifier));
   return {
     shared,
     sharedFallbackPlugin: reactSharedFallbackPlugin(shared),
@@ -514,10 +531,7 @@ function sharedEntryId(specifier) {
 
 function reactSharedFallbackPlugin(sharedDependencies) {
   const dependencies = new Map(
-    sharedDependencies.map((dependency) => [
-      dependency.specifier,
-      dependency,
-    ]),
+    sharedDependencies.map((dependency) => [dependency.specifier, dependency]),
   );
   const entryPoints = new Map(
     sharedDependencies.map(({ specifier, entryPoint }) => [
@@ -557,7 +571,9 @@ function reactSharedFallbackPlugin(sharedDependencies) {
         dependency.hasDefaultExport
           ? `export { default } from ${JSON.stringify(entryId)};`
           : '',
-      ].filter(Boolean).join('\n');
+      ]
+        .filter(Boolean)
+        .join('\n');
     },
   };
 }
@@ -596,7 +612,7 @@ function reactSourceReloadPlugin(projectRoot) {
 
 function createReactHostViteConfig(options) {
   const federation = reactFederationBuild(options, {
-    host: resolve(options.projectRoot, 'src/main.tsx'),
+    host: reactBootstrapPath(options.projectRoot, 'main.tsx'),
   });
   const metadata = {
     name: reactRemoteName(options.projectName),
@@ -606,12 +622,17 @@ function createReactHostViteConfig(options) {
   return {
     plugins: [
       federation.sharedFallbackPlugin,
-      reactRefreshPreamblePlugin(['src/main.tsx']),
+      reactRefreshPreamblePlugin(['src/bootstrap.tsx']),
       federationMetadataPlugin({
         projectRoot: options.projectRoot,
         pluginName: 'atlas-host-metadata',
         metadata,
-        devExposes: [{ key: './host', outFileName: 'src/main.tsx' }],
+        devExposes: [
+          {
+            key: './host',
+            outFileName: relative(options.projectRoot, federation.input.host),
+          },
+        ],
         devShared: federation.shared.map(({ devMetadata }) => devMetadata),
       }),
     ],
@@ -644,7 +665,7 @@ function createReactAppViteConfig(options) {
   const federation = reactFederationBuild(
     options,
     Object.fromEntries([
-      ['entry', resolve(options.projectRoot, 'src/entry.tsx')],
+      ['entry', reactBootstrapPath(options.projectRoot, 'entry.tsx')],
       ...widgetEntries.map(({ name, entryPoint }) => [
         `widgets/${name}`,
         resolve(options.projectRoot, entryPoint),
@@ -657,7 +678,7 @@ function createReactAppViteConfig(options) {
     shared: federation.shared.map(({ metadata }) => metadata),
   };
   const sourceEntries = [
-    'src/entry.tsx',
+    relative(options.projectRoot, federation.input.entry),
     ...widgetEntries.map(({ entryPoint }) => entryPoint),
   ];
   return {
@@ -673,8 +694,10 @@ function createReactAppViteConfig(options) {
         devExposes: [
           {
             key: './entry',
-            outFileName: 'src/entry.tsx',
-            dev: { entryPoint: 'src/entry.tsx' },
+            outFileName: relative(options.projectRoot, federation.input.entry),
+            dev: {
+              entryPoint: relative(options.projectRoot, federation.input.entry),
+            },
           },
           ...widgetEntries.map(({ name, entryPoint }) => ({
             key: `./widgets/${name}`,
@@ -732,6 +755,10 @@ function createAngularFederationConfig(options) {
   const { shareAll, withNativeFederation } = requireFromProject(
     '@angular-architects/native-federation/config',
   );
+  return withNativeFederation(createAngularFederationOptions(options, shareAll));
+}
+
+function createAngularFederationOptions(options, shareAll) {
   const widgetExposes = Object.fromEntries(
     createAngularWidgetEntries(options.projectRoot).map((entry) => [
       `./widgets/${entry.name}`,
@@ -739,11 +766,11 @@ function createAngularFederationConfig(options) {
     ]),
   );
 
-  return withNativeFederation({
+  return {
     name: options.name,
     exposes:
       options.expose === 'host'
-        ? { './host': sourcePath(options.projectRoot, 'host.ts') }
+        ? { './host': sourcePath(options.projectRoot, 'bootstrap.ts') }
         : options.expose === 'app'
           ? {
               './entry': sourcePath(options.projectRoot, 'entry.ts'),
@@ -758,11 +785,12 @@ function createAngularFederationConfig(options) {
       }),
     },
     skip: ANGULAR_FEDERATION_SKIP,
-  });
+  };
 }
 
 module.exports = {
   createAngularFederationConfig,
+  createAngularFederationOptions,
   createReactAppViteConfig,
   createReactHostViteConfig,
   createReactWidgetEntries,

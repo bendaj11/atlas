@@ -21,7 +21,7 @@ test("release version propagation updates every version-bearing manifest", async
   await writeJson(join(root, "apps/columbus/src/manifest.json"), { manifest_version: 3, version: "9.9.9" });
   const generatorPath = join(root, "packages/generators/src/cli/generator-versions.ts");
   await mkdir(join(generatorPath, ".."), { recursive: true });
-  await writeFile(generatorPath, 'export const ATLAS_PACKAGE_VERSION = "9.9.9";\n');
+  await writeFile(generatorPath, "export const ATLAS_PACKAGE_VERSION = '9.9.9';\n");
 
   await versionPackages("1.2.3", root);
 

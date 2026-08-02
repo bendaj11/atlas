@@ -20,9 +20,9 @@ renames.
 | File                                          | Edit for                                                                                                            |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `atlas.config.ts`                             | app UUID, routes, slots, external app dependencies                                                                  |
-| `src/app/App.tsx`                             | feature root UI                                                                                                     |
-| `src/app/routes.tsx`                          | app-relative inner routes                                                                                           |
-| `src/entry.tsx`                               | Atlas lifecycle adapter; rarely change                                                                              |
+| `src/App.tsx`                                 | feature root UI                                                                                                     |
+| `src/routes.tsx`                              | app-relative inner routes                                                                                           |
+| `src/bootstrap.tsx`                           | Atlas lifecycle adapter; rarely change                                                                              |
 | `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata                                                                                   |
 | `vite.config.ts`                              | React plugin, dev server, aliases, and product-specific Vite overrides; keep `createReactAppViteConfig` composition |
 

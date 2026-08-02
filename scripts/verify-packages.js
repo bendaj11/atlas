@@ -63,7 +63,7 @@ function validateManifest(manifest, directory) {
 
 async function atlasGeneratorVersion() {
   const source = await readFile(join(root, "packages/generators/src/cli/generator-versions.ts"), "utf8");
-  const version = source.match(/ATLAS_PACKAGE_VERSION = "([^"]+)"/)?.[1];
+  const version = source.match(/ATLAS_PACKAGE_VERSION = (["'])([^"']+)\1/)?.[2];
   if (!version) throw new Error("Could not read ATLAS_PACKAGE_VERSION from the generator.");
   return version;
 }

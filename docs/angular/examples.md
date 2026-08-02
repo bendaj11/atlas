@@ -23,7 +23,7 @@ Use it to study:
 apps. They show:
 
 - `atlas.config.ts` route and slot declarations;
-- `src/entry.ts` lifecycle wiring;
+- `src/main.ts` lifecycle wiring;
 - inner Angular Router routes;
 - SDK access through `injectAtlasSdk()`;
 - exported widgets under `src/exported-widgets`.

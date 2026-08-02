@@ -32,10 +32,11 @@ customer-host/
   federation.config.js
   src/
     app/
+      app.config.ts
       app.component.ts
-      atlas-host-default-route.component.ts
+      app.routes.ts
+      host.config.ts
     bootstrap.ts
-    host.ts
     main.ts
 ```
 
@@ -45,8 +46,10 @@ Responsibilities:
 | --- | --- | --- |
 | `atlas.config.ts` | Host team | Stable host identity and display name |
 | `src/app/app.component.ts` | Host UI team | Product layout and Atlas mount anchors |
-| `src/bootstrap.ts` | Host platform team | Router, auth-aware HTTP, SDK services, UI renderers, monitoring |
-| `src/host.ts` | Atlas lifecycle adapter | Rarely change |
+| `src/app/app.config.ts` | Host UI team | Angular providers, router, and zoneless configuration |
+| `src/app/app.routes.ts` | Atlas/platform | Catch-all Angular route required for Atlas navigation |
+| `src/app/host.config.ts` | Host platform team | Auth-aware HTTP, SDK services, UI renderers, monitoring |
+| `src/bootstrap.ts` | Atlas lifecycle adapter | Exports both `bootstrap()` and `mount()` |
 | `federation.config.js` | Federation build | Preserve generated Atlas exposure and sharing rules |
 
 Generated host config resembles:
@@ -68,13 +71,12 @@ Apps use it when declaring routes and slots for this host.
 ## 2. Understand The Angular Bootstrap
 
 Atlas loader selects a published or locally overridden host client, creates a DOM
-container, and calls the exported `mount` lifecycle. Generated `src/host.ts`
-delegates that request to `bootstrap()`.
+container, and calls the `mount` lifecycle exported by `src/bootstrap.ts`.
 
 `src/bootstrap.ts` then:
 
 1. bootstraps the Angular application;
-2. creates a catch-all Angular Router route;
+2. applies the catch-all Angular Router route from `app.routes.ts`;
 3. connects Angular Router and browser navigation to Atlas;
 4. initializes Native Federation loading;
 5. creates one host-owned Atlas SDK;
@@ -151,8 +153,8 @@ app routes, and deep links.
 
 ## 4. Provide Host Services Through The SDK
 
-Apps must not import host source. Put product-wide capabilities into the host SDK
-created by `startHost` in `src/bootstrap.ts`.
+Apps must not import host source. Put product-wide capabilities into
+`src/app/host.config.ts`; generated bootstrap passes them to Atlas.
 
 Example extension:
 

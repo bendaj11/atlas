@@ -199,7 +199,10 @@ exit 1
     ],
     {
       cwd: products,
-      env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) },
+      env: {
+        ...process.env,
+        PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+      },
     },
   );
 
@@ -226,7 +229,7 @@ exit 1
     'atlas build-bootstrap mobile-host --skip-compile',
   );
   expect(project.targets.build.executor).toBe(
-    '@angular-architects/native-federation:build',
+    '@angular-architects/native-federation-v4:build',
   );
   expect(project.targets.build.options.target).toBe(
     'mobile-host:esbuild:production',
@@ -240,7 +243,7 @@ exit 1
     'es-module-shims',
   ]);
   expect(project.targets.serve.executor).toBe(
-    '@angular-architects/native-federation:build',
+    '@angular-architects/native-federation-v4:build',
   );
   expect(project.targets.serve.options.target).toBe(
     'mobile-host:serve-original:development',
@@ -270,10 +273,13 @@ exit 1
   ).toMatch(/import\("\.\/bootstrap"\)/);
   expect(
     await readFile(join(root, 'products/host/src/bootstrap.ts'), 'utf8'),
-  ).toMatch(/startHost/);
+  ).toMatch(/bootstrapAngularHost/);
   expect(
     await readFile(join(root, 'products/host/src/bootstrap.ts'), 'utf8'),
-  ).not.toMatch(/AtlasDefaultHostRouteComponent/);
+  ).toMatch(/export const mount: AtlasHostClientEntry/);
+  await expect(
+    access(join(root, 'products/host/src/host.ts')),
+  ).rejects.toMatchObject({ code: 'ENOENT' });
   await expect(
     access(join(root, 'products/host/src/app.component.ts')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
@@ -283,12 +289,14 @@ exit 1
       'utf8',
     ),
   ).toMatch(/<atlas-host-status/);
-  expect(
-    await readFile(
+  await expect(
+    access(
       join(root, 'products/host/src/app/atlas-host-default-route.component.ts'),
-      'utf8',
     ),
-  ).toMatch(/standalone: true/);
+  ).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(
+    await readFile(join(root, 'products/host/src/app/app.routes.ts'), 'utf8'),
+  ).toMatch(/AtlasDefaultHostRouteComponent/);
   expect(
     await readFile(join(root, 'products/host/src/index.html'), 'utf8'),
   ).toMatch(/<atlas-host-root><\/atlas-host-root>/);
@@ -328,10 +336,10 @@ exit 1
     await readFile(join(root, 'products/host/atlas.config.ts'), 'utf8'),
   ).not.toMatch(/resourcesRetryCount/);
   expect(
-    await readFile(join(root, 'products/host/federation.config.js'), 'utf8'),
-  ).toMatch(/@atlas\/sdk\/federation-config/);
+    await readFile(join(root, 'products/host/federation.config.mjs'), 'utf8'),
+  ).toMatch(/createAngularV4FederationConfig/);
   expect(
-    await readFile(join(root, 'products/host/federation.config.js'), 'utf8'),
+    await readFile(join(root, 'products/host/federation.config.mjs'), 'utf8'),
   ).toMatch(/expose: "host"/);
   await expect(
     access(join(root, 'products/host/public/atlas.runtime.json')),
@@ -346,7 +354,7 @@ exit 1
   expect(rootPackage.dependencies['@angular/core']).toBe('~20.3.0');
   expect(rootPackage.dependencies['@angular/animations']).toBe('~20.3.0');
   expect(
-    rootPackage.dependencies['@angular-architects/native-federation'],
+    rootPackage.dependencies['@angular-architects/native-federation-v4'],
   ).toBe('^20.0.0');
   expect(rootPackage.dependencies['es-module-shims']).toBe('^2.7.0');
   expect(rootPackage.devDependencies['@nx/angular']).toBe('22.0.0');
@@ -414,7 +422,13 @@ exit 1
       '--framework=react',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+      },
+    },
   );
 
   const project = JSON.parse(
@@ -432,12 +446,17 @@ exit 1
     code: 'ENOENT',
   });
   const hostMain = await readFile(join(root, 'apps/host/src/main.tsx'), 'utf8');
-  expect(hostMain).toMatch(/export const mount: AtlasHostClientEntry/);
-  expect(hostMain).toMatch(/createBrowserRouter/);
-  expect(hostMain).toMatch(/AtlasHostProvider/);
-  expect(hostMain).toMatch(/Component: HostLayout/);
-  expect(hostMain).toMatch(/<AtlasRouteOutlet/);
-  expect(hostMain).not.toMatch(/import\.meta\.hot/);
+  const hostBootstrap = await readFile(
+    join(root, 'apps/host/src/bootstrap.tsx'),
+    'utf8',
+  );
+  expect(hostMain).toMatch(/void mount/);
+  expect(hostBootstrap).toMatch(/export const mount: AtlasHostClientEntry/);
+  expect(hostBootstrap).toMatch(/createBrowserRouter/);
+  expect(hostBootstrap).toMatch(/AtlasHostProvider/);
+  expect(hostBootstrap).toMatch(/Component: HostLayout/);
+  expect(hostBootstrap).toMatch(/<AtlasRouteOutlet/);
+  expect(hostBootstrap).not.toMatch(/import\.meta\.hot/);
   await expect(
     access(join(root, 'apps/host/src/atlas-bootstrap.ts')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
@@ -480,7 +499,7 @@ exit 1
     access(join(root, 'apps/host/src/host.tsx')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
   expect(
-    await readFile(join(root, 'apps/host/src/main.tsx'), 'utf8'),
+    await readFile(join(root, 'apps/host/src/bootstrap.tsx'), 'utf8'),
   ).toMatch(/import "es-module-shims"|import 'es-module-shims'/);
   const reactHostTsconfig = JSON.parse(
     await readFile(join(root, 'apps/host/tsconfig.json'), 'utf8'),
@@ -561,7 +580,13 @@ exit 1
       '--framework=angular',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+      },
+    },
   );
 
   expect(await readFile(join(root, 'orders/src/entry.ts'), 'utf8')).toMatch(
@@ -580,13 +605,10 @@ exit 1
     access(join(root, 'orders/src/app/nx-only/nx-only.component.ts')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
   expect(
-    await readFile(join(root, 'orders/src/app/README.md'), 'utf8'),
-  ).toMatch(/Required Atlas wiring/);
-  expect(
     await readFile(join(root, 'orders/src/app/app.component.ts'), 'utf8'),
   ).toMatch(/router-outlet/);
   expect(
-    await readFile(join(root, 'orders/src/app/routes.ts'), 'utf8'),
+    await readFile(join(root, 'orders/src/app/app.routes.ts'), 'utf8'),
   ).toMatch(/export const routes: Routes/);
   expect(
     await readFile(join(root, 'orders/src/app/home/home.component.ts'), 'utf8'),
@@ -600,17 +622,17 @@ exit 1
   expect(await readFile(join(root, 'orders/src/main.ts'), 'utf8')).toMatch(
     /initFederation/,
   );
-  expect(await readFile(join(root, 'orders/src/main.ts'), 'utf8')).not.toMatch(
-    /bootstrapApplication|AppComponent|createAtlasSdk|provideAtlasSdk/,
+  expect(await readFile(join(root, 'orders/src/entry.ts'), 'utf8')).toMatch(
+    /bootstrapApplication\(AppComponent/,
   );
-  expect(await readFile(join(root, 'orders/src/index.html'), 'utf8')).toMatch(
-    /Atlas app assets/,
-  );
+  expect(
+    await readFile(join(root, 'orders/src/index.html'), 'utf8'),
+  ).not.toMatch(/Atlas app assets/);
   const federationConfig = await readFile(
-    join(root, 'orders/federation.config.js'),
+    join(root, 'orders/federation.config.mjs'),
     'utf8',
   );
-  expect(federationConfig).toMatch(/@atlas\/sdk\/federation-config/);
+  expect(federationConfig).toMatch(/createAngularV4FederationConfig/);
   expect(federationConfig).toMatch(/expose: "app"/);
   expect(
     await readFile(join(root, 'orders/src/exported-widgets/README.md'), 'utf8'),
@@ -629,7 +651,7 @@ exit 1
   );
   expect(project.marker).toBe('nx-generator');
   expect(project.targets.build.executor).toBe(
-    '@angular-architects/native-federation:build',
+    '@angular-architects/native-federation-v4:build',
   );
   expect(project.targets.build.options.target).toBe(
     'orders:esbuild:production',
@@ -639,7 +661,7 @@ exit 1
     'es-module-shims',
   ]);
   expect(project.targets.serve.executor).toBe(
-    '@angular-architects/native-federation:build',
+    '@angular-architects/native-federation-v4:build',
   );
   expect(project.targets.serve.options.target).toBe(
     'orders:serve-original:development',
@@ -714,7 +736,10 @@ exit 1
       ],
       {
         cwd: root,
-        env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) },
+        env: {
+          ...process.env,
+          PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+        },
       },
     ),
   ).rejects.toThrow(
@@ -778,34 +803,38 @@ exit 1
       '--framework=react',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+      },
+    },
   );
 
-  const reactEntry = await readFile(join(root, 'orders/src/entry.tsx'), 'utf8');
+  const reactEntry = await readFile(
+    join(root, 'orders/src/bootstrap.tsx'),
+    'utf8',
+  );
   expect(reactEntry).toMatch(/createRoutedApp/);
-  expect(reactEntry).toMatch(/import \{ routes \} from "\.\/app\/routes"/);
+  expect(reactEntry).toMatch(/import \{ routes \} from "\.\/routes"/);
   expect(reactEntry).not.toMatch(/await import|import\.meta\.hot/);
   expect(reactEntry).not.toMatch(/useAtlasSdk|<Outlet|<Link|function Layout/);
-  expect(
-    (await readdir(join(root, 'orders/src/app'))).includes('app.tsx'),
-  ).toBe(false);
+  expect((await readdir(join(root, 'orders/src'))).includes('app')).toBe(false);
   await expect(
     access(join(root, 'orders/src/app/nx-only/nx-only.tsx')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await readFile(join(root, 'orders/src/routes.tsx'), 'utf8')).toMatch(
+    /export const routes: RouteObject\[\]/,
+  );
+  expect(await readFile(join(root, 'orders/src/App.tsx'), 'utf8')).not.toMatch(
+    /useAtlasSdk/,
+  );
   expect(
-    await readFile(join(root, 'orders/src/app/README.md'), 'utf8'),
-  ).toMatch(/Main app component/);
-  expect(
-    await readFile(join(root, 'orders/src/app/routes.tsx'), 'utf8'),
-  ).toMatch(/export const routes: RouteObject\[\]/);
-  expect(
-    await readFile(join(root, 'orders/src/app/App.tsx'), 'utf8'),
-  ).not.toMatch(/useAtlasSdk/);
-  expect(
-    await readFile(join(root, 'orders/src/app/home/Home.tsx'), 'utf8'),
+    await readFile(join(root, 'orders/src/home/Home.tsx'), 'utf8'),
   ).toMatch(/export function Home/);
   expect(
-    await readFile(join(root, 'orders/src/app/details/Details.tsx'), 'utf8'),
+    await readFile(join(root, 'orders/src/details/Details.tsx'), 'utf8'),
   ).toMatch(/export function Details/);
   expect(await readFile(join(root, 'orders/src/main.tsx'), 'utf8')).toBe(
     'nx react source\n',
@@ -831,7 +860,7 @@ exit 1
     access(join(root, 'orders/vite.config.mts')),
   ).rejects.toMatchObject({ code: 'ENOENT' });
   expect(await readFile(join(root, 'orders/index.html'), 'utf8')).toMatch(
-    /Orders assets/,
+    /<title>Orders<\/title>/,
   );
   expect(
     await readFile(join(root, 'orders/src/exported-widgets/README.md'), 'utf8'),
@@ -909,7 +938,13 @@ exit 1
       '--framework-version=^19.2.0',
       '--skip-install',
     ],
-    { cwd: root, env: { ...process.env, PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter) } },
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+      },
+    },
   );
 
   const rootPackage = JSON.parse(

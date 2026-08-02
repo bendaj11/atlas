@@ -11,18 +11,15 @@ import type {
   AtlasGeneratorOptions,
 } from './generator-types.js';
 import { reactVersionProfile } from './generator-versions.js';
+import { reactHostBootstrap, reactHostMain } from './react-host-generator.js';
 import {
-  reactHostMain,
-} from './react-host-generator.js';
-import {
-  appSourceReadme,
   reactAppApp,
+  reactAppBootstrap,
   reactAppDetails,
-  reactAppEntry,
   reactAppHome,
   reactAppRoutes,
   reactSinglePageApp,
-  reactSinglePageAppEntry,
+  reactSinglePageAppBootstrap,
 } from './react-app-generator.js';
 import {
   reactAppIndex,
@@ -62,7 +59,8 @@ export function generateReactHostFiles(
     { path: 'atlas.bootstrap.html', contents: atlasBootstrapHtml(name) },
     { path: 'index.html', contents: reactIndex('Atlas React Host') },
     { path: 'src/styles.css', contents: atlasHostStyles() },
-    { path: 'src/main.tsx', contents: reactHostMain(profile) },
+    { path: 'src/main.tsx', contents: reactHostMain() },
+    { path: 'src/bootstrap.tsx', contents: reactHostBootstrap(profile) },
   ];
 }
 
@@ -88,32 +86,24 @@ export function generateReactAppFiles(
     { path: 'tsconfig.json', contents: json(reactTsconfig()) },
     {
       path: 'vite.config.ts',
-      contents: reactAppViteConfig(
-        name,
-        profile.major,
-        options.devServerPort,
-      ),
+      contents: reactAppViteConfig(name, profile.major, options.devServerPort),
     },
     { path: 'atlas.config.ts', contents: atlasAppConfig(options) },
-    { path: 'index.html', contents: reactAppIndex(`${title(name)} assets`) },
-    { path: 'src/styles.css', contents: '' },
-    {
-      path: 'src/app/README.md',
-      contents: appSourceReadme('src/entry.tsx', 'vite.config.ts'),
-    },
+    { path: 'index.html', contents: reactAppIndex(title(name)) },
+    { path: 'src/index.css', contents: '' },
     ...(routed
       ? [
-          { path: 'src/app/App.tsx', contents: reactAppApp(name) },
-          { path: 'src/app/home/Home.tsx', contents: reactAppHome(name) },
-          { path: 'src/app/details/Details.tsx', contents: reactAppDetails() },
-          { path: 'src/app/routes.tsx', contents: reactAppRoutes() },
-          { path: 'src/entry.tsx', contents: reactAppEntry(profile) },
+          { path: 'src/App.tsx', contents: reactAppApp(name) },
+          { path: 'src/home/Home.tsx', contents: reactAppHome(name) },
+          { path: 'src/details/Details.tsx', contents: reactAppDetails() },
+          { path: 'src/routes.tsx', contents: reactAppRoutes() },
+          { path: 'src/bootstrap.tsx', contents: reactAppBootstrap(profile) },
         ]
       : [
-          { path: 'src/app/App.tsx', contents: reactSinglePageApp(name) },
+          { path: 'src/App.tsx', contents: reactSinglePageApp(name) },
           {
-            path: 'src/entry.tsx',
-            contents: reactSinglePageAppEntry(name, profile),
+            path: 'src/bootstrap.tsx',
+            contents: reactSinglePageAppBootstrap(name, profile),
           },
         ]),
     {
