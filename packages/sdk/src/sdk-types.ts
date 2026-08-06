@@ -40,7 +40,7 @@ export type AtlasNavigationState = Readonly<Record<string, string | number | boo
 export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends object = AtlasEventMap> {
   readonly hostId: string;
   readonly hostData: AtlasHostData & Readonly<THostData>;
-  /** Navigate to a selected app by its stable manifest id. */
+  /** Navigate to a selected app or host headless app by its stable id. */
   navigateTo(appId: string, state?: AtlasNavigationState): void;
   /**
    * Typed, in-memory events shared by mounted apps in this host.

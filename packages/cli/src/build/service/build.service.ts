@@ -186,6 +186,9 @@ export class AtlasBuildService {
       remoteEntryUrl: `${trimSlash(baseUrl)}/remoteEntry.json`,
       exposes: { entry: './host' },
       requiredLoaderApiVersion: '^1.0.0',
+      ...(config.headlessApps?.length
+        ? { headlessApps: config.headlessApps }
+        : {}),
       createdAt: buildTimestamp(),
     };
     await mkdir(join(project.root, '.atlas'), { recursive: true });
@@ -239,6 +242,9 @@ export class AtlasBuildService {
       remoteEntryUrl,
       exposes: { entry: './host' },
       requiredLoaderApiVersion: '^1.0.0',
+      ...(config.headlessApps?.length
+        ? { headlessApps: config.headlessApps }
+        : {}),
       createdAt: buildTimestamp(),
       integrity: `sha256-${createHash('sha256')
         .update(await readFile(join(artifactRoot, entryPath)))

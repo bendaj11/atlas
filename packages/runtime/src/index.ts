@@ -1,5 +1,6 @@
 import type {
   AtlasExportedWidgetManifest,
+  AtlasHeadlessApp,
   AtlasManifest,
   AtlasPlacement,
 } from '@atlas/schema';
@@ -8,8 +9,11 @@ import {
   connectAtlasWidgetResolver,
   getAtlasNavigation,
   updateAtlasHostData,
-  type AtlasNavigationState,
 } from '@atlas/sdk';
+import {
+  createAppNavigator,
+  type AtlasNavigationTarget,
+} from './app-navigator/app-navigator.js';
 import type {
   AtlasGetWidgetOptions,
   AtlasHostDataOf,
@@ -198,6 +202,8 @@ export interface AtlasHostRuntimeOptions<
 > extends AtlasWidgetUiOptions {
   hostId: string;
   manifests: AtlasManifest[];
+  /** Host-owned navigation targets that change URL without mounting an app. */
+  headlessApps?: readonly AtlasHeadlessApp[];
   sdk: AtlasSdk<THostSdk>;
   importRemote: (manifest: AtlasManifest) => Promise<AtlasAppEntry>;
   importWidget?: (
@@ -270,7 +276,10 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
   const routePlan = createRoutePlacementPlan(routePlacements);
   connectAtlasNavigationResolver(
     options.sdk,
-    createAppNavigator(routePlan.available, navigation),
+    createAppNavigator(
+      navigation,
+      navigationTargets(routePlan.available, options.headlessApps),
+    ),
   );
   for (const conflict of routePlan.conflicts) {
     logRouteConflict(options.hostId, conflict);
@@ -315,31 +324,17 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
   };
 }
 
-function createAppNavigator(
+function navigationTargets(
   placements: readonly RuntimePlacement[],
-  navigation: import('@atlas/sdk/navigation').AtlasNavigation,
-): (appId: string, state?: AtlasNavigationState) => void {
-  return (appId, state) => {
-    const placement = placements.find(
-      (candidate) => candidate.manifest.id === appId,
-    );
-    if (!placement) {
-      throw runtimeError(
-        `Atlas cannot navigate to app "${appId}" because it has no route in this host.`,
-        {
-          suggestedActions:
-            'Use an app id selected by this host and declare a route for that app.',
-          code: 'ATLAS_APP_ROUTE_NOT_FOUND',
-        },
-      );
-    }
-    const url = new URL(placement.placement.route!.path, 'http://atlas.local');
-    for (const [key, value] of Object.entries(state ?? {})) {
-      if (value !== undefined)
-        url.searchParams.set(key, value === null ? '' : String(value));
-    }
-    navigation.navigate(`${url.pathname}${url.search}${url.hash}`);
-  };
+  headlessApps: readonly AtlasHeadlessApp[] | undefined,
+): AtlasNavigationTarget[] {
+  return [
+    ...placements.map(({ manifest, placement }) => ({
+      id: manifest.id,
+      path: placement.route!.path,
+    })),
+    ...(headlessApps ?? []).map(({ id, path }) => ({ id, path })),
+  ];
 }
 
 class AtlasRuntimeController {

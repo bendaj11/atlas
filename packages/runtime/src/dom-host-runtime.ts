@@ -85,6 +85,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
   runtime = await startAtlasHostRuntime({
     hostId: config.hostId,
     manifests,
+    ...(resolvedCatalog.host.headlessApps ? { headlessApps: resolvedCatalog.host.headlessApps } : {}),
     sdk,
     importRemote: federation.importRemote,
     importWidget: federation.importWidget,

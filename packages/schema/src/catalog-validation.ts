@@ -22,6 +22,7 @@ export function validateHostCatalog(value: unknown): AtlasValidationIssue[] {
 
   catalog.apps.forEach((manifest, index) => issues.push(...validateManifest(manifest, `apps.${index}`)));
   validateUniqueManifestIds(catalog.apps, issues);
+  validateHeadlessAppTargets(catalog, issues);
   if (catalog.widgetProviders !== undefined) {
     if (!Array.isArray(catalog.widgetProviders)) addIssue(issues, "widgetProviders", "Expected widgetProviders to be an array.");
     else {
@@ -30,6 +31,39 @@ export function validateHostCatalog(value: unknown): AtlasValidationIssue[] {
     }
   }
   return issues;
+}
+
+function validateHeadlessAppTargets(catalog: ReturnType<typeof asRecord>, issues: AtlasValidationIssue[]): void {
+  const host = asRecord(catalog?.host);
+  const headlessApps = Array.isArray(host?.headlessApps) ? host.headlessApps : [];
+  const appIds = new Set<string>();
+  const routePaths = new Set<string>();
+  const hostId = typeof catalog?.hostId === "string" ? catalog.hostId : undefined;
+
+  ((catalog?.apps as unknown[] | undefined) ?? []).forEach((manifestValue) => {
+    const manifest = asRecord(manifestValue);
+    if (typeof manifest?.id === "string") appIds.add(manifest.id);
+    if (!hostId || !Array.isArray(manifest?.placements)) return;
+    manifest.placements.forEach((placementValue) => {
+      const placement = asRecord(placementValue);
+      const route = asRecord(placement?.route);
+      if (placement?.kind !== "route" || placement.hostId !== hostId || typeof route?.path !== "string") return;
+      routePaths.add(normalizePath(route.path));
+    });
+  });
+
+  headlessApps.forEach((headlessApp, index) => {
+    const app = asRecord(headlessApp);
+    const path = `host.headlessApps.${index}`;
+    if (typeof app?.id === "string" && appIds.has(app.id))
+      addIssue(issues, `${path}.id`, `Headless app id "${app.id}" conflicts with selected app id "${app.id}".`);
+    if (typeof app?.path === "string" && routePaths.has(normalizePath(app.path)))
+      addIssue(issues, `${path}.path`, `Headless app path "${normalizePath(app.path)}" conflicts with a selected app route.`);
+  });
+}
+
+function normalizePath(path: string): string {
+  return path === "/" ? path : path.replace(/\/+$/, "");
 }
 
 function validateUniqueManifestIds(manifests: unknown[], issues: AtlasValidationIssue[], path = "apps"): void {

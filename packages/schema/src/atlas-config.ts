@@ -1,6 +1,7 @@
 import type { AtlasDomIsolation } from './atlas-dom-isolation.js';
 import type { AtlasFramework } from './atlas-framework.js';
 import type { AtlasRouteNavigation } from './atlas-route-navigation.js';
+import type { AtlasHeadlessApp } from './atlas-headless-app.js';
 
 /** Shared Atlas source config fields for hosts and apps. */
 export interface AtlasBaseConfig {
@@ -22,6 +23,8 @@ export interface AtlasHostConfig extends AtlasBaseConfig {
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */
   resourcesRetryCount?: number;
+  /** Host-owned navigation targets that do not mount a remote app. */
+  headlessApps?: AtlasHeadlessApp[];
 }
 
 /** Source config developers write for app projects. */

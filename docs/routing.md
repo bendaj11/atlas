@@ -35,3 +35,27 @@ atlas.navigateTo("2bea9c13-4899-4f93-9211-cd8c55e9c529", {
 Destination reads `orderId` and `tab` with its framework query API, or with
 `context.route.getCurrent().query` in low-level code. State values may be
 strings, numbers, booleans, `null`, or `undefined`; do not pass secrets.
+
+## Host-Owned Pages
+
+Use `headlessApps` in host `atlas.config.ts` for a page composed only from
+slots. A headless app has a stable navigation id and a mutable URL, but Atlas
+does not import or mount a remote for it:
+
+```ts
+export default {
+  id: 'host-id',
+  framework: 'react',
+  headlessApps: [{ id: 'main-page', path: '/main' }],
+} satisfies AtlasHostConfig;
+```
+
+Any mounted app can use the same SDK call:
+
+```ts
+atlas.navigateTo('main-page');
+```
+
+Slot apps use `showOnPaths: ['/main']` to render on that page. They do not
+own `/main` and are not navigation targets. Headless app ids and paths must
+not conflict with selected app ids or routed app paths for the host.

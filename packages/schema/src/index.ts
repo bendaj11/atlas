@@ -7,6 +7,7 @@ export type {
   AtlasSlotMount,
   AtlasWidgetConfig,
 } from './atlas-config.js';
+export type { AtlasHeadlessApp } from './atlas-headless-app.js';
 export type { AtlasArtifactManifestBase } from './atlas-artifact-manifest-base.js';
 export type { AtlasArtifactIndex } from './atlas-artifact-index.js';
 export type { AtlasDomIsolation } from './atlas-dom-isolation.js';

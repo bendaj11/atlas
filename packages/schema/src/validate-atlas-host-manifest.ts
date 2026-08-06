@@ -32,5 +32,39 @@ export function validateAtlasHostManifest(value: unknown): AtlasValidationIssue[
   const exposes = asRecord(manifest?.exposes);
   if (!exposes) addIssue(issues, "exposes", "Expected exposes to be an object.");
   else requiredString(exposes, "entry", issues, "exposes");
+  validateHeadlessApps(manifest?.headlessApps, issues);
   return issues;
+}
+
+function validateHeadlessApps(value: unknown, issues: AtlasValidationIssue[]): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value)) {
+    addIssue(issues, "headlessApps", "Expected headlessApps to be an array.");
+    return;
+  }
+
+  const ids = new Set<string>();
+  const paths = new Set<string>();
+  value.forEach((candidate, index) => {
+    const path = `headlessApps.${index}`;
+    const app = asRecord(candidate);
+    const id = requiredString(app, "id", issues, path);
+    const routePath = requiredString(app, "path", issues, path);
+    if (id) {
+      validateIdentifier(id, `${path}.id`, "headless app id", issues);
+      if (ids.has(id)) addIssue(issues, `${path}.id`, `Duplicate headless app id "${id}".`);
+      else ids.add(id);
+    }
+    if (routePath) {
+      if (!routePath.startsWith("/") || routePath.includes("?") || routePath.includes("#"))
+        addIssue(issues, `${path}.path`, "Expected an absolute route path without a query or fragment.");
+      const normalizedPath = normalizePath(routePath);
+      if (paths.has(normalizedPath)) addIssue(issues, `${path}.path`, `Duplicate headless app path "${normalizedPath}".`);
+      else paths.add(normalizedPath);
+    }
+  });
+}
+
+function normalizePath(path: string): string {
+  return path === "/" ? path : path.replace(/\/+$/, "");
 }
