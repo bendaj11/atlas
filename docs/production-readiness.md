@@ -51,8 +51,8 @@ Name an owner for each domain before release:
 
 - [ ] `atlas.config.ts` uses a stable app id and the correct framework.
 - [ ] Every route and slot names an approved host id and existing host anchor.
-- [ ] Route base paths do not conflict with another selected app.
-- [ ] Inner routes stay scoped to the app's assigned base path.
+- [ ] Route paths do not conflict with another selected app.
+- [ ] Inner routes stay scoped to the app's assigned path.
 - [ ] Cross-app navigation uses the Atlas SDK.
 - [ ] Host-dependent behavior uses typed SDK contracts instead of importing host
   source.

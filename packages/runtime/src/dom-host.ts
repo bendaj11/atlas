@@ -12,7 +12,7 @@ export type { DomHostOptions, DomHostServices } from "./dom-host-options.js";
 export async function startDomHost<THostSdk extends object = {}>(
   options: DomHostOptions<THostSdk>,
   services: DomHostServices
-): Promise<AtlasHostRuntime> {
+): Promise<AtlasHostRuntime<THostSdk>> {
   const startedAt = Date.now();
   const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
   const runtimeOptions = { ...options, anchors };

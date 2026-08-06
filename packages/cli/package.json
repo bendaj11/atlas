@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.3.37",
+  "version": "0.3.47",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -25,7 +25,7 @@
     }
   },
   "bin": {
-    "atlas": "./dist/cli/entrypoint.js"
+    "atlas": "./dist/cli/entrypoint/entrypoint.js"
   },
   "files": [
     "dist/**/*.js",
@@ -35,18 +35,23 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-output.js && tsc -b",
-    "test": "node dist/cli/entrypoint.js compile-config catalog-react && pnpm --filter @atlas-app/catalog-react run build && node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/cli/tests/ --testTimeout=15000",
+    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",
+    "test": "cd ../.. && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json --testPathPattern=packages/cli/src/ --testTimeout=15000",
+    "test:e2e": "cd ../.. && node packages/cli/dist/cli/entrypoint/entrypoint.js compile-config catalog-react && pnpm --filter @atlas-app/catalog-react run build && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json --testPathPattern=packages/cli/e2e/ --testTimeout=15000",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.3.37",
-    "@atlas/schema": "0.3.37",
-    "@atlas/generators": "0.3.37",
-    "@atlas/runtime": "0.3.37",
+    "@atlas/bootstrap": "0.3.47",
+    "@atlas/generators": "0.3.47",
+    "@atlas/runtime": "0.3.47",
+    "@atlas/schema": "0.3.47",
     "@aws-sdk/client-s3": "^3.850.0",
     "@inquirer/select": "^4.4.2",
     "cross-spawn": "7.0.6",
     "typescript": "~5.9.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
+    "@atlas/testkit": "workspace:*"
   }
 }

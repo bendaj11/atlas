@@ -1,6 +1,6 @@
 import { createElement as createReactElement, type ReactNode } from "react";
 import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasExportedWidgetMountResult, AtlasAppEntry, AtlasAppMountRequest, AtlasAppMountResult } from "./lifecycle.js";
-import { AtlasRuntimeContext, AtlasSdkContext } from "./react-context.js";
+import { AtlasRuntimeContext, AtlasSdkProvider } from "./react-context.js";
 import { connectRouter, type AppRouterLike } from "./react-router.js";
 
 export interface RootAdapter {
@@ -71,8 +71,10 @@ export function defineExportedWidget<TProps extends object>(options: {
 
 function renderWithAtlasProviders(request: AtlasAppMountRequest, element: unknown): ReactNode {
   return createReactElement(
-    AtlasSdkContext.Provider,
-    { value: request.sdk },
-    createReactElement(AtlasRuntimeContext.Provider, { value: request.context }, element as ReactNode)
+    AtlasSdkProvider,
+    {
+      sdk: request.sdk,
+      children: createReactElement(AtlasRuntimeContext.Provider, { value: request.context }, element as ReactNode),
+    },
   );
 }

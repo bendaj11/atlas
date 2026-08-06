@@ -44,7 +44,7 @@ Generated app files to understand first:
 | `atlas.config.ts`   | App team       | App id, name, framework, host routes, slots, widgets, manifest metadata.                                                              |
 | `src/bootstrap.tsx` | Atlas/platform | Mount/unmount lifecycle exposed through Native Federation.                                                                            |
 | `src/App.tsx`       | App team       | App root component.                                                                                                                   |
-| `src/routes.tsx`    | App team       | Inner React Router routes scoped under the host base path.                                                                            |
+| `src/routes.tsx`    | App team       | Inner React Router routes scoped under the host path.                                                                            |
 | `vite.config.ts`    | App team       | Vite plugins, server, aliases, and other product-specific overrides. Atlas federation wiring stays behind `createReactAppViteConfig`. |
 
 Product developers usually edit React components, hooks, styles, tests, and

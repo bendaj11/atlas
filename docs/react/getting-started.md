@@ -29,7 +29,7 @@ choose catalog versions from React code.
 | File                    | Responsibility                                               | Edit normally?        |
 | ----------------------- | ------------------------------------------------------------ | --------------------- |
 | `src/bootstrap.tsx`     | Atlas `mount` lifecycle exported as `./entry`                | Rarely                |
-| `src/routes.tsx`        | Inner React routes scoped below assigned Atlas base path     | Yes                   |
+| `src/routes.tsx`        | Inner React routes scoped below assigned Atlas path     | Yes                   |
 | `src/`                  | Feature components and hooks                                 | Yes                   |
 | `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes                   |
 | `atlas.config.ts`       | App identity, routes, slots, external app dependencies       | When contract changes |

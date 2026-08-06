@@ -9,10 +9,12 @@ import {
   input,
   createComponent,
   type EnvironmentInjector,
+  type Signal,
   type Type,
 } from '@angular/core';
 import type {
   AtlasEventMap,
+  AtlasHostDataValue,
   AtlasMountedWidgetHandle,
   AtlasSdk as AtlasSdkValue,
   AtlasWidgetHandle,
@@ -33,7 +35,9 @@ export interface AngularWidgetBinding<TInputs extends object> {
 export type AngularAtlasSdk<
   THostSdk extends object = {},
   TEvents extends object = AtlasEventMap,
-> = Omit<AtlasSdkValue<THostSdk, TEvents>, 'getWidget'> & {
+> = Omit<AtlasSdkValue<THostSdk, TEvents>, 'getWidget' | 'hostData'> & {
+  /** Live, host-owned data. Call it to read the current immutable snapshot. */
+  readonly hostData: Signal<AtlasHostDataValue<THostSdk>>;
   getWidget<TInputs extends object>(
     widgetId: string,
     options: AngularGetWidgetOptions<TInputs>,
@@ -63,8 +67,10 @@ export function createAngularAtlasSdk<
   sdk: AtlasSdkValue<THostSdk, TEvents>,
   applicationRef: ApplicationRef,
   environmentInjector: EnvironmentInjector,
+  hostData: Signal<AtlasHostDataValue<THostSdk>>,
 ): AngularAtlasSdk<THostSdk, TEvents> {
   const facade = Object.create(sdk) as AngularAtlasSdk<THostSdk, TEvents>;
+  Object.defineProperty(facade, 'hostData', { value: hostData });
   Object.defineProperty(facade, 'getWidget', {
     value: <TInputs extends object>(
       widgetId: string,

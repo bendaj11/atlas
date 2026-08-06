@@ -1,27 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CliArguments } from './arguments.js';
-import { AtlasBuildService } from '../build/build.service.js';
-import { AtlasBootstrapService } from '../bootstrap/bootstrap.service.js';
-import { createCliError } from './cli-error.js';
-import { compileAtlasConfig } from '../build/config-compiler.js';
+import { AtlasBuildService } from '../build/service/build.service.js';
+import { AtlasBootstrapService } from '../bootstrap/service/bootstrap.service.js';
+import { createCliError } from './cli-error/cli-error.js';
+import { compileAtlasConfig } from '../build/config-compiler/config-compiler.js';
 import { AtlasDevService } from '../development/index.js';
-import { AtlasGenerateService } from '../generation/generate.service.js';
-import { loadEnvFiles } from '../workspace/env.js';
+import { AtlasGenerateService } from '../generation/service/generate.service.js';
+import { loadEnvFiles } from '../workspace/env/env.js';
 import { formatHelp, requestedHelpTopic } from '../help/help.js';
 import {
   AtlasPublishService,
   loadAtlasPublishConfig,
-} from '../publication/publish.service.js';
-import { resolvePublicationContext } from '../publication/publication-context.js';
-import { readOpenPullRequests } from '../publication/pr-state-file.js';
+} from '../publication/service/publish.service.js';
+import { resolvePublicationContext } from '../publication/publication-context/publication-context.js';
+import { readOpenPullRequests } from '../publication/pr-state-file/pr-state-file.js';
 import {
   AtlasVerifyService,
   type AtlasVerificationCheck,
-} from '../verification/verify.service.js';
-import { resolveInvocation } from './interaction.js';
-import { TerminalPrompter, ui, type AtlasPrompter } from './ui.js';
-import { detectWorkspace } from '../workspace/workspace.js';
+} from '../verification/service/verify.service.js';
+import { resolveInvocation } from './interaction/interaction.js';
+import { TerminalPrompter, ui, type AtlasPrompter } from './ui/ui.js';
+import { detectWorkspace } from '../workspace/service/workspace.js';
 
 export async function runAtlasCli(
   values = process.argv.slice(2),
@@ -51,11 +51,11 @@ export async function runAtlasCli(
 
     if (invocation.command === 'build-bootstrap' && invocation.subcommand) {
       ui.heading(`Build bootstrap · ${invocation.subcommand}`);
-      const result = await new AtlasBootstrapService(
+      const result = await new AtlasBootstrapService({
         workspace,
         args,
         builds,
-      ).build(invocation.subcommand);
+      }).build(invocation.subcommand);
       ui.success(`Built static bootstrap in ${result.directory}.`);
       ui.result('Bootstrap digest', result.digest);
       ui.info(

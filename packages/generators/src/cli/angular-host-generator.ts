@@ -13,7 +13,7 @@ import { AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot } from "@
     <atlas-host-status />
     <header>
       <strong>Atlas</strong>
-      <atlas-slot name="header" />
+      <atlas-slot slotId="header" />
     </header>
     <atlas-navigation aria-label="Application" />
     <atlas-route-outlet />
@@ -79,9 +79,14 @@ export const appConfig: ApplicationConfig = {
 
 export function angularHostSdkConfig(): string {
   return `import type { Injector } from "@angular/core";
+import type { HostSdkOptions } from "@atlas/runtime/angular";
 
 /** Add product-specific host SDK capabilities here. */
-export function createHostSdkOptions(_injector: Injector) {
+interface CustomerHostSdk {}
+
+export function createCustomHostSdkOptions(
+  _injector: Injector,
+): HostSdkOptions<CustomerHostSdk> {
   return {};
 }
 `;
@@ -96,7 +101,7 @@ import { AtlasAngularHostAnchors, bootstrapAngularHost } from "@atlas/runtime/an
 import atlasConfig from "../atlas.config";
 import { appConfig } from "./app/app.config";
 import { AppComponent } from "./app/app.component";
-import { createHostSdkOptions } from "./app/host.config";
+import { createCustomHostSdkOptions } from "./app/host.config";
 
 type HostMountRequest = Parameters<AtlasHostClientEntry["mount"]>[0];
 
@@ -111,7 +116,7 @@ export async function bootstrap(request?: HostMountRequest) {
       anchors: injector.get(AtlasAngularHostAnchors),
       federation: { initFederation, loadRemoteModule },
       hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
-      ...createHostSdkOptions(injector),
+      ...createCustomHostSdkOptions(injector),
       ...(request ? { runtimeConfig: request.runtimeConfig, catalog: request.catalog } : {})
     })
   });

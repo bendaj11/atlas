@@ -1,7 +1,7 @@
 # React Routing
 
 React Atlas routing has one rule: **the host owns the browser URL**. A React app
-may use React Router, but its router must stay scoped under the base path
+may use React Router, but its router must stay scoped under the path
 assigned by the host catalog.
 
 ## Host Domain
@@ -130,7 +130,7 @@ export default {
   routes: [
     {
       hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-      basePath: '/orders',
+      route: '/orders',
       title: 'Orders',
       nav: { label: 'Orders', visible: true, order: 10 },
     },
@@ -144,7 +144,7 @@ export default {
 } satisfies AtlasAppConfig;
 ```
 
-`basePath` belongs to the host URL. The React app router sees app-relative
+`route` belongs to the host URL. The React app router sees app-relative
 paths.
 
 This config does not change host source code. It becomes deployment data that
@@ -163,13 +163,13 @@ selection flow is:
    catalog is.
 5. The loader selects the host client and passes the effective catalog; the host filters placements for
    `hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"`, and matches current browser URL against each
-   route `basePath`.
+   configured `route`.
 6. If the URL is `/orders` or `/orders/42`, the `/orders` placement wins and the
    host mounts the selected `orders` manifest in `data-atlas-route-outlet`.
 7. Slot placements mount independently into matching `data-atlas-slot` anchors,
    such as `header` or `help-panel`.
 
-If two selected apps claim the same host `basePath`, catalog validation fails.
+If two selected apps claim the same host `route`, catalog validation fails.
 The host should not need hard-coded route ownership to resolve that conflict.
 
 ## Inner React Routes
@@ -209,7 +209,7 @@ Use React Router normally inside the app:
 ```
 
 React Router sees `42`; the browser URL becomes `/orders/42` because the host
-base path is `/orders`.
+path is `/orders`.
 
 ## Cross-App Navigation
 
@@ -217,7 +217,7 @@ Use the SDK for navigation outside the current app:
 
 ```tsx
 const atlas = useAtlasSdk();
-atlas.navigation.navigate('/catalog');
+atlas.navigateTo('2bea9c13-4899-4f93-9211-cd8c55e9c529', { tab: 'open' });
 ```
 
 Use relative React Router links only for screens owned by the same app.
@@ -234,4 +234,4 @@ matches `/orders`.
 - Do not use `createBrowserRouter` inside a mounted app.
 - Do not remove `data-atlas-route-outlet` from the host layout.
 - Do not hardcode remote URLs in host source code; catalogs select versions.
-- Do not make an app claim a base path owned by another app.
+- Do not make an app claim a path owned by another app.

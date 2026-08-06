@@ -33,7 +33,7 @@ choose catalog versions from Angular application code.
 | --- | --- | --- |
 | `src/main.ts` | Angular entry and Atlas `mount` lifecycle exported as `./entry` | Rarely |
 | `src/app/app.config.ts` | Angular and Atlas providers | Yes |
-| `src/app/app.routes.ts` | Inner Angular routes scoped below assigned Atlas base path | Yes |
+| `src/app/app.routes.ts` | Inner Angular routes scoped below assigned Atlas path | Yes |
 | `src/app/` | Feature components and services | Yes |
 | `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes |
 | `atlas.config.ts` | App identity, routes, slots, external app dependencies | When contract changes |

@@ -32,6 +32,52 @@ await startHost<CustomerHostSdk>({
 Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
 host ID when omitted.
 
+## Live host data
+
+Host data is host-owned shared state. Each top-level field can be a fixed value
+or an Angular `Signal`; Atlas keeps Signal-backed fields updated for every
+mounted app. Angular apps read one read-only snapshot signal from their normal
+SDK injection:
+
+```ts
+// Host: src/app/host.config.ts
+interface CustomerHostSdk {
+  hostData: { user: PublicUser | null | undefined };
+}
+
+export function createCustomHostSdkOptions(injector: Injector) {
+  const auth = injector.get(AuthService);
+  return { hostData: { user: auth.user } };
+}
+
+// App
+readonly atlas = injectAtlasSdk<CustomerHostSdk>();
+readonly user = computed(() => this.atlas.hostData().user);
+```
+
+`undefined` can represent loading, `null` a known signed-out user. Keep access
+and refresh tokens in the host auth service, never in host data.
+
+For RxJS, convert an Observable once at the Angular host boundary. Supply an
+initial value for asynchronous streams, or use `requireSync: true` only for a
+source guaranteed to emit during subscription, such as a `BehaviorSubject`:
+
+```ts
+import { toSignal } from '@angular/core/rxjs-interop';
+
+return {
+  hostData: {
+    user: toSignal(auth.user$, { injector, initialValue: undefined }),
+    tenantId: 'tenant-42',
+  },
+};
+```
+
+Do not expose Angular Signals or Observables directly as custom SDK extensions.
+Put live shared values in `hostData`; use custom SDK extensions for stable
+commands and services. Angular apps consume host data only through
+`injectAtlasSdk().hostData()`.
+
 If `httpClient` is omitted, Atlas uses a fetch-backed default client. Provide a
 custom client when the host needs authentication headers, interceptors, retries,
 or a company HTTP wrapper.
@@ -122,7 +168,7 @@ Inside the app, use Angular Router for app-owned screens. Use SDK navigation for
 host-level or cross-app destinations:
 
 ```ts
-this.atlas.navigation.navigate('/catalog');
+this.atlas.navigateTo('2bea9c13-4899-4f93-9211-cd8c55e9c529', { tab: 'open' });
 ```
 
 See [Angular routing](routing.md).

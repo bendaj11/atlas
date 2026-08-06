@@ -32,6 +32,6 @@ export class AtlasRouteOutlet extends AtlasAnchorComponent { protected readonly 
 @Component({ selector: "atlas-slot", standalone: true, template: "" })
 export class AtlasSlot extends AtlasAnchorComponent {
   protected readonly kind = "slot" as const;
-  @Input({ required: true }) name!: string;
-  protected anchorName(): string { return this.name; }
+  @Input({ required: true }) slotId!: string;
+  protected anchorName(): string { return this.slotId; }
 }

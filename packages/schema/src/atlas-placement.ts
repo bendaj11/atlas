@@ -1,5 +1,5 @@
-import type { AtlasPlacementKind } from "./atlas-placement-kind.js";
-import type { AtlasRouteContribution } from "./atlas-route-contribution.js";
+import type { AtlasPlacementKind } from './atlas-placement-kind.js';
+import type { AtlasRouteContribution } from './atlas-route-contribution.js';
 
 /** Route or host slot where an app can be mounted. */
 export interface AtlasPlacement {
@@ -11,8 +11,10 @@ export interface AtlasPlacement {
   hostId: string;
   /** Name of the host area to render into when kind is "slot". */
   slot?: string;
-  /** Host paths where a slot placement is active. Matches the path and descendants. */
-  activeOn?: string[];
+  /** Host paths where a slot placement is shown. Matches each path and descendants. */
+  showOnPaths?: string[];
+  /** Host paths where a slot placement is hidden. Matches each path and descendants. */
+  hideOnPaths?: string[];
   /** URL and menu details when kind is "route". */
   route?: AtlasRouteContribution;
 }

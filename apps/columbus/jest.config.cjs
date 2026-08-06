@@ -5,7 +5,7 @@ module.exports = {
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   rootDir: '../..',
   setupFiles: [
-    '<rootDir>/apps/columbus/src/scripts/build/ColumbusTestEnvironment.cjs',
+    '<rootDir>/apps/columbus/src/scripts/build/ColumbusTestEnvironment.ts',
   ],
   testMatch: ['**/*.specs.ts', '**/*.specs.tsx'],
 };

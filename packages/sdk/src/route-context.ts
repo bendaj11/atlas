@@ -1,21 +1,21 @@
 import type { AtlasInnerLocation, AtlasNavigation, AtlasRouteContext } from "./navigation-types.js";
-import { matchRoutePattern, normalizeBasePath, parseQuery, toInnerPath } from "./navigation-paths.js";
+import { matchRoutePattern, normalizePath, parseQuery, toInnerPath } from "./navigation-paths.js";
 
 export interface AtlasRouteContextOptions {
   setTabTitle?: (title: string) => void;
 }
 
-export function createRouteContext(basePath: string, navigation: AtlasNavigation, options: AtlasRouteContextOptions = {}): AtlasRouteContext {
-  const normalizedBasePath = normalizeBasePath(basePath);
+export function createRouteContext(path: string, navigation: AtlasNavigation, options: AtlasRouteContextOptions = {}): AtlasRouteContext {
+  const normalizedPath = normalizePath(path);
 
   const read = (location = navigation.getCurrentLocation()): AtlasInnerLocation => ({
-    pathname: toInnerPath(normalizedBasePath, location.pathname),
+    pathname: toInnerPath(normalizedPath, location.pathname),
     query: parseQuery(location.search),
     hash: location.hash
   });
 
   return {
-    basePath: normalizedBasePath,
+    path: normalizedPath,
     getCurrent: read,
     setTabTitle(title) {
       options.setTabTitle?.(title);

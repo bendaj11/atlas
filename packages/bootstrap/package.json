@@ -1,6 +1,6 @@
 {
   "name": "@atlas/bootstrap",
-  "version": "0.3.37",
+  "version": "0.3.47",
   "type": "module",
   "description": "Static Atlas browser bootstrap assets and Nginx configuration.",
   "license": "MIT",
@@ -34,12 +34,16 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-output.js && tsc -b",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/bootstrap/tests/",
+    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/atlas.loader.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/atlas.loader.js",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/bootstrap/src/",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.37",
+    "@atlas/schema": "0.3.47",
     "es-module-shims": "^2.7.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
+    "esbuild": "0.25.12"
   }
 }

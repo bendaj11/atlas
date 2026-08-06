@@ -40,7 +40,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     ).name,
     '@acme/host',
   );
-  assert.match(host.get('package.json'), /"react": "\^19\.2\.0"/);
+  assert.match(host.get('package.json'), /"react": "19\.2\.8"/);
   assert.match(host.get('src/main.tsx'), /void mount/);
   const hostBootstrap = host.get('src/bootstrap.tsx');
   assert.match(hostBootstrap, /export const mount: AtlasHostClientEntry/);
@@ -55,8 +55,12 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   assert.equal(host.has('src/atlas-bootstrap.ts'), false);
   assert.match(hostBootstrap, /Component: HostLayout/);
   assert.match(hostBootstrap, /AtlasHostProvider/);
+  assert.match(hostBootstrap, /useCustomHostSdkOptions/);
+  assert.match(hostBootstrap, /function HostApplication/);
+  assert.match(host.get('src/host.config.tsx'), /HostSdkOptions/);
+  assert.match(host.get('src/host.config.tsx'), /useCustomHostSdkOptions/);
   assert.match(hostBootstrap, /<AtlasHostStatus/);
-  assert.match(hostBootstrap, /<AtlasSlot name="header"/);
+  assert.match(hostBootstrap, /<AtlasSlot slotId="header"/);
   assert.match(hostBootstrap, /<AtlasNavigation/);
   assert.match(hostBootstrap, /<AtlasRouteOutlet/);
   assert.match(hostBootstrap, /from "@atlas\/sdk\/federation"/);
@@ -79,7 +83,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   ]);
   assert.match(
     hostBootstrap,
-    /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name \}/,
+    /hostData: \{ hostId: atlasConfig\.id, name: atlasConfig\.name, \.\.\.hostData \}/,
   );
   assert.doesNotMatch(
     hostBootstrap,
@@ -266,7 +270,7 @@ test('React generator targets selected supported majors without owning compiler 
     react17.get('vite.config.ts'),
     /createReactAppViteConfig\(\{ projectRoot: __dirname, projectName: "oldest", reactMajor: 17 \}\)/,
   );
-  assert.match(react18.get('package.json'), /"react": "\^18\.3\.0"/);
+  assert.match(react18.get('package.json'), /"react": "18\.3\.0"/);
   assert.doesNotMatch(react18.get('package.json'), /react-compiler-runtime/);
   assert.doesNotMatch(
     react19.get('package.json'),
@@ -421,7 +425,7 @@ test('React app creates, renders, and unmounts one root', async () => {
       };
     },
     createElement(request) {
-      return request.context.basePath;
+      return request.context.path;
     },
   });
   const atlas = createAppContext('/catalog/orders');

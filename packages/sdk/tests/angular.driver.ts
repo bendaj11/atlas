@@ -34,15 +34,15 @@ export function createAppContext(initialUrl: string) {
     for (const listener of routeListeners) listener(inner());
   };
   const navigation: AtlasScopedNavigation = {
-    basePath: "/orders",
+    path: "/orders",
     navigate(to: string) { current = `/orders${to.startsWith("/") ? to : `/${to}`}`; notify(); },
     replace(to: string) { this.navigate(to); }, back() {}, createHref(to: string) { return to; },
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     getCurrentLocation() { return splitUrl(current); }, toInnerPath(to: string) { return `/orders${to}`; }
   };
   const context: AtlasAppContext = {
-    manifest: createTestManifest(), hostId: "host", basePath: "/orders", navigation,
-    route: { basePath: "/orders", getCurrent: inner, match: () => undefined, setTabTitle() {}, subscribe(listener) { routeListeners.add(listener); return () => { routeListeners.delete(listener); }; } },
+    manifest: createTestManifest(), hostId: "host", path: "/orders", navigation,
+    route: { path: "/orders", getCurrent: inner, match: () => undefined, setTabTitle() {}, subscribe(listener) { routeListeners.add(listener); return () => { routeListeners.delete(listener); }; } },
     loading: { show() {}, hide() {}, waitUntilReady: () => () => undefined }
   };
   return {

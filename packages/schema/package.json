@@ -1,6 +1,6 @@
 {
   "name": "@atlas/schema",
-  "version": "0.3.37",
+  "version": "0.3.47",
   "type": "module",
   "description": "Stable Atlas manifests, static indexes, catalogs, and configuration schemas.",
   "license": "MIT",
@@ -33,7 +33,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-output.js && tsc -b",
+    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/schema/tests/",
     "typecheck": "tsc -b --pretty false"
   }

@@ -1,9 +1,12 @@
 import { createAtlasEventBus, type AtlasEventMap } from "./event-bus.js";
 import { normalizeHttpClient } from "./http-client.js";
-import type { AtlasCoreSdk, AtlasGetWidget, AtlasGetWidgetOptions, AtlasHostData, AtlasSdk, AtlasSdkOptions, AtlasWidgetHandle } from "./sdk-types.js";
+import type { AtlasNavigation } from "./navigation-types.js";
+import type { AtlasCoreSdk, AtlasGetWidget, AtlasGetWidgetOptions, AtlasHostData, AtlasNavigationState, AtlasSdk, AtlasSdkOptions, AtlasWidgetHandle } from "./sdk-types.js";
 import { sdkError } from "./sdk-error.js";
 
 const widgetResolvers = new WeakMap<object, AtlasGetWidget>();
+const navigationResolvers = new WeakMap<object, (appId: string, state?: AtlasNavigationState) => void>();
+const hostNavigations = new WeakMap<object, AtlasNavigation>();
 
 /** Creates the single host-owned SDK instance shared with mounted apps and widgets. */
 export function createAtlasSdk<
@@ -11,6 +14,7 @@ export function createAtlasSdk<
   TEvents extends object = AtlasEventMap
 >(options: AtlasSdkOptions<THostSdk, TEvents>): AtlasSdk<THostSdk, TEvents> {
   const core = createAtlasCoreSdk(options);
+  hostNavigations.set(core, options.navigation);
   const sdkProperties = readSdkProperties(options);
   assertPropertiesDoNotReplaceCore(sdkProperties, core);
   return Object.assign(core, sdkProperties) as AtlasSdk<THostSdk, TEvents>;
@@ -22,7 +26,7 @@ function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
   const core: AtlasCoreSdk<object, TEvents> = {
     hostId: options.hostId,
     hostData: createHostData(options),
-    navigation: options.navigation,
+    navigateTo: (appId, state) => resolveNavigation(core, appId, state),
     events: options.eventBus ?? createAtlasEventBus<TEvents>(),
     httpClient: normalizeHttpClient(options.httpClient),
     getWidget: (widgetId, widgetOptions) => resolveWidget(core, widgetId, widgetOptions)
@@ -33,6 +37,23 @@ function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
 /** Connects host runtime widget discovery after SDK construction. */
 export function connectAtlasWidgetResolver(sdk: object, resolver: AtlasGetWidget): void {
   widgetResolvers.set(sdk, resolver);
+}
+
+/** Connects host catalog route resolution after runtime discovery. */
+export function connectAtlasNavigationResolver(sdk: object, resolver: (appId: string, state?: AtlasNavigationState) => void): void {
+  navigationResolvers.set(sdk, resolver);
+}
+
+/** Returns host navigation for Atlas runtime internals. Apps should use their router or `navigateTo`. */
+export function getAtlasNavigation(sdk: object): AtlasNavigation {
+  const navigation = hostNavigations.get(sdk);
+  if (!navigation) {
+    throw sdkError("Atlas host navigation is unavailable.", {
+      suggestedActions: "Create the Atlas SDK with host navigation before starting the runtime.",
+      code: "ATLAS_HOST_NAVIGATION_NOT_READY"
+    });
+  }
+  return navigation;
 }
 
 function resolveWidget<TInputs extends object>(
@@ -51,6 +72,17 @@ function resolveWidget<TInputs extends object>(
     );
   }
   return resolver<TInputs>(widgetId, options);
+}
+
+function resolveNavigation(sdk: object, appId: string, state?: AtlasNavigationState): void {
+  const resolver = navigationResolvers.get(sdk);
+  if (!resolver) {
+    throw sdkError(
+      `Atlas cannot navigate to app "${appId}" because the host route catalog is not ready.`,
+      { suggestedActions: "Wait for the Atlas host to finish starting before navigating.", code: "ATLAS_ROUTE_RUNTIME_NOT_READY" }
+    );
+  }
+  resolver(appId, state);
 }
 
 function createHostData<THostSdk extends object, TEvents extends object>(

@@ -1,7 +1,7 @@
 import { sdkError } from "./sdk-error.js";
 
-export function scopePath(basePath: string, to: string): string {
-  const normalizedBasePath = normalizeBasePath(basePath);
+export function scopePath(path: string, to: string): string {
+  const normalizedPath = normalizePath(path);
   if (/^https?:\/\//.test(to)) {
     throw sdkError(
       `Atlas cannot navigate to absolute URL "${to}" through scoped app navigation.`,
@@ -12,26 +12,26 @@ export function scopePath(basePath: string, to: string): string {
     );
   }
 
-  if (to.startsWith(normalizedBasePath)) {
+  if (to.startsWith(normalizedPath)) {
     return to;
   }
 
   const child = to.startsWith("/") ? to.slice(1) : to;
-  return child.length === 0 ? normalizedBasePath : `${normalizedBasePath}/${child}`;
+  return child.length === 0 ? normalizedPath : `${normalizedPath}/${child}`;
 }
 
-export function normalizeBasePath(basePath: string): string {
-  if (!basePath.startsWith("/")) {
-    return `/${basePath}`.replace(/\/+$/, "");
+export function normalizePath(path: string): string {
+  if (!path.startsWith("/")) {
+    return `/${path}`.replace(/\/+$/, "");
   }
 
-  return basePath.replace(/\/+$/, "") || "/";
+  return path.replace(/\/+$/, "") || "/";
 }
 
-export function toInnerPath(basePath: string, pathname: string): string {
-  if (basePath === "/") return pathname || "/";
-  if (pathname === basePath) return "/";
-  return pathname.startsWith(`${basePath}/`) ? pathname.slice(basePath.length) : "/";
+export function toInnerPath(path: string, pathname: string): string {
+  if (path === "/") return pathname || "/";
+  if (pathname === path) return "/";
+  return pathname.startsWith(`${path}/`) ? pathname.slice(path.length) : "/";
 }
 
 export function parseQuery(search: string): Readonly<Record<string, string | string[]>> {

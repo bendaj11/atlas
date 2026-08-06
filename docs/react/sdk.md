@@ -24,13 +24,13 @@ function HostApplication() {
         router,
         federation: { initFederation, loadRemoteModule },
         hostData: {
-          hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-          name: "Customer Host",
-          projectId: "project-42"
+          hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+          name: 'Customer Host',
+          projectId: 'project-42',
         },
         httpClient: authenticatedHttpClient,
         showToast: toast.show,
-        observe: (event) => monitoring.capture("atlas.runtime", event)
+        observe: (event) => monitoring.capture('atlas.runtime', event),
       }}
     >
       <RouterProvider router={router} />
@@ -41,6 +41,40 @@ function HostApplication() {
 
 Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
 host ID when omitted.
+
+## Live host data
+
+Atlas re-renders React consumers when host data changes. Read it through the
+existing SDK hook; no app-level subscription is needed:
+
+```tsx
+const atlas = useAtlasSdk<CustomerHostSdk>();
+const user = atlas.hostData.user;
+```
+
+Angular hosts may supply an Angular `Signal` for a host-data field. Atlas turns
+it into a plain current value for React apps. Observable sources must first be
+converted to an Angular Signal in the host with `toSignal`. React never receives
+an Angular Signal or Observable. Use `undefined` for loading and `null` for a
+known signed-out user. Never expose access or refresh tokens.
+
+React hosts publish host-data changes by passing fresh values to
+`AtlasHostProvider`:
+
+```tsx
+function HostApplication() {
+  const [user, setUser] = useState<PublicUser | null>();
+
+  return (
+    <AtlasHostProvider<CustomerHostSdk>
+      hostId={atlasConfig.id}
+      options={{ router, federation, hostData: { user } }}
+    >
+      <App />
+    </AtlasHostProvider>
+  );
+}
+```
 
 If `httpClient` is omitted, Atlas uses a fetch-backed default client. Provide a
 custom client when the host needs authentication headers, interceptors, retries,
@@ -54,8 +88,8 @@ events, including resource loading, retries, host readiness, and app mount state
 React apps read the SDK with `useAtlasSdk()`:
 
 ```tsx
-import { useAtlasSdk } from "@atlas/sdk/react";
-import type { AtlasEventMap } from "@atlas/sdk";
+import { useAtlasSdk } from '@atlas/sdk/react';
+import type { AtlasEventMap } from '@atlas/sdk';
 
 interface CustomerHostSdk {
   showToast(message: string): void;
@@ -68,8 +102,8 @@ export function OrdersToolbar() {
     <button
       type="button"
       onClick={async () => {
-        await atlas.httpClient.post("/api/orders");
-        atlas.showToast("Order saved");
+        await atlas.httpClient.post('/api/orders');
+        atlas.showToast('Order saved');
       }}
     >
       Save order
@@ -88,7 +122,7 @@ host-level or cross-app destinations:
 
 ```tsx
 const atlas = useAtlasSdk();
-atlas.navigation.navigate("/catalog");
+atlas.navigateTo('2bea9c13-4899-4f93-9211-cd8c55e9c529', { tab: 'open' });
 ```
 
 See [React routing](routing.md).
@@ -100,13 +134,13 @@ for durable business workflows.
 
 ```ts
 type ProductEvents = {
-  "orders.updated": { orderId: string };
-  "cart.cleared": undefined;
+  'orders.updated': { orderId: string };
+  'cart.cleared': undefined;
 };
 
 const atlas = useAtlasSdk<CustomerHostSdk, ProductEvents>();
-atlas.events.publish("orders.updated", { orderId: "42" });
-atlas.events.publish("cart.cleared");
+atlas.events.publish('orders.updated', { orderId: '42' });
+atlas.events.publish('cart.cleared');
 ```
 
 Event contracts should live in shared TypeScript source so publishers and
@@ -138,10 +172,10 @@ If an app never opts in, Atlas treats mount completion as ready.
 Apps request UI; hosts render it:
 
 ```tsx
-atlas.toast.open({ title: "Saved", state: "success" });
+atlas.toast.open({ title: 'Saved', state: 'success' });
 const result = await atlas.modal.open({
   component: ConfirmDeleteModal,
-  props: { orderId: "42" }
+  props: { orderId: '42' },
 });
 ```
 

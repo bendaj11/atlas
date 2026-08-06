@@ -84,6 +84,25 @@ test('Angular federation skips React-only Atlas adapters', async () => {
   ]);
 });
 
+test('Angular federation keeps discovered secondary entry points', async () => {
+  const projectRoot = fileURLToPath(
+    new URL('../../../examples/apps/orders-angular', import.meta.url),
+  );
+  const sharedEntry = await angularFederationSharedEntry(
+    projectRoot,
+    '@angular/core/rxjs-interop',
+  );
+
+  expect(sharedEntry).toMatchObject({
+    includeSecondaries: true,
+    singleton: true,
+    strictVersion: true,
+  });
+  await expect(
+    angularFederationSharedEntry(projectRoot, '@atlas/sdk/angular'),
+  ).resolves.not.toHaveProperty('includeSecondaries');
+});
+
 test('React federation generates ignored widget lifecycle entries', async () => {
   const projectRoot = fileURLToPath(
     new URL('../../../examples/apps/catalog-react', import.meta.url),
@@ -440,6 +459,21 @@ async function angularFederationSkipEntries(
     cwd: workspaceRoot,
   });
   return JSON.parse(stdout) as string[];
+}
+
+async function angularFederationSharedEntry(
+  projectRoot: string,
+  packageName: string,
+): Promise<Record<string, unknown>> {
+  const script = [
+    `const { createAngularFederationConfig } = require(${JSON.stringify(factoryPath)});`,
+    `const config = createAngularFederationConfig(${JSON.stringify({ projectRoot, name: 'test', expose: 'app' })});`,
+    `process.stdout.write(JSON.stringify(config.shared[${JSON.stringify(packageName)}]));`,
+  ].join('\n');
+  const { stdout } = await executeFile(process.execPath, ['-e', script], {
+    cwd: workspaceRoot,
+  });
+  return JSON.parse(stdout) as Record<string, unknown>;
 }
 
 interface FederationMetadata {

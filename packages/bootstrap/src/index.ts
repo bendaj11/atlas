@@ -1,14 +1,18 @@
-import type { AtlasHostRuntimeConfig } from "@atlas/schema";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { ATLAS_BROWSER_LOADER } from "./browser-loader.js";
+import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
-export { ATLAS_BROWSER_LOADER } from "./browser-loader.js";
-
-const DEFAULT_TITLE = "Atlas";
-const DEFAULT_LOADING_HTML = "Loading product…";
+const DEFAULT_TITLE = 'Atlas';
+const DEFAULT_LOADING_HTML = 'Loading product…';
 const require = createRequire(import.meta.url);
-const MODULE_SHIM_SOURCE = readFileSync(require.resolve("es-module-shims"), "utf8");
+const MODULE_SHIM_SOURCE = readFileSync(
+  require.resolve('es-module-shims'),
+  'utf8',
+);
+export const ATLAS_BROWSER_LOADER = readFileSync(
+  new URL('./atlas.loader.js', import.meta.url),
+  'utf8',
+);
 
 export interface AtlasBootstrapOptions {
   runtime: AtlasHostRuntimeConfig;
@@ -19,33 +23,52 @@ export interface AtlasBootstrapOptions {
 }
 
 export interface AtlasBootstrapFile {
-  path: "index.html" | "atlas.loader.js" | "es-module-shims.js" | "atlas.runtime.json" | "nginx.conf";
+  path:
+    | 'index.html'
+    | 'atlas.loader.js'
+    | 'es-module-shims.js'
+    | 'atlas.runtime.json'
+    | 'nginx.conf';
   contents: string;
 }
 
-export function createAtlasBootstrapFiles(options: AtlasBootstrapOptions): AtlasBootstrapFile[] {
+export function createAtlasBootstrapFiles(
+  options: AtlasBootstrapOptions,
+): AtlasBootstrapFile[] {
   validateRuntime(options.runtime);
-  const html = options.html ?? createBootstrapHtml({
-    ...(options.title !== undefined ? { title: options.title } : {}),
-    ...(options.loadingHtml !== undefined ? { loadingHtml: options.loadingHtml } : {})
-  });
+  const html =
+    options.html ??
+    createBootstrapHtml({
+      ...(options.title !== undefined ? { title: options.title } : {}),
+      ...(options.loadingHtml !== undefined
+        ? { loadingHtml: options.loadingHtml }
+        : {}),
+    });
   validateBootstrapHtml(html);
   return [
-    { path: "index.html", contents: html.endsWith("\n") ? html : `${html}\n` },
-    { path: "atlas.loader.js", contents: `${ATLAS_BROWSER_LOADER.trimEnd()}\n` },
-    { path: "es-module-shims.js", contents: MODULE_SHIM_SOURCE },
-    { path: "atlas.runtime.json", contents: `${JSON.stringify(options.runtime, null, 2)}\n` },
+    { path: 'index.html', contents: html.endsWith('\n') ? html : `${html}\n` },
     {
-      path: "nginx.conf",
+      path: 'atlas.loader.js',
+      contents: `${ATLAS_BROWSER_LOADER.trimEnd()}\n`,
+    },
+    { path: 'es-module-shims.js', contents: MODULE_SHIM_SOURCE },
+    {
+      path: 'atlas.runtime.json',
+      contents: `${JSON.stringify(options.runtime, null, 2)}\n`,
+    },
+    {
+      path: 'nginx.conf',
       contents: createNginxConfig(
         options.assetOrigins ?? runtimeAssetOrigins(options.runtime),
-        options.runtime.allowCustomOverrides
-      )
-    }
+        options.runtime.allowCustomOverrides,
+      ),
+    },
   ];
 }
 
-export function createBootstrapHtml(options: Pick<AtlasBootstrapOptions, "title" | "loadingHtml"> = {}): string {
+export function createBootstrapHtml(
+  options: Pick<AtlasBootstrapOptions, 'title' | 'loadingHtml'> = {},
+): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -62,19 +85,34 @@ export function createBootstrapHtml(options: Pick<AtlasBootstrapOptions, "title"
 
 export function validateBootstrapHtml(html: string): void {
   if (!/\bid=["']atlas-host-root["']/.test(html)) {
-    throw new Error('Atlas bootstrap template must contain an element with id="atlas-host-root".');
+    throw new Error(
+      'Atlas bootstrap template must contain an element with id="atlas-host-root".',
+    );
   }
   if (!/<script\b[^>]*\bsrc=["']\/atlas\.loader\.js["'][^>]*>/i.test(html)) {
-    throw new Error('Atlas bootstrap template must load /atlas.loader.js with a script element.');
+    throw new Error(
+      'Atlas bootstrap template must load /atlas.loader.js with a script element.',
+    );
   }
 }
 
-export function createNginxConfig(assetOrigins: readonly string[] = [], allowCustomOverrides = false): string {
+export function createNginxConfig(
+  assetOrigins: readonly string[] = [],
+  allowCustomOverrides = false,
+): string {
   const contentOrigins = normalizedOrigins(assetOrigins);
-  const localHttpOrigins = allowCustomOverrides ? ["http://localhost:*", "http://127.0.0.1:*", "http://[::1]:*"] : [];
-  const localWebSocketOrigins = allowCustomOverrides ? ["ws://localhost:*", "ws://127.0.0.1:*", "ws://[::1]:*"] : [];
+  const localHttpOrigins = allowCustomOverrides
+    ? ['http://localhost:*', 'http://127.0.0.1:*', 'http://[::1]:*']
+    : [];
+  const localWebSocketOrigins = allowCustomOverrides
+    ? ['ws://localhost:*', 'ws://127.0.0.1:*', 'ws://[::1]:*']
+    : [];
   const contentSources = cspSources([...contentOrigins, ...localHttpOrigins]);
-  const connectSources = cspSources([...contentOrigins, ...localHttpOrigins, ...localWebSocketOrigins]);
+  const connectSources = cspSources([
+    ...contentOrigins,
+    ...localHttpOrigins,
+    ...localWebSocketOrigins,
+  ]);
   return `server {
   listen 8080;
   server_name _;
@@ -118,32 +156,35 @@ function runtimeAssetOrigins(runtime: AtlasHostRuntimeConfig): string[] {
   return [
     new URL(runtime.catalogUrl).origin,
     ...(runtime.assetOrigins ?? []),
-    ...(runtime.externalRegistryUrls ?? []).map((url) => new URL(url).origin)
+    ...(runtime.externalRegistryUrls ?? []).map((url) => new URL(url).origin),
   ];
 }
 
 function normalizedOrigins(origins: readonly string[]): string[] {
-  return [...new Set(origins.filter(Boolean).map((origin) => new URL(origin).origin))];
+  return [
+    ...new Set(origins.filter(Boolean).map((origin) => new URL(origin).origin)),
+  ];
 }
 
 function cspSources(origins: readonly string[]): string {
-  return origins.length > 0 ? ` ${origins.join(" ")}` : "";
+  return origins.length > 0 ? ` ${origins.join(' ')}` : '';
 }
 
 function validateRuntime(runtime: AtlasHostRuntimeConfig): void {
-  if (!runtime.hostId.trim()) throw new Error("Atlas bootstrap requires a non-empty hostId.");
+  if (!runtime.hostId.trim())
+    throw new Error('Atlas bootstrap requires a non-empty hostId.');
   try {
     new URL(runtime.catalogUrl);
   } catch {
-    throw new Error("Atlas bootstrap requires an absolute catalogUrl.");
+    throw new Error('Atlas bootstrap requires an absolute catalogUrl.');
   }
 }
 
 function escapeHtml(value: string): string {
   return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }

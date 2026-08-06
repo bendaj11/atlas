@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing"
+  short_description: "Write focused unit and E2E tests"
+  default_prompt: "Use $testing to write focused tests for this change."

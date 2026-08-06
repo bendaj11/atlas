@@ -27,7 +27,7 @@ function HostLayout() {
       <AtlasHostStatus />
       <header>
         <strong>Atlas</strong>
-        <AtlasSlot name="header" />
+        <AtlasSlot slotId="header" />
       </header>
       <AtlasNavigation aria-label="Application" />
       <AtlasRouteOutlet />

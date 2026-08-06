@@ -28,9 +28,9 @@ export interface AtlasBrowserNavigation extends AtlasNavigation {
   dispose(): void;
 }
 
-/** app navigation restricted to the base path assigned by the host catalog. */
+/** App navigation restricted to the path assigned by the host catalog. */
 export interface AtlasScopedNavigation extends AtlasNavigation {
-  readonly basePath: string;
+  readonly path: string;
   toInnerPath(to: string): string;
 }
 
@@ -41,7 +41,7 @@ export interface AtlasInnerLocation {
 }
 
 export interface AtlasRouteContext {
-  readonly basePath: string;
+  readonly path: string;
   getCurrent(): AtlasInnerLocation;
   setTabTitle(title: string): void;
   subscribe(listener: (location: AtlasInnerLocation) => void): () => void;

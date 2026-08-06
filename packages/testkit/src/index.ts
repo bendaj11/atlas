@@ -12,7 +12,7 @@ export function createTestManifest(overrides: Partial<AtlasManifest> = {}): Atla
         routes: [
           {
             hostId: "host",
-            basePath: "/catalog",
+            path: "/catalog",
             title: "Catalog"
           }
         ]

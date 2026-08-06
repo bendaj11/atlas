@@ -1,7 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AtlasProject, AtlasWorkspace } from '../workspace/workspace.js';
-import { defaultDevServerPort } from '../workspace/workspace.js';
+import type {
+  AtlasProject,
+  AtlasWorkspace,
+} from '../workspace/service/workspace.js';
+import { defaultDevServerPort } from '../workspace/service/workspace.js';
 
 type ProjectType = 'host' | 'app';
 
@@ -42,8 +45,9 @@ async function jsonDevServerPorts(
 ): Promise<number[]> {
   const config = await readJson(path);
   if (!config) return [];
-  const projects = container === 'projects' ? recordValues(config.projects) : [config];
-  return projects.flatMap(project => targetPorts(project));
+  const projects =
+    container === 'projects' ? recordValues(config.projects) : [config];
+  return projects.flatMap((project) => targetPorts(project));
 }
 
 async function viteDevServerPorts(path: string): Promise<number[]> {
@@ -54,10 +58,12 @@ async function viteDevServerPorts(path: string): Promise<number[]> {
 
 function targetPorts(project: Record<string, unknown>): number[] {
   const targets = recordValues(project.architect ?? project.targets);
-  return targets.flatMap(target => validPort(asRecord(target.options).port));
+  return targets.flatMap((target) => validPort(asRecord(target.options).port));
 }
 
-async function readJson(path: string): Promise<Record<string, unknown> | undefined> {
+async function readJson(
+  path: string,
+): Promise<Record<string, unknown> | undefined> {
   const source = await readText(path);
   if (!source) return undefined;
   try {
@@ -86,14 +92,20 @@ function recordValues(value: unknown): Record<string, unknown>[] {
 }
 
 function validPort(value: unknown): number[] {
-  const port = typeof value === 'number'
-    ? value
-    : typeof value === 'string' && /^\d+$/.test(value)
-      ? Number(value)
-      : undefined;
+  const port =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\d+$/.test(value)
+        ? Number(value)
+        : undefined;
   return isValidTcpPort(port) ? [port] : [];
 }
 
 function isValidTcpPort(port: unknown): port is number {
-  return typeof port === 'number' && Number.isInteger(port) && port >= 1 && port <= MAX_TCP_PORT;
+  return (
+    typeof port === 'number' &&
+    Number.isInteger(port) &&
+    port >= 1 &&
+    port <= MAX_TCP_PORT
+  );
 }

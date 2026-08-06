@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.3.37",
+  "version": "0.3.47",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -69,12 +69,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-output.js && ngc -p tsconfig.angular.json",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/sdk/tests/",
+    "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json && tsc -p tsconfig.federation-config.json",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/(src|tests)/'",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.37",
+    "@atlas/schema": "0.3.47",
     "@softarc/native-federation-runtime": "^3.5.5",
     "cjs-module-lexer": "^1.4.3"
   },

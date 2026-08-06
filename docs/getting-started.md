@@ -73,7 +73,7 @@ export default {
   routes: [
     {
       hostId: "7ee210f9-dacd-4aac-939e-237032d44740",
-      basePath: "/login",
+      path: "/login",
       title: "Login"
     }
   ]

@@ -29,7 +29,7 @@ interface DomHostRuntimeInput<THostSdk extends object> {
 
 export async function startDomHostRuntime<THostSdk extends object>(
   input: DomHostRuntimeInput<THostSdk>
-): Promise<AtlasHostRuntime> {
+): Promise<AtlasHostRuntime<THostSdk>> {
   const { options, services, document, onInfrastructureReady } = input;
   const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
   const config = await resolveHostConfig(options);
@@ -81,7 +81,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
   const stopNavigationItems = navigation.subscribe(updateNavigationItems);
   onInfrastructureReady();
 
-  let runtime: AtlasHostRuntime | undefined;
+  let runtime: AtlasHostRuntime<THostSdk> | undefined;
   runtime = await startAtlasHostRuntime({
     hostId: config.hostId,
     manifests,
@@ -113,6 +113,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     hostId: runtime.hostId,
     manifests: runtime.manifests,
     retry: (appId) => runtime.retry(appId),
+    updateHostData: (updates) => runtime.updateHostData(updates),
     async stop() {
       stopNavigationItems();
       await runtime.stop();
@@ -145,7 +146,7 @@ function resolveDomSlotContainer(anchors: AtlasHostAnchorRegistry, appId: string
   if (!slotContainer) {
     console.warn(
       `Atlas skipped slot placement "${placementId}" for app "${appId}" because host slot "${slot}" is missing. ` +
-      `Suggested action: Add <atlas-slot name="${slot}"></atlas-slot> to the host layout, or remove this placement from the app manifest.`
+      `Suggested action: Add <atlas-slot slotId="${slot}"></atlas-slot> to the host layout, or remove this placement from the app manifest.`
     );
     return undefined;
   }

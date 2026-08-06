@@ -102,6 +102,72 @@ const authenticatedHttpClient = {
 };
 ```
 
+### Host data: fixed and live values
+
+`hostData` is the SDK's host-owned shared-state surface. It is for values apps
+read, such as identity, tenant, locale, permissions, feature flags, and selected
+account. Put commands, clients, and services directly on the SDK instead.
+
+Angular hosts accept a fixed value or Angular `Signal` for every top-level
+`hostData` field. Fixed values remain part of every snapshot. When a supplied
+Signal changes, Atlas publishes a new immutable snapshot to all mounted apps.
+Keep reactive fields shallow; replace a complete nested value through its
+top-level Signal rather than placing Signals inside nested objects.
+
+```ts
+interface CustomerHostSdk {
+  readonly hostData: {
+    readonly userName: string;
+    readonly tenantId: string;
+    readonly featureFlags: Readonly<Record<string, boolean>>;
+  };
+  refreshSession(): Promise<void>;
+}
+
+return {
+  hostData: {
+    userName: session.userName, // Signal<string>
+    tenantId: 'tenant-42', // fixed value
+    featureFlags: session.featureFlags, // Signal<Readonly<Record<string, boolean>>>
+  },
+  refreshSession: () => session.refresh(),
+};
+```
+
+Convert RxJS Observables once in Angular host configuration, then pass the
+resulting Signal to `hostData`:
+
+```ts
+import { toSignal } from '@angular/core/rxjs-interop';
+
+const userName = toSignal(session.userName$, {
+  injector,
+  initialValue: '',
+});
+```
+
+Use `requireSync: true` only when the Observable guarantees a synchronous first
+value, for example a `BehaviorSubject`. Handle Observable errors before
+`toSignal`; an errored signal throws when read. Do not make Atlas subscribe to
+arbitrary Observables or recursively discover Signals in custom SDK objects.
+
+Framework adapters expose the current snapshot using native reactive patterns:
+
+```ts
+// Angular app
+const sdk = injectAtlasSdk<CustomerHostSdk>();
+sdk.hostData().userName;
+```
+
+```tsx
+// React app
+const sdk = useAtlasSdk<CustomerHostSdk>();
+sdk.hostData.userName;
+```
+
+React's SDK hook subscribes to Atlas updates and re-renders its consumer. It
+receives plain current values, even when the host is Angular.
+
 ```ts
 import type { AtlasEventMap } from '@atlas/sdk';
 

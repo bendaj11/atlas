@@ -1,17 +1,17 @@
 import type { AtlasNavigation, AtlasScopedNavigation } from "./navigation-types.js";
-import { normalizeBasePath, scopePath } from "./navigation-paths.js";
+import { normalizePath, scopePath } from "./navigation-paths.js";
 
-/** Restricts an app's relative and absolute-path navigation to its assigned base path. */
-export function createScopedNavigation(basePath: string, navigation: AtlasNavigation): AtlasScopedNavigation {
-  const normalizedBasePath = normalizeBasePath(basePath);
+/** Restricts an app's relative and absolute-path navigation to its assigned path. */
+export function createScopedNavigation(path: string, navigation: AtlasNavigation): AtlasScopedNavigation {
+  const normalizedPath = normalizePath(path);
 
   return {
-    basePath: normalizedBasePath,
+    path: normalizedPath,
     navigate(to, options) {
-      navigation.navigate(scopePath(normalizedBasePath, to), options);
+      navigation.navigate(scopePath(normalizedPath, to), options);
     },
     replace(to, options) {
-      navigation.replace(scopePath(normalizedBasePath, to), options);
+      navigation.replace(scopePath(normalizedPath, to), options);
     },
     back() {
       navigation.back();
@@ -21,7 +21,7 @@ export function createScopedNavigation(basePath: string, navigation: AtlasNaviga
       else if (delta === -1) navigation.back();
     },
     createHref(to) {
-      return navigation.createHref(scopePath(normalizedBasePath, to));
+      return navigation.createHref(scopePath(normalizedPath, to));
     },
     subscribe(listener) {
       return navigation.subscribe(listener);
@@ -30,7 +30,7 @@ export function createScopedNavigation(basePath: string, navigation: AtlasNaviga
       return navigation.getCurrentLocation();
     },
     toInnerPath(to) {
-      return scopePath(normalizedBasePath, to);
+      return scopePath(normalizedPath, to);
     }
   };
 }

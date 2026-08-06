@@ -7,7 +7,7 @@ export interface AtlasHostNavigationItem {
   id: string;
   appId: string;
   appName: string;
-  basePath: string;
+  path: string;
   href: string;
   label: string;
   title?: string;
@@ -35,13 +35,13 @@ export function createHostNavigationItems(
       id: placement.id,
       appId: manifest.id,
       appName: manifest.name,
-      basePath: route.basePath,
-      href: navigation.createHref(route.basePath),
+      path: route.path,
+      href: navigation.createHref(route.path),
       label: route.nav?.label ?? route.title ?? manifest.name,
       ...(route.title !== undefined ? { title: route.title } : {}),
       order: route.nav?.order ?? 0,
-      active: routeMatches(route.basePath, pathname),
-      navigate: () => navigation.navigate(route.basePath)
+      active: routeMatches(route.path, pathname),
+      navigate: () => navigation.navigate(route.path)
     };
   });
 }
@@ -78,15 +78,15 @@ function routePlacementsForHost(manifests: readonly AtlasManifest[], hostId: str
 function uniqueRoutePlacements(placements: RoutePlacement[]): RoutePlacement[] {
   const byPath = new Map<string, RoutePlacement[]>();
   for (const placement of placements) {
-    const path = normalizeRoutePath(placement.placement.route!.basePath);
+    const path = normalizeRoutePath(placement.placement.route!.path);
     byPath.set(path, [...(byPath.get(path) ?? []), placement]);
   }
 
   return [...byPath.values()].map((group) => group[0]!);
 }
 
-function routeMatches(basePath: string, pathname: string): boolean {
-  const normalized = normalizeRoutePath(basePath);
+function routeMatches(path: string, pathname: string): boolean {
+  const normalized = normalizeRoutePath(path);
   return normalized === "/" || pathname === normalized || pathname.startsWith(`${normalized}/`);
 }
 

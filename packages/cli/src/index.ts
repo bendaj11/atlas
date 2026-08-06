@@ -2,7 +2,7 @@ export { runAtlasCli } from './cli/cli.service.js';
 export {
   defineAtlasPublishConfig,
   S3PublicationStorage,
-} from './publication/publish.service.js';
+} from './publication/service/publish.service.js';
 export type {
   AtlasPublicationLease,
   AtlasPublicationObjectMetadata,
@@ -12,4 +12,4 @@ export type {
   AtlasPullRequestResolver,
   AtlasPullRequestStatus,
   S3Options,
-} from './publication/publish.service.js';
+} from './publication/service/publish.service.js';

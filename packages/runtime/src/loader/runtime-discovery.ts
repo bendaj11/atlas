@@ -4,11 +4,11 @@ import {
   errorSummary,
   type AtlasHostCatalog,
   type AtlasHostRuntimeConfig,
-  type AtlasManifest
-} from "@atlas/schema";
-import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
-import { mapWithConcurrency } from "../concurrency.js";
-import { runtimeError } from "../runtime-error.js";
+  type AtlasManifest,
+} from '@atlas/schema';
+import { runResiliently, type AtlasRetryPolicy } from '../resilience.js';
+import { mapWithConcurrency } from '../concurrency.js';
+import { runtimeError } from '../runtime-error.js';
 
 type FetchJson = (url: string, signal?: AbortSignal) => Promise<unknown>;
 type FetchBytes = (url: string, signal?: AbortSignal) => Promise<ArrayBuffer>;
@@ -18,11 +18,11 @@ const MAX_CACHED_INTEGRITY_CHECKS = 256;
 export interface AtlasRuntimeOverride {
   appId: string;
   manifest: AtlasManifest;
-  reason: "local" | "pr" | "historical";
+  reason: 'local' | 'pr' | 'historical';
 }
 
 export interface AtlasRuntimeOverrideDocument {
-  schemaVersion: "1";
+  schemaVersion: '1';
   hostId: string;
   overrides: AtlasRuntimeOverride[];
   generatedAt: string;
@@ -33,9 +33,9 @@ export interface AtlasBrowserOverrideOptions {
   /** Allows localhost/custom-URL overrides. Registry-backed PR and historical overrides need no opt-in. */
   allowCustomOverrides?: boolean;
   search?: string;
-  storage?: Pick<Storage, "getItem">;
+  storage?: Pick<Storage, 'getItem'>;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
-  sessionStorage?: Pick<Storage, "getItem">;
+  sessionStorage?: Pick<Storage, 'getItem'>;
   fetchJson?: FetchJson;
   requestPolicy?: AtlasRetryPolicy;
 }
@@ -45,11 +45,12 @@ export interface AtlasRemoteTrustPolicy {
   allowedOrigins?: ReadonlySet<string>;
 }
 
-export const ATLAS_OVERRIDE_QUERY_PARAM = "atlas-override";
-export const ATLAS_DEV_SESSION_PORT_QUERY_PARAM = "atlas-dev-port";
-export const ATLAS_OVERRIDE_STORAGE_KEY = "atlas.runtime-override-url";
-export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = "atlas.runtime-overrides";
-const ATLAS_LOCAL_DEV_SESSION_URL = "http://localhost:4400/atlas.dev-session.json";
+export const ATLAS_OVERRIDE_QUERY_PARAM = 'atlas-override';
+export const ATLAS_DEV_SESSION_PORT_QUERY_PARAM = 'atlas-dev-port';
+export const ATLAS_OVERRIDE_STORAGE_KEY = 'atlas.runtime-override-url';
+export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = 'atlas.runtime-overrides';
+const ATLAS_LOCAL_DEV_SESSION_URL =
+  'http://localhost:4400/atlas.dev-session.json';
 const LOCAL_DEV_DISCOVERY_TIMEOUT_MS = 500;
 
 export async function loadHostCatalog(options: {
@@ -58,77 +59,111 @@ export async function loadHostCatalog(options: {
   requestPolicy?: AtlasRetryPolicy;
 }): Promise<AtlasHostCatalog> {
   const catalog = await runResiliently(
-    (signal) => options.fetchJson
-      ? options.fetchJson(options.catalogUrl, signal)
-      : defaultFetchJson(options.catalogUrl, signal),
-    { stage: "catalog", resource: options.catalogUrl },
-    options.requestPolicy
+    (signal) =>
+      options.fetchJson
+        ? options.fetchJson(options.catalogUrl, signal)
+        : defaultFetchJson(options.catalogUrl, signal),
+    { stage: 'catalog', resource: options.catalogUrl },
+    options.requestPolicy,
   );
   assertAtlasHostCatalog(catalog);
   return catalog;
 }
 
 export async function loadHostRuntimeConfig(
-  url = "/atlas.runtime.json",
+  url = '/atlas.runtime.json',
   fetchJson: FetchJson = defaultFetchJson,
-  requestPolicy?: AtlasRetryPolicy
+  requestPolicy?: AtlasRetryPolicy,
 ): Promise<AtlasHostRuntimeConfig> {
   const config = await runResiliently(
     (signal) => fetchJson(url, signal),
-    { stage: "runtime-config", resource: url },
-    requestPolicy
+    { stage: 'runtime-config', resource: url },
+    requestPolicy,
   );
   if (!isHostRuntimeConfig(config)) {
-    throw runtimeConfigurationError(`Atlas cannot use runtime configuration from "${url}" because required hostId or catalogUrl fields are missing.`);
+    throw runtimeConfigurationError(
+      `Atlas cannot use runtime configuration from "${url}" because required hostId or catalogUrl fields are missing.`,
+    );
   }
   validateRequestPolicy(config);
-  if (config.allowCustomOverrides !== undefined && typeof config.allowCustomOverrides !== "boolean") {
-    throw runtimeConfigurationError("Atlas host runtime field allowCustomOverrides must be true or false.");
+  if (
+    config.allowCustomOverrides !== undefined &&
+    typeof config.allowCustomOverrides !== 'boolean'
+  ) {
+    throw runtimeConfigurationError(
+      'Atlas host runtime field allowCustomOverrides must be true or false.',
+    );
   }
-  validateRuntimeUrls(config.externalRegistryUrls, "externalRegistryUrls");
-  validateRuntimeUrls(config.assetOrigins, "assetOrigins");
+  validateRuntimeUrls(config.externalRegistryUrls, 'externalRegistryUrls');
+  validateRuntimeUrls(config.assetOrigins, 'assetOrigins');
   return config;
 }
 
-function validateRuntimeUrls(values: string[] | undefined, field: string): void {
+function validateRuntimeUrls(
+  values: string[] | undefined,
+  field: string,
+): void {
   if (values === undefined) return;
-  if (!Array.isArray(values) || values.some((value) => typeof value !== "string" || !isHttpUrl(value))) {
-    throw runtimeConfigurationError(`Atlas host runtime field ${field} must be an array of absolute HTTP(S) URLs.`);
+  if (
+    !Array.isArray(values) ||
+    values.some((value) => typeof value !== 'string' || !isHttpUrl(value))
+  ) {
+    throw runtimeConfigurationError(
+      `Atlas host runtime field ${field} must be an array of absolute HTTP(S) URLs.`,
+    );
   }
 }
 
 function isHttpUrl(value: string): boolean {
-  try { return isHttpProtocol(new URL(value).protocol); }
-  catch { return false; }
+  try {
+    return isHttpProtocol(new URL(value).protocol);
+  } catch {
+    return false;
+  }
 }
 
 function validateRequestPolicy(config: AtlasHostRuntimeConfig): void {
-  if (config.resourcesTimeoutMs !== undefined && (!Number.isInteger(config.resourcesTimeoutMs) || config.resourcesTimeoutMs < 1)) {
-    throw runtimeConfigurationError("Atlas host runtime field resourcesTimeoutMs must be a positive integer.");
+  if (
+    config.resourcesTimeoutMs !== undefined &&
+    (!Number.isInteger(config.resourcesTimeoutMs) ||
+      config.resourcesTimeoutMs < 1)
+  ) {
+    throw runtimeConfigurationError(
+      'Atlas host runtime field resourcesTimeoutMs must be a positive integer.',
+    );
   }
-  if (config.resourcesRetryCount !== undefined && (!Number.isInteger(config.resourcesRetryCount) || config.resourcesRetryCount < 0)) {
-    throw runtimeConfigurationError("Atlas host runtime field resourcesRetryCount must be zero or a positive integer.");
+  if (
+    config.resourcesRetryCount !== undefined &&
+    (!Number.isInteger(config.resourcesRetryCount) ||
+      config.resourcesRetryCount < 0)
+  ) {
+    throw runtimeConfigurationError(
+      'Atlas host runtime field resourcesRetryCount must be zero or a positive integer.',
+    );
   }
 }
 
-export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideOptions): Promise<AtlasRuntimeOverride[]> {
-  const search = options.search ?? globalThis.location?.search ?? "";
+export async function loadBrowserRuntimeOverrides(
+  options: AtlasBrowserOverrideOptions,
+): Promise<AtlasRuntimeOverride[]> {
+  const search = options.search ?? globalThis.location?.search ?? '';
   const queryUrl = new URLSearchParams(search).get(ATLAS_OVERRIDE_QUERY_PARAM);
   const storage = options.storage ?? globalThis.localStorage;
   const sessionStorage = options.sessionStorage ?? globalThis.sessionStorage;
   const storedUrl = storage?.getItem(ATLAS_OVERRIDE_STORAGE_KEY) ?? undefined;
   const allowCustomOverrides = options.allowCustomOverrides ?? false;
-  const url = allowCustomOverrides ? queryUrl ?? storedUrl : undefined;
-  const storedDocument = sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY)
-    ?? storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY)
-    ?? undefined;
+  const url = allowCustomOverrides ? (queryUrl ?? storedUrl) : undefined;
+  const storedDocument =
+    sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
+    storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
+    undefined;
   let source = url ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
   let document: unknown;
   if (url) {
     document = await runResiliently(
       (signal) => (options.fetchJson ?? defaultFetchJson)(url, signal),
-      { stage: "runtime-overrides", resource: url },
-      options.requestPolicy
+      { stage: 'runtime-overrides', resource: url },
+      options.requestPolicy,
     );
   } else if (storedDocument) {
     document = parseOverrideDocument(storedDocument);
@@ -141,15 +176,20 @@ export async function loadBrowserRuntimeOverrides(options: AtlasBrowserOverrideO
   }
   validateOverrideShape(document);
   validateOverrideDocument(document, options.hostId, source);
-  return document.overrides.filter((override) => allowCustomOverrides
-    || (override.reason !== "local" && override.manifest.channel !== "local"));
+  return document.overrides.filter(
+    (override) =>
+      allowCustomOverrides ||
+      (override.reason !== 'local' && override.manifest.channel !== 'local'),
+  );
 }
 
 function localDevSessionUrl(hostId: string, search: string): string {
   const url = new URL(ATLAS_LOCAL_DEV_SESSION_URL);
-  const requestedPort = new URLSearchParams(search).get(ATLAS_DEV_SESSION_PORT_QUERY_PARAM);
+  const requestedPort = new URLSearchParams(search).get(
+    ATLAS_DEV_SESSION_PORT_QUERY_PARAM,
+  );
   if (requestedPort && isValidPort(requestedPort)) url.port = requestedPort;
-  url.searchParams.set("hostId", hostId);
+  url.searchParams.set('hostId', hostId);
   return url.href;
 }
 
@@ -158,15 +198,24 @@ function isValidPort(value: string): boolean {
   return Number.isInteger(port) && port > 0 && port <= 65_535;
 }
 
-async function discoverLocalDevSession(url: string, fetchJson: FetchJson = defaultFetchJson): Promise<unknown | undefined> {
+async function discoverLocalDevSession(
+  url: string,
+  fetchJson: FetchJson = defaultFetchJson,
+): Promise<unknown | undefined> {
   try {
-    return await fetchJson(url, AbortSignal.timeout(LOCAL_DEV_DISCOVERY_TIMEOUT_MS));
+    return await fetchJson(
+      url,
+      AbortSignal.timeout(LOCAL_DEV_DISCOVERY_TIMEOUT_MS),
+    );
   } catch {
     return undefined;
   }
 }
 
-export function resolveRuntimeManifests(catalog: AtlasHostCatalog, overrides: AtlasRuntimeOverride[] = []): AtlasManifest[] {
+export function resolveRuntimeManifests(
+  catalog: AtlasHostCatalog,
+  overrides: AtlasRuntimeOverride[] = [],
+): AtlasManifest[] {
   return resolveRuntimeCatalog(catalog, overrides).apps;
 }
 
@@ -176,13 +225,18 @@ export function resolveRuntimeCatalog(
 ): AtlasHostCatalog {
   const appsById = new Map<string, AtlasManifest>();
   for (const manifest of catalog.apps) {
-    if (appsById.has(manifest.id)) throw catalogSelectionError(`Atlas catalog selects multiple versions of app "${manifest.id}".`);
+    if (appsById.has(manifest.id))
+      throw catalogSelectionError(
+        `Atlas catalog selects multiple versions of app "${manifest.id}".`,
+      );
     appsById.set(manifest.id, manifest);
   }
   const providersById = new Map<string, AtlasManifest>();
   for (const manifest of catalog.widgetProviders ?? []) {
     if (appsById.has(manifest.id) || providersById.has(manifest.id)) {
-      throw catalogSelectionError(`Atlas catalog selects multiple versions of app "${manifest.id}".`);
+      throw catalogSelectionError(
+        `Atlas catalog selects multiple versions of app "${manifest.id}".`,
+      );
     }
     providersById.set(manifest.id, manifest);
   }
@@ -190,29 +244,36 @@ export function resolveRuntimeCatalog(
   for (const override of overrides) {
     assertAtlasManifest(override.manifest);
     if (override.appId !== override.manifest.id) {
-      throw overrideError(`Atlas override app id "${override.appId}" does not match its manifest id "${override.manifest.id}".`);
+      throw overrideError(
+        `Atlas override app id "${override.appId}" does not match its manifest id "${override.manifest.id}".`,
+      );
     }
     if (overriddenIds.has(override.appId)) {
-      throw overrideError(`Atlas overrides contain more than one entry for app "${override.appId}".`);
+      throw overrideError(
+        `Atlas overrides contain more than one entry for app "${override.appId}".`,
+      );
     }
-    const selected = appsById.get(override.appId) ?? providersById.get(override.appId);
+    const selected =
+      appsById.get(override.appId) ?? providersById.get(override.appId);
     if (!selected) {
-      throw overrideError(`Atlas override targets app "${override.appId}", but the host catalog does not select that app or widget provider.`);
+      throw overrideError(
+        `Atlas override targets app "${override.appId}", but the host catalog does not select that app or widget provider.`,
+      );
     }
-    assertManifestSupportsHost(override.manifest, catalog.hostId, "override");
+    assertManifestSupportsHost(override.manifest, catalog.hostId, 'override');
     assertLocalManifestUrls(override.manifest);
     overriddenIds.add(override.appId);
     const resolved = {
       ...override.manifest,
       supportedHosts: selected.supportedHosts,
-      placements: selected.placements
+      placements: selected.placements,
     };
     if (appsById.has(override.appId)) appsById.set(override.appId, resolved);
     else providersById.set(override.appId, resolved);
   }
   const manifests = [...appsById.values(), ...providersById.values()];
   for (const manifest of manifests) {
-    assertManifestSupportsHost(manifest, catalog.hostId, "catalog");
+    assertManifestSupportsHost(manifest, catalog.hostId, 'catalog');
     assertLocalManifestUrls(manifest);
   }
   return {
@@ -227,7 +288,7 @@ export function resolveRuntimeCatalog(
 export async function verifyManifestIntegrity(
   manifests: AtlasManifest[],
   fetchBytes: FetchBytes = defaultFetchBytes,
-  policy: AtlasRemoteTrustPolicy = {}
+  policy: AtlasRemoteTrustPolicy = {},
 ): Promise<void> {
   for (const manifest of manifests) {
     assertManifestAssetTrust(manifest, policy);
@@ -239,27 +300,41 @@ export async function verifyManifestIntegrity(
     const key = `${manifest.remoteEntryUrl}\0${manifest.integrity}`;
     let checking = defaultIntegrityChecks.get(key);
     if (!checking) {
-      checking = verifyRemoteEntryIntegrity(manifest, fetchBytes).catch((error) => {
-        defaultIntegrityChecks.delete(key);
-        throw error;
-      });
+      checking = verifyRemoteEntryIntegrity(manifest, fetchBytes).catch(
+        (error) => {
+          defaultIntegrityChecks.delete(key);
+          throw error;
+        },
+      );
       defaultIntegrityChecks.set(key, checking);
       if (defaultIntegrityChecks.size > MAX_CACHED_INTEGRITY_CHECKS) {
-        defaultIntegrityChecks.delete(defaultIntegrityChecks.keys().next().value!);
+        defaultIntegrityChecks.delete(
+          defaultIntegrityChecks.keys().next().value!,
+        );
       }
     }
     await checking;
   }
 }
 
-async function verifyRemoteEntryIntegrity(manifest: AtlasManifest, fetchBytes: FetchBytes): Promise<void> {
-  const [algorithm, expected] = manifest.integrity!.split("-", 2);
-  if (algorithm !== "sha256" || !expected) {
-    throw trustError(`Atlas app "${manifest.id}" has an unsupported integrity value; Atlas requires sha256-<base64>.`);
+async function verifyRemoteEntryIntegrity(
+  manifest: AtlasManifest,
+  fetchBytes: FetchBytes,
+): Promise<void> {
+  const [algorithm, expected] = manifest.integrity!.split('-', 2);
+  if (algorithm !== 'sha256' || !expected) {
+    throw trustError(
+      `Atlas app "${manifest.id}" has an unsupported integrity value; Atlas requires sha256-<base64>.`,
+    );
   }
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", await fetchBytes(manifest.remoteEntryUrl));
+  const digest = await globalThis.crypto.subtle.digest(
+    'SHA-256',
+    await fetchBytes(manifest.remoteEntryUrl),
+  );
   if (bytesToBase64(new Uint8Array(digest)) !== expected) {
-    throw trustError(`Atlas rejected app "${manifest.id}" because its remote entry bytes do not match the manifest SHA-256 integrity value.`);
+    throw trustError(
+      `Atlas rejected app "${manifest.id}" because its remote entry bytes do not match the manifest SHA-256 integrity value.`,
+    );
   }
 }
 
@@ -268,16 +343,26 @@ export async function findManifestTrustErrors(
   manifests: AtlasManifest[],
   policy: AtlasRemoteTrustPolicy,
   fetchBytes: FetchBytes = defaultFetchBytes,
-  requestPolicy?: AtlasRetryPolicy
+  requestPolicy?: AtlasRetryPolicy,
 ): Promise<ReadonlyMap<string, Error>> {
   const errors = new Map<string, Error>();
   await mapWithConcurrency(manifests, async (manifest) => {
     try {
-      await verifyManifestIntegrity([manifest], (url) => runResiliently(
-        (signal) => fetchBytes(url, signal),
-        { stage: "integrity", resource: url, appId: manifest.id, version: manifest.version },
-        requestPolicy
-      ), policy);
+      await verifyManifestIntegrity(
+        [manifest],
+        (url) =>
+          runResiliently(
+            (signal) => fetchBytes(url, signal),
+            {
+              stage: 'integrity',
+              resource: url,
+              appId: manifest.id,
+              version: manifest.version,
+            },
+            requestPolicy,
+          ),
+        policy,
+      );
     } catch (error) {
       errors.set(manifest.id, toError(error));
     }
@@ -286,10 +371,15 @@ export async function findManifestTrustErrors(
 }
 
 /** Builds the default fail-closed policy from deployment configuration. */
-export function createRemoteTrustPolicy(config: AtlasHostRuntimeConfig): AtlasRemoteTrustPolicy {
-  const baseUrl = globalThis.location?.href ?? "http://atlas.local";
-  const origins = [config.catalogUrl, ...(config.assetOrigins ?? []), ...(config.externalRegistryUrls ?? [])]
-    .map((value) => new URL(value, baseUrl).origin);
+export function createRemoteTrustPolicy(
+  config: AtlasHostRuntimeConfig,
+): AtlasRemoteTrustPolicy {
+  const baseUrl = globalThis.location?.href ?? 'http://atlas.local';
+  const origins = [
+    config.catalogUrl,
+    ...(config.assetOrigins ?? []),
+    ...(config.externalRegistryUrls ?? []),
+  ].map((value) => new URL(value, baseUrl).origin);
   return { allowedOrigins: new Set(origins) };
 }
 
@@ -299,165 +389,254 @@ function parseOverrideDocument(value: string): AtlasRuntimeOverrideDocument {
     validateOverrideShape(document);
     return document;
   } catch {
-    throw overrideError(`Atlas runtime override data in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY} is not valid JSON or has an invalid shape.`);
+    throw overrideError(
+      `Atlas runtime override data in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY} is not valid JSON or has an invalid shape.`,
+    );
   }
 }
 
-function validateOverrideShape(value: unknown): asserts value is AtlasRuntimeOverrideDocument {
-  if (!isRecord(value) || value.schemaVersion !== "1" || typeof value.hostId !== "string"
-    || typeof value.generatedAt !== "string" || !Array.isArray(value.overrides)) {
-    throw overrideError(`Atlas runtime override data in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY} has an invalid document shape.`);
+function validateOverrideShape(
+  value: unknown,
+): asserts value is AtlasRuntimeOverrideDocument {
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== '1' ||
+    typeof value.hostId !== 'string' ||
+    typeof value.generatedAt !== 'string' ||
+    !Array.isArray(value.overrides)
+  ) {
+    throw overrideError(
+      `Atlas runtime override data in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY} has an invalid document shape.`,
+    );
   }
   for (const override of value.overrides) {
-    if (!isRecord(override) || typeof override.appId !== "string" || !isRecord(override.manifest)
-      || typeof override.reason !== "string") {
-      throw overrideError(`Atlas runtime override data in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY} contains an invalid app entry.`);
+    if (
+      !isRecord(override) ||
+      typeof override.appId !== 'string' ||
+      !isRecord(override.manifest) ||
+      typeof override.reason !== 'string'
+    ) {
+      throw overrideError(
+        `Atlas runtime override data in ${ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY} contains an invalid app entry.`,
+      );
     }
   }
 }
 
 function isHostRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
-  return isRecord(value) && value.schemaVersion === "1" && typeof value.hostId === "string" && value.hostId.length > 0
-    && typeof value.catalogUrl === "string" && value.catalogUrl.length > 0;
+  return (
+    isRecord(value) &&
+    value.schemaVersion === '1' &&
+    typeof value.hostId === 'string' &&
+    value.hostId.length > 0 &&
+    typeof value.catalogUrl === 'string' &&
+    value.catalogUrl.length > 0
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
-function validateOverrideDocument(document: AtlasRuntimeOverrideDocument, hostId: string, source: string): void {
-  if (document.schemaVersion !== "1" || !Array.isArray(document.overrides)) {
-    throw overrideError(`Atlas runtime override document from ${source} has an unsupported schema or missing overrides array.`);
+function validateOverrideDocument(
+  document: AtlasRuntimeOverrideDocument,
+  hostId: string,
+  source: string,
+): void {
+  if (document.schemaVersion !== '1' || !Array.isArray(document.overrides)) {
+    throw overrideError(
+      `Atlas runtime override document from ${source} has an unsupported schema or missing overrides array.`,
+    );
   }
   if (document.hostId !== hostId) {
-    throw overrideError(`Atlas override targets host "${document.hostId}", but the current host is "${hostId}".`);
+    throw overrideError(
+      `Atlas override targets host "${document.hostId}", but the current host is "${hostId}".`,
+    );
   }
   for (const override of document.overrides) {
     if (override.appId !== override.manifest.id) {
-      throw overrideError(`Atlas override app id "${override.appId}" does not match its manifest id "${override.manifest.id}".`);
+      throw overrideError(
+        `Atlas override app id "${override.appId}" does not match its manifest id "${override.manifest.id}".`,
+      );
     }
     try {
       assertAtlasManifest(override.manifest);
     } catch (error) {
-      const detail = errorSummary(error instanceof Error ? error.message : String(error));
-      throw overrideError(`Atlas override for app "${override.appId}" is invalid: ${detail}`, error);
+      const detail = errorSummary(
+        error instanceof Error ? error.message : String(error),
+      );
+      throw overrideError(
+        `Atlas override for app "${override.appId}" is invalid: ${detail}`,
+        error,
+      );
     }
   }
 }
 
-async function defaultFetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
+async function defaultFetchJson(
+  url: string,
+  signal?: AbortSignal,
+): Promise<unknown> {
   const response = await fetch(url, signal ? { signal } : undefined);
   if (!response.ok) {
-    throw networkError(`Atlas could not download JSON from "${url}": HTTP ${response.status} ${response.statusText}.`);
+    throw networkError(
+      `Atlas could not download JSON from "${url}": HTTP ${response.status} ${response.statusText}.`,
+    );
   }
   return response.json();
 }
 
-async function defaultFetchBytes(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {
+async function defaultFetchBytes(
+  url: string,
+  signal?: AbortSignal,
+): Promise<ArrayBuffer> {
   const response = await fetch(url, signal ? { signal } : undefined);
   if (!response.ok) {
-    throw networkError(`Atlas could not download asset "${url}": HTTP ${response.status} ${response.statusText}.`);
+    throw networkError(
+      `Atlas could not download asset "${url}": HTTP ${response.status} ${response.statusText}.`,
+    );
   }
   return response.arrayBuffer();
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
+  let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
 
-export function assertManifestAssetTrust(manifest: AtlasManifest, policy: AtlasRemoteTrustPolicy = {}): void {
-  if (manifest.channel === "local") {
+export function assertManifestAssetTrust(
+  manifest: AtlasManifest,
+  policy: AtlasRemoteTrustPolicy = {},
+): void {
+  if (manifest.channel === 'local') {
     assertLocalManifestUrls(manifest);
     return;
   }
-  assertTrustedAssetUrl(manifest.remoteEntryUrl, manifest.id, "remote", policy);
+  assertTrustedAssetUrl(manifest.remoteEntryUrl, manifest.id, 'remote', policy);
   assertManifestStylesTrust(manifest, policy);
 }
 
-export function assertManifestStylesTrust(manifest: AtlasManifest, policy: AtlasRemoteTrustPolicy = {}): void {
-  if (manifest.channel === "local") {
+export function assertManifestStylesTrust(
+  manifest: AtlasManifest,
+  policy: AtlasRemoteTrustPolicy = {},
+): void {
+  if (manifest.channel === 'local') {
     assertLocalManifestUrls(manifest);
     return;
   }
   for (const stylesheet of manifest.styles ?? []) {
-    assertTrustedAssetUrl(stylesheet.href, manifest.id, "stylesheet", policy);
+    assertTrustedAssetUrl(stylesheet.href, manifest.id, 'stylesheet', policy);
   }
 }
 
-function assertTrustedAssetUrl(urlValue: string, appId: string, kind: string, policy: AtlasRemoteTrustPolicy): void {
-  const url = new URL(urlValue, globalThis.location?.href ?? "http://atlas.local");
+function assertTrustedAssetUrl(
+  urlValue: string,
+  appId: string,
+  kind: string,
+  policy: AtlasRemoteTrustPolicy,
+): void {
+  const url = new URL(
+    urlValue,
+    globalThis.location?.href ?? 'http://atlas.local',
+  );
   if (!isHttpProtocol(url.protocol)) {
-    throw trustError(`Atlas app "${appId}" uses unsupported ${kind} protocol "${url.protocol}".`);
+    throw trustError(
+      `Atlas app "${appId}" uses unsupported ${kind} protocol "${url.protocol}".`,
+    );
   }
   if (policy.allowedOrigins && !policy.allowedOrigins.has(url.origin)) {
-    throw trustError(`Atlas app "${appId}" uses ${kind} origin "${url.origin}", which is not allowed by the host runtime configuration.`);
+    throw trustError(
+      `Atlas app "${appId}" uses ${kind} origin "${url.origin}", which is not allowed by the host runtime configuration.`,
+    );
   }
 }
 
-function assertManifestSupportsHost(manifest: AtlasManifest, hostId: string, source: string): void {
-  if (!manifest.supportedHosts.includes("*") && !manifest.supportedHosts.includes(hostId)) {
-    throw catalogSelectionError(`Atlas ${source} manifest for app "${manifest.id}" does not support host "${hostId}".`);
+function assertManifestSupportsHost(
+  manifest: AtlasManifest,
+  hostId: string,
+  source: string,
+): void {
+  if (
+    !manifest.supportedHosts.includes('*') &&
+    !manifest.supportedHosts.includes(hostId)
+  ) {
+    throw catalogSelectionError(
+      `Atlas ${source} manifest for app "${manifest.id}" does not support host "${hostId}".`,
+    );
   }
 }
 
 function assertLocalManifestUrls(manifest: AtlasManifest): void {
-  if (manifest.channel !== "local") return;
+  if (manifest.channel !== 'local') return;
   const urls = [
     manifest.remoteEntryUrl,
     ...(manifest.styles ?? []).map(({ href }) => href),
-    ...(manifest.exportedWidgets ?? []).map(({ remoteEntryUrl }) => remoteEntryUrl)
+    ...(manifest.exportedWidgets ?? []).map(
+      ({ remoteEntryUrl }) => remoteEntryUrl,
+    ),
   ];
   for (const value of urls) {
-    const url = new URL(value, globalThis.location?.href ?? "http://atlas.local");
+    const url = new URL(
+      value,
+      globalThis.location?.href ?? 'http://atlas.local',
+    );
     if (!isHttpProtocol(url.protocol) || !isLoopbackHostname(url.hostname)) {
-      throw trustError(`Atlas local app "${manifest.id}" uses non-loopback asset URL "${url.href}".`);
+      throw trustError(
+        `Atlas local app "${manifest.id}" uses non-loopback asset URL "${url.href}".`,
+      );
     }
   }
 }
 
 function isLoopbackHostname(hostname: string): boolean {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+  return (
+    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  );
 }
 
 function isHttpProtocol(protocol: string): boolean {
-  return protocol === "http:" || protocol === "https:";
+  return protocol === 'http:' || protocol === 'https:';
 }
 
 function runtimeConfigurationError(summary: string): Error {
   return runtimeError(summary, {
-    suggestedActions: "Correct the named field in atlas.runtime.json, redeploy it, then reload the page.",
-    code: "ATLAS_INVALID_RUNTIME_CONFIG"
+    suggestedActions:
+      'Correct the named field in atlas.runtime.json, redeploy it, then reload the page.',
+    code: 'ATLAS_INVALID_RUNTIME_CONFIG',
   });
 }
 
 function catalogSelectionError(summary: string): Error {
   return runtimeError(summary, {
-    suggestedActions: "Correct the host catalog so it selects one compatible version per app, republish it, then reload the page.",
-    code: "ATLAS_INVALID_CATALOG_SELECTION"
+    suggestedActions:
+      'Correct the host catalog so it selects one compatible version per app, republish it, then reload the page.',
+    code: 'ATLAS_INVALID_CATALOG_SELECTION',
   });
 }
 
 function overrideError(summary: string, cause?: unknown): Error {
   return runtimeError(summary, {
-    suggestedActions: "Open Columbus, correct or disable the affected override, then reload the host page.",
+    suggestedActions:
+      'Open Columbus, correct or disable the affected override, then reload the host page.',
     ...(cause !== undefined ? { cause } : {}),
-    code: "ATLAS_INVALID_OVERRIDE"
+    code: 'ATLAS_INVALID_OVERRIDE',
   });
 }
 
 function trustError(summary: string): Error {
   return runtimeError(summary, {
-    suggestedActions: "Correct the app manifest URL, allowed origin, or integrity value; rebuild and republish the app, then reload.",
-    code: "ATLAS_REMOTE_TRUST_REJECTED"
+    suggestedActions:
+      'Correct the app manifest URL, allowed origin, or integrity value; rebuild and republish the app, then reload.',
+    code: 'ATLAS_REMOTE_TRUST_REJECTED',
   });
 }
 
 function networkError(summary: string): Error {
   return runtimeError(summary, {
-    suggestedActions: "Verify the URL is deployed, reachable, and permits the host origin through CORS, then retry.",
-    code: "ATLAS_RESOURCE_HTTP_ERROR"
+    suggestedActions:
+      'Verify the URL is deployed, reachable, and permits the host origin through CORS, then retry.',
+    code: 'ATLAS_RESOURCE_HTTP_ERROR',
   });
 }
 

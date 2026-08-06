@@ -28,7 +28,7 @@ Then check app config:
 
 - `framework: "angular"`;
 - route `hostId` matches the host runtime `hostId`;
-- route `basePath` matches the URL being opened;
+- route `path` matches the URL being opened;
 - `supportedHosts` or route declarations allow the host.
 
 ## Angular Remote Entry Does Not Load

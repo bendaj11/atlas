@@ -98,9 +98,9 @@ Import from `@atlas/sdk/navigation`:
 | API                         | Purpose                                                                                 |
 | --------------------------- | --------------------------------------------------------------------------------------- |
 | `AtlasNavigation`           | Host-owned browser navigation contract                                                  |
-| `AtlasScopedNavigation`     | app navigation restricted to its route base path                                        |
+| `AtlasScopedNavigation`     | app navigation restricted to its route path                                        |
 | `createBrowserNavigation()` | Browser History API implementation for simple hosts                                     |
-| `createScopedNavigation()`  | Scope navigation to one app base path                                                   |
+| `createScopedNavigation()`  | Scope navigation to one app path                                                   |
 | `createRouteContext()`      | Read inner paths, query values, hashes, route matches, and update the browser tab title |
 | `scopePath()`               | Convert an app path to its host path                                                    |
 
@@ -157,7 +157,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 | `provideAtlasSdk()`                   | Register the host-provided SDK during app mount                                    |
 | `defineApp()`                         | Expose an Angular app lifecycle entry                                              |
 | `defineExportedWidget()`              | Low-level Angular widget lifecycle adapter; generated widgets do not call it       |
-| `createLocationStrategy()`            | Scope Angular Router to the app base path                                          |
+| `createLocationStrategy()`            | Scope Angular Router to the app path                                          |
 | `AtlasDefaultHostRouteComponent`      | Catch-all Angular host route component used with the generated default host layout |
 | `AtlasNavigationItemsService`         | Read runtime-resolved route navigation items for custom Angular host navigation    |
 | `startHost()`                         | Boot an Angular Atlas host                                                         |
@@ -178,7 +178,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 | `defineApp()`                      | Expose a router-free React app lifecycle entry                                                              |
 | `createRoutedApp()`                | Expose a React Router app lifecycle entry                                                                   |
 | `defineExportedWidget()`           | Low-level React widget lifecycle adapter; generated widgets do not call it                                  |
-| `createRouterOptions()`            | Scope a memory router to the app base path                                                                  |
+| `createRouterOptions()`            | Scope a memory router to the app path                                                                  |
 | `connectRouter()`                  | Synchronize React Router and host navigation                                                                |
 | `AtlasHostProvider`                | Create and provide the host SDK, then start Atlas after the React tree commits                              |
 | `AtlasDefaultHostLayout`           | Replaceable default React host layout; renders the Atlas status, navigation, route outlet, and slot anchors |

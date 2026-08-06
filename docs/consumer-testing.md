@@ -32,7 +32,7 @@ const atlas = createTestHostSdk({
 
 Assert that the app calls SDK capabilities instead of importing host code:
 
-- navigation uses `atlas.navigation.navigate(...)` for cross-app paths;
+- cross-app navigation uses `atlas.navigateTo(appId, state)`;
 - toasts and modals go through `atlas.toast` and `atlas.modal`;
 - HTTP calls go through `atlas.httpClient` when host auth or interceptors matter;
 - app-internal screens use React Router or Angular Router relative paths.
@@ -47,7 +47,7 @@ import { createTestManifest } from "@atlas/testkit";
 const ordersManifest = createTestManifest({
   id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
   hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-  basePath: "/orders"
+  path: "/orders"
 });
 ```
 

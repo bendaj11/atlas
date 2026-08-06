@@ -46,7 +46,7 @@ Generated app files to understand first:
 | `src/main.ts` | Atlas/platform | Angular entry plus mount/unmount lifecycle exposed through Native Federation. |
 | `src/app/app.config.ts` | App team | Angular and Atlas providers. |
 | `src/app/app.component.ts` | App team | App root component. |
-| `src/app/app.routes.ts` | App team | Inner Angular routes scoped under the host base path. |
+| `src/app/app.routes.ts` | App team | Inner Angular routes scoped under the host path. |
 | `federation.config.js` | Atlas/platform | Native Federation compatibility file. |
 
 Product developers usually edit Angular components, services, styles, tests,

@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "@jest/globals";
-import { HttpClient, connectAtlasWidgetResolver, createAtlasEventBus, createAtlasSdk, type AtlasWidgetLoadingRenderer } from "../dist/host.js";
+import { HttpClient, connectAtlasNavigationResolver, connectAtlasWidgetResolver, createAtlasEventBus, createAtlasSdk, subscribeAtlasHostData, updateAtlasHostData, type AtlasWidgetLoadingRenderer } from "../dist/host.js";
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 import { AtlasError } from "../../schema/dist/index.js";
 import { createHostSdk } from "./host.driver.js";
 
-test("event bus publishes across apps and supports unsubscribe", () => {
+test("event bus dispatches across apps and removes listeners", () => {
   const bus = createAtlasEventBus<{ "orders.updated": { orderId: string } }>();
   const received: Array<{ orderId: string }> = [];
-  const unsubscribe = bus.subscribe("orders.updated", (payload) => received.push(payload));
-  bus.publish("orders.updated", { orderId: "42" });
-  unsubscribe();
-  bus.publish("orders.updated", { orderId: "43" });
+  const listener = (payload: { orderId: string }) => received.push(payload);
+  bus.addEventListener("orders.updated", listener);
+  bus.emit("orders.updated", { orderId: "42" });
+  bus.removeEventListener("orders.updated", listener);
+  bus.emit("orders.updated", { orderId: "43" });
   assert.deepEqual(received, [{ orderId: "42" }]);
 });
 
@@ -34,6 +35,45 @@ test("core SDK exposes typed hostData and httpClient without extensions", async 
   await sdk.httpClient.post("/orders", "payload");
   await sdk.httpClient.request("PATCH", "/orders/42", { body: "patch" });
   assert.deepEqual(calls.map(([, options]) => options?.method), ["GET", "POST", "PATCH"]);
+});
+
+test("host updates replace custom host data for mounted apps", () => {
+  interface ProjectHostSdk {
+    hostData: { projectId: string; userId: string | null };
+  }
+  const sdk = createAtlasSdk<ProjectHostSdk>({
+    hostId: "host",
+    navigation: createMemoryNavigation(),
+    hostData: { projectId: "project-42", userId: null },
+  });
+
+  updateAtlasHostData(sdk, { userId: "user-42" });
+
+  assert.deepEqual(sdk.hostData, {
+    hostId: "host",
+    name: "host",
+    projectId: "project-42",
+    userId: "user-42",
+  });
+});
+
+test("host-data subscription stops after cleanup", () => {
+  interface ProjectHostSdk {
+    hostData: { userId: string | null };
+  }
+  const sdk = createAtlasSdk<ProjectHostSdk>({
+    hostId: "host",
+    navigation: createMemoryNavigation(),
+    hostData: { userId: null },
+  });
+  let notifications = 0;
+  const unsubscribe = subscribeAtlasHostData(sdk, () => { notifications += 1; });
+
+  updateAtlasHostData(sdk, { userId: "user-42" });
+  unsubscribe();
+  updateAtlasHostData(sdk, { userId: null });
+
+  assert.equal(notifications, 1);
 });
 
 test("host SDK adapts fetch-compatible httpClient providers", async () => {
@@ -71,6 +111,16 @@ test("host runtime connects synchronous getWidget after SDK construction", () =>
     async mount() { return { async unmount() {} }; }
   }));
   assert.equal(sdk.getWidget("widget-id").name, "Widget");
+});
+
+test("host runtime resolves cross-app navigation by stable app id", () => {
+  const sdk = createHostSdk();
+  let destination: [string, unknown] | undefined;
+  connectAtlasNavigationResolver(sdk, (appId, state) => { destination = [appId, state]; });
+
+  sdk.navigateTo("orders-app", { orderId: "42", tab: "history" });
+
+  assert.deepEqual(destination, ["orders-app", { orderId: "42", tab: "history" }]);
 });
 
 test("host SDK forwards per-widget loading options to runtime", () => {
@@ -113,8 +163,8 @@ test("event bus once listener is removed after its first event", () => {
   const bus = createAtlasEventBus<{ "session.expired": undefined }>();
   let calls = 0;
   bus.once("session.expired", () => { calls += 1; });
-  bus.publish("session.expired");
-  bus.publish("session.expired");
+  bus.emit("session.expired");
+  bus.emit("session.expired");
   assert.equal(calls, 1);
 });
 

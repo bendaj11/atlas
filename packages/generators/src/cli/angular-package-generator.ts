@@ -50,7 +50,7 @@ export function angularPackage(options: AngularPackageOptions): unknown {
             '@atlas/runtime': atlasPackageRange(),
           }
         : {}),
-      'es-module-shims': '^2.7.0',
+      'es-module-shims': '^2.3.0',
       rxjs: '^7.8.0',
       tslib: '^2.8.0',
       ...(!profile.zoneless ? { 'zone.js': profile.zone } : {}),

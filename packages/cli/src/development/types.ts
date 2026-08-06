@@ -6,9 +6,9 @@ import type {
   AtlasHostRuntimeConfig,
   AtlasStaticRegistry,
 } from '@atlas/schema';
-import type { AtlasBuildService } from '../build/build.service.js';
-import type { AtlasPrompter } from '../cli/ui.js';
-import type { AtlasProject } from '../workspace/workspace.js';
+import type { AtlasBuildService } from '../build/service/build.service.js';
+import type { AtlasPrompter } from '../cli/ui/ui.js';
+import type { AtlasProject } from '../workspace/service/workspace.js';
 
 export type DevPrompts = Pick<
   AtlasPrompter,
@@ -56,6 +56,12 @@ export interface LocalBootstrapServerOptions {
   port: number;
   runtime: AtlasHostRuntimeConfig;
   html?: string;
+  proxy?: LocalNativeProxy;
+}
+
+export interface LocalNativeProxy {
+  origin: string;
+  routes: Readonly<Record<string, unknown>>;
 }
 
 export interface AppDevelopmentOptions {

@@ -1,6 +1,8 @@
 import {
   Component,
+  effect,
   Injectable,
+  isSignal,
   signal,
   type ApplicationConfig,
   type Injector,
@@ -16,12 +18,14 @@ import {
 } from '@atlas/sdk/angular';
 import type { AtlasHostClientEntry } from '@atlas/sdk/lifecycle';
 import { startDomHost, type DomHostOptions } from './dom-host.js';
+import type { DomRuntimeOptions } from './dom-host-options.js';
 import {
   readAtlasNavigationItems,
   subscribeAtlasNavigationItems,
   type AtlasHostNavigationItem,
   type AtlasHostRuntime,
 } from './index.js';
+import type { AtlasHostDataOf } from '@atlas/sdk/host';
 export {
   AtlasAngularHostAnchors,
   AtlasHostStatus,
@@ -37,11 +41,32 @@ export {
 })
 export class AtlasDefaultHostRouteComponent {}
 
-export type HostOptions<THostSdk extends object = {}> =
-  DomHostOptions<THostSdk> & {
-    router: RouterLike;
-    location: LocationLike;
-  };
+type AngularHostDataInput<THostSdk extends object> = {
+  [Key in keyof AtlasHostDataOf<THostSdk>]:
+    AtlasHostDataOf<THostSdk>[Key] | Signal<AtlasHostDataOf<THostSdk>[Key]>;
+};
+
+type AngularHostDataOption<THostSdk extends object> =
+  keyof AtlasHostDataOf<THostSdk> extends never
+    ? { hostData?: AngularHostDataInput<THostSdk> }
+    : { hostData: AngularHostDataInput<THostSdk> };
+
+export type HostOptions<THostSdk extends object = {}> = Omit<
+  DomHostOptions<THostSdk>,
+  'hostData'
+> & {
+  router: RouterLike;
+  location: LocationLike;
+  /** Injector used by Atlas to dispose Signal-backed host data with the host runtime. */
+  hostDataInjector?: Injector;
+} & AngularHostDataOption<THostSdk>;
+
+/** Product SDK configuration supplied by `src/app/host.config.ts`. */
+export type HostSdkOptions<THostSdk extends object = {}> = Omit<
+  HostOptions<THostSdk>,
+  keyof DomRuntimeOptions | 'router' | 'location' | 'hostDataInjector'
+> &
+  Pick<HostOptions<THostSdk>, 'observe'>;
 
 type HostMountRequest = Parameters<AtlasHostClientEntry['mount']>[0];
 
@@ -62,7 +87,10 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
   if (root && options.request) options.request.container.append(root);
 
   const app = await bootstrapApplication(options.component, options.appConfig);
-  const runtime = await startHost(options.createHostOptions(app.injector));
+  const runtime = await startHost({
+    ...options.createHostOptions(app.injector),
+    hostDataInjector: app.injector,
+  });
 
   return {
     async unmount() {
@@ -76,12 +104,29 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
 /** Boots Atlas discovery, Native Federation, SDK providers, routes, slots, and lifecycle for an Angular host. */
 export async function startHost<THostSdk extends object = {}>(
   options: HostOptions<THostSdk>,
-): Promise<AtlasHostRuntime> {
-  return startDomHost(options, {
+): Promise<AtlasHostRuntime<THostSdk>> {
+  const { hostData, hostDataInjector, ...runtimeOptions } = options;
+  const domHostOptions = {
+    ...runtimeOptions,
+    ...(hostData ? { hostData: readAngularHostData(hostData) } : {}),
+  } as unknown as DomHostOptions<THostSdk>;
+  const runtime = await startDomHost(domHostOptions, {
     beforeNavigation: () => syncAngularRouterWithBrowserUrl(options.router),
     createNavigation: () =>
       createHostNavigation(options.router, options.location),
   });
+  const stopHostData =
+    hostDataInjector && hostData
+      ? observeAngularHostData(hostData, runtime, hostDataInjector)
+      : () => undefined;
+
+  return {
+    ...runtime,
+    async stop() {
+      stopHostData();
+      await runtime.stop();
+    },
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -111,4 +156,42 @@ async function syncAngularRouterWithBrowserUrl(
   if (router.url !== requestedUrl) {
     await router.navigateByUrl(requestedUrl, { replaceUrl: true });
   }
+}
+
+function readAngularHostData<THostSdk extends object>(
+  hostData: AngularHostDataInput<THostSdk>,
+): AtlasHostDataOf<THostSdk> {
+  return Object.fromEntries(
+    Object.entries(hostData).map(([key, value]) => [
+      key,
+      isAngularHostDataSignal(value) ? value() : value,
+    ]),
+  ) as AtlasHostDataOf<THostSdk>;
+}
+
+function observeAngularHostData<THostSdk extends object>(
+  hostData: AngularHostDataInput<THostSdk>,
+  runtime: AtlasHostRuntime<THostSdk>,
+  injector: Injector,
+): () => void {
+  const references = Object.entries(hostData)
+    .filter((entry): entry is [string, Signal<unknown>] =>
+      isAngularHostDataSignal(entry[1]),
+    )
+    .map(([key, value]) =>
+      effect(
+        () => {
+          runtime.updateHostData({ [key]: value() } as Partial<
+            AtlasHostDataOf<THostSdk>
+          >);
+        },
+        { injector, manualCleanup: true },
+      ),
+    );
+
+  return () => references.forEach((reference) => reference.destroy());
+}
+
+function isAngularHostDataSignal(value: unknown): value is Signal<unknown> {
+  return isSignal(value);
 }

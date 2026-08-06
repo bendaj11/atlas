@@ -2,6 +2,9 @@ import { angularRemoteName } from './angular-names.js';
 import type { AngularVersionProfile } from './generator-versions.js';
 import type { AngularStylesheetFormat } from './generator-types.js';
 
+const ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT =
+  '/@angular-architects/native-federation:build-notifications';
+
 export function angularWorkspace(
   name: string,
   host: boolean,
@@ -33,6 +36,14 @@ export function angularWorkspace(
               target: `${name}:serve-original:development`,
               dev: true,
               port: devServerPort,
+              ...(host
+                ? {
+                    buildNotifications: {
+                      enable: true,
+                      endpoint: ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT,
+                    },
+                  }
+                : {}),
             },
           },
           esbuild: {
@@ -137,13 +148,17 @@ module.exports = createAngularFederationConfig({
 `;
 }
 
-export function angularFederationConfigFile(profile: AngularVersionProfile): string {
+export function angularFederationConfigFile(
+  profile: AngularVersionProfile,
+): string {
   return usesNativeFederationV4(profile)
     ? 'federation.config.mjs'
     : 'federation.config.js';
 }
 
-function angularNativeFederationBuilder(profile: AngularVersionProfile): string {
+function angularNativeFederationBuilder(
+  profile: AngularVersionProfile,
+): string {
   return `${nativeFederationPackage(profile)}:build`;
 }
 

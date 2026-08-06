@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import '@angular/compiler';
 import { test } from '@jest/globals';
-import type { ApplicationRef, EnvironmentInjector } from '@angular/core';
+import {
+  signal,
+  type ApplicationRef,
+  type EnvironmentInjector,
+} from '@angular/core';
 import {
   AngularWidgetOutletController,
   createAngularAtlasSdk,
@@ -36,6 +40,7 @@ test('Angular SDK creates an immutable typed widget binding', () => {
     sdk,
     Object.create(null) as ApplicationRef,
     Object.create(null) as EnvironmentInjector,
+    signal(sdk.hostData).asReadonly(),
   );
 
   const binding = angularSdk.getWidget<{ count: number }>('widget-id', {
@@ -169,6 +174,7 @@ function createTestAngularSdk(
     sdk,
     Object.create(null) as ApplicationRef,
     Object.create(null) as EnvironmentInjector,
+    signal(sdk.hostData).asReadonly(),
   );
 }
 

@@ -22,6 +22,46 @@ after the framework server is ready.
 
 Expected output includes a Host Preview URL. Open it and confirm the product shell renders.
 
+### Proxy host API requests
+
+Atlas can proxy browser requests from the host preview origin. Configure the
+Angular proxy natively in `angular.json` under `serve-original`:
+
+```json
+"serve-original": {
+  "options": {
+    "proxyConfig": "config/local-api-proxy.json"
+  }
+}
+```
+
+Atlas forwards matching browser requests to Angular's native development
+server. Angular loads and executes the configured proxy file unchanged, so use
+any Angular-supported proxy format, option, or JavaScript callback; choose any
+relative file name and location:
+
+```json
+{
+  "/get-data": {
+    "target": "http://localhost:8080",
+    "changeOrigin": true,
+    "secure": false
+  }
+}
+```
+
+`atlas dev` forwards matching requests before its SPA fallback, so
+`http://localhost:<host-port>/get-data` reaches the target. This preserves
+Angular behavior such as `pathRewrite`, `headers`, `bypass`, WebSocket proxying,
+JSONC and JavaScript proxy files, and glob contexts. Atlas does not generate
+production proxy configuration; configure Nginx, an ingress, API gateway, or a
+BFF in deployment infrastructure.
+
+Proxy contexts follow Angular semantics: `/get-data` also matches descendants.
+This development-only configuration is neither emitted nor used in production;
+use deployment infrastructure when production needs rewrites, custom headers,
+or advanced proxy behavior.
+
 Useful overrides:
 
 ```sh

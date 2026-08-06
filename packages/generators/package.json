@@ -1,6 +1,6 @@
 {
   "name": "@atlas/generators",
-  "version": "0.3.37",
+  "version": "0.3.47",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",
@@ -33,11 +33,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "node ../../scripts/clean-package-output.js && tsc -b",
+    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.3.37",
-    "@atlas/schema": "0.3.37"
+    "@atlas/bootstrap": "0.3.47",
+    "@atlas/schema": "0.3.47"
   }
 }

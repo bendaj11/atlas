@@ -20,18 +20,18 @@ const readAngularSdk: () => AngularAtlasSdk<CustomerHostSdk, ProductEvents> = in
 const readReactSdk: () => ReactAtlasSdk<CustomerHostSdk, ProductEvents> = useAtlasSdk<CustomerHostSdk, ProductEvents>;
 
 function verifyFrameworkEventTypes(angularSdk: AngularAtlasSdk<CustomerHostSdk, ProductEvents>, reactSdk: ReactAtlasSdk<CustomerHostSdk, ProductEvents>): void {
-  angularSdk.events.publish("orders.updated", { orderId: "42" });
-  angularSdk.events.publish("cart.cleared");
-  reactSdk.events.subscribe("orders.updated", ({ orderId }) => orderId.toUpperCase());
+  angularSdk.events.emit("orders.updated", { orderId: "42" });
+  angularSdk.events.emit("cart.cleared");
+  reactSdk.events.addEventListener("orders.updated", ({ orderId }) => orderId.toUpperCase());
 
   // @ts-expect-error Unknown event names must be rejected.
-  angularSdk.events.publish("orders.created", { orderId: "42" });
+  angularSdk.events.emit("orders.created", { orderId: "42" });
   // @ts-expect-error Payload must match the selected event name.
-  reactSdk.events.publish("orders.updated", { id: "42" });
+  reactSdk.events.emit("orders.updated", { id: "42" });
   // @ts-expect-error Payload-bearing events require a payload.
-  reactSdk.events.publish("orders.updated");
+  reactSdk.events.emit("orders.updated");
   // @ts-expect-error Payloadless events reject payload values.
-  angularSdk.events.publish("cart.cleared", {});
+  angularSdk.events.emit("cart.cleared", {});
 }
 
 function verifyAngularWidgetTypes(sdk: AngularAtlasSdk): WidgetBinding<{ orderId: string }> {

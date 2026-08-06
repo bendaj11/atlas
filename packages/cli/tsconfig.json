@@ -30,5 +30,6 @@
     { "path": "../runtime" },
     { "path": "../sdk" }
   ],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.specs.ts", "src/**/*.driver.ts", "src/**/*.testkit.ts"]
 }

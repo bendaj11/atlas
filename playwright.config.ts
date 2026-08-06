@@ -9,8 +9,8 @@ const artifacts = resolve(process.env.ATLAS_E2E_ARTIFACTS_DIR ?? "tests/e2e/.art
 
 function staticServerCommand(directory: string, port: string, spa = false): string {
   const argumentsList = [
-    "node",
-    "tests/e2e/static-server.js",
+    "tsx",
+    "tests/e2e/static-server.ts",
     `--root=${join(artifacts, directory)}`,
     `--port=${port}`,
     ...(spa ? ["--spa"] : [])

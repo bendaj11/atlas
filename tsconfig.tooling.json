@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "target": "ES2022",
+    "types": ["node"]
+  },
+  "include": [
+    "apps/columbus/src/scripts/build/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/e2e/directory-publication-storage.ts",
+    "tests/e2e/prepare.ts",
+    "tests/e2e/static-server.ts"
+  ]
+}

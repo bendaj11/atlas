@@ -2,49 +2,62 @@ import { AtlasError, errorSummary } from "@atlas/schema";
 
 export type AtlasEventMap = Record<string, unknown>;
 
+/**
+ * Typed, in-memory event target scoped to one Atlas host.
+ * Event names and payloads come from `TEvents`.
+ */
 export interface AtlasEventBus<TEvents extends object = AtlasEventMap> {
-  publish<TKey extends PayloadlessEventKey<TEvents>>(type: TKey): void;
-  publish<TKey extends PayloadEventKey<TEvents>>(type: TKey, payload: TEvents[TKey]): void;
-  subscribe<TKey extends keyof TEvents & string>(type: TKey, listener: (payload: TEvents[TKey]) => void): () => void;
-  once<TKey extends keyof TEvents & string>(type: TKey, listener: (payload: TEvents[TKey]) => void): () => void;
+  /** Dispatch an event synchronously to listeners registered for its type. */
+  emit<TKey extends PayloadlessEventKey<TEvents>>(type: TKey): void;
+  emit<TKey extends PayloadEventKey<TEvents>>(type: TKey, payload: TEvents[TKey]): void;
+  /** Register a listener. Remove it with the same function reference when its owner is destroyed. */
+  addEventListener<TKey extends EventKey<TEvents>>(type: TKey, listener: AtlasEventListener<TEvents, TKey>): void;
+  /** Remove a listener previously registered for this event type. */
+  removeEventListener<TKey extends EventKey<TEvents>>(type: TKey, listener: AtlasEventListener<TEvents, TKey>): void;
+  /** Register a listener that runs once, then removes itself. Returns a function that cancels it before dispatch. */
+  once<TKey extends EventKey<TEvents>>(type: TKey, listener: AtlasEventListener<TEvents, TKey>): () => void;
 }
 
 type EventKey<TEvents extends object> = keyof TEvents & string;
+type AtlasEventListener<TEvents extends object, TKey extends EventKey<TEvents>> = (payload: TEvents[TKey]) => void;
 type PayloadlessEventKey<TEvents extends object> = {
   [TKey in EventKey<TEvents>]: [TEvents[TKey]] extends [undefined] ? TKey : never;
 }[EventKey<TEvents>];
 type PayloadEventKey<TEvents extends object> = Exclude<EventKey<TEvents>, PayloadlessEventKey<TEvents>>;
 type StoredEventListener<TEvents extends object> = (payload: TEvents[EventKey<TEvents>]) => void;
 
-/** Creates an in-memory host-scoped bus. Listener failures do not block other subscribers. */
+/** Creates an in-memory host-scoped event target. Listener failures do not block other listeners. */
 export function createAtlasEventBus<TEvents extends object = AtlasEventMap>(): AtlasEventBus<TEvents> {
   const listeners = new Map<EventKey<TEvents>, Set<StoredEventListener<TEvents>>>();
 
-  function publish<TKey extends PayloadlessEventKey<TEvents>>(type: TKey): void;
-  function publish<TKey extends PayloadEventKey<TEvents>>(type: TKey, payload: TEvents[TKey]): void;
-  function publish(type: EventKey<TEvents>, payload?: TEvents[EventKey<TEvents>]): void {
+  function emit<TKey extends PayloadlessEventKey<TEvents>>(type: TKey): void;
+  function emit<TKey extends PayloadEventKey<TEvents>>(type: TKey, payload: TEvents[TKey]): void;
+  function emit(type: EventKey<TEvents>, payload?: TEvents[EventKey<TEvents>]): void {
     for (const listener of listeners.get(type) ?? []) {
       notifyListener(listener, payload as TEvents[EventKey<TEvents>]);
     }
   }
 
-  function subscribe<TKey extends EventKey<TEvents>>(type: TKey, listener: (payload: TEvents[TKey]) => void): () => void {
+  function addEventListener<TKey extends EventKey<TEvents>>(type: TKey, listener: AtlasEventListener<TEvents, TKey>): void {
     const subscribers = getOrCreateSubscribers(listeners, type);
     const storedListener = listener as StoredEventListener<TEvents>;
     subscribers.add(storedListener);
-    return () => unsubscribe(listeners, type, storedListener);
   }
 
-  function once<TKey extends EventKey<TEvents>>(type: TKey, listener: (payload: TEvents[TKey]) => void): () => void {
-    let unsubscribeOnce: () => void = () => undefined;
-    unsubscribeOnce = subscribe(type, (payload) => {
-      unsubscribeOnce();
+  function removeEventListener<TKey extends EventKey<TEvents>>(type: TKey, listener: AtlasEventListener<TEvents, TKey>): void {
+    unsubscribe(listeners, type, listener as StoredEventListener<TEvents>);
+  }
+
+  function once<TKey extends EventKey<TEvents>>(type: TKey, listener: AtlasEventListener<TEvents, TKey>): () => void {
+    const listenerOnce: AtlasEventListener<TEvents, TKey> = (payload) => {
+      removeEventListener(type, listenerOnce);
       listener(payload);
-    });
-    return unsubscribeOnce;
+    };
+    addEventListener(type, listenerOnce);
+    return () => removeEventListener(type, listenerOnce);
   }
 
-  return { publish, subscribe, once };
+  return { emit, addEventListener, removeEventListener, once };
 }
 
 function getOrCreateSubscribers<TEvents extends object>(

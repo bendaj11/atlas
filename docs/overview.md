@@ -61,7 +61,7 @@ App teams decide:
 
 - app id and display name;
 - which hosts may load the app;
-- route base paths, slots, navigation labels, and widgets;
+- route paths, slots, navigation labels, and widgets;
 - framework components, services, hooks, styles, tests, and assets;
 - app-internal router structure.
 

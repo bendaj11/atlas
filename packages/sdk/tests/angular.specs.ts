@@ -41,16 +41,16 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   assert.match(host.get('package.json'), /"@angular\/core": "20\.3\.0"/);
   assert.match(
     host.get('angular.json'),
-    /@angular-architects\/native-federation:build/,
+    /@angular-architects\/native-federation-v4:build/,
   );
   assert.match(
-    host.get('federation.config.js'),
+    host.get('federation.config.mjs'),
     /@atlas\/sdk\/federation-config/,
   );
-  assert.match(host.get('federation.config.js'), /expose: "host"/);
+  assert.match(host.get('federation.config.mjs'), /expose: "host"/);
   assert.doesNotMatch(
-    host.get('federation.config.js'),
-    /@angular-architects\/native-federation/,
+    host.get('federation.config.mjs'),
+    /from "@angular-architects\/native-federation/,
   );
   assert.match(host.get('src/main.ts'), /initFederation/);
   assert.match(host.get('atlas.bootstrap.html'), /<title>Host<\/title>/);
@@ -125,7 +125,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     host.get('src/app/app.config.ts'),
     /provideZonelessChangeDetection/,
   );
-  assert.match(host.get('src/app/host.config.ts'), /createHostSdkOptions/);
+  assert.match(host.get('src/app/host.config.ts'), /createCustomHostSdkOptions/);
   assert.equal(
     host.has('src/app/atlas-host-default-route.component.ts'),
     false,
@@ -133,6 +133,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   assert.equal(host.has('src/host.ts'), false);
   assert.equal(host.has('src/app.component.ts'), false);
   assert.match(host.get('src/app/app.component.ts'), /<atlas-host-status/);
+  assert.match(host.get('src/app/app.component.ts'), /<atlas-slot slotId="header"/);
   assert.match(
     host.get('src/app/app.component.ts'),
     /imports: \[RouterOutlet, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot\]/,
@@ -175,13 +176,13 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   );
   assert.match(appFiles.get('package.json'), /"atlas:config"/);
   assert.match(
-    appFiles.get('federation.config.js'),
+    appFiles.get('federation.config.mjs'),
     /@atlas\/sdk\/federation-config/,
   );
-  assert.match(appFiles.get('federation.config.js'), /expose: "app"/);
+  assert.match(appFiles.get('federation.config.mjs'), /expose: "app"/);
   assert.doesNotMatch(
-    appFiles.get('federation.config.js'),
-    /@angular-architects|shareAll|singleton/,
+    appFiles.get('federation.config.mjs'),
+    /from "@angular-architects|shareAll|singleton/,
   );
   assert.equal(appFiles.has('src/app.component.ts'), false);
   assert.match(
@@ -318,7 +319,7 @@ test('Angular generator keeps framework tooling on the selected major', () => {
   assert.match(angular21.get('package.json'), /"@angular\/cli": "\^21\.2\.0"/);
   assert.match(
     angular21.get('package.json'),
-    /"@angular-architects\/native-federation": "\^21\.0\.0"/,
+    /"@angular-architects\/native-federation-v4": "\^21\.0\.0"/,
   );
   assert.match(
     angular21.get('package.json'),
@@ -352,7 +353,7 @@ test('Angular generator targets a supplied compatible host without sharing frame
   assert.match(appFiles.get('atlas.config.ts'), /routes: \[/);
   assert.match(appFiles.get('atlas.config.ts'), /hostId: "customer-host"/);
   assert.match(
-    appFiles.get('federation.config.js'),
+    appFiles.get('federation.config.mjs'),
     /@atlas\/sdk\/federation-config/,
   );
   assert.doesNotMatch(appFiles.get('atlas.config.ts'), /hostId: "host"/);

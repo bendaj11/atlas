@@ -18,5 +18,6 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.driver.ts", "src/**/*.specs.ts"],
   "references": [{ "path": "../schema" }]
 }

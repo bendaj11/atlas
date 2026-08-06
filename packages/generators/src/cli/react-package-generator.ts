@@ -43,7 +43,7 @@ export function reactPackage(options: ReactPackageOptions): unknown {
             '@atlas/runtime': atlasPackageRange(),
           }
         : {}),
-      'es-module-shims': '^2.7.0',
+      'es-module-shims': '^2.3.0',
       react: profile.version,
       'react-dom': profile.version,
       ...(routed ? { 'react-router-dom': profile.routerVersion } : {}),

@@ -4,7 +4,7 @@ import { createBrowserNavigation, createRouteContext, createScopedNavigation, sc
 import { createMemoryNavigation } from "../../testkit/dist/index.js";
 import { createFakeWindow } from "./navigation.driver.js";
 
-test("scopePath keeps app navigation under base path", () => {
+test("scopePath keeps app navigation under path", () => {
   assert.equal(scopePath("/catalog", "details/42"), "/catalog/details/42");
   assert.equal(scopePath("/catalog", "/details/42"), "/catalog/details/42");
   assert.equal(scopePath("/catalog", "/catalog/details/42"), "/catalog/details/42");

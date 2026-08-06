@@ -11,7 +11,11 @@ import type {
   AtlasGeneratorOptions,
 } from './generator-types.js';
 import { reactVersionProfile } from './generator-versions.js';
-import { reactHostBootstrap, reactHostMain } from './react-host-generator.js';
+import {
+  reactHostBootstrap,
+  reactHostMain,
+  reactHostSdkConfig,
+} from './react-host-generator.js';
 import {
   reactAppApp,
   reactAppBootstrap,
@@ -61,6 +65,7 @@ export function generateReactHostFiles(
     { path: 'src/styles.css', contents: atlasHostStyles() },
     { path: 'src/main.tsx', contents: reactHostMain() },
     { path: 'src/bootstrap.tsx', contents: reactHostBootstrap(profile) },
+    { path: 'src/host.config.tsx', contents: reactHostSdkConfig() },
   ];
 }
 

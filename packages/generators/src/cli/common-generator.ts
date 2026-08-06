@@ -97,5 +97,5 @@ atlas-route-outlet {
 }
 
 function appConfig(name: string, hostId: string): string {
-  return `routes: [{ hostId: "${hostId}", basePath: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } }]`;
+  return `routes: [{ hostId: "${hostId}", path: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } }]`;
 }

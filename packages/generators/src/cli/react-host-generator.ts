@@ -23,6 +23,7 @@ import {
   AtlasSlot
 } from "@atlas/runtime/react";
 import atlasConfig from "../atlas.config";
+import { useCustomHostSdkOptions, type CustomerHostSdk } from "./host.config";
 import "./styles.css";
 
 type HostMountRequest = Pick<Parameters<AtlasHostClientEntry["mount"]>[0], "container"> &
@@ -34,7 +35,7 @@ function HostLayout() {
       <AtlasHostStatus />
       <header>
         <strong>Atlas</strong>
-        <AtlasSlot name="header" />
+        <AtlasSlot slotId="header" />
       </header>
       <AtlasNavigation aria-label="Application" />
       <AtlasRouteOutlet />
@@ -42,22 +43,31 @@ function HostLayout() {
   );
 }
 
-function mountHost(request: HostMountRequest) {
-  const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
-  const element = (
-    <StrictMode>
-      <AtlasHostProvider
+function HostApplication({ request, router }: { request: HostMountRequest; router: ReturnType<typeof createBrowserRouter> }) {
+  const { hostData, ...sdkOptions } = useCustomHostSdkOptions();
+
+  return (
+    <AtlasHostProvider<CustomerHostSdk>
         hostId={atlasConfig.id}
         options={{
           router,
           federation: { initFederation, loadRemoteModule },
-          hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
+          hostData: { hostId: atlasConfig.id, name: atlasConfig.name, ...hostData },
+          ...sdkOptions,
           ...(request.runtimeConfig ? { runtimeConfig: request.runtimeConfig } : {}),
           ...(request.catalog ? { catalog: request.catalog } : {})
         }}
       >
         <RouterProvider router={router} />
-      </AtlasHostProvider>
+    </AtlasHostProvider>
+  );
+}
+
+function mountHost(request: HostMountRequest) {
+  const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
+  const element = (
+    <StrictMode>
+      <HostApplication request={request} router={router} />
     </StrictMode>
   );
   const container = request.container;
@@ -65,6 +75,18 @@ function mountHost(request: HostMountRequest) {
 };
 
 export const mount: AtlasHostClientEntry["mount"] = mountHost;
+`;
+}
+
+export function reactHostSdkConfig(): string {
+  return `import type { HostSdkOptions } from "@atlas/runtime/react";
+
+/** Add product-specific host SDK capabilities here. Hooks are supported. */
+export interface CustomerHostSdk {}
+
+export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
+  return {};
+}
 `;
 }
 

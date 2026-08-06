@@ -6,5 +6,5 @@ export default {
   name: "Dashboard Angular",
   framework: "angular",
   externalAppsDependencies: ["745518fc-3b1a-4197-b044-da306b0a02ff"],
-  routes: [{ hostId: "399e1a5d-f83d-4248-96ed-e4211707ae1b", basePath: "/dashboard-angular", title: "Dashboard Angular", nav: { label: "Dashboard Angular", visible: true, order: 2 } }]
+  routes: [{ hostId: "399e1a5d-f83d-4248-96ed-e4211707ae1b", path: "/dashboard-angular", title: "Dashboard Angular", nav: { label: "Dashboard Angular", visible: true, order: 2 } }]
 } satisfies AtlasAppConfig;

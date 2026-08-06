@@ -37,11 +37,11 @@ customer-host/
 
 Responsibilities:
 
-| File                                | Owner                        | Edit for                                                                                                   |
-| ----------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `atlas.config.ts`                   | Host team                    | Stable host identity and display name                                                                      |
-| `src/main.tsx`                      | Host team                    | React entry, Atlas lifecycle, and initial product shell                                                    |
-| `vite.config.ts`                    | Host build                   | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
+| File              | Owner      | Edit for                                                                                                   |
+| ----------------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts` | Host team  | Stable host identity and display name                                                                      |
+| `src/main.tsx`    | Host team  | React entry, Atlas lifecycle, and initial product shell                                                    |
+| `vite.config.ts`  | Host build | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
 
 Generated host config resembles:
 
@@ -145,54 +145,53 @@ app routes, and deep links.
 ## 4. Provide Host Services Through The SDK
 
 Apps must not import host source. Put product-wide capabilities into
-`AtlasHostProvider` options in `src/main.tsx`.
+`src/host.config.tsx`. The generated `useCustomHostSdkOptions()` hook runs inside the
+host React tree, so it can use React Query and other product hooks.
 
-Example extension inside `main.tsx`:
+Example extension inside `host.config.tsx`:
 
 `useToast`, `authenticatedHttpClient`, and `monitoring` below are product-owned
 placeholders. Replace them with hooks and services from host project.
 
 ```tsx
-import type { PropsWithChildren } from 'react';
-import { AtlasHostProvider } from '@atlas/runtime/react';
-import atlasConfig from '../atlas.config';
+import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { HostSdkOptions } from '@atlas/runtime/react';
 
 interface CustomerHostSdk {
   hostData: {
     projectId: string;
+    user: PublicUser | null | undefined;
   };
   showToast(message: string): void;
 }
 
-function HostApplication({ runtimeConfig, catalog }: HostProviderProps) {
+export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
   const toast = useToast();
+  const session = useQuery({ queryKey: ['session'], queryFn: loadCurrentUser });
+  const showToast = useCallback(
+    (message: string) => toast.show(message),
+    [toast],
+  );
 
-  return (
-    <AtlasHostProvider<CustomerHostSdk>
-      hostId={atlasConfig.id}
-      options={{
-        router,
-        federation: { initFederation, loadRemoteModule },
-        hostData: {
-          hostId: atlasConfig.id,
-          name: atlasConfig.name,
-          projectId: 'customer-portal',
-        },
-        httpClient: authenticatedHttpClient,
-        showToast: toast.show,
-        observe: (event) => monitoring.capture('atlas.runtime', event),
-        ...(runtimeConfig ? { runtimeConfig } : {}),
-        ...(catalog ? { catalog } : {}),
-      }}
-    >
-      <RouterProvider router={router} />
-    </AtlasHostProvider>
+  return useMemo(
+    () => ({
+      hostData: {
+        projectId: 'customer-portal',
+        user: session.data,
+      },
+      httpClient: authenticatedHttpClient,
+      showToast,
+      observe: (event) => monitoring.capture('atlas.runtime', event),
+    }),
+    [session.data, showToast],
   );
 }
 ```
 
 Keep lifecycle request, router, and federation imports around this example.
-Hooks are valid in `HostApplication` because it is part of host's React tree.
+`undefined` means user is loading; `null` means user is known signed out. Atlas
+updates mounted Angular and React apps when React Query changes this value.
 
 Typical host-provided capabilities:
 

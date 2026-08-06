@@ -7,7 +7,7 @@ import type { AtlasRouteContext, AtlasScopedNavigation } from "./navigation.js";
 export interface AtlasAppContext {
   manifest: AtlasManifest;
   hostId: string;
-  basePath: string;
+  path: string;
   navigation: AtlasScopedNavigation;
   route: AtlasRouteContext;
   readonly loading: {

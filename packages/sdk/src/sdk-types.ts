@@ -33,24 +33,34 @@ export interface AtlasHostData {
   readonly name: string;
 }
 
+/** Values Atlas can safely carry between apps in the destination URL. */
+export type AtlasNavigationState = Readonly<Record<string, string | number | boolean | null | undefined>>;
+
 /** Stable capabilities every host exposes to every mounted app and widget. */
 export interface AtlasCoreSdk<THostData extends object = {}, TEvents extends object = AtlasEventMap> {
   readonly hostId: string;
   readonly hostData: AtlasHostData & Readonly<THostData>;
-  readonly navigation: AtlasNavigation;
+  /** Navigate to a selected app by its stable manifest id. */
+  navigateTo(appId: string, state?: AtlasNavigationState): void;
+  /**
+   * Typed, in-memory events shared by mounted apps in this host.
+   * Use `emit()` to dispatch and `addEventListener()` / `removeEventListener()` for lifecycle-managed listeners.
+   */
   readonly events: AtlasEventBus<TEvents>;
   readonly httpClient: AtlasHttpClient;
   /** Resolve one exported widget by globally unique widget id. */
   readonly getWidget: AtlasGetWidget;
 }
 
-type HostDataOf<THostSdk extends object> = THostSdk extends { readonly hostData: infer THostData extends object }
+export type AtlasHostDataOf<THostSdk extends object> = THostSdk extends { readonly hostData: infer THostData extends object }
   ? Omit<THostData, keyof AtlasHostData>
   : {};
 
-type HostDataOption<THostSdk extends object> = keyof HostDataOf<THostSdk> extends never
+export type AtlasHostDataValue<THostSdk extends object> = AtlasHostData & Readonly<AtlasHostDataOf<THostSdk>>;
+
+type HostDataOption<THostSdk extends object> = keyof AtlasHostDataOf<THostSdk> extends never
   ? { hostData?: Partial<AtlasHostData> }
-  : { hostData: HostDataOf<THostSdk> & Partial<AtlasHostData> };
+  : { hostData: AtlasHostDataOf<THostSdk> & Partial<AtlasHostData> };
 
 type HostSdkProperties<THostSdk extends object> = Omit<
   THostSdk,
@@ -61,7 +71,7 @@ type HostSdkProperties<THostSdk extends object> = Omit<
 export type AtlasSdk<
   THostSdk extends object = {},
   TEvents extends object = AtlasEventMap
-> = AtlasCoreSdk<HostDataOf<THostSdk>, TEvents> & Readonly<HostSdkProperties<THostSdk>>;
+> = AtlasCoreSdk<AtlasHostDataOf<THostSdk>, TEvents> & Readonly<HostSdkProperties<THostSdk>>;
 
 export type AtlasSdkOptions<
   THostSdk extends object = {},

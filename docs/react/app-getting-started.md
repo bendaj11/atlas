@@ -42,7 +42,7 @@ export default {
   routes: [
     {
       hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-      basePath: '/orders',
+      route: '/orders',
       title: 'Orders',
       nav: { label: 'Orders', visible: true, order: 10 },
     },

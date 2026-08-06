@@ -1,4 +1,5 @@
 import { createTestHostSdk, createTestManifest } from "../../testkit/dist/index.js";
+import { getAtlasNavigation } from "../../sdk/dist/index.js";
 import { createRegistryWidgetResolver, createWidgetLoader, startAtlasHostRuntime } from "../dist/index.js";
 import type { AtlasAppEntry, AtlasMountedWidget } from "../../sdk/dist/lifecycle.js";
 import type { AtlasExportedWidgetManifest, AtlasHostCatalog, AtlasHostManifest, AtlasManifest, AtlasPlacement, AtlasProductionSelection, AtlasStaticRegistry } from "../../schema/dist/index.js";
@@ -25,8 +26,8 @@ function testHostManifest(id: string): AtlasHostManifest {
   };
 }
 
-export function createRoutePlacement(id: string, basePath: string): AtlasPlacement {
-  return { id: `${id}-route`, kind: "route", hostId, route: { basePath, title: id } };
+export function createRoutePlacement(id: string, path: string): AtlasPlacement {
+  return { id: `${id}-route`, kind: "route", hostId, route: { path, title: id } };
 }
 
 export function createTestDocument(): Document {
@@ -215,10 +216,10 @@ function widgetManifest(
   };
 }
 
-export function createRouteManifest(id: string, basePath: string): AtlasManifest {
+export function createRouteManifest(id: string, path: string): AtlasManifest {
   return createTestManifest({
     id,
-    placements: [{ id: `${id}-route`, kind: "route", hostId, route: { basePath, title: id } }]
+    placements: [{ id: `${id}-route`, kind: "route", hostId, route: { path, title: id } }]
   });
 }
 
@@ -280,7 +281,7 @@ export class HostRuntimeDriver {
     },
     navigatedTo: async (path: string, expectedState: AtlasHostMountState = "mounted") => {
       const state = this.#waitForState((event) => event.state === expectedState);
-      this.#sdk.navigation.navigate(path);
+      getAtlasNavigation(this.#sdk).navigate(path);
       await state;
       return this;
     },
