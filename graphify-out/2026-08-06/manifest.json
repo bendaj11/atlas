@@ -415,8 +415,8 @@
     "semantic_hash": "1ac4ccd1ff7315319378d248dd3e92c7"
   },
   "packages/runtime/src/dom-host-runtime.ts": {
-    "mtime": 1786029446.4558828,
-    "ast_hash": "6b5a5923cf0f05b87753def298fde83e",
+    "mtime": 1786030212.6570632,
+    "ast_hash": "95d776755eac2d67276bb21910e24d8d",
     "semantic_hash": ""
   },
   "packages/runtime/src/dom-host-sdk.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": "437010716cc79e6977b92e117a06ca63"
   },
   "packages/runtime/src/host-navigation.ts": {
-    "mtime": 1786029583.4976773,
-    "ast_hash": "42dc50da78efb6cf0bbd4a1457854abf",
+    "mtime": 1786030112.0634105,
+    "ast_hash": "4a5e9b9471bc22701c1b5a1fe8a0fbcb",
     "semantic_hash": ""
   },
   "packages/runtime/src/host-ui.ts": {
@@ -580,8 +580,8 @@
     "semantic_hash": "43a982adae8fb2113015b8acce5f811c"
   },
   "packages/schema/src/atlas-host-manifest.ts": {
-    "mtime": 1786029446.2032788,
-    "ast_hash": "ec8222d43e7194e2b5d64b21f15891ff",
+    "mtime": 1786030299.0279157,
+    "ast_hash": "b3a7cf1798f6f806289daf5cc95c1663",
     "semantic_hash": ""
   },
   "packages/schema/src/atlas-host-runtime-config.ts": {
@@ -655,8 +655,8 @@
     "semantic_hash": "763d0c581649dfe4eae6f344e0e495c6"
   },
   "packages/schema/src/catalog-validation.ts": {
-    "mtime": 1786029446.2731671,
-    "ast_hash": "26777f6b1d84b4a2cb00fbe271492e7e",
+    "mtime": 1786030283.957495,
+    "ast_hash": "cad65c5b714a8a72e6eee5ca8475f3c7",
     "semantic_hash": ""
   },
   "packages/schema/src/create-manifest-from-config-input.ts": {
@@ -685,8 +685,8 @@
     "semantic_hash": "beaeec9d516b2f8466f521831422a30f"
   },
   "packages/schema/src/validate-atlas-host-manifest.ts": {
-    "mtime": 1786029446.237176,
-    "ast_hash": "952980ee23f98d7875e99baea56ad283",
+    "mtime": 1786030283.760824,
+    "ast_hash": "c734949a4976e2877fd8cf81caad96e6",
     "semantic_hash": ""
   },
   "packages/schema/src/validate-atlas-manifest.ts": {
@@ -880,8 +880,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/sdk-types.ts": {
-    "mtime": 1786029714.6150744,
-    "ast_hash": "b722a745380174baed088fe046b67931",
+    "mtime": 1786030212.8558,
+    "ast_hash": "9a72fe976d3f04edbd6c67a536d59a8b",
     "semantic_hash": ""
   },
   "packages/sdk/src/sdk.ts": {
@@ -1325,8 +1325,8 @@
     "semantic_hash": ""
   },
   "docs/routing.md": {
-    "mtime": 1786029446.4928896,
-    "ast_hash": "551d24bfb152bdf647d000a6fbd67bfe",
+    "mtime": 1786030299.2250469,
+    "ast_hash": "2295a41789a6635da15fde92788a0286",
     "semantic_hash": ""
   },
   "docs/sdk.md": {
@@ -2780,8 +2780,8 @@
     "semantic_hash": ""
   },
   "packages/schema/src/atlas-headless-app.ts": {
-    "mtime": 1786029118.410475,
-    "ast_hash": "0b347863941e1072e3ee6852b9907f6a",
+    "mtime": 1786030159.0595012,
+    "ast_hash": "e6c3a6a1b0c411b85df6d4da2085c519",
     "semantic_hash": ""
   },
   "packages/schema/src/catalog-validation.driver.ts": {
