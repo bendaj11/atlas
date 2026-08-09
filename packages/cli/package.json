@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.3.48",
+  "version": "0.3.53",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -41,10 +41,10 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.3.48",
-    "@atlas/generators": "0.3.48",
-    "@atlas/runtime": "0.3.48",
-    "@atlas/schema": "0.3.48",
+    "@atlas/bootstrap": "0.3.53",
+    "@atlas/generators": "0.3.53",
+    "@atlas/runtime": "0.3.53",
+    "@atlas/schema": "0.3.53",
     "@aws-sdk/client-s3": "^3.850.0",
     "@inquirer/select": "^4.4.2",
     "cross-spawn": "7.0.6",

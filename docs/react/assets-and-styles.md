@@ -12,7 +12,7 @@ from components and CSS.
 Good:
 
 ```tsx
-import heroUrl from "./assets/orders-hero.png";
+import heroUrl from './assets/orders-hero.png';
 
 export function OrdersHero() {
   return <img src={heroUrl} alt="Orders" />;
@@ -23,7 +23,7 @@ Good:
 
 ```css
 .orders-hero {
-  background-image: url("./assets/orders-hero.png");
+  background-image: url('./assets/orders-hero.png');
 }
 ```
 
@@ -31,12 +31,20 @@ Risky in an app:
 
 ```css
 .orders-hero {
-  background-image: url("/assets/orders-hero.png");
+  background-image: url('/assets/orders-hero.png');
 }
 ```
 
 Absolute `/assets/...` resolves against the host origin, not the app's
 immutable CDN directory.
+
+## Isolation
+
+Atlas mounts apps in Shadow DOM by default and installs declared standalone
+stylesheets in that shadow root. This prevents global library CSS from leaking
+into the host or other apps. Use `domIsolation: 'shared-dom'` only for an app
+intentionally sharing a documented host design-system contract. Shared DOM mode
+is a DOM wrapper, not CSS isolation. `scoped` remains a legacy alias.
 
 ## Host Domain
 

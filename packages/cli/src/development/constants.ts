@@ -7,3 +7,4 @@ export const DEFAULT_APP_DEV_PORT = 4201;
 export const DEFAULT_CONTROL_PORT = 4400;
 export const LOCAL_HOST_PLACEHOLDER_PORT = 4200;
 export const DEV_SESSION_PORT_PARAM = 'atlas-dev-port';
+export const CONTROL_RECONCILIATION_INTERVAL_MS = 1_000;

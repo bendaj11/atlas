@@ -125,7 +125,10 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     host.get('src/app/app.config.ts'),
     /provideZonelessChangeDetection/,
   );
-  assert.match(host.get('src/app/host.config.ts'), /createCustomHostSdkOptions/);
+  assert.match(
+    host.get('src/app/host.config.ts'),
+    /createCustomHostSdkOptions/,
+  );
   assert.equal(
     host.has('src/app/atlas-host-default-route.component.ts'),
     false,
@@ -133,10 +136,13 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   assert.equal(host.has('src/host.ts'), false);
   assert.equal(host.has('src/app.component.ts'), false);
   assert.match(host.get('src/app/app.component.ts'), /<atlas-host-status/);
-  assert.match(host.get('src/app/app.component.ts'), /<atlas-slot slotId="header"/);
   assert.match(
     host.get('src/app/app.component.ts'),
-    /imports: \[RouterOutlet, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot\]/,
+    /<atlas-slot slotId="header"/,
+  );
+  assert.match(
+    host.get('src/app/app.component.ts'),
+    /imports: \[RouterOutlet, AtlasHostLayout, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot\]/,
   );
   assert.equal(host.has('public/atlas.runtime.json'), false);
   assert.doesNotMatch(host.get('atlas.config.ts'), /catalogUrl/);
@@ -211,14 +217,11 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   );
   assert.match(appFiles.get('src/app/app.config.ts'), /LocationStrategy/);
   assert.match(appFiles.get('src/main.ts'), /initFederation/);
-  assert.match(
-    appFiles.get('src/main.ts'),
-    /from "@atlas\/sdk\/federation"/,
-  );
+  assert.match(appFiles.get('src/main.ts'), /from "@atlas\/sdk\/federation"/);
   assert.doesNotMatch(appFiles.get('src/main.ts'), /import "zone\.js"/);
   assert.match(
     appFiles.get('src/entry.ts'),
-    /bootstrapApplication\(AppComponent/,
+    /createApplication\(createAppConfig\(\{ context, sdk, locationStrategy \}\)\);\s+app\.bootstrap\(AppComponent, element\);/,
   );
   assert.doesNotMatch(appFiles.get('src/entry.ts'), /initFederation/);
   assert.doesNotMatch(

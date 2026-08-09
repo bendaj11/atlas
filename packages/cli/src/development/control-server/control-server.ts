@@ -11,6 +11,7 @@ import {
   writeJson,
   LOCAL_HOST,
 } from '../http/http.js';
+import { CONTROL_RECONCILIATION_INTERVAL_MS } from '../constants.js';
 import type {
   AtlasDevOverrideDocument,
   DevControlServer,
@@ -53,6 +54,9 @@ function startOwnedControlServer(
       resolve({
         port: address.port,
         async markReady() {
+          session.markDocumentReady(document);
+        },
+        async reconcile() {
           session.markDocumentReady(document);
         },
         close() {
@@ -235,24 +239,39 @@ async function joinControlServer(
   document: AtlasDevOverrideDocument,
 ): Promise<DevControlServer> {
   const baseUrl = localOrigin(port);
-  await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
   const appIds = document.overrides.map((override) => override.manifest.id);
   const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
   const hostPath = `${baseUrl}/atlas.dev-session/hosts/${encodeURIComponent(document.hostId)}`;
+  const synchronize = async (): Promise<void> => {
+    await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
+    await Promise.all([
+      ...appIds.map((appId) =>
+        postJson(
+          `${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}/ready${hostQuery}`,
+          {},
+        ),
+      ),
+      ...(document.hostOverride ? [postJson(`${hostPath}/ready`, {})] : []),
+    ]);
+  };
+  const reconcile = async (): Promise<void> => {
+    try {
+      await synchronize();
+    } catch {
+      await synchronize();
+    }
+  };
+  await reconcile();
+  const reconciliation = setInterval(() => {
+    void reconcile().catch(() => undefined);
+  }, CONTROL_RECONCILIATION_INTERVAL_MS);
+  reconciliation.unref();
   return {
     port,
-    async markReady() {
-      await Promise.all([
-        ...appIds.map((appId) =>
-          postJson(
-            `${baseUrl}/atlas.dev-session/overrides/${encodeURIComponent(appId)}/ready${hostQuery}`,
-            {},
-          ),
-        ),
-        ...(document.hostOverride ? [postJson(`${hostPath}/ready`, {})] : []),
-      ]);
-    },
+    markReady: reconcile,
+    reconcile,
     async close() {
+      clearInterval(reconciliation);
       await Promise.all([
         ...appIds.map((appId) =>
           deleteJson(

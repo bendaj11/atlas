@@ -75,4 +75,16 @@ describe('AtlasGenerateService', () => {
       /--app-id <app-id> is required.*Available apps/,
     );
   });
+
+  it('should make existing Turbo dev task interactive when generating an app', async () => {
+    await driver.given.generation('turbo-existing-dev');
+
+    await driver.when.generate();
+
+    expect(await driver.get.turboDevTask()).toStrictEqual({
+      cache: false,
+      interactive: true,
+      persistent: true,
+    });
+  });
 });

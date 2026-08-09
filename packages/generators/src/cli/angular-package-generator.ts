@@ -14,7 +14,7 @@ interface AngularPackageOptions {
 export function angularPackage(options: AngularPackageOptions): unknown {
   const { packageName, projectName, profile } = options;
   const host = options.type === 'host';
-  const angular = profile.version;
+  const angular = angularDependencyRange(profile.version);
   const routed = host || (options.routed ?? true);
   return {
     name: packageName,
@@ -74,6 +74,11 @@ function nativeFederationPackage(profile: AngularVersionProfile): string {
 
 function usesNativeFederationV4(profile: AngularVersionProfile): boolean {
   return profile.major === 20 || profile.major === 21;
+}
+
+function angularDependencyRange(version: string): string {
+  const exactVersion = version.match(/^[=~^]?(\d+\.\d+\.\d+(?:-[\w.-]+)?)$/);
+  return exactVersion ? `^${exactVersion[1]}` : version;
 }
 
 export function angularIndex(pageTitle: string, body: string): string {

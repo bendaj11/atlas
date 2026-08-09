@@ -14,6 +14,7 @@ import {
   loadBrowserRuntimeOverrides,
   loadHostCatalog,
   loadHostRuntimeConfig,
+  loadManifestStyles,
   mountApp,
   resolveRuntimeCatalog,
   resolveRuntimeManifests,
@@ -1473,6 +1474,58 @@ test('app mounts receive an Atlas-owned scoped DOM boundary', async () => {
   assert.equal(removed, true);
 });
 
+test('should isolate default app styles inside a shadow root', async () => {
+  const events: string[] = [];
+  const document = createStylesheetDocument(events);
+  const shadowLinks: TestStyleLink[] = [];
+  const createElement = document.createElement.bind(document);
+  document.createElement = ((tag: string) => {
+    const element = createElement(tag);
+    if (tag !== 'div') return element;
+    element.attachShadow = () => {
+      const root = createTestContainer(document);
+      root.append = (node) => {
+        if (!isTestStyleLink(node)) return;
+        shadowLinks.push(node);
+        events.push('shadow-style');
+        queueMicrotask(() => node.testListeners.load?.(new Event('load')));
+      };
+      return root as unknown as ShadowRoot;
+    };
+    return element;
+  }) as typeof document.createElement;
+  let receivedContainer: HTMLElement | undefined;
+
+  const mounted = await mountApp({
+    hostId: 'host',
+    catalogUrl: '',
+    sdk: createTestHostSdk(),
+    manifest: createTestManifest({
+      styles: [{ href: 'https://cdn.example/catalog/styles.css' }],
+    }),
+    container: createTestContainer(document),
+    async importRemote() {
+      return { mount: ({ container }) => void (receivedContainer = container) };
+    },
+  });
+
+  assert.deepEqual(
+    {
+      headStyles: document.testLinks.length,
+      shadowStyles: shadowLinks.length,
+      boundary: receivedContainer?.dataset.atlasIsolationRoot,
+      events,
+    },
+    {
+      headStyles: 0,
+      shadowStyles: 1,
+      boundary: '',
+      events: ['shadow-style'],
+    },
+  );
+  await mounted.unmount();
+});
+
 test('remote asset URLs resolve against the owning app remote entry', () => {
   const manifest = createTestManifest({
     remoteEntryUrl: 'http://localhost:4202/apps/catalog/remoteEntry.json',
@@ -1764,6 +1817,7 @@ test('host loads app styles before mount and releases them after the final unmou
   const document = createStylesheetDocument(events);
   const container = createTestContainer(document);
   const manifest = createTestManifest({
+    isolation: 'scoped',
     styles: [
       {
         href: 'https://cdn.example/catalog/styles.css',
@@ -1808,6 +1862,7 @@ test('stylesheet failures prevent remote mounting', async () => {
         catalogUrl: '',
         sdk: createTestHostSdk(),
         manifest: createTestManifest({
+          isolation: 'scoped',
           styles: [
             {
               href: 'https://cdn.example/catalog/missing.css',
@@ -1843,6 +1898,7 @@ test('stylesheet trust rejects unsupported protocols before import', async () =>
       mountApp({
         ...base,
         manifest: createTestManifest({
+          isolation: 'scoped',
           remoteEntryUrl: 'https://cdn.example/entry.js',
           styles: [{ href: 'ftp://cdn.example/styles.css' }],
         }),
@@ -1850,6 +1906,20 @@ test('stylesheet trust rejects unsupported protocols before import', async () =>
     /unsupported stylesheet protocol/,
   );
   assert.equal(imported, false);
+});
+
+test('should preserve the legacy stylesheet trust-policy argument', async () => {
+  await assert.rejects(
+    () =>
+      loadManifestStyles(
+        createTestManifest({
+          styles: [{ href: 'https://cdn.example/catalog/styles.css' }],
+        }),
+        createStylesheetDocument([]),
+        { allowedOrigins: new Set(['https://other.example']) },
+      ),
+    /not allowed by the host runtime configuration/,
+  );
 });
 
 test('host runtime mounts only the active route and unmounts during navigation', async () => {
@@ -1989,6 +2059,85 @@ test('host runtime renders the first exact route and logs duplicate routes', asy
   }
 });
 
+test('host runtime applies the matching app route layout', async () => {
+  const sdk = createTestHostSdk();
+  const layouts: Array<string | undefined> = [];
+  const runtime = await startAtlasHostRuntime({
+    hostId: 'host',
+    manifests: [
+      createTestManifest({
+        id: 'orders',
+        placements: [
+          {
+            id: 'orders-route',
+            kind: 'route',
+            hostId: 'host',
+            route: { path: '/orders', layoutId: 'standard' },
+          },
+        ],
+      }),
+      createTestManifest({
+        id: 'details',
+        placements: [
+          {
+            id: 'details-route',
+            kind: 'route',
+            hostId: 'host',
+            route: { path: '/orders/:orderId', layoutId: 'detail' },
+          },
+        ],
+      }),
+    ],
+    sdk,
+    resolveRouteContainer: () => createTestElement(),
+    resolveSlotContainer: () => undefined,
+    setActiveLayout: (layoutId) => layouts.push(layoutId),
+    async importRemote() {
+      return { mount() {} };
+    },
+  });
+
+  getAtlasNavigation(sdk).navigate('/orders/42');
+  await tick();
+
+  assert.deepEqual(layouts, ['default', 'detail']);
+  await runtime.stop();
+});
+
+test('host runtime redirects before mounting an app', async () => {
+  const sdk = createTestHostSdk();
+  const imported: string[] = [];
+  const runtime = await startAtlasHostRuntime({
+    hostId: 'host',
+    manifests: [
+      createTestManifest({
+        id: 'root-redirect',
+        placements: [
+          {
+            id: 'root-route',
+            kind: 'route',
+            hostId: 'host',
+            route: { path: '/', match: 'full', redirectTo: '/dashboard' },
+          },
+        ],
+      }),
+      createRouteManifest('dashboard', '/dashboard'),
+    ],
+    sdk,
+    resolveRouteContainer: () => createTestElement(),
+    resolveSlotContainer: () => undefined,
+    async importRemote(manifest) {
+      imported.push(manifest.id);
+      return { mount() {} };
+    },
+  });
+
+  await tick();
+
+  assert.deepEqual(imported, ['dashboard']);
+  await runtime.stop();
+});
+
 test('host runtime mounts slots independently and reports remote failures', async () => {
   const driver = new HostRuntimeDriver().given
     .manifests([createSlotManifest('widget', 'header')])
@@ -2008,7 +2157,7 @@ test('host runtime mounts slots independently and reports remote failures', asyn
   await driver.when.stopped();
 });
 
-test('host runtime applies shown and hidden slot paths when native anchors return', async () => {
+test('host runtime mounts slots when native anchors return', async () => {
   const sdk = createTestHostSdk();
   const anchors = new AtlasHostAnchorRegistry();
   const placement: AtlasPlacement = {
@@ -2016,8 +2165,6 @@ test('host runtime applies shown and hidden slot paths when native anchors retur
     kind: 'slot',
     hostId: 'host',
     slot: 'sidebar',
-    showOnPaths: ['/orders'],
-    hideOnPaths: ['/orders/new'],
   };
   const manifest = createTestManifest({
     id: 'widget',
@@ -2025,11 +2172,6 @@ test('host runtime applies shown and hidden slot paths when native anchors retur
   });
   let unmounted = 0;
   let mounted = 0;
-  const registerFirst = anchors.register(
-    'slot',
-    createTestElement(),
-    'sidebar',
-  );
   const runtime = await startAtlasHostRuntime({
     hostId: 'host',
     manifests: [manifest],
@@ -2051,10 +2193,6 @@ test('host runtime applies shown and hidden slot paths when native anchors retur
     },
   });
 
-  getAtlasNavigation(sdk).navigate('/orders/new');
-  await tick();
-  registerFirst();
-  await tick();
   anchors.register('slot', createTestElement(), 'sidebar');
   await tick();
 
@@ -2350,6 +2488,8 @@ function createStylesheetDocument(
   };
   Object.defineProperty(document, 'head', { value: head });
   Object.defineProperty(document, 'createElement', {
+    configurable: true,
+    writable: true,
     value: (tag: string) => {
       if (tag !== 'link') return createTestContainer(document);
       const link: TestStyleLink = Object.create(null);

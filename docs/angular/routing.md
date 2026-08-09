@@ -67,11 +67,11 @@ from the runtime catalog. Product hosts can instead render custom navigation
 with the same resolved route data:
 
 ```ts
-import { Component, inject } from "@angular/core";
-import { AtlasNavigationItemsService } from "@atlas/runtime/angular";
+import { Component, inject } from '@angular/core';
+import { AtlasNavigationItemsService } from '@atlas/runtime/angular';
 
 @Component({
-  selector: "app-root",
+  selector: 'app-root',
   standalone: true,
   template: `
     <aside class="workspace-nav">
@@ -88,7 +88,7 @@ import { AtlasNavigationItemsService } from "@atlas/runtime/angular";
 
     <main data-atlas-route-outlet></main>
     <router-outlet hidden></router-outlet>
-  `
+  `,
 })
 export class AppComponent {
   readonly navigation = inject(AtlasNavigationItemsService);
@@ -106,7 +106,10 @@ await startHost({
   router: app.injector.get(Router),
   location: app.injector.get(Location),
   federation: { initFederation, loadRemoteModule },
-  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host" }
+  hostData: {
+    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    name: 'Customer Host',
+  },
 });
 ```
 
@@ -115,26 +118,28 @@ await startHost({
 The Angular app declares where it can mount in its own `atlas.config.ts`:
 
 ```ts
-import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };
+import type { AtlasAppConfig } from '@atlas/schema' with {
+  'resolution-mode': 'import',
+};
 
 export default {
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  name: "Orders",
-  framework: "angular",
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  name: 'Orders',
+  framework: 'angular',
   routes: [
     {
-      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-      route: "/orders",
-      title: "Orders",
-      nav: { label: "Orders", visible: true, order: 10 }
-    }
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      route: '/orders',
+      title: 'Orders',
+      nav: { label: 'Orders', visible: true, order: 10 },
+    },
   ],
   slots: [
     {
-      slotId: "header",
-      hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"
-    }
-  ]
+      slotId: 'header',
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    },
+  ],
 } satisfies AtlasAppConfig;
 ```
 
@@ -171,13 +176,13 @@ The host should not need hard-coded route ownership to resolve that conflict.
 Define normal Angular routes in the app, usually in `src/app/app.routes.ts`:
 
 ```ts
-import type { Routes } from "@angular/router";
-import { OrdersHomeComponent } from "./orders-home.component";
-import { OrderDetailsComponent } from "./order-details.component";
+import type { Routes } from '@angular/router';
+import { OrdersHomeComponent } from './orders-home.component';
+import { OrderDetailsComponent } from './order-details.component';
 
 export const routes: Routes = [
-  { path: "", component: OrdersHomeComponent },
-  { path: ":orderId", component: OrderDetailsComponent }
+  { path: '', component: OrdersHomeComponent },
+  { path: ':orderId', component: OrderDetailsComponent },
 ];
 ```
 
@@ -185,19 +190,21 @@ The app lifecycle entry connects Angular Router to Atlas scoped navigation:
 
 ```ts
 const locationStrategy = createLocationStrategy(context);
-const app = await bootstrapApplication(AppComponent, {
+const element = document.createElement('atlas-orders-root');
+container.append(element);
+const app = await createApplication({
   providers: [
     provideRouter(routes),
-    { provide: LocationStrategy, useValue: locationStrategy }
-  ]
+    { provide: LocationStrategy, useValue: locationStrategy },
+  ],
 });
+app.bootstrap(AppComponent, element);
 ```
 
 Use Angular Router normally:
 
 ```html
-<a routerLink="42">Open order</a>
-<router-outlet></router-outlet>
+<a routerLink="42">Open order</a> <router-outlet></router-outlet>
 ```
 
 Angular sees `42`; the browser URL becomes `/orders/42` because the host base
@@ -210,7 +217,7 @@ host SDK when moving across app boundaries:
 
 ```ts
 const atlas = injectAtlasSdk();
-atlas.navigateTo("2bea9c13-4899-4f93-9211-cd8c55e9c529", { tab: "open" });
+atlas.navigateTo('2bea9c13-4899-4f93-9211-cd8c55e9c529', { tab: 'open' });
 ```
 
 Use relative Angular Router links only for screens owned by the same app.

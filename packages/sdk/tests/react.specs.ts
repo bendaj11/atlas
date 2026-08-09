@@ -60,6 +60,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   assert.match(host.get('src/host.config.tsx'), /HostSdkOptions/);
   assert.match(host.get('src/host.config.tsx'), /useCustomHostSdkOptions/);
   assert.match(hostBootstrap, /<AtlasHostStatus/);
+  assert.match(hostBootstrap, /<AtlasHostLayout layoutId="default">/);
   assert.match(hostBootstrap, /<AtlasSlot slotId="header"/);
   assert.match(hostBootstrap, /<AtlasNavigation/);
   assert.match(hostBootstrap, /<AtlasRouteOutlet/);

@@ -1,6 +1,5 @@
 import type {
   AtlasExportedWidgetManifest,
-  AtlasHeadlessApp,
   AtlasManifest,
   AtlasPlacement,
 } from '@atlas/schema';
@@ -46,6 +45,7 @@ import { startRemoteAssetRewrite } from './remote-assets.js';
 import { loadManifestStyles } from './stylesheets.js';
 import { mapWithConcurrency } from './concurrency.js';
 import { createBrowserError, logBrowserError } from './browser-error.js';
+import { routeMatches } from './route-matcher.js';
 import { runtimeError } from './runtime-error.js';
 import type {
   AtlasResolvedWidget,
@@ -202,8 +202,6 @@ export interface AtlasHostRuntimeOptions<
 > extends AtlasWidgetUiOptions {
   hostId: string;
   manifests: AtlasManifest[];
-  /** Host-owned navigation targets that change URL without mounting an app. */
-  headlessApps?: readonly AtlasHeadlessApp[];
   sdk: AtlasSdk<THostSdk>;
   importRemote: (manifest: AtlasManifest) => Promise<AtlasAppEntry>;
   importWidget?: (
@@ -219,6 +217,8 @@ export interface AtlasHostRuntimeOptions<
     placement: AtlasPlacement,
   ): HTMLElement | undefined;
   subscribeAnchors?: (listener: () => void) => () => void;
+  /** Publishes the layout selected by the currently active route. */
+  setActiveLayout?(layoutId: string | undefined): void;
   onMountStateChange?: (event: AtlasHostMountEvent) => void;
   resourcesTimeoutMs?: number;
   trustPolicy?: AtlasRemoteTrustPolicy;
@@ -276,10 +276,7 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
   const routePlan = createRoutePlacementPlan(routePlacements);
   connectAtlasNavigationResolver(
     options.sdk,
-    createAppNavigator(
-      navigation,
-      navigationTargets(routePlan.available, options.headlessApps),
-    ),
+    createAppNavigator(navigation, navigationTargets(routePlan.available)),
   );
   for (const conflict of routePlan.conflicts) {
     logRouteConflict(options.hostId, conflict);
@@ -295,14 +292,8 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
   await controller.reconcileRoute(navigation.getCurrentLocation().pathname);
   const unsubscribe = navigation.subscribe((location) => {
     controller.enqueueRouteReconcile(location.pathname);
-    if (
-      slotPlacements.some(
-        ({ placement }) =>
-          placement.showOnPaths?.length || placement.hideOnPaths?.length,
-      )
-    )
-      controller.enqueueSlotReconcile();
   });
+  controller.enqueueRouteReconcile(navigation.getCurrentLocation().pathname);
   const unsubscribeAnchors =
     options.subscribeAnchors?.(() => {
       controller.enqueueRouteReconcile(
@@ -326,14 +317,12 @@ export async function startAtlasHostRuntime<THostSdk extends object = {}>(
 
 function navigationTargets(
   placements: readonly RuntimePlacement[],
-  headlessApps: readonly AtlasHeadlessApp[] | undefined,
 ): AtlasNavigationTarget[] {
   return [
     ...placements.map(({ manifest, placement }) => ({
       id: manifest.id,
       path: placement.route!.path,
     })),
-    ...(headlessApps ?? []).map(({ id, path }) => ({ id, path })),
   ];
 }
 
@@ -360,15 +349,10 @@ class AtlasRuntimeController {
   async reconcileSlots(): Promise<void> {
     await mapWithConcurrency(this.slotPlacements, async (selected) => {
       const key = placementKey(selected.manifest, selected.placement);
-      const container = slotMatchesPath(
+      const container = this.options.resolveSlotContainer(
+        selected.manifest,
         selected.placement,
-        getAtlasNavigation(this.options.sdk).getCurrentLocation().pathname,
-      )
-        ? this.options.resolveSlotContainer(
-            selected.manifest,
-            selected.placement,
-          )
-        : undefined;
+      );
       const current = this.mounts.get(key);
       if (current && current.container !== container)
         await this.unmountOne(key);
@@ -404,6 +388,12 @@ class AtlasRuntimeController {
     revision = this.routeRevision,
   ): Promise<void> {
     const selected = findRoutePlacement(this.routePlacements, pathname);
+    const redirectTo = selected?.placement.route?.redirectTo;
+    this.options.setActiveLayout?.(
+      redirectTo
+        ? undefined
+        : (selected?.placement.route?.layoutId ?? 'default'),
+    );
     const nextKey = selected
       ? placementKey(selected.manifest, selected.placement)
       : undefined;
@@ -414,6 +404,7 @@ class AtlasRuntimeController {
         )
       : undefined;
     if (
+      !redirectTo &&
       this.routeKey === nextKey &&
       this.mounts.get(nextKey ?? '')?.container === container
     )
@@ -424,6 +415,10 @@ class AtlasRuntimeController {
       await this.unmountOne(previousKey);
     }
     if (revision !== this.routeRevision) return;
+    if (redirectTo) {
+      getAtlasNavigation(this.options.sdk).replace(redirectTo);
+      return;
+    }
     this.routeKey = nextKey;
     if (!selected || !nextKey) return;
 
@@ -660,14 +655,15 @@ export async function mountApp(
     options.trustPolicy ?? defaultManifestTrustPolicy(options.manifest);
   if (!options.importRemote || options.trustPolicy)
     assertManifestAssetTrust(options.manifest, trustPolicy);
-  const releaseStyles = options.trustPolicy
-    ? await loadManifestStyles(options.manifest, document, options.trustPolicy)
-    : await loadManifestStyles(options.manifest, document);
   const boundary = createMountBoundary(
     options.container,
     options.manifest.id,
-    options.manifest.isolation ?? 'scoped',
+    options.manifest.isolation ?? 'shadow-dom',
   );
+  const releaseStyles = await loadManifestStyles(options.manifest, document, {
+    ...(options.trustPolicy ? { policy: options.trustPolicy } : {}),
+    ...(boundary.styleTarget ? { target: boundary.styleTarget } : {}),
+  });
   const releaseAssetRewrite = startRemoteAssetRewrite(
     options.manifest,
     boundary.container,
@@ -1058,16 +1054,20 @@ async function mountWidgetAttempt<TProps extends object>(
     const entry = (await input.importEntry(
       resolved,
     )) as AtlasExportedWidgetEntry<TProps>;
-    const releaseStyles = await loadManifestStyles(
-      resolved.ownerManifest,
-      card.element.ownerDocument ?? globalThis.document,
-    );
     card.clearStatus();
     const boundary = createMountBoundary(
       card.element,
       resolved.widget.id,
-      resolved.ownerManifest.isolation ?? 'scoped',
+      resolved.ownerManifest.isolation ?? 'shadow-dom',
       'widget',
+    );
+    const stylesheetOptions = boundary.styleTarget
+      ? { target: boundary.styleTarget }
+      : {};
+    const releaseStyles = await loadManifestStyles(
+      resolved.ownerManifest,
+      card.element.ownerDocument ?? globalThis.document,
+      stylesheetOptions,
     );
     const releaseAssetRewrite = startRemoteAssetRewrite(
       resolved.ownerManifest,
@@ -1232,13 +1232,22 @@ function widgetRenderContext(
 function createMountBoundary(
   parent: HTMLElement,
   id: string,
-  isolation: 'scoped' | 'shadow-dom',
+  isolation: 'shared-dom' | 'scoped' | 'shadow-dom',
   kind: 'app' | 'widget' = 'app',
-): { container: HTMLElement; remove(): void } {
+): {
+  container: HTMLElement;
+  styleTarget: ParentNode | undefined;
+  remove(): void;
+} {
   const element =
     parent.ownerDocument?.createElement('div') ??
     globalThis.document?.createElement('div');
-  if (!element) return { container: parent, remove() {} };
+  if (!element)
+    return {
+      container: parent,
+      styleTarget: parent.ownerDocument?.head,
+      remove() {},
+    };
   element.dataset[kind === 'app' ? 'atlasApp' : 'atlasWidget'] = id;
   parent.append(element);
   if (isolation === 'shadow-dom') {
@@ -1246,9 +1255,13 @@ function createMountBoundary(
     const container = element.ownerDocument.createElement('div');
     container.dataset.atlasIsolationRoot = '';
     root.append(container);
-    return { container, remove: () => element.remove() };
+    return { container, styleTarget: root, remove: () => element.remove() };
   }
-  return { container: element, remove: () => element.remove() };
+  return {
+    container: element,
+    styleTarget: element.ownerDocument.head,
+    remove: () => element.remove(),
+  };
 }
 
 export async function importExportedWidget(
@@ -1379,21 +1392,11 @@ function findRoutePlacement(
   pathname: string,
 ): { manifest: AtlasManifest; placement: AtlasPlacement } | undefined {
   return placements
-    .filter(({ placement }) => routeMatches(placement.route!.path, pathname))
+    .filter(({ placement }) => routeMatches(placement.route!, pathname))
     .sort(
       (left, right) =>
         right.placement.route!.path.length - left.placement.route!.path.length,
     )[0];
-}
-
-function slotMatchesPath(placement: AtlasPlacement, pathname: string): boolean {
-  const matchesShowPath =
-    placement.showOnPaths?.some((route) => routeMatches(route, pathname)) ??
-    true;
-  const matchesHidePath =
-    placement.hideOnPaths?.some((route) => routeMatches(route, pathname)) ??
-    false;
-  return matchesShowPath && !matchesHidePath;
 }
 
 function createRoutePlacementPlan(placements: RuntimePlacement[]): {
@@ -1414,15 +1417,6 @@ function createRoutePlacementPlan(placements: RuntimePlacement[]): {
   }
 
   return { available, conflicts };
-}
-
-function routeMatches(path: string, pathname: string): boolean {
-  const normalized = path === '/' ? '/' : path.replace(/\/+$/, '');
-  return (
-    normalized === '/' ||
-    pathname === normalized ||
-    pathname.startsWith(`${normalized}/`)
-  );
 }
 
 function logRouteConflict(hostId: string, conflict: RuntimePlacement): void {

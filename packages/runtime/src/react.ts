@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
   type ReactElement,
   type ReactNode,
 } from 'react';
@@ -34,8 +35,8 @@ const AtlasHostAnchorsContext = createContext<
 
 export function AtlasDefaultHostLayout(): ReactElement {
   return createElement(
-    Fragment,
-    null,
+    AtlasHostLayout,
+    { layoutId: 'default' },
     createElement(AtlasHostStatus),
     createElement(
       'header',
@@ -161,6 +162,23 @@ export function AtlasNavigation(props: {
 export function AtlasRouteOutlet(): ReactElement {
   return useHostAnchor('route-outlet');
 }
+
+/** Renders host layout content only while Atlas activates its layout id. */
+export function AtlasHostLayout(props: {
+  layoutId: string;
+  children?: ReactNode;
+}): ReactElement | null {
+  const anchors = useAtlasHostAnchors();
+  const activeLayoutId = useSyncExternalStore(
+    (listener) => anchors.subscribeLayouts(listener),
+    () => anchors.getActiveLayout(),
+    () => undefined,
+  );
+  return activeLayoutId === props.layoutId
+    ? createElement(Fragment, null, props.children)
+    : null;
+}
+
 export function AtlasSlot(props: { slotId: string }): ReactElement {
   return useHostAnchor('slot', props.slotId);
 }
@@ -170,17 +188,22 @@ function useHostAnchor(
   name?: string,
   props?: Record<string, string | undefined>,
 ): ReactElement {
-  const anchors = useContext(AtlasHostAnchorsContext);
-  if (!anchors)
-    throw new Error(
-      'Atlas host anchors must be rendered inside AtlasHostProvider.',
-    );
+  const anchors = useAtlasHostAnchors();
   const [element, setElement] = useState<HTMLElement | null>(null);
   useEffect(
     () => (element ? anchors.register(kind, element, name) : undefined),
     [anchors, element, kind, name],
   );
   return createElement(anchorTag(kind), { ...props, ref: setElement });
+}
+
+function useAtlasHostAnchors(): AtlasHostAnchorRegistry {
+  const anchors = useContext(AtlasHostAnchorsContext);
+  if (!anchors)
+    throw new Error(
+      'Atlas host anchors must be rendered inside AtlasHostProvider.',
+    );
+  return anchors;
 }
 
 function anchorTag(kind: AtlasHostAnchorKind): string {

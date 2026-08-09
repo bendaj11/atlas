@@ -13,10 +13,8 @@ slots: [
   {
     hostId: 'host',
     slotId: 'sidebar',
-    showOnPaths: ['/orders'],
-    hideOnPaths: ['/orders/new'],
   },
 ];
 ```
 
-`showOnPaths` and `hideOnPaths` match their paths and descendants. `hideOnPaths` wins when both match. Conditional Angular `@if` blocks and conditional React JSX unregister and remount slots safely.
+Conditional Angular `@if` blocks and conditional React JSX unregister and remount slots safely. Route layout selection controls which anchors are active; slot apps never declare paths.

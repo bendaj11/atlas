@@ -57,10 +57,10 @@ Generated app targets:
   },
   "atlas:publish": {
     "cache": false,
-    "dependsOn": ["build"],
+    "dependsOn": ["build", "atlas:config"],
     "executor": "nx:run-commands",
     "options": {
-      "command": "atlas publish orders --from-build-output",
+      "command": "atlas publish orders --from-build-output --skip-compile",
       "forwardAllArgs": true
     }
   }
@@ -83,7 +83,16 @@ Hosts also receive:
 }
 ```
 
-Native framework `build` remains intact. `atlas:publish` is non-cacheable because it mutates storage; its build dependencies remain cacheable.
+Native framework `build` remains intact. `atlas:config` compiles
+`atlas.config.ts` into a cacheable project output. `atlas:publish` depends on
+both native build and Atlas config, then reuses both outputs with
+`--from-build-output --skip-compile`. Publication is non-cacheable because it
+mutates storage.
+
+`--skip-compile` is specific to generated Nx targets: Nx guarantees that
+`atlas:config` completes first. Direct `atlas publish` calls and generated
+package scripts retain Atlas's self-contained compilation behavior, so they
+remain safe outside an Nx task graph.
 
 First deployment:
 

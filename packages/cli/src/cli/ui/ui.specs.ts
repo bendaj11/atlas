@@ -47,4 +47,5 @@ describe('ui', () => {
 
     expect(driver.get.infoCalls()).toStrictEqual(driver.get.result());
   });
+
 });

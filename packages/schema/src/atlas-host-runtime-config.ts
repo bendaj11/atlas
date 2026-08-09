@@ -1,7 +1,7 @@
 /** Runtime settings a deployed host loads before it loads any apps. */
 export interface AtlasHostRuntimeConfig {
   /** Leave as "1". Atlas uses this to know how to read this runtime config file. */
-  schemaVersion: "1";
+  schemaVersion: '1';
   /** Host app using this runtime config. */
   hostId: string;
   /** Deployed host package version, when known. */

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.3.48",
+  "version": "0.3.53",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -74,7 +74,7 @@
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.48",
+    "@atlas/schema": "0.3.53",
     "@softarc/native-federation-runtime": "^3.5.5",
     "cjs-module-lexer": "^1.4.3"
   },

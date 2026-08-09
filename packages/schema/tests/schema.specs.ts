@@ -38,6 +38,10 @@ test('createManifestFromConfig uses wildcard supported hosts when no routes or s
   assert.deepEqual(createManifest().supportedHosts, ['*']);
 });
 
+test('should use Shadow DOM isolation when app config omits it', () => {
+  assert.equal(createManifest().isolation, 'shadow-dom');
+});
+
 test('createManifestFromConfig writes source routes and slots to manifest placements', () => {
   const manifest = createManifestFromConfig({
     config: {
@@ -62,17 +66,16 @@ test('createManifestFromConfig writes source routes and slots to manifest placem
   ]);
 });
 
-test('should preserve shown and hidden slot paths in manifest placements', () => {
+test('should preserve a route layout id in manifest placements', () => {
   const manifest = createManifestFromConfig({
     config: {
       id: 'catalog',
       framework: 'react',
-      slots: [
+      routes: [
         {
-          slotId: 'sidebar',
           hostId: 'host',
-          showOnPaths: ['/catalog'],
-          hideOnPaths: ['/catalog/new'],
+          path: '/catalog',
+          layoutId: 'standard',
         },
       ],
     },
@@ -83,34 +86,57 @@ test('should preserve shown and hidden slot paths in manifest placements', () =>
 
   assert.deepEqual(manifest.placements, [
     {
-      id: 'host-sidebar-slot',
-      kind: 'slot',
+      id: 'host-catalog-route',
+      kind: 'route',
       hostId: 'host',
-      slot: 'sidebar',
-      showOnPaths: ['/catalog'],
-      hideOnPaths: ['/catalog/new'],
+      route: { path: '/catalog', layoutId: 'standard' },
     },
   ]);
 });
 
-test('should reject activeOn when validating a slot placement', () => {
+test('should preserve app route matching and redirects in manifest placements', () => {
+  const manifest = createManifestFromConfig({
+    config: {
+      id: 'root',
+      framework: 'react',
+      routes: [
+        {
+          hostId: 'host',
+          path: '/',
+          match: 'full',
+          redirectTo: '/dashboard',
+        },
+      ],
+    },
+    version: '1.0.0',
+    buildId: 'build-1',
+    remoteEntryUrl: 'https://cdn.example.com/root/remoteEntry.js',
+  });
+
+  assert.deepEqual(manifest.placements[0]?.route, {
+    path: '/',
+    match: 'full',
+    redirectTo: '/dashboard',
+  });
+});
+
+test('should reject an invalid route layout id', () => {
   const issues = validateAtlasManifest(
     createManifestCandidate({
       placements: [
         {
-          id: 'host-sidebar-slot',
-          kind: 'slot',
+          id: 'host-catalog-route',
+          kind: 'route',
           hostId: 'host',
-          slot: 'sidebar',
-          activeOn: ['/catalog'],
+          route: { path: '/catalog', layoutId: 'invalid layout' },
         },
       ],
     }),
   );
 
   assert.equal(
-    issueAt(issues, 'placements.0.activeOn')?.message,
-    'activeOn is not supported. Use showOnPaths instead.',
+    issueAt(issues, 'placements.0.route.layoutId')?.message,
+    'Expected layout id to contain only letters, numbers, dots, dashes, and underscores, without traversal.',
   );
 });
 

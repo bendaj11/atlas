@@ -28,6 +28,7 @@ import {
 import type { AtlasHostDataOf } from '@atlas/sdk/host';
 export {
   AtlasAngularHostAnchors,
+  AtlasHostLayout,
   AtlasHostStatus,
   AtlasNavigation,
   AtlasRouteOutlet,

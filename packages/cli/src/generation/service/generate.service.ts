@@ -447,7 +447,11 @@ export class AtlasGenerateService {
       serve: nxTarget(this.workspace.packageManager, cwd, 'dev'),
       dev: {
         executor: 'nx:run-commands',
-        options: { command: `atlas dev ${name}`, forwardAllArgs: true },
+        options: {
+          command: `atlas dev ${name}`,
+          forwardAllArgs: true,
+          tty: true,
+        },
       },
     };
     targets['atlas:config'] = atlasConfigNxTarget(
@@ -456,10 +460,10 @@ export class AtlasGenerateService {
     );
     targets['atlas:publish'] = {
       cache: false,
-      dependsOn: ['build'],
+      dependsOn: ['build', 'atlas:config'],
       executor: 'nx:run-commands',
       options: {
-        command: `atlas publish ${name} --from-build-output`,
+        command: `atlas publish ${name} --from-build-output --skip-compile`,
         forwardAllArgs: true,
       },
     };
@@ -516,7 +520,7 @@ export class AtlasGenerateService {
     const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
     if (!turbo) return;
     const [taskKey, tasks] = turboTasks(turbo);
-    tasks.dev ??= { cache: false, persistent: true };
+    tasks.dev = interactiveTurboDevTask(tasks.dev);
     tasks['framework:dev'] ??= { cache: false, persistent: true };
     tasks['atlas:config'] ??= { outputs: ['.atlas/**'] };
     tasks['atlas:publish'] ??= {
@@ -548,6 +552,13 @@ function turboTasks(
   if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];
   if (isRecord(turbo.pipeline)) return ['pipeline', turbo.pipeline];
   return ['tasks', {}];
+}
+
+function interactiveTurboDevTask(task: unknown): Record<string, unknown> {
+  return {
+    ...(isRecord(task) ? task : { cache: false, persistent: true }),
+    interactive: true,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -225,12 +225,17 @@ Generated Nx target:
 
 ```text
 atlas:publish
-  depends on native build
-  compiles atlas.config.ts inside publish
+  depends on native build and atlas:config
+  reuses both outputs with --from-build-output --skip-compile
   cache disabled because publication changes external state
 ```
 
 Framework build remains cacheable. Publication runs after output exists and performs this transaction:
+
+Generated Nx targets run `atlas:config` before publication, so their publish
+command passes `--skip-compile` and reuses the cached config output. Direct
+`atlas publish` calls and package scripts still compile config themselves;
+their workspace runners do not necessarily schedule `atlas:config` first.
 
 1. determine publication context; ordinary branches without a PR are skipped;
 2. derive manifest, Git metadata, and content identity;
@@ -361,7 +366,7 @@ Generated packages expose `atlas:config`, `atlas:publish`, and host-only `atlas:
     },
     "atlas:publish": {
       "cache": false,
-      "dependsOn": ["build"]
+      "dependsOn": ["build", "atlas:config"]
     },
     "atlas:bootstrap": {
       "dependsOn": ["atlas:config"],

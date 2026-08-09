@@ -1,7 +1,6 @@
 import type { AtlasDomIsolation } from './atlas-dom-isolation.js';
 import type { AtlasFramework } from './atlas-framework.js';
 import type { AtlasRouteNavigation } from './atlas-route-navigation.js';
-import type { AtlasHeadlessApp } from './atlas-headless-app.js';
 
 /** Shared Atlas source config fields for hosts and apps. */
 export interface AtlasBaseConfig {
@@ -23,15 +22,13 @@ export interface AtlasHostConfig extends AtlasBaseConfig {
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */
   resourcesRetryCount?: number;
-  /** Host-owned navigation targets that do not mount a remote app. */
-  headlessApps?: AtlasHeadlessApp[];
 }
 
 /** Source config developers write for app projects. */
 export interface AtlasAppConfig extends AtlasBaseConfig {
   /** Artifact type used by Atlas build orchestration. */
   type?: 'app';
-  /** DOM/CSS boundary requested when a host mounts this app. Defaults to scoped. */
+  /** DOM/CSS boundary requested when a host mounts this app. Defaults to shadow-dom. `scoped` is a legacy alias for shared-dom. */
   domIsolation?: AtlasDomIsolation;
   /** Page routes this app contributes to hosts. */
   routes?: AtlasRouteMount[];
@@ -57,6 +54,12 @@ export interface AtlasRouteMount {
   hostId: string;
   /** URL path users visit to see this app, such as "/checkout". No query string or hash. */
   path: string;
+  /** Require the whole URL to match. Prefix matching is the default. */
+  match?: 'prefix' | 'full';
+  /** Replaces the current URL without mounting this route's app. */
+  redirectTo?: string;
+  /** Host layout to activate while this route is active. Defaults to "default". */
+  layoutId?: string;
   /** Static page title hosts can show before the app sets a dynamic title. */
   title?: string;
   /** Optional menu settings if the host shows this route in navigation. */
@@ -69,10 +72,6 @@ export interface AtlasSlotMount {
   slotId: string;
   /** Host app this slot belongs to. */
   hostId: string;
-  /** Host paths where this slot is shown. Matches each path and its descendants. */
-  showOnPaths?: string[];
-  /** Host paths where this slot is hidden. Matches each path and its descendants. */
-  hideOnPaths?: string[];
 }
 
 /** Source config developers write so Atlas can build manifests and runtime files. */

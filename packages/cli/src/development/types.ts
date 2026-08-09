@@ -18,6 +18,7 @@ export type DevPrompts = Pick<
 export interface DevControlServer {
   port: number;
   markReady(): Promise<void>;
+  reconcile(): Promise<void>;
   close(): Promise<void>;
 }
 

@@ -74,11 +74,15 @@ describe('Nx generation', () => {
       buildExecutor: '@angular-architects/native-federation:build',
       devCommand: 'atlas dev {project}',
       devForwardsArguments: true,
+      devTty: true,
       hasBootstrap: true,
       hasConfig: true,
       hasDev: true,
       hasPublish: true,
       hasServeOriginal: true,
+      publishCommand:
+        'atlas publish {project} --from-build-output --skip-compile',
+      publishDependencies: ['build', 'atlas:config'],
       serveExecutor: '@angular-architects/native-federation:build',
       tagged: true,
     });
@@ -110,11 +114,15 @@ describe('Nx generation', () => {
     expect(driver.get.value()).toStrictEqual({
       devCommand: 'atlas dev {project}',
       devForwardsArguments: true,
+      devTty: true,
       hasBootstrap: false,
       hasConfig: true,
       hasDev: true,
       hasPublish: true,
       hasServeOriginal: false,
+      publishCommand:
+        'atlas publish {project} --from-build-output --skip-compile',
+      publishDependencies: ['build', 'atlas:config'],
       tagged: true,
     });
   });

@@ -11,10 +11,6 @@ export interface AtlasPlacement {
   hostId: string;
   /** Name of the host area to render into when kind is "slot". */
   slot?: string;
-  /** Host paths where a slot placement is shown. Matches each path and descendants. */
-  showOnPaths?: string[];
-  /** Host paths where a slot placement is hidden. Matches each path and descendants. */
-  hideOnPaths?: string[];
   /** URL and menu details when kind is "route". */
   route?: AtlasRouteContribution;
 }

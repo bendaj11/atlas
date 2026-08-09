@@ -17,7 +17,7 @@ export function createManifestFromConfig(
     buildId: input.buildId,
     channel: input.channel ?? 'production',
     framework: input.config.framework,
-    isolation: input.config.domIsolation ?? 'scoped',
+    isolation: input.config.domIsolation ?? 'shadow-dom',
     remoteEntryUrl: input.remoteEntryUrl,
     exposes: { entry: './entry' },
     requiredHostSdkVersion: input.config.requiredHostSdkVersion ?? '^0.1.0',
@@ -70,6 +70,11 @@ function placements(config: AtlasAppConfig): AtlasPlacement[] {
         hostId: route.hostId,
         route: {
           path: path,
+          ...(route.match !== undefined ? { match: route.match } : {}),
+          ...(route.redirectTo !== undefined
+            ? { redirectTo: route.redirectTo }
+            : {}),
+          ...(route.layoutId !== undefined ? { layoutId: route.layoutId } : {}),
           ...(route.title !== undefined ? { title: route.title } : {}),
           ...(route.nav ? { nav: route.nav } : {}),
         },
@@ -80,12 +85,6 @@ function placements(config: AtlasAppConfig): AtlasPlacement[] {
       kind: 'slot' as const,
       hostId: slot.hostId,
       slot: slot.slotId,
-      ...(slot.showOnPaths?.length
-        ? { showOnPaths: [...slot.showOnPaths] }
-        : {}),
-      ...(slot.hideOnPaths?.length
-        ? { hideOnPaths: [...slot.hideOnPaths] }
-        : {}),
     })),
   ];
 }

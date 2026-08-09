@@ -59,7 +59,11 @@ export function createDevSessionStore(
       host.hostReady = false;
     }
     for (const override of document.overrides) {
-      host.entries.set(override.manifest.id, { override, ready: false });
+      const existing = host.entries.get(override.manifest.id);
+      host.entries.set(override.manifest.id, {
+        override,
+        ready: existing?.ready ?? false,
+      });
     }
     hosts.set(document.hostId, host);
   }

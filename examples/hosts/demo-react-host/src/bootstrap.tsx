@@ -7,6 +7,7 @@ import { initFederation, loadRemoteModule } from '@atlas/sdk/federation';
 import type { AtlasHostClientEntry } from '@atlas/sdk/lifecycle';
 import {
   AtlasHostProvider,
+  AtlasHostLayout,
   AtlasHostStatus,
   AtlasNavigation,
   AtlasRouteOutlet,
@@ -23,7 +24,7 @@ type HostMountRequest = Pick<
 
 function HostLayout() {
   return (
-    <>
+    <AtlasHostLayout layoutId="default">
       <AtlasHostStatus />
       <header>
         <strong>Atlas</strong>
@@ -31,7 +32,7 @@ function HostLayout() {
       </header>
       <AtlasNavigation aria-label="Application" />
       <AtlasRouteOutlet />
-    </>
+    </AtlasHostLayout>
   );
 }
 

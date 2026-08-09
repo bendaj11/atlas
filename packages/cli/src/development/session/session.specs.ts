@@ -23,4 +23,12 @@ describe('development session', () => {
 
     expect(driver.get.value()).toStrictEqual(driver.get.session());
   });
+
+  it('should retain ready apps when their registration is refreshed', () => {
+    driver.given.document('registration');
+
+    driver.when.refreshRegistration();
+
+    expect(driver.get.value()).toStrictEqual(driver.get.catalog());
+  });
 });

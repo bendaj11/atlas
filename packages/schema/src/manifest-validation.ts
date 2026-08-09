@@ -69,12 +69,12 @@ export function validateManifest(
     );
   if (
     manifest?.isolation !== undefined &&
-    !isOneOf(manifest.isolation, ['scoped', 'shadow-dom'])
+    !isOneOf(manifest.isolation, ['shared-dom', 'scoped', 'shadow-dom'])
   )
     addIssue(
       issues,
       path('isolation'),
-      'Expected isolation to be scoped or shadow-dom.',
+      'Expected isolation to be shared-dom or shadow-dom.',
     );
 
   validateSemanticVersion(manifest?.version, path('version'), issues);
@@ -153,12 +153,6 @@ function validatePlacement(
       placementIds: uniqueness.placementIds,
       issues,
     });
-  if (placement?.activeOn !== undefined)
-    addIssue(
-      issues,
-      `${path}.activeOn`,
-      'activeOn is not supported. Use showOnPaths instead.',
-    );
 
   if (!isOneOf(placement?.kind, ['route', 'slot'])) {
     addIssue(
@@ -192,18 +186,6 @@ function validateRoutePlacement(input: {
       `${input.path}.slot`,
       'Route placements must not define a slot.',
     );
-  if (input.placement.showOnPaths !== undefined)
-    addIssue(
-      input.issues,
-      `${input.path}.showOnPaths`,
-      'Route placements must not define slot route conditions.',
-    );
-  if (input.placement.hideOnPaths !== undefined)
-    addIssue(
-      input.issues,
-      `${input.path}.hideOnPaths`,
-      'Route placements must not define slot route conditions.',
-    );
   const route = asRecord(input.placement.route);
   if (!route) {
     addIssue(
@@ -221,14 +203,41 @@ function validateRoutePlacement(input: {
   );
   if (route.title !== undefined)
     requiredString(route, 'title', input.issues, `${input.path}.route`);
-  if (
-    path &&
-    (!path.startsWith('/') || path.includes('?') || path.includes('#'))
-  ) {
+  if (route.layoutId !== undefined)
+    validateIdentifier(
+      route.layoutId,
+      `${input.path}.route.layoutId`,
+      'layout id',
+      input.issues,
+    );
+  if (route.match !== undefined && !isOneOf(route.match, ['prefix', 'full']))
+    addIssue(
+      input.issues,
+      `${input.path}.route.match`,
+      'Expected route match to be prefix or full.',
+    );
+  if (route.redirectTo !== undefined) {
+    if (
+      typeof route.redirectTo !== 'string' ||
+      !isRoutePattern(route.redirectTo)
+    )
+      addIssue(
+        input.issues,
+        `${input.path}.route.redirectTo`,
+        'Expected redirectTo to be an absolute route path.',
+      );
+    if (route.layoutId !== undefined)
+      addIssue(
+        input.issues,
+        `${input.path}.route.layoutId`,
+        'Redirect routes must not define layoutId.',
+      );
+  }
+  if (path && !isRoutePattern(path)) {
     addIssue(
       input.issues,
       `${input.path}.route.path`,
-      'Expected an absolute route path without a query or fragment.',
+      'Expected an absolute route pattern with static segments, :params, or a final * wildcard.',
     );
   }
   if (input.hostId && path)
@@ -240,6 +249,24 @@ function validateRoutePlacement(input: {
       issues: input.issues,
     });
   validateNavigation(route.nav, `${input.path}.route.nav`, input.issues);
+}
+
+function isRoutePattern(value: string): boolean {
+  if (
+    !value.startsWith('/') ||
+    value.includes('?') ||
+    value.includes('#') ||
+    value.includes('//')
+  )
+    return false;
+  const segments = value.split('/').filter(Boolean);
+  return segments.every((segment, index) =>
+    segment === '*'
+      ? index === segments.length - 1
+      : segment.startsWith(':')
+        ? /^:[A-Za-z][A-Za-z0-9_-]*$/.test(segment)
+        : segment.length > 0,
+  );
 }
 
 function validateNavigation(
@@ -275,40 +302,6 @@ function validateSlotPlacement(
       `${path}.route`,
       'Slot placements must not define a route.',
     );
-  validateSlotPaths(placement.showOnPaths, 'showOnPaths', path, issues);
-  validateSlotPaths(placement.hideOnPaths, 'hideOnPaths', path, issues);
-}
-
-function validateSlotPaths(
-  value: unknown,
-  field: 'showOnPaths' | 'hideOnPaths',
-  path: string,
-  issues: AtlasValidationIssue[],
-): void {
-  if (value === undefined) return;
-  if (!Array.isArray(value) || value.length === 0) {
-    addIssue(
-      issues,
-      `${path}.${field}`,
-      `Expected ${field} to be a non-empty array of absolute route paths.`,
-    );
-    return;
-  }
-  value.forEach((route, index) => {
-    if (
-      typeof route !== 'string' ||
-      route.trim() === '' ||
-      !route.startsWith('/') ||
-      route.includes('?') ||
-      route.includes('#')
-    ) {
-      addIssue(
-        issues,
-        `${path}.${field}.${index}`,
-        'Expected an absolute route path without a query or fragment.',
-      );
-    }
-  });
 }
 
 function validateExposes(

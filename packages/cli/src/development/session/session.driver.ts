@@ -1,9 +1,13 @@
 import { faker } from '@faker-js/faker';
 import { createTestManifest } from '@atlas/testkit';
 import type { AtlasDevOverrideDocument } from '../types.js';
-import { createDevSession, createLocalDevCatalog } from './session.js';
+import {
+  createDevSession,
+  createDevSessionStore,
+  createLocalDevCatalog,
+} from './session.js';
 
-type SessionScenario = 'catalog' | 'session';
+type SessionScenario = 'catalog' | 'registration' | 'session';
 
 export class DevelopmentSessionDriver {
   private readonly appId = faker.string.uuid();
@@ -76,6 +80,21 @@ export class DevelopmentSessionDriver {
         catalogHostId: session.catalog.hostId,
         hostId: session.hostId,
         overrideUrl: session.overrideUrl,
+      };
+    },
+    refreshRegistration: (): void => {
+      if (!this.document) throw new Error('Session document is required.');
+
+      const session = createDevSessionStore(this.document, this.overrideUrl);
+      session.markDocumentReady(this.document);
+      session.register(this.document);
+
+      const catalog = session.catalog(this.hostId);
+      this.value = {
+        appIds: catalog?.apps.map(({ id }) => id),
+        generatedAt: catalog?.generatedAt,
+        hostId: catalog?.hostId,
+        schemaVersion: catalog?.schemaVersion,
       };
     },
   };

@@ -27,7 +27,14 @@ interface PackageDocument {
 interface NxProjectDocument {
   name: string;
   tags: string[];
-  targets: Record<string, { executor: string; options: { command: string } }>;
+  targets: Record<
+    string,
+    {
+      dependsOn?: string[];
+      executor: string;
+      options: { command: string };
+    }
+  >;
 }
 
 export class GenerationE2eDriver {
@@ -136,6 +143,8 @@ export class GenerationE2eDriver {
         buildExecutor: project.targets.build.executor,
         configCommand: project.targets['atlas:config'].options.command,
         detected: this.output.includes('Detected an Nx workspace'),
+        publishCommand: project.targets['atlas:publish'].options.command,
+        publishDependencies: project.targets['atlas:publish'].dependsOn,
       };
     },
 

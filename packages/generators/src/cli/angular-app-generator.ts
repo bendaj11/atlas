@@ -73,7 +73,7 @@ export { default } from "./entry";
 export function angularAppEntry(name: string, zoneless: boolean): string {
   const selector = angularRootSelector(name);
   const zoneImport = zoneless ? '' : 'import "zone.js";\n';
-  return `${zoneImport}import { bootstrapApplication } from "@angular/platform-browser";
+  return `${zoneImport}import { createApplication } from "@angular/platform-browser";
 import { createLocationStrategy, defineApp } from "@atlas/sdk/angular";
 import { AppComponent } from "./app/app.component";
 import { createAppConfig } from "./app/app.config";
@@ -83,7 +83,8 @@ export default defineApp(async ({ container, sdk, context }) => {
   const locationStrategy = createLocationStrategy(context);
   container.append(element);
 
-  const app = await bootstrapApplication(AppComponent, createAppConfig({ context, sdk, locationStrategy }));
+  const app = await createApplication(createAppConfig({ context, sdk, locationStrategy }));
+  app.bootstrap(AppComponent, element);
 
   return {
     unmount() {
@@ -111,7 +112,7 @@ export function angularSinglePageAppEntry(
 ): string {
   const selector = angularRootSelector(name);
   const zoneImport = zoneless ? '' : 'import "zone.js";\n';
-  return `${zoneImport}import { bootstrapApplication } from "@angular/platform-browser";
+  return `${zoneImport}import { createApplication } from "@angular/platform-browser";
 import { defineApp } from "@atlas/sdk/angular";
 import { AppComponent } from "./app/app.component";
 import { createAppConfig } from "./app/app.config";
@@ -120,7 +121,8 @@ export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement("${selector}");
   container.append(element);
 
-  const app = await bootstrapApplication(AppComponent, createAppConfig({ context, sdk }));
+  const app = await createApplication(createAppConfig({ context, sdk }));
+  app.bootstrap(AppComponent, element);
 
   return {
     unmount() {

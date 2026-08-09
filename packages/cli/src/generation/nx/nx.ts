@@ -190,10 +190,10 @@ function ensureAtlasPublicationTargets(
 ): void {
   targets['atlas:publish'] = {
     cache: false,
-    dependsOn: ['build'],
+    dependsOn: ['build', 'atlas:config'],
     executor: 'nx:run-commands',
     options: {
-      command: `atlas publish ${projectName} --from-build-output`,
+      command: `atlas publish ${projectName} --from-build-output --skip-compile`,
       forwardAllArgs: true,
     },
   };
@@ -232,7 +232,11 @@ function ensureDevTarget(options: NxDevTargetOptions): void {
   if (!targets.dev || isOutdatedDevTarget(targets.dev, projectName)) {
     targets.dev = {
       executor: 'nx:run-commands',
-      options: { command: `atlas dev ${projectName}`, forwardAllArgs: true },
+      options: {
+        command: `atlas dev ${projectName}`,
+        forwardAllArgs: true,
+        tty: true,
+      },
     };
   }
   if (type === 'host' && !targets.serve && framework === 'react') {
@@ -286,7 +290,7 @@ function commandValues(value: unknown): unknown[] {
 function isOutdatedDevTarget(value: unknown, projectName: string): boolean {
   const target = asObject(value);
   const options = asObject(target.options);
-  return options.command !== `atlas dev ${projectName}`;
+  return options.command !== `atlas dev ${projectName}` || options.tty !== true;
 }
 
 function asObject(value: unknown): Record<string, unknown> {

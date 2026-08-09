@@ -18,6 +18,7 @@ import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
 import {
   AtlasHostProvider,
   AtlasHostStatus,
+  AtlasHostLayout,
   AtlasNavigation,
   AtlasRouteOutlet,
   AtlasSlot
@@ -31,7 +32,7 @@ type HostMountRequest = Pick<Parameters<AtlasHostClientEntry["mount"]>[0], "cont
 
 function HostLayout() {
   return (
-    <>
+    <AtlasHostLayout layoutId="default">
       <AtlasHostStatus />
       <header>
         <strong>Atlas</strong>
@@ -39,7 +40,7 @@ function HostLayout() {
       </header>
       <AtlasNavigation aria-label="Application" />
       <AtlasRouteOutlet />
-    </>
+    </AtlasHostLayout>
   );
 }
 

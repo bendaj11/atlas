@@ -14,9 +14,9 @@ For low-level framework-independent code, every mounted app receives scoped
 navigation:
 
 ```ts
-context.navigation.navigate("details/42");
-context.navigation.replace("settings");
-context.route.setTabTitle("Order 42");
+context.navigation.navigate('details/42');
+context.navigation.replace('settings');
+context.route.setTabTitle('Order 42');
 ```
 
 For app-internal navigation, use framework router APIs. They preserve native
@@ -26,9 +26,9 @@ For cross-app navigation, use stable app id. Atlas resolves destination's
 current `route` from host catalog and sends state as search parameters:
 
 ```ts
-atlas.navigateTo("2bea9c13-4899-4f93-9211-cd8c55e9c529", {
-  orderId: "42",
-  tab: "history"
+atlas.navigateTo('2bea9c13-4899-4f93-9211-cd8c55e9c529', {
+  orderId: '42',
+  tab: 'history',
 });
 ```
 
@@ -36,26 +36,29 @@ Destination reads `orderId` and `tab` with its framework query API, or with
 `context.route.getCurrent().query` in low-level code. State values may be
 strings, numbers, booleans, `null`, or `undefined`; do not pass secrets.
 
-## Host-Owned Pages
+## App Routes And Host Layouts
 
-Use `headlessApps` in host `atlas.config.ts` for a page composed only from
-slots. A headless app has a stable navigation id and a mutable URL, but Atlas
-does not import or mount a remote for it:
+Apps declare the URLs they own, including route matching, redirects, and the
+host layout to activate. The host only renders layouts and anchors:
 
 ```ts
 export default {
-  id: 'host-id',
+  type: 'app',
+  id: 'orders-app',
   framework: 'react',
-  headlessApps: [{ id: 'main-page', path: '/main' }],
-} satisfies AtlasHostConfig;
+  routes: [
+    { hostId: 'host-id', path: '/', match: 'full', redirectTo: '/dashboard' },
+    { hostId: 'host-id', path: '/orders/:orderId', layoutId: 'workspace' },
+    { hostId: 'host-id', path: '/orders', layoutId: 'workspace' },
+  ],
+} satisfies AtlasAppConfig;
 ```
 
-Any mounted app can use the same SDK call:
+Atlas selects the most-specific matching app route. `path` supports static
+segments, `:params`, and a final `*` wildcard. Use
+`match: 'full'` for an exact root redirect; other routes match path prefixes by
+default. Redirect routes cannot set a layout.
 
-```ts
-atlas.navigateTo('main-page');
-```
-
-Slot apps use `showOnPaths: ['/main']` to render on that page. They do not
-own `/main` and are not navigation targets. Headless app ids and paths must
-not conflict with selected app ids or routed app paths for the host.
+Atlas uses the selected app route's `layoutId`, then `default`. Slot apps never
+declare paths. They mount whenever the active host layout renders their slot
+anchor.

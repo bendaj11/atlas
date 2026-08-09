@@ -14,7 +14,8 @@ type GenerateScenario =
   | 'explicit-port'
   | 'interactive-widget'
   | 'explicit-widget'
-  | 'unconfigured-widget';
+  | 'unconfigured-widget'
+  | 'turbo-existing-dev';
 
 export class GenerateServiceDriver {
   private readonly name = faker.word.noun().toLowerCase();
@@ -25,6 +26,7 @@ export class GenerateServiceDriver {
   private action?: () => Promise<unknown>;
   private prompts?: ReturnType<typeof createPromptDriver>;
   private generatedConfigPath = '';
+  private turboPath = '';
   private widgetFilePath = '';
   private wrongWidgetFilePath = '';
 
@@ -36,6 +38,8 @@ export class GenerateServiceDriver {
 
       if (scenario === 'occupied-ports') await this.prepareOccupiedPorts();
       if (scenario === 'explicit-port') await this.prepareExplicitPort();
+      if (scenario === 'turbo-existing-dev')
+        await this.prepareTurboExistingDev();
       if (
         scenario === 'interactive-widget' ||
         scenario === 'explicit-widget' ||
@@ -65,6 +69,10 @@ export class GenerateServiceDriver {
     }),
     suggestedPorts: (): readonly (string | undefined)[] =>
       this.prompts?.inputDefaults ?? [],
+    turboDevTask: async (): Promise<Record<string, unknown>> => {
+      const turbo = JSON.parse(await readFile(this.turboPath, 'utf8'));
+      return turbo.tasks.dev;
+    },
     widgetState: async () => ({
       choiceLabels: this.normalizeChoices(this.prompts?.choiceLabels ?? []),
       generated: (await readFile(this.widgetFilePath, 'utf8')).includes(
@@ -151,6 +159,27 @@ export class GenerateServiceDriver {
       createPromptDriver(['true']),
     );
     this.generatedConfigPath = join(root, this.name, 'vite.config.ts');
+
+    this.action = () => service.project('app', this.name, 'react');
+  }
+
+  private async prepareTurboExistingDev(): Promise<void> {
+    const root = await mkdtemp(join(tmpdir(), 'atlas-turbo-dev-'));
+    this.turboPath = join(root, 'turbo.json');
+    await writeFile(
+      this.turboPath,
+      JSON.stringify({ tasks: { dev: { cache: false, persistent: true } } }),
+    );
+    const workspace = createTestWorkspace({
+      generationRoot: (_type, name) => join(root, name),
+      kind: 'turbo',
+      root,
+    });
+    const service = new AtlasGenerateService(
+      workspace,
+      new CliArguments(['--framework=react', '--skip-format']),
+      createPromptDriver(['true', '4201']),
+    );
 
     this.action = () => service.project('app', this.name, 'react');
   }
