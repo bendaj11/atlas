@@ -313,9 +313,18 @@
   "311": "Manifests",
   "312": "@babel/plugin-syntax-jsx",
   "313": "zone.js",
+  "314": "@testing-library/user-event",
+  "315": "@wix/wix-ui-icons-common",
+  "316": "@jest/globals",
+  "317": "@playwright/test",
   "318": "publicationContentType",
+  "319": "atlas-placement-kind.ts",
   "320": "@testing-library/react",
   "321": "@vitejs/plugin-react",
+  "322": "atlas-route-navigation.ts",
+  "323": "atlas.config.ts",
+  "324": "ui.specs.ts",
   "325": "version-packages.driver.ts",
-  "326": "mount"
+  "326": "mount",
+  "327": "schema.specs.ts"
 }
