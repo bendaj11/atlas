@@ -67,9 +67,12 @@ export interface S3Options {
   accessKeyId?: string;
   secretAccessKey?: string;
   sessionToken?: string;
+  lockMode?: S3PublicationLockMode;
   lockTimeoutMs?: number;
   lockLeaseMs?: number;
 }
+
+export type S3PublicationLockMode = 'external' | 's3';
 
 interface DeploymentLease {
   readonly owner: string;
@@ -199,6 +202,12 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   }
 
   async acquireLock(owner: string): Promise<AtlasPublicationLease> {
+    if (this.options.lockMode === 'external') return externalPublicationLease();
+
+    return await this.acquireS3Lock(owner);
+  }
+
+  private async acquireS3Lock(owner: string): Promise<AtlasPublicationLease> {
     const deadline = Date.now() + this.lockTimeoutMs;
     const token = randomUUID();
     let stored = await this.tryAcquireLease(owner, token);
@@ -406,6 +415,7 @@ function storageFromEnvironment(): AtlasPublicationStorage | undefined {
       process.env.AWS_DEFAULT_REGION ??
       'us-east-1',
     forcePathStyle: environmentBoolean('ATLAS_S3_FORCE_PATH_STYLE'),
+    lockMode: environmentS3LockMode(),
     ...(accessKeyId && secretAccessKey
       ? {
           accessKeyId,
@@ -416,6 +426,13 @@ function storageFromEnvironment(): AtlasPublicationStorage | undefined {
         }
       : {}),
   });
+}
+
+function externalPublicationLease(): AtlasPublicationLease {
+  return {
+    assertHeld: async () => undefined,
+    release: async () => undefined,
+  };
 }
 
 function s3ClientConfig(options: S3Options): S3ClientConfig {
@@ -465,6 +482,13 @@ function environmentBoolean(name: string): boolean | undefined {
   if (value === 'true') return true;
   if (value === 'false') return false;
   throw new Error(`${name} must be "true" or "false".`);
+}
+
+function environmentS3LockMode(): S3PublicationLockMode {
+  const value = process.env.ATLAS_S3_LOCK_MODE;
+  if (value === undefined || value === 's3') return 's3';
+  if (value === 'external') return 'external';
+  throw new Error('ATLAS_S3_LOCK_MODE must be "s3" or "external".');
 }
 
 function requiredEtag(etag: string | undefined): string {

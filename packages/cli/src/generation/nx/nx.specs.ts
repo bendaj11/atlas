@@ -81,8 +81,7 @@ describe('Nx generation', () => {
       hasPublish: true,
       hasServeOriginal: true,
       publishCommand:
-        'atlas publish {project} --from-build-output --skip-compile',
-      publishDependencies: ['build', 'atlas:config'],
+        'atlas publish {project} --from-build-output',
       serveExecutor: '@angular-architects/native-federation:build',
       tagged: true,
     });
@@ -121,8 +120,7 @@ describe('Nx generation', () => {
       hasPublish: true,
       hasServeOriginal: false,
       publishCommand:
-        'atlas publish {project} --from-build-output --skip-compile',
-      publishDependencies: ['build', 'atlas:config'],
+        'atlas publish {project} --from-build-output',
       tagged: true,
     });
   });

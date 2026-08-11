@@ -70,6 +70,62 @@ ATLAS_STORAGE_KEY_PREFIX=production
 
 The key prefix defines storage namespace. `ATLAS_REGISTRY_URL` must serve that same namespace.
 
+### Storage providers without conditional writes
+
+Atlas normally uses an S3 lease to serialize updates to `registry.json` and host
+catalogs. This requires functional conditional `PUT` support for both
+`If-None-Match` and `If-Match`. Some S3-compatible providers, including NetApp
+StorageGRID, accept these headers but do not implement their conditional
+semantics. Atlas cannot safely use its built-in S3 lease with those providers.
+
+Use external locking only when one CI system controls every Atlas mutation for
+the same storage API URL, bucket, and key prefix. Keep the default S3 lease for
+AWS S3, R2, MinIO, and providers with functional conditional writes.
+
+For Jenkins with the Lockable Resources plugin:
+
+```groovy
+stage('Publish Atlas') {
+  steps {
+    lock(resource: 'atlas-publish-production') {
+      withEnv(['ATLAS_S3_LOCK_MODE=external']) {
+        sh 'npx atlas publish orders'
+      }
+    }
+  }
+}
+```
+
+Every `atlas publish`, `atlas rollback`, `atlas remove-pr`, and `atlas
+prune-prs` invocation for that registry must use the same Jenkins resource.
+Choose a distinct resource for each storage API URL, bucket, and key prefix.
+Do not set `ATLAS_S3_LOCK_MODE=external` globally or use it for local/manual
+publication. CI must be the only holder of publication credentials. Atlas
+cannot verify that the external lock is held.
+
+GitHub Actions can use a native concurrency group instead:
+
+```yaml
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: atlas-publish-production
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - run: npx atlas publish orders
+        env:
+          ATLAS_S3_LOCK_MODE: external
+```
+
+Use the same fixed concurrency group in every workflow that mutates this
+registry. `queue: max` keeps pending publications instead of dropping them;
+never use `cancel-in-progress: true` for publication. GitHub Actions groups
+coordinate only jobs in one repository. If separate repositories publish to
+the same registry, use one shared CI publication workflow or a shared external
+lock service instead.
+
 ### Credentials
 
 Atlas uses the official AWS SDK credential provider chain. Supported sources include:
@@ -205,6 +261,7 @@ The pipeline has two stages:
 For Nx, the publication step remains:
 
 ```bash
+npx nx run-many -t build
 npx nx run-many -t atlas:publish
 ```
 
@@ -221,21 +278,18 @@ retried against the same immutable tag.
 
 ## What `atlas:publish` does
 
-Generated Nx target:
+Generated Nx and Turbo target:
 
 ```text
 atlas:publish
-  depends on native build and atlas:config
-  reuses both outputs with --from-build-output --skip-compile
+  has no task dependencies
+  reuses manually built output with --from-build-output
   cache disabled because publication changes external state
 ```
 
-Framework build remains cacheable. Publication runs after output exists and performs this transaction:
+Framework build remains cacheable. Run it before publication. Publication then performs this transaction:
 
-Generated Nx targets run `atlas:config` before publication, so their publish
-command passes `--skip-compile` and reuses the cached config output. Direct
-`atlas publish` calls and package scripts still compile config themselves;
-their workspace runners do not necessarily schedule `atlas:config` first.
+Publish compiles and validates Atlas config itself in every workspace runner.
 
 1. determine publication context; ordinary branches without a PR are skipped;
 2. derive manifest, Git metadata, and content identity;
@@ -262,14 +316,16 @@ Do not use affected selection until CI has a trusted comparison base.
 Nx:
 
 ```bash
-npx nx run-many -t lint test atlas:publish deploy
+npx nx run-many -t lint test build
+npx nx run-many -t atlas:publish deploy
 npx atlas verify
 ```
 
 Turborepo:
 
 ```bash
-npx turbo run lint test atlas:publish deploy
+npx turbo run lint test build
+npx turbo run atlas:publish deploy
 npx atlas verify
 ```
 
@@ -327,7 +383,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx nx affected -t lint test atlas:publish deploy
+      - run: npx nx affected -t lint test build
+      - run: npx nx affected -t atlas:publish deploy
       - run: npx atlas verify
 ```
 
@@ -352,7 +409,10 @@ stage('Deploy affected projects') {
 }
 ```
 
-Use Jenkins credential bindings or workload identity for storage credentials.
+For providers without conditional writes, use the Lockable Resources example
+above and set `ATLAS_S3_LOCK_MODE=external` only inside that lock. Standard S3
+providers retain Atlas's built-in lease. Use Jenkins credential bindings or
+workload identity for storage credentials.
 
 ## Routine Turborepo CI
 
@@ -365,8 +425,7 @@ Generated packages expose `atlas:config`, `atlas:publish`, and host-only `atlas:
       "outputs": [".atlas/**"]
     },
     "atlas:publish": {
-      "cache": false,
-      "dependsOn": ["build", "atlas:config"]
+      "cache": false
     },
     "atlas:bootstrap": {
       "dependsOn": ["atlas:config"],
@@ -379,7 +438,8 @@ Generated packages expose `atlas:config`, `atlas:publish`, and host-only `atlas:
 Routine deployment:
 
 ```bash
-npx turbo run lint test atlas:publish deploy --affected
+npx turbo run lint test build --affected
+npx turbo run atlas:publish deploy --affected
 npx atlas verify
 ```
 
@@ -428,6 +488,7 @@ npx nx affected -t lint test build
 For shared preview environments:
 
 ```bash
+npx nx affected -t build
 npx nx affected -t lint test atlas:publish
 npx atlas verify
 ```

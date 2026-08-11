@@ -39,7 +39,7 @@ wiring, remote expose names, manifest paths, and local override plumbing.
 Generated Atlas projects expose native workspace integration:
 
 - `atlas:config`: compile Atlas configuration;
-- `atlas:publish`: depend on framework build, then publish under storage lease;
+- `atlas:publish`: publish manually built output under storage lease;
 - hosts: `atlas:bootstrap`: build deterministic static bootstrap.
 
 Non-Atlas projects receive none of these targets. CI uses Nx, Turbo, Yarn, or

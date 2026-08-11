@@ -83,6 +83,25 @@ Publisher waits with jitter up to bounded timeout. Lease renewals are serialized
 
 This serializes registry mutation even when Nx, Turbo, Yarn, or pnpm run multiple `atlas:publish` tasks concurrently.
 
+### External CI locking for providers without conditional writes
+
+The built-in S3 lease requires conditional `PUT` requests with `If-None-Match`
+and `If-Match`. Do not use it with a provider that accepts those headers but
+does not enforce them; lock ownership cannot be proven and Atlas stops before
+mutating the registry.
+
+When an organization has only such a provider, CI can serialize publication
+externally. Wrap every mutation command for one registry in the same CI lock,
+then set `ATLAS_S3_LOCK_MODE=external` inside that lock. External mode bypasses
+only the S3 deployment lease. It does not make the storage provider
+transactional, and Atlas cannot verify that CI acquired the lock.
+
+Keep the variable scoped to the locked command. Restrict publication
+credentials to CI, prevent other CI jobs and local machines from using them,
+and use a unique lock resource per storage API URL, bucket, and key prefix.
+See [Production deployment](production-deployment.md) for Jenkins and GitHub
+Actions examples.
+
 ## Registry selection
 
 Production publication adds manifest history and updates production selection

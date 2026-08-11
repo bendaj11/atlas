@@ -460,10 +460,9 @@ export class AtlasGenerateService {
     );
     targets['atlas:publish'] = {
       cache: false,
-      dependsOn: ['build', 'atlas:config'],
       executor: 'nx:run-commands',
       options: {
-        command: `atlas publish ${name} --from-build-output --skip-compile`,
+        command: `atlas publish ${name} --from-build-output`,
         forwardAllArgs: true,
       },
     };
@@ -525,7 +524,6 @@ export class AtlasGenerateService {
     tasks['atlas:config'] ??= { outputs: ['.atlas/**'] };
     tasks['atlas:publish'] ??= {
       cache: false,
-      dependsOn: ['build'],
       env: ['ATLAS_*', 'AWS_*', 'CI_*', 'GITHUB_*', 'BITBUCKET_*', 'VERCEL_*'],
     };
     tasks['atlas:bootstrap'] ??= {

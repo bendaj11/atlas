@@ -30,6 +30,7 @@ git push -u origin feature/order-filters
 If branch CI contains the ordinary Nx deployment command, it may still run:
 
 ```bash
+npx nx affected -t build
 npx nx affected -t lint test atlas:publish
 ```
 
@@ -48,6 +49,9 @@ The Git provider starts a PR pipeline. Run the workspace command from the
 workspace root. Nx example:
 
 ```bash
+npx nx affected -t build \
+  --base="$NX_BASE" \
+  --head="$NX_HEAD"
 npx nx affected -t lint test atlas:publish \
   --base="$NX_BASE" \
   --head="$NX_HEAD"
@@ -56,14 +60,17 @@ npx nx affected -t lint test atlas:publish \
 Equivalent selection belongs to the workspace tool:
 
 ```bash
+npx turbo run build --affected
 npx turbo run lint test atlas:publish --affected
+yarn workspaces foreach --since --topological-dev run build
 yarn workspaces foreach --since --topological-dev run atlas:publish
+pnpm --filter "...[origin/main]" -r --if-present run build
 pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
 ```
 
 Atlas does not calculate another affected graph. Each selected
-`atlas:publish` target builds one artifact, compiles and validates its Atlas
-config inside publication, and publishes it.
+`atlas:publish` target publishes one manually built artifact after compiling
+and validating its Atlas config.
 
 ### Metadata detection and custom mapping
 
@@ -82,6 +89,7 @@ PR number is read in this order:
 Source metadata can also be mapped explicitly:
 
 ```bash
+npx nx affected -t build
 ATLAS_PR_NUMBER="$MY_CI_CHANGE_NUMBER" \
 ATLAS_GIT_SHA="$MY_CI_PR_HEAD_SHA" \
 ATLAS_GIT_BRANCH="$MY_CI_SOURCE_BRANCH" \

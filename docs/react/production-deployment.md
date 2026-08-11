@@ -4,7 +4,7 @@ This guide adds React/Vite-specific checks to canonical [production deployment f
 
 ## Generated build integration
 
-React Atlas projects keep Vite or Nx Vite build as native `build` target. Atlas adds `atlas:config` and non-cacheable `atlas:publish` depending on native build.
+React Atlas projects keep Vite or Nx Vite build as native `build` target. Atlas adds `atlas:config` and a non-cacheable `atlas:publish` target. Run `build` before publishing.
 
 Vite Federation produces `remoteEntry.json`, JavaScript chunks, styles, and assets. Atlas discovers output through workspace target configuration and conventional Vite `dist` directory.
 
@@ -49,12 +49,14 @@ node -e 'const m=require("./orders/dist/app.manifest.json"); console.log({versio
 First environment:
 
 ```bash
+npx nx run-many -t build
 npx nx run-many -t atlas:publish
 ```
 
 Routine CI:
 
 ```bash
+npx nx affected -t build
 npx nx affected -t lint test atlas:publish deploy
 npx atlas verify
 ```

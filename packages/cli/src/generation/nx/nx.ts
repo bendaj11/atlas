@@ -190,10 +190,9 @@ function ensureAtlasPublicationTargets(
 ): void {
   targets['atlas:publish'] = {
     cache: false,
-    dependsOn: ['build', 'atlas:config'],
     executor: 'nx:run-commands',
     options: {
-      command: `atlas publish ${projectName} --from-build-output --skip-compile`,
+      command: `atlas publish ${projectName} --from-build-output`,
       forwardAllArgs: true,
     },
   };

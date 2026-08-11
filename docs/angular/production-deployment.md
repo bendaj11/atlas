@@ -4,7 +4,7 @@ This guide adds Angular-specific checks to the canonical [production deployment 
 
 ## Generated build integration
 
-Angular Atlas projects keep Angular/Nx build as native `build` target. Atlas adds `atlas:config` and non-cacheable `atlas:publish` target depending on native build.
+Angular Atlas projects keep Angular/Nx build as native `build` target. Atlas adds `atlas:config` and a non-cacheable `atlas:publish` target. Run `build` before publishing.
 
 Angular Native Federation produces `remoteEntry.json`, JavaScript chunks, styles, and assets. Atlas discovers output from Nx/Angular target configuration, including Angular `browser` output directories.
 
@@ -37,12 +37,14 @@ node -e 'const m=require("./orders/dist/app.manifest.json"); console.log({versio
 First environment:
 
 ```bash
+npx nx run-many -t build
 npx nx run-many -t atlas:publish
 ```
 
 Routine CI:
 
 ```bash
+npx nx affected -t build
 npx nx affected -t lint test atlas:publish deploy
 npx atlas verify
 ```

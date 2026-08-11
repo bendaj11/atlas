@@ -1,8 +1,8 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasError } from '@atlas/schema';
-import { createCliError } from './cli-error.js';
+import { createCliError, formatErrorWithCauses } from './cli-error.js';
 
-type ErrorScenario = 'browser' | 'build' | 'publish' | 'unknown';
+type ErrorScenario = 'browser' | 'build' | 'publish' | 'storage' | 'unknown';
 
 export class CliErrorDriver {
   private readonly unknownCommand = faker.word.sample();
@@ -12,7 +12,14 @@ export class CliErrorDriver {
   readonly given = {
     error: (scenario: ErrorScenario): void => {
       const command = scenario === 'unknown' ? this.unknownCommand : scenario;
-      this.cause = new Error(this.messageFor(scenario));
+      this.cause =
+        scenario === 'storage'
+          ? new Error(this.messageFor(scenario), {
+              cause: new Error('AccessDenied', {
+                cause: { httpStatusCode: 403 },
+              }),
+            })
+          : new Error(this.messageFor(scenario));
       this.error = createCliError(
         scenario === 'browser' ? 'verify' : command,
         this.cause,
@@ -31,6 +38,7 @@ export class CliErrorDriver {
 
       return this.cause;
     },
+    formattedError: (): string => formatErrorWithCauses(this.get.error()),
     unknownSummary: (): string =>
       `Unknown or incomplete command "${this.unknownCommand}".`,
   };
@@ -39,6 +47,8 @@ export class CliErrorDriver {
     if (scenario === 'unknown') return this.get.unknownSummary();
     if (scenario === 'build') return 'spawn vite ENOENT';
     if (scenario === 'publish') return 'S3 deployment lock is no longer owned.';
+    if (scenario === 'storage')
+      return 'S3-compatible storage could not acquire deployment lock.';
 
     return 'Atlas host failed. Suggested action: Correct atlas.runtime.json, then reload this page.';
   }

@@ -61,6 +61,14 @@ describe('createCliError', () => {
     );
   });
 
+  it('should include storage cause when publication storage fails', () => {
+    driver.given.error('storage');
+
+    expect(driver.get.formattedError()).toContain(
+      'Caused by: Error: AccessDenied',
+    );
+  });
+
   it('should set CLI surface when wrapping browser error', () => {
     driver.given.error('browser');
 

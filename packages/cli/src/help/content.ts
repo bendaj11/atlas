@@ -332,6 +332,11 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         description: 'Enable path-style access for providers such as MinIO',
       },
       {
+        label: 'ATLAS_S3_LOCK_MODE',
+        description:
+          'S3 lease mode: s3 (default) or external when CI holds one global publication lock',
+      },
+      {
         label: 'ATLAS_REGISTRY_URL',
         description: 'Public download URL serving published objects',
       },

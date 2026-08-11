@@ -57,10 +57,9 @@ Generated app targets:
   },
   "atlas:publish": {
     "cache": false,
-    "dependsOn": ["build", "atlas:config"],
     "executor": "nx:run-commands",
     "options": {
-      "command": "atlas publish orders --from-build-output --skip-compile",
+      "command": "atlas publish orders --from-build-output",
       "forwardAllArgs": true
     }
   }
@@ -83,20 +82,18 @@ Hosts also receive:
 }
 ```
 
-Native framework `build` remains intact. `atlas:config` compiles
-`atlas.config.ts` into a cacheable project output. `atlas:publish` depends on
-both native build and Atlas config, then reuses both outputs with
-`--from-build-output --skip-compile`. Publication is non-cacheable because it
-mutates storage.
+Native framework `build` remains intact. Run it explicitly before
+`atlas:publish`. Publish compiles Atlas config itself and reuses built output
+with `--from-build-output`. Publication is non-cacheable because it mutates
+storage.
 
-`--skip-compile` is specific to generated Nx targets: Nx guarantees that
-`atlas:config` completes first. Direct `atlas publish` calls and generated
-package scripts retain Atlas's self-contained compilation behavior, so they
-remain safe outside an Nx task graph.
+Generated Nx targets and package scripts share the same self-contained Atlas
+config compilation behavior.
 
 First deployment:
 
 ```bash
+npx nx run-many -t build
 npx nx run-many -t atlas:publish deploy
 npx atlas verify
 ```
@@ -104,6 +101,7 @@ npx atlas verify
 Routine deployment:
 
 ```bash
+npx nx affected -t build
 npx nx affected -t atlas:publish deploy
 npx atlas verify
 ```
@@ -134,6 +132,7 @@ auditing which packages are Atlas projects capable of publication.
 First deployment:
 
 ```bash
+npx turbo run build
 npx turbo run atlas:publish deploy
 npx atlas verify
 ```
@@ -141,12 +140,13 @@ npx atlas verify
 Routine deployment:
 
 ```bash
+npx turbo run build --affected
 npx turbo run atlas:publish deploy --affected
 npx atlas verify
 ```
 
-Turbo `dependsOn` ensures framework build output exists before publication.
-`atlas:publish` compiles and validates Atlas config itself.
+Build before publication. `atlas:publish` compiles and validates Atlas config
+itself.
 
 ## Yarn workspaces
 
@@ -214,6 +214,7 @@ Direct manual command is self-contained:
 npx atlas publish orders
 ```
 
-It runs native build before publishing.
+Build manually before running it.
 
-Workspace targets already depend on native build, so generated scripts pass `--from-build-output`. This prevents nested Nx/Turbo execution and preserves workspace cache decisions.
+Generated scripts pass `--from-build-output` so they reuse manually built
+output and avoid nested Nx/Turbo execution.

@@ -19,6 +19,43 @@ export function createCliError(
   });
 }
 
+export function formatErrorWithCauses(error: Error): string {
+  const causes = errorCauses(error);
+  if (causes.length === 0) return error.message;
+
+  return `${error.message}\nCaused by: ${causes.join('\nCaused by: ')}`;
+}
+
+function errorCauses(error: Error): readonly string[] {
+  const messages: string[] = [];
+  const seen = new Set<unknown>([error]);
+  let cause = error.cause;
+
+  while (cause !== undefined && !seen.has(cause)) {
+    seen.add(cause);
+    messages.push(errorCauseMessage(cause));
+    cause = cause instanceof Error ? cause.cause : undefined;
+  }
+
+  return messages;
+}
+
+function errorCauseMessage(cause: unknown): string {
+  if (cause instanceof Error) {
+    const status = errorStatus(cause);
+    return `${cause.name}: ${cause.message}${status ? ` (HTTP ${status})` : ''}`;
+  }
+
+  return String(cause);
+}
+
+function errorStatus(error: Error): number | undefined {
+  if (!('$metadata' in error)) return undefined;
+  const metadata = (error as { $metadata?: { httpStatusCode?: number } })
+    .$metadata;
+  return metadata?.httpStatusCode;
+}
+
 function cliSummary(command: string | undefined, summary: string): string {
   if (
     /^(Atlas\b|--|ATLAS_|Unknown help topic|Unknown or incomplete command)/i.test(

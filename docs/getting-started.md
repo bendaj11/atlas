@@ -34,7 +34,7 @@ Each generated Atlas project contains:
 - `atlas.config.ts`: stable UUID, framework, routes, placements, and compatibility;
 - native `build` target: owned by Angular, React, Nx, or another framework tool;
 - `atlas:config`: compiles Atlas configuration;
-- `atlas:publish`: depends on native build and publishes this project;
+- `atlas:publish`: publishes this project's manually built output;
 - host only: `atlas:bootstrap`, which creates static host startup files.
 
 `atlas:config` is a local preparation and diagnostic step. It reads and
@@ -170,10 +170,11 @@ Provider consoles use slightly different field names. Keep write operations priv
 First deployment should publish every Atlas project because there may be no reliable affected baseline yet:
 
 ```bash
+npx nx run-many -t build
 npx nx run-many -t atlas:publish
 ```
 
-Nx runs only projects containing `atlas:publish`. Each target builds through the project's native framework target. Atlas then:
+Nx runs only projects containing `atlas:publish`. Build targets must complete first. Atlas then:
 
 1. compiles and validates `atlas.config.ts` inside publication;
 2. derives version from a matching CI tag, project package, workspace package,
