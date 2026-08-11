@@ -174,6 +174,12 @@ export class AtlasBuildService {
     const config = await this.loadConfig(project.root);
     if (!isHostConfig(config))
       throw new Error(`Atlas dev expected "${projectName}" to be a host.`);
+    const styles = await discoverStylesheets({
+      artifactRoot: project.root,
+      artifactBaseUrl: trimSlash(baseUrl),
+      framework: config.framework,
+      channel: 'local',
+    });
     const manifest: AtlasHostManifest = {
       schemaVersion: '1',
       kind: 'host',
@@ -187,6 +193,7 @@ export class AtlasBuildService {
       exposes: { entry: './host' },
       requiredLoaderApiVersion: '^1.0.0',
       createdAt: buildTimestamp(),
+      ...(styles.length ? { styles } : {}),
     };
     await mkdir(join(project.root, '.atlas'), { recursive: true });
     await writeFile(

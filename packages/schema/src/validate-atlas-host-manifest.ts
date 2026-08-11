@@ -11,6 +11,7 @@ import {
   validateSha256Integrity,
 } from './validation.js';
 import { validateArtifactReleaseMetadata } from './validate-artifact-release-metadata.js';
+import { validateStyles } from './manifest-validation.js';
 
 /** Checks unknown JSON and returns all host-client manifest problems. */
 export function validateAtlasHostManifest(
@@ -59,6 +60,7 @@ export function validateAtlasHostManifest(
   validateHttpUrl(manifest?.remoteEntryUrl, 'remoteEntryUrl', issues);
   validateSha256Integrity(manifest?.integrity, 'integrity', issues);
   validateArtifactReleaseMetadata(manifest, (field) => field, issues);
+  validateStyles(manifest?.styles, 'styles', issues);
   const exposes = asRecord(manifest?.exposes);
   if (!exposes)
     addIssue(issues, 'exposes', 'Expected exposes to be an object.');

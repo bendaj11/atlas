@@ -17,6 +17,14 @@ describe('loadHostModule', () => {
     expect(driver.get.module()).toEqual({ mount: expect.any(Function) });
   });
 
+  it('should append host styles when the manifest declares them', async () => {
+    await driver.given
+      .hostWithStyles('./' + faker.system.commonFileName('js'))
+      .when.load();
+
+    expect(driver.get.stylesheetUrls()).toHaveLength(1);
+  });
+
   it('should reject host metadata when selected expose is missing', async () => {
     await driver.given
       .missingExpose('./' + faker.system.commonFileName('js'))

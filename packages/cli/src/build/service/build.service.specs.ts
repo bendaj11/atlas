@@ -55,4 +55,12 @@ describe('AtlasBuildService', () => {
 
     expect(driver.get.observation()).toBe(true);
   });
+
+  it('should include Angular styles in a local host manifest', async () => {
+    await driver.given.build('local-host-styles');
+
+    await driver.when.buildManifest();
+
+    expect(driver.get.observation()).toBe(true);
+  });
 });

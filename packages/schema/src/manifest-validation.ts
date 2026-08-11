@@ -325,7 +325,7 @@ function validateExposes(
   }
 }
 
-function validateStyles(
+export function validateStyles(
   value: unknown,
   path: string,
   issues: AtlasValidationIssue[],

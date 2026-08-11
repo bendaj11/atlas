@@ -1,28 +1,49 @@
-import type { HostModule } from '../types.js';
-import { faker } from '../test-utils/faker.js';
+import type {
+  AtlasHostManifest,
+  AtlasHostRuntimeConfig,
+  AtlasStylesheet,
+} from '@atlas/schema';
 import { jest } from '@jest/globals';
+import { faker } from '../test-utils/faker.js';
+import type { HostModule } from '../types.js';
+import { loadHostModule, type HostLoaderDependencies } from './host-loader.js';
 
 export class HostLoaderDriver {
-  private static readonly fetchJsonMock =
+  private readonly fetchJson =
     jest.fn<
       (url: string, runtime: unknown, integrity?: string) => Promise<unknown>
     >();
-  private static readonly importModuleMock =
-    jest.fn<(url: string) => Promise<HostModule>>();
-  private static readonly moduleMocks = [
-    jest.unstable_mockModule('../fetch-json/fetch-json.js', () => ({
-      fetchJson: HostLoaderDriver.fetchJsonMock,
-    })),
-    jest.unstable_mockModule('../module-shim/module-shim.js', () => ({
-      importModule: HostLoaderDriver.importModuleMock,
-    })),
-    jest.unstable_mockModule('../validation/validation.js', () => ({
-      validateArtifactUrl: jest.fn(),
-      validateHostManifest: jest.fn(),
-    })),
-  ];
-  private static readonly loader =
-    (HostLoaderDriver.moduleMocks, import('./host-loader.js'));
+  private readonly importedResourceUrls: string[] = [];
+  private readonly importedModule = { mount: async () => undefined };
+  private readonly importModule = jest.fn<(url: string) => Promise<HostModule>>(
+    async (url) => {
+      this.importedResourceUrls.push(url);
+      return this.importedModule;
+    },
+  );
+  private readonly stylesheetUrls: string[] = [];
+  private readonly document = {
+    createElement: jest.fn(() => ({})),
+    head: {
+      append: jest.fn((element: { href?: string }) => {
+        if (element.href) this.stylesheetUrls.push(element.href);
+      }),
+    },
+  } as unknown as Document;
+  private readonly dependencies: HostLoaderDependencies = {
+    document: this.document,
+    fetchJson: async <T>(
+      url: string,
+      runtime?: Pick<
+        AtlasHostRuntimeConfig,
+        'resourcesRetryCount' | 'resourcesTimeoutMs'
+      >,
+      integrity?: string,
+    ) => this.fetchJson(url, runtime, integrity) as Promise<T>,
+    importModule: this.importModule,
+    validateArtifactUrl: jest.fn(),
+    validateHostManifest: jest.fn(),
+  };
   private error: unknown;
   private module: HostModule | undefined;
   private readonly schemaVersion = faker.custom.schemaVersion();
@@ -36,49 +57,36 @@ export class HostLoaderDriver {
   private buildNotificationListener:
     ((event: MessageEvent<string>) => void) | undefined;
   private readonly reload = jest.fn();
+  private styles: AtlasStylesheet[] = [];
 
   readonly given = {
     availableExpose: (exposeKey: string): HostLoaderDriver => {
-      this.exposeKey = exposeKey;
-      HostLoaderDriver.fetchJsonMock.mockReset();
-      HostLoaderDriver.importModuleMock.mockReset();
-      HostLoaderDriver.fetchJsonMock.mockResolvedValue({
-        exposes: [
-          { key: this.exposeKey, outFileName: faker.system.filePath() },
-        ],
-      });
-      HostLoaderDriver.importModuleMock.mockResolvedValue({
-        mount: async () => undefined,
-      });
+      this.reset(exposeKey);
+      return this;
+    },
+    hostWithStyles: (exposeKey: string): HostLoaderDriver => {
+      this.reset(exposeKey);
+      this.styles = [{ href: faker.internet.url() }];
+      this.configureHost();
       return this;
     },
     missingExpose: (exposeKey: string): HostLoaderDriver => {
-      this.exposeKey = exposeKey;
-      HostLoaderDriver.fetchJsonMock.mockReset();
-      HostLoaderDriver.importModuleMock.mockReset();
-      HostLoaderDriver.fetchJsonMock.mockResolvedValue({ exposes: [] });
+      this.reset(exposeKey);
+      this.fetchJson.mockResolvedValue({ exposes: [] });
       return this;
     },
     invalidSharedDependency: (exposeKey: string): HostLoaderDriver => {
-      this.exposeKey = exposeKey;
-      HostLoaderDriver.fetchJsonMock.mockReset();
-      HostLoaderDriver.importModuleMock.mockReset();
-      HostLoaderDriver.fetchJsonMock.mockResolvedValue({
+      this.reset(exposeKey);
+      this.fetchJson.mockResolvedValue({
         exposes: [
           { key: this.exposeKey, outFileName: faker.system.filePath() },
         ],
         shared: [{ packageName: faker.system.commonFileName() }],
       });
-      Object.assign(globalThis, {
-        document: {
-          createElement: jest.fn(),
-          head: { append: jest.fn() },
-        },
-      });
       return this;
     },
     hostWithBuildNotifications: (exposeKey: string): HostLoaderDriver => {
-      this.availableHost(exposeKey);
+      this.reset(exposeKey);
       this.buildNotificationsEndpoint = faker.internet.url();
       const driver = this;
       Object.assign(globalThis, {
@@ -89,6 +97,7 @@ export class HostLoaderDriver {
         })),
         location: { reload: this.reload },
       });
+      this.configureHost();
       return this;
     },
   };
@@ -96,27 +105,14 @@ export class HostLoaderDriver {
   readonly when = {
     load: async (): Promise<void> => {
       try {
-        const { loadHostModule } = await HostLoaderDriver.loader;
         this.module = await loadHostModule(
-          {
-            schemaVersion: this.schemaVersion,
-            kind: 'host',
-            id: this.hostId,
-            name: this.hostName,
-            version: faker.system.semver(),
-            buildId: faker.string.uuid(),
-            channel: this.channel,
-            framework: this.framework,
-            remoteEntryUrl: this.remoteEntryUrl,
-            exposes: { entry: this.exposeKey },
-            requiredLoaderApiVersion: '^1.0.0',
-            createdAt: faker.date.past().toISOString(),
-          },
+          this.manifest(),
           {
             schemaVersion: this.schemaVersion,
             hostId: this.hostId,
             catalogUrl: faker.internet.url(),
           },
+          this.dependencies,
         );
       } catch (error) {
         this.error = error;
@@ -134,21 +130,44 @@ export class HostLoaderDriver {
     error: (): unknown => this.error,
     module: (): HostModule | undefined => this.module,
     reloadCount: (): number => this.reload.mock.calls.length,
+    stylesheetUrls: (): readonly string[] => this.stylesheetUrls,
   };
 
-  private availableHost(exposeKey: string): void {
+  private reset(exposeKey: string): void {
     this.exposeKey = exposeKey;
     this.buildNotificationsEndpoint = undefined;
-    HostLoaderDriver.fetchJsonMock.mockReset();
-    HostLoaderDriver.importModuleMock.mockReset();
-    HostLoaderDriver.fetchJsonMock.mockImplementation(async () => ({
+    this.styles = [];
+    this.stylesheetUrls.length = 0;
+    this.importedResourceUrls.length = 0;
+    this.fetchJson.mockReset();
+    this.importModule.mockClear();
+    this.configureHost();
+  }
+
+  private configureHost(): void {
+    this.fetchJson.mockResolvedValue({
       exposes: [{ key: this.exposeKey, outFileName: faker.system.filePath() }],
       ...(this.buildNotificationsEndpoint
         ? { buildNotificationsEndpoint: this.buildNotificationsEndpoint }
         : {}),
-    }));
-    HostLoaderDriver.importModuleMock.mockResolvedValue({
-      mount: async () => undefined,
     });
+  }
+
+  private manifest(): AtlasHostManifest {
+    return {
+      schemaVersion: this.schemaVersion,
+      kind: 'host',
+      id: this.hostId,
+      name: this.hostName,
+      version: faker.system.semver(),
+      buildId: faker.string.uuid(),
+      channel: this.channel,
+      framework: this.framework,
+      remoteEntryUrl: this.remoteEntryUrl,
+      exposes: { entry: this.exposeKey },
+      requiredLoaderApiVersion: '^1.0.0',
+      createdAt: faker.date.past().toISOString(),
+      ...(this.styles.length ? { styles: this.styles } : {}),
+    };
   }
 }

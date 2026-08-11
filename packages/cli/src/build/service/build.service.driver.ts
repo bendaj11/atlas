@@ -15,7 +15,8 @@ type BuildScenario =
   | 'pull-request'
   | 'angular-artifact'
   | 'missing-registry'
-  | 'deterministic';
+  | 'deterministic'
+  | 'local-host-styles';
 
 export class BuildServiceDriver {
   private readonly appId = faker.string.uuid();
@@ -90,6 +91,8 @@ export class BuildServiceDriver {
         await this.buildMissingRegistry();
       if (this.scenario === 'deterministic')
         await this.buildDeterministically();
+      if (this.scenario === 'local-host-styles')
+        await this.buildLocalHostStyles();
     },
   };
 
@@ -98,9 +101,12 @@ export class BuildServiceDriver {
   };
 
   private configSource(scenario: BuildScenario): string {
-    const framework = scenario === 'angular-artifact' ? 'angular' : 'react';
+    const isAngular =
+      scenario === 'angular-artifact' || scenario === 'local-host-styles';
+    const hostType = scenario === 'local-host-styles' ? ', type: "host"' : '';
+    const framework = isAngular ? 'angular' : 'react';
 
-    return `export default { id: "${this.appId}", name: "${faker.company.name()}", framework: "${framework}" };\n`;
+    return `export default { id: "${this.appId}", name: "${faker.company.name()}", framework: "${framework}"${hostType} };\n`;
   }
 
   private service(arguments_: string[]): AtlasBuildService {
@@ -214,6 +220,15 @@ export class BuildServiceDriver {
     } finally {
       this.restoreEnvironment('ATLAS_CREATED_AT', previous);
     }
+  }
+
+  private async buildLocalHostStyles(): Promise<void> {
+    const manifest = await this.service([
+      'build',
+      this.projectName,
+    ]).buildLocalHostManifest(this.projectName, faker.internet.url());
+
+    this.observation = manifest.styles?.[0]?.href.endsWith('/styles.css');
   }
 
   private restoreEnvironment(name: string, value: string | undefined): void {
