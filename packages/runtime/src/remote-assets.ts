@@ -5,7 +5,9 @@ export type AtlasAssetRewriteRelease = () => void;
 interface DocumentStyleRewriteSession {
   appId: string;
   boundary: HTMLElement;
+  mirroredStyles: Set<Element>;
   resolver: AssetResolver;
+  styleTarget: ShadowRoot | undefined;
 }
 
 interface DocumentStyleRewriteRegistry {
@@ -43,7 +45,9 @@ export function startRemoteAssetRewrite(
   const releaseDocumentStyleRewrite = registerDocumentStyleRewrite(document, {
     appId: manifest.id,
     boundary,
-    resolver
+    mirroredStyles: new Set(),
+    resolver,
+    styleTarget: shadowStyleTarget(boundary)
   });
   const observer = observeBoundaryAssets(boundary, resolver);
 
@@ -290,6 +294,8 @@ function removeDocumentStyleRewriteSession(
   registry: DocumentStyleRewriteRegistry,
   session: DocumentStyleRewriteSession
 ): void {
+  session.mirroredStyles.forEach((style) => style.remove());
+  session.mirroredStyles.clear();
   registry.sessions.delete(session);
   const appId = normalizedAppId(session.appId);
   const sessions = registry.sessionsByAppId.get(appId);
@@ -327,9 +333,27 @@ function rewriteOwnedDocumentStyle(
   registry: DocumentStyleRewriteRegistry
 ): void {
   const cssText = style.textContent;
-  if (!cssText?.includes(ASSET_PATH_TOKEN)) return;
+  if (!cssText) return;
   const owner = findDocumentStyleOwner(cssText, registry);
-  if (owner) rewriteStyleElement(style, owner.resolver);
+  if (!owner) return;
+  rewriteStyleElement(style, owner.resolver);
+  mirrorStyle(style, owner);
+}
+
+function mirrorStyle(style: Element, session: DocumentStyleRewriteSession): void {
+  if (!session.styleTarget) return;
+  const mirroredStyle = style.cloneNode(true) as Element;
+  session.styleTarget.appendChild(mirroredStyle);
+  session.mirroredStyles.add(mirroredStyle);
+}
+
+function shadowStyleTarget(boundary: HTMLElement): ShadowRoot | undefined {
+  const root = boundary.getRootNode?.();
+  return root && isShadowRoot(root) ? root : undefined;
+}
+
+function isShadowRoot(root: Node): root is ShadowRoot {
+  return root.nodeType === 11 && "host" in root;
 }
 
 function findDocumentStyleOwner(

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/runtime",
-  "version": "0.3.56",
+  "version": "0.3.58",
   "type": "module",
   "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
   "license": "MIT",
@@ -42,12 +42,12 @@
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/runtime/tests/",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/runtime/(src|tests)/'",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {
-    "@atlas/schema": "0.3.56",
-    "@atlas/sdk": "0.3.56"
+    "@atlas/schema": "0.3.58",
+    "@atlas/sdk": "0.3.58"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",

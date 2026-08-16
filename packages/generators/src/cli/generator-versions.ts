@@ -1,6 +1,6 @@
 import type { AtlasGeneratorOptions } from './generator-types.js';
 
-export const ATLAS_PACKAGE_VERSION = "0.3.56";
+export const ATLAS_PACKAGE_VERSION = "0.3.58";
 const DEFAULT_REACT_VERSION = '19.2.8';
 
 export function atlasPackageRange(): string {
