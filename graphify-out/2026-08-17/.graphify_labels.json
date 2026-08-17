@@ -315,9 +315,17 @@
   "313": "./angular",
   "314": "@types/babel__core",
   "315": "@angular/animations",
+  "316": "react.driver.ts",
+  "317": "./lifecycle",
+  "318": "@babel/plugin-syntax-jsx",
+  "319": "zone.js",
   "320": "@testing-library/react",
   "321": "@vitejs/plugin-react",
+  "322": "ts-jest",
+  "323": "host.driver.ts",
+  "324": "manifest-utils.specs.ts",
   "325": "version-packages.driver.ts",
   "326": "mount",
+  "327": "Injectable",
   "330": "Releasing Atlas packages"
 }

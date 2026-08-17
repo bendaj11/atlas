@@ -1440,7 +1440,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1786979996.9702508,
+    "mtime": 1786980280.8935072,
     "ast_hash": "e8b0ebd33122d974660a5209d13643a4",
     "semantic_hash": ""
   },
@@ -1470,7 +1470,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1786979996.9724617,
+    "mtime": 1786980280.8952932,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -2400,7 +2400,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1786979996.9732058,
+    "mtime": 1786980280.898777,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },
