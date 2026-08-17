@@ -16,7 +16,7 @@ import {
   imports: [WidgetOutlet],
   template: `
     <h1>Dashboard Angular</h1>
-    <p>Mounted at {{ context.basePath }}</p>
+    <p>Mounted at {{ context.path }}</p>
     <section
       aria-label="External React product count"
       [atlasWidget]="externalProductCount"

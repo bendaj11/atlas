@@ -1,4 +1,4 @@
-import type { AtlasDomIsolation } from './atlas-dom-isolation.js';
+import type { AtlasAppDomIsolation } from './atlas-dom-isolation.js';
 import type { AtlasFramework } from './atlas-framework.js';
 import type { AtlasRouteNavigation } from './atlas-route-navigation.js';
 
@@ -28,8 +28,8 @@ export interface AtlasHostConfig extends AtlasBaseConfig {
 export interface AtlasAppConfig extends AtlasBaseConfig {
   /** Artifact type used by Atlas build orchestration. */
   type?: 'app';
-  /** DOM/CSS boundary requested when a host mounts this app. Defaults to shadow-dom. `scoped` is a legacy alias for shared-dom. */
-  domIsolation?: AtlasDomIsolation;
+  /** DOM/CSS boundary requested when a host mounts this app. Defaults to shadow-dom. */
+  domIsolation?: AtlasAppDomIsolation;
   /** Page routes this app contributes to hosts. */
   routes?: AtlasRouteMount[];
   /** Named host areas this app can render into. */

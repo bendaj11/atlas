@@ -64,6 +64,20 @@ export async function runAtlasCli(
       return;
     }
 
+    if (
+      invocation.command === 'render-runtime-config' &&
+      invocation.subcommand
+    ) {
+      ui.heading(`Render runtime config · ${invocation.subcommand}`);
+      const result = await new AtlasBootstrapService({
+        workspace,
+        args,
+        builds,
+      }).renderRuntimeConfig(invocation.subcommand);
+      ui.success(`Wrote runtime config to ${result.path}.`);
+      return;
+    }
+
     if (invocation.command === 'g' || invocation.command === 'generate') {
       if (!invocation.name) {
         console.info(formatHelp(['generate']));

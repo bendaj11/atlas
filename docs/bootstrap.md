@@ -28,6 +28,39 @@ atlas.bootstrap.json
 
 `atlas.bootstrap.json` lists files and deterministic SHA-256 digest. Same inputs produce same digest.
 
+## External runtime configuration
+
+Default bootstrap output embeds `atlas.runtime.json` and an Nginx example. This
+is the simplest deployment mode and remains unchanged.
+
+For one bootstrap artifact deployed to several environments, build a universal
+bootstrap instead:
+
+```bash
+npx atlas build-bootstrap customer-host --runtime-config external
+```
+
+External mode contains only the static browser files and `atlas.bootstrap.json`.
+It intentionally omits `atlas.runtime.json` and `nginx.conf`: deployment
+platform owns runtime configuration and server policy.
+
+Before each deployment, render the environment-specific public configuration:
+
+```bash
+npx atlas render-runtime-config customer-host \
+  --registry-base-url https://assets.example.com/atlas/prod \
+  --out dist/runtime/atlas.runtime.json
+```
+
+Serve the generated file at `/atlas.runtime.json` beside the universal
+bootstrap. Docker, OpenShift, Kubernetes, static hosting, and other platforms
+may copy, mount, or upload that file as appropriate. The runtime configuration
+contains public URLs only; do not put storage credentials in it.
+
+When registry origins differ between environments, the platform server must
+allow the selected registry origin in its CSP and the registry must allow the
+host origin through CORS.
+
 ## Why bootstrap is separate
 
 Host has two deployable parts:

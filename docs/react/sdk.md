@@ -167,21 +167,6 @@ useEffect(() => {
 
 If an app never opts in, Atlas treats mount completion as ready.
 
-## Host-Owned UI
-
-Apps request UI; hosts render it:
-
-```tsx
-atlas.toast.open({ title: 'Saved', state: 'success' });
-const result = await atlas.modal.open({
-  component: ConfirmDeleteModal,
-  props: { orderId: '42' },
-});
-```
-
-The React host decides whether modals are React Portal, a design-system overlay,
-custom DOM, or another implementation.
-
 ## Testing
 
 Use `@atlas/testkit` to create fake SDKs and memory navigation in app tests.

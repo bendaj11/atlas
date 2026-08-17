@@ -31,11 +31,25 @@ export type AtlasSdk<
   TEvents extends object = AtlasEventMap,
 > = AngularAtlasSdk<THostSdk, TEvents>;
 
+export type AtlasSdkFactory<
+  THostSdk extends object = {},
+  TEvents extends object = AtlasEventMap,
+> = () => AtlasSdkValue<THostSdk, TEvents>;
+
 export function provideAtlasSdk<
   THostSdk extends object,
   TEvents extends object,
->(sdk: AtlasSdkValue<THostSdk, TEvents>): Provider {
-  return { provide: ATLAS_SDK, useValue: sdk };
+>(sdk: AtlasSdkValue<THostSdk, TEvents>): Provider;
+export function provideAtlasSdk<
+  THostSdk extends object,
+  TEvents extends object,
+>(sdkFactory: AtlasSdkFactory<THostSdk, TEvents>): Provider;
+export function provideAtlasSdk(
+  sdk: AtlasSdkValue | AtlasSdkFactory,
+): Provider {
+  return typeof sdk === 'function'
+    ? { provide: ATLAS_SDK, useFactory: sdk }
+    : { provide: ATLAS_SDK, useValue: sdk };
 }
 
 export function provideAtlasAppContext(context: AtlasAppContext): Provider[] {

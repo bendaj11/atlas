@@ -13,9 +13,11 @@ import {
 import { bootstrapApplication } from '@angular/platform-browser';
 import {
   createHostNavigation,
+  provideAtlasSdk,
   type LocationLike,
   type RouterLike,
 } from '@atlas/sdk/angular';
+import type { AtlasEventMap, AtlasSdk as AtlasSdkValue } from '@atlas/sdk';
 import type { AtlasHostClientEntry } from '@atlas/sdk/lifecycle';
 import { startDomHost, type DomHostOptions } from './dom-host.js';
 import type { DomRuntimeOptions } from './dom-host-options.js';
@@ -78,6 +80,10 @@ export interface AngularHostBootstrapOptions<THostSdk extends object = {}> {
   createHostOptions(injector: Injector): HostOptions<THostSdk>;
 }
 
+interface AngularHostStartServices<THostSdk extends object> {
+  onSdkCreated?(sdk: AtlasSdkValue<THostSdk>): void;
+}
+
 /** Bootstraps an Angular host and owns the dynamically mounted root lifecycle. */
 export async function bootstrapAngularHost<THostSdk extends object = {}>(
   options: AngularHostBootstrapOptions<THostSdk>,
@@ -87,11 +93,20 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
     : undefined;
   if (root && options.request) options.request.container.append(root);
 
-  const app = await bootstrapApplication(options.component, options.appConfig);
-  const runtime = await startHost({
-    ...options.createHostOptions(app.injector),
-    hostDataInjector: app.injector,
-  });
+  const sdkReference = new AngularHostSdkReference<THostSdk>();
+  const app = await bootstrapApplication(
+    options.component,
+    withAtlasSdkProvider(options.appConfig, sdkReference),
+  );
+  const runtime = await startHost(
+    {
+      ...options.createHostOptions(app.injector),
+      hostDataInjector: app.injector,
+    },
+    {
+      onSdkCreated: (sdk) => sdkReference.set(sdk),
+    },
+  );
 
   return {
     async unmount() {
@@ -105,6 +120,7 @@ export async function bootstrapAngularHost<THostSdk extends object = {}>(
 /** Boots Atlas discovery, Native Federation, SDK providers, routes, slots, and lifecycle for an Angular host. */
 export async function startHost<THostSdk extends object = {}>(
   options: HostOptions<THostSdk>,
+  services: AngularHostStartServices<THostSdk> = {},
 ): Promise<AtlasHostRuntime<THostSdk>> {
   const { hostData, hostDataInjector, ...runtimeOptions } = options;
   const domHostOptions = {
@@ -115,6 +131,7 @@ export async function startHost<THostSdk extends object = {}>(
     beforeNavigation: () => syncAngularRouterWithBrowserUrl(options.router),
     createNavigation: () =>
       createHostNavigation(options.router, options.location),
+    ...(services.onSdkCreated ? { onSdkCreated: services.onSdkCreated } : {}),
   });
   const stopHostData =
     hostDataInjector && hostData
@@ -127,6 +144,34 @@ export async function startHost<THostSdk extends object = {}>(
       stopHostData();
       await runtime.stop();
     },
+  };
+}
+
+class AngularHostSdkReference<THostSdk extends object> {
+  private sdk: AtlasSdkValue<THostSdk> | undefined;
+
+  set(sdk: AtlasSdkValue<THostSdk>): void {
+    this.sdk = sdk;
+  }
+
+  get(): AtlasSdkValue<THostSdk> {
+    if (this.sdk) return this.sdk;
+    throw new Error(
+      'Atlas SDK is unavailable until the Angular host runtime starts.',
+    );
+  }
+}
+
+function withAtlasSdkProvider<THostSdk extends object>(
+  appConfig: ApplicationConfig,
+  sdkReference: AngularHostSdkReference<THostSdk>,
+): ApplicationConfig {
+  return {
+    ...appConfig,
+    providers: [
+      ...(appConfig.providers ?? []),
+      provideAtlasSdk<THostSdk, AtlasEventMap>(() => sdkReference.get()),
+    ],
   };
 }
 

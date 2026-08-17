@@ -41,6 +41,7 @@ export async function resolveInvocation(
   } else if (
     (command === 'build' ||
       command === 'build-bootstrap' ||
+      command === 'render-runtime-config' ||
       command === 'publish') &&
     !subcommand
   ) {

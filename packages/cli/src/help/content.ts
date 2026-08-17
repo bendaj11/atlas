@@ -28,6 +28,10 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
     description: 'Build static host bootstrap files',
   },
   {
+    label: 'render-runtime-config',
+    description: 'Render deploy-time host runtime configuration',
+  },
+  {
     label: 'publish',
     description: 'Build and publish one host client or app safely',
   },
@@ -56,6 +60,7 @@ export const ROOT_EXAMPLES = [
   'atlas dev orders',
   'atlas publish orders',
   'atlas build-bootstrap customer-host',
+  'atlas render-runtime-config customer-host --registry-base-url https://cdn.example.com/atlas',
   'atlas verify --runtime-url https://customer.example/atlas.runtime.json',
 ] as const;
 
@@ -240,6 +245,10 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         description: 'Public base URL of static registry',
       },
       {
+        label: '--runtime-config <mode>',
+        description: 'Use external to omit runtime config and Nginx files',
+      },
+      {
         label: '--out <path>',
         description: 'Output directory (default: <host>/dist/bootstrap)',
       },
@@ -278,7 +287,47 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     examples: [
       'atlas build-bootstrap customer-host --registry-base-url https://cdn.example.com/atlas',
+      'atlas build-bootstrap customer-host --runtime-config external',
       'atlas build-bootstrap customer-host --template atlas.bootstrap.html',
+    ],
+  },
+  'render-runtime-config': {
+    summary: 'Render a deploy-time Atlas host runtime configuration file.',
+    usage: 'atlas render-runtime-config <host> [options]',
+    arguments: [
+      { label: 'host', description: 'Host project name or directory' },
+    ],
+    options: [
+      {
+        label: '--registry-base-url <url>',
+        description: 'Public base URL of static registry',
+      },
+      {
+        label: '--out <path>',
+        description: 'Output file (default: <host>/dist/atlas.runtime.json)',
+      },
+      {
+        label: '--asset-origins <urls>',
+        description: 'Comma-separated approved asset origins',
+      },
+      {
+        label: '--external-registry-urls <urls>',
+        description: 'Comma-separated external registry base URLs',
+      },
+      {
+        label: '--skip-compile',
+        description: 'Use already compiled atlas.config.ts',
+      },
+      { label: '-h, --help', description: 'Show help for this command' },
+    ],
+    environment: [
+      {
+        label: 'ATLAS_REGISTRY_URL',
+        description: 'Default public registry URL',
+      },
+    ],
+    examples: [
+      'atlas render-runtime-config customer-host --registry-base-url https://cdn.example.com/atlas',
     ],
   },
   publish: {

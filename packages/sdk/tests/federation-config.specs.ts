@@ -66,7 +66,8 @@ test('Angular app federation exposes workspace-relative entry and widgets', asyn
     resolve(workspaceRoot, exposes['./widgets/order-status']),
     'utf8',
   );
-  expect(widgetEntry).toMatch(/createExportedWidget\(Widget\)/);
+  expect(widgetEntry).toMatch(/createExportedWidget\(Widget, widgetConfig\)/);
+  expect(widgetEntry).toMatch(/widget\.config/);
   expect(widgetEntry).toMatch(/src\/exported-widgets\/order-status\/index/);
 });
 
@@ -303,7 +304,6 @@ test('React federation discovers runtime package imports recursively', async () 
     '@atlas/sdk/host',
     '@atlas/sdk/lifecycle',
     '@atlas/sdk/navigation',
-    '@atlas/sdk/overlay',
     '@atlas/sdk/react',
     '@company/design-system/button',
     'cjs-lib',
@@ -613,7 +613,6 @@ async function createReactFederationFixture(): Promise<string> {
       './host',
       './lifecycle',
       './navigation',
-      './overlay',
       './react',
     ],
   });

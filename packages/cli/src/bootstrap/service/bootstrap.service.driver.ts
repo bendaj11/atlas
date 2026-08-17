@@ -35,6 +35,7 @@ export class AtlasBootstrapServiceDriver {
   private service?: AtlasBootstrapService;
   private result?: AtlasBootstrapBuildResult;
   private metadata?: string;
+  private renderedRuntime?: AtlasHostRuntimeConfig;
   private generatedOptions?: Parameters<
     AtlasBootstrapDependencies['createFiles']
   >[0];
@@ -87,6 +88,10 @@ export class AtlasBootstrapServiceDriver {
       writeOutput: jest.fn<AtlasBootstrapDependencies['writeOutput']>(
         async (path, contents) => {
           if (path.endsWith('atlas.bootstrap.json')) this.metadata = contents;
+          if (path.endsWith('atlas.runtime.json'))
+            this.renderedRuntime = JSON.parse(
+              contents,
+            ) as AtlasHostRuntimeConfig;
         },
       ),
     };
@@ -133,6 +138,10 @@ export class AtlasBootstrapServiceDriver {
       if (!this.service) throw new Error('Service setup was not available.');
       this.result = await this.service.build(this.project.id);
     },
+    renderRuntimeConfig: async (): Promise<void> => {
+      if (!this.service) throw new Error('Service setup was not available.');
+      await this.service.renderRuntimeConfig(this.project.id);
+    },
   };
 
   readonly get = {
@@ -150,6 +159,9 @@ export class AtlasBootstrapServiceDriver {
       if (!this.metadata) throw new Error('Metadata write was not available.');
       return this.metadata;
     },
+    runtime: (): AtlasHostRuntimeConfig => this.runtime,
+    renderedRuntime: (): AtlasHostRuntimeConfig | undefined =>
+      this.renderedRuntime,
     hasCompiledConfig: (): boolean => this.compileConfig.mock.calls.length > 0,
     generatedOptions: (): NonNullable<typeof this.generatedOptions> => {
       if (!this.generatedOptions)

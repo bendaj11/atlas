@@ -55,25 +55,8 @@ Use [React routing](routing.md) for conflict, inner-route, and navigation rules.
 
 ## 3. Build Feature UI
 
-Create normal React components and hooks under `src/app`. Obtain host services
-from Atlas context:
-
-```tsx
-import { useAtlasSdk } from '@atlas/sdk/react';
-
-export function OrdersToolbar() {
-  const atlas = useAtlasSdk();
-  return (
-    <button
-      onClick={() =>
-        atlas.toast.open({ title: 'Order saved', state: 'success' })
-      }
-    >
-      Save order
-    </button>
-  );
-}
-```
+Create normal React components and hooks under `src/app`. Keep product-specific
+UI services, including overlays, in the host solution rather than Atlas.
 
 Use React Router within `/orders`; use Atlas navigation for host or cross-app
 destinations. Do not import host source. See [React SDK](sdk.md) and [React

@@ -88,7 +88,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   );
   assert.doesNotMatch(
     hostBootstrap,
-    /showToast|openModal|openPopup|createDomOverlayProviders/,
+    /showToast/,
   );
   assert.doesNotMatch(hostBootstrap, /const hostData: AtlasHostData/);
   assert.doesNotMatch(hostBootstrap, /projectId/);

@@ -17,4 +17,10 @@ describe('injectAtlasSdk', () => {
 
     expect(driver.get.userName()).toBe('updated');
   });
+
+  it('should expose custom SDK functions when the SDK is injected', () => {
+    driver.given.hostData('Ada');
+
+    expect(driver.get.greeting()).toBe('Hello, Ada');
+  });
 });

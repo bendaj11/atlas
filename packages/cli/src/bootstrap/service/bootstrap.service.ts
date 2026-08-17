@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import {
   createAtlasBootstrapFiles,
   type AtlasBootstrapFile,
@@ -23,6 +23,10 @@ export interface AtlasBootstrapBuildResult {
   directory: string;
   files: string[];
   digest: string;
+}
+
+export interface AtlasRuntimeConfigRenderResult {
+  path: string;
 }
 
 export interface AtlasBootstrapDependencies {
@@ -86,11 +90,10 @@ export class AtlasBootstrapService {
 
     const config = await this.builds.loadConfig(project.root);
 
-    const runtime = this.dependencies.createRuntime(
-      config,
-      this.args,
-      project.version,
-    );
+    const externalRuntime = this.usesExternalRuntimeConfig();
+    const runtime = externalRuntime
+      ? undefined
+      : this.dependencies.createRuntime(config, this.args, project.version);
 
     const template = await this.dependencies.loadTemplate(
       project.root,
@@ -98,7 +101,7 @@ export class AtlasBootstrapService {
     );
 
     const files = this.dependencies.createFiles({
-      runtime,
+      ...(runtime ? { runtime } : { runtimeConfig: 'external' }),
       ...(template !== undefined ? { html: template } : {}),
       ...(this.args.flag('title') ? { title: this.args.flag('title') } : {}),
       ...(this.args.flag('loading-html')
@@ -141,6 +144,40 @@ export class AtlasBootstrapService {
       files: [...files.map((file) => file.path), 'atlas.bootstrap.json'],
       digest,
     };
+  }
+
+  async renderRuntimeConfig(
+    name: string,
+  ): Promise<AtlasRuntimeConfigRenderResult> {
+    const project = await this.workspace.findProject(name);
+    if (!this.args.hasFlag('skip-compile'))
+      await this.dependencies.compileConfig(this.workspace, project);
+
+    const config = await this.builds.loadConfig(project.root);
+    const runtime = this.dependencies.createRuntime(
+      config,
+      this.args,
+      project.version,
+    );
+    const path = resolve(
+      this.args.flag('out') ?? join(project.root, 'dist', 'atlas.runtime.json'),
+    );
+
+    await this.dependencies.createDirectory(dirname(path));
+    await this.dependencies.writeOutput(
+      path,
+      `${JSON.stringify(runtime, null, 2)}\n`,
+    );
+    return { path };
+  }
+
+  private usesExternalRuntimeConfig(): boolean {
+    const mode = this.args.flag('runtime-config');
+    if (mode === undefined || mode === 'embedded') return false;
+    if (mode === 'external') return true;
+    throw new Error(
+      `--runtime-config must be embedded or external, received "${mode}".`,
+    );
   }
 }
 

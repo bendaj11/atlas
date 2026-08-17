@@ -134,7 +134,9 @@ export default await createAngularV4FederationConfig({
   projectRoot: import.meta.dirname,
   name: "${angularRemoteName(name)}",
   expose: "${host ? 'host' : 'app'}",
-  nativeFederationPackage: "${nativeFederationPackage(profile)}"
+  nativeFederationPackage: "${nativeFederationPackage(profile)}",
+  // Add skip, exposes, shared, or other Native Federation options here.
+  skip: []
 });
 `;
   }
@@ -143,7 +145,9 @@ export default await createAngularV4FederationConfig({
 module.exports = createAngularFederationConfig({
   projectRoot: __dirname,
   name: "${angularRemoteName(name)}",
-  expose: "${host ? 'host' : 'app'}"
+  expose: "${host ? 'host' : 'app'}",
+  // Add skip, exposes, shared, or other Native Federation options here.
+  skip: []
 });
 `;
 }

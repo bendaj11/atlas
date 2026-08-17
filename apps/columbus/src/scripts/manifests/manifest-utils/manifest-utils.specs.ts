@@ -91,10 +91,14 @@ describe('manifest labels', () => {
     driver = new ManifestUtilsDriver();
   });
 
-  it('should show version only when release is production', () => {
+  it('should show build ID and commit title when release is production', () => {
     expect(
-      driver.get.versionLabel({ version: '1.2.3', buildId: 'abcdef123456' }),
-    ).toBe('1.2.3');
+      driver.get.versionLabel({
+        version: '1.2.3',
+        buildId: 'abcdef123456',
+        gitCommitTitle: 'Simplify override selection',
+      }),
+    ).toBe('1.2.3 · abcdef1 · Simplify override selection');
   });
 
   it('should show branch and commit when release is PR', () => {

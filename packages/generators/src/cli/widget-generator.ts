@@ -1,15 +1,27 @@
-import { randomUUID } from "node:crypto";
-import type { AtlasGeneratedFile, AtlasGeneratorOptions } from "./generator-types.js";
-import { assertSupportedGeneratorFramework, title } from "./common-generator.js";
+import { randomUUID } from 'node:crypto';
+import type {
+  AtlasGeneratedFile,
+  AtlasGeneratorOptions,
+} from './generator-types.js';
+import {
+  assertSupportedGeneratorFramework,
+  title,
+} from './common-generator.js';
 
-export function generateWidgetFiles(options: AtlasGeneratorOptions): AtlasGeneratedFile[] {
+export function generateWidgetFiles(
+  options: AtlasGeneratorOptions,
+): AtlasGeneratedFile[] {
   assertSupportedGeneratorFramework(options);
   const baseName = pascal(options.name);
-  const componentName = baseName.endsWith("Widget") ? baseName : `${baseName}Widget`;
-  if (options.framework === "react") {
-    return [widgetConfig(options.name), {
-      path: `src/exported-widgets/${options.name}/index.tsx`,
-      contents: `export interface ${componentName}Props {
+  const componentName = baseName.endsWith('Widget')
+    ? baseName
+    : `${baseName}Widget`;
+  if (options.framework === 'react') {
+    return [
+      widgetConfig(options.name),
+      {
+        path: `src/exported-widgets/${options.name}/index.tsx`,
+        contents: `export interface ${componentName}Props {
   title?: string;
 }
 
@@ -20,12 +32,16 @@ export default function ${componentName}({ title = "${title(options.name)}" }: $
     </section>
   );
 }
-`
-    }];
+`,
+      },
+    ];
   }
-  return [widgetConfig(options.name), {
-    path: `src/exported-widgets/${options.name}/index.ts`,
-    contents: `import { Component, input } from "@angular/core";
+  return [
+    widgetConfig(options.name),
+    angularWidgetConfig(options.name),
+    {
+      path: `src/exported-widgets/${options.name}/index.ts`,
+      contents: `import { Component, input } from "@angular/core";
 
 @Component({
   selector: "atlas-${options.name}-widget",
@@ -39,8 +55,9 @@ export default function ${componentName}({ title = "${title(options.name)}" }: $
 export default class ${componentName} {
   readonly title = input("${title(options.name)}");
 }
-`
-  }];
+`,
+    },
+  ];
 }
 
 function widgetConfig(name: string): AtlasGeneratedFile {
@@ -52,10 +69,22 @@ export default {
   id: "${randomUUID()}",
   name: "${title(name)}"
 } satisfies AtlasWidgetConfig;
-`
+`,
+  };
+}
+
+function angularWidgetConfig(name: string): AtlasGeneratedFile {
+  return {
+    path: `src/exported-widgets/${name}/widget.config.ts`,
+    contents: `import type { ApplicationConfig } from "@angular/core";
+
+export const widgetConfig: ApplicationConfig = {
+  providers: []
+};
+`,
   };
 }
 
 function pascal(value: string): string {
-  return title(value).replace(/\s+/g, "");
+  return title(value).replace(/\s+/g, '');
 }

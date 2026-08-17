@@ -19,7 +19,7 @@ If independently deployed frontend apps are new to you, think of Atlas as three 
 | Manifest | JSON generated for one built host-client or app version. App manifests describe routes, slots, widgets, assets, integrity, framework, and required SDK version. | Deployment |
 | Catalog | JSON for one host that selects one manifest version for every app that host can load. | Deployment |
 | Registry | Static storage layout that contains app indexes, host catalogs, immutable assets, and historical versions. | Deployment |
-| SDK | Typed host capabilities exposed to apps: HTTP, events, navigation, overlays, host data, and product extensions. | Host and App |
+| SDK | Typed host capabilities exposed to apps: HTTP, events, navigation, host data, and product extensions. | Host and App |
 | Runtime | Host-side Atlas loader that reads config, resolves catalogs, verifies assets, and mounts apps. | Host |
 
 ## Mental Model

@@ -16,8 +16,7 @@ Apps mount in an open Shadow DOM boundary by default. Atlas installs each
 declared app stylesheet inside that boundary, so selectors and CSS variables
 from one app cannot restyle the host or another app. Set `domIsolation:
 'shared-dom'` only when an app intentionally participates in a documented host
-design-system contract. It adds a DOM wrapper but leaves CSS global. `scoped`
-remains a legacy alias.
+design-system contract. It adds a DOM wrapper but leaves CSS global.
 
 Native Federation dependency sharing is independent of DOM isolation. Shared
 runtime packages still use the host's import map and singleton/version rules;

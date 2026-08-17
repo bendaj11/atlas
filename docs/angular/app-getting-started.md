@@ -25,7 +25,7 @@ renames.
 | `src/app/app.routes.ts` | app-relative inner routes |
 | `src/main.ts` | Angular entry and Atlas lifecycle adapter; rarely change |
 | `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata |
-| `federation.config.js` | generated federation wiring; preserve Atlas sections |
+| `federation.config.js` | Native Federation options; Atlas keeps required exposure and sharing rules |
 
 ## 2. Declare Placement
 
@@ -54,26 +54,9 @@ Use [Angular routing](routing.md) for conflict, inner-route, and navigation rule
 
 ## 3. Build Feature UI
 
-Create normal Angular components and services under `src/app`. Obtain host
-services through dependency injection:
-
-```ts
-import { Component } from "@angular/core";
-import { injectAtlasSdk } from "@atlas/sdk/angular";
-
-@Component({
-  selector: "orders-toolbar",
-  standalone: true,
-  template: `<button type="button" (click)="save()">Save order</button>`
-})
-export class OrdersToolbarComponent {
-  private readonly atlas = injectAtlasSdk();
-
-  save(): void {
-    this.atlas.toast.open({ title: "Order saved", state: "success" });
-  }
-}
-```
+Create normal Angular components and services under `src/app`. Keep
+product-specific UI services, including overlays, in the host solution rather
+than Atlas.
 
 Use Angular Router within `/orders`; use Atlas navigation for host or cross-app
 destinations. Do not import host source. See [Angular SDK](sdk.md) and [Angular

@@ -19,6 +19,7 @@ interface CustomerHostSdk {
   readonly hostData: {
     readonly userName: string;
   };
+  readonly getGreeting: () => string;
 }
 
 export class AngularInjectionDriver {
@@ -32,10 +33,11 @@ export class AngularInjectionDriver {
         hostId: 'host',
         hostData: { userName },
         navigation: createNavigation(),
+        getGreeting: () => `Hello, ${userName}`,
       });
       this.injector = createEnvironmentInjector(
         [
-          provideAtlasSdk(this.sdk),
+          provideAtlasSdk(() => this.getSdk()),
           { provide: ApplicationRef, useValue: Object.create(null) },
         ],
         null!,
@@ -56,6 +58,7 @@ export class AngularInjectionDriver {
 
   get = {
     userName: (): string => this.getAtlas().hostData().userName,
+    greeting: (): string => this.getAtlas().getGreeting(),
   };
 
   destroy(): void {

@@ -50,10 +50,24 @@ function createAngularWidgetEntries(projectRoot) {
         entryPoint: writeWidgetEntry(projectRoot, name, 'ts', `import "zone.js";
 import { createExportedWidget } from "@atlas/sdk/angular";
 import Widget from ${JSON.stringify(`../../src/exported-widgets/${name}/index`)};
+${angularWidgetConfigImport(projectRoot, name)}
 
-export default createExportedWidget(Widget);
+export default createExportedWidget(Widget${angularWidgetConfigArgument(projectRoot, name)});
 `),
     }));
+}
+function angularWidgetConfigPath(projectRoot, name) {
+    return join(projectRoot, 'src', 'exported-widgets', name, 'widget.config.ts');
+}
+function angularWidgetConfigImport(projectRoot, name) {
+    return existsSync(angularWidgetConfigPath(projectRoot, name))
+        ? `import { widgetConfig } from ${JSON.stringify(`../../src/exported-widgets/${name}/widget.config`)};`
+        : '';
+}
+function angularWidgetConfigArgument(projectRoot, name) {
+    return existsSync(angularWidgetConfigPath(projectRoot, name))
+        ? ', widgetConfig'
+        : '';
 }
 function createReactWidgetEntries(options) {
     return widgetNames(options.projectRoot).map((name) => ({
@@ -93,7 +107,6 @@ const REACT_FRAMEWORK_SHARED_SPECIFIERS = {
         '@atlas/sdk/host',
         '@atlas/sdk/lifecycle',
         '@atlas/sdk/navigation',
-        '@atlas/sdk/overlay',
         '@atlas/sdk/react',
     ],
 };
@@ -636,23 +649,26 @@ function createAngularFederationConfig(options) {
     return withNativeFederation(createAngularFederationOptions(options, shareAll));
 }
 function createAngularFederationOptions(options, shareAll) {
-    const widgetExposes = Object.fromEntries(createAngularWidgetEntries(options.projectRoot).map((entry) => [
+    const { projectRoot, name, expose, exposes: additionalExposes = {}, shared: additionalShared = {}, skip: additionalSkip = [], ...nativeFederationOptions } = options;
+    const widgetExposes = Object.fromEntries(createAngularWidgetEntries(projectRoot).map((entry) => [
         `./widgets/${entry.name}`,
-        projectPath(options.projectRoot, entry.entryPoint),
+        projectPath(projectRoot, entry.entryPoint),
     ]));
+    const atlasExposes = expose === 'host'
+        ? { './host': sourcePath(projectRoot, 'bootstrap.ts') }
+        : expose === 'app'
+            ? {
+                './entry': sourcePath(projectRoot, 'entry.ts'),
+                ...widgetExposes,
+            }
+            : {};
     return {
-        name: options.name,
-        exposes: options.expose === 'host'
-            ? { './host': sourcePath(options.projectRoot, 'bootstrap.ts') }
-            : options.expose === 'app'
-                ? {
-                    './entry': sourcePath(options.projectRoot, 'entry.ts'),
-                    ...widgetExposes,
-                }
-                : {},
+        ...nativeFederationOptions,
+        name,
+        exposes: { ...additionalExposes, ...atlasExposes },
         shared: {
             ...shareAll(ANGULAR_SHARED_DEPENDENCY_OPTIONS, {
-                projectPath: options.projectRoot,
+                projectPath: projectRoot,
                 overrides: {
                     '@angular/core': {
                         ...ANGULAR_SHARED_DEPENDENCY_OPTIONS,
@@ -663,7 +679,8 @@ function createAngularFederationOptions(options, shareAll) {
                     },
                 },
             }),
+            ...additionalShared,
         },
-        skip: ANGULAR_FEDERATION_SKIP,
+        skip: [...new Set([...ANGULAR_FEDERATION_SKIP, ...additionalSkip])],
     };
 }

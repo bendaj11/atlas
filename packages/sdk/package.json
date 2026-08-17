@@ -44,10 +44,6 @@
       "import": "./federation-config.mjs",
       "require": "./federation-config.cjs"
     },
-    "./overlay": {
-      "types": "./dist/overlay.d.ts",
-      "default": "./dist/overlay.js"
-    },
     "./angular": {
       "types": "./dist/angular.d.ts",
       "default": "./dist/angular.js"

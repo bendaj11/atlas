@@ -50,7 +50,7 @@ Responsibilities:
 | `src/app/app.routes.ts` | Atlas/platform | Catch-all Angular route required for Atlas navigation |
 | `src/app/host.config.ts` | Host platform team | Auth-aware HTTP, SDK services, UI renderers, monitoring |
 | `src/bootstrap.ts` | Atlas lifecycle adapter | Exports both `bootstrap()` and `mount()` |
-| `federation.config.js` | Federation build | Preserve generated Atlas exposure and sharing rules |
+| `federation.config.js` | Federation build | Add Native Federation options; Atlas keeps required exposure and sharing rules |
 
 Generated host config resembles:
 

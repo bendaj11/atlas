@@ -38,13 +38,35 @@ Risky in an app:
 Absolute `/assets/...` resolves against the host origin, not the app's
 immutable CDN directory.
 
+### Assets in HTML, CSS, and runtime code
+
+Import app-owned assets. Vite replaces the import with the correct emitted URL:
+
+```tsx
+import pointImageUrl from './assets/images/point.png';
+
+export function PointImage() {
+  return <img src={pointImageUrl} alt="Point" />;
+}
+```
+
+In CSS, use a relative `url('./assets/images/point.png')`; Vite resolves it
+during the build. Both forms work because Vite owns those source files.
+
+Runtime code is different. A library receives a plain URL string and fetches it
+itself, so it cannot rely on an Atlas DOM rewrite. Pass the imported URL to the
+library. `new URL('./assets/images/point.png', import.meta.url).href` is an
+equivalent alternative when an import is not suitable. Do not use
+`document.baseURI` or `location.origin`: they point at the host page or discard
+the app path.
+
 ## Isolation
 
 Atlas mounts apps in Shadow DOM by default and installs declared standalone
 stylesheets in that shadow root. This prevents global library CSS from leaking
 into the host or other apps. Use `domIsolation: 'shared-dom'` only for an app
 intentionally sharing a documented host design-system contract. Shared DOM mode
-is a DOM wrapper, not CSS isolation. `scoped` remains a legacy alias.
+is a DOM wrapper, not CSS isolation.
 
 ## Host Domain
 

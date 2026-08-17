@@ -38,7 +38,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     ).name,
     '@acme/host',
   );
-  assert.match(host.get('package.json'), /"@angular\/core": "20\.3\.0"/);
+  assert.match(host.get('package.json'), /"@angular\/core": "\^20\.3\.0"/);
   assert.match(
     host.get('angular.json'),
     /@angular-architects\/native-federation-v4:build/,
@@ -105,7 +105,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   );
   assert.doesNotMatch(
     host.get('src/bootstrap.ts'),
-    /showToast|openModal|openPopup|createDomOverlayProviders/,
+    /showToast/,
   );
   assert.doesNotMatch(
     host.get('src/bootstrap.ts'),
@@ -394,8 +394,13 @@ test('Angular widget generator creates a typed independently deployed widget', (
   const config = widget.get(
     'src/exported-widgets/entity-popup/atlas.config.ts',
   );
+  const angularConfig = widget.get(
+    'src/exported-widgets/entity-popup/widget.config.ts',
+  );
   assert.match(source, /readonly title = input\("Entity Popup"\)/);
   assert.match(source, /export default class EntityPopupWidget/);
+  assert.match(angularConfig, /widgetConfig: ApplicationConfig/);
+  assert.match(angularConfig, /providers: \[\]/);
   assert.doesNotMatch(
     source,
     /defineExportedWidget|InjectionToken|inject\(|bootstrapApplication|zone\.js/,

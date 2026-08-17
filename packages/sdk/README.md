@@ -21,11 +21,11 @@ Atlas exports a default fetch-backed HTTP client:
 import { HttpClient } from "@atlas/sdk";
 
 const httpClient = new HttpClient();
-await httpClient.get("/api/orders");
+await httpClient.get({ url: "/api/orders" });
 ```
 
 Hosts can omit `httpClient` in `startHost` to use this default, or provide a
-custom `AtlasHttpClient` when they need axios, authentication, interceptors, or
+custom `IHttpClient` when they need axios, authentication, interceptors, or
 another transport.
 
 Apps should not create their own host SDK. Read it with `useAtlasSdk()` or

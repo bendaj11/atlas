@@ -38,6 +38,33 @@ Wrong when `assets` is not beside the component stylesheet:
 }
 ```
 
+### Assets in HTML, CSS, and runtime code
+
+Use the asset path configured by the Angular build. In a template, use the
+root-relative path for copied assets:
+
+```html
+<img src="/assets/images/point.png" alt="Point" />
+```
+
+In component CSS, use that same root-relative path. Atlas sees the HTML and
+component CSS it inserts for a mounted app, then rewrites those asset URLs to
+the app's remote origin.
+
+Runtime code is different. A library receives only a string and fetches it
+itself; Atlas cannot see or rewrite that request. Resolve the asset against the
+module that uses it:
+
+```ts
+const pointImageUrl = new URL('images/point.png', import.meta.url).href;
+```
+
+Use an emitted path relative to the module URL, without a leading `/`. For
+example, files copied from `src/assets` normally use `assets/images/point.png`.
+This keeps the URL under the app's remote origin and immutable deployment path.
+Do not use `document.baseURI` or `location.origin`: they point at the host page
+or discard the app path.
+
 ## Isolation
 
 Atlas mounts apps in Shadow DOM by default and installs declared standalone
@@ -45,7 +72,7 @@ stylesheets in that shadow root. This prevents global library CSS, including
 Ionic resets and variables, from leaking into the host or other apps. Use
 `domIsolation: 'shared-dom'` only for an app intentionally sharing a documented
 host design-system contract. Shared DOM mode is a DOM wrapper, not CSS
-isolation. `scoped` remains a legacy alias.
+isolation.
 
 ## Host Domain
 

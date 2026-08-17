@@ -1,14 +1,14 @@
-import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from "@atlas/schema";
-import type { AtlasEventMap, AtlasSdk, AtlasSdkOptions } from "@atlas/sdk";
-import type { AtlasNavigation } from "@atlas/sdk/navigation";
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { AtlasEventMap, AtlasSdk, AtlasSdkOptions } from '@atlas/sdk';
+import type { AtlasNavigation } from '@atlas/sdk/navigation';
 import type {
   AtlasFederationAdapter,
   AtlasHostMountEvent,
   AtlasRuntimeObserver,
-  AtlasWidgetUiOptions
-} from "./index.js";
-import type { AtlasHostNavigationItem } from "./host-navigation.js";
-import type { AtlasHostAnchorRegistry } from "./host-anchors.js";
+  AtlasWidgetUiOptions,
+} from './index.js';
+import type { AtlasHostNavigationItem } from './host-navigation.js';
+import type { AtlasHostAnchorRegistry } from './host-anchors.js';
 
 export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   federation: AtlasFederationAdapter;
@@ -23,22 +23,32 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   anchors?: AtlasHostAnchorRegistry;
   onNavigationChange?: (items: readonly AtlasHostNavigationItem[]) => void;
   renderLoading?: (container: HTMLElement, event: AtlasHostMountEvent) => void;
-  renderError?: (container: HTMLElement, event: AtlasHostMountEvent, retry: () => void) => void;
+  renderError?: (
+    container: HTMLElement,
+    event: AtlasHostMountEvent,
+    retry: () => void,
+  ) => void;
   renderHostLoading?: (container: HTMLElement) => void | (() => void);
-  renderHostError?: (container: HTMLElement, error: Error, retry: () => void) => void | (() => void);
+  renderHostError?: (
+    container: HTMLElement,
+    error: Error,
+    retry: () => void,
+  ) => void | (() => void);
   /** Receives provider-neutral runtime diagnostics. Observer errors are ignored. */
   observe?: AtlasRuntimeObserver;
 }
 
 export type DomHostOptions<THostSdk extends object = {}> = Omit<
   AtlasSdkOptions<THostSdk, AtlasEventMap>,
-  "hostId" | "navigation"
-> & DomRuntimeOptions & {
-  sdk?: AtlasSdk<THostSdk, AtlasEventMap>;
-  navigation?: AtlasNavigation;
-};
+  'hostId' | 'navigation'
+> &
+  DomRuntimeOptions & {
+    sdk?: AtlasSdk<THostSdk, AtlasEventMap>;
+    navigation?: AtlasNavigation;
+  };
 
-export interface DomHostServices {
+export interface DomHostServices<THostSdk extends object = {}> {
   createNavigation(): AtlasNavigation | Promise<AtlasNavigation>;
   beforeNavigation?(): void | Promise<void>;
+  onSdkCreated?(sdk: AtlasSdk<THostSdk>): void;
 }

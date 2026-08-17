@@ -18,7 +18,6 @@ Atlas uses focused packages so the app-facing SDK does not also contain host and
 | `@atlas/runtime`        | Catalog discovery, overrides, federation loading, and mounting |
 | `@atlas/bootstrap`      | Static bootstrap file and Nginx configuration generation       |
 | `@atlas/sdk/navigation` | Host-owned and app-scoped navigation                           |
-| `@atlas/sdk/overlay`    | Modal, popup, and toast provider contracts                     |
 | `@atlas/sdk/angular`    | Angular host, app, and widget integration                      |
 | `@atlas/sdk/react`      | React host, app, and widget integration                        |
 | `@atlas/generators`     | Generator implementation used by the CLI                       |
@@ -80,7 +79,7 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 | `AtlasSdk<THostSdk, TEvents>`        | Core capabilities plus host-owned SDK properties and typed host data         |
 | `AtlasSdkOptions<THostSdk, TEvents>` | Providers and host-owned SDK properties supplied while starting a host       |
 | `createAtlasSdk()`                   | Create the host-owned SDK instance                                           |
-| `AtlasHttpClient`                    | Core HTTP client with Angular-style `request()` plus basic HTTP verb helpers |
+| `IHttpClient`                        | Core HTTP client with object-form `request()` and HTTP verb helpers          |
 | `HttpClient`                         | Default fetch-backed HTTP client used when hosts omit `httpClient`           |
 | `AtlasEventBus<TEvents>`             | Typed in-memory communication between mounted apps                           |
 | `createAtlasEventBus()`              | Create a host-scoped event bus                                               |

@@ -28,6 +28,24 @@ describe('AtlasBootstrapService', () => {
     expect(driver.get.hasCompiledConfig()).toBe(true);
   });
 
+  it('should omit runtime configuration when external runtime mode is requested', async () => {
+    driver.given.build({ flags: ['--runtime-config=external'] });
+
+    await driver.when.build();
+
+    expect(driver.get.generatedOptions()).toStrictEqual({
+      runtimeConfig: 'external',
+    });
+  });
+
+  it('should reject when runtime configuration mode is unsupported', async () => {
+    driver.given.build({ flags: ['--runtime-config=remote'] });
+
+    await expect(driver.when.build()).rejects.toThrow(
+      '--runtime-config must be embedded or external',
+    );
+  });
+
   it('should not compile configuration when skip-compile is present', async () => {
     driver.given.build({ flags: ['--skip-compile'] });
 
@@ -70,5 +88,13 @@ describe('AtlasBootstrapService', () => {
     driver.given.build({ flags: [], configError: error });
 
     await expect(driver.when.build()).rejects.toThrow(error);
+  });
+
+  it('should write runtime configuration when rendering succeeds', async () => {
+    driver.given.build({ flags: [] });
+
+    await driver.when.renderRuntimeConfig();
+
+    expect(driver.get.renderedRuntime()).toStrictEqual(driver.get.runtime());
   });
 });

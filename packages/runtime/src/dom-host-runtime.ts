@@ -32,7 +32,7 @@ import {
 
 interface DomHostRuntimeInput<THostSdk extends object> {
   options: DomHostOptions<THostSdk>;
-  services: DomHostServices;
+  services: DomHostServices<THostSdk>;
   document: Document;
   onInfrastructureReady: () => void;
 }
@@ -88,6 +88,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     }),
     trustPolicy,
   });
+  services.onSdkCreated?.(sdk);
 
   const updateNavigationItems = (): void => {
     const items = createHostNavigationItems(

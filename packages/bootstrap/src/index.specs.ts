@@ -20,6 +20,22 @@ describe('bootstrap bundle', () => {
     ]);
   });
 
+  it('should omit environment files when creating external runtime bootstrap assets', () => {
+    driver.when.createExternalFiles();
+
+    expect(driver.get.filePaths()).toEqual([
+      'index.html',
+      'atlas.loader.js',
+      'es-module-shims.js',
+    ]);
+  });
+
+  it('should require runtime configuration when creating embedded bootstrap assets', () => {
+    expect(driver.get.missingRuntimeError()).toContain(
+      'requires runtime configuration',
+    );
+  });
+
   it('should include host root when creating default bootstrap assets', () => {
     driver.when.createFiles();
 

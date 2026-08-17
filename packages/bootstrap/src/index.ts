@@ -15,7 +15,8 @@ export const ATLAS_BROWSER_LOADER = readFileSync(
 );
 
 export interface AtlasBootstrapOptions {
-  runtime: AtlasHostRuntimeConfig;
+  runtime?: AtlasHostRuntimeConfig;
+  runtimeConfig?: 'embedded' | 'external';
   html?: string;
   title?: string;
   loadingHtml?: string;
@@ -35,7 +36,6 @@ export interface AtlasBootstrapFile {
 export function createAtlasBootstrapFiles(
   options: AtlasBootstrapOptions,
 ): AtlasBootstrapFile[] {
-  validateRuntime(options.runtime);
   const html =
     options.html ??
     createBootstrapHtml({
@@ -45,22 +45,28 @@ export function createAtlasBootstrapFiles(
         : {}),
     });
   validateBootstrapHtml(html);
-  return [
+  const files: AtlasBootstrapFile[] = [
     { path: 'index.html', contents: html.endsWith('\n') ? html : `${html}\n` },
     {
       path: 'atlas.loader.js',
       contents: `${ATLAS_BROWSER_LOADER.trimEnd()}\n`,
     },
     { path: 'es-module-shims.js', contents: MODULE_SHIM_SOURCE },
+  ];
+  if (options.runtimeConfig === 'external') return files;
+
+  const runtime = requiredRuntime(options.runtime);
+  return [
+    ...files,
     {
       path: 'atlas.runtime.json',
-      contents: `${JSON.stringify(options.runtime, null, 2)}\n`,
+      contents: `${JSON.stringify(runtime, null, 2)}\n`,
     },
     {
       path: 'nginx.conf',
       contents: createNginxConfig(
-        options.assetOrigins ?? runtimeAssetOrigins(options.runtime),
-        options.runtime.allowCustomOverrides,
+        options.assetOrigins ?? runtimeAssetOrigins(runtime),
+        runtime.allowCustomOverrides,
       ),
     },
   ];
@@ -178,6 +184,17 @@ function validateRuntime(runtime: AtlasHostRuntimeConfig): void {
   } catch {
     throw new Error('Atlas bootstrap requires an absolute catalogUrl.');
   }
+}
+
+function requiredRuntime(
+  runtime: AtlasHostRuntimeConfig | undefined,
+): AtlasHostRuntimeConfig {
+  if (!runtime)
+    throw new Error(
+      'Atlas bootstrap requires runtime configuration unless --runtime-config=external is used.',
+    );
+  validateRuntime(runtime);
+  return runtime;
 }
 
 function escapeHtml(value: string): string {

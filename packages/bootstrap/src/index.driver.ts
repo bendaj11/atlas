@@ -35,6 +35,15 @@ export class IndexDriver {
       );
       return this;
     },
+    createExternalFiles: (): IndexDriver => {
+      this.files = new Map(
+        createAtlasBootstrapFiles({
+          runtimeConfig: 'external',
+          ...(this.html === undefined ? {} : { html: this.html }),
+        }).map((file) => [file.path, file.contents]),
+      );
+      return this;
+    },
   };
 
   readonly get = {
@@ -60,5 +69,13 @@ export class IndexDriver {
       JSON.parse(
         this.get.fileContents('atlas.runtime.json'),
       ) as AtlasHostRuntimeConfig,
+    missingRuntimeError: (): string => {
+      try {
+        createAtlasBootstrapFiles({});
+        return '';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    },
   };
 }

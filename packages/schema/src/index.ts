@@ -9,7 +9,7 @@ export type {
 } from './atlas-config.js';
 export type { AtlasArtifactManifestBase } from './atlas-artifact-manifest-base.js';
 export type { AtlasArtifactIndex } from './atlas-artifact-index.js';
-export type { AtlasDomIsolation } from './atlas-dom-isolation.js';
+export type { AtlasAppDomIsolation, AtlasDomIsolation } from './atlas-dom-isolation.js';
 export type { AtlasExportedWidgetManifest } from './atlas-exported-widget-manifest.js';
 export type { AtlasExposeMap } from './atlas-expose-map.js';
 export type { AtlasFramework } from './atlas-framework.js';

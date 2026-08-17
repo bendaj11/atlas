@@ -74,17 +74,5 @@ declare function createReactAppViteConfig(options: any): {
     };
 };
 declare function createAngularFederationConfig(options: any): any;
-declare function createAngularFederationOptions(options: any, shareAll: any): {
-    name: any;
-    exposes: {
-        './host': any;
-    } | {
-        './entry': any;
-        './host'?: undefined;
-    } | {
-        './host'?: undefined;
-    };
-    shared: any;
-    skip: string[];
-};
+declare function createAngularFederationOptions(options: any, shareAll: any): any;
 export { createAngularFederationConfig, createAngularFederationOptions, createReactAppViteConfig, createReactHostViteConfig, createReactWidgetEntries, };

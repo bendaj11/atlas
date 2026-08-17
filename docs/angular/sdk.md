@@ -205,21 +205,6 @@ ready();
 
 If an app never opts in, Atlas treats mount completion as ready.
 
-## Host-Owned UI
-
-Apps request UI; hosts render it:
-
-```ts
-this.atlas.toast.open({ title: 'Saved', state: 'success' });
-const result = await this.atlas.modal.open({
-  component: ConfirmDeleteComponent,
-  props: { orderId: '42' },
-});
-```
-
-The Angular host decides whether modals are Ionic, Angular CDK, a design-system
-overlay, or another implementation.
-
 ## Testing
 
 Use `@atlas/testkit` to create fake SDKs and memory navigation in app tests.
