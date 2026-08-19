@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-17T15:25:24.457629+00:00",
+  "generated_at": "2026-08-19T10:16:14.913341+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
-      "code_fingerprint": "a290816db8281d1bc35881688d47610e3ed071853511960a9ec4c0383d09abc9",
+      "code_fingerprint": "30807d6cc5ebd7efdf653b04cb3e52b7b953428b0b99e1f907de751ae38dacfc",
       "label": "manifest-utils.ts",
       "last": "2026-07-21T19:46:08.999634+00:00",
       "provenance": [
@@ -12,13 +12,13 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.53813338,
+      "score": 0.516387326,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
     },
     "apps_columbus_src_types_app_editordraft": {
-      "code_fingerprint": "17513dcf8bd4bf10587e2f1acb5178772aed72723d97d1e8cb78ca5663744118",
+      "code_fingerprint": "8d50baaf77a5cd3578e185be04ae91763ecb80bedae51fc7f08eb3e822731480",
       "label": "EditorDraft",
       "last": "2026-07-21T19:52:38.942245+00:00",
       "provenance": [
@@ -28,13 +28,13 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.538189498,
+      "score": 0.516441176,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
     },
     "docs_local_development_local_development_and_columbus": {
-      "code_fingerprint": "8abd9890315666d44cd17268d0407498c20ab9adb6e1f73e9308eaf6dea8505c",
+      "code_fingerprint": "1a0b6fb7fb4e37469fe52ee74f6e0e67cd9af37a2006b4f003aedb41b130cc18",
       "label": "Local development and Columbus",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -44,13 +44,13 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.521767256,
+      "score": 0.50068256,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
     },
     "docs_local_development_run_a_local_app": {
-      "code_fingerprint": "8abd9890315666d44cd17268d0407498c20ab9adb6e1f73e9308eaf6dea8505c",
+      "code_fingerprint": "1a0b6fb7fb4e37469fe52ee74f6e0e67cd9af37a2006b4f003aedb41b130cc18",
       "label": "Run a local app",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -60,13 +60,13 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.521767256,
+      "score": 0.50068256,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
     },
     "packages_cli_src_development_service_dev_service_atlasdevservice": {
-      "code_fingerprint": "a5974e13c4bb581a94c18e801d5101c8509e3c3e35d01eb67a14c2737454989b",
+      "code_fingerprint": "8d818107090125cd7cc80df4d44792c23d26d5164b6c73ef88665ae7b76b9b3c",
       "label": "AtlasDevService",
       "last": "2026-07-20T11:47:17.080303+00:00",
       "provenance": [
@@ -81,13 +81,13 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 1.043511226,
+      "score": 1.001342774,
       "source_file": "packages/cli/src/development/service/dev.service.ts",
       "status": "preferred",
       "uses": 2
     },
     "packages_cli_src_development_session_session_resolvehostid": {
-      "code_fingerprint": "69c445b908f0de6837d0c63f21d43f94f91248a3cbe4f846ae8220d32868aa8b",
+      "code_fingerprint": "6acaf56569f9ccc7144f0116cef945178e3ffc4e440a04a86867ac6ebe56aa1f",
       "label": "resolveHostId()",
       "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
@@ -108,7 +108,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.521801642,
+      "score": 0.500715556,
       "source_file": "packages/cli/src/development/session/session.ts",
       "status": "contested",
       "uses": 2,
@@ -125,13 +125,13 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.597635691,
+      "score": 0.573485139,
       "source_file": "packages/cli/src/generation/service/generate.service.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_index_startatlashostruntime": {
-      "code_fingerprint": "732548ce5f9ca10c0fbf5e5cba2bd418754236560f372d4059579ded126e0074",
+      "code_fingerprint": "45d6ac8e757a4ce4d66196fc4f910902abedf075c062c6d34687d61b2dc54e2d",
       "label": "startAtlasHostRuntime()",
       "last": "2026-07-27T11:29:00.276809+00:00",
       "provenance": [
@@ -141,13 +141,13 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.6132417,
+      "score": 0.588460507,
       "source_file": "packages/runtime/src/index.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_loader_runtime_discovery_atlasruntimeoverridedocument": {
-      "code_fingerprint": "a92b9588d33fe7982b3cd57bc508aefe7cc9e4959c050c2b99143c2ce8a5567d",
+      "code_fingerprint": "fe58bad4eafed10bb88a68d5680a8614ed3eaa965c5e45a119ed776f89c3f44a",
       "label": "AtlasRuntimeOverrideDocument",
       "last": "2026-07-20T11:37:03.996118+00:00",
       "provenance": [
@@ -157,13 +157,13 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.52173206,
+      "score": 0.500648786,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_loader_runtime_discovery_loadhostruntimeconfig": {
-      "code_fingerprint": "a92b9588d33fe7982b3cd57bc508aefe7cc9e4959c050c2b99143c2ce8a5567d",
+      "code_fingerprint": "fe58bad4eafed10bb88a68d5680a8614ed3eaa965c5e45a119ed776f89c3f44a",
       "label": "loadHostRuntimeConfig()",
       "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
@@ -184,7 +184,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.521840082,
+      "score": 0.500752443,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "contested",
       "uses": 2,
@@ -201,13 +201,13 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.521693621,
+      "score": 0.5006119,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_schema_src_atlas_host_runtime_config_atlashostruntimeconfig": {
-      "code_fingerprint": "1d3017a03af574c72fa4a59255673cddfb3a4f2ff70d6c9414b54331607b688a",
+      "code_fingerprint": "fbc19eea97683609a20dbf2a60348fbeede815b23fded1a03ffcb18be131d0b5",
       "label": "AtlasHostRuntimeConfig",
       "last": "2026-07-20T11:47:17.080303+00:00",
       "neg": 1,
@@ -228,7 +228,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.521840082,
+      "score": 0.500752443,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
@@ -245,7 +245,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.6132417,
+      "score": 0.588460507,
       "source_file": "packages/sdk/src/host-slots.ts",
       "status": "tentative",
       "uses": 1
@@ -261,7 +261,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.6132417,
+      "score": 0.588460507,
       "source_file": "packages/sdk/src/route-context.ts",
       "status": "tentative",
       "uses": 1
