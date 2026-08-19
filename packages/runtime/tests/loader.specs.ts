@@ -716,7 +716,7 @@ test('host placement state exposes the artifact id', () => {
   assert.equal(container.dataset.atlasAppId, manifest.id);
 });
 
-test('browser overrides are discovered from the host URL and validated', async () => {
+test('browser overrides are discovered from an explicit development session and validated', async () => {
   const manifest = createTestManifest({
     channel: 'local',
     remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
@@ -724,14 +724,7 @@ test('browser overrides are discovered from the host URL and validated', async (
   let requestedUrl;
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    allowCustomOverrides: true,
-    search:
-      '?atlas-override=http%3A%2F%2Flocalhost%3A4400%2Fatlas.local-overrides.json',
-    storage: {
-      getItem() {
-        return null;
-      },
-    },
+    search: '?atlas-dev-port=4400',
     async fetchJson(url) {
       requestedUrl = url;
       return {
@@ -742,47 +735,6 @@ test('browser overrides are discovered from the host URL and validated', async (
       };
     },
   });
-  assert.equal(
-    requestedUrl,
-    'http://localhost:4400/atlas.local-overrides.json',
-  );
-  assert.equal(
-    overrides[0].manifest.remoteEntryUrl,
-    'http://localhost:4201/remoteEntry.json',
-  );
-});
-
-test('browser overrides discover the matching local dev session without URL parameters', async () => {
-  const manifest = createTestManifest({
-    channel: 'local',
-    remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
-  });
-  let requestedUrl;
-  const overrides = await loadBrowserRuntimeOverrides({
-    hostId: 'host',
-    allowCustomOverrides: true,
-    search: '',
-    storage: {
-      getItem() {
-        return null;
-      },
-    },
-    sessionStorage: {
-      getItem() {
-        return null;
-      },
-    },
-    async fetchJson(url) {
-      requestedUrl = url;
-      return {
-        schemaVersion: '1',
-        hostId: 'host',
-        generatedAt: new Date().toISOString(),
-        overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
-      };
-    },
-  });
-
   assert.equal(
     requestedUrl,
     'http://localhost:4400/atlas.dev-session.json?hostId=host',
@@ -793,17 +745,30 @@ test('browser overrides discover the matching local dev session without URL para
   );
 });
 
-test('browser overrides discover a local dev session on the requested control port', async () => {
-  let requestedUrl;
-  await loadBrowserRuntimeOverrides({
+test('browser overrides do not probe a local dev session without an explicit URL parameter', async () => {
+  let fetched = false;
+  const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    allowCustomOverrides: true,
-    search: '?atlas-dev-port=4411',
-    storage: {
+    search: '',
+    sessionStorage: {
       getItem() {
         return null;
       },
     },
+    async fetchJson() {
+      fetched = true;
+      return undefined;
+    },
+  });
+
+  assert.deepEqual({ overrides, fetched }, { overrides: [], fetched: false });
+});
+
+test('browser overrides discover a local dev session on the requested control port', async () => {
+  let requestedUrl;
+  await loadBrowserRuntimeOverrides({
+    hostId: 'host',
+    search: '?atlas-dev-port=4411',
     sessionStorage: {
       getItem() {
         return null;
@@ -829,13 +794,7 @@ test('browser overrides discover a local dev session on the requested control po
 test('missing local dev session leaves browser overrides empty', async () => {
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    allowCustomOverrides: true,
     search: '',
-    storage: {
-      getItem() {
-        return null;
-      },
-    },
     sessionStorage: {
       getItem() {
         return null;
@@ -854,13 +813,7 @@ test('browser overrides cannot cross host boundaries', async () => {
     () =>
       loadBrowserRuntimeOverrides({
         hostId: 'host',
-        allowCustomOverrides: true,
-        search: '?atlas-override=http://localhost/override.json',
-        storage: {
-          getItem() {
-            return null;
-          },
-        },
+        search: '?atlas-dev-port=4400',
         async fetchJson() {
           return {
             schemaVersion: '1',
@@ -883,9 +836,8 @@ test('invalid browser overrides name the app and provide a Columbus recovery act
     () =>
       loadBrowserRuntimeOverrides({
         hostId: 'host',
-        allowCustomOverrides: true,
         search: '',
-        storage: {
+        sessionStorage: {
           getItem(key) {
             return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY
               ? JSON.stringify({
@@ -911,9 +863,8 @@ test('browser overrides load a directly persisted extension document', async () 
   });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    allowCustomOverrides: true,
     search: '',
-    storage: {
+    sessionStorage: {
       getItem(key) {
         return key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY
           ? JSON.stringify({
@@ -938,11 +889,6 @@ test('tab-scoped browser overrides take precedence over all-tab overrides', asyn
     version: '3.0.0',
     channel: 'production',
   });
-  const all = createTestManifest({
-    id: 'orders',
-    version: '2.0.0',
-    channel: 'production',
-  });
   const documentFor = (manifest: AtlasManifest) =>
     JSON.stringify({
       schemaVersion: '1',
@@ -952,11 +898,6 @@ test('tab-scoped browser overrides take precedence over all-tab overrides', asyn
     });
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    allowCustomOverrides: true,
-    storage: {
-      getItem: (key) =>
-        key === 'atlas.runtime-overrides' ? documentFor(all) : null,
-    },
     sessionStorage: {
       getItem: (key) =>
         key === 'atlas.runtime-overrides' ? documentFor(tab) : null,
@@ -971,11 +912,6 @@ test('custom override URLs are disabled by default', async () => {
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
     search: '?atlas-override=https://attacker.example/override.json',
-    storage: {
-      getItem() {
-        return null;
-      },
-    },
     async fetchJson() {
       fetched = true;
       throw new Error('must not fetch');

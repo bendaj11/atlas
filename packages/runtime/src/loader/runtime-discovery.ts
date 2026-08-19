@@ -30,10 +30,7 @@ export interface AtlasRuntimeOverrideDocument {
 
 export interface AtlasBrowserOverrideOptions {
   hostId: string;
-  /** Allows localhost/custom-URL overrides. Registry-backed PR and historical overrides need no opt-in. */
-  allowCustomOverrides?: boolean;
   search?: string;
-  storage?: Pick<Storage, 'getItem'>;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
   sessionStorage?: Pick<Storage, 'getItem'>;
   fetchJson?: FetchJson;
@@ -45,13 +42,10 @@ export interface AtlasRemoteTrustPolicy {
   allowedOrigins?: ReadonlySet<string>;
 }
 
-export const ATLAS_OVERRIDE_QUERY_PARAM = 'atlas-override';
 export const ATLAS_DEV_SESSION_PORT_QUERY_PARAM = 'atlas-dev-port';
-export const ATLAS_OVERRIDE_STORAGE_KEY = 'atlas.runtime-override-url';
 export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = 'atlas.runtime-overrides';
 const ATLAS_LOCAL_DEV_SESSION_URL =
   'http://localhost:4400/atlas.dev-session.json';
-const LOCAL_DEV_DISCOVERY_TIMEOUT_MS = 500;
 
 export async function loadHostCatalog(options: {
   catalogUrl: string;
@@ -86,14 +80,6 @@ export async function loadHostRuntimeConfig(
     );
   }
   validateRequestPolicy(config);
-  if (
-    config.allowCustomOverrides !== undefined &&
-    typeof config.allowCustomOverrides !== 'boolean'
-  ) {
-    throw runtimeConfigurationError(
-      'Atlas host runtime field allowCustomOverrides must be true or false.',
-    );
-  }
   validateRuntimeUrls(config.externalRegistryUrls, 'externalRegistryUrls');
   validateRuntimeUrls(config.assetOrigins, 'assetOrigins');
   if (
@@ -155,40 +141,29 @@ export async function loadBrowserRuntimeOverrides(
   options: AtlasBrowserOverrideOptions,
 ): Promise<AtlasRuntimeOverride[]> {
   const search = options.search ?? globalThis.location?.search ?? '';
-  const queryUrl = new URLSearchParams(search).get(ATLAS_OVERRIDE_QUERY_PARAM);
-  const storage = options.storage ?? globalThis.localStorage;
+  const storage = globalThis.localStorage;
   const sessionStorage = options.sessionStorage ?? globalThis.sessionStorage;
-  const storedUrl = storage?.getItem(ATLAS_OVERRIDE_STORAGE_KEY) ?? undefined;
-  const allowCustomOverrides = options.allowCustomOverrides ?? false;
-  const url = allowCustomOverrides ? (queryUrl ?? storedUrl) : undefined;
   const storedDocument =
     sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
     storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
     undefined;
-  let source = url ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
+  let source = ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
   let document: unknown;
-  if (url) {
-    document = await runResiliently(
-      (signal) => (options.fetchJson ?? defaultFetchJson)(url, signal),
-      { stage: 'runtime-overrides', resource: url },
-      options.requestPolicy,
-    );
-  } else if (storedDocument) {
+  if (storedDocument) {
     document = parseOverrideDocument(storedDocument);
-  } else if (allowCustomOverrides) {
+  } else if (hasDevSessionPort(search)) {
     source = localDevSessionUrl(options.hostId, search);
-    document = await discoverLocalDevSession(source, options.fetchJson);
-    if (document === undefined) return [];
+    document = await (options.fetchJson ?? defaultFetchJson)(source);
   } else {
     return [];
   }
   validateOverrideShape(document);
   validateOverrideDocument(document, options.hostId, source);
-  return document.overrides.filter(
-    (override) =>
-      allowCustomOverrides ||
-      (override.reason !== 'local' && override.manifest.channel !== 'local'),
-  );
+  return document.overrides;
+}
+
+function hasDevSessionPort(search: string): boolean {
+  return new URLSearchParams(search).has(ATLAS_DEV_SESSION_PORT_QUERY_PARAM);
 }
 
 function localDevSessionUrl(hostId: string, search: string): string {
@@ -204,20 +179,6 @@ function localDevSessionUrl(hostId: string, search: string): string {
 function isValidPort(value: string): boolean {
   const port = Number(value);
   return Number.isInteger(port) && port > 0 && port <= 65_535;
-}
-
-async function discoverLocalDevSession(
-  url: string,
-  fetchJson: FetchJson = defaultFetchJson,
-): Promise<unknown | undefined> {
-  try {
-    return await fetchJson(
-      url,
-      AbortSignal.timeout(LOCAL_DEV_DISCOVERY_TIMEOUT_MS),
-    );
-  } catch {
-    return undefined;
-  }
 }
 
 export function resolveRuntimeManifests(

@@ -5,7 +5,6 @@ import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
 export function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === 'host';
   return (
-    'allowCustomOverrides' in config ||
     'resourcesTimeoutMs' in config ||
     'resourcesRetryCount' in config
   );

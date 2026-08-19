@@ -43,7 +43,6 @@ export function useArtifactConfiguration() {
     ? {
         id: artifactId,
         hostId: hostData?.config.hostId ?? '',
-        allowCustomOverrides: hostData?.config.allowCustomOverrides ?? false,
         productionManifest,
         selectedManifest:
           session?.activeOverrides.get(artifactId) ??
@@ -90,13 +89,6 @@ export function useArtifactConfiguration() {
         productionOptions: configuration.productionOptions,
         prOptions: configuration.prOptions,
       });
-      if (
-        selectedManifest?.channel === 'local' &&
-        !configuration.allowCustomOverrides
-      )
-        throw new Error(
-          'This host does not allow localhost or custom-URL overrides.',
-        );
       saveOverride({
         productionManifest: configuration.productionManifest,
         selectedManifest,
@@ -106,7 +98,7 @@ export function useArtifactConfiguration() {
         errorMessage(
           error,
           'save this artifact override',
-          'Correct the selected version or URL, verify this host allows the override, then retry.',
+          'Correct the selected version or URL, then retry.',
         ),
       );
     }

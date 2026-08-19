@@ -31,7 +31,7 @@ export class AtlasHostDriver {
       return this;
     },
     inspectedHost: (tabId: number, id = hostId): this => {
-      this.inspections.set(tabId, createHostData(id, true));
+      this.inspections.set(tabId, createHostData(id));
       return this;
     },
   };
@@ -61,9 +61,9 @@ export class AtlasHostDriver {
       });
       const documentValue = createOverrideDocument({
         hostData: {
-          ...createHostData(hostId, true),
+          ...createHostData(hostId),
           catalog: {
-            ...createHostData(hostId, true).catalog,
+            ...createHostData(hostId).catalog,
             apps: [productionManifest],
           },
         },
@@ -71,15 +71,13 @@ export class AtlasHostDriver {
       });
       return loadBrowserRuntimeOverrides({
         hostId,
-        allowCustomOverrides: true,
         search: '',
-        storage: {
-          getItem: (key) =>
+        sessionStorage: {
+          getItem: (key: string) =>
             key === 'atlas.runtime-overrides'
               ? JSON.stringify(documentValue)
               : null,
         },
-        sessionStorage: { getItem: () => null },
       });
     },
     localSuppressionDocument: async (): Promise<unknown> => {
@@ -110,7 +108,7 @@ export class AtlasHostDriver {
         },
       });
       try {
-        const hostData = createHostData(hostId, true);
+        const hostData = createHostData(hostId);
         await writeOverrides({
           tabId: 7,
           hostData,
@@ -193,10 +191,7 @@ function pageStorageArea(values: Map<string, string>): Storage {
   };
 }
 
-function createHostData(
-  id: string,
-  allowCustomOverrides: boolean,
-): AtlasHostData {
+function createHostData(id: string): AtlasHostData {
   const host = {
     schemaVersion: '1' as const,
     kind: 'host' as const,
@@ -213,7 +208,6 @@ function createHostData(
       schemaVersion: '1',
       hostId: id,
       catalogUrl: `http://127.0.0.1:4400/hosts/${id}/catalog.json`,
-      allowCustomOverrides,
     },
     pageUrl: 'http://127.0.0.1:4300/',
     catalog: {

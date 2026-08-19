@@ -11,7 +11,7 @@ import {
 } from "./index.js";
 
 const NON_SDK_OPTION_NAMES = new Set([
-  "allowAppOverrides", "catalog", "document", "eventBus", "events", "federation", "hostData", "hostId", "httpClient",
+  "catalog", "document", "eventBus", "events", "federation", "hostData", "hostId", "httpClient",
   "location", "navigation", "observe", "onNavigationChange", "renderError", "renderHostError",
   "renderHostLoading", "renderLoading", "renderWidgetError", "renderWidgetLoading", "router", "runtimeConfig",
   "runtimeConfigUrl", "sdk"

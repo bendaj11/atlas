@@ -51,7 +51,6 @@ export interface AtlasHostData {
     hostId: string;
     catalogUrl: string;
     registryUrl?: string;
-    allowCustomOverrides?: boolean;
     externalRegistryUrls?: string[];
   };
   pageUrl: string;

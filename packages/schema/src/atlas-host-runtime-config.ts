@@ -10,8 +10,6 @@ export interface AtlasHostRuntimeConfig {
   catalogUrl: string;
   /** Base URL serving artifact version indexes. Local development may expose a loopback proxy for a published registry. */
   registryUrl?: string;
-  /** Allow arbitrary localhost or custom-URL overrides. Registry-backed overrides are always available. */
-  allowCustomOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */
   resourcesTimeoutMs?: number;
   /** Number of retries after the first failed Atlas resource request. Defaults to three. */

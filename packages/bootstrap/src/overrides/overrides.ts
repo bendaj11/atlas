@@ -7,7 +7,6 @@ import type {
 } from '@atlas/schema';
 import {
   DEV_SESSION_PORT_PARAM,
-  DEV_SESSION_TIMEOUT_MS,
   DEV_SESSION_URL,
   DOCUMENT_KEY,
 } from '../constants.js';
@@ -18,21 +17,13 @@ export async function applyOverrides(
   runtime: AtlasHostRuntimeConfig,
   catalog: AtlasHostCatalog,
 ): Promise<AtlasHostCatalog> {
-  const overrideUrl = runtime.allowCustomOverrides
-    ? new URLSearchParams(location.search).get('atlas-override')
-    : undefined;
+  let stored =
+    sessionStorage.getItem(DOCUMENT_KEY) || localStorage.getItem(DOCUMENT_KEY);
 
-  let stored = overrideUrl
-    ? JSON.stringify(await fetchJson<RuntimeOverrides>(overrideUrl, runtime))
-    : sessionStorage.getItem(DOCUMENT_KEY) ||
-      localStorage.getItem(DOCUMENT_KEY);
-
-  if (!stored && runtime.allowCustomOverrides) {
-    const devSession = await discoverDevSession(runtime.hostId);
-    if (devSession) {
-      catalog = mergeDevSessionCatalog(catalog, devSession);
-      stored = JSON.stringify(devSession);
-    }
+  if (!stored && hasDevSessionPort(location.search)) {
+    const devSession = await fetchDevSession(runtime.hostId);
+    catalog = mergeDevSessionCatalog(catalog, devSession);
+    stored = JSON.stringify(devSession);
   }
 
   if (!stored) return catalog;
@@ -113,35 +104,26 @@ function mergeDevSessionCatalog(
   };
 }
 
-async function discoverDevSession(
-  hostId: string,
-): Promise<DevSession | undefined> {
-  try {
-    const url = new URL(DEV_SESSION_URL);
-    const requestedPort = new URLSearchParams(location.search).get(
-      DEV_SESSION_PORT_PARAM,
-    );
-    const port = Number(requestedPort);
+function hasDevSessionPort(search: string): boolean {
+  return new URLSearchParams(search).has(DEV_SESSION_PORT_PARAM);
+}
 
-    if (requestedPort && Number.isInteger(port) && port > 0 && port <= 65535)
-      url.port = requestedPort;
+async function fetchDevSession(hostId: string): Promise<DevSession> {
+  const url = new URL(DEV_SESSION_URL);
+  const requestedPort = new URLSearchParams(location.search).get(
+    DEV_SESSION_PORT_PARAM,
+  );
+  if (!isValidPort(requestedPort))
+    throw new Error('Atlas development session port must be a valid TCP port.');
 
-    url.searchParams.set('hostId', hostId);
+  url.port = requestedPort;
+  url.searchParams.set('hostId', hostId);
+  return fetchJson<DevSession>(url.href);
+}
 
-    const response = await fetch(url, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(DEV_SESSION_TIMEOUT_MS),
-    });
-
-    if (!response.ok) return undefined;
-
-    const session = (await response.json()) as DevSession;
-    return session.schemaVersion === '1' && session.hostId === hostId
-      ? session
-      : undefined;
-  } catch {
-    return undefined;
-  }
+function isValidPort(value: string | null): value is string {
+  const port = Number(value);
+  return Number.isInteger(port) && port > 0 && port <= 65_535;
 }
 
 async function resolveOverrideManifest<
@@ -150,9 +132,6 @@ async function resolveOverrideManifest<
   manifest: TManifest,
   runtime: AtlasHostRuntimeConfig,
 ): Promise<TManifest | undefined> {
-  if (manifest.channel === 'local')
-    return runtime.allowCustomOverrides ? manifest : undefined;
-
   if (manifest.channel !== 'pr' || !manifest.prNumber) return manifest;
 
   const indexUrl = artifactIndexUrl(manifest);

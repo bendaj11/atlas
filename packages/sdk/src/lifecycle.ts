@@ -31,8 +31,8 @@ export interface AtlasAppMountResult {
 export interface AtlasHostClientEntry {
   mount(request: {
     container: HTMLElement;
-    runtimeConfig: AtlasHostRuntimeConfig;
-    catalog: AtlasDeploymentCatalog;
+    runtimeConfig?: AtlasHostRuntimeConfig;
+    catalog?: AtlasDeploymentCatalog;
   }): void | AtlasAppMountResult | Promise<void | AtlasAppMountResult>;
 }
 

@@ -180,7 +180,6 @@ function installPage(options: PageOptions): void {
           hostId,
           catalogUrl: `https://registry.example/hosts/${hostId}/catalog.json`,
           ...(options.registryUrl ? { registryUrl: options.registryUrl } : {}),
-          allowCustomOverrides: true,
         });
       }
       if (url.pathname.endsWith('/catalog.json')) {

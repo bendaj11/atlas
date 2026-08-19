@@ -105,7 +105,9 @@ export class AtlasDevService {
     };
     await writeDevOverrideDocument(project.root, document);
 
-    const hostUrl = this.args.flag('host-url') ?? localOrigin(bootstrapPort);
+    const configuredHostUrl =
+      this.args.flag('host-url') ?? process.env.ATLAS_HOST_URL;
+    const hostUrl = configuredHostUrl ?? localOrigin(bootstrapPort);
     if (this.args.hasFlag('prepare-only')) {
       ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
       ui.info('Run without --prepare-only to start development servers.');
@@ -126,7 +128,7 @@ export class AtlasDevService {
       this.frameworkDevTask(),
       frameworkServerArguments(config.framework, clientPort),
     );
-    const usesLocalBootstrap = !this.args.flag('host-url');
+    const usesLocalBootstrap = configuredHostUrl === undefined;
     const template = usesLocalBootstrap
       ? await loadBootstrapTemplate(project.root)
       : undefined;
@@ -151,7 +153,6 @@ export class AtlasDevService {
               hostId: config.id,
               catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
               ...(registryUrl ? { registryUrl: controlOrigin } : {}),
-              allowCustomOverrides: true,
               resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
               resourcesRetryCount: config.resourcesRetryCount ?? 3,
               assetOrigins: [localOrigin(clientPort), controlOrigin],
@@ -221,8 +222,8 @@ export class AtlasDevService {
     await waitForShutdown(frameworkServer, control);
   }
 
-  private frameworkDevTask(): 'framework:dev' | 'serve' {
-    return this.workspace.kind === 'nx' ? 'serve' : 'framework:dev';
+  private frameworkDevTask(): 'dev' | 'serve' {
+    return this.workspace.kind === 'nx' ? 'serve' : 'dev';
   }
 
   private async resolveRemotePort(

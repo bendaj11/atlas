@@ -17,6 +17,7 @@ export class OverridesDriver {
     noStoredOverride: (_stored: undefined): OverridesDriver => {
       this.storage.clear();
       Object.assign(globalThis, {
+        location: { search: '' },
         localStorage: {
           getItem: (key: string) => this.storage.get(key) ?? null,
         },
@@ -62,7 +63,6 @@ export class OverridesDriver {
             schemaVersion: this.schemaVersion,
             hostId: this.hostId,
             catalogUrl: faker.internet.url(),
-            allowCustomOverrides: false,
           },
           {
             schemaVersion: this.schemaVersion,

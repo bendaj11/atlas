@@ -33,10 +33,6 @@ export default defineConfig({
       input: {
         'badge-script': resolve(directory, 'src/scripts/badge/badge-script.ts'),
         background: resolve(directory, 'src/scripts/background/background.ts'),
-        'content-script': resolve(
-          directory,
-          'src/scripts/content/content-script.ts',
-        ),
         index: resolve(directory, 'src/index.html'),
       },
       output: {

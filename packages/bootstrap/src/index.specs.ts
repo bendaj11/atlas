@@ -78,20 +78,16 @@ describe('bootstrap bundle', () => {
     expect(driver.get.nginxConfig()).toContain('https://assets.example');
   });
 
-  it('should allow loopback WebSocket connections when custom overrides are enabled', () => {
-    expect(driver.get.nginxConfig([], true)).toContain('ws://localhost:*');
+  it('should allow loopback WebSocket connections for explicit development sessions', () => {
+    expect(driver.get.nginxConfig()).toContain('ws://localhost:*');
   });
 
   it('should allow loopback IPv4 WebSocket connections when custom overrides are enabled', () => {
-    expect(driver.get.nginxConfig([], true)).toContain('ws://127.0.0.1:*');
+    expect(driver.get.nginxConfig()).toContain('ws://127.0.0.1:*');
   });
 
   it('should allow loopback IPv6 WebSocket connections when custom overrides are enabled', () => {
-    expect(driver.get.nginxConfig([], true)).toContain('ws://[::1]:*');
-  });
-
-  it('should reject loopback WebSocket connections when custom overrides are disabled', () => {
-    expect(driver.get.nginxConfig([], false)).not.toContain('ws://');
+    expect(driver.get.nginxConfig()).toContain('ws://[::1]:*');
   });
 
   it('should preserve custom HTML when it has required runtime hooks', () => {

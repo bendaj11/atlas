@@ -1,5 +1,6 @@
-import { readFile, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { CliArguments } from '../cli/arguments.js';
@@ -51,18 +52,10 @@ export async function loadAtlasPublishConfig(
   const explicit = args.flag('publish-config');
   const path = resolve(explicit ?? 'atlas.publish.ts');
   try {
-    const source = await readFile(path, 'utf8');
-    const transpiled = ts.transpileModule(source, {
-      compilerOptions: {
-        module: ts.ModuleKind.ESNext,
-        target: ts.ScriptTarget.ES2022,
-      },
-    }).outputText;
-    const compiledPath = `${path}.${process.pid}.mjs`;
-    await writeFile(compiledPath, transpiled, 'utf8');
+    const compiled = await compilePublishConfig(path);
     try {
       const loaded = (await import(
-        `${pathToFileURL(compiledPath).href}?t=${Date.now()}`
+        `${pathToFileURL(compiled.entryPath).href}?t=${Date.now()}`
       )) as { default?: unknown };
       if (!isPublishConfig(loaded.default))
         throw new Error(
@@ -70,13 +63,49 @@ export async function loadAtlasPublishConfig(
         );
       return loaded.default;
     } finally {
-      await rm(compiledPath, { force: true });
+      await rm(compiled.directory, { recursive: true, force: true });
     }
   } catch (error) {
     if (!explicit && isNodeError(error) && error.code === 'ENOENT')
       return undefined;
     throw error;
   }
+}
+
+async function compilePublishConfig(path: string): Promise<{
+  directory: string;
+  entryPath: string;
+}> {
+  const directory = await mkdtemp(join(tmpdir(), 'atlas-publish-config-'));
+  const compilerOptions: ts.CompilerOptions = {
+    declaration: false,
+    module: ts.ModuleKind.NodeNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    noEmitOnError: true,
+    outDir: directory,
+    rootDir: dirname(path),
+    target: ts.ScriptTarget.ES2022,
+    types: ['node'],
+  };
+  const program = ts.createProgram([path], compilerOptions);
+  const result = program.emit();
+  const diagnostics = [
+    ...ts.getPreEmitDiagnostics(program),
+    ...result.diagnostics,
+  ].filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
+  if (result.emitSkipped || diagnostics.length > 0) {
+    await rm(directory, { recursive: true, force: true });
+    throw new Error(ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+      getCanonicalFileName: (fileName) => fileName,
+      getCurrentDirectory: () => dirname(path),
+      getNewLine: () => '\n',
+    }));
+  }
+  await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');
+  return {
+    directory,
+    entryPath: join(directory, `${basename(path, '.ts')}.js`),
+  };
 }
 
 function isPublishConfig(value: unknown): value is AtlasPublishConfig {

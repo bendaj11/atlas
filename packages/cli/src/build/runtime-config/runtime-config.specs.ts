@@ -10,7 +10,6 @@ describe('createHostRuntimeConfig', () => {
 
   it('should create runtime config when host settings and CLI URLs are valid', () => {
     driver.given.hostConfig({
-      allowCustomOverrides: true,
       resourcesRetryCount: 2,
       resourcesTimeoutMs: 1000,
     });
@@ -26,7 +25,6 @@ describe('createHostRuntimeConfig', () => {
     driver.when.create();
 
     expect(driver.get.runtime()).toEqual({
-      allowCustomOverrides: true,
       assetOrigins: ['https://assets.example.com'],
       catalogUrl: `https://registry.example.com/hosts/${driver.get.hostId()}/catalog.json`,
       externalRegistryUrls: ['https://external.example.com/catalog'],

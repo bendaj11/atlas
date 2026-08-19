@@ -21,7 +21,6 @@ export function createHostRuntimeConfig(
     ...(hostVersion ? { hostVersion } : {}),
     catalogUrl: `${registryUrl}/hosts/${config.id}/catalog.json`,
     registryUrl,
-    allowCustomOverrides: config.allowCustomOverrides ?? false,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3,
     ...optionalUrlList('asset-origins', args.flag('asset-origins')),

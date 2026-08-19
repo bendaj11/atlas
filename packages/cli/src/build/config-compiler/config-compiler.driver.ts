@@ -63,7 +63,7 @@ export class ConfigCompilerDriver {
         join(projectRoot, 'atlas.config.ts'),
         scenario === 'invalid-atlas-config'
           ? 'export default missingConfig;\n'
-          : `export default { type: "host", id: "${faker.string.uuid()}", framework: "react", allowCustomOverrides: true };\n`,
+          : `export default { type: "host", id: "${faker.string.uuid()}", framework: "react" };\n`,
       );
 
       this.project = {

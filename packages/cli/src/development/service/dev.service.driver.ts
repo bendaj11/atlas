@@ -144,7 +144,7 @@ export class DevServiceDriver {
 
   private configSource(scenario: DevelopmentScenario): string {
     return scenario === 'host-prepare'
-      ? `export default { type: "host", id: "${this.hostId}", framework: "react", allowCustomOverrides: true };\n`
+      ? `export default { type: "host", id: "${this.hostId}", framework: "react" };\n`
       : `export default { id: "${this.appId}", name: "${faker.company.name()}", framework: "react", routes: [{ hostId: "*", path: "/orders" }] };\n`;
   }
 
@@ -173,7 +173,6 @@ export class DevServiceDriver {
         loadConfig: jest
           .fn<AtlasDevBuildService['loadConfig']>()
           .mockResolvedValue({
-            allowCustomOverrides: true,
             framework: 'react',
             id: this.hostId,
             type: 'host',

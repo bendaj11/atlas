@@ -106,8 +106,6 @@ export {
 } from './remote-assets/index.js';
 export {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
-  ATLAS_OVERRIDE_QUERY_PARAM,
-  ATLAS_OVERRIDE_STORAGE_KEY,
   loadBrowserRuntimeOverrides,
   createRemoteTrustPolicy,
   assertManifestAssetTrust,

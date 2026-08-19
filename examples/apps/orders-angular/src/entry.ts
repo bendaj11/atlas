@@ -1,7 +1,8 @@
 import "zone.js";
 import { LocationStrategy } from "@angular/common";
 import { Component } from "@angular/core";
-import { bootstrapApplication } from "@angular/platform-browser";
+import { createApplication } from "@angular/platform-browser";
+import { createComponent } from "@angular/core";
 import { provideRouter, RouterLink, RouterOutlet, type Routes } from "@angular/router";
 import { createLocationStrategy, defineApp, provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
 
@@ -23,6 +24,12 @@ export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement("atlas-orders-angular-root");
   const locationStrategy = createLocationStrategy(context);
   container.append(element);
-  const app = await bootstrapApplication(AtlasAppRootComponent, { providers: [provideRouter(routes), provideAtlasAppContext(context), provideAtlasSdk(sdk), { provide: LocationStrategy, useValue: locationStrategy }] });
-  return { unmount() { app.destroy(); locationStrategy.ngOnDestroy(); element.remove(); } };
+  const app = await createApplication({ providers: [provideRouter(routes), provideAtlasAppContext(context), provideAtlasSdk(sdk), { provide: LocationStrategy, useValue: locationStrategy }] });
+  const component = createComponent(AtlasAppRootComponent, {
+    environmentInjector: app.injector,
+    hostElement: element,
+  });
+  app.attachView(component.hostView);
+  component.changeDetectorRef.detectChanges();
+  return { unmount() { app.detachView(component.hostView); component.destroy(); app.destroy(); locationStrategy.ngOnDestroy(); element.remove(); } };
 });

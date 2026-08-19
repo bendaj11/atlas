@@ -32,7 +32,6 @@ export class ManifestUtilsDriver {
       createEditorDraft({
         id: this.productionManifest.id,
         hostId: 'host',
-        allowCustomOverrides: true,
         productionManifest: this.productionManifest,
         selectedManifest: this.selectedManifest,
         productionOptions: [this.productionManifest],

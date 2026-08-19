@@ -10,7 +10,6 @@ const DEFAULT_RUNTIME: AtlasHostRuntimeConfig = {
   schemaVersion: '1',
   hostId: 'customer-host',
   catalogUrl: 'https://cdn.example/atlas/hosts/customer-host/catalog.json',
-  allowCustomOverrides: true,
   assetOrigins: ['https://assets.example'],
 };
 
@@ -63,8 +62,7 @@ export class IndexDriver {
     },
     nginxConfig: (
       assetOrigins: readonly string[] = DEFAULT_RUNTIME.assetOrigins ?? [],
-      allowCustomOverrides = DEFAULT_RUNTIME.allowCustomOverrides,
-    ): string => createNginxConfig(assetOrigins, allowCustomOverrides),
+    ): string => createNginxConfig(assetOrigins),
     runtime: (): AtlasHostRuntimeConfig =>
       JSON.parse(
         this.get.fileContents('atlas.runtime.json'),

@@ -4,7 +4,7 @@ import {
   type AtlasOverrideDocument as OverrideDocument,
   getArtifactKey,
 } from '../../../types/contracts.js';
-import { DOCUMENT_KEY, URL_KEY } from '../../shared/constants.js';
+import { DOCUMENT_KEY } from '../../shared/constants.js';
 import { inspectAtlasHost } from '../inspect-atlas-host/inspect-atlas-host.js';
 import { writeHostDataCache } from '../host-data-cache.js';
 import type { Scope } from '../../../types/app.js';
@@ -208,7 +208,6 @@ export async function writeOverrides({
     func: persistOverrides,
     args: [
       DOCUMENT_KEY,
-      URL_KEY,
       JSON.stringify({ documentValue, scope, disabledAppIds }),
     ],
   });
@@ -412,7 +411,6 @@ function isLoopbackPage(url: string | undefined): boolean {
 
 function persistOverrides(
   documentKey: string,
-  urlKey: string,
   value: string,
 ): void {
   const { documentValue, scope, disabledAppIds } = JSON.parse(value) as {
@@ -444,10 +442,6 @@ function persistOverrides(
     sessionStorage.setItem(disabledKey, JSON.stringify(disabledAppIds));
   }
 
-  localStorage.removeItem(urlKey);
-  const url = new URL(location.href);
-  url.searchParams.delete('atlas-override');
-  history.replaceState(history.state, '', url);
 }
 
 function overrideReason(manifest: Manifest): 'local' | 'pr' | 'historical' {

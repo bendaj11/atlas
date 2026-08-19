@@ -50,13 +50,10 @@ export async function startDomHostRuntime<THostSdk extends object>(
   if (options.catalog) assertAtlasHostCatalog(catalog);
   assertCatalogMatchesConfig(catalog.hostId, config.hostId);
 
-  const allowCustomOverrides =
-    options.allowAppOverrides ?? config.allowCustomOverrides;
   const overrides = options.catalog
     ? []
     : await loadBrowserRuntimeOverrides({
         hostId: config.hostId,
-        ...(allowCustomOverrides !== undefined ? { allowCustomOverrides } : {}),
         requestPolicy,
       });
   const resolvedCatalog = resolveRuntimeCatalog(catalog, overrides);

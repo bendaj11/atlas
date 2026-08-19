@@ -21,15 +21,13 @@ export const OverridesSelectionForm = ({
         type="custom"
         title="Custom URL"
         currentSelectedType={draft.type}
-        disabled={!configuration.allowCustomOverrides}
+        disabled={false}
         onSelect={() => onDraftChange({ type: 'custom' })}
       >
         <Input
           size="small"
           value={draft.customUrl}
-          disabled={
-            draft.type !== 'custom' || !configuration.allowCustomOverrides
-          }
+          disabled={draft.type !== 'custom'}
           placeholder="http://localhost:4200"
           onChange={(event) => onDraftChange({ customUrl: event.target.value })}
         />

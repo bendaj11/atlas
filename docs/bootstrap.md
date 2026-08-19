@@ -128,7 +128,6 @@ Example `atlas.runtime.json`:
   "hostId": "7ee210f9-dacd-4aac-939e-237032d44740",
   "hostVersion": "0.1.0",
   "catalogUrl": "https://assets.example/atlas/hosts/7ee210f9-dacd-4aac-939e-237032d44740/catalog.json",
-  "allowCustomOverrides": false,
   "resourcesTimeoutMs": 15000,
   "resourcesRetryCount": 3
 }
@@ -136,9 +135,9 @@ Example `atlas.runtime.json`:
 
 `catalogUrl` is derived from `ATLAS_REGISTRY_URL`. It is public download URL, not private storage API URL.
 
-Registry-backed PR and previous-production overrides are always available and
-do not require a host flag. `allowCustomOverrides` controls only arbitrary
-localhost/custom-URL execution. It defaults to false.
+Columbus stores explicit host and app selections in browser storage. Atlas only
+contacts a loopback development session when an `atlas-dev-port` query parameter
+is present, which `atlas dev` adds to its preview URL.
 
 ## Custom HTML
 

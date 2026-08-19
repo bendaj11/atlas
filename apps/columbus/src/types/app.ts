@@ -35,7 +35,6 @@ export interface ArtifactConfiguration extends Pick<
   'id' | 'productionManifest' | 'selectedManifest'
 > {
   hostId: string;
-  allowCustomOverrides: boolean;
   productionOptions: Manifest[];
   prOptions: Manifest[];
 }

@@ -45,7 +45,6 @@ export class BootstrapServerDriver {
         port: 0,
         proxy,
         runtime: {
-          allowCustomOverrides: true,
           catalogUrl: faker.internet.url(),
           hostId: this.hostId,
           schemaVersion: '1',

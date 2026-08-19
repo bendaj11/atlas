@@ -1,4 +1,4 @@
-import { DOCUMENT_KEY, URL_KEY } from '../constants.js';
+import { DOCUMENT_KEY } from '../constants.js';
 import type { BootstrapFailure } from '../types.js';
 
 export function showFatalError(error: unknown): void {
@@ -34,7 +34,6 @@ export function showFatalError(error: unknown): void {
   reset.onclick = () => {
     localStorage.removeItem(DOCUMENT_KEY);
     sessionStorage.removeItem(DOCUMENT_KEY);
-    localStorage.removeItem(URL_KEY);
     location.reload();
   };
 

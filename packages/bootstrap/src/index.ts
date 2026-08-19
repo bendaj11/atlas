@@ -64,10 +64,7 @@ export function createAtlasBootstrapFiles(
     },
     {
       path: 'nginx.conf',
-      contents: createNginxConfig(
-        options.assetOrigins ?? runtimeAssetOrigins(runtime),
-        runtime.allowCustomOverrides,
-      ),
+      contents: createNginxConfig(options.assetOrigins ?? runtimeAssetOrigins(runtime)),
     },
   ];
 }
@@ -104,15 +101,10 @@ export function validateBootstrapHtml(html: string): void {
 
 export function createNginxConfig(
   assetOrigins: readonly string[] = [],
-  allowCustomOverrides = false,
 ): string {
   const contentOrigins = normalizedOrigins(assetOrigins);
-  const localHttpOrigins = allowCustomOverrides
-    ? ['http://localhost:*', 'http://127.0.0.1:*', 'http://[::1]:*']
-    : [];
-  const localWebSocketOrigins = allowCustomOverrides
-    ? ['ws://localhost:*', 'ws://127.0.0.1:*', 'ws://[::1]:*']
-    : [];
+  const localHttpOrigins = ['http://localhost:*', 'http://127.0.0.1:*', 'http://[::1]:*'];
+  const localWebSocketOrigins = ['ws://localhost:*', 'ws://127.0.0.1:*', 'ws://[::1]:*'];
   const contentSources = cspSources([...contentOrigins, ...localHttpOrigins]);
   const connectSources = cspSources([
     ...contentOrigins,

@@ -263,18 +263,9 @@ Columbus without a host opt-in flag. These
 artifacts were published through Atlas, use approved registry origins, and
 still pass compatibility and integrity checks.
 
-Arbitrary localhost and custom-URL execution remains opt-in:
-
-```ts
-export default {
-  // ...host config
-  allowCustomOverrides: true
-};
-```
-
-Configuration and generated runtime JSON use `allowCustomOverrides`. Leave it
-false in production unless developers intentionally need local code to run
-inside that deployed origin.
+Columbus writes selected overrides to browser storage. Production hosts never
+probe localhost by default. `atlas dev` explicitly adds `atlas-dev-port` to
+the preview URL, which activates its local development session for that tab.
 
 ## Cache and deletion behavior
 

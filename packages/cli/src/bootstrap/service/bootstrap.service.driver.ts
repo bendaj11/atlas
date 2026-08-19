@@ -54,7 +54,6 @@ export class AtlasBootstrapServiceDriver {
       schemaVersion: '1',
       hostId,
       catalogUrl: `https://${faker.internet.domainName()}/hosts/${hostId}/catalog.json`,
-      allowCustomOverrides: false,
       resourcesTimeoutMs: 15_000,
       resourcesRetryCount: 3,
     };

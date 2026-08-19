@@ -258,7 +258,6 @@ export class VerifyServiceDriver {
       if (url.endsWith('atlas.runtime.json')) {
         return Response.json(
           {
-            allowCustomOverrides: true,
             catalogUrl: `${this.assetOrigin}/hosts/${this.hostId}/catalog.json`,
             hostId: this.hostId,
             resourcesRetryCount: 3,

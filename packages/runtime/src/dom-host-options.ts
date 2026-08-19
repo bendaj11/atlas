@@ -16,8 +16,6 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   /** Already-resolved catalog supplied by the stable Atlas loader. */
   catalog?: AtlasHostCatalog;
   runtimeConfigUrl?: string;
-  /** Enables URL and storage app overrides for Atlas tool workflows. */
-  allowAppOverrides?: boolean;
   document?: Document;
   /** Native Angular or React anchors used as Atlas render targets. */
   anchors?: AtlasHostAnchorRegistry;

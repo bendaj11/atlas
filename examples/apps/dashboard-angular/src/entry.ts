@@ -1,6 +1,7 @@
 import 'zone.js';
 import { Component } from '@angular/core';
-import { bootstrapApplication } from '@angular/platform-browser';
+import { createApplication } from '@angular/platform-browser';
+import { createComponent } from '@angular/core';
 import {
   defineApp,
   injectAtlasAppContext,
@@ -47,11 +48,19 @@ class AtlasAppRootComponent {
 export default defineApp(async ({ container, sdk, context }) => {
   const element = document.createElement('atlas-dashboard-angular-root');
   container.append(element);
-  const app = await bootstrapApplication(AtlasAppRootComponent, {
+  const app = await createApplication({
     providers: [provideAtlasAppContext(context), provideAtlasSdk(sdk)],
   });
+  const component = createComponent(AtlasAppRootComponent, {
+    environmentInjector: app.injector,
+    hostElement: element,
+  });
+  app.attachView(component.hostView);
+  component.changeDetectorRef.detectChanges();
   return {
     unmount() {
+      app.detachView(component.hostView);
+      component.destroy();
       app.destroy();
       element.remove();
     },

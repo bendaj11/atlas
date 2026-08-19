@@ -3,7 +3,6 @@ import type { AtlasConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
 import {
-  DEFAULT_CONTROL_PORT,
   DEV_SESSION_PORT_PARAM,
   REMOTE_POLL_INTERVAL_MS,
   REMOTE_START_TIMEOUT_MS,
@@ -157,7 +156,6 @@ export function withDevSessionPort(
   hostUrl: string,
   controlPort: number,
 ): string {
-  if (controlPort === DEFAULT_CONTROL_PORT) return hostUrl;
   const url = new URL(hostUrl);
   url.searchParams.set(DEV_SESSION_PORT_PARAM, String(controlPort));
   return url.href;

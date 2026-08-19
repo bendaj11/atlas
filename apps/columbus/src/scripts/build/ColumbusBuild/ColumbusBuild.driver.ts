@@ -18,7 +18,6 @@ interface ColumbusManifest {
 }
 
 interface InterceptorScenario {
-  allowCustomOverrides?: boolean;
   catalog: Record<string, unknown>;
   devSession: Record<string, unknown>;
   disabledAppIds?: string[];
@@ -121,7 +120,6 @@ async function runCatalogInterceptor(
         schemaVersion: '1',
         hostId: 'test-host',
         catalogUrl: 'https://registry.test/hosts/test-host/catalog.json',
-        allowCustomOverrides: scenario.allowCustomOverrides ?? true,
       });
     }
     if (url.startsWith('http://localhost:4400/atlas.dev-session.json')) {

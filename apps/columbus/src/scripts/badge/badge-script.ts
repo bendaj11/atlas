@@ -8,15 +8,7 @@ const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
 const BADGE_DISABLED_LOCAL_APPS_KEY_PREFIX = 'atlas.disabled-local-apps.';
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
-let atlasConfigPromise:
-  | Promise<
-      | {
-          hostId?: string;
-          allowCustomOverrides?: boolean;
-        }
-      | undefined
-    >
-  | undefined;
+let atlasConfigPromise: Promise<{ hostId?: string } | undefined> | undefined;
 
 const refreshBadge = createBadgeRefresher({
   readCount: readOverrideCount,
@@ -57,10 +49,7 @@ async function readOverrideCount(): Promise<number> {
   const config = await readAtlasConfig();
   if (!config?.hostId) return 0;
 
-  if (
-    config.allowCustomOverrides === true &&
-    isLoopbackBadgeHost(location.hostname)
-  ) {
+  if (isLoopbackBadgeHost(location.hostname)) {
     const devOverrideCount = await readDevOverrideCount(config.hostId);
     if (devOverrideCount !== undefined) return devOverrideCount;
   }
@@ -121,24 +110,12 @@ function readBadgeDisabledAppIds(hostId: string): Set<string> {
   );
 }
 
-async function readAtlasConfig(): Promise<
-  | {
-      hostId?: string;
-      allowCustomOverrides?: boolean;
-    }
-  | undefined
-> {
+async function readAtlasConfig(): Promise<{ hostId?: string } | undefined> {
   atlasConfigPromise ??= fetchAtlasConfig();
   return atlasConfigPromise;
 }
 
-async function fetchAtlasConfig(): Promise<
-  | {
-      hostId?: string;
-      allowCustomOverrides?: boolean;
-    }
-  | undefined
-> {
+async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
   try {
     const response = await fetch('/atlas.runtime.json', { cache: 'no-store' });
     if (!response.ok) return undefined;
@@ -146,7 +123,6 @@ async function fetchAtlasConfig(): Promise<
     const value = (await response.json()) as {
       schemaVersion?: string;
       hostId?: string;
-      allowCustomOverrides?: boolean;
     };
     return value.schemaVersion === '1' ? value : undefined;
   } catch {

@@ -99,9 +99,8 @@ atlas dev customer-host --host-url=https://customer.example
 
 Local static bootstrap is not started. Columbus discovers local host manifest from loopback control server and stores tab- or all-tabs override. Reloading `customer.example` causes deployed loader to select local host client.
 
-Deployed bootstrap must expose `allowCustomOverrides: true` when developers
-should run localhost or custom-URL code inside that origin. Production defaults
-to false. Local manifest URLs must use loopback; Columbus and loader reject
+Atlas does not probe localhost on normal production page loads. `atlas dev`
+adds an explicit development-session query parameter. Local manifest URLs must use loopback; Columbus and loader reject
 other HTTP origins. Registry-backed PR and previous-production overrides are
 always available and do not require this flag. Generated host CSP permits
 loopback HTTP assets and WebSocket connections so Vite can reload remote-host
@@ -199,8 +198,8 @@ host URL supported by the app, or add a placement for that host.
 
 `Framework dev server did not serve ... remoteEntry.json`: check the framework process, selected port, and federation config.
 
-Columbus cannot select a custom URL: verify `/atlas.runtime.json` returns
-`allowCustomOverrides: true`. If registry versions are missing, verify the
+If Columbus cannot select a custom URL, verify its local manifest URL uses
+loopback. If registry versions are missing, verify the
 catalog URL follows `.../hosts/<hostId>/catalog.json` and each artifact index is
 publicly readable.
 
