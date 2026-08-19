@@ -15,6 +15,22 @@ Atlas publishes seven packages as one compatible release set:
 
 They intentionally use the same version. Runtime packages pin other Atlas packages to that exact version, while generated applications use a compatible caret range.
 
+## Columbus extension policy
+
+Columbus is not part of the Atlas package release set. It is a separately
+versioned and distributed Chrome extension, so its version must not be aligned
+with an Atlas package version merely because both changed in the same commit.
+
+`pnpm release` and `pnpm release --verify` update and validate only the seven
+Atlas packages. They do not change Columbus's `package.json` or Chrome
+`manifest.json` version, and the Atlas release bundle does not contain a
+Columbus artifact.
+
+When Columbus changes, bump its Chrome manifest version, build its extension
+artifact, and distribute it through the extension's release channel. A
+Columbus release must state and test its supported Atlas version range; equal
+version numbers do not establish compatibility.
+
 ## Prepare a release
 
 Prepare the next version interactively:
@@ -41,9 +57,8 @@ pnpm release --verify
 For an exact version, pass it directly: `pnpm release 0.2.0`.
 
 The release command updates the root manifest, every public package, internal
-Atlas dependency pins, the Columbus extension package and manifest, and the
-version range emitted by generators. Chrome manifests use the numeric core of
-a prerelease version. Tests remain separate test and CI commands.
+Atlas dependency pins, and the version range emitted by generators. Tests
+remain separate test and CI commands.
 
 Review the changes, move the relevant entries from `Unreleased` in the changelog
 to a section for the new version, and tag the reviewed commit as `v<version>`.

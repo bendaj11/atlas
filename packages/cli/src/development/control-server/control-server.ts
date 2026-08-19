@@ -1,4 +1,5 @@
 import { createServer, type ServerResponse } from 'node:http';
+import { assertAtlasHostCatalog, type AtlasHostCatalog } from '@atlas/schema';
 import { createDevSessionStore } from '../session/session.js';
 import {
   closeServer,
@@ -22,9 +23,15 @@ export async function startControlServer(
   port: number,
   document: AtlasDevOverrideDocument,
   overrideUrl: string,
+  registryUrl?: string,
 ): Promise<DevControlServer> {
   try {
-    return await startOwnedControlServer(port, document, overrideUrl);
+    return await startOwnedControlServer(
+      port,
+      document,
+      overrideUrl,
+      registryUrl,
+    );
   } catch (error) {
     if (!isAddressInUse(error)) throw error;
     return joinControlServer(port, document);
@@ -35,10 +42,11 @@ function startOwnedControlServer(
   port: number,
   document: AtlasDevOverrideDocument,
   overrideUrl: string,
+  registryUrl?: string,
 ): Promise<DevControlServer> {
   const session = createDevSessionStore(document, overrideUrl);
   const server = createServer(
-    createControlRequestHandler(session, overrideUrl),
+    createControlRequestHandler(session, overrideUrl, registryUrl),
   );
   return new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -70,6 +78,7 @@ function startOwnedControlServer(
 function createControlRequestHandler(
   session: DevSessionStore,
   overrideUrl: string,
+  registryUrl?: string,
 ) {
   return (
     request: import('node:http').IncomingMessage,
@@ -166,9 +175,17 @@ function createControlRequestHandler(
     ) {
       const hostId = pathSegment(pathname, '/hosts/', '/catalog.json');
       if (hostId) {
-        respondWithSession(response, session.catalog(hostId));
+        void respondWithCatalog(response, session, hostId, registryUrl);
         return;
       }
+    }
+    if (
+      request.method === 'GET' &&
+      (pathname.startsWith('/hosts/') || pathname.startsWith('/apps/')) &&
+      pathname.endsWith('/index.json')
+    ) {
+      void respondWithVersionIndex(response, pathname, registryUrl);
+      return;
     }
     if (request.method === 'GET' && pathname === '/registry.json') {
       writeJson(response, session.registry());
@@ -186,6 +203,64 @@ function createControlRequestHandler(
     response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
     response.end('Not found\n');
   };
+}
+
+async function respondWithCatalog(
+  response: ServerResponse,
+  session: DevSessionStore,
+  hostId: string,
+  registryUrl?: string,
+): Promise<void> {
+  const productionCatalog = registryUrl
+    ? await readProductionCatalog(registryUrl, hostId).catch(() => undefined)
+    : undefined;
+  respondWithSession(response, session.catalog(hostId, productionCatalog));
+}
+
+async function respondWithVersionIndex(
+  response: ServerResponse,
+  pathname: string,
+  registryUrl?: string,
+): Promise<void> {
+  if (!registryUrl) {
+    response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+    response.end('Not found\n');
+    return;
+  }
+  try {
+    const upstream = await fetch(`${registryUrl}${pathname}`, {
+      cache: 'no-store',
+    });
+    if (!upstream.ok) {
+      response.writeHead(upstream.status, {
+        'content-type': 'text/plain; charset=utf-8',
+      });
+      response.end('Version index unavailable\n');
+      return;
+    }
+    writeJson(response, await upstream.json());
+  } catch (error) {
+    writeError(response, error);
+  }
+}
+
+async function readProductionCatalog(
+  registryUrl: string,
+  hostId: string,
+): Promise<AtlasHostCatalog> {
+  const response = await fetch(
+    `${registryUrl}/hosts/${encodeURIComponent(hostId)}/catalog.json`,
+    { cache: 'no-store' },
+  );
+  if (!response.ok)
+    throw new Error(`Production catalog returned ${response.status}.`);
+  const catalog: unknown = await response.json();
+  assertAtlasHostCatalog(catalog);
+  if (catalog.hostId !== hostId)
+    throw new Error(
+      `Production catalog targets host ${catalog.hostId}, not ${hostId}.`,
+    );
+  return catalog;
 }
 
 function setControlHeaders(response: ServerResponse): void {

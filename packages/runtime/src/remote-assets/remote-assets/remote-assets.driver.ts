@@ -1,5 +1,7 @@
 import type { AtlasManifest } from '@atlas/schema';
 import {
+  rewriteAssetUrl,
+  rewriteCssAssetUrls,
   startRemoteAssetRewrite,
   type AtlasAssetRewriteRelease,
 } from './remote-assets.js';
@@ -16,6 +18,9 @@ export class RemoteAssetsDriver {
     head: this.head,
   }) as Document;
   private release: AtlasAssetRewriteRelease = () => undefined;
+  private appManifest: AtlasManifest | undefined;
+  private rewrittenAssetUrl = '';
+  private rewrittenCss = '';
 
   constructor() {
     Object.assign(this.boundary, {
@@ -25,30 +30,65 @@ export class RemoteAssetsDriver {
     Object.assign(this.shadowRoot, { host: this.boundary });
   }
 
-  givenApp(appId: string): void {
+  readonly given = {
+    app: (appId: string): RemoteAssetsDriver =>
+      this.givenAppAt(appId, `https://cdn.example/${appId}/remoteEntry.json`),
+    appAt: (appId: string, remoteEntryUrl: string): RemoteAssetsDriver =>
+      this.givenAppAt(appId, remoteEntryUrl),
+  };
+
+  readonly when = {
+    angularAddsComponentStyle: (appId: string): RemoteAssetsDriver => {
+      const style = createElement('style');
+      style.textContent = `.title[_ngcontent-${appId}-c0]{color:rebeccapurple}`;
+      this.head.appendChild(style);
+      return this;
+    },
+    appUnmounts: (): RemoteAssetsDriver => {
+      this.release();
+      return this;
+    },
+    rewritingAssetUrl: (assetUrl: string): RemoteAssetsDriver => {
+      this.rewrittenAssetUrl = rewriteAssetUrl(
+        assetUrl,
+        this.requireManifest(),
+      );
+      return this;
+    },
+    rewritingCss: (cssText: string): RemoteAssetsDriver => {
+      this.rewrittenCss = rewriteCssAssetUrls(cssText, this.requireManifest());
+      return this;
+    },
+  };
+
+  readonly get = {
+    shadowStyleTexts: (): string[] =>
+      this.shadowRoot.testChildren.map((style) => style.textContent ?? ''),
+    rewrittenAssetUrl: (): string => this.rewrittenAssetUrl,
+    rewrittenCss: (): string => this.rewrittenCss,
+  };
+
+  private givenAppAt(
+    appId: string,
+    remoteEntryUrl: string,
+  ): RemoteAssetsDriver {
+    this.appManifest = createManifest(appId, remoteEntryUrl);
     this.release = startRemoteAssetRewrite(
-      createManifest(appId),
+      this.appManifest,
       this.boundary,
       this.document,
     );
+    return this;
   }
 
-  whenAngularAddsComponentStyle(appId: string): void {
-    const style = createElement('style');
-    style.textContent = `.title[_ngcontent-${appId}-c0]{color:rebeccapurple}`;
-    this.head.appendChild(style);
-  }
-
-  whenAppUnmounts(): void {
-    this.release();
-  }
-
-  getShadowStyleTexts(): string[] {
-    return this.shadowRoot.testChildren.map((style) => style.textContent ?? '');
+  private requireManifest(): AtlasManifest {
+    if (!this.appManifest)
+      throw new Error('Set an app manifest before rewriting assets.');
+    return this.appManifest;
   }
 }
 
-function createManifest(id: string): AtlasManifest {
+function createManifest(id: string, remoteEntryUrl: string): AtlasManifest {
   return {
     id,
     name: id,
@@ -59,7 +99,7 @@ function createManifest(id: string): AtlasManifest {
     channel: 'production',
     framework: 'angular',
     isolation: 'shadow-dom',
-    remoteEntryUrl: `https://cdn.example/${id}/remoteEntry.json`,
+    remoteEntryUrl,
     exposes: { entry: './entry' },
     requiredHostSdkVersion: '^1.0.0',
     supportedHosts: ['*'],
@@ -110,15 +150,15 @@ function appendElements(
   parent: TestElement,
   nodes: readonly (Node | string)[],
 ): void {
-  for (const node of nodes) {
-    if (!isTestElement(node)) continue;
+  nodes.forEach((node) => {
+    if (!isTestElement(node)) return;
     parent.testChildren.push(node);
     node.remove = () => {
       parent.testChildren = parent.testChildren.filter(
         (child) => child !== node,
       );
     };
-  }
+  });
 }
 
 function isTestElement(value: unknown): value is TestElement {

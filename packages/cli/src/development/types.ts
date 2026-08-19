@@ -80,7 +80,10 @@ export interface DevSessionStore {
   markHostReady(hostId: string): void;
   markDocumentReady(document: AtlasDevOverrideDocument): void;
   document(hostId?: string): AtlasDevOverrideDocument | undefined;
-  catalog(hostId: string): AtlasHostCatalog | undefined;
+  catalog(
+    hostId: string,
+    productionCatalog?: AtlasHostCatalog,
+  ): AtlasHostCatalog | undefined;
   devSession(hostId?: string): AtlasDevSessionDocument | undefined;
   registry(): AtlasStaticRegistry;
   hasReadySession(): boolean;

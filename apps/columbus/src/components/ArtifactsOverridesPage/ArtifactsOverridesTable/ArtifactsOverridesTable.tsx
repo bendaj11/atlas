@@ -11,14 +11,18 @@ import { ArtifactName } from './ArtifactName/ArtifactName';
 export function ArtifactsOverridesTable() {
   const artifacts = useArtifacts();
   const [searchValue, setSearchValue] = useState('');
+  const [showVisibleOnly, setShowVisibleOnly] = useState(false);
+  const displayedArtifacts = showVisibleOnly
+    ? artifacts.filter((artifact) => artifact.visible)
+    : artifacts;
   const searchQuery = searchValue.trim().toLocaleLowerCase();
   const filteredArtifacts = searchQuery
-    ? artifacts.filter((artifact) =>
+    ? displayedArtifacts.filter((artifact) =>
         [artifact.productionManifest.name, artifact.sourceDescription].some(
           (value) => value.toLocaleLowerCase().includes(searchQuery),
         ),
       )
-    : artifacts;
+    : displayedArtifacts;
   const sortedArtifacts = [...filteredArtifacts].sort(
     (left, right) =>
       Number(right.overrideEnabled) - Number(left.overrideEnabled) ||
@@ -60,8 +64,10 @@ export function ArtifactsOverridesTable() {
       >
         <OverridesTableToolbar
           onSearch={setSearchValue}
-          totalCount={artifacts.length}
+          totalCount={displayedArtifacts.length}
           filteredCount={filteredArtifacts.length}
+          visibleOnly={showVisibleOnly}
+          onVisibleOnlyChange={setShowVisibleOnly}
         />
 
         <Table.Content titleBarVisible={false} />

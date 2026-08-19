@@ -20,6 +20,7 @@ export interface Artifact extends ArtifactSelection {
   loadError: string | undefined;
   overrideEnabled: boolean;
   canToggle: boolean;
+  visible: boolean;
 }
 
 export interface EditorDraft {

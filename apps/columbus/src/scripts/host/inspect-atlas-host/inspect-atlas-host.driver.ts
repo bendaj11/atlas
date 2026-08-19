@@ -5,6 +5,8 @@ interface PageOptions {
   app?: AtlasExtensionManifest;
   appVersions?: AtlasExtensionManifest[];
   catalogHostId?: string;
+  registryUrl?: string;
+  visibleAppIds?: string[];
   runtimeError?: { appId?: string; message: string };
   stored?: Record<string, unknown>;
 }
@@ -62,6 +64,21 @@ export class InspectAtlasHostDriver {
       };
       return this;
     },
+    localCatalogWithPublishedVersions: (): this => {
+      this.options = {
+        app: manifest({
+          channel: 'local',
+          buildId: 'local',
+          remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
+        }),
+        appVersions: [
+          manifest({ channel: 'production' }),
+          manifest({ channel: 'pr', buildId: 'pr-42', prNumber: 42 }),
+        ],
+        registryUrl: 'http://localhost:4400',
+      };
+      return this;
+    },
     catalogHostId: (catalogHostId: string): this => {
       this.options.catalogHostId = catalogHostId;
       return this;
@@ -74,6 +91,10 @@ export class InspectAtlasHostDriver {
     },
     runtimeError: (message: string, appId?: string): this => {
       this.options.runtimeError = appId ? { message, appId } : { message };
+      return this;
+    },
+    visibleApps: (...appIds: string[]): this => {
+      this.options.visibleAppIds = appIds;
       return this;
     },
   };
@@ -96,6 +117,9 @@ export class InspectAtlasHostDriver {
       return this.result;
     },
     error: (): unknown => this.error,
+    visibleAppIds: (): string[] => this.result?.visibleAppIds ?? [],
+    appVersionChannels: (): string[] =>
+      this.result?.versions['app:orders']?.map(({ channel }) => channel) ?? [],
   };
 
   dispose(): void {
@@ -122,18 +146,25 @@ function installPage(options: PageOptions): void {
 
   Object.assign(globalThis, {
     document: {
-      querySelectorAll: () =>
-        options.runtimeError
-          ? [
-              {
-                textContent: options.runtimeError.message,
-                getAttribute: (name: string) =>
-                  name === 'data-atlas-app-id'
-                    ? (options.runtimeError?.appId ?? null)
-                    : null,
-              },
-            ]
-          : [],
+      querySelectorAll: (selector: string) => {
+        if (selector === '[data-atlas-app-id]') {
+          return (options.visibleAppIds ?? []).map((appId) => ({
+            getAttribute: (name: string) =>
+              name === 'data-atlas-app-id' ? appId : null,
+          }));
+        }
+        if (selector !== '[data-atlas-state="error"]' || !options.runtimeError)
+          return [];
+        return [
+          {
+            textContent: options.runtimeError.message,
+            getAttribute: (name: string) =>
+              name === 'data-atlas-app-id'
+                ? (options.runtimeError?.appId ?? null)
+                : null,
+          },
+        ];
+      },
     },
     location: {
       href: 'https://host.example/dashboard',
@@ -148,6 +179,7 @@ function installPage(options: PageOptions): void {
           schemaVersion: '1',
           hostId,
           catalogUrl: `https://registry.example/hosts/${hostId}/catalog.json`,
+          ...(options.registryUrl ? { registryUrl: options.registryUrl } : {}),
           allowCustomOverrides: true,
         });
       }
@@ -160,6 +192,8 @@ function installPage(options: PageOptions): void {
           apps: [app],
         });
       }
+      if (options.registryUrl && url.origin !== options.registryUrl)
+        return new Response('Not found', { status: 404 });
       if (url.pathname.includes('/hosts/')) {
         return jsonResponse({ manifests: [host] });
       }

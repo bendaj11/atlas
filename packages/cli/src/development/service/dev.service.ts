@@ -4,6 +4,7 @@ import type { AtlasHostConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { loadBootstrapTemplate } from '../../bootstrap/template/bootstrap-template.js';
 import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
+import { resolveRegistryBaseUrl } from '../../build/runtime-config/runtime-config.js';
 import { ensureAngularHostBuildNotifications } from '../../generation/angular.js';
 import { startLocalBootstrapServer } from '../bootstrap-server/bootstrap-server.js';
 import { startControlServer } from '../control-server/control-server.js';
@@ -113,10 +114,12 @@ export class AtlasDevService {
 
     const controlPort = this.args.port('control-port', DEFAULT_CONTROL_PORT);
     const controlOrigin = localOrigin(controlPort);
+    const registryUrl = resolveRegistryBaseUrl(this.args);
     const control = await startControlServer(
       controlPort,
       document,
       `${controlOrigin}/atlas.local-overrides.json`,
+      registryUrl,
     );
     const frameworkServer = this.workspace.spawn(
       project,
@@ -147,6 +150,7 @@ export class AtlasDevService {
               schemaVersion: '1',
               hostId: config.id,
               catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
+              ...(registryUrl ? { registryUrl: controlOrigin } : {}),
               allowCustomOverrides: true,
               resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
               resourcesRetryCount: config.resourcesRetryCount ?? 3,
@@ -192,10 +196,12 @@ export class AtlasDevService {
       return;
     }
     const hostActivationUrl = withDevSessionPort(target.hostUrl, controlPort);
+    const registryUrl = resolveRegistryBaseUrl(this.args);
     const control = await startControlServer(
       controlPort,
       document,
       overrideUrl,
+      registryUrl,
     );
     const frameworkServer = this.workspace.spawn(
       project,

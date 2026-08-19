@@ -48,4 +48,11 @@ describe('ui', () => {
     expect(driver.get.infoCalls()).toStrictEqual(driver.get.result());
   });
 
+  it('should allow prompts when standard output is piped', () => {
+    driver.given.terminal({ inputIsTTY: true, outputIsTTY: false });
+
+    driver.when.createPrompter();
+
+    expect(driver.get.isPromptInteractive()).toBe(true);
+  });
 });

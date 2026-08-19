@@ -11,8 +11,8 @@ Use Angular's normal asset and style configuration:
 - keep global styles in the Angular `styles` configuration;
 - prefer component styles for feature UI;
 - reference copied static assets from component CSS with root-relative `/assets/...`
-  URLs. Atlas rewrites Angular-owned component styles to the app's remote origin
-  before Angular inserts them into the host document.
+  URLs. Atlas rewrites Angular-owned component styles to the app's immutable
+  artifact directory before Angular inserts them into the host document.
 
 Do not change these references to `./assets/...` merely to make them relative.
 Angular resolves that form as a CSS source import and fails the build when no
@@ -49,7 +49,7 @@ root-relative path for copied assets:
 
 In component CSS, use that same root-relative path. Atlas sees the HTML and
 component CSS it inserts for a mounted app, then rewrites those asset URLs to
-the app's remote origin.
+the app's immutable artifact directory.
 
 Runtime code is different. A library receives only a string and fetches it
 itself; Atlas cannot see or rewrite that request. Resolve the asset against the
@@ -61,7 +61,7 @@ const pointImageUrl = new URL('images/point.png', import.meta.url).href;
 
 Use an emitted path relative to the module URL, without a leading `/`. For
 example, files copied from `src/assets` normally use `assets/images/point.png`.
-This keeps the URL under the app's remote origin and immutable deployment path.
+This keeps the URL under the app's immutable deployment path.
 Do not use `document.baseURI` or `location.origin`: they point at the host page
 or discard the app path.
 

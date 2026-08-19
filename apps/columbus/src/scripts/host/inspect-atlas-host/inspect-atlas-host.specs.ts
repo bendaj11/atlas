@@ -31,6 +31,14 @@ describe('Atlas host inspection', () => {
     expect(driver.get.result().overrides).toMatchObject({ overrides: [] });
   });
 
+  it('should list published versions when local catalog uses a registry proxy', async () => {
+    driver.given.localCatalogWithPublishedVersions();
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.appVersionChannels()).toStrictEqual(['production', 'pr']);
+  });
+
   it('should reject catalog when host identity differs from runtime', async () => {
     driver.given.catalogHostId('other-host');
 
@@ -61,6 +69,14 @@ describe('Atlas host inspection', () => {
     expect(driver.get.result().runtimeErrors).toEqual([
       { artifactId: 'app:orders', message: 'Unable to load Orders.' },
     ]);
+  });
+
+  it('should list unique apps that currently have Atlas DOM containers', async () => {
+    driver.given.visibleApps('orders', 'orders', 'billing');
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.visibleAppIds()).toStrictEqual(['orders', 'billing']);
   });
 
   it('should infer artifact identity when legacy runtime error omits app id', async () => {

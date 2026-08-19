@@ -96,6 +96,14 @@ export async function loadHostRuntimeConfig(
   }
   validateRuntimeUrls(config.externalRegistryUrls, 'externalRegistryUrls');
   validateRuntimeUrls(config.assetOrigins, 'assetOrigins');
+  if (
+    config.registryUrl !== undefined &&
+    (typeof config.registryUrl !== 'string' || !isHttpUrl(config.registryUrl))
+  ) {
+    throw runtimeConfigurationError(
+      'Atlas host runtime field registryUrl must be an absolute HTTP(S) URL.',
+    );
+  }
   return config;
 }
 

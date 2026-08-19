@@ -71,6 +71,26 @@ atlas dev customer-host \
   --host-client-port=4502
 ```
 
+### Use published versions with a local host
+
+Set the published registry base URL when a local host needs to load its normal
+production apps or when Columbus should offer production and PR versions:
+
+```sh
+ATLAS_REGISTRY_URL=https://registry.example/atlas atlas dev customer-host
+```
+
+`atlas dev` keeps the local host and any local app overrides, then overlays
+them on that registry's selected host catalog. Columbus reads version indexes
+through the local control server, so it can offer production, PR, and previous
+production versions without requiring the published registry to allow the
+localhost origin through CORS.
+
+Use `--registry-base-url https://registry.example/atlas` instead of
+`ATLAS_REGISTRY_URL` when the setting applies to one command. Without either
+setting, local development still works, but its control catalog contains only
+local artifacts and Columbus cannot offer published versions.
+
 ## Use a deployed domain
 
 ```sh

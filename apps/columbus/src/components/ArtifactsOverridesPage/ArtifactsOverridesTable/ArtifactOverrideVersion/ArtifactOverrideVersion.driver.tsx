@@ -1,4 +1,4 @@
-import { render, type RenderResult } from '@testing-library/react';
+import { render, type RenderResult, within } from '@testing-library/react';
 import { TextTestkit } from '@wix/design-system/dist/testkit/testing-library.js';
 import type { AtlasExtensionManifest } from '../../../../types/contracts.js';
 import type { Artifact, OverrideType } from '../../../../types/app.js';
@@ -14,13 +14,36 @@ export class ArtifactOverrideVersionDriver {
         ...this.artifact,
         overrideType,
         overrideEnabled: true,
-        selectedManifest: manifest({ channel: 'pr' }),
+        selectedManifest: manifest({
+          channel: 'pr',
+          buildId: 'pull-request-build-123',
+        }),
         sourceDescription: 'feature/orders · abc1234 · Update orders',
+      };
+      return this;
+    },
+    customOverrideUrl: (url: string): this => {
+      this.artifact = {
+        ...this.artifact,
+        overrideType: 'custom',
+        overrideEnabled: true,
+        selectedManifest: manifest({
+          channel: 'local',
+          remoteEntryUrl: `${url}/remoteEntry.json`,
+        }),
+        sourceDescription: url,
       };
       return this;
     },
     loadError: (loadError: string): this => {
       this.artifact = { ...this.artifact, loadError };
+      return this;
+    },
+    productionBuildId: (buildId: string): this => {
+      this.artifact = {
+        ...this.artifact,
+        productionManifest: manifest({ buildId }),
+      };
       return this;
     },
   };
@@ -38,6 +61,8 @@ export class ArtifactOverrideVersionDriver {
         wrapper: this.get.container(),
         dataHook: 'override-version',
       }),
+    versionText: (label: string) =>
+      within(this.get.container()).getByText(label).textContent,
     container: (): HTMLElement => {
       if (!this.view) throw new Error('Override version was not rendered.');
       return this.view.container;
@@ -56,6 +81,7 @@ function createArtifact(): Artifact {
     loadError: undefined,
     overrideEnabled: false,
     canToggle: true,
+    visible: false,
   };
 }
 

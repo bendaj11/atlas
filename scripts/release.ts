@@ -8,7 +8,10 @@ import { versionPackages } from './version-packages.js';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const releaseTypes = ['patch', 'minor', 'major'];
 
-export function nextVersion(currentVersion, releaseType) {
+export function nextVersion(
+  currentVersion: string,
+  releaseType: string,
+): string {
   const match = /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/.exec(
     currentVersion,
   );
@@ -29,7 +32,10 @@ export function nextVersion(currentVersion, releaseType) {
   return `${major}.${minor}.${patch + 1}`;
 }
 
-export async function prepareRelease(releaseType, workspaceRoot = root) {
+export async function prepareRelease(
+  releaseType: string,
+  workspaceRoot: string = root,
+) {
   const manifest = JSON.parse(
     await readFile(resolve(workspaceRoot, 'package.json'), 'utf8'),
   );
@@ -57,13 +63,13 @@ async function main() {
   await verifyRelease();
 }
 
-async function releaseForArgument(argument, currentVersion) {
+async function releaseForArgument(argument: string, currentVersion: string) {
   if (releaseTypes.includes(argument)) return prepareRelease(argument);
   await versionPackages(argument);
   return { previousVersion: currentVersion, version: argument };
 }
 
-async function selectReleaseType(currentVersion) {
+async function selectReleaseType(currentVersion: string): Promise<string> {
   if (!process.stdin.isTTY) {
     throw new Error('Choose a release type: pnpm release patch|minor|major');
   }

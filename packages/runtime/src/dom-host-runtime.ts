@@ -117,6 +117,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     resolveSlotContainer: (manifest, placement) =>
       resolveDomSlotContainer(
         anchors,
+        document,
         manifest.id,
         placement.id,
         placement.slot!,
@@ -194,18 +195,13 @@ function assertCatalogMatchesConfig(
 
 function resolveDomSlotContainer(
   anchors: AtlasHostAnchorRegistry,
+  document: Document,
   appId: string,
   placementId: string,
   slot: string,
 ): HTMLElement | undefined {
   const slotContainer = anchors.get('slot', slot);
-  if (!slotContainer) {
-    console.warn(
-      `Atlas skipped slot placement "${placementId}" for app "${appId}" because host slot "${slot}" is missing. ` +
-        `Suggested action: Add <atlas-slot slotId="${slot}"></atlas-slot> to the host layout, or remove this placement from the app manifest.`,
-    );
-    return undefined;
-  }
+  if (!slotContainer) return undefined;
 
   const key = `${appId}:${placementId}`;
   const existing = slotContainer.querySelector<HTMLElement>(

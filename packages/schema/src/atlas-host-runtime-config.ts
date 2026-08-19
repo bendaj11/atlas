@@ -8,6 +8,8 @@ export interface AtlasHostRuntimeConfig {
   hostVersion?: string;
   /** Full URL of the catalog JSON this host should load. */
   catalogUrl: string;
+  /** Base URL serving artifact version indexes. Local development may expose a loopback proxy for a published registry. */
+  registryUrl?: string;
   /** Allow arbitrary localhost or custom-URL overrides. Registry-backed overrides are always available. */
   allowCustomOverrides?: boolean;
   /** Maximum time Atlas waits for runtime resources, app loading, and app readiness. */

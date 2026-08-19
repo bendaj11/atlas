@@ -13,11 +13,14 @@ export function createHostRuntimeConfig(
   hostVersion?: string,
 ): AtlasHostRuntimeConfig {
   assertHostConfig(config);
+  const registryUrl =
+    resolveRegistryBaseUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
   return {
     schemaVersion: '1',
     hostId: config.id,
     ...(hostVersion ? { hostVersion } : {}),
-    catalogUrl: `${trimSlash(args.flag('registry-base-url') ?? process.env.ATLAS_REGISTRY_URL ?? DEFAULT_LOCAL_REGISTRY_URL)}/hosts/${config.id}/catalog.json`,
+    catalogUrl: `${registryUrl}/hosts/${config.id}/catalog.json`,
+    registryUrl,
     allowCustomOverrides: config.allowCustomOverrides ?? false,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3,
@@ -27,6 +30,12 @@ export function createHostRuntimeConfig(
       args.flag('external-registry-urls'),
     ),
   };
+}
+
+export function resolveRegistryBaseUrl(args: CliArguments): string | undefined {
+  const value =
+    args.flag('registry-base-url') ?? process.env.ATLAS_REGISTRY_URL;
+  return value ? trimSlash(value) : undefined;
 }
 
 function optionalUrlList(

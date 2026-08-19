@@ -50,6 +50,7 @@ export interface AtlasHostData {
     schemaVersion: '1';
     hostId: string;
     catalogUrl: string;
+    registryUrl?: string;
     allowCustomOverrides?: boolean;
     externalRegistryUrls?: string[];
   };
@@ -65,6 +66,7 @@ export interface AtlasHostData {
   versions: Record<string, AtlasExtensionManifest[]>;
   overrides: AtlasOverrideDocument | undefined;
   overrideScope: 'all' | 'tab' | undefined;
+  visibleAppIds?: string[];
   runtimeErrors: AtlasRuntimeError[];
   versionErrors: string[];
 }

@@ -136,19 +136,23 @@ export function versionLabel(manifest: Manifest): string {
   if (manifest.channel === 'pr') {
     return [
       manifest.gitBranch,
-      manifest.gitSha?.slice(0, 7),
+      manifest.gitSha?.slice(0, SHORT_BUILD_ID_LENGTH),
       manifest.gitCommitTitle,
     ]
       .filter((part): part is string => Boolean(part))
       .join(' · ');
   }
-  if (manifest.channel === 'production')
-    return [manifest.version, shortBuildId(manifest), manifest.gitCommitTitle]
+  if (manifest.channel === 'production') {
+    return [versionBuildIdLabel(manifest), manifest.gitCommitTitle]
       .filter((part): part is string => Boolean(part))
       .join(' · ');
+  }
 
-  const identity = `${manifest.version} · ${shortBuildId(manifest)}`;
-  return `${identity} · Local`;
+  return `${manifest.version} · ${shortBuildId(manifest)} · Local`;
+}
+
+export function versionBuildIdLabel(manifest: Manifest): string {
+  return `${manifest.version}-${manifest.buildId}`;
 }
 
 function shortBuildId(manifest: Manifest): string {

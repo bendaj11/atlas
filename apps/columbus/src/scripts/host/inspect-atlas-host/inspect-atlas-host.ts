@@ -64,6 +64,8 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
       config?.schemaVersion === '1' &&
       typeof config.hostId === 'string' &&
       typeof config.catalogUrl === 'string' &&
+      (config.registryUrl === undefined ||
+        typeof config.registryUrl === 'string') &&
       (config.allowCustomOverrides === undefined ||
         typeof config.allowCustomOverrides === 'boolean') &&
       (config.externalRegistryUrls === undefined ||
@@ -473,6 +475,16 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     });
   }
 
+  function readVisibleAppIds(): string[] {
+    return [
+      ...new Set(
+        [...document.querySelectorAll<HTMLElement>('[data-atlas-app-id]')]
+          .map((element) => element.getAttribute('data-atlas-app-id'))
+          .filter((appId): appId is string => Boolean(appId)),
+      ),
+    ];
+  }
+
   function readVersionErrors(
     results: Array<{ entry: readonly [string, Manifest[]]; error?: string }>,
     externalErrors: string[],
@@ -494,7 +506,9 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     );
   }
   const external = await readExternalProviders(config, catalog);
-  const registryRoot = atlasRegistryRoot(catalogUrl);
+  const registryRoot = config.registryUrl
+    ? config.registryUrl.replace(/\/$/, '')
+    : atlasRegistryRoot(catalogUrl);
   const selectedArtifacts = [catalog.host, ...catalog.apps];
   const versionResults = await readManifestVersionBatch(
     selectedArtifacts,
@@ -521,6 +535,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     versions,
     overrides,
     overrideScope: storedSelection.overrideScope,
+    visibleAppIds: readVisibleAppIds(),
     runtimeErrors: readRuntimeErrors(productionCatalog),
     versionErrors: readVersionErrors(versionResults, external.errors),
   };

@@ -141,6 +141,11 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         description: 'Internal host-client framework port (default: 4300)',
       },
       {
+        label: '--registry-base-url <url>',
+        description:
+          'Published registry used by a local host for catalog and Columbus version choices',
+      },
+      {
         label: '--no-open',
         description: 'Do not open the resolved host URL automatically',
       },
@@ -155,6 +160,11 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         label: 'ATLAS_HOST_URL',
         description:
           'Host base URL or full page URL where the local app should run',
+      },
+      {
+        label: 'ATLAS_REGISTRY_URL',
+        description:
+          'Published registry used by a local host for catalog and Columbus version choices',
       },
     ],
     examples: [

@@ -18,8 +18,6 @@ import {
   mountApp,
   resolveRuntimeCatalog,
   resolveRuntimeManifests,
-  rewriteAssetUrl,
-  rewriteCssAssetUrls,
   runResiliently,
   startAtlasHostRuntime,
   startRemoteAssetRewrite,
@@ -1526,38 +1524,6 @@ test('should isolate default app styles inside a shadow root', async () => {
   await mounted.unmount();
 });
 
-test('remote asset URLs resolve against the owning app remote entry', () => {
-  const manifest = createTestManifest({
-    remoteEntryUrl: 'http://localhost:4202/apps/catalog/remoteEntry.json',
-  });
-
-  assert.equal(
-    rewriteAssetUrl('/assets/images/image.JPG', manifest),
-    'http://localhost:4202/assets/images/image.JPG',
-  );
-  assert.equal(
-    rewriteAssetUrl('assets/images/image.JPG', manifest),
-    'http://localhost:4202/apps/catalog/assets/images/image.JPG',
-  );
-  assert.equal(
-    rewriteAssetUrl('https://cdn.example/image.JPG', manifest),
-    'https://cdn.example/image.JPG',
-  );
-});
-
-test('remote CSS asset URLs resolve against the owning app remote entry', () => {
-  const manifest = createTestManifest({
-    remoteEntryUrl: 'http://localhost:4202/remoteEntry.json',
-  });
-  const css =
-    '.hero{background:url(\'/assets/images/image.JPG\')} .icon{mask:url("assets/icon.svg")}';
-
-  assert.equal(
-    rewriteCssAssetUrls(css, manifest),
-    '.hero{background:url(\'http://localhost:4202/assets/images/image.JPG\')} .icon{mask:url("http://localhost:4202/assets/icon.svg")}',
-  );
-});
-
 test('Angular component style assets resolve before the style enters the host document', () => {
   const manifest = createTestManifest({
     id: 'orders',
@@ -2205,27 +2171,31 @@ test('host runtime mounts slots when native anchors return', async () => {
   assert.equal(unmounted, 1);
 });
 
-test('DOM host warns and skips app import when a declared slot is missing', async () => {
+test('DOM host mounts a deferred slot app when its anchor becomes available', async () => {
   const widget = createTestManifest({
     id: 'widget',
     placements: [
       { id: 'header-widget', kind: 'slot', hostId: 'host', slot: 'header' },
     ],
   });
+  const anchors = new AtlasHostAnchorRegistry();
   const warnings: unknown[] = [];
   let imported = false;
   const originalWarn = console.warn;
   console.warn = (message) => warnings.push(message);
   try {
-    const document = createTestDocument();
+    const slot = createWidgetRendererContainer();
+    const document = slot.ownerDocument;
     document.querySelector = () => null;
     document.dispatchEvent = () => true;
     const runtime = await startDomHostRuntime({
       options: {
+        anchors,
         runtimeConfig: {
           schemaVersion: '1',
           hostId: 'host',
           catalogUrl: catalogDataUrl([widget]),
+          assetOrigins: ['http://localhost:4173'],
         },
         federation: {
           async initFederation() {},
@@ -2243,8 +2213,12 @@ test('DOM host warns and skips app import when a declared slot is missing', asyn
     });
 
     assert.equal(imported, false);
-    assert.match(String(warnings[0]), /host slot "header" is missing/);
-    assert.match(String(warnings[0]), /Suggested action:/);
+
+    anchors.register('slot', slot, 'header');
+    await tick();
+
+    assert.equal(imported, true);
+    assert.deepEqual(warnings, []);
     await runtime.stop();
   } finally {
     console.warn = originalWarn;

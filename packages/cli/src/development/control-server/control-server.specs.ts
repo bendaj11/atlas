@@ -19,4 +19,21 @@ describe('development control server', () => {
 
     expect(await driver.get.catalogAppIds()).toStrictEqual(driver.get.appIds());
   });
+
+  it('should retain published apps when local host is served from a registry', async () => {
+    await driver.given.runningHostAndAppWithPublishedRegistry();
+
+    expect(await driver.get.catalogAppIds()).toStrictEqual(
+      driver.get.publishedCatalogAppIds(),
+    );
+  });
+
+  it('should proxy published PR versions when local host is served from a registry', async () => {
+    await driver.given.runningHostAndAppWithPublishedRegistry();
+
+    expect(await driver.get.appVersionChannels()).toStrictEqual([
+      'production',
+      'pr',
+    ]);
+  });
 });

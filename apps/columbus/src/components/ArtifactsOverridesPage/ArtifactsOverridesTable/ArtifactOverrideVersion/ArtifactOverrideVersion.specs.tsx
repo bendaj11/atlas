@@ -19,6 +19,32 @@ describe('artifact override version state', () => {
     expect(await driver.get.version().getSkin()).toBe('disabled');
   });
 
+  it('should show version and build ID together when artifact uses production version', () => {
+    driver.given.productionBuildId('abcdefg-build').when.rendered();
+
+    expect(driver.get.versionText('1.0.0-abcdefg-build')).toBe(
+      '1.0.0-abcdefg-build',
+    );
+  });
+
+  it('should show override source description when artifact has a PR override', () => {
+    driver.given.override('pr').when.rendered();
+
+    expect(
+      driver.get.versionText('feature/orders · abc1234 · Update orders'),
+    ).toBe(
+      'feature/orders · abc1234 · Update orders',
+    );
+  });
+
+  it('should show custom URL when artifact has a custom override', () => {
+    driver.given.customOverrideUrl('http://localhost:4303').when.rendered();
+
+    expect(driver.get.versionText('http://localhost:4303')).toBe(
+      'http://localhost:4303',
+    );
+  });
+
   it('should use standard text color when artifact has an override', async () => {
     driver.given.override('pr').when.rendered();
 

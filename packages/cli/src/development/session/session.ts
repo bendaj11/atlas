@@ -165,9 +165,13 @@ export function createDevSessionStore(
         markReady(override.appId, document.hostId);
     },
     document: currentDocument,
-    catalog(hostId) {
+    catalog(hostId, productionCatalog) {
       const document = currentDocument(hostId);
-      return document ? createLocalDevCatalog(document) : undefined;
+      if (!document) return undefined;
+      const localCatalog = createLocalDevCatalog(document);
+      return productionCatalog
+        ? mergeLocalCatalog(productionCatalog, localCatalog)
+        : localCatalog;
     },
     registry,
     devSession(hostId) {
@@ -185,6 +189,29 @@ export function createDevSessionStore(
         (hostId) => currentDocument(hostId) !== undefined,
       );
     },
+  };
+}
+
+function mergeLocalCatalog(
+  productionCatalog: AtlasHostCatalog,
+  localCatalog: AtlasHostCatalog,
+): AtlasHostCatalog {
+  const localApps = new Map(localCatalog.apps.map((app) => [app.id, app]));
+  const productionApps = productionCatalog.apps.map(
+    (app) => localApps.get(app.id) ?? app,
+  );
+  const additionalLocalApps = localCatalog.apps.filter(
+    (app) => !productionCatalog.apps.some(({ id }) => id === app.id),
+  );
+  return {
+    ...productionCatalog,
+    revision: localCatalog.revision,
+    generatedAt: localCatalog.generatedAt,
+    host:
+      localCatalog.host.channel === 'local'
+        ? localCatalog.host
+        : productionCatalog.host,
+    apps: [...productionApps, ...additionalLocalApps],
   };
 }
 

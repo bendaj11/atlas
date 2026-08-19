@@ -1,4 +1,5 @@
 import type { ArtifactProps, OverrideType } from '../../../../types/app.js';
+import { versionBuildIdLabel } from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
 import { Text, Tooltip } from '@wix/design-system';
 
 const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {
@@ -12,7 +13,7 @@ export const ArtifactOverrideVersion = ({ artifact }: ArtifactProps) => {
   const hasOverride = artifact.overrideType !== 'none';
   const displayedVersion = hasOverride
     ? artifact.sourceDescription
-    : artifact.productionManifest.version;
+    : versionBuildIdLabel(artifact.productionManifest);
 
   const getTextSkin = () => {
     if (artifact.loadError) return 'error';

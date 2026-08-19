@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { ui } from './ui.js';
+import { stdin, stdout } from 'node:process';
+import { TerminalPrompter, ui } from './ui.js';
 
 type UiScenario =
   | 'heading'
@@ -18,13 +19,38 @@ export class UiDriver {
   private readonly error = jest.fn();
   private readonly originalError = console.error;
   private readonly originalInfo = console.info;
+  private readonly inputTtyDescriptor = Object.getOwnPropertyDescriptor(
+    stdin,
+    'isTTY',
+  );
+  private readonly outputTtyDescriptor = Object.getOwnPropertyDescriptor(
+    stdout,
+    'isTTY',
+  );
+  private prompter?: TerminalPrompter;
 
-  constructor() {
-    Object.assign(console, { error: this.error, info: this.info });
-  }
+  given = {
+    terminal: ({
+      inputIsTTY,
+      outputIsTTY,
+    }: {
+      inputIsTTY: boolean;
+      outputIsTTY: boolean;
+    }): void => {
+      Object.defineProperty(stdin, 'isTTY', {
+        configurable: true,
+        value: inputIsTTY,
+      });
+      Object.defineProperty(stdout, 'isTTY', {
+        configurable: true,
+        value: outputIsTTY,
+      });
+    },
+  };
 
   when = {
     show: (scenario: UiScenario): void => {
+      Object.assign(console, { error: this.error, info: this.info });
       try {
         if (scenario === 'heading') ui.heading(`Build · ${this.subject}`);
         if (scenario === 'success') ui.success(`Built ${this.subject}.`);
@@ -48,6 +74,13 @@ export class UiDriver {
         });
       }
     },
+    createPrompter: (): void => {
+      try {
+        this.prompter = new TerminalPrompter();
+      } finally {
+        this.restoreTerminalDescriptors();
+      }
+    },
   };
 
   get = {
@@ -69,5 +102,19 @@ export class UiDriver {
       ['    2. Rerun atlas build.'],
     ],
     result: (): readonly unknown[][] => [[`${this.subject}: ${this.url}`]],
+    isPromptInteractive: (): boolean => this.prompter?.interactive ?? false,
   };
+
+  private restoreTerminalDescriptors(): void {
+    if (this.inputTtyDescriptor) {
+      Object.defineProperty(stdin, 'isTTY', this.inputTtyDescriptor);
+    } else {
+      Reflect.deleteProperty(stdin, 'isTTY');
+    }
+    if (this.outputTtyDescriptor) {
+      Object.defineProperty(stdout, 'isTTY', this.outputTtyDescriptor);
+    } else {
+      Reflect.deleteProperty(stdout, 'isTTY');
+    }
+  }
 }

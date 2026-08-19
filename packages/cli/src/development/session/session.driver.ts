@@ -1,13 +1,15 @@
 import { faker } from '@faker-js/faker';
 import { createTestManifest } from '@atlas/testkit';
 import type { AtlasDevOverrideDocument } from '../types.js';
+import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
 import {
   createDevSession,
   createDevSessionStore,
   createLocalDevCatalog,
 } from './session.js';
 
-type SessionScenario = 'catalog' | 'registration' | 'session';
+type SessionScenario =
+  'catalog' | 'merged-catalog' | 'registration' | 'session';
 
 export class DevelopmentSessionDriver {
   private readonly appId = faker.string.uuid();
@@ -20,6 +22,7 @@ export class DevelopmentSessionDriver {
   given = {
     document: (scenario: SessionScenario): void => {
       const manifest = createTestManifest({
+        channel: scenario === 'merged-catalog' ? 'local' : 'production',
         id: this.appId,
         placements: [
           {
@@ -97,6 +100,18 @@ export class DevelopmentSessionDriver {
         schemaVersion: catalog?.schemaVersion,
       };
     },
+    createMergedCatalog: (): void => {
+      if (!this.document) throw new Error('Session document is required.');
+
+      const session = createDevSessionStore(this.document, this.overrideUrl);
+      session.markDocumentReady(this.document);
+      const catalog = session.catalog(this.hostId, this.productionCatalog());
+      this.value = {
+        appIds: catalog?.apps.map(({ id }) => id),
+        appChannels: catalog?.apps.map(({ channel }) => channel),
+        hostChannel: catalog?.host.channel,
+      };
+    },
   };
 
   get = {
@@ -106,6 +121,11 @@ export class DevelopmentSessionDriver {
       hostId: this.hostId,
       schemaVersion: '1',
     }),
+    mergedCatalog: () => ({
+      appIds: [this.appId, 'published-app'],
+      appChannels: ['local', 'production'],
+      hostChannel: 'local',
+    }),
     session: () => ({
       catalogHostId: this.hostId,
       hostId: this.hostId,
@@ -113,4 +133,35 @@ export class DevelopmentSessionDriver {
     }),
     value: (): unknown => this.value,
   };
+
+  private productionCatalog(): AtlasHostCatalog {
+    return {
+      schemaVersion: '1',
+      hostId: this.hostId,
+      revision: 'production',
+      generatedAt: this.generatedAt,
+      host: this.hostManifest(),
+      apps: [
+        createTestManifest({ id: this.appId }),
+        createTestManifest({ id: 'published-app' }),
+      ],
+    };
+  }
+
+  private hostManifest(): AtlasHostManifest {
+    return {
+      schemaVersion: '1',
+      kind: 'host',
+      id: this.hostId,
+      name: 'Host',
+      version: '1.0.0',
+      buildId: 'production',
+      channel: 'production',
+      framework: 'react',
+      createdAt: this.generatedAt,
+      remoteEntryUrl: 'https://registry.example/host.js',
+      exposes: { entry: './host' },
+      requiredLoaderApiVersion: '^1.0.0',
+    };
+  }
 }

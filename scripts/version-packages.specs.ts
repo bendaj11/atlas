@@ -1,36 +1,20 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { expect, test } from "@jest/globals";
-import { versionPackages } from "./version-packages.js";
-import { writeJson } from "./version-packages.driver.js";
+import { expect, test } from '@jest/globals';
+import { VersionPackagesDriver } from './version-packages.driver.js';
 
-const packageDirectories = ["schema", "sdk", "runtime", "bootstrap", "generators", "testkit", "cli"];
+test('should update every Atlas package when preparing a package release', async () => {
+  const driver = new VersionPackagesDriver();
+  await driver.given.releaseWorkspace('9.9.9');
 
-test("release version propagation updates every version-bearing manifest", async () => {
-  const root = await mkdtemp(join(tmpdir(), "atlas-version-"));
-  await writeJson(join(root, "package.json"), { name: "atlas-platform", version: "9.9.9" });
-  for (const directory of packageDirectories) {
-    await writeJson(join(root, "packages", directory, "package.json"), {
-      name: `@atlas/${directory}`,
-      version: "9.9.9",
-      dependencies: { "@atlas/schema": "9.9.9", external: "^1.0.0" }
-    });
-  }
-  await writeJson(join(root, "apps/columbus/package.json"), { name: "@atlas/columbus", version: "9.9.9" });
-  await writeJson(join(root, "apps/columbus/src/manifest.json"), { manifest_version: 3, version: "9.9.9" });
-  const generatorPath = join(root, "packages/generators/src/cli/generator-versions.ts");
-  await mkdir(join(generatorPath, ".."), { recursive: true });
-  await writeFile(generatorPath, "export const ATLAS_PACKAGE_VERSION = '9.9.9';\n");
+  await driver.when.versionAtlasPackages('1.2.3');
 
-  await versionPackages("1.2.3", root);
+  expect(await driver.get.atlasVersions()).toStrictEqual(['1.2.3']);
+});
 
-  const paths = [
-    join(root, "package.json"),
-    ...packageDirectories.map((directory) => join(root, "packages", directory, "package.json")),
-    join(root, "apps/columbus/package.json"),
-    join(root, "apps/columbus/src/manifest.json")
-  ];
-  for (const path of paths) expect(JSON.parse(await readFile(path, "utf8")).version).toBe("1.2.3");
-  expect(await readFile(generatorPath, "utf8")).toMatch(/ATLAS_PACKAGE_VERSION = "1\.2\.3"/);
+test('should preserve Columbus version when preparing a package release', async () => {
+  const driver = new VersionPackagesDriver();
+  await driver.given.releaseWorkspace('9.9.9');
+
+  await driver.when.versionAtlasPackages('1.2.3');
+
+  expect(await driver.get.columbusVersions()).toStrictEqual(['9.9.9']);
 });

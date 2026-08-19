@@ -31,4 +31,12 @@ describe('development session', () => {
 
     expect(driver.get.value()).toStrictEqual(driver.get.catalog());
   });
+
+  it('should overlay local artifacts onto the published catalog when both exist', () => {
+    driver.given.document('merged-catalog');
+
+    driver.when.createMergedCatalog();
+
+    expect(driver.get.value()).toStrictEqual(driver.get.mergedCatalog());
+  });
 });

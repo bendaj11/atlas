@@ -32,6 +32,7 @@ describe('createHostRuntimeConfig', () => {
       externalRegistryUrls: ['https://external.example.com/catalog'],
       hostId: driver.get.hostId(),
       hostVersion: '1.2.3',
+      registryUrl: 'https://registry.example.com',
       resourcesRetryCount: 2,
       resourcesTimeoutMs: 1000,
       schemaVersion: '1',

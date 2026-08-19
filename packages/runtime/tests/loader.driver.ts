@@ -121,6 +121,8 @@ export function createWidgetRendererContainer(): HTMLElement {
       connected.set(element, false);
     };
     element.setAttribute = () => undefined;
+    element.querySelector = () => null;
+    element.prepend = (...nodes) => element.append(...nodes);
     element.attachShadow = () => {
       const root = createElement();
       connected.set(root, connected.get(element) ?? false);

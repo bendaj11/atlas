@@ -42,6 +42,10 @@ export function useArtifacts(): Artifact[] {
         : undefined,
       overrideEnabled: activeOverrides.has(id),
       canToggle: Boolean(selectedManifest),
+      visible:
+        productionManifest.kind === 'host' ||
+        (productionManifest.kind === 'app' &&
+          (hostData.visibleAppIds?.includes(productionManifest.id) ?? false)),
     };
   });
 }

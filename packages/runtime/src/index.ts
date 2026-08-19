@@ -41,7 +41,7 @@ import {
   type AtlasRuntimeOverride,
 } from './loader/runtime-discovery.js';
 import { importNativeFederationRemote } from './loader/native-federation.js';
-import { startRemoteAssetRewrite } from './remote-assets.js';
+import { startRemoteAssetRewrite } from './remote-assets/index.js';
 import { loadManifestStyles } from './stylesheets.js';
 import { mapWithConcurrency } from './concurrency.js';
 import { createBrowserError, logBrowserError } from './browser-error.js';
@@ -103,7 +103,7 @@ export {
   rewriteCssAssetUrls,
   startRemoteAssetRewrite,
   type AtlasAssetRewriteRelease,
-} from './remote-assets.js';
+} from './remote-assets/index.js';
 export {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
   ATLAS_OVERRIDE_QUERY_PARAM,

@@ -36,7 +36,7 @@ export class TerminalPrompter implements AtlasPrompter {
 
   constructor(inputDisabled = false) {
     this.interactive = Boolean(
-      stdin.isTTY && stdout.isTTY && !process.env.CI && !inputDisabled,
+      stdin.isTTY && !process.env.CI && !inputDisabled,
     );
   }
 
