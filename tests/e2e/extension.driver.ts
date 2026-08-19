@@ -7,7 +7,7 @@ export interface StoredOverrideDocument {
   hostOverride?: { version: string };
   overrides: Array<{
     appId: string;
-    manifest: { version: string };
+    manifest: { remoteEntryUrl?: string; version: string };
     reason: string;
   }>;
 }

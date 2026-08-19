@@ -30,4 +30,15 @@ describe('fetchJson', () => {
 
     await expect(driver.get.response()).rejects.toThrow('network unavailable');
   });
+
+  it('should identify loopback address space when fetching local resources', async () => {
+    driver.given
+      .successfulResponse({ name: faker.person.fullName() })
+      .when.loopbackRequest();
+    await driver.get.response();
+
+    expect(driver.get.requestOptions()).toMatchObject({
+      targetAddressSpace: 'loopback',
+    });
+  });
 });

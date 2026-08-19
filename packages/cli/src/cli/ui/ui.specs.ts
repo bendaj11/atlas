@@ -48,6 +48,14 @@ describe('ui', () => {
     expect(driver.get.infoCalls()).toStrictEqual(driver.get.result());
   });
 
+  it('should hide activation target when linked result is shown', () => {
+    driver.given.terminal({ inputIsTTY: false, outputIsTTY: true });
+
+    driver.when.show('linked-result');
+
+    expect(driver.get.infoCalls()).toStrictEqual(driver.get.linkedResult());
+  });
+
   it('should allow prompts when standard output is piped', () => {
     driver.given.terminal({ inputIsTTY: true, outputIsTTY: false });
 

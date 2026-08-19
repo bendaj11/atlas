@@ -103,7 +103,22 @@ export const ui = {
   result(label: string, value: string): void {
     writeLine(stdout, `${style(label, 'bold', stdout)}: ${value}`);
   },
+  linkedResult(label: string, value: string, target: string): void {
+    writeLine(
+      stdout,
+      `${style(label, 'bold', stdout)}: ${terminalLink(value, target, stdout)}`,
+    );
+  },
 };
+
+function terminalLink(
+  value: string,
+  target: string,
+  stream: WriteStream,
+): string {
+  if (!stream.isTTY || process.env.TERM === 'dumb') return value;
+  return `\u001B]8;;${target}\u0007${value}\u001B]8;;\u0007`;
+}
 
 function writeStatus(
   stream: WriteStream,

@@ -179,7 +179,11 @@ function localDevSessionUrl(hostId: string, search: string): string {
   const requestedPort = new URLSearchParams(search).get(
     ATLAS_DEV_SESSION_PORT_QUERY_PARAM,
   );
-  if (requestedPort && isValidPort(requestedPort)) url.port = requestedPort;
+  if (!requestedPort || !isValidPort(requestedPort))
+    throw overrideError(
+      'Atlas development session port must be a valid TCP port.',
+    );
+  url.port = requestedPort;
   url.searchParams.set('hostId', hostId);
   return url.href;
 }
@@ -462,7 +466,17 @@ async function defaultFetchJson(
   url: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  const response = await fetch(url, signal ? { signal } : undefined);
+  const target = new URL(
+    url,
+    globalThis.location?.href ?? 'http://atlas.local',
+  );
+  const request = {
+    ...(signal ? { signal } : {}),
+    ...(isLoopbackHostname(target.hostname)
+      ? { targetAddressSpace: 'loopback' as const }
+      : {}),
+  } as RequestInit & { targetAddressSpace?: 'loopback' };
+  const response = await fetch(url, request);
   if (!response.ok) {
     throw networkError(
       `Atlas could not download JSON from "${url}": HTTP ${response.status} ${response.statusText}.`,

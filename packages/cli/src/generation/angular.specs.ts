@@ -20,4 +20,23 @@ describe('ensureAngularNativeFederationTargets', () => {
       },
     });
   });
+
+  it('should configure an SSE endpoint when an Angular app serves locally', () => {
+    const targets: Record<string, unknown> = {
+      build: { builder: '@angular-devkit/build-angular:application' },
+      serve: { builder: '@angular-devkit/build-angular:dev-server' },
+    };
+
+    ensureAngularNativeFederationTargets(targets, 'catalog', 'app', 'builder');
+
+    expect(targets.serve).toMatchObject({
+      options: {
+        buildNotifications: {
+          enable: true,
+          endpoint:
+            '/@angular-architects/native-federation:build-notifications',
+        },
+      },
+    });
+  });
 });

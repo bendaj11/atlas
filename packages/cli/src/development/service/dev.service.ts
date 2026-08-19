@@ -6,7 +6,7 @@ import { CliArguments } from '../../cli/arguments.js';
 import { loadBootstrapTemplate } from '../../bootstrap/template/bootstrap-template.js';
 import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
 import { resolveRegistryBaseUrl } from '../../build/runtime-config/runtime-config.js';
-import { ensureAngularHostBuildNotifications } from '../../generation/angular.js';
+import { ensureAngularBuildNotifications } from '../../generation/angular.js';
 import { startLocalBootstrapServer } from '../bootstrap-server/bootstrap-server.js';
 import { startControlServer } from '../control-server/control-server.js';
 import {
@@ -66,8 +66,7 @@ export class AtlasDevService {
     const config = await this.builds.loadConfig(project.root);
     if (config.framework === 'angular' && !this.args.hasFlag('prepare-only')) {
       await assertUsableAngularBuildPackage(this.workspace.root, project.root);
-      if (isHostConfig(config))
-        await ensureAngularHostBuildNotifications(project.root, project.id);
+      await ensureAngularBuildNotifications(project.root, project.id);
     }
     if (isHostConfig(config)) {
       await this.runHost(project, config);
@@ -162,7 +161,7 @@ export class AtlasDevService {
         : undefined;
       await control.markReady();
       const hostActivationUrl = withDevSessionPort(hostUrl, controlPort);
-      logHostViewUrl(hostUrl);
+      logHostViewUrl(hostUrl, hostActivationUrl);
       openBrowserWhenReady(this.args, hostActivationUrl);
       await waitForShutdown(frameworkServer, control);
     } finally {
@@ -213,7 +212,7 @@ export class AtlasDevService {
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
-      logHostViewUrl(target.hostUrl);
+      logHostViewUrl(target.hostUrl, hostActivationUrl);
       openBrowserWhenReady(this.args, hostActivationUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');

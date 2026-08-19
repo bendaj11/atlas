@@ -6,17 +6,17 @@ export class FetchJsonDriver {
   private readonly url = faker.internet.url();
   private responseBody: { name: string } | undefined;
   private response: Promise<unknown> | undefined;
+  private fetchMock: jest.MockedFunction<typeof fetch> | undefined;
 
   readonly given = {
     successfulResponse: (responseBody: { name: string }): FetchJsonDriver => {
       this.responseBody = responseBody;
-      Object.assign(globalThis, {
-        fetch: jest
-          .fn<typeof fetch>()
-          .mockResolvedValue(
-            new Response(JSON.stringify(this.responseBody), { status: 200 }),
-          ),
-      });
+      this.fetchMock = jest
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(JSON.stringify(this.responseBody), { status: 200 }),
+        );
+      Object.assign(globalThis, { fetch: this.fetchMock });
       return this;
     },
     missingResponse: (status: number): FetchJsonDriver => {
@@ -41,10 +41,20 @@ export class FetchJsonDriver {
         resourcesRetryCount: 0,
       });
     },
+    loopbackRequest: (): void => {
+      this.response = fetchJson<{ name: string }>(
+        'http://localhost:4200/remoteEntry.json',
+        {
+          resourcesRetryCount: 0,
+        },
+      );
+    },
   };
 
   readonly get = {
     responseBody: (): { name: string } | undefined => this.responseBody,
     response: (): Promise<unknown> => this.response as Promise<unknown>,
+    requestOptions: (): RequestInit | undefined =>
+      this.fetchMock?.mock.calls[0]?.[1],
   };
 }

@@ -6,7 +6,7 @@ import { mapWithConcurrency } from "../concurrency.js";
 import { runtimeError } from "../runtime-error.js";
 
 export interface AtlasFederationAdapter {
-  initFederation(remotes: Record<string, string>, options?: { deployUrl?: string; sse?: boolean }): Promise<unknown>;
+  initFederation(remotes: Record<string, string>, options?: { deployUrl?: string }): Promise<unknown>;
   loadRemoteModule(remoteName: string, exposedModule: string): Promise<unknown>;
 }
 
@@ -36,7 +36,7 @@ export function createNativeFederationImporters(
     const task = runResiliently(
       () => runtime.initFederation(
         { [remoteName]: remote.remoteEntryUrl },
-        federationOptions(remote, hostRemoteEntryUrl)
+        federationOptions(hostRemoteEntryUrl)
       ).then(() => undefined),
       { stage: "federation-init", resource: remote.remoteEntryUrl, appId: remote.id },
       requestPolicy
@@ -82,35 +82,17 @@ export function createNativeFederationImporters(
   };
 }
 
-type FederationRemote = Pick<AtlasManifest, "id" | "remoteEntryUrl" | "channel">;
+type FederationRemote = Pick<AtlasManifest, "id" | "remoteEntryUrl">;
 
-function federationOptions(
-  manifest: FederationRemote,
-  hostRemoteEntryUrl?: string
-): { deployUrl?: string; sse?: boolean } | undefined {
-  const deployUrl = hostRemoteEntryUrl
-    ? artifactDirectoryUrl(hostRemoteEntryUrl)
-    : undefined;
-  return deployUrl || manifest.channel === "local"
-    ? { ...(deployUrl ? { deployUrl } : {}), ...(manifest.channel === "local" ? { sse: true } : {}) }
-    : undefined;
+function federationOptions(hostRemoteEntryUrl?: string): { deployUrl: string } | undefined {
+  return hostRemoteEntryUrl ? { deployUrl: artifactDirectoryUrl(hostRemoteEntryUrl) } : undefined;
 }
 
 function remoteFromWidget(widget: AtlasExportedWidgetManifest): FederationRemote {
   return {
     id: widget.ownerAppId,
-    remoteEntryUrl: widget.remoteEntryUrl,
-    channel: isLoopbackUrl(widget.remoteEntryUrl) ? "local" : "production"
+    remoteEntryUrl: widget.remoteEntryUrl
   };
-}
-
-function isLoopbackUrl(value: string): boolean {
-  try {
-    const hostname = new URL(value).hostname;
-    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
-  } catch {
-    return false;
-  }
 }
 
 /** Initializes only trusted remotes and reports rejected manifests through normal app fallback UI. */

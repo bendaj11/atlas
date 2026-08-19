@@ -1,12 +1,17 @@
 import { chromium, expect, test, type BrowserContext, type Page, type Worker } from "@playwright/test";
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { spawn, type ChildProcess } from "node:child_process";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { readOverride, restrictExtensionHosts, type BrowserStorage } from "./extension.driver.js";
+import { delay } from "./local-development.driver.js";
 
 const builtExtensionPath = resolve("apps/columbus/dist");
 const hostUrl = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? "4300"}/dashboard`;
 const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? "4400"}`;
+const liveRemotePort = 4221;
+const liveControlPort = 4421;
+const liveSourcePath = resolve("examples/apps/dashboard-react/src/entry.tsx");
 interface ExtensionSession {
   context: BrowserContext;
   extensionId: string;
@@ -136,6 +141,44 @@ test.describe("Atlas Columbus extension", () => {
     await expect(popup.getByRole("alert")).toContainText("Local override remote entry is unreachable");
   });
 
+  test("activates CLI preview, persists a custom local URL, and reloads after a source change", async () => {
+    test.setTimeout(120_000);
+    const originalSource = await readFile(liveSourcePath, "utf8");
+    const devProcess = startLiveApp();
+    try {
+      await waitForLiveApp(devProcess);
+      const host = await session.context.newPage();
+      const localRemoteRequest = host.waitForRequest(
+        (request) => new URL(request.url()).port === String(liveRemotePort)
+      );
+      await host.goto(`${hostUrl}?atlas-dev-port=${liveControlPort}`);
+      await localRemoteRequest;
+      await expect.poll(() => badgeText(session.serviceWorker, host.url())).toBe("1");
+
+      const popup = await openPopup(session, host);
+      await editApp(popup, "Dashboard React");
+      await popup.getByText("Custom URL", { exact: true }).click();
+      await popup.getByPlaceholder("http://localhost:4200").fill(`http://localhost:${liveRemotePort}`);
+      const notificationsConnected = host.waitForResponse((response) =>
+        response.url().endsWith("/@atlas/federation-build-notifications")
+      );
+      await saveAndWaitForReload(popup, host);
+      await notificationsConnected;
+      await expect
+        .poll(() => storedRemoteEntry(host, "sessionStorage"))
+        .toBe(`http://localhost:${liveRemotePort}/remoteEntry.json`);
+
+      const updatedHeading = `Dashboard React Live ${Date.now()}`;
+      const reload = host.waitForEvent("load", { timeout: 30_000 });
+      await writeFile(liveSourcePath, originalSource.replace("<h1>Dashboard React</h1>", `<h1>${updatedHeading}</h1>`));
+      await reload;
+      await expect(host.getByRole("heading", { name: updatedHeading })).toBeVisible();
+    } finally {
+      await writeFile(liveSourcePath, originalSource);
+      await stopLiveApp(devProcess);
+    }
+  });
+
   test("shows active override count on the extension action", async () => {
     const host = await session.context.newPage();
     await host.goto(hostUrl);
@@ -232,4 +275,58 @@ async function overrideCount(host: Page, storage: BrowserStorage): Promise<numbe
   return documentValue
     ? documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0)
     : undefined;
+}
+
+async function storedRemoteEntry(host: Page, storage: BrowserStorage): Promise<string | undefined> {
+  return (await readOverride(host, storage))?.overrides[0]?.manifest.remoteEntryUrl;
+}
+
+function startLiveApp(): ChildProcess {
+  return spawn(
+    process.execPath,
+    [
+      "packages/cli/dist/cli/entrypoint.js",
+      "dev",
+      "dashboard-react",
+      `--host-url=${hostUrl}`,
+      `--port=${liveRemotePort}`,
+      `--control-port=${liveControlPort}`,
+      "--no-open"
+    ],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"]
+    }
+  );
+}
+
+async function waitForLiveApp(devProcess: ChildProcess): Promise<void> {
+  const output: string[] = [];
+  devProcess.stdout?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
+  devProcess.stderr?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    if (devProcess.exitCode !== null) throw new Error(`atlas dev exited before startup.\n${output.join("")}`);
+    try {
+      const response = await fetch(`http://localhost:${liveControlPort}/health`);
+      if (response.ok) return;
+    } catch {
+      await delay(200);
+    }
+  }
+  throw new Error(`atlas dev did not become healthy.\n${output.join("")}`);
+}
+
+async function stopLiveApp(devProcess: ChildProcess): Promise<void> {
+  if (devProcess.exitCode !== null || devProcess.signalCode !== null) return;
+  await Promise.race([
+    new Promise<void>((resolveStop) => {
+      devProcess.once("exit", () => resolveStop());
+      devProcess.kill("SIGINT");
+    }),
+    delay(15_000).then(() => {
+      devProcess.kill("SIGKILL");
+    })
+  ]);
 }

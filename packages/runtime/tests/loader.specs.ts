@@ -516,7 +516,7 @@ test('Native Federation module imports use the configured retry policy', async (
 
 test('Native Federation initializes local remotes independently', async () => {
   const initialized: Array<Record<string, string>> = [];
-  const options: Array<{ deployUrl?: string; sse?: boolean } | undefined> = [];
+  const options: Array<{ deployUrl?: string } | undefined> = [];
   const loaded: string[] = [];
   const importers = createNativeFederationImporters(
     {
@@ -555,11 +555,9 @@ test('Native Federation initializes local remotes independently', async () => {
   assert.deepEqual(options, [
     {
       deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/',
-      sse: true,
     },
     {
       deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/',
-      sse: true,
     },
   ]);
 });
@@ -855,6 +853,27 @@ test('missing local dev session leaves browser overrides empty', async () => {
   });
 
   assert.deepEqual(overrides, []);
+});
+
+test('invalid development session port does not probe default localhost', async () => {
+  let fetched = false;
+  const error = await loadBrowserRuntimeOverrides({
+    hostId: 'host',
+    search: '?atlas-dev-port=invalid',
+    async fetchJson() {
+      fetched = true;
+      return {};
+    },
+  }).catch((reason: unknown) => reason);
+
+  assert.deepEqual(
+    {
+      fetched,
+      validPortError:
+        error instanceof Error && error.message.includes('valid TCP port'),
+    },
+    { fetched: false, validPortError: true },
+  );
 });
 
 test('browser overrides cannot cross host boundaries', async () => {

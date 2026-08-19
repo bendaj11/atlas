@@ -31,7 +31,7 @@ export async function ensureAngularWorkspaceFederationConfig(
   await writeJsonFile(workspaceFile, workspace);
 }
 
-export async function ensureAngularHostBuildNotifications(
+export async function ensureAngularBuildNotifications(
   root: string,
   projectName: string,
 ): Promise<void> {
@@ -97,7 +97,7 @@ export function ensureAngularNativeFederationTargets(
         port: devServerPort,
       },
     };
-    if (type === 'host') enableAngularBuildNotifications(targets.serve);
+    enableAngularBuildNotifications(targets.serve);
   }
 }
 

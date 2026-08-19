@@ -230,7 +230,7 @@ export async function validateLocalOverride({
     target: { tabId },
     world: 'MAIN',
     func: validateLocalRemoteEntry,
-    args: [manifest.remoteEntryUrl],
+    args: [manifest.remoteEntryUrl, manifest.exposes?.entry ?? './entry'],
   });
   if (injection?.result) throw new Error(injection.result);
 }
@@ -460,10 +460,14 @@ function persistOverrides(documentKey: string, value: string): void {
 
 async function validateLocalRemoteEntry(
   remoteEntryUrl: string,
+  exposedModule: string,
 ): Promise<string | undefined> {
   const isFederationMetadata = (
     value: unknown,
-  ): value is { name: string; exposes: unknown[] } => {
+  ): value is {
+    name: string;
+    exposes: Array<{ key?: unknown; outFileName?: unknown }>;
+  } => {
     if (typeof value !== 'object' || value === null) return false;
     const metadata = value as Partial<{ name: unknown; exposes: unknown }>;
     return typeof metadata.name === 'string' && Array.isArray(metadata.exposes);
@@ -471,17 +475,29 @@ async function validateLocalRemoteEntry(
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 5_000);
   try {
-    const response = await fetch(remoteEntryUrl, {
+    const request = {
       cache: 'no-store',
       signal: controller.signal,
-    });
+      targetAddressSpace: 'loopback',
+    } as RequestInit & { targetAddressSpace: 'loopback' };
+    const response = await fetch(remoteEntryUrl, request);
     if (!response.ok)
       return `Local override remote entry returned HTTP ${response.status}.`;
     const metadata: unknown = await response.json();
     if (!isFederationMetadata(metadata))
       return 'Local override remote entry is not valid federation metadata.';
+    const expose = metadata.exposes.find(
+      (candidate) => candidate.key === exposedModule,
+    );
+    if (typeof expose?.outFileName !== 'string')
+      return `Local override remote entry does not expose ${exposedModule}.`;
     return undefined;
   } catch {
+    const permission = await navigator.permissions
+      ?.query({ name: 'loopback-network' as PermissionName })
+      .catch(() => undefined);
+    if (permission?.state === 'denied')
+      return 'Local Network Access is blocked for this host. Allow loopback access in browser site settings, then retry.';
     return 'Local override remote entry is unreachable. Start its development server, then retry.';
   } finally {
     window.clearTimeout(timeout);

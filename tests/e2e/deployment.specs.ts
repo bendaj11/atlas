@@ -26,6 +26,19 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test("production host does not probe a local development session", async ({ page }) => {
+  let localSessionRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().startsWith("http://localhost:4400/atlas.dev-session.json")) {
+      localSessionRequests += 1;
+    }
+  });
+
+  await page.goto(`${reactHostOrigin}/dashboard`);
+
+  expect(localSessionRequests).toBe(0);
+});
+
 test("React host mounts an Angular app with native inner routing", async ({ page }) => {
   await page.goto(`${reactHostOrigin}/angular-orders`);
   await expect(page.getByRole("heading", { name: "Orders Angular" })).toBeVisible();

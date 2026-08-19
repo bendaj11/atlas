@@ -9,7 +9,8 @@ type UiScenario =
   | 'warning'
   | 'single-action-error'
   | 'multiple-action-error'
-  | 'result';
+  | 'result'
+  | 'linked-result';
 
 export class UiDriver {
   private readonly subject = faker.word.noun();
@@ -19,6 +20,7 @@ export class UiDriver {
   private readonly error = jest.fn();
   private readonly originalError = console.error;
   private readonly originalInfo = console.info;
+  private readonly originalTerm = process.env.TERM;
   private readonly inputTtyDescriptor = Object.getOwnPropertyDescriptor(
     stdin,
     'isTTY',
@@ -45,6 +47,7 @@ export class UiDriver {
         configurable: true,
         value: outputIsTTY,
       });
+      process.env.TERM = 'xterm-256color';
     },
   };
 
@@ -67,11 +70,14 @@ export class UiDriver {
           );
         }
         if (scenario === 'result') ui.result(this.subject, this.url);
+        if (scenario === 'linked-result')
+          ui.linkedResult(this.subject, this.url, `${this.url}?activate=true`);
       } finally {
         Object.assign(console, {
           error: this.originalError,
           info: this.originalInfo,
         });
+        this.restoreTerminalDescriptors();
       }
     },
     createPrompter: (): void => {
@@ -102,10 +108,17 @@ export class UiDriver {
       ['    2. Rerun atlas build.'],
     ],
     result: (): readonly unknown[][] => [[`${this.subject}: ${this.url}`]],
+    linkedResult: (): readonly unknown[][] => [
+      [
+        `${this.subject}: \u001B]8;;${this.url}?activate=true\u0007${this.url}\u001B]8;;\u0007`,
+      ],
+    ],
     isPromptInteractive: (): boolean => this.prompter?.interactive ?? false,
   };
 
   private restoreTerminalDescriptors(): void {
+    if (this.originalTerm === undefined) delete process.env.TERM;
+    else process.env.TERM = this.originalTerm;
     if (this.inputTtyDescriptor) {
       Object.defineProperty(stdin, 'isTTY', this.inputTtyDescriptor);
     } else {

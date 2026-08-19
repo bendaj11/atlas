@@ -164,6 +164,7 @@ test('React app Vite factory owns federation build and development behavior', as
     'atlas-react-shared-fallbacks',
     'atlas-react-refresh-preamble',
     'atlas-react-source-reload',
+    'atlas-federation-build-notifications',
     'atlas-native-federation-metadata',
   ]);
   const refreshPlugin = plugins.find(

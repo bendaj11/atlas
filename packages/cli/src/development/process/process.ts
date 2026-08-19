@@ -144,9 +144,12 @@ export function formatFrameworkServerError(
   );
 }
 
-export function logHostViewUrl(url: string | undefined): void {
+export function logHostViewUrl(
+  url: string | undefined,
+  activationUrl = url,
+): void {
   if (url) {
-    ui.result('App preview', url);
+    ui.linkedResult('App preview', url, activationUrl ?? url);
     return;
   }
   ui.warning('App preview unresolved. Pass --host-url or set ATLAS_HOST_URL.');
@@ -172,7 +175,9 @@ export function openBrowserWhenReady(
       detached: true,
       stdio: 'ignore',
     });
-    child.once('error', () => undefined);
+    child.once('error', () =>
+      ui.warning('Could not open browser automatically. Use App preview link.'),
+    );
     child.unref();
   } catch {
     // Logged URL remains fallback when platform opener unavailable.

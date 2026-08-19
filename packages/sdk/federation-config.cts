@@ -109,6 +109,8 @@ function reactRemoteName(name) {
   return `atlas_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
 
+const BUILD_NOTIFICATIONS_ENDPOINT = '/@atlas/federation-build-notifications';
+
 function federationMetadataPlugin(options) {
   return {
     name: options.pluginName,
@@ -119,6 +121,7 @@ function federationMetadataPlugin(options) {
         response.end(
           JSON.stringify({
             ...options.metadata,
+            buildNotificationsEndpoint: BUILD_NOTIFICATIONS_ENDPOINT,
             exposes: options.devExposes,
             shared: options.devShared || options.metadata.shared,
           }),
@@ -131,6 +134,37 @@ function federationMetadataPlugin(options) {
         resolve(options.projectRoot, 'dist/remoteEntry.json'),
         JSON.stringify(options.metadata, null, 2),
       );
+    },
+  };
+}
+
+function federationBuildNotificationsPlugin(projectRoot) {
+  const clients = new Set<{ write(value: string): void }>();
+  const sourceRoot = `${resolve(projectRoot, 'src').replaceAll('\\', '/')}/`;
+  return {
+    name: 'atlas-federation-build-notifications',
+    apply: 'serve' as const,
+    configureServer(server) {
+      server.middlewares.use(
+        BUILD_NOTIFICATIONS_ENDPOINT,
+        (_request, response) => {
+          response.writeHead(200, {
+            'access-control-allow-origin': '*',
+            'access-control-allow-private-network': 'true',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+            'content-type': 'text/event-stream',
+          });
+          response.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+          clients.add(response);
+          response.once('close', () => clients.delete(response));
+        },
+      );
+    },
+    handleHotUpdate({ file }) {
+      if (!file.replaceAll('\\', '/').startsWith(sourceRoot)) return;
+      const event = `data: ${JSON.stringify({ type: 'federation-rebuild-complete' })}\n\n`;
+      for (const response of clients) response.write(event);
     },
   };
 }
@@ -657,6 +691,7 @@ function createReactHostViteConfig(options) {
       federation.sharedFallbackPlugin,
       reactRefreshPreamblePlugin(['src/bootstrap.tsx']),
       reactSourceReloadPlugin(options.projectRoot),
+      federationBuildNotificationsPlugin(options.projectRoot),
       federationMetadataPlugin({
         projectRoot: options.projectRoot,
         pluginName: 'atlas-host-metadata',
@@ -670,6 +705,9 @@ function createReactHostViteConfig(options) {
         devShared: federation.shared.map(({ devMetadata }) => devMetadata),
       }),
     ],
+    server: {
+      headers: { 'Access-Control-Allow-Private-Network': 'true' },
+    },
     build: {
       target: 'esnext',
       rollupOptions: {
@@ -720,6 +758,7 @@ function createReactAppViteConfig(options) {
       federation.sharedFallbackPlugin,
       reactRefreshPreamblePlugin(sourceEntries),
       reactSourceReloadPlugin(options.projectRoot),
+      federationBuildNotificationsPlugin(options.projectRoot),
       federationMetadataPlugin({
         projectRoot: options.projectRoot,
         pluginName: 'atlas-native-federation-metadata',
@@ -741,6 +780,9 @@ function createReactAppViteConfig(options) {
         ],
       }),
     ],
+    server: {
+      headers: { 'Access-Control-Allow-Private-Network': 'true' },
+    },
     build: {
       target: 'esnext',
       rollupOptions: {

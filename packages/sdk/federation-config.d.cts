@@ -6,6 +6,13 @@ declare function createReactHostViteConfig(options: any): {
         writeBundle(): void;
     } | {
         name: string;
+        apply: "serve";
+        configureServer(server: any): void;
+        handleHotUpdate({ file }: {
+            file: any;
+        }): void;
+    } | {
+        name: string;
         resolveId(source: any): string;
         load(id: any): string;
     } | {
@@ -21,6 +28,11 @@ declare function createReactHostViteConfig(options: any): {
             server: any;
         }): any[];
     })[];
+    server: {
+        headers: {
+            'Access-Control-Allow-Private-Network': string;
+        };
+    };
     build: {
         target: string;
         rollupOptions: {
@@ -44,6 +56,13 @@ declare function createReactAppViteConfig(options: any): {
         writeBundle(): void;
     } | {
         name: string;
+        apply: "serve";
+        configureServer(server: any): void;
+        handleHotUpdate({ file }: {
+            file: any;
+        }): void;
+    } | {
+        name: string;
         resolveId(source: any): string;
         load(id: any): string;
     } | {
@@ -59,6 +78,11 @@ declare function createReactAppViteConfig(options: any): {
             server: any;
         }): any[];
     })[];
+    server: {
+        headers: {
+            'Access-Control-Allow-Private-Network': string;
+        };
+    };
     build: {
         target: string;
         rollupOptions: {

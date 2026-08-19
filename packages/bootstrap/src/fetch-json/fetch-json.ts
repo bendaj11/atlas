@@ -8,16 +8,37 @@ export async function fetchJson<T>(
   > = {},
   integrity?: string,
 ): Promise<T> {
+  return fetchJsonRequest({
+    url,
+    runtime,
+    ...(integrity ? { integrity } : {}),
+  });
+}
+
+async function fetchJsonRequest<T>({
+  url,
+  runtime,
+  integrity,
+}: {
+  url: string;
+  runtime: Pick<
+    AtlasHostRuntimeConfig,
+    'resourcesRetryCount' | 'resourcesTimeoutMs'
+  >;
+  integrity?: string;
+}): Promise<T> {
   const retries = runtime.resourcesRetryCount ?? 3;
   const timeout = runtime.resourcesTimeoutMs ?? 15000;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
-      const response = await fetch(url, {
+      const request = {
         cache: 'no-cache',
         signal: AbortSignal.timeout(timeout),
-      });
+        ...(isLoopbackUrl(url) ? { targetAddressSpace: 'loopback' } : {}),
+      } as RequestInit & { targetAddressSpace?: 'loopback' };
+      const response = await fetch(url, request);
 
       if (!response.ok)
         throw new Error(url + ' returned HTTP ' + response.status + '.');
@@ -37,6 +58,22 @@ export async function fetchJson<T>(
   }
 
   throw lastError;
+}
+
+function isLoopbackUrl(value: string): boolean {
+  try {
+    const baseUrl = globalThis.location?.href;
+    const hostname = baseUrl
+      ? new URL(value, baseUrl).hostname
+      : new URL(value).hostname;
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]'
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function validateIntegrity(
