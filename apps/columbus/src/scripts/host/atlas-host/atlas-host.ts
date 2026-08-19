@@ -217,6 +217,24 @@ export async function writeOverrides({
   if (scope === 'all' && !count) await chrome.storage.local.remove(storageKey);
 }
 
+export async function validateLocalOverride({
+  tabId,
+  manifest,
+}: {
+  tabId: number;
+  manifest: Manifest;
+}): Promise<void> {
+  if (manifest.channel !== 'local') return;
+
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId },
+    world: 'MAIN',
+    func: validateLocalRemoteEntry,
+    args: [manifest.remoteEntryUrl],
+  });
+  if (injection?.result) throw new Error(injection.result);
+}
+
 export async function reloadHostTab(tabId: number): Promise<void> {
   await chrome.tabs.reload(tabId);
 }
@@ -409,10 +427,7 @@ function isLoopbackPage(url: string | undefined): boolean {
   );
 }
 
-function persistOverrides(
-  documentKey: string,
-  value: string,
-): void {
+function persistOverrides(documentKey: string, value: string): void {
   const { documentValue, scope, disabledAppIds } = JSON.parse(value) as {
     documentValue: OverrideDocument;
     scope: Scope;
@@ -441,7 +456,36 @@ function persistOverrides(
   } else {
     sessionStorage.setItem(disabledKey, JSON.stringify(disabledAppIds));
   }
+}
 
+async function validateLocalRemoteEntry(
+  remoteEntryUrl: string,
+): Promise<string | undefined> {
+  const isFederationMetadata = (
+    value: unknown,
+  ): value is { name: string; exposes: unknown[] } => {
+    if (typeof value !== 'object' || value === null) return false;
+    const metadata = value as Partial<{ name: unknown; exposes: unknown }>;
+    return typeof metadata.name === 'string' && Array.isArray(metadata.exposes);
+  };
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 5_000);
+  try {
+    const response = await fetch(remoteEntryUrl, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!response.ok)
+      return `Local override remote entry returned HTTP ${response.status}.`;
+    const metadata: unknown = await response.json();
+    if (!isFederationMetadata(metadata))
+      return 'Local override remote entry is not valid federation metadata.';
+    return undefined;
+  } catch {
+    return 'Local override remote entry is unreachable. Start its development server, then retry.';
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function overrideReason(manifest: Manifest): 'local' | 'pr' | 'historical' {

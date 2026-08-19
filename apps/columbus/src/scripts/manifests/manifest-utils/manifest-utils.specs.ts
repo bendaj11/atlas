@@ -13,10 +13,10 @@ describe('custom manifest draft', () => {
   });
 
   it('should preserve URL when custom override already exists', () => {
-    driver.given.selectedCustomUrl('https://custom.example/app');
+    driver.given.selectedCustomUrl('http://localhost:4201/app');
 
     expect(driver.get.editorDraft().customUrl).toBe(
-      'https://custom.example/app',
+      'http://localhost:4201/app',
     );
   });
 });
@@ -58,13 +58,14 @@ describe('custom manifest creation', () => {
     'http://user:secret@localhost/app',
     'http://localhost/app?debug=true',
     'http://localhost/app#debug',
+    'https://cdn.example/app',
   ])('should reject URL when base URL is unsafe: %s', (url) => {
     expect(() => driver.get.customManifest(url)).toThrow();
   });
 
   it.each([
     'http://127.0.0.1:4201/remoteEntry.json',
-    'https://cdn.example/app/remoteEntry.json',
+    'http://localhost:4201/remoteEntry.json',
   ])('should preserve URL when remote entry URL is safe: %s', (url) => {
     expect(driver.get.customManifest(url).remoteEntryUrl).toBe(url);
   });

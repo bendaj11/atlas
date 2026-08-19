@@ -17,13 +17,17 @@ export async function applyOverrides(
   runtime: AtlasHostRuntimeConfig,
   catalog: AtlasHostCatalog,
 ): Promise<AtlasHostCatalog> {
-  let stored =
-    sessionStorage.getItem(DOCUMENT_KEY) || localStorage.getItem(DOCUMENT_KEY);
-
-  if (!stored && hasDevSessionPort(location.search)) {
+  let stored: string | null;
+  if (hasDevSessionPort(location.search)) {
     const devSession = await fetchDevSession(runtime.hostId);
     catalog = mergeDevSessionCatalog(catalog, devSession);
     stored = JSON.stringify(devSession);
+    sessionStorage.setItem(DOCUMENT_KEY, stored);
+    removeDevSessionPortFromAddressBar();
+  } else {
+    stored =
+      sessionStorage.getItem(DOCUMENT_KEY) ||
+      localStorage.getItem(DOCUMENT_KEY);
   }
 
   if (!stored) return catalog;
@@ -124,6 +128,12 @@ async function fetchDevSession(hostId: string): Promise<DevSession> {
 function isValidPort(value: string | null): value is string {
   const port = Number(value);
   return Number.isInteger(port) && port > 0 && port <= 65_535;
+}
+
+function removeDevSessionPortFromAddressBar(): void {
+  const url = new URL(location.href);
+  url.searchParams.delete(DEV_SESSION_PORT_PARAM);
+  history.replaceState(history.state, '', url.href);
 }
 
 async function resolveOverrideManifest<

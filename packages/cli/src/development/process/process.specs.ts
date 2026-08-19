@@ -89,4 +89,12 @@ describe('remoteEntryIsReady', () => {
       `${value.message}\n\nFramework server output:\n${value.output}`,
     );
   });
+
+  it('should add default control port when production host is activated', () => {
+    driver.when.activateHostUrl('https://host.example/orders', 4400);
+
+    expect(driver.get.value()).toBe(
+      'https://host.example/orders?atlas-dev-port=4400',
+    );
+  });
 });

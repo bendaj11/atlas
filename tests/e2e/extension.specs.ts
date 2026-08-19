@@ -14,7 +14,6 @@ interface ExtensionSession {
   extensionDirectory: string;
   userDataDirectory: string;
 }
-
 test.describe("Atlas Columbus extension", () => {
   let session: ExtensionSession;
 
@@ -36,7 +35,7 @@ test.describe("Atlas Columbus extension", () => {
     const popup = await openPopup(session, firstHost);
     await editApp(popup, "Dashboard React");
     await popup.getByText("Production", { exact: true }).click();
-    await selectActiveDropdown(popup, /^0\.0\.9$/);
+    await selectActiveDropdown(popup, /^0\.0\.9-/);
     await saveAndWaitForReload(popup, firstHost);
     expect(await storedVersion(firstHost, "localStorage")).toBe("0.0.9");
     await expect.poll(() => badgeText(session.serviceWorker, firstHost.url())).toBe("1");
@@ -124,6 +123,17 @@ test.describe("Atlas Columbus extension", () => {
     await popup.getByPlaceholder("http://localhost:4200").fill("not-a-url");
     await popup.getByRole("button", { name: "Save" }).click();
     await expect(popup.getByText("Base URL must be absolute HTTP URL.")).toBeVisible();
+  });
+
+  test("rejects unavailable local remote entry before changing a host", async () => {
+    const host = await session.context.newPage();
+    await host.goto(hostUrl);
+    const popup = await openPopup(session, host);
+    await editApp(popup, "Dashboard React");
+    await popup.getByText("Custom URL", { exact: true }).click();
+    await popup.getByPlaceholder("http://localhost:4200").fill("http://127.0.0.1:9");
+    await popup.getByRole("button", { name: "Save" }).click();
+    await expect(popup.getByRole("alert")).toContainText("Local override remote entry is unreachable");
   });
 
   test("shows active override count on the extension action", async () => {

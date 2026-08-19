@@ -516,7 +516,7 @@ test('Native Federation module imports use the configured retry policy', async (
 
 test('Native Federation initializes local remotes independently', async () => {
   const initialized: Array<Record<string, string>> = [];
-  const options: Array<{ deployUrl?: string } | undefined> = [];
+  const options: Array<{ deployUrl?: string; sse?: boolean } | undefined> = [];
   const loaded: string[] = [];
   const importers = createNativeFederationImporters(
     {
@@ -534,10 +534,12 @@ test('Native Federation initializes local remotes independently', async () => {
   );
   const first = createTestManifest({
     id: 'first',
+    channel: 'local',
     remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
   });
   const second = createTestManifest({
     id: 'second',
+    channel: 'local',
     remoteEntryUrl: 'http://localhost:4202/remoteEntry.json',
   });
 
@@ -551,8 +553,14 @@ test('Native Federation initializes local remotes independently', async () => {
   ]);
   assert.deepEqual(loaded, ['atlas_first', 'atlas_second']);
   assert.deepEqual(options, [
-    { deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/' },
-    { deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/' },
+    {
+      deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/',
+      sse: true,
+    },
+    {
+      deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/',
+      sse: true,
+    },
   ]);
 });
 
@@ -742,6 +750,47 @@ test('browser overrides are discovered from an explicit development session and 
   assert.equal(
     overrides[0].manifest.remoteEntryUrl,
     'http://localhost:4201/remoteEntry.json',
+  );
+});
+
+test('browser development sessions become tab-scoped override documents', async () => {
+  const manifest = createTestManifest({
+    channel: 'local',
+    remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
+  });
+  let persisted: string | undefined;
+  const overrides = await loadBrowserRuntimeOverrides({
+    hostId: 'host',
+    search: '?atlas-dev-port=4400',
+    sessionStorage: {
+      getItem() {
+        return null;
+      },
+      setItem(_key, value) {
+        persisted = value;
+      },
+    },
+    async fetchJson() {
+      return {
+        schemaVersion: '1',
+        hostId: 'host',
+        generatedAt: '2026-08-19T00:00:00.000Z',
+        overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
+      };
+    },
+  });
+
+  assert.deepEqual(
+    { overrides, persisted: persisted ? JSON.parse(persisted) : undefined },
+    {
+      overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
+      persisted: {
+        schemaVersion: '1',
+        hostId: 'host',
+        generatedAt: '2026-08-19T00:00:00.000Z',
+        overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
+      },
+    },
   );
 });
 

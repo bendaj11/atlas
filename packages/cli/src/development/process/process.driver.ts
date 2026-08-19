@@ -4,6 +4,7 @@ import {
   formatFrameworkServerError,
   frameworkServerArguments,
   remoteEntryIsReady,
+  withDevSessionPort,
 } from './process.js';
 
 type RemoteEntryScenario = 'html' | 'missing' | 'metadata';
@@ -72,6 +73,9 @@ export class DevelopmentProcessDriver {
       port: number,
     ): void => {
       this.value = frameworkServerArguments(framework, port);
+    },
+    activateHostUrl: (hostUrl: string, controlPort: number): void => {
+      this.value = withDevSessionPort(hostUrl, controlPort);
     },
   };
 

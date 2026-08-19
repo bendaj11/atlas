@@ -15,7 +15,6 @@ interface LocalDevelopmentCase {
   remotePort: number;
   controlPort: number;
 }
-
 const cases: LocalDevelopmentCase[] = [
   {
     app: "dashboard-react",
@@ -44,6 +43,7 @@ test.describe("atlas dev", () => {
         const remoteEntryRequest = waitForRemoteEntry(page, scenario.remotePort);
         await page.goto(hostActivationUrl(scenario));
         await remoteEntryRequest;
+        await expect(page).not.toHaveURL(/atlas-dev-port/);
         await expect(page.getByRole("heading", { name: scenario.heading })).toBeVisible({
           timeout: APP_MOUNT_TIMEOUT
         });

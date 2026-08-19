@@ -193,6 +193,8 @@ function validatedBaseUrl(value: string): string {
 
   if (url.protocol !== 'http:' && url.protocol !== 'https:')
     throw new Error('Base URL must be absolute HTTP URL.');
+  if (!isLoopbackHost(url.hostname))
+    throw new Error('Base URL must use localhost, 127.0.0.1, or [::1].');
   if (url.username || url.password)
     throw new Error('Base URL must not include credentials.');
   if (url.search || url.hash)
@@ -201,6 +203,12 @@ function validatedBaseUrl(value: string): string {
     );
 
   return url.href.replace(/\/$/u, '');
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  return (
+    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  );
 }
 
 function versionKeyOrEmpty(manifest: Manifest | undefined): string {

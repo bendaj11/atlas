@@ -1,4 +1,5 @@
 import type { Server } from 'node:http';
+import { readFile } from 'node:fs/promises';
 import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
 import type { AtlasHostConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
@@ -125,7 +126,7 @@ export class AtlasDevService {
     );
     const frameworkServer = this.workspace.spawn(
       project,
-      this.frameworkDevTask(),
+      await this.frameworkDevTask(project),
       frameworkServerArguments(config.framework, clientPort),
     );
     const usesLocalBootstrap = configuredHostUrl === undefined;
@@ -161,7 +162,7 @@ export class AtlasDevService {
         : undefined;
       await control.markReady();
       const hostActivationUrl = withDevSessionPort(hostUrl, controlPort);
-      logHostViewUrl(hostActivationUrl);
+      logHostViewUrl(hostUrl);
       openBrowserWhenReady(this.args, hostActivationUrl);
       await waitForShutdown(frameworkServer, control);
     } finally {
@@ -206,13 +207,13 @@ export class AtlasDevService {
     );
     const frameworkServer = this.workspace.spawn(
       project,
-      this.frameworkDevTask(),
+      await this.frameworkDevTask(project),
       frameworkServerArguments(config.framework, remotePort),
     );
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
-      logHostViewUrl(hostActivationUrl);
+      logHostViewUrl(target.hostUrl);
       openBrowserWhenReady(this.args, hostActivationUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');
@@ -222,8 +223,14 @@ export class AtlasDevService {
     await waitForShutdown(frameworkServer, control);
   }
 
-  private frameworkDevTask(): 'dev' | 'serve' {
-    return this.workspace.kind === 'nx' ? 'serve' : 'dev';
+  private async frameworkDevTask(
+    project: AtlasProject,
+  ): Promise<'dev' | 'framework:dev' | 'serve'> {
+    if (this.workspace.kind === 'nx') return 'serve';
+    const packageJson = JSON.parse(
+      await readFile(`${project.root}/package.json`, 'utf8'),
+    ) as { scripts?: Record<string, string> };
+    return packageJson.scripts?.['framework:dev'] ? 'framework:dev' : 'dev';
   }
 
   private async resolveRemotePort(

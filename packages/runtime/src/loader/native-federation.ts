@@ -6,7 +6,7 @@ import { mapWithConcurrency } from "../concurrency.js";
 import { runtimeError } from "../runtime-error.js";
 
 export interface AtlasFederationAdapter {
-  initFederation(remotes: Record<string, string>, options?: { deployUrl?: string }): Promise<unknown>;
+  initFederation(remotes: Record<string, string>, options?: { deployUrl?: string; sse?: boolean }): Promise<unknown>;
   loadRemoteModule(remoteName: string, exposedModule: string): Promise<unknown>;
 }
 
@@ -28,36 +28,36 @@ export function createNativeFederationImporters(
   const initializationErrors = new Map<string, Error>();
   const initializationTasks = new Map<string, Promise<void>>();
 
-  const initializeRemote = (appId: string, remoteEntryUrl: string): Promise<void> => {
-    const existing = initializationTasks.get(appId);
+  const initializeRemote = (remote: FederationRemote): Promise<void> => {
+    const existing = initializationTasks.get(remote.id);
     if (existing) return existing;
-    const remoteName = federationRemoteName(appId);
-    remoteNames.set(appId, remoteName);
+    const remoteName = federationRemoteName(remote.id);
+    remoteNames.set(remote.id, remoteName);
     const task = runResiliently(
       () => runtime.initFederation(
-        { [remoteName]: remoteEntryUrl },
-        hostRemoteEntryUrl ? { deployUrl: artifactDirectoryUrl(hostRemoteEntryUrl) } : undefined
+        { [remoteName]: remote.remoteEntryUrl },
+        federationOptions(remote, hostRemoteEntryUrl)
       ).then(() => undefined),
-      { stage: "federation-init", resource: remoteEntryUrl, appId },
+      { stage: "federation-init", resource: remote.remoteEntryUrl, appId: remote.id },
       requestPolicy
     ).catch((error) => {
       const normalized = toError(error);
-      initializationErrors.set(appId, normalized);
+      initializationErrors.set(remote.id, normalized);
       throw normalized;
     });
-    initializationTasks.set(appId, task);
+    initializationTasks.set(remote.id, task);
     return task;
   };
 
   return {
     async initialize(manifests) {
       await mapWithConcurrency(manifests, async (manifest) => {
-        try { await initializeRemote(manifest.id, manifest.remoteEntryUrl); }
+        try { await initializeRemote(manifest); }
         catch { return; }
       });
     },
     async importRemote(manifest) {
-      if (!remoteNames.has(manifest.id)) await initializeRemote(manifest.id, manifest.remoteEntryUrl);
+      if (!remoteNames.has(manifest.id)) await initializeRemote(manifest);
       const initializationError = initializationErrors.get(manifest.id);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
@@ -67,8 +67,9 @@ export function createNativeFederationImporters(
       );
       return normalizeAppEntry(entry, manifest.id);
     },
-    async importWidget(widget) {
-      if (!remoteNames.has(widget.ownerAppId)) await initializeRemote(widget.ownerAppId, widget.remoteEntryUrl);
+    async importWidget(widget, ownerManifest) {
+      const remote = ownerManifest ?? remoteFromWidget(widget);
+      if (!remoteNames.has(widget.ownerAppId)) await initializeRemote(remote);
       const initializationError = initializationErrors.get(widget.ownerAppId);
       if (initializationError) throw initializationError;
       const entry = await runResiliently(
@@ -79,6 +80,37 @@ export function createNativeFederationImporters(
       return normalizeWidgetEntry(entry, `${widget.ownerAppId}/${widget.id}`);
     }
   };
+}
+
+type FederationRemote = Pick<AtlasManifest, "id" | "remoteEntryUrl" | "channel">;
+
+function federationOptions(
+  manifest: FederationRemote,
+  hostRemoteEntryUrl?: string
+): { deployUrl?: string; sse?: boolean } | undefined {
+  const deployUrl = hostRemoteEntryUrl
+    ? artifactDirectoryUrl(hostRemoteEntryUrl)
+    : undefined;
+  return deployUrl || manifest.channel === "local"
+    ? { ...(deployUrl ? { deployUrl } : {}), ...(manifest.channel === "local" ? { sse: true } : {}) }
+    : undefined;
+}
+
+function remoteFromWidget(widget: AtlasExportedWidgetManifest): FederationRemote {
+  return {
+    id: widget.ownerAppId,
+    remoteEntryUrl: widget.remoteEntryUrl,
+    channel: isLoopbackUrl(widget.remoteEntryUrl) ? "local" : "production"
+  };
+}
+
+function isLoopbackUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname;
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+  } catch {
+    return false;
+  }
 }
 
 /** Initializes only trusted remotes and reports rejected manifests through normal app fallback UI. */
@@ -135,7 +167,7 @@ export async function createTrustedNativeFederationImporters(
         });
       }
       await ensureTrusted(manifest);
-      return importers.importWidget(widget);
+      return importers.importWidget(widget, manifest);
     }
   };
 }

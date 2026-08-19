@@ -1,6 +1,7 @@
 import {
   createOverrideDocument,
   reloadHostTab,
+  validateLocalOverride,
   writeDisabledOverrides,
   writeOverrides,
   writeSuppressedArtifactIds,
@@ -10,6 +11,11 @@ import type { ExtensionSession } from '../../types/app.js';
 export async function persistOverrideSession(
   session: ExtensionSession,
 ): Promise<void> {
+  await Promise.all(
+    [...session.activeOverrides.values()].map((manifest) =>
+      validateLocalOverride({ tabId: session.tabId, manifest }),
+    ),
+  );
   const disabledArtifactIds = disabledOverrideIds(session);
   const documentValue = createOverrideDocument({
     hostData: session.hostData,

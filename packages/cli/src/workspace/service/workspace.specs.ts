@@ -91,17 +91,15 @@ describe('workspace', () => {
     });
   });
 
-  it('should create filtered command when Turbo task is requested', async () => {
+  it('should bypass Turbo when its development task is requested', async () => {
     await driver.when.createCommand('turbo-task');
 
     expect(driver.get.value()).toStrictEqual({
       args: [
-        'exec',
-        'turbo',
+        '--filter',
+        '@scope/{project}',
         'run',
         'dev',
-        '--filter=@scope/{project}',
-        '--',
         '--port',
         '4201',
       ],

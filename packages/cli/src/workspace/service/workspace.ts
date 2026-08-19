@@ -607,7 +607,10 @@ export function createTaskCommand(
       `${project.id}:${task}`,
       ...args,
     ]);
-  if (kind === 'turbo' && !['atlas:config', 'dev', 'serve'].includes(task))
+  if (
+    kind === 'turbo' &&
+    !['atlas:config', 'dev', 'framework:dev', 'serve'].includes(task)
+  )
     return turboTask(manager, root, project, task, args);
   if (kind === 'workspace' || kind === 'turbo')
     return workspaceTask(manager, root, project, task, args);

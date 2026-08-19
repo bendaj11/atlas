@@ -32,7 +32,7 @@ export interface AtlasBrowserOverrideOptions {
   hostId: string;
   search?: string;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
-  sessionStorage?: Pick<Storage, 'getItem'>;
+  sessionStorage?: Pick<Storage, 'getItem'> & Partial<Pick<Storage, 'setItem'>>;
   fetchJson?: FetchJson;
   requestPolicy?: AtlasRetryPolicy;
 }
@@ -143,22 +143,30 @@ export async function loadBrowserRuntimeOverrides(
   const search = options.search ?? globalThis.location?.search ?? '';
   const storage = globalThis.localStorage;
   const sessionStorage = options.sessionStorage ?? globalThis.sessionStorage;
-  const storedDocument =
-    sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
-    storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
-    undefined;
-  let source = ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
-  let document: unknown;
-  if (storedDocument) {
-    document = parseOverrideDocument(storedDocument);
-  } else if (hasDevSessionPort(search)) {
-    source = localDevSessionUrl(options.hostId, search);
-    document = await (options.fetchJson ?? defaultFetchJson)(source);
-  } else {
-    return [];
-  }
+  const devSessionUrl = hasDevSessionPort(search)
+    ? localDevSessionUrl(options.hostId, search)
+    : undefined;
+  const storedDocument = devSessionUrl
+    ? undefined
+    : (sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
+      storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
+      undefined);
+  const source = devSessionUrl ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
+  const document = devSessionUrl
+    ? await (options.fetchJson ?? defaultFetchJson)(devSessionUrl)
+    : storedDocument
+      ? parseOverrideDocument(storedDocument)
+      : undefined;
+  if (!document) return [];
   validateOverrideShape(document);
   validateOverrideDocument(document, options.hostId, source);
+  if (devSessionUrl) {
+    sessionStorage?.setItem?.(
+      ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
+      JSON.stringify(document),
+    );
+    removeDevSessionPortFromAddressBar();
+  }
   return document.overrides;
 }
 
@@ -179,6 +187,14 @@ function localDevSessionUrl(hostId: string, search: string): string {
 function isValidPort(value: string): boolean {
   const port = Number(value);
   return Number.isInteger(port) && port > 0 && port <= 65_535;
+}
+
+function removeDevSessionPortFromAddressBar(): void {
+  const location = globalThis.location;
+  if (!location || !globalThis.history) return;
+  const url = new URL(location.href);
+  url.searchParams.delete(ATLAS_DEV_SESSION_PORT_QUERY_PARAM);
+  globalThis.history.replaceState(globalThis.history.state, '', url.href);
 }
 
 export function resolveRuntimeManifests(
