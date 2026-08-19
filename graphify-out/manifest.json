@@ -970,8 +970,8 @@
     "semantic_hash": "d33204e4887e022542a40ba531c9a6b6"
   },
   "tests/e2e/extension.specs.ts": {
-    "mtime": 1787148275.2620354,
-    "ast_hash": "c4c0528ae27e9e5600ed21f6ad5d3958",
+    "mtime": 1787148634.522713,
+    "ast_hash": "2bdafeede9f040e5909a817a8fbe3fbf",
     "semantic_hash": ""
   },
   "tests/e2e/local-development.driver.ts": {
@@ -980,8 +980,8 @@
     "semantic_hash": "02582b05d88be280622599cb34ef3fd6"
   },
   "tests/e2e/local-development.specs.ts": {
-    "mtime": 1787147328.0624557,
-    "ast_hash": "7cbe2589513b0f032f82e16e00d2615f",
+    "mtime": 1787148634.6068096,
+    "ast_hash": "73b2204add0a5618ea4247fe471bf54c",
     "semantic_hash": ""
   },
   "tsconfig.json": {

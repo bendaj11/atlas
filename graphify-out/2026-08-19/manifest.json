@@ -450,8 +450,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/loader/native-federation.ts": {
-    "mtime": 1787147580.8552403,
-    "ast_hash": "f275f9e9272c5f1baf7585a5da73ed78",
+    "mtime": 1787148510.0242822,
+    "ast_hash": "c62e4e8b0077cccd9e4c5f810a59e52a",
     "semantic_hash": ""
   },
   "packages/runtime/src/loader/runtime-discovery.ts": {
