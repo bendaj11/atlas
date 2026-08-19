@@ -455,8 +455,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/loader/runtime-discovery.ts": {
-    "mtime": 1787151786.9691145,
-    "ast_hash": "fe7dcb967c76529aa24704d09ec45b20",
+    "mtime": 1787155085.7236166,
+    "ast_hash": "e8eef22bafea4fd506ff9402aa93ac03",
     "semantic_hash": ""
   },
   "packages/runtime/src/observability.ts": {
@@ -490,8 +490,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/tests/loader.specs.ts": {
-    "mtime": 1787154701.960526,
-    "ast_hash": "fd45b47cc40bb4d42e0ea2d36bf4a5ed",
+    "mtime": 1787155113.6404476,
+    "ast_hash": "b4e70df7bf1f4d8ad76fc86ab393f1e7",
     "semantic_hash": ""
   },
   "packages/runtime/tsconfig.json": {
@@ -960,9 +960,9 @@
     "semantic_hash": "0cae7a28a4eb9ce86958eaf4f6cd6f43"
   },
   "tests/e2e/deployment.specs.ts": {
-    "mtime": 1786461200.6861446,
-    "ast_hash": "89092b645b1d65427f07753bc0cdf7bf",
-    "semantic_hash": "89092b645b1d65427f07753bc0cdf7bf"
+    "mtime": 1787154993.078835,
+    "ast_hash": "d3c1b2f23e9581b20dfa7ec58015c866",
+    "semantic_hash": ""
   },
   "tests/e2e/extension.driver.ts": {
     "mtime": 1787154819.324335,
@@ -2155,8 +2155,8 @@
     "semantic_hash": ""
   },
   "packages/bootstrap/src/fetch-json/fetch-json.driver.ts": {
-    "mtime": 1787152486.5382757,
-    "ast_hash": "93c1eac948cd05cb37f619082c247377",
+    "mtime": 1787155148.7648308,
+    "ast_hash": "aac9f953be68170d61a6ac7af5301610",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/fetch-json/fetch-json.specs.ts": {
@@ -2165,8 +2165,8 @@
     "semantic_hash": ""
   },
   "packages/bootstrap/src/fetch-json/fetch-json.ts": {
-    "mtime": 1787152068.7676094,
-    "ast_hash": "3cf5a7ca5d72ee35b7202e2278bc0203",
+    "mtime": 1787155056.5488667,
+    "ast_hash": "39faf1f85a071f570b70c34032b9fe92",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/host-loader/host-loader.driver.ts": {
@@ -2210,8 +2210,8 @@
     "semantic_hash": ""
   },
   "packages/bootstrap/src/overrides/overrides.ts": {
-    "mtime": 1787152937.2016008,
-    "ast_hash": "9e224ba4b1b15c0bf9fb497d118538f1",
+    "mtime": 1787155047.0431867,
+    "ast_hash": "08c4b01f5946cb09cb2f548f4005c13b",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/test-utils/faker.ts": {
