@@ -9679,8 +9679,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_dependencies_angular_animations",
-      "community": 162,
-      "community_name": "ArtifactConfigurationPage.tsx",
+      "community": 103,
+      "community_name": "dependencies",
       "norm_label": "@angular/animations"
     },
     {
@@ -9690,8 +9690,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_json_angular_animations",
-      "community": 162,
-      "community_name": "ArtifactConfigurationPage.tsx",
+      "community": 103,
+      "community_name": "dependencies",
       "norm_label": "@angular/animations"
     },
     {
@@ -9811,8 +9811,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_dependencies_angular_architects_native_federation",
-      "community": 103,
-      "community_name": "dependencies",
+      "community": 178,
+      "community_name": "@angular-architects/native-federation",
       "norm_label": "@angular-architects/native-federation"
     },
     {
@@ -9822,8 +9822,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "examples_hosts_demo_angular_host_package_json_angular_architects_native_federation",
-      "community": 103,
-      "community_name": "dependencies",
+      "community": 178,
+      "community_name": "@angular-architects/native-federation",
       "norm_label": "@angular-architects/native-federation"
     },
     {
@@ -15278,8 +15278,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "packages_cli_src_cli_arguments_cliarguments_channel",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": ".channel()"
     },
     {
@@ -34220,8 +34220,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_artifact_manifest_base",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "atlas-artifact-manifest-base.ts"
     },
     {
@@ -34275,8 +34275,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_config_atlasappconfig",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "atlasappconfig"
     },
     {
@@ -34297,8 +34297,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_config_atlasroutemount",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlasroutemount"
     },
     {
@@ -34605,8 +34605,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_placement_kind",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlas-placement-kind.ts"
     },
     {
@@ -34616,8 +34616,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_placement_kind_atlasplacementkind",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlasplacementkind"
     },
     {
@@ -34627,8 +34627,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_placement",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlas-placement.ts"
     },
     {
@@ -34671,8 +34671,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_route_contribution",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlas-route-contribution.ts"
     },
     {
@@ -34682,8 +34682,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_route_contribution_atlasroutecontribution",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlasroutecontribution"
     },
     {
@@ -34693,8 +34693,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_route_navigation",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlas-route-navigation.ts"
     },
     {
@@ -34704,8 +34704,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_route_navigation_atlasroutenavigation",
-      "community": 296,
-      "community_name": "atlas-placement.ts",
+      "community": 182,
+      "community_name": "react-router.ts",
       "norm_label": "atlasroutenavigation"
     },
     {
@@ -34737,8 +34737,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_stylesheet",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "atlas-stylesheet.ts"
     },
     {
@@ -34748,8 +34748,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_stylesheet_atlasstylesheet",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "atlasstylesheet"
     },
     {
@@ -34825,8 +34825,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_version_channel",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "atlas-version-channel.ts"
     },
     {
@@ -34836,8 +34836,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "packages_schema_src_atlas_version_channel_atlasversionchannel",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "atlasversionchannel"
     },
     {
@@ -34880,8 +34880,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_schema_src_create_manifest_from_config_input",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "create-manifest-from-config-input.ts"
     },
     {
@@ -34891,8 +34891,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "packages_schema_src_create_manifest_from_config_input_createmanifestfromconfiginput",
-      "community": 182,
-      "community_name": "react-router.ts",
+      "community": 294,
+      "community_name": "prepare-release.specs.ts",
       "norm_label": "createmanifestfromconfiginput"
     },
     {
@@ -36838,8 +36838,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "packages_sdk_package_exports_federation_config",
-      "community": 87,
-      "community_name": "exports",
+      "community": 168,
+      "community_name": "./federation-config",
       "norm_label": "./federation-config"
     },
     {
@@ -36849,8 +36849,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "packages_sdk_package_federation_config_types",
-      "community": 87,
-      "community_name": "exports",
+      "community": 168,
+      "community_name": "./federation-config",
       "norm_label": "types"
     },
     {
@@ -36860,8 +36860,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "packages_sdk_package_federation_config_import",
-      "community": 87,
-      "community_name": "exports",
+      "community": 168,
+      "community_name": "./federation-config",
       "norm_label": "import"
     },
     {
@@ -36871,8 +36871,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "packages_sdk_package_federation_config_require",
-      "community": 87,
-      "community_name": "exports",
+      "community": 168,
+      "community_name": "./federation-config",
       "norm_label": "require"
     },
     {
@@ -36882,8 +36882,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "packages_sdk_package_exports_angular",
-      "community": 316,
-      "community_name": "./angular",
+      "community": 87,
+      "community_name": "exports",
       "norm_label": "./angular"
     },
     {
@@ -36893,8 +36893,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "packages_sdk_package_angular_types",
-      "community": 316,
-      "community_name": "./angular",
+      "community": 87,
+      "community_name": "exports",
       "norm_label": "types"
     },
     {
@@ -36904,8 +36904,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "packages_sdk_package_angular_default",
-      "community": 316,
-      "community_name": "./angular",
+      "community": 87,
+      "community_name": "exports",
       "norm_label": "default"
     },
     {
@@ -39775,8 +39775,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "packages_sdk_src_react_app_renderwithatlasproviders",
-      "community": 92,
-      "community_name": "loader.driver.ts",
+      "community": 244,
+      "community_name": "@testing-library/user-event",
       "norm_label": "renderwithatlasproviders()"
     },
     {
@@ -39841,8 +39841,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "packages_sdk_src_react_context_atlassdkprovider",
-      "community": 92,
-      "community_name": "loader.driver.ts",
+      "community": 244,
+      "community_name": "@testing-library/user-event",
       "norm_label": "atlassdkprovider()"
     },
     {
@@ -40039,8 +40039,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "packages_sdk_src_react_widget_reactgetwidgetoptions",
-      "community": 4,
-      "community_name": "workspace.ts",
+      "community": 92,
+      "community_name": "loader.driver.ts",
       "norm_label": "reactgetwidgetoptions"
     },
     {
@@ -40094,8 +40094,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_sdk_src_react",
-      "community": 4,
-      "community_name": "workspace.ts",
+      "community": 92,
+      "community_name": "loader.driver.ts",
       "norm_label": "react.ts"
     },
     {
@@ -40281,8 +40281,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "packages_sdk_src_sdk_factory_getatlasnavigation",
-      "community": 4,
-      "community_name": "workspace.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "getatlasnavigation()"
     },
     {
@@ -40545,8 +40545,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "packages_sdk_src_sdk_types_atlassdkoptions",
-      "community": 26,
-      "community_name": "ArtifactsOverridesTable.tsx",
+      "community": 4,
+      "community_name": "workspace.ts",
       "norm_label": "atlassdkoptions"
     },
     {
@@ -44227,7 +44227,7 @@
       "label": "builtExtensionPath",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L20",
+      "source_location": "L9",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_builtextensionpath",
       "community": 79,
@@ -44238,7 +44238,7 @@
       "label": "liveSourcePath",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L25",
+      "source_location": "L14",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_livesourcepath",
       "community": 79,
@@ -44249,7 +44249,7 @@
       "label": "ExtensionSession",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L26",
+      "source_location": "L15",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_extensionsession",
       "community": 79,
@@ -44260,7 +44260,7 @@
       "label": "badgeText()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L260",
+      "source_location": "L214",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_badgetext",
       "community": 79,
@@ -44271,7 +44271,7 @@
       "label": "waitForBadgeText()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L274",
+      "source_location": "L221",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_waitforbadgetext",
       "community": 79,
@@ -44282,7 +44282,7 @@
       "label": "launchExtension()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L288",
+      "source_location": "L235",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_launchextension",
       "community": 79,
@@ -44293,7 +44293,7 @@
       "label": "openPopup()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L312",
+      "source_location": "L248",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_openpopup",
       "community": 79,
@@ -44304,7 +44304,7 @@
       "label": "openPopupDocument()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L318",
+      "source_location": "L254",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_openpopupdocument",
       "community": 79,
@@ -44315,7 +44315,7 @@
       "label": "createTestExtension()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L334",
+      "source_location": "L265",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_createtestextension",
       "community": 79,
@@ -44326,7 +44326,7 @@
       "label": "saveAndWaitForReload()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L344",
+      "source_location": "L273",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_saveandwaitforreload",
       "community": 79,
@@ -44337,7 +44337,7 @@
       "label": "editApp()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L351",
+      "source_location": "L280",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_editapp",
       "community": 79,
@@ -44348,7 +44348,7 @@
       "label": "selectActiveDropdown()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L359",
+      "source_location": "L284",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_selectactivedropdown",
       "community": 79,
@@ -44359,7 +44359,7 @@
       "label": "storedVersion()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L372",
+      "source_location": "L293",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_storedversion",
       "community": 79,
@@ -44370,7 +44370,7 @@
       "label": "storedReason()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L379",
+      "source_location": "L297",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_storedreason",
       "community": 79,
@@ -44381,7 +44381,7 @@
       "label": "overrideCount()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L383",
+      "source_location": "L301",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_overridecount",
       "community": 79,
@@ -44392,7 +44392,7 @@
       "label": "storedRemoteEntry()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L393",
+      "source_location": "L308",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_storedremoteentry",
       "community": 79,
@@ -44403,7 +44403,7 @@
       "label": "startLiveApp()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L401",
+      "source_location": "L312",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_startliveapp",
       "community": 79,
@@ -44414,7 +44414,7 @@
       "label": "waitForLiveApp()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L420",
+      "source_location": "L331",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_waitforliveapp",
       "community": 79,
@@ -44425,7 +44425,7 @@
       "label": "stopLiveApp()",
       "file_type": "code",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L444",
+      "source_location": "L348",
       "_origin": "ast",
       "id": "tests_e2e_extension_specs_stopliveapp",
       "community": 79,
@@ -46793,8 +46793,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "contributing",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "contributing.md"
     },
     {
@@ -46881,8 +46881,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "readme.md"
     },
     {
@@ -46892,8 +46892,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme_atlas",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 162,
+      "community_name": "ArtifactConfigurationPage.tsx",
       "norm_label": "atlas"
     },
     {
@@ -46903,8 +46903,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "readme_start_here",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 162,
+      "community_name": "ArtifactConfigurationPage.tsx",
       "norm_label": "start here"
     },
     {
@@ -46914,8 +46914,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "readme_how_atlas_fits_together",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 162,
+      "community_name": "ArtifactConfigurationPage.tsx",
       "norm_label": "how atlas fits together"
     },
     {
@@ -46925,8 +46925,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "readme_first_local_system",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 162,
+      "community_name": "ArtifactConfigurationPage.tsx",
       "norm_label": "first local system"
     },
     {
@@ -46936,8 +46936,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "readme_packages",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 162,
+      "community_name": "ArtifactConfigurationPage.tsx",
       "norm_label": "packages"
     },
     {
@@ -46947,8 +46947,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "readme_contributing",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 162,
+      "community_name": "ArtifactConfigurationPage.tsx",
       "norm_label": "contributing"
     },
     {
@@ -47442,8 +47442,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_angular_getting_started_angular_project_guide",
-      "community": 157,
-      "community_name": "Exported Widgets",
+      "community": 126,
+      "community_name": "types.ts",
       "norm_label": "angular project guide"
     },
     {
@@ -47453,8 +47453,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "docs_angular_getting_started_choose_your_role",
-      "community": 157,
-      "community_name": "Exported Widgets",
+      "community": 126,
+      "community_name": "types.ts",
       "norm_label": "choose your role"
     },
     {
@@ -47464,8 +47464,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "docs_angular_getting_started_host_files",
-      "community": 157,
-      "community_name": "Exported Widgets",
+      "community": 126,
+      "community_name": "types.ts",
       "norm_label": "host files"
     },
     {
@@ -47475,8 +47475,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "docs_angular_getting_started_app_files",
-      "community": 157,
-      "community_name": "Exported Widgets",
+      "community": 126,
+      "community_name": "types.ts",
       "norm_label": "app files"
     },
     {
@@ -47486,8 +47486,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "docs_angular_getting_started_task_guides",
-      "community": 157,
-      "community_name": "Exported Widgets",
+      "community": 126,
+      "community_name": "types.ts",
       "norm_label": "task guides"
     },
     {
@@ -48212,8 +48212,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_architecture",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "architecture.md"
     },
     {
@@ -48355,8 +48355,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_bootstrap",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "bootstrap.md"
     },
     {
@@ -48630,8 +48630,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_documentation_guide",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "documentation-guide.md"
     },
     {
@@ -49103,8 +49103,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_local_development",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "local-development.md"
     },
     {
@@ -49301,8 +49301,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_overview",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "overview.md"
     },
     {
@@ -49312,8 +49312,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_overview_atlas_overview",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "atlas overview"
     },
     {
@@ -49323,8 +49323,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "docs_overview_vocabulary",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "vocabulary"
     },
     {
@@ -49334,8 +49334,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "docs_overview_mental_model",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "mental model"
     },
     {
@@ -49345,8 +49345,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "docs_overview_host_domain",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "host domain"
     },
     {
@@ -49356,8 +49356,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "docs_overview_app_domain",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "app domain"
     },
     {
@@ -49367,8 +49367,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "docs_overview_deployment_domain",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "deployment domain"
     },
     {
@@ -49378,8 +49378,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "docs_overview_learn_next",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 157,
+      "community_name": "Exported Widgets",
       "norm_label": "learn next"
     },
     {
@@ -50313,8 +50313,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_react_getting_started_react_project_guide",
-      "community": 180,
-      "community_name": "event-bus.ts",
+      "community": 118,
+      "community_name": "bootstrap",
       "norm_label": "react project guide"
     },
     {
@@ -50324,8 +50324,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "docs_react_getting_started_choose_your_role",
-      "community": 180,
-      "community_name": "event-bus.ts",
+      "community": 118,
+      "community_name": "bootstrap",
       "norm_label": "choose your role"
     },
     {
@@ -50335,8 +50335,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "docs_react_getting_started_host_files",
-      "community": 180,
-      "community_name": "event-bus.ts",
+      "community": 118,
+      "community_name": "bootstrap",
       "norm_label": "host files"
     },
     {
@@ -50346,8 +50346,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "docs_react_getting_started_app_files",
-      "community": 180,
-      "community_name": "event-bus.ts",
+      "community": 118,
+      "community_name": "bootstrap",
       "norm_label": "app files"
     },
     {
@@ -50357,8 +50357,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "docs_react_getting_started_task_guides",
-      "community": 180,
-      "community_name": "event-bus.ts",
+      "community": 118,
+      "community_name": "bootstrap",
       "norm_label": "task guides"
     },
     {
@@ -51072,8 +51072,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_releasing",
-      "community": 240,
-      "community_name": "WidgetRetryDriver",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "releasing.md"
     },
     {
@@ -51303,8 +51303,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_security",
-      "community": 133,
-      "community_name": "Architecture",
+      "community": 18,
+      "community_name": "README.md",
       "norm_label": "security.md"
     },
     {
@@ -51413,8 +51413,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_testing",
-      "community": 18,
-      "community_name": "README.md",
+      "community": 197,
+      "community_name": "Angular Troubleshooting",
       "norm_label": "testing.md"
     },
     {
@@ -145639,7 +145639,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L13",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145651,7 +145651,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L13",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145663,7 +145663,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L13",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145675,7 +145675,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L387",
+      "source_location": "L302",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_overridecount",
@@ -145687,7 +145687,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L380",
+      "source_location": "L298",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_storedreason",
@@ -145699,7 +145699,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L397",
+      "source_location": "L309",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_storedremoteentry",
@@ -145711,7 +145711,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L376",
+      "source_location": "L294",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_storedversion",
@@ -145735,7 +145735,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L13",
+      "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145747,7 +145747,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L340",
+      "source_location": "L269",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_createtestextension",
@@ -145758,7 +145758,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L260",
+      "source_location": "L214",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145769,7 +145769,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L20",
+      "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145780,7 +145780,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L334",
+      "source_location": "L265",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145791,7 +145791,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L351",
+      "source_location": "L280",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145802,7 +145802,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L26",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145813,7 +145813,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L288",
+      "source_location": "L235",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145824,7 +145824,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L25",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145835,7 +145835,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L312",
+      "source_location": "L248",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145846,7 +145846,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L318",
+      "source_location": "L254",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145857,7 +145857,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L383",
+      "source_location": "L301",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145868,7 +145868,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L344",
+      "source_location": "L273",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145879,7 +145879,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L359",
+      "source_location": "L284",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145890,7 +145890,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L401",
+      "source_location": "L312",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145901,7 +145901,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L444",
+      "source_location": "L348",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145912,7 +145912,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L379",
+      "source_location": "L297",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145923,7 +145923,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L393",
+      "source_location": "L308",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145934,7 +145934,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L372",
+      "source_location": "L293",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145945,7 +145945,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L274",
+      "source_location": "L221",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145956,7 +145956,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L420",
+      "source_location": "L331",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145968,7 +145968,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L18",
+      "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145980,7 +145980,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L18",
+      "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs",
@@ -145992,7 +145992,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L281",
+      "source_location": "L228",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_waitforbadgetext",
@@ -146004,7 +146004,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L283",
+      "source_location": "L230",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_waitforbadgetext",
@@ -146016,7 +146016,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L289",
+      "source_location": "L236",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_launchextension",
@@ -146028,7 +146028,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L313",
+      "source_location": "L249",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_openpopup",
@@ -146040,7 +146040,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L438",
+      "source_location": "L342",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_waitforliveapp",
@@ -146052,7 +146052,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "tests/e2e/extension.specs.ts",
-      "source_location": "L451",
+      "source_location": "L355",
       "weight": 1.0,
       "_origin": "ast",
       "source": "tests_e2e_extension_specs_stopliveapp",
