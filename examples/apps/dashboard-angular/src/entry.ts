@@ -1,5 +1,5 @@
 import 'zone.js';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { createApplication } from '@angular/platform-browser';
 import { createComponent } from '@angular/core';
 import {
@@ -16,7 +16,7 @@ import {
   standalone: true,
   imports: [WidgetOutlet],
   template: `
-    <h1>Dashboard Angular</h1>
+    <h1>{{ heading() }}</h1>
     <p>Mounted at {{ context.path }}</p>
     <section
       aria-label="External React product count"
@@ -29,6 +29,7 @@ import {
   `,
 })
 class AtlasAppRootComponent {
+  readonly heading = signal('Dashboard Angular');
   readonly context = injectAtlasAppContext();
   private readonly sdk = injectAtlasSdk();
   readonly externalProductCount = this.sdk.getWidget<{

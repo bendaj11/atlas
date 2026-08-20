@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "experimentalDecorators": true,
     "paths": {
       "@atlas/schema": ["../schema/dist/index.d.ts"]
     }

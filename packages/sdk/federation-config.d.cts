@@ -28,11 +28,6 @@ declare function createReactHostViteConfig(options: any): {
             server: any;
         }): any[];
     })[];
-    server: {
-        headers: {
-            'Access-Control-Allow-Private-Network': string;
-        };
-    };
     build: {
         target: string;
         rollupOptions: {
@@ -78,11 +73,6 @@ declare function createReactAppViteConfig(options: any): {
             server: any;
         }): any[];
     })[];
-    server: {
-        headers: {
-            'Access-Control-Allow-Private-Network': string;
-        };
-    };
     build: {
         target: string;
         rollupOptions: {

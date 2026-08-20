@@ -49,7 +49,10 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     host.get('atlas.bootstrap.html'),
     /id="atlas-host-root">Loading product…<\/div>/,
   );
-  assert.match(host.get('atlas.bootstrap.html'), /src="\/atlas\.loader\.js"/);
+  assert.match(
+    host.get('atlas.bootstrap.html'),
+    /src="\/atlas\.loader\.js\?v=[a-f0-9]{12}"/,
+  );
   assert.equal(appFiles.has('atlas.bootstrap.html'), false);
   assert.match(hostBootstrap, /createBrowserRouter/);
   assert.equal(host.has('src/atlas-bootstrap.ts'), false);

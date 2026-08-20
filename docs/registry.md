@@ -20,6 +20,34 @@ hosts/<host-id>/<version>/<build-id>/<artifact files>
 
 `version` is human release identity. `build-id` is content identity. Multiple builds may share a version without overwriting each other.
 
+## What each file is for
+
+`registry.json` is the complete release record for one Atlas storage root. It
+contains every published host and app manifest plus the current production
+selection. The publisher reads and updates this file; it is the source from
+which the other mutable JSON files are generated.
+
+`apps/<app-id>/index.json` and `hosts/<host-id>/index.json` are small,
+artifact-specific views of that record. Each contains the full version history
+retained for one app or host, so Columbus can show its override choices without
+downloading and filtering the whole registry.
+
+`hosts/<host-id>/catalog.json` is the active runtime view for one host. It
+contains only the selected host manifest and selected apps placed on that host.
+The browser loads this file to start the host quickly.
+
+`hosts/<host-id>/deployments/<catalog-revision>.json` is an immutable snapshot
+of a catalog. It preserves the exact host selection for that revision; the
+unversioned `catalog.json` contains the current selection.
+
+Build directories contain immutable artifacts and their manifests. They are
+the actual files loaded by the browser, not release metadata.
+
+The index and catalog repeat some manifests on purpose: they are generated
+read views optimized for different clients. Do not edit one JSON file in
+isolation. Use `atlas publish`, rollback, or cleanup so Atlas updates
+`registry.json`, affected indexes, and catalogs consistently.
+
 ## Mutable and immutable objects
 
 Immutable:

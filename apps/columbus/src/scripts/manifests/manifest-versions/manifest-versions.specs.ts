@@ -25,4 +25,41 @@ describe('unique manifest versions', () => {
 
     expect(driver.get.channels()).toStrictEqual(['production', 'pr', 'local']);
   });
+
+  it('should sort production and PR versions newest first when dates differ', () => {
+    driver.given
+      .version({
+        channel: 'production',
+        version: '1.0.0',
+        buildId: 'production-old',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      })
+      .given.version({
+        channel: 'pr',
+        version: '1.0.0-pr.7',
+        buildId: 'pr-old',
+        prNumber: 7,
+        createdAt: '2026-01-02T00:00:00.000Z',
+      })
+      .given.version({
+        channel: 'production',
+        version: '2.0.0',
+        buildId: 'production-new',
+        createdAt: '2026-01-03T00:00:00.000Z',
+      })
+      .given.version({
+        channel: 'pr',
+        version: '1.0.0-pr.8',
+        buildId: 'pr-new',
+        prNumber: 8,
+        createdAt: '2026-01-04T00:00:00.000Z',
+      });
+
+    expect(driver.get.versionKeys()).toStrictEqual([
+      'production:2.0.0:production-new',
+      'production:1.0.0:production-old',
+      'pr:1.0.0-pr.8:pr-new',
+      'pr:1.0.0-pr.7:pr-old',
+    ]);
+  });
 });

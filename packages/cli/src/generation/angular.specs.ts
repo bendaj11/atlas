@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import { AngularGenerationDriver } from './angular.driver.js';
 import { ensureAngularNativeFederationTargets } from './angular.js';
 
 describe('ensureAngularNativeFederationTargets', () => {
@@ -35,6 +36,25 @@ describe('ensureAngularNativeFederationTargets', () => {
           enable: true,
           endpoint:
             '/@angular-architects/native-federation:build-notifications',
+        },
+      },
+    });
+  });
+
+  it('should configure local development when existing Angular project uses Nx', async () => {
+    const driver = new AngularGenerationDriver();
+    await driver.given.nxProject();
+
+    await driver.when.enableBuildNotifications();
+
+    await expect(driver.get.nxTargets()).resolves.toMatchObject({
+      serve: {
+        options: {
+          buildNotifications: {
+            enable: true,
+            endpoint:
+              '/@angular-architects/native-federation:build-notifications',
+          },
         },
       },
     });

@@ -93,6 +93,7 @@ async function compilePublishConfig(path: string): Promise<{
     declaration: false,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
+    noCheck: true,
     outDir: directory,
     rootDir: dirname(path),
     target: ts.ScriptTarget.ES2022,

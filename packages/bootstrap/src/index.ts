@@ -1,4 +1,5 @@
 import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -13,6 +14,10 @@ export const ATLAS_BROWSER_LOADER = readFileSync(
   new URL('./atlas.loader.js', import.meta.url),
   'utf8',
 );
+const VERSIONED_LOADER_SOURCE = `/atlas.loader.js?v=${createHash('sha256')
+  .update(ATLAS_BROWSER_LOADER)
+  .digest('hex')
+  .slice(0, 12)}`;
 
 export interface AtlasBootstrapOptions {
   runtime?: AtlasHostRuntimeConfig;
@@ -36,14 +41,15 @@ export interface AtlasBootstrapFile {
 export function createAtlasBootstrapFiles(
   options: AtlasBootstrapOptions,
 ): AtlasBootstrapFile[] {
-  const html =
+  const html = versionLoaderSource(
     options.html ??
-    createBootstrapHtml({
-      ...(options.title !== undefined ? { title: options.title } : {}),
-      ...(options.loadingHtml !== undefined
-        ? { loadingHtml: options.loadingHtml }
-        : {}),
-    });
+      createBootstrapHtml({
+        ...(options.title !== undefined ? { title: options.title } : {}),
+        ...(options.loadingHtml !== undefined
+          ? { loadingHtml: options.loadingHtml }
+          : {}),
+      }),
+  );
   validateBootstrapHtml(html);
   const files: AtlasBootstrapFile[] = [
     { path: 'index.html', contents: html.endsWith('\n') ? html : `${html}\n` },
@@ -81,9 +87,16 @@ export function createBootstrapHtml(
   </head>
   <body>
     <div id="atlas-host-root">${options.loadingHtml ?? DEFAULT_LOADING_HTML}</div>
-    <script type="module" src="/atlas.loader.js"></script>
+    <script type="module" src="${VERSIONED_LOADER_SOURCE}"></script>
   </body>
 </html>`;
+}
+
+function versionLoaderSource(html: string): string {
+  return html.replace(
+    /(\bsrc\s*=\s*)(["'])\/atlas\.loader\.js(?:\?[^"']*)?\2/i,
+    `$1$2${VERSIONED_LOADER_SOURCE}$2`,
+  );
 }
 
 export function validateBootstrapHtml(html: string): void {
@@ -92,7 +105,11 @@ export function validateBootstrapHtml(html: string): void {
       'Atlas bootstrap template must contain an element with id="atlas-host-root".',
     );
   }
-  if (!/<script\b[^>]*\bsrc=["']\/atlas\.loader\.js["'][^>]*>/i.test(html)) {
+  if (
+    !/<script\b[^>]*\bsrc=["']\/atlas\.loader\.js(?:\?[^"']*)?["'][^>]*>/i.test(
+      html,
+    )
+  ) {
     throw new Error(
       'Atlas bootstrap template must load /atlas.loader.js with a script element.',
     );

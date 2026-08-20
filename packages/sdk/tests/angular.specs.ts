@@ -58,7 +58,10 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     host.get('atlas.bootstrap.html'),
     /id="atlas-host-root">Loading product…<\/div>/,
   );
-  assert.match(host.get('atlas.bootstrap.html'), /src="\/atlas\.loader\.js"/);
+  assert.match(
+    host.get('atlas.bootstrap.html'),
+    /src="\/atlas\.loader\.js\?v=[a-f0-9]{12}"/,
+  );
   assert.equal(appFiles.has('atlas.bootstrap.html'), false);
   assert.match(host.get('src/main.ts'), /from "@atlas\/sdk\/federation"/);
   assert.doesNotMatch(

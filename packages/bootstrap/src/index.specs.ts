@@ -48,6 +48,14 @@ describe('bootstrap bundle', () => {
     expect(driver.get.fileContents('index.html')).toContain('atlas.loader.js');
   });
 
+  it('should version browser loader when creating default bootstrap assets', () => {
+    driver.when.createFiles();
+
+    expect(driver.get.fileContents('index.html')).toMatch(
+      /src="\/atlas\.loader\.js\?v=[a-f0-9]{12}"/,
+    );
+  });
+
   it('should include module shim when creating bootstrap assets', () => {
     driver.when.createFiles();
 
@@ -97,8 +105,8 @@ describe('bootstrap bundle', () => {
       )
       .when.createFiles();
 
-    expect(driver.get.fileContents('index.html')).toBe(
-      '<main id="atlas-host-root">Custom</main><script type="module" src="/atlas.loader.js"></script>\n',
+    expect(driver.get.fileContents('index.html')).toMatch(
+      /^<main id="atlas-host-root">Custom<\/main><script type="module" src="\/atlas\.loader\.js\?v=[a-f0-9]{12}"><\/script>\n$/,
     );
   });
 

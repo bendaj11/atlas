@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useHost, useOverrides, useSession } from '../../providers/index.js';
-import {
-  uniqueVersions,
-  versionKey,
-} from '../../../scripts/manifests/manifest-versions/manifest-versions.js';
+import { uniqueVersions } from '../../../scripts/manifests/manifest-versions/manifest-versions.js';
 import {
   createEditorDraft,
   resolveSelectedManifest,
@@ -39,6 +36,7 @@ export function useArtifactConfiguration() {
   const productionManifest = artifact?.productionManifest;
   const artifactId = artifact?.id ?? '';
   const versions = artifactId ? (hostData?.versions[artifactId] ?? []) : [];
+  const uniqueArtifactVersions = uniqueVersions(versions);
   const configuration: ArtifactConfiguration | undefined = productionManifest
     ? {
         id: artifactId,
@@ -47,15 +45,11 @@ export function useArtifactConfiguration() {
         selectedManifest:
           session?.activeOverrides.get(artifactId) ??
           session?.disabledOverrides.get(artifactId),
-        productionOptions: [
+        productionOptions: uniqueVersions([
           productionManifest,
-          ...uniqueVersions(versions).filter(
-            (manifest) =>
-              manifest.channel === 'production' &&
-              versionKey(manifest) !== versionKey(productionManifest),
-          ),
-        ],
-        prOptions: uniqueVersions(versions).filter(
+          ...uniqueArtifactVersions,
+        ]).filter((manifest) => manifest.channel === 'production'),
+        prOptions: uniqueArtifactVersions.filter(
           (manifest) => manifest.channel === 'pr',
         ),
       }

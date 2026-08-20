@@ -117,7 +117,7 @@ atlas dev orders \
   --host-url=https://customer.example/orders
 ```
 
-Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, waits for valid federation metadata, then prints and opens the preview URL unchanged. Override-enabled hosts discover the matching loopback development session by host id; Atlas does not add activation parameters to the page URL.
+Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, and waits for valid federation metadata. The console prints the clean production URL. The browser opens that URL with a transient `atlas-dev-port` activation parameter; the deployed loader stores the tab-scoped override and immediately removes the parameter from the address bar.
 
 For a local host:
 

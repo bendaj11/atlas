@@ -37,18 +37,37 @@ export async function ensureAngularBuildNotifications(
 ): Promise<void> {
   const workspaceFile = join(root, 'angular.json');
   const workspace = await readJsonFile<Record<string, unknown>>(workspaceFile);
-  if (!workspace) return;
-  const project = asObject(asObject(workspace.projects)[projectName]);
-  const targets = asObject(project.architect);
+  if (workspace) {
+    const project = asObject(asObject(workspace.projects)[projectName]);
+    if (configureAngularDevelopmentTargets(project, 'architect', 'builder')) {
+      asObject(workspace.projects)[projectName] = project;
+      await writeJsonFile(workspaceFile, workspace);
+    }
+    return;
+  }
+
+  const projectFile = join(root, 'project.json');
+  const project = await readJsonFile<Record<string, unknown>>(projectFile);
+  if (!project) return;
+  if (configureAngularDevelopmentTargets(project, 'targets', 'executor')) {
+    await writeJsonFile(projectFile, project);
+  }
+}
+
+function configureAngularDevelopmentTargets(
+  project: Record<string, unknown>,
+  targetsKey: 'architect' | 'targets',
+  runnerKey: RunnerKey,
+): boolean {
+  const targets = asObject(project[targetsKey]);
   const serve = asObject(targets.serve);
-  if (!isNativeFederationTarget(serve, 'builder')) return;
+  if (!isNativeFederationTarget(serve, runnerKey)) return false;
   const options = asObject(serve.options);
   configureAngularBuildNotifications(options);
   serve.options = options;
   targets.serve = serve;
-  project.architect = targets;
-  asObject(workspace.projects)[projectName] = project;
-  await writeJsonFile(workspaceFile, workspace);
+  project[targetsKey] = targets;
+  return true;
 }
 
 export function ensureAngularNativeFederationTargets(

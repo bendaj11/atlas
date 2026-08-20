@@ -141,7 +141,7 @@ test.describe("Atlas Columbus extension", () => {
     await expect(popup.getByRole("alert")).toContainText("Local override remote entry is unreachable");
   });
 
-  test("activates CLI preview, persists a custom local URL, and reloads after a source change", async () => {
+  test("activates CLI preview in Columbus and reloads after a source change", async () => {
     test.setTimeout(120_000);
     const originalSource = await readFile(liveSourcePath, "utf8");
     const devProcess = startLiveApp();
@@ -151,28 +151,42 @@ test.describe("Atlas Columbus extension", () => {
       const localRemoteRequest = host.waitForRequest(
         (request) => new URL(request.url()).port === String(liveRemotePort)
       );
-      await host.goto(`${hostUrl}?atlas-dev-port=${liveControlPort}`);
-      await localRemoteRequest;
-      await expect.poll(() => badgeText(session.serviceWorker, host.url())).toBe("1");
-
-      const popup = await openPopup(session, host);
-      await editApp(popup, "Dashboard React");
-      await popup.getByText("Custom URL", { exact: true }).click();
-      await popup.getByPlaceholder("http://localhost:4200").fill(`http://localhost:${liveRemotePort}`);
       const notificationsConnected = host.waitForResponse((response) =>
         response.url().endsWith("/@atlas/federation-build-notifications")
       );
-      await saveAndWaitForReload(popup, host);
+      await host.goto(`${hostUrl}?atlas-dev-port=${liveControlPort}`);
+      await localRemoteRequest;
       await notificationsConnected;
-      await expect
-        .poll(() => storedRemoteEntry(host, "sessionStorage"))
-        .toBe(`http://localhost:${liveRemotePort}/remoteEntry.json`);
+      const badge = await waitForBadgeText(session.serviceWorker, host.url(), "1");
 
-      const updatedHeading = `Dashboard React Live ${Date.now()}`;
+      const popup = await openPopup(session, host);
+      await editApp(popup, "Dashboard React");
+      const configuredUrl = await popup
+        .getByPlaceholder("http://localhost:4200")
+        .inputValue();
+      await popup.close();
+
+      const updatedHeading = "Dashboard React Reloaded";
       const reload = host.waitForEvent("load", { timeout: 30_000 });
-      await writeFile(liveSourcePath, originalSource.replace("<h1>Dashboard React</h1>", `<h1>${updatedHeading}</h1>`));
+      await writeFile(
+        liveSourcePath,
+        originalSource.replace(
+          "<h1>Dashboard React</h1>",
+          `<h1>${updatedHeading}</h1>`
+        )
+      );
       await reload;
-      await expect(host.getByRole("heading", { name: updatedHeading })).toBeVisible();
+      const updatedHeadingElement = host.getByRole("heading", {
+        name: updatedHeading
+      });
+      await updatedHeadingElement.waitFor({ state: "visible" });
+      const headingVisible = await updatedHeadingElement.isVisible();
+
+      expect({ badge, configuredUrl, headingVisible }).toEqual({
+        badge: "1",
+        configuredUrl: `http://localhost:${liveRemotePort}`,
+        headingVisible: true
+      });
     } finally {
       await writeFile(liveSourcePath, originalSource);
       await stopLiveApp(devProcess);
@@ -202,6 +216,20 @@ async function badgeText(serviceWorker: Worker, pageUrl: string): Promise<string
     const tab = (await chrome.tabs.query({})).find((candidate) => candidate.url === url);
     return tab?.id === undefined ? "" : chrome.action.getBadgeText({ tabId: tab.id });
   }, pageUrl);
+}
+
+async function waitForBadgeText(
+  serviceWorker: Worker,
+  pageUrl: string,
+  expected: string
+): Promise<string> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const value = await badgeText(serviceWorker, pageUrl);
+    if (value === expected) return value;
+    await delay(100);
+  }
+  throw new Error(`Columbus badge did not become ${expected}.`);
 }
 
 async function launchExtension(): Promise<ExtensionSession> {
@@ -288,14 +316,13 @@ function startLiveApp(): ChildProcess {
       "packages/cli/dist/cli/entrypoint.js",
       "dev",
       "dashboard-react",
-      `--host-url=${hostUrl}`,
       `--port=${liveRemotePort}`,
       `--control-port=${liveControlPort}`,
       "--no-open"
     ],
     {
       cwd: process.cwd(),
-      env: process.env,
+      env: { ...process.env, ATLAS_HOST_URL: hostUrl },
       stdio: ["ignore", "pipe", "pipe"]
     }
   );
@@ -307,7 +334,7 @@ async function waitForLiveApp(devProcess: ChildProcess): Promise<void> {
   devProcess.stderr?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
   const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
-    if (devProcess.exitCode !== null) throw new Error(`atlas dev exited before startup.\n${output.join("")}`);
+    if (devProcess.exitCode !== null || devProcess.signalCode !== null) throw new Error(`atlas dev exited before startup.\n${output.join("")}`);
     try {
       const response = await fetch(`http://localhost:${liveControlPort}/health`);
       if (response.ok) return;

@@ -150,7 +150,6 @@ function federationBuildNotificationsPlugin(projectRoot) {
         (_request, response) => {
           response.writeHead(200, {
             'access-control-allow-origin': '*',
-            'access-control-allow-private-network': 'true',
             'cache-control': 'no-cache',
             connection: 'keep-alive',
             'content-type': 'text/event-stream',
@@ -705,9 +704,6 @@ function createReactHostViteConfig(options) {
         devShared: federation.shared.map(({ devMetadata }) => devMetadata),
       }),
     ],
-    server: {
-      headers: { 'Access-Control-Allow-Private-Network': 'true' },
-    },
     build: {
       target: 'esnext',
       rollupOptions: {
@@ -780,9 +776,6 @@ function createReactAppViteConfig(options) {
         ],
       }),
     ],
-    server: {
-      headers: { 'Access-Control-Allow-Private-Network': 'true' },
-    },
     build: {
       target: 'esnext',
       rollupOptions: {

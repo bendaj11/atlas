@@ -4,6 +4,7 @@ import { verifyManifestIntegrity, type AtlasRemoteTrustPolicy } from "./runtime-
 import { runResiliently, type AtlasRetryPolicy } from "../resilience.js";
 import { mapWithConcurrency } from "../concurrency.js";
 import { runtimeError } from "../runtime-error.js";
+import { prepareAngularLocalRuntime } from "./angular-local-runtime/angular-local-runtime.js";
 
 export interface AtlasFederationAdapter {
   initFederation(remotes: Record<string, string>, options?: { deployUrl?: string }): Promise<unknown>;
@@ -31,12 +32,13 @@ export function createNativeFederationImporters(
   const initializeRemote = (remote: FederationRemote): Promise<void> => {
     const existing = initializationTasks.get(remote.id);
     if (existing) return existing;
+    prepareAngularLocalRuntime(remote);
     const remoteName = federationRemoteName(remote.id);
     remoteNames.set(remote.id, remoteName);
     const task = runResiliently(
       () => runtime.initFederation(
         { [remoteName]: remote.remoteEntryUrl },
-        federationOptions(hostRemoteEntryUrl)
+        hostRemoteEntryUrl ? { deployUrl: artifactDirectoryUrl(hostRemoteEntryUrl) } : undefined
       ).then(() => undefined),
       { stage: "federation-init", resource: remote.remoteEntryUrl, appId: remote.id },
       requestPolicy
@@ -82,17 +84,25 @@ export function createNativeFederationImporters(
   };
 }
 
-type FederationRemote = Pick<AtlasManifest, "id" | "remoteEntryUrl">;
-
-function federationOptions(hostRemoteEntryUrl?: string): { deployUrl: string } | undefined {
-  return hostRemoteEntryUrl ? { deployUrl: artifactDirectoryUrl(hostRemoteEntryUrl) } : undefined;
-}
+type FederationRemote = Pick<AtlasManifest, "id" | "remoteEntryUrl"> &
+  Partial<Pick<AtlasManifest, "channel" | "framework">>;
 
 function remoteFromWidget(widget: AtlasExportedWidgetManifest): FederationRemote {
   return {
     id: widget.ownerAppId,
-    remoteEntryUrl: widget.remoteEntryUrl
+    remoteEntryUrl: widget.remoteEntryUrl,
+    framework: widget.framework,
+    channel: isLoopbackUrl(widget.remoteEntryUrl) ? "local" : "production"
   };
+}
+
+function isLoopbackUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname;
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+  } catch {
+    return false;
+  }
 }
 
 /** Initializes only trusted remotes and reports rejected manifests through normal app fallback UI. */
@@ -155,7 +165,11 @@ export async function createTrustedNativeFederationImporters(
 }
 
 async function fetchRemoteBytes(url: string, signal: AbortSignal): Promise<ArrayBuffer> {
-  const response = await fetch(url, { signal });
+  const request = {
+    signal,
+    ...(isLoopbackUrl(url) ? { targetAddressSpace: "loopback" as const } : {})
+  } as RequestInit & { targetAddressSpace?: "loopback" };
+  const response = await fetch(url, request);
   if (!response.ok) {
     throw runtimeError(`Atlas could not download remote entry "${url}": HTTP ${response.status}.`, {
       suggestedActions: "Deploy the remote entry at the manifest URL and verify the host can fetch it through CORS, then retry.",
