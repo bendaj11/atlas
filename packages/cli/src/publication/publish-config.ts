@@ -1,6 +1,5 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { CliArguments } from '../cli/arguments.js';
@@ -48,26 +47,37 @@ export function defineAtlasPublishConfig(
 
 export async function loadAtlasPublishConfig(
   args: CliArguments,
+  workingDirectory = process.cwd(),
 ): Promise<AtlasPublishConfig | undefined> {
   const explicit = args.flag('publish-config');
-  const path = resolve(explicit ?? 'atlas.publish.ts');
+  const path = resolve(workingDirectory, explicit ?? 'atlas.publish.ts');
+  if (!(await publishConfigExists(path, Boolean(explicit)))) return undefined;
+
+  const compiled = await compilePublishConfig(path);
   try {
-    const compiled = await compilePublishConfig(path);
-    try {
-      const loaded = (await import(
-        `${pathToFileURL(compiled.entryPath).href}?t=${Date.now()}`
-      )) as { default?: unknown };
-      if (!isPublishConfig(loaded.default))
-        throw new Error(
-          `${path} must default-export an AtlasPublishConfig object.`,
-        );
-      return loaded.default;
-    } finally {
-      await rm(compiled.directory, { recursive: true, force: true });
-    }
+    const loaded = (await import(
+      `${pathToFileURL(compiled.entryPath).href}?t=${Date.now()}`
+    )) as { default?: unknown };
+    if (!isPublishConfig(loaded.default))
+      throw new Error(
+        `${path} must default-export an AtlasPublishConfig object.`,
+      );
+    return loaded.default;
+  } finally {
+    await rm(compiled.directory, { recursive: true, force: true });
+  }
+}
+
+async function publishConfigExists(
+  path: string,
+  required: boolean,
+): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
   } catch (error) {
-    if (!explicit && isNodeError(error) && error.code === 'ENOENT')
-      return undefined;
+    if (!required && isNodeError(error) && error.code === 'ENOENT')
+      return false;
     throw error;
   }
 }
@@ -76,30 +86,34 @@ async function compilePublishConfig(path: string): Promise<{
   directory: string;
   entryPath: string;
 }> {
-  const directory = await mkdtemp(join(tmpdir(), 'atlas-publish-config-'));
+  const directory = await mkdtemp(
+    join(dirname(path), '.atlas-publish-config-'),
+  );
   const compilerOptions: ts.CompilerOptions = {
     declaration: false,
-    module: ts.ModuleKind.NodeNext,
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    noEmitOnError: true,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
     outDir: directory,
     rootDir: dirname(path),
     target: ts.ScriptTarget.ES2022,
-    types: ['node'],
+    types: [],
   };
   const program = ts.createProgram([path], compilerOptions);
   const result = program.emit();
   const diagnostics = [
-    ...ts.getPreEmitDiagnostics(program),
+    ...program.getOptionsDiagnostics(),
+    ...program.getSyntacticDiagnostics(),
     ...result.diagnostics,
   ].filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
   if (result.emitSkipped || diagnostics.length > 0) {
     await rm(directory, { recursive: true, force: true });
-    throw new Error(ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-      getCanonicalFileName: (fileName) => fileName,
-      getCurrentDirectory: () => dirname(path),
-      getNewLine: () => '\n',
-    }));
+    throw new Error(
+      ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+        getCanonicalFileName: (fileName) => fileName,
+        getCurrentDirectory: () => dirname(path),
+        getNewLine: () => '\n',
+      }),
+    );
   }
   await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');
   return {

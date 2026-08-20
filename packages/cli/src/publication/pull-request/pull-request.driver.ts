@@ -12,13 +12,14 @@ export class PullRequestDriver {
   private readonly headSha = faker.git.commitSha();
   private readonly owner = faker.internet.username().toLowerCase();
   private readonly repositoryName = faker.word.noun().toLowerCase();
-  private readonly token = faker.string.alphanumeric();
+  private readonly token = faker.string.alphanumeric({ length: 32 });
   private readonly prNumber = faker.number.int({ min: 1 });
   private readonly fetch = jest.fn<typeof globalThis.fetch>();
   private readonly originalFetch = globalThis.fetch;
   private readonly originalRepository = process.env.GITHUB_REPOSITORY;
   private readonly originalToken = process.env.GITHUB_TOKEN;
   private config?: AtlasPublishConfig;
+  private error?: unknown;
   private status?: AtlasPullRequestStatus;
 
   constructor() {
@@ -43,6 +44,25 @@ export class PullRequestDriver {
         }),
       );
     },
+    githubFailure: (): void => {
+      Object.assign(process.env, {
+        GITHUB_REPOSITORY: `${this.owner}/${this.repositoryName}`,
+        GITHUB_TOKEN: this.token,
+      });
+
+      this.fetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: 'Bad credentials', token: this.token }),
+          {
+            headers: {
+              'x-github-request-id': 'request-123',
+            },
+            status: 401,
+            statusText: 'Unauthorized',
+          },
+        ),
+      );
+    },
     resolver: ({ headSha }: { headSha: 'empty' }): void => {
       this.status = undefined;
       this.fetch.mockReset();
@@ -65,6 +85,17 @@ export class PullRequestDriver {
         this.restoreEnvironment('GITHUB_TOKEN', this.originalToken);
       }
     },
+    resolveFailure: async (): Promise<void> => {
+      try {
+        await resolvePullRequestStatus(this.lookup, this.config);
+      } catch (error) {
+        this.error = error;
+      } finally {
+        globalThis.fetch = this.originalFetch;
+        this.restoreEnvironment('GITHUB_REPOSITORY', this.originalRepository);
+        this.restoreEnvironment('GITHUB_TOKEN', this.originalToken);
+      }
+    },
   };
 
   get = {
@@ -78,6 +109,8 @@ export class PullRequestDriver {
       };
     },
     status: (): AtlasPullRequestStatus | undefined => this.status,
+    errorMessage: (): string | undefined =>
+      this.error instanceof Error ? this.error.message : undefined,
     expectedOpenStatus: (): AtlasPullRequestStatus => ({
       headSha: this.headSha,
       state: 'open',
@@ -86,6 +119,8 @@ export class PullRequestDriver {
       authorization: `Bearer ${this.token}`,
       url: `https://api.github.com/repos/${this.owner}/${this.repositoryName}/pulls/${this.prNumber}`,
     }),
+    expectedProviderError: (): string =>
+      `Atlas could not query pull-request state from api.github.com. GET https://api.github.com/repos/${this.owner}/${this.repositoryName}/pulls/${this.prNumber} returned HTTP 401 Unauthorized. Provider request ID: request-123. Provider response: {"message":"Bad credentials","token":"[redacted]"}`,
   };
 
   private readonly lookup: AtlasPullRequestLookup = {

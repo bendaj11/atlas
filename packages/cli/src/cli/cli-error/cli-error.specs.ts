@@ -65,7 +65,15 @@ describe('createCliError', () => {
     driver.given.error('storage');
 
     expect(driver.get.formattedError()).toContain(
-      'Caused by: Error: AccessDenied',
+      'Caused by: Error: AccessDenied (HTTP 403; request ID',
+    );
+  });
+
+  it('should include every failure when publication cleanup aggregates errors', () => {
+    driver.given.error('aggregate');
+
+    expect(driver.get.formattedError()).toContain(
+      'Caused by: Error: Registry restore failed.\nCaused by: Error: Lease release failed.',
     );
   });
 

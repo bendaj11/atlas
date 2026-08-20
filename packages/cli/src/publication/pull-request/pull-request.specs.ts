@@ -24,6 +24,14 @@ describe('resolvePullRequestStatus', () => {
     expect(driver.get.request()).toStrictEqual(driver.get.expectedRequest());
   });
 
+  it('should include provider diagnostics when provider rejects request', async () => {
+    driver.given.githubFailure();
+
+    await driver.when.resolveFailure();
+
+    expect(driver.get.errorMessage()).toBe(driver.get.expectedProviderError());
+  });
+
   it('should reject custom resolver when pull request head SHA is empty', async () => {
     driver.given.resolver({ headSha: 'empty' });
 

@@ -4,6 +4,8 @@ import type {
   AtlasPullRequestStatus,
 } from '../publish-config.js';
 
+const EXTERNAL_ERROR_BODY_LIMIT = 4_096;
+
 export async function resolvePullRequestStatus(
   pullRequest: AtlasPullRequestLookup,
   config: AtlasPublishConfig | undefined,
@@ -127,11 +129,72 @@ async function providerFetch(
     );
   }
   if (!response.ok) {
-    throw new Error(
-      `Atlas could not query pull-request state from ${new URL(url).host}: HTTP ${response.status}.`,
-    );
+    throw new Error(await providerResponseError(url, headers, response));
   }
   return response.json();
+}
+
+async function providerResponseError(
+  url: string,
+  headers: Readonly<Record<string, string>>,
+  response: Response,
+): Promise<string> {
+  const requestId = providerRequestId(response);
+  const responseBody = await providerResponseBody(
+    response,
+    providerHeaderSecrets(headers),
+  );
+  const status = `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+  const details = [
+    `Atlas could not query pull-request state from ${new URL(url).host}.`,
+    `GET ${url} returned HTTP ${status}.`,
+    ...(requestId ? [`Provider request ID: ${requestId}.`] : []),
+    ...(responseBody ? [`Provider response: ${responseBody}`] : []),
+  ];
+
+  return details.join(' ');
+}
+
+function providerRequestId(response: Response): string | undefined {
+  return (
+    response.headers.get('x-request-id') ??
+    response.headers.get('x-github-request-id') ??
+    response.headers.get('x-b3-traceid') ??
+    response.headers.get('cf-ray') ??
+    undefined
+  );
+}
+
+function providerHeaderSecrets(
+  headers: Readonly<Record<string, string>>,
+): readonly string[] {
+  return Object.entries(headers)
+    .filter(([name]) => /authorization|token/i.test(name))
+    .flatMap(([, value]) => [value, value.replace(/^Bearer\s+/i, '')])
+    .filter(Boolean);
+}
+
+async function providerResponseBody(
+  response: Response,
+  secrets: readonly string[],
+): Promise<string | undefined> {
+  try {
+    const body = redactSecrets((await response.text()).trim(), secrets);
+    if (!body) return undefined;
+
+    return body.length > EXTERNAL_ERROR_BODY_LIMIT
+      ? `${body.slice(0, EXTERNAL_ERROR_BODY_LIMIT)}… [truncated]`
+      : body;
+  } catch {
+    return undefined;
+  }
+}
+
+function redactSecrets(value: string, secrets: readonly string[]): string {
+  return secrets.reduce(
+    (redacted, secret) => redacted.replaceAll(secret, '[redacted]'),
+    value,
+  );
 }
 
 function providerToken(providerVariable: string): string {

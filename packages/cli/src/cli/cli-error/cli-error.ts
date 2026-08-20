@@ -29,12 +29,18 @@ export function formatErrorWithCauses(error: Error): string {
 function errorCauses(error: Error): readonly string[] {
   const messages: string[] = [];
   const seen = new Set<unknown>([error]);
-  let cause = error.cause;
+  const pending = error instanceof AggregateError ? [...error.errors] : [];
+  if (error.cause !== undefined) pending.push(error.cause);
 
-  while (cause !== undefined && !seen.has(cause)) {
+  while (pending.length > 0) {
+    const cause = pending.shift();
+    if (cause === undefined || seen.has(cause)) continue;
+
     seen.add(cause);
     messages.push(errorCauseMessage(cause));
-    cause = cause instanceof Error ? cause.cause : undefined;
+    if (cause instanceof AggregateError) pending.push(...cause.errors);
+    if (cause instanceof Error && cause.cause !== undefined)
+      pending.push(cause.cause);
   }
 
   return messages;
@@ -42,18 +48,39 @@ function errorCauses(error: Error): readonly string[] {
 
 function errorCauseMessage(cause: unknown): string {
   if (cause instanceof Error) {
-    const status = errorStatus(cause);
-    return `${cause.name}: ${cause.message}${status ? ` (HTTP ${status})` : ''}`;
+    const details = externalErrorDetails(cause);
+    return `${cause.name}: ${cause.message}${details ? ` (${details})` : ''}`;
   }
 
   return String(cause);
 }
 
-function errorStatus(error: Error): number | undefined {
+function externalErrorDetails(error: Error): string | undefined {
   if (!('$metadata' in error)) return undefined;
-  const metadata = (error as { $metadata?: { httpStatusCode?: number } })
-    .$metadata;
-  return metadata?.httpStatusCode;
+  const metadata = (error as { $metadata?: ExternalErrorMetadata }).$metadata;
+  if (!metadata) return undefined;
+
+  return (
+    [
+      metadata.httpStatusCode ? `HTTP ${metadata.httpStatusCode}` : undefined,
+      metadata.requestId ? `request ID ${metadata.requestId}` : undefined,
+      metadata.extendedRequestId
+        ? `extended request ID ${metadata.extendedRequestId}`
+        : undefined,
+      metadata.cfId ? `CloudFront ID ${metadata.cfId}` : undefined,
+      metadata.attempts ? `attempts ${metadata.attempts}` : undefined,
+    ]
+      .filter(Boolean)
+      .join('; ') || undefined
+  );
+}
+
+interface ExternalErrorMetadata {
+  readonly attempts?: number;
+  readonly cfId?: string;
+  readonly extendedRequestId?: string;
+  readonly httpStatusCode?: number;
+  readonly requestId?: string;
 }
 
 function cliSummary(command: string | undefined, summary: string): string {
