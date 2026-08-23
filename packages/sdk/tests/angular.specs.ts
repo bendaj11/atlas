@@ -169,7 +169,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   assert.doesNotMatch(host.get('package.json'), /runtime-config/);
   assert.match(
     host.get('package.json'),
-    /atlas publish host --from-build-output/,
+    /atlas publish host/,
   );
   assert.match(
     host.get('package.json'),

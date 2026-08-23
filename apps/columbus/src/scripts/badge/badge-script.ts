@@ -2,6 +2,7 @@ import {
   countDevSessionOverrides,
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh.js';
+import { inspectAtlasHost } from '../host/inspect-atlas-host/inspect-atlas-host.js';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
@@ -26,6 +27,29 @@ window.addEventListener('focus', () => void refreshBadge());
 window.addEventListener('pageshow', () => void refreshBadge());
 window.addEventListener('storage', () => void refreshBadge());
 darkColorScheme.addEventListener('change', () => void publishActionTheme());
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!isInspectionRequest(message)) return;
+  void inspectAtlasHost(message.documentKey).then(
+    (hostData) => sendResponse({ ok: true, hostData }),
+    (error) => sendResponse({ ok: false, error: messageFromError(error) }),
+  );
+  return true;
+});
+
+function isInspectionRequest(
+  value: unknown,
+): value is { type: 'atlas.inspect-host'; documentKey: string } {
+  if (typeof value !== 'object' || value === null) return false;
+  const message = value as Record<string, unknown>;
+  return (
+    message.type === 'atlas.inspect-host' &&
+    typeof message.documentKey === 'string'
+  );
+}
+
+function messageFromError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 async function publishActionTheme(): Promise<void> {
   await chrome.runtime.sendMessage({

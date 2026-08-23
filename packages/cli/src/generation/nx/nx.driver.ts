@@ -166,6 +166,7 @@ module.exports = {
         this.name,
         type,
         framework,
+        this.packageManager,
         this.port,
         frameworkVersion,
       );

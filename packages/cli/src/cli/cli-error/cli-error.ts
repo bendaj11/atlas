@@ -145,9 +145,9 @@ function cliActions(
         `Correct the named configuration or build failure, then rerun \`atlas ${command}\`.`,
       ];
     case 'publish':
-    case 'rollback':
-    case 'remove-pr':
-    case 'prune-prs':
+    case 'deploy':
+    case 'remove-preview':
+    case 'prune-previews':
       return [
         `Correct the named publication, storage, registry, or CI condition, then rerun \`atlas ${command}\`.`,
       ];

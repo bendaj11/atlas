@@ -15,7 +15,7 @@ it('should generate a runnable project when creating a standalone Angular host',
     framework: true,
     buildTarget: `${driver.get.projectName()}:esbuild:production`,
     serveTarget: `${driver.get.projectName()}:serve-original:development`,
-    devCommand: `atlas dev ${driver.get.projectName()}`,
+    devCommand: `npx --no-install atlas dev ${driver.get.projectName()}`,
   });
 });
 
@@ -39,8 +39,8 @@ it('should register the project when generating inside an Nx workspace', async (
     buildExecutor: 'nx:run-commands',
     configCommand: 'yarn run atlas:config',
     detected: true,
-    publishCommand: `atlas publish ${driver.get.projectName()} --from-build-output`,
-    publishDependencies: undefined,
+    publishCommand: `npx --no-install atlas publish ${driver.get.projectName()}`,
+    publishDependencies: ['build'],
   });
 });
 
@@ -53,5 +53,7 @@ it('should place the project in the package directory when generating inside a p
     entry: true,
     federation: true,
     detected: true,
+    devCommand: `pnpm exec atlas dev ${driver.get.projectName()}`,
+    publishCommand: `pnpm exec atlas publish ${driver.get.projectName()}`,
   });
 });

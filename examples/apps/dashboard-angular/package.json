@@ -6,7 +6,7 @@
     "dev": "ng serve dashboard-angular",
     "atlas:config": "atlas compile-config dashboard-angular",
     "build": "ng build",
-    "atlas:publish": "atlas publish dashboard-angular --from-build-output"
+    "atlas:publish": "atlas publish dashboard-angular"
   },
   "dependencies": {
     "@atlas/schema": "*",

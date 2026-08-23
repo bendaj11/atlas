@@ -2,12 +2,12 @@
 
 Start by identifying the domain:
 
-- **Host domain:** page shell, runtime config, catalog URL, DOM anchors,
+- **Host domain:** page shell, runtime config, active host manifest URL, DOM anchors,
   `startHost`, host SDK providers.
 - **App domain:** React app source, `atlas.config.ts`, `src/bootstrap.tsx`,
   inner routes, assets.
-- **Deployment domain:** CDN files, CORS, MIME types, catalogs, registry,
-  integrity, cache.
+- **Deployment domain:** CDN files, CORS, MIME types, `registry.json`, active and
+  canonical manifests, integrity, cache.
 
 ## The App Does Not Load
 
@@ -22,7 +22,8 @@ Then check host layout:
 - `data-atlas-route-outlet` exists;
 - `data-atlas-host-status` exists;
 - the host serves `index.html` for deep links;
-- `atlas.runtime.json` points to the expected catalog.
+- `atlas.runtime.json` points to the expected environment-qualified active host
+  manifest.
 
 Then check app config:
 

@@ -8,28 +8,20 @@ describe('AtlasBuildService', () => {
     driver = new BuildServiceDriver();
   });
 
-  it('should preserve build ID when excluded source map changes', async () => {
+  it('should change build ID when source map changes', async () => {
     await driver.given.build('source-maps');
 
     await driver.when.buildManifest();
 
-    expect(driver.get.observation()).toStrictEqual({
-      excludedMapIsStable: true,
-      includedMapChangesBuild: true,
-    });
+    expect(driver.get.observation()).toBe(true);
   });
 
-  it('should infer PR identity when standard CI metadata is configured', async () => {
-    await driver.given.build('pull-request');
+  it('should include framework-emitted source maps in publication', async () => {
+    await driver.given.build('source-maps');
 
-    await driver.when.buildManifest();
+    const result = await driver.when.publishVersion('1.2.3');
 
-    expect(driver.get.observation()).toStrictEqual({
-      channel: 'pr',
-      gitShaMatches: true,
-      prNumberMatches: true,
-      versionMatches: true,
-    });
+    expect(result.files).toContain('remoteEntry.js.map');
   });
 
   it('should use public UUID when Angular workspace name differs', async () => {
@@ -38,14 +30,6 @@ describe('AtlasBuildService', () => {
     await driver.when.buildManifest();
 
     expect(driver.get.observation()).toBe(true);
-  });
-
-  it('should reject production build when registry URL is missing', async () => {
-    await driver.given.build('missing-registry');
-
-    await expect(driver.when.buildManifest()).rejects.toThrow(
-      /registry-base-url.*required/,
-    );
   });
 
   it('should return same manifest when build metadata is fixed', async () => {
@@ -62,5 +46,13 @@ describe('AtlasBuildService', () => {
     await driver.when.buildManifest();
 
     expect(driver.get.observation()).toBe(true);
+  });
+
+  it('should reject release publication when version is not a safe segment', async () => {
+    await driver.given.build('deterministic');
+
+    await expect(
+      driver.when.publishVersion('release candidate'),
+    ).rejects.toThrow(/release version/i);
   });
 });

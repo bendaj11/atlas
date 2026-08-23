@@ -91,8 +91,16 @@ export function cliEntrypointPath(): string {
 }
 
 export async function hostJoiningSharedControlBecomesReady(): Promise<string> {
-  const app = await startControlServer(0, appDocument(), '');
-  const host = await startControlServer(app.port, localHostDocument(), '');
+  const app = await startControlServer({
+    port: 0,
+    document: appDocument(),
+    overrideUrl: '',
+  });
+  const host = await startControlServer({
+    port: app.port,
+    document: localHostDocument(),
+    overrideUrl: '',
+  });
   try {
     await app.markReady();
     await host.markReady();
@@ -104,8 +112,16 @@ export async function hostJoiningSharedControlBecomesReady(): Promise<string> {
 }
 
 export async function closingJoinedAppPreservesHost(): Promise<string> {
-  const host = await startControlServer(0, localHostDocument(), '');
-  const app = await startControlServer(host.port, appDocument(), '');
+  const host = await startControlServer({
+    port: 0,
+    document: localHostDocument(),
+    overrideUrl: '',
+  });
+  const app = await startControlServer({
+    port: host.port,
+    document: appDocument(),
+    overrideUrl: '',
+  });
   try {
     await host.markReady();
     await app.markReady();
@@ -231,11 +247,12 @@ export async function catalogManifestIds(
   hostId: string,
 ): Promise<string[]> {
   const response = await fetch(
-    `http://localhost:${port}/hosts/${hostId}/catalog.json`,
+    `http://localhost:${port}/atlas.dev-session.json?hostId=${hostId}`,
     { cache: 'no-store' },
   );
   expect(response.status).toBe(200);
-  const catalog = await response.json();
+  const session = (await response.json()) as { catalog?: unknown };
+  const catalog = session.catalog;
   if (!hasManifestIds(catalog))
     throw new Error('Control server returned an invalid catalog.');
   return Array.from(catalog.apps, (manifest) => manifest.id);
@@ -425,13 +442,16 @@ function localHostManifest(): AtlasHostManifest {
 
 async function selectedHostId(port: number): Promise<string> {
   const response = await fetch(
-    `http://localhost:${port}/hosts/mobile-host/catalog.json`,
+    `http://localhost:${port}/atlas.dev-session.json?hostId=mobile-host`,
     { cache: 'no-store' },
   );
   if (!response.ok)
     throw new Error(`Control server returned ${response.status}.`);
-  const catalog = (await response.json()) as { host?: { id?: unknown } };
-  if (typeof catalog.host?.id !== 'string')
+  const session = (await response.json()) as {
+    catalog?: { host?: { id?: unknown } };
+  };
+  const catalog = session.catalog;
+  if (!catalog || typeof catalog.host?.id !== 'string')
     throw new Error('Control server returned invalid host catalog.');
   return catalog.host.id;
 }

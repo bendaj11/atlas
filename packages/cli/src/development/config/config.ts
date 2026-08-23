@@ -4,10 +4,7 @@ import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
 
 export function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === 'host';
-  return (
-    'resourcesTimeoutMs' in config ||
-    'resourcesRetryCount' in config
-  );
+  return 'resourcesTimeoutMs' in config || 'resourcesRetryCount' in config;
 }
 
 export function configuredHostIds(config: AtlasConfig): string[] {

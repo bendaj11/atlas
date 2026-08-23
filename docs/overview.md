@@ -3,45 +3,47 @@
 Atlas is a frontend platform for teams that want independently released feature
 apps without turning every host release into coordination work.
 
-If independently deployed frontend apps are new to you, think of Atlas as three contracts:
+If independently deployed frontend apps are new to you, think of Atlas as three
+parts that work together:
 
-- **Host contract:** one shell application owns the browser page.
-- **App contract:** each feature app owns its own UI and release.
-- **Deployment contract:** static JSON selects which app versions a host loads.
+- **Host:** the main application page in the browser.
+- **App:** one feature that can be released separately and shown in a Host.
+- **Deployment:** configuration that chooses which App versions a Host loads.
 
 ## Vocabulary
 
-| Word | Meaning | Domain |
-| --- | --- | --- |
-| Host | The main application users open in the browser. It owns layout, auth, top-level routes, navigation, modals, toasts, monitoring, and shared services. | Host |
-| App | A feature application mounted by a host. It owns its framework code, inner routes, feature UI, tests, and assets. | App |
-| Widget | A smaller remotely loaded UI exported by an app, such as a popup body, counter, or status panel. | App |
-| Manifest | JSON generated for one built host-client or app version. App manifests describe routes, slots, widgets, assets, integrity, framework, and required SDK version. | Deployment |
-| Catalog | JSON for one host that selects one manifest version for every app that host can load. | Deployment |
-| Registry | Static storage layout that contains app indexes, host catalogs, immutable assets, and historical versions. | Deployment |
-| SDK | Typed host capabilities exposed to apps: HTTP, events, navigation, host data, and product extensions. | Host and App |
-| Runtime | Host-side Atlas loader that reads config, resolves catalogs, verifies assets, and mounts apps. | Host |
+| Word       | Meaning                                                                                                                                               | Domain       |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Host       | The main application users open in the browser. It owns page layout, sign-in, top-level URLs, navigation, shared UI, monitoring, and shared services. | Host         |
+| App        | A feature application shown inside a Host. It owns its UI, feature URLs, tests, and assets.                                                           | App          |
+| Widget     | A small reusable UI part from an App, such as a popup body, counter, or status panel.                                                                 | App          |
+| Manifest   | A JSON file describing one published Host or App version.                                                                                             | Deployment   |
+| Deployment | The Host and App versions selected for one environment, such as staging or production.                                                                | Deployment   |
+| Registry   | `registry.json`, a file listing available versions and the versions selected for each environment.                                                    | Deployment   |
+| SDK        | Typed services that a Host gives Apps: HTTP, events, navigation, Host data, and product extensions.                                                   | Host and App |
+| Runtime    | Atlas code in the Host that reads deployment files, checks downloaded files, and shows selected Apps.                                                 | Host         |
 
 ## Mental Model
 
 ```mermaid
 flowchart LR
-  AppTeam["App team"] -->|"atlas build"| Manifest["Manifest + assets"]
-  Manifest --> CDN["Static storage / CDN"]
-  CDN --> Index["App index JSON"]
-  Index --> Catalog["Host catalog JSON"]
+  AppTeam["App team"] -->|"build, then atlas publish"| Artifact["Canonical manifest + assets"]
+  Artifact --> CDN["Static storage / CDN"]
+  Deploy["atlas deploy"] --> Registry["registry.json environment selection"]
+  Registry --> Active["Environment-qualified active host manifest"]
   Host["Host app"] --> Runtime["@atlas/runtime"]
-  Runtime --> Catalog
+  Runtime --> Active
   Runtime --> CDN
   Runtime --> Mounted["Mounted app"]
   Host --> SDK["@atlas/sdk services"]
   SDK --> Mounted
 ```
 
-The host does not hardcode remote URLs. The app does not decide which version
-production uses. Deployment selects versions through catalogs.
+The Host does not hard-code App URLs. The App does not choose its production
+version. Deployment updates `registry.json`, which tells the browser which Host
+and App versions to use in each environment.
 
-## Host Domain
+## What The Host Team Owns
 
 Host teams decide:
 
@@ -55,7 +57,7 @@ Host teams decide:
 
 Host teams do not edit app source code to release app features.
 
-## App Domain
+## What The App Team Owns
 
 App teams decide:
 
@@ -68,22 +70,23 @@ App teams decide:
 App teams do not own the browser document, global shell layout, or production
 version selection.
 
-## Deployment Domain
+## What Deployment And CI Own
 
 CI/CD decides storage environment, public registry URL, affected comparison,
 bootstrap deployment platform, and verification URLs. Existing release tooling
 decides semantic package version.
 
 `atlas build` runs framework build and writes manifest without registry access.
-`atlas publish <project>` derives release identity, acquires storage lease, reads
-live registry, uploads immutable objects, activates catalogs, and verifies
-storage. Built-in provider supports S3-compatible storage through standard AWS
-SDK credentials; registry contract remains provider-neutral.
+`atlas publish <project> --version <value>` records existing framework output as
+one immutable release. `atlas deploy <artifact> --to <environment> --version
+<selector>` selects already-published bytes, updates `registry.json`, and
+converges affected active host manifests. Built-in storage supports S3-compatible
+providers through standard AWS SDK credentials; registry contract remains
+provider-neutral.
 
 ## Learn Next
 
-Continue with [Zero to production](getting-started.md). It is the canonical
-sequence for generation, local development, deployment, publication,
-verification, and rollback. Use [Architecture](architecture.md), [Static
-registry](registry.md), and [Security](security.md) when the tutorial sends you
-there or when you need deeper design detail.
+Continue with [Get Started](getting-started.md) to install Atlas and create your
+first host and app. Then choose [Atlas Host](host.md) or [Atlas App](app.md) for
+role-specific journey. Use [Architecture](architecture.md), [Static registry](registry.md),
+and [Security](security.md) when you need deeper design detail.

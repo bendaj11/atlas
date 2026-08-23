@@ -46,6 +46,10 @@ importers:
         version: 5.9.3
 
   apps/columbus:
+    dependencies:
+      '@atlas/schema':
+        specifier: '*'
+        version: link:../../packages/schema
     devDependencies:
       '@babel/core':
         specifier: ^7.29.0
@@ -414,7 +418,7 @@ importers:
   packages/bootstrap:
     dependencies:
       '@atlas/schema':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../schema
       es-module-shims:
         specifier: ^2.7.0
@@ -430,16 +434,16 @@ importers:
   packages/cli:
     dependencies:
       '@atlas/bootstrap':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../bootstrap
       '@atlas/generators':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../generators
       '@atlas/runtime':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../runtime
       '@atlas/schema':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../schema
       '@aws-sdk/client-s3':
         specifier: ^3.850.0
@@ -454,29 +458,29 @@ importers:
         specifier: ~5.9.0
         version: 5.9.3
     devDependencies:
-      '@faker-js/faker':
-        specifier: ^10.5.0
-        version: 10.5.0
       '@atlas/testkit':
         specifier: workspace:*
         version: link:../testkit
+      '@faker-js/faker':
+        specifier: ^10.5.0
+        version: 10.5.0
 
   packages/generators:
     dependencies:
       '@atlas/bootstrap':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../bootstrap
       '@atlas/schema':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../schema
 
   packages/runtime:
     dependencies:
       '@atlas/schema':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../schema
       '@atlas/sdk':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../sdk
     devDependencies:
       '@angular/compiler':
@@ -503,7 +507,7 @@ importers:
   packages/sdk:
     dependencies:
       '@atlas/schema':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../schema
       '@softarc/native-federation-runtime':
         specifier: ^3.5.5
@@ -537,10 +541,10 @@ importers:
   packages/testkit:
     dependencies:
       '@atlas/schema':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../schema
       '@atlas/sdk':
-        specifier: 0.3.37
+        specifier: 0.3.59
         version: link:../sdk
 
 packages:

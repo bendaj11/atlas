@@ -1,8 +1,8 @@
 # React Project Guide
 
-Audience: React host and app developers following or already familiar with
-[Zero to production](../getting-started.md). This guide identifies generated
-React boundaries and routes each task to its detailed guide.
+Audience: React host and app developers who completed
+[Get Started](../getting-started.md). This guide identifies generated React
+boundaries and routes each task to its detailed guide.
 
 ## Choose Your Role
 
@@ -17,7 +17,7 @@ Atlas owns cross-application discovery and mount lifecycle.
 | File                | Responsibility                                                 | Edit normally?                    |
 | ------------------- | -------------------------------------------------------------- | --------------------------------- |
 | `src/main.tsx`      | Normal Vite/React preview entry                                | Yes                               |
-| `src/bootstrap.tsx` | Atlas `mount` lifecycle exported as `./host` and product shell | Rarely                            |
+| `src/bootstrap.tsx` | Atlas `mount` function exported as `./host` and main page layout | Rarely                            |
 | `vite.config.ts`    | Federation expose and build wiring                             | Preserve generated Atlas sections |
 | `dist/bootstrap/`   | Generated static product-domain entry                          | Regenerate through CLI            |
 
@@ -29,7 +29,7 @@ choose catalog versions from React code.
 | File                    | Responsibility                                               | Edit normally?        |
 | ----------------------- | ------------------------------------------------------------ | --------------------- |
 | `src/bootstrap.tsx`     | Atlas `mount` lifecycle exported as `./entry`                | Rarely                |
-| `src/routes.tsx`        | Inner React routes scoped below assigned Atlas path     | Yes                   |
+| `src/routes.tsx`        | Inner React routes scoped below assigned Atlas path          | Yes                   |
 | `src/`                  | Feature components and hooks                                 | Yes                   |
 | `src/exported-widgets/` | UUID-addressed reusable UI with per-widget `atlas.config.ts` | Yes                   |
 | `atlas.config.ts`       | App identity, routes, slots, external app dependencies       | When contract changes |

@@ -21,8 +21,8 @@
     "release": "tsx scripts/release.ts",
     "release:publish": "tsx scripts/publish-release.ts",
     "test:generated": "pnpm run pack:verify && tsx scripts/verify-generated-projects.ts --package-manager=yarn && tsx scripts/verify-generated-projects.ts --package-manager=pnpm",
-    "test": "turbo run test --filter=\"@atlas/*\" && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json --roots scripts",
-    "test:affected": "turbo run test --affected --filter=\"@atlas/*\"",
+    "test": "turbo run test --concurrency=1 --filter=\"@atlas/*\" && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json --roots scripts",
+    "test:affected": "turbo run test --concurrency=1 --affected --filter=\"@atlas/*\"",
     "test:e2e": "tsx tests/e2e/prepare.ts && playwright test",
     "test:container": "pnpm run pack:verify && tsx scripts/verify-bootstrap-container.ts",
     "test:e2e:prepare": "tsx tests/e2e/prepare.ts",
@@ -45,7 +45,7 @@
     "typescript": "^5.5.0"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=22.12.0 <23",
     "pnpm": ">=10 <11"
   }
 }

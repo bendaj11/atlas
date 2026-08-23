@@ -1,13 +1,13 @@
-import type { AtlasArtifactManifestBase } from "./atlas-artifact-manifest-base.js";
-import type { AtlasDomIsolation } from "./atlas-dom-isolation.js";
-import type { AtlasExportedWidgetManifest } from "./atlas-exported-widget-manifest.js";
-import type { AtlasExposeMap } from "./atlas-expose-map.js";
-import type { AtlasMetadata } from "./atlas-metadata.js";
-import type { AtlasPlacement } from "./atlas-placement.js";
+import type { AtlasArtifactManifestBase } from './atlas-artifact-manifest-base.js';
+import type { AtlasDomIsolation } from './atlas-dom-isolation.js';
+import type { AtlasExportedWidgetManifest } from './atlas-exported-widget-manifest.js';
+import type { AtlasExposeMap } from './atlas-expose-map.js';
+import type { AtlasMetadata } from './atlas-metadata.js';
+import type { AtlasPlacement } from './atlas-placement.js';
 
 /** Complete description of one built app version that a host can load. */
 export interface AtlasAppManifest extends AtlasArtifactManifestBase {
-  kind: "app";
+  kind: 'app';
   /** CSS/DOM separation to use when the host renders this app. */
   isolation?: AtlasDomIsolation;
   /** Public modules this app exposes to the host. */

@@ -1,7 +1,8 @@
-import type {
-  AtlasExportedWidgetManifest,
-  AtlasManifest,
-  AtlasPlacement,
+import {
+  placementTargetsHost,
+  type AtlasExportedWidgetManifest,
+  type AtlasManifest,
+  type AtlasPlacement,
 } from '@atlas/schema';
 import {
   connectAtlasNavigationResolver,
@@ -34,7 +35,7 @@ import {
 } from '@atlas/sdk/navigation';
 import {
   assertManifestAssetTrust,
-  loadHostCatalog,
+  loadHostDeployment,
   resolveRuntimeManifests,
   verifyManifestIntegrity,
   type AtlasRemoteTrustPolicy,
@@ -111,7 +112,8 @@ export {
   assertManifestAssetTrust,
   assertManifestStylesTrust,
   findManifestTrustErrors,
-  loadHostCatalog,
+  loadHostDeployment,
+  loadPublishedManifest,
   loadHostRuntimeConfig,
   resolveRuntimeCatalog,
   resolveRuntimeManifests,
@@ -166,9 +168,10 @@ export interface AtlasWidgetLoaderOptions extends AtlasWidgetUiOptions {
 
 export interface AtlasLoaderOptions extends AtlasWidgetUiOptions {
   hostId: string;
-  catalogUrl: string;
+  manifestUrl?: string;
   sdk: AtlasSdk;
   fetchJson?: <T>(url: string) => Promise<T>;
+  fetchBytes?: (url: string, signal?: AbortSignal) => Promise<ArrayBuffer>;
   importRemote?: (manifest: AtlasManifest) => Promise<AtlasAppEntry>;
   overrides?: AtlasRuntimeOverride[];
   importWidget?: (
@@ -485,7 +488,6 @@ class AtlasRuntimeController {
     );
     const mounting = mountApp({
       hostId: this.options.hostId,
-      catalogUrl: '',
       sdk: this.options.sdk,
       manifest: mount.manifest,
       container: mount.container,
@@ -785,7 +787,7 @@ function hostPlacements(
 ): RuntimePlacement[] {
   return manifests.flatMap((manifest) =>
     manifest.placements
-      .filter((placement) => placement.hostId === hostId)
+      .filter((placement) => placementTargetsHost(placement, hostId))
       .map((placement) => ({ manifest, placement })),
   );
 }
@@ -1325,13 +1327,16 @@ export async function loadAndMountHostCatalog(
     resolveContainer: (manifest: AtlasManifest) => HTMLElement | undefined;
   },
 ): Promise<AtlasMountedApp[]> {
-  const catalog = await loadHostCatalog(options);
+  const catalog = await loadHostDeployment({
+    manifestUrl: requiredManifestUrl(options.manifestUrl),
+    ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),
+  });
   if (catalog.hostId !== options.hostId) {
     throw runtimeError(
       `Atlas loaded a catalog for host "${catalog.hostId}", but this page is configured as host "${options.hostId}".`,
       {
         code: 'ATLAS_HOST_CATALOG_MISMATCH',
-        suggestedActions: `Point catalogUrl to the catalog for host "${options.hostId}", or correct the configured hostId.`,
+        suggestedActions: `Point manifestUrl to the deployment for host "${options.hostId}", or correct the configured hostId.`,
       },
     );
   }
@@ -1367,6 +1372,17 @@ export async function loadAndMountHostCatalog(
   }
 
   return mounted;
+}
+
+function requiredManifestUrl(value: string | undefined): string {
+  if (!value) {
+    throw runtimeError('Atlas loader requires manifestUrl.', {
+      code: 'ATLAS_MANIFEST_URL_MISSING',
+      suggestedActions:
+        'Pass the active environments/<environment>/hosts/<id>/manifest.json URL.',
+    });
+  }
+  return value;
 }
 
 function findDefaultPath(manifest: AtlasManifest): string {

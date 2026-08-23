@@ -1,10 +1,9 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasPublishConfig } from '../publish-config.js';
 import type {
-  AtlasPullRequestLookup,
-  AtlasPullRequestStatus,
-} from '../publish-config.js';
+  AtlasPreviewHeadStatus,
+  AtlasRegistryConfig,
+} from '../registry-config.js';
 import { resolvePullRequestStatus } from './pull-request.js';
 
 export class PullRequestDriver {
@@ -18,8 +17,8 @@ export class PullRequestDriver {
   private readonly originalFetch = globalThis.fetch;
   private readonly originalRepository = process.env.GITHUB_REPOSITORY;
   private readonly originalToken = process.env.GITHUB_TOKEN;
-  private config?: AtlasPublishConfig;
-  private status?: AtlasPullRequestStatus;
+  private config?: AtlasRegistryConfig;
+  private status?: AtlasPreviewHeadStatus;
 
   constructor() {
     Object.assign(globalThis, { fetch: this.fetch });
@@ -47,7 +46,7 @@ export class PullRequestDriver {
       this.status = undefined;
       this.fetch.mockReset();
       this.config = {
-        resolvePullRequest: async () => ({
+        resolvePreviewHead: async () => ({
           headSha: headSha === 'empty' ? '' : this.headSha,
           state: 'open',
         }),
@@ -77,8 +76,8 @@ export class PullRequestDriver {
         url,
       };
     },
-    status: (): AtlasPullRequestStatus | undefined => this.status,
-    expectedOpenStatus: (): AtlasPullRequestStatus => ({
+    status: (): AtlasPreviewHeadStatus | undefined => this.status,
+    expectedOpenStatus: (): AtlasPreviewHeadStatus => ({
       headSha: this.headSha,
       state: 'open',
     }),
@@ -88,7 +87,7 @@ export class PullRequestDriver {
     }),
   };
 
-  private readonly lookup: AtlasPullRequestLookup = {
+  private readonly lookup = {
     artifactId: this.artifactId,
     gitSha: this.headSha,
     prNumber: this.prNumber,

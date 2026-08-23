@@ -73,6 +73,10 @@ export class GenerateServiceDriver {
       const turbo = JSON.parse(await readFile(this.turboPath, 'utf8'));
       return turbo.tasks.dev;
     },
+    turboPublishTask: async (): Promise<Record<string, unknown>> => {
+      const turbo = JSON.parse(await readFile(this.turboPath, 'utf8'));
+      return turbo.tasks['atlas:publish'];
+    },
     widgetState: async () => ({
       choiceLabels: this.normalizeChoices(this.prompts?.choiceLabels ?? []),
       generated: (await readFile(this.widgetFilePath, 'utf8')).includes(

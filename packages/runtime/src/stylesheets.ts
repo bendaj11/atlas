@@ -13,8 +13,7 @@ export interface AtlasStylesheetLoadOptions {
 }
 
 type AtlasStylesheetLoadInput =
-  | AtlasRemoteTrustPolicy
-  | AtlasStylesheetLoadOptions;
+  AtlasRemoteTrustPolicy | AtlasStylesheetLoadOptions;
 
 interface LoadedStylesheet {
   element: HTMLLinkElement;

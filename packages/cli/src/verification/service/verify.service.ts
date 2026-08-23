@@ -3,10 +3,14 @@ import {
   assertAtlasManifest,
   assertAtlasHostManifest,
   type AtlasHostCatalog,
+  type AtlasHostDeploymentManifest,
   type AtlasHostManifest,
   type AtlasHostRuntimeConfig,
   type AtlasManifest,
+  type AtlasStaticRegistry,
+  placementTargetsHost,
 } from '@atlas/schema';
+import { loadHostDeployment } from '@atlas/runtime';
 
 type AtlasVerificationStatus = 'pass' | 'warning' | 'failure';
 
@@ -79,7 +83,11 @@ export class AtlasVerifyService {
 
     this.verifyCatalog(runtime, catalog, context);
     await Promise.all(
-      [catalog.host, ...catalog.apps].flatMap((manifest) =>
+      [
+        catalog.host,
+        ...catalog.apps,
+        ...(catalog.widgetProviders ?? []),
+      ].flatMap((manifest) =>
         this.verifyManifestAssets(manifest, runtime, context),
       ),
     );
@@ -104,7 +112,7 @@ export class AtlasVerifyService {
       fail(
         context,
         'runtime configuration',
-        'Expected schemaVersion, hostId, and catalogUrl.',
+        'Expected schemaVersion, hostId, environment, and manifestUrl.',
       );
       return undefined;
     }
@@ -116,33 +124,115 @@ export class AtlasVerifyService {
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<AtlasHostCatalog | undefined> {
-    const catalogUrl = new URL(runtime.catalogUrl, context.runtimeUrl);
+    const deploymentManifestUrl = new URL(
+      runtime.manifestUrl,
+      context.runtimeUrl,
+    );
     let value: unknown;
     const response = await this.fetch(
-      catalogUrl,
-      'host catalog',
+      deploymentManifestUrl,
+      'active host manifest',
       context,
       async (loaded) => {
-        value = await parseJson(loaded, 'host catalog', context);
+        value = await parseJson(loaded, 'active host manifest', context);
       },
     );
     if (!response) return undefined;
-    this.verifyCors(response, catalogUrl, 'host catalog', context);
-    this.verifyMutableCache(response, 'host catalog', context);
-    if (!isHostCatalog(value)) {
+    this.verifyCors(
+      response,
+      deploymentManifestUrl,
+      'active host manifest',
+      context,
+    );
+    this.verifyMutableCache(response, 'active host manifest', context);
+    if (!isHostDeployment(value)) {
       fail(
         context,
-        'host catalog',
-        'Expected schemaVersion, hostId, revision, host, and apps.',
+        'active host manifest',
+        'Expected schemaVersion 2 host-deployment with descriptor references.',
       );
       return undefined;
     }
+    const deployment = value;
+    const catalog = await loadHostDeployment({
+      manifestUrl: deploymentManifestUrl.href,
+      expectedHostId: runtime.hostId,
+      expectedEnvironment: runtime.environment,
+      fetchBytes: async (url) => {
+        const loaded = await this.fetchResource(url, {
+          headers: { Origin: context.hostOrigin },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(context.timeoutMs),
+        });
+        if (!loaded.ok)
+          throw new Error(`${url} returned HTTP ${loaded.status}.`);
+        this.verifyCors(loaded, new URL(url), 'artifact manifest', context);
+        verifyJsonContentType(loaded, 'artifact manifest', context);
+        if (url !== deploymentManifestUrl.href) {
+          verifyImmutableCacheHeader(loaded, 'artifact manifest', context);
+        }
+        return loaded.arrayBuffer();
+      },
+    });
     pass(
       context,
-      'host catalog',
-      `Loaded host client ${value.host.version} and ${value.apps.length} selected app(s).`,
+      'active host manifest',
+      `Loaded ${deployment.host.path} and ${deployment.apps.length} selected app(s).`,
     );
-    return value;
+    await this.verifyDesiredRevision(runtime, deployment, context);
+    return catalog;
+  }
+
+  private async verifyDesiredRevision(
+    runtime: AtlasHostRuntimeConfig,
+    deployment: AtlasHostDeploymentManifest,
+    context: VerificationContext,
+  ): Promise<void> {
+    if (!runtime.registryUrl) {
+      warn(
+        context,
+        'deployment convergence',
+        'registryUrl is unavailable; desired revision was not checked.',
+      );
+      return;
+    }
+    let registry: unknown;
+    const url = new URL(
+      'registry.json',
+      `${runtime.registryUrl.replace(/\/$/, '')}/`,
+    );
+    const response = await this.fetch(
+      url,
+      'registry desired state',
+      context,
+      async (loaded) => {
+        registry = await parseJson(loaded, 'registry desired state', context);
+      },
+    );
+    if (!response || !isStaticRegistry(registry)) return;
+    const expected =
+      registry.deployments[deployment.environment]?.expectedHostRevisions[
+        deployment.hostId
+      ];
+    if (!expected) {
+      warn(
+        context,
+        'deployment convergence',
+        'No expected host revision is recorded.',
+      );
+    } else if (expected === deployment.deploymentRevision) {
+      pass(
+        context,
+        'deployment convergence',
+        `Active revision matches ${expected}.`,
+      );
+    } else {
+      fail(
+        context,
+        'deployment convergence',
+        `Expected ${expected}; active host has ${deployment.deploymentRevision}. Repeat deploy to resume.`,
+      );
+    }
   }
 
   private verifyCatalog(
@@ -175,7 +265,8 @@ export class AtlasVerifyService {
     }
 
     const ids = new Set<string>();
-    for (const manifest of catalog.apps) {
+    const selectedApps = [...catalog.apps, ...(catalog.widgetProviders ?? [])];
+    for (const manifest of selectedApps) {
       try {
         assertAtlasManifest(manifest);
         pass(
@@ -198,7 +289,7 @@ export class AtlasVerifyService {
         );
       ids.add(manifest.id);
     }
-    if (ids.size === catalog.apps.length)
+    if (ids.size === selectedApps.length)
       pass(
         context,
         'catalog versions',
@@ -216,7 +307,7 @@ export class AtlasVerifyService {
     for (const manifest of catalog.apps) {
       for (const placement of manifest.placements) {
         if (
-          placement.hostId !== catalog.hostId ||
+          !placementTargetsHost(placement, catalog.hostId) ||
           placement.kind !== 'route' ||
           !placement.route
         )
@@ -244,7 +335,7 @@ export class AtlasVerifyService {
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<void>[] {
-    new URL(runtime.catalogUrl, context.runtimeUrl);
+    new URL(runtime.manifestUrl, context.runtimeUrl);
     const assets: AssetExpectation[] = [
       {
         url: manifest.remoteEntryUrl,
@@ -459,6 +550,26 @@ function verifyContentType(
     );
 }
 
+function verifyJsonContentType(
+  response: Response,
+  subject: string,
+  context: VerificationContext,
+): void {
+  verifyContentType(
+    response,
+    { url: response.url, subject, contentType: 'json' },
+    context,
+  );
+}
+
+function verifyImmutableCacheHeader(
+  response: Response,
+  subject: string,
+  context: VerificationContext,
+): void {
+  verifyImmutableCache(response, subject, 'production', context);
+}
+
 function verifyJavaScriptContentType(
   response: Response,
   subject: string,
@@ -547,19 +658,33 @@ function isRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
   return (
     record?.schemaVersion === '1' &&
     nonEmptyString(record.hostId) &&
-    nonEmptyString(record.catalogUrl)
+    nonEmptyString(record.environment) &&
+    nonEmptyString(record.manifestUrl)
   );
 }
 
-function isHostCatalog(value: unknown): value is AtlasHostCatalog {
+function isHostDeployment(
+  value: unknown,
+): value is AtlasHostDeploymentManifest {
   const record = asRecord(value);
   return (
-    record?.schemaVersion === '1' &&
+    record?.schemaVersion === '2' &&
+    record.kind === 'host-deployment' &&
     nonEmptyString(record.hostId) &&
-    nonEmptyString(record.revision) &&
-    nonEmptyString(record.generatedAt) &&
-    asRecord(record.host)?.kind === 'host' &&
+    nonEmptyString(record.environment) &&
+    nonEmptyString(record.deploymentRevision) &&
+    asRecord(record.host) !== undefined &&
     Array.isArray(record.apps)
+  );
+}
+
+function isStaticRegistry(value: unknown): value is AtlasStaticRegistry {
+  const record = asRecord(value);
+  return (
+    record?.schemaVersion === '2' &&
+    asRecord(record.apps) !== undefined &&
+    asRecord(record.hosts) !== undefined &&
+    asRecord(record.deployments) !== undefined
   );
 }
 

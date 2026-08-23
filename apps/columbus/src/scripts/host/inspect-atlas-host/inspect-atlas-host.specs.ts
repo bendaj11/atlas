@@ -51,13 +51,13 @@ describe('Atlas host inspection', () => {
     );
   });
 
-  it('should report version error when index belongs to another artifact', async () => {
+  it('should report version error when artifact is absent from registry', async () => {
     driver.given.versionsForOtherApp();
 
     await driver.when.hostInspected();
 
     expect(driver.get.result().versionErrors).toEqual([
-      expect.stringContaining('returned versions for another artifact'),
+      expect.stringContaining('Artifact orders is not registered'),
     ]);
   });
 
@@ -79,16 +79,50 @@ describe('Atlas host inspection', () => {
     expect(driver.get.visibleAppIds()).toStrictEqual(['orders', 'billing']);
   });
 
-  it('should infer artifact identity when legacy runtime error omits app id', async () => {
-    driver.given.runtimeError('Unable to load Orders. Retry');
+  it('should preserve exported widget descriptor when published manifest is hydrated', async () => {
+    driver.given.publishedAppWithExportedWidget({ surface: 'checkout' });
 
     await driver.when.hostInspected();
 
-    expect(driver.get.result().runtimeErrors).toEqual([
-      {
-        artifactId: 'app:orders',
-        message: 'Unable to load Orders. Retry',
-      },
-    ]);
+    expect(driver.get.exportedWidget()).toStrictEqual(
+      driver.get.expectedWidget(),
+    );
+  });
+
+  it('should preserve runtime fields when published manifest is hydrated', async () => {
+    driver.given.publishedAppWithRuntimeFields();
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.hydratedRuntimeFields()).toStrictEqual({
+      createdAt: '1970-01-01T00:00:00.000Z',
+      isolation: 'shadow-dom',
+      metadata: { owner: 'checkout' },
+    });
+  });
+
+  it('should reject host deployment when environment differs from runtime', async () => {
+    driver.given.hostDeploymentEnvironment('staging');
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.error()).toEqual(
+      expect.objectContaining({
+        message: 'Atlas host manifest returned invalid data.',
+      }),
+    );
+  });
+
+  it('should reject runtime configuration when environment is absent', async () => {
+    driver.given.runtimeWithoutEnvironment();
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.error()).toEqual(
+      expect.objectContaining({
+        message:
+          'This page does not expose a valid Atlas runtime configuration.',
+      }),
+    );
   });
 });

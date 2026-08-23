@@ -1,7 +1,8 @@
 # Contributing to Atlas
 
-Atlas uses pnpm workspaces and Turborepo. Node.js 20 or newer and pnpm 10 are
-required. Corepack installs the pinned pnpm version from `package.json`.
+Atlas uses pnpm workspaces and Turborepo. Node.js 22 LTS and pnpm 10 are
+required. Run `nvm use` to select the repository version. Corepack installs the
+pinned pnpm version from `package.json`.
 
 ## Setup
 

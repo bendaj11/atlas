@@ -12,16 +12,16 @@ atlas g host customer-host --framework=angular
 
 Generated host files to understand first:
 
-| File | Owner | Purpose |
-| --- | --- | --- |
-| `atlas.config.ts` | Host team | Stable host id, display name, runtime defaults. |
-| `atlas.bootstrap.html` | Host team | Product-domain HTML and loading UI used automatically by `atlas build-bootstrap`. |
-| `src/bootstrap.ts` | Atlas/platform | Exports normal `bootstrap()` plus Atlas `mount()`. |
-| `src/app/app.config.ts` | Host team | Angular providers, router, and version-appropriate zoneless setup. |
-| `src/app/host.config.ts` | Host team | Product SDK capabilities and host runtime customization. |
-| `src/app/app.component.ts` | Host team | Replaceable product layout with Atlas DOM anchors. |
-| `federation.config.js` | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone. |
-| `dist/bootstrap/` | Atlas CLI | Static product-domain files from `atlas build-bootstrap`. |
+| File                       | Owner          | Purpose                                                                           |
+| -------------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `atlas.config.ts`          | Host team      | Stable host id, display name, runtime defaults.                                   |
+| `atlas.bootstrap.html`     | Host team      | Product-domain HTML and loading UI used automatically by `atlas build-bootstrap`. |
+| `src/bootstrap.ts`         | Atlas/platform | Exports normal `bootstrap()` plus Atlas `mount()`.                                |
+| `src/app/app.config.ts`    | Host team      | Angular providers, router, and version-appropriate zoneless setup.                |
+| `src/app/host.config.ts`   | Host team      | Product SDK capabilities and host runtime customization.                          |
+| `src/app/app.component.ts` | Host team      | Replaceable product layout with Atlas DOM anchors.                                |
+| `federation.config.js`     | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone.       |
+| `dist/bootstrap/`          | Atlas CLI      | Static product-domain files from `atlas build-bootstrap`.                         |
 
 The host owns layout, auth, top-level routing, host services, and runtime
 configuration.
@@ -40,14 +40,14 @@ routes or slots later.
 
 Generated app files to understand first:
 
-| File | Owner | Purpose |
-| --- | --- | --- |
-| `atlas.config.ts` | App team | App id, name, framework, host routes, slots, widgets, manifest metadata. |
-| `src/main.ts` | Atlas/platform | Angular entry plus mount/unmount lifecycle exposed through Native Federation. |
-| `src/app/app.config.ts` | App team | Angular and Atlas providers. |
-| `src/app/app.component.ts` | App team | App root component. |
-| `src/app/app.routes.ts` | App team | Inner Angular routes scoped under the host path. |
-| `federation.config.js` | Atlas/platform | Native Federation compatibility file. |
+| File                       | Owner          | Purpose                                                                       |
+| -------------------------- | -------------- | ----------------------------------------------------------------------------- |
+| `atlas.config.ts`          | App team       | App id, name, framework, host routes, slots, widgets, manifest metadata.      |
+| `src/main.ts`              | Atlas/platform | Angular entry plus mount/unmount lifecycle exposed through Native Federation. |
+| `src/app/app.config.ts`    | App team       | Angular and Atlas providers.                                                  |
+| `src/app/app.component.ts` | App team       | App root component.                                                           |
+| `src/app/app.routes.ts`    | App team       | Inner Angular routes scoped under the host path.                              |
+| `federation.config.js`     | Atlas/platform | Native Federation compatibility file.                                         |
 
 Product developers usually edit Angular components, services, styles, tests,
 and `atlas.config.ts`. Angular app bootstrap happens only when Atlas runtime

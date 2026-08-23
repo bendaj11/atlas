@@ -12,25 +12,24 @@ import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   createManifestFromConfig,
+  assertPublishedArtifactManifest,
+  assertReleaseVersion,
   type AtlasConfig,
+  type AtlasAppArtifactManifest,
   type AtlasExportedWidgetManifest,
+  type AtlasHostArtifactManifest,
   type AtlasHostManifest,
   type AtlasManifest,
   type AtlasAppConfig,
   type AtlasHostConfig,
+  type AtlasPayloadFileDescriptor,
+  type AtlasPublishedArtifactManifest,
   type AtlasStylesheet,
   type AtlasVersionChannel,
   type AtlasWidgetConfig,
 } from '@atlas/schema';
 import ts from 'typescript';
 import { CliArguments } from '../../cli/arguments.js';
-import {
-  inferredGitBranch,
-  inferredGitCommitTitle,
-  inferredGitSha,
-  inferredGitTag,
-  inferredPullRequestNumber,
-} from '../../publication/ci-metadata.js';
 import { compileAtlasConfig } from '../config-compiler/config-compiler.js';
 import { publicationContentType } from '../../publication/publication-metadata/publication-metadata.js';
 import type {
@@ -40,13 +39,11 @@ import type {
 
 export type AtlasBuildResult = {
   artifact: 'app' | 'host';
-  manifest: AtlasArtifactManifest;
+  manifest: AtlasPublishedArtifactManifest;
   project: AtlasProject;
   sourceDirectory: string;
   files: string[];
 };
-
-type AtlasArtifactManifest = AtlasManifest | AtlasHostManifest;
 
 export class AtlasBuildService {
   constructor(
@@ -55,15 +52,22 @@ export class AtlasBuildService {
   ) {}
 
   async build(name: string): Promise<AtlasBuildResult> {
+    return this.preparePublication(name, true);
+  }
+
+  async publication(name: string): Promise<AtlasBuildResult> {
+    return this.preparePublication(name, false);
+  }
+
+  private async preparePublication(
+    name: string,
+    runFrameworkBuild: boolean,
+  ): Promise<AtlasBuildResult> {
     const project = await this.workspace.findProject(name);
-    const reuseBuildOutput =
-      this.args.hasFlag('from-build-output') ||
-      this.args.hasFlag('skip-compile');
     if (!this.args.hasFlag('skip-compile'))
       await compileAtlasConfig(this.workspace, project);
     const config = await this.loadConfig(project.root);
-    if (!reuseBuildOutput) await this.workspace.run(project, 'build');
-    const manifest = await this.buildArtifactManifest(project, config);
+    if (runFrameworkBuild) await this.workspace.run(project, 'build');
     const entryPath = this.args.flag('entry') ?? 'remoteEntry.json';
     const sourceDirectory = await findArtifactRoot(
       this.workspace.root,
@@ -71,11 +75,16 @@ export class AtlasBuildService {
       config,
       entryPath,
     );
-    const files = (await listFiles(sourceDirectory)).filter((path) =>
-      this.shouldPublish(path),
-    );
+    const files = await listFiles(sourceDirectory);
+    const manifest = await this.buildPublishedManifest({
+      project,
+      config,
+      sourceDirectory,
+      files,
+      entryPath,
+    });
     return {
-      artifact: manifest.kind,
+      artifact: manifest.kind === 'app-artifact' ? 'app' : 'host',
       manifest,
       project,
       sourceDirectory,
@@ -111,13 +120,10 @@ export class AtlasBuildService {
             entryPath,
           );
     const artifactDigest = artifactRoot
-      ? await hashArtifactDirectory(
-          artifactRoot,
-          this.args.hasFlag('include-source-maps'),
-        )
+      ? await hashArtifactDirectory(artifactRoot)
       : 'local';
     const buildId = this.args.flag('build-id') ?? artifactDigest.slice(0, 12);
-    const baseUrl = trimSlash(options.baseUrl ?? this.registryBaseUrl(channel));
+    const baseUrl = trimSlash(options.baseUrl ?? this.registryUrl(channel));
     const remoteEntryUrl =
       channel === 'local'
         ? `${baseUrl}/${entryPath}`
@@ -157,12 +163,6 @@ export class AtlasBuildService {
       styles,
       ...(integrity ? { integrity } : {}),
     });
-    await mkdir(join(project.root, 'dist'), { recursive: true });
-    await writeFile(
-      join(project.root, 'dist', 'app.manifest.json'),
-      `${JSON.stringify(manifest, null, 2)}\n`,
-      'utf8',
-    );
     return manifest;
   }
 
@@ -204,67 +204,83 @@ export class AtlasBuildService {
     return manifest;
   }
 
-  private async buildArtifactManifest(
-    project: AtlasProject,
-    config: AtlasConfig,
-  ): Promise<AtlasArtifactManifest> {
-    if (!isHostConfig(config))
-      return this.buildManifest(project.id, undefined, { skipCompile: true });
-    const release = releaseIdentity(this.args, project);
-    const { channel, version } = release;
-    const entryPath = this.args.flag('entry') ?? 'remoteEntry.json';
-    const artifactRoot = await findArtifactRoot(
-      this.workspace.root,
-      project,
-      config,
-      entryPath,
+  private async buildPublishedManifest(options: {
+    project: AtlasProject;
+    config: AtlasConfig;
+    sourceDirectory: string;
+    files: string[];
+    entryPath: string;
+  }): Promise<AtlasPublishedArtifactManifest> {
+    const identity = publicationIdentity(this.args, options.project);
+    const files = await payloadDescriptors(
+      options.sourceDirectory,
+      options.files,
+      options.entryPath,
     );
-    const digest = await hashArtifactDirectory(
-      artifactRoot,
-      this.args.hasFlag('include-source-maps'),
-    );
-    const buildId = this.args.flag('build-id') ?? digest.slice(0, 12);
-    const remoteEntryUrl = `${trimSlash(this.registryBaseUrl(channel))}/hosts/${config.id}/${version}/${buildId}/${entryPath}`;
-    const artifactBaseUrl = remoteEntryUrl
-      .slice(0, -entryPath.length)
-      .replace(/\/$/, '');
-    const styles = await discoverStylesheets({
-      artifactRoot,
-      artifactBaseUrl,
-      framework: config.framework,
-      channel,
-    });
-    const manifest: AtlasHostManifest = {
-      schemaVersion: '1',
-      kind: 'host',
-      id: config.id,
-      name: config.name ?? config.id,
-      version,
-      buildId,
-      channel,
-      framework: config.framework,
-      remoteEntryUrl,
-      exposes: { entry: './host' },
-      requiredLoaderApiVersion: '^1.0.0',
-      createdAt: buildTimestamp(),
-      integrity: `sha256-${createHash('sha256')
-        .update(await readFile(join(artifactRoot, entryPath)))
-        .digest('base64')}`,
-      ...(styles.length ? { styles } : {}),
-      ...(release.gitSha ? { gitSha: release.gitSha } : {}),
-      ...(release.gitBranch ? { gitBranch: release.gitBranch } : {}),
-      ...(release.gitCommitTitle
-        ? { gitCommitTitle: release.gitCommitTitle }
-        : {}),
-      ...(release.prNumber ? { prNumber: release.prNumber } : {}),
+    const styles = files
+      .filter(({ role }) => role === 'stylesheet')
+      .map(({ path, digest }) => ({
+        path,
+        integrity: sha256Integrity(digest),
+      }));
+    const base = {
+      schemaVersion: '2' as const,
+      id: options.config.id,
+      name: options.config.name ?? options.config.id,
+      ...identity,
+      framework: options.config.framework,
+      entryPath: normalizeArtifactPath(options.entryPath),
+      styles: styles.length ? styles : undefined,
+      files,
     };
-    await mkdir(join(project.root, 'dist'), { recursive: true });
-    await writeFile(
-      join(project.root, 'dist', 'host.manifest.json'),
-      `${JSON.stringify(manifest, null, 2)}\n`,
-      'utf8',
-    );
-    return manifest;
+    if (isHostConfig(options.config)) {
+      const manifest: AtlasHostArtifactManifest = {
+        ...base,
+        kind: 'host-artifact',
+        exposes: { entry: './host' },
+        requiredLoaderApiVersion: '^1.0.0',
+      };
+      const result = withoutUndefined(manifest);
+      assertPublishedArtifactManifest(result);
+      return result;
+    }
+    const runtimeShape = createManifestFromConfig({
+      config: options.config,
+      version: '0.0.0',
+      buildId: 'canonical',
+      remoteEntryUrl: `https://atlas.invalid/${options.entryPath}`,
+      createdAt: '1970-01-01T00:00:00.000Z',
+      exportedWidgets: await discoverExportedWidgets(
+        options.project.root,
+        options.config,
+        `https://atlas.invalid/${options.entryPath}`,
+      ),
+    });
+    const manifest: AtlasAppArtifactManifest = {
+      ...base,
+      kind: 'app-artifact',
+      exposes: runtimeShape.exposes,
+      isolation: runtimeShape.isolation,
+      requiredHostSdkVersion: runtimeShape.requiredHostSdkVersion,
+      supportedHosts: runtimeShape.supportedHosts,
+      placements: runtimeShape.placements,
+      ...(runtimeShape.exportedWidgets?.length
+        ? {
+            exportedWidgets: runtimeShape.exportedWidgets.map(
+              ({ remoteEntryUrl: _, ...widget }) => widget,
+            ),
+          }
+        : {}),
+      ...(runtimeShape.externalAppsDependencies?.length
+        ? {
+            externalAppsDependencies: runtimeShape.externalAppsDependencies,
+          }
+        : {}),
+      ...(runtimeShape.metadata ? { metadata: runtimeShape.metadata } : {}),
+    };
+    const result = withoutUndefined(manifest);
+    assertPublishedArtifactManifest(result);
+    return result;
   }
 
   async loadConfig(root: string): Promise<AtlasConfig> {
@@ -295,21 +311,13 @@ export class AtlasBuildService {
     );
   }
 
-  private registryBaseUrl(channel: AtlasVersionChannel = 'production'): string {
+  private registryUrl(channel: AtlasVersionChannel = 'production'): string {
     const explicit =
-      this.args.flag('registry-base-url') ?? process.env.ATLAS_REGISTRY_URL;
+      this.args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
     if (explicit) return explicit;
     if (channel === 'local') return 'http://localhost:4400';
     throw new Error(
-      '--registry-base-url or ATLAS_REGISTRY_URL is required for non-local builds.',
-    );
-  }
-
-  private shouldPublish(path: string): boolean {
-    if (isAtlasBuildMetadata(path)) return false;
-    return (
-      this.args.hasFlag('include-source-maps') ||
-      !path.toLowerCase().endsWith('.map')
+      '--registry-url or ATLAS_REGISTRY_URL is required for non-local builds.',
     );
   }
 }
@@ -491,16 +499,9 @@ async function listFiles(root: string, relative = ''): Promise<string[]> {
   return files.flat().sort();
 }
 
-async function hashArtifactDirectory(
-  root: string,
-  includeSourceMaps: boolean,
-): Promise<string> {
+async function hashArtifactDirectory(root: string): Promise<string> {
   const hash = createHash('sha256');
-  for (const relativePath of (await listFiles(root)).filter(
-    (path) =>
-      !isAtlasBuildMetadata(path) &&
-      (includeSourceMaps || !path.toLowerCase().endsWith('.map')),
-  )) {
+  for (const relativePath of await listFiles(root)) {
     hash.update(relativePath.split('\\').join('/'));
     hash.update('\0');
     hash.update(publicationContentType(relativePath));
@@ -511,14 +512,62 @@ async function hashArtifactDirectory(
   return hash.digest('hex');
 }
 
-function isAtlasBuildMetadata(path: string): boolean {
-  const normalized = path.split('\\').join('/');
-  return (
-    normalized === 'app.manifest.json' ||
-    normalized === 'host.manifest.json' ||
-    normalized === 'atlas-publication.json' ||
-    normalized.startsWith('atlas-publication/')
+async function payloadDescriptors(
+  root: string,
+  paths: readonly string[],
+  entryPath: string,
+): Promise<AtlasPayloadFileDescriptor[]> {
+  const normalizedEntry = normalizeArtifactPath(entryPath);
+  return Promise.all(
+    paths.map(async (path) => {
+      const normalized = normalizeArtifactPath(path);
+      const bytes = await readFile(join(root, path));
+      return {
+        path: normalized,
+        digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+        size: bytes.byteLength,
+        mediaType: publicationContentType(normalized),
+        cacheControl: 'public, max-age=31536000, immutable',
+        role: payloadRole(normalized, normalizedEntry),
+      };
+    }),
   );
+}
+
+function payloadRole(
+  path: string,
+  entryPath: string,
+): AtlasPayloadFileDescriptor['role'] {
+  if (path === entryPath) return 'remote-entry';
+  if (path.endsWith('.map')) return 'source-map';
+  if (path.endsWith('.css')) return 'stylesheet';
+  if (/\.(?:m?js|cjs)$/i.test(path)) return 'script';
+  return 'asset';
+}
+
+function normalizeArtifactPath(path: string): string {
+  const normalized = path.split('\\').join('/');
+  if (
+    !normalized ||
+    normalized.startsWith('/') ||
+    normalized
+      .split('/')
+      .some((segment) => !segment || segment === '.' || segment === '..') ||
+    /[\u0000-\u001f\u007f]/u.test(normalized)
+  ) {
+    throw new Error(`Atlas payload path "${path}" is unsafe.`);
+  }
+  return normalized;
+}
+
+function sha256Integrity(digest: `sha256:${string}`): string {
+  return `sha256-${Buffer.from(digest.slice('sha256:'.length), 'hex').toString('base64')}`;
+}
+
+function withoutUndefined<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as T;
 }
 
 function isAtlasConfig(value: unknown): value is AtlasConfig {
@@ -531,10 +580,7 @@ function isAtlasConfig(value: unknown): value is AtlasConfig {
 }
 function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
   if (config.type) return config.type === 'host';
-  return (
-    'resourcesTimeoutMs' in config ||
-    'resourcesRetryCount' in config
-  );
+  return 'resourcesTimeoutMs' in config || 'resourcesRetryCount' in config;
 }
 function assertAppConfig(config: AtlasConfig): AtlasAppConfig {
   if (isHostConfig(config)) {
@@ -568,12 +614,63 @@ interface ReleaseIdentity {
   prNumber?: number;
 }
 
+function publicationIdentity(
+  args: CliArguments,
+  project: AtlasProject,
+): Pick<AtlasPublishedArtifactManifest, 'release' | 'preview' | 'source'> {
+  const version = args.flag('version');
+  const pr = args.flag('pr');
+  const mr = args.flag('mr');
+  const selected = [version, pr, mr].filter((value) => value !== undefined);
+  if (selected.length !== 1) {
+    throw new Error(
+      'Atlas publish requires exactly one of --version, --pr, or --mr.',
+    );
+  }
+  if (pr !== undefined && mr !== undefined) {
+    throw new Error('--pr and --mr are aliases and cannot be passed together.');
+  }
+  const gitSha =
+    args.flag('git-sha') ?? gitOutput(project.root, ['rev-parse', 'HEAD']);
+  const gitBranch =
+    args.flag('git-branch') ??
+    gitOutput(project.root, ['branch', '--show-current']);
+  const gitCommitTitle =
+    args.flag('git-commit-title') ??
+    gitOutput(project.root, ['log', '-1', '--pretty=%s']);
+  const source = withoutUndefined({ gitSha, gitBranch, gitCommitTitle });
+  if (version !== undefined) {
+    assertReleaseVersion(version);
+    return {
+      release: { version },
+      ...(Object.keys(source).length ? { source } : {}),
+    };
+  }
+  const previewNumber = optionalNumber(pr ?? mr);
+  if (!previewNumber || previewNumber < 1) {
+    throw new Error('--pr and --mr must be positive integers.');
+  }
+  if (!gitSha) {
+    throw new Error(
+      'Preview publication requires the checked-out Git SHA or --git-sha.',
+    );
+  }
+  return {
+    preview: withoutUndefined({
+      number: previewNumber,
+      gitSha,
+      gitBranch,
+      gitCommitTitle,
+    }),
+  };
+}
+
 function releaseIdentity(
   args: CliArguments,
   project: AtlasProject,
 ): ReleaseIdentity {
   const prNumber = optionalNumber(
-    args.flag('pr-number') ?? inferredPullRequestNumber(),
+    args.flag('pr') ?? args.flag('mr') ?? args.flag('pr-number'),
   );
   const explicitChannel = args.flag('channel') ?? process.env.ATLAS_CHANNEL;
   const channel = explicitChannel
@@ -581,26 +678,18 @@ function releaseIdentity(
     : prNumber
       ? 'pr'
       : 'production';
-  const packageVersion =
-    args.flag('version') ??
-    inferredTagVersion(project) ??
-    project.version ??
-    '0.0.0';
+  const packageVersion = args.flag('version') ?? project.version ?? '0.0.0';
   const version =
     channel === 'pr' && prNumber
       ? `${packageVersion.split('+')[0]!.split('-')[0]}-pr.${prNumber}`
       : packageVersion;
   const gitSha =
-    args.flag('git-sha') ??
-    inferredGitSha() ??
-    gitOutput(project.root, ['rev-parse', 'HEAD']);
+    args.flag('git-sha') ?? gitOutput(project.root, ['rev-parse', 'HEAD']);
   const gitBranch =
     args.flag('git-branch') ??
-    inferredGitBranch() ??
     gitOutput(project.root, ['branch', '--show-current']);
   const gitCommitTitle =
     args.flag('git-commit-title') ??
-    inferredGitCommitTitle() ??
     gitOutput(project.root, ['log', '-1', '--pretty=%s']);
   return {
     channel,
@@ -610,20 +699,6 @@ function releaseIdentity(
     ...(gitCommitTitle ? { gitCommitTitle } : {}),
     ...(prNumber ? { prNumber } : {}),
   };
-}
-
-function inferredTagVersion(project: AtlasProject): string | undefined {
-  const tag = inferredGitTag();
-  if (!tag) return undefined;
-  const escapedNames = [project.packageName, project.id].map((name) =>
-    name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-  );
-  const match = tag.match(
-    new RegExp(
-      `^(?:v|(?:${escapedNames.join('|')})@)?(\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?)$`,
-    ),
-  );
-  return match?.[1];
 }
 
 function gitOutput(root: string, args: readonly string[]): string | undefined {

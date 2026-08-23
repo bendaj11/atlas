@@ -4,6 +4,7 @@ import { stdin, stdout } from 'node:process';
 import { TerminalPrompter, ui } from './ui.js';
 
 type UiScenario =
+  | 'logo'
   | 'heading'
   | 'success'
   | 'warning'
@@ -20,6 +21,7 @@ export class UiDriver {
   private readonly error = jest.fn();
   private readonly originalError = console.error;
   private readonly originalInfo = console.info;
+  private readonly originalNoColor = process.env.NO_COLOR;
   private readonly originalTerm = process.env.TERM;
   private readonly inputTtyDescriptor = Object.getOwnPropertyDescriptor(
     stdin,
@@ -33,9 +35,11 @@ export class UiDriver {
 
   given = {
     terminal: ({
+      colors = false,
       inputIsTTY,
       outputIsTTY,
     }: {
+      colors?: boolean;
       inputIsTTY: boolean;
       outputIsTTY: boolean;
     }): void => {
@@ -47,6 +51,7 @@ export class UiDriver {
         configurable: true,
         value: outputIsTTY,
       });
+      if (colors) delete process.env.NO_COLOR;
       process.env.TERM = 'xterm-256color';
     },
   };
@@ -55,6 +60,7 @@ export class UiDriver {
     show: (scenario: UiScenario): void => {
       Object.assign(console, { error: this.error, info: this.info });
       try {
+        if (scenario === 'logo') ui.logo();
         if (scenario === 'heading') ui.heading(`Build · ${this.subject}`);
         if (scenario === 'success') ui.success(`Built ${this.subject}.`);
         if (scenario === 'warning')
@@ -92,6 +98,24 @@ export class UiDriver {
   get = {
     errorCalls: (): readonly unknown[][] => this.error.mock.calls,
     infoCalls: (): readonly unknown[][] => this.info.mock.calls,
+    logo: (): readonly unknown[][] => [
+      [
+        `
+     _  _____ _        _    ____
+    / \\|_   _| |      / \\  / ___|
+   / _ \\ | | | |     / _ \\ \\___ \\
+  / ___ \\| | | |___ / ___ \\ ___) |
+ /_/   \\_\\_| |_____/_/   \\_\\____/`,
+      ],
+    ],
+    logoUsesColors: (): boolean => {
+      const logo = this.info.mock.calls[0]?.[0];
+      return (
+        typeof logo === 'string' &&
+        logo.includes('\u001B[38;2;10;143;252m') &&
+        logo.includes('\u001B[38;2;255;255;255m')
+      );
+    },
     heading: (): readonly unknown[][] => [
       [`\nAtlas · Build · ${this.subject}`],
     ],
@@ -117,6 +141,8 @@ export class UiDriver {
   };
 
   private restoreTerminalDescriptors(): void {
+    if (this.originalNoColor === undefined) delete process.env.NO_COLOR;
+    else process.env.NO_COLOR = this.originalNoColor;
     if (this.originalTerm === undefined) delete process.env.TERM;
     else process.env.TERM = this.originalTerm;
     if (this.inputTtyDescriptor) {

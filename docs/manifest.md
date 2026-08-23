@@ -1,78 +1,55 @@
-# Manifests
+# Manifest Contracts
 
-Audience: operators debugging generated deployment metadata and maintainers of
-registry tooling. App/host developers edit `atlas.config.ts`, never manifest
-JSON. Prerequisites: one successful `atlas build` and basic
-[registry](registry.md) vocabulary.
+Atlas v2 uses one filename, `manifest.json`, with `kind` as discriminator.
 
-Quick decision: source behavior belongs in `atlas.config.ts`; exact built URL,
-hash, compatibility, and version belong in generated manifest.
+## Artifact manifests
 
-Each immutable host-client or app build has one generated manifest. Hosts and apps share a base identity so the registry, CLI, and Columbus can version them consistently.
+- `kind: app-artifact` describes an immutable app release or preview.
+- `kind: host-artifact` describes an immutable host release or preview.
 
-```ts
-interface AtlasArtifactManifestBase {
-  schemaVersion: "1";
-  kind: "host" | "app";
-  id: string;
-  name: string;
-  version: string;
-  buildId: string;
-  channel: "production" | "pr" | "local";
-  framework: "angular" | "react" | "vue";
-  remoteEntryUrl: string;
-  integrity?: string;
-  gitSha?: string;
-  gitBranch?: string;
-  gitCommitTitle?: string;
-  prNumber?: number;
-  createdAt: string;
+Both contain stable ID/name, release or preview identity, deterministic source
+metadata, framework, entry path, exposes, styles, and payload descriptors. App
+manifests additionally contain compatibility, routes/slots, isolation, widgets,
+dependencies, and metadata. Host manifests contain loader compatibility.
+
+Every payload descriptor has safe relative path, SHA-256, byte size, media type,
+cache policy, and logical role. Manifest does not list itself.
+
+Release location:
+
+```text
+apps/<id>/<version>/manifest.json
+hosts/<id>/<version>/manifest.json
+```
+
+Preview location:
+
+```text
+apps/<id>/previews/<number>/<internal-digest>/manifest.json
+hosts/<id>/previews/<number>/<internal-digest>/manifest.json
+```
+
+See [registry reference](registry.md#canonical-artifact-manifest) for JSON.
+
+## Active host manifest
+
+`environments/<environment>/hosts/<id>/manifest.json` has `kind: host-deployment`. It contains environment,
+host-specific deployment revision, and descriptor+URL references to selected host,
+apps, and widget-only providers. It deliberately contains no artifact bodies.
+
+## Runtime configuration
+
+`atlas.runtime.json` points the browser to the active host manifest:
+
+```json
+{
+  "schemaVersion": "1",
+  "hostId": "d145969d-8fe8-4b71-8aa4-8fb71fe54f63",
+  "environment": "production",
+  "manifestUrl": "https://assets.example.com/atlas/environments/production/hosts/d145969d-8fe8-4b71-8aa4-8fb71fe54f63/manifest.json",
+  "registryUrl": "https://assets.example.com/atlas"
 }
 ```
 
-`version` is the release label people use. `buildId` identifies exact bytes.
-`kind` keeps host and app ids unambiguous. PR manifests include PR number,
-actual head SHA, branch, and commit title so freshness can be verified and
-Columbus can identify the preview. Local manifests use loopback and are never
-published.
-
-## Host manifest
-
-```ts
-interface AtlasHostManifest extends AtlasArtifactManifestBase {
-  kind: "host";
-  exposes: { entry: "./host" };
-  requiredLoaderApiVersion: string;
-}
-```
-
-The stable loader validates the id, origin, integrity, loader compatibility, and federation expose before calling host `mount(request)`.
-
-## App manifest
-
-An app manifest adds:
-
-- `exposes.entry`, normally `./entry`;
-- `requiredHostSdkVersion`;
-- supported hosts and generated route/slot placements;
-- DOM isolation policy;
-- styles with optional integrity;
-- exported widgets and external provider app dependencies.
-
-Example path:
-
-```text
-apps/2bea9c13-4899-4f93-9211-cd8c55e9c529/2.1.0/build-456/app.manifest.json
-```
-
-The equivalent host path is:
-
-```text
-hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/1.4.0/build-123/host.manifest.json
-```
-
-Normal developers do not hand-write manifests. They edit the small `atlas.config.ts`; `atlas build` generates and validates the full artifact contract. Source `routes` and `slots` become app manifest placements. Framework output inspection supplies asset paths and SHA-256 integrity.
-
-`externalAppsDependencies` is only an array of provider app IDs. It contains no versions: runtime selects current external production build on refresh. Individual consumed widget IDs never appear in app config. Exported widget UUID/name live beside widget source in `atlas.config.ts`.
-
-See [Registry and publishing](registry.md) for indexes and catalog selection, and [Security](security.md) for trust rules.
+External registries include explicit environments. `developmentSessionUrl` is
+reserved for Atlas loopback development and is not a production contract.

@@ -6,7 +6,7 @@
     "dev": "ng serve demo-angular-host",
     "atlas:config": "atlas compile-config demo-angular-host",
     "build": "ng build",
-    "atlas:publish": "atlas publish demo-angular-host --from-build-output",
+    "atlas:publish": "atlas publish demo-angular-host",
     "atlas:bootstrap": "atlas build-bootstrap demo-angular-host --skip-compile"
   },
   "dependencies": {

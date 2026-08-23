@@ -29,6 +29,7 @@ import {
   alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
   ATLAS_NX_TAG,
+  atlasCommand,
   atlasConfigNxTarget,
   ensureDelegatedNxTargets,
   nxTarget,
@@ -134,6 +135,7 @@ export class AtlasGenerateService {
         name,
         framework: selectedFramework,
         packageName,
+        packageManager: this.workspace.packageManager,
         detectedFrameworkVersion,
         hostId,
         routing: innerRouting,
@@ -175,6 +177,7 @@ export class AtlasGenerateService {
             name,
             type,
             selectedFramework,
+            this.workspace.packageManager,
             devServerPort,
             generatorOptions.frameworkVersion,
           );
@@ -396,6 +399,7 @@ export class AtlasGenerateService {
     name: string;
     framework?: SupportedFramework;
     packageName?: string;
+    packageManager?: AtlasGeneratorOptions['packageManager'];
     detectedFrameworkVersion?: string;
     hostId?: string;
     routing?: boolean;
@@ -405,6 +409,7 @@ export class AtlasGenerateService {
     return {
       name: options.name,
       packageName: options.packageName,
+      packageManager: options.packageManager,
       framework: options.framework ?? this.args.framework(),
       hostId: options.hostId,
       routing: options.routing,
@@ -448,7 +453,7 @@ export class AtlasGenerateService {
       dev: {
         executor: 'nx:run-commands',
         options: {
-          command: `atlas dev ${name}`,
+          command: atlasCommand(this.workspace.packageManager, `dev ${name}`),
           forwardAllArgs: true,
           tty: true,
         },
@@ -460,9 +465,10 @@ export class AtlasGenerateService {
     );
     targets['atlas:publish'] = {
       cache: false,
+      dependsOn: ['build'],
       executor: 'nx:run-commands',
       options: {
-        command: `atlas publish ${name} --from-build-output`,
+        command: atlasCommand(this.workspace.packageManager, `publish ${name}`),
         forwardAllArgs: true,
       },
     };
@@ -472,7 +478,10 @@ export class AtlasGenerateService {
         outputs: ['{projectRoot}/dist/bootstrap'],
         executor: 'nx:run-commands',
         options: {
-          command: `atlas build-bootstrap ${name} --skip-compile`,
+          command: atlasCommand(
+            this.workspace.packageManager,
+            `build-bootstrap ${name} --skip-compile`,
+          ),
           forwardAllArgs: true,
         },
       };
@@ -524,7 +533,16 @@ export class AtlasGenerateService {
     tasks['atlas:config'] ??= { outputs: ['.atlas/**'] };
     tasks['atlas:publish'] ??= {
       cache: false,
-      env: ['ATLAS_*', 'AWS_*', 'CI_*', 'GITHUB_*', 'BITBUCKET_*', 'VERCEL_*'],
+      dependsOn: ['build'],
+      env: [
+        'ATLAS_*',
+        'AWS_*',
+        'GITHUB_*',
+        'CI_PROJECT_ID',
+        'CI_API_V4_URL',
+        'CI_JOB_TOKEN',
+        'BITBUCKET_*',
+      ],
     };
     tasks['atlas:bootstrap'] ??= {
       dependsOn: ['atlas:config'],

@@ -1,4 +1,4 @@
-import type { AtlasManifest } from "@atlas/schema";
+import { placementTargetsHost, type AtlasManifest } from '@atlas/schema';
 
 export interface AtlasSlotRenderRequest {
   manifest: AtlasManifest;
@@ -6,8 +6,17 @@ export interface AtlasSlotRenderRequest {
   container: HTMLElement;
 }
 
-export function findManifestsForSlot(manifests: AtlasManifest[], hostId: string, slot: string): AtlasManifest[] {
+export function findManifestsForSlot(
+  manifests: AtlasManifest[],
+  hostId: string,
+  slot: string,
+): AtlasManifest[] {
   return manifests.filter((manifest) =>
-    manifest.placements.some((placement) => placement.hostId === hostId && placement.kind === "slot" && placement.slot === slot)
+    manifest.placements.some(
+      (placement) =>
+        placementTargetsHost(placement, hostId) &&
+        placement.kind === 'slot' &&
+        placement.slot === slot,
+    ),
   );
 }

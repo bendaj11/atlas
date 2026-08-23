@@ -14,8 +14,10 @@ declare module '@faker-js/faker' {
 faker.custom = {
   channel: () =>
     faker.helpers.arrayElement(['production', 'pr', 'local'] as const),
-  publishedChannel: () => faker.helpers.arrayElement(['production', 'pr'] as const),
-  framework: () => faker.helpers.arrayElement(['angular', 'react', 'vue'] as const),
+  publishedChannel: () =>
+    faker.helpers.arrayElement(['production', 'pr'] as const),
+  framework: () =>
+    faker.helpers.arrayElement(['angular', 'react', 'vue'] as const),
   schemaVersion: () => faker.helpers.arrayElement(['1'] as const),
 };
 

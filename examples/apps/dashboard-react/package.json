@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "atlas:config": "atlas compile-config dashboard-react",
     "build": "tsc -b && vite build",
-    "atlas:publish": "atlas publish dashboard-react --from-build-output"
+    "atlas:publish": "atlas publish dashboard-react"
   },
   "dependencies": {
     "@atlas/schema": "*",

@@ -9,7 +9,9 @@ import {
 const DEFAULT_RUNTIME: AtlasHostRuntimeConfig = {
   schemaVersion: '1',
   hostId: 'customer-host',
-  catalogUrl: 'https://cdn.example/atlas/hosts/customer-host/catalog.json',
+  environment: 'production',
+  manifestUrl:
+    'https://cdn.example/atlas/environments/production/hosts/customer-host/manifest.json',
   assetOrigins: ['https://assets.example'],
 };
 

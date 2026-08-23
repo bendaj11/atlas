@@ -54,24 +54,6 @@ describe('resolveInvocation', () => {
     expect(driver.get.questions()).toStrictEqual([]);
   });
 
-  it('should resolve missing rollback values when rollback is interactive', async () => {
-    driver.given.scenario('interactive-rollback');
-
-    await driver.when.resolve();
-
-    expect(driver.get.invocation()).toStrictEqual(driver.get.rollback());
-  });
-
-  it('should ask for missing rollback values when rollback is interactive', async () => {
-    driver.given.scenario('interactive-rollback');
-
-    await driver.when.resolve();
-
-    expect(driver.get.questions()).toStrictEqual(
-      driver.get.rollbackQuestions(),
-    );
-  });
-
   it('should defer widget app selection when configured apps are unavailable', async () => {
     driver.given.scenario('unconfigured-widget');
 

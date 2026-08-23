@@ -26,7 +26,6 @@ describe('CLI entrypoint', () => {
       hasCommandCatalog: true,
       hasNoColor: true,
       hasNoInput: true,
-      hasRegistryOption: false,
     });
   });
 

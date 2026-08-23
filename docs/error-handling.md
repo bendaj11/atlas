@@ -8,14 +8,14 @@ failed and what to do next. Every public error boundary wraps failures in
 
 `AtlasError` exposes:
 
-| Field | Meaning |
-| --- | --- |
-| `summary` | Plain-language description of the failed Atlas operation |
-| `suggestedActions` | One or more concrete recovery steps |
-| `surface` | `cli`, `browser`, or `universal` |
-| `code` | Stable Atlas failure category |
-| `cause` | Original error and stack trace |
-| `message` | Summary plus formatted suggested actions |
+| Field              | Meaning                                                  |
+| ------------------ | -------------------------------------------------------- |
+| `summary`          | Plain-language description of the failed Atlas operation |
+| `suggestedActions` | One or more concrete recovery steps                      |
+| `surface`          | `cli`, `browser`, or `universal`                         |
+| `code`             | Stable Atlas failure category                            |
+| `cause`            | Original error and stack trace                           |
+| `message`          | Summary plus formatted suggested actions                 |
 
 Never mutate a caught error. Never expose a foreign error without naming the
 Atlas operation that failed. Never replace the cause or stack trace with only a
@@ -36,8 +36,8 @@ friendly string.
 
 - Name the host, app, widget, route, overlay, or resource.
 - Actions must be possible from browser/deployment context: correct a URL,
-  manifest, CORS policy, host layout, catalog, or deployed build; then retry or
-  reload.
+  manifest, CORS policy, host layout, environment selection, or deployed
+  release; then retry or reload.
 - Never recommend terminal help.
 - Console errors use structured objects containing message, actions, code, and
   cause.
@@ -51,14 +51,14 @@ friendly string.
 
 ## Boundary ownership
 
-| Boundary | Responsibility |
-| --- | --- |
-| `packages/cli/src/cli-error.ts` | Command-aware CLI classification |
+| Boundary                                   | Responsibility                                  |
+| ------------------------------------------ | ----------------------------------------------- |
+| `packages/cli/src/cli-error.ts`            | Command-aware CLI classification                |
 | `packages/bootstrap/src/browser-loader.ts` | Static bootstrap fatal panel and console report |
-| `packages/runtime/src/browser-error.ts` | Structured runtime console reports |
-| `packages/runtime/src/index.ts` | App, route, and widget lifecycle failures |
-| `packages/sdk/src/sdk-error.ts` | Public SDK misuse and unavailable capabilities |
-| `apps/columbus/.../atlas-host.ts` | Chrome/inspection failures shown by Columbus |
+| `packages/runtime/src/browser-error.ts`    | Structured runtime console reports              |
+| `packages/runtime/src/index.ts`            | App, route, and widget lifecycle failures       |
+| `packages/sdk/src/sdk-error.ts`            | Public SDK misuse and unavailable capabilities  |
+| `apps/columbus/.../atlas-host.ts`          | Chrome/inspection failures shown by Columbus    |
 
 Internal validation functions may throw focused errors. Their nearest public
 boundary must add Atlas context and recovery before logging, rendering, or
@@ -71,7 +71,7 @@ Good:
 ```text
 Atlas could not load app "orders": https://cdn.example/orders/remoteEntry.json returned HTTP 404.
 Suggested actions:
-1. Verify the app remote entry is deployed at the catalog URL.
+1. Verify the app remote entry is present at the URL referenced by the active host manifest.
 2. Correct and republish the app manifest, then use Retry in the page.
 ```
 

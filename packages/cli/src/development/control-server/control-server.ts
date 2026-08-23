@@ -1,6 +1,12 @@
 import { createServer, type ServerResponse } from 'node:http';
-import { assertAtlasHostCatalog, type AtlasHostCatalog } from '@atlas/schema';
+import type { AtlasHostCatalog } from '@atlas/schema';
+import { loadHostDeployment } from '@atlas/runtime';
 import { createDevSessionStore } from '../session/session.js';
+import {
+  readActiveControlServerLeases,
+  removeControlServerLease,
+  writeControlServerLease,
+} from './control-server-lease.js';
 import {
   closeServer,
   deleteJson,
@@ -19,35 +25,52 @@ import type {
   DevSessionStore,
 } from '../types.js';
 
+interface StartControlServerOptions {
+  port: number;
+  document: AtlasDevOverrideDocument;
+  overrideUrl: string;
+  registryUrl?: string;
+  environment?: string;
+  loadPublishedCatalog?: typeof readPublishedCatalog;
+}
+
 export async function startControlServer(
-  port: number,
-  document: AtlasDevOverrideDocument,
-  overrideUrl: string,
-  registryUrl?: string,
+  options: StartControlServerOptions,
 ): Promise<DevControlServer> {
+  await writeControlServerLease({ ...options, ready: false });
   try {
-    return await startOwnedControlServer(
-      port,
-      document,
-      overrideUrl,
-      registryUrl,
+    return withControlServerLease(
+      await startOrJoinControlServer(options),
+      options,
     );
   } catch (error) {
-    if (!isAddressInUse(error)) throw error;
-    return joinControlServer(port, document);
+    await removeControlServerLease(options);
+    throw error;
   }
 }
 
-function startOwnedControlServer(
-  port: number,
-  document: AtlasDevOverrideDocument,
-  overrideUrl: string,
-  registryUrl?: string,
+async function startOrJoinControlServer(
+  options: StartControlServerOptions,
 ): Promise<DevControlServer> {
+  try {
+    return await startOwnedControlServer(options);
+  } catch (error) {
+    if (!isAddressInUse(error)) throw error;
+    return joinControlServer(options);
+  }
+}
+
+async function startOwnedControlServer(
+  options: StartControlServerOptions,
+): Promise<DevControlServer> {
+  const { port, document, overrideUrl } = options;
   const session = createDevSessionStore(document, overrideUrl);
-  const server = createServer(
-    createControlRequestHandler(session, overrideUrl, registryUrl),
-  );
+  const leases = await readActiveControlServerLeases(port);
+  for (const lease of leases) {
+    session.register(lease.document);
+    if (lease.ready) session.markDocumentReady(lease.document);
+  }
+  const server = createServer(createControlRequestHandler(session, options));
   return new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, LOCAL_HOST, () => {
@@ -75,10 +98,44 @@ function startOwnedControlServer(
   });
 }
 
+function withControlServerLease(
+  control: DevControlServer,
+  options: StartControlServerOptions,
+): DevControlServer {
+  let ready = false;
+  const renew = () =>
+    writeControlServerLease({
+      port: control.port,
+      document: options.document,
+      ready,
+    });
+  const renewal = setInterval(
+    () => void renew(),
+    CONTROL_RECONCILIATION_INTERVAL_MS,
+  );
+  renewal.unref();
+  return {
+    port: control.port,
+    async markReady() {
+      ready = true;
+      await renew();
+      await control.markReady();
+    },
+    reconcile: () => control.reconcile(),
+    async close() {
+      clearInterval(renewal);
+      await removeControlServerLease({
+        port: control.port,
+        document: options.document,
+      });
+      await control.close();
+    },
+  };
+}
+
 function createControlRequestHandler(
   session: DevSessionStore,
-  overrideUrl: string,
-  registryUrl?: string,
+  options: StartControlServerOptions,
 ) {
   return (
     request: import('node:http').IncomingMessage,
@@ -100,7 +157,7 @@ function createControlRequestHandler(
       request.method === 'POST' &&
       pathname === '/atlas.dev-session/overrides'
     ) {
-      registerOverride(request, response, session, overrideUrl);
+      registerOverride(request, response, session, options.overrideUrl);
       return;
     }
     if (
@@ -165,30 +222,12 @@ function createControlRequestHandler(
       return;
     }
     if (request.method === 'GET' && pathname === '/atlas.dev-session.json') {
-      respondWithSession(response, session.devSession(requestedHostId));
-      return;
-    }
-    if (
-      request.method === 'GET' &&
-      pathname.startsWith('/hosts/') &&
-      pathname.endsWith('/catalog.json')
-    ) {
-      const hostId = pathSegment(pathname, '/hosts/', '/catalog.json');
-      if (hostId) {
-        void respondWithCatalog(response, session, hostId, registryUrl);
-        return;
-      }
-    }
-    if (
-      request.method === 'GET' &&
-      (pathname.startsWith('/hosts/') || pathname.startsWith('/apps/')) &&
-      pathname.endsWith('/index.json')
-    ) {
-      void respondWithVersionIndex(response, pathname, registryUrl);
-      return;
-    }
-    if (request.method === 'GET' && pathname === '/registry.json') {
-      writeJson(response, session.registry());
+      void respondWithDevelopmentSession(
+        response,
+        session,
+        requestedHostId,
+        options,
+      );
       return;
     }
     if (request.method === 'GET' && pathname === '/health') {
@@ -205,62 +244,37 @@ function createControlRequestHandler(
   };
 }
 
-async function respondWithCatalog(
+async function respondWithDevelopmentSession(
   response: ServerResponse,
   session: DevSessionStore,
-  hostId: string,
-  registryUrl?: string,
+  hostId: string | undefined,
+  options: StartControlServerOptions,
 ): Promise<void> {
-  const productionCatalog = registryUrl
-    ? await readProductionCatalog(registryUrl, hostId).catch(() => undefined)
-    : undefined;
-  respondWithSession(response, session.catalog(hostId, productionCatalog));
+  const publishedCatalog =
+    options.registryUrl && hostId
+      ? await (options.loadPublishedCatalog ?? readPublishedCatalog)(
+          options.registryUrl,
+          hostId,
+          options.environment ?? 'production',
+        ).catch(() => undefined)
+      : undefined;
+  respondWithSession(response, session.devSession(hostId, publishedCatalog));
 }
 
-async function respondWithVersionIndex(
-  response: ServerResponse,
-  pathname: string,
-  registryUrl?: string,
-): Promise<void> {
-  if (!registryUrl) {
-    response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
-    response.end('Not found\n');
-    return;
-  }
-  try {
-    const upstream = await fetch(`${registryUrl}${pathname}`, {
-      cache: 'no-store',
-    });
-    if (!upstream.ok) {
-      response.writeHead(upstream.status, {
-        'content-type': 'text/plain; charset=utf-8',
-      });
-      response.end('Version index unavailable\n');
-      return;
-    }
-    writeJson(response, await upstream.json());
-  } catch (error) {
-    writeError(response, error);
-  }
-}
-
-async function readProductionCatalog(
+async function readPublishedCatalog(
   registryUrl: string,
   hostId: string,
+  environment: string,
 ): Promise<AtlasHostCatalog> {
-  const response = await fetch(
-    `${registryUrl}/hosts/${encodeURIComponent(hostId)}/catalog.json`,
-    { cache: 'no-store' },
-  );
-  if (!response.ok)
-    throw new Error(`Production catalog returned ${response.status}.`);
-  const catalog: unknown = await response.json();
-  assertAtlasHostCatalog(catalog);
-  if (catalog.hostId !== hostId)
-    throw new Error(
-      `Production catalog targets host ${catalog.hostId}, not ${hostId}.`,
-    );
-  return catalog;
+  const root = registryUrl.endsWith('/') ? registryUrl : `${registryUrl}/`;
+  return loadHostDeployment({
+    manifestUrl: new URL(
+      `environments/${encodeURIComponent(environment)}/hosts/${encodeURIComponent(hostId)}/manifest.json`,
+      root,
+    ).href,
+    expectedHostId: hostId,
+    expectedEnvironment: environment,
+  });
 }
 
 function setControlHeaders(response: ServerResponse): void {
@@ -310,13 +324,14 @@ function pathSegment(
 }
 
 async function joinControlServer(
-  port: number,
-  document: AtlasDevOverrideDocument,
+  options: StartControlServerOptions,
 ): Promise<DevControlServer> {
+  const { document, port } = options;
   const baseUrl = localOrigin(port);
   const appIds = document.overrides.map((override) => override.manifest.id);
   const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
   const hostPath = `${baseUrl}/atlas.dev-session/hosts/${encodeURIComponent(document.hostId)}`;
+  let ownedControl: DevControlServer | undefined;
   const synchronize = async (): Promise<void> => {
     await postJson(`${baseUrl}/atlas.dev-session/overrides`, document);
     await Promise.all([
@@ -333,7 +348,13 @@ async function joinControlServer(
     try {
       await synchronize();
     } catch {
-      await synchronize();
+      try {
+        ownedControl = await startOwnedControlServer(options);
+        await ownedControl.markReady();
+      } catch (error) {
+        if (!isAddressInUse(error)) throw error;
+        await synchronize();
+      }
     }
   };
   await reconcile();
@@ -347,6 +368,16 @@ async function joinControlServer(
     reconcile,
     async close() {
       clearInterval(reconciliation);
+      if (ownedControl) {
+        await ownedControl.close();
+        return;
+      }
+      await removeJoinedOverrides();
+    },
+  };
+
+  async function removeJoinedOverrides(): Promise<void> {
+    try {
       await Promise.all([
         ...appIds.map((appId) =>
           deleteJson(
@@ -355,6 +386,8 @@ async function joinControlServer(
         ),
         ...(document.hostOverride ? [deleteJson(hostPath)] : []),
       ]);
-    },
-  };
+    } catch {
+      // Control server may already have stopped. No override remains to remove.
+    }
+  }
 }

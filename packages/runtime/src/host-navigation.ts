@@ -1,7 +1,11 @@
-import type { AtlasManifest, AtlasPlacement } from "@atlas/schema";
-import type { AtlasNavigation } from "@atlas/sdk/navigation";
+import {
+  placementTargetsHost,
+  type AtlasManifest,
+  type AtlasPlacement,
+} from '@atlas/schema';
+import type { AtlasNavigation } from '@atlas/sdk/navigation';
 
-export const ATLAS_NAVIGATION_ITEMS_EVENT = "atlas:navigation-items";
+export const ATLAS_NAVIGATION_ITEMS_EVENT = 'atlas:navigation-items';
 
 export interface AtlasHostNavigationItem {
   id: string;
@@ -21,58 +25,96 @@ interface RoutePlacement {
   placement: AtlasPlacement;
 }
 
-const documentNavigationItems = new WeakMap<Document, readonly AtlasHostNavigationItem[]>();
+const documentNavigationItems = new WeakMap<
+  Document,
+  readonly AtlasHostNavigationItem[]
+>();
 
 export function createHostNavigationItems(
   manifests: readonly AtlasManifest[],
   hostId: string,
-  navigation: AtlasNavigation
+  navigation: AtlasNavigation,
 ): readonly AtlasHostNavigationItem[] {
   const pathname = navigation.getCurrentLocation().pathname;
-  return routePlacementsForHost(manifests, hostId).map(({ manifest, placement }) => {
-    const route = placement.route!;
-    return {
-      id: placement.id,
-      appId: manifest.id,
-      appName: manifest.name,
-      path: route.path,
-      href: navigation.createHref(route.path),
-      label: route.nav?.label ?? route.title ?? manifest.name,
-      ...(route.title !== undefined ? { title: route.title } : {}),
-      order: route.nav?.order ?? 0,
-      active: routeMatches(route.path, pathname),
-      navigate: () => navigation.navigate(route.path)
-    };
-  });
+  return routePlacementsForHost(manifests, hostId).map(
+    ({ manifest, placement }) => {
+      const route = placement.route!;
+      return {
+        id: placement.id,
+        appId: manifest.id,
+        appName: manifest.name,
+        path: route.path,
+        href: navigation.createHref(route.path),
+        label: route.nav?.label ?? route.title ?? manifest.name,
+        ...(route.title !== undefined ? { title: route.title } : {}),
+        order: route.nav?.order ?? 0,
+        active: routeMatches(route.path, pathname),
+        navigate: () => navigation.navigate(route.path),
+      };
+    },
+  );
 }
 
-export function readAtlasNavigationItems(document: Document | undefined = globalThis.document): readonly AtlasHostNavigationItem[] {
+export function readAtlasNavigationItems(
+  document: Document | undefined = globalThis.document,
+): readonly AtlasHostNavigationItem[] {
   if (!document) return [];
   return documentNavigationItems.get(document) ?? [];
 }
 
-export function publishAtlasNavigationItems(document: Document, items: readonly AtlasHostNavigationItem[]): void {
+export function publishAtlasNavigationItems(
+  document: Document,
+  items: readonly AtlasHostNavigationItem[],
+): void {
   documentNavigationItems.set(document, items);
-  document.dispatchEvent(new CustomEvent(ATLAS_NAVIGATION_ITEMS_EVENT, { detail: { items } }));
+  document.dispatchEvent(
+    new CustomEvent(ATLAS_NAVIGATION_ITEMS_EVENT, { detail: { items } }),
+  );
 }
 
 export function subscribeAtlasNavigationItems(
   listener: (items: readonly AtlasHostNavigationItem[]) => void,
-  document: Document | undefined = globalThis.document
+  document: Document | undefined = globalThis.document,
 ): () => void {
   if (!document) return () => undefined;
   const handleNavigationItems = (event: Event): void => {
-    listener((event as CustomEvent<{ items: readonly AtlasHostNavigationItem[] }>).detail.items);
+    listener(
+      (event as CustomEvent<{ items: readonly AtlasHostNavigationItem[] }>)
+        .detail.items,
+    );
   };
-  document.addEventListener(ATLAS_NAVIGATION_ITEMS_EVENT, handleNavigationItems);
-  return () => document.removeEventListener(ATLAS_NAVIGATION_ITEMS_EVENT, handleNavigationItems);
+  document.addEventListener(
+    ATLAS_NAVIGATION_ITEMS_EVENT,
+    handleNavigationItems,
+  );
+  return () =>
+    document.removeEventListener(
+      ATLAS_NAVIGATION_ITEMS_EVENT,
+      handleNavigationItems,
+    );
 }
 
-function routePlacementsForHost(manifests: readonly AtlasManifest[], hostId: string): RoutePlacement[] {
-  return uniqueRoutePlacements(manifests
-    .flatMap((manifest) => manifest.placements.map((placement) => ({ manifest, placement })))
-    .filter(({ placement }) => placement.hostId === hostId && placement.kind === "route" && placement.route && placement.route.nav?.visible !== false))
-    .sort((left, right) => (left.placement.route?.nav?.order ?? 0) - (right.placement.route?.nav?.order ?? 0));
+function routePlacementsForHost(
+  manifests: readonly AtlasManifest[],
+  hostId: string,
+): RoutePlacement[] {
+  return uniqueRoutePlacements(
+    manifests
+      .flatMap((manifest) =>
+        manifest.placements.map((placement) => ({ manifest, placement })),
+      )
+      .filter(
+        ({ placement }) =>
+          placementTargetsHost(placement, hostId) &&
+          placement.kind === 'route' &&
+          placement.route &&
+          placement.route.nav?.visible !== false,
+      ),
+  ).sort(
+    (left, right) =>
+      (left.placement.route?.nav?.order ?? 0) -
+      (right.placement.route?.nav?.order ?? 0),
+  );
 }
 
 function uniqueRoutePlacements(placements: RoutePlacement[]): RoutePlacement[] {
@@ -87,9 +129,13 @@ function uniqueRoutePlacements(placements: RoutePlacement[]): RoutePlacement[] {
 
 function routeMatches(path: string, pathname: string): boolean {
   const normalized = normalizeRoutePath(path);
-  return normalized === "/" || pathname === normalized || pathname.startsWith(`${normalized}/`);
+  return (
+    normalized === '/' ||
+    pathname === normalized ||
+    pathname.startsWith(`${normalized}/`)
+  );
 }
 
 function normalizeRoutePath(path: string): string {
-  return path === "/" ? path : path.replace(/\/+$/, "");
+  return path === '/' ? path : path.replace(/\/+$/, '');
 }

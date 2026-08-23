@@ -1,10 +1,15 @@
 import { faker } from '@faker-js/faker';
-import { createPublicationStorage } from './publication-storage.js';
+import { PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
+import {
+  createPublicationStorage,
+  S3PublicationStorage,
+} from './publication-storage.js';
 
 export class PublicationStorageDriver {
   private readonly accessKeyId = faker.string.alphanumeric();
   private readonly bucket = faker.word.noun();
   private externalLeaseAcquired = false;
+  private readonly putInputs: Array<PutObjectCommand['input']> = [];
   private readonly originalEnvironment = {
     accessKeyId: process.env.ATLAS_STORAGE_ACCESS_KEY_ID,
     bucket: process.env.ATLAS_S3_BUCKET,
@@ -55,11 +60,48 @@ export class PublicationStorageDriver {
         this.restoreEnvironment();
       }
     },
+    createImmutableObject: async (): Promise<void> => {
+      await this.s3Storage().create(
+        'apps/orders/1.4.0/manifest.json',
+        new Uint8Array([1]),
+        { cacheControl: 'immutable', contentType: 'application/json' },
+      );
+    },
+    replaceMutableObject: async (): Promise<void> => {
+      await this.s3Storage().replace(
+        'registry.json',
+        new Uint8Array([1]),
+        { cacheControl: 'no-cache', contentType: 'application/json' },
+        { versionToken: 'etag-1' },
+      );
+    },
   };
 
   get = {
     externalLockIsUsable: (): boolean => this.externalLeaseAcquired,
+    latestPutCondition: (): {
+      ifMatch?: string;
+      ifNoneMatch?: string;
+    } => {
+      const input = this.putInputs.at(-1);
+      return {
+        ...(input?.IfMatch ? { ifMatch: input.IfMatch } : {}),
+        ...(input?.IfNoneMatch ? { ifNoneMatch: input.IfNoneMatch } : {}),
+      };
+    },
   };
+
+  private s3Storage(): S3PublicationStorage {
+    const client = {
+      send: async (command: unknown) => {
+        if (command instanceof PutObjectCommand) {
+          this.putInputs.push(command.input);
+        }
+        return {};
+      },
+    } as unknown as Pick<S3Client, 'send'>;
+    return new S3PublicationStorage({ bucket: this.bucket }, client);
+  }
 
   private restoreEnvironment(): void {
     this.restore('ATLAS_S3_BUCKET', this.originalEnvironment.bucket);

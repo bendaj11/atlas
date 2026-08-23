@@ -1,9 +1,9 @@
 # Build An Angular App
 
-Audience: Angular feature team with an existing Atlas host. Finished state: app
-mounts inside host, uses host services through SDK, and passes local contract
-checks. Complete [Zero to production](../getting-started.md) once before using
-this task guide.
+Audience: Angular feature team with an existing Atlas Host. Finished state: the
+App appears in the Host, uses shared Host services through the SDK, and passes
+local integration tests. Start with [Get Started](../getting-started.md), then
+use this guide.
 
 ## 1. Generate
 
@@ -13,44 +13,46 @@ From workspace root:
 atlas g app orders --framework=angular --host-id=0a17281f-287b-4d89-a8ca-0ab0e577c506
 ```
 
-Copy host UUID from host project's `atlas.config.ts`. Generator creates initial
-`/orders` route for that exact host ID. Keep generated app UUID stable across
-renames.
+Copy the Host ID from its `atlas.config.ts`. The generator creates an initial
+`/orders` URL for that Host. Keep the generated App ID when you rename the App.
 
-| File | Edit for |
-| --- | --- |
-| `atlas.config.ts` | app UUID, routes, slots, external app dependencies |
-| `src/app/app.component.ts` | feature root UI |
-| `src/app/app.config.ts` | Angular and Atlas providers |
-| `src/app/app.routes.ts` | app-relative inner routes |
-| `src/main.ts` | Angular entry and Atlas lifecycle adapter; rarely change |
-| `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata |
-| `federation.config.js` | Native Federation options; Atlas keeps required exposure and sharing rules |
+| File                                          | Edit for                                                                   |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| `atlas.config.ts`                             | app UUID, routes, slots, external app dependencies                         |
+| `src/app/app.component.ts`                    | feature root UI                                                            |
+| `src/app/app.config.ts`                       | Angular and Atlas providers                                                |
+| `src/app/app.routes.ts`                       | app-relative inner routes                                                  |
+| `src/main.ts`                                 | Angular entry and Atlas lifecycle adapter; rarely change                   |
+| `src/exported-widgets/<name>/atlas.config.ts` | exported widget UUID and metadata                                          |
+| `federation.config.js`                        | Native Federation options; Atlas keeps required exposure and sharing rules |
 
-## 2. Declare Placement
+## 2. Choose Where The App Appears
 
-App owns its placement declarations. Route `hostId` must equal stable UUID from
-host `atlas.config.ts`:
+The App chooses its own URLs and named page areas. `hostId` must equal the
+unique ID from the Host's `atlas.config.ts`:
 
 ```ts
-import type { AtlasAppConfig } from "@atlas/schema";
+import type { AtlasAppConfig } from '@atlas/schema';
 
 export default {
-  type: "app",
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  name: "Orders",
-  framework: "angular",
-  routes: [{
-    hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-    route: "/orders",
-    title: "Orders",
-    nav: { label: "Orders", visible: true, order: 10 }
-  }]
+  type: 'app',
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  name: 'Orders',
+  framework: 'angular',
+  routes: [
+    {
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      route: '/orders',
+      title: 'Orders',
+      nav: { label: 'Orders', visible: true, order: 10 },
+    },
+  ],
 } satisfies AtlasAppConfig;
 ```
 
-Host provides route outlet and named slot anchors; app claims routes and slots.
-Use [Angular routing](routing.md) for conflict, inner-route, and navigation rules.
+The Host has an HTML element for URL-based Apps and optional named page areas.
+This App declares which one it uses. Read [Angular routing](routing.md) for URL
+conflicts, App-only URLs, and navigation rules.
 
 ## 3. Build Feature UI
 

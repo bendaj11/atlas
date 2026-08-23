@@ -1,220 +1,110 @@
-# Workspace integration
+# Workspaces and Monorepos
 
-Atlas integrates through native project targets or package scripts. Workspace tool remains source of truth for project discovery, affected selection, dependencies, caching, and execution order.
-
-Workspace execution and release versioning are separate concerns. Nx Release,
-Yarn's version workflow, Changesets, semantic-release, package versions, and
-fully automated production tags can all establish a version before Atlas
-publishes. Turbo does not calculate a release version, and `atlas:publish`
-never increments one. See
-[Version and build identity](production-deployment.md#version-and-build-identity)
-for requirements, advantages, costs, and the recommended zero-manual-input tag
-workflow.
-
-## Mixed repositories
-
-Atlas repositories may also contain API servers, workers, libraries, mobile apps, and ordinary frontends. Atlas adds targets only to generated Atlas hosts and apps.
-
-Use native target discovery when auditing a workspace:
-
-```bash
-npx nx show projects --projects 'tag:atlas'
-npx nx show projects --with-target atlas:publish
-```
-
-The tag identifies Atlas-generated projects in the Nx graph. Target discovery
-answers the narrower deployment question: which projects can publish. Do not
-maintain a separate CI list of Atlas projects.
-
-## Nx
-
-When `atlas g host` or `atlas g app` creates a project in an Nx workspace,
-Atlas preserves the framework generator's project metadata and native `build`
-target, adds the `atlas` project tag without removing existing tags, then writes
-the required Atlas targets to that project's `project.json`. No manual target
-or tag setup is required. This automatic update belongs to the Atlas generator;
-projects created directly with `nx generate` are not converted into Atlas
-projects.
-
-Generated project metadata includes:
+Generated tasks preserve the build/publish boundary:
 
 ```json
 {
-  "tags": ["atlas"]
-}
-```
-
-Generated app targets:
-
-```json
-{
-  "atlas:config": {
-    "executor": "nx:run-commands",
-    "outputs": ["{projectRoot}/.atlas"],
-    "options": {
-      "command": "atlas compile-config orders"
-    }
-  },
+  "build": { "cache": true },
   "atlas:publish": {
+    "command": "atlas publish orders",
     "cache": false,
-    "executor": "nx:run-commands",
-    "options": {
-      "command": "atlas publish orders --from-build-output",
-      "forwardAllArgs": true
-    }
+    "dependsOn": ["build"]
   }
 }
 ```
 
-Hosts also receive:
-
-```json
-{
-  "atlas:bootstrap": {
-    "dependsOn": ["atlas:config"],
-    "outputs": ["{projectRoot}/dist/bootstrap"],
-    "executor": "nx:run-commands",
-    "options": {
-      "command": "atlas build-bootstrap customer-host --skip-compile",
-      "forwardAllArgs": true
-    }
-  }
-}
-```
-
-Native framework `build` remains intact. Run it explicitly before
-`atlas:publish`. Publish compiles Atlas config itself and reuses built output
-with `--from-build-output`. Publication is non-cacheable because it mutates
-storage.
-
-Generated Nx targets and package scripts share the same self-contained Atlas
-config compilation behavior.
-
-First deployment:
+`atlas publish` consumes the framework output already produced by `build`. It
+never invokes framework builder itself. Generated Nx/Turbo task graph makes
+`atlas:publish` depend on cacheable `build`, preventing stale or missing output.
+CI may still show both stages explicitly and forwards exactly one selector:
 
 ```bash
-npx nx run-many -t build
-npx nx run-many -t atlas:publish deploy
-npx atlas verify
+nx run orders:build
+nx run orders:atlas:publish -- --version 1.4.0
+
+nx run orders:build
+nx run orders:atlas:publish -- --pr 123
+
+nx run orders:build
+nx run orders:atlas:publish -- --mr 123
 ```
 
-Routine deployment:
+Missing output fails with project-specific build guidance.
+
+## Nx affected releases
+
+Lockstep versioning:
 
 ```bash
-npx nx affected -t build
-npx nx affected -t atlas:publish deploy
-npx atlas verify
+nx affected -t build
+nx affected -t atlas:publish -- --version "$RELEASE_VERSION"
 ```
 
-Nx skips projects lacking requested targets. No Atlas-specific graph or affected command exists.
-
-## Turborepo
-
-Generated package scripts:
-
-```json
-{
-  "scripts": {
-    "atlas:config": "atlas compile-config orders",
-    "build": "vite build",
-    "atlas:publish": "atlas publish orders --from-build-output"
-  }
-}
-```
-
-Hosts also expose `atlas:bootstrap`. Atlas merges missing task definitions into root `turbo.json` without replacing existing tasks.
-
-Turborepo has no project-tag metadata or tag filter equivalent. Atlas therefore
-does not add a synthetic Turbo tag. Use normal Turbo package-name or directory
-filters for selection, and use the generated `atlas:publish` package script when
-auditing which packages are Atlas projects capable of publication.
-
-First deployment:
+Independent versioning requires one invocation per artifact because release
+tooling, not Atlas, owns version calculation:
 
 ```bash
-npx turbo run build
-npx turbo run atlas:publish deploy
-npx atlas verify
+nx run orders:build
+nx run orders:atlas:publish -- --version "$ORDERS_VERSION"
+nx run billing:build
+nx run billing:atlas:publish -- --version "$BILLING_VERSION"
 ```
 
-Routine deployment:
+## Turbo
+
+Keep native build cacheable and publication non-cacheable. Pass version/preview
+from CI to the project publish task. Do not place deploy in the workspace graph.
 
 ```bash
-npx turbo run build --affected
-npx turbo run atlas:publish deploy --affected
-npx atlas verify
+turbo run build --filter=orders
+turbo run atlas:publish --filter=orders -- --version "$ORDERS_VERSION"
 ```
 
-Build before publication. `atlas:publish` compiles and validates Atlas config
-itself.
+For affected lockstep releases:
+
+```bash
+turbo run build --affected
+turbo run atlas:publish --affected -- --version "$RELEASE_VERSION"
+```
 
 ## Yarn workspaces
 
-Generated package scripts are workspace-native. Yarn 2+ with the workspace-tools plugin can select changed workspaces without listing packages:
+```bash
+yarn workspace orders run build
+yarn workspace orders run atlas:publish --version "$ORDERS_VERSION"
+```
+
+For changed lockstep workspaces with Yarn's workspace-tools plugin:
 
 ```bash
 yarn workspaces foreach --since --topological-dev run build
-yarn workspaces foreach --since --topological-dev run atlas:publish
-yarn workspaces foreach --since --topological-dev run deploy
-npx atlas verify
+yarn workspaces foreach --since --topological-dev run atlas:publish --version "$RELEASE_VERSION"
 ```
-
-Unlike Nx and Turbo, this Yarn command sequence does not infer the
-`atlas:publish` task dependency, so it runs the framework `build` explicitly.
-Do not run `atlas:config` separately; publish owns config compilation.
-
-For first environment, omit `--since`.
-
-Yarn Classic does not provide `workspaces foreach`, changed-workspace selection, or `--if-present`. Atlas still supports its workspace scripts, but routine mixed-repository CI should delegate selection to the repository's existing Nx, Turbo, or CI change-selection tool. Do not add a second Atlas graph to compensate for Yarn Classic's missing orchestration.
 
 ## pnpm workspaces
 
-Use pnpm filtering and `--if-present` in mixed repositories:
+```bash
+pnpm --filter orders run build
+pnpm --filter orders run atlas:publish -- --version "$ORDERS_VERSION"
+```
+
+For changed lockstep workspaces:
 
 ```bash
 pnpm --filter "...[origin/main]" -r --if-present run build
-pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
-pnpm --filter "...[origin/main]" -r --if-present run deploy
-pnpm exec atlas verify
+pnpm --filter "...[origin/main]" -r --if-present run atlas:publish -- --version "$RELEASE_VERSION"
 ```
 
-These pnpm commands run the framework build explicitly because pnpm filtering
-selects package scripts but does not apply the Nx or Turbo task graph. Publish
-compiles Atlas config itself.
+## Deployment stage
 
-For first environment:
+`atlas deploy` intentionally does no workspace discovery or `.env` loading. A CD
+worker needs only Atlas CLI, network access, target credentials, and explicit
+registry/storage inputs:
 
 ```bash
-pnpm -r --if-present run build
-pnpm -r --if-present run atlas:publish
-pnpm -r --if-present run deploy
-pnpm exec atlas verify
+npx atlas deploy 5ab68dd4-f18c-4811-8768-b636ce559df6 \
+  --to production --version rc
 ```
 
-## Standalone projects
-
-```bash
-npm run build
-npm run atlas:publish
-npm run atlas:bootstrap  # host only
-npx atlas verify
-```
-
-## Bootstrap and platform deployment
-
-Atlas generates bootstrap bytes but does not invent Docker, Kubernetes, Vercel, CDN, or internal platform commands. Define organization-owned `deploy` script/target that consumes `dist/bootstrap` and its `atlas.bootstrap.json` digest.
-
-CI always invokes normal workspace deployment target. Native affected selection and digest reconciliation decide whether rollout is needed.
-
-## Why `--from-build-output` exists
-
-Direct manual command is self-contained:
-
-```bash
-npx atlas publish orders
-```
-
-Build manually before running it.
-
-Generated scripts pass `--from-build-output` so they reuse manually built
-output and avoid nested Nx/Turbo execution.
+Use stable UUIDs for automation. A unique display name is accepted for interactive
+use. Ambiguous names fail and list stable IDs.

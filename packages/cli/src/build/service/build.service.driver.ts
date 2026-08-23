@@ -94,6 +94,13 @@ export class BuildServiceDriver {
       if (this.scenario === 'local-host-styles')
         await this.buildLocalHostStyles();
     },
+    publishVersion: (version: string) =>
+      this.service([
+        'publish',
+        this.projectName,
+        '--skip-compile',
+        `--version=${version}`,
+      ]).publication(this.projectName),
   };
 
   get = {
@@ -132,15 +139,7 @@ export class BuildServiceDriver {
     const second = await this.service(arguments_).buildManifest(
       this.projectName,
     );
-    const included = await this.service([
-      ...arguments_,
-      '--include-source-maps',
-    ]).buildManifest(this.projectName);
-
-    this.observation = {
-      excludedMapIsStable: first.buildId === second.buildId,
-      includedMapChangesBuild: second.buildId !== included.buildId,
-    };
+    this.observation = first.buildId !== second.buildId;
   }
 
   private async buildPullRequest(): Promise<void> {
@@ -154,7 +153,7 @@ export class BuildServiceDriver {
         'build',
         this.projectName,
         '--skip-compile',
-        `--registry-base-url=${faker.internet.url()}`,
+        `--registry-url=${faker.internet.url()}`,
       ]).buildManifest(this.projectName, undefined, { skipCompile: true });
 
       this.observation = {
@@ -205,7 +204,7 @@ export class BuildServiceDriver {
       'build',
       this.projectName,
       '--skip-compile',
-      `--registry-base-url=${faker.internet.url()}`,
+      `--registry-url=${faker.internet.url()}`,
     ];
 
     try {

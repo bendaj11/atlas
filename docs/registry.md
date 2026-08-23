@@ -1,209 +1,199 @@
-# Static registry
+# Registry and Storage Reference
 
-Atlas registry is versioned JSON stored beside immutable host-client and app artifacts. Browsers read it through a public HTTP base URL; publishers mutate it through private S3-compatible API.
+Atlas stores immutable artifact content and small mutable selections. Canonical
+artifact data exists once in `manifest.json`; `registry.json` stores only compact
+descriptors and deployment selections.
 
-## URL layout
+## Layout
 
 ```text
 registry.json
-apps/<app-id>/index.json
-apps/<app-id>/<version>/<build-id>/app.manifest.json
-apps/<app-id>/<version>/<build-id>/atlas-publication.json
-apps/<app-id>/<version>/<build-id>/<artifact files>
-hosts/<host-id>/index.json
-hosts/<host-id>/catalog.json
-hosts/<host-id>/deployments/<catalog-revision>.json
-hosts/<host-id>/<version>/<build-id>/host.manifest.json
-hosts/<host-id>/<version>/<build-id>/atlas-publication.json
-hosts/<host-id>/<version>/<build-id>/<artifact files>
+
+apps/<id>/<version>/
+  manifest.json
+  <payload files>
+
+hosts/<id>/<version>/
+  manifest.json
+  <payload files>
+
+apps/<id>/previews/<number>/<digest>/
+  manifest.json
+  <payload files>
+
+hosts/<id>/previews/<number>/<digest>/
+  manifest.json
+  <payload files>
+
+environments/<environment>/hosts/<id>/manifest.json
 ```
 
-`version` is human release identity. `build-id` is content identity. Multiple builds may share a version without overwriting each other.
+Release versions are consumer-owned opaque strings. Atlas does not require
+SemVer or add a build ID. Values must be URL-safe path segments matching
+`[A-Za-z0-9][A-Za-z0-9._~-]*`; `latest` is reserved. Environment names use
+same path rule and cannot collide with release versions.
 
-## What each file is for
+Preview digest directories are internal staging. Registry and Columbus expose
+one current preview per number, not generation history.
 
-`registry.json` is the complete release record for one Atlas storage root. It
-contains every published host and app manifest plus the current production
-selection. The publisher reads and updates this file; it is the source from
-which the other mutable JSON files are generated.
+## Canonical artifact manifest
 
-`apps/<app-id>/index.json` and `hosts/<host-id>/index.json` are small,
-artifact-specific views of that record. Each contains the full version history
-retained for one app or host, so Columbus can show its override choices without
-downloading and filtering the whole registry.
+An app or host `manifest.json` contains identity, source metadata, framework
+requirements, routes, slots, isolation, exposes, styles, widgets, dependencies,
+metadata, and payload descriptors. It has exactly one release or preview identity.
 
-`hosts/<host-id>/catalog.json` is the active runtime view for one host. It
-contains only the selected host manifest and selected apps placed on that host.
-The browser loads this file to start the host quickly.
-
-`hosts/<host-id>/deployments/<catalog-revision>.json` is an immutable snapshot
-of a catalog. It preserves the exact host selection for that revision; the
-unversioned `catalog.json` contains the current selection.
-
-Build directories contain immutable artifacts and their manifests. They are
-the actual files loaded by the browser, not release metadata.
-
-The index and catalog repeat some manifests on purpose: they are generated
-read views optimized for different clients. Do not edit one JSON file in
-isolation. Use `atlas publish`, rollback, or cleanup so Atlas updates
-`registry.json`, affected indexes, and catalogs consistently.
-
-## Mutable and immutable objects
-
-Immutable:
-
-- framework artifacts;
-- app and host manifests;
-- catalog deployment snapshots.
-
-Cache policy:
-
-```text
-public, max-age=31536000, immutable
-```
-
-Mutable:
-
-- `registry.json`;
-- app/host `index.json`;
-- active host `catalog.json`.
-
-Cache policy:
-
-```text
-no-cache
-```
-
-`no-cache` permits caching but requires revalidation. This avoids stale active selections while preserving HTTP semantics.
-
-Atlas itself does not retain a separate cache. The one-year immutable policy
-instructs browsers and CDNs. Removing an origin object does not guarantee that
-an already cached CDN response disappears; configure exact-path CDN
-invalidation when that matters.
-
-## Publication transaction
-
-`atlas publish <project>` owns publication. Build no longer fetches registry state or creates a publication plan.
-
-Under an expiring storage lease, publisher:
-
-1. reads live registry;
-2. validates revision and manifests;
-3. computes next registry, artifact index, and affected host catalogs;
-4. conditionally creates immutable objects;
-5. replaces mutable objects in activation order;
-6. reads and HEADs every object;
-7. checks SHA-256, MIME, and cache policy;
-8. optionally invalidates CDN paths;
-9. optionally verifies deployed runtimes.
-
-Failure restores prior mutable objects. New immutable objects from failed transaction are removed.
-
-## Lease safety
-
-Lease object contains owner, random token, acquisition time, and expiry. Atlas uses conditional S3 writes:
-
-- `If-None-Match` for first acquisition;
-- `If-Match` for expired-lease recovery and renewal;
-- token plus current ETag for owner-safe release.
-
-Publisher waits with jitter up to bounded timeout. Lease renewals are serialized. Crashed publishers do not leave permanent locks.
-
-This serializes registry mutation even when Nx, Turbo, Yarn, or pnpm run multiple `atlas:publish` tasks concurrently.
-
-### External CI locking for providers without conditional writes
-
-The built-in S3 lease requires conditional `PUT` requests with `If-None-Match`
-and `If-Match`. Do not use it with a provider that accepts those headers but
-does not enforce them; lock ownership cannot be proven and Atlas stops before
-mutating the registry.
-
-When an organization has only such a provider, CI can serialize publication
-externally. Wrap every mutation command for one registry in the same CI lock,
-then set `ATLAS_S3_LOCK_MODE=external` inside that lock. External mode bypasses
-only the S3 deployment lease. It does not make the storage provider
-transactional, and Atlas cannot verify that CI acquired the lock.
-
-Keep the variable scoped to the locked command. Restrict publication
-credentials to CI, prevent other CI jobs and local machines from using them,
-and use a unique lock resource per storage API URL, bucket, and key prefix.
-See [Production deployment](production-deployment.md) for Jenkins and GitHub
-Actions examples.
-
-## Registry selection
-
-Production publication adds manifest history and updates production selection
-for that artifact. PR publication does not change production selection. The
-registry retains one successful manifest per artifact ID and PR number; a new
-commit replaces that artifact's older PR build. Different affected artifacts
-publish independently and may temporarily show different SHAs after a partial
-CI failure. Retrying converges them.
-
-Every new build contains `atlas-publication.json`, an exact list of its own
-immutable paths. Atlas uses it to remove superseded or closed PR objects
-without bucket listing or broad prefix deletion. Older builds without an
-inventory are removed from registry discovery but their objects are retained
-with a cleanup warning.
-
-Local builds use runtime overrides and are not registry selections. See
-[Pull-request previews](pr-previews.md) for freshness and cleanup lifecycle.
-
-Host catalog contains:
-
-- selected host-client manifest;
-- selected app manifests placed on that host;
-- deterministic catalog revision.
-
-Publishing an app regenerates catalogs for affected hosts. Publishing a host creates its catalog from latest live selections. First-environment publication order therefore converges safely; final `atlas verify` checks resulting environment.
-
-## Rollback
-
-Rollback changes selection only. Immutable artifacts remain unchanged:
-
-```bash
-npx atlas rollback <artifact-id> --version 1.4.0 --build-id a81f29c42d91
-```
-
-Atlas regenerates affected catalogs under same lease and verification rules.
-
-## Storage configuration
-
-Common S3-compatible publication uses environment variables:
-
-```bash
-ATLAS_STORAGE=s3
-ATLAS_STORAGE_API_URL=https://storage.example.internal
-ATLAS_S3_BUCKET=atlas
-ATLAS_S3_REGION=us-east-1
-ATLAS_STORAGE_KEY_PREFIX=production
-ATLAS_REGISTRY_URL=https://assets.example.internal/atlas
-```
-
-Storage API URL is private upload surface. Registry URL is browser download surface. They are often different.
-
-See [Production deployment](production-deployment.md) for AWS S3, R2, MinIO, credentials, CI, CORS, and verification.
-
-## Custom adapters
-
-`atlas.publish.ts` is optional. Use it only for custom storage, organization authentication, runtime URL defaults, or CDN invalidation.
-
-Custom storage implements:
-
-```ts
-interface AtlasPublicationStorage {
-  read(path: string): Promise<Uint8Array | undefined>;
-  inspect(path: string): Promise<{
-    cacheControl: string;
-    contentType: string;
-  } | undefined>;
-  create(path: string, bytes: Uint8Array, metadata: AtlasPublicationObjectMetadata): Promise<void>;
-  replace(path: string, bytes: Uint8Array, metadata: AtlasPublicationObjectMetadata): Promise<void>;
-  remove(path: string): Promise<void>;
-  acquireLock(owner: string): Promise<{
-    assertHeld(): Promise<void>;
-    release(): Promise<void>;
-  }>;
+```json
+{
+  "schemaVersion": "2",
+  "kind": "app-artifact",
+  "id": "5ab68dd4-f18c-4811-8768-b636ce559df6",
+  "name": "orders",
+  "release": { "version": "1.4.0" },
+  "framework": "react",
+  "entryPath": "remoteEntry.json",
+  "exposes": { "entry": "./entry" },
+  "requiredHostSdkVersion": "^0.1.0",
+  "supportedHosts": ["*"],
+  "placements": [],
+  "files": [
+    {
+      "path": "remoteEntry.json",
+      "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size": 1842,
+      "mediaType": "application/json",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "role": "remote-entry"
+    }
+  ]
 }
 ```
 
-Adapter must preserve conditional immutable creation and leased locking guarantees. Prefer built-in S3-compatible provider unless organization requirements demand custom behavior.
+The manifest never lists itself. Paths must be unique, relative, and unable to
+escape the artifact root. Serialization is deterministic. Publication times,
+target URLs, credentials, and deployment state are excluded, so identical bytes
+retain identical digests on different servers.
+
+## `registry.json` v2
+
+The registry contains apps and hosts by stable UUID, unique names, releases,
+one preview per number, explicit `latest` pointers, version-only environment selections, and
+expected host-specific convergence revisions.
+
+Every release or preview value is only a descriptor:
+
+```json
+{
+  "path": "apps/5ab68dd4-f18c-4811-8768-b636ce559df6/1.4.0/manifest.json",
+  "digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "size": 1234,
+  "mediaType": "application/json"
+}
+```
+
+The registry never embeds full manifests. Its `revision` is a SHA-256 of Atlas
+canonical JSON excluding `revision` and `updatedAt`. `latest` moves only
+after successful `publish --version`; previews, deploy, rollback, and imports do
+not move it.
+
+Environment names and versions share selector syntax, so Atlas prevents their
+collision. `latest` is not a valid environment or release version.
+
+Each environment selection stores the exact version once; its descriptor is
+resolved canonically through the artifact's `releases` map:
+
+```json
+{
+  "deployments": {
+    "production": {
+      "apps": {
+        "5ab68dd4-f18c-4811-8768-b636ce559df6": { "version": "1.4.0" }
+      }
+    }
+  }
+}
+```
+
+## Active host manifest
+
+`environments/<environment>/hosts/<id>/manifest.json` is a mutable runtime projection. Environment-qualified paths let one registry serve integration, RC, and production without overwriting another environment:
+
+```json
+{
+  "schemaVersion": "2",
+  "kind": "host-deployment",
+  "hostId": "d145969d-8fe8-4b71-8aa4-8fb71fe54f63",
+  "environment": "production",
+  "deploymentRevision": "sha256:...",
+  "host": {
+    "path": "hosts/.../<version>/manifest.json",
+    "url": "https://...",
+    "digest": "sha256:...",
+    "size": 900,
+    "mediaType": "application/json"
+  },
+  "apps": [
+    {
+      "path": "apps/.../manifest.json",
+      "url": "https://...",
+      "digest": "sha256:...",
+      "size": 1234,
+      "mediaType": "application/json"
+    }
+  ]
+}
+```
+
+It contains descriptors, not copied routes, widgets, styles, or exposes. Runtime
+fetches canonical manifests with bounded concurrency, verifies them, then resolves
+payload URLs relative to each manifest directory.
+
+## Transactions
+
+Release publication validates existing output, acquires a renewable lease,
+rejects version collision, creates payloads and manifest without overwrite,
+reads back bytes and metadata, conditionally replaces registry, then verifies
+the public registry response.
+
+Preview publication uploads an immutable digest generation, validates live
+PR/MR head again under lease, then replaces its one descriptor. Old generation
+bytes remain 24 hours.
+
+Deploy resolves its source once. Cross-registry deploy streams verified bytes;
+same-registry deploy verifies and reuses existing bytes. Atlas calculates affected
+hosts, commits desired state, then converges active host manifests individually.
+A pre-commit failure changes no selection. A post-commit failure is resumable.
+
+## Locking and custom storage
+
+Built-in S3 uses renewable lease plus conditional create/replace with
+`If-None-Match` and `If-Match`. Optional `atlas.registry.ts` can supply custom
+storage, invalidation, runtime verification URLs, preview-head resolver, and
+external-lock integration.
+
+A custom storage adapter provides streaming reads/writes, inspection, scoped
+listing, conditional create/replace, remove, and renewable lease or external-lock
+mode. External-lock mode requires one externally enforced writer. Atlas never
+claims CAS where the provider cannot enforce it.
+
+## HTTP and caching
+
+| Object                            | `Cache-Control`                        |
+| --------------------------------- | -------------------------------------- |
+| Release payloads/manifests        | `public, max-age=31536000, immutable`  |
+| Preview digest payloads/manifests | `public, max-age=31536000, immutable`  |
+| Registry and active host manifest | `no-cache, max-age=0, must-revalidate` |
+| Lease objects                     | `no-store`                             |
+
+Cross-registry reads require HTTPS outside loopback. Atlas rejects redirects,
+transformed encoding, wrong MIME, size, digest, absolute paths, traversal, and
+escaped-root paths. Browser access still requires CORS configured on each public
+registry origin; Node-based cross-registry copying does not enforce browser CORS.
+
+## Retention
+
+Release inventory remains for rollback and Columbus; Atlas never auto-prunes
+releases. Lifecycle policies must not delete referenced releases. Columbus labels
+retained versions **Other release**, because Atlas stores no deployment history.
+
+`prune-previews` removes closed selections and unreferenced generations older
+than 24 hours. Bucket versioning/backups are recommended, not required.

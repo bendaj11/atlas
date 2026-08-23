@@ -2,17 +2,20 @@ import {
   atlasPackageRange,
   type AngularVersionProfile,
 } from './generator-versions.js';
+import { atlasCommand } from './atlas-command.js';
+import type { AtlasPackageManager } from './generator-types.js';
 
 interface AngularPackageOptions {
   packageName: string;
   projectName: string;
   type: 'host' | 'app';
   profile: AngularVersionProfile;
+  packageManager?: AtlasPackageManager;
   routed?: boolean;
 }
 
 export function angularPackage(options: AngularPackageOptions): unknown {
-  const { packageName, projectName, profile } = options;
+  const { packageName, projectName, profile, packageManager } = options;
   const host = options.type === 'host';
   const angular = angularDependencyRange(profile.version);
   const routed = host || (options.routed ?? true);
@@ -21,11 +24,11 @@ export function angularPackage(options: AngularPackageOptions): unknown {
     version: '0.1.0',
     private: true,
     scripts: {
-      dev: `atlas dev ${projectName}`,
+      dev: atlasCommand(packageManager, `dev ${projectName}`),
       'framework:dev': `ng serve ${projectName}`,
       'atlas:config': `atlas compile-config ${projectName}`,
       build: 'ng build',
-      'atlas:publish': `atlas publish ${projectName} --from-build-output`,
+      'atlas:publish': atlasCommand(packageManager, `publish ${projectName}`),
       ...(host
         ? {
             'atlas:bootstrap': `atlas build-bootstrap ${projectName} --skip-compile`,

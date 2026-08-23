@@ -1,83 +1,87 @@
 # Atlas Documentation
 
-Atlas docs have one learning path and separate pages for later work. New users
-should not read every page.
+Read these docs in the order that matches your work: learn what Atlas does,
+create your first projects, then build a Host or an App. Each guide explains a
+task in plain language, shows common examples, and links to exact API details.
 
-## Learn Atlas In Order
+## What Is Atlas?
 
-1. [Understand Atlas](overview.md) — learn host, app, manifest, catalog, registry,
-   SDK, and runtime vocabulary.
-2. Begin [Zero to production](getting-started.md) — build one complete system.
-3. At tutorial step 3, open chosen framework guide to identify generated code:
-   - [Angular projects](angular/getting-started.md)
-   - [React projects](react/getting-started.md)
-4. Return to tutorial and finish deployment, verification, and rollback.
-5. [Prepare for production](production-readiness.md) — assign owners, verify
-   security and delivery policy, smoke-test, and rehearse rollback.
+- [Atlas overview](overview.md) — what Atlas solves and the names of its main parts.
+- [Architecture](architecture.md) — how Atlas loads Apps and publishes changes.
+- Supported scope: Angular and React hosts/apps, client-side rendering, static
+  browser-readable registries, exported widgets, and explicit publication adapters.
 
-The zero-to-production tutorial is the only canonical end-to-end sequence.
-Framework guides explain generated code; they do not repeat deployment steps.
+## Getting Started
 
-## Build Or Change Something
+Start here. Install Atlas and create a host and app. No storage, CI, or
+production deployment required.
 
-Use these goal-oriented guides after completing the tutorial:
+- [Install and generate first projects](getting-started.md)
+- [Generate an Atlas Host](host/generate.md)
+- [Generate an Atlas App](app/generate.md)
 
-| Goal | Guide |
-| --- | --- |
-| Build a host shell | [Angular host](angular/host-getting-started.md) or [React host](react/host-getting-started.md) |
-| Build a feature app | [Angular app](angular/app-getting-started.md) or [React app](react/app-getting-started.md) |
-| Run local code inside a host | [Local development and Columbus](local-development.md) |
-| Add routes and navigation | [Angular routing](angular/routing.md) or [React routing](react/routing.md) |
-| Use or extend host services | [Angular SDK](angular/sdk.md) or [React SDK](react/sdk.md) |
-| Load assets and styles | [Angular assets](angular/assets-and-styles.md) or [React assets](react/assets-and-styles.md) |
-| Export reusable UI | [Exported widgets](exported-widgets.md) |
-| Test a host/app contract | [Consumer testing](consumer-testing.md) |
-| Deploy and release | [Production deployment](production-deployment.md), then [Angular steps](angular/production-deployment.md) or [React steps](react/production-deployment.md) |
-| Publish and clean up PR previews | [Pull-request previews](pr-previews.md) |
-| Secure a deployment | [Security](security.md) |
-| Diagnose failure | [Angular troubleshooting](angular/troubleshooting.md) or [React troubleshooting](react/troubleshooting.md) |
+- [Atlas Host](host.md) — main application page, navigation, and shared services.
+- [Atlas App](app.md) — feature application shown inside a Host.
 
-## Understand Why Atlas Works This Way
+## Atlas Host
 
-- [Overview](overview.md) defines vocabulary and team ownership.
-- [Architecture](architecture.md) explains browser bootstrap, selection, loading,
-  isolation, trust boundaries, and rollback boundaries.
-- [Registry and publishing](registry.md) explains immutable artifacts, mutable
-  selections, publication order, concurrency, and recovery.
-- [Routing and navigation](routing.md) explains host-owned top-level routes and
-  app-owned inner routes.
-- [Assets and styles](assets-and-styles.md) explains URL and CSS isolation rules.
+A Host is the main application page that users open. It provides page layout, top-level
+navigation, shared services such as authentication, and startup files.
 
-## Look Up Exact Contracts
+- [Host overview](host.md)
+- [Generate a Host](host/generate.md)
+- [Build Angular Host](angular/host-getting-started.md)
+- [Build React Host](react/host-getting-started.md)
+- [Routing and navigation](angular/routing.md) / [React routing](react/routing.md)
+- [SDK and host services](angular/sdk.md) / [React SDK](react/sdk.md)
+- [Assets and styles](angular/assets-and-styles.md) / [React assets and styles](react/assets-and-styles.md)
+- [Local development](local-development.md)
+- [Bootstrap and runtime configuration](bootstrap.md)
+- [Host deployment](production-deployment.md)
+- [Troubleshooting](troubleshooting.md)
 
-| Subject | Reference |
-| --- | --- |
-| CLI generation and workspace behavior | [Generators](generators.md) and [workspaces](workspaces.md) |
-| Source and generated JSON contracts | [Public API](api.md) and [manifests](manifest.md) |
-| SDK types and services | [SDK reference](sdk.md) |
-| Static storage layout | [Registry reference](registry.md) |
-| Host HTTP behavior and environment | [Static bootstrap](bootstrap.md) |
-| Working examples | [Examples](examples.md) |
+## Atlas App
 
-CLI help is the source of truth for current flags:
+An App is a feature shown inside a Host. It owns its UI, its own screens,
+configuration, reusable widgets, and releases.
 
-```sh
-npx atlas --help
-npx atlas build --help
-```
+- [App overview](app.md)
+- [Generate an App](app/generate.md)
+- [Build Angular App](angular/app-getting-started.md)
+- [Build React App](react/app-getting-started.md)
+- [Routing and navigation](angular/routing.md) / [React routing](react/routing.md)
+- [SDK and host services](angular/sdk.md) / [React SDK](react/sdk.md)
+- [Assets and styles](angular/assets-and-styles.md) / [React assets and styles](react/assets-and-styles.md)
+- [Exported widgets](exported-widgets.md)
+- [Consumer testing](consumer-testing.md)
+- [Local development](local-development.md)
+- [Publish and deploy](production-deployment.md)
+- [Troubleshooting](troubleshooting.md)
 
-## Maintain Atlas Itself
+## Deploy And Operate
 
+- [Build once, publish once, deploy many](production-deployment.md)
+- [Registry and storage](registry.md)
+- [Host bootstrap](bootstrap.md)
+- [Workspace and CI integration](workspaces.md)
+- [Pull-request previews](pr-previews.md)
+- [Production readiness](production-readiness.md)
+- [Security](security.md)
+
+## Reference
+
+- [CLI and generator reference](generators.md)
+- [Public TypeScript API](api.md)
+- [SDK reference](sdk.md)
+- [Manifest reference](manifest.md)
+- [Registry reference](registry.md)
+- [Examples](examples.md)
+
+## Help And Project
+
+- [Troubleshooting](troubleshooting.md)
 - [Contributing](../CONTRIBUTING.md)
 - [Repository testing](testing.md)
 - [Releasing Atlas packages](releasing.md)
-- [Documentation guidelines](documentation-guide.md)
-- [Error handling standard](error-handling.md)
-- [CLI user-experience standard](cli-user-experience.md)
-
-## Supported Scope
-
-Atlas supports Angular and React hosts/apps, client-side rendering, static
-browser-readable registries, exported widgets, and explicit publication
-adapters. Atlas ships an S3-compatible publication adapter. Vue generators and
-server-side rendering are not currently supported.
+- [Documentation standards](documentation-guide.md)
+- [Documentation coverage](documentation-coverage.md)

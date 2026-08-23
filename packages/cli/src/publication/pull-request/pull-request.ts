@@ -1,16 +1,27 @@
 import type {
-  AtlasPublishConfig,
-  AtlasPullRequestLookup,
-  AtlasPullRequestStatus,
-} from '../publish-config.js';
+  AtlasPreviewHeadLookup,
+  AtlasPreviewHeadStatus,
+  AtlasRegistryConfig,
+} from '../registry-config.js';
 
 export async function resolvePullRequestStatus(
-  pullRequest: AtlasPullRequestLookup,
-  config: AtlasPublishConfig | undefined,
-): Promise<AtlasPullRequestStatus> {
-  let status: AtlasPullRequestStatus;
-  if (config?.resolvePullRequest)
-    status = await config.resolvePullRequest(pullRequest);
+  pullRequest: {
+    artifactId: string;
+    prNumber: number;
+    gitSha: string;
+    gitBranch?: string;
+  },
+  config: AtlasRegistryConfig | undefined,
+): Promise<AtlasPreviewHeadStatus> {
+  const lookup: AtlasPreviewHeadLookup = {
+    artifactId: pullRequest.artifactId,
+    previewNumber: pullRequest.prNumber,
+    gitSha: pullRequest.gitSha,
+    ...(pullRequest.gitBranch ? { gitBranch: pullRequest.gitBranch } : {}),
+  };
+  let status: AtlasPreviewHeadStatus;
+  if (config?.resolvePreviewHead)
+    status = await config.resolvePreviewHead(lookup);
   else if (process.env.GITHUB_REPOSITORY)
     status = await resolveGitHubPullRequest(pullRequest.prNumber);
   else if (process.env.CI_PROJECT_ID && process.env.CI_API_V4_URL)
@@ -19,7 +30,7 @@ export async function resolvePullRequestStatus(
     status = await resolveBitbucketPullRequest(pullRequest.prNumber);
   else {
     throw new Error(
-      'Atlas cannot verify the live pull-request head. Run in GitHub, GitLab, or Bitbucket CI with its standard repository variables, or configure resolvePullRequest in atlas.publish.ts.',
+      'Atlas cannot verify the live preview head. Configure GitHub, GitLab, or Bitbucket repository credentials, or define resolvePreviewHead in atlas.registry.ts.',
     );
   }
   if (
@@ -35,7 +46,7 @@ export async function resolvePullRequestStatus(
 
 async function resolveGitHubPullRequest(
   prNumber: number,
-): Promise<AtlasPullRequestStatus> {
+): Promise<AtlasPreviewHeadStatus> {
   const repository = process.env.GITHUB_REPOSITORY!;
   const apiUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com';
   const token = providerToken('GITHUB_TOKEN');
@@ -64,7 +75,7 @@ async function resolveGitHubPullRequest(
 
 async function resolveGitLabMergeRequest(
   prNumber: number,
-): Promise<AtlasPullRequestStatus> {
+): Promise<AtlasPreviewHeadStatus> {
   const project = encodeURIComponent(process.env.CI_PROJECT_ID!);
   const token = providerToken('CI_JOB_TOKEN');
   const tokenHeader = process.env.ATLAS_GIT_TOKEN
@@ -88,7 +99,7 @@ async function resolveGitLabMergeRequest(
 
 async function resolveBitbucketPullRequest(
   prNumber: number,
-): Promise<AtlasPullRequestStatus> {
+): Promise<AtlasPreviewHeadStatus> {
   const repository = process.env.BITBUCKET_REPO_FULL_NAME!;
   const token = providerToken('BITBUCKET_ACCESS_TOKEN');
   const response = await providerFetch(

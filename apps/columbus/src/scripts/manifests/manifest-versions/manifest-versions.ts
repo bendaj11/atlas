@@ -1,3 +1,4 @@
+import { placementTargetsHost } from '@atlas/schema';
 import type { AtlasExtensionManifest } from '../../../types/contracts.js';
 
 export function supportsHost({
@@ -11,8 +12,9 @@ export function supportsHost({
   return (
     manifest.supportedHosts?.includes('*') === true ||
     manifest.supportedHosts?.includes(hostId) === true ||
-    manifest.placements?.some((placement) => placement.hostId === hostId) ===
-      true
+    manifest.placements?.some((placement) =>
+      placementTargetsHost(placement, hostId),
+    ) === true
   );
 }
 

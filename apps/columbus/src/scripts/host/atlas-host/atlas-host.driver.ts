@@ -145,13 +145,11 @@ export class AtlasHostDriver {
         tabs: {
           query: async () => this.tabs,
           reload: async () => undefined,
-        },
-        scripting: {
-          executeScript: async ({ target }: { target: { tabId: number } }) => {
+          sendMessage: async (tabId: number) => {
             this.inspectionCount += 1;
-            const result = this.inspections.get(target.tabId);
-            if (!result) throw new Error('No Atlas runtime');
-            return [{ result }];
+            const hostData = this.inspections.get(tabId);
+            if (!hostData) throw new Error('No Atlas runtime');
+            return { ok: true, hostData };
           },
         },
         storage: {
@@ -207,7 +205,8 @@ function createHostData(id: string): AtlasHostData {
     config: {
       schemaVersion: '1',
       hostId: id,
-      catalogUrl: `http://127.0.0.1:4400/hosts/${id}/catalog.json`,
+      environment: 'production',
+      manifestUrl: `http://127.0.0.1:4400/hosts/${id}/manifest.json`,
     },
     pageUrl: 'http://127.0.0.1:4300/',
     catalog: {

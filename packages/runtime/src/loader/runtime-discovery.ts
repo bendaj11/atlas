@@ -1,10 +1,13 @@
 import {
-  assertAtlasHostCatalog,
   assertAtlasManifest,
+  assertHostDeploymentManifest,
   errorSummary,
+  hydratePublishedArtifactManifest,
   type AtlasHostCatalog,
+  type AtlasHostDeploymentManifest,
   type AtlasHostRuntimeConfig,
   type AtlasManifest,
+  type AtlasManifestDescriptor,
 } from '@atlas/schema';
 import { runResiliently, type AtlasRetryPolicy } from '../resilience.js';
 import { mapWithConcurrency } from '../concurrency.js';
@@ -47,21 +50,135 @@ export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = 'atlas.runtime-overrides';
 const ATLAS_LOCAL_DEV_SESSION_URL =
   'http://localhost:4400/atlas.dev-session.json';
 
-export async function loadHostCatalog(options: {
-  catalogUrl: string;
-  fetchJson?: FetchJson;
+export async function loadHostDeployment(options: {
+  manifestUrl: string;
+  expectedHostId?: string;
+  expectedEnvironment?: string;
+  fetchBytes?: FetchBytes;
   requestPolicy?: AtlasRetryPolicy;
 }): Promise<AtlasHostCatalog> {
-  const catalog = await runResiliently(
+  const deploymentBytes = await runResiliently(
     (signal) =>
-      options.fetchJson
-        ? options.fetchJson(options.catalogUrl, signal)
-        : defaultFetchJson(options.catalogUrl, signal),
-    { stage: 'catalog', resource: options.catalogUrl },
+      options.fetchBytes
+        ? options.fetchBytes(options.manifestUrl, signal)
+        : defaultFetchBytes(options.manifestUrl, signal),
+    { stage: 'manifest', resource: options.manifestUrl },
     options.requestPolicy,
   );
-  assertAtlasHostCatalog(catalog);
-  return catalog;
+  const deployment = parseHostDeployment(deploymentBytes, options.manifestUrl);
+  if (
+    (options.expectedHostId && deployment.hostId !== options.expectedHostId) ||
+    (options.expectedEnvironment &&
+      deployment.environment !== options.expectedEnvironment)
+  ) {
+    throw runtimeConfigurationError(
+      `Active host manifest selects host "${deployment.hostId}" in environment "${deployment.environment}", but runtime configuration selects host "${options.expectedHostId ?? deployment.hostId}" in environment "${options.expectedEnvironment ?? deployment.environment}".`,
+    );
+  }
+  const references = [
+    deployment.host,
+    ...deployment.apps,
+    ...(deployment.widgetProviders ?? []),
+  ];
+  const manifests = await mapWithConcurrency(
+    references,
+    (reference) =>
+      loadPublishedManifest(
+        reference,
+        options.fetchBytes,
+        options.requestPolicy,
+      ),
+    6,
+  );
+  const host = manifests[0];
+  if (!host || host.kind !== 'host') {
+    throw runtimeConfigurationError(
+      'Active host manifest does not select a host artifact.',
+    );
+  }
+  const appCount = deployment.apps.length;
+  return {
+    schemaVersion: '1',
+    hostId: deployment.hostId,
+    revision: deployment.deploymentRevision,
+    generatedAt: '1970-01-01T00:00:00.000Z',
+    host,
+    apps: manifests.slice(1, 1 + appCount) as AtlasManifest[],
+    ...(deployment.widgetProviders?.length
+      ? { widgetProviders: manifests.slice(1 + appCount) as AtlasManifest[] }
+      : {}),
+  };
+}
+
+export async function loadPublishedManifest(
+  reference: AtlasManifestDescriptor & { url: string },
+  fetchBytes: FetchBytes = defaultFetchBytes,
+  requestPolicy?: AtlasRetryPolicy,
+): Promise<AtlasManifest | AtlasHostCatalog['host']> {
+  const bytes = await runResiliently(
+    (signal) => fetchBytes(reference.url, signal),
+    { stage: 'manifest', resource: reference.url },
+    requestPolicy,
+  );
+  await assertDescriptorBytes(reference, bytes);
+  return parseArtifact(bytes, reference.url);
+}
+
+function parseHostDeployment(
+  bytes: ArrayBuffer,
+  url: string,
+): AtlasHostDeploymentManifest {
+  const value = parseJsonBytes(bytes, url);
+  try {
+    assertHostDeploymentManifest(value);
+  } catch {
+    throw runtimeConfigurationError(
+      `Atlas host deployment manifest at "${url}" is invalid.`,
+    );
+  }
+  return value;
+}
+
+function parseArtifact(
+  bytes: ArrayBuffer,
+  url: string,
+): AtlasManifest | AtlasHostCatalog['host'] {
+  const value = parseJsonBytes(bytes, url);
+  try {
+    return hydratePublishedArtifactManifest(value, url);
+  } catch (error) {
+    throw runtimeConfigurationError(
+      `Atlas artifact manifest at "${url}" is invalid: ${errorSummary(error instanceof Error ? error.message : String(error))}`,
+    );
+  }
+}
+
+async function assertDescriptorBytes(
+  descriptor: AtlasManifestDescriptor,
+  bytes: ArrayBuffer,
+): Promise<void> {
+  if (bytes.byteLength !== descriptor.size) {
+    throw runtimeConfigurationError(
+      `Atlas manifest "${descriptor.path}" has an unexpected byte size.`,
+    );
+  }
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  const actual = `sha256:${[...hash].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+  if (actual !== descriptor.digest) {
+    throw runtimeConfigurationError(
+      `Atlas manifest "${descriptor.path}" failed SHA-256 verification.`,
+    );
+  }
+}
+
+function parseJsonBytes(bytes: ArrayBuffer, url: string): unknown {
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    throw runtimeConfigurationError(
+      `Atlas received invalid JSON from "${url}": ${errorSummary(error instanceof Error ? error.message : String(error))}`,
+    );
+  }
 }
 
 export async function loadHostRuntimeConfig(
@@ -76,11 +193,11 @@ export async function loadHostRuntimeConfig(
   );
   if (!isHostRuntimeConfig(config)) {
     throw runtimeConfigurationError(
-      `Atlas cannot use runtime configuration from "${url}" because required hostId or catalogUrl fields are missing.`,
+      `Atlas cannot use runtime configuration from "${url}" because required hostId, environment, or manifestUrl fields are missing.`,
     );
   }
   validateRequestPolicy(config);
-  validateRuntimeUrls(config.externalRegistryUrls, 'externalRegistryUrls');
+  validateExternalRegistries(config.externalRegistries);
   validateRuntimeUrls(config.assetOrigins, 'assetOrigins');
   if (
     config.registryUrl !== undefined &&
@@ -91,6 +208,28 @@ export async function loadHostRuntimeConfig(
     );
   }
   return config;
+}
+
+function validateExternalRegistries(
+  values: AtlasHostRuntimeConfig['externalRegistries'],
+): void {
+  if (values === undefined) return;
+  if (
+    !Array.isArray(values) ||
+    values.some(
+      (value) =>
+        typeof value !== 'object' ||
+        value === null ||
+        typeof value.registryUrl !== 'string' ||
+        !isHttpUrl(value.registryUrl) ||
+        typeof value.environment !== 'string' ||
+        !value.environment,
+    )
+  ) {
+    throw runtimeConfigurationError(
+      'Atlas host runtime field externalRegistries must contain registryUrl and environment.',
+    );
+  }
 }
 
 function validateRuntimeUrls(
@@ -365,9 +504,9 @@ export function createRemoteTrustPolicy(
 ): AtlasRemoteTrustPolicy {
   const baseUrl = globalThis.location?.href ?? 'http://atlas.local';
   const origins = [
-    config.catalogUrl,
+    config.manifestUrl,
     ...(config.assetOrigins ?? []),
-    ...(config.externalRegistryUrls ?? []),
+    ...(config.externalRegistries ?? []).map(({ registryUrl }) => registryUrl),
   ].map((value) => new URL(value, baseUrl).origin);
   return { allowedOrigins: new Set(origins) };
 }
@@ -418,8 +557,10 @@ function isHostRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
     value.schemaVersion === '1' &&
     typeof value.hostId === 'string' &&
     value.hostId.length > 0 &&
-    typeof value.catalogUrl === 'string' &&
-    value.catalogUrl.length > 0
+    typeof value.environment === 'string' &&
+    value.environment.length > 0 &&
+    typeof value.manifestUrl === 'string' &&
+    value.manifestUrl.length > 0
   );
 }
 

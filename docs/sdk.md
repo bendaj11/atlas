@@ -295,19 +295,19 @@ component teardown.
 
 ## `@atlas/runtime`
 
-Loads catalogs and mounts apps.
+Loads active deployments and canonical manifests, then mounts apps.
 
 Important production APIs:
 
-| API                                 | Purpose                                                                                                                     |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `loadHostRuntimeConfig`             | Reads deployment-specific host and catalog settings.                                                                        |
-| `resolveRuntimeManifests`           | Applies one override per app while enforcing one runtime version.                                                           |
-| `verifyManifestIntegrity`           | Validates SHA-256 remote entries before federation initialization.                                                          |
-| `createRemoteTrustPolicy`           | Trusts the catalog origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |
-| `startAtlasHostRuntime`             | Owns route/slot mount, timeout, retry, and teardown lifecycle.                                                              |
-| `context.loading.show()` / `hide()` | Asks the host to show or remove its own loading UI. Atlas never dictates the loader design.                                 |
-| `context.loading.waitUntilReady()`  | Opts the app into manual readiness and returns the callback the app calls after its first useful render.                    |
+| API                                 | Purpose                                                                                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `loadHostRuntimeConfig`             | Reads deployment-specific host, environment, and active manifest settings.                                               |
+| `resolveRuntimeManifests`           | Applies one override per app while enforcing one runtime version.                                                        |
+| `verifyManifestIntegrity`           | Validates SHA-256 remote entries before federation initialization.                                                       |
+| `createRemoteTrustPolicy`           | Trusts manifest origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |
+| `startAtlasHostRuntime`             | Owns route/slot mount, timeout, retry, and teardown lifecycle.                                                           |
+| `context.loading.show()` / `hide()` | Asks the host to show or remove its own loading UI. Atlas never dictates the loader design.                              |
+| `context.loading.waitUntilReady()`  | Opts the app into manual readiness and returns the callback the app calls after its first useful render.                 |
 
 ## Events between apps
 
@@ -412,8 +412,8 @@ Infrastructure-only example for custom DOM host runtime:
 ```ts
 await loadAndMountHostCatalog({
   hostId: sdk.hostId,
-  catalogUrl:
-    'https://cdn.example.com/atlas/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json',
+  manifestUrl:
+    'https://cdn.example.com/atlas/environments/production/hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/manifest.json',
   sdk: sdk,
   resolveContainer: (manifest) =>
     document.querySelector(`[data-atlas-app="${manifest.id}"]`) ?? undefined,

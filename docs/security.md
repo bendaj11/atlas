@@ -5,7 +5,8 @@ and [Static bootstrap](bootstrap.md) first. App developers mainly follow origin,
 SDK, and immutable-release rules; platform team owns runtime environment,
 storage permissions, CSP, and override policy.
 
-Atlas loads executable browser code from object storage. Treat registry publication as production code deployment.
+Atlas loads executable browser code from object storage. Treat publication
+credentials and environment deployment selection as production-code controls.
 
 ## Trust levels
 
@@ -21,13 +22,14 @@ Generate production runtime policy explicitly:
 
 ```sh
 atlas build-bootstrap customer-host \
-  --registry-base-url=https://cdn.example.com/atlas \
+  --registry-url=https://cdn.example.com/atlas \
+  --environment=production \
   --asset-origins=https://cdn.example.com \
-  --external-registry-urls=https://shared-ui.example/atlas
+  --external-registries='https://shared-ui.example/atlas|production'
 ```
 
-Atlas adds catalog origin to generated CSP. `--asset-origins` adds other
-artifact/CDN origins. `--external-registry-urls` limits cross-registry
+Atlas adds registry origin to generated CSP. `--asset-origins` adds other
+artifact/CDN origins. `--external-registries` limits cross-registry
 dependency discovery and adds those origins to CSP. Production URLs require
 HTTPS; local development permits HTTP(S) loopback.
 
@@ -37,39 +39,48 @@ HTTPS; local development permits HTTP(S) loopback.
 
 Before importing a host client, the stable loader validates:
 
-- runtime, catalog, and host ids agree;
-- catalog contains exactly one host and an app array;
-- host manifest kind is `host`;
+- runtime environment, active deployment manifest, and host ids agree;
+- active deployment manifest contains exactly one host descriptor and an app array;
+- referenced canonical host manifest kind is `host-artifact`;
 - loader API major is compatible;
 - URL scheme and origin satisfy runtime policy;
 - local URL uses loopback;
 - declared SHA-256 SRI matches remote federation metadata;
 - required `./host` expose exists.
 
-The host client receives the validated effective host/app catalog and must not resolve a second host/app selection. Widget resolver may lazily read approved registry production pointers for `getWidget`.
+The host client receives the validated, hydrated effective host/app catalog and
+must not resolve a second host/app selection. This catalog is an internal mount
+payload. Widget resolver may lazily read
+approved registry environment selections for `getWidget`.
 
 External registry manifests and assets receive same scheme, origin, integrity, framework lifecycle, duplicate-ID, and compatibility checks. Registry failure stays inside requested widget's card; it does not disable unrelated apps or widgets.
 
 ## Integrity and immutability
 
-Production builds include SHA-256 integrity for remote metadata and styles. Version/build object paths are immutable and uploaded with create-only writes. Reusing a build id for different bytes is an error.
+Production builds include SHA-256 integrity for remote metadata and styles.
+Release-version object paths are immutable and uploaded with create-only writes.
+Publishing different bytes under an existing version is an error.
 
 Integrity does not replace publication authorization. Anyone who can publish both artifacts and manifests can execute code in the product. Protect storage credentials, registry lease operations, CI variables, and approval environments accordingly.
 
 ## Publication controls
 
 - Pin Atlas CLI and dependencies with a committed lockfile.
-- Let workspace runner build once per environment; publish exact cached output through `atlas:publish`.
+- Let workspace runner build once; publish exact output once, then deploy those
+  bytes across environments.
 - Grant immutable create and mutable replace permissions only to protected CI.
 - Allow native runner concurrency; Atlas storage lease serializes registry mutation.
 - Read and compare live registry only while holding expiring, renewable lease.
-- Upload immutable bytes before active catalogs.
+- Upload immutable bytes before their registry descriptor; deploy desired state
+  before converging affected active host manifests.
 - Read and HEAD uploaded objects; verify SHA-256, MIME, and cache policy.
-- Verify runtime after activation while still holding the lease.
-- Restore previous mutable files on verification failure.
+- Verify runtime after active host convergence.
+- Resume partial convergence safely; roll back by deploying an older exact
+  version when required.
 - Keep deployment and rollback audit logs.
 
-Never fix a release by editing `catalog.json` in a CDN console.
+Never fix a release by editing `registry.json` or an active host manifest in a
+CDN console. Publish immutable bytes, then deploy the selected release.
 
 ## HTTP controls
 
@@ -80,7 +91,7 @@ Object storage/CDN must:
 - serve correct JavaScript, JSON, and CSS content types;
 - allow CORS from intended host origins;
 - revalidate mutable JSON;
-- cache immutable version/build paths long term;
+- cache immutable release-version paths long term;
 - avoid content transformation that breaks integrity hashes.
 
 ## Override recovery

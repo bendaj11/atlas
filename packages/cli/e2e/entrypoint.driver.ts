@@ -58,9 +58,7 @@ export class EntrypointDriver {
       hasArguments: /Arguments:/.test(this.result?.stdout ?? ''),
       hasEnvironment: /Environment:/.test(this.result?.stdout ?? ''),
       hasExamples: /Examples:/.test(this.result?.stdout ?? ''),
-      hasRegistryOption: /--registry-base-url <url>/.test(
-        this.result?.stdout ?? '',
-      ),
+      hasRegistryOption: /--registry-url <url>/.test(this.result?.stdout ?? ''),
       hasUsage: /atlas build <project> \[options\]/.test(
         this.result?.stdout ?? '',
       ),
@@ -91,7 +89,6 @@ export class EntrypointDriver {
       hasNoColor: /NO_COLOR\s+Disable ANSI color output/.test(
         this.result?.stdout ?? '',
       ),
-      hasRegistryOption: /--registry-base-url/.test(this.result?.stdout ?? ''),
     }),
     stderr: (): string => this.result?.stderr ?? '',
     version: (): CliResult | undefined => this.result,

@@ -69,11 +69,11 @@ export function validateArtifactUrl(
     return;
   }
 
-  const catalogUrl = new URL(runtime.catalogUrl, location.href);
+  const manifestUrl = new URL(runtime.manifestUrl, location.href);
   if (
     url.protocol === 'http:' &&
     loopbackHosts.includes(url.hostname) &&
-    loopbackHosts.includes(catalogUrl.hostname)
+    loopbackHosts.includes(manifestUrl.hostname)
   )
     return;
 
@@ -81,10 +81,10 @@ export function validateArtifactUrl(
     throw new Error('Published host URL must use HTTPS.');
 
   const allowed = new Set([
-    catalogUrl.origin,
+    manifestUrl.origin,
     ...(runtime.assetOrigins || []).map((value) => new URL(value).origin),
-    ...(runtime.externalRegistryUrls || []).map(
-      (value) => new URL(value).origin,
+    ...(runtime.externalRegistries || []).map(
+      ({ registryUrl }) => new URL(registryUrl).origin,
     ),
   ]);
 

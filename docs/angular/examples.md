@@ -6,8 +6,9 @@ for users.
 ## Host Domain
 
 `examples/hosts/demo-angular-host` is an Angular host. It reads runtime
-configuration, fetches the selected catalog, initializes Native Federation, and
-mounts route apps and widgets into Atlas DOM anchors.
+configuration, fetches the active host manifest and its referenced canonical
+manifests, initializes Native Federation, and mounts route apps and widgets into
+Atlas DOM anchors.
 
 Use it to study:
 

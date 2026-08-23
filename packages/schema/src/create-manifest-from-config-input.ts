@@ -1,7 +1,7 @@
-import type { AtlasAppConfig } from "./atlas-config.js";
-import type { AtlasExportedWidgetManifest } from "./atlas-exported-widget-manifest.js";
-import type { AtlasStylesheet } from "./atlas-stylesheet.js";
-import type { AtlasVersionChannel } from "./atlas-version-channel.js";
+import type { AtlasAppConfig } from './atlas-config.js';
+import type { AtlasExportedWidgetManifest } from './atlas-exported-widget-manifest.js';
+import type { AtlasStylesheet } from './atlas-stylesheet.js';
+import type { AtlasVersionChannel } from './atlas-version-channel.js';
 
 /** Values needed to build the manifest JSON a host loads for one app build. */
 export interface CreateManifestFromConfigInput {

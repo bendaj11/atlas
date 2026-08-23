@@ -1,138 +1,97 @@
 # Architecture
 
-Atlas separates the stable web entry point from product UI. This lets a host client release, roll back, and run a local or PR build exactly like an app.
+Atlas is a static micro-frontend control plane. It separates immutable application
+content from mutable environment selection.
 
 ```text
-Domain
-  ingress, route, or load balancer
-    generated static bootstrap
-      Atlas browser loader
-        selected host client
-          selected routed/slotted apps
-          lazy widgets from primary and approved external registries
+Framework build -> atlas publish -> immutable manifest + files
+                                      |
+atlas deploy -> registry desired state + active host manifest
+                                      |
+Browser bootstrap -> active host manifest -> canonical manifests -> payloads
 ```
 
-There are four runtime responsibilities.
+## Ownership
 
-## Static bootstrap
+- Framework tooling owns compilation and bundling.
+- `atlas publish` owns deterministic artifact metadata and immutable upload.
+- `atlas deploy` owns one artifact's logical environment selection.
+- CI/CD owns approval, credentials, affected selection, and platform deployment.
+- Bootstrap owns runtime startup; it does not select release policy.
+- Runtime owns verified loading, routing, isolation, styles, widgets, and failures.
+- Columbus owns browser-local diagnostics and overrides, not deployment state.
 
-`atlas build-bootstrap` emits HTML, `/atlas.loader.js`, `/atlas.runtime.json`,
-and Nginx config. Nginx or equivalent static hosting owns deep-link fallback,
-caching, security headers, and health. Bootstrap contains no product UI, proxy,
-secrets, authentication middleware, or BFF. Normal host/app release does not
-rebuild unchanged bootstrap.
+## One source of truth per concern
 
-Read [Static bootstrap](bootstrap.md) for complete HTTP and extension contracts.
+- `manifest.json` is canonical artifact identity and behavior.
+- `registry.json` is release inventory and desired environment state.
+- `environments/<environment>/hosts/<id>/manifest.json` is one host's active descriptor projection for one environment.
+- Browser override storage contains only user-selected temporary overrides.
 
-## Browser loader
+Registry and host projection never duplicate artifact routes, exposes, widgets,
+or styles. Runtime verifies and hydrates canonical manifests before applying the
+existing compatibility and isolation rules.
 
-Loader is small framework-neutral code owned by bootstrap package. On every page start it:
+## Build-once promotion
 
-1. reads `/atlas.runtime.json`;
-2. reads the production catalog;
-3. applies approved Columbus host and app overrides;
-4. validates the effective host/app catalog and any Columbus widget-provider overrides;
-5. checks the host id, loader API compatibility, URL policy, and integrity;
-6. loads one host client and passes it the same effective catalog.
+A version identifies immutable bytes under `apps|hosts/<id>/<version>/`. Deploy
+copies verified bytes only when source and target registries differ. Same-registry
+promotion updates selections without downloading or rebuilding content.
 
-The loader is the only component that selects the host client. If loading fails, its framework-neutral panel can clear overrides and reload even when the selected host client never mounted.
+This makes integration, RC, pre-production, production, and rollback all the
+same operation: select an exact release for a named environment.
 
-## Host client
+## Runtime sequence
 
-The host client is a versioned UI artifact in object storage. It owns product layout, routing, navigation, browser authentication integration, the Atlas SDK, organization SDK extensions, overlays, telemetry, error boundaries, and app mounting.
+1. Bootstrap reads `atlas.runtime.json`.
+2. Runtime loads `manifestUrl`, the active host deployment.
+3. It fetches host, app, and widget-provider manifests with bounded concurrency.
+4. Descriptor size and SHA-256 are verified before parsing.
+5. Payload URLs are resolved relative to each canonical manifest.
+6. Compatibility, trust, CORS, MIME, integrity, routing, style, and isolation
+   checks run before executable content loads.
+7. One broken app/widget remains isolated from healthy siblings.
 
-It exports one lifecycle:
+Local development may use an explicit loopback-only `developmentSessionUrl` as
+an internal projection. Production runtime never requests artifact indexes or
+catalogs.
 
-```ts
-interface AtlasHostClientEntry {
-  mount(request: {
-    container: HTMLElement;
-    runtimeConfig: AtlasHostRuntimeConfig;
-    catalog: AtlasDeploymentCatalog;
-  }): void | Promise<void | { unmount?: () => void | Promise<void> }>;
+## Deployment and convergence
+
+`registry.json` is desired state. Each active host manifest is atomically replaced,
+but S3 cannot atomically replace several host keys. Therefore hosts may converge
+at different moments while each sees a complete old or new composition.
+
+Expected revision is host-specific. Unrelated deployments do not mark a host
+stale. Failed hosts are reported with non-zero command status, and repeated deploy
+resumes convergence. No unsafe automatic multi-key rollback occurs after desired
+state commit.
+
+## Preview correctness
+
+PR and MR flags address one preview namespace. Internal digest generations keep
+in-flight files immutable. A source-control resolver checks live head before
+upload and under the registry lease, preventing an older job from replacing a
+newer preview. Atlas does not detect the CI orchestrator.
+
+## External widgets
+
+External registry configuration always includes an environment:
+
+```json
+{
+  "registryUrl": "https://widgets.example.com",
+  "environment": "production"
 }
 ```
 
-It does not serve HTTP, expose health checks, set HTTP headers, select itself, or fetch a second catalog. Its federation metadata establishes the host share scope before the host entry loads. Apps reuse matching host dependency versions through Native Federation import maps; a different package version remains isolated in the app scope.
+Provider lookup follows that environment and transitive declared dependencies.
+A missing provider fails only the requested widget. Duplicate providers are an
+explicit error.
 
-## Apps
+## Deliberate boundaries
 
-Apps are versioned feature artifacts. The host client mounts the app versions already selected in the effective catalog. Apps receive SDK services and own their feature UI; they do not own the page document or product-wide routing.
-
-Generated React builds share React, React DOM, React Router, Atlas SDK, and their
-required secondary entry points when those packages are declared by the project.
-Atlas also walks every exposed React module's local import graph and
-automatically shares runtime package entry points declared in dependencies or
-peer dependencies. Type-only imports, unused dependencies, and non-JavaScript
-assets stay inside the normal build. Generated Angular builds use Native
-Federation's singleton, strict-version `shareAll` configuration. Runtime reuse
-requires published package versions to match exactly; other versions keep their
-remote-owned fallback.
-
-Apps may also export UUID-addressed widgets. Every production widget in the primary registry is discoverable even when its owner app has no route or slot in this host. Cross-registry providers are named by app id in the consumer's `externalAppsDependencies`; bootstrap environment provides explicit registry URLs. `sdk.getWidget(widgetId)` resolves and mounts code lazily with one independent loading/error card per mount.
-
-## One selection model
-
-Hosts and apps share identity fields: kind, id, version, build id, channel, framework, remote URL, integrity, Git metadata, and creation time. `version` is a human release label. `buildId` identifies exact immutable bytes. Two builds may share a version, so rollback accepts an optional build id.
-
-The production catalog selects one host client and one build of each routed/slotted app. PR artifacts appear in indexes but never activate production. Local artifacts never enter object storage. Same-registry widget-only providers follow their registry production selection. External providers follow their own registry production selection on browser refresh, so independent releases need no host catalog sync.
-
-```text
-registry.json
-hosts/<host-id>/index.json
-hosts/<host-id>/catalog.json
-hosts/<host-id>/deployments/sha256-....json
-hosts/<host-id>/1.4.0/build-123/...
-apps/<app-id>/index.json
-apps/<app-id>/2.1.0/build-456/...
-```
-
-`<host-id>` and `<app-id>` are stable UUIDs from each project's
-`atlas.config.ts`; CLI development/build commands still accept local project
-names.
-
-Version/build directories are create-only. Mutable registry, index, and catalog files use revalidation. Publication uploads immutable files first and activates catalogs last.
-
-## Release data flow
-
-```text
-atlas publish customer-host
-  build framework output
-  create host manifest from project and CI metadata
-  acquire storage lease and read live registry
-  upload immutable bytes
-  update registry and host index
-  activate affected catalogs last
-  verify deployed runtime
-
-atlas publish orders
-  same pipeline, with kind=app
-  regenerate affected same-registry host catalogs automatically
-```
-
-External provider release updates only its registry production pointer. A refreshed page revalidates that registry and loads the new provider. No bootstrap deployment, host release, or hot swap occurs.
-
-## Rollback boundaries
-
-`atlas rollback <host-id>` changes only host-client selection: layout, slots,
-router/navigation, host SDK/extensions, authentication integration, overlays,
-and app mounting behavior. Atlas writes a new catalog revision carrying that
-changed field, while app selections remain unchanged.
-
-`atlas rollback <app-id>` changes only that app selection. External providers
-roll back in their own registry; host rollback does not roll them back.
-
-Static bootstrap deployment is independent of both flows. Workspace deployment tooling
-connects public domain to static hosting; browsers fetch host and app assets
-directly from HTTPS object storage or its CDN gateway.
-
-## Trust boundary
-
-A host override is more powerful than an app override: it controls routing, SDK creation, authentication integration, layout, and all mounted apps. Columbus therefore displays hosts separately and warns before switching one, while still using the same version-selection mechanics. External widget providers appear separately and never mount as full apps. Production overrides default to disabled; local bootstrap mode enables them.
-
-## Deliberate limits
-
-Atlas currently uses client-side rendering. SSR is out of scope. Storage is
-static and browser-accessible; bootstrap does not proxy it. Packaging,
-CI/CD, and deployment platforms are user concerns rather than Atlas architecture
-concepts.
+Atlas has no internal deployment audit history, traffic rollout, container
+deployment, version policy, or publisher signatures. Release inventory supports
+rollback; storage backups support operational recovery. SHA-256 verifies bytes,
+not publisher authenticity.

@@ -1,10 +1,11 @@
 import { render, type RenderResult } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { userEvent } from '@testing-library/user-event';
 import { jest } from '@jest/globals';
 import { OverridesTableToolbar } from './OverridesTableToolbar.js';
 
 export class OverridesTableToolbarDriver {
   private readonly onVisibleOnlyChange = jest.fn();
+  private readonly user = userEvent.setup();
   private visibleOnly = false;
   private view: RenderResult | undefined;
 
@@ -29,7 +30,7 @@ export class OverridesTableToolbarDriver {
       return this;
     },
     visibleFilterClicked: async (): Promise<this> => {
-      await userEvent.click(this.get.visibleFilter());
+      await this.user.click(this.get.visibleFilter());
       return this;
     },
   };

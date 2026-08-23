@@ -23,7 +23,7 @@ import {
   createRetryPolicy,
   createTrustedNativeFederationImporters,
   loadBrowserRuntimeOverrides,
-  loadHostCatalog,
+  loadHostDeployment,
   loadHostRuntimeConfig,
   resolveRuntimeCatalog,
   startAtlasHostRuntime,
@@ -46,7 +46,12 @@ export async function startDomHostRuntime<THostSdk extends object>(
   const requestPolicy = createRetryPolicy(config, options.observe);
   const catalog =
     options.catalog ??
-    (await loadHostCatalog({ catalogUrl: config.catalogUrl, requestPolicy }));
+    (await loadHostDeployment({
+      manifestUrl: config.manifestUrl,
+      expectedHostId: config.hostId,
+      expectedEnvironment: config.environment,
+      requestPolicy,
+    }));
   if (options.catalog) assertAtlasHostCatalog(catalog);
   assertCatalogMatchesConfig(catalog.hostId, config.hostId);
 
@@ -183,7 +188,7 @@ function assertCatalogMatchesConfig(
       `Atlas cannot start host "${configHostId}" because its catalog belongs to host "${catalogHostId}".`,
       {
         suggestedActions:
-          'Point atlas.runtime.json catalogUrl to the catalog for this host, then reload the page.',
+          'Point atlas.runtime.json manifestUrl to the active host manifest, then reload the page.',
         code: 'ATLAS_CATALOG_HOST_MISMATCH',
       },
     );

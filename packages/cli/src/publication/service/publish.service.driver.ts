@@ -1,613 +1,292 @@
-import {
-  access,
-  mkdir,
-  mkdtemp,
-  open,
-  readFile,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import { createTestManifest } from '@atlas/testkit';
-import { CliArguments } from '../../cli/arguments.js';
-import { registryRevision } from '../static-registry/static-registry.js';
+import { jest } from '@jest/globals';
 import type {
-  AtlasProjectBuilder,
+  AtlasAppArtifactManifest,
+  AtlasManifestDescriptor,
+  AtlasRegistryArtifact,
+  AtlasStaticRegistry,
+} from '@atlas/schema';
+import type { AtlasBuildResult } from '../../build/service/build.service.js';
+import { CliArguments } from '../../cli/arguments.js';
+import type {
+  AtlasPublicationBody,
   AtlasPublicationLease,
+  AtlasPublicationListedObject,
   AtlasPublicationObjectMetadata,
+  AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
+} from '../publication-storage/publication-storage.js';
+import type { AtlasPreviewHeadResolver } from '../registry-config.js';
+import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
+import {
+  canonicalJson,
+  emptyStaticRegistry,
+  registryRevision,
+} from '../static-registry/static-registry.js';
+import {
+  AtlasPublishService,
+  type AtlasProjectBuilder,
 } from './publish.service.js';
-import { AtlasPublishService } from './publish.service.js';
-import { publicationContentType } from '../publication-metadata/publication-metadata.js';
-
-type PublishScenario =
-  | 'publish'
-  | 'missing-storage'
-  | 'dry-run'
-  | 'verification-failure'
-  | 'verification-cleanup'
-  | 'sequencing'
-  | 'mutable-failure'
-  | 'mutable-cleanup'
-  | 'rollback'
-  | 'lease-loss'
-  | 'lease-cleanup'
-  | 'moved-head'
-  | 'latest-pr'
-  | 'remove-pr'
-  | 'prune-pr';
 
 export class PublishServiceDriver {
-  private readonly appId = faker.word.noun().toLowerCase();
-  private readonly prNumber = faker.number.int({ min: 1, max: 999 });
-  private scenario?: PublishScenario;
-  private fixture?: Awaited<ReturnType<typeof publicationFixture>>;
-  private observation?: unknown;
+  private readonly id = faker.string.uuid();
+  private readonly otherId = faker.string.uuid();
+  private readonly name = faker.word.noun();
+  private readonly storage = new MemoryPublicationStorage();
+  private readonly publication = jest.fn<AtlasProjectBuilder['publication']>();
+  private readonly resolvePreviewHead = jest.fn<AtlasPreviewHeadResolver>();
+  private directory?: string;
+  private result?: Awaited<ReturnType<AtlasPublishService['run']>>;
+  private pruneResult?: Awaited<
+    ReturnType<AtlasPublishService['prunePreviews']>
+  >;
+  private bytes = new TextEncoder().encode(faker.string.alphanumeric(24));
+  private selector: { version?: string; preview?: number } = {
+    version: '1.4.0',
+  };
 
   given = {
-    publication: async (scenario: PublishScenario): Promise<void> => {
-      this.scenario = scenario;
-      this.fixture = await publicationFixture(this.appId);
+    release: (version = '1.4.0'): void => {
+      this.selector = { version };
+    },
+    preview: (number = 123): void => {
+      this.selector = { preview: number };
+      this.resolvePreviewHead.mockImplementation(async () => ({
+        state: 'open' as const,
+        headSha: 'abc123',
+      }));
+    },
+    changedBytes: (): void => {
+      this.bytes = new TextEncoder().encode(faker.string.alphanumeric(25));
+    },
+    previewPruning: (): void => {
+      const registry = emptyStaticRegistry('2026-01-01T00:00:00.000Z');
+      registry.apps[this.id] = this.registryArtifact(this.id, [1, 2]);
+      registry.apps[this.otherId] = this.registryArtifact(this.otherId, [2]);
+      registry.revision = registryRevision(registry) as `sha256:${string}`;
+      this.storage.seed(
+        'registry.json',
+        new TextEncoder().encode(`${canonicalJson(registry)}\n`),
+      );
+      this.storage.seed(
+        this.orphanPath(this.id),
+        new Uint8Array(),
+        '2025-01-01T00:00:00.000Z',
+      );
+      this.storage.seed(
+        this.orphanPath(this.otherId),
+        new Uint8Array(),
+        '2025-01-01T00:00:00.000Z',
+      );
     },
   };
 
   when = {
-    run: async (): Promise<void> => {
-      if (!this.fixture || !this.scenario) {
-        throw new Error('Publication setup is required.');
-      }
-
-      if (this.scenario === 'publish') await this.publish();
-      if (this.scenario === 'missing-storage')
-        await this.publishWithoutStorage();
-      if (this.scenario === 'dry-run') await this.publishDryRun();
-      if (this.scenario === 'verification-failure') {
-        await this.publishWithVerificationFailure(false);
-      }
-      if (this.scenario === 'verification-cleanup') {
-        await this.publishWithVerificationFailure(true);
-      }
-      if (this.scenario === 'sequencing') await this.publishWithHooks();
-      if (this.scenario === 'mutable-failure') {
-        await this.publishWithMutableFailure(false);
-      }
-      if (this.scenario === 'mutable-cleanup') {
-        await this.publishWithMutableFailure(true);
-      }
-      if (this.scenario === 'rollback') await this.rollback();
-      if (this.scenario === 'lease-loss')
-        await this.publishWithLeaseLoss(false);
-      if (this.scenario === 'lease-cleanup')
-        await this.publishWithLeaseLoss(true);
-      if (this.scenario === 'moved-head') await this.publishMovedHead();
-      if (this.scenario === 'latest-pr') await this.publishLatestPr();
-      if (this.scenario === 'remove-pr') await this.removePr();
-      if (this.scenario === 'prune-pr') await this.prunePr();
+    publish: async (): Promise<void> => {
+      this.directory ??= await mkdtemp(join(tmpdir(), 'atlas-publish-test-'));
+      await writeFile(join(this.directory, 'remoteEntry.json'), this.bytes);
+      this.publication.mockImplementation(async () => this.buildResult());
+      const values = this.selector.version
+        ? ['publish', this.name, '--version', this.selector.version]
+        : ['publish', this.name, '--pr', String(this.selector.preview)];
+      this.result = await new AtlasPublishService(new CliArguments(values), {
+        publication: this.publication,
+      }).run(this.name, {
+        storage: this.storage,
+        resolvePreviewHead: this.resolvePreviewHead,
+        verifyRegistry: async () => undefined,
+      });
+    },
+    cleanup: async (): Promise<void> => {
+      if (this.directory)
+        await rm(this.directory, { recursive: true, force: true });
+    },
+    prune: async (): Promise<void> => {
+      const states: readonly AtlasArtifactPreviewState[] = [
+        { kind: 'app', id: this.id, openPreviews: new Set([1]) },
+      ];
+      this.pruneResult = await new AtlasPublishService(
+        new CliArguments(['prune-previews']),
+      ).prunePreviews(states, { storage: this.storage });
     },
   };
 
   get = {
-    observation: <T>(): T => this.observation as T,
+    result: () => this.result,
+    registry: (): AtlasStaticRegistry =>
+      JSON.parse(
+        new TextDecoder().decode(this.storage.required('registry.json').bytes),
+      ) as AtlasStaticRegistry,
+    paths: (): string[] => [...this.storage.paths()].sort(),
+    resolverCalls: (): number => this.resolvePreviewHead.mock.calls.length,
+    prunedSelections: (): Record<string, string[]> => ({
+      scoped: Object.keys(this.get.registry().apps[this.id]!.previews),
+      unscoped: Object.keys(this.get.registry().apps[this.otherId]!.previews),
+    }),
+    prunedOrphans: (): {
+      removedGenerations: number | undefined;
+      scopedExists: boolean;
+      unscopedExists: boolean;
+    } => ({
+      removedGenerations: this.pruneResult?.removedGenerations,
+      scopedExists: this.storage.has(this.orphanPath(this.id)),
+      unscopedExists: this.storage.has(this.orphanPath(this.otherId)),
+    }),
   };
 
-  private service(arguments_: string[] = ['publish'], builds = this.builds) {
-    return new AtlasPublishService(new CliArguments(arguments_), builds);
-  }
-
-  private get builds(): AtlasProjectBuilder {
-    if (!this.fixture) throw new Error('Publication fixture is required.');
-
-    return this.fixture.builds;
-  }
-
-  private get storageRoot(): string {
-    if (!this.fixture) throw new Error('Publication fixture is required.');
-
-    return this.fixture.storage;
-  }
-
-  private async publish(): Promise<void> {
-    const result = await this.service().run(this.appId, {
-      config: { storage: new DirectoryPublicationStorage(this.storageRoot) },
-    });
-    const entry = await readFile(
-      join(this.storageRoot, `apps/${this.appId}/1.0.0/build-1/entry.js`),
-      'utf8',
-    );
-
-    this.observation = {
-      entry,
-      uploaded: result.uploaded.map((path) =>
-        path.replace(this.appId, '{appId}'),
-      ),
-    };
-  }
-
-  private async publishWithoutStorage(): Promise<void> {
-    await this.service().run(this.appId);
-  }
-
-  private async publishDryRun(): Promise<void> {
-    const result = await this.service(['publish', '--dry-run']).run(this.appId);
-
-    this.observation = result.dryRun;
-  }
-
-  private async publishWithVerificationFailure(
-    capture: boolean,
-  ): Promise<void> {
-    const previousRegistry = this.emptyRegistryText();
-
-    await mkdir(this.storageRoot, { recursive: true });
-    await writeFile(join(this.storageRoot, 'registry.json'), previousRegistry);
-
-    const action = this.service().run(this.appId, {
-      config: { storage: new DirectoryPublicationStorage(this.storageRoot) },
-      verify: async () => {
-        throw new Error('smoke test failed');
-      },
-    });
-
-    if (!capture) {
-      await action;
-      return;
-    }
-
-    await action.catch(() => undefined);
-
-    this.observation = {
-      immutableExists: await this.exists(
-        `apps/${this.appId}/1.0.0/build-1/entry.js`,
-      ),
-      registryRestored:
-        (await readFile(join(this.storageRoot, 'registry.json'), 'utf8')) ===
-        previousRegistry,
-    };
-  }
-
-  private async publishWithHooks(): Promise<void> {
-    const events: string[] = [];
-
-    await this.service().run(this.appId, {
-      config: {
-        invalidate(paths) {
-          events.push(`invalidate:${paths.join(',')}`);
-        },
-        storage: () => new DirectoryPublicationStorage(this.storageRoot),
-      },
-      verify: async () => {
-        events.push('verify');
-      },
-    });
-
-    this.observation = events.map((event) =>
-      event.replace(this.appId, '{appId}'),
-    );
-  }
-
-  private async publishWithMutableFailure(capture: boolean): Promise<void> {
-    const storage = new FailingMutableStorage(`apps/${this.appId}/index.json`);
-    const previousRegistry = this.emptyRegistryText();
-    storage.seed('registry.json', previousRegistry);
-
-    const action = this.service().run(this.appId, { config: { storage } });
-
-    if (!capture) {
-      await action;
-      return;
-    }
-
-    await action.catch(() => undefined);
-
-    this.observation = {
-      index: storage.text(`apps/${this.appId}/index.json`),
-      registryRestored: storage.text('registry.json') === previousRegistry,
-    };
-  }
-
-  private async rollback(): Promise<void> {
-    const first = createTestManifest({
-      buildId: 'stable',
-      id: this.appId,
-      version: '1.0.0',
-    });
-    const second = createTestManifest({
-      buildId: 'latest',
-      id: this.appId,
-      version: '2.0.0',
-    });
-    const registry = {
-      apps: [first, second],
-      hosts: [],
-      schemaVersion: '1' as const,
-      selections: {
-        apps: {
-          [this.appId]: { buildId: 'latest', version: '2.0.0' },
-        },
-        hosts: {},
-      },
-      updatedAt: second.createdAt,
-    };
-
-    await mkdir(this.storageRoot, { recursive: true });
-    await writeFile(
-      join(this.storageRoot, 'registry.json'),
-      JSON.stringify({ ...registry, revision: registryRevision(registry) }),
-    );
-
-    const result = await this.service([
-      'rollback',
-      this.appId,
-      '--version=1.0.0',
-    ]).rollback(this.appId, '1.0.0', {
-      config: { storage: new DirectoryPublicationStorage(this.storageRoot) },
-    });
-    const published = JSON.parse(
-      await readFile(join(this.storageRoot, 'registry.json'), 'utf8'),
-    );
-
-    this.observation = {
-      buildId: result.buildId,
-      selection: published.selections.apps[this.appId],
-    };
-  }
-
-  private async publishWithLeaseLoss(capture: boolean): Promise<void> {
-    const storage = new LeaseLossStorage(this.storageRoot, 5);
-    const action = this.service().run(this.appId, { config: { storage } });
-
-    if (!capture) {
-      await action;
-      return;
-    }
-
-    await action.catch(() => undefined);
-
-    this.observation = {
-      indexExists: await this.exists(`apps/${this.appId}/index.json`),
-      registryExists: await this.exists('registry.json'),
-    };
-  }
-
-  private async publishMovedHead(): Promise<void> {
-    const original = await this.builds.build(this.appId);
-    const oldSha = faker.git.commitSha();
-    const newSha = faker.git.commitSha();
-    const builds: AtlasProjectBuilder = {
-      build: async () => ({
-        ...original,
-        manifest: {
-          ...original.manifest,
-          channel: 'pr',
-          gitSha: oldSha,
-          prNumber: this.prNumber,
-        },
-      }),
-    };
-    const result = await this.service(['publish'], builds).run(this.appId, {
-      config: {
-        resolvePullRequest: async () => ({ headSha: newSha, state: 'open' }),
-        storage: new DirectoryPublicationStorage(this.storageRoot),
-      },
-    });
-
-    this.observation = {
-      registryExists: await this.exists('registry.json'),
-      skipped: result.skippedReason?.includes(`${oldSha} to ${newSha}`),
-    };
-  }
-
-  private async publishLatestPr(): Promise<void> {
-    const original = await this.builds.build(this.appId);
-    const firstSha = faker.git.commitSha();
-    const firstManifest = {
-      ...original.manifest,
-      buildId: 'first',
-      channel: 'pr' as const,
-      gitSha: firstSha,
-      prNumber: this.prNumber,
-      version: `1.0.0-pr.${this.prNumber}`,
-    };
-    const storage = new DirectoryPublicationStorage(this.storageRoot);
-
-    await this.service(['publish'], {
-      build: async () => ({ ...original, manifest: firstManifest }),
-    }).run(this.appId, {
-      config: {
-        resolvePullRequest: async () => ({ headSha: firstSha, state: 'open' }),
-        storage,
-      },
-    });
-
-    const secondSha = faker.git.commitSha();
-    const secondManifest = {
-      ...firstManifest,
-      buildId: 'second',
-      gitSha: secondSha,
-    };
-    const result = await this.service(['publish'], {
-      build: async () => ({ ...original, manifest: secondManifest }),
-    }).run(this.appId, {
-      config: {
-        resolvePullRequest: async () => ({ headSha: secondSha, state: 'open' }),
-        storage,
-      },
-    });
-    const registry = JSON.parse(
-      await readFile(join(this.storageRoot, 'registry.json'), 'utf8'),
-    );
-
-    this.observation = {
-      buildIds: registry.apps.map(
-        ({ buildId }: { buildId: string }) => buildId,
-      ),
-      cleanupWarnings: result.cleanupWarnings,
-      firstExists: await this.exists(
-        `apps/${this.appId}/1.0.0-pr.${this.prNumber}/first/entry.js`,
-      ),
-      secondExists: await this.exists(
-        `apps/${this.appId}/1.0.0-pr.${this.prNumber}/second/entry.js`,
-      ),
-    };
-  }
-
-  private async removePr(): Promise<void> {
-    const original = await this.builds.build(this.appId);
-    const sha = faker.git.commitSha();
-    const manifest = {
-      ...original.manifest,
-      buildId: 'preview',
-      channel: 'pr' as const,
-      gitSha: sha,
-      prNumber: this.prNumber,
-      version: `1.0.0-pr.${this.prNumber}`,
-    };
-    const builds: AtlasProjectBuilder = {
-      build: async () => ({ ...original, manifest }),
-    };
-    const storage = new DirectoryPublicationStorage(this.storageRoot);
-
-    await this.service(['publish'], builds).run(this.appId, {
-      config: {
-        resolvePullRequest: async () => ({ headSha: sha, state: 'open' }),
-        storage,
-      },
-    });
-
-    const result = await this.service(['remove-pr'], builds).removePr(
-      [this.appId],
-      this.prNumber,
-      { config: { storage } },
-    );
-    const registry = JSON.parse(
-      await readFile(join(this.storageRoot, 'registry.json'), 'utf8'),
-    );
-
-    this.observation = {
-      artifactExists: await this.exists(
-        `apps/${this.appId}/1.0.0-pr.${this.prNumber}/preview/entry.js`,
-      ),
-      registryApps: registry.apps,
-      removedBuilds: result.removedBuilds,
-    };
-  }
-
-  private async prunePr(): Promise<void> {
-    const original = await this.builds.build(this.appId);
-    const sha = faker.git.commitSha();
-    const manifest = {
-      ...original.manifest,
-      buildId: 'preview',
-      channel: 'pr' as const,
-      gitSha: sha,
-      prNumber: this.prNumber,
-      version: `1.0.0-pr.${this.prNumber}`,
-    };
-    const builds: AtlasProjectBuilder = {
-      build: async () => ({ ...original, manifest }),
-    };
-    const storage = new DirectoryPublicationStorage(this.storageRoot);
-
-    await this.service(['publish'], builds).run(this.appId, {
-      config: {
-        resolvePullRequest: async () => ({ headSha: sha, state: 'open' }),
-        storage,
-      },
-    });
-
-    const service = this.service(['prune-prs'], builds);
-    const preserved = await service.prunePrs(
-      [this.appId],
-      new Set([this.prNumber]),
-      { config: { storage } },
-    );
-    const removed = await service.prunePrs([this.appId], new Set(), {
-      config: { storage },
-    });
-
-    this.observation = {
-      preserved: preserved.removedBuilds,
-      removed: removed.removedBuilds,
-    };
-  }
-
-  private emptyRegistryText(): string {
-    const registry = {
-      apps: [],
-      hosts: [],
-      schemaVersion: '1' as const,
-      selections: { apps: {}, hosts: {} },
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    };
-
-    return `${JSON.stringify({ ...registry, revision: registryRevision(registry) })}\n`;
-  }
-
-  private async exists(path: string): Promise<boolean> {
-    try {
-      await access(join(this.storageRoot, path));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
-
-async function publicationFixture(appId: string) {
-  const root = await mkdtemp(join(tmpdir(), 'atlas-publish-'));
-  const source = join(root, 'build');
-  const storage = join(root, 'storage');
-  await mkdir(source, { recursive: true });
-  await writeFile(join(source, 'entry.js'), 'export {};\n');
-  const manifest = createTestManifest({
-    id: appId,
-    version: '1.0.0',
-    buildId: 'build-1',
-    remoteEntryUrl: `https://cdn.example/apps/${appId}/1.0.0/build-1/entry.js`,
-  });
-  const builds: AtlasProjectBuilder = {
-    async build() {
-      return {
-        artifact: 'app',
-        manifest,
-        project: {
-          id: appId,
-          root,
-          packageName: appId,
-          version: '1.0.0',
-          outputPaths: [source],
-        },
-        sourceDirectory: source,
-        files: ['entry.js'],
-      };
-    },
-  };
-  return { builds, storage };
-}
-
-class DirectoryPublicationStorage implements AtlasPublicationStorage {
-  private readonly lockPath: string;
-  private readonly metadata = new Map<string, AtlasPublicationObjectMetadata>();
-
-  constructor(private readonly root: string) {
-    this.lockPath = join(root, '.atlas-deployment.lock');
-  }
-
-  async read(path: string): Promise<Uint8Array | undefined> {
-    try {
-      return await readFile(join(this.root, path));
-    } catch (error) {
-      if (isMissingFile(error)) return undefined;
-      throw error;
-    }
-  }
-
-  async inspect(
-    path: string,
-  ): Promise<AtlasPublicationObjectMetadata | undefined> {
-    if (!(await this.read(path))) return undefined;
-    return (
-      this.metadata.get(path) ?? {
-        cacheControl: 'no-cache',
-        contentType: publicationContentType(path),
-      }
-    );
-  }
-
-  async create(
-    path: string,
-    bytes: Uint8Array,
-    metadata: AtlasPublicationObjectMetadata,
-  ): Promise<void> {
-    const target = join(this.root, path);
-    await mkdir(join(target, '..'), { recursive: true });
-    const handle = await open(target, 'wx');
-    try {
-      await handle.writeFile(bytes);
-    } finally {
-      await handle.close();
-    }
-    this.metadata.set(path, metadata);
-  }
-
-  async replace(
-    path: string,
-    bytes: Uint8Array,
-    metadata: AtlasPublicationObjectMetadata,
-  ): Promise<void> {
-    const target = join(this.root, path);
-    await mkdir(join(target, '..'), { recursive: true });
-    await writeFile(target, bytes);
-    this.metadata.set(path, metadata);
-  }
-
-  async remove(path: string): Promise<void> {
-    await rm(join(this.root, path), { force: true });
-    this.metadata.delete(path);
-  }
-
-  async acquireLock(owner: string): Promise<AtlasPublicationLease> {
-    await mkdir(this.root, { recursive: true });
-    await writeFile(this.lockPath, owner, { flag: 'wx' });
+  private registryArtifact(
+    id: string,
+    previews: readonly number[],
+  ): AtlasRegistryArtifact {
     return {
-      assertHeld: async () => undefined,
-      release: async () => {
-        await rm(this.lockPath, { force: true });
-      },
+      id,
+      name: id,
+      releases: {},
+      previews: Object.fromEntries(
+        previews.map((number) => [number, this.previewDescriptor(id, number)]),
+      ),
+    };
+  }
+
+  private previewDescriptor(
+    id: string,
+    number: number,
+  ): AtlasManifestDescriptor {
+    return {
+      path: `apps/${id}/previews/${number}/${'a'.repeat(64)}/manifest.json`,
+      digest: `sha256:${'b'.repeat(64)}`,
+      size: 1,
+      mediaType: 'application/json',
+    };
+  }
+
+  private orphanPath(id: string): string {
+    return `apps/${id}/previews/999/${'c'.repeat(64)}/manifest.json`;
+  }
+
+  private buildResult(): AtlasBuildResult {
+    const digest =
+      `sha256:${createHash('sha256').update(this.bytes).digest('hex')}` as const;
+    const manifest: AtlasAppArtifactManifest = {
+      schemaVersion: '2',
+      kind: 'app-artifact',
+      id: this.id,
+      name: this.name,
+      ...(this.selector.version
+        ? { release: { version: this.selector.version } }
+        : { preview: { number: this.selector.preview!, gitSha: 'abc123' } }),
+      framework: 'react',
+      entryPath: 'remoteEntry.json',
+      exposes: { entry: './entry' },
+      files: [
+        {
+          path: 'remoteEntry.json',
+          digest,
+          size: this.bytes.byteLength,
+          mediaType: 'application/json',
+          cacheControl: 'public, max-age=31536000, immutable',
+          role: 'remote-entry',
+        },
+      ],
+      requiredHostSdkVersion: '^0.1.0',
+      supportedHosts: ['*'],
+      placements: [],
+    };
+    return {
+      artifact: 'app',
+      manifest,
+      project: {} as AtlasBuildResult['project'],
+      sourceDirectory: this.directory!,
+      files: ['remoteEntry.json'],
     };
   }
 }
 
-class FailingMutableStorage implements AtlasPublicationStorage {
-  readonly files = new Map<string, Uint8Array>();
-  readonly metadata = new Map<string, AtlasPublicationObjectMetadata>();
-  private failed = false;
+interface StoredObject {
+  bytes: Uint8Array;
+  metadata: AtlasPublicationObjectMetadata;
+  token: string;
+}
 
-  constructor(private readonly failingPath: string) {}
+class MemoryPublicationStorage implements AtlasPublicationStorage {
+  private readonly objects = new Map<string, StoredObject>();
 
   async read(path: string): Promise<Uint8Array | undefined> {
-    return this.files.get(path);
+    return this.objects.get(path)?.bytes;
+  }
+
+  async readStream(
+    path: string,
+  ): Promise<AsyncIterable<Uint8Array> | undefined> {
+    const bytes = await this.read(path);
+    if (!bytes) return undefined;
+    return (async function* () {
+      yield bytes;
+    })();
   }
 
   async inspect(
     path: string,
   ): Promise<AtlasPublicationObjectMetadata | undefined> {
-    if (!this.files.has(path)) return undefined;
-    return (
-      this.metadata.get(path) ?? {
-        cacheControl: 'no-cache',
-        contentType: publicationContentType(path),
-      }
-    );
+    const object = this.objects.get(path);
+    return object
+      ? {
+          ...object.metadata,
+          size: object.bytes.byteLength,
+          versionToken: object.token,
+        }
+      : undefined;
+  }
+
+  async list(prefix: string): Promise<AtlasPublicationListedObject[]> {
+    return [...this.objects]
+      .filter(([path]) => path.startsWith(prefix))
+      .map(([path, object]) => ({
+        path,
+        size: object.bytes.byteLength,
+        ...(object.metadata.lastModified
+          ? { lastModified: object.metadata.lastModified }
+          : {}),
+      }));
   }
 
   async create(
     path: string,
-    bytes: Uint8Array,
+    body: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
   ): Promise<void> {
-    this.files.set(path, bytes);
-    this.metadata.set(path, metadata);
+    if (this.objects.has(path)) throw new Error('exists');
+    this.objects.set(path, {
+      bytes: await collect(body),
+      metadata,
+      token: faker.string.uuid(),
+    });
   }
 
   async replace(
     path: string,
-    bytes: Uint8Array,
+    body: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
+    condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
-    if (path === this.failingPath && !this.failed) {
-      this.failed = true;
-      throw new Error(`simulated write failure: ${path}`);
+    const existing = this.objects.get(path);
+    if (condition.createOnly && existing) throw new Error('conflict');
+    if (condition.versionToken && existing?.token !== condition.versionToken) {
+      throw new Error('conflict');
     }
-    this.files.set(path, bytes);
-    this.metadata.set(path, metadata);
+    this.objects.set(path, {
+      bytes: await collect(body),
+      metadata,
+      token: faker.string.uuid(),
+    });
   }
 
   async remove(path: string): Promise<void> {
-    this.files.delete(path);
-    this.metadata.delete(path);
+    this.objects.delete(path);
   }
 
   async acquireLock(): Promise<AtlasPublicationLease> {
@@ -617,45 +296,43 @@ class FailingMutableStorage implements AtlasPublicationStorage {
     };
   }
 
-  seed(path: string, value: string): void {
-    this.files.set(path, new TextEncoder().encode(value));
+  required(path: string): StoredObject {
+    const object = this.objects.get(path);
+    if (!object) throw new Error(`Missing ${path}`);
+    return object;
   }
 
-  text(path: string): string | undefined {
-    const bytes = this.files.get(path);
-    return bytes ? new TextDecoder().decode(bytes) : undefined;
-  }
-}
-
-class LeaseLossStorage extends DirectoryPublicationStorage {
-  private assertions = 0;
-
-  constructor(
-    root: string,
-    private readonly failAtAssertion: number,
-  ) {
-    super(root);
+  paths(): IterableIterator<string> {
+    return this.objects.keys();
   }
 
-  override async acquireLock(): Promise<AtlasPublicationLease> {
-    return {
-      assertHeld: async () => {
-        this.assertions += 1;
+  has(path: string): boolean {
+    return this.objects.has(path);
+  }
 
-        if (this.assertions >= this.failAtAssertion) {
-          throw new Error('simulated lease loss');
-        }
+  seed(path: string, bytes: Uint8Array, lastModified?: string): void {
+    this.objects.set(path, {
+      bytes,
+      metadata: {
+        cacheControl: 'no-cache',
+        contentType: 'application/json',
+        ...(lastModified ? { lastModified } : {}),
       },
-      release: async () => undefined,
-    };
+      token: faker.string.uuid(),
+    });
   }
 }
 
-function isMissingFile(error: unknown): error is NodeJS.ErrnoException {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    error.code === 'ENOENT'
-  );
+async function collect(body: AtlasPublicationBody): Promise<Uint8Array> {
+  if (body instanceof Uint8Array) return body;
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of body) chunks.push(chunk);
+  const length = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const result = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
 }

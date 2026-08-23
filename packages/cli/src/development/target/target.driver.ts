@@ -76,7 +76,8 @@ export class DevelopmentTargetDriver {
         Response.json({
           schemaVersion: '1',
           hostId: discoveredHostId,
-          catalogUrl: faker.internet.url(),
+          environment: 'production',
+          manifestUrl: faker.internet.url(),
         }),
       );
     },

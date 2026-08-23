@@ -152,7 +152,9 @@ export function versionLabel(manifest: Manifest): string {
 }
 
 export function versionBuildIdLabel(manifest: Manifest): string {
-  return `${manifest.version}-${manifest.buildId}`;
+  return manifest.buildId === 'canonical'
+    ? manifest.version
+    : `${manifest.version}-${manifest.buildId}`;
 }
 
 function shortBuildId(manifest: Manifest): string {

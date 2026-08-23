@@ -86,8 +86,15 @@ function createProductionManifest(): AtlasExtensionManifest {
     ],
     exportedWidgets: [
       {
+        schemaVersion: '1',
+        id: 'summary',
+        name: 'Summary',
+        ownerAppId: 'app',
+        framework: 'angular',
         remoteEntryUrl:
           'https://cdn.example/apps/app/1.0.0/production/widgets/summary.js',
+        expose: './widgets/summary',
+        contractVersion: '1',
       },
     ],
   };

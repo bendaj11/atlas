@@ -1,15 +1,29 @@
 import { execFile } from 'node:child_process';
 import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { build as buildVite } from 'vite';
-import {
-  createReactAppViteConfig,
-  createReactHostViteConfig,
-} from '../federation-config.cjs';
+import { build as buildVite, type UserConfig } from 'vite';
 import { expect, jest, test } from '@jest/globals';
+
+interface ReactFederationConfigOptions {
+  projectName: string;
+  projectRoot: string;
+  reactMajor?: number;
+}
+
+type ReactFederationConfigFactory = (
+  options: ReactFederationConfigOptions,
+) => UserConfig;
+
+const { createReactAppViteConfig, createReactHostViteConfig } = createRequire(
+  import.meta.url,
+)('../federation-config.cjs') as {
+  createReactAppViteConfig: ReactFederationConfigFactory;
+  createReactHostViteConfig: ReactFederationConfigFactory;
+};
 
 const executeFile = promisify(execFile);
 const factoryPath = fileURLToPath(

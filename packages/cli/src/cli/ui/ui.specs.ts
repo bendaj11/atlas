@@ -8,6 +8,24 @@ describe('ui', () => {
     driver = new UiDriver();
   });
 
+  it('should write Atlas logo when logo is shown', () => {
+    driver.when.show('logo');
+
+    expect(driver.get.infoCalls()).toStrictEqual(driver.get.logo());
+  });
+
+  it('should color Atlas logo when standard output is a terminal', () => {
+    driver.given.terminal({
+      colors: true,
+      inputIsTTY: false,
+      outputIsTTY: true,
+    });
+
+    driver.when.show('logo');
+
+    expect(driver.get.logoUsesColors()).toBe(true);
+  });
+
   it('should write Atlas heading when heading is shown', () => {
     driver.when.show('heading');
 

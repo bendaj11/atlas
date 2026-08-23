@@ -6,15 +6,15 @@ Command modules must not print human-facing status directly.
 
 ## Output contract
 
-| Kind | Marker | Stream | Use |
-| --- | --- | --- | --- |
-| Heading | `Atlas ·` | stdout | Command and current target |
-| Information | `i` | stdout | Progress, decisions, and next steps |
-| Success | `✓` | stdout | Completed operation |
-| Warning | `!` | stderr | Recoverable problem or degraded result |
-| Error | `✖` | stderr | Failed operation |
-| Item | `•` | stdout | A member of a result list |
-| Result | `<label>:` | stdout | A value users may copy or pipe |
+| Kind        | Marker     | Stream | Use                                    |
+| ----------- | ---------- | ------ | -------------------------------------- |
+| Heading     | `Atlas ·`  | stdout | Command and current target             |
+| Information | `i`        | stdout | Progress, decisions, and next steps    |
+| Success     | `✓`        | stdout | Completed operation                    |
+| Warning     | `!`        | stderr | Recoverable problem or degraded result |
+| Error       | `✖`        | stderr | Failed operation                       |
+| Item        | `•`        | stdout | A member of a result list              |
+| Result      | `<label>:` | stdout | A value users may copy or pipe         |
 
 Use one event per line. Keep the first sentence self-contained. Put the most
 important result last unless a labeled result must be followed by a next step.
@@ -35,21 +35,21 @@ Cross-environment rules: [Atlas error handling](./error-handling.md).
 
 ## Command inventory
 
-| Command | Heading | Primary completion |
-| --- | --- | --- |
-| `generate host` | `Generate host · <name>` | Created project paths |
-| `generate app` | `Generate app · <name>` | Created project paths |
-| `generate widget` | `Generate widget · <name>` | Created widget |
-| `dev` | `Develop · <project>` | Labeled app preview URL |
-| `build` | `Build · <project>` | Built artifact identity |
-| `build-bootstrap` | `Build bootstrap · <host>` | Output path and bootstrap digest |
-| `publish` | `Publish · <project>` | Published file count or skipped reason |
-| `remove-pr` | `Remove pull-request builds · #<number>` | Removed build count |
-| `prune-prs` | `Prune pull-request builds` | Checked PR and removed build counts |
-| `rollback` | `Rollback · <artifact-id>` | Selected build and published file count |
-| `verify` | `Verify deployment` | Checks followed by verified deployment count |
-| `compile-config` | none; workspace-internal | Compiled project configuration |
-| `help`, `version` | none | Plain requested content |
+| Command           | Heading                      | Primary completion                           |
+| ----------------- | ---------------------------- | -------------------------------------------- |
+| `generate host`   | `Generate host · <name>`     | Created project paths                        |
+| `generate app`    | `Generate app · <name>`      | Created project paths                        |
+| `generate widget` | `Generate widget · <name>`   | Created widget                               |
+| `dev`             | `Develop · <project>`        | Labeled app preview URL                      |
+| `build`           | `Build · <project>`          | Built artifact identity                      |
+| `build-bootstrap` | `Build bootstrap · <host>`   | Output path and bootstrap digest             |
+| `publish`         | `Publish · <project>`        | Published immutable manifest                 |
+| `deploy`          | `Deploy · <artifact>`        | Selected release and host convergence        |
+| `remove-preview`  | `Remove preview · #<number>` | Removed selection                            |
+| `prune-previews`  | `Prune previews`             | Checked selections and expired generations   |
+| `verify`          | `Verify deployment`          | Checks followed by verified deployment count |
+| `compile-config`  | none; workspace-internal     | Compiled project configuration               |
+| `help`, `version` | none                         | Plain requested content                      |
 
 ## Prompts
 

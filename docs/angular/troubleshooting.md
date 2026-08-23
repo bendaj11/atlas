@@ -2,12 +2,12 @@
 
 Start by identifying the domain:
 
-- **Host domain:** page shell, runtime config, catalog URL, DOM anchors,
+- **Host domain:** page shell, runtime config, active host manifest URL, DOM anchors,
   `startHost`, host SDK providers.
 - **App domain:** Angular app source, `atlas.config.ts`, `src/main.ts`,
   inner routes, assets.
-- **Deployment domain:** CDN files, CORS, MIME types, catalogs, registry,
-  integrity, cache.
+- **Deployment domain:** CDN files, CORS, MIME types, `registry.json`, active and
+  canonical manifests, integrity, cache.
 
 ## The App Does Not Load
 
@@ -22,7 +22,8 @@ Then check host layout:
 - `data-atlas-route-outlet` exists;
 - `data-atlas-host-status` exists;
 - the host serves `index.html` for deep links;
-- `atlas.runtime.json` points to the expected catalog.
+- `atlas.runtime.json` points to the expected environment-qualified active host
+  manifest.
 
 Then check app config:
 
@@ -36,6 +37,44 @@ Then check app config:
 Verify `remoteEntryUrl` points to `remoteEntry.json`, not a JavaScript file.
 The CDN must serve every file from the Angular browser output with CORS enabled.
 Atlas loads the Native Federation expose named by the manifest.
+
+## Native Federation Warns `No entry point found for <package>`
+
+Native Federation emits this warning while Atlas builds an Angular host or app.
+Atlas configures `shareAll` so matching host and app dependencies can reuse one
+singleton copy. Native Federation inspects each dependency it intends to share.
+This warning means a package or one of its secondary exports has no JavaScript
+entry point that Native Federation can turn into a shared bundle.
+
+Do not hide every warning. A package that is imported at runtime but cannot be
+shared may be bundled into the host or app instead. That can duplicate state or
+produce a version conflict for libraries that must be singletons.
+
+First identify the warned package:
+
+- If it is build, test, type-only, or otherwise unused in browser runtime code,
+  move it to `devDependencies` when appropriate, then add it to `skip`.
+- If it is a secondary export that is not needed at runtime, skip that export.
+- If browser runtime code needs it, do not suppress the warning blindly. Check
+  its package metadata and supported JavaScript entry point, then decide whether
+  it may safely be bundled locally or must be replaced/configured as a supported
+  shared dependency.
+
+Add only confirmed exclusions to the generated `federation.config.js`:
+
+```js
+module.exports = createAngularFederationConfig({
+  projectRoot: __dirname,
+  name: 'atlas_orders_angular',
+  expose: 'app',
+  skip: ['package-name', '@scope/package/internal/*'],
+});
+```
+
+For Angular Native Federation v4 projects, make same change in
+`federation.config.mjs`. Keep Atlas-generated exposes and sharing settings.
+Restart the development server after changing federation configuration. Warning
+gone only when package is excluded or package supplies a shareable entry point.
 
 ## Angular Compiler Rejects `emitDeclarationOnly`
 

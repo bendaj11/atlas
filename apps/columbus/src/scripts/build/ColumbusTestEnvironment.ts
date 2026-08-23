@@ -22,6 +22,7 @@ class TestMessageChannel {
   }
 }
 
-globalThis.MessageChannel ??= TestMessageChannel as unknown as typeof MessageChannel;
+globalThis.MessageChannel ??=
+  TestMessageChannel as unknown as typeof MessageChannel;
 globalThis.TextDecoder ??= NodeTextDecoder as unknown as typeof TextDecoder;
 globalThis.TextEncoder ??= NodeTextEncoder as unknown as typeof TextEncoder;

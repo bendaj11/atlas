@@ -83,9 +83,11 @@ is documented by the host team.
 
 ## Deployment Domain
 
-Angular build owns browser output. `atlas:publish` reads that output, publishes
-it beneath derived immutable version/build path, then replaces mutable catalogs
-under storage lease.
+Angular build owns browser output. `atlas publish --version` reads that output
+and creates one immutable release-version path plus canonical manifest. It
+updates the compact descriptor in `registry.json` but does not activate the
+release. `atlas deploy` changes an environment selection and converges affected
+active host manifests.
 
 Your CDN must:
 

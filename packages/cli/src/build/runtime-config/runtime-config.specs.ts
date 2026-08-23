@@ -15,26 +15,43 @@ describe('createHostRuntimeConfig', () => {
     });
     driver.given.hostVersion('1.2.3');
     driver.given.arguments([
-      '--registry-base-url',
+      '--registry-url',
       'https://registry.example.com/',
+      '--environment',
+      'production',
       '--asset-origins',
       'https://assets.example.com/path',
-      '--external-registry-urls',
-      'https://external.example.com/catalog/',
+      '--external-registries',
+      'https://external.example.com/catalog|production',
     ]);
     driver.when.create();
 
     expect(driver.get.runtime()).toEqual({
       assetOrigins: ['https://assets.example.com'],
-      catalogUrl: `https://registry.example.com/hosts/${driver.get.hostId()}/catalog.json`,
-      externalRegistryUrls: ['https://external.example.com/catalog'],
+      externalRegistries: [
+        {
+          environment: 'production',
+          registryUrl: 'https://external.example.com/catalog',
+        },
+      ],
       hostId: driver.get.hostId(),
       hostVersion: '1.2.3',
+      manifestUrl: `https://registry.example.com/environments/production/hosts/${driver.get.hostId()}/manifest.json`,
+      environment: 'production',
       registryUrl: 'https://registry.example.com',
       resourcesRetryCount: 2,
       resourcesTimeoutMs: 1000,
       schemaVersion: '1',
     });
+  });
+
+  it('should reject missing environment when registry is not local', () => {
+    driver.given.arguments(['--registry-url', 'https://registry.example.com']);
+    driver.when.create();
+
+    expect(driver.get.error()).toThrow(
+      '--environment or ATLAS_ENVIRONMENT is required',
+    );
   });
 
   it('should reject insecure asset origin when CLI URL is not loopback', () => {

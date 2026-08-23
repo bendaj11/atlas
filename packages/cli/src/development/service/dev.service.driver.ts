@@ -82,8 +82,9 @@ export class DevServiceDriver {
         this.originalFetch = globalThis.fetch;
         globalThis.fetch = jest.fn<typeof globalThis.fetch>().mockResolvedValue(
           Response.json({
-            catalogUrl: faker.internet.url(),
+            manifestUrl: faker.internet.url(),
             hostId: this.hostId,
+            environment: 'development',
             schemaVersion: '1',
           }),
         );

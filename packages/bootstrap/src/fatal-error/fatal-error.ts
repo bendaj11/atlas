@@ -83,7 +83,7 @@ function bootstrapActions(message: string): string[] {
     )
   ) {
     return [
-      'Verify /atlas.runtime.json and its catalogUrl return valid Atlas JSON for this host.',
+      'Verify /atlas.runtime.json and its manifestUrl return valid Atlas JSON for this host.',
       'Publish a host client compatible with this Atlas loader, then reload.',
     ];
   }

@@ -1,4 +1,5 @@
 import type { AtlasValidationIssue } from './atlas-validation-issue.js';
+import { ATLAS_ALL_HOSTS } from './atlas-placement.js';
 import {
   addIssue,
   asRecord,
@@ -144,7 +145,9 @@ function validatePlacement(
   const id = requiredString(placement, 'id', issues, path);
   const hostId = requiredString(placement, 'hostId', issues, path);
   if (id) validateIdentifier(id, `${path}.id`, 'mount id', issues);
-  if (hostId) validateIdentifier(hostId, `${path}.hostId`, 'host id', issues);
+  if (hostId && hostId !== ATLAS_ALL_HOSTS) {
+    validateIdentifier(hostId, `${path}.hostId`, 'host id', issues);
+  }
   if (id && hostId)
     validateUniquePlacementId({
       id,

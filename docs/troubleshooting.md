@@ -2,12 +2,12 @@
 
 Most Atlas problems become simpler when you first identify the domain:
 
-- **Host domain:** shell layout, runtime config, catalog URL, DOM anchors,
+- **Host domain:** shell layout, runtime config, active host manifest URL, DOM anchors,
   `startHost`, host SDK providers.
 - **App domain:** app `atlas.config.ts`, lifecycle entry, inner routes, assets,
   feature code.
-- **Deployment domain:** CDN files, CORS, MIME types, catalogs, registry,
-  integrity, cache.
+- **Deployment domain:** CDN files, CORS, MIME types, `registry.json`, active and
+  canonical manifests, integrity, cache.
 
 Pick the framework page for concrete fixes:
 

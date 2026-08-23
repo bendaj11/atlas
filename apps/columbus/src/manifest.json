@@ -10,28 +10,16 @@
     "48": "icons/columbus-dark-48.png",
     "128": "icons/columbus-dark-128.png"
   },
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
-  ],
-  "host_permissions": [
-    "http://localhost/*",
-    "http://127.0.0.1/*"
-  ],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "badge-script.js"
-      ],
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["badge-script.js"],
       "run_at": "document_idle"
     }
   ],

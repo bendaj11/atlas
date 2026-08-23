@@ -1,2 +1,2 @@
-/** Publication channel. Previous production builds remain production builds in history. */
-export type AtlasVersionChannel = "production" | "pr" | "local";
+/** Runtime channel. Retained releases remain production artifacts without deployment history. */
+export type AtlasVersionChannel = 'production' | 'pr' | 'local';

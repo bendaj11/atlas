@@ -9,8 +9,8 @@ released frontend applications. It provides:
 - a versioned host client for layout, routing, authentication integration, and
   shared services;
 - versioned Angular and React apps loaded through Native Federation;
-- a static registry and catalog model for safe release, verification, and
-  rollback;
+- a static registry with immutable releases and explicit environment
+  deployments;
 - a typed SDK for communication between apps and their host.
 
 Angular hosts can load React apps, and React hosts can load Angular apps. Atlas
@@ -22,12 +22,10 @@ supported.
 New to Atlas? Follow one path, in order:
 
 1. [Understand Atlas](docs/overview.md) — vocabulary and ownership boundaries.
-2. [Go from zero to production](docs/getting-started.md) — generate, develop,
-   build, deploy, publish, verify, and roll back one host and one app.
-3. Use the [documentation map](docs/README.md) for framework, task, and reference
-   guides.
-4. Complete the [production-readiness checklist](docs/production-readiness.md)
-   before serving real traffic.
+2. [Get started](docs/getting-started.md) — install Atlas and generate first
+   host and app.
+3. Choose [Atlas Host](docs/host.md) or [Atlas App](docs/app.md) for your role.
+4. Use the [documentation map](docs/README.md) for operations and reference.
 
 Do not begin with package or API reference unless you already know which Atlas
 contract you need.
@@ -38,8 +36,8 @@ contract you need.
 flowchart LR
   Browser["Browser"] --> Bootstrap["Static bootstrap on Nginx/CDN"]
   Bootstrap --> Loader["Atlas loader"]
-  Loader --> Catalog["Static catalog"]
-  Catalog --> Host["Versioned host client"]
+  Loader --> Deployment["Active host manifest"]
+  Deployment --> Host["Versioned host client"]
   Host --> Apps["Versioned apps"]
   Host --> SDK["Host-owned SDK services"]
   SDK --> Apps
@@ -48,15 +46,15 @@ flowchart LR
 Static Nginx/CDN hosting serves HTML, browser loader, runtime configuration,
 security headers, health, and SPA fallback. Host client and apps
 are immutable UI artifacts published independently to public object storage or a
-CDN. A catalog selects which host-client and app builds run together.
+CDN. An active host manifest selects which host-client and app releases run
+together in one environment.
 
 Read [Architecture](docs/architecture.md) for the complete loading and release
 model.
 
 ## First Local System
 
-Requirements: Node.js `^20.19.0`, `^22.12.0`, or `>=24.0.0`, plus npm, pnpm, or
-Yarn.
+Requirements: Node.js `>=22.12.0 <23`, plus npm, pnpm, or Yarn.
 
 ```sh
 npm install --save-dev --save-exact @atlas/cli
@@ -78,19 +76,20 @@ npx atlas dev orders --host-url=http://localhost:4200/orders
 
 This proves local composition only. Production needs a public registry,
 publication adapter, deployed static bootstrap, verification, and rollback plan.
-Continue with [Zero to production](docs/getting-started.md).
+Continue with [Get Started](docs/getting-started.md), then choose [Atlas Host](docs/host.md)
+or [Atlas App](docs/app.md).
 
 ## Packages
 
-| Package | Responsibility |
-| --- | --- |
-| `@atlas/cli` | Generation, local development, build, publication, verification, and rollback |
-| `@atlas/bootstrap` | Static HTML, browser loader, runtime config, Nginx policy, and recovery |
-| `@atlas/runtime` | Catalog discovery, trust checks, federation loading, and lifecycle |
-| `@atlas/sdk` | Typed app-to-host contracts and framework adapters |
-| `@atlas/schema` | Configuration, manifest, registry, and catalog contracts |
-| `@atlas/generators` | Generator implementation used by the CLI |
-| `@atlas/testkit` | Fixtures and in-memory host utilities for consumer tests |
+| Package             | Responsibility                                                                  |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `@atlas/cli`        | Generation, local development, build, publication, deployment, and verification |
+| `@atlas/bootstrap`  | Static HTML, browser loader, runtime config, Nginx policy, and recovery         |
+| `@atlas/runtime`    | Deployment-manifest discovery, trust checks, federation loading, and lifecycle  |
+| `@atlas/sdk`        | Typed app-to-host contracts and framework adapters                              |
+| `@atlas/schema`     | Configuration, manifest, registry, and deployment contracts                     |
+| `@atlas/generators` | Generator implementation used by the CLI                                        |
+| `@atlas/testkit`    | Fixtures and in-memory host utilities for consumer tests                        |
 
 ## Contributing
 

@@ -20,7 +20,8 @@ The port selected during host generation remains the browser-facing preview
 port. Atlas manages the separate framework port and starts the bootstrap only
 after the framework server is ready.
 
-Expected output includes a Host Preview URL. Open it and confirm the product shell renders.
+Expected output includes a Host Preview URL. Open it and confirm that the main
+page layout appears.
 
 ### Proxy host API requests
 
@@ -80,13 +81,13 @@ production apps or when Columbus should offer production and PR versions:
 ATLAS_REGISTRY_URL=https://registry.example/atlas atlas dev customer-host
 ```
 
-`atlas dev` keeps the local host and any local app overrides, then overlays
-them on that registry's selected host catalog. Columbus reads version indexes
-through the local control server, so it can offer production, PR, and previous
-production versions without requiring the published registry to allow the
-localhost origin through CORS.
+`atlas dev` keeps local host and app overrides, then overlays them on selected
+deployment from `registry.json`. Columbus reads registry descriptors through
+local control server, so it can offer current deployment, PR/MR previews, and
+other retained releases without requiring published registry to allow localhost
+origin through CORS.
 
-Use `--registry-base-url https://registry.example/atlas` instead of
+Use `--registry-url https://registry.example/atlas` instead of
 `ATLAS_REGISTRY_URL` when the setting applies to one command. Without either
 setting, local development still works, but its control catalog contains only
 local artifacts and Columbus cannot offer published versions.
@@ -134,17 +135,17 @@ Columbus displays:
 Host client
   Customer Host
   Production: 1.4.0 / build-123
-  [Production | PR | Previous production | Local]
+  [Current deployment | PR / MR preview | Other release | Local]
 
 Apps
   Orders
   Production: 2.1.0 / build-456
-  [Production | PR | Previous production | Local]
+  [Current deployment | PR / MR preview | Other release | Local]
 
 External widget providers
   Shared UI
   Production: 3.2.0 / build-91
-  [Production | PR | Previous production | Local]
+  [Current deployment | PR / MR preview | Other release | Local]
 ```
 
 The host is visually separate and carries a stronger warning because it controls product routing, SDK creation, authentication integration, layout, and every mounted app. External providers are visually separate because they supply widgets but are not mounted as routed/slotted apps. Version override mechanics remain symmetric.
@@ -199,8 +200,8 @@ host URL supported by the app, or add a placement for that host.
 `Framework dev server did not serve ... remoteEntry.json`: check the framework process, selected port, and federation config.
 
 If Columbus cannot select a custom URL, verify its local manifest URL uses
-loopback. If registry versions are missing, verify the
-catalog URL follows `.../hosts/<hostId>/catalog.json` and each artifact index is
+loopback. If registry versions are missing, verify `registry.json`, the active
+`.../environments/<environment>/hosts/<hostId>/manifest.json`, and referenced canonical manifests are
 publicly readable.
 
 Remote custom assets blocked by browser: allow their origin in host's Content Security Policy.

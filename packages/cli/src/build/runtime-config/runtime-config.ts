@@ -13,34 +13,54 @@ export function createHostRuntimeConfig(
   hostVersion?: string,
 ): AtlasHostRuntimeConfig {
   assertHostConfig(config);
-  const registryUrl =
-    resolveRegistryBaseUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
+  const registryUrl = resolveRegistryUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
+  const environment = resolveRuntimeEnvironment(args, registryUrl);
   return {
     schemaVersion: '1',
     hostId: config.id,
     ...(hostVersion ? { hostVersion } : {}),
-    catalogUrl: `${registryUrl}/hosts/${config.id}/catalog.json`,
+    manifestUrl: `${registryUrl}/environments/${environment}/hosts/${config.id}/manifest.json`,
+    environment,
     registryUrl,
     resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
     resourcesRetryCount: config.resourcesRetryCount ?? 3,
     ...optionalUrlList('asset-origins', args.flag('asset-origins')),
-    ...optionalUrlList(
-      'external-registry-urls',
-      args.flag('external-registry-urls'),
-    ),
+    ...optionalExternalRegistries(args.flag('external-registries')),
   };
 }
 
-export function resolveRegistryBaseUrl(args: CliArguments): string | undefined {
-  const value =
-    args.flag('registry-base-url') ?? process.env.ATLAS_REGISTRY_URL;
+function resolveRuntimeEnvironment(
+  args: CliArguments,
+  registryUrl: string,
+): string {
+  const value = args.flag('environment') ?? process.env.ATLAS_ENVIRONMENT;
+  if (value) {
+    assertSafeEnvironment(value);
+    return value;
+  }
+  if (isLoopbackUrl(new URL(registryUrl))) return 'development';
+  throw new Error(
+    '--environment or ATLAS_ENVIRONMENT is required for a deployed host runtime.',
+  );
+}
+
+function assertSafeEnvironment(value: string): void {
+  if (value === 'latest' || !/^[A-Za-z0-9][A-Za-z0-9._~-]*$/u.test(value)) {
+    throw new Error(
+      `Atlas environment "${value}" must be a URL-safe path segment; "latest" is reserved.`,
+    );
+  }
+}
+
+export function resolveRegistryUrl(args: CliArguments): string | undefined {
+  const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
   return value ? trimSlash(value) : undefined;
 }
 
 function optionalUrlList(
-  kind: 'asset-origins' | 'external-registry-urls',
+  kind: 'asset-origins',
   value: string | undefined,
-): Pick<AtlasHostRuntimeConfig, 'assetOrigins' | 'externalRegistryUrls'> {
+): Pick<AtlasHostRuntimeConfig, 'assetOrigins'> {
   if (!value) return {};
   const urls = [
     ...new Set(
@@ -54,15 +74,39 @@ function optionalUrlList(
               `--${kind} must contain HTTPS URLs or loopback URLs for local development.`,
             );
           }
-          return kind === 'asset-origins'
-            ? url.origin
-            : url.href.replace(/\/$/, '');
+          return url.origin;
         }),
     ),
   ];
-  return kind === 'asset-origins'
-    ? { assetOrigins: urls }
-    : { externalRegistryUrls: urls };
+  return { assetOrigins: urls };
+}
+
+function optionalExternalRegistries(
+  value: string | undefined,
+): Pick<AtlasHostRuntimeConfig, 'externalRegistries'> {
+  if (!value) return {};
+  return {
+    externalRegistries: value
+      .split(',')
+      .filter(Boolean)
+      .map((entry) => {
+        const separator = entry.lastIndexOf('|');
+        if (separator < 1 || separator === entry.length - 1) {
+          throw new Error(
+            '--external-registries entries must use <registry-url>|<environment>.',
+          );
+        }
+        const registryUrl = entry.slice(0, separator).replace(/\/$/, '');
+        const environment = entry.slice(separator + 1);
+        const url = new URL(registryUrl);
+        if (url.protocol !== 'https:' && !isLoopbackUrl(url)) {
+          throw new Error(
+            '--external-registries requires HTTPS outside loopback.',
+          );
+        }
+        return { registryUrl, environment };
+      }),
+  };
 }
 
 function isLoopbackUrl(url: URL): boolean {

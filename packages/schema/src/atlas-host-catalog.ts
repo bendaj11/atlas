@@ -1,10 +1,10 @@
-import type { AtlasManifest } from "./atlas-manifest.js";
-import type { AtlasHostManifest } from "./atlas-host-manifest.js";
+import type { AtlasManifest } from './atlas-manifest.js';
+import type { AtlasHostManifest } from './atlas-host-manifest.js';
 
 /** List of app builds one host should load for a specific runtime. */
 export interface AtlasHostCatalog {
   /** Leave as "1". Atlas uses this to know how to read this catalog file. */
-  schemaVersion: "1";
+  schemaVersion: '1';
   /** Host app this catalog belongs to. */
   hostId: string;
   /** Canonical hash of the complete selected deployment. */

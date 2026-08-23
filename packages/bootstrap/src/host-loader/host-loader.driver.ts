@@ -110,7 +110,8 @@ export class HostLoaderDriver {
           {
             schemaVersion: this.schemaVersion,
             hostId: this.hostId,
-            catalogUrl: faker.internet.url(),
+            environment: 'production',
+            manifestUrl: faker.internet.url(),
           },
           this.dependencies,
         );

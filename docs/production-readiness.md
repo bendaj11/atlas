@@ -21,30 +21,29 @@ and incident response.
 
 Name an owner for each domain before release:
 
-| Domain | Owner is responsible for |
-| --- | --- |
-| Host | Page shell, auth, layout anchors, host services, deep links, CSP, and runtime monitoring |
-| App | Feature behavior, inner routes, assets, SDK usage, tests, and release identity |
+| Domain     | Owner is responsible for                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| Host       | Page shell, auth, layout anchors, host services, deep links, CSP, and runtime monitoring    |
+| App        | Feature behavior, inner routes, assets, SDK usage, tests, and release identity              |
 | Deployment | Registry locking, upload order, cache policy, CORS, verification, rollback, and audit trail |
 
 ## Host Checklist
 
 - [ ] Production serves `/atlas.runtime.json` as JSON.
 - [ ] Runtime `hostId` matches app route and slot declarations.
-- [ ] Runtime `catalogUrl` points to the intended environment.
-- [ ] Runtime `catalogUrl` points to the intended environment and its CORS
-  policy permits the host origin.
-  substitute code.
+- [ ] Runtime `manifestUrl` points to the intended active host deployment.
+- [ ] Runtime `manifestUrl` and every referenced canonical manifest and asset
+      permit the host origin through CORS.
 - [ ] Resource timeout and retry values match product reliability targets.
 - [ ] Host layout retains route, navigation, status, and required slot anchors.
 - [ ] Host returns `index.html` for browser navigation routes such as
-  `/orders/42`, but never rewrites missing Atlas JSON, JavaScript, stylesheet,
-  or CDN assets to `index.html`.
+      `/orders/42`, but never rewrites missing Atlas JSON, JavaScript, stylesheet,
+      or CDN assets to `index.html`.
 - [ ] Real auth, HTTP, modal, toast, host data, and monitoring providers replace
-  generated placeholders.
+      generated placeholders.
 - [ ] Loading and failure UI is usable and accessible.
 - [ ] Runtime observation events reach production monitoring without breaking
-  host execution when monitoring fails.
+      host execution when monitoring fails.
 
 ## App Checklist
 
@@ -54,40 +53,41 @@ Name an owner for each domain before release:
 - [ ] Inner routes stay scoped to the app's assigned path.
 - [ ] Cross-app navigation uses the Atlas SDK.
 - [ ] Host-dependent behavior uses typed SDK contracts instead of importing host
-  source.
+      source.
 - [ ] Asset URLs are imports or relative URLs, not host-root `/assets/...` URLs.
 - [ ] Framework tests cover useful success, empty, loading, and failure states.
 - [ ] Integration testing covers the app inside a real host.
-- [ ] Package/workspace release version is correct; Atlas-derived content build
-  ID uniquely identifies bytes and HTTP metadata within that version.
+- [ ] Explicit release version is correct, and its canonical manifest digest
+      identifies the expected immutable bytes and HTTP metadata.
 - [ ] CI uses a project-pinned `@atlas/cli` version and committed lockfile, not a
-  floating global CLI.
+      floating global CLI.
 
 ## Registry And CDN Checklist
 
 - [ ] Protected CI identity is the only publisher.
 - [ ] Multi-file publication holds an expiring, renewable deployment lease from
-  live registry read through public verification. A lock-free provider transaction is acceptable
-  only when it atomically protects the entire mutable set; single-object
-  compare-and-swap is insufficient.
+      its live registry read through public verification. A lock-free provider
+      transaction is acceptable only when it atomically protects the entire
+      mutable set; single-object compare-and-swap is insufficient.
 - [ ] Lease ownership is checked before mutable replacement and after verification.
-- [ ] Immutable files upload before mutable indexes and host catalogs.
-- [ ] Immutable host/app bytes publish first, `registry.json` publishes before artifact indexes, and host catalogs publish
-  last.
-- [ ] Existing version/build paths are conditionally created and never overwritten.
+- [ ] Publish creates immutable host/app bytes and canonical manifests before
+      adding their compact descriptors to `registry.json`.
+- [ ] Deploy commits desired environment state to `registry.json`, then converges
+      each affected environment-qualified active host manifest.
+- [ ] Existing release-version paths are conditionally created and never overwritten.
 - [ ] Publisher reads and HEADs stored objects to verify SHA-256, MIME, and cache policy.
 - [ ] Immutable assets use long-lived immutable caching.
-- [ ] Runtime files, catalogs, and indexes revalidate or receive explicit CDN
-  invalidation.
+- [ ] Runtime files, `registry.json`, and active host manifests revalidate or
+      receive explicit CDN invalidation.
 - [ ] `remoteEntry.json` uses `application/json`.
 - [ ] JavaScript modules use `text/javascript` or `application/javascript`.
 - [ ] Approved host origins can `GET` and `HEAD` required remote files through
-  CORS.
+      CORS.
 - [ ] Missing JSON and JavaScript return an error instead of host `index.html`.
-- [ ] HTTPS is used for all production host, catalog, manifest, and asset URLs.
-- [ ] New selection is exercised through a staging or canary catalog before
-  production activation. If that is impossible, release plan documents the
-  exposure window and automatic recovery path.
+- [ ] HTTPS is used for all production host, registry, manifest, and asset URLs.
+- [ ] New selection is exercised through a staging or canary environment before
+      production activation. If that is impossible, release plan documents the
+      exposure window and automatic recovery path.
 
 See [Static registry](registry.md) for revision and concurrency rules and
 [Production deployment](production-deployment.md) for workspace-native publication flow.
@@ -96,25 +96,25 @@ See [Static registry](registry.md) for revision and concurrency rules and
 
 - [ ] Host CSP permits only approved remote script and connection origins.
 - [ ] Publication credentials are absent from source, generated output, and
-  browser code.
+      browser code.
 - [ ] Dependency, secret, and static-analysis checks meet organization policy.
 - [ ] Build artifacts and manifests have an auditable relationship to reviewed
-  source.
+      source.
 - [ ] Team understands that Atlas apps share the host page; they are not isolated
-  by cross-origin iframes.
-- [ ] Access to publish both assets and manifests is treated as production code
-  publishing access.
+      by cross-origin iframes.
+- [ ] Access to publish assets/manifests or change deployment selections is
+      treated as production-code access.
 
 Read [security](security.md) before approving a new registry origin or publisher.
 
 ## Release Verification
 
-`atlas verify` checks the public runtime file, selected host catalog, manifest
-shape, one-version-per-app selection, route conflicts, external app dependencies,
-remote entries, federation expose files, stylesheets, CORS, MIME types, cache
-headers, and declared SHA-256 integrity. Cache and
-missing-integrity findings can be warnings, so read the full report instead of
-checking only the exit code.
+`atlas verify` checks the public runtime file, active host deployment manifest,
+referenced canonical manifest shapes, one-version-per-app selection, route
+conflicts, external app dependencies, remote entries, federation expose files,
+stylesheets, CORS, MIME types, cache headers, and declared SHA-256 integrity.
+Cache and missing-integrity findings can be warnings, so read the full report
+instead of checking only the exit code.
 
 It cannot prove browser rendering, authentication, SDK behavior, CSP enforcement,
 storage permissions, publisher identity, atomic uploads, monitoring, accessibility,
@@ -141,11 +141,11 @@ npm exec --package=@atlas/cli -- atlas verify \
 Then complete browser smoke tests:
 
 - [ ] Report contains no failures. Every warning other than missing production
-  integrity is fixed or accepted by the final approver and a named risk owner
-  with an expiry.
+      integrity is fixed or accepted by the final approver and a named risk owner
+      with an expiry.
 - [ ] Production manifests declare SHA-256 integrity for the remote entry and
-  every stylesheet that supports integrity metadata; no missing-integrity
-  warning remains.
+      every stylesheet that supports integrity metadata; no missing-integrity
+      warning remains.
 - [ ] Host root loads without console errors.
 - [ ] App base route loads the selected version.
 - [ ] Nested route survives a full-page refresh.
@@ -153,18 +153,17 @@ Then complete browser smoke tests:
 - [ ] Authenticated HTTP and other host SDK services work.
 - [ ] Loading, timeout, and failure UI behaves as designed.
 - [ ] Keyboard, focus, screen-reader, and automated accessibility checks cover
-  host navigation plus app loading, success, empty, and failure states.
-- [ ] Monitoring identifies host id, app id, version, build id, placement, and
-  failure stage.
+      host navigation plus app loading, success, empty, and failure states.
+- [ ] Monitoring identifies environment, host id, app id, version, manifest
+      digest, placement, and failure stage.
 
 ## Rollback Rehearsal
 
-Use same protected storage settings and shared registry as release. Stop or wait
-for concurrent publication before starting. Atlas owns lock acquisition,
-revision check, catalog-last activation, verification, mutable restore on
-failure, and lock release.
+Use the same protected target storage and registry as normal deployment. Atlas
+owns lease acquisition, conditional desired-state commit, host convergence,
+verification, and resumable failure reporting.
 
-Before selection, confirm the exact target version/build is complete, reachable,
+Before selection, confirm the exact target version is complete, reachable,
 and compatible with current host and SDK contracts in staging or canary.
 
 Prepare an earlier published version:
@@ -172,30 +171,31 @@ Prepare an earlier published version:
 ```sh
 APP_ID=2bea9c13-4899-4f93-9211-cd8c55e9c529
 
-npm exec --package=@atlas/cli -- atlas rollback "$APP_ID" \
+npm exec --package=@atlas/cli -- atlas deploy "$APP_ID" \
+  --to=production \
   --version=1.3.2 \
-  --build-id=1.3.2-build-123 \
-  --registry-base-url=https://cdn.example.com/atlas \
+  --registry-url=https://cdn.example.com/atlas \
   --dry-run
 
 # After reviewing dry-run paths, run real rollback with verification.
-npm exec --package=@atlas/cli -- atlas rollback "$APP_ID" \
+npm exec --package=@atlas/cli -- atlas deploy "$APP_ID" \
+  --to=production \
   --version=1.3.2 \
-  --build-id=1.3.2-build-123 \
-  --registry-base-url=https://cdn.example.com/atlas \
+  --registry-url=https://cdn.example.com/atlas \
   --runtime-url=https://customer.example/atlas.runtime.json
 ```
 
 - [ ] `APP_ID` is stable UUID from app `atlas.config.ts`.
-- [ ] Dry run lists only expected mutable files before real rollback.
-- [ ] Mutable JSON is revalidated after rollback.
-- [ ] Built-in verification passes after rollback publication.
+- [ ] Dry run resolves only the intended artifact and exact version.
+- [ ] Registry and active host revisions converge after rollback.
+- [ ] Built-in verification passes after rollback deployment.
 - [ ] Browser smoke tests confirm the older version.
 - [ ] On-call documentation names the decision maker and communication channel.
-- [ ] Team knows how to stop a concurrent publication before rollback.
+- [ ] Team knows how to inspect and resume partial host convergence.
 
-Rollback changes catalog selection. It does not rebuild an app, overwrite an
-immutable version, or redeploy the host.
+Rollback changes the target environment's registry selection and affected active
+host manifests. It does not rebuild an app, overwrite an immutable version, or
+redeploy the host platform.
 
 ## Ready To Release
 

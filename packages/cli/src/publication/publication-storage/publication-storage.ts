@@ -1,26 +1,32 @@
 import { randomUUID } from 'node:crypto';
+import { Readable } from 'node:stream';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   type S3ClientConfig,
 } from '@aws-sdk/client-s3';
 import { publicationContentType } from '../publication-metadata/publication-metadata.js';
+import type { CliArguments } from '../../cli/arguments.js';
 
 export interface AtlasPublicationStorage {
   read(path: string): Promise<Uint8Array | undefined>;
+  readStream(path: string): Promise<AsyncIterable<Uint8Array> | undefined>;
   inspect(path: string): Promise<AtlasPublicationObjectMetadata | undefined>;
+  list(prefix: string): Promise<AtlasPublicationListedObject[]>;
   create(
     path: string,
-    bytes: Uint8Array,
+    bytes: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
   ): Promise<void>;
   replace(
     path: string,
-    bytes: Uint8Array,
+    bytes: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
+    condition: AtlasPublicationReplaceCondition,
   ): Promise<void>;
   remove(path: string): Promise<void>;
   acquireLock(owner: string): Promise<AtlasPublicationLease>;
@@ -34,6 +40,22 @@ export interface AtlasPublicationLease {
 export interface AtlasPublicationObjectMetadata {
   readonly cacheControl: string;
   readonly contentType: string;
+  readonly size?: number;
+  readonly versionToken?: string;
+  readonly lastModified?: string;
+}
+
+export type AtlasPublicationBody = Uint8Array | AsyncIterable<Uint8Array>;
+
+export interface AtlasPublicationReplaceCondition {
+  readonly versionToken?: string;
+  readonly createOnly?: boolean;
+}
+
+export interface AtlasPublicationListedObject {
+  readonly path: string;
+  readonly size: number;
+  readonly lastModified?: string;
 }
 
 export type AtlasPublicationStorageSource =
@@ -42,11 +64,12 @@ export type AtlasPublicationStorageSource =
 
 export async function createPublicationStorage(
   storage?: AtlasPublicationStorageSource,
+  args?: CliArguments,
 ): Promise<AtlasPublicationStorage> {
-  const configured = storage ?? storageFromEnvironment();
+  const configured = storage ?? storageFromEnvironment(args);
   if (!configured) {
     throw new Error(
-      'Publication storage is required. Set ATLAS_STORAGE=s3 and ATLAS_S3_BUCKET, or configure custom storage in atlas.publish.ts.',
+      'Publication storage is required. Pass --bucket (or ATLAS_S3_BUCKET), or configure storage in atlas.registry.ts.',
     );
   }
   const resolvedStorage =
@@ -92,12 +115,15 @@ const DEFAULT_LOCK_LEASE_MS = 30_000;
 const MINIMUM_LOCK_LEASE_MS = 3_000;
 
 export class S3PublicationStorage implements AtlasPublicationStorage {
-  private readonly client: S3Client;
+  private readonly client: Pick<S3Client, 'send'>;
   private readonly prefix: string;
   private readonly lockTimeoutMs: number;
   private readonly lockLeaseMs: number;
 
-  constructor(private readonly options: S3Options) {
+  constructor(
+    private readonly options: S3Options,
+    client?: Pick<S3Client, 'send'>,
+  ) {
     if (!options.bucket)
       throw new Error('S3 publication storage requires a bucket.');
     this.prefix = options.prefix?.replace(/^\/+|\/+$/g, '') ?? '';
@@ -110,7 +136,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
         `S3 lock lease must be at least ${MINIMUM_LOCK_LEASE_MS}ms.`,
       );
     }
-    this.client = new S3Client(s3ClientConfig(options));
+    this.client = client ?? new S3Client(s3ClientConfig(options));
   }
 
   async read(path: string): Promise<Uint8Array | undefined> {
@@ -124,6 +150,20 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     } catch (error) {
       if (isMissingObject(error)) return undefined;
       throw storageError(`read ${path}`, error);
+    }
+  }
+
+  async readStream(
+    path: string,
+  ): Promise<AsyncIterable<Uint8Array> | undefined> {
+    try {
+      const response = await this.client.send(
+        new GetObjectCommand(this.objectInput(path)),
+      );
+      return response.Body as AsyncIterable<Uint8Array> | undefined;
+    } catch (error) {
+      if (isMissingObject(error)) return undefined;
+      throw storageError(`stream ${path}`, error);
     }
   }
 
@@ -142,6 +182,13 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       return {
         cacheControl: response.CacheControl,
         contentType: response.ContentType,
+        ...(response.ContentLength !== undefined
+          ? { size: response.ContentLength }
+          : {}),
+        ...(response.ETag ? { versionToken: response.ETag } : {}),
+        ...(response.LastModified
+          ? { lastModified: response.LastModified.toISOString() }
+          : {}),
       };
     } catch (error) {
       if (isMissingObject(error)) return undefined;
@@ -149,16 +196,46 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     }
   }
 
+  async list(prefix: string): Promise<AtlasPublicationListedObject[]> {
+    const objects: AtlasPublicationListedObject[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const response = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.options.bucket,
+          Prefix: this.objectKey(prefix),
+          ...(continuationToken
+            ? { ContinuationToken: continuationToken }
+            : {}),
+        }),
+      );
+      for (const object of response.Contents ?? []) {
+        if (!object.Key || object.Size === undefined) continue;
+        objects.push({
+          path: this.pathFromObjectKey(object.Key),
+          size: object.Size,
+          ...(object.LastModified
+            ? { lastModified: object.LastModified.toISOString() }
+            : {}),
+        });
+      }
+      continuationToken = response.IsTruncated
+        ? response.NextContinuationToken
+        : undefined;
+    } while (continuationToken);
+    return objects;
+  }
+
   async create(
     path: string,
-    bytes: Uint8Array,
+    bytes: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
   ): Promise<void> {
     try {
       await this.client.send(
         new PutObjectCommand({
           ...this.objectInput(path),
-          Body: bytes,
+          Body: requestBody(bytes),
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
           IfNoneMatch: '*',
@@ -176,19 +253,29 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
 
   async replace(
     path: string,
-    bytes: Uint8Array,
+    bytes: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
+    condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
     try {
       await this.client.send(
         new PutObjectCommand({
           ...this.objectInput(path),
-          Body: bytes,
+          Body: requestBody(bytes),
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
+          ...(condition.createOnly ? { IfNoneMatch: '*' } : {}),
+          ...(condition.versionToken
+            ? { IfMatch: condition.versionToken }
+            : {}),
         }),
       );
     } catch (error) {
+      if (isPreconditionFailure(error)) {
+        throw new Error(`Conditional publication write conflicted: ${path}`, {
+          cause: error,
+        });
+      }
       throw storageError(`replace ${path}`, error);
     }
   }
@@ -384,11 +471,27 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       Key: [this.prefix, path].filter(Boolean).join('/'),
     };
   }
+
+  private objectKey(path: string): string {
+    return [this.prefix, path].filter(Boolean).join('/');
+  }
+
+  private pathFromObjectKey(key: string): string {
+    return this.prefix && key.startsWith(`${this.prefix}/`)
+      ? key.slice(this.prefix.length + 1)
+      : key;
+  }
 }
 
-function storageFromEnvironment(): AtlasPublicationStorage | undefined {
+function requestBody(body: AtlasPublicationBody): Uint8Array | Readable {
+  return body instanceof Uint8Array ? body : Readable.from(body);
+}
+
+function storageFromEnvironment(
+  args?: CliArguments,
+): AtlasPublicationStorage | undefined {
   const provider = process.env.ATLAS_STORAGE;
-  const bucket = process.env.ATLAS_S3_BUCKET;
+  const bucket = args?.flag('bucket') ?? process.env.ATLAS_S3_BUCKET;
   if (!provider && !bucket) return undefined;
   if (provider && provider !== 's3')
     throw new Error(`Unsupported ATLAS_STORAGE provider "${provider}".`);
@@ -403,13 +506,20 @@ function storageFromEnvironment(): AtlasPublicationStorage | undefined {
   }
   return new S3PublicationStorage({
     bucket,
-    ...(process.env.ATLAS_STORAGE_API_URL
-      ? { endpoint: process.env.ATLAS_STORAGE_API_URL }
+    ...((args?.flag('storage-api-url') ?? process.env.ATLAS_STORAGE_API_URL)
+      ? {
+          endpoint:
+            args?.flag('storage-api-url') ?? process.env.ATLAS_STORAGE_API_URL,
+        }
       : {}),
-    ...(process.env.ATLAS_STORAGE_KEY_PREFIX
-      ? { prefix: process.env.ATLAS_STORAGE_KEY_PREFIX }
+    ...((args?.flag('key-prefix') ?? process.env.ATLAS_STORAGE_KEY_PREFIX)
+      ? {
+          prefix:
+            args?.flag('key-prefix') ?? process.env.ATLAS_STORAGE_KEY_PREFIX,
+        }
       : {}),
     region:
+      args?.flag('region') ??
       process.env.ATLAS_S3_REGION ??
       process.env.AWS_REGION ??
       process.env.AWS_DEFAULT_REGION ??
@@ -549,7 +659,9 @@ export function isPublicationStorage(
   const storage = value as Partial<AtlasPublicationStorage>;
   return (
     typeof storage.read === 'function' &&
+    typeof storage.readStream === 'function' &&
     typeof storage.inspect === 'function' &&
+    typeof storage.list === 'function' &&
     typeof storage.create === 'function' &&
     typeof storage.replace === 'function' &&
     typeof storage.remove === 'function' &&

@@ -73,7 +73,8 @@ export class ValidationDriver {
         validateHostManifest(this.manifest, {
           schemaVersion: this.schemaVersion,
           hostId: this.hostId,
-          catalogUrl: this.bootstrapUrl,
+          environment: 'production',
+          manifestUrl: this.bootstrapUrl,
           assetOrigins: [this.assetOrigin],
         });
       } catch (error) {
@@ -85,7 +86,8 @@ export class ValidationDriver {
         validateArtifactUrl(this.url, this.manifest, {
           schemaVersion: this.schemaVersion,
           hostId: this.hostId,
-          catalogUrl: this.bootstrapUrl,
+          environment: 'production',
+          manifestUrl: this.bootstrapUrl,
           assetOrigins: [this.assetOrigin],
         });
       } catch (error) {

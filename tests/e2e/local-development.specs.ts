@@ -1,12 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
-import { spawn, type ChildProcess } from "node:child_process";
-import { delay } from "./local-development.driver.js";
+import { expect, test, type Page } from '@playwright/test';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { delay } from './local-development.driver.js';
 
 const PROCESS_START_TIMEOUT = 120_000;
 const PROCESS_STOP_TIMEOUT = 15_000;
 const APP_MOUNT_TIMEOUT = 15_000;
-const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? "4300"}`;
-const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? "4301"}`;
+const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? '4300'}`;
+const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? '4301'}`;
 
 interface LocalDevelopmentCase {
   app: string;
@@ -17,76 +17,102 @@ interface LocalDevelopmentCase {
 }
 const cases: LocalDevelopmentCase[] = [
   {
-    app: "dashboard-react",
-    heading: "Dashboard React",
+    app: 'dashboard-react',
+    heading: 'Dashboard React',
     hostUrl: `${reactHostOrigin}/dashboard`,
     remotePort: 4211,
-    controlPort: 4411
+    controlPort: 4411,
   },
   {
-    app: "dashboard-angular",
-    heading: "Dashboard Angular",
+    app: 'dashboard-angular',
+    heading: 'Dashboard Angular',
     hostUrl: `${angularHostOrigin}/dashboard-angular`,
     remotePort: 4212,
-    controlPort: 4412
-  }
+    controlPort: 4412,
+  },
 ];
 
-test.describe("atlas dev", () => {
-  test.describe.configure({ mode: "serial", timeout: PROCESS_START_TIMEOUT });
+test.describe('atlas dev', () => {
+  test.describe.configure({ mode: 'serial', timeout: PROCESS_START_TIMEOUT });
 
   for (const scenario of cases) {
-    test(`renders the local ${scenario.app} inside its host and shuts down cleanly`, async ({ page }) => {
+    test(`should render local ${scenario.app} and release ports when development stops`, async ({
+      page,
+    }) => {
       const process = startAtlasDev(scenario);
+      let rendered = false;
+      let activationParameterCleared = false;
       try {
         await waitForHealthyControlServer(scenario.controlPort, process);
-        const remoteEntryRequest = waitForRemoteEntry(page, scenario.remotePort);
+        const remoteEntryRequest = waitForRemoteEntry(
+          page,
+          scenario.remotePort,
+        );
         await page.goto(hostActivationUrl(scenario));
         await remoteEntryRequest;
-        await expect(page).not.toHaveURL(/atlas-dev-port/);
-        await expect(page.getByRole("heading", { name: scenario.heading })).toBeVisible({
-          timeout: APP_MOUNT_TIMEOUT
+        activationParameterCleared = !page.url().includes('atlas-dev-port');
+        await page.getByRole('heading', { name: scenario.heading }).waitFor({
+          state: 'visible',
+          timeout: APP_MOUNT_TIMEOUT,
         });
+        rendered = true;
       } finally {
         await stopAtlasDev(process);
       }
 
-      await expectPortReleased(scenario.controlPort);
-      await expectPortReleased(scenario.remotePort);
+      expect({
+        activationParameterCleared,
+        portsReleased: await portsReleased([
+          scenario.controlPort,
+          scenario.remotePort,
+        ]),
+        rendered,
+      }).toStrictEqual({
+        activationParameterCleared: true,
+        portsReleased: true,
+        rendered: true,
+      });
     });
   }
 });
 
 function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
-  return spawn(process.execPath, [
-    "packages/cli/dist/cli/entrypoint.js",
-    "dev",
-    scenario.app,
-    `--host-url=${scenario.hostUrl}`,
-    `--port=${scenario.remotePort}`,
-    `--control-port=${scenario.controlPort}`
-  ], {
-    cwd: process.cwd(),
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"]
-  });
+  return spawn(
+    process.execPath,
+    [
+      'packages/cli/dist/cli/entrypoint.js',
+      'dev',
+      scenario.app,
+      `--host-url=${scenario.hostUrl}`,
+      `--port=${scenario.remotePort}`,
+      `--control-port=${scenario.controlPort}`,
+    ],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
 }
 
 function hostActivationUrl(scenario: LocalDevelopmentCase): string {
   const url = new URL(scenario.hostUrl);
-  url.searchParams.set("atlas-dev-port", String(scenario.controlPort));
+  url.searchParams.set('atlas-dev-port', String(scenario.controlPort));
   return url.href;
 }
 
-async function waitForHealthyControlServer(port: number, process: ChildProcess): Promise<void> {
+async function waitForHealthyControlServer(
+  port: number,
+  process: ChildProcess,
+): Promise<void> {
   const output: string[] = [];
-  process.stdout?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
-  process.stderr?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
+  process.stdout?.on('data', (chunk: Buffer) => output.push(chunk.toString()));
+  process.stderr?.on('data', (chunk: Buffer) => output.push(chunk.toString()));
 
   const deadline = Date.now() + PROCESS_START_TIMEOUT;
   while (Date.now() < deadline) {
     if (process.exitCode !== null) {
-      throw new Error(`atlas dev exited before startup.\n${output.join("")}`);
+      throw new Error(`atlas dev exited before startup.\n${output.join('')}`);
     }
     try {
       const response = await fetch(`http://localhost:${port}/health`);
@@ -95,43 +121,57 @@ async function waitForHealthyControlServer(port: number, process: ChildProcess):
       await delay(200);
     }
   }
-  throw new Error(`atlas dev did not become healthy.\n${output.join("")}`);
+  throw new Error(`atlas dev did not become healthy.\n${output.join('')}`);
 }
 
 function waitForRemoteEntry(page: Page, port: number): Promise<void> {
-  return page.waitForRequest(
-    (request) => {
-      const url = new URL(request.url());
-      return url.port === String(port) && url.pathname === "/remoteEntry.json";
-    },
-    { timeout: PROCESS_START_TIMEOUT }
-  ).then(() => undefined);
+  return page
+    .waitForRequest(
+      (request) => {
+        const url = new URL(request.url());
+        return (
+          url.port === String(port) && url.pathname === '/remoteEntry.json'
+        );
+      },
+      { timeout: PROCESS_START_TIMEOUT },
+    )
+    .then(() => undefined);
 }
 
 async function stopAtlasDev(process: ChildProcess): Promise<void> {
   if (process.exitCode !== null || process.signalCode !== null) return;
   await Promise.race([
     new Promise<void>((resolve, reject) => {
-      process.once("exit", (code, signal) => {
-        if (code === 0 || signal === "SIGINT" || signal === "SIGTERM") resolve();
-        else reject(new Error(`atlas dev exited with code ${code ?? "unknown"}.`));
+      process.once('exit', (code, signal) => {
+        if (code === 0 || signal === 'SIGINT' || signal === 'SIGTERM')
+          resolve();
+        else
+          reject(new Error(`atlas dev exited with code ${code ?? 'unknown'}.`));
       });
-      process.kill("SIGINT");
+      process.kill('SIGINT');
     }),
     delay(PROCESS_STOP_TIMEOUT).then(() => {
-      process.kill("SIGKILL");
-      throw new Error("atlas dev did not stop within 15 seconds.");
-    })
+      process.kill('SIGKILL');
+      throw new Error('atlas dev did not stop within 15 seconds.');
+    }),
   ]);
 }
 
-async function expectPortReleased(port: number): Promise<void> {
-  await expect.poll(async () => {
-    try {
-      await fetch(`http://localhost:${port}/health`);
-      return false;
-    } catch {
-      return true;
-    }
-  }).toBe(true);
+async function portsReleased(ports: readonly number[]): Promise<boolean> {
+  const deadline = Date.now() + PROCESS_STOP_TIMEOUT;
+  while (Date.now() < deadline) {
+    const released = await Promise.all(
+      ports.map(async (port) => {
+        try {
+          await fetch(`http://localhost:${port}/health`);
+          return false;
+        } catch {
+          return true;
+        }
+      }),
+    );
+    if (released.every(Boolean)) return true;
+    await delay(100);
+  }
+  return false;
 }

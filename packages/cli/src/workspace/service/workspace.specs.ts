@@ -95,14 +95,7 @@ describe('workspace', () => {
     await driver.when.createCommand('turbo-task');
 
     expect(driver.get.value()).toStrictEqual({
-      args: [
-        '--filter',
-        '@scope/{project}',
-        'run',
-        'dev',
-        '--port',
-        '4201',
-      ],
+      args: ['--filter', '@scope/{project}', 'run', 'dev', '--port', '4201'],
       command: 'pnpm',
       cwd: '{root}',
     });

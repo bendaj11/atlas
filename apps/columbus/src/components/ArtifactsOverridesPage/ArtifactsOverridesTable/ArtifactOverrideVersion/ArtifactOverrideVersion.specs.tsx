@@ -32,9 +32,7 @@ describe('artifact override version state', () => {
 
     expect(
       driver.get.versionText('feature/orders · abc1234 · Update orders'),
-    ).toBe(
-      'feature/orders · abc1234 · Update orders',
-    );
+    ).toBe('feature/orders · abc1234 · Update orders');
   });
 
   it('should show custom URL when artifact has a custom override', () => {

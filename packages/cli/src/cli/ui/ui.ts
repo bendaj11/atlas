@@ -3,8 +3,9 @@ import { stderr, stdin, stdout } from 'node:process';
 import type { WriteStream } from 'node:tty';
 import selectPrompt from '@inquirer/select';
 
-type UiColor = 'bold' | 'cyan' | 'green' | 'yellow' | 'red' | 'dim';
+type UiColor = 'bold' | 'blue' | 'cyan' | 'green' | 'yellow' | 'red' | 'dim';
 type Status = 'info' | 'success' | 'warning' | 'error';
+type RgbColor = readonly [red: number, green: number, blue: number];
 
 const STATUS_SYMBOLS: Readonly<Record<Status, string>> = {
   info: 'i',
@@ -19,6 +20,17 @@ const STATUS_COLORS: Readonly<Record<Status, UiColor>> = {
   warning: 'yellow',
   error: 'red',
 };
+
+const ATLAS_LOGO_GRADIENT_START: RgbColor = [10, 143, 252];
+const ATLAS_LOGO_GRADIENT_END: RgbColor = [255, 255, 255];
+
+const ATLAS_LOGO = [
+  '     _  _____ _        _    ____',
+  '    / \\|_   _| |      / \\  / ___|',
+  '   / _ \\ | | | |     / _ \\ \\___ \\',
+  '  / ___ \\| | | |___ / ___ \\ ___) |',
+  ' /_/   \\_\\_| |_____/_/   \\_\\____/',
+];
 
 export interface AtlasPrompter {
   readonly interactive: boolean;
@@ -79,6 +91,9 @@ export class TerminalPrompter implements AtlasPrompter {
 }
 
 export const ui = {
+  logo(): void {
+    writeLine(stdout, `\n${formatLogo(stdout)}`);
+  },
   heading(message: string): void {
     writeLine(
       stdout,
@@ -110,6 +125,52 @@ export const ui = {
     );
   },
 };
+
+function formatLogo(stream: WriteStream): string {
+  return ATLAS_LOGO.map((line, index) =>
+    styleRgb(line, gradientColor(index), stream),
+  ).join('\n');
+}
+
+function gradientColor(index: number): RgbColor {
+  const steps = ATLAS_LOGO.length - 1;
+  const weight = index / steps;
+  return [
+    interpolateChannel(
+      ATLAS_LOGO_GRADIENT_START[0],
+      ATLAS_LOGO_GRADIENT_END[0],
+      weight,
+    ),
+    interpolateChannel(
+      ATLAS_LOGO_GRADIENT_START[1],
+      ATLAS_LOGO_GRADIENT_END[1],
+      weight,
+    ),
+    interpolateChannel(
+      ATLAS_LOGO_GRADIENT_START[2],
+      ATLAS_LOGO_GRADIENT_END[2],
+      weight,
+    ),
+  ];
+}
+
+function interpolateChannel(
+  start: number,
+  end: number,
+  weight: number,
+): number {
+  return Math.round(start + (end - start) * weight);
+}
+
+function styleRgb(
+  value: string,
+  [red, green, blue]: RgbColor,
+  stream: WriteStream,
+): string {
+  if (!stream.isTTY || process.env.NO_COLOR || process.env.TERM === 'dumb')
+    return value;
+  return `\u001B[38;2;${red};${green};${blue}m${value}\u001B[0m`;
+}
 
 function terminalLink(
   value: string,
@@ -164,6 +225,7 @@ function style(value: string, color: UiColor, stream: WriteStream): string {
     return value;
   const codes: Readonly<Record<UiColor, number>> = {
     bold: 1,
+    blue: 34,
     dim: 2,
     cyan: 36,
     green: 32,

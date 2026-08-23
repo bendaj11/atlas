@@ -108,7 +108,8 @@ function createSession(): ExtensionSession {
     config: {
       schemaVersion: '1',
       hostId: 'host',
-      catalogUrl: 'https://registry.example/hosts/host/catalog.json',
+      environment: 'production',
+      manifestUrl: 'https://registry.example/hosts/host/manifest.json',
     },
     pageUrl: 'https://host.example/',
     catalog: {

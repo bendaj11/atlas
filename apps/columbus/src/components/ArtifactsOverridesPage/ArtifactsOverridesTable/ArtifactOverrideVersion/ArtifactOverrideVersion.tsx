@@ -5,8 +5,8 @@ import { Text, Tooltip } from '@wix/design-system';
 const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {
   none: '',
   custom: 'Custom URL override',
-  pr: 'Pull request override',
-  production: 'Production override',
+  pr: 'PR / MR preview override',
+  production: 'Other release override',
 };
 
 export const ArtifactOverrideVersion = ({ artifact }: ArtifactProps) => {

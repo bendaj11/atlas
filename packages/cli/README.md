@@ -1,94 +1,61 @@
-# @atlas/cli
+# `@atlas/cli`
 
-CLI for generating, developing, building, publishing, verifying, and rolling back Atlas hosts and apps.
-
-## Install
-
-Pin CLI and commit lockfile:
-
-```bash
-npm install --save-dev --save-exact @atlas/cli
-npx atlas --help
-```
-
-Atlas requires Node.js 20 or newer. Avoid floating global CLI in CI.
+Atlas CLI builds project metadata, publishes immutable artifacts, activates
+logical environments, supports local composition, builds static bootstrap files,
+and verifies deployments.
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `atlas generate` | Create host, app, or exported widget |
-| `atlas dev` | Run host or mount local app inside host |
-| `atlas build` | Run native build and write immutable manifest |
-| `atlas build-bootstrap` | Build static host startup files and digest |
-| `atlas publish <project>` | Build and publish one project under storage lease |
-| `atlas remove-pr --pr-number <n>` | Remove workspace builds after PR close or merge |
-| `atlas prune-prs` | Reconcile stored previews and remove closed PRs |
-| `atlas verify` | Verify deployed runtime, catalog, manifests, and assets |
-| `atlas rollback` | Select and publish earlier immutable build |
+| Command                                                   | Purpose                                                    |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| `atlas generate`                                          | Generate host, app, or widget                              |
+| `atlas dev`                                               | Run local composition and Columbus integration             |
+| `atlas build <project>`                                   | Run framework build and compile Atlas metadata             |
+| `atlas publish <project> <selector>`                      | Publish existing build output                              |
+| `atlas deploy <artifact> --to <env> --version <selector>` | Activate one app/host without workspace                    |
+| `atlas remove-preview <artifact> <preview-selector>`      | Remove one preview selection                               |
+| `atlas prune-previews --state-file <file>`                | Reconcile preview selections                               |
+| `atlas build-bootstrap <host>`                            | Build static host startup files                            |
+| `atlas verify`                                            | Verify active manifest, artifacts, assets, and convergence |
 
-Use command help for current options:
+Run `atlas <command> --help` for exact options.
 
-```bash
-npx atlas publish --help
-```
-
-## Output and automation
-
-Atlas uses one presentation system across every command:
-
-- headings identify the active command and target;
-- `i`, `✓`, `!`, and `✖` consistently mark information, success, warnings, and errors;
-- command results and help use standard output, while warnings and errors use standard error;
-- errors end with a concrete suggested action;
-- prompts run only in an interactive terminal. Pass `--no-input` to disable them explicitly;
-- set `NO_COLOR=1` for plain output in logs, CI, or assistive tooling.
-
-Maintainers: [CLI user-experience standard](../../docs/cli-user-experience.md).
-
-Commands return zero on success and non-zero on failure. Redirect or pipe standard
-output without losing warnings and errors:
+## Build, publish, deploy
 
 ```bash
-npx atlas publish orders > publication.log
-NO_COLOR=1 npx atlas verify --runtime-url "$ATLAS_RUNTIME_URL"
-npx atlas generate app orders --framework react --no-input
+npm run build -- orders
+npx atlas publish orders --version 1.4.0
+npx atlas deploy orders --to production --version 1.4.0
 ```
 
-## Workspace integration
+Publish consumes output and never runs the framework build. Deploy does not
+discover a workspace, load repository `.env` files, build, bootstrap, or publish.
 
-Generation delegates framework scaffolding to Nx when available, adds the
-`atlas` project tag, and adds `atlas:config`, `atlas:publish`, and host-only
-`atlas:bootstrap` targets. Existing tags are preserved. Non-Atlas projects are
-untouched.
-
-```bash
-npx nx show projects --projects 'tag:atlas'
-```
-
-Routine Nx CI:
-
-```bash
-npx nx affected -t lint test atlas:publish deploy
-npx atlas verify
-```
-
-Turbo, Yarn, pnpm, and standalone patterns: [Workspace integration](https://github.com/bendaj11/atlas/blob/main/docs/workspaces.md).
+Version may be an exact release, `latest`, or source environment name. Versions
+are opaque consumer values; Atlas does not infer package versions or CI tags.
 
 ## Storage
 
-Common S3-compatible publication uses environment configuration; no `atlas.publish.ts` required:
-
 ```bash
-ATLAS_STORAGE=s3
-ATLAS_STORAGE_API_URL=https://<provider-endpoint>
-ATLAS_S3_BUCKET=atlas
-ATLAS_S3_REGION=us-east-1
-ATLAS_REGISTRY_URL=https://assets.example/atlas
+export ATLAS_REGISTRY_URL=https://assets.example.com/atlas
+export ATLAS_STORAGE_API_URL=https://s3.example.com
+export ATLAS_S3_BUCKET=atlas
+export ATLAS_STORAGE_KEY_PREFIX=platform
+export ATLAS_S3_REGION=us-east-1
 ```
 
-Credentials use standard AWS SDK chain. `atlas.publish.ts` remains optional
-for custom storage, CDN invalidation, runtime URL defaults, or a custom Git
-provider PR resolver.
+Flags with equivalent names override variables. Credentials use the provider
+chain; there are no credential flags. `atlas.registry.ts` is optional for custom
+storage, invalidation, verification URLs, preview-head resolution, or external
+locking.
 
-Start with [Zero to production](https://github.com/bendaj11/atlas/blob/main/docs/getting-started.md). Use [Production deployment](https://github.com/bendaj11/atlas/blob/main/docs/production-deployment.md) for CI, R2, AWS S3, MinIO, Docker/Nginx, verification, and rollback. Use [Pull-request previews](https://github.com/bendaj11/atlas/blob/main/docs/pr-previews.md) for PR metadata, freshness, Columbus, and cleanup jobs.
+For separate source and target registries:
+
+```bash
+npx atlas deploy <uuid> --to production --version rc \
+  --source-registry-url https://rc.example.com/atlas \
+  --registry-url https://prod.example.com/atlas
+```
+
+See [production deployment](../../docs/production-deployment.md) and
+[registry reference](../../docs/registry.md).

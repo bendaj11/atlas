@@ -42,17 +42,13 @@ export async function resolveInvocation(
     (command === 'build' ||
       command === 'build-bootstrap' ||
       command === 'render-runtime-config' ||
-      command === 'publish') &&
+      command === 'publish' ||
+      command === 'deploy' ||
+      command === 'remove-preview') &&
     !subcommand
   ) {
     subcommand = await prompts.input('Atlas project name or directory');
-  } else if (command === 'rollback' && !subcommand) {
-    subcommand = await prompts.input(
-      'Stable host or app ID from atlas.config.ts',
-    );
   }
-  if (command === 'rollback' && !version)
-    version = await prompts.input('Production version to restore');
   return { command, subcommand, name, appId, framework, version };
 }
 

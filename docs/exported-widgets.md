@@ -49,8 +49,8 @@ Framework mounting is Atlas infrastructure. Federation setup writes ignored
 or Angular inputs. Widget source does not call `defineExportedWidget`, create a
 React root, bootstrap Angular, or declare injection tokens.
 
-Checkpoint: `atlas build catalog-react` writes widget UUID, owner app, immutable
-remote URL, framework, and expose into `app.manifest.json`.
+Checkpoint: `atlas publish catalog-react --version <version>` writes widget UUID,
+owner app, framework, and expose into canonical `manifest.json`.
 
 ## Consume a widget
 
@@ -86,7 +86,8 @@ Host clients customize every widget card through `renderWidgetLoading` and `rend
 
 ## Same-registry widgets
 
-All production widgets in the host catalog's primary registry are discoverable by UUID, including widgets owned by apps that have no route or slot in this host. Atlas reads the mutable registry index lazily and loads only the requested widget code.
+Deployed widget-only providers are listed as descriptors in the active host
+manifest, including apps with no route or slot. Atlas loads only requested code.
 
 No dependency config is needed.
 
@@ -108,10 +109,13 @@ Bootstrap build supplies trusted environment-specific registry URLs:
 
 ```sh
 atlas build-bootstrap customer-host \
-  --external-registry-urls=https://team-a.example/atlas,https://shared-ui.example/atlas
+  --environment=production \
+  --external-registries='https://team-a.example/atlas|production,https://shared-ui.example/atlas|production'
 ```
 
-On refresh Atlas resolves each dependency to its registry's current production selection. External release and rollback therefore become visible after browser refresh without host catalog sync or bootstrap deployment. Host-client rollback does not roll back independently released external providers.
+On refresh Atlas resolves each dependency through the external registry's
+explicit configured environment. External deploy and rollback become visible
+without bootstrap deployment.
 
 Atlas resolves transitive external app dependencies, rejects duplicate app/widget IDs, and searches only explicitly configured registries. An unavailable registry affects only requested widgets from that registry.
 

@@ -15,6 +15,37 @@ export async function fetchJson<T>(
   });
 }
 
+export async function fetchBytes(
+  url: string,
+  runtime: Pick<
+    AtlasHostRuntimeConfig,
+    'resourcesRetryCount' | 'resourcesTimeoutMs'
+  > = {},
+): Promise<Uint8Array> {
+  const retries = runtime.resourcesRetryCount ?? 3;
+  const timeout = runtime.resourcesTimeoutMs ?? 15000;
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        cache: 'no-cache',
+        signal: AbortSignal.timeout(timeout),
+      });
+      if (!response.ok)
+        throw new Error(`${url} returned HTTP ${response.status}.`);
+      return new Uint8Array(await response.arrayBuffer());
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 100 * (attempt + 1)),
+        );
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function fetchJsonRequest<T>({
   url,
   runtime,

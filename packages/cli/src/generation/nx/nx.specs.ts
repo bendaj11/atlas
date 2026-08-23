@@ -72,7 +72,9 @@ describe('Nx generation', () => {
 
     expect(driver.get.value()).toStrictEqual({
       buildExecutor: '@angular-architects/native-federation:build',
-      devCommand: 'atlas dev {project}',
+      devCommand: expect.stringMatching(
+        /(?:pnpm exec|npx --no-install) atlas dev \{project\}/,
+      ),
       devForwardsArguments: true,
       devTty: true,
       hasBootstrap: true,
@@ -80,8 +82,10 @@ describe('Nx generation', () => {
       hasDev: true,
       hasPublish: true,
       hasServeOriginal: true,
-      publishCommand:
-        'atlas publish {project} --from-build-output',
+      publishCommand: expect.stringMatching(
+        /(?:pnpm exec|npx --no-install) atlas publish \{project\}/,
+      ),
+      publishDependencies: ['build'],
       serveExecutor: '@angular-architects/native-federation:build',
       tagged: true,
     });
@@ -111,7 +115,9 @@ describe('Nx generation', () => {
     await driver.when.ensureTargets();
 
     expect(driver.get.value()).toStrictEqual({
-      devCommand: 'atlas dev {project}',
+      devCommand: expect.stringMatching(
+        /(?:pnpm exec|npx --no-install) atlas dev \{project\}/,
+      ),
       devForwardsArguments: true,
       devTty: true,
       hasBootstrap: false,
@@ -119,8 +125,10 @@ describe('Nx generation', () => {
       hasDev: true,
       hasPublish: true,
       hasServeOriginal: false,
-      publishCommand:
-        'atlas publish {project} --from-build-output',
+      publishCommand: expect.stringMatching(
+        /(?:pnpm exec|npx --no-install) atlas publish \{project\}/,
+      ),
+      publishDependencies: ['build'],
       tagged: true,
     });
   });

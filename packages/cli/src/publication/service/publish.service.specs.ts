@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { PublishServiceDriver } from './publish.service.driver.js';
 
 describe('AtlasPublishService', () => {
@@ -8,158 +8,77 @@ describe('AtlasPublishService', () => {
     driver = new PublishServiceDriver();
   });
 
-  it('should upload immutable files before mutable metadata when publication succeeds', async () => {
-    await driver.given.publication('publish');
+  afterEach(async () => {
+    await driver.when.cleanup();
+  });
 
-    await driver.when.run();
+  it('should publish manifest and payload when build output exists', async () => {
+    await driver.when.publish();
 
-    expect(driver.get.observation()).toStrictEqual({
-      entry: 'export {};\n',
-      uploaded: [
-        'apps/{appId}/1.0.0/build-1/app.manifest.json',
-        'apps/{appId}/1.0.0/build-1/atlas-publication.json',
-        'apps/{appId}/1.0.0/build-1/entry.js',
-        'registry.json',
-        'apps/{appId}/index.json',
-      ],
+    expect(driver.get.paths()).toHaveLength(3);
+  });
+
+  it('should keep registry entries as descriptors when release is published', async () => {
+    await driver.when.publish();
+
+    expect(JSON.stringify(driver.get.registry())).not.toContain('entryPath');
+  });
+
+  it('should remain idempotent when identical version is published twice', async () => {
+    await driver.when.publish();
+
+    await driver.when.publish();
+
+    expect(driver.get.result()?.uploaded).toHaveLength(2);
+  });
+
+  it('should reject version collision when payload changes', async () => {
+    await driver.when.publish();
+    driver.given.changedBytes();
+
+    await expect(driver.when.publish()).rejects.toThrow(/different digest/);
+  });
+
+  it('should expose one logical preview when preview is republished', async () => {
+    driver.given.preview();
+    await driver.when.publish();
+    driver.given.changedBytes();
+
+    await driver.when.publish();
+
+    expect(
+      Object.keys(Object.values(driver.get.registry().apps)[0]!.previews),
+    ).toHaveLength(1);
+  });
+
+  it('should recheck live preview head before registry mutation', async () => {
+    driver.given.preview();
+
+    await driver.when.publish();
+
+    expect(driver.get.resolverCalls()).toBe(2);
+  });
+
+  it('should prune selections only for artifacts declared by state', async () => {
+    driver.given.previewPruning();
+
+    await driver.when.prune();
+
+    expect(driver.get.prunedSelections()).toStrictEqual({
+      scoped: ['1'],
+      unscoped: ['2'],
     });
   });
 
-  it('should reject publication when writable storage is missing', async () => {
-    await driver.given.publication('missing-storage');
+  it('should prune orphan generations only for artifacts declared by state', async () => {
+    driver.given.previewPruning();
 
-    await expect(driver.when.run()).rejects.toThrow(
-      /Publication storage is required/,
-    );
-  });
+    await driver.when.prune();
 
-  it('should complete without storage when publication is dry run', async () => {
-    await driver.given.publication('dry-run');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toBe(true);
-  });
-
-  it('should reject publication when deployment verification fails', async () => {
-    await driver.given.publication('verification-failure');
-
-    await expect(driver.when.run()).rejects.toThrow(/smoke test failed/);
-  });
-
-  it('should restore publication state when deployment verification fails', async () => {
-    await driver.given.publication('verification-cleanup');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      immutableExists: false,
-      registryRestored: true,
-    });
-  });
-
-  it('should invalidate CDN before verification when publication succeeds', async () => {
-    await driver.given.publication('sequencing');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual([
-      'invalidate:registry.json,apps/{appId}/index.json',
-      'verify',
-    ]);
-  });
-
-  it('should reject publication when mutable write fails', async () => {
-    await driver.given.publication('mutable-failure');
-
-    await expect(driver.when.run()).rejects.toThrow(/simulated write failure/);
-  });
-
-  it('should restore earlier writes when mutable write fails', async () => {
-    await driver.given.publication('mutable-cleanup');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      index: undefined,
-      registryRestored: true,
-    });
-  });
-
-  it('should select stored production build when rollback is requested', async () => {
-    await driver.given.publication('rollback');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      buildId: 'stable',
-      selection: { buildId: 'stable', version: '1.0.0' },
-    });
-  });
-
-  it('should reject publication when deployment lease is lost', async () => {
-    await driver.given.publication('lease-loss');
-
-    await expect(driver.when.run()).rejects.toThrow(
-      /lost its deployment lease/,
-    );
-  });
-
-  it('should avoid mutable activation when deployment lease is lost', async () => {
-    await driver.given.publication('lease-cleanup');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      indexExists: false,
-      registryExists: false,
-    });
-  });
-
-  it('should skip PR build when provider head moves', async () => {
-    await driver.given.publication('moved-head');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      registryExists: false,
-      skipped: true,
-    });
-  });
-
-  it('should retain only latest successful build when artifact and PR match', async () => {
-    await driver.given.publication('latest-pr');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      buildIds: ['second'],
-      cleanupWarnings: [],
-      firstExists: false,
-      secondExists: true,
-    });
-  });
-
-  it('should remove matching artifacts when PR is removed', async () => {
-    await driver.given.publication('remove-pr');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      artifactExists: false,
-      registryApps: [],
-      removedBuilds: 1,
-    });
-  });
-
-  it('should preserve open PR then remove missing PR when state is authoritative', async () => {
-    await driver.given.publication('prune-pr');
-
-    await driver.when.run();
-
-    expect(driver.get.observation()).toStrictEqual({
-      preserved: 0,
-      removed: 1,
+    expect(driver.get.prunedOrphans()).toStrictEqual({
+      removedGenerations: 1,
+      scopedExists: false,
+      unscopedExists: true,
     });
   });
 });

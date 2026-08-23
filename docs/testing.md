@@ -30,17 +30,18 @@ pnpm test:e2e
 The command performs the following work without requiring a real cloud account:
 
 1. Builds Atlas packages.
-2. Builds the Angular and React example apps through `atlas build`.
-3. Merges their provider-neutral publications into one temporary static registry.
-4. Builds Angular and React hosts.
+2. Builds the Angular and React example hosts and apps.
+3. Publishes their immutable releases and canonical manifests into one temporary
+   static registry.
+4. Deploys host and app selections to environment-qualified active host manifests.
 5. Starts separate CDN, React-host, and Angular-host origins.
 6. Runs Playwright against the deployed output.
-7. Publishes two immutable app releases, rolls the live catalog backward and
-   forward, and proves the same prebuilt host loads each selected release.
+7. Deploys older and newer immutable app releases and proves the same prebuilt
+   host loads each selected release.
 
 The suite verifies Angular apps in React hosts, React apps in Angular hosts, framework-native inner routing, cross-framework widgets, popups, opt-in loading UI, failed-remote fallback UI, CORS, and mutable versus immutable cache headers.
 
-It also loads the built Columbus extension into Playwright's bundled Chromium. The extension scenarios cover PR, historical, and local versions; all-tabs and current-tab scope; production reset; invalid manifests; and non-Atlas pages. The E2E harness grants localhost access only to a temporary copy because headless Chromium does not expose the toolbar popup's temporary `activeTab` permission reliably. A separate build test guarantees that the extension users install has no permanent host permissions.
+It also loads the built Columbus extension into Playwright's bundled Chromium. The extension scenarios cover PR/MR previews, other releases, and local versions; all-tabs and current-tab scope; current-deployment reset; invalid manifests; and non-Atlas pages. The E2E harness grants localhost access only to a temporary copy because headless Chromium does not expose the toolbar popup's temporary `activeTab` permission reliably. A separate build test guarantees that the extension users install has no permanent host permissions.
 
 Generated deployment files live under `tests/e2e/.artifacts` and are not committed.
 

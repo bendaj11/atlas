@@ -7,14 +7,12 @@ import { PromptTestDouble } from './interaction.testkit.js';
 type InteractionScenario =
   | 'interactive-generation'
   | 'configured-generation'
-  | 'interactive-rollback'
   | 'unconfigured-widget'
   | 'configured-widget';
 
 export class InteractionDriver {
   private readonly appId = faker.string.uuid();
   private readonly name = faker.word.noun();
-  private readonly version = faker.system.semver();
   private prompts?: PromptTestDouble;
   private invocation?: AtlasInvocation;
   private arguments?: CliArguments;
@@ -37,11 +35,6 @@ export class InteractionDriver {
           this.name,
           '--framework=react',
         ]);
-      }
-
-      if (scenario === 'interactive-rollback') {
-        this.prompts = new PromptTestDouble([this.appId, this.version], true);
-        this.arguments = new CliArguments(['rollback']);
       }
 
       if (scenario === 'unconfigured-widget') {
@@ -102,18 +95,6 @@ export class InteractionDriver {
       'select:What would you like to generate?',
       'input:App name',
       'select:Framework',
-    ],
-    rollback: (): AtlasInvocation => ({
-      appId: undefined,
-      command: 'rollback',
-      framework: undefined,
-      name: undefined,
-      subcommand: this.appId,
-      version: this.version,
-    }),
-    rollbackQuestions: (): readonly string[] => [
-      'input:Stable host or app ID from atlas.config.ts',
-      'input:Production version to restore',
     ],
     widget: (): AtlasInvocation => ({
       appId: undefined,

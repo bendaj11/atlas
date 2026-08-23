@@ -67,7 +67,7 @@ function versionOptionLabel({
       <Text size="small">{label}</Text>
 
       <Badge size="tiny" skin="neutralSuccess">
-        current
+        current deployment
       </Badge>
     </Box>
   );

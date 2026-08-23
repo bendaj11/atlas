@@ -5,7 +5,7 @@ import type { AtlasHostConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { loadBootstrapTemplate } from '../../bootstrap/template/bootstrap-template.js';
 import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
-import { resolveRegistryBaseUrl } from '../../build/runtime-config/runtime-config.js';
+import { resolveRegistryUrl } from '../../build/runtime-config/runtime-config.js';
 import { ensureAngularBuildNotifications } from '../../generation/angular.js';
 import { startLocalBootstrapServer } from '../bootstrap-server/bootstrap-server.js';
 import { startControlServer } from '../control-server/control-server.js';
@@ -116,13 +116,14 @@ export class AtlasDevService {
 
     const controlPort = this.args.port('control-port', DEFAULT_CONTROL_PORT);
     const controlOrigin = localOrigin(controlPort);
-    const registryUrl = resolveRegistryBaseUrl(this.args);
-    const control = await startControlServer(
-      controlPort,
+    const registryUrl = resolveRegistryUrl(this.args);
+    const control = await startControlServer({
+      port: controlPort,
       document,
-      `${controlOrigin}/atlas.local-overrides.json`,
-      registryUrl,
-    );
+      overrideUrl: `${controlOrigin}/atlas.local-overrides.json`,
+      ...(registryUrl ? { registryUrl } : {}),
+      environment: this.args.flag('environment') ?? 'production',
+    });
     const frameworkServer = this.workspace.spawn(
       project,
       await this.frameworkDevTask(project),
@@ -151,8 +152,10 @@ export class AtlasDevService {
             runtime: {
               schemaVersion: '1',
               hostId: config.id,
-              catalogUrl: `${controlOrigin}/hosts/${config.id}/catalog.json`,
-              ...(registryUrl ? { registryUrl: controlOrigin } : {}),
+              manifestUrl: `${controlOrigin}/environments/development/hosts/${config.id}/manifest.json`,
+              developmentSessionUrl: `${controlOrigin}/atlas.dev-session.json?hostId=${encodeURIComponent(config.id)}`,
+              environment: 'development',
+              ...(registryUrl ? { registryUrl } : {}),
               resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
               resourcesRetryCount: config.resourcesRetryCount ?? 3,
               assetOrigins: [localOrigin(clientPort), controlOrigin],
@@ -197,13 +200,14 @@ export class AtlasDevService {
       return;
     }
     const hostActivationUrl = withDevSessionPort(target.hostUrl, controlPort);
-    const registryUrl = resolveRegistryBaseUrl(this.args);
-    const control = await startControlServer(
-      controlPort,
+    const registryUrl = resolveRegistryUrl(this.args);
+    const control = await startControlServer({
+      port: controlPort,
       document,
       overrideUrl,
-      registryUrl,
-    );
+      ...(registryUrl ? { registryUrl } : {}),
+      environment: this.args.flag('environment') ?? 'production',
+    });
     const frameworkServer = this.workspace.spawn(
       project,
       await this.frameworkDevTask(project),

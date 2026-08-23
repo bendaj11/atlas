@@ -1,9 +1,5 @@
 import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
-import type {
-  AtlasHostCatalog,
-  AtlasHostManifest,
-  AtlasStaticRegistry,
-} from '@atlas/schema';
+import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
 import type {
   AtlasDevOverrideDocument,
   AtlasDevSessionDocument,
@@ -108,33 +104,6 @@ export function createDevSessionStore(
     }
   }
 
-  function registry(): AtlasStaticRegistry {
-    const documents = [...hosts.keys()].flatMap((hostId) => {
-      const document = currentDocument(hostId);
-      return document ? [document] : [];
-    });
-    const updatedAt =
-      documents
-        .map((document) => document.generatedAt)
-        .sort()
-        .at(-1) ?? initial.generatedAt;
-    return {
-      schemaVersion: '1',
-      revision: `local:${updatedAt}`,
-      updatedAt,
-      hosts: uniqueArtifacts(
-        documents.flatMap((document) =>
-          document.hostOverride ? [document.hostOverride] : [],
-        ),
-      ),
-      apps: uniqueArtifacts(
-        documents.flatMap((document) =>
-          document.overrides.map((override) => override.manifest),
-        ),
-      ),
-    };
-  }
-
   return {
     register,
     unregister(appId, requestedHostId) {
@@ -173,13 +142,17 @@ export function createDevSessionStore(
         ? mergeLocalCatalog(productionCatalog, localCatalog)
         : localCatalog;
     },
-    registry,
-    devSession(hostId) {
+    devSession(hostId, publishedCatalog) {
       const document = currentDocument(hostId);
       return document
         ? createDevSession(
             document,
-            createLocalDevCatalog(document),
+            publishedCatalog
+              ? mergeLocalCatalog(
+                  publishedCatalog,
+                  createLocalDevCatalog(document),
+                )
+              : createLocalDevCatalog(document),
             overrideUrl,
           )
         : undefined;

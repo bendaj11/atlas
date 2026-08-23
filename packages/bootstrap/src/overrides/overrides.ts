@@ -1,9 +1,10 @@
 import type {
-  AtlasArtifactIndex,
   AtlasHostCatalog,
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
   AtlasManifest,
+  AtlasManifestDescriptor,
+  AtlasStaticRegistry,
 } from '@atlas/schema';
 import {
   DEV_SESSION_PORT_PARAM,
@@ -12,6 +13,7 @@ import {
 } from '../constants.js';
 import { fetchJson } from '../fetch-json/fetch-json.js';
 import type { DevSession, RuntimeOverrides } from '../types.js';
+import { loadPublishedArtifact } from '../published-artifact/published-artifact.js';
 
 export async function applyOverrides(
   runtime: AtlasHostRuntimeConfig,
@@ -142,27 +144,34 @@ async function resolveOverrideManifest<
   manifest: TManifest,
   runtime: AtlasHostRuntimeConfig,
 ): Promise<TManifest | undefined> {
-  if (manifest.channel !== 'pr' || !manifest.prNumber) return manifest;
-
-  const indexUrl = artifactIndexUrl(manifest);
-  if (!indexUrl) return manifest;
+  if (manifest.channel === 'local') return manifest;
+  const registryRoot = artifactRegistryRoot(manifest);
+  if (!registryRoot) return manifest;
 
   try {
-    const index = await fetchJson<AtlasArtifactIndex<TManifest>>(
-      indexUrl,
+    const registry = await fetchJson<AtlasStaticRegistry>(
+      `${registryRoot}/registry.json`,
       runtime,
     );
-    return Array.isArray(index.manifests)
-      ? index.manifests.find(
-          (candidate) => candidate.prNumber === manifest.prNumber,
-        )
-      : manifest;
+    const artifact =
+      manifest.kind === 'host'
+        ? registry.hosts[manifest.id]
+        : registry.apps[manifest.id];
+    const descriptor = manifest.prNumber
+      ? artifact?.previews[String(manifest.prNumber)]
+      : artifact?.releases[manifest.version];
+    if (!descriptor) return manifest;
+    const loaded = await loadPublishedArtifact(
+      descriptorReference(registryRoot, descriptor),
+      runtime,
+    );
+    return loaded.kind === manifest.kind ? (loaded as TManifest) : manifest;
   } catch {
     return manifest;
   }
 }
 
-function artifactIndexUrl(
+function artifactRegistryRoot(
   manifest: AtlasHostManifest | AtlasManifest,
 ): string | undefined {
   const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
@@ -171,10 +180,18 @@ function artifactIndexUrl(
   const markerIndex = url.pathname.indexOf(marker);
 
   if (markerIndex < 0) return undefined;
-
-  url.pathname = url.pathname.slice(0, markerIndex) + marker + 'index.json';
+  url.pathname = url.pathname.slice(0, markerIndex);
   url.search = '';
   url.hash = '';
+  return url.href.replace(/\/$/, '');
+}
 
-  return url.href;
+function descriptorReference(
+  registryRoot: string,
+  descriptor: AtlasManifestDescriptor,
+): AtlasManifestDescriptor & { url: string } {
+  return {
+    ...descriptor,
+    url: new URL(descriptor.path, `${registryRoot}/`).href,
+  };
 }

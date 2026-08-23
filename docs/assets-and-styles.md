@@ -9,7 +9,7 @@ differently. Pick the page for the framework you are using:
 Shared rule: apps are loaded from immutable Atlas version paths. App assets
 should be relative to the app build output, not hardcoded to the host origin.
 
-Host styles own the product shell. App styles own feature UI inside the route or
+Host styles own the main page layout. App styles own feature UI inside the URL or
 slot where the app is mounted.
 
 Apps mount in an open Shadow DOM boundary by default. Atlas installs each

@@ -1,6 +1,12 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { delimiter, dirname, join, resolve } from 'node:path';
+import type {
+  AtlasManifestDescriptor,
+  AtlasStaticRegistry,
+} from '../../packages/schema/src/index.js';
+import { registryRevision } from '../../packages/cli/src/publication/static-registry/static-registry.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const artifacts = resolve(
@@ -9,12 +15,14 @@ const artifacts = resolve(
 );
 const cdn = join(artifacts, 'cdn');
 const externalCdn = join(artifacts, 'external-cdn');
-const publishConfig = join(root, 'tests/e2e/atlas.publish.ts');
+const registryConfig = join(root, 'tests/e2e/atlas.registry.ts');
 const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? '4400'}`;
 const externalCdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_EXTERNAL_CDN_PORT ?? '4401'}`;
 const REACT_HOST_ID = '060a7f62-1c95-402c-9993-55749faf36d9';
 const ANGULAR_HOST_ID = '399e1a5d-f83d-4248-96ed-e4211707ae1b';
+const ORDERS_ANGULAR_ID = 'f856e01e-0fc1-4a6d-a4ec-622c68100d14';
 const CATALOG_REACT_ID = '3ae54928-c2c6-491d-b766-6996ce0ef3c8';
+const DASHBOARD_ANGULAR_ID = '9a703156-6c63-47bb-aa10-d3d3a1b2a38b';
 const DASHBOARD_REACT_ID = '56e41bf1-d1b4-486f-a340-5782ee632bad';
 const EXTERNAL_SHARED_UI_ID = '745518fc-3b1a-4197-b044-da306b0a02ff';
 const projects = [
@@ -50,19 +58,30 @@ for (const project of projects) {
       'packages/cli/dist/cli/entrypoint.js',
       'publish',
       project,
-      '--from-build-output',
-      `--registry-base-url=${cdnOrigin}`,
-      `--publish-config=${publishConfig}`,
+      '--version=0.1.0',
+      `--registry-url=${cdnOrigin}`,
+      `--registry-config=${registryConfig}`,
     ],
     publicationEnvironment({ ATLAS_CREATED_AT: '2026-01-01T00:00:00.000Z' }),
   );
 }
 
+for (const hostId of [REACT_HOST_ID, ANGULAR_HOST_ID]) {
+  await deploy(hostId, '0.1.0');
+}
+for (const appId of [
+  ORDERS_ANGULAR_ID,
+  CATALOG_REACT_ID,
+  DASHBOARD_ANGULAR_ID,
+  DASHBOARD_REACT_ID,
+]) {
+  await deploy(appId, '0.1.0');
+}
+
 await addSecondCatalogRelease();
+await deploy(CATALOG_REACT_ID, '0.2.0');
 await createExternalWidgetRegistry();
 await addVersionFixtures(DASHBOARD_REACT_ID);
-await addBrokenRoute(REACT_HOST_ID, '49f9e422-c726-46ee-840b-ad33b8a8faa3');
-await addBrokenRoute(ANGULAR_HOST_ID, 'a7d07dd4-49c8-47cb-b020-e99b0b738587');
 await buildBootstrap('demo-react-host', join(artifacts, 'react-bootstrap'));
 await buildBootstrap('demo-angular-host', join(artifacts, 'angular-bootstrap'));
 
@@ -72,11 +91,28 @@ async function buildBootstrap(project, output) {
     'build-bootstrap',
     project,
     '--skip-compile',
-    `--registry-base-url=${cdnOrigin}`,
+    `--registry-url=${cdnOrigin}`,
+    '--environment=production',
     `--asset-origins=${cdnOrigin},${externalCdnOrigin}`,
-    `--external-registry-urls=${externalCdnOrigin}`,
+    `--external-registries=${externalCdnOrigin}|production`,
     `--out=${output}`,
   ]);
+}
+
+async function deploy(project, version) {
+  await run(
+    'node',
+    [
+      'packages/cli/dist/cli/entrypoint.js',
+      'deploy',
+      project,
+      '--to=production',
+      `--version=${version}`,
+      `--registry-url=${cdnOrigin}`,
+      `--registry-config=${registryConfig}`,
+    ],
+    publicationEnvironment(),
+  );
 }
 
 async function addSecondCatalogRelease() {
@@ -97,8 +133,9 @@ async function addSecondCatalogRelease() {
         'publish',
         'catalog-react',
         '--skip-compile',
-        `--registry-base-url=${cdnOrigin}`,
-        `--publish-config=${publishConfig}`,
+        '--version=0.2.0',
+        `--registry-url=${cdnOrigin}`,
+        `--registry-config=${registryConfig}`,
       ],
       publicationEnvironment({
         ATLAS_CREATED_AT: '2026-01-02T00:00:00.000Z',
@@ -114,113 +151,141 @@ async function createExternalWidgetRegistry() {
   const sourceRegistry = JSON.parse(
     await readFile(join(cdn, 'registry.json'), 'utf8'),
   );
-  const sourceManifests = sourceRegistry.apps.filter(
-    (manifest) =>
-      manifest.id === CATALOG_REACT_ID && manifest.channel === 'production',
-  );
-  const manifests = [];
-  for (const source of sourceManifests) {
+  const sourceArtifact = sourceRegistry.apps[CATALOG_REACT_ID];
+  const releases: Record<string, AtlasManifestDescriptor> = {};
+  for (const [version, sourceDescriptor] of Object.entries(
+    sourceArtifact.releases,
+  ) as Array<[string, { path: string }]>) {
+    const sourceDirectory = dirname(join(cdn, sourceDescriptor.path));
     const targetDirectory = join(
       externalCdn,
       'apps',
       EXTERNAL_SHARED_UI_ID,
-      source.version,
-      source.buildId,
-    );
-    const sourceDirectory = dirname(
-      join(cdn, new URL(source.remoteEntryUrl).pathname),
+      version,
     );
     await cp(sourceDirectory, targetDirectory, { recursive: true });
-    manifests.push({
-      ...source,
+    const targetManifestPath = join(targetDirectory, 'manifest.json');
+    const sourceManifest = JSON.parse(
+      await readFile(targetManifestPath, 'utf8'),
+    );
+    const targetManifest = {
+      ...sourceManifest,
       id: EXTERNAL_SHARED_UI_ID,
       name: 'External Shared UI',
-      remoteEntryUrl: `${externalCdnOrigin}/apps/${EXTERNAL_SHARED_UI_ID}/${source.version}/${source.buildId}/remoteEntry.json`,
       placements: [],
       supportedHosts: ['*'],
       externalAppsDependencies: undefined,
-      exportedWidgets: (source.exportedWidgets ?? []).map((widget) => ({
+      exportedWidgets: (sourceManifest.exportedWidgets ?? []).map((widget) => ({
         ...widget,
         id: '55ca3323-c62f-44de-9194-6ab42375e578',
         ownerAppId: EXTERNAL_SHARED_UI_ID,
-        remoteEntryUrl: `${externalCdnOrigin}/apps/${EXTERNAL_SHARED_UI_ID}/${source.version}/${source.buildId}/remoteEntry.json`,
       })),
-    });
+    };
+    const bytes = new TextEncoder().encode(
+      `${JSON.stringify(targetManifest)}\n`,
+    );
+    await writeFile(targetManifestPath, bytes);
+    releases[version] = {
+      path: `apps/${EXTERNAL_SHARED_UI_ID}/${version}/manifest.json`,
+      digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+      size: bytes.byteLength,
+      mediaType: 'application/json',
+    };
   }
-  const selected = manifests.find((manifest) => manifest.version === '0.1.0');
-  if (!selected)
+  if (!releases['0.1.0'])
     throw new Error('External widget fixture requires catalog-react 0.1.0.');
-  await writeJson(join(externalCdn, 'registry.json'), {
-    schemaVersion: '1',
-    updatedAt: selected.createdAt,
-    hosts: [],
-    apps: manifests,
-    selections: {
-      hosts: {},
-      apps: {
-        [EXTERNAL_SHARED_UI_ID]: {
-          version: selected.version,
-          buildId: selected.buildId,
-        },
+  const registry: AtlasStaticRegistry = {
+    schemaVersion: '2',
+    revision: `sha256:${'0'.repeat(64)}`,
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    hosts: {},
+    apps: {
+      [EXTERNAL_SHARED_UI_ID]: {
+        id: EXTERNAL_SHARED_UI_ID,
+        name: 'External Shared UI',
+        releases,
+        previews: {},
+        latest: '0.2.0',
       },
     },
-  });
+    deployments: {
+      production: {
+        hosts: {},
+        apps: {
+          [EXTERNAL_SHARED_UI_ID]: {
+            version: '0.1.0',
+          },
+        },
+        expectedHostRevisions: {},
+      },
+    },
+  };
+  registry.revision = registryRevision(registry) as `sha256:${string}`;
+  await writeJson(join(externalCdn, 'registry.json'), registry);
 }
 
 async function addVersionFixtures(appId) {
-  const indexPath = join(cdn, 'apps', appId, 'index.json');
-  const index = JSON.parse(await readFile(indexPath, 'utf8'));
-  const production = index.manifests[0];
-  const historicalRemoteEntryUrl = await createDistinctArtifact(
-    production.remoteEntryUrl,
-    appId,
-    '0.0.9',
-    'historical-0.0.9',
+  const entryPath = join(root, 'examples/apps/dashboard-react/dist/entry.js');
+  const originalEntry = await readFile(entryPath, 'utf8');
+  const historicalEntry = originalEntry.replace(
+    'Dashboard React',
     'Dashboard React Historical',
   );
-  const historical = {
-    ...production,
-    version: '0.0.9',
-    buildId: 'historical-0.0.9',
-    channel: 'production',
-    remoteEntryUrl: historicalRemoteEntryUrl,
-    createdAt: '2025-12-01T00:00:00.000Z',
-  };
-  const pullRequest = {
-    ...production,
-    version: '0.2.0-pr.42',
-    buildId: 'pr-42',
-    channel: 'pr',
-    prNumber: 42,
-    createdAt: '2026-01-02T00:00:00.000Z',
-  };
-  index.manifests.push(pullRequest, historical);
-  await writeJson(indexPath, index);
-  const localRemoteEntryUrl = await createDistinctArtifact(
-    production.remoteEntryUrl,
+  if (historicalEntry === originalEntry)
+    throw new Error('Could not mark dashboard historical release.');
+  try {
+    await writeFile(entryPath, historicalEntry, 'utf8');
+    await run(
+      'node',
+      [
+        'packages/cli/dist/cli/entrypoint.js',
+        'publish',
+        'dashboard-react',
+        '--skip-compile',
+        '--version=0.0.9',
+        `--registry-url=${cdnOrigin}`,
+        `--registry-config=${registryConfig}`,
+      ],
+      publicationEnvironment(),
+    );
+  } finally {
+    await writeFile(entryPath, originalEntry, 'utf8');
+  }
+  await run(
+    'node',
+    [
+      'packages/cli/dist/cli/entrypoint.js',
+      'publish',
+      'dashboard-react',
+      '--skip-compile',
+      '--pr=42',
+      '--git-sha=abc123',
+      `--registry-url=${cdnOrigin}`,
+      `--registry-config=${registryConfig}`,
+    ],
+    publicationEnvironment(),
+  );
+  const registry = JSON.parse(
+    await readFile(join(cdn, 'registry.json'), 'utf8'),
+  );
+  const descriptor = registry.apps[appId].releases['0.1.0'];
+  const sourceDirectory = dirname(join(cdn, descriptor.path));
+  await createDistinctArtifact(
+    sourceDirectory,
     appId,
     '0.2.0-local',
     'local-dev',
     'Dashboard React Local',
   );
-  await writeJson(join(cdn, 'fixtures', `${appId}-local.json`), {
-    ...production,
-    version: '0.2.0-local',
-    buildId: 'local-dev',
-    channel: 'local',
-    remoteEntryUrl: localRemoteEntryUrl,
-    createdAt: '2026-01-03T00:00:00.000Z',
-  });
 }
 
 async function createDistinctArtifact(
-  sourceUrl,
+  sourceDirectory,
   appId,
   version,
   buildId,
   heading,
 ) {
-  const sourceDirectory = dirname(join(cdn, new URL(sourceUrl).pathname));
   const targetDirectory = join(cdn, 'apps', appId, version, buildId);
   await cp(sourceDirectory, targetDirectory, { recursive: true });
   const entryPath = join(targetDirectory, 'entry.js');
@@ -229,36 +294,7 @@ async function createDistinctArtifact(
   if (markedEntry === entry)
     throw new Error(`Could not mark the ${version} ${appId} artifact.`);
   await writeFile(entryPath, markedEntry, 'utf8');
-  return `${cdnOrigin}/apps/${appId}/${version}/${buildId}/remoteEntry.json`;
-}
-
-async function addBrokenRoute(hostId, brokenAppId) {
-  const path = join(cdn, 'hosts', hostId, 'catalog.json');
-  const catalog = JSON.parse(await readFile(path, 'utf8'));
-  const template = catalog.apps[0];
-  catalog.apps.push({
-    ...template,
-    id: brokenAppId,
-    name: 'Broken Example',
-    buildId: 'missing',
-    remoteEntryUrl: `${cdnOrigin}/missing/remoteEntry.json`,
-    integrity: undefined,
-    exportedWidgets: undefined,
-    externalAppsDependencies: undefined,
-    placements: [
-      {
-        id: `${brokenAppId}-route`,
-        kind: 'route',
-        hostId,
-        route: {
-          path: '/broken',
-          title: 'Broken Example',
-          nav: { label: 'Broken', visible: true, order: 100 },
-        },
-      },
-    ],
-  });
-  await writeJson(path, catalog);
+  return targetDirectory;
 }
 
 async function run(command, args, environment = {}) {

@@ -87,4 +87,15 @@ describe('AtlasGenerateService', () => {
       persistent: true,
     });
   });
+
+  it('should build before publishing when generating in a Turbo workspace', async () => {
+    await driver.given.generation('turbo-existing-dev');
+
+    await driver.when.generate();
+
+    expect(await driver.get.turboPublishTask()).toMatchObject({
+      cache: false,
+      dependsOn: ['build'],
+    });
+  });
 });

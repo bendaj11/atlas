@@ -14,6 +14,7 @@ export const ATLAS_NX_TAG = 'atlas';
 interface NxDevTargetOptions {
   targets: Record<string, unknown>;
   projectName: string;
+  packageManager: PackageManager;
   projectRoot: string;
   type: ProjectType;
   framework: SupportedFramework;
@@ -134,6 +135,7 @@ export async function ensureDelegatedNxTargets(
   name: string,
   type: ProjectType,
   framework: SupportedFramework,
+  packageManager: PackageManager,
   devServerPort?: number,
   frameworkVersion?: string,
 ): Promise<void> {
@@ -166,8 +168,15 @@ export async function ensureDelegatedNxTargets(
       angularNativeFederationBuilder(frameworkVersion),
     );
   ensureAtlasConfigTarget(targets, projectName);
-  ensureAtlasPublicationTargets(targets, projectName, type);
-  ensureDevTarget({ targets, projectName, projectRoot, type, framework });
+  ensureAtlasPublicationTargets(targets, projectName, type, packageManager);
+  ensureDevTarget({
+    targets,
+    projectName,
+    packageManager,
+    projectRoot,
+    type,
+    framework,
+  });
   project.tags = addUniqueString(
     Array.isArray(project.tags) ? project.tags : [],
     ATLAS_NX_TAG,
@@ -187,12 +196,14 @@ function ensureAtlasPublicationTargets(
   targets: Record<string, unknown>,
   projectName: string,
   type: ProjectType,
+  packageManager: PackageManager,
 ): void {
   targets['atlas:publish'] = {
     cache: false,
+    dependsOn: ['build'],
     executor: 'nx:run-commands',
     options: {
-      command: `atlas publish ${projectName} --from-build-output`,
+      command: atlasCommand(packageManager, `publish ${projectName}`),
       forwardAllArgs: true,
     },
   };
@@ -202,7 +213,10 @@ function ensureAtlasPublicationTargets(
       outputs: ['{projectRoot}/dist/bootstrap'],
       executor: 'nx:run-commands',
       options: {
-        command: `atlas build-bootstrap ${projectName} --skip-compile`,
+        command: atlasCommand(
+          packageManager,
+          `build-bootstrap ${projectName} --skip-compile`,
+        ),
         forwardAllArgs: true,
       },
     };
@@ -227,12 +241,13 @@ function ensureAtlasConfigTarget(
 }
 
 function ensureDevTarget(options: NxDevTargetOptions): void {
-  const { targets, projectName, projectRoot, type, framework } = options;
+  const { targets, projectName, packageManager, projectRoot, type, framework } =
+    options;
   if (!targets.dev || isOutdatedDevTarget(targets.dev, projectName)) {
     targets.dev = {
       executor: 'nx:run-commands',
       options: {
-        command: `atlas dev ${projectName}`,
+        command: atlasCommand(packageManager, `dev ${projectName}`),
         forwardAllArgs: true,
         tty: true,
       },
@@ -289,7 +304,25 @@ function commandValues(value: unknown): unknown[] {
 function isOutdatedDevTarget(value: unknown, projectName: string): boolean {
   const target = asObject(value);
   const options = asObject(target.options);
-  return options.command !== `atlas dev ${projectName}` || options.tty !== true;
+  return (
+    !isAtlasCommand(options.command, `dev ${projectName}`) ||
+    options.tty !== true
+  );
+}
+
+export function atlasCommand(
+  packageManager: PackageManager,
+  command: string,
+): string {
+  const executor = packageManager === 'pnpm' ? 'pnpm exec' : 'npx --no-install';
+  return `${executor} atlas ${command}`;
+}
+
+function isAtlasCommand(value: unknown, command: string): boolean {
+  return (
+    value === `pnpm exec atlas ${command}` ||
+    value === `npx --no-install atlas ${command}`
+  );
 }
 
 function asObject(value: unknown): Record<string, unknown> {

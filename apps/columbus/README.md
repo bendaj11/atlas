@@ -45,6 +45,7 @@ If one app version index is unavailable, the extension keeps the host usable, sh
 ## Troubleshooting
 
 - **This page does not expose a valid Atlas runtime configuration**: the active page must serve `/atlas.runtime.json`.
-- **Catalog URL does not identify the static registry**: the extension expects `/hosts/<hostId>/catalog.json` under the Atlas storage root.
+- **Active manifest URL does not identify the static registry**: expose
+  `registryUrl` in runtime config so Columbus can list releases and previews.
 - **Custom URL is rejected**: use absolute HTTP or HTTPS URL without credentials, query parameters, or fragment.
 - **A version is disabled**: its manifest does not declare compatibility with the current host.

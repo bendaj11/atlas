@@ -42,6 +42,7 @@ export interface DevSession {
   schemaVersion?: string;
   hostId?: string;
   generatedAt?: string;
+  catalog?: AtlasHostCatalog;
   hostOverride?: AtlasHostManifest;
   overrides?: RuntimeAppOverride[];
 }

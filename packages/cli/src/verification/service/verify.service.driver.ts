@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import { createTestManifest } from '@atlas/testkit';
+import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
 import {
   AtlasVerifyService,
   type AtlasVerificationReport,
@@ -22,7 +23,8 @@ type VerificationScenario =
   | 'timeout'
   | 'zero-timeout'
   | 'infinite-timeout'
-  | 'zero-cache-age';
+  | 'zero-cache-age'
+  | 'invalid-widget-provider';
 
 export class VerifyServiceDriver {
   private readonly appId = faker.word.noun().toLowerCase();
@@ -47,6 +49,7 @@ export class VerifyServiceDriver {
       let fetcher = this.createDeploymentFetch(manifests, {
         assetCacheControl: cacheControl,
         includeCors,
+        widgetProvider: scenario === 'invalid-widget-provider',
       });
       let concurrency = 8;
 
@@ -172,7 +175,7 @@ export class VerifyServiceDriver {
     requestAborted: (): boolean => this.receivedSignal?.aborted ?? false,
   };
 
-  private manifestsFor(scenario: VerificationScenario): unknown[] {
+  private manifestsFor(scenario: VerificationScenario): AtlasManifest[] {
     if (scenario === 'multiple-versions') {
       return [
         this.deploymentManifest(),
@@ -188,6 +191,7 @@ export class VerifyServiceDriver {
       return [
         this.deploymentManifest({
           id: this.appId,
+          supportedHosts: [this.hostId],
           placements: [
             {
               hostId: this.hostId,
@@ -199,6 +203,7 @@ export class VerifyServiceDriver {
         }),
         this.deploymentManifest({
           id: this.secondAppId,
+          supportedHosts: [this.hostId],
           placements: [
             {
               hostId: this.hostId,
@@ -219,6 +224,17 @@ export class VerifyServiceDriver {
       ];
     }
 
+    if (scenario === 'invalid-widget-provider') {
+      return [
+        this.deploymentManifest(),
+        this.deploymentManifest({
+          id: this.secondAppId,
+          integrity: 'sha256-invalid',
+          placements: [],
+        }),
+      ];
+    }
+
     if (scenario === 'request-concurrency') {
       return Array.from({ length: 12 }, () => this.deploymentManifest());
     }
@@ -230,7 +246,9 @@ export class VerifyServiceDriver {
     return [this.deploymentManifest()];
   }
 
-  private deploymentManifest(overrides: Record<string, unknown> = {}) {
+  private deploymentManifest(
+    overrides: Partial<AtlasManifest> = {},
+  ): AtlasManifest {
     return createTestManifest({
       id: this.appId,
       integrity: remoteIntegrity,
@@ -240,8 +258,12 @@ export class VerifyServiceDriver {
   }
 
   private createDeploymentFetch(
-    manifests: unknown[],
-    options: { includeCors: boolean; assetCacheControl?: string },
+    manifests: AtlasManifest[],
+    options: {
+      includeCors: boolean;
+      assetCacheControl?: string;
+      widgetProvider: boolean;
+    },
   ): typeof fetch {
     const jsonHeaders = {
       'cache-control': 'no-cache',
@@ -251,6 +273,43 @@ export class VerifyServiceDriver {
       options.includeCors,
       options.assetCacheControl,
     );
+    const host = this.deploymentHostManifest();
+    const published = [host, ...manifests].map((manifest) => {
+      const artifact = canonicalArtifact(manifest);
+      const bytes = new TextEncoder().encode(JSON.stringify(artifact));
+      const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
+      const path = `${collection}/${manifest.id}/${manifest.version}/manifest.json`;
+      return {
+        bytes,
+        descriptor: {
+          path,
+          digest: sha256Digest(bytes),
+          size: bytes.byteLength,
+          mediaType: 'application/json' as const,
+          url: `${this.assetOrigin}/${path}`,
+        },
+      };
+    });
+    const [publishedHost, ...publishedApps] = published;
+    const applicationDescriptors = options.widgetProvider
+      ? publishedApps.slice(0, -1)
+      : publishedApps;
+    const providerDescriptor = options.widgetProvider
+      ? publishedApps.at(-1)?.descriptor
+      : undefined;
+    const active = {
+      schemaVersion: '2',
+      kind: 'host-deployment',
+      hostId: this.hostId,
+      environment: 'production',
+      deploymentRevision: `sha256:${'a'.repeat(64)}`,
+      host: publishedHost!.descriptor,
+      apps: applicationDescriptors.map(({ descriptor }) => descriptor),
+      ...(providerDescriptor ? { widgetProviders: [providerDescriptor] } : {}),
+    };
+    const manifestsByUrl = new Map(
+      published.map(({ descriptor, bytes }) => [descriptor.url, bytes]),
+    );
 
     return async (input) => {
       const url = input.toString();
@@ -258,8 +317,9 @@ export class VerifyServiceDriver {
       if (url.endsWith('atlas.runtime.json')) {
         return Response.json(
           {
-            catalogUrl: `${this.assetOrigin}/hosts/${this.hostId}/catalog.json`,
             hostId: this.hostId,
+            environment: 'production',
+            manifestUrl: `${this.assetOrigin}/environments/production/hosts/${this.hostId}/manifest.json`,
             resourcesRetryCount: 3,
             resourcesTimeoutMs: 15000,
             schemaVersion: '1',
@@ -268,25 +328,24 @@ export class VerifyServiceDriver {
         );
       }
 
-      if (url.endsWith('catalog.json')) {
-        return Response.json(
-          {
-            apps: manifests,
-            generatedAt: '2026-01-01T00:00:00.000Z',
-            host: this.deploymentHostManifest(),
-            hostId: this.hostId,
-            revision: 'sha256:test',
-            schemaVersion: '1',
+      if (
+        url.endsWith(
+          `/environments/production/hosts/${this.hostId}/manifest.json`,
+        )
+      ) {
+        return Response.json(active, {
+          headers: {
+            ...jsonHeaders,
+            ...(options.includeCors
+              ? { 'access-control-allow-origin': this.hostOrigin }
+              : {}),
           },
-          {
-            headers: {
-              ...jsonHeaders,
-              ...(options.includeCors
-                ? { 'access-control-allow-origin': this.hostOrigin }
-                : {}),
-            },
-          },
-        );
+        });
+      }
+
+      const manifestBytes = manifestsByUrl.get(url);
+      if (manifestBytes) {
+        return new Response(manifestBytes, { headers: assetHeaders });
       }
 
       if (
@@ -319,7 +378,7 @@ export class VerifyServiceDriver {
     };
   }
 
-  private deploymentHostManifest() {
+  private deploymentHostManifest(): AtlasHostManifest {
     return {
       buildId: faker.string.alphanumeric(12),
       channel: 'production',
@@ -349,7 +408,10 @@ export class VerifyServiceDriver {
     return async (...arguments_) => {
       const url = arguments_[0].toString();
 
-      if (url.endsWith('atlas.runtime.json') || url.endsWith('catalog.json')) {
+      if (
+        url.endsWith('atlas.runtime.json') ||
+        url.endsWith('/manifest.json')
+      ) {
         return baseFetch(...arguments_);
       }
 
@@ -380,6 +442,13 @@ export class VerifyServiceDriver {
 
     return async (...arguments_) => {
       const response = await baseFetch(...arguments_);
+      const url = arguments_[0].toString();
+      if (
+        url.endsWith('atlas.runtime.json') ||
+        url.endsWith('/manifest.json')
+      ) {
+        return response;
+      }
       const readBody = response.arrayBuffer.bind(response);
 
       Object.defineProperty(response, 'arrayBuffer', {
@@ -402,6 +471,60 @@ export class VerifyServiceDriver {
       return response;
     };
   }
+}
+
+function canonicalArtifact(manifest: AtlasManifest | AtlasHostManifest) {
+  const entryPath = 'remoteEntry.json';
+  const entryBytes = manifest.kind === 'host' ? hostRemoteBytes : remoteBytes;
+  const entryDigest =
+    manifest.integrity === 'sha256-invalid'
+      ? `sha256:${'0'.repeat(64)}`
+      : sha256Digest(entryBytes);
+  const base = {
+    schemaVersion: '2' as const,
+    kind:
+      manifest.kind === 'host'
+        ? ('host-artifact' as const)
+        : ('app-artifact' as const),
+    id: manifest.id,
+    name: manifest.name,
+    release: { version: manifest.version },
+    framework: manifest.framework,
+    entryPath,
+    exposes: manifest.exposes,
+    files: [
+      {
+        path: entryPath,
+        digest: entryDigest,
+        size: entryBytes.byteLength,
+        mediaType: 'application/json',
+        cacheControl: 'public, max-age=31536000, immutable',
+        role: 'remote-entry',
+      },
+    ],
+  };
+  if (manifest.kind === 'host') {
+    return {
+      ...base,
+      requiredLoaderApiVersion: manifest.requiredLoaderApiVersion,
+    };
+  }
+  return {
+    ...base,
+    isolation: manifest.isolation,
+    exportedWidgets: manifest.exportedWidgets?.map(
+      ({ remoteEntryUrl: _url, ...widget }) => widget,
+    ),
+    externalAppsDependencies: manifest.externalAppsDependencies,
+    requiredHostSdkVersion: manifest.requiredHostSdkVersion,
+    supportedHosts: manifest.supportedHosts,
+    placements: manifest.placements,
+    metadata: manifest.metadata,
+  };
+}
+
+function sha256Digest(bytes: Uint8Array): `sha256:${string}` {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 
 const shared =

@@ -31,4 +31,20 @@ describe('createPublicationStorage', () => {
       'ATLAS_S3_LOCK_MODE must be "s3" or "external".',
     );
   });
+
+  it('should use create-only condition when immutable object is written', async () => {
+    await driver.when.createImmutableObject();
+
+    expect(driver.get.latestPutCondition()).toStrictEqual({
+      ifNoneMatch: '*',
+    });
+  });
+
+  it('should use version condition when mutable object is replaced', async () => {
+    await driver.when.replaceMutableObject();
+
+    expect(driver.get.latestPutCondition()).toStrictEqual({
+      ifMatch: 'etag-1',
+    });
+  });
 });

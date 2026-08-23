@@ -11,11 +11,11 @@ run two-process integration flow from common workspace root.
 
 Test each domain at the boundary it owns:
 
-| Domain | Test focus |
-| --- | --- |
-| Host domain | `startHost` providers, layout anchors, runtime config, auth, HTTP, modal, toast, monitoring, and deep-link fallback. |
-| App domain | Feature UI, app-owned routes, SDK usage, assets, and behavior when host services succeed or fail. |
-| Deployment domain | Publication plan upload order, static catalog shape, CDN headers, CORS, integrity, and rollback. |
+| Domain            | Test focus                                                                                                           |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Host domain       | `startHost` providers, layout anchors, runtime config, auth, HTTP, modal, toast, monitoring, and deep-link fallback. |
+| App domain        | Feature UI, app-owned routes, SDK usage, assets, and behavior when host services succeed or fail.                    |
+| Deployment domain | Publication upload order, registry descriptors, active host projection, CDN headers, CORS, integrity, and rollback.  |
 
 ## App Domain
 
@@ -23,10 +23,14 @@ Use normal framework tests for feature behavior. Replace the real host with a
 test SDK:
 
 ```ts
-import { createTestHostSdk } from "@atlas/testkit";
+import { createTestHostSdk } from '@atlas/testkit';
 
 const atlas = createTestHostSdk({
-  hostData: { hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506", name: "Customer Host", projectId: "demo" }
+  hostData: {
+    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+    name: 'Customer Host',
+    projectId: 'demo',
+  },
 });
 ```
 
@@ -41,12 +45,12 @@ Assert that the app calls SDK capabilities instead of importing host code:
 Test generated or customized host startup with fake manifests and providers:
 
 ```ts
-import { createTestManifest } from "@atlas/testkit";
+import { createTestManifest } from '@atlas/testkit';
 
 const ordersManifest = createTestManifest({
-  id: "2bea9c13-4899-4f93-9211-cd8c55e9c529",
-  hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506",
-  path: "/orders"
+  id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
+  hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+  path: '/orders',
 });
 ```
 
@@ -84,8 +88,8 @@ ATLAS_HOST_URL=http://localhost:4200 atlas dev orders
 ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
 ```
 
-This validates the app inside the host without editing host source or production
-catalogs.
+This validates the app inside the host without editing host source or deployed
+environment selections.
 
 ## Deployment Domain
 
@@ -97,10 +101,11 @@ atlas verify --runtime-url=https://customer.example/atlas.runtime.json
 
 Deployment tests should check:
 
-- `atlas:publish` uploads immutable files before mutable JSON under leased lock;
+- `atlas publish` uploads immutable files and canonical manifest before its
+  compact `registry.json` descriptor under leased lock;
 - every stored object passes SHA-256, MIME, and cache-policy checks;
 - CDN serves `remoteEntry.json` as JSON and JavaScript chunks as JavaScript;
 - CORS allows each host origin;
-- `atlas rollback <artifact-id> --version=... --runtime-url=...` selects existing
-  immutable build, activates mutable files last, verifies, and restores prior
-  selection on failure.
+- `atlas deploy <artifact-id> --to production --version=<older>` selects an
+  existing immutable release, commits desired state, converges affected hosts,
+  and reports any host still pending.

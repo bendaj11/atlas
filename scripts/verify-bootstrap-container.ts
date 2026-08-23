@@ -14,7 +14,7 @@ await execute(
     'build-bootstrap',
     'demo-react-host',
     '--skip-compile',
-    '--registry-base-url=https://cdn.example/atlas',
+    '--registry-url=https://cdn.example/atlas',
     '--out=dist/container-bootstrap',
   ],
   { cwd: root },

@@ -1,100 +1,42 @@
-# Angular production deployment
+# Angular Production Build and Publication
 
-This guide adds Angular-specific checks to the canonical [production deployment flow](../production-deployment.md).
-
-## Generated build integration
-
-Angular Atlas projects keep Angular/Nx build as native `build` target. Atlas adds `atlas:config` and a non-cacheable `atlas:publish` target. Run `build` before publishing.
-
-Angular Native Federation produces `remoteEntry.json`, JavaScript chunks, styles, and assets. Atlas discovers output from Nx/Angular target configuration, including Angular `browser` output directories.
-
-Generated federation configuration uses `shareAll` with singleton sharing,
-strict versions, and automatic required-version lookup. Matching host and app
-versions therefore reuse one host-provided package; incompatible versions stay
-isolated or fail according to Native Federation's strict-version policy. Keep
-the generated sharing rules when composing custom federation configuration.
-
-## Local production build
-
-Nx:
+Use the canonical [build-once deployment workflow](../production-deployment.md).
+Angular builds first; Atlas publishes its existing browser output:
 
 ```bash
-npx nx run orders:build
-npx atlas build orders --from-build-output \
-  --registry-base-url https://assets.example.internal/atlas
+npx ng build orders --configuration production
+npx atlas publish orders --version 1.4.0
 ```
 
-`atlas build` writes `dist/app.manifest.json`; it does not access storage or create publication plans.
-
-Check manifest:
+For a preview:
 
 ```bash
-node -e 'const m=require("./orders/dist/app.manifest.json"); console.log({version:m.version,buildId:m.buildId,remoteEntryUrl:m.remoteEntryUrl,styles:m.styles})'
+npx ng build orders --configuration production
+npx atlas publish orders --mr 123
 ```
 
-## Publish
+Atlas validates Angular output and `remoteEntry.json`, then writes canonical
+`manifest.json` beside immutable payload files in registry storage. Deployment
+later needs no Angular workspace or build tools.
 
-First environment:
+## Native Federation
+
+Generated Angular projects use Native Federation with singleton sharing, strict
+versions, and automatic required-version lookup. Matching host/app versions reuse
+one host-provided package; incompatible versions remain isolated or fail under
+Native Federation policy. Keep generated sharing rules when customizing config.
+
+For `No entry point found for <package>` warnings, use
+[Angular troubleshooting](troubleshooting.md#native-federation-warns-no-entry-point-found-for-package)
+to decide whether to skip the package or correct runtime dependency setup.
+
+## Verify
+
+After `atlas deploy`, verify the deployed bootstrap and active host manifest:
 
 ```bash
-npx nx run-many -t build
-npx nx run-many -t atlas:publish
+npx atlas verify --runtime-url https://platform.example.com/atlas.runtime.json
 ```
 
-Routine CI:
-
-```bash
-npx nx affected -t build
-npx nx affected -t lint test atlas:publish deploy
-npx atlas verify
-```
-
-No Angular project names appear in routine CI. Nx selects affected projects; only projects with `atlas:publish` publish.
-
-## Styles and assets
-
-Atlas inventories emitted CSS and records integrity. Storage must serve CSS as `text/css` and fonts with correct font MIME type. Publication verifies MIME and immutable caching before activation.
-
-Use public URLs in emitted assets or configure Angular base/deploy URL consistently with registry artifact path. See [Angular assets and styles](assets-and-styles.md).
-
-## Angular host bootstrap
-
-```bash
-npx nx run customer-host:atlas:bootstrap
-```
-
-Deploy `customer-host/dist/bootstrap` through normal platform `deploy` target. Bootstrap digest controls rollout; host-client code remains registry artifact.
-
-Docker/Nginx:
-
-```dockerfile
-FROM nginxinc/nginx-unprivileged:alpine
-COPY ./dist/bootstrap /usr/share/nginx/html
-COPY ./dist/bootstrap/nginx.conf /etc/nginx/conf.d/default.conf
-```
-
-## Verify Angular federation
-
-```bash
-ATLAS_RUNTIME_URLS=https://portal.example.internal/atlas.runtime.json npx atlas verify
-```
-
-Verification checks `remoteEntry.json`, exposed module metadata, styles, CORS, MIME, cache policy, integrity, and catalog route ownership.
-
-## Common Angular failures
-
-### Remote entry not found
-
-Confirm Angular output target and `remoteEntry.json` exist. Run native build first when using `--from-build-output`.
-
-### CSS rejected
-
-Confirm public storage URL serves emitted stylesheet with `Content-Type: text/css`. Republish after fixing storage/CDN metadata.
-
-### Native federation build recursion
-
-Generated Nx configuration preserves original Angular builder as delegated target and wraps `build` with Native Federation. Do not point wrapper back to itself.
-
-### Bootstrap loads but route is blank
-
-Check app `hostId` placement uses host UUID, then run final `atlas verify` after all affected publications.
+CI/CD still owns deployment of Angular host HTML, bootstrap output, server/CDN
+configuration, credentials, and approval gates.

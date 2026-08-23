@@ -1,27 +1,30 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { CliArguments } from './arguments.js';
-import { AtlasBuildService } from '../build/service/build.service.js';
 import { AtlasBootstrapService } from '../bootstrap/service/bootstrap.service.js';
-import { createCliError } from './cli-error/cli-error.js';
 import { compileAtlasConfig } from '../build/config-compiler/config-compiler.js';
+import { AtlasBuildService } from '../build/service/build.service.js';
+import { AtlasDeployService } from '../deployment/deploy.service.js';
 import { AtlasDevService } from '../development/index.js';
 import { AtlasGenerateService } from '../generation/service/generate.service.js';
-import { loadEnvFiles } from '../workspace/env/env.js';
 import { formatHelp, requestedHelpTopic } from '../help/help.js';
+import { readOpenPreviews } from '../publication/pr-state-file/pr-state-file.js';
 import {
   AtlasPublishService,
-  loadAtlasPublishConfig,
+  loadAtlasRegistryConfig,
 } from '../publication/service/publish.service.js';
-import { resolvePublicationContext } from '../publication/publication-context/publication-context.js';
-import { readOpenPullRequests } from '../publication/pr-state-file/pr-state-file.js';
 import {
   AtlasVerifyService,
   type AtlasVerificationCheck,
 } from '../verification/service/verify.service.js';
-import { resolveInvocation } from './interaction/interaction.js';
-import { TerminalPrompter, ui, type AtlasPrompter } from './ui/ui.js';
+import { loadEnvFiles } from '../workspace/env/env.js';
 import { detectWorkspace } from '../workspace/service/workspace.js';
+import { CliArguments } from './arguments.js';
+import { createCliError } from './cli-error/cli-error.js';
+import {
+  resolveInvocation,
+  type AtlasInvocation,
+} from './interaction/interaction.js';
+import { TerminalPrompter, ui, type AtlasPrompter } from './ui/ui.js';
 
 export async function runAtlasCli(
   values = process.argv.slice(2),
@@ -44,6 +47,8 @@ export async function runAtlasCli(
       return;
     }
     const invocation = await resolveInvocation(args, prompts);
+    if (await runWorkspaceFreeCommand(args, invocation)) return;
+
     const workspace = await detectWorkspace();
     if (invocation.command !== 'dev') await loadEnvFiles(workspace.root);
     const builds = new AtlasBuildService(workspace, args);
@@ -111,47 +116,31 @@ export async function runAtlasCli(
     if (invocation.command === 'build' && invocation.subcommand) {
       ui.heading(`Build · ${invocation.subcommand}`);
       const result = await builds.build(invocation.subcommand);
+      const identity = result.manifest.release
+        ? result.manifest.release.version
+        : `preview #${result.manifest.preview!.number}`;
+      ui.success(`Built ${result.artifact} ${result.manifest.id}@${identity}.`);
       if (result.artifact === 'host') {
-        ui.success(
-          `Built host client ${result.manifest.id}@${result.manifest.version}.`,
-        );
         ui.info(
           'Host bootstrap deploys independently through your platform target.',
-        );
-      } else {
-        ui.success(
-          `Built app ${result.manifest.id}@${result.manifest.version}.`,
         );
       }
       return;
     }
 
     if (invocation.command === 'publish' && invocation.subcommand) {
-      const publicationContext = resolvePublicationContext(
-        args,
-        workspace.root,
-      );
-      if (!publicationContext.publish) {
-        ui.info(`Atlas publication skipped: ${publicationContext.reason}.`);
-        return;
-      }
       ui.heading(`Publish · ${invocation.subcommand}`);
-      const result = await publishAndVerify(
-        args,
-        builds,
+      const config = await loadAtlasRegistryConfig(args, workspace.root);
+      const result = await new AtlasPublishService(args, builds).run(
         invocation.subcommand,
+        config,
       );
-      if (result.skippedReason) {
-        ui.info(`Atlas publication skipped: ${result.skippedReason}.`);
-        return;
-      }
       if (result.dryRun) result.uploaded.forEach((path) => ui.item(path));
       ui.success(
         result.dryRun
           ? `Dry run: ${result.uploaded.length} file(s).`
-          : `Published ${result.uploaded.length} file(s).`,
+          : `Published ${result.manifest.path}.`,
       );
-      result.cleanupWarnings.forEach((warning) => ui.warning(warning));
       return;
     }
 
@@ -160,71 +149,9 @@ export async function runAtlasCli(
         invocation.subcommand && !invocation.subcommand.startsWith('-')
           ? invocation.subcommand
           : '.';
+      ui.logo();
       ui.heading(`Develop · ${project}`);
       await new AtlasDevService(workspace, args, builds).run(project, prompts);
-      return;
-    }
-
-    if (invocation.command === 'rollback' && invocation.subcommand) {
-      ui.heading(`Rollback · ${invocation.subcommand}`);
-      if (!invocation.version)
-        throw new Error('Atlas rollback requires --version.');
-      const result = await rollbackAndVerify(
-        args,
-        builds,
-        invocation.subcommand,
-        invocation.version,
-      );
-      ui.success(
-        `Selected ${invocation.subcommand}@${result.version} (${result.buildId}).`,
-      );
-      ui.success(`Published rollback with ${result.uploaded.length} file(s).`);
-      return;
-    }
-
-    if (invocation.command === 'remove-pr') {
-      const prNumber = positiveInteger(args.flag('pr-number'), '--pr-number');
-      const artifactIds = await configuredArtifactIds(args, workspace, builds);
-      const config = await loadAtlasPublishConfig(args);
-      ui.heading(`Remove pull-request builds · #${prNumber}`);
-      const result = await new AtlasPublishService(args, builds).removePr(
-        artifactIds,
-        prNumber,
-        {
-          ...(config ? { config } : {}),
-        },
-      );
-      if (result.removedBuilds === 0)
-        ui.info(
-          `No builds for pull request #${prNumber} matched this workspace.`,
-        );
-      else
-        ui.success(
-          `Removed ${result.removedBuilds} build(s) for pull request #${prNumber}.`,
-        );
-      result.cleanupWarnings.forEach((warning) => ui.warning(warning));
-      return;
-    }
-
-    if (invocation.command === 'prune-prs') {
-      const artifactIds = await configuredArtifactIds(args, workspace, builds);
-      const config = await loadAtlasPublishConfig(args);
-      const stateFile = args.flag('state-file');
-      const openPullRequests = stateFile
-        ? await readOpenPullRequests(stateFile)
-        : undefined;
-      ui.heading('Prune pull-request builds');
-      const result = await new AtlasPublishService(args, builds).prunePrs(
-        artifactIds,
-        openPullRequests,
-        {
-          ...(config ? { config } : {}),
-        },
-      );
-      ui.success(
-        `Checked ${result.checkedPullRequests} pull request(s); removed ${result.removedBuilds} closed build(s).`,
-      );
-      result.cleanupWarnings.forEach((warning) => ui.warning(warning));
       return;
     }
 
@@ -239,16 +166,6 @@ export async function runAtlasCli(
       return;
     }
 
-    if (invocation.command === 'verify') {
-      const runtimeUrls = configuredRuntimeUrls(args);
-      if (!runtimeUrls.length)
-        throw new Error('--runtime-url or ATLAS_RUNTIME_URLS is required.');
-      ui.heading('Verify deployment');
-      await verifyRuntimeUrls(args, runtimeUrls);
-      ui.success(`Verified ${runtimeUrls.length} deployment(s).`);
-      return;
-    }
-
     throw new Error(
       `Unknown or incomplete command "${values.join(' ')}". Run atlas --help for usage.`,
     );
@@ -259,33 +176,87 @@ export async function runAtlasCli(
   }
 }
 
-async function configuredArtifactIds(
+async function runWorkspaceFreeCommand(
   args: CliArguments,
-  workspace: Awaited<ReturnType<typeof detectWorkspace>>,
-  builds: AtlasBuildService,
-): Promise<string[]> {
-  const explicit = splitUrls(args.flag('artifact-ids'));
-  if (explicit.length) return explicit;
-  const projects = await workspace.listProjects();
-  if (projects.length === 0)
-    throw new Error(
-      'Atlas found no configured projects in this workspace. Pass --artifact-ids explicitly.',
+  invocation: AtlasInvocation,
+): Promise<boolean> {
+  if (invocation.command === 'deploy' && invocation.subcommand) {
+    ui.heading(`Deploy · ${invocation.subcommand}`);
+    const config = await loadAtlasRegistryConfig(args);
+    const result = await new AtlasDeployService(args).run(
+      invocation.subcommand,
+      config,
     );
-  return Promise.all(
-    projects.map(async (project) => {
-      if (!args.hasFlag('skip-compile'))
-        await compileAtlasConfig(workspace, project);
-      return (await builds.loadConfig(project.root)).id;
-    }),
-  );
+    if (result.pendingHosts.length) {
+      ui.warning(
+        `Desired state committed; pending hosts: ${result.pendingHosts.join(', ')}. Repeat deploy to resume convergence.`,
+      );
+    } else {
+      ui.success(
+        `${result.artifactId}@${result.version} deployed to ${result.environment}.`,
+      );
+    }
+    if (!result.dryRun) {
+      const runtimeUrls = configuredRuntimeUrls(args, config?.runtimeUrls);
+      if (runtimeUrls.length) await verifyRuntimeUrls(args, runtimeUrls);
+    }
+    return true;
+  }
+
+  if (invocation.command === 'remove-preview' && invocation.subcommand) {
+    const previewNumber = previewSelector(args);
+    const config = await loadAtlasRegistryConfig(args);
+    const result = await new AtlasPublishService(args).removePreview(
+      invocation.subcommand,
+      previewNumber,
+      config,
+    );
+    if (result.removed) ui.success(`Removed preview #${previewNumber}.`);
+    else ui.info(`Preview #${previewNumber} was not registered.`);
+    return true;
+  }
+
+  if (invocation.command === 'prune-previews') {
+    const stateFile = args.flag('state-file');
+    if (!stateFile || stateFile === 'true') {
+      throw new Error('atlas prune-previews requires --state-file.');
+    }
+    const previewStates = await readOpenPreviews(stateFile);
+    const config = await loadAtlasRegistryConfig(args);
+    const result = await new AtlasPublishService(args).prunePreviews(
+      previewStates,
+      config,
+    );
+    ui.success(
+      `Checked ${result.checked} preview(s); removed ${result.removed} selection(s) and ${result.removedGenerations} expired generation(s).`,
+    );
+    return true;
+  }
+
+  if (invocation.command === 'verify') {
+    const runtimeUrls = configuredRuntimeUrls(args);
+    if (!runtimeUrls.length) {
+      throw new Error('--runtime-url or ATLAS_RUNTIME_URLS is required.');
+    }
+    ui.heading('Verify deployment');
+    await verifyRuntimeUrls(args, runtimeUrls);
+    ui.success(`Verified ${runtimeUrls.length} deployment(s).`);
+    return true;
+  }
+  return false;
 }
 
-function positiveInteger(value: string | undefined, flag: string): number {
-  const parsed = Number(value);
-  if (!value || !Number.isSafeInteger(parsed) || parsed < 1) {
-    throw new Error(`${flag} must be a positive integer.`);
+function previewSelector(args: CliArguments): number {
+  const pr = args.flag('pr');
+  const mr = args.flag('mr');
+  if ((pr === undefined) === (mr === undefined)) {
+    throw new Error('Pass exactly one of --pr or --mr.');
   }
-  return parsed;
+  const value = Number(pr ?? mr);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new Error('--pr and --mr must be positive integers.');
+  }
+  return value;
 }
 
 function cliVersion(): string {
@@ -305,41 +276,6 @@ function printVerificationCheck(check: AtlasVerificationCheck): void {
   if (check.status === 'pass') ui.success(message);
   else if (check.status === 'warning') ui.warning(message);
   else ui.error(message);
-}
-
-async function publishAndVerify(
-  args: CliArguments,
-  builds: AtlasBuildService,
-  projectName: string,
-) {
-  const config = args.hasFlag('dry-run')
-    ? undefined
-    : await loadAtlasPublishConfig(args);
-  const runtimeUrls = configuredRuntimeUrls(args, config?.runtimeUrls);
-  return new AtlasPublishService(args, builds).run(projectName, {
-    ...(config ? { config } : {}),
-    ...(runtimeUrls.length
-      ? {
-          verify: async () => verifyRuntimeUrls(args, runtimeUrls),
-        }
-      : {}),
-  });
-}
-
-async function rollbackAndVerify(
-  args: CliArguments,
-  builds: AtlasBuildService,
-  artifactId: string,
-  version: string,
-) {
-  const config = await loadAtlasPublishConfig(args);
-  const runtimeUrls = configuredRuntimeUrls(args, config?.runtimeUrls);
-  return new AtlasPublishService(args, builds).rollback(artifactId, version, {
-    ...(config ? { config } : {}),
-    ...(runtimeUrls.length
-      ? { verify: async () => verifyRuntimeUrls(args, runtimeUrls) }
-      : {}),
-  });
 }
 
 function configuredRuntimeUrls(
@@ -367,7 +303,7 @@ async function verifyRuntimeUrls(
       hostOrigin: args.flag('host-origin'),
     });
     report.checks.forEach(printVerificationCheck);
-    if (report.failures > 0) {
+    if (report.failures) {
       throw new Error(
         `Deployment verification failed for ${runtimeUrl} with ${report.failures} failure(s).`,
       );

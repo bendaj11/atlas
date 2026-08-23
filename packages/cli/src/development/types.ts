@@ -4,7 +4,6 @@ import type {
   AtlasHostCatalog,
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
-  AtlasStaticRegistry,
 } from '@atlas/schema';
 import type { AtlasBuildService } from '../build/service/build.service.js';
 import type { AtlasPrompter } from '../cli/ui/ui.js';
@@ -84,7 +83,9 @@ export interface DevSessionStore {
     hostId: string,
     productionCatalog?: AtlasHostCatalog,
   ): AtlasHostCatalog | undefined;
-  devSession(hostId?: string): AtlasDevSessionDocument | undefined;
-  registry(): AtlasStaticRegistry;
+  devSession(
+    hostId?: string,
+    publishedCatalog?: AtlasHostCatalog,
+  ): AtlasDevSessionDocument | undefined;
   hasReadySession(): boolean;
 }

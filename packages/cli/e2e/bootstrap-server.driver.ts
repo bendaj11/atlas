@@ -45,8 +45,9 @@ export class BootstrapServerDriver {
         port: 0,
         proxy,
         runtime: {
-          catalogUrl: faker.internet.url(),
+          manifestUrl: faker.internet.url(),
           hostId: this.hostId,
+          environment: 'production',
           schemaVersion: '1',
         },
       });
@@ -74,7 +75,7 @@ export class BootstrapServerDriver {
   get = {
     body: async (): Promise<string> => this.response?.text() ?? '',
     expectedHostId: (): string => this.hostId,
-    expectedHtml: (): string => this.html,
+    expectedHtml: (): string => this.html.replace('"></script>', ''),
     expectedUpstreamBody: (): string => this.upstreamBody,
     runtimeHostId: async (): Promise<string | undefined> =>
       ((await this.response?.json()) as { hostId?: string } | undefined)

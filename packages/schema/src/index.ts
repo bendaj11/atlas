@@ -8,26 +8,45 @@ export type {
   AtlasWidgetConfig,
 } from './atlas-config.js';
 export type { AtlasArtifactManifestBase } from './atlas-artifact-manifest-base.js';
-export type { AtlasArtifactIndex } from './atlas-artifact-index.js';
-export type { AtlasAppDomIsolation, AtlasDomIsolation } from './atlas-dom-isolation.js';
+export type {
+  AtlasAppDomIsolation,
+  AtlasDomIsolation,
+} from './atlas-dom-isolation.js';
 export type { AtlasExportedWidgetManifest } from './atlas-exported-widget-manifest.js';
 export type { AtlasExposeMap } from './atlas-expose-map.js';
 export type { AtlasFramework } from './atlas-framework.js';
 export type { AtlasHostCatalog } from './atlas-host-catalog.js';
 export type { AtlasDeploymentCatalog } from './atlas-host-catalog.js';
 export type { AtlasHostManifest } from './atlas-host-manifest.js';
-export type { AtlasHostIndex } from './atlas-host-index.js';
 export type { AtlasHostRuntimeConfig } from './atlas-host-runtime-config.js';
 export type { AtlasManifest, AtlasAppManifest } from './atlas-manifest.js';
 export type { AtlasMetadata } from './atlas-metadata.js';
 export type { AtlasMetadataValue } from './atlas-metadata-value.js';
-export type { AtlasAppIndex } from './atlas-app-index.js';
 export type { AtlasPlacement } from './atlas-placement.js';
+export { ATLAS_ALL_HOSTS, placementTargetsHost } from './atlas-placement.js';
 export type { AtlasPlacementKind } from './atlas-placement-kind.js';
-export type { AtlasProductionSelection } from './atlas-production-selection.js';
 export type { AtlasRouteNavigation } from './atlas-route-navigation.js';
 export type { AtlasRouteContribution } from './atlas-route-contribution.js';
 export type { AtlasStaticRegistry } from './atlas-static-registry.js';
+export type {
+  AtlasAppArtifactManifest,
+  AtlasArtifactKind,
+  AtlasArtifactManifestBaseV2,
+  AtlasArtifactSource,
+  AtlasArtifactStylesheet,
+  AtlasDeploymentManifestReference,
+  AtlasDeploymentSelection,
+  AtlasEnvironmentDeployment,
+  AtlasHostArtifactManifest,
+  AtlasHostDeploymentManifest,
+  AtlasManifestDescriptor,
+  AtlasPayloadFileDescriptor,
+  AtlasPreviewIdentity,
+  AtlasPublishedArtifactManifest,
+  AtlasPublishedWidgetManifest,
+  AtlasRegistryArtifact,
+  AtlasReleaseIdentity,
+} from './atlas-publication.js';
 export type { AtlasStylesheet } from './atlas-stylesheet.js';
 export type { AtlasValidationIssue } from './atlas-validation-issue.js';
 export type { AtlasVersionChannel } from './atlas-version-channel.js';
@@ -48,6 +67,14 @@ export type {
 } from './actionable-error.js';
 export { AtlasValidationError } from './atlas-validation-error.js';
 export { createManifestFromConfig } from './create-manifest-from-config.js';
+export { hydratePublishedArtifactManifest } from './hydrate-published-artifact.js';
 export { validateAtlasHostCatalog } from './validate-atlas-host-catalog.js';
 export { validateAtlasHostManifest } from './validate-atlas-host-manifest.js';
 export { validateAtlasManifest } from './validate-atlas-manifest.js';
+export {
+  assertHostDeploymentManifest,
+  assertManifestDescriptor,
+  assertPublishedArtifactManifest,
+  assertReleaseVersion,
+  assertSafeRelativePath,
+} from './publication-validation.js';

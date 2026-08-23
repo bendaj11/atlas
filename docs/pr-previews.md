@@ -1,281 +1,163 @@
-# Pull-request previews
+# PR and MR Previews
 
-Atlas can publish affected host clients and apps from a pull request without
-changing production. Columbus then lets a user select those builds on a normal
-deployed host. PR publication is optional; branches that are not associated
-with a PR are intentionally ignored.
+PR and MR are two names for one Atlas preview-number namespace. Each artifact
+has one current preview per number, regardless of how many commits the branch has.
 
-## Lifecycle at a glance
+## Publish
 
-| Repository event | CI owner | Atlas command | Result |
-| --- | --- | --- | --- |
-| Branch pushed before a PR exists | Branch CI | Normal workspace command may include `atlas:publish` | Atlas logs a skip and exits successfully; nothing is stored |
-| PR opened or synchronized | PR CI | Workspace `atlas:publish` targets | Each affected artifact publishes the PR's current head SHA |
-| Another commit pushed | PR CI | Same command | New successful build replaces the previous build for that artifact and PR |
-| PR merged | Merge/close event job | `atlas remove-pr --pr-number <number>` | Removes this workspace's PR entries and their recorded objects |
-| PR closed without merge | Close event job | Same command | Same cleanup |
-| Event job was missed | Scheduled CI | `atlas prune-prs` | Reconciles stored PRs and removes closed or merged ones; open PRs are preserved |
-
-These are CI jobs, not commands run inside a pull request description. Run
-them from the repository workspace root so Atlas can discover every local
-`atlas.config.ts` and scope cleanup to those artifact IDs.
-
-## 1. Create and push a branch
+Build first, then publish existing output:
 
 ```bash
-git switch -c feature/order-filters
-git push -u origin feature/order-filters
+npm run build -- orders
+npx atlas publish orders --pr 123
 ```
 
-If branch CI contains the ordinary Nx deployment command, it may still run:
+GitLab-oriented pipelines may use the identical alias:
 
 ```bash
-npx nx affected -t build
-npx nx affected -t lint test atlas:publish
+npm run build -- orders
+npx atlas publish orders --mr 123
 ```
 
-There is no PR number and the branch is not `main` or `master`, so Atlas prints
-an informational skip and exits with code 0. This keeps a general branch
-pipeline green and prevents accidental preview publication. Atlas does not
-publish merely because a branch was pushed.
+Exactly one of `--version`, `--pr`, or `--mr` is required. Passing both preview
+flags fails. Atlas never infers preview or release intent from a CI event, branch,
+or tag. It uses source-control context only to reject stale preview builds.
 
-Set `ATLAS_REQUIRE_PUBLICATION=true`, or pass `--require-publication`, only in a
-job where a missing publish context is a CI configuration error. That changes
-the skip into a failure; it does not make an ordinary branch publish.
+## Stale-job protection
 
-## 2. Open the pull request
+Atlas is CI-orchestrator agnostic and source-control aware:
 
-The Git provider starts a PR pipeline. Run the workspace command from the
-workspace root. Nx example:
+1. It records the commit SHA from checked-out Git source.
+2. `--git-sha` overrides this for synthetic merge commits or unusual layouts.
+3. A GitHub, GitLab, Bitbucket, or custom resolver obtains authoritative live head.
+4. Atlas checks the head before upload and again under the registry lease.
+5. Closed, merged, unresolved, or stale previews fail publication.
 
-```bash
-npx nx affected -t build \
-  --base="$NX_BASE" \
-  --head="$NX_HEAD"
-npx nx affected -t lint test atlas:publish \
-  --base="$NX_BASE" \
-  --head="$NX_HEAD"
-```
+This works for Jenkins with GitHub, Jenkins with GitLab, GitHub Actions, GitLab
+CI, and other combinations because source control and CI orchestration are
+separate concerns.
 
-Equivalent selection belongs to the workspace tool:
+Built-in resolvers use these source-control variables:
 
-```bash
-npx turbo run build --affected
-npx turbo run lint test atlas:publish --affected
-yarn workspaces foreach --since --topological-dev run build
-yarn workspaces foreach --since --topological-dev run atlas:publish
-pnpm --filter "...[origin/main]" -r --if-present run build
-pnpm --filter "...[origin/main]" -r --if-present run atlas:publish
-```
+| Provider  | Repository/API context                         | Token                                         |
+| --------- | ---------------------------------------------- | --------------------------------------------- |
+| GitHub    | `GITHUB_REPOSITORY`; optional `GITHUB_API_URL` | `GITHUB_TOKEN` or `ATLAS_GIT_TOKEN`           |
+| GitLab    | `CI_PROJECT_ID` and `CI_API_V4_URL`            | `CI_JOB_TOKEN` or `ATLAS_GIT_TOKEN`           |
+| Bitbucket | `BITBUCKET_REPO_FULL_NAME`                     | `BITBUCKET_ACCESS_TOKEN` or `ATLAS_GIT_TOKEN` |
 
-Atlas does not calculate another affected graph. Each selected
-`atlas:publish` target publishes one manually built artifact after compiling
-and validating its Atlas config.
-
-### Metadata detection and custom mapping
-
-Atlas computes PR context; users do not configure a separate `channel` for
-normal CI. A positive PR number means PR publication. Without a PR number, a
-tag or the default branch means production. Another named branch is skipped.
-
-PR number is read in this order:
-
-1. `--pr-number`;
-2. `ATLAS_PR_NUMBER`;
-3. `PR_NUMBER`, `GITHUB_PR_NUMBER`, `CI_MERGE_REQUEST_IID`,
-   `BITBUCKET_PR_ID`, or `VERCEL_GIT_PULL_REQUEST_ID`;
-4. a recognized GitHub pull ref.
-
-Source metadata can also be mapped explicitly:
-
-```bash
-npx nx affected -t build
-ATLAS_PR_NUMBER="$MY_CI_CHANGE_NUMBER" \
-ATLAS_GIT_SHA="$MY_CI_PR_HEAD_SHA" \
-ATLAS_GIT_BRANCH="$MY_CI_SOURCE_BRANCH" \
-ATLAS_GIT_COMMIT_TITLE="$MY_CI_COMMIT_TITLE" \
-npx nx affected -t atlas:publish
-```
-
-Equivalent flags are `--pr-number`, `--git-sha`, `--git-branch`, and
-`--git-commit-title`. Environment mapping is preferable in reusable CI jobs.
-Atlas also infers common GitHub, GitLab, Bitbucket, Vercel, and generic CI
-variables.
-
-`ATLAS_GIT_SHA` must be the actual PR head commit. Some GitHub PR checkouts set
-`GITHUB_SHA` to a synthetic merge commit. Map
-`github.event.pull_request.head.sha` to `ATLAS_GIT_SHA` in that workflow.
-
-### Freshness check
-
-Building can take long enough for another commit to arrive. Immediately before
-registry mutation, while holding the Atlas publication lease, Atlas asks the
-Git provider for the live PR state and head SHA:
-
-- open and same SHA: publication continues;
-- closed or merged: Atlas logs a skip and exits successfully;
-- open but a different SHA: the obsolete build logs a skip and exits
-  successfully;
-- provider lookup/authentication failure: publication fails without changing
-  the registry.
-
-Built-in lookup supports GitHub, GitLab, and Bitbucket when their standard CI
-repository variables and token are available. `ATLAS_GIT_TOKEN` overrides the
-provider token. GitHub can use `GITHUB_TOKEN`; GitLab can use `CI_JOB_TOKEN`;
-Bitbucket can use `BITBUCKET_ACCESS_TOKEN`.
-
-For another provider, configure the resolver Atlas calls under the lease:
+Atlas reads the checked-out Git SHA, branch, and commit title. Pass `--git-sha`
+when the checkout points at a synthetic merge commit. Private or unsupported
+systems configure an explicit resolver:
 
 ```ts
-import { defineAtlasPublishConfig } from "@atlas/cli";
+import { defineAtlasRegistryConfig } from '@atlas/cli';
 
-export default defineAtlasPublishConfig({
-  async resolvePullRequest({ prNumber }) {
-    const pullRequest = await companyGit.getPullRequest(prNumber);
+export default defineAtlasRegistryConfig({
+  async resolvePreviewHead({ previewNumber }) {
+    const change = await companyScm.getChange(previewNumber);
     return {
-      state: pullRequest.state, // "open", "closed", or "merged"
-      headSha: pullRequest.headSha
+      state: change.state,
+      headSha: change.headSha,
     };
-  }
+  },
 });
 ```
 
-Repository identity is used only by the provider lookup. Registry identity is
-`artifact kind + artifact id + PR number`. Atlas artifact IDs are already
-required to be unique inside one registry, so adding repository data to every
-manifest would not improve registry disambiguation.
+The resolver must return `state` as `open`, `closed`, or `merged` and the
+authoritative head SHA. Atlas fails closed when resolution or authentication
+fails.
 
-## 3. Push more commits
+## Storage behavior
 
-```bash
-git add .
-git commit -m "fix order filter state"
-git push
+The public preview identity remains number `123`. Atlas stages each replacement
+under an internal digest:
+
+```text
+apps/<id>/previews/123/<digest>/manifest.json
+apps/<id>/previews/123/<digest>/<payload>
 ```
 
-PR CI runs again. For every affected artifact, only the latest successful
-build for that artifact ID and PR number remains in `registry.json` and its
-artifact index. The manifest records:
+Only the newest descriptor appears in `registry.json` and Columbus. Digest is
+not a version, public build ID, or history. Staging avoids overwriting files used
+by in-flight clients. Superseded generations remain for 24 hours.
 
-- PR number;
-- actual commit SHA;
-- branch name;
-- first commit-message line;
-- content-derived build ID.
+## Overrides
 
-Columbus displays the branch, short SHA, commit title, and PR number. A stored
-PR selection follows the latest successful manifest for the same artifact and
-PR on reload. Users do not need to reselect the PR after each commit.
+Columbus can apply a current PR/MR app or host preview to a deployed host. Local,
+preview, other-release, disabled, reset, tab-only, and all-tabs override behavior
+remains available. A broken override does not replace the stored deployment.
 
-Atlas writes `atlas-publication.json` beside every new immutable manifest. It
-contains the exact object paths created for that build. After the new registry
-state is safely active, Atlas removes the superseded build using this
-inventory and optionally invalidates those exact CDN paths. Atlas never lists
-or broadly deletes a bucket. Builds published by older Atlas versions have no
-inventory; Atlas removes their registry entry but retains their objects and
-prints a cleanup warning.
+## Close or merge cleanup
 
-Multiple affected apps publish independently. Atlas intentionally does not
-claim an atomic cross-project PR snapshot: one app may publish successfully
-while another fails. The failed CI run is visible, every manifest shows its
-own SHA, and retrying the workspace command converges the affected artifacts.
-Each individual artifact publication remains transactional and restores its
-own mutable registry files if activation or verification fails.
-
-## 4. Merge or close the PR
-
-The Git provider's merged/closed event workflow—not the original PR build and
-not a developer machine—owns immediate cleanup:
+The close/merge job removes its explicit artifact preview:
 
 ```bash
-npx atlas remove-pr --pr-number "$PR_NUMBER"
+npx atlas remove-preview orders --pr 123
+npx atlas remove-preview orders --mr 123
 ```
 
-Run it from the workspace root with the same publication storage credentials.
-Atlas discovers configured projects, compiles their configs, obtains their
-stable artifact IDs, acquires the storage lease, removes matching PR manifests
-from the registry and indexes, and deletes their inventory-listed objects.
-It cannot remove another repository's artifacts because cleanup is scoped to
-the discovered IDs.
+Removal is artifact-scoped and never performs broad bucket deletion.
 
-If the event job does not check out a full workspace, pass stable IDs:
+Use scheduled reconciliation when close events can be missed:
 
 ```bash
-npx atlas remove-pr --pr-number "$PR_NUMBER" \
-  --artifact-ids orders,login,customer-host
+npx atlas prune-previews --state-file open-previews.json
 ```
 
-`--skip-compile` reads already compiled configs. Do not use it unless the job
-restores valid `.atlas/atlas.config.js` output.
-
-### Provider event ownership
-
-- GitHub: a workflow triggered by `pull_request` types `closed`; the event
-  contains the PR number for both merged and unmerged closure.
-- GitLab: a merge-request pipeline or webhook job triggered when state becomes
-  merged or closed.
-- Bitbucket: a pull-request fulfilled or rejected pipeline/webhook job.
-- Another provider: any trusted close/merge webhook job that checks out the
-  workspace and supplies the PR number.
-
-Keep storage credentials out of untrusted fork code. Cleanup and publication
-must run in trusted CI context with protected secrets.
-
-## 5. Reconcile nightly
-
-Immediate event cleanup can be missed because a webhook, runner, or credential
-failed. Schedule:
-
-```bash
-npx atlas prune-prs
-```
-
-Atlas reads only this workspace's PR manifests, asks the configured provider
-about each PR, preserves every open PR, and removes only closed or merged PRs.
-Provider lookup failure fails safely; Atlas does not guess that an unknown PR
-is closed.
-
-For an unsupported provider, either use `resolvePullRequest` or generate an
-authoritative state file:
+The state file is provider-neutral and authoritative:
 
 ```json
 {
   "schemaVersion": "1",
   "complete": true,
-  "openPullRequests": [17, 42, 81]
+  "artifacts": [
+    {
+      "kind": "app",
+      "id": "5ab68dd4-f18c-4811-8768-b636ce559df6",
+      "openPreviews": [123, 456]
+    }
+  ]
 }
 ```
 
-Then run:
+Atlas refuses incomplete, duplicate, or unsafe scopes. Each entry uses stable
+artifact ID, preventing PR number collisions across repositories. Cleanup only
+touches declared artifact prefixes. It removes registry selections not in that
+artifact's set, then removes unreferenced digest generations older than 24
+hours. A custom SCM integration may generate same authoritative state file.
 
-```bash
-npx atlas prune-prs --state-file .atlas/open-prs.json
+## CI examples
+
+Commands remain identical across tools:
+
+```groovy
+// Jenkins
+sh 'npm run build -- orders'
+withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
+  withEnv(['GITHUB_REPOSITORY=company/orders']) {
+    sh 'npx atlas publish orders --pr "$CHANGE_ID" --git-sha "$GIT_COMMIT"'
+  }
+}
 ```
 
-`complete: true` is required because any stored workspace PR absent from this
-list is treated as closed. Generate the file from a paginated provider query
-that returns all open PRs, not merely the first page or recently updated PRs.
+```yaml
+# GitHub Actions
+- run: npm run build -- orders
+- run: npx atlas publish orders --pr "$PR_NUMBER" --git-sha "$HEAD_SHA"
+  env:
+    PR_NUMBER: ${{ github.event.pull_request.number }}
+    HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    GITHUB_TOKEN: ${{ github.token }}
+```
 
-## Override policy
+```yaml
+# GitLab CI
+script:
+  - npm run build -- orders
+  - npx atlas publish orders --mr "$CI_MERGE_REQUEST_IID" --git-sha "$CI_COMMIT_SHA"
+```
 
-Registry-backed PR and previous-production overrides are always available to
-Columbus without a host opt-in flag. These
-artifacts were published through Atlas, use approved registry origins, and
-still pass compatibility and integrity checks.
-
-Columbus writes selected overrides to browser storage. Production hosts never
-probe localhost by default. `atlas dev` explicitly adds `atlas-dev-port` to
-the preview URL, which activates its local development session for that tab.
-
-## Cache and deletion behavior
-
-Atlas does not maintain an application cache. It writes immutable artifact
-objects with `Cache-Control: public, max-age=31536000, immutable`; browsers and
-CDNs may cache them for one year. Registry, index, and active catalog objects
-use `no-cache` and revalidate.
-
-Deleting an old object from S3/R2 prevents new origin reads, but a CDN may keep
-an already cached response until expiry. Configure `invalidate(paths)` in
-`atlas.publish.ts` when the public registry is behind such a CDN. Atlas passes
-the exact superseded inventory paths after deletion. This is cleanup, not a
-security revocation mechanism; use CDN/provider controls for urgent revocation.
+CI maps its event values into explicit Atlas arguments. Atlas does not change
+command behavior based on Jenkins, GitHub Actions, GitLab CI, or another
+orchestrator; source-control variables only select and authenticate stale-head
+verification.

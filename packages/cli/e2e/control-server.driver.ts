@@ -20,20 +20,19 @@ export class ControlServerDriver {
       await this.first?.close();
     },
     coordinateApps: async (): Promise<void> => {
-      this.first = await startControlServer(
-        0,
-        this.document(this.firstAppId),
-        '',
-      );
-      this.second = await startControlServer(
-        this.first.port,
-        this.document(this.secondAppId),
-        '',
-      );
-
+      this.first = await startControlServer({
+        port: 0,
+        document: this.document(this.firstAppId),
+        overrideUrl: '',
+      });
       await this.first.markReady();
       const initial = await this.catalogIds();
 
+      this.second = await startControlServer({
+        port: this.first.port,
+        document: this.document(this.secondAppId),
+        overrideUrl: '',
+      });
       await this.second.markReady();
       const joined = await this.catalogIds();
 
@@ -74,11 +73,13 @@ export class ControlServerDriver {
     if (!this.first) throw new Error('Control server setup is required.');
 
     const response = await fetch(
-      `http://localhost:${this.first.port}/hosts/${this.hostId}/catalog.json`,
+      `http://localhost:${this.first.port}/atlas.dev-session.json?hostId=${this.hostId}`,
     );
-    const catalog = (await response.json()) as { apps: Array<{ id: string }> };
+    const session = (await response.json()) as {
+      catalog: { apps: Array<{ id: string }> };
+    };
 
-    return catalog.apps.map(({ id }) =>
+    return session.catalog.apps.map(({ id }) =>
       id === this.firstAppId
         ? 'first'
         : id === this.secondAppId

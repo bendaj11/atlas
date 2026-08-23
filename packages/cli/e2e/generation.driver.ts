@@ -163,6 +163,8 @@ export class GenerationE2eDriver {
           'createAngularV4FederationConfig',
         ),
         detected: this.output.includes('package-manager workspace'),
+        devCommand: packageJson.scripts.dev,
+        publishCommand: packageJson.scripts['atlas:publish'],
       };
     },
   };

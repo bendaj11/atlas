@@ -116,4 +116,12 @@ describe('AtlasVerifyService', () => {
 
     expect(driver.get.hasWarning('remote entry cache')).toBe(true);
   });
+
+  it('should reject integrity when widget provider asset digest differs', async () => {
+    driver.given.deployment('invalid-widget-provider');
+
+    await driver.when.run();
+
+    expect(driver.get.hasFailure('integrity')).toBe(true);
+  });
 });

@@ -48,7 +48,8 @@ Before each deployment, render the environment-specific public configuration:
 
 ```bash
 npx atlas render-runtime-config customer-host \
-  --registry-base-url https://assets.example.com/atlas/prod \
+  --registry-url https://assets.example.com/atlas/prod \
+  --environment production \
   --out dist/runtime/atlas.runtime.json
 ```
 
@@ -127,13 +128,17 @@ Example `atlas.runtime.json`:
   "schemaVersion": "1",
   "hostId": "7ee210f9-dacd-4aac-939e-237032d44740",
   "hostVersion": "0.1.0",
-  "catalogUrl": "https://assets.example/atlas/hosts/7ee210f9-dacd-4aac-939e-237032d44740/catalog.json",
+  "environment": "production",
+  "manifestUrl": "https://assets.example/atlas/environments/production/hosts/7ee210f9-dacd-4aac-939e-237032d44740/manifest.json",
   "resourcesTimeoutMs": 15000,
   "resourcesRetryCount": 3
 }
 ```
 
-`catalogUrl` is derived from `ATLAS_REGISTRY_URL`. It is public download URL, not private storage API URL.
+`manifestUrl` is derived from `ATLAS_REGISTRY_URL` and required
+`ATLAS_ENVIRONMENT` (or `--environment`). It is the public active-host manifest
+URL, not the private storage API URL. Local loopback builds default to
+`development`.
 
 Columbus stores explicit host and app selections in browser storage. Atlas only
 contacts a loopback development session when an `atlas-dev-port` query parameter

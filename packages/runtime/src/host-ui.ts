@@ -1,10 +1,14 @@
-import type { AtlasHostAnchorRegistry } from "./host-anchors.js";
+import type { AtlasHostAnchorRegistry } from './host-anchors.js';
 
 export interface AtlasHostUiOptions {
   document: Document;
   anchors: AtlasHostAnchorRegistry;
   renderHostLoading?: (container: HTMLElement) => void | (() => void);
-  renderHostError?: (container: HTMLElement, error: Error, retry: () => void) => void | (() => void);
+  renderHostError?: (
+    container: HTMLElement,
+    error: Error,
+    retry: () => void,
+  ) => void | (() => void);
 }
 
 export interface AtlasHostUi {
@@ -16,18 +20,18 @@ export interface AtlasHostUi {
 /** Controls the single host-owned status outlet used while Atlas starts. */
 export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
   let disposeRenderer: (() => void) | undefined;
-  let state: "loading" | "error" | undefined;
+  let state: 'loading' | 'error' | undefined;
   let error: Error | undefined;
   let retry: (() => void) | undefined;
 
   const render = (): void => {
-    const container = options.anchors.get("status");
+    const container = options.anchors.get('status');
     if (!container || !state) return;
     disposeRenderer?.();
     disposeRenderer = undefined;
     container.replaceChildren();
     setHostState(container, state);
-    if (state === "loading") {
+    if (state === 'loading') {
       if (options.renderHostLoading) {
         disposeRenderer = options.renderHostLoading(container) || undefined;
         return;
@@ -38,7 +42,9 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
     const currentError = error!;
     const currentRetry = retry!;
     if (options.renderHostError) {
-      disposeRenderer = options.renderHostError(container, currentError, currentRetry) || undefined;
+      disposeRenderer =
+        options.renderHostError(container, currentError, currentRetry) ||
+        undefined;
       return;
     }
     renderDefaultError(options.document, container, currentRetry);
@@ -52,52 +58,62 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
     state = undefined;
     error = undefined;
     retry = undefined;
-    const container = options.anchors.get("status");
+    const container = options.anchors.get('status');
     container?.replaceChildren();
-    container?.removeAttribute("data-atlas-state");
-    container?.removeAttribute("aria-busy");
+    container?.removeAttribute('data-atlas-state');
+    container?.removeAttribute('aria-busy');
   };
 
   return {
     showLoading() {
       clear();
-      state = "loading";
+      state = 'loading';
       render();
     },
     showError(nextError, nextRetry) {
       clear();
-      state = "error";
+      state = 'error';
       error = nextError;
       retry = nextRetry;
       render();
     },
-    clear
+    clear,
   };
 }
 
-function setHostState(container: HTMLElement, state: "loading" | "error"): void {
+function setHostState(
+  container: HTMLElement,
+  state: 'loading' | 'error',
+): void {
   container.dataset.atlasState = state;
-  container.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+  container.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
 }
 
-function renderDefaultLoading(document: Document, container: HTMLElement): void {
-  const status = document.createElement("div");
-  status.dataset.atlasStatus = "";
-  status.setAttribute("role", "status");
-  status.textContent = "Loading application...";
+function renderDefaultLoading(
+  document: Document,
+  container: HTMLElement,
+): void {
+  const status = document.createElement('div');
+  status.dataset.atlasStatus = '';
+  status.setAttribute('role', 'status');
+  status.textContent = 'Loading application...';
   container.replaceChildren(status);
 }
 
-function renderDefaultError(document: Document, container: HTMLElement, retry: () => void): void {
-  const status = document.createElement("div");
-  status.dataset.atlasStatus = "";
-  status.setAttribute("role", "alert");
-  const message = document.createElement("span");
-  message.textContent = "Unable to start application. ";
-  const button = document.createElement("button");
-  button.type = "button";
-  button.textContent = "Retry";
-  button.addEventListener("click", retry);
+function renderDefaultError(
+  document: Document,
+  container: HTMLElement,
+  retry: () => void,
+): void {
+  const status = document.createElement('div');
+  status.dataset.atlasStatus = '';
+  status.setAttribute('role', 'alert');
+  const message = document.createElement('span');
+  message.textContent = 'Unable to start application. ';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = 'Retry';
+  button.addEventListener('click', retry);
   status.append(message, button);
   container.replaceChildren(status);
 }

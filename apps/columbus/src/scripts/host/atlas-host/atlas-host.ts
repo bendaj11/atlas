@@ -5,7 +5,6 @@ import {
   getArtifactKey,
 } from '../../../types/contracts.js';
 import { DOCUMENT_KEY } from '../../shared/constants.js';
-import { inspectAtlasHost } from '../inspect-atlas-host/inspect-atlas-host.js';
 import { writeHostDataCache } from '../host-data-cache.js';
 import type { Scope } from '../../../types/app.js';
 import { normalizeStoredManifest } from '../../manifests/manifest-utils/manifest-utils.js';
@@ -152,16 +151,25 @@ async function findAtlasHostTab(): Promise<{
 }
 
 async function inspectTab(tab: InspectableTab): Promise<HostData> {
-  const [injection] = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    world: 'MAIN',
-    func: inspectAtlasHost,
-    args: [DOCUMENT_KEY],
+  const response = await chrome.tabs.sendMessage(tab.id, {
+    type: 'atlas.inspect-host',
+    documentKey: DOCUMENT_KEY,
   });
-
-  if (!injection?.result)
+  if (!isInspectionResponse(response))
     throw new Error('Active page did not return Atlas runtime information.');
-  return injection.result;
+  if (!response.ok) throw new Error(response.error);
+  return response.hostData;
+}
+
+function isInspectionResponse(
+  value: unknown,
+): value is { ok: true; hostData: HostData } | { ok: false; error: string } {
+  if (typeof value !== 'object' || value === null || !('ok' in value))
+    return false;
+  const response = value as Record<string, unknown>;
+  return response.ok === true
+    ? typeof response.hostData === 'object' && response.hostData !== null
+    : response.ok === false && typeof response.error === 'string';
 }
 
 export function createOverrideDocument({

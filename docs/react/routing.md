@@ -157,10 +157,8 @@ selection flow is:
 
 1. `atlas build orders` reads `orders/atlas.config.ts`.
 2. Atlas writes route and slot declarations into the `orders` manifest.
-3. Publication updates `hosts/0a17281f-287b-4d89-a8ca-0ab0e577c506/catalog.json` with selected app
-   versions for that host.
-4. The static bootstrap's dynamic `/atlas.runtime.json` tells the loader where that
-   catalog is.
+3. Deployment updates the environment selection and active host manifest.
+4. `/atlas.runtime.json` tells the loader where that active manifest is.
 5. The loader selects the host client and passes the effective catalog; the host filters placements for
    `hostId: "0a17281f-287b-4d89-a8ca-0ab0e577c506"`, and matches current browser URL against each
    configured `route`.
@@ -221,6 +219,24 @@ atlas.navigateTo('2bea9c13-4899-4f93-9211-cd8c55e9c529', { tab: 'open' });
 ```
 
 Use relative React Router links only for screens owned by the same app.
+
+### `navigateTo()` API
+
+Use `navigateTo()` only for selected app or headless-app route in current host.
+Atlas resolves stable ID to current host URL.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `appId` | `string` | Yes | Stable ID of selected destination app or headless app. |
+| `state` | `Readonly<Record<string, string \| number \| boolean \| null \| undefined>>` | No | Values serialized as destination query parameters. `undefined` is omitted; `null` becomes empty value. |
+
+| Return | Errors |
+| --- | --- |
+| `void` | Throws `ATLAS_APP_ROUTE_NOT_FOUND` when destination has no selected navigation target in this host. |
+
+> [!tip]
+> Use normal React Router links for routes inside current app. `navigateTo()`
+> preserves host ownership when crossing app boundaries.
 
 ## Deployment Domain
 

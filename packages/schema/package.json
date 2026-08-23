@@ -2,7 +2,7 @@
   "name": "@atlas/schema",
   "version": "0.3.59",
   "type": "module",
-  "description": "Stable Atlas manifests, static indexes, catalogs, and configuration schemas.",
+  "description": "Canonical Atlas manifests, registries, and runtime configuration schemas.",
   "license": "MIT",
   "keywords": [
     "app",
@@ -30,11 +30,11 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0 <23"
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/schema/tests/",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/schema/(src|tests)/'",
     "typecheck": "tsc -b --pretty false"
   }
 }

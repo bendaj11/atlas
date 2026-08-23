@@ -1,6 +1,8 @@
 import type { AtlasPlacementKind } from './atlas-placement-kind.js';
 import type { AtlasRouteContribution } from './atlas-route-contribution.js';
 
+export const ATLAS_ALL_HOSTS = '*';
+
 /** Route or host slot where an app can be mounted. */
 export interface AtlasPlacement {
   /** Short stable name for this mount, unique for this host inside the app. */
@@ -13,4 +15,11 @@ export interface AtlasPlacement {
   slot?: string;
   /** URL and menu details when kind is "route". */
   route?: AtlasRouteContribution;
+}
+
+export function placementTargetsHost(
+  placement: Pick<AtlasPlacement, 'hostId'>,
+  hostId: string,
+): boolean {
+  return placement.hostId === ATLAS_ALL_HOSTS || placement.hostId === hostId;
 }

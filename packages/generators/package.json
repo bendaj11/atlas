@@ -30,7 +30,7 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0 <23"
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",

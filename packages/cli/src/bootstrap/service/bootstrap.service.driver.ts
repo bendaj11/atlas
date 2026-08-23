@@ -53,7 +53,8 @@ export class AtlasBootstrapServiceDriver {
     this.runtime = {
       schemaVersion: '1',
       hostId,
-      catalogUrl: `https://${faker.internet.domainName()}/hosts/${hostId}/catalog.json`,
+      environment: 'production',
+      manifestUrl: `https://${faker.internet.domainName()}/environments/production/hosts/${hostId}/manifest.json`,
       resourcesTimeoutMs: 15_000,
       resourcesRetryCount: 3,
     };
