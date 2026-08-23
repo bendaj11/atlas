@@ -326,5 +326,14 @@
   "324": "Testing The Atlas Repository",
   "325": "@stylable/optimizer",
   "326": "mount",
-  "327": "publication-metadata.specs.ts"
+  "327": "publication-metadata.specs.ts",
+  "328": "react",
+  "329": "@jest/globals",
+  "330": "tar",
+  "331": "tsx",
+  "332": "react-tsconfig-generator.ts",
+  "333": "atlas-metadata-value.ts",
+  "334": "atlas-stylesheet.ts",
+  "335": "ArtifactOverrideVersion.specs.tsx",
+  "336": "workspace.specs.ts"
 }

@@ -2045,8 +2045,8 @@
     "semantic_hash": ""
   },
   "tests/e2e/directory-publication-storage.ts": {
-    "mtime": 1787322148.784891,
-    "ast_hash": "b0b0d6c2e5d1a8df86232e2d09459bc8",
+    "mtime": 1787485776.466729,
+    "ast_hash": "08008d494b346bb67556495a0ead5f00",
     "semantic_hash": ""
   },
   "tests/e2e/prepare.ts": {
@@ -2932,6 +2932,11 @@
   "packages/cli/src/development/control-server/control-server-lease.ts": {
     "mtime": 1787485385.4462097,
     "ast_hash": "f5f53499751ec1e42087e83adb1da964",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/publication-metadata/publication-metadata.js": {
+    "mtime": 1787485763.833506,
+    "ast_hash": "439bc99ed1167a9f4821953ec97793b5",
     "semantic_hash": ""
   }
 }
