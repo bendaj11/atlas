@@ -1,8 +1,5 @@
 import { type AtlasExtensionManifest as Manifest } from '../../../types/contracts.js';
-import {
-  supportsHost,
-  versionKey,
-} from '../manifest-versions/manifest-versions.js';
+import { versionKey } from '../manifest-versions/manifest-versions.js';
 import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants.js';
 import type {
   ArtifactConfiguration,
@@ -139,12 +136,12 @@ export function versionLabel(manifest: Manifest): string {
       manifest.gitSha?.slice(0, SHORT_BUILD_ID_LENGTH),
       manifest.gitCommitTitle,
     ]
-      .filter((part): part is string => Boolean(part))
+      .filter(isVisibleVersionLabelPart)
       .join(' · ');
   }
   if (manifest.channel === 'production') {
     return [versionBuildIdLabel(manifest), manifest.gitCommitTitle]
-      .filter((part): part is string => Boolean(part))
+      .filter(isVisibleVersionLabelPart)
       .join(' · ');
   }
 
@@ -161,14 +158,8 @@ function shortBuildId(manifest: Manifest): string {
   return manifest.buildId.slice(0, SHORT_BUILD_ID_LENGTH);
 }
 
-export function versionDisabled({
-  manifest,
-  hostId,
-}: {
-  manifest: Manifest;
-  hostId: string;
-}): boolean {
-  return !supportsHost({ manifest, hostId });
+function isVisibleVersionLabelPart(part: string | undefined): part is string {
+  return Boolean(part?.trim().replaceAll('.', ''));
 }
 
 function baseUrlFromRemoteEntry(remoteEntryUrl: string): string {

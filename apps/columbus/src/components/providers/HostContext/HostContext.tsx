@@ -6,6 +6,7 @@ import {
   readHostData,
   readSuppressedArtifactIds,
 } from '../../../scripts/host/atlas-host/atlas-host.js';
+import { readHostDataCache } from '../../../scripts/host/host-data-cache.js';
 import {
   extractActiveOverrideManifests,
   includeDisabledAppsInCatalog,
@@ -84,12 +85,31 @@ async function readActiveHost(): Promise<HostLoadResult> {
   }
 }
 
+async function readCachedHost(): Promise<HostLoadResult | undefined> {
+  try {
+    const cached = await readHostDataCache();
+    return cached ? createLoadedHost(cached) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function HostProvider({ children }: { children: ReactNode }) {
   const { session, setSession } = useSession();
   const [status, setStatus] = useState<HostStatus>('RESTORING');
   const [message, setMessage] = useState('Reading active Atlas host...');
 
   async function loadHost(): Promise<void> {
+    if (!session) {
+      const cached = await readCachedHost();
+      if (cached?.status === 'LOADED') {
+        setSession(cached.session);
+        setStatus(cached.status);
+        setMessage('');
+        return;
+      }
+    }
+
     setStatus('LOADING');
     setMessage('Reading active Atlas host...');
 

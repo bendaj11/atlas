@@ -260,13 +260,13 @@
     "semantic_hash": "1b87045f3a6f7ebb748d2de5a8d2308a"
   },
   "package.json": {
-    "mtime": 1787514429.9619174,
-    "ast_hash": "72b5e65d44266ca9a5adbce78ac377a0",
+    "mtime": 1787568542.7030573,
+    "ast_hash": "2709e1352939c8b11d4368f1053e6489",
     "semantic_hash": ""
   },
   "packages/bootstrap/package.json": {
-    "mtime": 1787567463.6804953,
-    "ast_hash": "fa8e9bbd79ecc691d979a2c0e5181e87",
+    "mtime": 1787568542.7048583,
+    "ast_hash": "565028a7bdb029349406842566a6412d",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/index.ts": {
@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "packages/cli/package.json": {
-    "mtime": 1787514429.9645047,
-    "ast_hash": "daa5736175ac039785acece422ae2380",
+    "mtime": 1787568542.7059531,
+    "ast_hash": "aa48a95f07adfa2f7ccda74e36f6dcd5",
     "semantic_hash": ""
   },
   "packages/cli/src/index.ts": {
@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "packages/generators/package.json": {
-    "mtime": 1787514429.963856,
-    "ast_hash": "a07e9aa7e4a5c54cc2e48c615b0820d1",
+    "mtime": 1787568542.7052107,
+    "ast_hash": "cd78d28999b317b35bfd3c65165d4c91",
     "semantic_hash": ""
   },
   "packages/generators/src/cli/angular-app-generator.ts": {
@@ -340,8 +340,8 @@
     "semantic_hash": ""
   },
   "packages/generators/src/cli/generator-versions.ts": {
-    "mtime": 1787566443.535401,
-    "ast_hash": "3dd09426e4c96500094e86a8fa7139b3",
+    "mtime": 1787568542.7065232,
+    "ast_hash": "a3ee5cf0314b7ecc00e8acc9f529283c",
     "semantic_hash": ""
   },
   "packages/generators/src/cli/react-app-generator.ts": {
@@ -390,8 +390,8 @@
     "semantic_hash": "7406fa83fd16063276149992e190d31d"
   },
   "packages/runtime/package.json": {
-    "mtime": 1787514429.9632578,
-    "ast_hash": "816bdb1f5dc0118e5378af1ee7cabaa7",
+    "mtime": 1787568542.7044053,
+    "ast_hash": "59a7b031b4a0c03af923cc3280561198",
     "semantic_hash": ""
   },
   "packages/runtime/src/angular.ts": {
@@ -490,8 +490,8 @@
     "semantic_hash": ""
   },
   "packages/schema/package.json": {
-    "mtime": 1787514429.962428,
-    "ast_hash": "add6e484ba0c62f5a4d79adf93e44db7",
+    "mtime": 1787568542.7035697,
+    "ast_hash": "6cd7acfdee63f93d11f6b94f47f66959",
     "semantic_hash": ""
   },
   "packages/schema/src/actionable-error.ts": {
@@ -680,8 +680,8 @@
     "semantic_hash": "2319a1661f1594d95460ea04fc01f88b"
   },
   "packages/sdk/package.json": {
-    "mtime": 1787514429.9628358,
-    "ast_hash": "3bbf4902fff78da8b26f72d9d4e84183",
+    "mtime": 1787568542.703979,
+    "ast_hash": "0cd393595db719aad72c443a85de2fa5",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-app.ts": {
@@ -880,8 +880,8 @@
     "semantic_hash": "d784dba3ecbcb0225b30c72b32f1c16f"
   },
   "packages/testkit/package.json": {
-    "mtime": 1787514429.9641306,
-    "ast_hash": "53b2c0884107498963a0d694fdc76aa0",
+    "mtime": 1787568542.7055774,
+    "ast_hash": "9ed4b40eaf2f520d87982d6c563d25d7",
     "semantic_hash": ""
   },
   "packages/testkit/src/index.ts": {
@@ -1400,7 +1400,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1787566542.0291457,
+    "mtime": 1787568551.0419853,
     "ast_hash": "035fac97be3a289949b3605d96b5b708",
     "semantic_hash": ""
   },
@@ -1430,7 +1430,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1787566542.0306122,
+    "mtime": 1787568551.0445619,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -1500,13 +1500,13 @@
     "semantic_hash": "1f5690e4c43a025a8cef9a1a22b81747"
   },
   "apps/columbus/src/components/ArtifactConfigurationPage/OverridesForm/OverrideVersionDropdown/OverrideVersionDropdown.tsx": {
-    "mtime": 1787319721.50327,
-    "ast_hash": "7babcea06e9db40bf1e3e16620f13192",
+    "mtime": 1787578907.9690232,
+    "ast_hash": "0790e4c056d63042f669df996ec6f5e7",
     "semantic_hash": ""
   },
   "apps/columbus/src/components/ArtifactConfigurationPage/OverridesForm/OverridesSelectionForm.tsx": {
-    "mtime": 1787319721.3364415,
-    "ast_hash": "1cc0387cb0cf21a2b1ec1d6796558770",
+    "mtime": 1787577731.0038962,
+    "ast_hash": "533c703a58d9c92fdae3e760f4e3fda1",
     "semantic_hash": ""
   },
   "apps/columbus/src/components/ArtifactConfigurationPage/useArtifactConfiguration/useArtifactConfiguration.ts": {
@@ -1595,9 +1595,9 @@
     "semantic_hash": "e0a9f1fc909aa71a0e102612f03793de"
   },
   "apps/columbus/src/components/providers/HostContext/HostContext.tsx": {
-    "mtime": 1785087477.5495596,
-    "ast_hash": "a2b2c3473ffc4c49a7e2cbac65326d41",
-    "semantic_hash": "a2b2c3473ffc4c49a7e2cbac65326d41"
+    "mtime": 1787579264.8445146,
+    "ast_hash": "d79fd0648c50200a5bc1249ae1af2050",
+    "semantic_hash": ""
   },
   "apps/columbus/src/components/providers/OverridesContext/OverridesContext.tsx": {
     "mtime": 1785082427.6961076,
@@ -1680,13 +1680,13 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.specs.ts": {
-    "mtime": 1787147147.961405,
-    "ast_hash": "476fa9ad5b4711c5a564d8d934cb5716",
+    "mtime": 1787577862.3713284,
+    "ast_hash": "fb7a4ecd0a305eaa94c60d9352e1234b",
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts": {
-    "mtime": 1787319721.587002,
-    "ast_hash": "afadf64b75b78c5dadb9e9a14bcfe84f",
+    "mtime": 1787578451.0069714,
+    "ast_hash": "bda2ea9d4a924860b406b70a4c88829b",
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.driver.ts": {
@@ -1700,8 +1700,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.ts": {
-    "mtime": 1787477094.4922512,
-    "ast_hash": "43b0de5d3421ce1a28da6b9e2d77ce8d",
+    "mtime": 1787578472.9720356,
+    "ast_hash": "65b42a0250ca84d40a09eff650bfbeed",
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/overrides/override-manifests.ts": {
@@ -2330,7 +2330,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1787566542.0313993,
+    "mtime": 1787568551.114261,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },

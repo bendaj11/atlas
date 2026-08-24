@@ -35,7 +35,7 @@ export const OverridesSelectionForm = ({
 
       <OverrideRadioCard
         type="production"
-        title="Other release"
+        title="Production"
         currentSelectedType={draft.type}
         disabled={configuration.productionOptions.length === 0}
         onSelect={() => onDraftChange({ type: 'production' })}
@@ -52,7 +52,7 @@ export const OverridesSelectionForm = ({
 
       <OverrideRadioCard
         disabled={configuration.prOptions.length === 0}
-        title="PR / MR preview"
+        title="PR Preview"
         currentSelectedType={draft.type}
         type="pr"
         onSelect={() => onDraftChange({ type: 'pr' })}

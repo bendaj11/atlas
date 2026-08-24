@@ -102,6 +102,16 @@ describe('manifest labels', () => {
     ).toBe('1.2.3-abcdef123456 · Simplify override selection');
   });
 
+  it('should omit punctuation-only commit title when release is production', () => {
+    expect(
+      driver.get.versionLabel({
+        version: '0.1.2',
+        buildId: 'canonical',
+        gitCommitTitle: '.',
+      }),
+    ).toBe('0.1.2');
+  });
+
   it('should show branch and commit when release is PR', () => {
     expect(
       driver.get.versionLabel({

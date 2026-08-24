@@ -1,6 +1,6 @@
 {
   "name": "@atlas/testkit",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "type": "module",
   "description": "Test fixtures and in-memory utilities for Atlas hosts and apps.",
   "license": "MIT",
@@ -37,7 +37,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.4.5",
-    "@atlas/sdk": "0.4.5"
+    "@atlas/schema": "0.4.6",
+    "@atlas/sdk": "0.4.6"
   }
 }

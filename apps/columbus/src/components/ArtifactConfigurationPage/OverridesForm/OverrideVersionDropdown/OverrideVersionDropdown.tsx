@@ -1,11 +1,14 @@
-import type { ReactNode } from 'react';
-import { Badge, Box, Dropdown, Text } from '@wix/design-system';
 import {
-  versionDisabled,
-  versionLabel,
-} from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
+  Badge,
+  Box,
+  Dropdown,
+  listItemSelectBuilder,
+} from '@wix/design-system';
+import { versionLabel } from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
 import { versionKey } from '../../../../scripts/manifests/manifest-versions/manifest-versions.js';
 import type { Manifest } from '../../../../types/app.js';
+import { AtlasExtensionManifest } from '../../../../types/contracts';
+import { placementTargetsHost } from '@atlas/schema';
 
 interface VersionDropdownProps {
   disabled: boolean;
@@ -24,51 +27,48 @@ export function OverrideVersionDropdown({
   currentId,
   onChange,
 }: VersionDropdownProps) {
+  const isVersionSelected = (manifest: Manifest) =>
+    manifest.channel === 'production' && versionKey(manifest) === currentId;
+
+  const isHostSupported = ({
+    manifest,
+    hostId,
+  }: {
+    manifest: AtlasExtensionManifest;
+    hostId: string;
+  }) =>
+    (manifest.kind === 'host' && manifest.id === hostId) ||
+    manifest.supportedHosts?.includes('*') === true ||
+    manifest.supportedHosts?.includes(hostId) === true ||
+    manifest.placements?.some((placement) =>
+      placementTargetsHost(placement, hostId),
+    ) === true;
+
+  const options = versions.map((version) =>
+    listItemSelectBuilder({
+      id: versionKey(version),
+      title: versionLabel(version),
+      suffix: isVersionSelected(version) && (
+        <Badge size="tiny" skin="neutralSuccess">
+          Current
+        </Badge>
+      ),
+      disabled: !isHostSupported({ manifest: version, hostId }),
+    }),
+  );
+
   return (
     <Box direction="vertical">
       <Dropdown
         size="small"
-        disabled={disabled || versions.length === 0}
+        options={options}
         selectedId={selectedId}
         placeholder="No versions found"
-        options={versions.map((manifest) => {
-          const label = versionLabel(manifest);
-
-          return {
-            id: versionKey(manifest),
-            label,
-            value: versionOptionLabel({ manifest, currentId, label }),
-            disabled: versionDisabled({ manifest, hostId }),
-          };
-        })}
+        disabled={disabled || versions.length === 0}
         onSelect={(option: { id: string | number }) =>
           onChange(String(option.id))
         }
       />
-    </Box>
-  );
-}
-
-function versionOptionLabel({
-  manifest,
-  currentId,
-  label,
-}: {
-  manifest: Manifest;
-  currentId: string | undefined;
-  label: string;
-}): ReactNode {
-  const isCurrentProduction =
-    manifest.channel === 'production' && versionKey(manifest) === currentId;
-  if (!isCurrentProduction) return label;
-
-  return (
-    <Box gap="SP1" verticalAlign="middle">
-      <Text size="small">{label}</Text>
-
-      <Badge size="tiny" skin="neutralSuccess">
-        current deployment
-      </Badge>
     </Box>
   );
 }
