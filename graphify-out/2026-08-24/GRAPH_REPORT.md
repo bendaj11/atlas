@@ -1,7 +1,7 @@
 # Graph Report - atlas  (2026-08-24)
 
 ## Corpus Check
-- 587 files · ~211,534 words
+- 587 files · ~211,510 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -350,8 +350,8 @@
 - 2-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 3-file cycle: `packages/cli/src/generation/nx/nx.ts -> packages/cli/src/generation/paths/paths.ts -> packages/cli/src/workspace/service/workspace.ts -> packages/cli/src/generation/nx/nx.ts`
 - 3-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
-- 4-file cycle: `packages/cli/src/generation/json.ts -> packages/cli/src/generation/paths/paths.ts -> packages/cli/src/workspace/service/workspace.ts -> packages/cli/src/generation/nx/nx.ts -> packages/cli/src/generation/json.ts`
 - 4-file cycle: `packages/cli/src/generation/files/files.ts -> packages/cli/src/generation/paths/paths.ts -> packages/cli/src/workspace/service/workspace.ts -> packages/cli/src/generation/nx/nx.ts -> packages/cli/src/generation/files/files.ts`
+- 4-file cycle: `packages/cli/src/generation/json.ts -> packages/cli/src/generation/paths/paths.ts -> packages/cli/src/workspace/service/workspace.ts -> packages/cli/src/generation/nx/nx.ts -> packages/cli/src/generation/json.ts`
 - 4-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/loader/native-federation.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 4-file cycle: `packages/runtime/src/index.ts -> packages/runtime/src/loader/runtime-discovery.ts -> packages/runtime/src/resilience.ts -> packages/runtime/src/observability.ts -> packages/runtime/src/index.ts`
 - 5-file cycle: `packages/cli/src/generation/angular.ts -> packages/cli/src/generation/json.ts -> packages/cli/src/generation/paths/paths.ts -> packages/cli/src/workspace/service/workspace.ts -> packages/cli/src/generation/nx/nx.ts -> packages/cli/src/generation/angular.ts`
@@ -522,8 +522,8 @@ Cohesion: 0.06
 Nodes (30): apps/**/*.driver.ts, apps/**/*.driver.tsx, apps/**/*.specs.ts, apps/**/*.specs.tsx, jest, node_modules, packages/**/*.driver.ts, packages/**/*.specs.ts (+22 more)
 
 ### Community 40 - "Production deployment and CI"
-Cohesion: 0.18
-Nodes (17): FetchJsonDriver, fetchJson(), fetchJsonRequest(), isLoopbackUrl(), validateIntegrity(), appendHostStylesheet(), defaultDependencies(), hasCompletedFederationBuild() (+9 more)
+Cohesion: 0.36
+Nodes (5): bootstrapActions(), describeFatalError(), FatalErrorDriver, showFatalError(), BootstrapFailure
 
 ### Community 41 - ".run"
 Cohesion: 0.07
@@ -574,8 +574,8 @@ Cohesion: 0.28
 Nodes (4): packageDirectories, VersionPackagesDriver, writeFileInDirectory(), writeJson()
 
 ### Community 53 - "Workspace integration"
-Cohesion: 0.13
-Nodes (15): bootstrapActions(), describeFatalError(), FatalErrorDriver, showFatalError(), ModuleShimDriver, moduleShim, BootstrapFailure, DevSession (+7 more)
+Cohesion: 0.11
+Nodes (24): appendHostStylesheet(), defaultDependencies(), HostLoaderDriver, hasCompletedFederationBuild(), HostLoaderDependencies, installHostSharedDependencies(), loadHostModule(), loadHostStyles() (+16 more)
 
 ### Community 54 - "AtlasGenerateService"
 Cohesion: 0.10
@@ -988,8 +988,8 @@ Cohesion: 0.10
 Nodes (10): AtlasFetchHttpClient, HttpClient, HttpClientInput, HttpRequest, HttpRequestOptions, HttpRequestWithBody, HttpRequestWithBodyAndMethod, HttpRequestWithoutBody (+2 more)
 
 ### Community 159 - "overlay.ts"
-Cohesion: 0.17
-Nodes (4): HostLoaderDriver, OverridesDriver, Faker, @faker-js/faker
+Cohesion: 0.21
+Nodes (4): OverridesDriver, Faker, @faker-js/faker, ValidationDriver
 
 ### Community 161 - "Atlas Columbus Extension"
 Cohesion: 0.29
@@ -1149,7 +1149,7 @@ Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphif
 
 ### Community 206 - "package.json"
 Cohesion: 0.15
-Nodes (13): devDependencies, babel-plugin-react-compiler, @babel/plugin-syntax-typescript, jest-environment-jsdom, @stylable/runtime, @testing-library/react, @vitejs/plugin-react, @vitejs/plugin-react (+5 more)
+Nodes (13): devDependencies, @babel/core, babel-plugin-react-compiler, jest-environment-jsdom, @stylable/runtime, @testing-library/react, @vitejs/plugin-react, @vitejs/plugin-react (+5 more)
 
 ### Community 207 - "keywords"
 Cohesion: 0.50
@@ -1220,8 +1220,8 @@ Cohesion: 0.22
 Nodes (13): acquireStylesheet(), AtlasStyleRelease, AtlasStylesheetLoadInput, AtlasStylesheetLoadOptions, createRelease(), defaultManifestPolicy(), isStylesheetLoadOptions(), LoadedStylesheet (+5 more)
 
 ### Community 247 - "publication-storage.driver.ts"
-Cohesion: 0.19
-Nodes (22): AtlasLoaderDependencies, defaultDependencies(), deploymentReferences(), loadDeployment(), loadInitialCatalog(), mapWithConcurrency(), resolveRuntime(), startAtlasLoader() (+14 more)
+Cohesion: 0.16
+Nodes (25): AtlasLoaderDependencies, defaultDependencies(), deploymentReferences(), loadDeployment(), loadInitialCatalog(), mapWithConcurrency(), resolveRuntime(), startAtlasLoader() (+17 more)
 
 ### Community 257 - "@angular/compiler"
 Cohesion: 0.22

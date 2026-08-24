@@ -175,8 +175,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "apps_columbus_package_devdependencies_babel_core",
-      "community": 160,
-      "community_name": "env.ts",
+      "community": 206,
+      "community_name": "package.json",
       "norm_label": "@babel/core"
     },
     {
@@ -186,8 +186,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "babel_core",
-      "community": 160,
-      "community_name": "env.ts",
+      "community": 206,
+      "community_name": "package.json",
       "norm_label": "@babel/core"
     },
     {
@@ -219,8 +219,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "apps_columbus_package_devdependencies_babel_plugin_syntax_typescript",
-      "community": 206,
-      "community_name": "package.json",
+      "community": 160,
+      "community_name": "env.ts",
       "norm_label": "@babel/plugin-syntax-typescript"
     },
     {
@@ -230,8 +230,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "babel_plugin_syntax_typescript",
-      "community": 206,
-      "community_name": "package.json",
+      "community": 160,
+      "community_name": "env.ts",
       "norm_label": "@babel/plugin-syntax-typescript"
     },
     {
@@ -3659,7 +3659,7 @@
       "label": "versionKey()",
       "file_type": "code",
       "source_file": "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.ts",
-      "source_location": "L26",
+      "source_location": "L15",
       "_origin": "ast",
       "id": "apps_columbus_src_scripts_manifests_manifest_versions_manifest_versions_versionkey",
       "community": 22,
@@ -3670,7 +3670,7 @@
       "label": "channelRank()",
       "file_type": "code",
       "source_file": "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.ts",
-      "source_location": "L30",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "apps_columbus_src_scripts_manifests_manifest_versions_manifest_versions_channelrank",
       "community": 22,
@@ -13243,8 +13243,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_atlas_loader_index",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "index.ts"
     },
     {
@@ -13650,8 +13650,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error_driver",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "fatal-error.driver.ts"
     },
     {
@@ -13661,8 +13661,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error_driver_fatalerrordriver",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "fatalerrordriver"
     },
     {
@@ -13672,8 +13672,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error_specs",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "fatal-error.specs.ts"
     },
     {
@@ -13683,8 +13683,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "fatal-error.ts"
     },
     {
@@ -13694,8 +13694,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error_showfatalerror",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "showfatalerror()"
     },
     {
@@ -13705,8 +13705,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error_describefatalerror",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "describefatalerror()"
     },
     {
@@ -13716,8 +13716,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fatal_error_fatal_error_bootstrapactions",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "bootstrapactions()"
     },
     {
@@ -13727,8 +13727,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_driver",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "fetch-json.driver.ts"
     },
     {
@@ -13738,8 +13738,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_driver_fetchjsondriver",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "fetchjsondriver"
     },
     {
@@ -13749,8 +13749,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_specs",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "fetch-json.specs.ts"
     },
     {
@@ -13760,8 +13760,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "fetch-json.ts"
     },
     {
@@ -13771,8 +13771,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_fetchjson",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "fetchjson()"
     },
     {
@@ -13793,8 +13793,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_fetchjsonrequest",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "fetchjsonrequest()"
     },
     {
@@ -13804,8 +13804,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_isloopbackurl",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "isloopbackurl()"
     },
     {
@@ -13815,8 +13815,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "packages_bootstrap_src_fetch_json_fetch_json_validateintegrity",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 247,
+      "community_name": "publication-storage.driver.ts",
       "norm_label": "validateintegrity()"
     },
     {
@@ -13892,8 +13892,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_driver",
-      "community": 159,
-      "community_name": "overlay.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "host-loader.driver.ts"
     },
     {
@@ -13903,8 +13903,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_driver_hostloaderdriver",
-      "community": 159,
-      "community_name": "overlay.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "hostloaderdriver"
     },
     {
@@ -13914,8 +13914,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_driver_onmessage",
-      "community": 159,
-      "community_name": "overlay.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "onmessage()"
     },
     {
@@ -13925,8 +13925,8 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_driver_hostloaderdriver_reset",
-      "community": 159,
-      "community_name": "overlay.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": ".reset()"
     },
     {
@@ -13936,8 +13936,8 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_driver_hostloaderdriver_configurehost",
-      "community": 159,
-      "community_name": "overlay.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": ".configurehost()"
     },
     {
@@ -13958,8 +13958,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_specs",
-      "community": 159,
-      "community_name": "overlay.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "host-loader.specs.ts"
     },
     {
@@ -13969,8 +13969,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "host-loader.ts"
     },
     {
@@ -13980,8 +13980,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_hostloaderdependencies",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "hostloaderdependencies"
     },
     {
@@ -13991,8 +13991,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_loadhostmodule",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "loadhostmodule()"
     },
     {
@@ -14002,8 +14002,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_defaultdependencies",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "defaultdependencies()"
     },
     {
@@ -14013,8 +14013,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_loadhoststyles",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "loadhoststyles()"
     },
     {
@@ -14024,8 +14024,8 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_appendhoststylesheet",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "appendhoststylesheet()"
     },
     {
@@ -14035,8 +14035,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_watchhostbuildnotifications",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "watchhostbuildnotifications()"
     },
     {
@@ -14046,8 +14046,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_hascompletedfederationbuild",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "hascompletedfederationbuild()"
     },
     {
@@ -14057,8 +14057,8 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "packages_bootstrap_src_host_loader_host_loader_installhostshareddependencies",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "installhostshareddependencies()"
     },
     {
@@ -14178,8 +14178,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "packages_bootstrap_src_module_shim_module_shim_installmoduleshim",
-      "community": 247,
-      "community_name": "publication-storage.driver.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "installmoduleshim()"
     },
     {
@@ -14189,8 +14189,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "packages_bootstrap_src_module_shim_module_shim_importmodule",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "importmodule()"
     },
     {
@@ -14640,8 +14640,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "packages_bootstrap_src_types_bootstrapfailure",
-      "community": 53,
-      "community_name": "Workspace integration",
+      "community": 40,
+      "community_name": "Production deployment and CI",
       "norm_label": "bootstrapfailure"
     },
     {
@@ -14651,8 +14651,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation_driver",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 159,
+      "community_name": "overlay.ts",
       "norm_label": "validation.driver.ts"
     },
     {
@@ -14662,8 +14662,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation_driver_validationdriver",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 159,
+      "community_name": "overlay.ts",
       "norm_label": "validationdriver"
     },
     {
@@ -14673,8 +14673,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation_specs",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 159,
+      "community_name": "overlay.ts",
       "norm_label": "validation.specs.ts"
     },
     {
@@ -14684,8 +14684,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "validation.ts"
     },
     {
@@ -14695,8 +14695,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation_validatecatalog",
-      "community": 247,
-      "community_name": "publication-storage.driver.ts",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "validatecatalog()"
     },
     {
@@ -14706,8 +14706,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation_validatehostmanifest",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "validatehostmanifest()"
     },
     {
@@ -14717,8 +14717,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "packages_bootstrap_src_validation_validation_validateartifacturl",
-      "community": 40,
-      "community_name": "Production deployment and CI",
+      "community": 53,
+      "community_name": "Workspace integration",
       "norm_label": "validateartifacturl()"
     },
     {
@@ -63541,7 +63541,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.ts",
-      "source_location": "L30",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_scripts_manifests_manifest_versions_manifest_versions",
@@ -63563,7 +63563,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.ts",
-      "source_location": "L26",
+      "source_location": "L15",
       "weight": 1.0,
       "_origin": "ast",
       "source": "apps_columbus_src_scripts_manifests_manifest_versions_manifest_versions",
