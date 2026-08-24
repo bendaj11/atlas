@@ -327,6 +327,5 @@
   "325": "@stylable/optimizer",
   "326": "mount",
   "327": "publication-metadata.specs.ts",
-  "328": "react",
-  "332": "@babel/plugin-syntax-jsx"
+  "328": "react"
 }

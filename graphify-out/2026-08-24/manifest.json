@@ -5,8 +5,8 @@
     "semantic_hash": "6cb2b4b7c2e6118e0b72b275232609e9"
   },
   "apps/columbus/package.json": {
-    "mtime": 1787564746.5222461,
-    "ast_hash": "0eb2fe48cfdc4b93b4dcac5de92d4072",
+    "mtime": 1787566965.79161,
+    "ast_hash": "0a712d918066b8678d4e1eb23dee4ce3",
     "semantic_hash": ""
   },
   "apps/columbus/src/manifest.json": {
@@ -265,13 +265,13 @@
     "semantic_hash": ""
   },
   "packages/bootstrap/package.json": {
-    "mtime": 1787514429.9635458,
-    "ast_hash": "da404d7b35de7ac771c41c26453b2d35",
+    "mtime": 1787567463.6804953,
+    "ast_hash": "fa8e9bbd79ecc691d979a2c0e5181e87",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/index.ts": {
-    "mtime": 1787562019.4669018,
-    "ast_hash": "e999043d30c96a3057cc619961779b1a",
+    "mtime": 1787566919.5049908,
+    "ast_hash": "85535eab8f73923cbaa1e4fcc2185251",
     "semantic_hash": ""
   },
   "packages/bootstrap/tsconfig.json": {
@@ -900,8 +900,8 @@
     "semantic_hash": "1a7f72c6780a9dea9ace3c15e7423810"
   },
   "playwright.config.ts": {
-    "mtime": 1787562580.31697,
-    "ast_hash": "5c82eec7c65b3c174a5801b228474c28",
+    "mtime": 1787567818.7703884,
+    "ast_hash": "65f8c61a70bd91970efc233a25a403f1",
     "semantic_hash": ""
   },
   "scripts/prepare-release.driver.ts": {
@@ -1400,7 +1400,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1787563564.8151445,
+    "mtime": 1787566542.0291457,
     "ast_hash": "035fac97be3a289949b3605d96b5b708",
     "semantic_hash": ""
   },
@@ -1430,7 +1430,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1787563564.81822,
+    "mtime": 1787566542.0306122,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -1670,8 +1670,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/host/inspect-atlas-host/inspect-atlas-host.ts": {
-    "mtime": 1787562229.5684254,
-    "ast_hash": "95b9dc6886360d5d99e923bda921b2f4",
+    "mtime": 1787567463.7712355,
+    "ast_hash": "a0969ec357f3e959983eca2900aac748",
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.driver.ts": {
@@ -2320,8 +2320,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/publication/static-registry/static-registry.ts": {
-    "mtime": 1787566443.5220978,
-    "ast_hash": "b7bc21f45267bcc29de692acbdccb6bc",
+    "mtime": 1787567418.990404,
+    "ast_hash": "a30ed9afb5d295b4410937c613f43668",
     "semantic_hash": ""
   },
   "packages/cli/src/test-utils/build.testkit.ts": {
@@ -2330,7 +2330,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1787563564.819113,
+    "mtime": 1787566542.0313993,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },
@@ -2605,8 +2605,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/verification/service/verify.service.ts": {
-    "mtime": 1787562219.2255113,
-    "ast_hash": "7fa03985ff685952454ee30f12619615",
+    "mtime": 1787566965.604171,
+    "ast_hash": "0a70c4a48c75e579521fc85c0cdd1743",
     "semantic_hash": ""
   },
   "packages/cli/src/workspace/service/workspace.driver.ts": {
@@ -2785,8 +2785,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/deployment/deploy.service.ts": {
-    "mtime": 1787564746.6056132,
-    "ast_hash": "6af792ac15c8c6a2466efb96d87fcb44",
+    "mtime": 1787567278.4948049,
+    "ast_hash": "ce4f0a6cec2ccb5b17a0347a9657cb8d",
     "semantic_hash": ""
   },
   "packages/cli/src/publication/registry-config.ts": {
@@ -2835,8 +2835,8 @@
     "semantic_hash": ""
   },
   "packages/bootstrap/src/atlas-loader/atlas-loader.ts": {
-    "mtime": 1787562513.1669233,
-    "ast_hash": "7e19a89eca3134e048ce216140715c1e",
+    "mtime": 1787566919.5989091,
+    "ast_hash": "4615556d106585aea20d876561179c9e",
     "semantic_hash": ""
   },
   "packages/schema/src/hydrate-published-artifact.ts": {
@@ -2940,13 +2940,13 @@
     "semantic_hash": ""
   },
   "packages/bootstrap/src/bootstrap/bootstrap-manifest.specs.ts": {
-    "mtime": 1787566485.902334,
-    "ast_hash": "4568d4a9e86de9ac087930d11d433ed6",
+    "mtime": 1787567707.2625299,
+    "ast_hash": "640ebe3ec531c8f027e90229a3f81795",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/bootstrap/bootstrap-manifest.ts": {
-    "mtime": 1787566485.8144338,
-    "ast_hash": "1335519814d1f6d3304866ebdd51184c",
+    "mtime": 1787567707.1733613,
+    "ast_hash": "25aaf3b8d9a582cb2064d29542cb5261",
     "semantic_hash": ""
   },
   "packages/bootstrap/src/host-discovery/host-discovery.specs.ts": {
@@ -2982,6 +2982,51 @@
   "packages/schema/src/atlas-host-discovery.ts": {
     "mtime": 1787562441.3578436,
     "ast_hash": "3a734bc7cb1a2cb8b828cca7273f68b3",
+    "semantic_hash": ""
+  },
+  "packages/bootstrap/src/runtime-resolution/runtime-resolution.specs.ts": {
+    "mtime": 1787566919.4120007,
+    "ast_hash": "44f700e6abcda9c5d33e78adad4a7487",
+    "semantic_hash": ""
+  },
+  "packages/bootstrap/src/runtime-resolution/runtime-resolution.ts": {
+    "mtime": 1787567278.3401203,
+    "ast_hash": "bdd4b9eeb23dbf5f9e06d8b4c0579f60",
+    "semantic_hash": ""
+  },
+  "packages/bootstrap/src/runtime.ts": {
+    "mtime": 1787567463.5905602,
+    "ast_hash": "c5649bdd014230fc93ea50e5f313f8b1",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/deployment/host-binding/host-binding.specs.ts": {
+    "mtime": 1787567574.7911057,
+    "ast_hash": "f3730cd69e51db118685f61f13a45333",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/deployment/host-binding/host-binding.ts": {
+    "mtime": 1787567278.405364,
+    "ast_hash": "5c7c8553e3324693f23303fadfd7d811",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/static-registry/revision/registry-revision.specs.ts": {
+    "mtime": 1787567574.8789742,
+    "ast_hash": "8bf41400fc98c71e3734e1ae79caf337",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/static-registry/revision/registry-revision.ts": {
+    "mtime": 1787567176.9951425,
+    "ast_hash": "f0db4284553d58938e4369975348ec50",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/static-registry/validation/static-registry-validation.specs.ts": {
+    "mtime": 1787567601.2080486,
+    "ast_hash": "4deff8f6acc862cb76331f048ba9b625",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/static-registry/validation/static-registry-validation.ts": {
+    "mtime": 1787567419.0843253,
+    "ast_hash": "793a3cfa1d9c61a55eced0d589fd730c",
     "semantic_hash": ""
   }
 }
