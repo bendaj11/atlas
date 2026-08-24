@@ -35,7 +35,7 @@ to decide whether to skip the package or correct runtime dependency setup.
 After `atlas deploy`, verify the deployed bootstrap and active host manifest:
 
 ```bash
-npx atlas verify --runtime-url https://platform.example.com/atlas.runtime.json
+npx atlas verify --host-url https://platform.example.com
 ```
 
 CI/CD still owns deployment of Angular host HTML, bootstrap output, server/CDN

@@ -36,7 +36,7 @@ export function createNginxConfig(
     return 200 "ok\\n";
   }
 
-  location = /atlas.runtime.json {
+  location = /atlas.bootstrap.json {
     expires -1;
     try_files $uri =404;
   }

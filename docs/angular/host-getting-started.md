@@ -45,7 +45,7 @@ Responsibilities:
 | File                       | Owner                   | Edit for                                                                       |
 | -------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
 | `atlas.config.ts`          | Host team               | Unique Host ID and display name                                                |
-| `src/app/app.component.ts` | Host UI team            | Main page layout and HTML elements where Atlas shows Apps                     |
+| `src/app/app.component.ts` | Host UI team            | Main page layout and HTML elements where Atlas shows Apps                      |
 | `src/app/app.config.ts`    | Host UI team            | Angular providers, router, and zoneless configuration                          |
 | `src/app/app.routes.ts`    | Atlas/platform          | Catch-all Angular route required for Atlas navigation                          |
 | `src/app/host.config.ts`   | Host platform team      | Auth-aware HTTP, SDK services, UI renderers, monitoring                        |
@@ -210,7 +210,7 @@ and host-owned UI.
 
 ## 5. Connect Authentication Deliberately
 
-Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.runtime.json`, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
+Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.bootstrap.json`, discovery, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
 
 ## 6. Run The Host Locally
 
@@ -232,7 +232,7 @@ asset-server port does not represent complete Atlas composition.
 Verify host alone:
 
 ```sh
-curl --fail http://localhost:4200/atlas.runtime.json
+curl --fail http://localhost:4200/atlas.bootstrap.json
 ```
 
 Expected browser state:
@@ -300,7 +300,7 @@ Build host artifact and static bootstrap independently:
 
 ```sh
 npm --prefix customer-host run build
-atlas build-bootstrap customer-host --registry-url=https://cdn.example.com/atlas --environment=production
+atlas bootstrap customer-host
 ```
 
 Use [Consumer testing](../consumer-testing.md) for Atlas lifecycle and SDK
@@ -308,13 +308,17 @@ contract tests.
 
 ## 10. Release And Deploy
 
-Build static bootstrap once per environment or bootstrap change:
+Build static bootstrap once. Your deployment platform renders the included runtime template:
 
 ```sh
-atlas build-bootstrap customer-host --registry-url=https://cdn.example.com/atlas --environment=production
+atlas bootstrap customer-host
 ```
 
-Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Routine host and app publication uses native workspace `atlas:publish` targets. Atlas deployment changes selected UI without rebuilding bootstrap container. Follow [Angular production deployment](production-deployment.md).
+Deploy generated `dist/bootstrap` with Nginx or equivalent static hosting. Bind
+each environment's public host URL through `atlas deploy --host-url`. Routine
+host and app publication uses native workspace `atlas:publish` targets. Atlas
+deployment changes selected UI without rebuilding bootstrap image. Follow
+[Angular production deployment](production-deployment.md).
 
 ## Common Mistakes
 

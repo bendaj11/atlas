@@ -243,8 +243,8 @@ function installPage(options: PageOptions): void {
     sessionStorage: storage(new Map()),
     fetch: async (input: string | URL) => {
       const url = new URL(String(input), 'https://host.example');
-      if (url.pathname === '/atlas.runtime.json') {
-        return jsonResponse({
+      if (url.pathname === '/atlas.bootstrap.json') {
+        const runtime = {
           schemaVersion: '1',
           hostId,
           ...(options.runtimeEnvironment === ''
@@ -257,6 +257,29 @@ function installPage(options: PageOptions): void {
                 developmentSessionUrl: `https://registry.example/atlas.dev-session.json?hostId=${hostId}`,
               }),
           ...(options.registryUrl ? { registryUrl: options.registryUrl } : {}),
+        };
+        return jsonResponse({
+          schemaVersion: '2',
+          hostId,
+          registryUrl: options.registryUrl ?? 'https://registry.example',
+          resourcesTimeoutMs: 15000,
+          resourcesRetryCount: 3,
+          ...(options.useDevelopmentCatalog === false
+            ? {}
+            : { developmentRuntime: runtime }),
+        });
+      }
+      if (url.pathname === `/hosts/${hostId}/discovery.json`) {
+        return jsonResponse({
+          schemaVersion: '1',
+          hostId,
+          bindings: [
+            {
+              baseUrl: 'https://host.example',
+              environment: options.runtimeEnvironment ?? 'production',
+              manifestUrl: `https://registry.example/environments/production/hosts/${hostId}/manifest.json`,
+            },
+          ],
         });
       }
       if (url.pathname.endsWith('/atlas.dev-session.json')) {

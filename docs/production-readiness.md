@@ -1,7 +1,7 @@
 # Production Readiness
 
 Audience: release approver. Prerequisites: deployed bootstrap, public registry,
-published host client/app, and runtime URL. This is a gate, not setup tutorial;
+published host client/app, and public host URL. This is a gate, not setup tutorial;
 use [Production deployment](production-deployment.md) first.
 
 Use this checklist before an Atlas host or app receives production traffic.
@@ -29,10 +29,11 @@ Name an owner for each domain before release:
 
 ## Host Checklist
 
-- [ ] Production serves `/atlas.runtime.json` as JSON.
-- [ ] Runtime `hostId` matches app route and slot declarations.
-- [ ] Runtime `manifestUrl` points to the intended active host deployment.
-- [ ] Runtime `manifestUrl` and every referenced canonical manifest and asset
+- [ ] Production serves `/atlas.bootstrap.json` as JSON.
+- [ ] Bootstrap `hostId` matches app route and slot declarations.
+- [ ] Host discovery contains the production host URL and environment.
+- [ ] Discovery `manifestUrl` points to the intended active host deployment.
+- [ ] Discovery, every referenced canonical manifest, and every asset
       permit the host origin through CORS.
 - [ ] Resource timeout and retry values match product reliability targets.
 - [ ] Host layout retains route, navigation, status, and required slot anchors.
@@ -77,7 +78,7 @@ Name an owner for each domain before release:
 - [ ] Existing release-version paths are conditionally created and never overwritten.
 - [ ] Publisher reads and HEADs stored objects to verify SHA-256, MIME, and cache policy.
 - [ ] Immutable assets use long-lived immutable caching.
-- [ ] Runtime files, `registry.json`, and active host manifests revalidate or
+- [ ] Discovery, `registry.json`, and active host manifests revalidate or
       receive explicit CDN invalidation.
 - [ ] `remoteEntry.json` uses `application/json`.
 - [ ] JavaScript modules use `text/javascript` or `application/javascript`.
@@ -109,7 +110,7 @@ Read [security](security.md) before approving a new registry origin or publisher
 
 ## Release Verification
 
-`atlas verify` checks the public runtime file, active host deployment manifest,
+`atlas verify` checks bootstrap metadata, host discovery, the active host deployment manifest,
 referenced canonical manifest shapes, one-version-per-app selection, route
 conflicts, external app dependencies, remote entries, federation expose files,
 stylesheets, CORS, MIME types, cache headers, and declared SHA-256 integrity.
@@ -120,22 +121,14 @@ It cannot prove browser rendering, authentication, SDK behavior, CSP enforcement
 storage permissions, publisher identity, atomic uploads, monitoring, accessibility,
 or incident readiness. Test those separately below.
 
-Run verification against the public runtime URL after CDN publication:
+Run verification against the public host URL after CDN publication:
 
 Commands below assume the current project contains the approved, pinned
 `@atlas/cli` dependency and dependencies were installed from its lockfile.
 
 ```sh
 npm exec --package=@atlas/cli -- atlas verify \
-  --runtime-url=https://customer.example/atlas.runtime.json
-```
-
-If runtime config uses a separate origin, state the real host origin:
-
-```sh
-npm exec --package=@atlas/cli -- atlas verify \
-  --runtime-url=https://config.example/customer/atlas.runtime.json \
-  --host-origin=https://customer.example
+  --host-url=https://customer.example
 ```
 
 Then complete browser smoke tests:
@@ -181,8 +174,10 @@ npm exec --package=@atlas/cli -- atlas deploy "$APP_ID" \
 npm exec --package=@atlas/cli -- atlas deploy "$APP_ID" \
   --to=production \
   --version=1.3.2 \
-  --registry-url=https://cdn.example.com/atlas \
-  --runtime-url=https://customer.example/atlas.runtime.json
+  --registry-url=https://cdn.example.com/atlas
+
+npm exec --package=@atlas/cli -- atlas verify \
+  --host-url=https://customer.example
 ```
 
 - [ ] `APP_ID` is stable UUID from app `atlas.config.ts`.

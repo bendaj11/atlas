@@ -1,4 +1,7 @@
-import { createAtlasBootstrapFiles } from '@atlas/bootstrap';
+import {
+  createAtlasBootstrapFiles,
+  type AtlasBootstrapManifest,
+} from '@atlas/bootstrap';
 import {
   createServer,
   request as createHttpRequest,
@@ -31,12 +34,26 @@ export async function startLocalBootstrapServer(
 function createBootstrapFileMap(
   options: LocalBootstrapServerOptions,
 ): Map<string, string> {
-  return new Map(
-    createAtlasBootstrapFiles({
-      runtime: options.runtime,
+  const bootstrap: AtlasBootstrapManifest = {
+    schemaVersion: '2',
+    hostId: options.runtime.hostId,
+    registryUrl: options.runtime.registryUrl ?? 'http://localhost:4400',
+    resourcesTimeoutMs: options.runtime.resourcesTimeoutMs ?? 15000,
+    resourcesRetryCount: options.runtime.resourcesRetryCount ?? 3,
+    ...(options.runtime.assetOrigins
+      ? { assetOrigins: options.runtime.assetOrigins }
+      : {}),
+    developmentRuntime: options.runtime,
+  };
+  return new Map([
+    ...createAtlasBootstrapFiles({
       ...(options.html !== undefined ? { html: options.html } : {}),
-    }).map((file) => [`/${file.path}`, file.contents]),
-  );
+    }).map((file) => [`/${file.path}`, file.contents] as const),
+    [
+      '/atlas.bootstrap.json',
+      `${JSON.stringify(bootstrap, null, 2)}\n`,
+    ] as const,
+  ]);
 }
 
 function createBootstrapRequestHandler(

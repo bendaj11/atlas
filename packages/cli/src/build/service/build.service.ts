@@ -227,6 +227,7 @@ export class AtlasBuildService {
       schemaVersion: '2' as const,
       id: options.config.id,
       name: options.config.name ?? options.config.id,
+      packageName: options.project.packageName,
       ...identity,
       framework: options.config.framework,
       entryPath: normalizeArtifactPath(options.entryPath),

@@ -106,5 +106,6 @@ npx atlas deploy 5ab68dd4-f18c-4811-8768-b636ce559df6 \
   --to production --version rc
 ```
 
-Use stable UUIDs for automation. A unique display name is accepted for interactive
-use. Ambiguous names fail and list stable IDs.
+Deploy resolves the published project/package name first, then a stable UUID or
+unique display name. Use the project/package name in automation. Ambiguous names
+fail and list stable IDs.

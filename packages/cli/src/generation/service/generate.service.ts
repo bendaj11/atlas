@@ -480,7 +480,7 @@ export class AtlasGenerateService {
         options: {
           command: atlasCommand(
             this.workspace.packageManager,
-            `build-bootstrap ${name} --skip-compile`,
+            `bootstrap ${name} --skip-compile`,
           ),
           forwardAllArgs: true,
         },

@@ -136,7 +136,7 @@ Import host infrastructure from `@atlas/runtime`:
 
 | API                              | Purpose                                                                 |
 | -------------------------------- | ----------------------------------------------------------------------- |
-| `loadHostRuntimeConfig()`        | Fetch and validate `atlas.runtime.json`                                 |
+| `loadHostRuntimeConfig()`        | Fetch and validate an explicit runtime object URL for internal tooling  |
 | `loadHostCatalog()`              | Fetch active deployment data and hydrate the internal validated catalog |
 | `loadBrowserRuntimeOverrides()`  | Read local, preview, or other-release selections                        |
 | `resolveRuntimeManifests()`      | Enforce one selected version per app id                                 |

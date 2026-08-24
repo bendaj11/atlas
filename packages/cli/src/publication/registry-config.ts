@@ -12,7 +12,7 @@ import {
 export interface AtlasRegistryConfig {
   storage?: AtlasPublicationStorageSource;
   invalidate?: (paths: string[]) => void | Promise<void>;
-  runtimeUrls?: string[];
+  hostUrls?: string[];
   resolvePreviewHead?: AtlasPreviewHeadResolver;
   verifyRegistry?: (registry: AtlasStaticRegistry) => void | Promise<void>;
 }
@@ -127,9 +127,9 @@ function isRegistryConfig(value: unknown): value is AtlasRegistryConfig {
       typeof config.resolvePreviewHead === 'function') &&
     (config.verifyRegistry === undefined ||
       typeof config.verifyRegistry === 'function') &&
-    (config.runtimeUrls === undefined ||
-      (Array.isArray(config.runtimeUrls) &&
-        config.runtimeUrls.every((url) => typeof url === 'string')))
+    (config.hostUrls === undefined ||
+      (Array.isArray(config.hostUrls) &&
+        config.hostUrls.every((url) => typeof url === 'string')))
   );
 }
 

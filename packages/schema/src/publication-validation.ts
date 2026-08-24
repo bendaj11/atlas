@@ -37,6 +37,7 @@ export function assertPublishedArtifactManifest(
   }
   assertSafeArtifactId(value.id, 'id');
   requiredString(value.name, 'name');
+  optionalString(value.packageName, 'packageName');
   requiredString(value.entryPath, 'entryPath');
   assertSafeRelativePath(value.entryPath as string, 'entryPath');
   assertFramework(value.framework, 'framework');

@@ -34,6 +34,11 @@ import {
   readRegistry,
   readRegistryState,
 } from '../publication/service/publish.service.js';
+import { createHostDiscovery, hostDiscoveryPath } from './host-discovery.js';
+import {
+  bindSelectedHost,
+  readHostBindingRequest,
+} from './host-binding/host-binding.js';
 
 const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MUTABLE_CACHE_CONTROL = 'no-cache, max-age=0, must-revalidate';
@@ -100,16 +105,18 @@ export class AtlasDeployService {
       sourceIdentifier,
       selector,
     );
+    const hostBinding = readHostBindingRequest(this.args, selected.kind);
     if (this.args.hasFlag('dry-run')) {
       assertExpectedRevision(this.args, targetRegistry);
-      const simulated = await validateDryRun(
+      const simulated = await validateDryRun({
         source,
         targetRoot,
         storage,
         targetRegistry,
         selected,
         environment,
-      );
+        hostBinding,
+      });
       return {
         artifactId: selected.artifact.id,
         environment,
@@ -157,12 +164,18 @@ export class AtlasDeployService {
           projection.deploymentRevision,
         ]),
       );
-      const mutation = selectDeployment(
+      const selectionMutation = selectDeployment(
         imported,
         environment,
         targetSelection,
         expected,
       );
+      const mutation = bindSelectedHost({
+        mutation: selectionMutation,
+        environment,
+        selected: targetSelection,
+        ...hostBinding,
+      });
       await writeMutableJson(
         storage,
         lease,
@@ -184,12 +197,29 @@ export class AtlasDeployService {
           pendingHosts.push(projection.hostId);
         }
       }
+      if (targetSelection.kind === 'host' && pendingHosts.length === 0) {
+        const hostId = targetSelection.artifact.id;
+        try {
+          const path = hostDiscoveryPath(hostId);
+          const discovery = createHostDiscovery(
+            mutation.registry,
+            hostId,
+            targetRoot,
+          );
+          await writeMutableJson(storage, lease, path, discovery);
+          await config?.invalidate?.([path]);
+        } catch {
+          pendingHosts.push(hostId);
+        }
+      }
       const result: AtlasDeployResult = {
         artifactId: selected.artifact.id,
         environment,
         version: selected.version,
         registryRevision: mutation.registryRevision,
-        convergedHosts,
+        convergedHosts: convergedHosts.filter(
+          (hostId) => !pendingHosts.includes(hostId),
+        ),
         pendingHosts,
         dryRun: false,
       };
@@ -221,14 +251,24 @@ async function writeHostProjection(
   throw failure;
 }
 
-async function validateDryRun(
-  source: SourceSnapshot,
-  targetRoot: string,
-  storage: AtlasPublicationStorage,
-  target: AtlasStaticRegistry,
-  selected: AtlasResolvedRelease,
-  environment: string,
-): Promise<AtlasStaticRegistry> {
+async function validateDryRun(options: {
+  source: SourceSnapshot;
+  targetRoot: string;
+  storage: AtlasPublicationStorage;
+  targetRegistry: AtlasStaticRegistry;
+  selected: AtlasResolvedRelease;
+  environment: string;
+  hostBinding: ReturnType<typeof readHostBindingRequest>;
+}): Promise<AtlasStaticRegistry> {
+  const {
+    source,
+    targetRoot,
+    storage,
+    targetRegistry,
+    selected,
+    environment,
+    hostBinding,
+  } = options;
   let descriptor = selected.manifest;
   if (source.rootUrl === targetRoot) {
     await verifyStoredRelease(storage, selected);
@@ -238,13 +278,26 @@ async function validateDryRun(
     assertSelectedManifestIdentity(manifest, selected);
     descriptor = descriptorForBytes(selected.manifest.path, bytes);
   }
-  const imported = importRelease(target, { ...selected, manifest: descriptor });
-  return selectDeployment(
+  const imported = importRelease(targetRegistry, {
+    ...selected,
+    manifest: descriptor,
+  });
+  const mutation = selectDeployment(
     imported,
     environment,
     { ...selected, manifest: descriptor },
     {},
-  ).registry;
+  );
+  const bound = bindSelectedHost({
+    mutation,
+    environment,
+    selected,
+    ...hostBinding,
+  });
+  if (selected.kind === 'host') {
+    createHostDiscovery(bound.registry, selected.artifact.id, targetRoot);
+  }
+  return bound.registry;
 }
 
 function descriptorForBytes(
@@ -510,6 +563,7 @@ async function createHostProjections(
   const collection =
     selected.kind === 'app' ? deployment.apps : deployment.hosts;
   collection[selected.artifact.id] = {
+    ...collection[selected.artifact.id],
     version: selected.version,
   };
   const appEntries = await Promise.all(
@@ -738,19 +792,11 @@ function assertResponseMetadata(
 
 function mediaTypeMatches(actual: string | null, expected: string): boolean {
   if (!actual) return false;
-  const normalizedActual = normalizeMediaType(actual);
-  const normalizedExpected = normalizeMediaType(expected);
-  return normalizedExpected.includes(';')
-    ? normalizedActual === normalizedExpected
-    : normalizedActual.split(';', 1)[0] === normalizedExpected;
+  return mediaTypeEssence(actual) === mediaTypeEssence(expected);
 }
 
-function normalizeMediaType(value: string): string {
-  return value
-    .toLowerCase()
-    .split(';')
-    .map((part) => part.trim().replace(/\s*=\s*/gu, '='))
-    .join(';');
+function mediaTypeEssence(value: string): string {
+  return value.split(';', 1)[0]!.trim().toLowerCase();
 }
 
 async function hashStream(

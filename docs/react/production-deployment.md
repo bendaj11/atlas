@@ -22,7 +22,7 @@ Node install, or build step.
 Verify after activation:
 
 ```bash
-npx atlas verify --runtime-url https://platform.example.com/atlas.runtime.json
+npx atlas verify --host-url https://platform.example.com
 ```
 
 CI/CD still owns deployment of host HTML, bootstrap output, CDN/server config,

@@ -40,12 +40,12 @@ export default defineConfig({
     },
     {
       command: staticServerCommand("react-bootstrap", reactHostPort, true),
-      url: `http://127.0.0.1:${reactHostPort}/atlas.runtime.json`,
+      url: `http://127.0.0.1:${reactHostPort}/atlas.bootstrap.json`,
       reuseExistingServer: !process.env.CI
     },
     {
       command: staticServerCommand("angular-bootstrap", angularHostPort, true),
-      url: `http://127.0.0.1:${angularHostPort}/atlas.runtime.json`,
+      url: `http://127.0.0.1:${angularHostPort}/atlas.bootstrap.json`,
       reuseExistingServer: !process.env.CI
     }
   ]

@@ -54,8 +54,8 @@ export async function runAtlasCli(
     const builds = new AtlasBuildService(workspace, args);
     const generate = new AtlasGenerateService(workspace, args, prompts);
 
-    if (invocation.command === 'build-bootstrap' && invocation.subcommand) {
-      ui.heading(`Build bootstrap · ${invocation.subcommand}`);
+    if (invocation.command === 'bootstrap' && invocation.subcommand) {
+      ui.heading(`Bootstrap · ${invocation.subcommand}`);
       const result = await new AtlasBootstrapService({
         workspace,
         args,
@@ -64,22 +64,8 @@ export async function runAtlasCli(
       ui.success(`Built static bootstrap in ${result.directory}.`);
       ui.result('Bootstrap digest', result.digest);
       ui.info(
-        `Deploy ${result.files.join(', ')} with Nginx or equivalent static hosting.`,
+        `Deploy ${result.files.join(', ')} with your static hosting platform.`,
       );
-      return;
-    }
-
-    if (
-      invocation.command === 'render-runtime-config' &&
-      invocation.subcommand
-    ) {
-      ui.heading(`Render runtime config · ${invocation.subcommand}`);
-      const result = await new AtlasBootstrapService({
-        workspace,
-        args,
-        builds,
-      }).renderRuntimeConfig(invocation.subcommand);
-      ui.success(`Wrote runtime config to ${result.path}.`);
       return;
     }
 
@@ -197,8 +183,8 @@ async function runWorkspaceFreeCommand(
       );
     }
     if (!result.dryRun) {
-      const runtimeUrls = configuredRuntimeUrls(args, config?.runtimeUrls);
-      if (runtimeUrls.length) await verifyRuntimeUrls(args, runtimeUrls);
+      const hostUrls = config?.hostUrls ?? [];
+      if (hostUrls.length) await verifyHostUrls(hostUrls);
     }
     return true;
   }
@@ -234,13 +220,13 @@ async function runWorkspaceFreeCommand(
   }
 
   if (invocation.command === 'verify') {
-    const runtimeUrls = configuredRuntimeUrls(args);
-    if (!runtimeUrls.length) {
-      throw new Error('--runtime-url or ATLAS_RUNTIME_URLS is required.');
+    const hostUrls = configuredHostUrls(args);
+    if (!hostUrls.length) {
+      throw new Error('--host-url or ATLAS_HOST_URLS is required.');
     }
     ui.heading('Verify deployment');
-    await verifyRuntimeUrls(args, runtimeUrls);
-    ui.success(`Verified ${runtimeUrls.length} deployment(s).`);
+    await verifyHostUrls(hostUrls);
+    ui.success(`Verified ${hostUrls.length} deployment(s).`);
     return true;
   }
   return false;
@@ -278,34 +264,29 @@ function printVerificationCheck(check: AtlasVerificationCheck): void {
   else ui.error(message);
 }
 
-function configuredRuntimeUrls(
+function configuredHostUrls(
   args: CliArguments,
   configured: readonly string[] = [],
 ): string[] {
-  const singleRuntimeUrl =
-    args.flag('runtime-url') ?? process.env.ATLAS_RUNTIME_URL;
+  const singleHostUrl = args.flag('host-url') ?? process.env.ATLAS_HOST_URL;
   return [
     ...new Set([
-      ...splitUrls(args.flag('runtime-urls') ?? process.env.ATLAS_RUNTIME_URLS),
-      ...(singleRuntimeUrl ? [singleRuntimeUrl] : []),
+      ...splitUrls(args.flag('host-urls') ?? process.env.ATLAS_HOST_URLS),
+      ...(singleHostUrl ? [singleHostUrl] : []),
       ...configured,
     ]),
   ];
 }
 
-async function verifyRuntimeUrls(
-  args: CliArguments,
-  runtimeUrls: readonly string[],
-): Promise<void> {
-  for (const runtimeUrl of runtimeUrls) {
+async function verifyHostUrls(hostUrls: readonly string[]): Promise<void> {
+  for (const hostUrl of hostUrls) {
     const report = await new AtlasVerifyService().run({
-      runtimeUrl,
-      hostOrigin: args.flag('host-origin'),
+      hostUrl,
     });
     report.checks.forEach(printVerificationCheck);
     if (report.failures) {
       throw new Error(
-        `Deployment verification failed for ${runtimeUrl} with ${report.failures} failure(s).`,
+        `Deployment verification failed for ${hostUrl} with ${report.failures} failure(s).`,
       );
     }
   }

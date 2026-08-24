@@ -105,12 +105,10 @@ export default {
 } satisfies AtlasAppConfig;
 ```
 
-Bootstrap build supplies trusted environment-specific registry URLs:
+The generated runtime template supplies trusted environment-specific registry URLs:
 
 ```sh
-atlas build-bootstrap customer-host \
-  --environment=production \
-  --external-registries='https://team-a.example/atlas|production,https://shared-ui.example/atlas|production'
+atlas bootstrap customer-host
 ```
 
 On refresh Atlas resolves each dependency through the external registry's
@@ -140,4 +138,4 @@ Columbus lists external widget providers separately from routed/slotted apps. Lo
 
 `widget id ... is exported by multiple apps`: regenerate one duplicate id and update its consumers.
 
-`origin ... is not allowed`: add approved asset/CDN origin with `atlas build-bootstrap --asset-origins`; never weaken HTTPS or integrity policy globally.
+`origin ... is not allowed`: add approved asset/CDN origin with `atlas bootstrap --asset-origins`; never weaken HTTPS or integrity policy globally.

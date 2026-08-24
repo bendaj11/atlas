@@ -74,10 +74,11 @@ export class DevelopmentTargetDriver {
 
       globalThis.fetch = jest.fn(async () =>
         Response.json({
-          schemaVersion: '1',
+          schemaVersion: '2',
           hostId: discoveredHostId,
-          environment: 'production',
-          manifestUrl: faker.internet.url(),
+          registryUrl: faker.internet.url({ appendSlash: false }),
+          resourcesRetryCount: 3,
+          resourcesTimeoutMs: 15000,
         }),
       );
     },

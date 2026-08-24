@@ -1,4 +1,3 @@
-import type { AtlasHostRuntimeConfig } from '@atlas/schema';
 import {
   createAtlasBootstrapFiles,
   createBootstrapHtml,
@@ -6,14 +5,7 @@ import {
   validateBootstrapHtml,
 } from '../dist/index.js';
 
-const DEFAULT_RUNTIME: AtlasHostRuntimeConfig = {
-  schemaVersion: '1',
-  hostId: 'customer-host',
-  environment: 'production',
-  manifestUrl:
-    'https://cdn.example/atlas/environments/production/hosts/customer-host/manifest.json',
-  assetOrigins: ['https://assets.example'],
-};
+const DEFAULT_ASSET_ORIGINS = ['https://assets.example'];
 
 export class IndexDriver {
   private html: string | undefined;
@@ -30,16 +22,7 @@ export class IndexDriver {
     createFiles: (): IndexDriver => {
       this.files = new Map(
         createAtlasBootstrapFiles({
-          runtime: DEFAULT_RUNTIME,
-          ...(this.html === undefined ? {} : { html: this.html }),
-        }).map((file) => [file.path, file.contents]),
-      );
-      return this;
-    },
-    createExternalFiles: (): IndexDriver => {
-      this.files = new Map(
-        createAtlasBootstrapFiles({
-          runtimeConfig: 'external',
+          assetOrigins: DEFAULT_ASSET_ORIGINS,
           ...(this.html === undefined ? {} : { html: this.html }),
         }).map((file) => [file.path, file.contents]),
       );
@@ -48,7 +31,6 @@ export class IndexDriver {
   };
 
   readonly get = {
-    defaultRuntime: (): AtlasHostRuntimeConfig => DEFAULT_RUNTIME,
     fileContents: (path: string): string => this.files.get(path) ?? '',
     filePaths: (): string[] => [...this.files.keys()],
     html: (
@@ -63,19 +45,7 @@ export class IndexDriver {
       }
     },
     nginxConfig: (
-      assetOrigins: readonly string[] = DEFAULT_RUNTIME.assetOrigins ?? [],
+      assetOrigins: readonly string[] = DEFAULT_ASSET_ORIGINS,
     ): string => createNginxConfig(assetOrigins),
-    runtime: (): AtlasHostRuntimeConfig =>
-      JSON.parse(
-        this.get.fileContents('atlas.runtime.json'),
-      ) as AtlasHostRuntimeConfig,
-    missingRuntimeError: (): string => {
-      try {
-        createAtlasBootstrapFiles({});
-        return '';
-      } catch (error) {
-        return error instanceof Error ? error.message : String(error);
-      }
-    },
   };
 }

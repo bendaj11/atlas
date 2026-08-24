@@ -11,6 +11,11 @@ import {
   placementTargetsHost,
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
+import {
+  assertAtlasBootstrapManifest,
+  atlasDiscoveryRequest,
+  resolveAtlasHostRuntime,
+} from '@atlas/bootstrap';
 
 type AtlasVerificationStatus = 'pass' | 'warning' | 'failure';
 
@@ -21,7 +26,7 @@ export interface AtlasVerificationCheck {
 }
 
 export interface AtlasVerificationReport {
-  runtimeUrl: string;
+  hostUrl: string;
   hostId?: string;
   checks: AtlasVerificationCheck[];
   failures: number;
@@ -29,8 +34,7 @@ export interface AtlasVerificationReport {
 }
 
 export interface AtlasVerifyOptions {
-  runtimeUrl: string;
-  hostOrigin?: string;
+  hostUrl: string;
   timeoutMs?: number;
 }
 
@@ -38,7 +42,7 @@ const DEFAULT_NETWORK_CONCURRENCY = 8;
 const DEFAULT_NETWORK_TIMEOUT_MS = 10_000;
 
 interface VerificationContext {
-  runtimeUrl: URL;
+  hostUrl: URL;
   hostOrigin: string;
   timeoutMs: number;
   checks: AtlasVerificationCheck[];
@@ -63,20 +67,18 @@ export class AtlasVerifyService {
   }
 
   async run(options: AtlasVerifyOptions): Promise<AtlasVerificationReport> {
-    const runtimeUrl = absoluteHttpUrl(options.runtimeUrl, '--runtime-url');
+    const hostUrl = absoluteHttpUrl(options.hostUrl, '--host-url');
     const timeoutMs = options.timeoutMs ?? DEFAULT_NETWORK_TIMEOUT_MS;
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0)
       throw new Error('Verification timeout must be a positive finite number.');
     const context: VerificationContext = {
-      runtimeUrl,
-      hostOrigin: options.hostOrigin
-        ? httpOrigin(options.hostOrigin, '--host-origin')
-        : runtimeUrl.origin,
+      hostUrl,
+      hostOrigin: hostUrl.origin,
       timeoutMs,
       checks: [],
     };
 
-    const runtime = await this.fetchRuntime(context);
+    const runtime = await this.resolveRuntime(context);
     if (!runtime) return createReport(context);
     const catalog = await this.fetchCatalog(runtime, context);
     if (!catalog) return createReport(context, runtime.hostId);
@@ -94,40 +96,76 @@ export class AtlasVerifyService {
     return createReport(context, runtime.hostId);
   }
 
-  private async fetchRuntime(
+  private async resolveRuntime(
     context: VerificationContext,
   ): Promise<AtlasHostRuntimeConfig | undefined> {
-    let value: unknown;
-    const response = await this.fetch(
-      context.runtimeUrl,
-      'runtime configuration',
+    let bootstrap: unknown;
+    const bootstrapUrl = new URL('/atlas.bootstrap.json', context.hostUrl);
+    const bootstrapResponse = await this.fetch(
+      bootstrapUrl,
+      'bootstrap metadata',
       context,
       async (loaded) => {
-        value = await parseJson(loaded, 'runtime configuration', context);
+        bootstrap = await parseJson(loaded, 'bootstrap metadata', context);
       },
     );
-    if (!response) return undefined;
-    this.verifyMutableCache(response, 'runtime configuration', context);
-    if (!isRuntimeConfig(value)) {
-      fail(
-        context,
-        'runtime configuration',
-        'Expected schemaVersion, hostId, environment, and manifestUrl.',
-      );
+    if (!bootstrapResponse) return undefined;
+    this.verifyMutableCache(bootstrapResponse, 'bootstrap metadata', context);
+    try {
+      assertAtlasBootstrapManifest(bootstrap);
+    } catch (error) {
+      fail(context, 'bootstrap metadata', errorMessage(error));
       return undefined;
     }
-    pass(context, 'runtime configuration', `Loaded host "${value.hostId}".`);
-    return value;
+    if (bootstrap.developmentRuntime) {
+      pass(
+        context,
+        'bootstrap metadata',
+        `Selected local development for host "${bootstrap.hostId}".`,
+      );
+      return bootstrap.developmentRuntime;
+    }
+    const request = atlasDiscoveryRequest(bootstrap);
+    if (!request) {
+      fail(context, 'host discovery', 'Discovery request is unavailable.');
+      return undefined;
+    }
+    const discoveryUrl = new URL(request.url);
+    let discovery: unknown;
+    const discoveryResponse = await this.fetch(
+      discoveryUrl,
+      'host discovery',
+      context,
+      async (loaded) => {
+        discovery = await parseJson(loaded, 'host discovery', context);
+      },
+    );
+    if (!discoveryResponse) return undefined;
+    this.verifyCors(discoveryResponse, discoveryUrl, 'host discovery', context);
+    this.verifyMutableCache(discoveryResponse, 'host discovery', context);
+    try {
+      const runtime = resolveAtlasHostRuntime(
+        bootstrap,
+        discovery,
+        context.hostUrl.href,
+      );
+      pass(
+        context,
+        'host discovery',
+        `Selected environment "${runtime.environment}" for host "${bootstrap.hostId}".`,
+      );
+      return runtime;
+    } catch (error) {
+      fail(context, 'host discovery', errorMessage(error));
+      return undefined;
+    }
   }
 
   private async fetchCatalog(
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<AtlasHostCatalog | undefined> {
-    const deploymentManifestUrl = new URL(
-      runtime.manifestUrl,
-      context.runtimeUrl,
-    );
+    const deploymentManifestUrl = new URL(runtime.manifestUrl, context.hostUrl);
     let value: unknown;
     const response = await this.fetch(
       deploymentManifestUrl,
@@ -335,7 +373,7 @@ export class AtlasVerifyService {
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<void>[] {
-    new URL(runtime.manifestUrl, context.runtimeUrl);
+    new URL(runtime.manifestUrl, context.hostUrl);
     const assets: AssetExpectation[] = [
       {
         url: manifest.remoteEntryUrl,
@@ -359,7 +397,7 @@ export class AtlasVerifyService {
     manifest: AtlasManifest | AtlasHostManifest,
     context: VerificationContext,
   ): Promise<void> {
-    const url = new URL(asset.url, context.runtimeUrl);
+    const url = new URL(asset.url, context.hostUrl);
     pass(context, `${asset.subject} URL`, url.href);
     let bytes: Uint8Array | undefined;
     const response = await this.fetch(
@@ -653,16 +691,6 @@ async function parseJson(
   }
 }
 
-function isRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
-  const record = asRecord(value);
-  return (
-    record?.schemaVersion === '1' &&
-    nonEmptyString(record.hostId) &&
-    nonEmptyString(record.environment) &&
-    nonEmptyString(record.manifestUrl)
-  );
-}
-
 function isHostDeployment(
   value: unknown,
 ): value is AtlasHostDeploymentManifest {
@@ -760,10 +788,6 @@ function absoluteHttpUrl(value: string, flag: string): URL {
   return url;
 }
 
-function httpOrigin(value: string, flag: string): string {
-  return absoluteHttpUrl(value, flag).origin;
-}
-
 function normalizeRoutePath(path: string): string {
   return path === '/' ? path : path.replace(/\/+$/, '');
 }
@@ -773,7 +797,7 @@ function createReport(
   hostId?: string,
 ): AtlasVerificationReport {
   return {
-    runtimeUrl: context.runtimeUrl.href,
+    hostUrl: context.hostUrl.href,
     ...(hostId ? { hostId } : {}),
     checks: context.checks,
     failures: context.checks.filter((check) => check.status === 'failure')

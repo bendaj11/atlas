@@ -36,7 +36,7 @@ navigation, shared services such as authentication, and startup files.
 - [SDK and host services](angular/sdk.md) / [React SDK](react/sdk.md)
 - [Assets and styles](angular/assets-and-styles.md) / [React assets and styles](react/assets-and-styles.md)
 - [Local development](local-development.md)
-- [Bootstrap and runtime configuration](bootstrap.md)
+- [Host bootstrap and discovery](bootstrap.md)
 - [Host deployment](production-deployment.md)
 - [Troubleshooting](troubleshooting.md)
 

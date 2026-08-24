@@ -12,10 +12,10 @@ describe('local bootstrap server', () => {
     await driver.when.close();
   });
 
-  it('should return runtime when runtime path is requested', async () => {
+  it('should return bootstrap metadata when metadata path is requested', async () => {
     await driver.given.server('static');
 
-    await driver.when.request('/atlas.runtime.json');
+    await driver.when.request('/atlas.bootstrap.json');
 
     expect(await driver.get.runtimeHostId()).toBe(driver.get.expectedHostId());
   });

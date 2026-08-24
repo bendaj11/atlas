@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@atlas/bootstrap": "*",
     "@atlas/schema": "*"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && tsx src/scripts/build/copy-static.ts",
+    "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && vite build --config vite.badge.config.ts && tsx src/scripts/build/copy-static.ts",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config jest.config.cjs --testPathPattern=apps/columbus/src/",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },

@@ -73,7 +73,7 @@ export function reportRetryFailure(error: unknown): void {
       summary: 'Atlas could not restart this page',
       suggestedActions: [
         'Check the first failed URL or configuration value in the error details.',
-        'Correct the deployment or atlas.runtime.json, then reload the page.',
+        'Correct the deployment metadata, then reload the page.',
       ],
       code: 'ATLAS_HOST_RETRY_FAILED',
     }),
@@ -85,7 +85,7 @@ export function toError(error: unknown): AtlasError {
     summary: 'Atlas could not start this page',
     suggestedActions: [
       'Check the first failed URL or configuration value in the error details.',
-      'Correct the host deployment or atlas.runtime.json, then reload the page.',
+      'Correct the host deployment metadata, then reload the page.',
     ],
     code: 'ATLAS_HOST_START_FAILED',
   });

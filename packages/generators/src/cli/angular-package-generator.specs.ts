@@ -32,23 +32,25 @@ test('should use caret Angular dependency versions when generating a host', () =
   ]);
 });
 
-test.each<[packageManager: 'npm' | 'pnpm', commandPrefix: string]>([
-  ['npm', 'npx --no-install'],
-  ['pnpm', 'pnpm exec'],
-])(
-  'should use local Atlas CLI when package manager is %s',
-  (packageManager, commandPrefix) => {
-    expect(
-      atlasScripts(generateAngularAppFiles(options(packageManager))),
-    ).toEqual({
-      dev: `${commandPrefix} atlas dev orders`,
-      publish: `${commandPrefix} atlas publish orders`,
-    });
-  },
-);
+test('should use local Atlas commands when generating an app', () => {
+  expect(atlasScripts(generateAngularAppFiles(options()))).toEqual({
+    dev: 'atlas dev orders',
+    config: 'atlas compile-config orders',
+    publish: 'atlas publish orders',
+  });
+});
 
-function options(packageManager?: 'npm' | 'pnpm') {
-  return { name: 'orders', framework: 'angular' as const, packageManager };
+test('should use local Atlas commands when generating a host', () => {
+  expect(atlasScripts(generateAngularHostFiles(options(), 'host-id'))).toEqual({
+    dev: 'atlas dev orders',
+    config: 'atlas compile-config orders',
+    publish: 'atlas publish orders',
+    bootstrap: 'atlas bootstrap orders --skip-compile',
+  });
+});
+
+function options() {
+  return { name: 'orders', framework: 'angular' as const };
 }
 
 function angularVersions(
@@ -80,6 +82,10 @@ function atlasScripts(files: { path: string; contents: string }[]) {
   };
   return {
     dev: packageJson.scripts.dev,
+    config: packageJson.scripts['atlas:config'],
     publish: packageJson.scripts['atlas:publish'],
+    ...(packageJson.scripts['atlas:bootstrap']
+      ? { bootstrap: packageJson.scripts['atlas:bootstrap'] }
+      : {}),
   };
 }

@@ -1,32 +1,28 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import {
+  assertAtlasBootstrapManifest,
+  normalizeAtlasRegistryUrl,
   createAtlasBootstrapFiles,
   type AtlasBootstrapFile,
+  type AtlasBootstrapManifest,
   type AtlasBootstrapOptions,
 } from '@atlas/bootstrap';
-import type { AtlasConfig, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
+import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
 import type { AtlasBuildService } from '../../build/service/build.service.js';
 import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
-import { createHostRuntimeConfig } from '../../build/runtime-config/runtime-config.js';
 import type {
   AtlasProject,
   AtlasWorkspace,
 } from '../../workspace/service/workspace.js';
 import { loadBootstrapTemplate } from '../template/bootstrap-template.js';
 
-type BootstrapBuildService = Pick<AtlasBuildService, 'loadConfig'>;
-
 export interface AtlasBootstrapBuildResult {
   directory: string;
   files: string[];
   digest: string;
-}
-
-export interface AtlasRuntimeConfigRenderResult {
-  path: string;
 }
 
 export interface AtlasBootstrapDependencies {
@@ -38,11 +34,6 @@ export interface AtlasBootstrapDependencies {
     projectRoot: string,
     templatePath?: string,
   ): Promise<string | undefined>;
-  createRuntime(
-    config: AtlasConfig,
-    args: CliArguments,
-    version?: string,
-  ): AtlasHostRuntimeConfig;
   createFiles(options: AtlasBootstrapOptions): AtlasBootstrapFile[];
   removeDirectory(directory: string): Promise<void>;
   createDirectory(directory: string): Promise<void>;
@@ -52,14 +43,13 @@ export interface AtlasBootstrapDependencies {
 export interface AtlasBootstrapServiceOptions {
   workspace: AtlasWorkspace;
   args: CliArguments;
-  builds: BootstrapBuildService;
+  builds: Pick<AtlasBuildService, 'loadConfig'>;
   dependencies?: AtlasBootstrapDependencies;
 }
 
 const defaultDependencies: AtlasBootstrapDependencies = {
   compileConfig: compileAtlasConfig,
   loadTemplate: loadBootstrapTemplate,
-  createRuntime: createHostRuntimeConfig,
   createFiles: createAtlasBootstrapFiles,
   removeDirectory: async (directory) =>
     rm(directory, { recursive: true, force: true }),
@@ -72,7 +62,7 @@ const defaultDependencies: AtlasBootstrapDependencies = {
 export class AtlasBootstrapService {
   private readonly workspace: AtlasWorkspace;
   private readonly args: CliArguments;
-  private readonly builds: BootstrapBuildService;
+  private readonly builds: Pick<AtlasBuildService, 'loadConfig'>;
   private readonly dependencies: AtlasBootstrapDependencies;
 
   constructor(options: AtlasBootstrapServiceOptions) {
@@ -88,45 +78,59 @@ export class AtlasBootstrapService {
     if (!this.args.hasFlag('skip-compile'))
       await this.dependencies.compileConfig(this.workspace, project);
 
-    const config = await this.builds.loadConfig(project.root);
-
-    const externalRuntime = this.usesExternalRuntimeConfig();
-    const runtime = externalRuntime
-      ? undefined
-      : this.dependencies.createRuntime(config, this.args, project.version);
-
     const template = await this.dependencies.loadTemplate(
       project.root,
       this.args.flag('template'),
     );
+    const config = await this.builds.loadConfig(project.root);
+    assertHostConfig(config, name);
+    const registryUrl = requiredRegistryUrl(this.args);
+    const assetOrigins = optionalAssetOrigins(
+      this.args.flag('asset-origins'),
+    ).assetOrigins;
 
     const files = this.dependencies.createFiles({
-      ...(runtime ? { runtime } : { runtimeConfig: 'external' }),
       ...(template !== undefined ? { html: template } : {}),
       ...(this.args.flag('title') ? { title: this.args.flag('title') } : {}),
       ...(this.args.flag('loading-html')
         ? { loadingHtml: this.args.flag('loading-html') }
         : {}),
+      assetOrigins: [...(assetOrigins ?? []), new URL(registryUrl).origin],
     });
-
     const directory = resolve(
       this.args.flag('out') ?? join(project.root, 'dist', 'bootstrap'),
     );
 
-    const digest = bootstrapDigest(files);
+    const outputFiles = files;
+    const bootstrapSettings = {
+      schemaVersion: '2',
+      hostId: config.id,
+      registryUrl,
+      resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
+      resourcesRetryCount: config.resourcesRetryCount ?? 3,
+      ...(assetOrigins?.length ? { assetOrigins } : {}),
+    } as const;
+    const digest = bootstrapDigest([
+      ...outputFiles,
+      {
+        path: 'atlas.bootstrap.json',
+        contents: JSON.stringify(bootstrapSettings),
+      },
+    ]);
 
-    const metadata = {
-      schemaVersion: '1',
+    const metadata: AtlasBootstrapManifest = {
+      ...bootstrapSettings,
       digest,
-      files: files.map(({ path }) => path).sort(),
+      files: outputFiles.map(({ path }) => path).sort(),
     };
+    assertAtlasBootstrapManifest(metadata);
 
     await this.dependencies.removeDirectory(directory);
     await this.dependencies.createDirectory(directory);
 
     await Promise.all(
       [
-        ...files,
+        ...outputFiles,
         {
           path: 'atlas.bootstrap.json',
           contents: `${JSON.stringify(metadata, null, 2)}\n`,
@@ -141,47 +145,59 @@ export class AtlasBootstrapService {
 
     return {
       directory,
-      files: [...files.map((file) => file.path), 'atlas.bootstrap.json'],
+      files: [...outputFiles.map((file) => file.path), 'atlas.bootstrap.json'],
       digest,
     };
   }
+}
 
-  async renderRuntimeConfig(
-    name: string,
-  ): Promise<AtlasRuntimeConfigRenderResult> {
-    const project = await this.workspace.findProject(name);
-    if (!this.args.hasFlag('skip-compile'))
-      await this.dependencies.compileConfig(this.workspace, project);
-
-    const config = await this.builds.loadConfig(project.root);
-    const runtime = this.dependencies.createRuntime(
-      config,
-      this.args,
-      project.version,
-    );
-    const path = resolve(
-      this.args.flag('out') ?? join(project.root, 'dist', 'atlas.runtime.json'),
-    );
-
-    await this.dependencies.createDirectory(dirname(path));
-    await this.dependencies.writeOutput(
-      path,
-      `${JSON.stringify(runtime, null, 2)}\n`,
-    );
-    return { path };
-  }
-
-  private usesExternalRuntimeConfig(): boolean {
-    const mode = this.args.flag('runtime-config');
-    if (mode === undefined || mode === 'embedded') return false;
-    if (mode === 'external') return true;
+function assertHostConfig(
+  config: AtlasConfig,
+  projectName: string,
+): asserts config is AtlasHostConfig {
+  if (
+    config.type === 'app' ||
+    'routes' in config ||
+    'slots' in config ||
+    'domIsolation' in config ||
+    'requiredHostSdkVersion' in config
+  ) {
     throw new Error(
-      `--runtime-config must be embedded or external, received "${mode}".`,
+      `Atlas bootstrap expects a host project, but "${projectName}" is an app.`,
     );
   }
 }
 
-function bootstrapDigest(files: readonly AtlasBootstrapFile[]): string {
+function requiredRegistryUrl(args: CliArguments): string {
+  const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
+  if (!value) {
+    throw new Error(
+      'Atlas bootstrap requires --registry-url or ATLAS_REGISTRY_URL. Use the public base URL that serves registry.json.',
+    );
+  }
+  if (value === 'true') throw new Error('--registry-url requires a URL.');
+  return normalizeAtlasRegistryUrl(value);
+}
+
+function optionalAssetOrigins(
+  value: string | undefined,
+): Pick<AtlasBootstrapOptions, 'assetOrigins'> {
+  if (!value) return {};
+  return {
+    assetOrigins: [
+      ...new Set(
+        value
+          .split(/[\s,]+/u)
+          .filter(Boolean)
+          .map((entry) => new URL(entry).origin),
+      ),
+    ],
+  };
+}
+
+function bootstrapDigest(
+  files: readonly { path: string; contents: string }[],
+): string {
   const hash = createHash('sha256');
 
   for (const file of [...files].sort((left, right) =>

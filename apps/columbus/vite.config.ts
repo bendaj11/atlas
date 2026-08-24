@@ -31,7 +31,6 @@ export default defineConfig({
     outDir: '../dist',
     rollupOptions: {
       input: {
-        'badge-script': resolve(directory, 'src/scripts/badge/badge-script.ts'),
         background: resolve(directory, 'src/scripts/background/background.ts'),
         index: resolve(directory, 'src/index.html'),
       },

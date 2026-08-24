@@ -113,15 +113,14 @@ describe('Atlas host inspection', () => {
     );
   });
 
-  it('should reject runtime configuration when environment is absent', async () => {
+  it('should reject development runtime when environment is absent', async () => {
     driver.given.runtimeWithoutEnvironment();
 
     await driver.when.hostInspected();
 
     expect(driver.get.error()).toEqual(
       expect.objectContaining({
-        message:
-          'This page does not expose a valid Atlas runtime configuration.',
+        message: 'Atlas development runtime metadata is invalid.',
       }),
     );
   });

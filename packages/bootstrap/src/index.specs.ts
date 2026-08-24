@@ -8,32 +8,15 @@ describe('bootstrap bundle', () => {
     driver = new IndexDriver();
   });
 
-  it('should emit required deployment files when creating default bootstrap assets', () => {
+  it('should omit deployment runtime config when creating bootstrap assets', () => {
     driver.when.createFiles();
 
     expect(driver.get.filePaths()).toEqual([
       'index.html',
       'atlas.loader.js',
       'es-module-shims.js',
-      'atlas.runtime.json',
       'nginx.conf',
     ]);
-  });
-
-  it('should omit environment files when creating external runtime bootstrap assets', () => {
-    driver.when.createExternalFiles();
-
-    expect(driver.get.filePaths()).toEqual([
-      'index.html',
-      'atlas.loader.js',
-      'es-module-shims.js',
-    ]);
-  });
-
-  it('should require runtime configuration when creating embedded bootstrap assets', () => {
-    expect(driver.get.missingRuntimeError()).toContain(
-      'requires runtime configuration',
-    );
   });
 
   it('should include host root when creating default bootstrap assets', () => {
@@ -64,10 +47,10 @@ describe('bootstrap bundle', () => {
     );
   });
 
-  it('should serialize runtime config when creating bootstrap assets', () => {
+  it('should allow explicit asset origins when creating bootstrap assets', () => {
     driver.when.createFiles();
 
-    expect(driver.get.runtime()).toEqual(driver.get.defaultRuntime());
+    expect(driver.get.nginxConfig()).toContain('https://assets.example');
   });
 
   it('should route missing pages to index HTML when creating Nginx config', () => {
@@ -80,10 +63,6 @@ describe('bootstrap bundle', () => {
     expect(driver.get.nginxConfig()).toContain(
       'location ~ \\.[^/]+$ {\n    try_files $uri =404;',
     );
-  });
-
-  it('should include runtime asset origins when creating Nginx config', () => {
-    expect(driver.get.nginxConfig()).toContain('https://assets.example');
   });
 
   it('should allow loopback WebSocket connections for explicit development sessions', () => {

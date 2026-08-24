@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasBootstrapFile } from '@atlas/bootstrap';
-import type { AtlasConfig, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { AtlasConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { createTestWorkspace } from '../../test-utils/build.testkit.js';
 import type { AtlasProject } from '../../workspace/service/workspace.js';
@@ -14,28 +14,26 @@ import {
 interface BuildSetup {
   flags: readonly string[];
   customized?: boolean;
-  configError?: Error;
+  omitRegistry?: boolean;
 }
 
 export class AtlasBootstrapServiceDriver {
   private readonly project: AtlasProject;
-  private readonly runtime: AtlasHostRuntimeConfig;
   private readonly files: AtlasBootstrapFile[];
   private readonly template = `<main id="atlas-host-root">${faker.lorem.sentence()}</main>`;
   private readonly templatePath = `${faker.system.filePath()}.html`;
   private readonly title = faker.company.name();
   private readonly loadingHtml = `<p>${faker.lorem.sentence()}</p>`;
+  private readonly registryUrl = 'https://registry.example';
   private readonly compileConfig =
     jest.fn<AtlasBootstrapDependencies['compileConfig']>();
   private readonly loadTemplate =
     jest.fn<AtlasBootstrapDependencies['loadTemplate']>();
-  private readonly loadConfig =
-    jest.fn<(root: string) => Promise<AtlasConfig>>();
   private readonly dependencies: AtlasBootstrapDependencies;
+  private readonly config: AtlasConfig;
   private service?: AtlasBootstrapService;
   private result?: AtlasBootstrapBuildResult;
   private metadata?: string;
-  private renderedRuntime?: AtlasHostRuntimeConfig;
   private generatedOptions?: Parameters<
     AtlasBootstrapDependencies['createFiles']
   >[0];
@@ -49,14 +47,11 @@ export class AtlasBootstrapServiceDriver {
       version: faker.system.semver(),
       outputPaths: [],
     };
-
-    this.runtime = {
-      schemaVersion: '1',
-      hostId,
-      environment: 'production',
-      manifestUrl: `https://${faker.internet.domainName()}/environments/production/hosts/${hostId}/manifest.json`,
-      resourcesTimeoutMs: 15_000,
-      resourcesRetryCount: 3,
+    this.config = {
+      framework: 'react',
+      id: hostId,
+      name: faker.company.name(),
+      type: 'host',
     };
 
     this.files = [
@@ -70,9 +65,6 @@ export class AtlasBootstrapServiceDriver {
     this.dependencies = {
       compileConfig: this.compileConfig.mockResolvedValue(),
       loadTemplate: this.loadTemplate,
-      createRuntime: jest
-        .fn<AtlasBootstrapDependencies['createRuntime']>()
-        .mockReturnValue(this.runtime),
       createFiles: jest.fn<AtlasBootstrapDependencies['createFiles']>(
         (options) => {
           this.generatedOptions = options;
@@ -88,10 +80,6 @@ export class AtlasBootstrapServiceDriver {
       writeOutput: jest.fn<AtlasBootstrapDependencies['writeOutput']>(
         async (path, contents) => {
           if (path.endsWith('atlas.bootstrap.json')) this.metadata = contents;
-          if (path.endsWith('atlas.runtime.json'))
-            this.renderedRuntime = JSON.parse(
-              contents,
-            ) as AtlasHostRuntimeConfig;
         },
       ),
     };
@@ -103,21 +91,12 @@ export class AtlasBootstrapServiceDriver {
         setup.customized ? this.template : undefined,
       );
 
-      const config = {
-        type: 'host',
-        id: this.project.id,
-        framework: 'react',
-      } satisfies AtlasConfig;
-
-      if (setup.configError)
-        this.loadConfig.mockRejectedValue(setup.configError);
-      else this.loadConfig.mockResolvedValue(config);
-
       this.service = new AtlasBootstrapService({
         workspace: createTestWorkspace({
           findProject: async () => this.project,
         }),
         args: new CliArguments([
+          ...(setup.omitRegistry ? [] : [`--registry-url=${this.registryUrl}`]),
           ...setup.flags,
           ...(setup.customized
             ? [
@@ -127,7 +106,7 @@ export class AtlasBootstrapServiceDriver {
               ]
             : []),
         ]),
-        builds: { loadConfig: this.loadConfig },
+        builds: { loadConfig: async () => this.config },
         dependencies: this.dependencies,
       });
     },
@@ -137,10 +116,6 @@ export class AtlasBootstrapServiceDriver {
     build: async (): Promise<void> => {
       if (!this.service) throw new Error('Service setup was not available.');
       this.result = await this.service.build(this.project.id);
-    },
-    renderRuntimeConfig: async (): Promise<void> => {
-      if (!this.service) throw new Error('Service setup was not available.');
-      await this.service.renderRuntimeConfig(this.project.id);
     },
   };
 
@@ -159,9 +134,6 @@ export class AtlasBootstrapServiceDriver {
       if (!this.metadata) throw new Error('Metadata write was not available.');
       return this.metadata;
     },
-    runtime: (): AtlasHostRuntimeConfig => this.runtime,
-    renderedRuntime: (): AtlasHostRuntimeConfig | undefined =>
-      this.renderedRuntime,
     hasCompiledConfig: (): boolean => this.compileConfig.mock.calls.length > 0,
     generatedOptions: (): NonNullable<typeof this.generatedOptions> => {
       if (!this.generatedOptions)
@@ -169,10 +141,12 @@ export class AtlasBootstrapServiceDriver {
       return this.generatedOptions;
     },
     expectedCustomOptions: (): NonNullable<typeof this.generatedOptions> => ({
-      runtime: this.runtime,
       html: this.template,
       title: this.title,
       loadingHtml: this.loadingHtml,
+      assetOrigins: [this.registryUrl],
     }),
+    registryUrl: (): string => this.registryUrl,
+    hostId: (): string => this.config.id,
   };
 }

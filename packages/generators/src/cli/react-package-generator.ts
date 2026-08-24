@@ -2,8 +2,6 @@ import {
   atlasPackageRange,
   type ReactVersionProfile,
 } from './generator-versions.js';
-import { atlasCommand } from './atlas-command.js';
-import type { AtlasPackageManager } from './generator-types.js';
 
 const VITE_REACT_PLUGIN_VERSION = '^5.0.4';
 const VITE_VERSION = '^7.3.6';
@@ -13,12 +11,11 @@ interface ReactPackageOptions {
   projectName: string;
   type: 'host' | 'app';
   profile: ReactVersionProfile;
-  packageManager?: AtlasPackageManager;
   routed?: boolean;
 }
 
 export function reactPackage(options: ReactPackageOptions): unknown {
-  const { packageName, projectName, profile, packageManager } = options;
+  const { packageName, projectName, profile } = options;
   const host = options.type === 'host';
   const routed = host || (options.routed ?? true);
   return {
@@ -27,14 +24,14 @@ export function reactPackage(options: ReactPackageOptions): unknown {
     private: true,
     type: 'module',
     scripts: {
-      dev: atlasCommand(packageManager, `dev ${projectName}`),
+      dev: `atlas dev ${projectName}`,
       'framework:dev': 'vite --host 0.0.0.0',
       'atlas:config': `atlas compile-config ${projectName}`,
       build: 'tsc -b && vite build',
-      'atlas:publish': atlasCommand(packageManager, `publish ${projectName}`),
+      'atlas:publish': `atlas publish ${projectName}`,
       ...(host
         ? {
-            'atlas:bootstrap': `atlas build-bootstrap ${projectName} --skip-compile`,
+            'atlas:bootstrap': `atlas bootstrap ${projectName} --skip-compile`,
           }
         : {}),
     },

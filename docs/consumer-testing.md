@@ -96,7 +96,7 @@ environment selections.
 After workspace publication and bootstrap deployment, CI verifies public runtime:
 
 ```sh
-atlas verify --runtime-url=https://customer.example/atlas.runtime.json
+atlas verify --host-url=https://customer.example
 ```
 
 Deployment tests should check:

@@ -106,6 +106,15 @@ describe('AtlasDeployService', () => {
     await expect(driver.when.deploy()).rejects.toThrow(/Content-Type/);
   });
 
+  it('should accept payload when optional content type parameters are absent', async () => {
+    await driver.given.crossRegistry();
+    driver.given.payloadWithoutOptionalCharset();
+
+    await driver.when.deploy();
+
+    expect(driver.get.productionVersion()).toBe('1.4.0');
+  });
+
   it('should reject concurrent payload when stored metadata differs', async () => {
     await driver.given.crossRegistry();
     driver.given.concurrentPayloadWithInvalidMetadata();
@@ -167,6 +176,39 @@ describe('AtlasDeployService', () => {
     expect(driver.get.projectionKinds()).toStrictEqual({
       apps: 1,
       widgetProviders: 1,
+    });
+  });
+
+  it('should require public URL when host is deployed for first time', async () => {
+    driver.given.hostDeployment();
+
+    await expect(driver.when.deploy()).rejects.toThrow(/--host-url/);
+  });
+
+  it('should write host discovery when host URL is provided', async () => {
+    driver.given.hostDeployment(
+      'https://customer.example.com/portal/',
+      'https://partners.example.com/atlas/|production',
+    );
+
+    await driver.when.deploy();
+
+    expect(driver.get.discovery()).toStrictEqual({
+      schemaVersion: '1',
+      hostId: driver.get.hostId(),
+      bindings: [
+        {
+          baseUrl: 'https://customer.example.com/portal',
+          environment: 'production',
+          manifestUrl: `http://localhost:4400/environments/production/hosts/${driver.get.hostId()}/manifest.json`,
+          externalRegistries: [
+            {
+              registryUrl: 'https://partners.example.com/atlas',
+              environment: 'production',
+            },
+          ],
+        },
+      ],
     });
   });
 });

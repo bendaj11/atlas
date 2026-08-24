@@ -111,7 +111,7 @@ tabs when local React source changes.
 
 Pass the host page where the app should run. When app configuration does not
 identify exactly one host, Atlas discovers host identity from the page origin's
-public `/atlas.runtime.json`.
+public `/atlas.bootstrap.json`.
 
 ```sh
 atlas dev orders \
@@ -173,7 +173,7 @@ The loader and Columbus badge are independent of the selected host client.
 Before applying a host override Atlas checks:
 
 - manifest kind is `host`;
-- manifest id matches `/atlas.runtime.json`;
+- manifest id matches `/atlas.bootstrap.json`;
 - required loader API major is compatible;
 - production/PR URLs use an approved HTTPS origin;
 - local URLs use loopback;

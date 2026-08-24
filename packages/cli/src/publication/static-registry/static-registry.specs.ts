@@ -2,11 +2,15 @@ import { faker } from '@faker-js/faker';
 import { describe, expect, it } from '@jest/globals';
 import type {
   AtlasAppArtifactManifest,
+  AtlasHostArtifactManifest,
   AtlasManifestDescriptor,
 } from '@atlas/schema';
 import {
+  bindHostDeployment,
   emptyStaticRegistry,
+  importRelease,
   publishArtifact,
+  resolveRegistryArtifact,
   resolveRelease,
   selectDeployment,
 } from './static-registry.js';
@@ -62,6 +66,42 @@ describe('static registry v2', () => {
     expect(selected.version).toBe('opaque-7');
   });
 
+  it('should resolve artifact through package name when release is published', () => {
+    const manifest = {
+      ...releaseManifest('opaque-7'),
+      packageName: faker.internet.domainWord(),
+    };
+    const registry = publishArtifact(
+      undefined,
+      manifest,
+      manifestDescriptor(manifest, 'opaque-7'),
+    ).registry;
+
+    expect(
+      resolveRegistryArtifact(registry, manifest.packageName).artifact.id,
+    ).toBe(manifest.id);
+  });
+
+  it('should retain package name when a release is imported', () => {
+    const manifest = {
+      ...releaseManifest('opaque-7'),
+      packageName: faker.internet.domainWord(),
+    };
+    const source = publishArtifact(
+      undefined,
+      manifest,
+      manifestDescriptor(manifest, 'opaque-7'),
+    ).registry;
+    const target = importRelease(
+      emptyStaticRegistry(),
+      resolveRelease(source, manifest.packageName, 'opaque-7'),
+    );
+
+    expect(
+      resolveRegistryArtifact(target, manifest.packageName).artifact.id,
+    ).toBe(manifest.id);
+  });
+
   it('should resolve an environment to its exact selected release', () => {
     const manifest = releaseManifest('1.4.0');
     const published = publishArtifact(
@@ -110,6 +150,62 @@ describe('static registry v2', () => {
       selectDeployment(registry, 'production', selected, {}),
     ).toThrow(/conflicts with an existing release/);
   });
+
+  it('should store normalized URLs when host deployment is bound', () => {
+    const manifest = hostReleaseManifest('1.4.0');
+    const published = publishArtifact(
+      undefined,
+      manifest,
+      manifestDescriptor(manifest, '1.4.0'),
+    ).registry;
+    const selected = resolveRelease(published, manifest.id, '1.4.0');
+    const deployed = selectDeployment(
+      published,
+      'production',
+      selected,
+      {},
+    ).registry;
+
+    const bound = bindHostDeployment(deployed, {
+      environment: 'production',
+      hostId: manifest.id,
+      baseUrls: ['https://customer.example.com/portal/'],
+    }).registry;
+
+    expect(
+      bound.deployments.production?.hosts[manifest.id]?.baseUrls,
+    ).toStrictEqual(['https://customer.example.com/portal']);
+  });
+
+  it('should reject host URL when another environment already owns it', () => {
+    const manifest = hostReleaseManifest('1.4.0');
+    const published = publishArtifact(
+      undefined,
+      manifest,
+      manifestDescriptor(manifest, '1.4.0'),
+    ).registry;
+    const selected = resolveRelease(published, manifest.id, '1.4.0');
+    const production = selectDeployment(
+      published,
+      'production',
+      selected,
+      {},
+    ).registry;
+    const bound = bindHostDeployment(production, {
+      environment: 'production',
+      hostId: manifest.id,
+      baseUrls: ['https://customer.example.com'],
+    }).registry;
+    const staging = selectDeployment(bound, 'staging', selected, {}).registry;
+
+    expect(() =>
+      bindHostDeployment(staging, {
+        environment: 'staging',
+        hostId: manifest.id,
+        baseUrls: ['https://customer.example.com'],
+      }),
+    ).toThrow(/already bound/);
+  });
 });
 
 function releaseManifest(version: string): AtlasAppArtifactManifest {
@@ -139,8 +235,24 @@ function releaseManifest(version: string): AtlasAppArtifactManifest {
   };
 }
 
+function hostReleaseManifest(version: string): AtlasHostArtifactManifest {
+  const app = releaseManifest(version);
+  return {
+    schemaVersion: '2',
+    kind: 'host-artifact',
+    id: app.id,
+    name: app.name,
+    release: { version },
+    framework: app.framework,
+    entryPath: app.entryPath,
+    exposes: app.exposes,
+    files: app.files,
+    requiredLoaderApiVersion: '^1.0.0',
+  };
+}
+
 function manifestDescriptor(
-  manifest: AtlasAppArtifactManifest,
+  manifest: AtlasAppArtifactManifest | AtlasHostArtifactManifest,
   version: string,
 ): AtlasManifestDescriptor {
   return {

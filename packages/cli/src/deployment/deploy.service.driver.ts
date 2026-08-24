@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import type {
   AtlasAppArtifactManifest,
   AtlasHostArtifactManifest,
+  AtlasHostDiscovery,
   AtlasHostDeploymentManifest,
   AtlasPublishedArtifactManifest,
   AtlasStaticRegistry,
@@ -65,6 +66,9 @@ export class DeployServiceDriver {
   private sourceRegistrySnapshot?: AtlasStaticRegistry;
   private convergenceFailed = false;
   private targetRoot = 'http://localhost:4400';
+  private artifactIdentifier = this.app.id;
+  private hostUrl: string | undefined;
+  private externalRegistries: string | undefined;
 
   given = {
     registry: async (): Promise<void> => {
@@ -263,6 +267,12 @@ export class DeployServiceDriver {
         bytesResponse(APP_ENTRY, 'text/plain'),
       );
     },
+    payloadWithoutOptionalCharset: (): void => {
+      this.respond(
+        `${this.sourceRoot}/apps/${this.app.id}/1.4.0/remoteEntry.json`,
+        streamedResponse(APP_ENTRY, 'application/json'),
+      );
+    },
     concurrentPayloadWithInvalidMetadata: (): void => {
       this.storage.conflictNextCreate(
         `apps/${this.app.id}/1.4.0/remoteEntry.json`,
@@ -272,6 +282,12 @@ export class DeployServiceDriver {
     },
     insecureTarget: (): void => {
       this.targetRoot = 'http://registry.example';
+    },
+    hostDeployment: (hostUrl?: string, externalRegistries?: string): void => {
+      this.artifactIdentifier = this.host.id;
+      this.selector = '1.0.0';
+      this.hostUrl = hostUrl;
+      this.externalRegistries = externalRegistries;
     },
     mismatchedManifestIdentity: (): void => {
       if (!this.sourceManifestPath || !this.sourceRegistrySnapshot) {
@@ -297,7 +313,7 @@ export class DeployServiceDriver {
     deploy: async (): Promise<void> => {
       const args = new CliArguments([
         'deploy',
-        this.app.id,
+        this.artifactIdentifier,
         '--to',
         this.environment,
         '--version',
@@ -308,11 +324,18 @@ export class DeployServiceDriver {
           ? ['--source-registry-url', this.sourceRoot]
           : []),
         ...(this.dryRun ? ['--dry-run'] : []),
+        ...(this.hostUrl ? ['--host-url', this.hostUrl] : []),
+        ...(this.externalRegistries
+          ? ['--external-registries', this.externalRegistries]
+          : []),
       ]);
       try {
-        this.result = await new AtlasDeployService(args).run(this.app.id, {
-          storage: this.storage,
-        });
+        this.result = await new AtlasDeployService(args).run(
+          this.artifactIdentifier,
+          {
+            storage: this.storage,
+          },
+        );
       } catch (error) {
         if (!(error instanceof AtlasDeploymentConvergenceError)) throw error;
         this.convergenceFailed = true;
@@ -404,6 +427,8 @@ export class DeployServiceDriver {
         widgetProviders: projection.widgetProviders?.length ?? 0,
       };
     },
+    discovery: (): AtlasHostDiscovery =>
+      this.storage.json(`hosts/${this.host.id}/discovery.json`),
   };
 
   private getProjection(): AtlasHostDeploymentManifest {

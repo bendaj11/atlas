@@ -124,7 +124,7 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   );
   assert.match(
     host.get('package.json'),
-    /atlas build-bootstrap host --skip-compile/,
+    /atlas bootstrap host --skip-compile/,
   );
   assert.match(appFiles.get('vite.config.ts'), /createReactAppViteConfig/);
   assert.doesNotMatch(

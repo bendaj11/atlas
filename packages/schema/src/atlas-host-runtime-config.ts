@@ -1,3 +1,8 @@
+export interface AtlasExternalRegistrySelection {
+  registryUrl: string;
+  environment: string;
+}
+
 /** Runtime settings a deployed host loads before it loads any apps. */
 export interface AtlasHostRuntimeConfig {
   /** Leave as "1". Atlas uses this to know how to read this runtime config file. */
@@ -21,8 +26,5 @@ export interface AtlasHostRuntimeConfig {
   /** HTTPS origins allowed to serve host-client artifacts, in addition to the catalog origin. */
   assetOrigins?: string[];
   /** Explicit external registry environments searched for widget providers. */
-  externalRegistries?: Array<{
-    registryUrl: string;
-    environment: string;
-  }>;
+  externalRegistries?: AtlasExternalRegistrySelection[];
 }

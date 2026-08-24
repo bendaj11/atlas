@@ -47,7 +47,7 @@ and App versions to use in each environment.
 
 Host teams decide:
 
-- host id and runtime config;
+- host ID, bootstrap metadata, and Atlas-managed discovery;
 - page layout and Atlas DOM mount anchors;
 - top-level routes and navigation surface;
 - authentication and HTTP behavior;

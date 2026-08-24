@@ -2,7 +2,7 @@
 
 Start by identifying the domain:
 
-- **Host domain:** page shell, runtime config, active host manifest URL, DOM anchors,
+- **Host domain:** page shell, bootstrap metadata, discovery, active host manifest URL, DOM anchors,
   `startHost`, host SDK providers.
 - **App domain:** React app source, `atlas.config.ts`, `src/bootstrap.tsx`,
   inner routes, assets.
@@ -14,7 +14,7 @@ Start by identifying the domain:
 Check deployment first:
 
 ```sh
-atlas verify --runtime-url=https://customer.example/atlas.runtime.json
+atlas verify --host-url=https://customer.example
 ```
 
 Then check host layout:
@@ -22,8 +22,8 @@ Then check host layout:
 - `data-atlas-route-outlet` exists;
 - `data-atlas-host-status` exists;
 - the host serves `index.html` for deep links;
-- `atlas.runtime.json` points to the expected environment-qualified active host
-  manifest.
+- host discovery selects the expected environment-qualified active host
+  manifest for the page URL.
 
 Then check app config:
 

@@ -24,12 +24,8 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
   },
   { label: 'build', description: 'Build a host or app for deployment' },
   {
-    label: 'build-bootstrap',
-    description: 'Build static host bootstrap files',
-  },
-  {
-    label: 'render-runtime-config',
-    description: 'Render deploy-time host runtime configuration',
+    label: 'bootstrap',
+    description: 'Create deployable host bootstrap files',
   },
   {
     label: 'publish',
@@ -61,9 +57,8 @@ export const ROOT_EXAMPLES = [
   'atlas dev orders',
   'atlas publish orders --version 1.4.0',
   'atlas deploy orders --to production --version rc',
-  'atlas build-bootstrap customer-host',
-  'atlas render-runtime-config customer-host --registry-url https://cdn.example.com/atlas --environment production',
-  'atlas verify --runtime-url https://customer.example/atlas.runtime.json',
+  'atlas bootstrap customer-host --registry-url https://cdn.example.com/atlas',
+  'atlas verify --host-url https://customer.example',
 ] as const;
 
 export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
@@ -239,25 +234,17 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       'atlas build orders --registry-url https://cdn.example.com/atlas',
     ],
   },
-  'build-bootstrap': {
-    summary:
-      'Build static Atlas bootstrap files for Nginx or equivalent hosting.',
-    usage: 'atlas build-bootstrap <host> [options]',
+  bootstrap: {
+    summary: 'Create reusable static host bootstrap files.',
+    usage: 'atlas bootstrap <host> [options]',
     arguments: [
       { label: 'host', description: 'Host project name or directory' },
     ],
     options: [
       {
         label: '--registry-url <url>',
-        description: 'Public base URL of static registry',
-      },
-      {
-        label: '--environment <name>',
-        description: 'Logical environment loaded by this host runtime',
-      },
-      {
-        label: '--runtime-config <mode>',
-        description: 'Use external to omit runtime config and Nginx files',
+        description:
+          'Stable public registry root used by the browser for host discovery',
       },
       {
         label: '--out <path>',
@@ -281,10 +268,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         description: 'Comma-separated approved asset origins',
       },
       {
-        label: '--external-registries <entries>',
-        description: 'Comma-separated <registry-url>|<environment> entries',
-      },
-      {
         label: '--skip-compile',
         description: 'Use already compiled atlas.config.ts',
       },
@@ -293,64 +276,12 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     environment: [
       {
         label: 'ATLAS_REGISTRY_URL',
-        description: 'Default public registry URL',
-      },
-      {
-        label: 'ATLAS_ENVIRONMENT',
-        description: 'Default logical runtime environment',
+        description: 'Default stable public registry root',
       },
     ],
     examples: [
-      'atlas build-bootstrap customer-host --registry-url https://cdn.example.com/atlas --environment production',
-      'atlas build-bootstrap customer-host --runtime-config external',
-      'atlas build-bootstrap customer-host --template atlas.bootstrap.html',
-    ],
-  },
-  'render-runtime-config': {
-    summary: 'Render a deploy-time Atlas host runtime configuration file.',
-    usage: 'atlas render-runtime-config <host> [options]',
-    arguments: [
-      { label: 'host', description: 'Host project name or directory' },
-    ],
-    options: [
-      {
-        label: '--registry-url <url>',
-        description: 'Public base URL of static registry',
-      },
-      {
-        label: '--environment <name>',
-        description: 'Logical environment loaded by this host runtime',
-      },
-      {
-        label: '--out <path>',
-        description: 'Output file (default: <host>/dist/atlas.runtime.json)',
-      },
-      {
-        label: '--asset-origins <urls>',
-        description: 'Comma-separated approved asset origins',
-      },
-      {
-        label: '--external-registries <entries>',
-        description: 'Comma-separated <registry-url>|<environment> entries',
-      },
-      {
-        label: '--skip-compile',
-        description: 'Use already compiled atlas.config.ts',
-      },
-      { label: '-h, --help', description: 'Show help for this command' },
-    ],
-    environment: [
-      {
-        label: 'ATLAS_REGISTRY_URL',
-        description: 'Default public registry URL',
-      },
-      {
-        label: 'ATLAS_ENVIRONMENT',
-        description: 'Default logical runtime environment',
-      },
-    ],
-    examples: [
-      'atlas render-runtime-config customer-host --registry-url https://cdn.example.com/atlas --environment production',
+      'atlas bootstrap customer-host --registry-url https://cdn.example.com/atlas',
+      'ATLAS_REGISTRY_URL=https://cdn.example.com/atlas atlas bootstrap customer-host',
     ],
   },
   publish: {
@@ -411,7 +342,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     arguments: [
       {
         label: 'artifact',
-        description: 'Stable UUID or unique registered name',
+        description:
+          'Project/package name, stable UUID, or unique display name',
       },
     ],
     options: [
@@ -432,6 +364,11 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         description: 'Public target registry root',
       },
       {
+        label: '--host-url <url>',
+        description:
+          'Public host base URL; required on its first deploy to this environment',
+      },
+      {
         label: '--registry-config <path>',
         description: 'Optional atlas.registry.ts path',
       },
@@ -439,10 +376,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       {
         label: '--expected-registry-revision <digest>',
         description: 'Require current target registry revision',
-      },
-      {
-        label: '--runtime-url <url>',
-        description: 'Verify one runtime after convergence',
       },
       {
         label: '--dry-run',
@@ -453,6 +386,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     environment: storageEnvironment(true),
     examples: [
       'atlas deploy orders --to production --version 1.4.0',
+      'atlas deploy customer-host --to production --version 1.0.0 --host-url https://customer.example',
       'atlas deploy orders --to production --version latest',
       'atlas deploy orders --to production --version rc',
     ],
@@ -510,31 +444,27 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
   verify: {
     summary:
       'Verify a deployed Atlas host, active manifest, artifacts, and assets.',
-    usage: 'atlas verify [--runtime-url <url>] [options]',
+    usage: 'atlas verify --host-url <url> [options]',
     options: [
       {
-        label: '--runtime-url <url>',
-        description: 'One deployed atlas.runtime.json URL',
+        label: '--host-url <url>',
+        description: 'One deployed Atlas host page or base URL',
       },
       {
-        label: '--runtime-urls <urls>',
-        description: 'Comma-separated deployed runtime URLs',
-      },
-      {
-        label: '--host-origin <url>',
-        description: 'Expected host origin used for policy checks',
+        label: '--host-urls <urls>',
+        description: 'Comma-separated deployed Atlas host URLs',
       },
       { label: '-h, --help', description: 'Show help for this command' },
     ],
     environment: [
       {
-        label: 'ATLAS_RUNTIME_URLS',
-        description: 'Space or comma-separated deployed runtime URLs',
+        label: 'ATLAS_HOST_URLS',
+        description: 'Space or comma-separated deployed Atlas host URLs',
       },
     ],
     examples: [
-      'atlas verify --runtime-url https://customer.example/atlas.runtime.json',
-      'ATLAS_RUNTIME_URLS=https://customer.example/atlas.runtime.json atlas verify',
+      'atlas verify --host-url https://customer.example',
+      'ATLAS_HOST_URLS=https://customer.example,https://staging.customer.example atlas verify',
     ],
   },
 };
@@ -546,6 +476,11 @@ function storageEnvironment(includeSource = false): HelpEntry[] {
           {
             label: 'ATLAS_SOURCE_REGISTRY_URL',
             description: 'Public source registry root',
+          },
+          {
+            label: 'ATLAS_HOST_URL',
+            description:
+              'Public host base URL used when deploying a host binding',
           },
         ]
       : []),

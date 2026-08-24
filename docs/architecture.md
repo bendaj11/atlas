@@ -6,7 +6,7 @@ content from mutable environment selection.
 ```text
 Framework build -> atlas publish -> immutable manifest + files
                                       |
-atlas deploy -> registry desired state + active host manifest
+atlas deploy -> registry desired state + discovery + active host manifest
                                       |
 Browser bootstrap -> active host manifest -> canonical manifests -> payloads
 ```
@@ -25,6 +25,7 @@ Browser bootstrap -> active host manifest -> canonical manifests -> payloads
 
 - `manifest.json` is canonical artifact identity and behavior.
 - `registry.json` is release inventory and desired environment state.
+- `hosts/<id>/discovery.json` maps public host URLs to environment manifests.
 - `environments/<environment>/hosts/<id>/manifest.json` is one host's active descriptor projection for one environment.
 - Browser override storage contains only user-selected temporary overrides.
 
@@ -43,18 +44,20 @@ same operation: select an exact release for a named environment.
 
 ## Runtime sequence
 
-1. Bootstrap reads `atlas.runtime.json`.
-2. Runtime loads `manifestUrl`, the active host deployment.
-3. It fetches host, app, and widget-provider manifests with bounded concurrency.
-4. Descriptor size and SHA-256 are verified before parsing.
-5. Payload URLs are resolved relative to each canonical manifest.
-6. Compatibility, trust, CORS, MIME, integrity, routing, style, and isolation
+1. Bootstrap reads `atlas.bootstrap.json` from the host.
+2. It reads Atlas-generated `hosts/<id>/discovery.json` from the stable registry.
+3. The current host URL selects an environment and absolute manifest URL.
+4. Runtime loads the active host deployment.
+5. It fetches host, app, and widget-provider manifests with bounded concurrency.
+6. Descriptor size and SHA-256 are verified before parsing.
+7. Payload URLs are resolved relative to each canonical manifest.
+8. Compatibility, trust, CORS, MIME, integrity, routing, style, and isolation
    checks run before executable content loads.
-7. One broken app/widget remains isolated from healthy siblings.
+9. One broken app/widget remains isolated from healthy siblings.
 
-Local development may use an explicit loopback-only `developmentSessionUrl` as
-an internal projection. Production runtime never requests artifact indexes or
-catalogs.
+Local development may place an explicit loopback-only runtime in bootstrap
+metadata as an internal projection. Production uses discovery and never
+requests `registry.json` or artifact indexes.
 
 ## Deployment and convergence
 

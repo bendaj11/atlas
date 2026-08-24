@@ -5,7 +5,7 @@
 Atlas is a TypeScript-first platform for products made from independently
 released frontend applications. It provides:
 
-- generated static bootstrap for product-domain HTML, runtime config, and loader;
+- generated static bootstrap for product-domain HTML, loader, and discovery entrypoint;
 - a versioned host client for layout, routing, authentication integration, and
   shared services;
 - versioned Angular and React apps loaded through Native Federation;
@@ -36,14 +36,15 @@ contract you need.
 flowchart LR
   Browser["Browser"] --> Bootstrap["Static bootstrap on Nginx/CDN"]
   Bootstrap --> Loader["Atlas loader"]
-  Loader --> Deployment["Active host manifest"]
+  Loader --> Discovery["Atlas host discovery"]
+  Discovery --> Deployment["Active host manifest"]
   Deployment --> Host["Versioned host client"]
   Host --> Apps["Versioned apps"]
   Host --> SDK["Host-owned SDK services"]
   SDK --> Apps
 ```
 
-Static Nginx/CDN hosting serves HTML, browser loader, runtime configuration,
+Static Nginx/CDN hosting serves HTML, browser loader, bootstrap metadata,
 security headers, health, and SPA fallback. Host client and apps
 are immutable UI artifacts published independently to public object storage or a
 CDN. An active host manifest selects which host-client and app releases run
@@ -84,7 +85,7 @@ or [Atlas App](docs/app.md).
 | Package             | Responsibility                                                                  |
 | ------------------- | ------------------------------------------------------------------------------- |
 | `@atlas/cli`        | Generation, local development, build, publication, deployment, and verification |
-| `@atlas/bootstrap`  | Static HTML, browser loader, runtime config, Nginx policy, and recovery         |
+| `@atlas/bootstrap`  | Static HTML, browser loader, discovery entrypoint, Nginx policy, and recovery   |
 | `@atlas/runtime`    | Deployment-manifest discovery, trust checks, federation loading, and lifecycle  |
 | `@atlas/sdk`        | Typed app-to-host contracts and framework adapters                              |
 | `@atlas/schema`     | Configuration, manifest, registry, and deployment contracts                     |

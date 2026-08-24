@@ -40,8 +40,7 @@ export async function resolveInvocation(
     }
   } else if (
     (command === 'build' ||
-      command === 'build-bootstrap' ||
-      command === 'render-runtime-config' ||
+      command === 'bootstrap' ||
       command === 'publish' ||
       command === 'deploy' ||
       command === 'remove-preview') &&

@@ -188,7 +188,7 @@ function assertCatalogMatchesConfig(
       `Atlas cannot start host "${configHostId}" because its catalog belongs to host "${catalogHostId}".`,
       {
         suggestedActions:
-          'Point atlas.runtime.json manifestUrl to the active host manifest, then reload the page.',
+          'Point the host runtime manifestUrl to the active host manifest, then reload the page.',
         code: 'ATLAS_CATALOG_HOST_MISMATCH',
       },
     );

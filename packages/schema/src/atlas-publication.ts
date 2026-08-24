@@ -60,6 +60,7 @@ export interface AtlasArtifactManifestBaseV2 {
   kind: 'app-artifact' | 'host-artifact';
   id: string;
   name: string;
+  packageName?: string;
   release?: AtlasReleaseIdentity;
   preview?: AtlasPreviewIdentity;
   source?: AtlasArtifactSource;
@@ -92,6 +93,7 @@ export type AtlasPublishedArtifactManifest =
 export interface AtlasRegistryArtifact {
   id: string;
   name: string;
+  packageName?: string;
   releases: Record<string, AtlasManifestDescriptor>;
   previews: Record<string, AtlasManifestDescriptor>;
   latest?: string;
@@ -101,8 +103,15 @@ export interface AtlasDeploymentSelection {
   version: string;
 }
 
+export interface AtlasHostDeploymentSelection extends AtlasDeploymentSelection {
+  /** Public base URLs that serve this host in this environment. */
+  baseUrls?: string[];
+  /** External registries this host may use in this environment. */
+  externalRegistries?: Array<{ registryUrl: string; environment: string }>;
+}
+
 export interface AtlasEnvironmentDeployment {
-  hosts: Record<string, AtlasDeploymentSelection>;
+  hosts: Record<string, AtlasHostDeploymentSelection>;
   apps: Record<string, AtlasDeploymentSelection>;
   expectedHostRevisions: Record<string, string>;
 }

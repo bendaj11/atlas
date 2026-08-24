@@ -16,11 +16,11 @@ Generated host files to understand first:
 | File                   | Owner          | Purpose                                                                                                                                |
 | ---------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `atlas.config.ts`      | Host team      | Stable host id, display name, runtime defaults.                                                                                        |
-| `atlas.bootstrap.html` | Host team      | Product-domain HTML and loading UI used automatically by `atlas build-bootstrap`.                                                      |
+| `atlas.bootstrap.html` | Host team      | Product-domain HTML and loading UI used automatically by `atlas bootstrap`.                                                            |
 | `src/main.tsx`         | Host team      | Normal Vite/React entry for local host preview.                                                                                        |
 | `src/bootstrap.tsx`    | Atlas/platform | Federated `mount` lifecycle, router, Atlas provider, and initial host layout.                                                          |
 | `vite.config.ts`       | Host team      | Vite plugins, server, aliases, and other product-specific overrides. Atlas federation wiring stays behind `createReactHostViteConfig`. |
-| `dist/bootstrap/`      | Atlas CLI      | Static product-domain files from `atlas build-bootstrap`.                                                                              |
+| `dist/bootstrap/`      | Atlas CLI      | Static product-domain files from `atlas bootstrap`.                                                                                    |
 
 The host owns layout, auth, top-level routing, host services, and runtime
 configuration.

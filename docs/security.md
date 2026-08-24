@@ -2,8 +2,8 @@
 
 Audience: host, platform, and security owners. Read [Architecture](architecture.md)
 and [Static bootstrap](bootstrap.md) first. App developers mainly follow origin,
-SDK, and immutable-release rules; platform team owns runtime environment,
-storage permissions, CSP, and override policy.
+SDK, and immutable-release rules; platform team owns host discovery, storage
+permissions, CSP, and override policy.
 
 Atlas loads executable browser code from object storage. Treat publication
 credentials and environment deployment selection as production-code controls.
@@ -18,28 +18,29 @@ does not proxy registry artifacts.
 
 ## Runtime policy
 
-Generate production runtime policy explicitly:
+Generate static bootstrap with the stable public registry URL:
 
 ```sh
-atlas build-bootstrap customer-host \
-  --registry-url=https://cdn.example.com/atlas \
-  --environment=production \
-  --asset-origins=https://cdn.example.com \
-  --external-registries='https://shared-ui.example/atlas|production'
+atlas bootstrap customer-host \
+  --registry-url=https://assets.example.com/atlas \
+  --asset-origins=https://cdn.example.com,https://shared-ui.example
 ```
 
-Atlas adds registry origin to generated CSP. `--asset-origins` adds other
-artifact/CDN origins. `--external-registries` limits cross-registry
-dependency discovery and adds those origins to CSP. Production URLs require
-HTTPS; local development permits HTTP(S) loopback.
+`--asset-origins` defines browser origins in runtime policy. Configure matching
+origins in your web server CSP. The generated Nginx configuration receives its
+CSP origins from `atlas bootstrap --asset-origins`.
+Production URLs require HTTPS; local development permits HTTP(S) loopback.
 
-`/atlas.runtime.json` is public browser data. Never expose passwords, tokens, connection strings, or private storage credentials through environment values returned there.
+`atlas.bootstrap.json` and `hosts/<host-id>/discovery.json` are public browser
+data. Never expose passwords, tokens, connection strings, private storage API
+URLs, or credentials in them. Atlas generates both files from validated public
+settings.
 
 ## Loader validation
 
 Before importing a host client, the stable loader validates:
 
-- runtime environment, active deployment manifest, and host ids agree;
+- bootstrap, discovery, active deployment manifest, and host ids agree;
 - active deployment manifest contains exactly one host descriptor and an app array;
 - referenced canonical host manifest kind is `host-artifact`;
 - loader API major is compatible;
@@ -74,7 +75,7 @@ Integrity does not replace publication authorization. Anyone who can publish bot
 - Upload immutable bytes before their registry descriptor; deploy desired state
   before converging affected active host manifests.
 - Read and HEAD uploaded objects; verify SHA-256, MIME, and cache policy.
-- Verify runtime after active host convergence.
+- Verify the public host after active host convergence.
 - Resume partial convergence safely; roll back by deploying an older exact
   version when required.
 - Keep deployment and rollback audit logs.

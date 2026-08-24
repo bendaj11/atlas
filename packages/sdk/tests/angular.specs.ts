@@ -173,7 +173,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   );
   assert.match(
     host.get('package.json'),
-    /atlas build-bootstrap host --skip-compile/,
+    /atlas bootstrap host --skip-compile/,
   );
   assert.doesNotMatch(host.get('src/bootstrap.ts'), /localhost:4300/);
   assert.match(host.get('angular.json'), /"input": "public"/);

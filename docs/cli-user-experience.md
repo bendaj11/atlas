@@ -42,7 +42,7 @@ Cross-environment rules: [Atlas error handling](./error-handling.md).
 | `generate widget` | `Generate widget · <name>`   | Created widget                               |
 | `dev`             | `Develop · <project>`        | Labeled app preview URL                      |
 | `build`           | `Build · <project>`          | Built artifact identity                      |
-| `build-bootstrap` | `Build bootstrap · <host>`   | Output path and bootstrap digest             |
+| `bootstrap`       | `Bootstrap · <host>`         | Output path and bootstrap digest             |
 | `publish`         | `Publish · <project>`        | Published immutable manifest                 |
 | `deploy`          | `Deploy · <artifact>`        | Selected release and host convergence        |
 | `remove-preview`  | `Remove preview · #<number>` | Removed selection                            |

@@ -37,19 +37,22 @@ See [registry reference](registry.md#canonical-artifact-manifest) for JSON.
 host-specific deployment revision, and descriptor+URL references to selected host,
 apps, and widget-only providers. It deliberately contains no artifact bodies.
 
-## Runtime configuration
+## Bootstrap and host discovery
 
-`atlas.runtime.json` points the browser to the active host manifest:
+`atlas.bootstrap.json` identifies the host and stable registry root:
 
 ```json
 {
-  "schemaVersion": "1",
+  "schemaVersion": "2",
   "hostId": "d145969d-8fe8-4b71-8aa4-8fb71fe54f63",
-  "environment": "production",
-  "manifestUrl": "https://assets.example.com/atlas/environments/production/hosts/d145969d-8fe8-4b71-8aa4-8fb71fe54f63/manifest.json",
-  "registryUrl": "https://assets.example.com/atlas"
+  "registryUrl": "https://assets.example.com/atlas",
+  "resourcesTimeoutMs": 15000,
+  "resourcesRetryCount": 3
 }
 ```
 
-External registries include explicit environments. `developmentSessionUrl` is
-reserved for Atlas loopback development and is not a production contract.
+`hosts/<host-id>/discovery.json` maps the current public host URL to an
+environment and absolute active-manifest URL. `atlas deploy` generates it.
+Consumers do not maintain either file. Local development may include an
+internal development runtime in bootstrap metadata; it is not a production
+deployment contract.

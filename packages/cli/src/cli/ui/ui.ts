@@ -21,15 +21,27 @@ const STATUS_COLORS: Readonly<Record<Status, UiColor>> = {
   error: 'red',
 };
 
-const ATLAS_LOGO_GRADIENT_START: RgbColor = [10, 143, 252];
-const ATLAS_LOGO_GRADIENT_END: RgbColor = [255, 255, 255];
-
-const ATLAS_LOGO = [
-  '     _  _____ _        _    ____',
-  '    / \\|_   _| |      / \\  / ___|',
-  '   / _ \\ | | | |     / _ \\ \\___ \\',
-  '  / ___ \\| | | |___ / ___ \\ ___) |',
-  ' /_/   \\_\\_| |_____/_/   \\_\\____/',
+const ATLAS_LOGO: readonly { text: string; color: RgbColor }[] = [
+  {
+    text: ' ┌──────  ┌──────── ┌──      ┌──────   ┌──────        ┌──────  ┌──     ┌────',
+    color: [10, 143, 252],
+  },
+  {
+    text: '┌──   ┌──    ┌──    ┌──     ┌──   ┌── ┌──            ┌──   ┌── ┌──      ┌──',
+    color: [71, 171, 253],
+  },
+  {
+    text: '┌────────    ┌──    ┌──     ┌────────  ┌──────       ┌──       ┌──      ┌──',
+    color: [133, 199, 254],
+  },
+  {
+    text: '┌──   ┌──    ┌──    ┌──     ┌──   ┌──       ┌──      ┌──   ┌── ┌──      ┌──',
+    color: [194, 227, 254],
+  },
+  {
+    text: '┌──   ┌──    ┌──    ┌────── ┌──   ┌──  ┌──────        ┌──────  ┌────── ┌────',
+    color: [255, 255, 255],
+  },
 ];
 
 export interface AtlasPrompter {
@@ -127,39 +139,9 @@ export const ui = {
 };
 
 function formatLogo(stream: WriteStream): string {
-  return ATLAS_LOGO.map((line, index) =>
-    styleRgb(line, gradientColor(index), stream),
+  return ATLAS_LOGO.map(({ text, color }) =>
+    styleRgb(text, color, stream),
   ).join('\n');
-}
-
-function gradientColor(index: number): RgbColor {
-  const steps = ATLAS_LOGO.length - 1;
-  const weight = index / steps;
-  return [
-    interpolateChannel(
-      ATLAS_LOGO_GRADIENT_START[0],
-      ATLAS_LOGO_GRADIENT_END[0],
-      weight,
-    ),
-    interpolateChannel(
-      ATLAS_LOGO_GRADIENT_START[1],
-      ATLAS_LOGO_GRADIENT_END[1],
-      weight,
-    ),
-    interpolateChannel(
-      ATLAS_LOGO_GRADIENT_START[2],
-      ATLAS_LOGO_GRADIENT_END[2],
-      weight,
-    ),
-  ];
-}
-
-function interpolateChannel(
-  start: number,
-  end: number,
-  weight: number,
-): number {
-  return Math.round(start + (end - start) * weight);
 }
 
 function styleRgb(

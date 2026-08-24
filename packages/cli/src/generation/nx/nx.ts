@@ -215,7 +215,7 @@ function ensureAtlasPublicationTargets(
       options: {
         command: atlasCommand(
           packageManager,
-          `build-bootstrap ${projectName} --skip-compile`,
+          `bootstrap ${projectName} --skip-compile`,
         ),
         forwardAllArgs: true,
       },

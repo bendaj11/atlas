@@ -141,14 +141,16 @@ async function readAtlasConfig(): Promise<{ hostId?: string } | undefined> {
 
 async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
   try {
-    const response = await fetch('/atlas.runtime.json', { cache: 'no-store' });
+    const response = await fetch('/atlas.bootstrap.json', {
+      cache: 'no-store',
+    });
     if (!response.ok) return undefined;
 
     const value = (await response.json()) as {
       schemaVersion?: string;
       hostId?: string;
     };
-    return value.schemaVersion === '1' ? value : undefined;
+    return value.schemaVersion === '2' ? value : undefined;
   } catch {
     return undefined;
   }

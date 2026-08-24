@@ -18,6 +18,8 @@ const externalCdn = join(artifacts, 'external-cdn');
 const registryConfig = join(root, 'tests/e2e/atlas.registry.ts');
 const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? '4400'}`;
 const externalCdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_EXTERNAL_CDN_PORT ?? '4401'}`;
+const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? '4300'}`;
+const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? '4301'}`;
 const REACT_HOST_ID = '060a7f62-1c95-402c-9993-55749faf36d9';
 const ANGULAR_HOST_ID = '399e1a5d-f83d-4248-96ed-e4211707ae1b';
 const ORDERS_ANGULAR_ID = 'f856e01e-0fc1-4a6d-a4ec-622c68100d14';
@@ -66,9 +68,8 @@ for (const project of projects) {
   );
 }
 
-for (const hostId of [REACT_HOST_ID, ANGULAR_HOST_ID]) {
-  await deploy(hostId, '0.1.0');
-}
+await deploy(REACT_HOST_ID, '0.1.0', reactHostOrigin);
+await deploy(ANGULAR_HOST_ID, '0.1.0', angularHostOrigin);
 for (const appId of [
   ORDERS_ANGULAR_ID,
   CATALOG_REACT_ID,
@@ -88,18 +89,16 @@ await buildBootstrap('demo-angular-host', join(artifacts, 'angular-bootstrap'));
 async function buildBootstrap(project, output) {
   await run('node', [
     'packages/cli/dist/cli/entrypoint.js',
-    'build-bootstrap',
+    'bootstrap',
     project,
     '--skip-compile',
     `--registry-url=${cdnOrigin}`,
-    '--environment=production',
     `--asset-origins=${cdnOrigin},${externalCdnOrigin}`,
-    `--external-registries=${externalCdnOrigin}|production`,
     `--out=${output}`,
   ]);
 }
 
-async function deploy(project, version) {
+async function deploy(project: string, version: string, hostUrl?: string) {
   await run(
     'node',
     [
@@ -110,6 +109,12 @@ async function deploy(project, version) {
       `--version=${version}`,
       `--registry-url=${cdnOrigin}`,
       `--registry-config=${registryConfig}`,
+      ...(hostUrl
+        ? [
+            `--host-url=${hostUrl}`,
+            `--external-registries=${externalCdnOrigin}|production`,
+          ]
+        : []),
     ],
     publicationEnvironment(),
   );

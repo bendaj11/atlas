@@ -17,6 +17,8 @@ hosts/<id>/<version>/
   manifest.json
   <payload files>
 
+hosts/<id>/discovery.json
+
 apps/<id>/previews/<number>/<digest>/
   manifest.json
   <payload files>
@@ -75,9 +77,9 @@ retain identical digests on different servers.
 
 ## `registry.json` v2
 
-The registry contains apps and hosts by stable UUID, unique names, releases,
-one preview per number, explicit `latest` pointers, version-only environment selections, and
-expected host-specific convergence revisions.
+The registry contains apps and hosts by stable UUID, package and display names,
+releases, one preview per number, explicit `latest` pointers, compact
+environment selections, and expected host-specific convergence revisions.
 
 Every release or preview value is only a descriptor:
 
@@ -98,8 +100,9 @@ not move it.
 Environment names and versions share selector syntax, so Atlas prevents their
 collision. `latest` is not a valid environment or release version.
 
-Each environment selection stores the exact version once; its descriptor is
-resolved canonically through the artifact's `releases` map:
+Each environment selection stores the exact version once. A host selection may
+also store its public base URLs and environment-specific external registries.
+The artifact descriptor is resolved canonically through `releases`:
 
 ```json
 {
@@ -107,11 +110,49 @@ resolved canonically through the artifact's `releases` map:
     "production": {
       "apps": {
         "5ab68dd4-f18c-4811-8768-b636ce559df6": { "version": "1.4.0" }
+      },
+      "hosts": {
+        "d145969d-8fe8-4b71-8aa4-8fb71fe54f63": {
+          "version": "1.0.0",
+          "baseUrls": ["https://customer.example.com"]
+        }
       }
     }
   }
 }
 ```
+
+This does not turn `registry.json` into a browser runtime file. It remains the
+canonical desired-state index used by Atlas commands. Browsers never fetch it.
+Atlas projects the small URL-dependent subset into
+`hosts/<host-id>/discovery.json`.
+
+## Host discovery
+
+`hosts/<host-id>/discovery.json` is mutable Atlas-generated metadata. It maps a
+public host URL to an environment manifest:
+
+```json
+{
+  "schemaVersion": "1",
+  "hostId": "d145969d-8fe8-4b71-8aa4-8fb71fe54f63",
+  "bindings": [
+    {
+      "baseUrl": "https://customer.example.com",
+      "environment": "production",
+      "manifestUrl": "https://assets.example.com/atlas/environments/production/hosts/d145969d-8fe8-4b71-8aa4-8fb71fe54f63/manifest.json"
+    }
+  ]
+}
+```
+
+The browser fetches discovery directly after `atlas.bootstrap.json`. Exact
+origin and path-prefix matching selects a binding; the longest matching path
+wins. Absolute manifest URLs allow environments to live on different servers.
+
+Consumers must not maintain discovery manually. `atlas deploy` validates,
+writes, and invalidates it after host convergence. Serve it with JSON MIME type,
+CORS for host origins, and revalidation or a short cache lifetime.
 
 ## Active host manifest
 

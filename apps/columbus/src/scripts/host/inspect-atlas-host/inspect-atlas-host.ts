@@ -1,3 +1,8 @@
+import {
+  assertAtlasBootstrapManifest,
+  atlasDiscoveryRequest,
+  resolveAtlasHostRuntime,
+} from '@atlas/bootstrap/runtime';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
 import type {
   AtlasExtensionManifest as Manifest,
@@ -116,23 +121,28 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
 }
 
 async function readAtlasConfig(): Promise<HostData['config']> {
-  const response = await fetchWithTimeout('/atlas.runtime.json');
+  const response = await fetchWithTimeout('/atlas.bootstrap.json');
   if (!response.ok) {
-    throw new Error(`Atlas runtime configuration returned ${response.status}.`);
+    throw new Error(`Atlas bootstrap metadata returned ${response.status}.`);
   }
-  const value = (await response.json()) as HostData['config'];
-  if (
-    value.schemaVersion !== '1' ||
-    typeof value.hostId !== 'string' ||
-    typeof value.environment !== 'string' ||
-    !value.environment.trim() ||
-    typeof value.manifestUrl !== 'string'
-  ) {
+  const value: unknown = await response.json();
+  assertAtlasBootstrapManifest(value);
+  if (value.developmentRuntime) {
+    return value.developmentRuntime;
+  }
+  const request = atlasDiscoveryRequest(value);
+  if (!request) throw new Error('Atlas host discovery request is unavailable.');
+  const discoveryResponse = await fetchWithTimeout(request.url);
+  if (!discoveryResponse.ok) {
     throw new Error(
-      'This page does not expose a valid Atlas runtime configuration.',
+      `Atlas host discovery returned ${discoveryResponse.status}.`,
     );
   }
-  return value;
+  return resolveAtlasHostRuntime(
+    value,
+    await discoveryResponse.json(),
+    location.href,
+  );
 }
 
 async function readHostDeployment(

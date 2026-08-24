@@ -29,7 +29,7 @@ required. This applies to projects created through the Atlas generator; running
 that project.
 
 Host generation creates one framework client project plus user-owned
-`atlas.bootstrap.html` for product-domain loading UI. `atlas build-bootstrap`
+`atlas.bootstrap.html` for product-domain loading UI. `atlas bootstrap`
 uses that template automatically and emits static deployment files under
 `dist/bootstrap`. No backend, infrastructure, or pipeline project is emitted.
 Product teams usually edit framework source, styles, tests,

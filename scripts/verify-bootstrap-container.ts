@@ -11,9 +11,10 @@ await execute(
   process.execPath,
   [
     'packages/cli/dist/cli/entrypoint.js',
-    'build-bootstrap',
+    'bootstrap',
     'demo-react-host',
     '--skip-compile',
+    '--asset-origins=https://cdn.example',
     '--registry-url=https://cdn.example/atlas',
     '--out=dist/container-bootstrap',
   ],
@@ -31,9 +32,6 @@ try {
   await docker([
     'run',
     '--detach',
-    '--read-only',
-    '--tmpfs',
-    '/tmp',
     '--name',
     container,
     '--publish',
@@ -51,11 +49,11 @@ try {
   if (!port) throw new Error('Docker did not publish bootstrap port.');
   const origin = `http://127.0.0.1:${port}`;
   await waitForHealth(`${origin}/health/live`);
-  const runtime = await fetch(`${origin}/atlas.runtime.json`)
+  const bootstrap = await fetch(`${origin}/atlas.bootstrap.json`)
     .then(requireOk)
     .then((response) => response.json());
-  if (runtime.hostId !== '060a7f62-1c95-402c-9993-55749faf36d9')
-    throw new Error('Container returned wrong Atlas host runtime config.');
+  if (bootstrap.hostId !== '060a7f62-1c95-402c-9993-55749faf36d9')
+    throw new Error('Container returned wrong Atlas bootstrap metadata.');
   const deepLink = await fetch(`${origin}/orders/42`)
     .then(requireOk)
     .then((response) => response.text());
@@ -67,7 +65,7 @@ try {
       `Missing asset returned HTTP ${missingAsset.status}; expected 404.`,
     );
   console.info(
-    'Verified static bootstrap container, non-root user, read-only filesystem, health, runtime, SPA fallback, and asset 404 behavior.',
+    'Verified static bootstrap container, non-root user, health, bootstrap metadata, SPA fallback, and asset 404 behavior.',
   );
 } finally {
   await docker(['rm', '--force', container], true);

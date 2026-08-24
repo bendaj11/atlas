@@ -1,4 +1,4 @@
-import { loadHostRuntimeConfig } from '@atlas/runtime';
+import { assertAtlasBootstrapManifest } from '@atlas/bootstrap';
 import type { AtlasConfig } from '@atlas/schema';
 import { join } from 'node:path';
 import { CliArguments } from '../../cli/arguments.js';
@@ -76,15 +76,18 @@ async function resolveHostId(
 
 async function discoverHostId(hostUrl: string): Promise<string> {
   try {
-    const runtimeUrl = new URL('/atlas.runtime.json', hostUrl).href;
-    const runtime = await loadHostRuntimeConfig(runtimeUrl, undefined, {
-      timeoutMs: HOST_DISCOVERY_TIMEOUT_MS,
-      retryCount: 0,
+    const bootstrapUrl = new URL('/atlas.bootstrap.json', hostUrl).href;
+    const response = await fetch(bootstrapUrl, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(HOST_DISCOVERY_TIMEOUT_MS),
     });
-    return runtime.hostId;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const bootstrap: unknown = await response.json();
+    assertAtlasBootstrapManifest(bootstrap);
+    return bootstrap.hostId;
   } catch (cause) {
     throw new Error(
-      `Host URL "${hostUrl}" does not expose a valid Atlas runtime at /atlas.runtime.json.`,
+      `Host URL "${hostUrl}" does not expose valid Atlas bootstrap metadata at /atlas.bootstrap.json.`,
       { cause },
     );
   }

@@ -1,20 +1,26 @@
-# Build Once, Publish Once, Deploy Many
+# Production deployment
 
-Atlas separates delivery into four operations:
+Atlas uses four separate operations:
 
-1. **Build** — framework tooling produces files.
-2. **Publish** — Atlas records those existing files as one immutable release.
-3. **Deploy** — Atlas selects that release for one logical environment and updates affected hosts.
-4. **Load** — the browser reads the active host manifest and selected artifact manifests.
+1. **Build** creates framework output.
+2. **Publish** uploads one immutable host or app release.
+3. **Deploy** selects a published release for a logical environment.
+4. **Host platform rollout** serves the static bootstrap image or files.
 
-Atlas never deploys your host container, Kubernetes workload, Vercel site, or
-static platform. CI/CD owns checkout, install, framework build, release version,
-affected-project selection, approvals, credentials, and platform deployment.
+Atlas owns published artifacts and discovery metadata. Your CI/CD platform owns
+Docker, Render, OpenShift, Vercel, approvals, traffic, and credentials.
 
-## Canonical workflow
+## Before you start
 
-Configure one writable target registry. The examples in this page inherit these
-values unless they override them explicitly:
+You need:
+
+- a public HTTPS registry URL that browsers can read;
+- a private S3-compatible write destination for CI;
+- a stable host ID in `atlas.config.ts`;
+- a release version chosen by your team;
+- a public host URL for every deployed host environment.
+
+Example CI settings:
 
 ```bash
 export ATLAS_REGISTRY_URL=https://assets.example.com/atlas
@@ -24,239 +30,337 @@ export ATLAS_STORAGE_KEY_PREFIX=platform
 export ATLAS_S3_REGION=us-east-1
 ```
 
-Inject credentials through the provider credential chain or CI secret binding.
+The registry URL is public and contains no credentials. Storage credentials
+come from the provider credential chain or CI secret binding.
 
-Build and publish once:
+## Complete first deployment
 
-```bash
-npm ci
-npm run build -- orders
-npx atlas publish orders --version 1.4.0
+Assume these projects:
+
+```text
+customer-host
+orders
 ```
 
-Deploy the published bytes later, without a checkout:
+### 1. Build framework output
 
 ```bash
-npx atlas deploy orders --to integration --version 1.4.0
-npx atlas deploy orders --to rc --version integration
-npx atlas deploy orders --to production --version rc
+pnpm run build -- customer-host
+pnpm run build -- orders
 ```
 
-Each environment must select a host release before it can serve apps. Commands
-above assume host is already deployed to integration, RC, and production.
-
-`--to` names a logical deployment environment. It does not choose a server.
-Storage flags and `ATLAS_*` variables choose the physical registry and bucket.
-Host platform sets matching `--environment` or `ATLAS_ENVIRONMENT` while
-building/rendering `atlas.runtime.json`; this produces environment-qualified
-active-manifest URL and prevents shared-registry environments overwriting one
-another.
-
-| Selector           | Meaning                                           |
-| ------------------ | ------------------------------------------------- |
-| `--version 1.4.0`  | Exact immutable release                           |
-| `--version latest` | Source registry's explicit latest release         |
-| `--version rc`     | Exact release selected in source environment `rc` |
-
-Deploying an older exact version is rollback:
+### 2. Publish immutable releases
 
 ```bash
-npx atlas deploy orders --to production --version 1.3.7
+pnpm exec atlas publish customer-host --version 1.0.0
+pnpm exec atlas publish orders --version 1.4.0
 ```
 
-Deploy changes only the named app or host. It never rebuilds, republishes, runs
-bootstrap, or changes unrelated selections.
+Publishing does not select production. It only makes exact bytes available.
 
-## Storage inputs
+### 3. Build static bootstrap once
 
-Precedence is `explicit CLI flag > generic ATLAS_* variable > validation error`.
+```bash
+pnpm exec atlas bootstrap customer-host \
+  --registry-url https://assets.example.com/atlas
+```
+
+The output is `customer-host/dist/bootstrap`. It contains no staging or
+production selection.
+
+### 4. Roll out bootstrap
+
+Deploy `dist/bootstrap` directly to a static platform, or put it in this image:
+
+```dockerfile
+FROM nginxinc/nginx-unprivileged:alpine
+
+COPY ./dist/bootstrap /usr/share/nginx/html
+COPY ./dist/bootstrap/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 8080
+```
+
+The same image may be promoted unchanged through every environment.
+
+### 5. Deploy the host selection and bind its URL
+
+```bash
+pnpm exec atlas deploy customer-host \
+  --to production \
+  --version 1.0.0 \
+  --host-url https://customer.example.com
+```
+
+`--host-url` is required the first time this host is deployed to production.
+Atlas records the relationship and generates host discovery.
+
+If the platform assigns its URL after rollout, steps 4 and 5 happen in that
+order. If the URL is already known, either order is safe; the host begins loading
+after both are complete.
+
+### 6. Deploy apps
+
+```bash
+pnpm exec atlas deploy orders \
+  --to production \
+  --version 1.4.0
+```
+
+Apps do not use `--host-url`. Their routes and slots determine which deployed
+hosts are affected.
+
+### 7. Verify the public host
+
+```bash
+pnpm exec atlas verify \
+  --host-url https://customer.example.com
+```
+
+## Normal release after setup
+
+The host URL is remembered. A later host-client release is only:
+
+```bash
+pnpm run build -- customer-host
+pnpm exec atlas publish customer-host --version 1.0.1
+pnpm exec atlas deploy customer-host --to production --version 1.0.1
+```
+
+A later app release is:
+
+```bash
+pnpm run build -- orders
+pnpm exec atlas publish orders --version 1.4.1
+pnpm exec atlas deploy orders --to production --version 1.4.1
+```
+
+Neither flow requires a new bootstrap image unless bootstrap inputs changed.
+
+## Staging and production with one image
+
+Roll out the same bootstrap image at two public addresses, then bind each one:
+
+```bash
+pnpm exec atlas deploy customer-host \
+  --to staging \
+  --version 1.0.0 \
+  --host-url https://staging.customer.example.com
+
+pnpm exec atlas deploy customer-host \
+  --to production \
+  --version 1.0.0 \
+  --host-url https://customer.example.com
+```
+
+When the staging URL opens, discovery selects staging. When the production URL
+opens, discovery selects production. No environment variable or image rebuild
+is involved.
+
+## Different host servers for different environments
+
+The staging and production websites may run on unrelated platforms, clusters,
+regions, or domains. Their `--host-url` values identify them. They still share
+the stable registry URL stored in bootstrap, so one discovery document can map
+both public host URLs.
+
+An artifact may be imported from a separate source registry during deploy. The
+target remains the stable registry used by bootstrap. Example production import
+from an RC registry:
+
+```bash
+pnpm exec atlas deploy customer-host \
+  --to production \
+  --version rc \
+  --source-registry-url https://rc-assets.example.com/atlas \
+  --registry-url https://prod-assets.example.com/atlas \
+  --storage-api-url https://prod-s3.example.com \
+  --bucket atlas-production \
+  --host-url https://customer.example.com
+```
+
+The source URL is read-only. Atlas copies and verifies missing immutable bytes
+into the target, then writes target desired state and discovery.
+
+Important: one bootstrap points to one stable registry root. Every environment
+that bootstrap can select must be deployed to that target registry. Moving the
+target registry requires rebuilding bootstrap because the browser needs one
+known place from which to start discovery.
+
+## Version selectors
+
+| Selector           | Meaning                                                |
+| ------------------ | ------------------------------------------------------ |
+| `--version 1.4.0`  | Exact immutable release                                |
+| `--version latest` | Release currently marked latest in the source registry |
+| `--version rc`     | Exact release selected in source environment `rc`      |
+
+Rollback selects an older exact release:
+
+```bash
+pnpm exec atlas deploy orders --to production --version 1.3.7
+```
+
+Atlas never calculates release versions. CI must pass them explicitly.
+
+## Artifact names in CI
+
+Use the project/package name that was published:
+
+```bash
+pnpm exec atlas deploy angualr-host \
+  --to production \
+  --version 0.1.0
+```
+
+Atlas also accepts the stable UUID or a unique display name. Package name is
+recommended because it matches `atlas dev` and does not require CI to know the
+generated UUID.
+
+Older registry entries created before package-name support may need to be
+published once with the updated Atlas version. Existing release payloads remain
+immutable; Atlas updates registry identity metadata.
+
+## Host URL changes and aliases
+
+Pass `--host-url` on a later host deploy to replace the URLs for that
+host/environment:
+
+```bash
+pnpm exec atlas deploy customer-host \
+  --to production \
+  --version 1.0.1 \
+  --host-url https://new.customer.example.com
+```
+
+For aliases:
+
+```bash
+--host-url https://customer.example.com,https://www.customer.example.com
+```
+
+Do not include a page route, query, or hash unless the host itself is
+intentionally mounted below that path. A path binding such as
+`https://example.com/customer` matches that path and its child routes.
+
+## External Atlas registries
+
+If this host may load exported widgets from another Atlas registry, configure
+the external selection during the host deploy because it may vary by
+environment:
+
+```bash
+pnpm exec atlas deploy customer-host \
+  --to production \
+  --version 1.0.0 \
+  --host-url https://customer.example.com \
+  --external-registries 'https://shared.example.com/atlas|production'
+```
+
+Use comma-separated entries for more than one registry. Atlas stores these in
+host discovery and preserves them on later deploys until explicitly changed.
+
+## Storage input precedence
+
+Precedence is `CLI flag`, then matching `ATLAS_*` variable, then validation
+error.
 
 | Purpose                | Flag                    | Variable                    |
 | ---------------------- | ----------------------- | --------------------------- |
 | Source public registry | `--source-registry-url` | `ATLAS_SOURCE_REGISTRY_URL` |
 | Target public registry | `--registry-url`        | `ATLAS_REGISTRY_URL`        |
+| Host public URL        | `--host-url`            | `ATLAS_HOST_URL`            |
 | Target storage API     | `--storage-api-url`     | `ATLAS_STORAGE_API_URL`     |
 | Target bucket          | `--bucket`              | `ATLAS_S3_BUCKET`           |
 | Target prefix          | `--key-prefix`          | `ATLAS_STORAGE_KEY_PREFIX`  |
 | Target region          | `--region`              | `ATLAS_S3_REGION`           |
 
-The registry URL is the browser-readable root. Storage API, bucket, and prefix
-are private write coordinates. Credentials have no Atlas flags; use CI credential
-bindings, temporary credentials, or provider credential chains.
-
-There is no Atlas environment configuration file. Topology stays explicit at
-the deployment boundary, with no hidden Jenkins, GitHub, or GitLab behavior.
-
-## Deployment topologies
-
-### Same registry and bucket
-
-Source defaults to target. `rc` is read and `production` is written in the same
-`registry.json`:
-
-```bash
-npx atlas deploy orders --to production --version rc \
-  --registry-url https://assets.example.com/atlas \
-  --storage-api-url https://s3.example.com \
-  --bucket atlas \
-  --key-prefix platform
-```
-
-Atlas verifies the release already exists in target storage. No bytes are copied.
-
-### Different registry roots or S3 servers
-
-The source URL is read-only. Target storage inputs select the destination:
-
-```bash
-npx atlas deploy 5ab68dd4-f18c-4811-8768-b636ce559df6 \
-  --to production \
-  --version rc \
-  --source-registry-url https://rc.example.com/atlas \
-  --registry-url https://prod.example.com/atlas \
-  --storage-api-url https://prod-s3.example.com \
-  --bucket atlas-production \
-  --key-prefix platform
-```
-
-For the first cross-registry import, use the stable UUID. Atlas resolves `rc`
-once, freezes its exact version and digest, streams missing objects, and verifies
-SHA-256, byte size, media type, and cache policy before activation. The source
-must be HTTP-readable by the job. Private source HTTP authentication beyond
-trusted network access is outside this release.
-
-### Exact-version cross-registry deployment
-
-```bash
-npx atlas deploy 5ab68dd4-f18c-4811-8768-b636ce559df6 \
-  --to production \
-  --version 1.4.0 \
-  --source-registry-url https://releases.example.com/atlas \
-  --registry-url https://prod.example.com/atlas \
-  --storage-api-url https://prod-s3.example.com \
-  --bucket atlas-production \
-  --key-prefix platform \
-  --region us-east-1
-```
-
-Matching destination objects are reused. A destination version with a different
-digest fails; Atlas never overwrites an immutable release.
+`ATLAS_HOST_URL` has two command-specific uses: it is a local preview target for
+`atlas dev`, and a public deployment binding for a host `atlas deploy`. Prefer an
+explicit flag in shared CI jobs when that distinction may be unclear.
 
 ## CI examples
 
-Every CI system runs identical Atlas commands. Only orchestrator syntax differs.
-These job excerpts assume Atlas CLI is installed and target storage variables
-from [Storage inputs](#storage-inputs), plus credentials, are injected into each
-job.
+Atlas commands are platform-neutral. Only the CI syntax changes.
 
 ### Generic shell
 
 ```bash
-npm ci
-npm run build -- orders
-npx atlas publish orders --version "$RELEASE_VERSION"
-
-# Later, possibly on another worker with no checkout:
-npx atlas deploy orders --to production --version rc
-```
-
-### Jenkins
-
-```groovy
-stage('Build and publish') {
-  sh 'npm ci'
-  sh 'npm run build -- orders'
-  sh 'npx atlas publish orders --version "$RELEASE_VERSION"'
-}
-
-stage('Activate production') {
-  input message: 'Deploy Orders to production?'
-  sh 'npx atlas deploy orders --to production --version rc --source-registry-url "$RC_REGISTRY_URL"'
-}
+pnpm install --frozen-lockfile
+pnpm run build -- orders
+pnpm exec atlas publish orders --version "$RELEASE_VERSION"
+pnpm exec atlas deploy orders --to production --version "$RELEASE_VERSION"
 ```
 
 ### GitHub Actions
 
 ```yaml
 jobs:
-  publish_orders:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci
-      - run: npm run build -- orders
-      - run: npx atlas publish orders --version "$RELEASE_VERSION"
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build -- orders
+      - run: pnpm exec atlas publish orders --version "$RELEASE_VERSION"
 
-  deploy_orders:
-    needs: publish_orders
+  deploy:
+    needs: publish
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - run: npx atlas deploy orders --to production --version rc
+      - run: pnpm exec atlas deploy orders --to production --version "$RELEASE_VERSION"
 ```
 
-### GitLab CI
-
-```yaml
-publish_orders:
-  script:
-    - npm ci
-    - npm run build -- orders
-    - npx atlas publish orders --version "$RELEASE_VERSION"
-
-deploy_orders:
-  when: manual
-  script:
-    - npx atlas deploy orders --to production --version rc
-```
-
-Atlas does not inspect the CI orchestrator, tags, or package versions. Release
-tooling must pass the version explicitly.
-
-## Monorepos
-
-Framework build remains cacheable. Publication remains non-cacheable because it
-writes a registry. Deployment is separate CD work and must not be a project-build
-dependency.
-
-Lockstep releases:
-
-```bash
-nx affected -t build
-nx affected -t atlas:publish -- --version "$RELEASE_VERSION"
-```
-
-Independent releases:
-
-```bash
-nx run orders:build
-nx run orders:atlas:publish -- --version "$ORDERS_VERSION"
-nx run billing:build
-nx run billing:atlas:publish -- --version "$BILLING_VERSION"
-```
+The deploy job can run without a source checkout when the Atlas CLI and storage
+configuration are otherwise available. It resolves published artifacts from the
+registry.
 
 ## Safe convergence
 
-S3 cannot atomically replace several host keys. Atlas commits desired state to
-`registry.json`, then atomically replaces each affected `environments/<environment>/hosts/<id>/manifest.json`.
+Atlas first commits desired state to `registry.json`, then replaces affected
+environment manifests. Every individual manifest is complete: browsers see the
+old composition or the new composition, never a half-written JSON document.
 
-Each host sees a complete old or new composition. Hosts may converge at different
-times. Deploy lists remaining hosts and exits non-zero so CI cannot mark partial
-activation successful; repeating same command resumes convergence.
-`atlas verify` compares expected and active host-specific revisions. Atlas does
-not perform an unsafe multi-key rollback after desired state is committed.
+If a post-commit write fails, Atlas reports pending hosts and exits non-zero.
+Repeat the exact deploy command to resume convergence.
 
-Use `--dry-run` to validate selection without mutation and
-`--expected-registry-revision` for optimistic concurrency.
+Use these safety options:
 
-## Explicit boundaries
+```bash
+--dry-run
+--expected-registry-revision sha256:...
+```
 
-- No build, checkout, install, or bootstrap during deploy.
-- No automatic release-version calculation.
-- No deployment audit history.
-- No host container or traffic deployment.
-- No canary rollout.
-- No artifact signing. SHA-256 proves byte integrity, not publisher identity.
+`atlas verify` checks that the active host revision matches desired state.
 
-Next: [registry operations](registry.md), [PR/MR previews](pr-previews.md), and
-[local overrides and Columbus](local-development.md).
+An optional `atlas.registry.ts` may list public hosts that should be verified
+after each successful deploy:
+
+```ts
+import { defineAtlasRegistryConfig } from '@atlas/cli';
+
+export default defineAtlasRegistryConfig({
+  hostUrls: [
+    'https://staging.customer.example.com',
+    'https://customer.example.com',
+  ],
+});
+```
+
+`hostUrls` contains host pages, not registry URLs or metadata-file URLs.
+
+## What Atlas does not do
+
+Atlas does not:
+
+- build or push a Docker image;
+- create a Render service, OpenShift workload, or Vercel project;
+- choose a release version;
+- move traffic or implement canary rollout;
+- store cloud credentials in browser files;
+- require Docker or any specific deployment platform.
+
+For platform-specific bootstrap examples and migration guidance, read
+[Host bootstrap](bootstrap.md).

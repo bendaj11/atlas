@@ -15,7 +15,7 @@ and verifies deployments.
 | `atlas deploy <artifact> --to <env> --version <selector>` | Activate one app/host without workspace                    |
 | `atlas remove-preview <artifact> <preview-selector>`      | Remove one preview selection                               |
 | `atlas prune-previews --state-file <file>`                | Reconcile preview selections                               |
-| `atlas build-bootstrap <host>`                            | Build static host startup files                            |
+| `atlas bootstrap <host> --registry-url <url>`             | Create reusable static host startup files                  |
 | `atlas verify`                                            | Verify active manifest, artifacts, assets, and convergence |
 
 Run `atlas <command> --help` for exact options.
@@ -30,6 +30,8 @@ npx atlas deploy orders --to production --version 1.4.0
 
 Publish consumes output and never runs the framework build. Deploy does not
 discover a workspace, load repository `.env` files, build, bootstrap, or publish.
+It resolves `<artifact>` from the registry by its published project/package name,
+stable UUID, or unique display name. Use the project/package name in CI.
 
 Version may be an exact release, `latest`, or source environment name. Versions
 are opaque consumer values; Atlas does not infer package versions or CI tags.
@@ -46,7 +48,7 @@ export ATLAS_S3_REGION=us-east-1
 
 Flags with equivalent names override variables. Credentials use the provider
 chain; there are no credential flags. `atlas.registry.ts` is optional for custom
-storage, invalidation, verification URLs, preview-head resolution, or external
+storage, invalidation, verification host URLs, preview-head resolution, or external
 locking.
 
 For separate source and target registries:
