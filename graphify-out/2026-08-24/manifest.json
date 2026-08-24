@@ -1500,8 +1500,8 @@
     "semantic_hash": "1f5690e4c43a025a8cef9a1a22b81747"
   },
   "apps/columbus/src/components/ArtifactConfigurationPage/OverridesForm/OverrideVersionDropdown/OverrideVersionDropdown.tsx": {
-    "mtime": 1787319721.50327,
-    "ast_hash": "7babcea06e9db40bf1e3e16620f13192",
+    "mtime": 1787578907.9690232,
+    "ast_hash": "0790e4c056d63042f669df996ec6f5e7",
     "semantic_hash": ""
   },
   "apps/columbus/src/components/ArtifactConfigurationPage/OverridesForm/OverridesSelectionForm.tsx": {
@@ -1595,9 +1595,9 @@
     "semantic_hash": "e0a9f1fc909aa71a0e102612f03793de"
   },
   "apps/columbus/src/components/providers/HostContext/HostContext.tsx": {
-    "mtime": 1785087477.5495596,
-    "ast_hash": "a2b2c3473ffc4c49a7e2cbac65326d41",
-    "semantic_hash": "a2b2c3473ffc4c49a7e2cbac65326d41"
+    "mtime": 1787579264.8445146,
+    "ast_hash": "d79fd0648c50200a5bc1249ae1af2050",
+    "semantic_hash": ""
   },
   "apps/columbus/src/components/providers/OverridesContext/OverridesContext.tsx": {
     "mtime": 1785082427.6961076,
@@ -1685,8 +1685,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts": {
-    "mtime": 1787577862.2699301,
-    "ast_hash": "c98ab86081cf40e1263d6e45c61b4197",
+    "mtime": 1787578451.0069714,
+    "ast_hash": "bda2ea9d4a924860b406b70a4c88829b",
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.driver.ts": {
@@ -1700,8 +1700,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/manifests/manifest-versions/manifest-versions.ts": {
-    "mtime": 1787477094.4922512,
-    "ast_hash": "43b0de5d3421ce1a28da6b9e2d77ce8d",
+    "mtime": 1787578472.9720356,
+    "ast_hash": "65b42a0250ca84d40a09eff650bfbeed",
     "semantic_hash": ""
   },
   "apps/columbus/src/scripts/overrides/override-manifests.ts": {
