@@ -36,7 +36,6 @@ const NON_SDK_OPTION_NAMES = new Set([
   'renderWidgetLoading',
   'router',
   'runtimeConfig',
-  'runtimeConfigUrl',
   'sdk',
 ]);
 

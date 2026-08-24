@@ -301,7 +301,6 @@ Important production APIs:
 
 | API                                 | Purpose                                                                                                                  |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `loadHostRuntimeConfig`             | Reads deployment-specific host, environment, and active manifest settings.                                               |
 | `resolveRuntimeManifests`           | Applies one override per app while enforcing one runtime version.                                                        |
 | `verifyManifestIntegrity`           | Validates SHA-256 remote entries before federation initialization.                                                       |
 | `createRemoteTrustPolicy`           | Trusts manifest origin plus explicitly configured asset origins and requires integrity for non-local remotes by default. |

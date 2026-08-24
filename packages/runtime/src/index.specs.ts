@@ -8,11 +8,9 @@ import {
   createHostUi,
   createNativeFederationImporters,
   createRegistryWidgetResolver,
-  createRemoteTrustPolicy,
   createTrustedNativeFederationImporters,
   createWidgetLoader,
   loadBrowserRuntimeOverrides,
-  loadHostRuntimeConfig,
   loadManifestStyles,
   mountApp,
   resolveRuntimeCatalog,
@@ -630,14 +628,7 @@ test('host placement state never removes a nested widget status', () => {
       state: 'mounted',
     },
     () => undefined,
-    {
-      federation: {
-        async initFederation() {},
-        async loadRemoteModule() {
-          return {};
-        },
-      },
-    },
+    {},
   );
 
   assert.equal(widgetStatusRemoved, false);
@@ -660,14 +651,7 @@ test('host placement state exposes the artifact id', () => {
       state: 'mounted',
     },
     () => undefined,
-    {
-      federation: {
-        async initFederation() {},
-        async loadRemoteModule() {
-          return {};
-        },
-      },
-    },
+    {},
   );
 
   assert.equal(container.dataset.atlasAppId, manifest.id);
@@ -2429,41 +2413,6 @@ test('local remotes stay exempt from production trust checks', async () => {
     remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
   });
   await verifyManifestIntegrity([local], async () => new ArrayBuffer(0));
-});
-
-test('runtime config creates a resource policy', async () => {
-  const config = await loadHostRuntimeConfig(
-    '/atlas.runtime.json',
-    async () => ({
-      schemaVersion: '1',
-      hostId: 'host',
-      environment: 'production',
-      manifestUrl:
-        'https://registry.example.com/atlas/environments/production/hosts/host/manifest.json',
-      allowAppOverrides: true,
-      resourcesTimeoutMs: 15000,
-      resourcesRetryCount: 3,
-    }),
-  );
-  const policy = createRemoteTrustPolicy(config);
-  assert.deepEqual(
-    [...(policy.allowedOrigins ?? [])],
-    ['https://registry.example.com'],
-  );
-});
-
-test('runtime config rejects invalid resource settings', async () => {
-  await assert.rejects(
-    () =>
-      loadHostRuntimeConfig('/atlas.runtime.json', async () => ({
-        schemaVersion: '1',
-        hostId: 'host',
-        environment: 'production',
-        manifestUrl: 'https://registry.example.com/manifest.json',
-        resourcesRetryCount: -1,
-      })),
-    /resourcesRetryCount/,
-  );
 });
 
 test('federation isolates rejected remotes while trusted apps remain loadable', async () => {

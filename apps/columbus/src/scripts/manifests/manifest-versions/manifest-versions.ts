@@ -8,14 +8,7 @@ export function uniqueVersions(
   ].sort((left, right) => {
     const channel = channelRank(left.channel) - channelRank(right.channel);
     if (channel) return channel;
-    return (
-      (right.createdAt ?? '').localeCompare(left.createdAt ?? '') ||
-      right.version.localeCompare(left.version, undefined, {
-        numeric: true,
-        sensitivity: 'base',
-      }) ||
-      right.buildId.localeCompare(left.buildId)
-    );
+    return (right.createdAt ?? '').localeCompare(left.createdAt ?? '');
   });
 }
 

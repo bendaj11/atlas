@@ -147,7 +147,6 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     host.get('src/app/app.component.ts'),
     /imports: \[RouterOutlet, AtlasHostLayout, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot\]/,
   );
-  assert.equal(host.has('public/atlas.runtime.json'), false);
   assert.doesNotMatch(host.get('atlas.config.ts'), /catalogUrl/);
   assert.match(host.get('atlas.config.ts'), /AtlasHostConfig/);
   assert.match(appFiles.get('atlas.config.ts'), /AtlasAppConfig/);

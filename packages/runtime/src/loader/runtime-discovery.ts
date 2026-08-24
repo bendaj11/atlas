@@ -181,101 +181,6 @@ function parseJsonBytes(bytes: ArrayBuffer, url: string): unknown {
   }
 }
 
-export async function loadHostRuntimeConfig(
-  url = '/atlas.runtime.json',
-  fetchJson: FetchJson = defaultFetchJson,
-  requestPolicy?: AtlasRetryPolicy,
-): Promise<AtlasHostRuntimeConfig> {
-  const config = await runResiliently(
-    (signal) => fetchJson(url, signal),
-    { stage: 'runtime-config', resource: url },
-    requestPolicy,
-  );
-  if (!isHostRuntimeConfig(config)) {
-    throw runtimeConfigurationError(
-      `Atlas cannot use runtime configuration from "${url}" because required hostId, environment, or manifestUrl fields are missing.`,
-    );
-  }
-  validateRequestPolicy(config);
-  validateExternalRegistries(config.externalRegistries);
-  validateRuntimeUrls(config.assetOrigins, 'assetOrigins');
-  if (
-    config.registryUrl !== undefined &&
-    (typeof config.registryUrl !== 'string' || !isHttpUrl(config.registryUrl))
-  ) {
-    throw runtimeConfigurationError(
-      'Atlas host runtime field registryUrl must be an absolute HTTP(S) URL.',
-    );
-  }
-  return config;
-}
-
-function validateExternalRegistries(
-  values: AtlasHostRuntimeConfig['externalRegistries'],
-): void {
-  if (values === undefined) return;
-  if (
-    !Array.isArray(values) ||
-    values.some(
-      (value) =>
-        typeof value !== 'object' ||
-        value === null ||
-        typeof value.registryUrl !== 'string' ||
-        !isHttpUrl(value.registryUrl) ||
-        typeof value.environment !== 'string' ||
-        !value.environment,
-    )
-  ) {
-    throw runtimeConfigurationError(
-      'Atlas host runtime field externalRegistries must contain registryUrl and environment.',
-    );
-  }
-}
-
-function validateRuntimeUrls(
-  values: string[] | undefined,
-  field: string,
-): void {
-  if (values === undefined) return;
-  if (
-    !Array.isArray(values) ||
-    values.some((value) => typeof value !== 'string' || !isHttpUrl(value))
-  ) {
-    throw runtimeConfigurationError(
-      `Atlas host runtime field ${field} must be an array of absolute HTTP(S) URLs.`,
-    );
-  }
-}
-
-function isHttpUrl(value: string): boolean {
-  try {
-    return isHttpProtocol(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-}
-
-function validateRequestPolicy(config: AtlasHostRuntimeConfig): void {
-  if (
-    config.resourcesTimeoutMs !== undefined &&
-    (!Number.isInteger(config.resourcesTimeoutMs) ||
-      config.resourcesTimeoutMs < 1)
-  ) {
-    throw runtimeConfigurationError(
-      'Atlas host runtime field resourcesTimeoutMs must be a positive integer.',
-    );
-  }
-  if (
-    config.resourcesRetryCount !== undefined &&
-    (!Number.isInteger(config.resourcesRetryCount) ||
-      config.resourcesRetryCount < 0)
-  ) {
-    throw runtimeConfigurationError(
-      'Atlas host runtime field resourcesRetryCount must be zero or a positive integer.',
-    );
-  }
-}
-
 export async function loadBrowserRuntimeOverrides(
   options: AtlasBrowserOverrideOptions,
 ): Promise<AtlasRuntimeOverride[]> {
@@ -551,19 +456,6 @@ function validateOverrideShape(
   }
 }
 
-function isHostRuntimeConfig(value: unknown): value is AtlasHostRuntimeConfig {
-  return (
-    isRecord(value) &&
-    value.schemaVersion === '1' &&
-    typeof value.hostId === 'string' &&
-    value.hostId.length > 0 &&
-    typeof value.environment === 'string' &&
-    value.environment.length > 0 &&
-    typeof value.manifestUrl === 'string' &&
-    value.manifestUrl.length > 0
-  );
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -748,7 +640,7 @@ function isHttpProtocol(protocol: string): boolean {
 function runtimeConfigurationError(summary: string): Error {
   return runtimeError(summary, {
     suggestedActions:
-      'Correct the named field in atlas.runtime.json, redeploy it, then reload the page.',
+      'Correct the named host runtime configuration, redeploy it, then reload the page.',
     code: 'ATLAS_INVALID_RUNTIME_CONFIG',
   });
 }

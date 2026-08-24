@@ -61,9 +61,8 @@ nginx.conf
 timeouts, optional asset origins, and a build digest. Atlas generates it. Do not
 edit it.
 
-There is no `atlas.runtime.json`, runtime template, startup script, embedded
-mode, or external mode. A production host does not require
-`ATLAS_ENVIRONMENT`.
+Bootstrap has no separate runtime configuration file, startup script, embedded
+mode, or external mode. A production host does not require `ATLAS_ENVIRONMENT`.
 
 ## How the browser selects an environment
 

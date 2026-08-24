@@ -105,7 +105,6 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
   );
   assert.match(host.get('index.html'), /"shimMode": true/);
   assert.match(host.get('index.html'), /<head>\n    <meta charset="UTF-8">/);
-  assert.equal(host.has('public/atlas.runtime.json'), false);
   assert.doesNotMatch(
     host.get('atlas.config.ts'),
     /allowCustomOverrides|resourcesTimeoutMs|resourcesRetryCount/,

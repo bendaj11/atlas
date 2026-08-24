@@ -62,4 +62,19 @@ describe('unique manifest versions', () => {
       'pr:1.0.0-pr.7:pr-old',
     ]);
   });
+
+  it('should put versions without creation dates after dated versions', () => {
+    driver.given
+      .version({
+        version: '1.0.0',
+        buildId: 'historical',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      })
+      .given.version({ version: '1.1.0', buildId: 'current' });
+
+    expect(driver.get.versionKeys()).toStrictEqual([
+      'production:1.0.0:historical',
+      'production:1.1.0:current',
+    ]);
+  });
 });

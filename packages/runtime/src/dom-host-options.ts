@@ -12,10 +12,9 @@ import type { AtlasHostAnchorRegistry } from './host-anchors.js';
 
 export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   federation: AtlasFederationAdapter;
-  runtimeConfig?: AtlasHostRuntimeConfig;
+  runtimeConfig: AtlasHostRuntimeConfig;
   /** Already-resolved catalog supplied by the stable Atlas loader. */
   catalog?: AtlasHostCatalog;
-  runtimeConfigUrl?: string;
   document?: Document;
   /** Native Angular or React anchors used as Atlas render targets. */
   anchors?: AtlasHostAnchorRegistry;

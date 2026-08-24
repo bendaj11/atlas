@@ -1,14 +1,10 @@
-import {
-  assertAtlasHostCatalog,
-  type AtlasHostRuntimeConfig,
-} from '@atlas/schema';
+import { assertAtlasHostCatalog } from '@atlas/schema';
 import { createBrowserError, logBrowserError } from './browser-error.js';
 import { runtimeError } from './runtime-error.js';
 import { emitMountState } from './dom-host-events.js';
 import type {
   DomHostOptions,
   DomHostServices,
-  DomRuntimeOptions,
 } from './dom-host-options.js';
 import { createSdkProviders } from './dom-host-sdk.js';
 import { renderHostMountState, renderHostNavigation } from './dom-rendering.js';
@@ -24,7 +20,6 @@ import {
   createTrustedNativeFederationImporters,
   loadBrowserRuntimeOverrides,
   loadHostDeployment,
-  loadHostRuntimeConfig,
   resolveRuntimeCatalog,
   startAtlasHostRuntime,
   type AtlasHostRuntime,
@@ -42,7 +37,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
 ): Promise<AtlasHostRuntime<THostSdk>> {
   const { options, services, document, onInfrastructureReady } = input;
   const anchors = options.anchors ?? new AtlasHostAnchorRegistry();
-  const config = await resolveHostConfig(options);
+  const config = options.runtimeConfig;
   const requestPolicy = createRetryPolicy(config, options.observe);
   const catalog =
     options.catalog ??
@@ -164,19 +159,6 @@ export async function startDomHostRuntime<THostSdk extends object>(
       await runtime.stop();
     },
   };
-}
-
-async function resolveHostConfig(
-  options: DomRuntimeOptions,
-): Promise<AtlasHostRuntimeConfig> {
-  return (
-    options.runtimeConfig ??
-    (await loadHostRuntimeConfig(
-      options.runtimeConfigUrl,
-      undefined,
-      options.observe ? { observer: options.observe } : undefined,
-    ))
-  );
 }
 
 function assertCatalogMatchesConfig(

@@ -114,7 +114,6 @@ export {
   findManifestTrustErrors,
   loadHostDeployment,
   loadPublishedManifest,
-  loadHostRuntimeConfig,
   resolveRuntimeCatalog,
   resolveRuntimeManifests,
   verifyManifestIntegrity,

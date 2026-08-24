@@ -692,7 +692,7 @@ test('explicit browser guidance replaces an existing CLI action without mutating
   });
 
   const browserError = ensureActionableError(cause, {
-    suggestedActions: 'Correct atlas.runtime.json, then reload this page.',
+    suggestedActions: 'Correct host runtime configuration, then reload this page.',
     surface: 'browser',
   });
 

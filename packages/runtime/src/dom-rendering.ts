@@ -2,6 +2,11 @@ import type { DomRuntimeOptions } from './dom-host-options.js';
 import type { AtlasHostNavigationItem } from './host-navigation.js';
 import type { AtlasHostMountEvent } from './index.js';
 
+type MountStateRenderingOptions = Pick<
+  DomRuntimeOptions,
+  'renderError' | 'renderLoading'
+>;
+
 export function renderHostNavigation(
   document: Document,
   nav: HTMLElement | undefined,
@@ -27,7 +32,7 @@ export function renderHostMountState(
   document: Document,
   event: AtlasHostMountEvent,
   retry: () => void,
-  options: DomRuntimeOptions,
+  options: MountStateRenderingOptions,
 ): void {
   const container = event.container;
   container.dataset.atlasState = event.state;
@@ -64,7 +69,7 @@ function renderLoadingState(
   container: HTMLElement,
   event: AtlasHostMountEvent,
   existingStatus: HTMLElement | null,
-  options: DomRuntimeOptions,
+  options: MountStateRenderingOptions,
 ): void {
   if (options.renderLoading) {
     options.renderLoading(container, event);
@@ -87,7 +92,7 @@ function renderErrorState(
   event: AtlasHostMountEvent,
   retry: () => void,
   existingStatus: HTMLElement | null,
-  options: DomRuntimeOptions,
+  options: MountStateRenderingOptions,
 ): void {
   if (options.renderError) {
     options.renderError(container, event, retry);

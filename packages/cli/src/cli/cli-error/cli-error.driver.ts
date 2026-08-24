@@ -50,6 +50,6 @@ export class CliErrorDriver {
     if (scenario === 'storage')
       return 'S3-compatible storage could not acquire deployment lock.';
 
-    return 'Atlas host failed. Suggested action: Correct atlas.runtime.json, then reload this page.';
+    return 'Atlas host failed. Suggested action: Correct host runtime configuration, then reload this page.';
   }
 }

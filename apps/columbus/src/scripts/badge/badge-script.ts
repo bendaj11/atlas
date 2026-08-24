@@ -2,6 +2,7 @@ import {
   countDevSessionOverrides,
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh.js';
+import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature.js';
 import { inspectAtlasHost } from '../host/inspect-atlas-host/inspect-atlas-host.js';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
@@ -140,6 +141,8 @@ async function readAtlasConfig(): Promise<{ hostId?: string } | undefined> {
 }
 
 async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
+  if (!hasAtlasBootstrapSignature(document)) return undefined;
+
   try {
     const response = await fetch('/atlas.bootstrap.json', {
       cache: 'no-store',
