@@ -1,8 +1,4 @@
-import {
-  assertAtlasBootstrapManifest,
-  atlasDiscoveryRequest,
-  resolveAtlasHostRuntime,
-} from '@atlas/bootstrap/runtime';
+import { assertAtlasRuntimeConfig, environmentManifestUrl } from '@atlas/bootstrap/runtime';
 import {
   assertAtlasHostCatalog,
   hydratePublishedArtifactManifest,
@@ -33,13 +29,6 @@ interface Registry {
   schemaVersion: '2';
   apps: Record<string, RegistryArtifact>;
   hosts: Record<string, RegistryArtifact>;
-  deployments: Record<
-    string,
-    {
-      apps: Record<string, { version: string }>;
-      hosts: Record<string, { version: string }>;
-    }
-  >;
 }
 
 interface ManifestReference extends Descriptor {
@@ -47,7 +36,7 @@ interface ManifestReference extends Descriptor {
 }
 
 interface HostDeployment {
-  schemaVersion: '2';
+  schemaVersion: 'v1';
   kind: 'host-deployment';
   hostId: string;
   environment: string;
@@ -68,18 +57,13 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const snapshot = readRuntimeSnapshot(documentKey);
   if (snapshot) return loadSnapshotVersions(snapshot);
   const config = await readAtlasConfig();
-  const catalog = config.developmentSessionUrl
-    ? await readDevelopmentSessionCatalog(config.developmentSessionUrl)
-    : await readHostDeployment(
-        config.manifestUrl,
-        config.hostId,
-        config.environment,
-      );
-  const registryRoot = config.registryUrl
-    ? config.registryUrl.replace(/\/$/, '')
-    : config.developmentSessionUrl
-      ? undefined
-      : registryRootFor(config);
+  const catalog = await readHostDeployment(
+    environmentManifestUrl(config),
+    config.hostId,
+    config.environment,
+    config.artifactRegistryUrl,
+  );
+  const registryRoot = config.artifactRegistryUrl.replace(/\/$/, '');
   const registry = registryRoot ? await readRegistry(registryRoot) : undefined;
   if (catalog.hostId !== config.hostId) {
     throw new Error(
@@ -97,7 +81,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     (manifest) => readManifestVersions(manifest, registry, registryRoot),
     LOOKUP_CONCURRENCY,
   );
-  const external = await readExternalProviders(config, catalog);
+  const external = { providers: [], versions: [], errors: [] };
   const versions = Object.fromEntries([
     ...versionResults.map(({ entry }) => entry),
     ...external.versions,
@@ -131,10 +115,7 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
 
 async function loadSnapshotVersions(snapshot: HostData): Promise<HostData> {
   const root =
-    snapshot.config.registryUrl?.replace(/\/$/u, '') ??
-    (snapshot.config.developmentSessionUrl
-      ? undefined
-      : registryRootFor(snapshot.config));
+    snapshot.config.artifactRegistryUrl.replace(/\/$/u, '');
   const registry = root ? await readRegistry(root) : undefined;
   const selectedArtifacts = [
     snapshot.catalog.host,
@@ -146,10 +127,7 @@ async function loadSnapshotVersions(snapshot: HostData): Promise<HostData> {
       readManifestVersions(manifest, registry, root),
     ),
   );
-  const external = await readExternalProviders(
-    snapshot.config,
-    snapshot.catalog,
-  );
+  const external = { providers: [], versions: [], errors: [] };
   return {
     ...snapshot,
     catalog: {
@@ -227,22 +205,13 @@ function isRuntimeSnapshotConfig(
   value: HostData['config'],
 ): value is HostData['config'] {
   if (
-    value.schemaVersion !== '1' ||
+    value.schemaVersion !== 'v1' ||
     !value.hostId ||
     !value.environment ||
-    !isAbsoluteUrl(value.manifestUrl)
+    !isAbsoluteUrl(value.artifactRegistryUrl)
   )
     return false;
-  if (value.registryUrl !== undefined && !isAbsoluteUrl(value.registryUrl))
-    return false;
-  if (
-    value.developmentSessionUrl !== undefined &&
-    !isAbsoluteUrl(value.developmentSessionUrl)
-  )
-    return false;
-  return (value.externalRegistries ?? []).every(
-    (entry) => Boolean(entry.environment) && isAbsoluteUrl(entry.registryUrl),
-  );
+  return value.environmentRegistryUrl === undefined || isAbsoluteUrl(value.environmentRegistryUrl);
 }
 
 function isAbsoluteUrl(value: string): boolean {
@@ -254,41 +223,27 @@ function isAbsoluteUrl(value: string): boolean {
 }
 
 async function readAtlasConfig(): Promise<HostData['config']> {
-  const response = await fetchWithTimeout('/atlas.bootstrap.json');
+  const response = await fetchWithTimeout('/atlas.runtime.json');
   if (!response.ok) {
-    throw new Error(`Atlas bootstrap metadata returned ${response.status}.`);
+    throw new Error(`Atlas runtime config returned ${response.status}.`);
   }
   const value: unknown = await response.json();
-  assertAtlasBootstrapManifest(value);
-  if (value.developmentRuntime) {
-    return value.developmentRuntime;
-  }
-  const request = atlasDiscoveryRequest(value);
-  if (!request) throw new Error('Atlas host discovery request is unavailable.');
-  const discoveryResponse = await fetchWithTimeout(request.url);
-  if (!discoveryResponse.ok) {
-    throw new Error(
-      `Atlas host discovery returned ${discoveryResponse.status}.`,
-    );
-  }
-  return resolveAtlasHostRuntime(
-    value,
-    await discoveryResponse.json(),
-    location.href,
-  );
+  assertAtlasRuntimeConfig(value);
+  return value as HostData['config'];
 }
 
 async function readHostDeployment(
   url: string,
   hostId: string,
   environment: string,
+  artifactRegistryUrl: string,
 ): Promise<HostData['catalog']> {
   const response = await fetchWithTimeout(url);
   if (!response.ok)
     throw new Error(`Atlas host manifest returned ${response.status}.`);
   const deployment = (await response.json()) as HostDeployment;
   if (
-    deployment.schemaVersion !== '2' ||
+    deployment.schemaVersion !== 'v1' ||
     deployment.kind !== 'host-deployment' ||
     deployment.hostId !== hostId ||
     deployment.environment !== environment ||
@@ -304,7 +259,7 @@ async function readHostDeployment(
   ];
   const manifests = await mapWithConcurrency(
     references,
-    loadManifestReference,
+    (descriptor) => loadManifestReference(reference(artifactRegistryUrl, descriptor)),
     LOOKUP_CONCURRENCY,
   );
   const host = manifests[0];
@@ -324,26 +279,6 @@ async function readHostDeployment(
   };
 }
 
-async function readDevelopmentSessionCatalog(
-  url: string,
-): Promise<HostData['catalog']> {
-  const response = await fetchWithTimeout(url);
-  if (!response.ok)
-    throw new Error(`Atlas development session returned ${response.status}.`);
-  const session = (await response.json()) as {
-    catalog?: HostData['catalog'];
-  };
-  const catalog = session.catalog;
-  if (
-    catalog?.schemaVersion !== '1' ||
-    !catalog.host ||
-    !Array.isArray(catalog.apps)
-  ) {
-    throw new Error('Atlas development session returned invalid data.');
-  }
-  return catalog;
-}
-
 async function readRegistry(root: string): Promise<Registry> {
   const response = await fetchWithTimeout(`${root}/registry.json`);
   if (!response.ok)
@@ -352,8 +287,7 @@ async function readRegistry(root: string): Promise<Registry> {
   if (
     registry.schemaVersion !== '2' ||
     typeof registry.apps !== 'object' ||
-    typeof registry.hosts !== 'object' ||
-    typeof registry.deployments !== 'object'
+    typeof registry.hosts !== 'object'
   ) {
     throw new Error('Atlas registry returned invalid data.');
   }
@@ -503,88 +437,6 @@ async function fetchManifestReference(
   ) as Manifest;
 }
 
-async function readExternalProviders(
-  config: HostData['config'],
-  catalog: HostData['catalog'],
-): Promise<{
-  providers: Manifest[];
-  versions: Array<readonly [string, Manifest[]]>;
-  errors: string[];
-}> {
-  const roots = new Set(
-    catalog.apps.flatMap((manifest) => manifest.externalAppsDependencies ?? []),
-  );
-  if (!roots.size) return { providers: [], versions: [], errors: [] };
-  const snapshots = await Promise.all(
-    (config.externalRegistries ?? []).map(async (external) => {
-      try {
-        return {
-          external,
-          registry: await readRegistry(external.registryUrl.replace(/\/$/, '')),
-        };
-      } catch (error) {
-        return { external, error: messageFromError(error) };
-      }
-    }),
-  );
-  const providers: Manifest[] = [];
-  const versions: Array<readonly [string, Manifest[]]> = [];
-  const errors = snapshots.flatMap(({ error }) => (error ? [error] : []));
-  const pending = [...roots];
-  const resolved = new Set<string>();
-  while (pending.length) {
-    const id = pending.shift()!;
-    if (resolved.has(id)) continue;
-    const candidates = snapshots.flatMap(({ external, registry }) => {
-      const selection = registry?.deployments[external.environment]?.apps[id];
-      return selection && registry ? [{ external, registry, selection }] : [];
-    });
-    if (candidates.length !== 1) {
-      errors.push(
-        candidates.length
-          ? `External app dependency "${id}" is ambiguous in the configured environments.`
-          : `External app dependency "${id}" was not found in the configured environments.`,
-      );
-    } else {
-      const candidate = candidates[0]!;
-      const root = candidate.external.registryUrl.replace(/\/$/, '');
-      const descriptor =
-        candidate.registry.apps[id]?.releases[candidate.selection.version];
-      if (!descriptor) {
-        errors.push(
-          `External app dependency "${id}" selects missing release "${candidate.selection.version}".`,
-        );
-        resolved.add(id);
-        continue;
-      }
-      const provider = await loadManifestReference(reference(root, descriptor));
-      if (
-        provider.kind !== 'app' ||
-        provider.id !== id ||
-        provider.version !== candidate.selection.version
-      ) {
-        errors.push(
-          `External app dependency "${id}" does not match its registry selection.`,
-        );
-        resolved.add(id);
-        continue;
-      }
-      providers.push(provider);
-      pending.push(...(provider.externalAppsDependencies ?? []));
-      const artifact = candidate.registry.apps[id];
-      if (artifact) {
-        versions.push([`app:${id}`, versionOptions(provider, artifact, root)]);
-      }
-    }
-    resolved.add(id);
-  }
-  return {
-    providers,
-    versions,
-    errors,
-  };
-}
-
 function readStoredOverrideDocument(
   documentKey: string,
   hostId: string,
@@ -695,15 +547,6 @@ async function mapWithConcurrency<T, R>(
     Array.from({ length: Math.min(values.length, concurrency) }, worker),
   );
   return results;
-}
-
-function registryRootFor(config: HostData['config']): string {
-  if (config.registryUrl) return config.registryUrl.replace(/\/$/, '');
-  const url = new URL(config.manifestUrl, location.href);
-  const marker = url.pathname.indexOf('/environments/');
-  if (marker < 0)
-    throw new Error('manifestUrl does not identify an Atlas registry.');
-  return `${url.origin}${url.pathname.slice(0, marker)}`;
 }
 
 function reference(root: string, descriptor: Descriptor): ManifestReference {

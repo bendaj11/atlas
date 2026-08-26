@@ -103,25 +103,21 @@ export interface AtlasDeploymentSelection {
   version: string;
 }
 
-export interface AtlasHostDeploymentSelection extends AtlasDeploymentSelection {
-  /** Public base URLs that serve this host in this environment. */
-  baseUrls?: string[];
-  /** External registries this host may use in this environment. */
-  externalRegistries?: Array<{ registryUrl: string; environment: string }>;
-}
+export type AtlasHostDeploymentSelection = AtlasDeploymentSelection;
 
 export interface AtlasEnvironmentDeployment {
+  schemaVersion: 'v1';
+  environment: string;
+  revision: `sha256:${string}`;
+  updatedAt: string;
   hosts: Record<string, AtlasHostDeploymentSelection>;
   apps: Record<string, AtlasDeploymentSelection>;
-  expectedHostRevisions: Record<string, string>;
 }
 
-export interface AtlasDeploymentManifestReference extends AtlasManifestDescriptor {
-  url: string;
-}
+export type AtlasDeploymentManifestReference = AtlasManifestDescriptor;
 
 export interface AtlasHostDeploymentManifest {
-  schemaVersion: '2';
+  schemaVersion: 'v1';
   kind: 'host-deployment';
   hostId: string;
   environment: string;

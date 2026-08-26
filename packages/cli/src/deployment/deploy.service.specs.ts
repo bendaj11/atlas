@@ -6,28 +6,26 @@ describe('AtlasDeployService', () => {
 
   beforeEach(async () => {
     driver = new DeployServiceDriver();
-    await driver.given.registry();
+    await driver.given.catalog();
   });
 
   afterEach(() => {
     driver.when.cleanup();
   });
 
-  it('should activate one exact app release when deploy is requested', async () => {
+  it('should write selected version to environment state when exact release is deployed', async () => {
     await driver.when.deploy();
 
-    expect(driver.get.productionVersion()).toBe('1.4.0');
+    expect(driver.get.selectedAppVersion()).toBe('1.4.0');
   });
 
-  it('should write descriptor references when host converges', async () => {
+  it('should generate descriptor-only active manifest when release is deployed', async () => {
     await driver.when.deploy();
 
-    expect(JSON.stringify(driver.get.activeManifest())).not.toContain(
-      'placements',
-    );
+    expect(driver.get.activeManifest().apps[0]).not.toHaveProperty('url');
   });
 
-  it('should resolve latest when latest selector is requested', async () => {
+  it('should resolve latest from source artifact catalog when latest is selected', async () => {
     driver.given.latest();
 
     await driver.when.deploy();
@@ -35,180 +33,65 @@ describe('AtlasDeployService', () => {
     expect(driver.get.result()?.version).toBe('1.4.0');
   });
 
-  it('should resolve a source environment when environment selector is requested', async () => {
+  it('should resolve selected source environment version when environment is selected', async () => {
     await driver.given.sourceEnvironment();
 
     await driver.when.deploy();
 
-    expect(driver.get.productionVersion()).toBe('1.4.0');
+    expect(driver.get.selectedAppVersion()).toBe('1.4.0');
   });
 
-  it('should keep active manifests separate when environments share a registry', async () => {
-    await driver.when.deploy();
-    await driver.given.targetEnvironment('integration');
+  it('should not copy artifacts to target when source and target registries differ', async () => {
+    await driver.given.separateRegistries();
 
     await driver.when.deploy();
 
-    expect(driver.get.activeEnvironments()).toEqual([
-      'integration',
-      'production',
-    ]);
+    expect(driver.get.targetArtifactPaths()).toEqual([]);
   });
 
-  it('should stream exact release bytes when registries differ', async () => {
-    await driver.given.crossRegistry();
+  it('should reject mixed registry shorthand and explicit flags when both are supplied', async () => {
+    driver.given.conflictingFlags();
 
-    await driver.when.deploy();
-
-    expect(driver.get.crossRegistryTransfer()).toStrictEqual(
-      driver.get.expectedCrossRegistryTransfer(),
+    await expect(driver.get.deployError()).resolves.toEqual(
+      expect.objectContaining({
+        message: expect.stringContaining('cannot be combined'),
+      }),
     );
   });
 
-  it('should converge on retry when host projection initially fails', async () => {
-    driver.given.projectionFailure();
-
-    await driver.when.deploy();
-    await driver.when.deploy();
-
-    expect(driver.get.convergence()).toStrictEqual({
-      firstPending: [driver.get.hostId()],
-      firstFailed: true,
-      desiredVersionAfterFirst: '1.4.0',
-      activeAfterFirst: false,
-      secondPending: [],
-      activeVersion: '1.4.0',
-    });
-  });
-
-  it('should perform no writes when deployment is a dry run', async () => {
+  it('should not invalidate registry paths when deployment is a dry run', async () => {
     driver.given.dryRun();
 
     await driver.when.deploy();
 
-    expect({
-      dryRun: driver.get.result()?.dryRun,
-      mutations: driver.get.mutationCount(),
-    }).toStrictEqual({ dryRun: true, mutations: 0 });
+    expect(driver.get.invalidations()).toEqual([]);
   });
 
-  it('should reject source redirects when registry copy starts', async () => {
-    await driver.given.crossRegistry();
-    driver.given.sourceRedirect();
-
-    await expect(driver.when.deploy()).rejects.toThrow(/refuses redirects/);
-  });
-
-  it('should reject payload metadata when content type differs', async () => {
-    await driver.given.crossRegistry();
-    driver.given.invalidPayloadMetadata();
-
-    await expect(driver.when.deploy()).rejects.toThrow(/Content-Type/);
-  });
-
-  it('should accept payload when optional content type parameters are absent', async () => {
-    await driver.given.crossRegistry();
-    driver.given.payloadWithoutOptionalCharset();
+  it('should retain target environment selections when deployment is a dry run', async () => {
+    driver.given.dryRun();
 
     await driver.when.deploy();
 
-    expect(driver.get.productionVersion()).toBe('1.4.0');
+    expect(driver.get.selectedAppVersion()).toBeUndefined();
   });
 
-  it('should reject concurrent payload when stored metadata differs', async () => {
-    await driver.given.crossRegistry();
-    driver.given.concurrentPayloadWithInvalidMetadata();
+  it('should reject malformed target environment state when deployment reads it', async () => {
+    await driver.given.malformedTargetState();
 
-    await expect(driver.when.deploy()).rejects.toThrow(
-      /unexpected HTTP metadata/,
+    await expect(driver.get.deployError()).resolves.toEqual(
+      expect.objectContaining({
+        message: expect.stringContaining('deployment state is invalid'),
+      }),
     );
   });
 
-  it('should reject insecure target registry when host is not loopback', async () => {
-    driver.given.insecureTarget();
+  it('should reject insecure registry URL when registry is not loopback', async () => {
+    driver.given.insecureRegistry();
 
-    await expect(driver.when.deploy()).rejects.toThrow(/must use HTTPS/);
-  });
-
-  it('should reject a manifest whose identity differs from its selected artifact', async () => {
-    await driver.given.crossRegistry();
-    driver.given.mismatchedManifestIdentity();
-
-    await expect(driver.when.deploy()).rejects.toThrow(
-      /identity does not match registry selection/,
+    await expect(driver.get.deployError()).resolves.toEqual(
+      expect.objectContaining({
+        message: expect.stringContaining('must use HTTPS'),
+      }),
     );
-  });
-
-  it('should not update unrelated hosts when app targets one host', async () => {
-    await driver.given.registryWithUnrelatedHost();
-
-    await driver.when.deploy();
-
-    expect(driver.get.unrelatedHostWasUpdated()).toBe(false);
-  });
-
-  it('should update every deployed host when app placement uses wildcard', async () => {
-    await driver.given.registryWithWildcardPlacement();
-
-    await driver.when.deploy();
-
-    expect(driver.get.convergedHostIds()).toStrictEqual(
-      [driver.get.hostId(), driver.get.unrelatedHostId()].sort(),
-    );
-  });
-
-  it('should update previous host when next app release removes placement', async () => {
-    await driver.given.previouslyDeployedApp();
-
-    await driver.when.deploy();
-
-    expect(driver.get.removedPlacementConvergence()).toStrictEqual({
-      convergedHostIds: [driver.get.hostId()],
-      activeAppCount: 0,
-    });
-  });
-
-  it('should project dependency as widget provider when provider has no placement', async () => {
-    await driver.given.widgetProvider();
-
-    await driver.when.deploy();
-
-    expect(driver.get.projectionKinds()).toStrictEqual({
-      apps: 1,
-      widgetProviders: 1,
-    });
-  });
-
-  it('should require public URL when host is deployed for first time', async () => {
-    driver.given.hostDeployment();
-
-    await expect(driver.when.deploy()).rejects.toThrow(/--host-url/);
-  });
-
-  it('should write host discovery when host URL is provided', async () => {
-    driver.given.hostDeployment(
-      'https://customer.example.com/portal/',
-      'https://partners.example.com/atlas/|production',
-    );
-
-    await driver.when.deploy();
-
-    expect(driver.get.discovery()).toStrictEqual({
-      schemaVersion: '1',
-      hostId: driver.get.hostId(),
-      bindings: [
-        {
-          baseUrl: 'https://customer.example.com/portal',
-          environment: 'production',
-          manifestUrl: `http://localhost:4400/environments/production/hosts/${driver.get.hostId()}/manifest.json`,
-          externalRegistries: [
-            {
-              registryUrl: 'https://partners.example.com/atlas',
-              environment: 'production',
-            },
-          ],
-        },
-      ],
-    });
   });
 });

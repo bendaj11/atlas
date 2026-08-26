@@ -45,10 +45,10 @@ export class BootstrapServerDriver {
         port: 0,
         proxy,
         runtime: {
-          manifestUrl: faker.internet.url(),
           hostId: this.hostId,
           environment: 'production',
-          schemaVersion: '1',
+          schemaVersion: 'v1',
+          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
         },
       });
     },

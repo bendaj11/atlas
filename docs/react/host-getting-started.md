@@ -214,7 +214,7 @@ host-owned UI.
 
 ## 5. Connect Authentication Deliberately
 
-Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.bootstrap.json`, discovery, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
+Browser authentication integration belongs in versioned host client. APIs, server-side sessions, and BFF behavior belong in separate product backend when required. Never place secrets or publication credentials in `atlas.config.ts`, `hostData`, `atlas.runtime.json`, environment manifests, or browser bundles. Route backend paths separately through ingress; static bootstrap remains unchanged.
 
 ## 6. Run The Host Locally
 
@@ -236,7 +236,7 @@ asset-server port does not represent complete Atlas composition.
 Verify host alone:
 
 ```sh
-curl --fail http://localhost:4200/atlas.bootstrap.json
+curl --fail http://localhost:4200/atlas.runtime.json
 ```
 
 Expected browser state:

@@ -243,23 +243,6 @@ Do not include a page route, query, or hash unless the host itself is
 intentionally mounted below that path. A path binding such as
 `https://example.com/customer` matches that path and its child routes.
 
-## External Atlas registries
-
-If this host may load exported widgets from another Atlas registry, configure
-the external selection during the host deploy because it may vary by
-environment:
-
-```bash
-pnpm exec atlas deploy customer-host \
-  --to production \
-  --version 1.0.0 \
-  --host-url https://customer.example.com \
-  --external-registries 'https://shared.example.com/atlas|production'
-```
-
-Use comma-separated entries for more than one registry. Atlas stores these in
-host discovery and preserves them on later deploys until explicitly changed.
-
 ## Storage input precedence
 
 Precedence is `CLI flag`, then matching `ATLAS_*` variable, then validation
@@ -268,8 +251,7 @@ error.
 | Purpose                | Flag                    | Variable                    |
 | ---------------------- | ----------------------- | --------------------------- |
 | Source public registry | `--source-registry-url` | `ATLAS_SOURCE_REGISTRY_URL` |
-| Target public registry | `--registry-url`        | `ATLAS_REGISTRY_URL`        |
-| Host public URL        | `--host-url`            | `ATLAS_HOST_URL`            |
+| Target public registry | `--target-registry-url` | `ATLAS_TARGET_REGISTRY_URL` |
 | Target storage API     | `--storage-api-url`     | `ATLAS_STORAGE_API_URL`     |
 | Target bucket          | `--bucket`              | `ATLAS_S3_BUCKET`           |
 | Target prefix          | `--key-prefix`          | `ATLAS_STORAGE_KEY_PREFIX`  |

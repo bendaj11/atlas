@@ -71,9 +71,10 @@ export class ValidationDriver {
     validateHost: (): void => {
       try {
         validateHostManifest(this.manifest, {
-          schemaVersion: this.schemaVersion,
+          schemaVersion: 'v1',
           hostId: this.hostId,
           environment: 'production',
+          artifactRegistryUrl: this.assetOrigin,
           manifestUrl: this.bootstrapUrl,
           assetOrigins: [this.assetOrigin],
         });
@@ -84,9 +85,10 @@ export class ValidationDriver {
     validateArtifact: (): void => {
       try {
         validateArtifactUrl(this.url, this.manifest, {
-          schemaVersion: this.schemaVersion,
+          schemaVersion: 'v1',
           hostId: this.hostId,
           environment: 'production',
+          artifactRegistryUrl: this.assetOrigin,
           manifestUrl: this.bootstrapUrl,
           assetOrigins: [this.assetOrigin],
         });

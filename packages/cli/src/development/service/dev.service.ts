@@ -150,8 +150,10 @@ export class AtlasDevService {
             ...(template !== undefined ? { html: template } : {}),
             ...(proxy !== undefined ? { proxy } : {}),
             runtime: {
-              schemaVersion: '1',
+              schemaVersion: 'v1',
               hostId: config.id,
+              artifactRegistryUrl: registryUrl ?? controlOrigin,
+              environmentRegistryUrl: controlOrigin,
               manifestUrl: `${controlOrigin}/environments/development/hosts/${config.id}/manifest.json`,
               developmentSessionUrl: `${controlOrigin}/atlas.dev-session.json?hostId=${encodeURIComponent(config.id)}`,
               environment: 'development',

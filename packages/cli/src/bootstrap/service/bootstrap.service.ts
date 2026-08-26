@@ -2,11 +2,8 @@ import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
-  assertAtlasBootstrapManifest,
-  normalizeAtlasRegistryUrl,
   createAtlasBootstrapFiles,
   type AtlasBootstrapFile,
-  type AtlasBootstrapManifest,
   type AtlasBootstrapOptions,
 } from '@atlas/bootstrap';
 import { CliArguments } from '../../cli/arguments.js';
@@ -84,58 +81,25 @@ export class AtlasBootstrapService {
     );
     const config = await this.builds.loadConfig(project.root);
     assertHostConfig(config, name);
-    const registryUrl = requiredRegistryUrl(this.args);
-    const assetOrigins = optionalAssetOrigins(
-      this.args.flag('asset-origins'),
-    ).assetOrigins;
-
     const files = this.dependencies.createFiles({
       ...(template !== undefined ? { html: template } : {}),
       ...(this.args.flag('title') ? { title: this.args.flag('title') } : {}),
       ...(this.args.flag('loading-html')
         ? { loadingHtml: this.args.flag('loading-html') }
         : {}),
-      assetOrigins: [...(assetOrigins ?? []), new URL(registryUrl).origin],
     });
     const directory = resolve(
       this.args.flag('out') ?? join(project.root, 'dist', 'bootstrap'),
     );
 
     const outputFiles = files;
-    const bootstrapSettings = {
-      schemaVersion: '2',
-      hostId: config.id,
-      registryUrl,
-      resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15000,
-      resourcesRetryCount: config.resourcesRetryCount ?? 3,
-      ...(assetOrigins?.length ? { assetOrigins } : {}),
-    } as const;
-    const digest = bootstrapDigest([
-      ...outputFiles,
-      {
-        path: 'atlas.bootstrap.json',
-        contents: JSON.stringify(bootstrapSettings),
-      },
-    ]);
-
-    const metadata: AtlasBootstrapManifest = {
-      ...bootstrapSettings,
-      digest,
-      files: outputFiles.map(({ path }) => path).sort(),
-    };
-    assertAtlasBootstrapManifest(metadata);
+    const digest = bootstrapDigest(outputFiles);
 
     await this.dependencies.removeDirectory(directory);
     await this.dependencies.createDirectory(directory);
 
     await Promise.all(
-      [
-        ...outputFiles,
-        {
-          path: 'atlas.bootstrap.json',
-          contents: `${JSON.stringify(metadata, null, 2)}\n`,
-        },
-      ].map(async (file) => {
+      outputFiles.map(async (file) => {
         await this.dependencies.writeOutput(
           join(directory, file.path),
           file.contents,
@@ -145,7 +109,7 @@ export class AtlasBootstrapService {
 
     return {
       directory,
-      files: [...outputFiles.map((file) => file.path), 'atlas.bootstrap.json'],
+      files: outputFiles.map((file) => file.path),
       digest,
     };
   }
@@ -166,33 +130,6 @@ function assertHostConfig(
       `Atlas bootstrap expects a host project, but "${projectName}" is an app.`,
     );
   }
-}
-
-function requiredRegistryUrl(args: CliArguments): string {
-  const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
-  if (!value) {
-    throw new Error(
-      'Atlas bootstrap requires --registry-url or ATLAS_REGISTRY_URL. Use the public base URL that serves registry.json.',
-    );
-  }
-  if (value === 'true') throw new Error('--registry-url requires a URL.');
-  return normalizeAtlasRegistryUrl(value);
-}
-
-function optionalAssetOrigins(
-  value: string | undefined,
-): Pick<AtlasBootstrapOptions, 'assetOrigins'> {
-  if (!value) return {};
-  return {
-    assetOrigins: [
-      ...new Set(
-        value
-          .split(/[\s,]+/u)
-          .filter(Boolean)
-          .map((entry) => new URL(entry).origin),
-      ),
-    ],
-  };
 }
 
 function bootstrapDigest(

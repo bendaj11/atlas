@@ -15,7 +15,7 @@ describe('AtlasBootstrapService', () => {
 
     expect(driver.get.buildSummary()).toStrictEqual({
       directory: driver.get.outputDirectory(),
-      files: ['index.html', 'atlas.loader.js', 'atlas.bootstrap.json'],
+      files: ['index.html', 'atlas.loader.js'],
       hasValidDigest: true,
     });
   });
@@ -46,31 +46,4 @@ describe('AtlasBootstrapService', () => {
     );
   });
 
-  it('should write sorted metadata when build succeeds', async () => {
-    driver.given.build({ flags: [] });
-
-    await driver.when.build();
-
-    expect(driver.get.metadata()).toBe(
-      `${JSON.stringify(
-        {
-          schemaVersion: '2',
-          hostId: driver.get.hostId(),
-          registryUrl: driver.get.registryUrl(),
-          resourcesTimeoutMs: 15000,
-          resourcesRetryCount: 3,
-          digest: driver.get.result().digest,
-          files: ['atlas.loader.js', 'index.html'],
-        },
-        null,
-        2,
-      )}\n`,
-    );
-  });
-
-  it('should require registry URL when bootstrap is created', async () => {
-    driver.given.build({ flags: [], omitRegistry: true });
-
-    await expect(driver.when.build()).rejects.toThrow(/--registry-url/);
-  });
 });

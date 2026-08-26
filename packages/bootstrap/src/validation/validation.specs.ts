@@ -17,14 +17,14 @@ describe('validateHostManifest', () => {
     expect(driver.get.error()).toBeUndefined();
   });
 
-  it('should reject host artifact when origin is not approved', () => {
+  it('should reject host artifact when origin is outside artifact registry', () => {
     driver.given
       .unapprovedHostArtifact(new URL(faker.internet.url()))
       .when.validateArtifact();
 
     expect(driver.get.error()).toEqual(
       new Error(
-        'Selected host URL uses an origin not approved by bootstrap assetOrigins.',
+        'Selected host URL uses an origin outside artifactRegistryUrl.',
       ),
     );
   });

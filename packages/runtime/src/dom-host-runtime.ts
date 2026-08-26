@@ -42,7 +42,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
   const catalog =
     options.catalog ??
     (await loadHostDeployment({
-      manifestUrl: config.manifestUrl,
+      manifestUrl: config.manifestUrl ?? `${config.environmentRegistryUrl ?? config.artifactRegistryUrl}/environments/${config.environment}/hosts/${config.hostId}/manifest.json`,
       expectedHostId: config.hostId,
       expectedEnvironment: config.environment,
       requestPolicy,
@@ -80,7 +80,6 @@ export async function startDomHostRuntime<THostSdk extends object>(
     manifests,
     importWidget: federation.importWidget,
     resolveWidget: createRegistryWidgetResolver({
-      runtimeConfig: config,
       catalog: resolvedCatalog,
     }),
     trustPolicy,

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/columbus",
-  "version": "0.3.59",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "dependencies": {

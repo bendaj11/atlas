@@ -61,16 +61,11 @@ interface AtlasRuntimeError {
 
 export interface AtlasHostData {
   config: {
-    schemaVersion: '1';
+    schemaVersion: 'v1';
     hostId: string;
     environment: string;
-    manifestUrl: string;
-    developmentSessionUrl?: string;
-    registryUrl?: string;
-    externalRegistries?: Array<{
-      registryUrl: string;
-      environment: string;
-    }>;
+    artifactRegistryUrl: string;
+    environmentRegistryUrl?: string;
   };
   pageUrl: string;
   catalog: {

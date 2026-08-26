@@ -82,7 +82,7 @@ test.describe('Atlas Columbus extension', () => {
     const tabPopup = await openPopup(session, firstHost);
     await editApp(tabPopup, 'Dashboard React');
     await tabPopup.getByText('This tab', { exact: true }).click();
-    await tabPopup.getByText('Other release', { exact: true }).click();
+    await tabPopup.getByText('Production', { exact: true }).click();
     await selectActiveDropdown(tabPopup, /0\.1\.0/);
     await saveAndWaitForReload(tabPopup, firstHost);
 
@@ -123,7 +123,7 @@ test.describe('Atlas Columbus extension', () => {
 
     const prPopup = await openPopup(session, host);
     await editApp(prPopup, 'Dashboard React');
-    await prPopup.getByText('PR / MR preview', { exact: true }).click();
+    await prPopup.getByText('PR Preview', { exact: true }).click();
     await selectActiveDropdown(prPopup);
     await saveAndWaitForReload(prPopup, host);
 
@@ -341,7 +341,7 @@ async function selectOtherRelease(
 ): Promise<void> {
   const popup = await openPopup(session, host);
   await editApp(popup, 'Dashboard React');
-  await popup.getByText('Other release', { exact: true }).click();
+  await popup.getByText('Production', { exact: true }).click();
   await selectActiveDropdown(popup, version);
   await saveAndWaitForReload(popup, host);
 }

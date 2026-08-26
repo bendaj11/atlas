@@ -8,12 +8,6 @@ describe('startAtlasLoader', () => {
     driver = new AtlasLoaderDriver();
   });
 
-  it('should mount development catalog when development session is configured', async () => {
-    await driver.given.developmentCatalog().when.start();
-
-    expect(driver.get.catalog()).toEqual(driver.get.developmentCatalog());
-  });
-
   it('should mount catalog assembled from deployment artifacts when runtime is production', async () => {
     await driver.when.start();
 

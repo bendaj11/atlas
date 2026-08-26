@@ -170,7 +170,7 @@ async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
   if (!hasAtlasBootstrapSignature(document)) return undefined;
 
   try {
-    const response = await fetch('/atlas.bootstrap.json', {
+    const response = await fetch('/atlas.runtime.json', {
       cache: 'no-store',
     });
     if (!response.ok) return undefined;
@@ -179,7 +179,7 @@ async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
       schemaVersion?: string;
       hostId?: string;
     };
-    return value.schemaVersion === '2' ? value : undefined;
+    return value.schemaVersion === 'v1' ? value : undefined;
   } catch {
     return undefined;
   }

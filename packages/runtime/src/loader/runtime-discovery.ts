@@ -84,7 +84,7 @@ export async function loadHostDeployment(options: {
     references,
     (reference) =>
       loadPublishedManifest(
-        reference,
+        reference as AtlasManifestDescriptor & { url: string },
         options.fetchBytes,
         options.requestPolicy,
       ),
@@ -409,9 +409,8 @@ export function createRemoteTrustPolicy(
 ): AtlasRemoteTrustPolicy {
   const baseUrl = globalThis.location?.href ?? 'http://atlas.local';
   const origins = [
-    config.manifestUrl,
-    ...(config.assetOrigins ?? []),
-    ...(config.externalRegistries ?? []).map(({ registryUrl }) => registryUrl),
+    config.artifactRegistryUrl,
+    config.environmentRegistryUrl ?? config.artifactRegistryUrl,
   ].map((value) => new URL(value, baseUrl).origin);
   return { allowedOrigins: new Set(origins) };
 }

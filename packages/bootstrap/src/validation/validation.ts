@@ -69,11 +69,11 @@ export function validateArtifactUrl(
     return;
   }
 
-  const manifestUrl = new URL(runtime.manifestUrl, location.href);
+  const artifactRegistryUrl = new URL(runtime.artifactRegistryUrl, location.href);
   if (
     url.protocol === 'http:' &&
     loopbackHosts.includes(url.hostname) &&
-    loopbackHosts.includes(manifestUrl.hostname)
+    loopbackHosts.includes(artifactRegistryUrl.hostname)
   )
     return;
 
@@ -81,15 +81,11 @@ export function validateArtifactUrl(
     throw new Error('Published host URL must use HTTPS.');
 
   const allowed = new Set([
-    manifestUrl.origin,
-    ...(runtime.assetOrigins || []).map((value) => new URL(value).origin),
-    ...(runtime.externalRegistries || []).map(
-      ({ registryUrl }) => new URL(registryUrl).origin,
-    ),
+    artifactRegistryUrl.origin,
   ]);
 
   if (!allowed.has(url.origin))
     throw new Error(
-      'Selected host URL uses an origin not approved by bootstrap assetOrigins.',
+      'Selected host URL uses an origin outside artifactRegistryUrl.',
     );
 }

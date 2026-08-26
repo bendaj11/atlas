@@ -8,7 +8,6 @@ import type {
   AtlasBootstrapFile,
   AtlasBootstrapOptions,
 } from './bootstrap-types.js';
-import { createNginxConfig } from './nginx-config.js';
 
 export function createAtlasBootstrapFiles(
   options: AtlasBootstrapOptions,
@@ -25,19 +24,13 @@ export function createAtlasBootstrapFiles(
 
   validateBootstrapHtml(html);
 
-  const files: AtlasBootstrapFile[] = [
+  return [
     { path: 'index.html', contents: withTrailingNewline(html) },
 
-    ...createBrowserAssetFiles(),
+    ...createBrowserAssetFiles()
+      .filter((file): file is { path: 'atlas.loader.js'; contents: string } => file.path === 'atlas.loader.js'),
   ];
 
-  return [
-    ...files,
-    {
-      path: 'nginx.conf',
-      contents: createNginxConfig(options.assetOrigins),
-    },
-  ];
 }
 
 function withTrailingNewline(contents: string): string {

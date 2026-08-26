@@ -3,11 +3,7 @@ import {
   createTestManifest,
 } from '../../testkit/dist/index.js';
 import { getAtlasNavigation } from '../../sdk/dist/index.js';
-import {
-  createRegistryWidgetResolver,
-  createWidgetLoader,
-  startAtlasHostRuntime,
-} from './index.js';
+import { createWidgetLoader, startAtlasHostRuntime } from './index.js';
 import type {
   AtlasAppEntry,
   AtlasMountedWidget,
@@ -232,58 +228,6 @@ export async function duplicateWidgetResult(): Promise<{
   } finally {
     console.warn = originalWarn;
   }
-}
-
-export async function duplicateRegistryWidgetResult(): Promise<{
-  ownerId: string;
-  warning: string;
-}> {
-  const widgetId = '6f4994c1-b95f-4b24-a01a-106dd61aa4fb';
-  const first = widgetProvider('first', widgetId, '1.0.0');
-  const second = widgetProvider('second', widgetId, '1.0.0');
-  const originalWarn = console.warn;
-  let warning = '';
-  try {
-    console.warn = (message?: unknown) => {
-      warning = String(message);
-    };
-    const resolver = createRegistryWidgetResolver({
-      runtimeConfig: {
-        schemaVersion: '1',
-        hostId: 'host',
-        environment: 'production',
-        manifestUrl:
-          'https://platform.example/atlas/environments/production/hosts/host/manifest.json',
-      },
-      catalog: createHostCatalog([]),
-      fetchJson: async () => widgetRegistry([first, second]),
-    });
-    return { ownerId: (await resolver(widgetId)).ownerManifest.id, warning };
-  } finally {
-    console.warn = originalWarn;
-  }
-}
-
-export class WidgetRegistryDriver {
-  requests = 0;
-  readonly widgetId = '6f4994c1-b95f-4b24-a01a-106dd61aa4fb';
-  readonly resolver = createRegistryWidgetResolver({
-    runtimeConfig: {
-      schemaVersion: '1',
-      hostId: 'host',
-      environment: 'production',
-      manifestUrl:
-        'https://platform.example/atlas/environments/production/hosts/host/manifest.json',
-    },
-    catalog: createHostCatalog([]),
-    fetchJson: async () => {
-      this.requests += 1;
-      if (this.requests === 1) throw new Error('temporary registry failure');
-      return widgetRegistry([
-        widgetProvider('internal-provider', this.widgetId, '1.0.0'),
-      ]);
-    },
-  });
 }
 
 export function widgetProvider(

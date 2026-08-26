@@ -55,7 +55,6 @@ import {
   createWidgetRendererContainer,
   duplicateWidgetResult,
   widgetProvider,
-  widgetRegistry,
 } from './index.driver.js';
 
 test('resolveRuntimeManifests rejects duplicate selected app versions', () => {
@@ -1190,34 +1189,19 @@ test('duplicate widget ids warn and keep first selected match', async () => {
   assert.match(result.warning, /Suggested action:/);
 });
 
-test('widget registry resolves active non-routed providers without registry reads', async () => {
+test('widget registry resolves active non-routed providers', async () => {
   const widgetId = '6f4994c1-b95f-4b24-a01a-106dd61aa4fb';
   const provider = widgetProvider('internal-provider', widgetId, '1.0.0');
-  let requests = 0;
   const resolver = createRegistryWidgetResolver({
-    runtimeConfig: {
-      schemaVersion: '1',
-      hostId: 'host',
-      environment: 'production',
-      manifestUrl:
-        'https://platform.example/atlas/environments/production/hosts/host/manifest.json',
-    },
     catalog: {
       ...createHostCatalog([]),
       widgetProviders: [provider],
-    },
-    async fetchJson() {
-      requests += 1;
-      return widgetRegistry([]);
     },
   });
 
   const owner = (await resolver(widgetId)).ownerManifest.id;
 
-  assert.deepEqual(
-    { owner, requests },
-    { owner: 'internal-provider', requests: 0 },
-  );
+  assert.equal(owner, 'internal-provider');
 });
 
 test('widget registry rejects duplicate active providers', () => {
@@ -1228,13 +1212,6 @@ test('widget registry rejects duplicate active providers', () => {
   assert.throws(
     () =>
       createRegistryWidgetResolver({
-        runtimeConfig: {
-          schemaVersion: '1',
-          hostId: 'host',
-          environment: 'production',
-          manifestUrl:
-            'https://platform.example/atlas/environments/production/hosts/host/manifest.json',
-        },
         catalog: { ...createHostCatalog([]), widgetProviders: [first, second] },
       }),
     /more than one provider app/,
@@ -2045,9 +2022,10 @@ test('DOM host mounts a deferred slot app when its anchor becomes available', as
       options: {
         anchors,
         runtimeConfig: {
-          schemaVersion: '1',
+          schemaVersion: 'v1',
           hostId: 'host',
           environment: 'production',
+          artifactRegistryUrl: 'https://platform.example/atlas',
           manifestUrl:
             'https://platform.example/atlas/environments/production/hosts/host/manifest.json',
           assetOrigins: ['http://localhost:4173'],

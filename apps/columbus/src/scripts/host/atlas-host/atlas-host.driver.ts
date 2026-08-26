@@ -203,10 +203,10 @@ function createHostData(id: string): AtlasHostData {
   };
   return {
     config: {
-      schemaVersion: '1',
+      schemaVersion: 'v1',
       hostId: id,
       environment: 'production',
-      manifestUrl: `http://127.0.0.1:4400/hosts/${id}/manifest.json`,
+      artifactRegistryUrl: 'http://127.0.0.1:4400',
     },
     pageUrl: 'http://127.0.0.1:4300/',
     catalog: {

@@ -297,7 +297,7 @@ export class VerifyServiceDriver {
       ? publishedApps.at(-1)?.descriptor
       : undefined;
     const active = {
-      schemaVersion: '2',
+      schemaVersion: 'v1',
       kind: 'host-deployment',
       hostId: this.hostId,
       environment: 'production',
@@ -313,33 +313,16 @@ export class VerifyServiceDriver {
     return async (input) => {
       const url = input.toString();
 
-      if (url.endsWith('atlas.bootstrap.json')) {
+      if (url.endsWith('atlas.runtime.json')) {
         return Response.json(
           {
-            schemaVersion: '2',
+            schemaVersion: 'v1',
             hostId: this.hostId,
-            registryUrl: this.assetOrigin,
-            resourcesRetryCount: 3,
-            resourcesTimeoutMs: 15000,
+            environment: 'production',
+            artifactRegistryUrl: this.assetOrigin,
+            environmentRegistryUrl: this.assetOrigin,
           },
           { headers: jsonHeaders },
-        );
-      }
-
-      if (url.endsWith(`/hosts/${this.hostId}/discovery.json`)) {
-        return Response.json(
-          {
-            schemaVersion: '1',
-            hostId: this.hostId,
-            bindings: [
-              {
-                baseUrl: new URL(this.hostOrigin).origin,
-                environment: 'production',
-                manifestUrl: `${this.assetOrigin}/environments/production/hosts/${this.hostId}/manifest.json`,
-              },
-            ],
-          },
-          { headers: { ...assetHeaders, ...jsonHeaders } },
         );
       }
 
@@ -349,15 +332,6 @@ export class VerifyServiceDriver {
             schemaVersion: '2',
             apps: {},
             hosts: {},
-            deployments: {
-              production: {
-                apps: {},
-                hosts: {},
-                expectedHostRevisions: {
-                  [this.hostId]: active.deploymentRevision,
-                },
-              },
-            },
           },
           { headers: jsonHeaders },
         );
@@ -444,8 +418,7 @@ export class VerifyServiceDriver {
       const url = arguments_[0].toString();
 
       if (
-        url.endsWith('atlas.bootstrap.json') ||
-        url.endsWith('discovery.json') ||
+        url.endsWith('atlas.runtime.json') ||
         url.endsWith('registry.json') ||
         url.endsWith('/manifest.json')
       ) {
@@ -481,8 +454,7 @@ export class VerifyServiceDriver {
       const response = await baseFetch(...arguments_);
       const url = arguments_[0].toString();
       if (
-        url.endsWith('atlas.bootstrap.json') ||
-        url.endsWith('discovery.json') ||
+        url.endsWith('atlas.runtime.json') ||
         url.endsWith('registry.json') ||
         url.endsWith('/manifest.json')
       ) {

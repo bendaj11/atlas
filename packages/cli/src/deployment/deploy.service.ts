@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
-import { posix } from 'node:path';
 import type {
   AtlasAppArtifactManifest,
-  AtlasDeploymentManifestReference,
+  AtlasEnvironmentDeployment,
   AtlasHostDeploymentManifest,
   AtlasManifestDescriptor,
   AtlasPublishedArtifactManifest,
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import {
+  assertEnvironmentDeployment,
   assertPublishedArtifactManifest,
   placementTargetsHost,
 } from '@atlas/schema';
@@ -20,27 +20,12 @@ import {
 } from '../publication/publication-storage/publication-storage.js';
 import type { AtlasRegistryConfig } from '../publication/registry-config.js';
 import {
-  canonicalJson,
   assertEnvironmentName,
   assertStaticRegistry,
-  emptyStaticRegistry,
-  importRelease,
+  canonicalJson,
   resolveRegistryArtifact,
-  resolveRelease,
-  selectDeployment,
-  type AtlasResolvedRelease,
 } from '../publication/static-registry/static-registry.js';
-import {
-  readRegistry,
-  readRegistryState,
-} from '../publication/service/publish.service.js';
-import { createHostDiscovery, hostDiscoveryPath } from './host-discovery.js';
-import {
-  bindSelectedHost,
-  readHostBindingRequest,
-} from './host-binding/host-binding.js';
 
-const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MUTABLE_CACHE_CONTROL = 'no-cache, max-age=0, must-revalidate';
 
 export interface AtlasDeployResult {
@@ -53,18 +38,20 @@ export interface AtlasDeployResult {
   dryRun: boolean;
 }
 
-export class AtlasDeploymentConvergenceError extends Error {
-  constructor(readonly result: AtlasDeployResult) {
-    super(
-      `Atlas deployment desired state was committed, but these hosts remain pending: ${result.pendingHosts.join(', ')}. Repeat same deploy command to resume convergence.`,
-    );
-    this.name = 'AtlasDeploymentConvergenceError';
-  }
+interface RegistryLocations {
+  source: string;
+  target: string;
 }
 
-interface SourceSnapshot {
-  rootUrl: string;
-  registry: AtlasStaticRegistry;
+interface Selection {
+  kind: 'app' | 'host';
+  id: string;
+  version: string;
+}
+
+interface DeploymentWrite {
+  state: AtlasEnvironmentDeployment;
+  manifests: AtlasHostDeploymentManifest[];
 }
 
 export class AtlasDeployService {
@@ -75,814 +62,406 @@ export class AtlasDeployService {
     config?: AtlasRegistryConfig,
   ): Promise<AtlasDeployResult> {
     const environment = requiredFlag(this.args, 'to');
-    assertEnvironmentName(environment);
     const selector = requiredFlag(this.args, 'version');
-    const targetRoot = registryRoot(
-      this.args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL,
-      '--registry-url or ATLAS_REGISTRY_URL',
-    );
-    const sourceRoot = registryRoot(
-      this.args.flag('source-registry-url') ??
-        process.env.ATLAS_SOURCE_REGISTRY_URL ??
-        targetRoot,
-      '--source-registry-url or ATLAS_SOURCE_REGISTRY_URL',
-    );
+    assertEnvironmentName(environment);
+
+    const locations = registryLocations(this.args);
     const storage = await createPublicationStorage(config?.storage, this.args);
-    const targetRegistry =
-      (await readRegistry(storage)) ?? emptyStaticRegistry();
-    const source = await sourceSnapshot(
-      sourceRoot,
-      sourceRoot === targetRoot ? targetRegistry : undefined,
-    );
-    const sourceIdentifier = resolveSourceIdentifier(
-      targetRegistry,
-      source.registry,
+    const registry = await sourceRegistry(storage, locations);
+    const selected = await selection(
+      storage,
+      locations,
+      registry,
       artifactIdentifier,
-      sourceRoot === targetRoot,
-    );
-    const selected = resolveRelease(
-      source.registry,
-      sourceIdentifier,
       selector,
     );
-    const hostBinding = readHostBindingRequest(this.args, selected.kind);
-    if (this.args.hasFlag('dry-run')) {
-      assertExpectedRevision(this.args, targetRegistry);
-      const simulated = await validateDryRun({
-        source,
-        targetRoot,
-        storage,
-        targetRegistry,
-        selected,
-        environment,
-        hostBinding,
-      });
-      return {
-        artifactId: selected.artifact.id,
-        environment,
-        version: selected.version,
-        registryRevision: simulated.revision,
-        convergedHosts: [],
-        pendingHosts: [],
-        dryRun: true,
-      };
-    }
-
-    const transferredManifest = await transferRelease(
-      source,
-      targetRoot,
-      storage,
-      selected,
-    );
-    const targetSelection: AtlasResolvedRelease = {
-      ...selected,
-      manifest: transferredManifest,
-    };
-    return withLease(storage, async (lease) => {
-      await lease.assertHeld();
-      const state = await readRegistryState(storage);
-      const current = state.registry ?? emptyStaticRegistry();
-      assertExpectedRevision(this.args, current);
-      const imported = importRelease(current, targetSelection);
-      const affectedHosts = await affectedHostIds(
-        storage,
-        imported,
-        environment,
-        targetSelection,
-      );
-      const projections = await createHostProjections(
-        storage,
-        imported,
-        environment,
-        affectedHosts,
-        targetRoot,
-        targetSelection,
-      );
-      const expected = Object.fromEntries(
-        projections.map((projection) => [
-          projection.hostId,
-          projection.deploymentRevision,
-        ]),
-      );
-      const selectionMutation = selectDeployment(
-        imported,
-        environment,
-        targetSelection,
-        expected,
-      );
-      const mutation = bindSelectedHost({
-        mutation: selectionMutation,
-        environment,
-        selected: targetSelection,
-        ...hostBinding,
-      });
-      await writeMutableJson(
-        storage,
-        lease,
-        'registry.json',
-        mutation.registry,
-        state.versionToken,
-      );
-      await config?.invalidate?.(['registry.json']);
-
-      const convergedHosts: string[] = [];
-      const pendingHosts: string[] = [];
-      for (const projection of projections) {
-        try {
-          const path = `environments/${environment}/hosts/${projection.hostId}/manifest.json`;
-          await writeHostProjection(storage, lease, path, projection);
-          await config?.invalidate?.([path]);
-          convergedHosts.push(projection.hostId);
-        } catch {
-          pendingHosts.push(projection.hostId);
-        }
-      }
-      if (targetSelection.kind === 'host' && pendingHosts.length === 0) {
-        const hostId = targetSelection.artifact.id;
-        try {
-          const path = hostDiscoveryPath(hostId);
-          const discovery = createHostDiscovery(
-            mutation.registry,
-            hostId,
-            targetRoot,
+    const dryRun = this.args.hasFlag('dry-run');
+    const deployment = dryRun
+      ? await prepareDeployment(
+          storage,
+          locations,
+          registry,
+          environment,
+          selected,
+        )
+      : await withLease(storage, async (lease) => {
+          const prepared = await prepareDeployment(
+            storage,
+            locations,
+            registry,
+            environment,
+            selected,
           );
-          await writeMutableJson(storage, lease, path, discovery);
-          await config?.invalidate?.([path]);
-        } catch {
-          pendingHosts.push(hostId);
-        }
-      }
-      const result: AtlasDeployResult = {
-        artifactId: selected.artifact.id,
-        environment,
-        version: selected.version,
-        registryRevision: mutation.registryRevision,
-        convergedHosts: convergedHosts.filter(
-          (hostId) => !pendingHosts.includes(hostId),
+          await writeDeployment(storage, lease, environment, prepared);
+          return prepared;
+        });
+
+    if (!dryRun) {
+      await config?.invalidate?.([
+        envPath(environment),
+        ...deployment.manifests.map((manifest) =>
+          hostPath(environment, manifest.hostId),
         ),
-        pendingHosts,
-        dryRun: false,
-      };
-      if (pendingHosts.length) {
-        throw new AtlasDeploymentConvergenceError(result);
-      }
-      return result;
-    });
-  }
-}
-
-async function writeHostProjection(
-  storage: AtlasPublicationStorage,
-  lease: AtlasPublicationLease,
-  path: string,
-  projection: AtlasHostDeploymentManifest,
-): Promise<void> {
-  const delays = [0, 50, 100];
-  let failure: unknown;
-  for (const delay of delays) {
-    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-    try {
-      await writeMutableJson(storage, lease, path, projection);
-      return;
-    } catch (error) {
-      failure = error;
+      ]);
     }
+
+    return {
+      artifactId: selected.id,
+      environment,
+      version: selected.version,
+      registryRevision: deployment.state.revision,
+      convergedHosts: deployment.manifests.map((manifest) => manifest.hostId),
+      pendingHosts: [],
+      dryRun,
+    };
   }
-  throw failure;
 }
 
-async function validateDryRun(options: {
-  source: SourceSnapshot;
-  targetRoot: string;
-  storage: AtlasPublicationStorage;
-  targetRegistry: AtlasStaticRegistry;
-  selected: AtlasResolvedRelease;
-  environment: string;
-  hostBinding: ReturnType<typeof readHostBindingRequest>;
-}): Promise<AtlasStaticRegistry> {
-  const {
-    source,
-    targetRoot,
-    storage,
-    targetRegistry,
-    selected,
-    environment,
-    hostBinding,
-  } = options;
-  let descriptor = selected.manifest;
-  if (source.rootUrl === targetRoot) {
-    await verifyStoredRelease(storage, selected);
-  } else {
-    const bytes = await fetchDescriptor(source.rootUrl, selected.manifest);
-    const manifest = parseArtifactManifest(bytes);
-    assertSelectedManifestIdentity(manifest, selected);
-    descriptor = descriptorForBytes(selected.manifest.path, bytes);
-  }
-  const imported = importRelease(targetRegistry, {
-    ...selected,
-    manifest: descriptor,
-  });
-  const mutation = selectDeployment(
-    imported,
-    environment,
-    { ...selected, manifest: descriptor },
-    {},
-  );
-  const bound = bindSelectedHost({
-    mutation,
-    environment,
-    selected,
-    ...hostBinding,
-  });
-  if (selected.kind === 'host') {
-    createHostDiscovery(bound.registry, selected.artifact.id, targetRoot);
-  }
-  return bound.registry;
-}
-
-function descriptorForBytes(
-  path: string,
-  bytes: Uint8Array,
-): AtlasManifestDescriptor {
-  return {
-    path,
-    digest: digest(bytes),
-    size: bytes.byteLength,
-    mediaType: 'application/json',
-  };
-}
-
-function resolveSourceIdentifier(
-  target: AtlasStaticRegistry,
-  source: AtlasStaticRegistry,
-  identifier: string,
-  sameRegistry: boolean,
-): string {
-  try {
-    return resolveRegistryArtifact(target, identifier).artifact.id;
-  } catch (error) {
-    if (sameRegistry) throw error;
-    if (
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
-        identifier,
-      )
-    ) {
-      return resolveRegistryArtifact(source, identifier).artifact.id;
-    }
+function registryLocations(args: CliArguments): RegistryLocations {
+  const shorthand = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
+  const source =
+    args.flag('source-registry-url') ?? process.env.ATLAS_SOURCE_REGISTRY_URL;
+  const target =
+    args.flag('target-registry-url') ?? process.env.ATLAS_TARGET_REGISTRY_URL;
+  if (shorthand && (source || target)) {
     throw new Error(
-      `Atlas artifact "${identifier}" is not registered in the target registry. Use its stable UUID for the first cross-registry deployment.`,
-      { cause: error },
+      '--registry-url cannot be combined with --source-registry-url or --target-registry-url.',
     );
   }
-}
-
-async function sourceSnapshot(
-  rootUrl: string,
-  local: AtlasStaticRegistry | undefined,
-): Promise<SourceSnapshot> {
-  if (local) return { rootUrl, registry: local };
-  const bytes = await fetchVerified(
-    new URL('registry.json', `${rootUrl}/`).href,
-    'application/json',
-  );
-  const registry = JSON.parse(
-    new TextDecoder().decode(bytes),
-  ) as AtlasStaticRegistry;
-  assertStaticRegistry(registry);
-  return { rootUrl, registry };
-}
-
-async function transferRelease(
-  source: SourceSnapshot,
-  targetRoot: string,
-  storage: AtlasPublicationStorage,
-  selected: AtlasResolvedRelease,
-): Promise<AtlasManifestDescriptor> {
-  if (source.rootUrl === targetRoot) {
-    await verifyStoredRelease(storage, selected);
-    return selected.manifest;
-  }
-  const manifestBytes = await fetchDescriptor(
-    source.rootUrl,
-    selected.manifest,
-  );
-  const manifest = parseArtifactManifest(manifestBytes);
-  assertSelectedManifestIdentity(manifest, selected);
-  const manifestDirectory = posix.dirname(selected.manifest.path);
-  for (const file of manifest.files) {
-    const sourcePath = `${manifestDirectory}/${file.path}`;
-    await transferPayload(
-      storage,
-      sourcePath,
-      new URL(sourcePath, `${source.rootUrl}/`).href,
-      file,
+  if (Boolean(source) !== Boolean(target)) {
+    throw new Error(
+      '--source-registry-url and --target-registry-url must be supplied together.',
     );
   }
-  await createOrReuse(storage, selected.manifest.path, manifestBytes, {
-    cacheControl: IMMUTABLE_CACHE_CONTROL,
-    contentType: selected.manifest.mediaType,
-  });
-  return selected.manifest;
-}
-
-async function verifyStoredRelease(
-  storage: AtlasPublicationStorage,
-  selected: AtlasResolvedRelease,
-): Promise<void> {
-  const manifestBytes = await storage.read(selected.manifest.path);
-  const manifestMetadata = await storage.inspect(selected.manifest.path);
-  if (!manifestBytes || !manifestMetadata) {
-    throw new Error(`Target manifest ${selected.manifest.path} is missing.`);
+  if (shorthand) {
+    const registryUrl = root(shorthand, '--registry-url');
+    return { source: registryUrl, target: registryUrl };
   }
-  assertBytes(
-    selected.manifest.path,
-    manifestBytes,
-    selected.manifest.digest,
-    selected.manifest.size,
+  if (source && target) {
+    return {
+      source: root(source, '--source-registry-url'),
+      target: root(target, '--target-registry-url'),
+    };
+  }
+  throw new Error(
+    'Atlas deploy requires --registry-url, or both --source-registry-url and --target-registry-url.',
   );
-  assertStoredMetadata(selected.manifest.path, manifestMetadata, {
-    cacheControl: IMMUTABLE_CACHE_CONTROL,
-    contentType: selected.manifest.mediaType,
-  });
-  const manifest = parseArtifactManifest(manifestBytes);
-  assertSelectedManifestIdentity(manifest, selected);
-  const directory = posix.dirname(selected.manifest.path);
-  for (const file of manifest.files) {
-    const path = `${directory}/${file.path}`;
-    const bytes = await storage.read(path);
-    const metadata = await storage.inspect(path);
-    if (!bytes || !metadata)
-      throw new Error(`Target payload ${path} is missing.`);
-    assertBytes(path, bytes, file.digest, file.size);
-    assertStoredMetadata(path, metadata, {
-      cacheControl: file.cacheControl,
-      contentType: file.mediaType,
-    });
-  }
 }
 
-async function transferPayload(
+async function selection(
   storage: AtlasPublicationStorage,
-  path: string,
-  url: string,
-  descriptor: {
-    digest: string;
-    size: number;
-    mediaType: string;
-    cacheControl: string;
-  },
-): Promise<void> {
-  const existing = await storage.read(path);
-  if (existing) {
-    assertBytes(path, existing, descriptor.digest, descriptor.size);
-    const metadata = await storage.inspect(path);
-    if (!metadata)
-      throw new Error(`Target payload metadata for ${path} is missing.`);
-    assertStoredMetadata(path, metadata, {
-      cacheControl: descriptor.cacheControl,
-      contentType: descriptor.mediaType,
-    });
-    return;
-  }
-  const response = await fetchResponse(url);
-  assertResponseMetadata(url, response, descriptor);
-  if (!response.body) throw new Error(`Atlas source returned no body: ${url}`);
-  const [uploadStream, verificationStream] = response.body.tee();
-  let created = false;
-  try {
-    const [, verification] = await Promise.all([
-      storage
-        .create(path, asAsyncIterable(uploadStream), {
-          cacheControl: descriptor.cacheControl,
-          contentType: descriptor.mediaType,
-        })
-        .then(() => {
-          created = true;
-        }),
-      hashStream(asAsyncIterable(verificationStream)),
-    ]);
-    if (
-      verification.size !== descriptor.size ||
-      verification.digest !== descriptor.digest
-    ) {
-      if (created) await storage.remove(path);
-      throw new Error(
-        `Atlas rejected ${path}: streamed bytes differ from descriptor.`,
-      );
-    }
-  } catch (error) {
-    const stored = await storage.read(path);
-    if (stored) {
-      assertBytes(path, stored, descriptor.digest, descriptor.size);
-      const metadata = await storage.inspect(path);
-      if (!metadata)
-        throw new Error(`Target payload metadata for ${path} is missing.`);
-      assertStoredMetadata(path, metadata, {
-        cacheControl: descriptor.cacheControl,
-        contentType: descriptor.mediaType,
-      });
-      return;
-    }
-    throw error;
-  }
-}
-
-async function affectedHostIds(
-  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
   registry: AtlasStaticRegistry,
+  identifier: string,
+  selector: string,
+): Promise<Selection> {
+  const resolved = resolveRegistryArtifact(registry, identifier);
+  const artifact = resolved.artifact;
+  const version =
+    selector === 'latest'
+      ? artifact.latest
+      : artifact.releases[selector]
+        ? selector
+        : await sourceEnvironmentVersion(
+            storage,
+            locations,
+            selector,
+            resolved.kind,
+            artifact.id,
+          );
+  const descriptor = version ? artifact.releases[version] : undefined;
+  if (!version || !descriptor) {
+    throw new Error(
+      `Atlas selector "${selector}" is neither an exact release, latest, nor a source environment selection for "${identifier}".`,
+    );
+  }
+  return { kind: resolved.kind, id: artifact.id, version };
+}
+
+async function sourceEnvironmentVersion(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
   environment: string,
-  selected: AtlasResolvedRelease,
-): Promise<string[]> {
-  if (selected.kind === 'host') return [selected.artifact.id];
-  const deployment = registry.deployments[environment];
-  if (!deployment) return [];
-  const next = (await readStoredManifest(
+  kind: 'app' | 'host',
+  id: string,
+): Promise<string | undefined> {
+  assertEnvironmentName(environment);
+  const deployment = await sourceEnvironmentState(
     storage,
-    selected.manifest,
-  )) as AtlasAppArtifactManifest;
-  const previousEntries = await readSelectedApps(storage, registry, deployment);
-  const nextEntries = [
-    ...previousEntries.filter(({ id }) => id !== selected.artifact.id),
-    { id: selected.artifact.id, manifest: next },
-  ];
-  const ids = new Set<string>();
-  for (const hostId of Object.keys(deployment.hosts)) {
-    if (
-      compositionContains(previousEntries, hostId, selected.artifact.id) ||
-      compositionContains(nextEntries, hostId, selected.artifact.id)
-    ) {
-      ids.add(hostId);
-    }
-  }
-  return [...ids].sort();
-}
-
-async function readSelectedApps(
-  storage: AtlasPublicationStorage,
-  registry: AtlasStaticRegistry,
-  deployment: AtlasStaticRegistry['deployments'][string],
-): Promise<Array<{ id: string; manifest: AtlasAppArtifactManifest }>> {
-  return Promise.all(
-    Object.entries(deployment.apps).map(async ([id, selection]) => ({
-      id,
-      manifest: (await readStoredManifest(
-        storage,
-        releaseDescriptor(registry, 'app', id, selection.version),
-      )) as AtlasAppArtifactManifest,
-    })),
+    locations,
+    environment,
   );
+  return deployment?.[kind === 'app' ? 'apps' : 'hosts'][id]?.version;
 }
 
-function compositionContains(
-  entries: readonly { id: string; manifest: AtlasAppArtifactManifest }[],
-  hostId: string,
-  appId: string,
-): boolean {
-  const mounted = entries.filter(({ manifest }) => isMounted(manifest, hostId));
-  return (
-    mounted.some(({ id }) => id === appId) ||
-    collectWidgetProviderIds(mounted, entries).has(appId)
-  );
-}
-
-async function createHostProjections(
+async function prepareDeployment(
   storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
   registry: AtlasStaticRegistry,
   environment: string,
-  hostIds: readonly string[],
-  targetRoot: string,
-  selected: AtlasResolvedRelease,
-): Promise<AtlasHostDeploymentManifest[]> {
-  const deployment = structuredClone(
-    registry.deployments[environment] ?? {
-      hosts: {},
-      apps: {},
-      expectedHostRevisions: {},
-    },
+  selected: Selection,
+): Promise<DeploymentWrite> {
+  const state = select(
+    await targetEnvironmentState(storage, environment),
+    environment,
+    selected,
   );
-  const collection =
-    selected.kind === 'app' ? deployment.apps : deployment.hosts;
-  collection[selected.artifact.id] = {
-    ...collection[selected.artifact.id],
+  const manifests = await hostManifests(
+    storage,
+    locations,
+    registry,
+    state,
+    selected,
+  );
+  return { state, manifests };
+}
+
+function select(
+  current: AtlasEnvironmentDeployment | undefined,
+  environment: string,
+  selected: Selection,
+): AtlasEnvironmentDeployment {
+  const content = {
+    schemaVersion: 'v1' as const,
+    environment,
+    hosts: { ...(current?.hosts ?? {}) },
+    apps: { ...(current?.apps ?? {}) },
+  };
+  content[selected.kind === 'app' ? 'apps' : 'hosts'][selected.id] = {
     version: selected.version,
   };
-  const appEntries = await Promise.all(
-    Object.entries(deployment.apps).map(async ([id, selection]) => {
-      const descriptor = releaseDescriptor(
-        registry,
-        'app',
-        id,
-        selection.version,
-      );
+  return {
+    ...content,
+    updatedAt: new Date().toISOString(),
+    revision: revision(content),
+  };
+}
+
+async function hostManifests(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
+  registry: AtlasStaticRegistry,
+  state: AtlasEnvironmentDeployment,
+  selected: Selection,
+): Promise<AtlasHostDeploymentManifest[]> {
+  const apps = await Promise.all(
+    Object.entries(state.apps).map(async ([id, entry]) => {
+      const descriptor = release(registry, 'app', id, entry.version);
       return {
         id,
         descriptor,
-        manifest: (await readStoredManifest(
+        manifest: (await publishedManifest(
           storage,
+          locations,
           descriptor,
         )) as AtlasAppArtifactManifest,
       };
     }),
   );
-  const projections: AtlasHostDeploymentManifest[] = [];
-  for (const hostId of hostIds) {
-    const hostSelection = deployment.hosts[hostId];
-    if (!hostSelection) continue;
-    const host = reference(
-      targetRoot,
-      releaseDescriptor(registry, 'host', hostId, hostSelection.version),
-    );
-    const apps = appEntries
-      .filter(({ manifest }) => isMounted(manifest, hostId))
-      .sort((left, right) => left.id.localeCompare(right.id));
-    const mountedIds = new Set(apps.map(({ id }) => id));
-    const providerIds = collectWidgetProviderIds(apps, appEntries);
-    const appReferences = apps
-      .map(({ descriptor }) => reference(targetRoot, descriptor))
-      .sort((left, right) => left.path.localeCompare(right.path));
-    const widgetProviders = appEntries
-      .filter(({ id }) => providerIds.has(id) && !mountedIds.has(id))
-      .map(({ descriptor }) => reference(targetRoot, descriptor))
-      .sort((left, right) => left.path.localeCompare(right.path));
+  const hostIds =
+    selected.kind === 'host'
+      ? [selected.id]
+      : Object.keys(state.hosts).filter((id) =>
+          apps.some((app) =>
+            app.manifest.placements.some((placement) =>
+              placementTargetsHost(placement, id),
+            ),
+          ),
+        );
+  return hostIds.sort().map((hostId) => {
+    const host = state.hosts[hostId];
+    if (!host)
+      throw new Error(
+        `Atlas host "${hostId}" is not selected in environment "${state.environment}".`,
+      );
+    const appsForHost = apps
+      .filter((app) =>
+        app.manifest.placements.some((placement) =>
+          placementTargetsHost(placement, hostId),
+        ),
+      )
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((app) => app.descriptor);
     const content = {
       hostId,
-      environment,
-      host,
-      apps: appReferences,
-      ...(widgetProviders.length ? { widgetProviders } : {}),
+      environment: state.environment,
+      host: release(registry, 'host', hostId, host.version),
+      apps: appsForHost,
     };
-    projections.push({
-      schemaVersion: '2',
-      kind: 'host-deployment',
+    return {
+      schemaVersion: 'v1' as const,
+      kind: 'host-deployment' as const,
       ...content,
-      deploymentRevision: `sha256:${createHash('sha256')
-        .update(canonicalJson(content))
-        .digest('hex')}`,
-    });
-  }
-  return projections;
+      deploymentRevision: revision(content),
+    };
+  });
 }
 
-function releaseDescriptor(
+function release(
   registry: AtlasStaticRegistry,
   kind: 'app' | 'host',
-  artifactId: string,
+  id: string,
   version: string,
 ): AtlasManifestDescriptor {
-  const artifact =
-    kind === 'app' ? registry.apps[artifactId] : registry.hosts[artifactId];
-  const descriptor = artifact?.releases[version];
-  if (!descriptor) {
+  const descriptor = (kind === 'app' ? registry.apps : registry.hosts)[id]
+    ?.releases[version];
+  if (!descriptor)
     throw new Error(
-      `Atlas ${kind} "${artifactId}" has no registered release "${version}".`,
+      `Atlas ${kind} "${id}" release "${version}" is missing from source artifact registry.`,
     );
-  }
   return descriptor;
 }
 
-function assertSelectedManifestIdentity(
-  manifest: AtlasPublishedArtifactManifest,
-  selected: AtlasResolvedRelease,
-): void {
-  const kind = manifest.kind === 'app-artifact' ? 'app' : 'host';
-  if (
-    manifest.id !== selected.artifact.id ||
-    manifest.name !== selected.artifact.name ||
-    kind !== selected.kind ||
-    manifest.release?.version !== selected.version
-  ) {
+async function sourceRegistry(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
+): Promise<AtlasStaticRegistry> {
+  const registry = await sourceJson(storage, locations, 'registry.json');
+  if (!registry) throw new Error('Source registry.json is missing.');
+  assertStaticRegistry(registry);
+  return registry;
+}
+
+async function targetEnvironmentState(
+  storage: AtlasPublicationStorage,
+  environment: string,
+): Promise<AtlasEnvironmentDeployment | undefined> {
+  return parseEnvironmentState(
+    await storageJson(storage, envPath(environment)),
+    environment,
+    'target',
+  );
+}
+
+async function sourceEnvironmentState(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
+  environment: string,
+): Promise<AtlasEnvironmentDeployment | undefined> {
+  return parseEnvironmentState(
+    await sourceJson(storage, locations, envPath(environment)),
+    environment,
+    'source',
+  );
+}
+
+function parseEnvironmentState(
+  value: unknown,
+  environment: string,
+  registry: 'source' | 'target',
+): AtlasEnvironmentDeployment | undefined {
+  if (value === undefined) return undefined;
+  try {
+    assertEnvironmentDeployment(value);
+  } catch (error) {
     throw new Error(
-      'Source release manifest identity does not match registry selection.',
+      `Atlas ${registry} environment "${environment}" deployment state is invalid: ${message(error)}`,
     );
   }
-}
-
-function collectWidgetProviderIds(
-  mounted: readonly { id: string; manifest: AtlasAppArtifactManifest }[],
-  available: readonly { id: string; manifest: AtlasAppArtifactManifest }[],
-): Set<string> {
-  const byId = new Map(available.map((entry) => [entry.id, entry.manifest]));
-  const providers = new Set<string>();
-  const pending = mounted.flatMap(
-    ({ manifest }) => manifest.externalAppsDependencies ?? [],
-  );
-  while (pending.length) {
-    const id = pending.shift()!;
-    if (providers.has(id)) continue;
-    const manifest = byId.get(id);
-    if (!manifest) continue;
-    providers.add(id);
-    pending.push(...(manifest.externalAppsDependencies ?? []));
+  if (value.environment !== environment) {
+    throw new Error(
+      `Atlas ${registry} environment deployment state must match "${environment}".`,
+    );
   }
-  return providers;
-}
-
-function isMounted(
-  manifest: AtlasAppArtifactManifest,
-  hostId: string,
-): boolean {
-  return manifest.placements.some((placement) =>
-    placementTargetsHost(placement, hostId),
-  );
-}
-
-function reference(
-  rootUrl: string,
-  descriptor: AtlasManifestDescriptor,
-): AtlasDeploymentManifestReference {
-  return {
-    ...descriptor,
-    url: new URL(descriptor.path, `${rootUrl}/`).href,
-  };
-}
-
-async function readStoredManifest(
-  storage: AtlasPublicationStorage,
-  descriptor: AtlasManifestDescriptor,
-): Promise<AtlasPublishedArtifactManifest> {
-  const bytes = await storage.read(descriptor.path);
-  if (!bytes) throw new Error(`Target manifest ${descriptor.path} is missing.`);
-  assertBytes(descriptor.path, bytes, descriptor.digest, descriptor.size);
-  return parseArtifactManifest(bytes);
-}
-
-function parseArtifactManifest(
-  bytes: Uint8Array,
-): AtlasPublishedArtifactManifest {
-  const value: unknown = JSON.parse(new TextDecoder().decode(bytes));
-  assertPublishedArtifactManifest(value);
   return value;
 }
 
-async function fetchDescriptor(
-  rootUrl: string,
-  descriptor: AtlasManifestDescriptor,
-): Promise<Uint8Array> {
-  const url = new URL(descriptor.path, `${rootUrl}/`).href;
-  const response = await fetchResponse(url);
-  assertResponseMetadata(url, response, descriptor);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  assertBytes(descriptor.path, bytes, descriptor.digest, descriptor.size);
-  return bytes;
+async function storageJson(
+  storage: AtlasPublicationStorage,
+  path: string,
+): Promise<unknown | undefined> {
+  const bytes = await storage.read(path);
+  return bytes ? parseJson(bytes, `target ${path}`) : undefined;
 }
 
-async function fetchVerified(
-  url: string,
-  expectedMediaType?: string,
-): Promise<Uint8Array> {
-  const response = await fetchResponse(url);
-  if (expectedMediaType) {
-    const mediaType = response.headers.get('content-type');
-    if (!mediaTypeMatches(mediaType, expectedMediaType)) {
-      throw new Error(
-        `Atlas source ${url} returned Content-Type ${mediaType ?? 'missing'}; expected ${expectedMediaType}.`,
-      );
-    }
+async function sourceJson(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
+  path: string,
+): Promise<unknown | undefined> {
+  const bytes = await sourceBytes(storage, locations, path);
+  return bytes ? parseJson(bytes, `source ${path}`) : undefined;
+}
+
+function parseJson(bytes: Uint8Array, subject: string): unknown {
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    throw new Error(
+      `Atlas ${subject} contains invalid JSON: ${message(error)}`,
+    );
   }
+}
+
+async function publishedManifest(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
+  descriptor: AtlasManifestDescriptor,
+): Promise<AtlasPublishedArtifactManifest> {
+  const bytes = await sourceBytes(storage, locations, descriptor.path);
+  if (
+    !bytes ||
+    bytes.byteLength !== descriptor.size ||
+    digest(bytes) !== descriptor.digest
+  ) {
+    throw new Error(
+      `Atlas artifact descriptor ${descriptor.path} failed integrity verification.`,
+    );
+  }
+  const manifest = parseJson(bytes, `artifact descriptor ${descriptor.path}`);
+  assertPublishedArtifactManifest(manifest);
+  return manifest;
+}
+
+async function sourceBytes(
+  storage: AtlasPublicationStorage,
+  locations: RegistryLocations,
+  path: string,
+): Promise<Uint8Array | undefined> {
+  if (locations.source === locations.target) return storage.read(path);
+  const response = await fetch(new URL(path, `${locations.source}/`));
+  if (response.status === 404) return undefined;
+  if (!response.ok)
+    throw new Error(
+      `Atlas source returned HTTP ${response.status} for ${path}.`,
+    );
   return new Uint8Array(await response.arrayBuffer());
 }
 
-async function fetchResponse(url: string): Promise<Response> {
-  const parsed = new URL(url);
-  if (
-    parsed.protocol !== 'https:' &&
-    !(
-      parsed.protocol === 'http:' &&
-      ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
-    )
-  ) {
-    throw new Error(`Atlas source URL must use HTTPS outside loopback: ${url}`);
-  }
-  const response = await fetch(url, {
-    headers: { 'Accept-Encoding': 'identity' },
-    redirect: 'manual',
-  });
-  if (response.status >= 300 && response.status < 400) {
-    throw new Error(
-      `Atlas refuses redirects while copying immutable bytes: ${url}`,
-    );
-  }
-  if (!response.ok)
-    throw new Error(`Atlas source returned HTTP ${response.status}: ${url}`);
-  const encoding = response.headers.get('content-encoding');
-  if (encoding && encoding !== 'identity') {
-    throw new Error(`Atlas source must return identity encoding: ${url}`);
-  }
-  return response;
-}
-
-function assertResponseMetadata(
-  url: string,
-  response: Response,
-  descriptor: { size: number; mediaType: string },
-): void {
-  const mediaType = response.headers.get('content-type');
-  if (!mediaTypeMatches(mediaType, descriptor.mediaType)) {
-    throw new Error(
-      `Atlas source ${url} returned Content-Type ${mediaType ?? 'missing'}; expected ${descriptor.mediaType}.`,
-    );
-  }
-  const length = response.headers.get('content-length');
-  if (length !== null && Number(length) !== descriptor.size) {
-    throw new Error(
-      `Atlas source ${url} returned an unexpected Content-Length.`,
-    );
-  }
-}
-
-function mediaTypeMatches(actual: string | null, expected: string): boolean {
-  if (!actual) return false;
-  return mediaTypeEssence(actual) === mediaTypeEssence(expected);
-}
-
-function mediaTypeEssence(value: string): string {
-  return value.split(';', 1)[0]!.trim().toLowerCase();
-}
-
-async function hashStream(
-  stream: AsyncIterable<Uint8Array>,
-): Promise<{ digest: `sha256:${string}`; size: number }> {
-  const hash = createHash('sha256');
-  let size = 0;
-  for await (const chunk of stream) {
-    hash.update(chunk);
-    size += chunk.byteLength;
-  }
-  return { digest: `sha256:${hash.digest('hex')}`, size };
-}
-
-async function* asAsyncIterable(
-  stream: ReadableStream<Uint8Array>,
-): AsyncIterable<Uint8Array> {
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const result = await reader.read();
-      if (result.done) return;
-      yield result.value;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
-async function createOrReuse(
+async function writeDeployment(
   storage: AtlasPublicationStorage,
-  path: string,
-  bytes: Uint8Array,
-  metadata: { cacheControl: string; contentType: string },
+  lease: AtlasPublicationLease,
+  environment: string,
+  deployment: DeploymentWrite,
 ): Promise<void> {
-  try {
-    await storage.create(path, bytes, metadata);
-  } catch (error) {
-    const existing = await storage.read(path);
-    if (!existing || digest(existing) !== digest(bytes)) throw error;
-    const existingMetadata = await storage.inspect(path);
-    if (!existingMetadata) throw error;
-    assertStoredMetadata(path, existingMetadata, metadata);
+  await writeJson(storage, lease, envPath(environment), deployment.state);
+  for (const manifest of deployment.manifests) {
+    await writeJson(
+      storage,
+      lease,
+      hostPath(environment, manifest.hostId),
+      manifest,
+    );
   }
 }
 
-function assertStoredMetadata(
-  path: string,
-  actual: { cacheControl: string; contentType: string },
-  expected: { cacheControl: string; contentType: string },
-): void {
-  if (
-    actual.cacheControl !== expected.cacheControl ||
-    actual.contentType !== expected.contentType
-  ) {
-    throw new Error(`Atlas object ${path} has unexpected HTTP metadata.`);
-  }
-}
-
-async function writeMutableJson(
+async function writeJson(
   storage: AtlasPublicationStorage,
   lease: AtlasPublicationLease,
   path: string,
   value: unknown,
-  versionToken?: string,
 ): Promise<void> {
   await lease.assertHeld();
   const bytes = new TextEncoder().encode(`${canonicalJson(value)}\n`);
-  const previous = versionToken ? undefined : await storage.inspect(path);
+  const previous = await storage.inspect(path);
   await storage.replace(
     path,
     bytes,
-    {
-      cacheControl: MUTABLE_CACHE_CONTROL,
-      contentType: 'application/json',
-    },
-    versionToken
-      ? { versionToken }
-      : previous?.versionToken
-        ? { versionToken: previous.versionToken }
-        : { createOnly: true },
+    { cacheControl: MUTABLE_CACHE_CONTROL, contentType: 'application/json' },
+    previous?.versionToken
+      ? { versionToken: previous.versionToken }
+      : { createOnly: true },
   );
-  const stored = await storage.read(path);
-  if (!stored || digest(stored) !== digest(bytes)) {
-    throw new Error(`Atlas could not verify ${path} after write.`);
-  }
 }
 
 async function withLease<T>(
@@ -897,56 +476,44 @@ async function withLease<T>(
   }
 }
 
-function assertExpectedRevision(
-  args: CliArguments,
-  registry: AtlasStaticRegistry,
-): void {
-  const expected = args.flag('expected-registry-revision');
-  if (expected && expected !== registry.revision) {
-    throw new Error(
-      `Registry revision conflict: expected ${expected}, found ${registry.revision}.`,
-    );
-  }
+function envPath(environment: string): string {
+  return `environments/${environment}/deployment.json`;
 }
-
-function assertBytes(
-  path: string,
-  bytes: Uint8Array,
-  expectedDigest: string,
-  expectedSize: number,
-): void {
-  if (bytes.byteLength !== expectedSize || digest(bytes) !== expectedDigest) {
-    throw new Error(`Atlas rejected ${path}: byte size or SHA-256 differs.`);
-  }
+function hostPath(environment: string, id: string): string {
+  return `environments/${environment}/hosts/${id}/manifest.json`;
 }
-
+function revision(value: unknown): `sha256:${string}` {
+  return `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
+}
 function digest(bytes: Uint8Array): `sha256:${string}` {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
-
 function requiredFlag(args: CliArguments, name: string): string {
   const value = args.flag(name);
   if (!value || value === 'true') throw new Error(`--${name} is required.`);
   return value;
 }
-
-function registryRoot(value: string | undefined, subject: string): string {
-  if (!value) throw new Error(`${subject} is required.`);
+function root(value: string, flag: string): string {
+  if (value === 'true') throw new Error(`${flag} requires a URL.`);
   const url = new URL(value);
-  if (url.protocol !== 'https:' && !isLoopback(url.hostname)) {
-    throw new Error(`${subject} must use HTTPS outside loopback development.`);
-  }
-  if (url.pathname.endsWith('/registry.json')) {
-    url.pathname = posix.dirname(url.pathname);
-  }
-  return url.href.replace(/\/$/, '');
+  if (!isSecureRegistryProtocol(url))
+    throw new Error(`${flag} must use HTTPS except for loopback development.`);
+  if (url.search || url.hash || url.username || url.password)
+    throw new Error(`${flag} must be a registry root URL.`);
+  return url.href.replace(/\/+$/u, '');
 }
-
-function isLoopback(hostname: string): boolean {
+function isSecureRegistryProtocol(url: URL): boolean {
   return (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '[::1]' ||
-    hostname === '::1'
+    url.protocol === 'https:' || (url.protocol === 'http:' && isLoopback(url))
   );
+}
+function isLoopback(url: URL): boolean {
+  return (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname === '[::1]'
+  );
+}
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

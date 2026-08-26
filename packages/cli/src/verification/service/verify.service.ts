@@ -7,14 +7,12 @@ import {
   type AtlasHostManifest,
   type AtlasHostRuntimeConfig,
   type AtlasManifest,
-  type AtlasStaticRegistry,
   placementTargetsHost,
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
 import {
-  assertAtlasBootstrapManifest,
-  atlasDiscoveryRequest,
-  resolveAtlasHostRuntime,
+  assertAtlasRuntimeConfig,
+  environmentManifestUrl,
 } from '@atlas/bootstrap';
 
 type AtlasVerificationStatus = 'pass' | 'warning' | 'failure';
@@ -99,64 +97,28 @@ export class AtlasVerifyService {
   private async resolveRuntime(
     context: VerificationContext,
   ): Promise<AtlasHostRuntimeConfig | undefined> {
-    let bootstrap: unknown;
-    const bootstrapUrl = new URL('/atlas.bootstrap.json', context.hostUrl);
-    const bootstrapResponse = await this.fetch(
-      bootstrapUrl,
-      'bootstrap metadata',
+    let config: unknown;
+    const runtimeUrl = new URL('/atlas.runtime.json', context.hostUrl);
+    const runtimeResponse = await this.fetch(
+      runtimeUrl,
+      'runtime config',
       context,
       async (loaded) => {
-        bootstrap = await parseJson(loaded, 'bootstrap metadata', context);
+        config = await parseJson(loaded, 'runtime config', context);
       },
     );
-    if (!bootstrapResponse) return undefined;
-    this.verifyMutableCache(bootstrapResponse, 'bootstrap metadata', context);
+    if (!runtimeResponse) return undefined;
+    this.verifyMutableCache(runtimeResponse, 'runtime config', context);
     try {
-      assertAtlasBootstrapManifest(bootstrap);
-    } catch (error) {
-      fail(context, 'bootstrap metadata', errorMessage(error));
-      return undefined;
-    }
-    if (bootstrap.developmentRuntime) {
+      assertAtlasRuntimeConfig(config);
       pass(
         context,
-        'bootstrap metadata',
-        `Selected local development for host "${bootstrap.hostId}".`,
+        'runtime config',
+        `Selected environment "${config.environment}" for host "${config.hostId}".`,
       );
-      return bootstrap.developmentRuntime;
-    }
-    const request = atlasDiscoveryRequest(bootstrap);
-    if (!request) {
-      fail(context, 'host discovery', 'Discovery request is unavailable.');
-      return undefined;
-    }
-    const discoveryUrl = new URL(request.url);
-    let discovery: unknown;
-    const discoveryResponse = await this.fetch(
-      discoveryUrl,
-      'host discovery',
-      context,
-      async (loaded) => {
-        discovery = await parseJson(loaded, 'host discovery', context);
-      },
-    );
-    if (!discoveryResponse) return undefined;
-    this.verifyCors(discoveryResponse, discoveryUrl, 'host discovery', context);
-    this.verifyMutableCache(discoveryResponse, 'host discovery', context);
-    try {
-      const runtime = resolveAtlasHostRuntime(
-        bootstrap,
-        discovery,
-        context.hostUrl.href,
-      );
-      pass(
-        context,
-        'host discovery',
-        `Selected environment "${runtime.environment}" for host "${bootstrap.hostId}".`,
-      );
-      return runtime;
+      return config;
     } catch (error) {
-      fail(context, 'host discovery', errorMessage(error));
+      fail(context, 'runtime config', errorMessage(error));
       return undefined;
     }
   }
@@ -165,7 +127,7 @@ export class AtlasVerifyService {
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<AtlasHostCatalog | undefined> {
-    const deploymentManifestUrl = new URL(runtime.manifestUrl, context.hostUrl);
+    const deploymentManifestUrl = new URL(environmentManifestUrl(runtime));
     let value: unknown;
     const response = await this.fetch(
       deploymentManifestUrl,
@@ -187,11 +149,11 @@ export class AtlasVerifyService {
       fail(
         context,
         'active host manifest',
-        'Expected schemaVersion 2 host-deployment with descriptor references.',
+        'Expected schemaVersion v1 host-deployment with descriptor references.',
       );
       return undefined;
     }
-    const deployment = value;
+    const deployment = withArtifactUrls(value, runtime);
     const catalog = await loadHostDeployment({
       manifestUrl: deploymentManifestUrl.href,
       expectedHostId: runtime.hostId,
@@ -217,60 +179,7 @@ export class AtlasVerifyService {
       'active host manifest',
       `Loaded ${deployment.host.path} and ${deployment.apps.length} selected app(s).`,
     );
-    await this.verifyDesiredRevision(runtime, deployment, context);
     return catalog;
-  }
-
-  private async verifyDesiredRevision(
-    runtime: AtlasHostRuntimeConfig,
-    deployment: AtlasHostDeploymentManifest,
-    context: VerificationContext,
-  ): Promise<void> {
-    if (!runtime.registryUrl) {
-      warn(
-        context,
-        'deployment convergence',
-        'registryUrl is unavailable; desired revision was not checked.',
-      );
-      return;
-    }
-    let registry: unknown;
-    const url = new URL(
-      'registry.json',
-      `${runtime.registryUrl.replace(/\/$/, '')}/`,
-    );
-    const response = await this.fetch(
-      url,
-      'registry desired state',
-      context,
-      async (loaded) => {
-        registry = await parseJson(loaded, 'registry desired state', context);
-      },
-    );
-    if (!response || !isStaticRegistry(registry)) return;
-    const expected =
-      registry.deployments[deployment.environment]?.expectedHostRevisions[
-        deployment.hostId
-      ];
-    if (!expected) {
-      warn(
-        context,
-        'deployment convergence',
-        'No expected host revision is recorded.',
-      );
-    } else if (expected === deployment.deploymentRevision) {
-      pass(
-        context,
-        'deployment convergence',
-        `Active revision matches ${expected}.`,
-      );
-    } else {
-      fail(
-        context,
-        'deployment convergence',
-        `Expected ${expected}; active host has ${deployment.deploymentRevision}. Repeat deploy to resume.`,
-      );
-    }
   }
 
   private verifyCatalog(
@@ -373,7 +282,7 @@ export class AtlasVerifyService {
     runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<void>[] {
-    new URL(runtime.manifestUrl, context.hostUrl);
+    new URL(environmentManifestUrl(runtime));
     const assets: AssetExpectation[] = [
       {
         url: manifest.remoteEntryUrl,
@@ -696,7 +605,7 @@ function isHostDeployment(
 ): value is AtlasHostDeploymentManifest {
   const record = asRecord(value);
   return (
-    record?.schemaVersion === '2' &&
+    record?.schemaVersion === 'v1' &&
     record.kind === 'host-deployment' &&
     nonEmptyString(record.hostId) &&
     nonEmptyString(record.environment) &&
@@ -706,14 +615,22 @@ function isHostDeployment(
   );
 }
 
-function isStaticRegistry(value: unknown): value is AtlasStaticRegistry {
-  const record = asRecord(value);
-  return (
-    record?.schemaVersion === '2' &&
-    asRecord(record.apps) !== undefined &&
-    asRecord(record.hosts) !== undefined &&
-    asRecord(record.deployments) !== undefined
-  );
+function withArtifactUrls(
+  deployment: AtlasHostDeploymentManifest,
+  runtime: AtlasHostRuntimeConfig,
+): AtlasHostDeploymentManifest {
+  const reference = (descriptor: AtlasHostDeploymentManifest['host']) => ({
+    ...descriptor,
+    url: new URL(descriptor.path, `${runtime.artifactRegistryUrl}/`).href,
+  });
+  return {
+    ...deployment,
+    host: reference(deployment.host),
+    apps: deployment.apps.map(reference),
+    ...(deployment.widgetProviders
+      ? { widgetProviders: deployment.widgetProviders.map(reference) }
+      : {}),
+  };
 }
 
 function parseFederationMetadata(

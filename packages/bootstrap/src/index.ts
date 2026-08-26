@@ -2,19 +2,12 @@ export { ATLAS_BROWSER_LOADER } from './bootstrap/bootstrap-assets.js';
 
 export { createAtlasBootstrapFiles } from './bootstrap/bootstrap-files.js';
 export {
-  assertAtlasBootstrapManifest,
-  normalizeAtlasRegistryUrl,
-} from './bootstrap/bootstrap-manifest.js';
-export type { AtlasBootstrapManifest } from './bootstrap/bootstrap-manifest.js';
-export {
-  atlasHostDiscoveryUrl,
-  resolveHostDiscovery,
-} from './host-discovery/host-discovery.js';
-export {
-  atlasDiscoveryRequest,
-  resolveAtlasHostRuntime,
-} from './runtime-resolution/runtime-resolution.js';
-export type { AtlasDiscoveryRequest } from './runtime-resolution/runtime-resolution.js';
+  artifactUrl,
+  assertAtlasRuntimeConfig,
+  ATLAS_RUNTIME_CONFIG_PATH,
+  environmentManifestUrl,
+  environmentRegistryUrl,
+} from './runtime-config/runtime-config.js';
 
 export {
   createBootstrapHtml,
@@ -25,5 +18,3 @@ export type {
   AtlasBootstrapFile,
   AtlasBootstrapOptions,
 } from './bootstrap/bootstrap-types.js';
-
-export { createNginxConfig } from './bootstrap/nginx-config.js';

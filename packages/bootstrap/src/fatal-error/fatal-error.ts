@@ -66,7 +66,7 @@ function bootstrapActions(message: string): string[] {
 
   if (/integrity|HTTPS|origin|assetOrigins|loopback|protocol/i.test(message)) {
     return [
-      'Verify atlas.bootstrap.json assetOrigins and the selected host remote-entry URL.',
+      'Verify atlas.runtime.json registry origins and the selected host remote-entry URL.',
       'Publish the host client from an approved HTTPS origin with matching SHA-256 integrity, then reload.',
     ];
   }
@@ -83,7 +83,7 @@ function bootstrapActions(message: string): string[] {
     )
   ) {
     return [
-      'Verify /atlas.bootstrap.json, host discovery, and the selected environment manifest return valid Atlas JSON.',
+      'Verify /atlas.runtime.json and the selected environment manifest return valid Atlas JSON.',
       'Publish a host client compatible with this Atlas loader, then reload.',
     ];
   }

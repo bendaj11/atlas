@@ -6,16 +6,18 @@ import type {
 } from '@atlas/schema';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
 import { fetchBytes } from '../fetch-json/fetch-json.js';
+import { artifactUrl } from '../runtime-config/runtime-config.js';
 
 export async function loadPublishedArtifact(
-  reference: AtlasManifestDescriptor & { url: string },
+  reference: AtlasManifestDescriptor,
   runtime: AtlasHostRuntimeConfig,
 ): Promise<AtlasManifest | AtlasHostManifest> {
-  const bytes = await fetchBytes(reference.url, runtime);
+  const url = artifactUrl(runtime, reference.path);
+  const bytes = await fetchBytes(url, runtime);
   await assertDescriptor(reference, bytes);
   return hydratePublishedArtifactManifest(
     JSON.parse(new TextDecoder().decode(bytes)),
-    reference.url,
+    url,
   );
 }
 

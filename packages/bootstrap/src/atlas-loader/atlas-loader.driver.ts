@@ -1,12 +1,10 @@
 import type {
-  AtlasHostDiscovery,
   AtlasHostCatalog,
   AtlasHostDeploymentManifest,
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
   AtlasManifest,
 } from '@atlas/schema';
-import type { AtlasBootstrapManifest } from '../bootstrap/bootstrap-manifest.js';
 import { jest } from '@jest/globals';
 import { faker } from '../test-utils/faker.js';
 import type { HostModule } from '../types.js';
@@ -25,12 +23,10 @@ export class AtlasLoaderDriver {
     type: '',
   } as HTMLScriptElement;
   private readonly runtime: AtlasHostRuntimeConfig = {
-    schemaVersion: '1',
+    schemaVersion: 'v1',
     hostId: faker.string.uuid(),
     environment: 'production',
-    manifestUrl:
-      'https://registry.example/environments/production/hosts/host/manifest.json',
-    registryUrl: 'https://registry.example',
+    artifactRegistryUrl: 'https://registry.example',
   };
   private readonly host = this.createHost();
   private readonly app = this.createApp();
@@ -46,9 +42,8 @@ export class AtlasLoaderDriver {
   private readonly fetchBytes =
     jest.fn<typeof import('../fetch-json/fetch-json.js').fetchBytes>();
   private readonly fetchJson = async <T>(url: string): Promise<T> => {
-    if (url === '/atlas.bootstrap.json') return this.bootstrapManifest() as T;
-    if (url.endsWith('/discovery.json')) return this.discovery() as T;
-    return { catalog: this.catalog } as T;
+    if (url === '/atlas.runtime.json') return this.runtime as T;
+    return this.catalog as T;
   };
   private readonly installModuleShim = jest.fn(async () => undefined);
   private readonly loadHostModule = jest.fn(async (): Promise<HostModule> => ({
@@ -84,7 +79,6 @@ export class AtlasLoaderDriver {
       ),
       head: { append: jest.fn() } as unknown as HTMLHeadElement,
     },
-    locationHref: 'https://host.example/orders',
     fetchBytes: this.fetchBytes,
     fetchJson: this.fetchJson,
     installModuleShim: this.installModuleShim,
@@ -106,11 +100,6 @@ export class AtlasLoaderDriver {
   }
 
   readonly given = {
-    developmentCatalog: (): AtlasLoaderDriver => {
-      const developmentSessionUrl = faker.internet.url();
-      Object.assign(this.runtime, { developmentSessionUrl });
-      return this;
-    },
     invalidDeployment: (): AtlasLoaderDriver => {
       this.deployment = {
         ...this.deployment,
@@ -170,7 +159,7 @@ export class AtlasLoaderDriver {
 
   private createDeployment(): AtlasHostDeploymentManifest {
     return {
-      schemaVersion: '2',
+      schemaVersion: 'v1',
       kind: 'host-deployment',
       hostId: this.runtime.hostId,
       environment: this.runtime.environment,
@@ -186,37 +175,9 @@ export class AtlasLoaderDriver {
     };
   }
 
-  private bootstrapManifest(): AtlasBootstrapManifest {
-    return {
-      schemaVersion: '2',
-      hostId: this.runtime.hostId,
-      registryUrl: this.runtime.registryUrl!,
-      resourcesTimeoutMs: 15000,
-      resourcesRetryCount: 3,
-      ...(this.runtime.developmentSessionUrl
-        ? { developmentRuntime: this.runtime }
-        : {}),
-    };
-  }
-
-  private discovery(): AtlasHostDiscovery {
-    return {
-      schemaVersion: '1',
-      hostId: this.runtime.hostId,
-      bindings: [
-        {
-          baseUrl: 'https://host.example',
-          environment: this.runtime.environment,
-          manifestUrl: this.runtime.manifestUrl,
-        },
-      ],
-    };
-  }
-
   private createDescriptor(): AtlasHostDeploymentManifest['host'] {
     return {
       ...this.createDescriptorBase(),
-      url: faker.internet.url(),
     };
   }
 

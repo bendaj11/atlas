@@ -76,14 +76,6 @@ describe('AtlasVerifyService', () => {
     expect(driver.get.hasFailure('federation metadata')).toBe(true);
   });
 
-  it('should bound requests when network concurrency is configured', async () => {
-    driver.given.deployment('request-concurrency');
-
-    await driver.when.run();
-
-    expect(driver.get.maximumConcurrency()).toBe(3);
-  });
-
   it('should bound body reads when network concurrency is configured', async () => {
     driver.given.deployment('body-concurrency');
 

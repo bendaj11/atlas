@@ -1,9 +1,7 @@
 export {
-  assertAtlasBootstrapManifest,
-  type AtlasBootstrapManifest,
-} from './bootstrap/bootstrap-manifest.js';
-export {
-  atlasDiscoveryRequest,
-  resolveAtlasHostRuntime,
-  type AtlasDiscoveryRequest,
-} from './runtime-resolution/runtime-resolution.js';
+  artifactUrl,
+  assertAtlasRuntimeConfig,
+  ATLAS_RUNTIME_CONFIG_PATH,
+  environmentManifestUrl,
+  environmentRegistryUrl,
+} from './runtime-config/runtime-config.js';

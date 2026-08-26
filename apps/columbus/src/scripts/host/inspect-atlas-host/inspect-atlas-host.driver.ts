@@ -253,12 +253,10 @@ function installPage(options: PageOptions): void {
               textContent: JSON.stringify({
                 schemaVersion: '1',
                 runtime: {
-                  schemaVersion: '1',
+                  schemaVersion: 'v1',
                   hostId,
                   environment: 'development',
-                  manifestUrl: 'https://host.example/active.json',
-                  developmentSessionUrl:
-                    'https://host.example/atlas.dev-session.json',
+                  artifactRegistryUrl: 'https://registry.example',
                 },
                 catalog: {
                   schemaVersion: '1',
@@ -299,44 +297,16 @@ function installPage(options: PageOptions): void {
     sessionStorage: storage(new Map()),
     fetch: async (input: string | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'https://host.example');
-      if (url.pathname === '/atlas.bootstrap.json') {
+      if (url.pathname === '/atlas.runtime.json') {
         const runtime = {
-          schemaVersion: '1',
+          schemaVersion: 'v1',
           hostId,
           ...(options.runtimeEnvironment === ''
             ? {}
             : { environment: options.runtimeEnvironment ?? 'production' }),
-          manifestUrl: `https://registry.example/environments/production/hosts/${hostId}/manifest.json`,
-          ...(options.useDevelopmentCatalog === false
-            ? {}
-            : {
-                developmentSessionUrl: `https://registry.example/atlas.dev-session.json?hostId=${hostId}`,
-              }),
-          ...(options.registryUrl ? { registryUrl: options.registryUrl } : {}),
+          artifactRegistryUrl: options.registryUrl ?? 'https://registry.example',
         };
-        return jsonResponse({
-          schemaVersion: '2',
-          hostId,
-          registryUrl: options.registryUrl ?? 'https://registry.example',
-          resourcesTimeoutMs: 15000,
-          resourcesRetryCount: 3,
-          ...(options.useDevelopmentCatalog === false
-            ? {}
-            : { developmentRuntime: runtime }),
-        });
-      }
-      if (url.pathname === `/hosts/${hostId}/discovery.json`) {
-        return jsonResponse({
-          schemaVersion: '1',
-          hostId,
-          bindings: [
-            {
-              baseUrl: 'https://host.example',
-              environment: options.runtimeEnvironment ?? 'production',
-              manifestUrl: `https://registry.example/environments/production/hosts/${hostId}/manifest.json`,
-            },
-          ],
-        });
+        return jsonResponse(runtime);
       }
       if (url.pathname.endsWith('/atlas.dev-session.json')) {
         return jsonResponse({
@@ -356,13 +326,15 @@ function installPage(options: PageOptions): void {
         `/environments/production/hosts/${hostId}/manifest.json`
       ) {
         return jsonResponse({
-          schemaVersion: '2',
+          schemaVersion: 'v1',
           kind: 'host-deployment',
           hostId,
           environment: options.deploymentEnvironment ?? 'production',
           deploymentRevision: 'fixture',
-          host: {},
-          apps: [],
+          host: descriptor(fixtures.registry, 'hosts', host.id, host.version),
+          apps: [app]
+            .filter(({ channel }) => channel !== 'local')
+            .map((manifest) => descriptor(fixtures.registry, 'apps', manifest.id, manifest.version)),
         });
       }
       const bytes = fixtures.manifests.get(url.pathname.replace(/^\//u, ''));
@@ -400,7 +372,6 @@ function registryFixtures(
       updatedAt: '2026-07-20T00:00:00.000Z',
       hosts: { [host.id]: hostRecord },
       apps: Object.fromEntries(appRecords),
-      deployments: {},
     },
   };
 }
@@ -420,6 +391,16 @@ interface DescriptorFixture {
   digest: `sha256:${string}`;
   size: number;
   mediaType: 'application/json';
+}
+
+function descriptor(
+  registry: Record<string, unknown>,
+  collection: 'apps' | 'hosts',
+  id: string,
+  version: string,
+): DescriptorFixture {
+  const artifacts = registry[collection] as Record<string, { releases: Record<string, DescriptorFixture> }>;
+  return artifacts[id]!.releases[version]!;
 }
 
 function artifactRecord(

@@ -18,14 +18,7 @@ export type { AtlasFramework } from './atlas-framework.js';
 export type { AtlasHostCatalog } from './atlas-host-catalog.js';
 export type { AtlasDeploymentCatalog } from './atlas-host-catalog.js';
 export type { AtlasHostManifest } from './atlas-host-manifest.js';
-export type {
-  AtlasHostDiscovery,
-  AtlasHostDiscoveryBinding,
-} from './atlas-host-discovery.js';
-export type {
-  AtlasExternalRegistrySelection,
-  AtlasHostRuntimeConfig,
-} from './atlas-host-runtime-config.js';
+export type { AtlasHostRuntimeConfig } from './atlas-host-runtime-config.js';
 export type { AtlasManifest, AtlasAppManifest } from './atlas-manifest.js';
 export type { AtlasMetadata } from './atlas-metadata.js';
 export type { AtlasMetadataValue } from './atlas-metadata-value.js';
@@ -60,12 +53,6 @@ export type { AtlasValidationIssue } from './atlas-validation-issue.js';
 export type { AtlasVersionChannel } from './atlas-version-channel.js';
 export type { CreateManifestFromConfigInput } from './create-manifest-from-config-input.js';
 export { assertAtlasHostCatalog } from './assert-atlas-host-catalog.js';
-export {
-  assertAtlasHostDiscovery,
-  assertAtlasManifestUrl,
-  normalizeAtlasHostBaseUrl,
-  normalizeAtlasRegistryRoot,
-} from './assert-atlas-host-discovery.js';
 export { assertAtlasHostManifest } from './assert-atlas-host-manifest.js';
 export { assertAtlasManifest } from './assert-atlas-manifest.js';
 export {
@@ -86,6 +73,7 @@ export { validateAtlasHostCatalog } from './validate-atlas-host-catalog.js';
 export { validateAtlasHostManifest } from './validate-atlas-host-manifest.js';
 export { validateAtlasManifest } from './validate-atlas-manifest.js';
 export {
+  assertEnvironmentDeployment,
   assertHostDeploymentManifest,
   assertManifestDescriptor,
   assertPublishedArtifactManifest,

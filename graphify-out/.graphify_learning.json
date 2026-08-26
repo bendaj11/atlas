@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-24T16:25:27.015519+00:00",
+  "generated_at": "2026-08-26T08:08:41.159350+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
-      "code_fingerprint": "0c0c90a99c55633ce8894a974ce9cfcdb3c18f917fb989d3c67a95ebc41aa44d",
+      "code_fingerprint": "c1cf7ab960861f6903ca6ea9392e57c274373d282c85518a6fd6174737bb5771",
       "label": "manifest-utils.ts",
       "last": "2026-07-21T19:46:08.999634+00:00",
       "provenance": [
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.457331594,
+      "score": 0.440173745,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,13 +28,13 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.457379286,
+      "score": 0.440219648,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
     },
     "docs_local_development_local_development_and_columbus": {
-      "code_fingerprint": "85fa6c358e3e18e1f51aae57cb1324b33d34f303b1d34abf4b9125b64f0d6098",
+      "code_fingerprint": "f96e2fd5ede98bdf48a58229a6ca14644284da9dd93aa428cff5b3fb20482a9b",
       "label": "Local development and Columbus",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -44,13 +44,13 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.443422876,
+      "score": 0.426786845,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
     },
     "docs_local_development_run_a_local_app": {
-      "code_fingerprint": "85fa6c358e3e18e1f51aae57cb1324b33d34f303b1d34abf4b9125b64f0d6098",
+      "code_fingerprint": "f96e2fd5ede98bdf48a58229a6ca14644284da9dd93aa428cff5b3fb20482a9b",
       "label": "Run a local app",
       "last": "2026-07-20T11:41:16.249997+00:00",
       "provenance": [
@@ -60,13 +60,13 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.443422876,
+      "score": 0.426786845,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
     },
     "packages_cli_src_development_service_dev_service_atlasdevservice": {
-      "code_fingerprint": "386a8c5b07d32f31be6d41e55d6fd8c03d7d0c92499460b3a78099f5ee5c2764",
+      "code_fingerprint": "8762aba1b24c7788511b862f6b1c0910a2bfbcdb9fa9024ebf82c91646c31cb1",
       "label": "AtlasDevService",
       "last": "2026-07-20T11:47:17.080303+00:00",
       "provenance": [
@@ -81,7 +81,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.886825962,
+      "score": 0.853554642,
       "source_file": "packages/cli/src/development/service/dev.service.ts",
       "status": "preferred",
       "uses": 2
@@ -108,14 +108,14 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.443452099,
+      "score": 0.426814971,
       "source_file": "packages/cli/src/development/session/session.ts",
       "status": "contested",
       "uses": 2,
       "verdict": "useful"
     },
     "packages_cli_src_generation_service_generate_service_atlasgenerateservice": {
-      "code_fingerprint": "8a12c0c7d6d27b664feef47626292e7f77abb66689718327f3db688f4db80e46",
+      "code_fingerprint": "bfef894c6a61d31b614ed7f38a21dc68ec9386dc208691f3e20a9dba962b7b9d",
       "label": "AtlasGenerateService",
       "last": "2026-07-26T08:42:25.107357+00:00",
       "provenance": [
@@ -125,7 +125,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.507899516,
+      "score": 0.488844495,
       "source_file": "packages/cli/src/generation/service/generate.service.ts",
       "status": "tentative",
       "uses": 1
@@ -141,7 +141,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.521162252,
+      "score": 0.501609649,
       "source_file": "packages/runtime/src/index.ts",
       "status": "tentative",
       "uses": 1
@@ -157,7 +157,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.443392965,
+      "score": 0.426758056,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -173,7 +173,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.443360297,
+      "score": 0.426726613,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -200,7 +200,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.443484767,
+      "score": 0.426846413,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
@@ -217,7 +217,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.521162252,
+      "score": 0.501609649,
       "source_file": "packages/sdk/src/host-slots.ts",
       "status": "tentative",
       "uses": 1
@@ -233,7 +233,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.521162252,
+      "score": 0.501609649,
       "source_file": "packages/sdk/src/route-context.ts",
       "status": "tentative",
       "uses": 1

@@ -108,9 +108,10 @@ export class HostLoaderDriver {
         this.module = await loadHostModule(
           this.manifest(),
           {
-            schemaVersion: this.schemaVersion,
+            schemaVersion: 'v1',
             hostId: this.hostId,
             environment: 'production',
+            artifactRegistryUrl: faker.internet.url(),
             manifestUrl: faker.internet.url(),
           },
           this.dependencies,

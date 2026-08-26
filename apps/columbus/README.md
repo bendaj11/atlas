@@ -44,7 +44,7 @@ If one app version index is unavailable, the extension keeps the host usable, sh
 
 ## Troubleshooting
 
-- **This page does not expose valid Atlas bootstrap metadata**: the active page must serve `/atlas.bootstrap.json`.
+- **This page does not expose valid Atlas runtime configuration**: the active page must serve `/atlas.runtime.json`.
 - **Host discovery has no binding for this page URL**: deploy the host with the
   correct public `--host-url` so Columbus can resolve its environment.
 - **Custom URL is rejected**: use absolute HTTP or HTTPS URL without credentials, query parameters, or fragment.

@@ -23,11 +23,10 @@ atlas verify --host-url=https://customer.example
 
 For deployment failures, check in this order:
 
-1. `https://<host>/atlas.bootstrap.json` returns JSON and the expected host ID.
-2. Its `registryUrl` is the public registry root, not the private S3 API.
-3. `<registry>/hosts/<host-id>/discovery.json` is reachable through CORS.
-4. One discovery `baseUrl` matches the URL open in the browser.
-5. The selected `manifestUrl` returns the intended environment manifest.
+1. `https://<host>/atlas.runtime.json` returns expected host ID and environment.
+2. Its registry URLs are public roots, not private S3 APIs.
+3. Environment host manifest is reachable through CORS.
+4. Selected artifact manifests and payloads are reachable through CORS.
 
-Run the host deploy again with `--host-url` if discovery has no correct binding.
-Do not create or edit discovery by hand.
+Update platform runtime config when host identity or environment is wrong. Do
+not create runtime config from Atlas deploy.

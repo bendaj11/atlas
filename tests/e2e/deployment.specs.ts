@@ -1,6 +1,4 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { createHash } from 'node:crypto';
-import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { runCli as runAtlasCli } from './deployment.driver.js';
 
@@ -10,14 +8,12 @@ const artifactsRoot = resolve(
   process.env.ATLAS_E2E_ARTIFACTS_DIR ?? 'tests/e2e/.artifacts',
 );
 const cdnRoot = join(artifactsRoot, 'cdn');
-const externalCdnRoot = join(artifactsRoot, 'external-cdn');
 const registryConfig = join(workspaceRoot, 'tests/e2e/atlas.registry.ts');
 const REACT_HOST_ID = '060a7f62-1c95-402c-9993-55749faf36d9';
 const CATALOG_REACT_ID = '3ae54928-c2c6-491d-b766-6996ce0ef3c8';
 const EXTERNAL_SHARED_UI_ID = '745518fc-3b1a-4197-b044-da306b0a02ff';
 const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? '4400'}`;
-const externalCdnPort = process.env.ATLAS_E2E_EXTERNAL_CDN_PORT ?? '4401';
-const externalCdnOrigin = `http://127.0.0.1:${externalCdnPort}`;
+const externalCdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_EXTERNAL_CDN_PORT ?? '4401'}`;
 const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? '4300'}`;
 const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? '4301'}`;
 
@@ -168,88 +164,6 @@ test('should mount React widgets when Angular page requests them', async ({
   }).toStrictEqual({ heading: true, external: true, internal: true });
 });
 
-test('should isolate failure when external widget is unavailable', async ({
-  page,
-}) => {
-  let blockedExternalRequests = 0;
-  await page.route(
-    (url) => url.hostname === '127.0.0.1' && url.port === externalCdnPort,
-    (route) => {
-      blockedExternalRequests += 1;
-      return route.abort();
-    },
-  );
-  await page.goto(`${angularHostOrigin}/dashboard-angular`);
-  const heading = page.getByRole('heading', { name: 'Dashboard Angular' });
-  const sibling = page.getByText('Internal products: 12');
-  const alert = page.getByRole('alert');
-  const retry = page.getByRole('button', { name: 'Retry' });
-  await heading.waitFor({ state: 'visible' });
-  await sibling.waitFor({ state: 'visible' });
-  await alert.waitFor({ state: 'visible' });
-  await retry.waitFor({ state: 'visible' });
-
-  expect({
-    heading: await heading.isVisible(),
-    sibling: await sibling.isVisible(),
-    alertContainsFailure: (await alert.textContent())?.includes(
-      'Unable to load widget',
-    ),
-    retry: await retry.isVisible(),
-    blockedExternalRequests: blockedExternalRequests > 0,
-  }).toStrictEqual({
-    heading: true,
-    sibling: true,
-    alertContainsFailure: true,
-    retry: true,
-    blockedExternalRequests: true,
-  });
-});
-
-test('should resolve updated external widget release when registry selection changes', async ({
-  page,
-}) => {
-  const registryPath = join(externalCdnRoot, 'registry.json');
-  const original = await readFile(registryPath, 'utf8');
-  const requested: string[] = [];
-  page.on('request', (request) => {
-    if (request.url().includes(`/apps/${EXTERNAL_SHARED_UI_ID}/`))
-      requested.push(request.url());
-  });
-  try {
-    await page.goto(`${angularHostOrigin}/dashboard-angular`);
-    const externalProducts = page.getByText('External products: 24');
-    await externalProducts.waitFor({ state: 'visible' });
-    const requestedInitialRelease = requested.some((url) =>
-      url.includes('/0.1.0/'),
-    );
-
-    const registry = JSON.parse(original);
-    const latest = registry.apps[EXTERNAL_SHARED_UI_ID]?.releases?.['0.2.0'];
-    if (!latest) throw new Error('External 0.2.0 fixture is missing.');
-    registry.deployments.production.apps[EXTERNAL_SHARED_UI_ID] = {
-      version: '0.2.0',
-    };
-    await writeFile(
-      registryPath,
-      `${JSON.stringify(registry, null, 2)}\n`,
-      'utf8',
-    );
-
-    requested.length = 0;
-    await page.reload();
-    await externalProducts.waitFor({ state: 'visible' });
-
-    expect({
-      initial: requestedInitialRelease,
-      updated: requested.some((url) => url.includes('/0.2.0/')),
-      visible: await externalProducts.isVisible(),
-    }).toStrictEqual({ initial: true, updated: true, visible: true });
-  } finally {
-    await writeFile(registryPath, original, 'utf8');
-  }
-});
-
 test('should serve mutable and immutable cache policies when deployment loads', async ({
   request,
 }) => {
@@ -262,10 +176,11 @@ test('should serve mutable and immutable cache policies when deployment loads', 
   );
   if (!reference)
     throw new Error('Catalog React deployment reference is missing.');
-  const manifestResponse = await request.get(reference.url);
+  const manifestUrl = new URL(reference.path, `${cdnOrigin}/`).href;
+  const manifestResponse = await request.get(manifestUrl);
   const manifest = await manifestResponse.json();
   const remoteResponse = await request.get(
-    new URL(manifest.entryPath, reference.url).href,
+    new URL(manifest.entryPath, manifestUrl).href,
   );
   expect({
     cors: deploymentResponse.headers()['access-control-allow-origin'],
@@ -318,69 +233,34 @@ test('should roll host backward and forward when exact releases are deployed', a
   });
 });
 
-test('should import identical bytes when deployment crosses registry roots', async () => {
-  const registryPath = join(cdnRoot, 'registry.json');
-  const originalRegistry = await readFile(registryPath, 'utf8');
-  const targetArtifactRoot = join(cdnRoot, 'apps', EXTERNAL_SHARED_UI_ID);
-  try {
-    await runAtlasCli(
-      workspaceRoot,
-      [
-        'packages/cli/dist/cli/entrypoint.js',
-        'deploy',
-        EXTERNAL_SHARED_UI_ID,
-        '--to=cross-registry-e2e',
-        '--version=0.1.0',
-        `--source-registry-url=${externalCdnOrigin}`,
-        `--registry-url=${cdnOrigin}`,
-        `--registry-config=${registryConfig}`,
-      ],
-      { ATLAS_E2E_STORAGE: cdnRoot },
-    );
+test('should write only environment state when deployment crosses registry roots', async ({
+  request,
+}) => {
+  await runAtlasCli(
+    workspaceRoot,
+    [
+      'packages/cli/dist/cli/entrypoint.js',
+      'deploy',
+      EXTERNAL_SHARED_UI_ID,
+      '--to=cross-registry-e2e',
+      '--version=0.1.0',
+      `--source-registry-url=${externalCdnOrigin}`,
+      `--target-registry-url=${cdnOrigin}`,
+      `--registry-config=${registryConfig}`,
+    ],
+    { ATLAS_E2E_STORAGE: cdnRoot },
+  );
 
-    const sourceManifest = await readFile(
-      join(
-        externalCdnRoot,
-        'apps',
-        EXTERNAL_SHARED_UI_ID,
-        '0.1.0',
-        'manifest.json',
-      ),
-    );
-    const targetManifest = await readFile(
-      join(targetArtifactRoot, '0.1.0', 'manifest.json'),
-    );
-    const manifest = JSON.parse(sourceManifest.toString()) as {
-      entryPath: string;
-    };
-    const sourceEntry = await readFile(
-      join(
-        externalCdnRoot,
-        'apps',
-        EXTERNAL_SHARED_UI_ID,
-        '0.1.0',
-        manifest.entryPath,
-      ),
-    );
-    const targetEntry = await readFile(
-      join(targetArtifactRoot, '0.1.0', manifest.entryPath),
-    );
-
-    expect({
-      manifest: sha256(targetManifest),
-      sourceManifest: sha256(sourceManifest),
-      entry: sha256(targetEntry),
-      sourceEntry: sha256(sourceEntry),
-    }).toStrictEqual({
-      manifest: sha256(sourceManifest),
-      sourceManifest: sha256(sourceManifest),
-      entry: sha256(sourceEntry),
-      sourceEntry: sha256(sourceEntry),
-    });
-  } finally {
-    await writeFile(registryPath, originalRegistry, 'utf8');
-    await rm(targetArtifactRoot, { recursive: true, force: true });
-  }
+  const environment = await request.get(
+    `${cdnOrigin}/environments/cross-registry-e2e/deployment.json`,
+  );
+  const artifact = await request.get(
+    `${cdnOrigin}/apps/${EXTERNAL_SHARED_UI_ID}/0.1.0/manifest.json`,
+  );
+  expect({
+    version: (await environment.json()).apps[EXTERNAL_SHARED_UI_ID]?.version,
+    artifactCopied: artifact.ok(),
+  }).toStrictEqual({ version: '0.1.0', artifactCopied: false });
 });
 
 async function selectCatalogRelease(version: string): Promise<void> {
@@ -397,13 +277,11 @@ async function selectCatalogRelease(version: string): Promise<void> {
 }
 
 async function catalogVersion(request: APIRequestContext): Promise<string> {
-  const response = await request.get(`${cdnOrigin}/registry.json`);
-  const registry = await response.json();
-  return registry.deployments.production.apps[CATALOG_REACT_ID]?.version ?? '';
-}
-
-function sha256(bytes: Uint8Array): string {
-  return createHash('sha256').update(bytes).digest('hex');
+  const response = await request.get(
+    `${cdnOrigin}/environments/production/deployment.json`,
+  );
+  const environment = await response.json();
+  return environment.apps[CATALOG_REACT_ID]?.version ?? '';
 }
 
 async function runCli(

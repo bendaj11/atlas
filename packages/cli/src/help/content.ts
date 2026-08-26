@@ -57,7 +57,7 @@ export const ROOT_EXAMPLES = [
   'atlas dev orders',
   'atlas publish orders --version 1.4.0',
   'atlas deploy orders --to production --version rc',
-  'atlas bootstrap customer-host --registry-url https://cdn.example.com/atlas',
+  'atlas bootstrap customer-host',
   'atlas verify --host-url https://customer.example',
 ] as const;
 
@@ -231,11 +231,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     options: [
       {
-        label: '--registry-url <url>',
-        description:
-          'Stable public registry root used by the browser for host discovery',
-      },
-      {
         label: '--out <path>',
         description: 'Output directory (default: <host>/dist/bootstrap)',
       },
@@ -253,25 +248,12 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
         description: 'Loading markup when no template file is present',
       },
       {
-        label: '--asset-origins <urls>',
-        description: 'Comma-separated approved asset origins',
-      },
-      {
         label: '--skip-compile',
         description: 'Use already compiled atlas.config.ts',
       },
       { label: '-h, --help', description: 'Show help for this command' },
     ],
-    environment: [
-      {
-        label: 'ATLAS_REGISTRY_URL',
-        description: 'Default stable public registry root',
-      },
-    ],
-    examples: [
-      'atlas bootstrap customer-host --registry-url https://cdn.example.com/atlas',
-      'ATLAS_REGISTRY_URL=https://cdn.example.com/atlas atlas bootstrap customer-host',
-    ],
+    examples: ['atlas bootstrap customer-host'],
   },
   publish: {
     summary:
@@ -346,16 +328,15 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       {
         label: '--source-registry-url <url>',
-        description: 'Public source root; defaults to target root',
+        description: 'Source artifact/environment registry; requires --target-registry-url',
       },
       {
         label: '--registry-url <url>',
-        description: 'Public target registry root',
+        description: 'Single registry used for both source and target',
       },
       {
-        label: '--host-url <url>',
-        description:
-          'Public host base URL; required on its first deploy to this environment',
+        label: '--target-registry-url <url>',
+        description: 'Target environment registry; requires --source-registry-url',
       },
       {
         label: '--registry-config <path>',
@@ -375,9 +356,9 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     environment: storageEnvironment(true),
     examples: [
       'atlas deploy orders --to production --version 1.4.0',
-      'atlas deploy customer-host --to production --version 1.0.0 --host-url https://customer.example',
       'atlas deploy orders --to production --version latest',
       'atlas deploy orders --to production --version rc',
+      'atlas deploy orders --to production --version staging --source-registry-url https://main.example/atlas --target-registry-url https://prod.example/atlas',
     ],
   },
   'remove-preview': {

@@ -5,21 +5,13 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { assertHostDeploymentManifest } from '@atlas/schema';
-import {
-  assertAtlasBootstrapManifest,
-  type AtlasBootstrapManifest,
-} from '../bootstrap/bootstrap-manifest.js';
 import { fetchBytes, fetchJson } from '../fetch-json/fetch-json.js';
 import { loadHostModule } from '../host-loader/host-loader.js';
-import {
-  atlasDiscoveryRequest,
-  resolveAtlasHostRuntime,
-} from '../runtime-resolution/runtime-resolution.js';
+import { assertAtlasRuntimeConfig, environmentManifestUrl } from '../runtime-config/runtime-config.js';
 import { installModuleShim } from '../module-shim/module-shim.js';
 import { applyOverrides } from '../overrides/overrides.js';
 import { loadPublishedArtifact } from '../published-artifact/published-artifact.js';
 import { validateCatalog } from '../validation/validation.js';
-import type { DevSession } from '../types.js';
 
 const ARTIFACT_LOAD_CONCURRENCY = 6;
 export const RUNTIME_SNAPSHOT_ELEMENT_ID = 'atlas-runtime-snapshot';
@@ -29,7 +21,6 @@ export interface AtlasLoaderDependencies {
     Document,
     'createElement' | 'getElementById' | 'head'
   >;
-  readonly locationHref: string;
   readonly fetchBytes: typeof fetchBytes;
   readonly fetchJson: typeof fetchJson;
   readonly installModuleShim: typeof installModuleShim;
@@ -44,11 +35,8 @@ export async function startAtlasLoader(
 ): Promise<void> {
   await dependencies.installModuleShim();
 
-  const bootstrap: unknown = await dependencies.fetchJson(
-    '/atlas.bootstrap.json',
-  );
-  assertAtlasBootstrapManifest(bootstrap);
-  const runtime = await resolveRuntime(bootstrap, dependencies);
+  const runtime: unknown = await dependencies.fetchJson('/atlas.runtime.json');
+  assertAtlasRuntimeConfig(runtime);
   const catalog = await loadInitialCatalog(runtime, dependencies);
   const effectiveCatalog = await dependencies.applyOverrides(runtime, catalog);
 
@@ -96,24 +84,12 @@ async function loadInitialCatalog(
   runtime: AtlasHostRuntimeConfig,
   dependencies: AtlasLoaderDependencies,
 ): Promise<AtlasHostCatalog> {
-  if (!runtime.developmentSessionUrl) {
-    return loadDeployment(runtime, dependencies);
-  }
-
-  const session = await dependencies.fetchJson<DevSession>(
-    runtime.developmentSessionUrl,
-    runtime,
-  );
-  if (!session.catalog) {
-    throw new Error('Atlas development session has no host catalog.');
-  }
-  return session.catalog;
+  return loadDeployment(runtime, dependencies);
 }
 
 function defaultDependencies(): AtlasLoaderDependencies {
   return {
     document,
-    locationHref: location.href,
     fetchBytes,
     fetchJson,
     installModuleShim,
@@ -124,31 +100,13 @@ function defaultDependencies(): AtlasLoaderDependencies {
   };
 }
 
-async function resolveRuntime(
-  bootstrap: AtlasBootstrapManifest,
-  dependencies: AtlasLoaderDependencies,
-): Promise<AtlasHostRuntimeConfig> {
-  if (bootstrap.developmentRuntime) return bootstrap.developmentRuntime;
-  const request = atlasDiscoveryRequest(bootstrap);
-  if (!request) throw new Error('Atlas discovery request is unavailable.');
-  const discovery: unknown = await dependencies.fetchJson(
-    request.url,
-    request.runtime,
-  );
-  return resolveAtlasHostRuntime(
-    bootstrap,
-    discovery,
-    dependencies.locationHref,
-  );
-}
-
 async function loadDeployment(
   runtime: AtlasHostRuntimeConfig,
   dependencies: AtlasLoaderDependencies,
 ): Promise<AtlasHostCatalog> {
   const deployment: unknown = JSON.parse(
     new TextDecoder().decode(
-      await dependencies.fetchBytes(runtime.manifestUrl, runtime),
+      await dependencies.fetchBytes(environmentManifestUrl(runtime), runtime),
     ),
   );
   try {

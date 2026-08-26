@@ -35,7 +35,7 @@ class AtlasAppRootComponent {
   readonly externalProductCount = this.sdk.getWidget<{
     count: number;
     label: string;
-  }>('55ca3323-c62f-44de-9194-6ab42375e578', {
+  }>('6f4994c1-b95f-4b24-a01a-106dd61aa4fb', {
     inputs: { count: 24, label: 'External products' },
   });
   readonly internalProductCount = this.sdk.getWidget<{

@@ -29,13 +29,12 @@ Name an owner for each domain before release:
 
 ## Host Checklist
 
-- [ ] Production serves `/atlas.bootstrap.json` as JSON.
-- [ ] Bootstrap `hostId` matches app route and slot declarations.
-- [ ] Host discovery contains the production host URL and environment.
-- [ ] Discovery `manifestUrl` points to the intended active host deployment.
-- [ ] Discovery, every referenced canonical manifest, and every asset
-      permit the host origin through CORS.
-- [ ] Resource timeout and retry values match product reliability targets.
+- [ ] Production serves `/atlas.runtime.json` as JSON with `no-cache`.
+- [ ] Runtime config `hostId` matches app route and slot declarations.
+- [ ] Runtime config selects intended production environment and registries.
+- [ ] Active host manifest points to intended immutable releases.
+- [ ] Both registries, referenced manifests, and assets permit host origin
+      through CORS.
 - [ ] Host layout retains route, navigation, status, and required slot anchors.
 - [ ] Host returns `index.html` for browser navigation routes such as
       `/orders/42`, but never rewrites missing Atlas JSON, JavaScript, stylesheet,

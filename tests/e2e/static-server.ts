@@ -82,7 +82,7 @@ function cacheControl(path) {
     /^\/environments\/[^/]+\/hosts\/[^/]+\/manifest\.json$/u.test(path)
   )
     return 'no-cache';
-  return /^\/(?:hosts|apps)\/[^/]+\/[^/]+\//.test(path)
+  return path.startsWith('/hosts/') || path.startsWith('/apps/')
     ? 'public, max-age=31536000, immutable'
     : 'no-cache';
 }

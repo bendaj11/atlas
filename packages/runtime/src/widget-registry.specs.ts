@@ -2,23 +2,22 @@ import { describe, expect, it } from '@jest/globals';
 import { WidgetRegistryDriver } from './widget-registry.driver.js';
 
 describe('createRegistryWidgetResolver', () => {
-  it('should resolve the canonical release descriptor when deployment stores only version', async () => {
+  it('should resolve provider selected by active environment manifest', async () => {
     const driver = new WidgetRegistryDriver();
 
-    await driver.when.resolvingVersionOnlySelection();
+    await driver.when.resolvingSelectedProvider();
 
-    expect(driver.get.loadedVersion()).toBe('2.3.0');
+    expect(driver.get.version()).toBe('2.3.0');
   });
 
-  it('should reject external manifest when identity differs from selection', async () => {
+  it('should reject widget missing from active environment manifest', async () => {
     const driver = new WidgetRegistryDriver();
 
-    await driver.when.resolvingMismatchedSelection();
+    await driver.when.resolvingMissingProvider();
 
     expect(driver.get.error()).toEqual(
       expect.objectContaining({
-        code: 'ATLAS_EXTERNAL_APP_INVALID',
-        message: expect.stringContaining('does not match'),
+        code: 'ATLAS_WIDGET_NOT_FOUND',
       }),
     );
   });

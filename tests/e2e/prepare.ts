@@ -17,7 +17,6 @@ const cdn = join(artifacts, 'cdn');
 const externalCdn = join(artifacts, 'external-cdn');
 const registryConfig = join(root, 'tests/e2e/atlas.registry.ts');
 const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? '4400'}`;
-const externalCdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_EXTERNAL_CDN_PORT ?? '4401'}`;
 const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? '4300'}`;
 const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? '4301'}`;
 const REACT_HOST_ID = '060a7f62-1c95-402c-9993-55749faf36d9';
@@ -68,8 +67,8 @@ for (const project of projects) {
   );
 }
 
-await deploy(REACT_HOST_ID, '0.1.0', reactHostOrigin);
-await deploy(ANGULAR_HOST_ID, '0.1.0', angularHostOrigin);
+await deploy(REACT_HOST_ID, '0.1.0');
+await deploy(ANGULAR_HOST_ID, '0.1.0');
 for (const appId of [
   ORDERS_ANGULAR_ID,
   CATALOG_REACT_ID,
@@ -83,22 +82,36 @@ await addSecondCatalogRelease();
 await deploy(CATALOG_REACT_ID, '0.2.0');
 await createExternalWidgetRegistry();
 await addVersionFixtures(DASHBOARD_REACT_ID);
-await buildBootstrap('demo-react-host', join(artifacts, 'react-bootstrap'));
-await buildBootstrap('demo-angular-host', join(artifacts, 'angular-bootstrap'));
+await buildBootstrap(
+  'demo-react-host',
+  join(artifacts, 'react-bootstrap'),
+  REACT_HOST_ID,
+);
+await buildBootstrap(
+  'demo-angular-host',
+  join(artifacts, 'angular-bootstrap'),
+  ANGULAR_HOST_ID,
+);
 
-async function buildBootstrap(project, output) {
+async function buildBootstrap(project, output, hostId) {
   await run('node', [
     'packages/cli/dist/cli/entrypoint.js',
     'bootstrap',
     project,
     '--skip-compile',
     `--registry-url=${cdnOrigin}`,
-    `--asset-origins=${cdnOrigin},${externalCdnOrigin}`,
+    `--asset-origins=${cdnOrigin}`,
     `--out=${output}`,
   ]);
+  await writeJson(join(output, 'atlas.runtime.json'), {
+    schemaVersion: 'v1',
+    hostId,
+    environment: 'production',
+    artifactRegistryUrl: cdnOrigin,
+  });
 }
 
-async function deploy(project: string, version: string, hostUrl?: string) {
+async function deploy(project: string, version: string) {
   await run(
     'node',
     [
@@ -109,12 +122,6 @@ async function deploy(project: string, version: string, hostUrl?: string) {
       `--version=${version}`,
       `--registry-url=${cdnOrigin}`,
       `--registry-config=${registryConfig}`,
-      ...(hostUrl
-        ? [
-            `--host-url=${hostUrl}`,
-            `--external-registries=${externalCdnOrigin}|production`,
-          ]
-        : []),
     ],
     publicationEnvironment(),
   );
@@ -211,17 +218,6 @@ async function createExternalWidgetRegistry() {
         releases,
         previews: {},
         latest: '0.2.0',
-      },
-    },
-    deployments: {
-      production: {
-        hosts: {},
-        apps: {
-          [EXTERNAL_SHARED_UI_ID]: {
-            version: '0.1.0',
-          },
-        },
-        expectedHostRevisions: {},
       },
     },
   };

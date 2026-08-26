@@ -14,7 +14,6 @@ import {
 interface BuildSetup {
   flags: readonly string[];
   customized?: boolean;
-  omitRegistry?: boolean;
 }
 
 export class AtlasBootstrapServiceDriver {
@@ -77,11 +76,7 @@ export class AtlasBootstrapServiceDriver {
       createDirectory: jest
         .fn<AtlasBootstrapDependencies['createDirectory']>()
         .mockResolvedValue(),
-      writeOutput: jest.fn<AtlasBootstrapDependencies['writeOutput']>(
-        async (path, contents) => {
-          if (path.endsWith('atlas.bootstrap.json')) this.metadata = contents;
-        },
-      ),
+      writeOutput: jest.fn<AtlasBootstrapDependencies['writeOutput']>(),
     };
   }
 
@@ -96,7 +91,6 @@ export class AtlasBootstrapServiceDriver {
           findProject: async () => this.project,
         }),
         args: new CliArguments([
-          ...(setup.omitRegistry ? [] : [`--registry-url=${this.registryUrl}`]),
           ...setup.flags,
           ...(setup.customized
             ? [
@@ -144,7 +138,6 @@ export class AtlasBootstrapServiceDriver {
       html: this.template,
       title: this.title,
       loadingHtml: this.loadingHtml,
-      assetOrigins: [this.registryUrl],
     }),
     registryUrl: (): string => this.registryUrl,
     hostId: (): string => this.config.id,

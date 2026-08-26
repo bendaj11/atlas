@@ -1,4 +1,5 @@
 import type {
+  AtlasEnvironmentDeployment,
   AtlasHostDeploymentManifest,
   AtlasManifestDescriptor,
   AtlasPublishedArtifactManifest,
@@ -432,7 +433,7 @@ export function assertHostDeploymentManifest(
 ): asserts value is AtlasHostDeploymentManifest {
   if (
     !isRecord(value) ||
-    value.schemaVersion !== '2' ||
+    value.schemaVersion !== 'v1' ||
     value.kind !== 'host-deployment'
   ) {
     throw new Error('Atlas host deployment manifest is invalid.');
@@ -449,6 +450,22 @@ export function assertHostDeploymentManifest(
       assertManifestReference(reference, `${field}.${index}`),
     );
   }
+}
+
+export function assertEnvironmentDeployment(
+  value: unknown,
+): asserts value is AtlasEnvironmentDeployment {
+  if (!isRecord(value) || value.schemaVersion !== 'v1') {
+    throw new Error('Atlas environment deployment is invalid.');
+  }
+  requiredString(value.environment, 'environment');
+  assertDigest(value.revision, 'revision');
+  requiredString(value.updatedAt, 'updatedAt');
+  if (!isIsoDateTime(value.updatedAt as string)) {
+    throw new Error('updatedAt must be an ISO date-time.');
+  }
+  assertDeploymentSelections(value.hosts, 'hosts');
+  assertDeploymentSelections(value.apps, 'apps');
 }
 
 export function assertManifestDescriptor(
@@ -507,11 +524,26 @@ export function assertSafeRelativePath(value: string, subject: string): void {
 function assertManifestReference(value: unknown, subject: string): void {
   const record = isRecord(value) ? value : undefined;
   assertManifestDescriptor(value, subject);
-  requiredString(record?.url, `${subject}.url`);
+  if (record?.url === undefined) return;
+  requiredString(record.url, `${subject}.url`);
   const url = new URL(record.url);
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+  if (url.protocol !== 'https:' && url.protocol !== 'http:')
     throw new Error(`${subject}.url must use HTTP(S).`);
+}
+
+function assertDeploymentSelections(value: unknown, subject: string): void {
+  if (!isRecord(value)) throw new Error(`${subject} must be an object.`);
+  for (const [id, selection] of Object.entries(value)) {
+    assertSafeArtifactId(id, `${subject} id`);
+    if (!isRecord(selection))
+      throw new Error(`${subject}.${id} must be an object.`);
+    assertReleaseVersion(selection.version);
   }
+}
+
+function isIsoDateTime(value: string): boolean {
+  const date = new Date(value);
+  return !Number.isNaN(date.valueOf()) && date.toISOString() === value;
 }
 
 function assertDigest(value: unknown, subject: string): void {

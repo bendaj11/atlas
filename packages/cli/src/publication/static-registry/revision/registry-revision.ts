@@ -9,9 +9,8 @@ export function registryRevision(
         schemaVersion: registry.schemaVersion,
         apps: registry.apps,
         hosts: registry.hosts,
-        deployments: registry.deployments,
       }
-    : { schemaVersion: '2', apps: {}, hosts: {}, deployments: {} };
+    : { schemaVersion: '2', apps: {}, hosts: {} };
   return `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
 }
 

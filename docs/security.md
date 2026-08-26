@@ -31,10 +31,10 @@ origins in your web server CSP. The generated Nginx configuration receives its
 CSP origins from `atlas bootstrap --asset-origins`.
 Production URLs require HTTPS; local development permits HTTP(S) loopback.
 
-`atlas.bootstrap.json` and `hosts/<host-id>/discovery.json` are public browser
-data. Never expose passwords, tokens, connection strings, private storage API
-URLs, or credentials in them. Atlas generates both files from validated public
-settings.
+`atlas.runtime.json` and environment host manifests are public browser data.
+Never expose passwords, tokens, connection strings, private storage API URLs,
+or credentials in them. Platform/IaC owns runtime config; Atlas generates host
+manifests from validated public settings.
 
 ## Loader validation
 

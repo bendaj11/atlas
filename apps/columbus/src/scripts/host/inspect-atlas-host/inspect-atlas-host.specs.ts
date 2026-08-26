@@ -4,151 +4,36 @@ import { InspectAtlasHostDriver } from './inspect-atlas-host.driver.js';
 describe('Atlas host inspection', () => {
   let driver: InspectAtlasHostDriver;
 
-  beforeEach(() => {
-    driver = new InspectAtlasHostDriver();
-  });
-
+  beforeEach(() => { driver = new InspectAtlasHostDriver(); });
   afterEach(() => driver.dispose());
 
-  it('should keep stored PR selection when local app is discovered', async () => {
+  it('should keep stored PR selection when runtime config and active manifest load', async () => {
     driver.given.localAppWithStoredPr();
-
     await driver.when.hostInspected();
-
-    expect(driver.get.result().overrides?.overrides[0]?.manifest).toMatchObject(
-      {
-        channel: 'pr',
-        buildId: 'pr-42',
-      },
-    );
+    expect(driver.get.result().overrides?.overrides[0]?.manifest).toMatchObject({ channel: 'pr', buildId: 'pr-42' });
   });
 
-  it('should keep empty stored selection when local catalog is discovered', async () => {
+  it('should keep empty stored selection when runtime config and active manifest load', async () => {
     driver.given.localCatalogWithEmptyStoredSelection();
-
     await driver.when.hostInspected();
-
     expect(driver.get.result().overrides).toMatchObject({ overrides: [] });
-  });
-
-  it('should inspect a development runtime snapshot without a registry', async () => {
-    driver.given.developmentRuntimeSnapshot();
-
-    await driver.when.hostInspected();
-
-    expect(driver.get.appVersionChannels()).toStrictEqual(['local']);
-  });
-
-  it('should list published versions when local catalog uses a registry proxy', async () => {
-    driver.given.localCatalogWithPublishedVersions();
-
-    await driver.when.hostInspected();
-
-    expect(driver.get.appVersionChannels()).toStrictEqual(['production', 'pr']);
-  });
-
-  it('should not fetch published manifests when registry lists versions', async () => {
-    driver.given.localCatalogWithPublishedVersions();
-
-    await driver.when.hostInspected();
-
-    expect(driver.get.manifestRequestCount()).toBe(0);
-  });
-
-  it('should use HTTP cache when selected published manifest is loaded', async () => {
-    driver.given.publishedAppWithRuntimeFields();
-
-    await driver.when.hostInspected();
-    await driver.when.publishedAppVersionLoaded();
-
-    expect(driver.get.manifestRequestCache()).toBe('force-cache');
-  });
-
-  it('should reject catalog when host identity differs from runtime', async () => {
-    driver.given.catalogHostId('other-host');
-
-    await driver.when.hostInspected();
-
-    expect(driver.get.error()).toEqual(
-      expect.objectContaining({
-        message: expect.stringContaining('targets host other-host'),
-      }),
-    );
-  });
-
-  it('should report version error when artifact is absent from registry', async () => {
-    driver.given.versionsForOtherApp();
-
-    await driver.when.hostInspected();
-
-    expect(driver.get.result().versionErrors).toEqual([
-      expect.stringContaining('Artifact orders is not registered'),
-    ]);
   });
 
   it('should retain artifact identity when runtime error includes app id', async () => {
     driver.given.runtimeError('Unable to load Orders.', 'orders');
-
     await driver.when.hostInspected();
-
-    expect(driver.get.result().runtimeErrors).toEqual([
-      { artifactId: 'app:orders', message: 'Unable to load Orders.' },
-    ]);
+    expect(driver.get.result().runtimeErrors).toEqual([{ artifactId: 'app:orders', message: 'Unable to load Orders.' }]);
   });
 
   it('should list unique apps that currently have Atlas DOM containers', async () => {
     driver.given.visibleApps('orders', 'orders', 'billing');
-
     await driver.when.hostInspected();
-
     expect(driver.get.visibleAppIds()).toStrictEqual(['orders', 'billing']);
   });
 
-  it('should preserve exported widget descriptor when published manifest is hydrated', async () => {
-    driver.given.publishedAppWithExportedWidget({ surface: 'checkout' });
-
-    await driver.when.hostInspected();
-    await driver.when.publishedAppVersionLoaded();
-
-    expect(driver.get.exportedWidget()).toStrictEqual(
-      driver.get.expectedWidget(),
-    );
-  });
-
-  it('should preserve runtime fields when published manifest is hydrated', async () => {
-    driver.given.publishedAppWithRuntimeFields();
-
-    await driver.when.hostInspected();
-    await driver.when.publishedAppVersionLoaded();
-
-    expect(driver.get.hydratedRuntimeFields()).toStrictEqual({
-      createdAt: '1970-01-01T00:00:00.000Z',
-      isolation: 'shadow-dom',
-      metadata: { owner: 'checkout' },
-    });
-  });
-
-  it('should reject host deployment when environment differs from runtime', async () => {
+  it('should reject active host manifest when environment differs from runtime config', async () => {
     driver.given.hostDeploymentEnvironment('staging');
-
     await driver.when.hostInspected();
-
-    expect(driver.get.error()).toEqual(
-      expect.objectContaining({
-        message: 'Atlas host manifest returned invalid data.',
-      }),
-    );
-  });
-
-  it('should reject development runtime when environment is absent', async () => {
-    driver.given.runtimeWithoutEnvironment();
-
-    await driver.when.hostInspected();
-
-    expect(driver.get.error()).toEqual(
-      expect.objectContaining({
-        message: 'Atlas development runtime metadata is invalid.',
-      }),
-    );
+    expect(driver.get.error()).toEqual(expect.objectContaining({ message: 'Atlas host manifest returned invalid data.' }));
   });
 });

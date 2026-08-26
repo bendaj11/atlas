@@ -9,39 +9,22 @@ describe('createHostRuntimeConfig', () => {
   });
 
   it('should create runtime config when host settings and CLI URLs are valid', () => {
-    driver.given.hostConfig({
-      resourcesRetryCount: 2,
-      resourcesTimeoutMs: 1000,
-    });
-    driver.given.hostVersion('1.2.3');
     driver.given.arguments([
       '--registry-url',
       'https://registry.example.com/',
       '--environment',
       'production',
-      '--asset-origins',
-      'https://assets.example.com/path',
-      '--external-registries',
-      'https://external.example.com/catalog|production',
+      '--environment-registry-url',
+      'https://production.example.com/atlas/',
     ]);
     driver.when.create();
 
     expect(driver.get.runtime()).toEqual({
-      assetOrigins: ['https://assets.example.com'],
-      externalRegistries: [
-        {
-          environment: 'production',
-          registryUrl: 'https://external.example.com/catalog',
-        },
-      ],
       hostId: driver.get.hostId(),
-      hostVersion: '1.2.3',
-      manifestUrl: `https://registry.example.com/environments/production/hosts/${driver.get.hostId()}/manifest.json`,
       environment: 'production',
-      registryUrl: 'https://registry.example.com',
-      resourcesRetryCount: 2,
-      resourcesTimeoutMs: 1000,
-      schemaVersion: '1',
+      artifactRegistryUrl: 'https://registry.example.com',
+      environmentRegistryUrl: 'https://production.example.com/atlas',
+      schemaVersion: 'v1',
     });
   });
 
@@ -51,15 +34,6 @@ describe('createHostRuntimeConfig', () => {
 
     expect(driver.get.error()).toThrow(
       '--environment or ATLAS_ENVIRONMENT is required',
-    );
-  });
-
-  it('should reject insecure asset origin when CLI URL is not loopback', () => {
-    driver.given.arguments(['--asset-origins', 'http://assets.example.com']);
-    driver.when.create();
-
-    expect(driver.get.error()).toThrow(
-      '--asset-origins must contain HTTPS URLs or loopback URLs for local development.',
     );
   });
 

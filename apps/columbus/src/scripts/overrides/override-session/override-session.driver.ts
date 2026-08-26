@@ -106,10 +106,10 @@ function createSession(): ExtensionSession {
   const host = manifest({ kind: 'host', id: 'host', name: 'Host' });
   const hostData: AtlasHostData = {
     config: {
-      schemaVersion: '1',
+      schemaVersion: 'v1',
       hostId: 'host',
       environment: 'production',
-      manifestUrl: 'https://registry.example/hosts/host/manifest.json',
+      artifactRegistryUrl: 'https://registry.example',
     },
     pageUrl: 'https://host.example/',
     catalog: {

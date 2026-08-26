@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  assertEnvironmentDeployment,
   assertPublishedArtifactManifest,
   assertReleaseVersion,
   assertSafeArtifactId,
@@ -127,6 +128,21 @@ describe('release version validation', () => {
     expect(() => assertReleaseVersion(version)).toThrow(
       /release version|release\.version/i,
     );
+  });
+});
+
+describe('environment deployment validation', () => {
+  it('should reject deployment when a selected release version is unsafe', () => {
+    expect(() =>
+      assertEnvironmentDeployment({
+        schemaVersion: 'v1',
+        environment: 'production',
+        revision: DIGEST,
+        updatedAt: '2026-08-26T00:00:00.000Z',
+        hosts: { storefront: { version: '../unsafe' } },
+        apps: {},
+      }),
+    ).toThrow(/release version/);
   });
 });
 
