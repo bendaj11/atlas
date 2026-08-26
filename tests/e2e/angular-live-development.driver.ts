@@ -11,12 +11,14 @@ const CONTROL_PORT = 4413;
 const BUILD_NOTIFICATIONS_ENDPOINT =
   '/@angular-architects/native-federation:build-notifications';
 const SOURCE_PATH = resolve('examples/apps/dashboard-angular/src/entry.ts');
+const PACKAGE_PATH = resolve('examples/apps/dashboard-angular/package.json');
 const ORIGINAL_HEADING = 'Dashboard Angular';
 const UPDATED_HEADING = 'Dashboard Angular Reloaded';
 
 export class AngularLiveDevelopmentDriver {
   private readonly hostUrl = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? '4301'}/dashboard-angular`;
   private originalSource = '';
+  private originalPackage = '';
   private process?: ChildProcess;
 
   constructor(private readonly page: Page) {}
@@ -24,6 +26,8 @@ export class AngularLiveDevelopmentDriver {
   readonly when = {
     start: async (): Promise<void> => {
       this.originalSource = await readFile(SOURCE_PATH, 'utf8');
+      this.originalPackage = await readFile(PACKAGE_PATH, 'utf8');
+      await writePreviewUrl(PACKAGE_PATH, this.originalPackage, this.hostUrl);
       this.process = spawn(
         process.execPath,
         [
@@ -36,7 +40,7 @@ export class AngularLiveDevelopmentDriver {
         ],
         {
           cwd: process.cwd(),
-          env: { ...process.env, ATLAS_HOST_URL: this.hostUrl },
+          env: process.env,
           stdio: ['ignore', 'pipe', 'pipe'],
         },
       );
@@ -62,6 +66,8 @@ export class AngularLiveDevelopmentDriver {
     stop: async (): Promise<void> => {
       if (this.originalSource)
         await writeFile(SOURCE_PATH, this.originalSource);
+      if (this.originalPackage)
+        await writeFile(PACKAGE_PATH, this.originalPackage);
       await this.stopProcess();
     },
   };
@@ -122,4 +128,25 @@ export class AngularLiveDevelopmentDriver {
       }),
     ]);
   }
+}
+
+async function writePreviewUrl(
+  packagePath: string,
+  source: string,
+  previewUrl: string,
+): Promise<void> {
+  const packageJson = JSON.parse(source) as {
+    atlas?: Record<string, unknown>;
+  };
+  await writeFile(
+    packagePath,
+    `${JSON.stringify(
+      {
+        ...packageJson,
+        atlas: { ...packageJson.atlas, previews: [previewUrl] },
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }

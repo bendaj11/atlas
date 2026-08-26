@@ -23,6 +23,7 @@ const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? '4400'}`
 const liveRemotePort = 4221;
 const liveControlPort = 4421;
 const liveSourcePath = resolve('examples/apps/dashboard-react/src/entry.tsx');
+const livePackagePath = resolve('examples/apps/dashboard-react/package.json');
 interface ExtensionSession {
   context: BrowserContext;
   extensionId: string;
@@ -240,6 +241,8 @@ test.describe('Atlas Columbus extension', () => {
   test('should reload local preview when source changes', async () => {
     test.setTimeout(120_000);
     const originalSource = await readFile(liveSourcePath, 'utf8');
+    const originalPackage = await readFile(livePackagePath, 'utf8');
+    await writePreviewUrl(livePackagePath, originalPackage, hostUrl);
     const devProcess = startLiveApp();
     try {
       await waitForLiveApp(devProcess);
@@ -289,6 +292,7 @@ test.describe('Atlas Columbus extension', () => {
       });
     } finally {
       await writeFile(liveSourcePath, originalSource);
+      await writeFile(livePackagePath, originalPackage);
       await stopLiveApp(devProcess);
     }
   });
@@ -474,9 +478,30 @@ function startLiveApp(): ChildProcess {
     ],
     {
       cwd: process.cwd(),
-      env: { ...process.env, ATLAS_HOST_URL: hostUrl },
+      env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
     },
+  );
+}
+
+async function writePreviewUrl(
+  packagePath: string,
+  source: string,
+  previewUrl: string,
+): Promise<void> {
+  const packageJson = JSON.parse(source) as {
+    atlas?: Record<string, unknown>;
+  };
+  await writeFile(
+    packagePath,
+    `${JSON.stringify(
+      {
+        ...packageJson,
+        atlas: { ...packageJson.atlas, previews: [previewUrl] },
+      },
+      null,
+      2,
+    )}\n`,
   );
 }
 

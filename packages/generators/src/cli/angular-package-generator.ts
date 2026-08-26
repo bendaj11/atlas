@@ -20,6 +20,9 @@ export function angularPackage(options: AngularPackageOptions): unknown {
     name: packageName,
     version: '0.1.0',
     private: true,
+    atlas: {
+      previews: [],
+    },
     scripts: {
       dev: `atlas dev ${projectName}`,
       'framework:dev': `ng serve ${projectName}`,

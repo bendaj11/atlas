@@ -9,7 +9,8 @@ services supplied by the Host through the SDK, and does not import Host code.
 1. [Generate an App](app/generate.md).
 2. Choose [Angular](angular/app-getting-started.md) or [React](react/app-getting-started.md).
 3. Declare the URL or page area where it appears in `atlas.config.ts`.
-4. Run it inside a Host with [local development](local-development.md).
+4. Declare development host pages in `package.json` `atlas.previews`, then run
+   it inside a Host with [local development](local-development.md#configure-app-previews).
 
 ## Build The App
 

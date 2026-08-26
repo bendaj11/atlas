@@ -12,6 +12,14 @@ export function uniqueVersions(
   });
 }
 
+export function uniqueVersionsInOrder(
+  values: AtlasExtensionManifest[],
+): AtlasExtensionManifest[] {
+  return [
+    ...new Map(values.map((value) => [versionKey(value), value])).values(),
+  ];
+}
+
 export function versionKey(manifest: AtlasExtensionManifest): string {
   return `${manifest.channel}:${manifest.version}:${manifest.buildId}`;
 }

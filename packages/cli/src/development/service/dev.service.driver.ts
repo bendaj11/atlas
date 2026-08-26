@@ -43,6 +43,9 @@ export class DevServiceDriver {
           name: this.projectName,
           type: 'module',
           version: '1.0.0',
+          ...(scenario === 'app-prepare'
+            ? { atlas: { previews: [this.hostUrl] } }
+            : {}),
         }),
       );
       await writeFile(
@@ -69,13 +72,7 @@ export class DevServiceDriver {
       const arguments_ =
         scenario === 'host-prepare'
           ? ['dev', this.projectName, '--prepare-only']
-          : [
-              'dev',
-              this.projectName,
-              `--host-url=${this.hostUrl}`,
-              `--port=${this.port}`,
-              '--prepare-only',
-            ];
+          : ['dev', this.projectName, `--port=${this.port}`, '--prepare-only'];
       const builds = this.builds(scenario);
 
       if (scenario === 'app-prepare') {

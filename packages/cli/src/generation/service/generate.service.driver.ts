@@ -14,8 +14,7 @@ type GenerateScenario =
   | 'explicit-port'
   | 'interactive-widget'
   | 'explicit-widget'
-  | 'unconfigured-widget'
-  | 'turbo-existing-dev';
+  | 'unconfigured-widget';
 
 export class GenerateServiceDriver {
   private readonly name = faker.word.noun().toLowerCase();
@@ -38,8 +37,6 @@ export class GenerateServiceDriver {
 
       if (scenario === 'occupied-ports') await this.prepareOccupiedPorts();
       if (scenario === 'explicit-port') await this.prepareExplicitPort();
-      if (scenario === 'turbo-existing-dev')
-        await this.prepareTurboExistingDev();
       if (
         scenario === 'interactive-widget' ||
         scenario === 'explicit-widget' ||
@@ -47,6 +44,9 @@ export class GenerateServiceDriver {
       ) {
         await this.prepareWidget(scenario);
       }
+    },
+    turboGeneration: async (type: 'app' | 'host'): Promise<void> => {
+      await this.prepareTurboExistingDev(type);
     },
   };
 
@@ -167,7 +167,7 @@ export class GenerateServiceDriver {
     this.action = () => service.project('app', this.name, 'react');
   }
 
-  private async prepareTurboExistingDev(): Promise<void> {
+  private async prepareTurboExistingDev(type: 'app' | 'host'): Promise<void> {
     const root = await mkdtemp(join(tmpdir(), 'atlas-turbo-dev-'));
     this.turboPath = join(root, 'turbo.json');
     await writeFile(
@@ -185,7 +185,7 @@ export class GenerateServiceDriver {
       createPromptDriver(['true', '4201']),
     );
 
-    this.action = () => service.project('app', this.name, 'react');
+    this.action = () => service.project(type, this.name, 'react');
   }
 
   private async prepareWidget(

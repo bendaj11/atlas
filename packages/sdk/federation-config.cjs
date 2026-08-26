@@ -514,18 +514,17 @@ function reactSharedFallbackPlugin(sharedDependencies) {
         },
     };
 }
-function reactRefreshPreamblePlugin(sourceEntries) {
-    return {
-        name: 'atlas-react-refresh-preamble',
-        apply: 'serve',
-        enforce: 'pre',
-        transform(code, id) {
-            const sourcePath = id.split('?')[0].replaceAll('\\', '/');
-            if (!sourceEntries.some((entryPoint) => sourcePath.endsWith(entryPoint)))
-                return;
-            return `import "@vitejs/plugin-react/preamble";\n${code}`;
-        },
-    };
+function writeReactDevelopmentFacade(options) {
+    const directory = join(options.projectRoot, '.atlas', 'react-development');
+    const facadePath = join(directory, `${options.name}.ts`);
+    const source = relative(directory, options.sourcePath).replaceAll('\\', '/');
+    const sourceSpecifier = source.startsWith('.') ? source : `./${source}`;
+    const exports = options.defaultExport
+        ? `export { default } from ${JSON.stringify(sourceSpecifier)};`
+        : `export * from ${JSON.stringify(sourceSpecifier)};`;
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(facadePath, `import "@vitejs/plugin-react/preamble";\n${exports}\n`);
+    return facadePath;
 }
 function reactSourceReloadPlugin(projectRoot) {
     const sourceRoot = `${resolve(projectRoot, 'src').replaceAll('\\', '/')}/`;
@@ -546,6 +545,12 @@ function createReactHostViteConfig(options) {
     const federation = reactFederationBuild(options, {
         host: reactBootstrapPath(options.projectRoot, 'main.tsx'),
     });
+    const developmentHost = writeReactDevelopmentFacade({
+        projectRoot: options.projectRoot,
+        name: 'host',
+        sourcePath: federation.input.host,
+        defaultExport: false,
+    });
     const metadata = {
         name: reactRemoteName(options.projectName),
         exposes: [{ key: './host', outFileName: 'host.js' }],
@@ -554,7 +559,6 @@ function createReactHostViteConfig(options) {
     return {
         plugins: [
             federation.sharedFallbackPlugin,
-            reactRefreshPreamblePlugin(['src/bootstrap.tsx']),
             reactSourceReloadPlugin(options.projectRoot),
             federationBuildNotificationsPlugin(options.projectRoot),
             federationMetadataPlugin({
@@ -564,7 +568,7 @@ function createReactHostViteConfig(options) {
                 devExposes: [
                     {
                         key: './host',
-                        outFileName: relative(options.projectRoot, federation.input.host),
+                        outFileName: relative(options.projectRoot, developmentHost),
                     },
                 ],
                 devShared: federation.shared.map(({ devMetadata }) => devMetadata),
@@ -606,14 +610,29 @@ function createReactAppViteConfig(options) {
         exposes,
         shared: federation.shared.map(({ metadata }) => metadata),
     };
-    const sourceEntries = [
-        relative(options.projectRoot, federation.input.entry),
-        ...widgetEntries.map(({ entryPoint }) => entryPoint),
+    const developmentExposes = [
+        {
+            key: './entry',
+            path: writeReactDevelopmentFacade({
+                projectRoot: options.projectRoot,
+                name: 'entry',
+                sourcePath: federation.input.entry,
+                defaultExport: true,
+            }),
+        },
+        ...widgetEntries.map(({ name, entryPoint }) => ({
+            key: `./widgets/${name}`,
+            path: writeReactDevelopmentFacade({
+                projectRoot: options.projectRoot,
+                name: `widget-${name}`,
+                sourcePath: resolve(options.projectRoot, entryPoint),
+                defaultExport: true,
+            }),
+        })),
     ];
     return {
         plugins: [
             federation.sharedFallbackPlugin,
-            reactRefreshPreamblePlugin(sourceEntries),
             reactSourceReloadPlugin(options.projectRoot),
             federationBuildNotificationsPlugin(options.projectRoot),
             federationMetadataPlugin({
@@ -622,17 +641,9 @@ function createReactAppViteConfig(options) {
                 metadata,
                 devShared: federation.shared.map(({ devMetadata }) => devMetadata),
                 devExposes: [
-                    {
-                        key: './entry',
-                        outFileName: relative(options.projectRoot, federation.input.entry),
-                        dev: {
-                            entryPoint: relative(options.projectRoot, federation.input.entry),
-                        },
-                    },
-                    ...widgetEntries.map(({ name, entryPoint }) => ({
-                        key: `./widgets/${name}`,
-                        outFileName: entryPoint,
-                        dev: { entryPoint },
+                    ...developmentExposes.map(({ key, path }) => ({
+                        key,
+                        outFileName: relative(options.projectRoot, path),
                     })),
                 ],
             }),

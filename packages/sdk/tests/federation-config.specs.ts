@@ -33,7 +33,6 @@ const workspaceRoot = fileURLToPath(new URL('../../..', import.meta.url));
 
 interface AtlasVitePlugin {
   readonly name: string;
-  readonly transform?: (code: string, id: string) => string | undefined;
   readonly handleHotUpdate?: (context: {
     file: string;
     server: { ws: { send: (event: unknown) => void } };
@@ -167,6 +166,10 @@ test('React app Vite factory owns federation build and development behavior', as
   await mkdir(join(projectRoot, 'src/exported-widgets/summary'), {
     recursive: true,
   });
+  await writeFile(
+    join(projectRoot, 'src/bootstrap.tsx'),
+    'export default {};\n',
+  );
   const config = createReactAppViteConfig({
     projectRoot,
     projectName: 'order-history',
@@ -176,23 +179,21 @@ test('React app Vite factory owns federation build and development behavior', as
 
   expect(plugins.map(({ name }) => name)).toStrictEqual([
     'atlas-react-shared-fallbacks',
-    'atlas-react-refresh-preamble',
     'atlas-react-source-reload',
     'atlas-federation-build-notifications',
     'atlas-native-federation-metadata',
   ]);
-  const refreshPlugin = plugins.find(
-    ({ name }) => name === 'atlas-react-refresh-preamble',
-  );
   const sourceReloadPlugin = plugins.find(
     ({ name }) => name === 'atlas-react-source-reload',
   );
   expect(
-    refreshPlugin?.transform?.(
-      'export default {};',
-      join(projectRoot, 'src/entry.tsx'),
+    await readFile(
+      join(projectRoot, '.atlas/react-development/entry.ts'),
+      'utf8',
     ),
-  ).toMatch(/plugin-react\/preamble/);
+  ).toBe(
+    'import "@vitejs/plugin-react/preamble";\nexport { default } from "../../src/bootstrap.tsx";\n',
+  );
 
   const send = jest.fn();
   expect(
@@ -230,22 +231,20 @@ test('React app Vite factory owns federation build and development behavior', as
   ]);
 });
 
-test('React host Vite factory serves Atlas metadata', () => {
+test('React host Vite factory serves Atlas metadata', async () => {
   const projectRoot = resolve(workspaceRoot, 'examples/hosts/demo-react-host');
   const config = createReactHostViteConfig({
     projectRoot,
     projectName: 'demo-react-host',
   });
-  const plugins = config.plugins as AtlasVitePlugin[];
-  const refreshPlugin = plugins.find(
-    ({ name }) => name === 'atlas-react-refresh-preamble',
-  );
   expect(
-    refreshPlugin?.transform?.(
-      'export default {};',
-      join(projectRoot, 'src/bootstrap.tsx'),
+    await readFile(
+      join(projectRoot, '.atlas/react-development/host.ts'),
+      'utf8',
     ),
-  ).toMatch(/plugin-react\/preamble/);
+  ).toBe(
+    'import "@vitejs/plugin-react/preamble";\nexport * from "../../src/bootstrap.tsx";\n',
+  );
   const metadataPlugin = (config.plugins as AtlasVitePlugin[]).find(
     ({ name }) => name === 'atlas-host-metadata',
   );
@@ -281,7 +280,7 @@ test('React host Vite factory serves Atlas metadata', () => {
   };
   expect(metadata.name).toBe('atlas_demo_react_host');
   expect(metadata.exposes).toStrictEqual([
-    { key: './host', outFileName: 'src/bootstrap.tsx' },
+    { key: './host', outFileName: '.atlas/react-development/host.ts' },
   ]);
   expect(metadata.shared.map(({ packageName }) => packageName)).toEqual(
     expect.arrayContaining([

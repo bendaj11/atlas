@@ -3,7 +3,10 @@ import {
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh.js';
 import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature.js';
-import { inspectAtlasHost } from '../host/inspect-atlas-host/inspect-atlas-host.js';
+import {
+  inspectAtlasHost,
+  loadArtifactVersion,
+} from '../host/inspect-atlas-host/inspect-atlas-host.js';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
@@ -29,12 +32,21 @@ window.addEventListener('pageshow', () => void refreshBadge());
 window.addEventListener('storage', () => void refreshBadge());
 darkColorScheme.addEventListener('change', () => void publishActionTheme());
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!isInspectionRequest(message)) return;
-  void inspectAtlasHost(message.documentKey).then(
-    (hostData) => sendResponse({ ok: true, hostData }),
-    (error) => sendResponse({ ok: false, error: messageFromError(error) }),
-  );
-  return true;
+  if (isInspectionRequest(message)) {
+    void inspectAtlasHost(message.documentKey).then(
+      (hostData) => sendResponse({ ok: true, hostData }),
+      (error) => sendResponse({ ok: false, error: messageFromError(error) }),
+    );
+    return true;
+  }
+  if (isArtifactVersionRequest(message)) {
+    void loadArtifactVersion(message.artifactKey, message.versionKey).then(
+      (manifest) => sendResponse({ ok: true, manifest }),
+      (error) => sendResponse({ ok: false, error: messageFromError(error) }),
+    );
+    return true;
+  }
+  return false;
 });
 
 function isInspectionRequest(
@@ -45,6 +57,20 @@ function isInspectionRequest(
   return (
     message.type === 'atlas.inspect-host' &&
     typeof message.documentKey === 'string'
+  );
+}
+
+function isArtifactVersionRequest(value: unknown): value is {
+  type: 'atlas.load-artifact-version';
+  artifactKey: string;
+  versionKey: string;
+} {
+  if (typeof value !== 'object' || value === null) return false;
+  const message = value as Record<string, unknown>;
+  return (
+    message.type === 'atlas.load-artifact-version' &&
+    typeof message.artifactKey === 'string' &&
+    typeof message.versionKey === 'string'
   );
 }
 

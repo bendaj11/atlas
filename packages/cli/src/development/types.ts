@@ -9,10 +9,7 @@ import type { AtlasBuildService } from '../build/service/build.service.js';
 import type { AtlasPrompter } from '../cli/ui/ui.js';
 import type { AtlasProject } from '../workspace/service/workspace.js';
 
-export type DevPrompts = Pick<
-  AtlasPrompter,
-  'interactive' | 'input' | 'select'
->;
+export type DevPrompts = Pick<AtlasPrompter, 'interactive' | 'select'>;
 
 export interface DevControlServer {
   port: number;
@@ -29,7 +26,12 @@ export interface HostDevPorts {
 export interface DevTarget {
   hostId: string;
   hostUrl: string;
-  promptedForHostUrl: boolean;
+}
+
+export interface ResolveDevTargetOptions {
+  config: AtlasConfig;
+  prompts: DevPrompts;
+  previewUrls: readonly string[];
 }
 
 export type AtlasDevBuildService = Pick<

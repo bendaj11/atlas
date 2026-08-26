@@ -1,6 +1,4 @@
-import { initFederation } from "@atlas/sdk/federation";
+const root = document.querySelector('atlas-host-root');
+if (!root) throw new Error('Atlas host root is missing.');
 
-void initFederation()
-  .then(() => import("./bootstrap"))
-  .then(({ bootstrap }) => bootstrap())
-  .catch((error) => console.error("Atlas host failed to start", error));
+root.textContent = 'Start this Atlas host with atlas dev.';

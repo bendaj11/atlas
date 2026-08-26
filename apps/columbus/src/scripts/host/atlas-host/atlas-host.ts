@@ -36,11 +36,6 @@ export async function readHostData(): Promise<{
 
   if (!hostData.overrides)
     hostData.overrides = await readPersistedOverrides(hostData);
-  hostData.overrides = resolveLatestPrOverrides({
-    hostData,
-    overrideDocument: hostData.overrides,
-  });
-
   await writeHostDataCache({ hostData, tabId: tab.id, tabUrl: tab.url! }).catch(
     () => undefined,
   );
@@ -48,43 +43,22 @@ export async function readHostData(): Promise<{
   return { hostData, tabId: tab.id };
 }
 
-function resolveLatestPrOverrides({
-  hostData,
-  overrideDocument,
-}: {
-  hostData: HostData;
-  overrideDocument: OverrideDocument | undefined;
-}): OverrideDocument | undefined {
-  if (!overrideDocument) return overrideDocument;
-  const latestManifest = (manifest: Manifest): Manifest | undefined => {
-    if (manifest.channel !== 'pr' || !manifest.prNumber) return manifest;
-    const versions = hostData.versions[getArtifactKey(manifest)];
-    if (!versions) return manifest;
-    return (
-      versions.find(
-        (candidate) =>
-          candidate.channel === 'pr' &&
-          candidate.prNumber === manifest.prNumber,
-      ) ?? manifest
-    );
-  };
-  const latest = (
-    override: OverrideDocument['overrides'][number],
-  ): OverrideDocument['overrides'][number] | undefined => {
-    const manifest = latestManifest(override.manifest);
-    return manifest ? { ...override, manifest } : undefined;
-  };
-  const hostOverride = overrideDocument.hostOverride
-    ? latestManifest(overrideDocument.hostOverride)
-    : undefined;
-  const overrides = overrideDocument.overrides.flatMap((override) => {
-    const resolved = latest(override);
-    return resolved ? [resolved] : [];
+export async function loadArtifactVersion(options: {
+  tabId: number;
+  artifactKey: string;
+  versionKey: string;
+}): Promise<Manifest> {
+  const response = await chrome.tabs.sendMessage(options.tabId, {
+    type: 'atlas.load-artifact-version',
+    artifactKey: options.artifactKey,
+    versionKey: options.versionKey,
   });
-  const resolved: OverrideDocument = { ...overrideDocument, overrides };
-  if (hostOverride) resolved.hostOverride = hostOverride;
-  else delete resolved.hostOverride;
-  return resolved;
+  if (!isArtifactVersionResponse(response))
+    throw new Error(
+      'Active page did not return the selected artifact version.',
+    );
+  if (!response.ok) throw new Error(response.error);
+  return response.manifest;
 }
 
 async function findAtlasHostTab(): Promise<{
@@ -169,6 +143,17 @@ function isInspectionResponse(
   const response = value as Record<string, unknown>;
   return response.ok === true
     ? typeof response.hostData === 'object' && response.hostData !== null
+    : response.ok === false && typeof response.error === 'string';
+}
+
+function isArtifactVersionResponse(
+  value: unknown,
+): value is { ok: true; manifest: Manifest } | { ok: false; error: string } {
+  if (typeof value !== 'object' || value === null || !('ok' in value))
+    return false;
+  const response = value as Record<string, unknown>;
+  return response.ok === true
+    ? typeof response.manifest === 'object' && response.manifest !== null
     : response.ok === false && typeof response.error === 'string';
 }
 

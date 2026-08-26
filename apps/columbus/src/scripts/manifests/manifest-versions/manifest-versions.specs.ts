@@ -77,4 +77,17 @@ describe('unique manifest versions', () => {
       'production:1.1.0:current',
     ]);
   });
+
+  it('should retain registry version order when versions have equal timestamps', () => {
+    driver.given
+      .version({ version: '3.0.0', buildId: 'latest' })
+      .given.version({ version: '2.0.0', buildId: 'previous' })
+      .given.version({ version: '1.0.0', buildId: 'oldest' });
+
+    expect(driver.get.versionKeysInOrder()).toStrictEqual([
+      'production:3.0.0:latest',
+      'production:2.0.0:previous',
+      'production:1.0.0:oldest',
+    ]);
+  });
 });

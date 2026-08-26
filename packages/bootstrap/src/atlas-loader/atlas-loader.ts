@@ -22,9 +22,13 @@ import { validateCatalog } from '../validation/validation.js';
 import type { DevSession } from '../types.js';
 
 const ARTIFACT_LOAD_CONCURRENCY = 6;
+export const RUNTIME_SNAPSHOT_ELEMENT_ID = 'atlas-runtime-snapshot';
 
 export interface AtlasLoaderDependencies {
-  readonly document: Pick<Document, 'getElementById'>;
+  readonly document: Pick<
+    Document,
+    'createElement' | 'getElementById' | 'head'
+  >;
   readonly locationHref: string;
   readonly fetchBytes: typeof fetchBytes;
   readonly fetchJson: typeof fetchJson;
@@ -49,6 +53,7 @@ export async function startAtlasLoader(
   const effectiveCatalog = await dependencies.applyOverrides(runtime, catalog);
 
   dependencies.validateCatalog(runtime, effectiveCatalog);
+  publishRuntimeSnapshot(dependencies.document, runtime, effectiveCatalog);
 
   const root = dependencies.document.getElementById('atlas-host-root');
   if (!root) throw new Error('Atlas host root is missing.');
@@ -67,6 +72,24 @@ export async function startAtlasLoader(
     runtimeConfig: runtime,
     catalog: effectiveCatalog,
   });
+}
+
+function publishRuntimeSnapshot(
+  document: AtlasLoaderDependencies['document'],
+  runtime: AtlasHostRuntimeConfig,
+  catalog: AtlasHostCatalog,
+): void {
+  const existing = document.getElementById(RUNTIME_SNAPSHOT_ELEMENT_ID);
+  const snapshot = JSON.stringify({ schemaVersion: '1', runtime, catalog });
+  if (existing) {
+    existing.textContent = snapshot;
+    return;
+  }
+  const element = document.createElement('script');
+  element.id = RUNTIME_SNAPSHOT_ELEMENT_ID;
+  element.type = 'application/json';
+  element.textContent = snapshot;
+  document.head.append(element);
 }
 
 async function loadInitialCatalog(

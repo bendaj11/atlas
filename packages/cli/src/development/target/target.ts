@@ -1,7 +1,5 @@
 import { assertAtlasBootstrapManifest } from '@atlas/bootstrap';
 import type { AtlasConfig } from '@atlas/schema';
-import { join } from 'node:path';
-import { CliArguments } from '../../cli/arguments.js';
 import {
   configuredHostIds,
   hostIdFromRoute,
@@ -11,17 +9,18 @@ import {
   urlWithPath,
 } from '../config/config.js';
 import { HOST_DISCOVERY_TIMEOUT_MS } from '../constants.js';
-import { saveWorkspaceLocalEnv } from '../../workspace/env/env.js';
-import type { DevPrompts, DevTarget } from '../types.js';
-import { ui } from '../../cli/ui/ui.js';
+import type {
+  DevPrompts,
+  DevTarget,
+  ResolveDevTargetOptions,
+} from '../types.js';
 
-export async function resolveDevTarget(
-  config: AtlasConfig,
-  args: CliArguments,
-  prompts: DevPrompts,
-): Promise<DevTarget> {
-  const configuredHostUrl = args.flag('host-url') ?? process.env.ATLAS_HOST_URL;
-  const baseHostUrl = configuredHostUrl ?? (await promptForHostUrl(prompts));
+export async function resolveDevTarget({
+  config,
+  prompts,
+  previewUrls,
+}: ResolveDevTargetOptions): Promise<DevTarget> {
+  const baseHostUrl = await selectPreviewUrl(previewUrls, prompts);
   const hostId = await resolveHostId(config, baseHostUrl);
   const hostUrl = await resolveHostUrl(
     config,
@@ -31,26 +30,28 @@ export async function resolveDevTarget(
   return {
     hostId,
     hostUrl,
-    promptedForHostUrl: prompts.interactive && !configuredHostUrl,
   };
 }
 
-export async function offerToSaveDevTarget(
-  projectRoot: string,
-  target: DevTarget,
-  prompts: Pick<DevPrompts, 'interactive' | 'select'>,
-): Promise<void> {
-  if (!target.promptedForHostUrl) return;
-  const answer = await prompts.select(
-    'Save this host URL to project .env.local?',
-    [
-      { label: 'Yes', value: 'yes' },
-      { label: 'No', value: 'no' },
-    ],
+async function selectPreviewUrl(
+  previewUrls: readonly string[],
+  prompts: DevPrompts,
+): Promise<string> {
+  if (previewUrls.length === 0) {
+    throw new Error(
+      'package.json atlas.previews is required for atlas dev apps.',
+    );
+  }
+  if (previewUrls.length === 1) return previewUrls[0];
+  if (!prompts.interactive) {
+    throw new Error(
+      'Multiple Atlas previews configured. Run atlas dev interactively.',
+    );
+  }
+  return await prompts.select(
+    'Preview URL for local development',
+    previewUrls.map((url) => ({ label: url, value: url })),
   );
-  if (answer === 'no') return;
-  await saveWorkspaceLocalEnv(projectRoot, { ATLAS_HOST_URL: target.hostUrl });
-  ui.success(`Saved local host URL to ${join(projectRoot, '.env.local')}.`);
 }
 
 async function resolveHostId(
@@ -105,7 +106,7 @@ async function resolveHostUrl(
   if (paths.length === 1) return urlWithPath(hostUrl, paths[0]!);
   if (!prompts.interactive) {
     throw new Error(
-      `Multiple routes found for host "${hostId}". Pass a full --host-url or set ATLAS_HOST_URL to a full URL.`,
+      `Multiple routes found for host "${hostId}". Define a full URL in atlas.previews.`,
     );
   }
   const path = await prompts.select(
@@ -113,14 +114,4 @@ async function resolveHostUrl(
     paths.map((value) => ({ label: value, value })),
   );
   return urlWithPath(hostUrl, path);
-}
-
-async function promptForHostUrl(
-  prompts: Pick<DevPrompts, 'interactive' | 'input'>,
-): Promise<string> {
-  if (prompts.interactive)
-    return prompts.input('Host URL for local development');
-  throw new Error(
-    'Host URL is required. Pass --host-url or set ATLAS_HOST_URL.',
-  );
 }

@@ -28,7 +28,8 @@ import {
   waitForShutdown,
   withDevSessionPort,
 } from '../process/process.js';
-import { offerToSaveDevTarget, resolveDevTarget } from '../target/target.js';
+import { readAtlasPreviewUrls } from '../target/previews.js';
+import { resolveDevTarget } from '../target/target.js';
 import { assertUsableAngularBuildPackage } from '../preflight/preflight.js';
 import { writeDevOverrideDocument } from '../overrides.js';
 import { loadAngularHostProxy } from '../proxy-config.js';
@@ -105,8 +106,7 @@ export class AtlasDevService {
     };
     await writeDevOverrideDocument(project.root, document);
 
-    const configuredHostUrl =
-      this.args.flag('host-url') ?? process.env.ATLAS_HOST_URL;
+    const configuredHostUrl = this.args.flag('host-url');
     const hostUrl = configuredHostUrl ?? localOrigin(bootstrapPort);
     if (this.args.hasFlag('prepare-only')) {
       ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
@@ -184,8 +184,11 @@ export class AtlasDevService {
       skipCompile: true,
       baseUrl: localOrigin(remotePort),
     });
-    const target = await resolveDevTarget(config, this.args, prompts);
-    await offerToSaveDevTarget(project.root, target, prompts);
+    const target = await resolveDevTarget({
+      config,
+      prompts,
+      previewUrls: await readAtlasPreviewUrls(project.root),
+    });
     const document: AtlasRuntimeOverrideDocument = {
       schemaVersion: '1',
       hostId: target.hostId,

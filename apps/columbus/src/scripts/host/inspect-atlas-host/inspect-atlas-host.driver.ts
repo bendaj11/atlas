@@ -3,7 +3,7 @@ import type {
   AtlasExtensionManifest,
   AtlasExtensionWidgetManifest,
 } from '../../../types/contracts.js';
-import { inspectAtlasHost } from './inspect-atlas-host.js';
+import { inspectAtlasHost, loadArtifactVersion } from './inspect-atlas-host.js';
 
 interface PageOptions {
   app?: AtlasExtensionManifest;
@@ -14,8 +14,10 @@ interface PageOptions {
   runtimeError?: { appId?: string; message: string };
   stored?: Record<string, unknown>;
   runtimeEnvironment?: string;
+  runtimeSnapshot?: boolean;
   useDevelopmentCatalog?: boolean;
   deploymentEnvironment?: string;
+  onManifestRequest?: (cache: RequestCache | undefined) => void;
 }
 
 const documentKey = 'atlas.runtime-overrides';
@@ -26,6 +28,9 @@ export class InspectAtlasHostDriver {
   private result: Awaited<ReturnType<typeof inspectAtlasHost>> | undefined;
   private error: unknown;
   private expectedWidget: AtlasExtensionWidgetManifest | undefined;
+  private manifestRequests = 0;
+  private manifestRequestCaches: Array<RequestCache | undefined> = [];
+  private loadedManifest: AtlasExtensionManifest | undefined;
 
   readonly given = {
     localCatalogWithEmptyStoredSelection: (): this => {
@@ -150,16 +155,40 @@ export class InspectAtlasHostDriver {
       this.options.runtimeEnvironment = '';
       return this;
     },
+    developmentRuntimeSnapshot: (): this => {
+      this.options = {
+        app: manifest({
+          channel: 'local',
+          buildId: 'local',
+          remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
+        }),
+        runtimeSnapshot: true,
+      };
+      return this;
+    },
   };
 
   readonly when = {
     hostInspected: async (): Promise<this> => {
-      installPage(this.options);
+      installPage({
+        ...this.options,
+        onManifestRequest: (cache) => {
+          this.manifestRequests++;
+          this.manifestRequestCaches.push(cache);
+        },
+      });
       try {
         this.result = await inspectAtlasHost(documentKey);
       } catch (error) {
         this.error = error;
       }
+      return this;
+    },
+    publishedAppVersionLoaded: async (): Promise<this> => {
+      this.loadedManifest = await loadArtifactVersion(
+        'app:orders',
+        'production:1.0.0:canonical',
+      );
       return this;
     },
   };
@@ -174,20 +203,23 @@ export class InspectAtlasHostDriver {
     appVersionChannels: (): string[] =>
       this.result?.versions['app:orders']?.map(({ channel }) => channel) ?? [],
     exportedWidget: (): AtlasExtensionWidgetManifest | undefined =>
-      this.result?.versions['app:orders']?.[0]?.exportedWidgets?.[0],
+      this.loadedManifest?.exportedWidgets?.[0],
     expectedWidget: (): AtlasExtensionWidgetManifest => {
       if (!this.expectedWidget)
         throw new Error('Expected widget was not configured.');
       return this.expectedWidget;
     },
     hydratedRuntimeFields: () => {
-      const manifest = this.result?.versions['app:orders']?.[0];
+      const manifest = this.loadedManifest;
       return {
         createdAt: manifest?.createdAt,
         isolation: manifest?.isolation,
         metadata: manifest?.metadata,
       };
     },
+    manifestRequestCount: (): number => this.manifestRequests,
+    manifestRequestCache: (): RequestCache | undefined =>
+      this.manifestRequestCaches[0],
   };
 
   dispose(): void {
@@ -215,6 +247,30 @@ function installPage(options: PageOptions): void {
 
   Object.assign(globalThis, {
     document: {
+      getElementById: (id: string) =>
+        id === 'atlas-runtime-snapshot' && options.runtimeSnapshot
+          ? {
+              textContent: JSON.stringify({
+                schemaVersion: '1',
+                runtime: {
+                  schemaVersion: '1',
+                  hostId,
+                  environment: 'development',
+                  manifestUrl: 'https://host.example/active.json',
+                  developmentSessionUrl:
+                    'https://host.example/atlas.dev-session.json',
+                },
+                catalog: {
+                  schemaVersion: '1',
+                  hostId: catalogHostId,
+                  revision: 'test',
+                  generatedAt: '2026-07-20T00:00:00.000Z',
+                  host,
+                  apps: [app],
+                },
+              }),
+            }
+          : null,
       querySelectorAll: (selector: string) => {
         if (selector === '[data-atlas-app-id]') {
           return (options.visibleAppIds ?? []).map((appId) => ({
@@ -241,7 +297,7 @@ function installPage(options: PageOptions): void {
     },
     localStorage: storage(localValues),
     sessionStorage: storage(new Map()),
-    fetch: async (input: string | URL) => {
+    fetch: async (input: string | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'https://host.example');
       if (url.pathname === '/atlas.bootstrap.json') {
         const runtime = {
@@ -310,6 +366,7 @@ function installPage(options: PageOptions): void {
         });
       }
       const bytes = fixtures.manifests.get(url.pathname.replace(/^\//u, ''));
+      if (bytes) options.onManifestRequest?.(init?.cache);
       return bytes
         ? new Response(bytes.buffer as ArrayBuffer, { status: 200 })
         : new Response('Not found', { status: 404 });

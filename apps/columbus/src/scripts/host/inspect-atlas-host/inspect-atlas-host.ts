@@ -3,7 +3,10 @@ import {
   atlasDiscoveryRequest,
   resolveAtlasHostRuntime,
 } from '@atlas/bootstrap/runtime';
-import { hydratePublishedArtifactManifest } from '@atlas/schema';
+import {
+  assertAtlasHostCatalog,
+  hydratePublishedArtifactManifest,
+} from '@atlas/schema';
 import type {
   AtlasExtensionManifest as Manifest,
   AtlasHostData as HostData,
@@ -56,8 +59,14 @@ interface HostDeployment {
 
 const FETCH_TIMEOUT_MS = 5_000;
 const LOOKUP_CONCURRENCY = 8;
+const CANONICAL_BUILD_ID = 'canonical';
+const RUNTIME_SNAPSHOT_ELEMENT_ID = 'atlas-runtime-snapshot';
+const manifestReferences = new Map<string, ManifestReference>();
+const loadedManifests = new Map<string, Promise<Manifest>>();
 
 export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
+  const snapshot = readRuntimeSnapshot(documentKey);
+  if (snapshot) return loadSnapshotVersions(snapshot);
   const config = await readAtlasConfig();
   const catalog = config.developmentSessionUrl
     ? await readDevelopmentSessionCatalog(config.developmentSessionUrl)
@@ -118,6 +127,130 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
       ...external.errors,
     ],
   };
+}
+
+async function loadSnapshotVersions(snapshot: HostData): Promise<HostData> {
+  const root =
+    snapshot.config.registryUrl?.replace(/\/$/u, '') ??
+    (snapshot.config.developmentSessionUrl
+      ? undefined
+      : registryRootFor(snapshot.config));
+  const registry = root ? await readRegistry(root) : undefined;
+  const selectedArtifacts = [
+    snapshot.catalog.host,
+    ...snapshot.catalog.apps,
+    ...(snapshot.catalog.widgetProviders ?? []),
+  ];
+  const results = await Promise.all(
+    selectedArtifacts.map((manifest) =>
+      readManifestVersions(manifest, registry, root),
+    ),
+  );
+  const external = await readExternalProviders(
+    snapshot.config,
+    snapshot.catalog,
+  );
+  return {
+    ...snapshot,
+    catalog: {
+      ...snapshot.catalog,
+      widgetProviders: uniqueManifests([
+        ...(snapshot.catalog.widgetProviders ?? []),
+        ...external.providers,
+      ]),
+    },
+    versions: Object.fromEntries([
+      ...results.map(({ entry }) => entry),
+      ...external.versions,
+    ]),
+    versionErrors: [
+      ...results.flatMap(({ error }) => (error ? [error] : [])),
+      ...external.errors,
+    ],
+  };
+}
+
+function readRuntimeSnapshot(documentKey: string): HostData | undefined {
+  const element = document.getElementById(RUNTIME_SNAPSHOT_ELEMENT_ID);
+  if (!element?.textContent) return undefined;
+  try {
+    const snapshot = JSON.parse(element.textContent) as {
+      schemaVersion?: string;
+      runtime?: HostData['config'];
+      catalog?: HostData['catalog'];
+    };
+    if (
+      snapshot.schemaVersion !== '1' ||
+      !snapshot.runtime ||
+      !snapshot.catalog
+    )
+      return undefined;
+    assertAtlasHostCatalog(snapshot.catalog);
+    if (
+      !isRuntimeSnapshotConfig(snapshot.runtime) ||
+      snapshot.catalog.hostId !== snapshot.runtime.hostId
+    )
+      return undefined;
+    const selectedArtifacts = [
+      snapshot.catalog.host,
+      ...snapshot.catalog.apps,
+      ...(snapshot.catalog.widgetProviders ?? []),
+    ];
+    const stored = readStoredOverrideDocument(
+      documentKey,
+      snapshot.runtime.hostId,
+    );
+    return {
+      config: snapshot.runtime,
+      pageUrl: location.href,
+      catalog: snapshot.catalog,
+      versions: Object.fromEntries(
+        selectedArtifacts.map((manifest) => [
+          manifestKey(manifest),
+          [manifest],
+        ]),
+      ),
+      overrides:
+        stored.overrides ??
+        createLocalOverrides(snapshot.runtime, selectedArtifacts),
+      overrideScope: stored.overrideScope,
+      visibleAppIds: readVisibleAppIds(),
+      runtimeErrors: readRuntimeErrors(),
+      versionErrors: [],
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function isRuntimeSnapshotConfig(
+  value: HostData['config'],
+): value is HostData['config'] {
+  if (
+    value.schemaVersion !== '1' ||
+    !value.hostId ||
+    !value.environment ||
+    !isAbsoluteUrl(value.manifestUrl)
+  )
+    return false;
+  if (value.registryUrl !== undefined && !isAbsoluteUrl(value.registryUrl))
+    return false;
+  if (
+    value.developmentSessionUrl !== undefined &&
+    !isAbsoluteUrl(value.developmentSessionUrl)
+  )
+    return false;
+  return (value.externalRegistries ?? []).every(
+    (entry) => Boolean(entry.environment) && isAbsoluteUrl(entry.registryUrl),
+  );
+}
+
+function isAbsoluteUrl(value: string): boolean {
+  try {
+    return Boolean(new URL(value).protocol);
+  } catch {
+    return false;
+  }
 }
 
 async function readAtlasConfig(): Promise<HostData['config']> {
@@ -242,16 +375,9 @@ async function readManifestVersions(
         : registry.apps[manifest.id];
     if (!artifact)
       throw new Error(`Artifact ${manifest.id} is not registered.`);
-    const descriptors = [
-      ...Object.values(artifact.releases),
-      ...Object.values(artifact.previews),
-    ];
-    const versions = await mapWithConcurrency(
-      descriptors,
-      (descriptor) => loadManifestReference(reference(root, descriptor)),
-      LOOKUP_CONCURRENCY,
-    );
-    return { entry: [manifestKey(manifest), uniqueManifests(versions)] };
+    return {
+      entry: [manifestKey(manifest), versionOptions(manifest, artifact, root)],
+    };
   } catch (error) {
     return {
       entry: [manifestKey(manifest), [manifest]],
@@ -263,7 +389,110 @@ async function readManifestVersions(
 async function loadManifestReference(
   descriptor: ManifestReference,
 ): Promise<Manifest> {
-  const response = await fetchWithTimeout(descriptor.url);
+  return loadCachedManifest(descriptor);
+}
+
+export async function loadArtifactVersion(
+  artifactKey: string,
+  versionKey: string,
+): Promise<Manifest> {
+  const descriptor = manifestReferences.get(`${artifactKey}:${versionKey}`);
+  if (!descriptor) throw new Error('Selected artifact version is unavailable.');
+  const manifest = await loadCachedManifest(descriptor);
+  if (
+    manifestKey(manifest) !== artifactKey ||
+    versionKeyFor(manifest) !== versionKey
+  )
+    throw new Error(
+      'Selected artifact manifest does not match its registry entry.',
+    );
+  return manifest;
+}
+
+function versionOptions(
+  selectedManifest: Manifest,
+  artifact: RegistryArtifact,
+  root: string,
+): Manifest[] {
+  const artifactKey = manifestKey(selectedManifest);
+  const releases = orderedReleases(artifact).map(([version, descriptor]) =>
+    registerVersionOption({
+      artifactKey,
+      manifest: {
+        ...selectedManifest,
+        version,
+        buildId: CANONICAL_BUILD_ID,
+        channel: 'production',
+      },
+      descriptor: reference(root, descriptor),
+    }),
+  );
+  const previews = orderedPreviews(artifact).map(
+    ([previewNumber, descriptor]) => {
+      const {
+        gitSha: _gitSha,
+        gitBranch: _gitBranch,
+        gitCommitTitle: _gitCommitTitle,
+        ...manifestWithoutSource
+      } = selectedManifest;
+      return registerVersionOption({
+        artifactKey,
+        manifest: {
+          ...manifestWithoutSource,
+          version: `preview-${previewNumber}`,
+          buildId: CANONICAL_BUILD_ID,
+          channel: 'pr',
+          prNumber: Number(previewNumber),
+        },
+        descriptor: reference(root, descriptor),
+      });
+    },
+  );
+  return uniqueManifests([...releases, ...previews]);
+}
+
+function orderedReleases(
+  artifact: RegistryArtifact,
+): Array<[string, Descriptor]> {
+  return Object.entries(artifact.releases).sort(([left], [right]) => {
+    if (left === artifact.latest) return -1;
+    if (right === artifact.latest) return 1;
+    return right.localeCompare(left, undefined, { numeric: true });
+  });
+}
+
+function orderedPreviews(
+  artifact: RegistryArtifact,
+): Array<[string, Descriptor]> {
+  return Object.entries(artifact.previews).sort(
+    ([left], [right]) => Number(right) - Number(left),
+  );
+}
+
+function registerVersionOption(options: {
+  artifactKey: string;
+  manifest: Manifest;
+  descriptor: ManifestReference;
+}): Manifest {
+  manifestReferences.set(
+    `${options.artifactKey}:${versionKeyFor(options.manifest)}`,
+    options.descriptor,
+  );
+  return options.manifest;
+}
+
+function loadCachedManifest(descriptor: ManifestReference): Promise<Manifest> {
+  const cached = loadedManifests.get(descriptor.digest);
+  if (cached) return cached;
+  const manifest = fetchManifestReference(descriptor);
+  loadedManifests.set(descriptor.digest, manifest);
+  return manifest;
+}
+
+async function fetchManifestReference(
+  descriptor: ManifestReference,
+): Promise<Manifest> {
+  const response = await fetchWithTimeout(descriptor.url, 'force-cache');
   if (!response.ok)
     throw new Error(`${descriptor.url} returned ${response.status}.`);
   const bytes = new Uint8Array(await response.arrayBuffer());
@@ -344,15 +573,7 @@ async function readExternalProviders(
       pending.push(...(provider.externalAppsDependencies ?? []));
       const artifact = candidate.registry.apps[id];
       if (artifact) {
-        const loaded = await mapWithConcurrency(
-          [
-            ...Object.values(artifact.releases),
-            ...Object.values(artifact.previews),
-          ],
-          (descriptor) => loadManifestReference(reference(root, descriptor)),
-          LOOKUP_CONCURRENCY,
-        );
-        versions.push([`app:${id}`, loaded]);
+        versions.push([`app:${id}`, versionOptions(provider, artifact, root)]);
       }
     }
     resolved.add(id);
@@ -429,11 +650,14 @@ function readVisibleAppIds(): string[] {
   ];
 }
 
-async function fetchWithTimeout(input: string | URL): Promise<Response> {
+async function fetchWithTimeout(
+  input: string | URL,
+  cache: RequestCache = 'no-store',
+): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    return await fetch(input, { cache: 'no-store', signal: controller.signal });
+    return await fetch(input, { cache, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
   }
@@ -499,6 +723,10 @@ function uniqueManifests(manifests: Manifest[]): Manifest[] {
       ]),
     ).values(),
   ];
+}
+
+function versionKeyFor(manifest: Manifest): string {
+  return `${manifest.channel}:${manifest.version}:${manifest.buildId}`;
 }
 
 function messageFromError(error: unknown): string {

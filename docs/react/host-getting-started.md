@@ -249,10 +249,13 @@ Expected browser state:
 
 ## 7. Mount An App During Development
 
+Configure the app's `package.json` `atlas.previews` with this host page before
+starting it. For example: `"previews": ["http://localhost:4200/orders"]`.
+
 Run app in another terminal:
 
 ```sh
-atlas dev orders --host-url=http://localhost:4200/orders
+atlas dev orders
 ```
 
 Open `/orders`, then verify:

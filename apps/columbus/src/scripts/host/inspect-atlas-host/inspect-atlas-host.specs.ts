@@ -31,12 +31,37 @@ describe('Atlas host inspection', () => {
     expect(driver.get.result().overrides).toMatchObject({ overrides: [] });
   });
 
+  it('should inspect a development runtime snapshot without a registry', async () => {
+    driver.given.developmentRuntimeSnapshot();
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.appVersionChannels()).toStrictEqual(['local']);
+  });
+
   it('should list published versions when local catalog uses a registry proxy', async () => {
     driver.given.localCatalogWithPublishedVersions();
 
     await driver.when.hostInspected();
 
     expect(driver.get.appVersionChannels()).toStrictEqual(['production', 'pr']);
+  });
+
+  it('should not fetch published manifests when registry lists versions', async () => {
+    driver.given.localCatalogWithPublishedVersions();
+
+    await driver.when.hostInspected();
+
+    expect(driver.get.manifestRequestCount()).toBe(0);
+  });
+
+  it('should use HTTP cache when selected published manifest is loaded', async () => {
+    driver.given.publishedAppWithRuntimeFields();
+
+    await driver.when.hostInspected();
+    await driver.when.publishedAppVersionLoaded();
+
+    expect(driver.get.manifestRequestCache()).toBe('force-cache');
   });
 
   it('should reject catalog when host identity differs from runtime', async () => {
@@ -83,6 +108,7 @@ describe('Atlas host inspection', () => {
     driver.given.publishedAppWithExportedWidget({ surface: 'checkout' });
 
     await driver.when.hostInspected();
+    await driver.when.publishedAppVersionLoaded();
 
     expect(driver.get.exportedWidget()).toStrictEqual(
       driver.get.expectedWidget(),
@@ -93,6 +119,7 @@ describe('Atlas host inspection', () => {
     driver.given.publishedAppWithRuntimeFields();
 
     await driver.when.hostInspected();
+    await driver.when.publishedAppVersionLoaded();
 
     expect(driver.get.hydratedRuntimeFields()).toStrictEqual({
       createdAt: '1970-01-01T00:00:00.000Z',

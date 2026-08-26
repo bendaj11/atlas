@@ -528,7 +528,9 @@ export class AtlasGenerateService {
     const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
     if (!turbo) return;
     const [taskKey, tasks] = turboTasks(turbo);
-    tasks.dev = interactiveTurboDevTask(tasks.dev);
+    tasks.dev = isRecord(tasks.dev)
+      ? tasks.dev
+      : { cache: false, persistent: true };
     tasks['framework:dev'] ??= { cache: false, persistent: true };
     tasks['atlas:config'] ??= { outputs: ['.atlas/**'] };
     tasks['atlas:publish'] ??= {
@@ -568,13 +570,6 @@ function turboTasks(
   if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];
   if (isRecord(turbo.pipeline)) return ['pipeline', turbo.pipeline];
   return ['tasks', {}];
-}
-
-function interactiveTurboDevTask(task: unknown): Record<string, unknown> {
-  return {
-    ...(isRecord(task) ? task : { cache: false, persistent: true }),
-    interactive: true,
-  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

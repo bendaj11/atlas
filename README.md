@@ -72,7 +72,17 @@ directory containing both projects:
 npx atlas dev customer-host
 
 # Terminal 2
-npx atlas dev orders --host-url=http://localhost:4200/orders
+npx atlas dev orders
+```
+
+Before starting the app, set its development host page in `orders/package.json`:
+
+```json
+{
+  "atlas": {
+    "previews": ["http://localhost:4200/orders"]
+  }
+}
 ```
 
 This proves local composition only. Production needs a public registry,

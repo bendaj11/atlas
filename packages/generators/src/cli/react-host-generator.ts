@@ -27,8 +27,7 @@ import atlasConfig from "../atlas.config";
 import { useCustomHostSdkOptions, type CustomerHostSdk } from "./host.config";
 import "./styles.css";
 
-type HostMountRequest = Pick<Parameters<AtlasHostClientEntry["mount"]>[0], "container"> &
-  Partial<Omit<Parameters<AtlasHostClientEntry["mount"]>[0], "container">>;
+type HostMountRequest = Parameters<AtlasHostClientEntry["mount"]>[0];
 
 function HostLayout() {
   return (
@@ -55,7 +54,7 @@ function HostApplication({ request, router }: { request: HostMountRequest; route
           federation: { initFederation, loadRemoteModule },
           hostData: { hostId: atlasConfig.id, name: atlasConfig.name, ...hostData },
           ...sdkOptions,
-          ...(request.runtimeConfig ? { runtimeConfig: request.runtimeConfig } : {}),
+          runtimeConfig: request.runtimeConfig,
           ...(request.catalog ? { catalog: request.catalog } : {})
         }}
       >
@@ -92,11 +91,9 @@ export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
 }
 
 export function reactHostMain(): string {
-  return `import { mount } from "./bootstrap";
-
-const root = document.getElementById("root");
+  return `const root = document.getElementById("root");
 if (!root) throw new Error("React root is missing.");
 
-void mount({ container: root });
+root.textContent = "Start this Atlas host with atlas dev.";
 `;
 }

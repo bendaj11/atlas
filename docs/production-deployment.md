@@ -275,9 +275,9 @@ error.
 | Target prefix          | `--key-prefix`          | `ATLAS_STORAGE_KEY_PREFIX`  |
 | Target region          | `--region`              | `ATLAS_S3_REGION`           |
 
-`ATLAS_HOST_URL` has two command-specific uses: it is a local preview target for
-`atlas dev`, and a public deployment binding for a host `atlas deploy`. Prefer an
-explicit flag in shared CI jobs when that distinction may be unclear.
+`ATLAS_HOST_URL` provides the public URL when deploying a host. It does not
+select an app development preview; app teams configure those in `package.json`
+`atlas.previews`.
 
 ## CI examples
 

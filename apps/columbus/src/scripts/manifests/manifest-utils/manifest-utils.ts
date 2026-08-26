@@ -1,4 +1,5 @@
 import { type AtlasExtensionManifest as Manifest } from '../../../types/contracts.js';
+import { placementTargetsHost } from '@atlas/schema';
 import { versionKey } from '../manifest-versions/manifest-versions.js';
 import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants.js';
 import type {
@@ -131,13 +132,14 @@ export function overrideTypeFor({
 
 export function versionLabel(manifest: Manifest): string {
   if (manifest.channel === 'pr') {
-    return [
+    const label = [
       manifest.gitBranch,
       manifest.gitSha?.slice(0, SHORT_BUILD_ID_LENGTH),
       manifest.gitCommitTitle,
     ]
       .filter(isVisibleVersionLabelPart)
       .join(' · ');
+    return label || `PR #${manifest.prNumber ?? manifest.version}`;
   }
   if (manifest.channel === 'production') {
     return [versionBuildIdLabel(manifest), manifest.gitCommitTitle]
@@ -215,4 +217,18 @@ export function artifactSourceDescription(
   return selectedManifest.channel === 'local'
     ? baseUrlFromRemoteEntry(selectedManifest.remoteEntryUrl)
     : versionLabel(selectedManifest);
+}
+
+export function isManifestSupportedByHost(
+  manifest: Manifest,
+  hostId: string,
+): boolean {
+  return (
+    (manifest.kind === 'host' && manifest.id === hostId) ||
+    manifest.supportedHosts?.includes('*') === true ||
+    manifest.supportedHosts?.includes(hostId) === true ||
+    manifest.placements?.some((placement) =>
+      placementTargetsHost(placement, hostId),
+    ) === true
+  );
 }

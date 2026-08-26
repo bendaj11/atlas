@@ -20,6 +20,16 @@ describe('startAtlasLoader', () => {
     expect(driver.get.catalog()).toEqual(driver.get.productionCatalog());
   });
 
+  it('should publish resolved runtime snapshot when host is mounted', async () => {
+    await driver.when.start();
+
+    expect(driver.get.runtimeSnapshot()).toEqual({
+      schemaVersion: '1',
+      runtime: expect.objectContaining({ hostId: expect.any(String) }),
+      catalog: driver.get.productionCatalog(),
+    });
+  });
+
   it('should reject deployment when its environment differs from runtime', async () => {
     await driver.given.invalidDeployment().when.start();
 

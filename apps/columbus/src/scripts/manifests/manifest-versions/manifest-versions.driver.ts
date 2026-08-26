@@ -1,5 +1,9 @@
 import type { AtlasExtensionManifest } from '../../../types/contracts.js';
-import { uniqueVersions, versionKey } from './manifest-versions.js';
+import {
+  uniqueVersions,
+  uniqueVersionsInOrder,
+  versionKey,
+} from './manifest-versions.js';
 
 export class ManifestVersionsDriver {
   private versions: AtlasExtensionManifest[] = [];
@@ -16,6 +20,10 @@ export class ManifestVersionsDriver {
       uniqueVersions(this.versions).map(({ channel }) => channel),
     versionKeys: (): string[] =>
       uniqueVersions(this.versions).map((manifest) => versionKey(manifest)),
+    versionKeysInOrder: (): string[] =>
+      uniqueVersionsInOrder(this.versions).map((manifest) =>
+        versionKey(manifest),
+      ),
   };
 }
 

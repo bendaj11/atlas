@@ -19,6 +19,11 @@ export class AtlasLoaderDriver {
   private readonly root = {
     replaceChildren: jest.fn(),
   } as unknown as HTMLElement;
+  private readonly snapshot = {
+    id: '',
+    textContent: '',
+    type: '',
+  } as HTMLScriptElement;
   private readonly runtime: AtlasHostRuntimeConfig = {
     schemaVersion: '1',
     hostId: faker.string.uuid(),
@@ -72,7 +77,13 @@ export class AtlasLoaderDriver {
   );
   private readonly validateCatalog = jest.fn();
   private readonly dependencies: AtlasLoaderDependencies = {
-    document: { getElementById: jest.fn(() => this.root) },
+    document: {
+      createElement: jest.fn(() => this.snapshot),
+      getElementById: jest.fn((id) =>
+        id === 'atlas-host-root' ? this.root : null,
+      ),
+      head: { append: jest.fn() } as unknown as HTMLHeadElement,
+    },
     locationHref: 'https://host.example/orders',
     fetchBytes: this.fetchBytes,
     fetchJson: this.fetchJson,
@@ -147,6 +158,7 @@ export class AtlasLoaderDriver {
     }),
     developmentCatalog: (): AtlasHostCatalog => this.catalog,
     maximumArtifactLoads: (): number => this.maximumArtifactLoads,
+    runtimeSnapshot: (): unknown => JSON.parse(this.snapshot.textContent ?? ''),
   };
 
   private configureProductionRuntime(): void {

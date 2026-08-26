@@ -81,15 +81,22 @@ Use Host Preview URL printed by Atlas CLI, normally
 Run both commands from the directory that contains `customer-host/` and
 `orders/`, or from your monorepo root.
 
-When testing a non-default host URL, set it explicitly:
+For a non-default host URL, add it to the app's `package.json` `atlas.previews`:
 
-```sh
-ATLAS_HOST_URL=http://localhost:4200 atlas dev orders
-ATLAS_HOST_URL=http://localhost:4200/orders atlas dev orders
+```json
+{
+  "atlas": {
+    "previews": ["http://localhost:4200/orders"]
+  }
+}
 ```
 
 This validates the app inside the host without editing host source or deployed
-environment selections.
+environment selections. One preview starts automatically; several previews
+produce an interactive selector. These URLs are app-team development metadata,
+so they remain in `package.json` and never affect the Atlas production manifest.
+See [Local development](local-development.md#configure-app-previews) for URL
+validation and selection rules.
 
 ## Deployment Domain
 

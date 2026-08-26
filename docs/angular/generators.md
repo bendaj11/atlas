@@ -16,7 +16,7 @@ Generated host files to understand first:
 | -------------------------- | -------------- | --------------------------------------------------------------------------- |
 | `atlas.config.ts`          | Host team      | Stable host id, display name, runtime defaults.                             |
 | `atlas.bootstrap.html`     | Host team      | Product-domain HTML and loading UI used automatically by `atlas bootstrap`. |
-| `src/bootstrap.ts`         | Atlas/platform | Exports normal `bootstrap()` plus Atlas `mount()`.                          |
+| `src/bootstrap.ts`         | Atlas/platform | Exports Atlas `mount()`; runtime configuration comes from Atlas bootstrap.  |
 | `src/app/app.config.ts`    | Host team      | Angular providers, router, and version-appropriate zoneless setup.          |
 | `src/app/host.config.ts`   | Host team      | Product SDK capabilities and host runtime customization.                    |
 | `src/app/app.component.ts` | Host team      | Replaceable product layout with Atlas DOM anchors.                          |

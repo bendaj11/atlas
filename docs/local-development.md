@@ -109,23 +109,51 @@ tabs when local React source changes.
 
 ## Run a local app
 
-Pass the host page where the app should run. When app configuration does not
-identify exactly one host, Atlas discovers host identity from the page origin's
-public `/atlas.bootstrap.json`.
+Define one or more host pages in the app's development-only `atlas.previews`
+package metadata. Atlas discovers host identity from the selected page origin's
+public `/atlas.bootstrap.json` when app configuration does not identify it.
 
 ```sh
-atlas dev orders \
-  --host-url=https://customer.example/orders
+atlas dev orders
 ```
 
 Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, and waits for valid federation metadata. The console prints the clean production URL. The browser opens that URL with a transient `atlas-dev-port` activation parameter; the deployed loader stores the tab-scoped override and immediately removes the parameter from the address bar.
 
-For a local host:
+### Configure app previews
 
-```sh
-atlas dev orders \
-  --host-url=http://localhost:4200/orders
+Define `atlas.previews` in the app's `package.json`:
+
+```json
+{
+  "atlas": {
+    "previews": [
+      "http://localhost:4200/orders",
+      "https://staging.example.com/orders"
+    ]
+  }
+}
 ```
+
+Each entry must be an absolute `http` or `https` page URL. Include the app's
+route when more than one route could match the host.
+
+`atlas dev orders` behavior:
+
+- one preview: opens it automatically;
+- multiple previews: prompts for a URL before starting;
+- no previews: fails with `package.json atlas.previews is required for atlas dev apps.`
+
+App development always uses `atlas.previews`. `--host-url` remains a host-command
+setting for developing a host client against a deployed page or binding a
+deployed host URL.
+
+`atlas.previews` belongs in `package.json` because it is team-owned launch
+metadata, not an Atlas production contract. It can list each host environment
+an app team uses locally, never enters `atlas.config.ts`, and is not emitted in
+an Atlas manifest.
+
+For a local host, include its page URL such as
+`http://localhost:4200/orders` in `atlas.previews`.
 
 ## Columbus selection model
 
@@ -185,14 +213,17 @@ Apps retain their host compatibility, integrity, URL, route, and widget validati
 
 ```sh
 atlas dev customer-host --prepare-only
-atlas dev orders --host-url=https://customer.example/orders --prepare-only
+atlas dev orders --prepare-only
 ```
 
 Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`. It does not publish local artifacts.
 
 ## Troubleshooting
 
-`Host URL is required`: pass `--host-url` or set `ATLAS_HOST_URL`.
+`package.json atlas.previews is required for atlas dev apps`: define it in the app's `package.json`.
+
+`Multiple Atlas previews configured. Run atlas dev interactively.`: choose one
+preview in an interactive terminal, or reduce `atlas.previews` to one entry.
 
 `Host URL identifies ..., but app ... has no route or slot for that host`: use a
 host URL supported by the app, or add a placement for that host.

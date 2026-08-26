@@ -117,7 +117,7 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     options: [
       {
         label: '--host-url <url>',
-        description: 'Host page where the local app should run',
+        description: 'Deployed page where a local host client should run',
       },
       {
         label: '--port <number>',
@@ -154,23 +154,12 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     environment: [
       {
-        label: 'ATLAS_HOST_URL',
-        description:
-          'Host base URL or full page URL where the local app should run',
-      },
-      {
         label: 'ATLAS_REGISTRY_URL',
         description:
           'Published registry used by a local host for catalog and Columbus version choices',
       },
     ],
-    examples: [
-      'atlas dev customer-host',
-      'atlas dev orders',
-      'atlas dev',
-      'ATLAS_HOST_URL=http://localhost:4200 atlas dev orders',
-      'atlas dev orders --host-url https://customer.example/orders',
-    ],
+    examples: ['atlas dev customer-host', 'atlas dev orders', 'atlas dev'],
   },
   build: {
     summary: 'Build a host client or app and write its immutable manifest.',
@@ -477,14 +466,13 @@ function storageEnvironment(includeSource = false): HelpEntry[] {
             label: 'ATLAS_SOURCE_REGISTRY_URL',
             description: 'Public source registry root',
           },
-          {
-            label: 'ATLAS_HOST_URL',
-            description:
-              'Public host base URL used when deploying a host binding',
-          },
         ]
       : []),
     { label: 'ATLAS_REGISTRY_URL', description: 'Public target registry root' },
+    {
+      label: 'ATLAS_HOST_URL',
+      description: 'Public host base URL used when deploying a host binding',
+    },
     {
       label: 'ATLAS_STORAGE_API_URL',
       description: 'Private S3-compatible write API',

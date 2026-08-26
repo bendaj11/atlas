@@ -35,6 +35,16 @@ test('should use local Atlas commands when generating a host', () => {
   });
 });
 
+test('should include an empty preview array when generating an app', () => {
+  expect(atlasPreviews(generateReactAppFiles(options()))).toEqual([]);
+});
+
+test('should include an empty preview array when generating a host', () => {
+  expect(atlasPreviews(generateReactHostFiles(options(), 'host-id'))).toEqual(
+    [],
+  );
+});
+
 function options() {
   return {
     name: 'orders',
@@ -72,4 +82,15 @@ function reactDependencies(files: { path: string; contents: string }[]) {
     react: packageJson.dependencies.react,
     'react-dom': packageJson.dependencies['react-dom'],
   };
+}
+
+function atlasPreviews(files: { path: string; contents: string }[]): unknown[] {
+  const packageFile = files.find((file) => file.path === 'package.json');
+  if (!packageFile)
+    throw new Error('Generated project must have package.json.');
+
+  const packageJson = JSON.parse(packageFile.contents) as {
+    atlas: { previews: unknown[] };
+  };
+  return packageJson.atlas.previews;
 }

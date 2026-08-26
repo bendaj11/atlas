@@ -66,6 +66,16 @@ assets and styles](assets-and-styles.md).
 
 ## 4. Run Inside Host
 
+In `package.json`, add the host page where Orders runs:
+
+```json
+{
+  "atlas": {
+    "previews": ["http://localhost:4200/orders"]
+  }
+}
+```
+
 Open two terminals at workspace root:
 
 ```sh
@@ -75,12 +85,12 @@ atlas dev customer-host
 
 ```sh
 # Terminal 2
-atlas dev orders --host-url=http://localhost:4200/orders
+atlas dev orders
 ```
 
 Checkpoint: host preview renders Orders at `/orders`, nested refresh works, and
 Columbus can reset Orders without replacing host client. For multi-host apps,
-pass stable UUID with `--host`.
+list each host page in `atlas.previews`; Atlas prompts for one at startup.
 
 ## 5. Test And Continue
 

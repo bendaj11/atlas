@@ -18,11 +18,6 @@ declare function createReactHostViteConfig(options: any): {
     } | {
         name: string;
         apply: "serve";
-        enforce: "pre";
-        transform(code: any, id: any): string;
-    } | {
-        name: string;
-        apply: "serve";
         handleHotUpdate({ file, server }: {
             file: any;
             server: any;
@@ -60,11 +55,6 @@ declare function createReactAppViteConfig(options: any): {
         name: string;
         resolveId(source: any): string;
         load(id: any): string;
-    } | {
-        name: string;
-        apply: "serve";
-        enforce: "pre";
-        transform(code: any, id: any): string;
     } | {
         name: string;
         apply: "serve";

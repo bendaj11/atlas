@@ -4,11 +4,12 @@ import {
   Dropdown,
   listItemSelectBuilder,
 } from '@wix/design-system';
-import { versionLabel } from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
+import {
+  isManifestSupportedByHost,
+  versionLabel,
+} from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
 import { versionKey } from '../../../../scripts/manifests/manifest-versions/manifest-versions.js';
 import type { Manifest } from '../../../../types/app.js';
-import { AtlasExtensionManifest } from '../../../../types/contracts';
-import { placementTargetsHost } from '@atlas/schema';
 
 interface VersionDropdownProps {
   disabled: boolean;
@@ -30,20 +31,6 @@ export function OverrideVersionDropdown({
   const isVersionSelected = (manifest: Manifest) =>
     manifest.channel === 'production' && versionKey(manifest) === currentId;
 
-  const isHostSupported = ({
-    manifest,
-    hostId,
-  }: {
-    manifest: AtlasExtensionManifest;
-    hostId: string;
-  }) =>
-    (manifest.kind === 'host' && manifest.id === hostId) ||
-    manifest.supportedHosts?.includes('*') === true ||
-    manifest.supportedHosts?.includes(hostId) === true ||
-    manifest.placements?.some((placement) =>
-      placementTargetsHost(placement, hostId),
-    ) === true;
-
   const options = versions.map((version) =>
     listItemSelectBuilder({
       id: versionKey(version),
@@ -53,7 +40,7 @@ export function OverrideVersionDropdown({
           Current
         </Badge>
       ),
-      disabled: !isHostSupported({ manifest: version, hostId }),
+      disabled: !isManifestSupportedByHost(version, hostId),
     }),
   );
 

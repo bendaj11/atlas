@@ -27,27 +27,10 @@ export class AppComponent {}
 }
 
 export function angularHostMain(): string {
-  return `import { initFederation } from "@atlas/sdk/federation";
+  return `const root = document.querySelector("atlas-host-root");
+if (!root) throw new Error("Atlas host root is missing.");
 
-void start();
-
-async function start(): Promise<void> {
-  try {
-    await initFederation();
-    const { bootstrap } = await import("./bootstrap");
-    await bootstrap();
-  } catch (cause: unknown) {
-    console.error("Atlas host failed to start.", {
-    message: \`Atlas could not initialize Native Federation: \${cause instanceof Error ? cause.message : String(cause)}\`,
-    suggestedActions: [
-      "Verify the deployed remote-entry URLs, CORS headers, and federation metadata.",
-      "Correct the host or app deployment, then reload the page."
-    ],
-    code: "ATLAS_FEDERATION_INIT_FAILED",
-    cause
-    });
-  }
-}
+root.textContent = "Start this Atlas host with atlas dev.";
 `;
 }
 
@@ -107,11 +90,11 @@ import { createCustomHostSdkOptions } from "./app/host.config";
 
 type HostMountRequest = Parameters<AtlasHostClientEntry["mount"]>[0];
 
-export async function bootstrap(request?: HostMountRequest) {
+export async function bootstrap(request: HostMountRequest) {
   return bootstrapAngularHost({
     component: AppComponent,
     appConfig,
-    ...(request ? { request } : {}),
+    request,
     createHostOptions: (injector) => ({
       router: injector.get(Router),
       location: injector.get(Location),
@@ -119,7 +102,8 @@ export async function bootstrap(request?: HostMountRequest) {
       federation: { initFederation, loadRemoteModule },
       hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
       ...createCustomHostSdkOptions(injector),
-      ...(request ? { runtimeConfig: request.runtimeConfig, catalog: request.catalog } : {})
+      runtimeConfig: request.runtimeConfig,
+      ...(request.catalog ? { catalog: request.catalog } : {})
     })
   });
 }

@@ -152,7 +152,7 @@ export function logHostViewUrl(
     ui.linkedResult('App preview', url, activationUrl ?? url);
     return;
   }
-  ui.warning('App preview unresolved. Pass --host-url or set ATLAS_HOST_URL.');
+  ui.warning('App preview unresolved. Define atlas.previews in package.json.');
 }
 
 export function withDevSessionPort(

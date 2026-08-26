@@ -23,6 +23,9 @@ export function reactPackage(options: ReactPackageOptions): unknown {
     version: '0.1.0',
     private: true,
     type: 'module',
+    atlas: {
+      previews: [],
+    },
     scripts: {
       dev: `atlas dev ${projectName}`,
       'framework:dev': 'vite --host 0.0.0.0',

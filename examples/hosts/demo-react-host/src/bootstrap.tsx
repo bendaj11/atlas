@@ -16,11 +16,7 @@ import {
 import atlasConfig from '../atlas.config';
 import './styles.css';
 
-type HostMountRequest = Pick<
-  Parameters<AtlasHostClientEntry['mount']>[0],
-  'container'
-> &
-  Partial<Omit<Parameters<AtlasHostClientEntry['mount']>[0], 'container'>>;
+type HostMountRequest = Parameters<AtlasHostClientEntry['mount']>[0];
 
 function HostLayout() {
   return (
@@ -46,9 +42,7 @@ function mountHost(request: HostMountRequest) {
           router,
           federation: { initFederation, loadRemoteModule },
           hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
-          ...(request.runtimeConfig
-            ? { runtimeConfig: request.runtimeConfig }
-            : {}),
+          runtimeConfig: request.runtimeConfig,
           ...(request.catalog ? { catalog: request.catalog } : {}),
         }}
       >
