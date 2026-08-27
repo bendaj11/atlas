@@ -190,8 +190,8 @@
     "semantic_hash": ""
   },
   "examples/hosts/demo-angular-host/package.json": {
-    "mtime": 1787845536.5611618,
-    "ast_hash": "3b17f53a90e6425940937c752ac0e4ee",
+    "mtime": 1787845935.8762672,
+    "ast_hash": "065ddad9601a8a8d832a029dd41e6975",
     "semantic_hash": ""
   },
   "examples/hosts/demo-angular-host/src/app.component.ts": {
@@ -230,8 +230,8 @@
     "semantic_hash": ""
   },
   "examples/hosts/demo-react-host/package.json": {
-    "mtime": 1787845536.4833465,
-    "ast_hash": "b912eae20cd29506ce5672935441e27c",
+    "mtime": 1787845935.7999978,
+    "ast_hash": "dcfe663f685e848cb40ff1befb29671b",
     "semantic_hash": ""
   },
   "examples/hosts/demo-react-host/public/remoteEntry.json": {
@@ -1155,8 +1155,8 @@
     "semantic_hash": ""
   },
   "docs/local-development.md": {
-    "mtime": 1787845702.4234524,
-    "ast_hash": "9c892ba8f66c2fdb44bfe6357eafbede",
+    "mtime": 1787845932.5068839,
+    "ast_hash": "9a5270fc213b0888a5a3590ab67f0e16",
     "semantic_hash": ""
   },
   "docs/manifest.md": {
@@ -1905,8 +1905,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/development/types.ts": {
-    "mtime": 1787845329.7934031,
-    "ast_hash": "db9e0fbce812365bc50c51e270408077",
+    "mtime": 1787845931.8992665,
+    "ast_hash": "c71f2a19f45bc2503f18961bef7770cb",
     "semantic_hash": ""
   },
   "packages/cli/src/generation/angular.ts": {
@@ -1935,8 +1935,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/help/content.ts": {
-    "mtime": 1787845702.3487327,
-    "ast_hash": "479561378dbebe5d8ba4680a742933fb",
+    "mtime": 1787845932.4318573,
+    "ast_hash": "03cf259edf03da24ac8dfa06d2948c87",
     "semantic_hash": ""
   },
   "packages/cli/src/help/help.ts": {
@@ -2500,18 +2500,18 @@
     "semantic_hash": ""
   },
   "packages/cli/src/development/service/dev.service.driver.ts": {
-    "mtime": 1787845677.5617871,
-    "ast_hash": "4bcea518527f2a7c38195864a50592a5",
+    "mtime": 1787845932.281839,
+    "ast_hash": "9eb748f4b43dc7b264f9d73ec67db47b",
     "semantic_hash": ""
   },
   "packages/cli/src/development/service/dev.service.specs.ts": {
-    "mtime": 1787845670.1525779,
-    "ast_hash": "60bdf1846ce21c36d2393a30e503cdaf",
+    "mtime": 1787845932.3569882,
+    "ast_hash": "1d23bdb2cdf3fd2c137d1436d5331755",
     "semantic_hash": ""
   },
   "packages/cli/src/development/service/dev.service.ts": {
-    "mtime": 1787845662.5600731,
-    "ast_hash": "932cc82c2da9cc64de33ad089f57224e",
+    "mtime": 1787845932.053912,
+    "ast_hash": "987afd40c5a346ec6911d464def1ff58",
     "semantic_hash": ""
   },
   "packages/cli/src/development/session/session.driver.ts": {

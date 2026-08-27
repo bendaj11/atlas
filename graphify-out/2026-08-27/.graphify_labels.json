@@ -327,6 +327,8 @@
   "325": "rxjs",
   "326": "mount",
   "327": "publication-metadata.specs.ts",
+  "328": "@angular/common",
+  "329": "@angular/compiler",
   "331": "Consumer Testing",
   "332": "main.tsx",
   "335": "Testing The Atlas Repository",
