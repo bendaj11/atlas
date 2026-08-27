@@ -4,6 +4,17 @@ Columbus applies host-client and app overrides to one effective catalog before t
 
 ## Run a local host client
 
+Host previews are optional. Empty or missing `atlas.previews` starts the host on
+localhost. Add deployed host pages when local host code should run inside one:
+
+```json
+{
+  "atlas": {
+    "previews": ["http://localhost:4200", "https://customer.example"]
+  }
+}
+```
+
 ```sh
 atlas dev customer-host
 ```
@@ -14,7 +25,10 @@ Atlas starts:
 - the internal host-client framework server on a separate port.
 - the local Atlas control/catalog server, normally port 4400;
 
-Framework server exposes `./host`. Control catalog selects its local host manifest. Browser-facing static bootstrap loads that catalog exactly like production. Internal port is implementation detail.
+Atlas selects one configured preview. A loopback preview starts the local static
+bootstrap. A deployed preview keeps that page and applies the local host client
+as an override. Multiple previews are selected interactively. Framework server
+exposes `./host`; its internal port is implementation detail.
 
 The port selected during host generation remains the browser-facing preview
 port. Atlas manages the separate framework port and starts the bootstrap only
@@ -82,10 +96,8 @@ ATLAS_REGISTRY_URL=https://registry.example/atlas atlas dev customer-host
 ```
 
 `atlas dev` keeps local host and app overrides, then overlays them on selected
-deployment from `registry.json`. Columbus reads registry descriptors through
-local control server, so it can offer current deployment, PR/MR previews, and
-other retained releases without requiring published registry to allow localhost
-origin through CORS.
+deployment from `registry.json`. Columbus uses registry descriptors to offer
+current deployment, PR/MR previews, and other retained releases.
 
 Use `--registry-url https://registry.example/atlas` instead of
 `ATLAS_REGISTRY_URL` when the setting applies to one command. Without either
@@ -95,10 +107,13 @@ local artifacts and Columbus cannot offer published versions.
 ## Use a deployed domain
 
 ```sh
-atlas dev customer-host --host-url=https://customer.example
+atlas dev customer-host
 ```
 
-Local static bootstrap is not started. Columbus discovers local host manifest from loopback control server and stores tab- or all-tabs override. Reloading `customer.example` causes deployed loader to select local host client.
+With `https://customer.example` selected from `atlas.previews`, local static
+bootstrap is not started. Columbus discovers local host manifest from loopback
+control server and stores tab- or all-tabs override. Reloading
+`customer.example` causes deployed loader to select local host client.
 
 Atlas does not probe localhost on normal production page loads. `atlas dev`
 adds an explicit development-session query parameter. Local manifest URLs must use loopback; Columbus and loader reject
@@ -119,9 +134,9 @@ atlas dev orders
 
 Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, and waits for valid federation metadata. The console and browser use the production preview URL directly. Columbus obtains the development session from the local control server in extension context, then the loader applies the preconfigured override before resolving the app.
 
-### Configure app previews
+### Configure previews
 
-Define `atlas.previews` in the app's `package.json`:
+Define `atlas.previews` in the project's `package.json`:
 
 ```json
 {
@@ -137,15 +152,15 @@ Define `atlas.previews` in the app's `package.json`:
 Each entry must be an absolute `http` or `https` page URL. Include the app's
 route when more than one route could match the host.
 
-`atlas dev orders` behavior:
+`atlas dev` preview behavior:
 
 - one preview: opens it automatically;
 - multiple previews: prompts for a URL before starting;
-- no previews: fails with `package.json atlas.previews is required for atlas dev apps.`
+- no host previews: starts the host on localhost;
+- no app previews: fails with `package.json atlas.previews is required for atlas dev apps.`
 
-App development always uses `atlas.previews`. `--host-url` remains a host-command
-setting for developing a host client against a deployed page or binding a
-deployed host URL.
+Apps require `atlas.previews`; hosts use it only to target an explicit local or
+deployed page.
 
 `atlas.previews` belongs in `package.json` because it is team-owned launch
 metadata, not an Atlas production contract. It can list each host environment
@@ -220,7 +235,8 @@ Atlas writes `.atlas/local-host.manifest.json` or `.atlas/local-overrides.json`.
 
 ## Troubleshooting
 
-`package.json atlas.previews is required for atlas dev apps`: define it in the app's `package.json`.
+`package.json atlas.previews is required for atlas dev apps`: define it in the
+app's `package.json`.
 
 `Multiple Atlas previews configured. Run atlas dev interactively.`: choose one
 preview in an interactive terminal, or reduce `atlas.previews` to one entry.

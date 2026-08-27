@@ -5,16 +5,27 @@ import {
 } from '../constants.js';
 import type { HostDevPorts } from '../types.js';
 
+interface ResolveHostDevPortsOptions {
+  args: CliArguments;
+  configuredPort: number;
+  previewKind: 'deployed' | 'local';
+}
+
 export function resolveHostDevPorts(
-  args: CliArguments,
-  configuredPort: number,
+  options: ResolveHostDevPortsOptions,
 ): HostDevPorts {
+  const { args, configuredPort, previewKind } = options;
   const bootstrapPort = args.port('bootstrap-port', configuredPort);
   const clientPort = args.port(
     'host-client-port',
-    hostClientPortFallback(args, configuredPort, bootstrapPort),
+    hostClientPortFallback({
+      args,
+      bootstrapPort,
+      configuredPort,
+      previewKind,
+    }),
   );
-  if (!args.hasFlag('host-url') && clientPort === bootstrapPort) {
+  if (previewKind === 'local' && clientPort === bootstrapPort) {
     throw new Error(
       'Host bootstrap and host client ports must differ. Pass --host-client-port with another port.',
     );
@@ -23,11 +34,10 @@ export function resolveHostDevPorts(
 }
 
 function hostClientPortFallback(
-  args: CliArguments,
-  configuredPort: number,
-  bootstrapPort: number,
+  options: ResolveHostDevPortsOptions & { bootstrapPort: number },
 ): number {
-  if (args.hasFlag('host-url') || args.hasFlag('bootstrap-port'))
+  const { args, bootstrapPort, configuredPort, previewKind } = options;
+  if (previewKind === 'deployed' || args.hasFlag('bootstrap-port'))
     return configuredPort;
   return bootstrapPort === DEFAULT_HOST_CLIENT_PORT
     ? DEFAULT_HOST_BOOTSTRAP_PORT

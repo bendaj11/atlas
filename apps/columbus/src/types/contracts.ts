@@ -66,6 +66,7 @@ export interface AtlasHostData {
     environment: string;
     artifactRegistryUrl: string;
     environmentRegistryUrl?: string;
+    developmentSessionUrl?: string;
   };
   pageUrl: string;
   catalog: {

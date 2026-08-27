@@ -5,9 +5,9 @@ import {
 } from '../../types/contracts.js';
 import { normalizeStoredManifest } from '../manifests/manifest-utils/manifest-utils.js';
 
-interface IncludeDisabledAppsOptions {
+interface IncludeOverrideAppsOptions {
   hostData: HostData;
-  disabledOverrides: ReadonlyMap<string, Manifest>;
+  overrideManifests: Iterable<Manifest>;
 }
 
 export function extractActiveOverrideManifests(
@@ -27,18 +27,20 @@ export function extractActiveOverrideManifests(
   );
 }
 
-export function includeDisabledAppsInCatalog({
+export function includeOverrideAppsInCatalog({
   hostData,
-  disabledOverrides,
-}: IncludeDisabledAppsOptions): HostData {
+  overrideManifests,
+}: IncludeOverrideAppsOptions): HostData {
   const apps = [...hostData.catalog.apps];
   const widgetProviders = [...(hostData.catalog.widgetProviders ?? [])];
-  const knownArtifactKeys = new Set(apps.map(getArtifactKey));
+  const knownArtifactKeys = new Set(
+    [...apps, ...widgetProviders].map(getArtifactKey),
+  );
   const dependencyIds = new Set(
     apps.flatMap((manifest) => manifest.externalAppsDependencies ?? []),
   );
 
-  for (const manifest of disabledOverrides.values()) {
+  for (const manifest of overrideManifests) {
     if (
       manifest.kind !== 'app' ||
       knownArtifactKeys.has(getArtifactKey(manifest))
@@ -46,6 +48,7 @@ export function includeDisabledAppsInCatalog({
       continue;
     if (dependencyIds.has(manifest.id)) widgetProviders.push(manifest);
     else apps.push(manifest);
+    knownArtifactKeys.add(getArtifactKey(manifest));
   }
 
   return {

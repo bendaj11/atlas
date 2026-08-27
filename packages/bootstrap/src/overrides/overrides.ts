@@ -15,11 +15,14 @@ import { loadPublishedArtifact } from '../published-artifact/published-artifact.
 export async function applyOverrides(
   runtime: AtlasHostRuntimeConfig,
   catalog: AtlasHostCatalog,
+  suppliedDevSession?: DevSession,
 ): Promise<AtlasHostCatalog> {
-  const devSession = runtime.developmentSessionUrl
-    ? await fetchJson<DevSession>(runtime.developmentSessionUrl, runtime)
-    : ((await requestDevelopmentSession(runtime.hostId)) as
-        DevSession | undefined);
+  const devSession =
+    suppliedDevSession ??
+    (runtime.developmentSessionUrl
+      ? await fetchJson<DevSession>(runtime.developmentSessionUrl, runtime)
+      : ((await requestDevelopmentSession(runtime.hostId)) as
+          DevSession | undefined));
   let stored: string | null;
   if (devSession) {
     catalog = mergeDevSessionCatalog(catalog, devSession);
@@ -66,6 +69,7 @@ export async function applyOverrides(
     if (appsById.has(manifest.id)) appsById.set(manifest.id, manifest);
     else if (externalDependencyIds.has(manifest.id))
       providersById.set(manifest.id, manifest);
+    else if (manifest.channel === 'local') appsById.set(manifest.id, manifest);
     else
       throw new Error(
         'Atlas app override does not target a selected app or external widget provider.',

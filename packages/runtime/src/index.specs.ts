@@ -89,6 +89,21 @@ test('resolveRuntimeManifests applies overrides', () => {
   assert.equal(manifests[0].version, '2.0.0');
 });
 
+test('resolveRuntimeManifests adds new local app', () => {
+  const local = createTestManifest({
+    id: 'new-app',
+    channel: 'local',
+    remoteEntryUrl: 'http://localhost:4203/remoteEntry.json',
+  });
+  const catalog = createHostCatalog([]);
+
+  const manifests = resolveRuntimeManifests(catalog, [
+    { appId: local.id, manifest: local, reason: 'local' },
+  ]);
+
+  assert.deepEqual(manifests, [local]);
+});
+
 test('resolveRuntimeCatalog applies widget provider overrides', () => {
   const provider = createTestManifest({ id: 'provider' });
   const replacement = createTestManifest({

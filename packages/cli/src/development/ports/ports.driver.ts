@@ -22,6 +22,7 @@ export class DevelopmentPortsDriver {
 
   given = {
     configuration: (scenario: PortScenario): void => {
+      this.scenario = scenario;
       const arguments_ = ['dev', this.projectName];
 
       if (scenario === 'custom-browser') {
@@ -38,10 +39,7 @@ export class DevelopmentPortsDriver {
       }
 
       if (scenario === 'deployed') {
-        arguments_.push(
-          `--port=${this.customPort}`,
-          `--host-url=${faker.internet.url()}`,
-        );
+        arguments_.push(`--port=${this.customPort}`);
         this.configuredPort = this.customPort;
       }
 
@@ -63,9 +61,15 @@ export class DevelopmentPortsDriver {
     resolve: (): void => {
       if (!this.arguments) throw new Error('Port setup is required.');
 
-      this.ports = resolveHostDevPorts(this.arguments, this.configuredPort);
+      this.ports = resolveHostDevPorts({
+        args: this.arguments,
+        configuredPort: this.configuredPort,
+        previewKind: this.scenario === 'deployed' ? 'deployed' : 'local',
+      });
     },
   };
+
+  private scenario: PortScenario = 'default';
 
   get = {
     bootstrapPort: (): number => this.bootstrapPort,

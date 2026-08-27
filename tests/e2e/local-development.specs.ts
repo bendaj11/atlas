@@ -10,14 +10,21 @@ const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST
 
 interface LocalDevelopmentCase {
   app: string;
+  description: string;
   heading: string;
   hostUrl: string;
   remotePort: number;
   controlPort: number;
+  newLocalAppId?: string;
+  deployedRoute?: {
+    heading: string;
+    url: string;
+  };
 }
 const cases: LocalDevelopmentCase[] = [
   {
     app: 'dashboard-react',
+    description: 'dashboard-react',
     heading: 'Dashboard React',
     hostUrl: `${reactHostOrigin}/dashboard`,
     remotePort: 4211,
@@ -25,10 +32,24 @@ const cases: LocalDevelopmentCase[] = [
   },
   {
     app: 'dashboard-angular',
+    description: 'dashboard-angular',
     heading: 'Dashboard Angular',
     hostUrl: `${angularHostOrigin}/dashboard-angular`,
     remotePort: 4212,
     controlPort: 4412,
+  },
+  {
+    app: 'dashboard-react',
+    description: 'brand-new local app absent from production catalog',
+    heading: 'Dashboard React',
+    hostUrl: `${reactHostOrigin}/new-local-app`,
+    remotePort: 4213,
+    controlPort: 4413,
+    newLocalAppId: 'e2e-new-local-app',
+    deployedRoute: {
+      heading: 'Catalog React',
+      url: `${reactHostOrigin}/catalog`,
+    },
   },
 ];
 
@@ -36,11 +57,12 @@ test.describe('atlas dev', () => {
   test.describe.configure({ mode: 'serial', timeout: PROCESS_START_TIMEOUT });
 
   for (const scenario of cases) {
-    test(`should render local ${scenario.app} and release ports when development stops`, async ({
+    test(`should render local ${scenario.description} and release ports when development stops`, async ({
       page,
     }) => {
       const process = startAtlasDev(scenario);
       let rendered = false;
+      let deployedRouteRendered = false;
       let cleanPreviewUrl = false;
       try {
         await waitForHealthyControlServer(scenario.controlPort, process);
@@ -57,12 +79,21 @@ test.describe('atlas dev', () => {
           timeout: APP_MOUNT_TIMEOUT,
         });
         rendered = true;
+        if (scenario.deployedRoute) {
+          await page.goto(scenario.deployedRoute.url);
+          await page
+            .getByRole('heading', { name: scenario.deployedRoute.heading })
+            .waitFor({ state: 'visible', timeout: APP_MOUNT_TIMEOUT });
+          deployedRouteRendered = true;
+        }
       } finally {
         await stopAtlasDev(process);
       }
 
       expect({
         cleanPreviewUrl,
+        deployedRouteRendered:
+          deployedRouteRendered || scenario.deployedRoute === undefined,
         portsReleased: await portsReleased([
           scenario.controlPort,
           scenario.remotePort,
@@ -70,6 +101,7 @@ test.describe('atlas dev', () => {
         rendered,
       }).toStrictEqual({
         cleanPreviewUrl: true,
+        deployedRouteRendered: true,
         portsReleased: true,
         rendered: true,
       });
@@ -84,7 +116,6 @@ function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
       'packages/cli/dist/cli/entrypoint.js',
       'dev',
       scenario.app,
-      `--host-url=${scenario.hostUrl}`,
       `--port=${scenario.remotePort}`,
       `--control-port=${scenario.controlPort}`,
     ],
@@ -112,10 +143,56 @@ async function installDevelopmentSession(
       `Atlas development session returned HTTP ${response.status}.`,
     );
   }
-  const document = await response.json();
+  const document = configureNewLocalApp(await response.json(), scenario);
   await page.addInitScript((value) => {
     sessionStorage.setItem('atlas.runtime-overrides', JSON.stringify(value));
   }, document);
+}
+
+function configureNewLocalApp(
+  document: unknown,
+  scenario: LocalDevelopmentCase,
+): unknown {
+  if (!scenario.newLocalAppId || !isDevelopmentSessionDocument(document))
+    return document;
+  const [override, ...remainingOverrides] = document.overrides;
+  if (!override) return document;
+  const hostId = developmentHostId(scenario.app);
+  const manifest = {
+    ...override.manifest,
+    id: scenario.newLocalAppId,
+    name: 'New Local App',
+    supportedHosts: [hostId],
+    placements: [
+      {
+        id: 'new-local-app-route',
+        kind: 'route',
+        hostId,
+        route: { path: '/new-local-app' },
+      },
+    ],
+  };
+  return {
+    ...document,
+    overrides: [
+      { ...override, appId: scenario.newLocalAppId, manifest },
+      ...remainingOverrides,
+    ],
+  };
+}
+
+function isDevelopmentSessionDocument(value: unknown): value is {
+  overrides: Array<{
+    appId: string;
+    manifest: Record<string, unknown>;
+    reason: string;
+  }>;
+} {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Array.isArray((value as { overrides?: unknown }).overrides)
+  );
 }
 
 function developmentHostId(app: string): string {

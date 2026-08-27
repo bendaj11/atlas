@@ -1,15 +1,16 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasAppConfig } from '@atlas/schema';
+import type { AtlasAppConfig, AtlasHostConfig } from '@atlas/schema';
 import { createPromptDriver } from '../../cli/interaction/interaction.testkit.js';
 import type { DevTarget } from '../types.js';
-import { resolveDevTarget } from './target.js';
+import { resolveDevTarget, resolveHostDevTarget } from './target.js';
 
 export class DevelopmentTargetDriver {
   private readonly appId = faker.string.uuid();
   private readonly firstHostId = faker.string.uuid();
   private readonly secondHostId = faker.string.uuid();
   private readonly origin = faker.internet.url({ appendSlash: false });
+  private readonly localPreviewUrl = 'http://localhost:4200';
   private readonly firstPath = `/${faker.word.noun()}`;
   private readonly secondPath = `/${faker.word.noun()}`;
   private readonly originalFetch = globalThis.fetch;
@@ -18,6 +19,7 @@ export class DevelopmentTargetDriver {
     id: this.appId,
     framework: 'react',
   };
+  private hostConfig?: AtlasHostConfig;
   private prompts = createPromptDriver([], false);
   private previewUrls: string[] = [];
   private result?: DevTarget;
@@ -82,6 +84,29 @@ export class DevelopmentTargetDriver {
         }),
       );
     },
+
+    hostPreview: (
+      previewKind: 'default' | 'deployed' | 'local',
+      matching = true,
+    ): void => {
+      this.hostConfig = {
+        id: this.appId,
+        framework: 'react',
+        type: 'host',
+      };
+      this.previewUrls =
+        previewKind === 'default'
+          ? []
+          : [previewKind === 'local' ? this.localPreviewUrl : this.origin];
+      globalThis.fetch = jest.fn(async () =>
+        Response.json({
+          schemaVersion: 'v1',
+          hostId: matching ? this.appId : this.firstHostId,
+          environment: 'production',
+          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
+        }),
+      );
+    },
   };
 
   when = {
@@ -89,6 +114,21 @@ export class DevelopmentTargetDriver {
       try {
         this.result = await resolveDevTarget({
           config: this.config,
+          prompts: this.prompts,
+          previewUrls: this.previewUrls,
+        });
+      } catch (error) {
+        this.error = error as Error;
+      } finally {
+        this.restoreGlobals();
+      }
+    },
+    resolveHost: async (): Promise<void> => {
+      try {
+        if (!this.hostConfig) throw new Error('Host setup is required.');
+        this.result = await resolveHostDevTarget({
+          config: this.hostConfig,
+          localPreviewUrl: this.localPreviewUrl,
           prompts: this.prompts,
           previewUrls: this.previewUrls,
         });
@@ -127,6 +167,8 @@ export class DevelopmentTargetDriver {
     previewQuestion: (): string | undefined => this.prompts.questions[0],
     multiplePreviewsError: (): string =>
       'Multiple Atlas previews configured. Run atlas dev interactively.',
+    hostPreview: () => this.result,
+    localPreviewUrl: (): string => this.localPreviewUrl,
   };
 
   private restoreGlobals(): void {

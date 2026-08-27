@@ -14,6 +14,14 @@ describe('startAtlasLoader', () => {
     expect(driver.get.catalog()).toEqual(driver.get.productionCatalog());
   });
 
+  it('should mount development session catalog when local host is running', async () => {
+    await driver.given.localHostDevelopment().when.start();
+
+    expect(driver.get.developmentStartup()).toEqual(
+      driver.get.expectedDevelopmentStartup(),
+    );
+  });
+
   it('should publish resolved runtime snapshot when host is mounted', async () => {
     await driver.when.start();
 

@@ -30,4 +30,10 @@ describe('applyOverrides', () => {
       new Error('Atlas app override is invalid.'),
     );
   });
+
+  it('should add local app when production catalog does not select it', async () => {
+    await driver.given.newLocalAppOverride().when.apply();
+
+    expect(driver.get.resultAppIds()).toEqual(['new-app']);
+  });
 });

@@ -104,7 +104,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
   },
   dev: {
-    summary: 'Run a host, or run one app locally inside an Atlas host.',
+    summary:
+      'Run a host locally or against a page selected from package.json atlas.previews.',
     usage: 'atlas dev [project] [options]',
     arguments: [
       {
@@ -114,10 +115,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       },
     ],
     options: [
-      {
-        label: '--host-url <url>',
-        description: 'Deployed page where a local host client should run',
-      },
       {
         label: '--port <number>',
         description:

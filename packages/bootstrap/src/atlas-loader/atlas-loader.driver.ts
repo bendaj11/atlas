@@ -7,7 +7,7 @@ import type {
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import { faker } from '../test-utils/faker.js';
-import type { HostModule } from '../types.js';
+import type { DevSession, HostModule } from '../types.js';
 import {
   startAtlasLoader,
   type AtlasLoaderDependencies,
@@ -43,6 +43,8 @@ export class AtlasLoaderDriver {
     jest.fn<typeof import('../fetch-json/fetch-json.js').fetchBytes>();
   private readonly fetchJson = async <T>(url: string): Promise<T> => {
     if (url === '/atlas.runtime.json') return this.runtime as T;
+    if (url === this.runtime.developmentSessionUrl)
+      return this.developmentSession as T;
     return this.catalog as T;
   };
   private readonly installModuleShim = jest.fn(async () => undefined);
@@ -67,8 +69,11 @@ export class AtlasLoaderDriver {
       : ([this.host, this.app, this.widgetProvider][index] ?? this.app);
   };
   private readonly applyOverrides = jest.fn(
-    async (_runtime: AtlasHostRuntimeConfig, catalog: AtlasHostCatalog) =>
-      catalog,
+    async (
+      _runtime: AtlasHostRuntimeConfig,
+      catalog: AtlasHostCatalog,
+      _developmentSession?: DevSession,
+    ) => catalog,
   );
   private readonly validateCatalog = jest.fn();
   private readonly dependencies: AtlasLoaderDependencies = {
@@ -94,12 +99,25 @@ export class AtlasLoaderDriver {
   private nonHostArtifact = false;
   private activeArtifactLoads = 0;
   private maximumArtifactLoads = 0;
+  private readonly developmentSession: DevSession = {
+    schemaVersion: '1',
+    hostId: this.runtime.hostId,
+    catalog: this.catalog,
+    overrides: [],
+  };
 
   constructor() {
     this.configureProductionRuntime();
   }
 
   readonly given = {
+    localHostDevelopment: (): AtlasLoaderDriver => {
+      Object.assign(this.runtime, {
+        environment: 'development',
+        developmentSessionUrl: 'http://localhost:4400/atlas.dev-session.json',
+      });
+      return this;
+    },
     invalidDeployment: (): AtlasLoaderDriver => {
       this.deployment = {
         ...this.deployment,
@@ -146,6 +164,16 @@ export class AtlasLoaderDriver {
       widgetProviders: [this.widgetProvider],
     }),
     developmentCatalog: (): AtlasHostCatalog => this.catalog,
+    developmentStartup: () => ({
+      catalog: this.mountedCatalog,
+      deploymentRequests: this.fetchBytes.mock.calls.length,
+      suppliedSession: this.applyOverrides.mock.calls[0]?.[2],
+    }),
+    expectedDevelopmentStartup: () => ({
+      catalog: this.catalog,
+      deploymentRequests: 0,
+      suppliedSession: this.developmentSession,
+    }),
     maximumArtifactLoads: (): number => this.maximumArtifactLoads,
     runtimeSnapshot: (): unknown => JSON.parse(this.snapshot.textContent ?? ''),
   };

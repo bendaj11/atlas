@@ -9,7 +9,7 @@ import {
 import { readHostDataCache } from '../../../scripts/host/host-data-cache.js';
 import {
   extractActiveOverrideManifests,
-  includeDisabledAppsInCatalog,
+  includeOverrideAppsInCatalog,
 } from '../../../scripts/overrides/override-manifests.js';
 import type {
   HostStatus,
@@ -51,9 +51,12 @@ async function createLoadedHost(
     readDisabledOverrides(storageLocation),
     readSuppressedArtifactIds(storageLocation),
   ]);
-  const hostData = includeDisabledAppsInCatalog({
+  const hostData = includeOverrideAppsInCatalog({
     hostData: result.hostData,
-    disabledOverrides,
+    overrideManifests: [
+      ...activeOverrides.values(),
+      ...disabledOverrides.values(),
+    ],
   });
 
   return {

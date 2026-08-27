@@ -53,6 +53,46 @@ export class OverridesDriver {
       });
       return this;
     },
+    newLocalAppOverride: (): OverridesDriver => {
+      this.storage.clear();
+      this.storage.set(
+        'atlas.runtime-overrides',
+        JSON.stringify({
+          schemaVersion: '1',
+          hostId: this.hostId,
+          overrides: [
+            {
+              appId: 'new-app',
+              reason: 'local',
+              manifest: {
+                schemaVersion: '1',
+                kind: 'app',
+                id: 'new-app',
+                name: 'New App',
+                version: '0.0.0-local',
+                buildId: 'local',
+                channel: 'local',
+                framework: 'angular',
+                remoteEntryUrl: 'http://localhost:4203/remoteEntry.json',
+                createdAt: faker.date.recent().toISOString(),
+                supportedHosts: [this.hostId],
+                placements: [{ hostId: this.hostId, route: { path: '/new' } }],
+              },
+            },
+          ],
+          generatedAt: faker.date.recent().toISOString(),
+        }),
+      );
+      Object.assign(globalThis, {
+        localStorage: {
+          getItem: (key: string) => this.storage.get(key) ?? null,
+        },
+        sessionStorage: {
+          getItem: (key: string) => this.storage.get(key) ?? null,
+        },
+      });
+      return this;
+    },
   };
 
   readonly when = {
@@ -98,5 +138,7 @@ export class OverridesDriver {
     error: (): unknown => this.error,
     hostId: (): string => this.hostId,
     result: (): AtlasHostCatalog | undefined => this.result,
+    resultAppIds: (): string[] =>
+      this.result?.apps.map((manifest) => manifest.id) ?? [],
   };
 }

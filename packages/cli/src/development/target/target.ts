@@ -12,7 +12,9 @@ import { HOST_DISCOVERY_TIMEOUT_MS } from '../constants.js';
 import type {
   DevPrompts,
   DevTarget,
+  HostDevTarget,
   ResolveDevTargetOptions,
+  ResolveHostDevTargetOptions,
 } from '../types.js';
 
 export async function resolveDevTarget({
@@ -31,6 +33,28 @@ export async function resolveDevTarget({
     hostId,
     hostUrl,
   };
+}
+
+export async function resolveHostDevTarget({
+  config,
+  localPreviewUrl,
+  prompts,
+  previewUrls,
+}: ResolveHostDevTargetOptions): Promise<HostDevTarget> {
+  const hostUrl =
+    previewUrls.length === 0
+      ? localPreviewUrl
+      : await selectPreviewUrl(previewUrls, prompts);
+  const previewKind = isLoopbackPreview(hostUrl) ? 'local' : 'deployed';
+  if (previewKind === 'deployed') {
+    const discoveredHostId = await discoverHostId(hostUrl);
+    if (discoveredHostId !== config.id) {
+      throw new Error(
+        `Host preview identifies "${discoveredHostId}", but local host is "${config.id}".`,
+      );
+    }
+  }
+  return { hostId: config.id, hostUrl, previewKind };
 }
 
 async function selectPreviewUrl(
@@ -52,6 +76,10 @@ async function selectPreviewUrl(
     'Preview URL for local development',
     previewUrls.map((url) => ({ label: url, value: url })),
   );
+}
+
+function isLoopbackPreview(value: string): boolean {
+  return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(value).hostname);
 }
 
 async function resolveHostId(

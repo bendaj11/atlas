@@ -14,7 +14,12 @@ import type { AtlasWorkspace } from '../../workspace/service/workspace.js';
 import type { AtlasDevBuildService } from '../types.js';
 import { AtlasDevService } from './dev.service.js';
 
-type DevelopmentScenario = 'host-prepare' | 'app-prepare';
+type DevelopmentScenario =
+  | 'host-prepare'
+  | 'host-deployed-prepare'
+  | 'host-local-port-mismatch'
+  | 'host-url-removed'
+  | 'app-prepare';
 
 export class DevServiceDriver {
   private readonly appId = faker.string.uuid();
@@ -30,6 +35,8 @@ export class DevServiceDriver {
   private service?: AtlasDevService;
   private originalFetch?: typeof globalThis.fetch;
   private observation?: unknown;
+  private previewUrl?: string;
+  private error?: Error;
 
   given = {
     project: async (scenario: DevelopmentScenario): Promise<void> => {
@@ -43,9 +50,20 @@ export class DevServiceDriver {
           name: this.projectName,
           type: 'module',
           version: '1.0.0',
-          ...(scenario === 'app-prepare'
-            ? { atlas: { previews: [this.hostUrl] } }
-            : {}),
+          atlas: {
+            previews:
+              scenario === 'host-prepare'
+                ? []
+                : [
+                    scenario === 'app-prepare'
+                      ? this.hostUrl
+                      : scenario === 'host-deployed-prepare'
+                        ? this.hostUrl
+                        : scenario === 'host-local-port-mismatch'
+                          ? 'http://localhost:4999'
+                          : 'http://localhost:4200',
+                  ],
+          },
         }),
       );
       await writeFile(
@@ -73,9 +91,11 @@ export class DevServiceDriver {
         scenario === 'host-prepare'
           ? ['dev', this.projectName, '--prepare-only']
           : ['dev', this.projectName, `--port=${this.port}`, '--prepare-only'];
+      if (scenario === 'host-url-removed')
+        arguments_.push(`--host-url=${this.hostUrl}`);
       const builds = this.builds(scenario);
 
-      if (scenario === 'app-prepare') {
+      if (scenario === 'app-prepare' || scenario === 'host-deployed-prepare') {
         this.originalFetch = globalThis.fetch;
         globalThis.fetch = jest.fn<typeof globalThis.fetch>().mockResolvedValue(
           Response.json({
@@ -111,6 +131,7 @@ export class DevServiceDriver {
           'utf8',
         ),
       );
+      this.previewUrl = document.previewUrl;
 
       this.observation = {
         appId: document.overrides[0]?.appId,
@@ -119,6 +140,14 @@ export class DevServiceDriver {
         remoteEntryUrl: document.overrides[0]?.manifest.remoteEntryUrl,
         spawnCount: this.spawn.mock.calls.length,
       };
+    },
+    prepareRejected: async (): Promise<void> => {
+      if (!this.service) throw new Error('Development setup is required.');
+      try {
+        await this.service.run(this.projectName);
+      } catch (error) {
+        this.error = error as Error;
+      }
     },
   };
 
@@ -138,16 +167,20 @@ export class DevServiceDriver {
       spawnCount: 0,
     }),
     observation: (): unknown => this.observation,
+    previewUrl: (): string | undefined => this.previewUrl,
+    hostUrl: (): string => this.hostUrl,
+    localHostUrl: (): string => 'http://localhost:4200',
+    errorMessage: (): string | undefined => this.error?.message,
   };
 
   private configSource(scenario: DevelopmentScenario): string {
-    return scenario === 'host-prepare'
+    return scenario !== 'app-prepare'
       ? `export default { type: "host", id: "${this.hostId}", framework: "react" };\n`
       : `export default { id: "${this.appId}", name: "${faker.company.name()}", framework: "react", routes: [{ hostId: "*", path: "/orders" }] };\n`;
   }
 
   private builds(scenario: DevelopmentScenario): AtlasDevBuildService {
-    if (scenario === 'host-prepare') {
+    if (scenario !== 'app-prepare') {
       const manifest: AtlasHostManifest = {
         buildId: 'local',
         channel: 'local',

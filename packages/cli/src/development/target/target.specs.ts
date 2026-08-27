@@ -98,3 +98,38 @@ it('should reject the host when runtime discovery returns an unsupported host', 
     driver.get.unsupportedHostError(),
   );
 });
+
+it('should use local preview without runtime discovery when developing host locally', async () => {
+  driver.given.hostPreview('local');
+
+  await driver.when.resolveHost();
+
+  expect(driver.get.hostPreview()).toMatchObject({ previewKind: 'local' });
+});
+
+it('should use default local preview when host previews are empty', async () => {
+  driver.given.hostPreview('default');
+
+  await driver.when.resolveHost();
+
+  expect(driver.get.hostPreview()).toMatchObject({
+    hostUrl: driver.get.localPreviewUrl(),
+    previewKind: 'local',
+  });
+});
+
+it('should use deployed preview when runtime identifies local host', async () => {
+  driver.given.hostPreview('deployed');
+
+  await driver.when.resolveHost();
+
+  expect(driver.get.hostPreview()).toMatchObject({ previewKind: 'deployed' });
+});
+
+it('should reject deployed preview when runtime identifies another host', async () => {
+  driver.given.hostPreview('deployed', false);
+
+  await driver.when.resolveHost();
+
+  expect(driver.get.errorMessage()).toContain('but local host is');
+});

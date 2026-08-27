@@ -11,6 +11,7 @@ interface PageOptions {
   deploymentApp?: AtlasExtensionManifest;
   catalogHostId?: string;
   registryUrl?: string;
+  registryUnavailable?: boolean;
   visibleAppIds?: string[];
   runtimeError?: { appId?: string; message: string };
   stored?: Record<string, unknown>;
@@ -19,6 +20,8 @@ interface PageOptions {
   useDevelopmentCatalog?: boolean;
   deploymentEnvironment?: string;
   onManifestRequest?: (cache: RequestCache | undefined) => void;
+  onDeploymentRequest?: () => void;
+  onRegistryRequest?: () => void;
 }
 
 const documentKey = 'atlas.runtime-overrides';
@@ -30,6 +33,8 @@ export class InspectAtlasHostDriver {
   private error: unknown;
   private expectedWidget: AtlasExtensionWidgetManifest | undefined;
   private manifestRequests = 0;
+  private deploymentRequests = 0;
+  private registryRequests = 0;
   private manifestRequestCaches: Array<RequestCache | undefined> = [];
   private loadedManifest: AtlasExtensionManifest | undefined;
 
@@ -104,6 +109,10 @@ export class InspectAtlasHostDriver {
       this.options.registryUrl = 'https://registry.example';
       return this;
     },
+    unavailableRegistry: (): this => {
+      this.options.registryUnavailable = true;
+      return this;
+    },
     runtimeError: (message: string, appId?: string): this => {
       this.options.runtimeError = appId ? { message, appId } : { message };
       return this;
@@ -163,7 +172,21 @@ export class InspectAtlasHostDriver {
           buildId: 'local',
           remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
         }),
+        runtimeEnvironment: 'development',
+        registryUrl: 'http://localhost:4400',
         runtimeSnapshot: true,
+      };
+      return this;
+    },
+    developmentSessionCatalog: (): this => {
+      this.options = {
+        app: manifest({
+          channel: 'local',
+          buildId: 'local',
+          remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
+        }),
+        runtimeEnvironment: 'development',
+        registryUrl: 'http://localhost:4400',
       };
       return this;
     },
@@ -191,6 +214,8 @@ export class InspectAtlasHostDriver {
           this.manifestRequests++;
           this.manifestRequestCaches.push(cache);
         },
+        onDeploymentRequest: () => this.deploymentRequests++,
+        onRegistryRequest: () => this.registryRequests++,
       });
       try {
         this.result = await inspectAtlasHost(documentKey);
@@ -235,6 +260,15 @@ export class InspectAtlasHostDriver {
       };
     },
     manifestRequestCount: (): number => this.manifestRequests,
+    developmentInspection: () => ({
+      catalogAppVersion: this.result?.catalog.apps[0]?.version,
+      deploymentRequests: this.deploymentRequests,
+      registryRequests: this.registryRequests,
+    }),
+    registryFailure: () => ({
+      catalogAppVersion: this.result?.catalog.apps[0]?.version,
+      versionErrors: this.result?.versionErrors,
+    }),
     manifestRequestCache: (): RequestCache | undefined =>
       this.manifestRequestCaches[0],
   };
@@ -274,7 +308,8 @@ function installPage(options: PageOptions): void {
                   schemaVersion: 'v1',
                   hostId,
                   environment: 'development',
-                  artifactRegistryUrl: 'https://registry.example',
+                  artifactRegistryUrl:
+                    options.registryUrl ?? 'https://registry.example',
                 },
                 catalog: {
                   schemaVersion: '1',
@@ -324,6 +359,12 @@ function installPage(options: PageOptions): void {
             : { environment: options.runtimeEnvironment ?? 'production' }),
           artifactRegistryUrl:
             options.registryUrl ?? 'https://registry.example',
+          ...(options.runtimeEnvironment === 'development'
+            ? {
+                developmentSessionUrl:
+                  'http://localhost:4400/atlas.dev-session.json',
+              }
+            : {}),
         };
         return jsonResponse(runtime);
       }
@@ -338,8 +379,14 @@ function installPage(options: PageOptions): void {
           },
         });
       }
-      if (url.pathname.endsWith('/registry.json'))
+      if (url.pathname.endsWith('/registry.json')) {
+        options.onRegistryRequest?.();
+        if (options.registryUnavailable)
+          return new Response('Not found', { status: 404 });
         return jsonResponse(fixtures.registry);
+      }
+      if (url.pathname.startsWith('/environments/'))
+        options.onDeploymentRequest?.();
       if (
         url.pathname ===
         `/environments/production/hosts/${hostId}/manifest.json`

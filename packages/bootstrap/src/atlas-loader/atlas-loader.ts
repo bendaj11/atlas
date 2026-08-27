@@ -14,6 +14,7 @@ import {
 import { installModuleShim } from '../module-shim/module-shim.js';
 import { applyOverrides } from '../overrides/overrides.js';
 import { loadPublishedArtifact } from '../published-artifact/published-artifact.js';
+import type { DevSession } from '../types.js';
 import { validateCatalog } from '../validation/validation.js';
 
 const ARTIFACT_LOAD_CONCURRENCY = 6;
@@ -40,8 +41,12 @@ export async function startAtlasLoader(
 
   const runtime: unknown = await dependencies.fetchJson('/atlas.runtime.json');
   assertAtlasRuntimeConfig(runtime);
-  const catalog = await loadInitialCatalog(runtime, dependencies);
-  const effectiveCatalog = await dependencies.applyOverrides(runtime, catalog);
+  const initial = await loadInitialCatalog(runtime, dependencies);
+  const effectiveCatalog = await dependencies.applyOverrides(
+    runtime,
+    initial.catalog,
+    initial.developmentSession,
+  );
 
   dependencies.validateCatalog(runtime, effectiveCatalog);
   publishRuntimeSnapshot(dependencies.document, runtime, effectiveCatalog);
@@ -86,8 +91,23 @@ function publishRuntimeSnapshot(
 async function loadInitialCatalog(
   runtime: AtlasHostRuntimeConfig,
   dependencies: AtlasLoaderDependencies,
-): Promise<AtlasHostCatalog> {
-  return loadDeployment(runtime, dependencies);
+): Promise<{
+  catalog: AtlasHostCatalog;
+  developmentSession?: DevSession;
+}> {
+  if (!runtime.developmentSessionUrl) {
+    return { catalog: await loadDeployment(runtime, dependencies) };
+  }
+  const developmentSession = await dependencies.fetchJson<DevSession>(
+    runtime.developmentSessionUrl,
+    runtime,
+  );
+  if (!developmentSession.catalog) {
+    throw new Error(
+      'Atlas development session does not include a host catalog.',
+    );
+  }
+  return { catalog: developmentSession.catalog, developmentSession };
 }
 
 function defaultDependencies(): AtlasLoaderDependencies {

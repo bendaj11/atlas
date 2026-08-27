@@ -44,6 +44,38 @@ describe('Atlas host inspection', () => {
     expect(driver.get.catalogAppVersion()).toBe('1.0.0');
   });
 
+  it('should inspect runtime snapshot without deployment request when host is local', async () => {
+    driver.given.developmentRuntimeSnapshot();
+    await driver.when.hostInspected();
+
+    expect(driver.get.developmentInspection()).toEqual({
+      catalogAppVersion: '1.0.0',
+      deploymentRequests: 0,
+      registryRequests: 0,
+    });
+  });
+
+  it('should inspect development session when local runtime snapshot is pending', async () => {
+    driver.given.developmentSessionCatalog();
+    await driver.when.hostInspected();
+
+    expect(driver.get.developmentInspection()).toEqual({
+      catalogAppVersion: '1.0.0',
+      deploymentRequests: 0,
+      registryRequests: 0,
+    });
+  });
+
+  it('should retain selected artifacts when registry enrichment is unavailable', async () => {
+    driver.given.unavailableRegistry();
+    await driver.when.hostInspected();
+
+    expect(driver.get.registryFailure()).toEqual({
+      catalogAppVersion: '1.0.0',
+      versionErrors: ['Atlas registry returned 404.'],
+    });
+  });
+
   it('should reject active host manifest when environment differs from runtime config', async () => {
     driver.given.hostDeploymentEnvironment('staging');
     await driver.when.hostInspected();

@@ -1,6 +1,7 @@
 import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
 import type {
   AtlasConfig,
+  AtlasHostConfig,
   AtlasHostCatalog,
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
@@ -28,8 +29,19 @@ export interface DevTarget {
   hostUrl: string;
 }
 
+export interface HostDevTarget extends DevTarget {
+  previewKind: 'deployed' | 'local';
+}
+
 export interface ResolveDevTargetOptions {
   config: AtlasConfig;
+  prompts: DevPrompts;
+  previewUrls: readonly string[];
+}
+
+export interface ResolveHostDevTargetOptions {
+  config: AtlasHostConfig;
+  localPreviewUrl: string;
   prompts: DevPrompts;
   previewUrls: readonly string[];
 }

@@ -28,7 +28,7 @@ import {
   waitForShutdown,
 } from '../process/process.js';
 import { readAtlasPreviewUrls } from '../target/previews.js';
-import { resolveDevTarget } from '../target/target.js';
+import { resolveDevTarget, resolveHostDevTarget } from '../target/target.js';
 import { assertUsableAngularBuildPackage } from '../preflight/preflight.js';
 import { writeDevOverrideDocument } from '../overrides.js';
 import { loadAngularHostProxy } from '../proxy-config.js';
@@ -39,6 +39,7 @@ import type {
   AtlasDevBuildService,
   AtlasDevOverrideDocument,
   DevPrompts,
+  HostDevTarget,
 } from '../types.js';
 import { loadEnvFiles } from '../../workspace/env/env.js';
 import { ui } from '../../cli/ui/ui.js';
@@ -64,12 +65,17 @@ export class AtlasDevService {
       await loadEnvFiles(this.workspace.root);
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
+    if (this.args.hasFlag('host-url')) {
+      throw new Error(
+        '--host-url is not supported by atlas dev. Define package.json atlas.previews instead.',
+      );
+    }
     if (config.framework === 'angular' && !this.args.hasFlag('prepare-only')) {
       await assertUsableAngularBuildPackage(this.workspace.root, project.root);
       await ensureAngularBuildNotifications(project.root, project.id);
     }
     if (isHostConfig(config)) {
-      await this.runHost(project, config);
+      await this.runHost(project, config, prompts);
       return;
     }
     await this.runApp({ project, name, config, prompts });
@@ -78,15 +84,28 @@ export class AtlasDevService {
   private async runHost(
     project: AtlasProject,
     config: AtlasHostConfig,
+    prompts: DevPrompts,
   ): Promise<void> {
     const configuredPort = await this.resolveRemotePort(
       project,
       DEFAULT_HOST_BOOTSTRAP_PORT,
     );
-    const { bootstrapPort, clientPort } = resolveHostDevPorts(
-      this.args,
+    const configuredBootstrapPort = this.args.port(
+      'bootstrap-port',
       configuredPort,
     );
+    const target = await resolveHostDevTarget({
+      config,
+      localPreviewUrl: localOrigin(configuredBootstrapPort),
+      prompts,
+      previewUrls: await readAtlasPreviewUrls(project.root),
+    });
+    const { bootstrapPort, clientPort } = resolveHostDevPorts({
+      args: this.args,
+      configuredPort,
+      previewKind: target.previewKind,
+    });
+    assertLocalPreviewPort(target, bootstrapPort);
     if (!this.builds.buildLocalHostManifest) {
       throw new Error(
         'Atlas host development requires host-client build support.',
@@ -96,8 +115,7 @@ export class AtlasDevService {
       project.id,
       localOrigin(clientPort),
     );
-    const configuredHostUrl = this.args.flag('host-url');
-    const hostUrl = configuredHostUrl ?? localOrigin(bootstrapPort);
+    const hostUrl = target.hostUrl;
     const document: AtlasDevOverrideDocument = {
       schemaVersion: '1',
       hostId: config.id,
@@ -129,7 +147,7 @@ export class AtlasDevService {
       await this.frameworkDevTask(project),
       frameworkServerArguments(config.framework, clientPort),
     );
-    const usesLocalBootstrap = configuredHostUrl === undefined;
+    const usesLocalBootstrap = target.previewKind === 'local';
     const template = usesLocalBootstrap
       ? await loadBootstrapTemplate(project.root)
       : undefined;
@@ -256,4 +274,19 @@ export class AtlasDevService {
       (await readConfiguredDevServerPort(project.root, project.id)) ?? fallback
     );
   }
+}
+
+function assertLocalPreviewPort(
+  target: HostDevTarget,
+  bootstrapPort: number,
+): void {
+  if (target.previewKind !== 'local') return;
+  const preview = new URL(target.hostUrl);
+  const previewPort = Number(
+    preview.port || (preview.protocol === 'https:' ? 443 : 80),
+  );
+  if (preview.protocol === 'http:' && previewPort === bootstrapPort) return;
+  throw new Error(
+    `Local host preview "${target.hostUrl}" must use http and configured bootstrap port ${bootstrapPort}. Update atlas.previews or pass --port=${previewPort}.`,
+  );
 }

@@ -259,7 +259,7 @@ export function resolveRuntimeCatalog(
     }
     const selected =
       appsById.get(override.appId) ?? providersById.get(override.appId);
-    if (!selected) {
+    if (!selected && override.manifest.channel !== 'local') {
       throw overrideError(
         `Atlas override targets app "${override.appId}", but the host catalog does not select that app or widget provider.`,
       );
@@ -267,13 +267,17 @@ export function resolveRuntimeCatalog(
     assertManifestSupportsHost(override.manifest, catalog.hostId, 'override');
     assertLocalManifestUrls(override.manifest);
     overriddenIds.add(override.appId);
-    const resolved = {
-      ...override.manifest,
-      supportedHosts: selected.supportedHosts,
-      placements: selected.placements,
-    };
+    const resolved = selected
+      ? {
+          ...override.manifest,
+          supportedHosts: selected.supportedHosts,
+          placements: selected.placements,
+        }
+      : override.manifest;
     if (appsById.has(override.appId)) appsById.set(override.appId, resolved);
-    else providersById.set(override.appId, resolved);
+    else if (providersById.has(override.appId))
+      providersById.set(override.appId, resolved);
+    else appsById.set(override.appId, resolved);
   }
   const manifests = [...appsById.values(), ...providersById.values()];
   for (const manifest of manifests) {

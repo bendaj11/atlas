@@ -54,14 +54,12 @@ const loadedManifests = new Map<string, Promise<Manifest>>();
 
 export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   const config = await readAtlasConfig();
-  const catalog = await readHostDeployment(
-    environmentManifestUrl(config),
-    config.hostId,
-    config.environment,
-    config.artifactRegistryUrl,
-  );
-  const registryRoot = config.artifactRegistryUrl.replace(/\/$/, '');
-  const registry = registryRoot ? await readRegistry(registryRoot) : undefined;
+  const catalog = await readInitialCatalog(config);
+  const registryRoot = artifactRegistryRoot(config);
+  const registryResult = registryRoot
+    ? await readRegistryResult(registryRoot)
+    : {};
+  const registry = registryResult.registry;
   if (catalog.hostId !== config.hostId) {
     throw new Error(
       `Atlas deployment targets host ${catalog.hostId}, but runtime configuration targets ${config.hostId}.`,
@@ -104,10 +102,85 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
     visibleAppIds: readVisibleAppIds(),
     runtimeErrors: readRuntimeErrors(),
     versionErrors: [
+      ...(registryResult.error ? [registryResult.error] : []),
       ...versionResults.flatMap(({ error }) => (error ? [error] : [])),
       ...external.errors,
     ],
   };
+}
+
+function artifactRegistryRoot(config: HostData['config']): string | undefined {
+  const root = config.artifactRegistryUrl.replace(/\/$/, '');
+  if (config.environment !== 'development' || !config.developmentSessionUrl) {
+    return root || undefined;
+  }
+  const controlRoot = (
+    config.environmentRegistryUrl ??
+    new URL(config.developmentSessionUrl).origin
+  ).replace(/\/$/, '');
+  return root === controlRoot ? undefined : root || undefined;
+}
+
+async function readInitialCatalog(
+  config: HostData['config'],
+): Promise<HostData['catalog']> {
+  if (config.environment === 'development') {
+    const catalog = readRuntimeSnapshot(config);
+    if (catalog) return catalog;
+    return readDevelopmentSessionCatalog(config);
+  }
+  return readHostDeployment(
+    environmentManifestUrl(config),
+    config.hostId,
+    config.environment,
+    config.artifactRegistryUrl,
+  );
+}
+
+async function readDevelopmentSessionCatalog(
+  config: HostData['config'],
+): Promise<HostData['catalog']> {
+  if (!config.developmentSessionUrl) {
+    throw new Error('Atlas development session URL is missing.');
+  }
+  const response = await fetchWithTimeout(config.developmentSessionUrl);
+  if (!response.ok) {
+    throw new Error(`Atlas development session returned ${response.status}.`);
+  }
+  const session = (await response.json()) as {
+    catalog?: HostData['catalog'];
+  };
+  if (session.catalog?.hostId !== config.hostId) {
+    throw new Error('Atlas development session returned invalid data.');
+  }
+  return session.catalog;
+}
+
+function readRuntimeSnapshot(
+  config: HostData['config'],
+): HostData['catalog'] | undefined {
+  const content = document.getElementById(
+    'atlas-runtime-snapshot',
+  )?.textContent;
+  if (!content) return undefined;
+  try {
+    const snapshot = JSON.parse(content) as {
+      schemaVersion?: string;
+      runtime?: { hostId?: string; environment?: string };
+      catalog?: HostData['catalog'];
+    };
+    if (
+      snapshot.schemaVersion !== '1' ||
+      snapshot.runtime?.hostId !== config.hostId ||
+      snapshot.runtime.environment !== config.environment ||
+      snapshot.catalog?.hostId !== config.hostId
+    ) {
+      return undefined;
+    }
+    return snapshot.catalog;
+  } catch {
+    return undefined;
+  }
 }
 
 async function readAtlasConfig(): Promise<HostData['config']> {
@@ -181,6 +254,16 @@ async function readRegistry(root: string): Promise<Registry> {
     throw new Error('Atlas registry returned invalid data.');
   }
   return registry;
+}
+
+async function readRegistryResult(
+  root: string,
+): Promise<{ registry?: Registry; error?: string }> {
+  try {
+    return { registry: await readRegistry(root) };
+  } catch (error) {
+    return { error: messageFromError(error) };
+  }
 }
 
 async function readManifestVersions(
