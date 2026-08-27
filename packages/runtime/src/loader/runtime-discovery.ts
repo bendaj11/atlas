@@ -12,6 +12,7 @@ import {
 import { runResiliently, type AtlasRetryPolicy } from '../resilience.js';
 import { mapWithConcurrency } from '../concurrency.js';
 import { runtimeError } from '../runtime-error.js';
+import { requestDevelopmentSession } from './development-session/development-session.js';
 
 type FetchJson = (url: string, signal?: AbortSignal) => Promise<unknown>;
 type FetchBytes = (url: string, signal?: AbortSignal) => Promise<ArrayBuffer>;
@@ -33,10 +34,12 @@ export interface AtlasRuntimeOverrideDocument {
 
 export interface AtlasBrowserOverrideOptions {
   hostId: string;
+  /** @deprecated Development activation no longer uses browser URL parameters. */
   search?: string;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
   sessionStorage?: Pick<Storage, 'getItem'> & Partial<Pick<Storage, 'setItem'>>;
   fetchJson?: FetchJson;
+  developmentSession?: () => Promise<unknown | undefined>;
   requestPolicy?: AtlasRetryPolicy;
 }
 
@@ -45,10 +48,7 @@ export interface AtlasRemoteTrustPolicy {
   allowedOrigins?: ReadonlySet<string>;
 }
 
-export const ATLAS_DEV_SESSION_PORT_QUERY_PARAM = 'atlas-dev-port';
 export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = 'atlas.runtime-overrides';
-const ATLAS_LOCAL_DEV_SESSION_URL =
-  'http://localhost:4400/atlas.dev-session.json';
 
 export async function loadHostDeployment(options: {
   manifestUrl: string;
@@ -184,65 +184,36 @@ function parseJsonBytes(bytes: ArrayBuffer, url: string): unknown {
 export async function loadBrowserRuntimeOverrides(
   options: AtlasBrowserOverrideOptions,
 ): Promise<AtlasRuntimeOverride[]> {
-  const search = options.search ?? globalThis.location?.search ?? '';
   const storage = globalThis.localStorage;
   const sessionStorage = options.sessionStorage ?? globalThis.sessionStorage;
-  const devSessionUrl = hasDevSessionPort(search)
-    ? localDevSessionUrl(options.hostId, search)
-    : undefined;
-  const storedDocument = devSessionUrl
+  const developmentDocument = await (
+    options.developmentSession ??
+    (() => requestDevelopmentSession(options.hostId))
+  )();
+  const storedDocument = developmentDocument
     ? undefined
     : (sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
       storage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
       undefined);
-  const source = devSessionUrl ?? ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY;
-  const document = devSessionUrl
-    ? await (options.fetchJson ?? defaultFetchJson)(devSessionUrl)
+  const document = developmentDocument
+    ? developmentDocument
     : storedDocument
       ? parseOverrideDocument(storedDocument)
       : undefined;
   if (!document) return [];
   validateOverrideShape(document);
-  validateOverrideDocument(document, options.hostId, source);
-  if (devSessionUrl) {
+  validateOverrideDocument(
+    document,
+    options.hostId,
+    ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
+  );
+  if (developmentDocument) {
     sessionStorage?.setItem?.(
       ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
       JSON.stringify(document),
     );
-    removeDevSessionPortFromAddressBar();
   }
   return document.overrides;
-}
-
-function hasDevSessionPort(search: string): boolean {
-  return new URLSearchParams(search).has(ATLAS_DEV_SESSION_PORT_QUERY_PARAM);
-}
-
-function localDevSessionUrl(hostId: string, search: string): string {
-  const url = new URL(ATLAS_LOCAL_DEV_SESSION_URL);
-  const requestedPort = new URLSearchParams(search).get(
-    ATLAS_DEV_SESSION_PORT_QUERY_PARAM,
-  );
-  if (!requestedPort || !isValidPort(requestedPort))
-    throw overrideError(
-      'Atlas development session port must be a valid TCP port.',
-    );
-  url.port = requestedPort;
-  url.searchParams.set('hostId', hostId);
-  return url.href;
-}
-
-function isValidPort(value: string): boolean {
-  const port = Number(value);
-  return Number.isInteger(port) && port > 0 && port <= 65_535;
-}
-
-function removeDevSessionPortFromAddressBar(): void {
-  const location = globalThis.location;
-  if (!location || !globalThis.history) return;
-  const url = new URL(location.href);
-  url.searchParams.delete(ATLAS_DEV_SESSION_PORT_QUERY_PARAM);
-  globalThis.history.replaceState(globalThis.history.state, '', url.href);
 }
 
 export function resolveRuntimeManifests(
@@ -492,19 +463,6 @@ function validateOverrideDocument(
       );
     }
   }
-}
-
-async function defaultFetchJson(
-  url: string,
-  signal?: AbortSignal,
-): Promise<unknown> {
-  const response = await fetch(url, fetchRequestOptions(url, signal));
-  if (!response.ok) {
-    throw networkError(
-      `Atlas could not download JSON from "${url}": HTTP ${response.status} ${response.statusText}.`,
-    );
-  }
-  return response.json();
 }
 
 async function defaultFetchBytes(

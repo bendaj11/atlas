@@ -2,7 +2,6 @@ import { OverrideRadioCard } from './OverrideRadioCard/OverrideRadioCard';
 import { type ArtifactConfiguration, EditorDraft } from '../../../types/app.js';
 import { Box, Input } from '@wix/design-system';
 import { OverrideVersionDropdown } from './OverrideVersionDropdown/OverrideVersionDropdown';
-import { versionKey } from '../../../scripts/manifests/manifest-versions/manifest-versions.js';
 
 interface OverridesSelectionFormProps {
   draft: EditorDraft;
@@ -45,7 +44,7 @@ export const OverridesSelectionForm = ({
           selectedId={draft.productionKey}
           versions={configuration.productionOptions}
           hostId={configuration.hostId}
-          currentId={versionKey(configuration.productionManifest)}
+          deployedManifest={configuration.productionManifest}
           onChange={(productionKey) => onDraftChange({ productionKey })}
         />
       </OverrideRadioCard>

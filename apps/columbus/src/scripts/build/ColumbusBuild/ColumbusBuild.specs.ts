@@ -21,10 +21,15 @@ describe('Columbus extension build', () => {
     });
   });
 
-  it('should not inject a catalog interceptor when build is read', async () => {
+  it('should install isolated development bridge before page scripts when build is read', async () => {
     await driver.when.manifestRead();
 
     expect(driver.get.manifest().content_scripts).toEqual([
+      {
+        js: ['development-session-content.js'],
+        matches: ['http://*/*', 'https://*/*'],
+        run_at: 'document_start',
+      },
       {
         js: ['badge-script.js'],
         matches: ['http://*/*', 'https://*/*'],

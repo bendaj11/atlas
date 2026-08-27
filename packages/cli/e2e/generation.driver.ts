@@ -144,7 +144,9 @@ export class GenerationE2eDriver {
         configCommand: project.targets['atlas:config'].options.command,
         detected: this.output.includes('Detected an Nx workspace'),
         publishCommand: project.targets['atlas:publish'].options.command,
-        publishDependencies: project.targets['atlas:publish'].dependsOn,
+        publishDependsOnBuild:
+          project.targets['atlas:publish'].dependsOn?.includes('build') ===
+          true,
       };
     },
 

@@ -19,6 +19,7 @@ declare global {
       }): Promise<Tab[]>;
       function reload(tabId: number): Promise<void>;
       function sendMessage(tabId: number, message: unknown): Promise<unknown>;
+      function update(tabId: number, properties: { url: string }): Promise<Tab>;
       namespace onUpdated {
         function addListener(
           listener: (
@@ -79,7 +80,7 @@ declare global {
       function addListener(
         listener: (
           message: unknown,
-          sender: { tab?: tabs.Tab },
+          sender: { tab?: tabs.Tab; url?: string },
           sendResponse: (response: unknown) => void,
         ) => void | boolean,
       ): void;

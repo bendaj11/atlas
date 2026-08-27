@@ -22,7 +22,6 @@ export const ROOT_COMMANDS: readonly HelpEntry[] = [
     label: 'dev',
     description: 'Run a host, or run one app locally inside a host',
   },
-  { label: 'build', description: 'Build a host or app for deployment' },
   {
     label: 'bootstrap',
     description: 'Create deployable host bootstrap files',
@@ -161,68 +160,6 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
     ],
     examples: ['atlas dev customer-host', 'atlas dev orders', 'atlas dev'],
   },
-  build: {
-    summary: 'Build a host client or app and write its immutable manifest.',
-    usage: 'atlas build <project> [options]',
-    arguments: [
-      {
-        label: 'project',
-        description: 'Atlas project name or directory; prompted when omitted',
-      },
-    ],
-    options: [
-      {
-        label: '--registry-url <url>',
-        description: 'Public base URL of the static registry',
-      },
-      {
-        label: '--channel <channel>',
-        description: 'Override inferred production, pr, or local channel',
-      },
-      { label: '-h, --help', description: 'Show help for this command' },
-    ],
-    advancedOptions: [
-      {
-        label: '--entry <path>',
-        description: 'Override the generated remote entry path',
-      },
-      {
-        label: '--version <version>',
-        description: 'Override package version for diagnostics',
-      },
-      {
-        label: '--build-id <id>',
-        description: 'Override content build ID for diagnostics',
-      },
-      {
-        label: '--pr-number <number>',
-        description: 'Override CI pull request detection',
-      },
-      { label: '--git-sha <sha>', description: 'Actual source commit SHA' },
-      {
-        label: '--git-branch <name>',
-        description: 'Source branch displayed by Columbus',
-      },
-      {
-        label: '--git-commit-title <text>',
-        description: 'Commit title displayed by Columbus',
-      },
-      {
-        label: '--skip-compile',
-        description: 'Diagnostic: use already compiled Atlas configuration',
-      },
-    ],
-    environment: [
-      { label: 'ATLAS_CREATED_AT', description: 'Build creation timestamp' },
-      {
-        label: 'ATLAS_REGISTRY_URL',
-        description: 'Default public registry URL',
-      },
-    ],
-    examples: [
-      'atlas build orders --registry-url https://cdn.example.com/atlas',
-    ],
-  },
   bootstrap: {
     summary: 'Create reusable static host bootstrap files.',
     usage: 'atlas bootstrap <host> [options]',
@@ -328,7 +265,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       {
         label: '--source-registry-url <url>',
-        description: 'Source artifact/environment registry; requires --target-registry-url',
+        description:
+          'Source artifact/environment registry; requires --target-registry-url',
       },
       {
         label: '--registry-url <url>',
@@ -336,7 +274,8 @@ export const COMMAND_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       {
         label: '--target-registry-url <url>',
-        description: 'Target environment registry; requires --source-registry-url',
+        description:
+          'Target environment registry; requires --source-registry-url',
       },
       {
         label: '--registry-config <path>',

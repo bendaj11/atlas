@@ -59,6 +59,7 @@ export class AtlasBootstrapServiceDriver {
         contents: `<main id="atlas-host-root">${faker.lorem.sentence()}</main>\n`,
       },
       { path: 'atlas.loader.js', contents: `${faker.lorem.paragraph()}\n` },
+      { path: 'es-module-shims.js', contents: `${faker.lorem.paragraph()}\n` },
     ];
 
     this.dependencies = {

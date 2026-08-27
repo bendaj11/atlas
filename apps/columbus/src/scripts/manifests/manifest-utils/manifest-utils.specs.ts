@@ -83,6 +83,20 @@ describe('manifest selection', () => {
       'Choose a PR version.',
     );
   });
+
+  it('should select loaded production version when newer release is published', () => {
+    driver.given.newerPublishedVersion();
+
+    expect(driver.get.editorDraft().productionKey).toBe(
+      'production:1.0.0:production',
+    );
+  });
+
+  it('should select production source when saved production override is reopened', () => {
+    driver.given.selectedProductionVersion();
+
+    expect(driver.get.editorDraft().type).toBe('production');
+  });
 });
 
 describe('manifest labels', () => {

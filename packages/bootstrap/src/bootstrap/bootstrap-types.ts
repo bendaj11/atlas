@@ -5,6 +5,6 @@ export interface AtlasBootstrapOptions {
 }
 
 export interface AtlasBootstrapFile {
-  path: 'index.html' | 'atlas.loader.js';
+  path: 'index.html' | 'atlas.loader.js' | 'es-module-shims.js';
   contents: string;
 }

@@ -21,12 +21,12 @@ import {
   DEFAULT_HOST_BOOTSTRAP_PORT,
 } from '../constants.js';
 import {
+  developmentActivationUrl,
   frameworkServerArguments,
   logHostViewUrl,
   openBrowserWhenReady,
   waitForRemoteEntry,
   waitForShutdown,
-  withDevSessionPort,
 } from '../process/process.js';
 import { readAtlasPreviewUrls } from '../target/previews.js';
 import { resolveDevTarget } from '../target/target.js';
@@ -154,20 +154,22 @@ export class AtlasDevService {
               hostId: config.id,
               artifactRegistryUrl: registryUrl ?? controlOrigin,
               environmentRegistryUrl: controlOrigin,
-              manifestUrl: `${controlOrigin}/environments/development/hosts/${config.id}/manifest.json`,
               developmentSessionUrl: `${controlOrigin}/atlas.dev-session.json?hostId=${encodeURIComponent(config.id)}`,
               environment: 'development',
-              ...(registryUrl ? { registryUrl } : {}),
               resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
               resourcesRetryCount: config.resourcesRetryCount ?? 3,
-              assetOrigins: [localOrigin(clientPort), controlOrigin],
             },
           })
         : undefined;
       await control.markReady();
-      const hostActivationUrl = withDevSessionPort(hostUrl, controlPort);
-      logHostViewUrl(hostUrl, hostActivationUrl);
-      openBrowserWhenReady(this.args, hostActivationUrl);
+      const browserUrl = usesLocalBootstrap
+        ? hostUrl
+        : developmentActivationUrl({
+            activationToken: await control.createActivation(config.id, hostUrl),
+            controlPort,
+          });
+      logHostViewUrl(hostUrl, browserUrl);
+      openBrowserWhenReady(this.args, browserUrl);
       await waitForShutdown(frameworkServer, control);
     } finally {
       if (bootstrap) await closeServer(bootstrap);
@@ -204,7 +206,6 @@ export class AtlasDevService {
       logHostViewUrl(target.hostUrl);
       return;
     }
-    const hostActivationUrl = withDevSessionPort(target.hostUrl, controlPort);
     const registryUrl = resolveRegistryUrl(this.args);
     const control = await startControlServer({
       port: controlPort,
@@ -221,8 +222,15 @@ export class AtlasDevService {
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
-      logHostViewUrl(target.hostUrl, hostActivationUrl);
-      openBrowserWhenReady(this.args, hostActivationUrl);
+      const browserUrl = developmentActivationUrl({
+        activationToken: await control.createActivation(
+          target.hostId,
+          target.hostUrl,
+        ),
+        controlPort,
+      });
+      logHostViewUrl(target.hostUrl, browserUrl);
+      openBrowserWhenReady(this.args, browserUrl);
     } catch (error) {
       if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');
       await control.close();

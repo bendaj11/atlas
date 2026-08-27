@@ -23,8 +23,8 @@ Do not add timestamps: CI and log collectors own timestamps.
 Errors use this shape:
 
 ```text
-✖ Could not build "orders".
-  Suggested action: Correct atlas.config.ts, then rerun atlas build orders.
+✖ Atlas publish failed: Atlas configuration is invalid.
+  Suggested action: Correct atlas.config.ts, then rerun atlas publish orders.
 ```
 
 Expected failures should name the failed subject, explain the condition, and
@@ -41,7 +41,6 @@ Cross-environment rules: [Atlas error handling](./error-handling.md).
 | `generate app`    | `Generate app · <name>`      | Created project paths                        |
 | `generate widget` | `Generate widget · <name>`   | Created widget                               |
 | `dev`             | `Develop · <project>`        | Labeled app preview URL                      |
-| `build`           | `Build · <project>`          | Built artifact identity                      |
 | `bootstrap`       | `Bootstrap · <host>`         | Output path and bootstrap digest             |
 | `publish`         | `Publish · <project>`        | Published immutable manifest                 |
 | `deploy`          | `Deploy · <artifact>`        | Selected release and host convergence        |

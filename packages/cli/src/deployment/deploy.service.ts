@@ -13,6 +13,7 @@ import {
   placementTargetsHost,
 } from '@atlas/schema';
 import { CliArguments } from '../cli/arguments.js';
+import { withExponentialRetry } from '../cli/retry/retry.js';
 import {
   createPublicationStorage,
   type AtlasPublicationLease,
@@ -58,6 +59,13 @@ export class AtlasDeployService {
   constructor(private readonly args: CliArguments) {}
 
   async run(
+    artifactIdentifier: string,
+    config?: AtlasRegistryConfig,
+  ): Promise<AtlasDeployResult> {
+    return withExponentialRetry(() => this.runOnce(artifactIdentifier, config));
+  }
+
+  private async runOnce(
     artifactIdentifier: string,
     config?: AtlasRegistryConfig,
   ): Promise<AtlasDeployResult> {

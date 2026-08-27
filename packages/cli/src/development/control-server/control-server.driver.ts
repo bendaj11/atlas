@@ -10,6 +10,8 @@ export class ControlServerDriver {
   private readonly ownerAppId = faker.string.uuid();
   private app?: DevControlServer;
   private host?: DevControlServer;
+  private activationUrl?: string;
+  private consumedActivation?: unknown;
 
   given = {
     runningApps: async (): Promise<void> => {
@@ -62,6 +64,20 @@ export class ControlServerDriver {
   };
 
   when = {
+    consumeActivation: async (): Promise<void> => {
+      if (!this.activationUrl) throw new Error('Activation is required.');
+      const activationUrl = new URL(this.activationUrl);
+      const token = activationUrl.searchParams.get('token');
+      if (!token) throw new Error('Activation token is required.');
+      const response = await fetch(
+        `http://localhost:${activationUrl.port}/atlas.dev-session/activate/${token}/consume`,
+        { method: 'POST', headers: { connection: 'close' } },
+      );
+      this.consumedActivation = {
+        body: await response.json(),
+        status: response.status,
+      };
+    },
     localHostRestartedBeforeAppRecovers: async (): Promise<void> => {
       if (!this.host || !this.app)
         throw new Error('Running host and app are required.');
@@ -158,6 +174,8 @@ export class ControlServerDriver {
       };
       return session.catalog.apps.map(({ id }) => id).sort();
     },
+    consumedActivation: (): unknown => this.consumedActivation,
+    hostId: (): string => this.hostId,
     localHostAndAppState: async (): Promise<unknown> => {
       if (!this.host) throw new Error('Host is required.');
 
@@ -180,6 +198,44 @@ export class ControlServerDriver {
         await fetch(`http://localhost:${this.host.port}/registry.json`, {
           headers: { connection: 'close' },
         })
+      ).status;
+    },
+    activationPage: async (): Promise<{
+      body: string;
+      referrerPolicy: string | null;
+      status: number;
+    }> => {
+      if (!this.host) throw new Error('Host is required.');
+      const token = await this.host.createActivation(
+        this.hostId,
+        'https://preview.example/orders',
+      );
+      const url = new URL(
+        '/atlas.dev-session/activate',
+        `http://localhost:${this.host.port}`,
+      );
+      url.searchParams.set('token', token);
+      url.searchParams.set('protocol', '1');
+      this.activationUrl = url.href;
+      const response = await fetch(url, {
+        headers: { connection: 'close' },
+      });
+      return {
+        body: await response.text(),
+        referrerPolicy: response.headers.get('referrer-policy'),
+        status: response.status,
+      };
+    },
+    replayedActivationStatus: async (): Promise<number> => {
+      if (!this.activationUrl) throw new Error('Activation is required.');
+      const activationUrl = new URL(this.activationUrl);
+      const token = activationUrl.searchParams.get('token');
+      if (!token) throw new Error('Activation token is required.');
+      return (
+        await fetch(
+          `http://localhost:${activationUrl.port}/atlas.dev-session/activate/${token}/consume`,
+          { method: 'POST', headers: { connection: 'close' } },
+        )
       ).status;
     },
     recoveredLocalHostAndAppState: () => ({

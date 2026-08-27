@@ -1,8 +1,7 @@
 # `@atlas/cli`
 
-Atlas CLI builds project metadata, publishes immutable artifacts, activates
-logical environments, supports local composition, builds static bootstrap files,
-and verifies deployments.
+Atlas CLI publishes immutable artifacts, activates logical environments, supports
+local composition, builds static bootstrap files, and verifies deployments.
 
 ## Commands
 
@@ -10,7 +9,6 @@ and verifies deployments.
 | --------------------------------------------------------- | ---------------------------------------------------------- |
 | `atlas generate`                                          | Generate host, app, or widget                              |
 | `atlas dev`                                               | Run local composition and Columbus integration             |
-| `atlas build <project>`                                   | Run framework build and compile Atlas metadata             |
 | `atlas publish <project> <selector>`                      | Publish existing build output                              |
 | `atlas deploy <artifact> --to <env> --version <selector>` | Activate one app/host without workspace                    |
 | `atlas remove-preview <artifact> <preview-selector>`      | Remove one preview selection                               |

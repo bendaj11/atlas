@@ -26,11 +26,8 @@ export function createAtlasBootstrapFiles(
 
   return [
     { path: 'index.html', contents: withTrailingNewline(html) },
-
-    ...createBrowserAssetFiles()
-      .filter((file): file is { path: 'atlas.loader.js'; contents: string } => file.path === 'atlas.loader.js'),
+    ...createBrowserAssetFiles(),
   ];
-
 }
 
 function withTrailingNewline(contents: string): string {

@@ -30,13 +30,11 @@ export function createEditorDraft(
 ): EditorDraft {
   const productionManifest = configuration?.productionManifest;
   const selectedManifest = configuration?.selectedManifest;
-  const type = selectedManifest
-    ? overrideTypeFor({
-        productionManifest: productionManifest ?? selectedManifest,
-        selectedManifest,
-      })
+  const selectedType = selectedManifest
+    ? selectedManifest.channel === 'local'
+      ? 'custom'
+      : selectedManifest.channel
     : 'custom';
-  const selectedType = type === 'none' ? 'custom' : type;
 
   return {
     type: selectedType,
@@ -47,7 +45,7 @@ export function createEditorDraft(
     productionKey: versionKeyOrEmpty(
       selectedType === 'production' && selectedManifest
         ? selectedManifest
-        : (configuration?.productionOptions[0] ?? productionManifest),
+        : productionManifest,
     ),
     prKey: versionKeyOrEmpty(
       selectedType === 'pr' && selectedManifest

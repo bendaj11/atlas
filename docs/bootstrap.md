@@ -1,10 +1,12 @@
 # Host bootstrap
 
-Atlas bootstrap is a small static host shell. Atlas generates exactly two files:
+Atlas bootstrap is a small static host shell. Atlas generates these browser
+assets:
 
 ```text
 index.html
 atlas.loader.js
+es-module-shims.js
 ```
 
 Platform/IaC owns a third same-origin file, `atlas.runtime.json`. Atlas never
@@ -35,7 +37,8 @@ Use `--template` to customize `index.html`. Template must retain
 
 ## Browser flow
 
-1. Browser loads `index.html` and `atlas.loader.js` from host origin.
+1. Browser loads `index.html`, `atlas.loader.js`, and `es-module-shims.js`
+   from host origin.
 2. Loader reads `/atlas.runtime.json` from same origin.
 3. Loader reads active host manifest from:
 

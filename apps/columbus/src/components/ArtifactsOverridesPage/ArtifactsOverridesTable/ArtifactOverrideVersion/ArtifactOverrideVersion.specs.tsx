@@ -49,6 +49,12 @@ describe('artifact override version state', () => {
     expect(await driver.get.version().getSkin()).toBe('standard');
   });
 
+  it('should use standard text color when selected production version is enabled', async () => {
+    driver.given.enabledProductionSelection().when.rendered();
+
+    expect(await driver.get.version().getSkin()).toBe('standard');
+  });
+
   it('should use error text color when artifact failed to load', async () => {
     driver.given.loadError('Unable to load Orders.').when.rendered();
 

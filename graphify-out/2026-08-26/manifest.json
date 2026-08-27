@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "packages/schema/src/index.ts": {
-    "mtime": 1787740953.5659235,
-    "ast_hash": "bbc39c9e113cb7568a6d94bf7d15926c",
+    "mtime": 1787747220.1190865,
+    "ast_hash": "e9d98309049b41a4cce0eab5b13f19ce",
     "semantic_hash": ""
   },
   "packages/schema/src/manifest-validation.ts": {
@@ -1400,7 +1400,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1787745666.3983552,
+    "mtime": 1787747655.2566538,
     "ast_hash": "62acdbff36a92a7241ca6a821328adc0",
     "semantic_hash": ""
   },
@@ -1430,7 +1430,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1787745666.3998492,
+    "mtime": 1787747655.2602336,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -2320,7 +2320,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1787745666.4007366,
+    "mtime": 1787747655.2609422,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },
@@ -2585,8 +2585,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/verification/service/verify.service.driver.ts": {
-    "mtime": 1787737643.1713674,
-    "ast_hash": "c1826b53e1c7f38117937ad3c007b8df",
+    "mtime": 1787747391.2680504,
+    "ast_hash": "48e11c30607449d27188b8a8c5ef6fb7",
     "semantic_hash": ""
   },
   "packages/cli/src/verification/service/verify.service.specs.ts": {
@@ -2595,8 +2595,8 @@
     "semantic_hash": ""
   },
   "packages/cli/src/verification/service/verify.service.ts": {
-    "mtime": 1787733745.8661122,
-    "ast_hash": "23679e1c80f6d289d3c7396230d1c9af",
+    "mtime": 1787747462.0815914,
+    "ast_hash": "daeb5237cfe23c7cef243dedf610ab05",
     "semantic_hash": ""
   },
   "packages/cli/src/workspace/service/workspace.driver.ts": {
@@ -2765,18 +2765,18 @@
     "semantic_hash": ""
   },
   "packages/cli/src/deployment/deploy.service.driver.ts": {
-    "mtime": 1787737252.871859,
-    "ast_hash": "66c08068cce48116d279551449f228c5",
+    "mtime": 1787747426.5389397,
+    "ast_hash": "9854c0fbd8dcdea359bc4132a7c08b29",
     "semantic_hash": ""
   },
   "packages/cli/src/deployment/deploy.service.specs.ts": {
-    "mtime": 1787736785.3145218,
-    "ast_hash": "9c0434745e7ab9e10f66a3354a5e3f7e",
+    "mtime": 1787747543.603846,
+    "ast_hash": "52dcc013691ade09ab6e12e3efa29401",
     "semantic_hash": ""
   },
   "packages/cli/src/deployment/deploy.service.ts": {
-    "mtime": 1787735939.601542,
-    "ast_hash": "b6dad9dd4fa1245d5770cddb4fc752ac",
+    "mtime": 1787747543.4358797,
+    "ast_hash": "63495bfb243e95aad1338982e8b70526",
     "semantic_hash": ""
   },
   "packages/cli/src/publication/registry-config.ts": {
@@ -2785,18 +2785,18 @@
     "semantic_hash": ""
   },
   "packages/schema/src/atlas-publication.ts": {
-    "mtime": 1787736301.991429,
-    "ast_hash": "b3ebe752725b86733945c5fd3bfad72a",
+    "mtime": 1787747219.9501648,
+    "ast_hash": "2495d938bd43da7a82c8294553c31e94",
     "semantic_hash": ""
   },
   "packages/schema/src/publication-validation.specs.ts": {
-    "mtime": 1787477141.238514,
-    "ast_hash": "b98792e4d5a1a7e27b13f4952cd05b2d",
+    "mtime": 1787747525.5987065,
+    "ast_hash": "f54b518c5894468c9919853f45a9cd97",
     "semantic_hash": ""
   },
   "packages/schema/src/publication-validation.ts": {
-    "mtime": 1787735657.414057,
-    "ast_hash": "8f1d1a909bdda2ef563b59d116f105d0",
+    "mtime": 1787747543.5188723,
+    "ast_hash": "09133f1a3cbb93e548648324db3a5f7e",
     "semantic_hash": ""
   },
   "tests/e2e/atlas.registry.ts": {

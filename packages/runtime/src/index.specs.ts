@@ -661,12 +661,9 @@ test('browser overrides are discovered from an explicit development session and 
     channel: 'local',
     remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
   });
-  let requestedUrl;
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    search: '?atlas-dev-port=4400',
-    async fetchJson(url) {
-      requestedUrl = url;
+    async developmentSession() {
       return {
         schemaVersion: '1',
         hostId: 'host',
@@ -675,10 +672,6 @@ test('browser overrides are discovered from an explicit development session and 
       };
     },
   });
-  assert.equal(
-    requestedUrl,
-    'http://localhost:4400/atlas.dev-session.json?hostId=host',
-  );
   assert.equal(
     overrides[0].manifest.remoteEntryUrl,
     'http://localhost:4201/remoteEntry.json',
@@ -693,7 +686,6 @@ test('browser development sessions become tab-scoped override documents', async 
   let persisted: string | undefined;
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    search: '?atlas-dev-port=4400',
     sessionStorage: {
       getItem() {
         return null;
@@ -702,7 +694,7 @@ test('browser development sessions become tab-scoped override documents', async 
         persisted = value;
       },
     },
-    async fetchJson() {
+    async developmentSession() {
       return {
         schemaVersion: '1',
         hostId: 'host',
@@ -726,88 +718,41 @@ test('browser development sessions become tab-scoped override documents', async 
   );
 });
 
-test('browser overrides do not probe a local dev session without an explicit URL parameter', async () => {
-  let fetched = false;
+test('browser overrides preserve production selection without a development session', async () => {
+  let requested = false;
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    search: '',
     sessionStorage: {
       getItem() {
         return null;
       },
     },
-    async fetchJson() {
-      fetched = true;
+    async developmentSession() {
+      requested = true;
       return undefined;
     },
   });
 
-  assert.deepEqual({ overrides, fetched }, { overrides: [], fetched: false });
-});
-
-test('browser overrides discover a local dev session on the requested control port', async () => {
-  let requestedUrl;
-  await loadBrowserRuntimeOverrides({
-    hostId: 'host',
-    search: '?atlas-dev-port=4411',
-    sessionStorage: {
-      getItem() {
-        return null;
-      },
-    },
-    async fetchJson(url) {
-      requestedUrl = url;
-      return {
-        schemaVersion: '1',
-        hostId: 'host',
-        generatedAt: new Date().toISOString(),
-        overrides: [],
-      };
-    },
-  });
-
-  assert.equal(
-    requestedUrl,
-    'http://localhost:4411/atlas.dev-session.json?hostId=host',
+  assert.deepEqual(
+    { overrides, requested },
+    { overrides: [], requested: true },
   );
 });
 
 test('missing local dev session leaves browser overrides empty', async () => {
   const overrides = await loadBrowserRuntimeOverrides({
     hostId: 'host',
-    search: '',
     sessionStorage: {
       getItem() {
         return null;
       },
     },
-    async fetchJson() {
-      throw new Error('No local Atlas dev session');
+    async developmentSession() {
+      return undefined;
     },
   });
 
   assert.deepEqual(overrides, []);
-});
-
-test('invalid development session port does not probe default localhost', async () => {
-  let fetched = false;
-  const error = await loadBrowserRuntimeOverrides({
-    hostId: 'host',
-    search: '?atlas-dev-port=invalid',
-    async fetchJson() {
-      fetched = true;
-      return {};
-    },
-  }).catch((reason: unknown) => reason);
-
-  assert.deepEqual(
-    {
-      fetched,
-      validPortError:
-        error instanceof Error && error.message.includes('valid TCP port'),
-    },
-    { fetched: false, validPortError: true },
-  );
 });
 
 test('browser overrides cannot cross host boundaries', async () => {
@@ -815,8 +760,7 @@ test('browser overrides cannot cross host boundaries', async () => {
     () =>
       loadBrowserRuntimeOverrides({
         hostId: 'host',
-        search: '?atlas-dev-port=4400',
-        async fetchJson() {
+        async developmentSession() {
           return {
             schemaVersion: '1',
             hostId: 'admin',

@@ -39,12 +39,20 @@ export class PublishServiceDriver {
   private readonly storage = new MemoryPublicationStorage();
   private readonly publication = jest.fn<AtlasProjectBuilder['publication']>();
   private readonly resolvePreviewHead = jest.fn<AtlasPreviewHeadResolver>();
+  private readonly progress: string[] = [];
+  private verificationFailures = 0;
+  private invalidationFailures = 0;
+  private invalidationCalls = 0;
   private directory?: string;
   private result?: Awaited<ReturnType<AtlasPublishService['run']>>;
   private pruneResult?: Awaited<
     ReturnType<AtlasPublishService['prunePreviews']>
   >;
+  private removalResult?: Awaited<
+    ReturnType<AtlasPublishService['removePreview']>
+  >;
   private bytes = new TextEncoder().encode(faker.string.alphanumeric(24));
+  private dryRun = false;
   private selector: { version?: string; preview?: number } = {
     version: '1.4.0',
   };
@@ -62,6 +70,15 @@ export class PublishServiceDriver {
     },
     changedBytes: (): void => {
       this.bytes = new TextEncoder().encode(faker.string.alphanumeric(25));
+    },
+    dryRun: (): void => {
+      this.dryRun = true;
+    },
+    transientVerificationFailure: (): void => {
+      this.verificationFailures = 1;
+    },
+    transientInvalidationFailure: (): void => {
+      this.invalidationFailures = 1;
     },
     previewPruning: (): void => {
       const registry = emptyStaticRegistry('2026-01-01T00:00:00.000Z');
@@ -93,12 +110,19 @@ export class PublishServiceDriver {
       const values = this.selector.version
         ? ['publish', this.name, '--version', this.selector.version]
         : ['publish', this.name, '--pr', String(this.selector.preview)];
-      this.result = await new AtlasPublishService(new CliArguments(values), {
-        publication: this.publication,
-      }).run(this.name, {
+      if (this.dryRun) values.push('--dry-run');
+      this.result = await new AtlasPublishService(
+        new CliArguments(values),
+        { publication: this.publication },
+        (message) => this.progress.push(message),
+      ).run(this.name, {
         storage: this.storage,
         resolvePreviewHead: this.resolvePreviewHead,
-        verifyRegistry: async () => undefined,
+        verifyRegistry: async () => {
+          if (this.verificationFailures-- > 0) {
+            throw { $metadata: { httpStatusCode: 503 } };
+          }
+        },
       });
     },
     cleanup: async (): Promise<void> => {
@@ -111,21 +135,55 @@ export class PublishServiceDriver {
       ];
       this.pruneResult = await new AtlasPublishService(
         new CliArguments(['prune-previews']),
-      ).prunePreviews(states, { storage: this.storage });
+      ).prunePreviews(states, {
+        storage: this.storage,
+        invalidate: async () => {
+          this.invalidationCalls += 1;
+          if (this.invalidationFailures-- > 0) {
+            throw { $metadata: { httpStatusCode: 503 } };
+          }
+        },
+      });
+    },
+    removePreview: async (): Promise<void> => {
+      this.removalResult = await new AtlasPublishService(
+        new CliArguments(['remove-preview']),
+      ).removePreview(this.id, 1, {
+        storage: this.storage,
+        invalidate: async () => {
+          this.invalidationCalls += 1;
+          if (this.invalidationFailures-- > 0) {
+            throw { $metadata: { httpStatusCode: 503 } };
+          }
+        },
+      });
     },
   };
 
   get = {
     result: () => this.result,
+    name: (): string => this.name,
+    identity: (): string =>
+      `app ${this.name} (${this.id}), release ${this.selector.version}`,
     registry: (): AtlasStaticRegistry =>
       JSON.parse(
         new TextDecoder().decode(this.storage.required('registry.json').bytes),
       ) as AtlasStaticRegistry,
     paths: (): string[] => [...this.storage.paths()].sort(),
+    progress: (): readonly string[] => this.progress,
     resolverCalls: (): number => this.resolvePreviewHead.mock.calls.length,
+    publicationAttempts: (): number => this.publication.mock.calls.length,
     prunedSelections: (): Record<string, string[]> => ({
       scoped: Object.keys(this.get.registry().apps[this.id]!.previews),
       unscoped: Object.keys(this.get.registry().apps[this.otherId]!.previews),
+    }),
+    pruneRetry: (): { removed: number | undefined; invalidations: number } => ({
+      removed: this.pruneResult?.removed,
+      invalidations: this.invalidationCalls,
+    }),
+    removalRetry: (): { removed: boolean | undefined; invalidations: number } => ({
+      removed: this.removalResult?.removed,
+      invalidations: this.invalidationCalls,
     }),
     prunedOrphans: (): {
       removedGenerations: number | undefined;

@@ -48,6 +48,7 @@ export class DeployServiceDriver {
   private dryRun = false;
   private insecureRegistry = false;
   private invalidations: string[] = [];
+  private invalidationFailures = 0;
   private result?: AtlasDeployResult;
 
   given = {
@@ -110,6 +111,9 @@ export class DeployServiceDriver {
     insecureRegistry: (): void => {
       this.insecureRegistry = true;
     },
+    transientInvalidationFailure: (): void => {
+      this.invalidationFailures = 1;
+    },
   };
 
   when = {
@@ -120,6 +124,9 @@ export class DeployServiceDriver {
           storage: this.storage,
           invalidate: async (paths) => {
             this.invalidations.push(...paths);
+            if (this.invalidationFailures-- > 0) {
+              throw { $metadata: { httpStatusCode: 503 } };
+            }
           },
         },
       );

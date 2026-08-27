@@ -8,6 +8,7 @@ import { inspectAtlasHost, loadArtifactVersion } from './inspect-atlas-host.js';
 interface PageOptions {
   app?: AtlasExtensionManifest;
   appVersions?: AtlasExtensionManifest[];
+  deploymentApp?: AtlasExtensionManifest;
   catalogHostId?: string;
   registryUrl?: string;
   visibleAppIds?: string[];
@@ -166,6 +167,20 @@ export class InspectAtlasHostDriver {
       };
       return this;
     },
+    runtimeSnapshotWithProductionOverride: (
+      deployedVersion: string,
+      overrideVersion: string,
+    ): this => {
+      const deploymentApp = manifest({ version: deployedVersion });
+      const app = manifest({ version: overrideVersion });
+      this.options = {
+        app,
+        appVersions: [deploymentApp, app],
+        deploymentApp,
+        runtimeSnapshot: true,
+      };
+      return this;
+    },
   };
 
   readonly when = {
@@ -202,6 +217,8 @@ export class InspectAtlasHostDriver {
     visibleAppIds: (): string[] => this.result?.visibleAppIds ?? [],
     appVersionChannels: (): string[] =>
       this.result?.versions['app:orders']?.map(({ channel }) => channel) ?? [],
+    catalogAppVersion: (): string | undefined =>
+      this.result?.catalog.apps[0]?.version,
     exportedWidget: (): AtlasExtensionWidgetManifest | undefined =>
       this.loadedManifest?.exportedWidgets?.[0],
     expectedWidget: (): AtlasExtensionWidgetManifest => {
@@ -239,6 +256,7 @@ function installPage(options: PageOptions): void {
   const catalogHostId = options.catalogHostId ?? hostId;
   const host = manifest({ kind: 'host', id: catalogHostId, name: 'Host' });
   const app = options.app ?? manifest({});
+  const deploymentApp = options.deploymentApp ?? app;
   const fixtures = registryFixtures(host, options.appVersions ?? [app]);
   const localValues = new Map<string, string>();
   if (options.stored) {
@@ -304,7 +322,8 @@ function installPage(options: PageOptions): void {
           ...(options.runtimeEnvironment === ''
             ? {}
             : { environment: options.runtimeEnvironment ?? 'production' }),
-          artifactRegistryUrl: options.registryUrl ?? 'https://registry.example',
+          artifactRegistryUrl:
+            options.registryUrl ?? 'https://registry.example',
         };
         return jsonResponse(runtime);
       }
@@ -332,9 +351,16 @@ function installPage(options: PageOptions): void {
           environment: options.deploymentEnvironment ?? 'production',
           deploymentRevision: 'fixture',
           host: descriptor(fixtures.registry, 'hosts', host.id, host.version),
-          apps: [app]
+          apps: [deploymentApp]
             .filter(({ channel }) => channel !== 'local')
-            .map((manifest) => descriptor(fixtures.registry, 'apps', manifest.id, manifest.version)),
+            .map((manifest) =>
+              descriptor(
+                fixtures.registry,
+                'apps',
+                manifest.id,
+                manifest.version,
+              ),
+            ),
         });
       }
       const bytes = fixtures.manifests.get(url.pathname.replace(/^\//u, ''));
@@ -399,7 +425,10 @@ function descriptor(
   id: string,
   version: string,
 ): DescriptorFixture {
-  const artifacts = registry[collection] as Record<string, { releases: Record<string, DescriptorFixture> }>;
+  const artifacts = registry[collection] as Record<
+    string,
+    { releases: Record<string, DescriptorFixture> }
+  >;
   return artifacts[id]!.releases[version]!;
 }
 

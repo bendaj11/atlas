@@ -10,7 +10,7 @@ const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {
 };
 
 export const ArtifactOverrideVersion = ({ artifact }: ArtifactProps) => {
-  const hasOverride = artifact.overrideType !== 'none';
+  const hasOverride = artifact.overrideEnabled;
   const displayedVersion = hasOverride
     ? artifact.sourceDescription
     : versionBuildIdLabel(artifact.productionManifest);

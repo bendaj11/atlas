@@ -24,7 +24,8 @@ type VerificationScenario =
   | 'zero-timeout'
   | 'infinite-timeout'
   | 'zero-cache-age'
-  | 'invalid-widget-provider';
+  | 'invalid-widget-provider'
+  | 'transient-service-unavailable';
 
 export class VerifyServiceDriver {
   private readonly appId = faker.word.noun().toLowerCase();
@@ -34,6 +35,7 @@ export class VerifyServiceDriver {
   private readonly assetOrigin = faker.internet.url().replace(/\/$/, '');
   private maximumConcurrency = 0;
   private receivedSignal?: AbortSignal;
+  private transientRequestAttempts = 0;
   private report?: AtlasVerificationReport;
   private options?: AtlasVerifyOptions;
   private service?: AtlasVerifyService;
@@ -106,6 +108,19 @@ export class VerifyServiceDriver {
           });
       }
 
+      if (scenario === 'transient-service-unavailable') {
+        const baseFetch = fetcher;
+        fetcher = async (input, init) => {
+          if (input.toString().endsWith('/atlas.runtime.json')) {
+            this.transientRequestAttempts += 1;
+            if (this.transientRequestAttempts === 1) {
+              return new Response(null, { status: 503 });
+            }
+          }
+          return baseFetch(input, init);
+        };
+      }
+
       const timeoutMs =
         scenario === 'timeout'
           ? 5
@@ -172,6 +187,13 @@ export class VerifyServiceDriver {
     healthyExpectation: () => ({ failures: 0, hostId: this.hostId }),
     maximumConcurrency: (): number => this.maximumConcurrency,
     requestAborted: (): boolean => this.receivedSignal?.aborted ?? false,
+    transientVerification: (): {
+      failures: number | undefined;
+      attempts: number;
+    } => ({
+      failures: this.report?.failures,
+      attempts: this.transientRequestAttempts,
+    }),
   };
 
   private manifestsFor(scenario: VerificationScenario): AtlasManifest[] {

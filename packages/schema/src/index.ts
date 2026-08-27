@@ -12,6 +12,20 @@ export type {
   AtlasAppDomIsolation,
   AtlasDomIsolation,
 } from './atlas-dom-isolation.js';
+export {
+  ATLAS_DEV_ACTIVATION_PATH,
+  ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
+  ATLAS_DEV_ACTIVATION_TOKEN_PARAM,
+  ATLAS_DEV_ACTIVATION_VERSION_PARAM,
+  ATLAS_DEV_BRIDGE_MARKER,
+  ATLAS_DEV_SESSION_REQUEST,
+  ATLAS_DEV_SESSION_RESPONSE,
+} from './atlas-development-session-bridge.js';
+export type {
+  AtlasDevelopmentActivationResponse,
+  AtlasDevelopmentSessionRequest,
+  AtlasDevelopmentSessionResponse,
+} from './atlas-development-session-bridge.js';
 export type { AtlasExportedWidgetManifest } from './atlas-exported-widget-manifest.js';
 export type { AtlasExposeMap } from './atlas-expose-map.js';
 export type { AtlasFramework } from './atlas-framework.js';

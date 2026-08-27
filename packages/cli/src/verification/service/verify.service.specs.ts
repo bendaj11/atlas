@@ -18,6 +18,17 @@ describe('AtlasVerifyService', () => {
     );
   });
 
+  it('should retry verification request when service is transiently unavailable', async () => {
+    driver.given.deployment('transient-service-unavailable');
+
+    await driver.when.run();
+
+    expect(driver.get.transientVerification()).toStrictEqual({
+      failures: 0,
+      attempts: 2,
+    });
+  });
+
   it('should reject catalog versions when one app has multiple selections', async () => {
     driver.given.deployment('multiple-versions');
 

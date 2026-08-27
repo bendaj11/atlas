@@ -41,16 +41,17 @@ test.describe('atlas dev', () => {
     }) => {
       const process = startAtlasDev(scenario);
       let rendered = false;
-      let activationParameterCleared = false;
+      let cleanPreviewUrl = false;
       try {
         await waitForHealthyControlServer(scenario.controlPort, process);
+        await installDevelopmentSession(page, scenario);
         const remoteEntryRequest = waitForRemoteEntry(
           page,
           scenario.remotePort,
         );
-        await page.goto(hostActivationUrl(scenario));
+        await page.goto(scenario.hostUrl);
         await remoteEntryRequest;
-        activationParameterCleared = !page.url().includes('atlas-dev-port');
+        cleanPreviewUrl = page.url() === scenario.hostUrl;
         await page.getByRole('heading', { name: scenario.heading }).waitFor({
           state: 'visible',
           timeout: APP_MOUNT_TIMEOUT,
@@ -61,14 +62,14 @@ test.describe('atlas dev', () => {
       }
 
       expect({
-        activationParameterCleared,
+        cleanPreviewUrl,
         portsReleased: await portsReleased([
           scenario.controlPort,
           scenario.remotePort,
         ]),
         rendered,
       }).toStrictEqual({
-        activationParameterCleared: true,
+        cleanPreviewUrl: true,
         portsReleased: true,
         rendered: true,
       });
@@ -95,10 +96,32 @@ function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
   );
 }
 
-function hostActivationUrl(scenario: LocalDevelopmentCase): string {
-  const url = new URL(scenario.hostUrl);
-  url.searchParams.set('atlas-dev-port', String(scenario.controlPort));
-  return url.href;
+async function installDevelopmentSession(
+  page: Page,
+  scenario: LocalDevelopmentCase,
+): Promise<void> {
+  const sessionUrl = new URL(
+    '/atlas.dev-session.json',
+    `http://localhost:${scenario.controlPort}`,
+  );
+  const hostId = developmentHostId(scenario.app);
+  sessionUrl.searchParams.set('hostId', hostId);
+  const response = await fetch(sessionUrl);
+  if (!response.ok) {
+    throw new Error(
+      `Atlas development session returned HTTP ${response.status}.`,
+    );
+  }
+  const document = await response.json();
+  await page.addInitScript((value) => {
+    sessionStorage.setItem('atlas.runtime-overrides', JSON.stringify(value));
+  }, document);
+}
+
+function developmentHostId(app: string): string {
+  return app === 'dashboard-react'
+    ? '060a7f62-1c95-402c-9993-55749faf36d9'
+    : '399e1a5d-f83d-4248-96ed-e4211707ae1b';
 }
 
 async function waitForHealthyControlServer(

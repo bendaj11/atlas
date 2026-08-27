@@ -99,25 +99,10 @@ export async function runAtlasCli(
       }
     }
 
-    if (invocation.command === 'build' && invocation.subcommand) {
-      ui.heading(`Build · ${invocation.subcommand}`);
-      const result = await builds.build(invocation.subcommand);
-      const identity = result.manifest.release
-        ? result.manifest.release.version
-        : `preview #${result.manifest.preview!.number}`;
-      ui.success(`Built ${result.artifact} ${result.manifest.id}@${identity}.`);
-      if (result.artifact === 'host') {
-        ui.info(
-          'Host bootstrap deploys independently through your platform target.',
-        );
-      }
-      return;
-    }
-
     if (invocation.command === 'publish' && invocation.subcommand) {
       ui.heading(`Publish · ${invocation.subcommand}`);
       const config = await loadAtlasRegistryConfig(args, workspace.root);
-      const result = await new AtlasPublishService(args, builds).run(
+      const result = await new AtlasPublishService(args, builds, ui.info).run(
         invocation.subcommand,
         config,
       );

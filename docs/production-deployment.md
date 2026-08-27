@@ -61,8 +61,7 @@ Publishing does not select production. It only makes exact bytes available.
 ### 3. Build static bootstrap once
 
 ```bash
-pnpm exec atlas bootstrap customer-host \
-  --registry-url https://assets.example.com/atlas
+pnpm exec atlas bootstrap customer-host
 ```
 
 The output is `customer-host/dist/bootstrap`. It contains no staging or
@@ -83,21 +82,18 @@ EXPOSE 8080
 
 The same image may be promoted unchanged through every environment.
 
-### 5. Deploy the host selection and bind its URL
+### 5. Deploy the host selection
 
 ```bash
 pnpm exec atlas deploy customer-host \
   --to production \
-  --version 1.0.0 \
-  --host-url https://customer.example.com
+  --version 1.0.0
 ```
 
-`--host-url` is required the first time this host is deployed to production.
-Atlas records the relationship and generates host discovery.
-
-If the platform assigns its URL after rollout, steps 4 and 5 happen in that
-order. If the URL is already known, either order is safe; the host begins loading
-after both are complete.
+Platform/IaC owns the public URL and writes same-origin `atlas.runtime.json`.
+Set its `hostId` to this Host's stable ID and `environment` to `production`.
+The Host begins loading after bootstrap, runtime config, and deployment manifest
+are public.
 
 ### 6. Deploy apps
 
@@ -107,7 +103,7 @@ pnpm exec atlas deploy orders \
   --version 1.4.0
 ```
 
-Apps do not use `--host-url`. Their routes and slots determine which deployed
+Apps have no public URL binding. Their routes and slots determine which deployed
 hosts are affected.
 
 ### 7. Verify the public host
@@ -119,7 +115,7 @@ pnpm exec atlas verify \
 
 ## Normal release after setup
 
-The host URL is remembered. A later host-client release is only:
+A later host-client release is only:
 
 ```bash
 pnpm run build -- customer-host
@@ -139,30 +135,28 @@ Neither flow requires a new bootstrap image unless bootstrap inputs changed.
 
 ## Staging and production with one image
 
-Roll out the same bootstrap image at two public addresses, then bind each one:
+Roll out the same bootstrap image at two public addresses, then select one host
+release for each environment:
 
 ```bash
 pnpm exec atlas deploy customer-host \
   --to staging \
-  --version 1.0.0 \
-  --host-url https://staging.customer.example.com
+  --version 1.0.0
 
 pnpm exec atlas deploy customer-host \
   --to production \
-  --version 1.0.0 \
-  --host-url https://customer.example.com
+  --version 1.0.0
 ```
 
-When the staging URL opens, discovery selects staging. When the production URL
-opens, discovery selects production. No environment variable or image rebuild
-is involved.
+Each host origin supplies its own `atlas.runtime.json`: staging uses
+`"environment": "staging"`; production uses `"environment": "production"`.
+No image rebuild is involved.
 
 ## Different host servers for different environments
 
 The staging and production websites may run on unrelated platforms, clusters,
-regions, or domains. Their `--host-url` values identify them. They still share
-the stable registry URL stored in bootstrap, so one discovery document can map
-both public host URLs.
+regions, or domains. Each one supplies same-origin runtime config and can share
+the stable registry URL stored in bootstrap.
 
 An artifact may be imported from a separate source registry during deploy. The
 target remains the stable registry used by bootstrap. Example production import
@@ -175,8 +169,7 @@ pnpm exec atlas deploy customer-host \
   --source-registry-url https://rc-assets.example.com/atlas \
   --registry-url https://prod-assets.example.com/atlas \
   --storage-api-url https://prod-s3.example.com \
-  --bucket atlas-production \
-  --host-url https://customer.example.com
+  --bucket atlas-production
 ```
 
 The source URL is read-only. Atlas copies and verifies missing immutable bytes
@@ -223,25 +216,10 @@ immutable; Atlas updates registry identity metadata.
 
 ## Host URL changes and aliases
 
-Pass `--host-url` on a later host deploy to replace the URLs for that
-host/environment:
-
-```bash
-pnpm exec atlas deploy customer-host \
-  --to production \
-  --version 1.0.1 \
-  --host-url https://new.customer.example.com
-```
-
-For aliases:
-
-```bash
---host-url https://customer.example.com,https://www.customer.example.com
-```
-
-Do not include a page route, query, or hash unless the host itself is
-intentionally mounted below that path. A path binding such as
-`https://example.com/customer` matches that path and its child routes.
+Host URLs are platform configuration, not Atlas deployment state. Serve the
+same bootstrap and an appropriate same-origin `atlas.runtime.json` at every
+approved URL. Do not put a page route, query, or hash in a host origin unless
+the host is intentionally mounted below that path.
 
 ## Storage input precedence
 
@@ -257,9 +235,9 @@ error.
 | Target prefix          | `--key-prefix`          | `ATLAS_STORAGE_KEY_PREFIX`  |
 | Target region          | `--region`              | `ATLAS_S3_REGION`           |
 
-`ATLAS_HOST_URL` provides the public URL when deploying a host. It does not
-select an app development preview; app teams configure those in `package.json`
-`atlas.previews`.
+`ATLAS_HOST_URL` provides a default public URL for `atlas verify`. It does not
+select an environment or an app development preview; app teams configure previews
+in `package.json` `atlas.previews`.
 
 ## CI examples
 

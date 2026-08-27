@@ -76,9 +76,9 @@ CI/CD decides storage environment, public registry URL, affected comparison,
 bootstrap deployment platform, and verification URLs. Existing release tooling
 decides semantic package version.
 
-`atlas build` runs framework build and writes manifest without registry access.
-`atlas publish <project> --version <value>` records existing framework output as
-one immutable release. `atlas deploy <artifact> --to <environment> --version
+Framework build produces output. `atlas publish <project> --version <value>`
+compiles Atlas configuration and records that existing output as one immutable
+release. `atlas deploy <artifact> --to <environment> --version
 <selector>` selects already-published bytes, updates `registry.json`, and
 converges affected active host manifests. Built-in storage supports S3-compatible
 providers through standard AWS SDK credentials; registry contract remains

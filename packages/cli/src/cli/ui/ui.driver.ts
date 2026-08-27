@@ -61,7 +61,7 @@ export class UiDriver {
       Object.assign(console, { error: this.error, info: this.info });
       try {
         if (scenario === 'logo') ui.logo();
-        if (scenario === 'heading') ui.heading(`Build · ${this.subject}`);
+        if (scenario === 'heading') ui.heading(`Publish · ${this.subject}`);
         if (scenario === 'success') ui.success(`Built ${this.subject}.`);
         if (scenario === 'warning')
           ui.warning(`${this.subject} has no header.`);
@@ -72,7 +72,7 @@ export class UiDriver {
         }
         if (scenario === 'multiple-action-error') {
           ui.error(
-            `Build failed. Suggested actions: 1) ${this.action}. 2) Rerun atlas build.`,
+            `Publish failed. Suggested actions: 1) ${this.action}. 2) Rerun atlas publish.`,
           );
         }
         if (scenario === 'result') ui.result(this.subject, this.url);
@@ -117,7 +117,7 @@ export class UiDriver {
       );
     },
     heading: (): readonly unknown[][] => [
-      [`\nAtlas · Build · ${this.subject}`],
+      [`\nAtlas · Publish · ${this.subject}`],
     ],
     success: (): readonly unknown[][] => [[`✓ Built ${this.subject}.`]],
     warning: (): readonly unknown[][] => [[`! ${this.subject} has no header.`]],
@@ -126,10 +126,10 @@ export class UiDriver {
       [`  Suggested action: ${this.action}, then retry.`],
     ],
     multipleActionError: (): readonly unknown[][] => [
-      ['✖ Build failed.'],
+      ['✖ Publish failed.'],
       ['  Suggested actions:'],
       [`    1. ${this.action}.`],
-      ['    2. Rerun atlas build.'],
+      ['    2. Rerun atlas publish.'],
     ],
     result: (): readonly unknown[][] => [[`${this.subject}: ${this.url}`]],
     linkedResult: (): readonly unknown[][] => [

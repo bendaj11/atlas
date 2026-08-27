@@ -51,23 +51,15 @@ export class AtlasBuildService {
     private readonly args: CliArguments,
   ) {}
 
-  async build(name: string): Promise<AtlasBuildResult> {
-    return this.preparePublication(name, true);
-  }
-
   async publication(name: string): Promise<AtlasBuildResult> {
-    return this.preparePublication(name, false);
+    return this.preparePublication(name);
   }
 
-  private async preparePublication(
-    name: string,
-    runFrameworkBuild: boolean,
-  ): Promise<AtlasBuildResult> {
+  private async preparePublication(name: string): Promise<AtlasBuildResult> {
     const project = await this.workspace.findProject(name);
     if (!this.args.hasFlag('skip-compile'))
       await compileAtlasConfig(this.workspace, project);
     const config = await this.loadConfig(project.root);
-    if (runFrameworkBuild) await this.workspace.run(project, 'build');
     const entryPath = this.args.flag('entry') ?? 'remoteEntry.json';
     const sourceDirectory = await findArtifactRoot(
       this.workspace.root,

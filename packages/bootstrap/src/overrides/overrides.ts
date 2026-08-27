@@ -6,11 +6,8 @@ import type {
   AtlasManifestDescriptor,
   AtlasStaticRegistry,
 } from '@atlas/schema';
-import {
-  DEV_SESSION_PORT_PARAM,
-  DEV_SESSION_URL,
-  DOCUMENT_KEY,
-} from '../constants.js';
+import { DOCUMENT_KEY } from '../constants.js';
+import { requestDevelopmentSession } from '../development-session/development-session.js';
 import { fetchJson } from '../fetch-json/fetch-json.js';
 import type { DevSession, RuntimeOverrides } from '../types.js';
 import { loadPublishedArtifact } from '../published-artifact/published-artifact.js';
@@ -19,13 +16,15 @@ export async function applyOverrides(
   runtime: AtlasHostRuntimeConfig,
   catalog: AtlasHostCatalog,
 ): Promise<AtlasHostCatalog> {
+  const devSession = runtime.developmentSessionUrl
+    ? await fetchJson<DevSession>(runtime.developmentSessionUrl, runtime)
+    : ((await requestDevelopmentSession(runtime.hostId)) as
+        DevSession | undefined);
   let stored: string | null;
-  if (hasDevSessionPort(location.search)) {
-    const devSession = await fetchDevSession(runtime.hostId);
+  if (devSession) {
     catalog = mergeDevSessionCatalog(catalog, devSession);
     stored = JSON.stringify(devSession);
     sessionStorage.setItem(DOCUMENT_KEY, stored);
-    removeDevSessionPortFromAddressBar();
   } else {
     stored =
       sessionStorage.getItem(DOCUMENT_KEY) ||
@@ -108,34 +107,6 @@ function mergeDevSessionCatalog(
     host: session.hostOverride || catalog.host,
     apps,
   };
-}
-
-function hasDevSessionPort(search: string): boolean {
-  return new URLSearchParams(search).has(DEV_SESSION_PORT_PARAM);
-}
-
-async function fetchDevSession(hostId: string): Promise<DevSession> {
-  const url = new URL(DEV_SESSION_URL);
-  const requestedPort = new URLSearchParams(location.search).get(
-    DEV_SESSION_PORT_PARAM,
-  );
-  if (!isValidPort(requestedPort))
-    throw new Error('Atlas development session port must be a valid TCP port.');
-
-  url.port = requestedPort;
-  url.searchParams.set('hostId', hostId);
-  return fetchJson<DevSession>(url.href);
-}
-
-function isValidPort(value: string | null): value is string {
-  const port = Number(value);
-  return Number.isInteger(port) && port > 0 && port <= 65_535;
-}
-
-function removeDevSessionPortFromAddressBar(): void {
-  const url = new URL(location.href);
-  url.searchParams.delete(DEV_SESSION_PORT_PARAM);
-  history.replaceState(history.state, '', url.href);
 }
 
 async function resolveOverrideManifest<

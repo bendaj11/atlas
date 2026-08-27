@@ -200,7 +200,6 @@ function ensureAtlasPublicationTargets(
 ): void {
   targets['atlas:publish'] = {
     cache: false,
-    dependsOn: ['build'],
     executor: 'nx:run-commands',
     options: {
       command: atlasCommand(packageManager, `publish ${projectName}`),

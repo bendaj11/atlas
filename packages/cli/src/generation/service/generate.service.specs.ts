@@ -98,14 +98,11 @@ describe('AtlasGenerateService', () => {
     });
   });
 
-  it('should build before publishing when generating in a Turbo workspace', async () => {
+  it('should not require build before publishing when generating in a Turbo workspace', async () => {
     await driver.given.turboGeneration('app');
 
     await driver.when.generate();
 
-    expect(await driver.get.turboPublishTask()).toMatchObject({
-      cache: false,
-      dependsOn: ['build'],
-    });
+    expect(await driver.get.turboPublishTask()).not.toHaveProperty('dependsOn');
   });
 });

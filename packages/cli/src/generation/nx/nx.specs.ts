@@ -85,7 +85,7 @@ describe('Nx generation', () => {
       publishCommand: expect.stringMatching(
         /(?:pnpm exec|npx --no-install) atlas publish \{project\}/,
       ),
-      publishDependencies: ['build'],
+      publishDependsOnBuild: false,
       serveExecutor: '@angular-architects/native-federation:build',
       tagged: true,
     });
@@ -128,7 +128,7 @@ describe('Nx generation', () => {
       publishCommand: expect.stringMatching(
         /(?:pnpm exec|npx --no-install) atlas publish \{project\}/,
       ),
-      publishDependencies: ['build'],
+      publishDependsOnBuild: false,
       tagged: true,
     });
   });

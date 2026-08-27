@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import type { AtlasError } from '@atlas/schema';
 import { createCliError, formatErrorWithCauses } from './cli-error.js';
 
-type ErrorScenario = 'browser' | 'build' | 'publish' | 'storage' | 'unknown';
+type ErrorScenario = 'browser' | 'publish' | 'storage' | 'unknown';
 
 export class CliErrorDriver {
   private readonly unknownCommand = faker.word.sample();
@@ -45,7 +45,6 @@ export class CliErrorDriver {
 
   private messageFor(scenario: ErrorScenario): string {
     if (scenario === 'unknown') return this.get.unknownSummary();
-    if (scenario === 'build') return 'spawn vite ENOENT';
     if (scenario === 'publish') return 'S3 deployment lock is no longer owned.';
     if (scenario === 'storage')
       return 'S3-compatible storage could not acquire deployment lock.';

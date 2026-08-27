@@ -154,8 +154,8 @@ the host reads through its catalog.
 The host does not import every app or maintain a route table in source. The
 selection flow is:
 
-1. `atlas build orders` reads `orders/atlas.config.ts`.
-2. Atlas writes route and slot declarations into the `orders` manifest.
+1. `atlas publish orders --version <version>` reads `orders/atlas.config.ts`.
+2. Atlas writes route and slot declarations into the published `orders` manifest.
 3. Deployment updates the environment selection and active host manifest.
 4. Bootstrap and host discovery select the active manifest for the page URL.
 5. The loader selects the host client and passes the effective catalog; the host filters placements for
@@ -240,8 +240,8 @@ Atlas resolves stable ID to current host URL.
 
 ## Deployment Domain
 
-During `atlas build`, route declarations become manifest placements. During
-publication, host catalog selects exactly one Orders app manifest. At runtime,
+During publication, route declarations become manifest placements. The host
+catalog selects exactly one Orders app manifest. At runtime,
 the host reads the catalog and mounts the selected app when the browser URL
 matches `/orders`.
 

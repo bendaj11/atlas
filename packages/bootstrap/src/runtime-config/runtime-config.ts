@@ -7,9 +7,17 @@ export function assertAtlasRuntimeConfig(value: unknown): asserts value is Atlas
   assertSegment(value.hostId, 'hostId');
   assertSegment(value.environment, 'environment');
   assertRegistryUrl(value.artifactRegistryUrl, 'artifactRegistryUrl');
+  if (value.hostVersion !== undefined) assertSegment(value.hostVersion, 'hostVersion');
   if (value.environmentRegistryUrl !== undefined) assertRegistryUrl(value.environmentRegistryUrl, 'environmentRegistryUrl');
-  const fields = new Set(['schemaVersion', 'hostId', 'environment', 'artifactRegistryUrl', 'environmentRegistryUrl']);
+  const developmentFields = value.environment === 'development'
+    ? ['developmentSessionUrl', 'resourcesTimeoutMs', 'resourcesRetryCount']
+    : [];
+  const fields = new Set(['schemaVersion', 'hostId', 'hostVersion', 'environment', 'artifactRegistryUrl', 'environmentRegistryUrl', ...developmentFields]);
   if (Object.keys(value).some((field) => !fields.has(field))) throw new Error('Atlas runtime config has unsupported fields.');
+  if (value.environment !== 'development') return;
+  if (value.developmentSessionUrl !== undefined) assertDevelopmentSessionUrl(value.developmentSessionUrl);
+  assertOptionalInteger(value.resourcesRetryCount, 'resourcesRetryCount', 0);
+  assertOptionalInteger(value.resourcesTimeoutMs, 'resourcesTimeoutMs', 1);
 }
 
 export function environmentRegistryUrl(runtime: AtlasHostRuntimeConfig): string {
@@ -31,6 +39,20 @@ function assertRegistryUrl(value: unknown, field: string): void {
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) throw new Error(`Atlas runtime ${field} requires HTTPS outside local development.`);
   if (url.username || url.password || url.search || url.hash || value.endsWith('/')) throw new Error(`Atlas runtime ${field} must be a normalized registry root.`);
+}
+
+function assertDevelopmentSessionUrl(value: unknown): void {
+  let url: URL;
+  try { url = new URL(String(value)); } catch { throw new Error('Atlas runtime developmentSessionUrl must be an absolute loopback URL.'); }
+  if (typeof value !== 'string' || url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+    throw new Error('Atlas runtime developmentSessionUrl must be an absolute loopback URL.');
+  }
+}
+
+function assertOptionalInteger(value: unknown, field: string, minimum: number): void {
+  if (value !== undefined && (!Number.isInteger(value) || Number(value) < minimum)) {
+    throw new Error(`Atlas runtime ${field} must be an integer of at least ${minimum}.`);
+  }
 }
 
 function assertSegment(value: unknown, field: string): void {

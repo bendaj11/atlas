@@ -465,7 +465,6 @@ export class AtlasGenerateService {
     );
     targets['atlas:publish'] = {
       cache: false,
-      dependsOn: ['build'],
       executor: 'nx:run-commands',
       options: {
         command: atlasCommand(this.workspace.packageManager, `publish ${name}`),
@@ -535,7 +534,6 @@ export class AtlasGenerateService {
     tasks['atlas:config'] ??= { outputs: ['.atlas/**'] };
     tasks['atlas:publish'] ??= {
       cache: false,
-      dependsOn: ['build'],
       env: [
         'ATLAS_*',
         'AWS_*',

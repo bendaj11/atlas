@@ -1,9 +1,14 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { AtlasConfig } from '@atlas/schema';
+import {
+  ATLAS_DEV_ACTIVATION_PATH,
+  ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
+  ATLAS_DEV_ACTIVATION_TOKEN_PARAM,
+  ATLAS_DEV_ACTIVATION_VERSION_PARAM,
+  type AtlasConfig,
+} from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
 import {
-  DEV_SESSION_PORT_PARAM,
   REMOTE_POLL_INTERVAL_MS,
   REMOTE_START_TIMEOUT_MS,
 } from '../constants.js';
@@ -155,12 +160,22 @@ export function logHostViewUrl(
   ui.warning('App preview unresolved. Define atlas.previews in package.json.');
 }
 
-export function withDevSessionPort(
-  hostUrl: string,
-  controlPort: number,
-): string {
-  const url = new URL(hostUrl);
-  url.searchParams.set(DEV_SESSION_PORT_PARAM, String(controlPort));
+export function developmentActivationUrl(options: {
+  activationToken: string;
+  controlPort: number;
+}): string {
+  const url = new URL(
+    ATLAS_DEV_ACTIVATION_PATH,
+    localOrigin(options.controlPort),
+  );
+  url.searchParams.set(
+    ATLAS_DEV_ACTIVATION_TOKEN_PARAM,
+    options.activationToken,
+  );
+  url.searchParams.set(
+    ATLAS_DEV_ACTIVATION_VERSION_PARAM,
+    ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
+  );
   return url.href;
 }
 

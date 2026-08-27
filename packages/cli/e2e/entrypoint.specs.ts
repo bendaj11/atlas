@@ -24,15 +24,16 @@ describe('CLI entrypoint', () => {
     expect(driver.get.rootHelp()).toStrictEqual({
       code: 0,
       hasCommandCatalog: true,
+      hasNoBuildCommand: true,
       hasNoColor: true,
       hasNoInput: true,
     });
   });
 
-  it('should describe command details when build help is requested', async () => {
-    await driver.when.run('build-help');
+  it('should describe command details when publish help is requested', async () => {
+    await driver.when.run('publish-help');
 
-    expect(driver.get.buildHelp()).toStrictEqual({
+    expect(driver.get.publishHelp()).toStrictEqual({
       code: 0,
       hasArguments: true,
       hasEnvironment: true,
@@ -84,7 +85,7 @@ describe('CLI entrypoint', () => {
   it('should ignore positional value when command help is requested', async () => {
     await driver.when.run('positional-help');
 
-    expect(driver.get.buildHelp()).toMatchObject({ code: 0, hasUsage: true });
+    expect(driver.get.publishHelp()).toMatchObject({ code: 0, hasUsage: true });
   });
 
   it('should explain error when command is unknown', async () => {

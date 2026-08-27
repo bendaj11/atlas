@@ -40,7 +40,7 @@ it('should register the project when generating inside an Nx workspace', async (
     configCommand: 'yarn run atlas:config',
     detected: true,
     publishCommand: `npx --no-install atlas publish ${driver.get.projectName()}`,
-    publishDependencies: ['build'],
+    publishDependsOnBuild: false,
   });
 });
 

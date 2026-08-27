@@ -81,4 +81,45 @@ describe('development control server', () => {
 
     expect(await driver.get.registryStatus()).toBe(404);
   });
+
+  it('should serve extension activation without exposing control parameters to preview', async () => {
+    await driver.given.runningHostAndApp();
+
+    const page = await driver.get.activationPage();
+
+    expect({
+      hasControlParameter: page.body.includes('atlas-dev-port'),
+      hasInstallGuidance: page.body.includes('Columbus must be installed'),
+      referrerPolicy: page.referrerPolicy,
+      status: page.status,
+    }).toStrictEqual({
+      hasControlParameter: false,
+      hasInstallGuidance: true,
+      referrerPolicy: 'no-referrer',
+      status: 200,
+    });
+  });
+
+  it('should reject activation when capability is replayed', async () => {
+    await driver.given.runningHostAndApp();
+    await driver.get.activationPage();
+    await driver.when.consumeActivation();
+
+    expect(await driver.get.replayedActivationStatus()).toBe(410);
+  });
+
+  it('should return capability-bound target and development session when activation is consumed', async () => {
+    await driver.given.runningHostAndApp();
+    await driver.get.activationPage();
+    await driver.when.consumeActivation();
+
+    expect(driver.get.consumedActivation()).toMatchObject({
+      body: {
+        protocolVersion: '1',
+        targetUrl: 'https://preview.example/orders',
+        document: { hostId: driver.get.hostId(), schemaVersion: '1' },
+      },
+      status: 200,
+    });
+  });
 });

@@ -19,7 +19,7 @@ export class EntrypointDriver {
       scenario:
         | 'version'
         | 'root-help'
-        | 'build-help'
+        | 'publish-help'
         | 'alias-help'
         | 'widget-help'
         | 'host-help'
@@ -31,9 +31,9 @@ export class EntrypointDriver {
       const argumentsByScenario = {
         'alias-help': ['help', 'g', 'host'],
         'app-help': ['g', 'app', '--help'],
-        'build-help': ['build', '--help'],
+        'publish-help': ['publish', '--help'],
         'host-help': ['g', 'host', '--help'],
-        'positional-help': ['build', this.projectName, '--help'],
+        'positional-help': ['publish', this.projectName, '--help'],
         'root-help': ['--help'],
         'unconfigured-widget': ['g', 'widget', this.projectName],
         'unknown-command': [this.unknownCommand],
@@ -53,13 +53,13 @@ export class EntrypointDriver {
         this.result?.stdout ?? '',
       ),
     }),
-    buildHelp: () => ({
+    publishHelp: () => ({
       code: this.result?.code,
       hasArguments: /Arguments:/.test(this.result?.stdout ?? ''),
       hasEnvironment: /Environment:/.test(this.result?.stdout ?? ''),
       hasExamples: /Examples:/.test(this.result?.stdout ?? ''),
       hasRegistryOption: /--registry-url <url>/.test(this.result?.stdout ?? ''),
-      hasUsage: /atlas build <project> \[options\]/.test(
+      hasUsage: /atlas publish <project> \[options\]/.test(
         this.result?.stdout ?? '',
       ),
     }),
@@ -83,6 +83,7 @@ export class EntrypointDriver {
       hasCommandCatalog: /Commands:\n\s+generate, g\s+Generate a host/.test(
         this.result?.stdout ?? '',
       ),
+      hasNoBuildCommand: !/^\s+build\s/m.test(this.result?.stdout ?? ''),
       hasNoInput: /--no-input\s+Disable interactive prompts/.test(
         this.result?.stdout ?? '',
       ),

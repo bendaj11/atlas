@@ -10,6 +10,7 @@ import {
 export class ManifestUtilsDriver {
   private productionManifest = createProductionManifest();
   private selectedManifest: AtlasExtensionManifest | undefined;
+  private productionOptions = [this.productionManifest];
 
   readonly given = {
     productionFramework: (
@@ -25,6 +26,26 @@ export class ManifestUtilsDriver {
       });
       return this;
     },
+    newerPublishedVersion: (): this => {
+      this.productionOptions = [
+        {
+          ...this.productionManifest,
+          version: '2.0.0',
+          buildId: 'canonical',
+        },
+        this.productionManifest,
+      ];
+      return this;
+    },
+    selectedProductionVersion: (): this => {
+      this.selectedManifest = {
+        ...this.productionManifest,
+        version: '2.0.0',
+        buildId: 'canonical',
+      };
+      this.productionOptions = [this.selectedManifest, this.productionManifest];
+      return this;
+    },
   };
 
   readonly get = {
@@ -34,7 +55,7 @@ export class ManifestUtilsDriver {
         hostId: 'host',
         productionManifest: this.productionManifest,
         selectedManifest: this.selectedManifest,
-        productionOptions: [this.productionManifest],
+        productionOptions: this.productionOptions,
         prOptions: [],
       }),
     customManifest: (rawUrl: string) =>

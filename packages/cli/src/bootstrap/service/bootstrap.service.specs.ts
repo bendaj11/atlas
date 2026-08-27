@@ -15,7 +15,7 @@ describe('AtlasBootstrapService', () => {
 
     expect(driver.get.buildSummary()).toStrictEqual({
       directory: driver.get.outputDirectory(),
-      files: ['index.html', 'atlas.loader.js'],
+      files: ['index.html', 'atlas.loader.js', 'es-module-shims.js'],
       hasValidDigest: true,
     });
   });
@@ -45,5 +45,4 @@ describe('AtlasBootstrapService', () => {
       driver.get.expectedCustomOptions(),
     );
   });
-
 });

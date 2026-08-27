@@ -19,6 +19,11 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
+      "js": ["development-session-content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["badge-script.js"],
       "run_at": "document_idle"
     }

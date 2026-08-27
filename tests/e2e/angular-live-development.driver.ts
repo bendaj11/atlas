@@ -46,10 +46,11 @@ export class AngularLiveDevelopmentDriver {
       );
 
       await this.waitForControlServer();
+      await this.installDevelopmentSession();
       const notifications = this.page.waitForResponse((response) =>
         response.url().endsWith(BUILD_NOTIFICATIONS_ENDPOINT),
       );
-      await this.page.goto(this.activationUrl());
+      await this.page.goto(this.hostUrl);
       await notifications;
     },
     changeSignalHeading: async (): Promise<void> => {
@@ -77,10 +78,25 @@ export class AngularLiveDevelopmentDriver {
       this.page.getByRole('heading', { name: UPDATED_HEADING }),
   };
 
-  private activationUrl(): string {
-    const url = new URL(this.hostUrl);
-    url.searchParams.set('atlas-dev-port', String(CONTROL_PORT));
-    return url.href;
+  private async installDevelopmentSession(): Promise<void> {
+    const sessionUrl = new URL(
+      '/atlas.dev-session.json',
+      `http://localhost:${CONTROL_PORT}`,
+    );
+    sessionUrl.searchParams.set(
+      'hostId',
+      '399e1a5d-f83d-4248-96ed-e4211707ae1b',
+    );
+    const response = await fetch(sessionUrl);
+    if (!response.ok) {
+      throw new Error(
+        `Atlas development session returned HTTP ${response.status}.`,
+      );
+    }
+    const document = await response.json();
+    await this.page.addInitScript((value) => {
+      sessionStorage.setItem('atlas.runtime-overrides', JSON.stringify(value));
+    }, document);
   }
 
   private async waitForControlServer(): Promise<void> {

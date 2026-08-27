@@ -1,10 +1,10 @@
 import { faker } from '@faker-js/faker';
 import {
   browserOpenCommand,
+  developmentActivationUrl,
   formatFrameworkServerError,
   frameworkServerArguments,
   remoteEntryIsReady,
-  withDevSessionPort,
 } from './process.js';
 
 type RemoteEntryScenario = 'html' | 'missing' | 'metadata';
@@ -74,8 +74,11 @@ export class DevelopmentProcessDriver {
     ): void => {
       this.value = frameworkServerArguments(framework, port);
     },
-    activateHostUrl: (hostUrl: string, controlPort: number): void => {
-      this.value = withDevSessionPort(hostUrl, controlPort);
+    activateHostUrl: (activationToken: string, controlPort: number): void => {
+      this.value = developmentActivationUrl({
+        activationToken,
+        controlPort,
+      });
     },
   };
 

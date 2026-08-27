@@ -22,29 +22,6 @@ describe('createCliError', () => {
     ]);
   });
 
-  it('should prefix error when build fails', () => {
-    driver.given.error('build');
-
-    expect(driver.get.error().summary).toBe(
-      'Atlas build failed: spawn vite ENOENT',
-    );
-  });
-
-  it('should suggest recovery when build input is missing', () => {
-    driver.given.error('build');
-
-    expect(driver.get.error().suggestedActions).toStrictEqual([
-      'Restore the named file or pass an existing Atlas project or path.',
-      'Rerun `atlas build` after correcting the condition.',
-    ]);
-  });
-
-  it('should preserve cause when wrapping build error', () => {
-    driver.given.error('build');
-
-    expect(driver.get.error().cause).toBe(driver.get.cause());
-  });
-
   it('should suggest storage recovery when publication storage fails', () => {
     driver.given.error('publish');
 

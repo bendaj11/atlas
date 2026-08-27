@@ -35,6 +35,15 @@ export class ArtifactOverrideVersionDriver {
       };
       return this;
     },
+    enabledProductionSelection: (): this => {
+      this.artifact = {
+        ...this.artifact,
+        overrideEnabled: true,
+        selectedManifest: this.artifact.productionManifest,
+        sourceDescription: '1.0.0-production',
+      };
+      return this;
+    },
     loadError: (loadError: string): this => {
       this.artifact = { ...this.artifact, loadError };
       return this;

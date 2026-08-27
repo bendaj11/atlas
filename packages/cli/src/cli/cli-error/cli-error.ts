@@ -138,7 +138,6 @@ function cliActions(
       return [
         'Correct the named project, host URL, port, or local build failure, then rerun `atlas dev`.',
       ];
-    case 'build':
     case 'bootstrap':
     case 'compile-config':
       return [

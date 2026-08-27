@@ -7,7 +7,10 @@ import type {
 import { assertHostDeploymentManifest } from '@atlas/schema';
 import { fetchBytes, fetchJson } from '../fetch-json/fetch-json.js';
 import { loadHostModule } from '../host-loader/host-loader.js';
-import { assertAtlasRuntimeConfig, environmentManifestUrl } from '../runtime-config/runtime-config.js';
+import {
+  assertAtlasRuntimeConfig,
+  environmentManifestUrl,
+} from '../runtime-config/runtime-config.js';
 import { installModuleShim } from '../module-shim/module-shim.js';
 import { applyOverrides } from '../overrides/overrides.js';
 import { loadPublishedArtifact } from '../published-artifact/published-artifact.js';

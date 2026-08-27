@@ -186,7 +186,9 @@ module.exports = {
         hasPublish: Boolean(project.targets['atlas:publish']),
         hasServeOriginal: Boolean(project.targets['serve-original']),
         publishCommand: project.targets['atlas:publish']?.options?.command,
-        publishDependencies: project.targets['atlas:publish']?.dependsOn,
+        publishDependsOnBuild:
+          project.targets['atlas:publish']?.dependsOn?.includes('build') ===
+          true,
         serveExecutor: project.targets.serve?.executor,
         tagged: project.tags.includes('atlas'),
       });

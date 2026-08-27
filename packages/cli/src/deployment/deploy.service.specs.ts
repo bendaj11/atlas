@@ -67,6 +67,14 @@ describe('AtlasDeployService', () => {
     expect(driver.get.invalidations()).toEqual([]);
   });
 
+  it('should retry deployment when cache invalidation is transiently unavailable', async () => {
+    driver.given.transientInvalidationFailure();
+
+    await driver.when.deploy();
+
+    expect(driver.get.invalidations()).toHaveLength(4);
+  });
+
   it('should retain target environment selections when deployment is a dry run', async () => {
     driver.given.dryRun();
 

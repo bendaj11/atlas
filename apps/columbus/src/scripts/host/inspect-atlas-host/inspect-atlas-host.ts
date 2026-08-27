@@ -1,8 +1,8 @@
-import { assertAtlasRuntimeConfig, environmentManifestUrl } from '@atlas/bootstrap/runtime';
 import {
-  assertAtlasHostCatalog,
-  hydratePublishedArtifactManifest,
-} from '@atlas/schema';
+  assertAtlasRuntimeConfig,
+  environmentManifestUrl,
+} from '@atlas/bootstrap/runtime';
+import { hydratePublishedArtifactManifest } from '@atlas/schema';
 import type {
   AtlasExtensionManifest as Manifest,
   AtlasHostData as HostData,
@@ -49,13 +49,10 @@ interface HostDeployment {
 const FETCH_TIMEOUT_MS = 5_000;
 const LOOKUP_CONCURRENCY = 8;
 const CANONICAL_BUILD_ID = 'canonical';
-const RUNTIME_SNAPSHOT_ELEMENT_ID = 'atlas-runtime-snapshot';
 const manifestReferences = new Map<string, ManifestReference>();
 const loadedManifests = new Map<string, Promise<Manifest>>();
 
 export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
-  const snapshot = readRuntimeSnapshot(documentKey);
-  if (snapshot) return loadSnapshotVersions(snapshot);
   const config = await readAtlasConfig();
   const catalog = await readHostDeployment(
     environmentManifestUrl(config),
@@ -113,115 +110,6 @@ export async function inspectAtlasHost(documentKey: string): Promise<HostData> {
   };
 }
 
-async function loadSnapshotVersions(snapshot: HostData): Promise<HostData> {
-  const root =
-    snapshot.config.artifactRegistryUrl.replace(/\/$/u, '');
-  const registry = root ? await readRegistry(root) : undefined;
-  const selectedArtifacts = [
-    snapshot.catalog.host,
-    ...snapshot.catalog.apps,
-    ...(snapshot.catalog.widgetProviders ?? []),
-  ];
-  const results = await Promise.all(
-    selectedArtifacts.map((manifest) =>
-      readManifestVersions(manifest, registry, root),
-    ),
-  );
-  const external = { providers: [], versions: [], errors: [] };
-  return {
-    ...snapshot,
-    catalog: {
-      ...snapshot.catalog,
-      widgetProviders: uniqueManifests([
-        ...(snapshot.catalog.widgetProviders ?? []),
-        ...external.providers,
-      ]),
-    },
-    versions: Object.fromEntries([
-      ...results.map(({ entry }) => entry),
-      ...external.versions,
-    ]),
-    versionErrors: [
-      ...results.flatMap(({ error }) => (error ? [error] : [])),
-      ...external.errors,
-    ],
-  };
-}
-
-function readRuntimeSnapshot(documentKey: string): HostData | undefined {
-  const element = document.getElementById(RUNTIME_SNAPSHOT_ELEMENT_ID);
-  if (!element?.textContent) return undefined;
-  try {
-    const snapshot = JSON.parse(element.textContent) as {
-      schemaVersion?: string;
-      runtime?: HostData['config'];
-      catalog?: HostData['catalog'];
-    };
-    if (
-      snapshot.schemaVersion !== '1' ||
-      !snapshot.runtime ||
-      !snapshot.catalog
-    )
-      return undefined;
-    assertAtlasHostCatalog(snapshot.catalog);
-    if (
-      !isRuntimeSnapshotConfig(snapshot.runtime) ||
-      snapshot.catalog.hostId !== snapshot.runtime.hostId
-    )
-      return undefined;
-    const selectedArtifacts = [
-      snapshot.catalog.host,
-      ...snapshot.catalog.apps,
-      ...(snapshot.catalog.widgetProviders ?? []),
-    ];
-    const stored = readStoredOverrideDocument(
-      documentKey,
-      snapshot.runtime.hostId,
-    );
-    return {
-      config: snapshot.runtime,
-      pageUrl: location.href,
-      catalog: snapshot.catalog,
-      versions: Object.fromEntries(
-        selectedArtifacts.map((manifest) => [
-          manifestKey(manifest),
-          [manifest],
-        ]),
-      ),
-      overrides:
-        stored.overrides ??
-        createLocalOverrides(snapshot.runtime, selectedArtifacts),
-      overrideScope: stored.overrideScope,
-      visibleAppIds: readVisibleAppIds(),
-      runtimeErrors: readRuntimeErrors(),
-      versionErrors: [],
-    };
-  } catch {
-    return undefined;
-  }
-}
-
-function isRuntimeSnapshotConfig(
-  value: HostData['config'],
-): value is HostData['config'] {
-  if (
-    value.schemaVersion !== 'v1' ||
-    !value.hostId ||
-    !value.environment ||
-    !isAbsoluteUrl(value.artifactRegistryUrl)
-  )
-    return false;
-  return value.environmentRegistryUrl === undefined || isAbsoluteUrl(value.environmentRegistryUrl);
-}
-
-function isAbsoluteUrl(value: string): boolean {
-  try {
-    return Boolean(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-}
-
 async function readAtlasConfig(): Promise<HostData['config']> {
   const response = await fetchWithTimeout('/atlas.runtime.json');
   if (!response.ok) {
@@ -259,7 +147,8 @@ async function readHostDeployment(
   ];
   const manifests = await mapWithConcurrency(
     references,
-    (descriptor) => loadManifestReference(reference(artifactRegistryUrl, descriptor)),
+    (descriptor) =>
+      loadManifestReference(reference(artifactRegistryUrl, descriptor)),
     LOOKUP_CONCURRENCY,
   );
   const host = manifests[0];

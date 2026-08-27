@@ -13,6 +13,7 @@ export type DevPrompts = Pick<AtlasPrompter, 'interactive' | 'select'>;
 
 export interface DevControlServer {
   port: number;
+  createActivation(hostId: string, targetUrl: string): Promise<string>;
   markReady(): Promise<void>;
   reconcile(): Promise<void>;
   close(): Promise<void>;

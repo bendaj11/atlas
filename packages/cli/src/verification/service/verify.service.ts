@@ -14,6 +14,10 @@ import {
   assertAtlasRuntimeConfig,
   environmentManifestUrl,
 } from '@atlas/bootstrap';
+import {
+  isRetryableHttpStatus,
+  withExponentialRetry,
+} from '../../cli/retry/retry.js';
 
 type AtlasVerificationStatus = 'pass' | 'warning' | 'failure';
 
@@ -159,11 +163,7 @@ export class AtlasVerifyService {
       expectedHostId: runtime.hostId,
       expectedEnvironment: runtime.environment,
       fetchBytes: async (url) => {
-        const loaded = await this.fetchResource(url, {
-          headers: { Origin: context.hostOrigin },
-          cache: 'no-store',
-          signal: AbortSignal.timeout(context.timeoutMs),
-        });
+        const loaded = await this.fetchResponse(new URL(url), context, false);
         if (!loaded.ok)
           throw new Error(`${url} returned HTTP ${loaded.status}.`);
         this.verifyCors(loaded, new URL(url), 'artifact manifest', context);
@@ -388,15 +388,7 @@ export class AtlasVerifyService {
     consume?: (response: Response) => Promise<void>,
   ): Promise<Response | undefined> {
     try {
-      const response = await this.network.run(async () => {
-        const loaded = await this.fetchResource(url, {
-          headers: { Origin: context.hostOrigin },
-          cache: 'no-store',
-          signal: AbortSignal.timeout(context.timeoutMs),
-        });
-        if (loaded.ok) await consume?.(loaded);
-        return loaded;
-      });
+      const response = await this.fetchResponse(url, context, true, consume);
       if (!response.ok) {
         fail(
           context,
@@ -414,6 +406,35 @@ export class AtlasVerifyService {
       );
       return undefined;
     }
+  }
+
+  private async fetchResponse(
+    url: URL,
+    context: VerificationContext,
+    limitConcurrency = true,
+    consume?: (response: Response) => Promise<void>,
+  ): Promise<Response> {
+    return withExponentialRetry(async () => {
+      const request = async () => {
+        const response = await this.fetchResource(url, {
+          headers: { Origin: context.hostOrigin },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(context.timeoutMs),
+        });
+        if (isRetryableHttpStatus(response.status)) {
+          throw Object.assign(
+            new Error(`${url.href} returned HTTP ${response.status}.`),
+            { status: response.status },
+          );
+        }
+        if (response.ok) await consume?.(response);
+        return response;
+      };
+      const response = limitConcurrency
+        ? await this.network.run(request)
+        : await request();
+      return response;
+    });
   }
 
   private verifyCors(

@@ -16,7 +16,7 @@ interface VersionDropdownProps {
   selectedId: string;
   versions: Manifest[];
   hostId: string;
-  currentId?: string;
+  deployedManifest?: Manifest;
   onChange: (value: string) => void;
 }
 
@@ -25,19 +25,16 @@ export function OverrideVersionDropdown({
   selectedId,
   versions,
   hostId,
-  currentId,
+  deployedManifest,
   onChange,
 }: VersionDropdownProps) {
-  const isVersionSelected = (manifest: Manifest) =>
-    manifest.channel === 'production' && versionKey(manifest) === currentId;
-
   const options = versions.map((version) =>
     listItemSelectBuilder({
       id: versionKey(version),
       title: versionLabel(version),
-      suffix: isVersionSelected(version) && (
+      suffix: isDeployedProductionVersion(version, deployedManifest) && (
         <Badge size="tiny" skin="neutralSuccess">
-          Current
+          Deployed
         </Badge>
       ),
       disabled: !isManifestSupportedByHost(version, hostId),
@@ -50,6 +47,7 @@ export function OverrideVersionDropdown({
         size="small"
         options={options}
         selectedId={selectedId}
+        defaultValue={selectedId}
         placeholder="No versions found"
         disabled={disabled || versions.length === 0}
         onSelect={(option: { id: string | number }) =>
@@ -57,5 +55,16 @@ export function OverrideVersionDropdown({
         }
       />
     </Box>
+  );
+}
+
+export function isDeployedProductionVersion(
+  manifest: Manifest,
+  deployedManifest: Manifest | undefined,
+): boolean {
+  return (
+    manifest.channel === 'production' &&
+    deployedManifest?.channel === 'production' &&
+    versionKey(manifest) === versionKey(deployedManifest)
   );
 }

@@ -117,7 +117,7 @@ public `/atlas.runtime.json` when app configuration does not identify it.
 atlas dev orders
 ```
 
-Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, and waits for valid federation metadata. The console prints the clean production URL. The browser opens that URL with a transient `atlas-dev-port` activation parameter; the deployed loader stores the tab-scoped override and immediately removes the parameter from the address bar.
+Atlas builds a local app manifest, starts the app framework server, registers the manifest with the control server, and waits for valid federation metadata. The console prints the clean production URL. The browser briefly opens a loopback activation page; Columbus securely transfers the development session to that tab and navigates to the exact clean production URL. The deployed page never receives a control-port parameter and never fetches localhost.
 
 ### Configure app previews
 
