@@ -8,50 +8,33 @@ describe('development session background bridge', () => {
     driver = new DevelopmentSessionBackgroundDriver();
   });
 
-  it('should stage matching session before navigating to clean preview', async () => {
-    await driver.when.activated();
+  it('should load matching development session from default control port', async () => {
+    await driver.when.loaded();
 
-    expect(driver.get.activation()).toMatchObject({
-      consumedUrl: expect.stringMatching(
-        /^http:\/\/localhost:\d+\/atlas\.dev-session\/activate\/[A-Za-z0-9]+\/consume$/,
-      ),
-      navigatedUrl: expect.stringMatching(/^https?:\/\//),
-      pendingCount: 1,
-    });
+    expect(driver.get.result()).toEqual(driver.get.session());
   });
 
-  it('should reject activation when sender is not loopback', async () => {
-    await driver.when.activatedFromPublicOrigin();
+  it('should bind development session request to preview URL', async () => {
+    await driver.when.loaded();
+
+    expect(driver.get.requestedPreviewUrl()).toBe(driver.get.previewUrl());
+  });
+
+  it('should use configured control port when custom port is provided', async () => {
+    driver.given.customControlPort();
+
+    await driver.when.loaded();
+
+    expect(driver.get.requestedControlPort()).toBe('4512');
+  });
+
+  it('should reject development session when host does not match', async () => {
+    driver.given.mismatchedSession();
+
+    await driver.when.loaded();
 
     expect(driver.get.error()).toEqual(
-      new Error('Atlas development activation must use loopback HTTP.'),
+      new Error('Atlas development session is invalid.'),
     );
-  });
-
-  it('should consume staged session when preview origin and host match', async () => {
-    await driver.given.pendingActivation();
-    await driver.when.consumed();
-
-    expect(driver.get.consumedDocument()).toEqual(driver.get.session());
-  });
-
-  it('should discard staged session when preview origin differs', async () => {
-    await driver.given.pendingActivation();
-    await driver.when.consumedFromOtherOrigin();
-
-    expect(driver.get.consumption()).toStrictEqual({
-      document: undefined,
-      pendingCount: 0,
-    });
-  });
-
-  it('should discard staged session when activation expires', async () => {
-    await driver.given.expiredPendingActivation();
-    await driver.when.consumed();
-
-    expect(driver.get.consumption()).toStrictEqual({
-      document: undefined,
-      pendingCount: 0,
-    });
   });
 });

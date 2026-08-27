@@ -404,7 +404,7 @@ so a monitoring outage cannot prevent the application from loading.
 | -------------------- | ------------------------------------------------- |
 | `createWidgetLoader` | Resolves widgets from the selected owner version. |
 
-Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It reads a Columbus override document from tab or origin storage, including a development session transferred by Columbus during loopback activation, then validates its host and manifests. Product code does not parse this protocol, and deployed pages never fetch a loopback URL.
+Generated hosts call `loadBrowserRuntimeOverrides({ hostId })` before `resolveRuntimeManifests`. It reads a Columbus override document from tab or origin storage, or asks the Columbus content bridge for the active local development session, then validates its host and manifests. Columbus fetches the local control server in extension context; the deployed page does not fetch a loopback URL.
 
 Infrastructure-only example for custom DOM host runtime:
 

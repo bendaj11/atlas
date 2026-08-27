@@ -61,6 +61,8 @@ export function createDevSessionStore(
         ready: existing?.ready ?? false,
       });
     }
+    if (document.previewUrl)
+      host.previewUrls.add(normalizePreviewUrl(document.previewUrl));
     hosts.set(document.hostId, host);
   }
 
@@ -162,6 +164,16 @@ export function createDevSessionStore(
         (hostId) => currentDocument(hostId) !== undefined,
       );
     },
+    previewAllowed(hostId, previewUrl) {
+      const resolvedHostId = resolveHostId(hosts, hostId);
+      if (!resolvedHostId) return false;
+      try {
+        const normalized = normalizePreviewUrl(previewUrl);
+        return hosts.get(resolvedHostId)?.previewUrls.has(normalized) ?? false;
+      } catch {
+        return false;
+      }
+    },
   };
 }
 
@@ -198,6 +210,7 @@ interface HostDevSession {
   generatedAt: string;
   hostOverride?: AtlasHostManifest;
   hostReady: boolean;
+  previewUrls: Set<string>;
 }
 
 function uniqueManifests(
@@ -237,7 +250,17 @@ function createHostDevSession(generatedAt: string): HostDevSession {
     entries: new Map<string, DevSessionEntry>(),
     generatedAt,
     hostReady: false,
+    previewUrls: new Set<string>(),
   };
+}
+
+function normalizePreviewUrl(value: string): string {
+  const url = new URL(value);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('Atlas preview URL must use HTTP or HTTPS.');
+  }
+  url.searchParams.delete('atlas-dev-port');
+  return url.href;
 }
 
 function resolveHostId(

@@ -8,10 +8,9 @@ import {
   isActionThemeMessage,
 } from '../shared/action-icon-theme.js';
 import {
-  activateDevelopmentPreview,
-  consumeDevelopmentSession,
+  loadDevelopmentSession,
+  type DevelopmentSessionRequest,
 } from '../development-session/development-session-background.js';
-import { ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION } from '@atlas/schema';
 
 interface BadgeCountMessage {
   type: 'atlas.override-count';
@@ -24,17 +23,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 chrome.tabs.onRemoved.addListener((tabId) => void clearHostDataCache(tabId));
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (isActivateDevelopmentPreviewMessage(message)) {
-    void activateFromTab(sender).then(
-      () => sendResponse({}),
-      (error) => sendResponse({ error: messageFromError(error) }),
-    );
-    return true;
-  }
-
-  if (isConsumeDevelopmentSessionMessage(message)) {
-    void consumeForTab(sender, message.hostId).then(
-      (document) => sendResponse(document === undefined ? {} : { document }),
+  if (isDevelopmentSessionMessage(message)) {
+    void loadForTab(sender, message).then(
+      (document) => sendResponse({ document }),
       (error) => sendResponse({ error: messageFromError(error) }),
     );
     return true;
@@ -52,45 +43,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-async function activateFromTab(sender: {
-  tab?: chrome.tabs.Tab;
-  url?: string;
-}): Promise<void> {
-  const tabId = sender.tab?.id;
-  const senderUrl = sender.url ?? sender.tab?.url;
-  if (tabId === undefined || !senderUrl) {
-    throw new Error('Atlas development activation requires a browser tab.');
-  }
-
-  await activateDevelopmentPreview(senderUrl, tabId, {
-    consumeActivation: fetchDevelopmentActivation,
-    now: Date.now,
-    store: async (key, value) => chrome.storage.session.set({ [key]: value }),
-    navigate: async (id, url) => {
-      await chrome.tabs.update(id, { url });
-    },
-  });
-}
-
-async function consumeForTab(
+async function loadForTab(
   sender: { tab?: chrome.tabs.Tab; url?: string },
-  hostId: string,
-): Promise<unknown | undefined> {
-  const tabId = sender.tab?.id;
+  request: DevelopmentSessionRequest,
+): Promise<unknown> {
   const senderUrl = sender.url ?? sender.tab?.url;
-  if (tabId === undefined || !senderUrl) return undefined;
-
-  return consumeDevelopmentSession(senderUrl, tabId, hostId, {
-    now: Date.now,
-    read: async (key) => (await chrome.storage.session.get(key))[key],
-    remove: async (key) => chrome.storage.session.remove(key),
+  if (sender.tab?.id === undefined || !senderUrl) {
+    throw new Error('Atlas development session requires a browser tab.');
+  }
+  if (previewIdentity(senderUrl) !== previewIdentity(request.previewUrl)) {
+    throw new Error('Atlas development preview URL does not match its tab.');
+  }
+  return loadDevelopmentSession(request, {
+    fetchJson: fetchDevelopmentSession,
   });
 }
 
-async function fetchDevelopmentActivation(url: string): Promise<unknown> {
+async function fetchDevelopmentSession(url: string): Promise<unknown> {
   const response = await fetch(url, {
     cache: 'no-store',
-    method: 'POST',
     signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) {
@@ -99,7 +70,7 @@ async function fetchDevelopmentActivation(url: string): Promise<unknown> {
     throw new Error(
       typeof body?.error === 'string'
         ? body.error
-        : `Atlas development activation returned HTTP ${response.status}.`,
+        : `Atlas development session returned HTTP ${response.status}.`,
     );
   }
   return response.json();
@@ -130,24 +101,24 @@ function isBadgeCountMessage(message: unknown): message is BadgeCountMessage {
   );
 }
 
-function isActivateDevelopmentPreviewMessage(value: unknown): value is {
-  type: 'atlas.activate-development-preview';
-  protocolVersion: string;
+function isDevelopmentSessionMessage(
+  value: unknown,
+): value is DevelopmentSessionRequest & {
+  type: 'atlas.load-development-session';
 } {
   return (
-    isMessage(value, 'atlas.activate-development-preview') &&
-    (value as { protocolVersion?: unknown }).protocolVersion ===
-      ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION
+    isMessage(value, 'atlas.load-development-session') &&
+    typeof (value as { hostId?: unknown }).hostId === 'string' &&
+    typeof (value as { previewUrl?: unknown }).previewUrl === 'string' &&
+    ((value as { controlPort?: unknown }).controlPort === undefined ||
+      typeof (value as { controlPort?: unknown }).controlPort === 'number')
   );
 }
 
-function isConsumeDevelopmentSessionMessage(
-  value: unknown,
-): value is { type: 'atlas.consume-development-session'; hostId: string } {
-  return (
-    isMessage(value, 'atlas.consume-development-session') &&
-    typeof (value as { hostId?: unknown }).hostId === 'string'
-  );
+function previewIdentity(value: string): string {
+  const url = new URL(value);
+  url.searchParams.delete('atlas-dev-port');
+  return url.href;
 }
 
 function isMessage(value: unknown, type: string): value is { type: string } {

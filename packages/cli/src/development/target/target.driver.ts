@@ -54,11 +54,10 @@ export class DevelopmentTargetDriver {
       this.prompts = createPromptDriver([this.previewUrls[1]!], interactive);
       globalThis.fetch = jest.fn(async () =>
         Response.json({
-          schemaVersion: '2',
+          schemaVersion: 'v1',
           hostId: this.firstHostId,
-          registryUrl: faker.internet.url({ appendSlash: false }),
-          resourcesRetryCount: 3,
-          resourcesTimeoutMs: 15000,
+          environment: 'production',
+          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
         }),
       );
     },
@@ -76,11 +75,10 @@ export class DevelopmentTargetDriver {
 
       globalThis.fetch = jest.fn(async () =>
         Response.json({
-          schemaVersion: '2',
+          schemaVersion: 'v1',
           hostId: discoveredHostId,
-          registryUrl: faker.internet.url({ appendSlash: false }),
-          resourcesRetryCount: 3,
-          resourcesTimeoutMs: 15000,
+          environment: 'production',
+          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
         }),
       );
     },

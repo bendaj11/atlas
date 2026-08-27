@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,87 +6,12 @@ import { CONTROL_RECONCILIATION_INTERVAL_MS } from '../constants.js';
 
 const LEASE_DIRECTORY = join(tmpdir(), 'atlas-dev-control-server-leases');
 const LEASE_LIFETIME_MS = CONTROL_RECONCILIATION_INTERVAL_MS * 3;
-const ACTIVATION_LIFETIME_MS = 30_000;
-const ACTIVATION_TOKEN_BYTES = 32;
-const ACTIVATION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 interface ControlServerLease {
   document: AtlasDevOverrideDocument;
   processId: number;
   ready: boolean;
   renewedAt: number;
-}
-
-export interface ControlServerActivation {
-  expiresAt: number;
-  hostId: string;
-  processId: number;
-  targetUrl: string;
-  token: string;
-}
-
-export async function createControlServerActivation(options: {
-  port: number;
-  hostId: string;
-  targetUrl: string;
-}): Promise<ControlServerActivation> {
-  const activation: ControlServerActivation = {
-    expiresAt: Date.now() + ACTIVATION_LIFETIME_MS,
-    hostId: options.hostId,
-    processId: process.pid,
-    targetUrl: options.targetUrl,
-    token: randomBytes(ACTIVATION_TOKEN_BYTES).toString('base64url'),
-  };
-  await ensureLeaseDirectory();
-  await writeFile(
-    activationPath(options.port, activation.token),
-    JSON.stringify(activation),
-    { flag: 'wx', mode: 0o600 },
-  );
-  return activation;
-}
-
-export async function readControlServerActivation(
-  port: number,
-  token: string,
-): Promise<ControlServerActivation | undefined> {
-  if (!ACTIVATION_TOKEN_PATTERN.test(token)) return undefined;
-  try {
-    const activation = JSON.parse(
-      await readFile(activationPath(port, token), 'utf8'),
-    ) as ControlServerActivation;
-    if (isActiveActivation(activation, token)) return activation;
-  } catch {
-    return undefined;
-  }
-  await rm(activationPath(port, token), { force: true });
-  return undefined;
-}
-
-export async function consumeControlServerActivation(
-  port: number,
-  token: string,
-): Promise<ControlServerActivation | undefined> {
-  const activation = await readControlServerActivation(port, token);
-  if (!activation) return undefined;
-  try {
-    await mkdir(consumedActivationPath(port, token));
-  } catch {
-    return undefined;
-  }
-  await rm(activationPath(port, token), { force: true });
-  return activation;
-}
-
-export async function removeControlServerActivation(
-  port: number,
-  token: string,
-): Promise<void> {
-  if (!ACTIVATION_TOKEN_PATTERN.test(token)) return;
-  await Promise.all([
-    rm(activationPath(port, token), { force: true }),
-    rm(consumedActivationPath(port, token), { force: true, recursive: true }),
-  ]);
 }
 
 export async function writeControlServerLease(options: {
@@ -134,14 +58,6 @@ function leasePath(port: number, document: AtlasDevOverrideDocument): string {
   return join(LEASE_DIRECTORY, `${port}-${leaseId(document)}.json`);
 }
 
-function activationPath(port: number, token: string): string {
-  return join(LEASE_DIRECTORY, `${port}-activation-${token}.json`);
-}
-
-function consumedActivationPath(port: number, token: string): string {
-  return join(LEASE_DIRECTORY, `${port}-activation-${token}.consumed`);
-}
-
 async function ensureLeaseDirectory(): Promise<void> {
   await mkdir(LEASE_DIRECTORY, { recursive: true, mode: 0o700 });
 }
@@ -183,23 +99,6 @@ function isActiveLease(lease: ControlServerLease): boolean {
     typeof lease.ready === 'boolean' &&
     typeof lease.document === 'object' &&
     lease.document !== null
-  );
-}
-
-function isActiveActivation(
-  activation: ControlServerActivation,
-  token: string,
-): boolean {
-  return (
-    typeof activation === 'object' &&
-    activation !== null &&
-    activation.token === token &&
-    typeof activation.expiresAt === 'number' &&
-    activation.expiresAt > Date.now() &&
-    typeof activation.processId === 'number' &&
-    processExists(activation.processId) &&
-    typeof activation.hostId === 'string' &&
-    typeof activation.targetUrl === 'string'
   );
 }
 

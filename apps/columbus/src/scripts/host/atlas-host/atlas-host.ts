@@ -211,21 +211,17 @@ export async function writeOverrides({
 }
 
 export async function validateLocalOverride({
-  tabId,
   manifest,
 }: {
   tabId: number;
   manifest: Manifest;
 }): Promise<void> {
   if (manifest.channel !== 'local') return;
-
-  const [injection] = await chrome.scripting.executeScript({
-    target: { tabId },
-    world: 'MAIN',
-    func: validateLocalRemoteEntry,
-    args: [manifest.remoteEntryUrl, manifest.exposes?.entry ?? './entry'],
-  });
-  if (injection?.result) throw new Error(injection.result);
+  const error = await validateLocalRemoteEntry(
+    manifest.remoteEntryUrl,
+    manifest.exposes?.entry ?? './entry',
+  );
+  if (error) throw new Error(error);
 }
 
 export async function reloadHostTab(tabId: number): Promise<void> {
@@ -465,15 +461,11 @@ async function validateLocalRemoteEntry(
     const metadata = value as Partial<{ name: unknown; exposes: unknown }>;
     return typeof metadata.name === 'string' && Array.isArray(metadata.exposes);
   };
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 5_000);
   try {
-    const request = {
+    const response = await fetch(remoteEntryUrl, {
       cache: 'no-store',
-      signal: controller.signal,
-      targetAddressSpace: 'loopback',
-    } as RequestInit & { targetAddressSpace: 'loopback' };
-    const response = await fetch(remoteEntryUrl, request);
+      signal: AbortSignal.timeout(5_000),
+    });
     if (!response.ok)
       return `Local override remote entry returned HTTP ${response.status}.`;
     const metadata: unknown = await response.json();
@@ -486,14 +478,7 @@ async function validateLocalRemoteEntry(
       return `Local override remote entry does not expose ${exposedModule}.`;
     return undefined;
   } catch {
-    const permission = await navigator.permissions
-      ?.query({ name: 'loopback-network' as PermissionName })
-      .catch(() => undefined);
-    if (permission?.state === 'denied')
-      return 'Local Network Access is blocked for this host. Allow loopback access in browser site settings, then retry.';
     return 'Local override remote entry is unreachable. Start its development server, then retry.';
-  } finally {
-    window.clearTimeout(timeout);
   }
 }
 

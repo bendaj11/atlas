@@ -13,7 +13,6 @@ export type DevPrompts = Pick<AtlasPrompter, 'interactive' | 'select'>;
 
 export interface DevControlServer {
   port: number;
-  createActivation(hostId: string, targetUrl: string): Promise<string>;
   markReady(): Promise<void>;
   reconcile(): Promise<void>;
   close(): Promise<void>;
@@ -53,6 +52,7 @@ export interface AtlasDevSessionDocument {
 
 export interface AtlasDevOverrideDocument extends AtlasRuntimeOverrideDocument {
   hostOverride?: AtlasHostManifest;
+  previewUrl?: string;
 }
 
 export interface LocalBootstrapServerOptions {
@@ -91,4 +91,5 @@ export interface DevSessionStore {
     publishedCatalog?: AtlasHostCatalog,
   ): AtlasDevSessionDocument | undefined;
   hasReadySession(): boolean;
+  previewAllowed(hostId: string | undefined, previewUrl: string): boolean;
 }

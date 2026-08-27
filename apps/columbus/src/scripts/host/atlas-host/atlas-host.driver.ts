@@ -4,6 +4,7 @@ import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/
 import {
   createOverrideDocument,
   readHostData,
+  validateLocalOverride,
   writeOverrides,
 } from './atlas-host.js';
 import { readHostDataCache } from '../host-data-cache.js';
@@ -24,6 +25,8 @@ export class AtlasHostDriver {
   private inspectionCount = 0;
   private result: Awaited<ReturnType<typeof readHostData>> | undefined;
   private error: unknown;
+  private validationError: unknown;
+  private originalFetch?: typeof fetch;
 
   readonly given = {
     tabs: (...tabs: MockTab[]): this => {
@@ -32,6 +35,21 @@ export class AtlasHostDriver {
     },
     inspectedHost: (tabId: number, id = hostId): this => {
       this.inspections.set(tabId, createHostData(id));
+      return this;
+    },
+    unreachableLocalRemoteEntry: (): this => {
+      this.installFetch(async () => {
+        throw new TypeError('Failed to fetch');
+      });
+      return this;
+    },
+    validLocalRemoteEntry: (): this => {
+      this.installFetch(async () =>
+        Response.json({
+          name: 'orders',
+          exposes: [{ key: './entry', outFileName: 'entry.js' }],
+        }),
+      );
       return this;
     },
   };
@@ -46,6 +64,20 @@ export class AtlasHostDriver {
       }
       return this;
     },
+    localOverrideValidated: async (): Promise<this> => {
+      try {
+        await validateLocalOverride({
+          tabId: 7,
+          manifest: createCustomManifest({
+            productionManifest: appManifest(),
+            rawUrl: 'http://localhost:4513',
+          }),
+        });
+      } catch (error) {
+        this.validationError = error;
+      }
+      return this;
+    },
   };
 
   readonly get = {
@@ -53,6 +85,7 @@ export class AtlasHostDriver {
     error: (): unknown => this.error,
     cachedHostData: () => readHostDataCache(),
     inspectionCount: (): number => this.inspectionCount,
+    validationError: (): unknown => this.validationError,
     runtimeOverrides: async () => {
       const productionManifest = appManifest();
       const local = createCustomManifest({
@@ -135,6 +168,12 @@ export class AtlasHostDriver {
 
   dispose(): void {
     Reflect.deleteProperty(globalThis, 'chrome');
+    if (this.originalFetch) globalThis.fetch = this.originalFetch;
+  }
+
+  private installFetch(implementation: typeof fetch): void {
+    this.originalFetch ??= globalThis.fetch;
+    globalThis.fetch = implementation;
   }
 
   private installChrome(): void {

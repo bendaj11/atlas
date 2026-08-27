@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import {
   browserOpenCommand,
-  developmentActivationUrl,
+  developmentPreviewUrl,
   formatFrameworkServerError,
   frameworkServerArguments,
   remoteEntryIsReady,
@@ -74,9 +74,9 @@ export class DevelopmentProcessDriver {
     ): void => {
       this.value = frameworkServerArguments(framework, port);
     },
-    activateHostUrl: (activationToken: string, controlPort: number): void => {
-      this.value = developmentActivationUrl({
-        activationToken,
+    activateHostUrl: (hostUrl: string, controlPort: number): void => {
+      this.value = developmentPreviewUrl({
+        hostUrl,
         controlPort,
       });
     },

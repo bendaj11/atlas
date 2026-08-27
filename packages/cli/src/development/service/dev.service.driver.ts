@@ -80,10 +80,9 @@ export class DevServiceDriver {
         globalThis.fetch = jest.fn<typeof globalThis.fetch>().mockResolvedValue(
           Response.json({
             hostId: this.hostId,
-            registryUrl: 'https://registry.example',
-            resourcesRetryCount: 3,
-            resourcesTimeoutMs: 15000,
-            schemaVersion: '2',
+            environment: 'production',
+            artifactRegistryUrl: 'https://registry.example',
+            schemaVersion: 'v1',
           }),
         );
       }

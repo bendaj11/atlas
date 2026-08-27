@@ -90,11 +90,17 @@ describe('remoteEntryIsReady', () => {
     );
   });
 
-  it('should create loopback handoff when production host is activated', () => {
-    driver.when.activateHostUrl('activation-token', 4400);
+  it('should keep production host URL clean when default control port is used', () => {
+    driver.when.activateHostUrl('https://host.example/orders', 4400);
+
+    expect(driver.get.value()).toBe('https://host.example/orders');
+  });
+
+  it('should include custom control port when non-default port is used', () => {
+    driver.when.activateHostUrl('https://host.example/orders', 4412);
 
     expect(driver.get.value()).toBe(
-      'http://localhost:4400/atlas.dev-session/activate?token=activation-token&protocol=1',
+      'https://host.example/orders?atlas-dev-port=4412',
     );
   });
 });

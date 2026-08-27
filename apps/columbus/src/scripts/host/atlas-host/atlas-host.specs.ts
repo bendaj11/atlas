@@ -9,13 +9,19 @@ it('should replace terminal guidance when a CLI-shaped error reaches Columbus', 
     'Activate the Atlas host tab, then retry.',
   );
 
-  expect(message).toContain(
-    'Columbus could not inspect the active host page: Runtime unavailable.',
-  );
-  expect(message).toContain(
-    'Suggested action: Activate the Atlas host tab, then retry.',
-  );
-  expect(message).not.toContain('atlas --help');
+  expect({
+    hasColumbusContext: message.includes(
+      'Columbus could not inspect the active host page: Runtime unavailable.',
+    ),
+    hasRelevantAction: message.includes(
+      'Suggested action: Activate the Atlas host tab, then retry.',
+    ),
+    hasTerminalGuidance: message.includes('atlas --help'),
+  }).toStrictEqual({
+    hasColumbusContext: true,
+    hasRelevantAction: true,
+    hasTerminalGuidance: false,
+  });
 });
 
 describe('active Atlas host selection', () => {
@@ -144,5 +150,35 @@ describe('browser runtime override document', () => {
       hostId: '060a7f62-1c95-402c-9993-55749faf36d9',
       overrides: [],
     });
+  });
+});
+
+describe('local override validation', () => {
+  let driver: AtlasHostDriver;
+
+  beforeEach(() => {
+    driver = new AtlasHostDriver();
+  });
+
+  afterEach(() => driver.dispose());
+
+  it('should accept local override when extension can load federation metadata', async () => {
+    driver.given.validLocalRemoteEntry();
+
+    await driver.when.localOverrideValidated();
+
+    expect(driver.get.validationError()).toBeUndefined();
+  });
+
+  it('should reject local override when extension cannot reach remote entry', async () => {
+    driver.given.unreachableLocalRemoteEntry();
+
+    await driver.when.localOverrideValidated();
+
+    expect(driver.get.validationError()).toEqual(
+      new Error(
+        'Local override remote entry is unreachable. Start its development server, then retry.',
+      ),
+    );
   });
 });

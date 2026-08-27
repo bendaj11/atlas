@@ -16,10 +16,6 @@ import {
   type BrowserStorage,
 } from './extension.driver.js';
 import { delay } from './local-development.driver.js';
-import {
-  createControlServerActivation,
-  removeControlServerActivation,
-} from '../../packages/cli/src/development/control-server/control-server-lease.js';
 
 const builtExtensionPath = resolve('apps/columbus/dist');
 const hostUrl = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? '4300'}/dashboard`;
@@ -257,20 +253,10 @@ test.describe('Atlas Columbus extension', () => {
       const notificationsConnected = host.waitForResponse((response) =>
         response.url().endsWith('/@atlas/federation-build-notifications'),
       );
-      const activationUrl = new URL(
-        '/atlas.dev-session/activate',
-        `http://localhost:${liveControlPort}`,
-      );
-      const activation = await createControlServerActivation({
-        port: liveControlPort,
-        hostId: '060a7f62-1c95-402c-9993-55749faf36d9',
-        targetUrl: hostUrl,
-      });
-      activationUrl.searchParams.set('token', activation.token);
-      activationUrl.searchParams.set('protocol', '1');
-      await host.goto(activationUrl.href);
+      const previewUrl = new URL(hostUrl);
+      previewUrl.searchParams.set('atlas-dev-port', String(liveControlPort));
+      await host.goto(previewUrl.href);
       await host.waitForURL(hostUrl);
-      await removeControlServerActivation(liveControlPort, activation.token);
       await localRemoteRequest;
       await notificationsConnected;
       const badge = await waitForBadgeText(

@@ -1,6 +1,5 @@
 import type { Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
 import type { AtlasHostConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { loadBootstrapTemplate } from '../../bootstrap/template/bootstrap-template.js';
@@ -21,7 +20,7 @@ import {
   DEFAULT_HOST_BOOTSTRAP_PORT,
 } from '../constants.js';
 import {
-  developmentActivationUrl,
+  developmentPreviewUrl,
   frameworkServerArguments,
   logHostViewUrl,
   openBrowserWhenReady,
@@ -97,17 +96,18 @@ export class AtlasDevService {
       project.id,
       localOrigin(clientPort),
     );
+    const configuredHostUrl = this.args.flag('host-url');
+    const hostUrl = configuredHostUrl ?? localOrigin(bootstrapPort);
     const document: AtlasDevOverrideDocument = {
       schemaVersion: '1',
       hostId: config.id,
       hostOverride: manifest,
       overrides: [],
       generatedAt: new Date().toISOString(),
+      previewUrl: hostUrl,
     };
     await writeDevOverrideDocument(project.root, document);
 
-    const configuredHostUrl = this.args.flag('host-url');
-    const hostUrl = configuredHostUrl ?? localOrigin(bootstrapPort);
     if (this.args.hasFlag('prepare-only')) {
       ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
       ui.info('Run without --prepare-only to start development servers.');
@@ -164,8 +164,8 @@ export class AtlasDevService {
       await control.markReady();
       const browserUrl = usesLocalBootstrap
         ? hostUrl
-        : developmentActivationUrl({
-            activationToken: await control.createActivation(config.id, hostUrl),
+        : developmentPreviewUrl({
+            hostUrl,
             controlPort,
           });
       logHostViewUrl(hostUrl, browserUrl);
@@ -193,11 +193,12 @@ export class AtlasDevService {
       prompts,
       previewUrls: await readAtlasPreviewUrls(project.root),
     });
-    const document: AtlasRuntimeOverrideDocument = {
+    const document: AtlasDevOverrideDocument = {
       schemaVersion: '1',
       hostId: target.hostId,
       overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
       generatedAt: new Date().toISOString(),
+      previewUrl: target.hostUrl,
     };
     await writeDevOverrideDocument(project.root, document);
 
@@ -222,11 +223,8 @@ export class AtlasDevService {
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
       await control.markReady();
-      const browserUrl = developmentActivationUrl({
-        activationToken: await control.createActivation(
-          target.hostId,
-          target.hostUrl,
-        ),
+      const browserUrl = developmentPreviewUrl({
+        hostUrl: target.hostUrl,
         controlPort,
       });
       logHostViewUrl(target.hostUrl, browserUrl);

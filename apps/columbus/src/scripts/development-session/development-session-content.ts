@@ -1,6 +1,4 @@
 import {
-  ATLAS_DEV_ACTIVATION_PATH,
-  ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
   ATLAS_DEV_BRIDGE_MARKER,
   ATLAS_DEV_SESSION_REQUEST,
   ATLAS_DEV_SESSION_RESPONSE,
@@ -8,43 +6,11 @@ import {
   type AtlasDevelopmentSessionResponse,
 } from '@atlas/schema';
 
-interface ConsumeDevelopmentSessionResponse {
-  document?: unknown;
-  error?: string;
-}
-
+const CONTROL_PORT_PARAMETER = 'atlas-dev-port';
+const controlPort = readControlPort();
+removeControlPortFromAddressBar();
 installBridgeMarker();
 window.addEventListener('message', relayDevelopmentSessionRequest);
-
-if (
-  isLoopbackHostname(location.hostname) &&
-  location.pathname === ATLAS_DEV_ACTIVATION_PATH
-) {
-  void chrome.runtime
-    .sendMessage({
-      type: 'atlas.activate-development-preview',
-      protocolVersion: ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
-    })
-    .then(showActivationError, (error: unknown) =>
-      renderActivationError(messageFromError(error)),
-    );
-}
-
-function showActivationError(value: unknown): void {
-  if (typeof value !== 'object' || value === null) return;
-  const error = (value as { error?: unknown }).error;
-  if (typeof error === 'string') renderActivationError(error);
-}
-
-function renderActivationError(error: string): void {
-  const main = document.querySelector('main');
-  if (!main) return;
-  const heading = document.createElement('h1');
-  heading.textContent = 'Atlas could not start this preview';
-  const message = document.createElement('p');
-  message.textContent = error;
-  main.replaceChildren(heading, message);
-}
 
 function installBridgeMarker(): void {
   const marker = document.createElement('meta');
@@ -71,8 +37,10 @@ function relayDevelopmentSessionRequest(event: MessageEvent): void {
   const request = event.data;
   void chrome.runtime
     .sendMessage({
-      type: 'atlas.consume-development-session',
+      type: 'atlas.load-development-session',
       hostId: request.hostId,
+      previewUrl: location.href,
+      ...(controlPort === undefined ? {} : { controlPort }),
     })
     .then(
       (response: unknown) => publishResponse(request, bridgeResponse(response)),
@@ -83,7 +51,7 @@ function relayDevelopmentSessionRequest(event: MessageEvent): void {
 
 function bridgeResponse(
   value: unknown,
-): ConsumeDevelopmentSessionResponse | undefined {
+): { document?: unknown; error?: string } | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const response = value as Record<string, unknown>;
   return {
@@ -94,7 +62,7 @@ function bridgeResponse(
 
 function publishResponse(
   request: AtlasDevelopmentSessionRequest,
-  response: ConsumeDevelopmentSessionResponse | undefined,
+  response: { document?: unknown; error?: string } | undefined,
 ): void {
   const message: AtlasDevelopmentSessionResponse = {
     type: ATLAS_DEV_SESSION_RESPONSE,
@@ -108,6 +76,22 @@ function publishResponse(
   window.postMessage(message, location.origin);
 }
 
+function readControlPort(): number | undefined {
+  const value = new URL(location.href).searchParams.get(CONTROL_PORT_PARAMETER);
+  if (value === null) return undefined;
+  const port = Number(value);
+  return Number.isInteger(port) && port > 0 && port <= 65_535
+    ? port
+    : undefined;
+}
+
+function removeControlPortFromAddressBar(): void {
+  const url = new URL(location.href);
+  if (!url.searchParams.has(CONTROL_PORT_PARAMETER)) return;
+  url.searchParams.delete(CONTROL_PORT_PARAMETER);
+  history.replaceState(history.state, '', url.href);
+}
+
 function isDevelopmentSessionRequest(
   value: unknown,
 ): value is AtlasDevelopmentSessionRequest {
@@ -118,10 +102,6 @@ function isDevelopmentSessionRequest(
     typeof request.requestId === 'string' &&
     typeof request.hostId === 'string'
   );
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  return ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
 }
 
 function messageFromError(error: unknown): string {

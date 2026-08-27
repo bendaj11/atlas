@@ -1,14 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import {
-  ATLAS_DEV_ACTIVATION_PATH,
-  ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
-  ATLAS_DEV_ACTIVATION_TOKEN_PARAM,
-  ATLAS_DEV_ACTIVATION_VERSION_PARAM,
-  type AtlasConfig,
-} from '@atlas/schema';
+import type { AtlasConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
 import {
+  DEFAULT_CONTROL_PORT,
   REMOTE_POLL_INTERVAL_MS,
   REMOTE_START_TIMEOUT_MS,
 } from '../constants.js';
@@ -151,31 +146,22 @@ export function formatFrameworkServerError(
 
 export function logHostViewUrl(
   url: string | undefined,
-  activationUrl = url,
+  browserUrl = url,
 ): void {
   if (url) {
-    ui.linkedResult('App preview', url, activationUrl ?? url);
+    ui.linkedResult('App preview', url, browserUrl ?? url);
     return;
   }
   ui.warning('App preview unresolved. Define atlas.previews in package.json.');
 }
 
-export function developmentActivationUrl(options: {
-  activationToken: string;
+export function developmentPreviewUrl(options: {
+  hostUrl: string;
   controlPort: number;
 }): string {
-  const url = new URL(
-    ATLAS_DEV_ACTIVATION_PATH,
-    localOrigin(options.controlPort),
-  );
-  url.searchParams.set(
-    ATLAS_DEV_ACTIVATION_TOKEN_PARAM,
-    options.activationToken,
-  );
-  url.searchParams.set(
-    ATLAS_DEV_ACTIVATION_VERSION_PARAM,
-    ATLAS_DEV_ACTIVATION_PROTOCOL_VERSION,
-  );
+  const url = new URL(options.hostUrl);
+  if (options.controlPort !== DEFAULT_CONTROL_PORT)
+    url.searchParams.set('atlas-dev-port', String(options.controlPort));
   return url.href;
 }
 

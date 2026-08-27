@@ -66,7 +66,7 @@ describe('ui', () => {
     expect(driver.get.infoCalls()).toStrictEqual(driver.get.result());
   });
 
-  it('should hide activation target when linked result is shown', () => {
+  it('should hide browser target when linked result is shown', () => {
     driver.given.terminal({ inputIsTTY: false, outputIsTTY: true });
 
     driver.when.show('linked-result');

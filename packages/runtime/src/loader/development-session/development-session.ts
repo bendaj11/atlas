@@ -47,13 +47,12 @@ function isMatchingResponse(
   value: unknown,
   requestId: string,
   hostId: string,
-): value is AtlasDevelopmentSessionResponse & { document: unknown } {
+): value is AtlasDevelopmentSessionResponse {
   if (typeof value !== 'object' || value === null) return false;
   const response = value as Partial<AtlasDevelopmentSessionResponse>;
   return (
     response.type === ATLAS_DEV_SESSION_RESPONSE &&
     response.requestId === requestId &&
-    response.hostId === hostId &&
-    response.error === undefined
+    response.hostId === hostId
   );
 }

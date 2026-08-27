@@ -34,7 +34,7 @@ export interface AtlasRuntimeOverrideDocument {
 
 export interface AtlasBrowserOverrideOptions {
   hostId: string;
-  /** @deprecated Development activation no longer uses browser URL parameters. */
+  /** @deprecated Development sessions are provided by the Columbus bridge. */
   search?: string;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
   sessionStorage?: Pick<Storage, 'getItem'> & Partial<Pick<Storage, 'setItem'>>;
