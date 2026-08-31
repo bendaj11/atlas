@@ -37,7 +37,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/bootstrap": "0.4.20",
-    "@atlas/schema": "0.4.20"
+    "@atlas/bootstrap": "workspace:^",
+    "@atlas/schema": "workspace:^"
   }
 }

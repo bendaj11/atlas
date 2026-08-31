@@ -46,8 +46,8 @@
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {
-    "@atlas/schema": "0.4.20",
-    "@atlas/sdk": "0.4.20"
+    "@atlas/schema": "workspace:^",
+    "@atlas/sdk": "workspace:^"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",

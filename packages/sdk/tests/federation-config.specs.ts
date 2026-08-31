@@ -12,6 +12,7 @@ interface ReactFederationConfigOptions {
   projectName: string;
   projectRoot: string;
   reactMajor?: number;
+  skip?: ReadonlyArray<string | RegExp | ((packageName: string) => boolean)>;
 }
 
 type ReactFederationConfigFactory = (
@@ -388,6 +389,27 @@ test('React development metadata maps discovered dependencies to Vite ids', asyn
       version: '4.2.3',
     }),
   );
+});
+
+test('should bundle dependency when React federation skips its package', async () => {
+  const projectRoot = await createReactFederationFixture();
+  const config = createReactAppViteConfig({
+    projectRoot,
+    projectName: 'automatic-sharing',
+    reactMajor: 19,
+    skip: [
+      (packageName: string) =>
+        packageName === '@company/design-system' ||
+        packageName.startsWith('@company/design-system/'),
+    ],
+  });
+  const external = (
+    config.build?.rollupOptions as {
+      external: (source: string) => boolean;
+    }
+  ).external;
+
+  expect(external('@company/design-system/button')).toBe(false);
 });
 
 test('React production build emits every shared fallback referenced by metadata', async () => {

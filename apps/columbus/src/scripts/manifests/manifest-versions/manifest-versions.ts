@@ -21,6 +21,9 @@ export function uniqueVersionsInOrder(
 }
 
 export function versionKey(manifest: AtlasExtensionManifest): string {
+  if (manifest.channel === 'pr') {
+    return `pr:${manifest.prNumber ?? manifest.version}:${manifest.buildId}`;
+  }
   return `${manifest.channel}:${manifest.version}:${manifest.buildId}`;
 }
 

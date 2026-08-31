@@ -26,6 +26,10 @@ async function verifyPackage(directory) {
 
   const archive = join(outputDirectory, `${directory}.tgz`);
   await execute("pnpm", ["pack", "--out", archive], { cwd: packageRoot });
+  const packedManifest = JSON.parse(
+    await readArchiveFile(archive, "package/package.json"),
+  );
+  validatePackedManifest(packedManifest);
   const entries = [];
   await list({ file: archive, onReadEntry: (entry) => entries.push(entry.path) });
   assertPacked(entries, "./LICENSE", manifest.name);
@@ -55,8 +59,16 @@ function validateManifest(manifest, directory) {
     throw new Error(`${manifest.name} does not declare a complete package surface.`);
   }
   for (const [dependency, version] of Object.entries(manifest.dependencies ?? {})) {
-    if (dependency.startsWith("@atlas/") && version !== manifest.version) {
-      throw new Error(`${manifest.name} must pin ${dependency} to the release version ${manifest.version}.`);
+    if (dependency.startsWith("@atlas/") && version !== "workspace:^") {
+      throw new Error(`${manifest.name} must declare ${dependency} with workspace:^.`);
+    }
+  }
+}
+
+function validatePackedManifest(manifest) {
+  for (const [dependency, version] of Object.entries(manifest.dependencies ?? {})) {
+    if (dependency.startsWith("@atlas/") && version !== `^${manifest.version}`) {
+      throw new Error(`${manifest.name} must publish ${dependency} as ^${manifest.version}.`);
     }
   }
 }

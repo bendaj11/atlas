@@ -228,7 +228,9 @@ function reactSharedDependencies(options, exposedEntryPoints) {
   );
   const specifiers = [
     ...new Set([...frameworkSpecifiers, ...importedSpecifiers]),
-  ].sort();
+  ]
+    .filter((specifier) => !isSkippedDependency(specifier, options.skip))
+    .sort();
   return specifiers.flatMap((specifier) => {
     const packageName = rootPackageName(specifier);
     const entryPoint = resolveSharedEntry(requireFromProject, specifier);
@@ -267,6 +269,15 @@ function reactSharedDependencies(options, exposedEntryPoints) {
         },
       },
     ];
+  });
+}
+
+function isSkippedDependency(specifier, skip = []) {
+  return skip.some((entry) => {
+    if (typeof entry === 'string') return entry === specifier;
+    if (typeof entry === 'function') return entry(specifier);
+    entry.lastIndex = 0;
+    return entry.test(specifier);
   });
 }
 

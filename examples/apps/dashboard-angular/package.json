@@ -9,7 +9,7 @@
     "atlas:publish": "atlas publish dashboard-angular"
   },
   "dependencies": {
-    "@atlas/schema": "*",
+    "@atlas/schema": "workspace:*",
     "@angular/animations": "^20.3.0",
     "@angular/common": "^20.3.0",
     "@angular/compiler": "^20.3.0",
@@ -17,7 +17,7 @@
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
     "@angular-architects/native-federation": "^20.3.1",
-    "@atlas/sdk": "*",
+    "@atlas/sdk": "workspace:*",
     "es-module-shims": "^2.3.0",
     "rxjs": "^7.8.0",
     "tslib": "^2.8.0",

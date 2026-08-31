@@ -83,16 +83,19 @@ export class InspectAtlasHostDriver {
       };
       return this;
     },
-    localCatalogWithPublishedVersions: (): this => {
+    catalogWithPublishedVersions: (): this => {
       this.options = {
-        app: manifest({
-          channel: 'local',
-          buildId: 'local',
-          remoteEntryUrl: 'http://localhost:4510/remoteEntry.json',
-        }),
+        app: manifest({ channel: 'production' }),
         appVersions: [
           manifest({ channel: 'production' }),
-          manifest({ channel: 'pr', buildId: 'pr-42', prNumber: 42 }),
+          manifest({
+            channel: 'pr',
+            buildId: 'pr-42',
+            prNumber: 42,
+            gitBranch: 'feature/preview-overrides',
+            gitSha: 'abcdef123456',
+            gitCommitTitle: 'Fix preview overrides',
+          }),
         ],
         registryUrl: 'http://localhost:4400',
       };
@@ -231,6 +234,13 @@ export class InspectAtlasHostDriver {
       );
       return this;
     },
+    publishedPreviewLoaded: async (): Promise<this> => {
+      this.loadedManifest = await loadArtifactVersion(
+        'app:orders',
+        'pr:42:abcdef123456',
+      );
+      return this;
+    },
   };
 
   readonly get = {
@@ -244,6 +254,12 @@ export class InspectAtlasHostDriver {
       this.result?.versions['app:orders']?.map(({ channel }) => channel) ?? [],
     catalogAppVersion: (): string | undefined =>
       this.result?.catalog.apps[0]?.version,
+    previewVersion: (): AtlasExtensionManifest | undefined =>
+      this.result?.versions['app:orders']?.find(
+        ({ channel }) => channel === 'pr',
+      ),
+    loadedManifestVersion: (): string | undefined =>
+      this.loadedManifest?.version,
     exportedWidget: (): AtlasExtensionWidgetManifest | undefined =>
       this.loadedManifest?.exportedWidgets?.[0],
     expectedWidget: (): AtlasExtensionWidgetManifest => {
@@ -496,7 +512,16 @@ function artifactRecord(
     id: manifest.id,
     name: manifest.name,
     ...(preview
-      ? { preview: { number: manifest.prNumber ?? 1, gitSha: 'abc123' } }
+      ? {
+          preview: {
+            number: manifest.prNumber ?? 1,
+            gitSha: manifest.gitSha ?? 'abc123',
+            ...(manifest.gitBranch ? { gitBranch: manifest.gitBranch } : {}),
+            ...(manifest.gitCommitTitle
+              ? { gitCommitTitle: manifest.gitCommitTitle }
+              : {}),
+          },
+        }
       : { release: { version: manifest.version } }),
     framework: manifest.framework,
     entryPath: 'remoteEntry.json',

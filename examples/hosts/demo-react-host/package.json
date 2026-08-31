@@ -11,9 +11,9 @@
     "atlas:bootstrap": "atlas bootstrap demo-react-host --skip-compile"
   },
   "dependencies": {
-    "@atlas/schema": "*",
-    "@atlas/runtime": "*",
-    "@atlas/sdk": "*",
+    "@atlas/schema": "workspace:*",
+    "@atlas/runtime": "workspace:*",
+    "@atlas/sdk": "workspace:*",
     "es-module-shims": "^2.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -39,6 +39,24 @@ describe('hydratePublishedArtifactManifest', () => {
       ),
     ).toThrow('requires schemaVersion "2"');
   });
+
+  it('should use neutral version and commit build ID when preview is hydrated', () => {
+    const hydrated = hydratePublishedArtifactManifest(
+      {
+        ...appManifest(),
+        release: undefined,
+        preview: { number: 42, gitSha: 'abc123' },
+      },
+      'https://registry.example/apps/orders/previews/42/manifest.json',
+    );
+
+    expect(hydrated).toMatchObject({
+      channel: 'pr',
+      version: '0.0.0',
+      buildId: 'abc123',
+      prNumber: 42,
+    });
+  });
 });
 
 function appManifest(): AtlasAppArtifactManifest {

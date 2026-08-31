@@ -27,7 +27,17 @@ import { defineConfig, mergeConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(mergeConfig(
-  createReact${type}ViteConfig({ projectRoot: __dirname, projectName: "${name}"${type === 'App' ? `, reactMajor: ${reactMajor}` : ''} }),
+  createReact${type}ViteConfig({
+    projectRoot: __dirname,
+    projectName: "${name}",${
+      type === 'App'
+        ? `
+    reactMajor: ${reactMajor},`
+        : ''
+    }
+    // Add app-local workspace packages here so Vite bundles and serves them locally.
+    skip: []
+  }),
   {
     base: "./",
     plugins: [react({})],

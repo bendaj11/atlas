@@ -29,7 +29,10 @@ export class VersionPackagesDriver {
           {
             name: `@atlas/${directory}`,
             version,
-            dependencies: { '@atlas/schema': version, external: '^1.0.0' },
+            dependencies: {
+              '@atlas/schema': 'workspace:^',
+              external: '^1.0.0',
+            },
           },
         );
       }
@@ -69,6 +72,15 @@ export class VersionPackagesDriver {
         readVersion(join(this.root, 'apps/columbus/package.json')),
         readVersion(join(this.root, 'apps/columbus/src/manifest.json')),
       ]),
+    internalDependencyVersions: async (): Promise<string[]> =>
+      uniqueVersions(
+        packageDirectories.map((directory) =>
+          readDependencyVersion(
+            join(this.root, 'packages', directory, 'package.json'),
+            '@atlas/schema',
+          ),
+        ),
+      ),
   };
 }
 
@@ -94,6 +106,16 @@ async function readVersion(path: string): Promise<string> {
 async function readGeneratorVersion(path: string): Promise<string> {
   const source = await readFile(path, 'utf8');
   return source.match(/ATLAS_PACKAGE_VERSION = "([^"']+)"/)?.[1] ?? '';
+}
+
+async function readDependencyVersion(
+  path: string,
+  dependencyName: string,
+): Promise<string> {
+  const manifest: { dependencies: Record<string, string> } = JSON.parse(
+    await readFile(path, 'utf8'),
+  );
+  return manifest.dependencies[dependencyName];
 }
 
 async function uniqueVersions(versions: Promise<string>[]): Promise<string[]> {

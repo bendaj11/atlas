@@ -58,8 +58,8 @@ describe('unique manifest versions', () => {
     expect(driver.get.versionKeys()).toStrictEqual([
       'production:2.0.0:production-new',
       'production:1.0.0:production-old',
-      'pr:1.0.0-pr.8:pr-new',
-      'pr:1.0.0-pr.7:pr-old',
+      'pr:8:pr-new',
+      'pr:7:pr-old',
     ]);
   });
 

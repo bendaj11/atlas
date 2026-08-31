@@ -76,6 +76,27 @@ describe('Atlas host inspection', () => {
     });
   });
 
+  it('should show preview source details when published preview is available', async () => {
+    driver.given.catalogWithPublishedVersions();
+    await driver.when.hostInspected();
+
+    expect(driver.get.previewVersion()).toMatchObject({
+      version: '0.0.0',
+      buildId: 'abcdef123456',
+      gitBranch: 'feature/preview-overrides',
+      gitSha: 'abcdef123456',
+      gitCommitTitle: 'Fix preview overrides',
+    });
+  });
+
+  it('should load preview when published preview is selected', async () => {
+    driver.given.catalogWithPublishedVersions();
+    await driver.when.hostInspected();
+    await driver.when.publishedPreviewLoaded();
+
+    expect(driver.get.loadedManifestVersion()).toBe('0.0.0');
+  });
+
   it('should reject active host manifest when environment differs from runtime config', async () => {
     driver.given.hostDeploymentEnvironment('staging');
     await driver.when.hostInspected();

@@ -3,6 +3,7 @@ import {
   environmentManifestUrl,
 } from '@atlas/bootstrap/runtime';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
+import { versionKey } from '../../manifests/manifest-versions/manifest-versions.js';
 import type {
   AtlasExtensionManifest as Manifest,
   AtlasHostData as HostData,
@@ -282,7 +283,10 @@ async function readManifestVersions(
     if (!artifact)
       throw new Error(`Artifact ${manifest.id} is not registered.`);
     return {
-      entry: [manifestKey(manifest), versionOptions(manifest, artifact, root)],
+      entry: [
+        manifestKey(manifest),
+        await versionOptions(manifest, artifact, root),
+      ],
     };
   } catch (error) {
     return {
@@ -300,14 +304,16 @@ async function loadManifestReference(
 
 export async function loadArtifactVersion(
   artifactKey: string,
-  versionKey: string,
+  selectedVersionKey: string,
 ): Promise<Manifest> {
-  const descriptor = manifestReferences.get(`${artifactKey}:${versionKey}`);
+  const descriptor = manifestReferences.get(
+    `${artifactKey}:${selectedVersionKey}`,
+  );
   if (!descriptor) throw new Error('Selected artifact version is unavailable.');
   const manifest = await loadCachedManifest(descriptor);
   if (
     manifestKey(manifest) !== artifactKey ||
-    versionKeyFor(manifest) !== versionKey
+    versionKey(manifest) !== selectedVersionKey
   )
     throw new Error(
       'Selected artifact manifest does not match its registry entry.',
@@ -315,11 +321,11 @@ export async function loadArtifactVersion(
   return manifest;
 }
 
-function versionOptions(
+async function versionOptions(
   selectedManifest: Manifest,
   artifact: RegistryArtifact,
   root: string,
-): Manifest[] {
+): Promise<Manifest[]> {
   const artifactKey = manifestKey(selectedManifest);
   const releases = orderedReleases(artifact).map(([version, descriptor]) =>
     registerVersionOption({
@@ -333,26 +339,15 @@ function versionOptions(
       descriptor: reference(root, descriptor),
     }),
   );
-  const previews = orderedPreviews(artifact).map(
-    ([previewNumber, descriptor]) => {
-      const {
-        gitSha: _gitSha,
-        gitBranch: _gitBranch,
-        gitCommitTitle: _gitCommitTitle,
-        ...manifestWithoutSource
-      } = selectedManifest;
+  const previews = await Promise.all(
+    orderedPreviews(artifact).map(async ([, descriptor]) => {
+      const referenceDescriptor = reference(root, descriptor);
       return registerVersionOption({
         artifactKey,
-        manifest: {
-          ...manifestWithoutSource,
-          version: `preview-${previewNumber}`,
-          buildId: CANONICAL_BUILD_ID,
-          channel: 'pr',
-          prNumber: Number(previewNumber),
-        },
-        descriptor: reference(root, descriptor),
+        manifest: await loadCachedManifest(referenceDescriptor),
+        descriptor: referenceDescriptor,
       });
-    },
+    }),
   );
   return uniqueManifests([...releases, ...previews]);
 }
@@ -381,7 +376,7 @@ function registerVersionOption(options: {
   descriptor: ManifestReference;
 }): Manifest {
   manifestReferences.set(
-    `${options.artifactKey}:${versionKeyFor(options.manifest)}`,
+    `${options.artifactKey}:${versionKey(options.manifest)}`,
     options.descriptor,
   );
   return options.manifest;
@@ -538,10 +533,6 @@ function uniqueManifests(manifests: Manifest[]): Manifest[] {
       ]),
     ).values(),
   ];
-}
-
-function versionKeyFor(manifest: Manifest): string {
-  return `${manifest.channel}:${manifest.version}:${manifest.buildId}`;
 }
 
 function messageFromError(error: unknown): string {

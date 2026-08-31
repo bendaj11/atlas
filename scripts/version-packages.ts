@@ -33,7 +33,12 @@ export async function versionPackages(
     for (const [name, dependencyVersion] of Object.entries(
       manifest.dependencies ?? {},
     )) {
-      if (name.startsWith('@atlas/') && dependencyVersion !== version)
+      if (
+        name.startsWith('@atlas/') &&
+        typeof dependencyVersion === 'string' &&
+        !dependencyVersion.startsWith('workspace:') &&
+        dependencyVersion !== version
+      )
         manifest.dependencies[name] = version;
     }
     await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');

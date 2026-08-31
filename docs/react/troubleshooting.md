@@ -56,6 +56,28 @@ unmounts the app, and shows the host-owned fallback.
 Use Vite imports or relative URLs. Do not use `/assets/...` in a mounted app
 unless the host deliberately serves that path.
 
+## A Local Workspace Package Loads From The CDN
+
+Atlas shares imported runtime dependencies by default. Exclude app-local
+workspace packages from federation so Vite bundles and serves their linked
+source locally:
+
+```ts
+createReactAppViteConfig({
+  projectRoot: __dirname,
+  projectName: 'orders',
+  reactMajor: 19,
+  skip: [
+    (packageName) =>
+      packageName === '@company/orders-ui' ||
+      packageName.startsWith('@company/orders-ui/'),
+  ],
+});
+```
+
+Keep dependencies that must be singleton-shared between the host and apps out
+of `skip`.
+
 ## Install Fails With Peer Conflicts
 
 In workspaces that already declare `react`, Atlas aligns companion React

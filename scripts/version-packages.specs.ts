@@ -18,3 +18,14 @@ test('should preserve Columbus version when preparing a package release', async 
 
   expect(await driver.get.columbusVersions()).toStrictEqual(['9.9.9']);
 });
+
+test('should preserve internal workspace ranges when preparing a package release', async () => {
+  const driver = new VersionPackagesDriver();
+  await driver.given.releaseWorkspace('9.9.9');
+
+  await driver.when.versionAtlasPackages('1.2.3');
+
+  expect(await driver.get.internalDependencyVersions()).toStrictEqual([
+    'workspace:^',
+  ]);
+});

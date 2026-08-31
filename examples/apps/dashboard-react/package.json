@@ -10,8 +10,8 @@
     "atlas:publish": "atlas publish dashboard-react"
   },
   "dependencies": {
-    "@atlas/schema": "*",
-    "@atlas/sdk": "*",
+    "@atlas/schema": "workspace:*",
+    "@atlas/sdk": "workspace:*",
     "es-module-shims": "^2.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

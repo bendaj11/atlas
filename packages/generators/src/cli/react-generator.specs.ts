@@ -45,6 +45,10 @@ test('should include an empty preview array when generating a host', () => {
   );
 });
 
+test('should expose local package skip configuration when generating an app', () => {
+  expect(viteConfig(generateReactAppFiles(options()))).toContain('skip: []');
+});
+
 function options() {
   return {
     name: 'orders',
@@ -93,4 +97,12 @@ function atlasPreviews(files: { path: string; contents: string }[]): unknown[] {
     atlas: { previews: unknown[] };
   };
   return packageJson.atlas.previews;
+}
+
+function viteConfig(files: { path: string; contents: string }[]): string {
+  const configFile = files.find((file) => file.path === 'vite.config.ts');
+  if (!configFile)
+    throw new Error('Generated project must have vite.config.ts.');
+
+  return configFile.contents;
 }

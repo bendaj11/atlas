@@ -43,7 +43,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@atlas/schema": "0.4.20",
+    "@atlas/schema": "workspace:^",
     "es-module-shims": "^2.7.0"
   },
   "devDependencies": {

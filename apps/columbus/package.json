@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@atlas/bootstrap": "*",
-    "@atlas/schema": "*"
+    "@atlas/bootstrap": "workspace:*",
+    "@atlas/schema": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && vite build --config vite.badge.config.ts && vite build --config vite.development-session.config.ts && tsx src/scripts/build/copy-static.ts",
