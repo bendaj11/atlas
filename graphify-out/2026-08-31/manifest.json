@@ -370,9 +370,9 @@
     "semantic_hash": "f4d35b2218418ad6433c2394fada3822"
   },
   "packages/generators/src/cli/react-vite-generator.ts": {
-    "mtime": 1785236888.218367,
-    "ast_hash": "b72ea0aee834b0195179934b568e0bed",
-    "semantic_hash": "b72ea0aee834b0195179934b568e0bed"
+    "mtime": 1788182355.1195846,
+    "ast_hash": "2abb73a61d086b78ba08ed79b205c667",
+    "semantic_hash": ""
   },
   "packages/generators/src/cli/widget-generator.ts": {
     "mtime": 1786978420.8911095,
@@ -830,8 +830,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/tests/federation-config.specs.ts": {
-    "mtime": 1788181457.2288895,
-    "ast_hash": "5d26e8e5db82f110ae3417409230bb6b",
+    "mtime": 1788182380.0774074,
+    "ast_hash": "50f529f037723d5c2c05fd3beda00a14",
     "semantic_hash": ""
   },
   "packages/sdk/tests/framework-api.driver.ts": {
@@ -1225,8 +1225,8 @@
     "semantic_hash": ""
   },
   "docs/react/troubleshooting.md": {
-    "mtime": 1787562932.5397518,
-    "ast_hash": "3fd50c0e1cb99cce1b10eb249f297f25",
+    "mtime": 1788182446.678558,
+    "ast_hash": "d892fca6dbd7bcda145a9f65fa0a3149",
     "semantic_hash": ""
   },
   "docs/registry.md": {
@@ -1400,7 +1400,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1788181483.97447,
+    "mtime": 1788182363.1786256,
     "ast_hash": "62acdbff36a92a7241ca6a821328adc0",
     "semantic_hash": ""
   },
@@ -1430,7 +1430,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1788181483.9759002,
+    "mtime": 1788182363.179842,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -1975,8 +1975,8 @@
     "semantic_hash": ""
   },
   "packages/generators/src/cli/react-generator.specs.ts": {
-    "mtime": 1787662037.7169585,
-    "ast_hash": "c112ba09117e6a0d87215863548e05de",
+    "mtime": 1788182355.1256547,
+    "ast_hash": "d495c456c57f10167949ef5430f0d264",
     "semantic_hash": ""
   },
   "packages/runtime/tsconfig.angular.json": {
@@ -1985,8 +1985,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.cts": {
-    "mtime": 1788181478.2341945,
-    "ast_hash": "89feb68a40618637059cdc4a30eeb912",
+    "mtime": 1788182340.3981607,
+    "ast_hash": "db5f014bbf20e916e6059c7b4c7fbe9a",
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mts": {
@@ -2320,7 +2320,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1788181483.9767785,
+    "mtime": 1788182363.1808276,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },
