@@ -1385,8 +1385,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/react-widget.ts": {
-    "mtime": 1788268341.658369,
-    "ast_hash": "1686d8a3050ecd3fd8b9221da6e7255e",
+    "mtime": 1788268729.6483617,
+    "ast_hash": "bc7c37657ad895201345e0a7c904f23d",
     "semantic_hash": ""
   },
   "packages/sdk/tests/widget-adapters.specs.ts": {
@@ -1395,7 +1395,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1788264760.052947,
+    "mtime": 1788268551.1471336,
     "ast_hash": "62acdbff36a92a7241ca6a821328adc0",
     "semantic_hash": ""
   },
@@ -1425,7 +1425,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1788264760.0542128,
+    "mtime": 1788268551.1481774,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -2315,7 +2315,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1788264760.056671,
+    "mtime": 1788268551.1495116,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },

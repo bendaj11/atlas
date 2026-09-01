@@ -322,10 +322,20 @@
   "320": "babel-plugin-react-compiler",
   "321": "routing.md",
   "322": "@angular/common",
+  "323": "hydrate-published-artifact.ts",
   "324": "vite.badge.config.ts",
+  "325": "EmptyHostDataState.tsx",
   "326": "mount",
   "327": "publication-metadata.specs.ts",
+  "328": "ports.driver.ts",
   "329": "@angular/compiler",
+  "330": "proxy-config.ts",
   "331": "Consumer Testing",
-  "332": "main.tsx"
+  "332": "main.tsx",
+  "333": "babel-plugin-react-compiler",
+  "334": "zone.js",
+  "335": "ts-jest",
+  "336": "host.driver.ts",
+  "337": "manifest-utils.specs.ts",
+  "338": "Directive"
 }

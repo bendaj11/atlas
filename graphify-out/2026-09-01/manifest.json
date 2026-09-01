@@ -695,8 +695,8 @@
     "semantic_hash": "a99efe4dcb220fd72747cd26a2f03bfb"
   },
   "packages/sdk/src/angular-injection.ts": {
-    "mtime": 1786978731.2289999,
-    "ast_hash": "cf657ea9c36887a598d02127cb588ee2",
+    "mtime": 1788268269.9298427,
+    "ast_hash": "825ead2ba4fad2ee45c251214cc38cc0",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-location-strategy.ts": {
@@ -770,8 +770,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/react-context.ts": {
-    "mtime": 1786015895.4661825,
-    "ast_hash": "938f5226d0508e240ad4016256162afb",
+    "mtime": 1788268409.5554967,
+    "ast_hash": "5e09e0c5c28e2682dafede56dd45bb26",
     "semantic_hash": ""
   },
   "packages/sdk/src/react-host-navigation.ts": {
@@ -1090,8 +1090,8 @@
     "semantic_hash": ""
   },
   "docs/angular/sdk.md": {
-    "mtime": 1788264586.1157274,
-    "ast_hash": "a00a397347f7e9fcbe943e02f9e42aa2",
+    "mtime": 1788268335.296548,
+    "ast_hash": "41b8bad03981e1a9dc1408a1ce27e135",
     "semantic_hash": ""
   },
   "docs/angular/troubleshooting.md": {
@@ -1215,8 +1215,8 @@
     "semantic_hash": ""
   },
   "docs/react/sdk.md": {
-    "mtime": 1788264586.0360274,
-    "ast_hash": "e43b381b6d8d9178c1bc53d9fa5109ca",
+    "mtime": 1788268270.3391507,
+    "ast_hash": "e649630a71fe3b7df1c11a0b530eecd1",
     "semantic_hash": ""
   },
   "docs/react/troubleshooting.md": {
@@ -1380,14 +1380,14 @@
     "semantic_hash": "747b95eae748659eb837897d73e21614"
   },
   "packages/sdk/src/angular-widget.ts": {
-    "mtime": 1786888021.8671246,
-    "ast_hash": "2b21cf59626bc8736cbe8420ef4b0134",
+    "mtime": 1788268341.637262,
+    "ast_hash": "5ec70f8bcbc1cdc223fd41287c43663a",
     "semantic_hash": ""
   },
   "packages/sdk/src/react-widget.ts": {
-    "mtime": 1786888021.8683238,
-    "ast_hash": "dcf5e0815e7179c045ae2c8bb41a8d21",
-    "semantic_hash": "dcf5e0815e7179c045ae2c8bb41a8d21"
+    "mtime": 1788268341.658369,
+    "ast_hash": "1686d8a3050ecd3fd8b9221da6e7255e",
+    "semantic_hash": ""
   },
   "packages/sdk/tests/widget-adapters.specs.ts": {
     "mtime": 1786888021.8695288,
@@ -1510,8 +1510,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/src/components/ArtifactsOverridesPage/ArtifactsOverridesPage.tsx": {
-    "mtime": 1788265076.8348024,
-    "ast_hash": "fbe8c52bc3c6da35b302469c4f4766fd",
+    "mtime": 1788266763.0135727,
+    "ast_hash": "6c10402089ccaf379217a44a17d11908",
     "semantic_hash": ""
   },
   "apps/columbus/src/components/ArtifactsOverridesPage/ArtifactsOverridesTable/ArtifactName/ArtifactName.tsx": {
@@ -2615,8 +2615,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-injection.driver.ts": {
-    "mtime": 1786978867.8137662,
-    "ast_hash": "6030d56dd561ef6794bf8347928e3046",
+    "mtime": 1788268341.607026,
+    "ast_hash": "5790b05b7398466ebbd4c2c14d885bca",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-injection.specs.ts": {
@@ -3062,6 +3062,36 @@
   "packages/sdk/src/sdk-factory.specs.ts": {
     "mtime": 1788264625.583862,
     "ast_hash": "497f4a905418d01e08ba8dffa5eb4c57",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/app-assets.driver.ts": {
+    "mtime": 1788268341.5648634,
+    "ast_hash": "c4b4e451b2edfe51c7ac7490a0c5dd23",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/app-assets.specs.ts": {
+    "mtime": 1788268341.5742455,
+    "ast_hash": "a671c204bff13e2cfe780b16900ebe98",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/app-assets.ts": {
+    "mtime": 1788268269.7466547,
+    "ast_hash": "4b3eb2344c31a3cdb418a7c7ed9aa369",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/app-context.testkit.ts": {
+    "mtime": 1788268371.743312,
+    "ast_hash": "ec98459a0730e5e41711e9b132df12c0",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/react-widget.driver.ts": {
+    "mtime": 1788268409.4081104,
+    "ast_hash": "c8631661d59bc5bf01791c896717073c",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/react-widget.specs.ts": {
+    "mtime": 1788268415.4351733,
+    "ast_hash": "771e9caf56032b09bf7e2bcc15dde1f3",
     "semantic_hash": ""
   }
 }
