@@ -11,6 +11,7 @@ import { Delete } from '@wix/wix-ui-icons-common';
 import { useHost, useOverrides } from '../providers/index.js';
 import { EmptyHostDataState } from '../EmptyHostDataState/EmptyHostDataState';
 import { ArtifactsOverridesTable } from './ArtifactsOverridesTable/ArtifactsOverridesTable';
+import manifest from '../../manifest.json';
 
 export function ArtifactsOverridesPage() {
   const { loadHost, message, status } = useHost();
@@ -32,7 +33,15 @@ export function ArtifactsOverridesPage() {
               transparent
               width="35px"
             />
-            <Heading size="medium">Columbus</Heading>
+
+            <Heading size="medium">
+              Columbus
+              <Box marginLeft="SP1" inline>
+                <Text size="tiny" secondary>
+                  v{manifest.version}
+                </Text>
+              </Box>
+            </Heading>
           </Box>
         }
         subtitle={

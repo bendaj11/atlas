@@ -20,6 +20,7 @@ import {
   createAngularAtlasSdk,
   type AngularAtlasSdk,
 } from './angular-widget.js';
+import { createAtlasAppAssetFacade } from './app-assets.js';
 
 const ATLAS_SDK = new InjectionToken<AtlasSdkValue>('AtlasSdk');
 const ATLAS_APP_CONTEXT = new InjectionToken<AtlasAppContext>(
@@ -65,7 +66,7 @@ export function injectAtlasSdk<
 >(): AtlasSdk<THostSdk, TEvents> {
   const sdk = inject(ATLAS_SDK) as AtlasSdkValue<THostSdk, TEvents>;
   return createAngularAtlasSdk(
-    sdk,
+    createAtlasAppAssetFacade(sdk, injectAtlasAppContext()),
     inject(ApplicationRef),
     inject(EnvironmentInjector),
     createAtlasHostDataSignal(sdk),

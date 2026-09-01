@@ -21,6 +21,7 @@ import type {
   AtlasWidgetLoadingRenderer,
 } from './host.js';
 import { sdkError } from './sdk-error.js';
+import type { AtlasAppAssets } from './app-assets.js';
 
 export interface AngularGetWidgetOptions<TInputs extends object> {
   readonly inputs: TInputs;
@@ -35,14 +36,15 @@ export interface AngularWidgetBinding<TInputs extends object> {
 export type AngularAtlasSdk<
   THostSdk extends object = {},
   TEvents extends object = AtlasEventMap,
-> = Omit<AtlasSdkValue<THostSdk, TEvents>, 'getWidget' | 'hostData'> & {
-  /** Live, host-owned data. Call it to read the current immutable snapshot. */
-  readonly hostData: Signal<AtlasHostDataValue<THostSdk>>;
-  getWidget<TInputs extends object>(
-    widgetId: string,
-    options: AngularGetWidgetOptions<TInputs>,
-  ): AngularWidgetBinding<TInputs>;
-};
+> = Omit<AtlasSdkValue<THostSdk, TEvents>, 'getWidget' | 'hostData'> &
+  AtlasAppAssets & {
+    /** Live, host-owned data. Call it to read the current immutable snapshot. */
+    readonly hostData: Signal<AtlasHostDataValue<THostSdk>>;
+    getWidget<TInputs extends object>(
+      widgetId: string,
+      options: AngularGetWidgetOptions<TInputs>,
+    ): AngularWidgetBinding<TInputs>;
+  };
 
 interface AngularWidgetRuntime {
   readonly widgetId: string;

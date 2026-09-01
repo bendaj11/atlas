@@ -86,8 +86,6 @@ Import SDK types and factories from `@atlas/sdk` or `@atlas/sdk/host`:
 | `AtlasSdk<THostSdk, TEvents>`        | Core capabilities plus host-owned SDK properties and typed host data   |
 | `AtlasSdkOptions<THostSdk, TEvents>` | Providers and host-owned SDK properties supplied while starting a host |
 | `createAtlasSdk()`                   | Create the host-owned SDK instance                                     |
-| `IHttpClient`                        | Core HTTP client with object-form `request()` and HTTP verb helpers    |
-| `HttpClient`                         | Default fetch-backed HTTP client used when hosts omit `httpClient`     |
 | `AtlasEventBus<TEvents>`             | Typed in-memory communication between mounted apps                     |
 | `createAtlasEventBus()`              | Create a host-scoped event bus                                         |
 

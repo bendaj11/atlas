@@ -8,28 +8,35 @@ import {
   type FunctionComponent
 } from "react";
 import type { AtlasEventMap, AtlasMountedWidgetHandle, AtlasSdk as AtlasSdkValue } from "./host.js";
+import { createAtlasAppAssetFacade, type AtlasAppAssets } from './app-assets.js';
+import type { AtlasAppContext } from './lifecycle.js';
 
 export interface ReactGetWidgetOptions {
   loadingComponent?: ComponentType;
 }
 
-export type ReactAtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap> = Omit<AtlasSdkValue<THostSdk, TEvents>, "getWidget"> & {
+export type ReactAtlasSdk<THostSdk extends object = {}, TEvents extends object = AtlasEventMap> = Omit<AtlasSdkValue<THostSdk, TEvents>, "getWidget"> & AtlasAppAssets & {
   getWidget<TInputs extends object>(
     widgetId: string,
     options?: ReactGetWidgetOptions
   ): ComponentType<TInputs>;
 };
 
-const sdkFacades = new WeakMap<object, object>();
+const sdkFacades = new WeakMap<object, WeakMap<object, object>>();
 
 export function createReactAtlasSdk<THostSdk extends object, TEvents extends object>(
-  sdk: AtlasSdkValue<THostSdk, TEvents>
+  sdk: AtlasSdkValue<THostSdk, TEvents>,
+  context: AtlasAppContext,
 ): ReactAtlasSdk<THostSdk, TEvents> {
-  const cached = sdkFacades.get(sdk);
+  const appFacades = sdkFacades.get(sdk) ?? new WeakMap<object, object>();
+  sdkFacades.set(sdk, appFacades);
+  const cached = appFacades.get(context);
   if (cached) return cached as ReactAtlasSdk<THostSdk, TEvents>;
 
   const widgets = new Map<string, Map<ComponentType | undefined, ComponentType<object>>>();
-  const facade = Object.create(sdk) as ReactAtlasSdk<THostSdk, TEvents>;
+  const facade = Object.create(
+    createAtlasAppAssetFacade(sdk, context),
+  ) as ReactAtlasSdk<THostSdk, TEvents>;
   Object.defineProperty(facade, "getWidget", {
     value: <TInputs extends object>(widgetId: string, options?: ReactGetWidgetOptions): ComponentType<TInputs> => {
       const loadingComponent = options?.loadingComponent;
@@ -43,7 +50,7 @@ export function createReactAtlasSdk<THostSdk extends object, TEvents extends obj
       return widget;
     }
   });
-  sdkFacades.set(sdk, facade);
+  appFacades.set(context, facade);
   return facade;
 }
 

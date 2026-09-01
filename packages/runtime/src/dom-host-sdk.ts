@@ -23,7 +23,6 @@ const NON_SDK_OPTION_NAMES = new Set([
   'federation',
   'hostData',
   'hostId',
-  'httpClient',
   'location',
   'navigation',
   'observe',
@@ -88,7 +87,6 @@ export function createDomHostSdk<THostSdk extends object>(
     ...(options.hostData ? { hostData: options.hostData } : {}),
     navigation,
     ...(options.eventBus ? { eventBus: options.eventBus } : {}),
-    ...(options.httpClient ? { httpClient: options.httpClient } : {}),
     ...sdkProperties,
   } as unknown as AtlasSdkOptions<THostSdk, AtlasEventMap>;
   return createAtlasSdk<THostSdk, AtlasEventMap>(sdkOptions);

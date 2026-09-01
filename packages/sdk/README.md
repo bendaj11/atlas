@@ -15,18 +15,8 @@ yarn add @atlas/sdk
 
 Use `@atlas/sdk/react` or `@atlas/sdk/angular` for framework integration.
 
-Atlas exports a default fetch-backed HTTP client:
-
-```ts
-import { HttpClient } from "@atlas/sdk";
-
-const httpClient = new HttpClient();
-await httpClient.get({ url: "/api/orders" });
-```
-
-Hosts can omit `httpClient` in `startHost` to use this default, or provide a
-custom `IHttpClient` when they need axios, authentication, interceptors, or
-another transport.
+Hosts define product-specific APIs, clients, and services in their typed SDK
+extension. Atlas does not prescribe an HTTP client contract.
 
 Apps should not create their own host SDK. Read it with `useAtlasSdk()` or
 `injectAtlasSdk()`. Continue with [SDK guide](https://github.com/bendaj11/atlas/blob/main/docs/sdk.md).

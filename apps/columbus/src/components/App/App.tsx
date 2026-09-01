@@ -1,5 +1,5 @@
 import { Box } from '@wix/design-system';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useHost } from '../providers/index.js';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import {
@@ -7,7 +7,12 @@ import {
   ARTIFACTS_ROUTE,
 } from '../../scripts/routing/routes/routes.js';
 import { ArtifactsOverridesPage } from '../ArtifactsOverridesPage/ArtifactsOverridesPage.js';
-import { ArtifactConfigurationPage } from '../ArtifactConfigurationPage/ArtifactConfigurationPage.js';
+
+const ArtifactConfigurationPage = lazy(() =>
+  import('../ArtifactConfigurationPage/ArtifactConfigurationPage.js').then(
+    ({ ArtifactConfigurationPage }) => ({ default: ArtifactConfigurationPage }),
+  ),
+);
 
 export function App() {
   const { loadHost } = useHost();
@@ -22,7 +27,11 @@ export function App() {
         <Route path={ARTIFACTS_ROUTE} element={<ArtifactsOverridesPage />} />
         <Route
           path={ARTIFACT_CONFIGURATION_ROUTE}
-          element={<ArtifactConfigurationPage />}
+          element={
+            <Suspense fallback={null}>
+              <ArtifactConfigurationPage />
+            </Suspense>
+          }
         />
         <Route path="*" element={<Navigate to={ARTIFACTS_ROUTE} replace />} />
       </Routes>

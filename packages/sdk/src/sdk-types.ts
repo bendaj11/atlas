@@ -1,6 +1,5 @@
 import type { AtlasNavigation } from './navigation.js';
 import type { AtlasEventBus, AtlasEventMap } from './event-bus.js';
-import type { HttpClientInput, IHttpClient } from './http-client.js';
 
 export interface AtlasMountedWidgetHandle<
   TInputs extends object = Record<string, unknown>,
@@ -58,7 +57,6 @@ export interface AtlasCoreSdk<
    * Use `emit()` to dispatch and `addEventListener()` / `removeEventListener()` for lifecycle-managed listeners.
    */
   readonly events: AtlasEventBus<TEvents>;
-  readonly httpClient: IHttpClient;
   /** Resolve one exported widget by globally unique widget id. */
   readonly getWidget: AtlasGetWidget;
 }
@@ -79,7 +77,7 @@ type HostDataOption<THostSdk extends object> =
 
 type HostSdkProperties<THostSdk extends object> = Omit<
   THostSdk,
-  'hostId' | 'hostData' | 'navigation' | 'events' | 'httpClient' | 'getWidget'
+  'hostId' | 'hostData' | 'navigation' | 'events' | 'getWidget'
 >;
 
 /** Atlas runtime capabilities combined with a host-owned, consumer-typed API. */
@@ -96,6 +94,5 @@ export type AtlasSdkOptions<
   hostId: string;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
-  httpClient?: HttpClientInput;
 } & HostDataOption<THostSdk> &
   HostSdkProperties<THostSdk>;

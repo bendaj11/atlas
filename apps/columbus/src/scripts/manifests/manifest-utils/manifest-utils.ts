@@ -131,6 +131,7 @@ export function overrideTypeFor({
 export function versionLabel(manifest: Manifest): string {
   if (manifest.channel === 'pr') {
     const label = [
+      manifest.prNumber === undefined ? undefined : `PR #${manifest.prNumber}`,
       manifest.gitBranch,
       manifest.gitSha?.slice(0, SHORT_BUILD_ID_LENGTH),
       manifest.gitCommitTitle,

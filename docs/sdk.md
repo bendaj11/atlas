@@ -37,8 +37,8 @@ Creates the object passed from host to app.
 ```ts
 interface CustomerHostSdk {
   hostData: { projectId: string };
+  orders: { open(orderId: string): Promise<void> };
   showToast(message: string): void;
-  openOrder(orderId: string): Promise<void>;
 }
 
 const sdk = createAtlasSdk<CustomerHostSdk>({
@@ -49,58 +49,15 @@ const sdk = createAtlasSdk<CustomerHostSdk>({
     projectId: 'project-42',
   },
   navigation,
-  httpClient: authenticatedHttpClient,
+  orders: orderService,
   showToast: (message) => toastService.show(message),
-  openOrder: (orderId) => orderService.open(orderId),
 });
 ```
 
 `hostData` always includes `hostId` and `name`. Hosts can add typed product
-fields on the host SDK type. Atlas merges those fields with `AtlasHostData`.
-`httpClient` is a core host API with `request()`, `get()`, `post()`, `put()`,
-`patch()`, `delete()`, `head()`, and `options()`. If omitted, Atlas uses
-`new HttpClient()`, backed by `globalThis.fetch`.
-
-Use `HttpClient` directly when you want the default fetch-backed behavior:
-
-```ts
-import { HttpClient } from '@atlas/sdk';
-
-const httpClient = new HttpClient();
-await httpClient.get('/api/projects');
-```
-
-Replace `httpClient` in `startHost` or `createAtlasSdk` when the host needs
-axios, authentication headers, interceptors, retries, or another transport:
-
-```ts
-const authenticatedHttpClient = {
-  request(method, url, options) {
-    return axios.request({ url: String(url), method, data: options?.body });
-  },
-  get(url, options) {
-    return this.request('GET', url, options);
-  },
-  post(url, body, options) {
-    return this.request('POST', url, { ...options, body });
-  },
-  put(url, body, options) {
-    return this.request('PUT', url, { ...options, body });
-  },
-  patch(url, body, options) {
-    return this.request('PATCH', url, { ...options, body });
-  },
-  delete(url, options) {
-    return this.request('DELETE', url, options);
-  },
-  head(url, options) {
-    return this.request('HEAD', url, options);
-  },
-  options(url, options) {
-    return this.request('OPTIONS', url, options);
-  },
-};
-```
+fields and product services on the host SDK type. Atlas merges host-data fields
+with `AtlasHostData`. Define clients, authentication, retries, and transport
+semantics in product-owned APIs rather than Atlas core.
 
 ### Host data: fixed and live values
 
@@ -182,7 +139,8 @@ atlas.showToast('Order saved');
 
 Angular apps use `injectAtlasSdk<CustomerHostSdk>()`;
 generated bootstraps register the runtime value with `provideAtlasSdk(sdk)`.
-Core SDK contains only host identity/data, HTTP, navigation, and events. Add
+Core SDK contains only host identity/data, navigation, events, and widget
+discovery. Add
 product-specific APIs directly to the SDK shape. Atlas does not define toast,
 modal, popup, auth, config, or session contracts.
 
@@ -190,21 +148,16 @@ modal, popup, auth, config, or session contracts.
 
 Define each product-specific method in a shared TypeScript contract, implement
 it in the host, and call it from the SDK object returned by the framework
-adapter. The `this` parameter shown below is a TypeScript receiver annotation;
-it is not an argument that consumers pass.
+adapter.
 
 ```ts
-import type { AtlasSdk } from '@atlas/sdk';
-
 interface CustomerHostSdk {
-  refreshSession(this: AtlasSdk<CustomerHostSdk>): Promise<void>;
+  refreshSession(): Promise<void>;
 }
 
 await startHost<CustomerHostSdk>({
   // router, federation, and other host options
-  refreshSession: async function () {
-    await this.httpClient.post('/api/session/refresh');
-  },
+  refreshSession: () => sessionService.refresh(),
 });
 ```
 
@@ -213,21 +166,6 @@ Consumers call the method normally:
 ```ts
 const atlas = injectAtlasSdk<CustomerHostSdk>();
 await atlas.refreshSession();
-```
-
-Use a regular function when an implementation calls another SDK capability
-through `this`. Do not use an arrow function for that implementation because
-arrow functions do not receive the SDK object as their receiver. Call the
-method through the SDK object (`atlas.refreshSession()`); destructuring it loses
-the receiver.
-
-Methods that only close over host services do not need `this` and may use arrow
-functions:
-
-```ts
-await startHost<CustomerHostSdk>({
-  refreshSession: () => sessionService.refresh(),
-});
 ```
 
 Framework adapters preserve custom methods and replace framework-sensitive core

@@ -11,6 +11,7 @@ component when hooks enrich the SDK:
 ```tsx
 interface CustomerHostSdk {
   hostData: { projectId: string };
+  orders: OrdersApi;
   showToast(message: string): void;
 }
 
@@ -28,7 +29,7 @@ function HostApplication() {
           name: 'Customer Host',
           projectId: 'project-42',
         },
-        httpClient: authenticatedHttpClient,
+        orders: ordersApi,
         showToast: toast.show,
         observe: (event) => monitoring.capture('atlas.runtime', event),
       }}
@@ -76,10 +77,6 @@ function HostApplication() {
 }
 ```
 
-If `httpClient` is omitted, Atlas uses a fetch-backed default client. Provide a
-custom client when the host needs authentication headers, interceptors, retries,
-or a company HTTP wrapper.
-
 Use `observe` for runtime monitoring and telemetry. It receives all Atlas runtime
 events, including resource loading, retries, host readiness, and app mount state.
 
@@ -92,6 +89,7 @@ import { useAtlasSdk } from '@atlas/sdk/react';
 import type { AtlasEventMap } from '@atlas/sdk';
 
 interface CustomerHostSdk {
+  orders: OrdersApi;
   showToast(message: string): void;
 }
 
@@ -102,7 +100,7 @@ export function OrdersToolbar() {
     <button
       type="button"
       onClick={async () => {
-        await atlas.httpClient.post('/api/orders');
+        await atlas.orders.create();
         atlas.showToast('Order saved');
       }}
     >
@@ -114,6 +112,24 @@ export function OrdersToolbar() {
 
 Use SDK capabilities for cross-app communication, host-owned UI, and host
 services. Use normal React state, context, and hooks for app-internal state.
+
+## App assets
+
+Use SDK asset helpers for files copied from app `public/`. Atlas resolves these
+paths from mounted app artifact, so they work in development, immutable CDN
+deployments, and local overrides. Do not read manifests or construct deployment
+URLs in app code.
+
+```tsx
+const atlas = useAtlasSdk();
+
+const billboardUrl = atlas.assetUrl('billboards/plane.png');
+const cesiumBaseUrl = atlas.assetBaseUrl();
+```
+
+`assetUrl()` accepts only paths inside app artifact. Use public-output-relative
+paths with no leading `/`; for example, `public/billboards/plane.png` becomes
+`billboards/plane.png`.
 
 ## Navigation
 

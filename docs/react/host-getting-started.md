@@ -150,7 +150,7 @@ host React tree, so it can use React Query and other product hooks.
 
 Example extension inside `host.config.tsx`:
 
-`useToast`, `authenticatedHttpClient`, and `monitoring` below are product-owned
+`useToast`, `ordersApi`, and `monitoring` below are product-owned
 placeholders. Replace them with hooks and services from host project.
 
 ```tsx
@@ -163,6 +163,7 @@ interface CustomerHostSdk {
     projectId: string;
     user: PublicUser | null | undefined;
   };
+  orders: OrdersApi;
   showToast(message: string): void;
 }
 
@@ -180,7 +181,7 @@ export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
         projectId: 'customer-portal',
         user: session.data,
       },
-      httpClient: authenticatedHttpClient,
+      orders: ordersApi,
       showToast,
       observe: (event) => monitoring.capture('atlas.runtime', event),
     }),
@@ -195,7 +196,7 @@ updates mounted Angular and React apps when React Query changes this value.
 
 Typical host-provided capabilities:
 
-- authenticated HTTP client or company API wrapper;
+- product API or company client;
 - current tenant, locale, feature policy, or product identity;
 - toast, modal, and other host-owned overlay services;
 - cross-app events and top-level navigation;
@@ -204,10 +205,6 @@ Typical host-provided capabilities:
 Use normal React state and context for state private to host. Expose only stable
 contracts that apps need. Place shared TypeScript interfaces in a package both
 host and apps can compile against; do not share live host implementation code.
-
-If `httpClient` is omitted, Atlas supplies a fetch-backed client. Provide a
-custom one when requests need tokens, cookies, interceptors, retries, or company
-telemetry.
 
 Read [React SDK](sdk.md) for app hooks, events, loading readiness, widgets, and
 host-owned UI.

@@ -101,7 +101,7 @@ cross-app destinations.
 ## Host APIs Are Missing
 
 If `injectAtlasSdk()` returns an SDK without expected product fields, fix the
-host `startHost` call. Product `hostData`, HTTP clients, modals, toasts, events,
+host `startHost` call. Product `hostData`, API clients, modals, toasts, events,
 and extensions are supplied by the host, not by the app.
 
 ## Spinner Never Disappears

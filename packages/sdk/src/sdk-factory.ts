@@ -1,5 +1,4 @@
 import { createAtlasEventBus, type AtlasEventMap } from "./event-bus.js";
-import { normalizeHttpClient } from "./http-client.js";
 import type { AtlasNavigation } from "./navigation-types.js";
 import type { AtlasCoreSdk, AtlasGetWidget, AtlasGetWidgetOptions, AtlasHostData, AtlasNavigationState, AtlasSdk, AtlasSdkOptions, AtlasWidgetHandle } from "./sdk-types.js";
 import { sdkError } from "./sdk-error.js";
@@ -28,7 +27,6 @@ function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
     hostData: createHostData(options),
     navigateTo: (appId, state) => resolveNavigation(core, appId, state),
     events: options.eventBus ?? createAtlasEventBus<TEvents>(),
-    httpClient: normalizeHttpClient(options.httpClient),
     getWidget: (widgetId, widgetOptions) => resolveWidget(core, widgetId, widgetOptions)
   };
   return core;
@@ -98,7 +96,7 @@ function createHostData<THostSdk extends object, TEvents extends object>(
 function readSdkProperties<THostSdk extends object, TEvents extends object>(
   options: AtlasSdkOptions<THostSdk, TEvents>
 ): object {
-  const { hostId: _hostId, hostData: _hostData, navigation: _navigation, eventBus: _eventBus, httpClient: _httpClient, ...sdkProperties } = options;
+  const { hostId: _hostId, hostData: _hostData, navigation: _navigation, eventBus: _eventBus, ...sdkProperties } = options;
   return sdkProperties;
 }
 

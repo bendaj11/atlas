@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import {
   injectAtlasSdk,
+  provideAtlasAppContext,
   provideAtlasSdk,
   type AtlasSdk as AngularAtlasSdk,
 } from './angular-injection.js';
@@ -14,6 +15,7 @@ import { updateAtlasHostData } from './host-data.js';
 import { createAtlasSdk } from './sdk-factory.js';
 import type { AtlasSdk as AtlasSdkValue } from './sdk-types.js';
 import type { AtlasNavigation } from './navigation-types.js';
+import { createAppContext } from './app-context.testkit.js';
 
 interface CustomerHostSdk {
   readonly hostData: {
@@ -38,6 +40,11 @@ export class AngularInjectionDriver {
       this.injector = createEnvironmentInjector(
         [
           provideAtlasSdk(() => this.getSdk()),
+          ...provideAtlasAppContext(
+            createAppContext(
+              'https://cdn.example/apps/orders/1.2.3/remoteEntry.json',
+            ),
+          ),
           { provide: ApplicationRef, useValue: Object.create(null) },
         ],
         null!,

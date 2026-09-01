@@ -126,7 +126,7 @@ describe('manifest labels', () => {
     ).toBe('0.1.2');
   });
 
-  it('should show branch and commit when release is PR', () => {
+  it('should show PR number, branch, and commit when release is PR', () => {
     expect(
       driver.get.versionLabel({
         channel: 'pr',
@@ -137,7 +137,9 @@ describe('manifest labels', () => {
         gitSha: 'abcdef123456',
         gitCommitTitle: 'Simplify override selection',
       }),
-    ).toBe('feature/compact-pr-labels · abcdef1 · Simplify override selection');
+    ).toBe(
+      'PR #42 · feature/compact-pr-labels · abcdef1 · Simplify override selection',
+    );
   });
 
   it('should omit source description when override is absent', () => {

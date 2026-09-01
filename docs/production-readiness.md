@@ -142,7 +142,7 @@ Then complete browser smoke tests:
 - [ ] App base route loads the selected version.
 - [ ] Nested route survives a full-page refresh.
 - [ ] Critical images, styles, and lazy chunks load.
-- [ ] Authenticated HTTP and other host SDK services work.
+- [ ] Product APIs and other host SDK services work.
 - [ ] Loading, timeout, and failure UI behaves as designed.
 - [ ] Keyboard, focus, screen-reader, and automated accessibility checks cover
       host navigation plus app loading, success, empty, and failure states.

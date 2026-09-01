@@ -160,7 +160,7 @@ Apps must not import host source. Put product-wide capabilities into
 
 Example extension:
 
-`authenticatedHttpClient`, `toastService`, and `monitoring` below are
+`ordersApi`, `toastService`, and `monitoring` below are
 product-owned placeholders. Replace them with services from the host project.
 
 ```ts
@@ -168,6 +168,7 @@ interface CustomerHostSdk {
   hostData: {
     projectId: string;
   };
+  orders: OrdersApi;
   showToast(message: string): void;
 }
 
@@ -180,7 +181,7 @@ const runtime = await startHost<CustomerHostSdk>({
     name: atlasConfig.name,
     projectId: 'customer-portal',
   },
-  httpClient: authenticatedHttpClient,
+  orders: ordersApi,
   showToast: (message) => toastService.show(message),
   observe: (event) => monitoring.capture('atlas.runtime', event),
   ...(request
@@ -191,7 +192,7 @@ const runtime = await startHost<CustomerHostSdk>({
 
 Typical host-provided capabilities:
 
-- authenticated HTTP client or company API wrapper;
+- product API or company client;
 - current tenant, locale, feature policy, or product identity;
 - toast, modal, and other host-owned overlay services;
 - cross-app events and top-level navigation;
@@ -200,10 +201,6 @@ Typical host-provided capabilities:
 Use normal Angular services for state private to the host. Expose only stable
 contracts that apps need. Place shared TypeScript interfaces in a package both
 host and apps can compile against; do not share live host implementation code.
-
-If `httpClient` is omitted, Atlas supplies a fetch-backed client. Provide a
-custom one when requests need tokens, cookies, interceptors, retries, or company
-telemetry.
 
 Read [Angular SDK](sdk.md) for app injection, events, loading readiness, widgets,
 and host-owned UI.

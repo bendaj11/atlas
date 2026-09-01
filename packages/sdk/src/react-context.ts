@@ -62,6 +62,7 @@ export function useAtlasSdk<
 >(): AtlasSdk<THostSdk, TEvents> {
   const sdk = useContext(AtlasSdkContext);
   useContext(AtlasHostDataContext);
+  const context = useContext(AtlasRuntimeContext);
   if (!sdk) {
     throw sdkError(
       'Atlas SDK is unavailable because useAtlasSdk was called outside AtlasSdkProvider.',
@@ -72,7 +73,17 @@ export function useAtlasSdk<
       },
     );
   }
-  return createReactAtlasSdk(sdk as AtlasSdkValue<THostSdk, TEvents>);
+  if (!context) {
+    throw sdkError(
+      'Atlas app context is unavailable because useAtlasSdk was called outside an Atlas-mounted app.',
+      {
+        suggestedActions:
+          'Call useAtlasSdk only from a component rendered by the Atlas app mount lifecycle.',
+        code: 'ATLAS_REACT_APP_CONTEXT_MISSING',
+      },
+    );
+  }
+  return createReactAtlasSdk(sdk as AtlasSdkValue<THostSdk, TEvents>, context);
 }
 
 export function useAppLoaded(): () => void {

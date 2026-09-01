@@ -11,6 +11,7 @@ The Angular host provides SDK capabilities in `src/bootstrap.ts` when it calls
 ```ts
 interface CustomerHostSdk {
   hostData: { projectId: string };
+  orders: OrdersApi;
   showToast(message: string): void;
 }
 
@@ -23,7 +24,7 @@ await startHost<CustomerHostSdk>({
     name: 'Customer Host',
     projectId: 'project-42',
   },
-  httpClient: authenticatedHttpClient,
+  orders: ordersApi,
   showToast: (message) => toastService.show(message),
   observe: (event) => monitoring.capture('atlas.runtime', event),
 });
@@ -78,10 +79,6 @@ Put live shared values in `hostData`; use custom SDK extensions for stable
 commands and services. Angular apps consume host data only through
 `injectAtlasSdk().hostData()`.
 
-If `httpClient` is omitted, Atlas uses a fetch-backed default client. Provide a
-custom client when the host needs authentication headers, interceptors, retries,
-or a company HTTP wrapper.
-
 Use `observe` for runtime monitoring and telemetry. It receives all Atlas runtime
 events, including resource loading, retries, host readiness, and app mount state.
 
@@ -95,6 +92,7 @@ import { injectAtlasSdk } from '@atlas/sdk/angular';
 import type { AtlasEventMap } from '@atlas/sdk';
 
 interface CustomerHostSdk {
+  orders: OrdersApi;
   showToast(message: string): void;
 }
 
@@ -107,7 +105,7 @@ export class OrdersToolbarComponent {
   private readonly atlas = injectAtlasSdk<CustomerHostSdk>();
 
   async save(): Promise<void> {
-    await this.atlas.httpClient.post('/api/orders');
+    await this.atlas.orders.create();
     this.atlas.showToast('Order saved');
   }
 }
@@ -115,6 +113,24 @@ export class OrdersToolbarComponent {
 
 Use SDK capabilities for cross-app communication, host-owned UI, and host
 services. Use normal Angular services for app-internal state.
+
+## App assets
+
+Use SDK asset helpers for files copied from app `public/`. Atlas resolves these
+paths from mounted app artifact, so they work in development, immutable CDN
+deployments, and local overrides. Do not read manifests or construct deployment
+URLs in app code.
+
+```ts
+private readonly atlas = injectAtlasSdk();
+
+readonly billboardUrl = this.atlas.assetUrl('billboards/plane.png');
+readonly cesiumBaseUrl = this.atlas.assetBaseUrl();
+```
+
+`assetUrl()` accepts only paths inside app artifact. Use public-output-relative
+paths with no leading `/`; for example, `public/billboards/plane.png` becomes
+`billboards/plane.png`.
 
 Custom SDK methods that call other SDK capabilities must use regular functions
 so Atlas can supply the Angular SDK facade as their receiver. Type that receiver

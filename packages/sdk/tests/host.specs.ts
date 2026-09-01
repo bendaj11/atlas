@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from '@jest/globals';
 import {
-  HttpClient,
   connectAtlasNavigationResolver,
   connectAtlasWidgetResolver,
   createAtlasEventBus,
@@ -23,37 +22,6 @@ test('event bus dispatches across apps and removes listeners', () => {
   bus.removeEventListener('orders.updated', listener);
   bus.emit('orders.updated', { orderId: '43' });
   assert.deepEqual(received, [{ orderId: '42' }]);
-});
-
-test('core SDK exposes typed hostData and httpClient without extensions', async () => {
-  interface ProjectHostSdk {
-    hostData: { projectId: string };
-  }
-  const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
-  const httpClient: typeof fetch = async (url, options) => {
-    calls.push([url, options]);
-    return Response.json({});
-  };
-  const sdk = createAtlasSdk<ProjectHostSdk>({
-    hostId: 'host',
-    navigation: createMemoryNavigation(),
-    hostData: { hostId: 'host', name: 'Host', projectId: 'project-42' },
-    httpClient,
-  });
-  assert.equal(sdk.hostData.hostId, 'host');
-  assert.equal(sdk.hostData.name, 'Host');
-  assert.equal(sdk.hostData.projectId, 'project-42');
-  await sdk.httpClient.get({ url: '/orders' });
-  await sdk.httpClient.post({ url: '/orders', body: 'payload' });
-  await sdk.httpClient.request({
-    method: 'PATCH',
-    url: '/orders/42',
-    options: { body: 'patch' },
-  });
-  assert.deepEqual(
-    calls.map(([, options]) => options?.method),
-    ['GET', 'POST', 'PATCH'],
-  );
 });
 
 test('host updates replace custom host data for mounted apps', () => {
@@ -95,30 +63,6 @@ test('host-data subscription stops after cleanup', () => {
   updateAtlasHostData(sdk, { userId: null });
 
   assert.equal(notifications, 1);
-});
-
-test('host SDK adapts fetch-compatible httpClient providers', async () => {
-  const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
-  const httpClient: typeof fetch = async (url, init) => {
-    calls.push([url, init]);
-    return Response.json({ deleted: true });
-  };
-  const sdk = createAtlasSdk({
-    hostId: 'host',
-    navigation: createMemoryNavigation(),
-    httpClient,
-  });
-  assert.equal(
-    (await sdk.httpClient.delete<{ deleted: boolean }>({ url: '/orders/42' }))
-      .deleted,
-    true,
-  );
-  assert.deepEqual(calls, [['/orders/42', { method: 'DELETE' }]]);
-});
-
-test('host SDK uses HttpClient by default', () => {
-  const sdk = createHostSdk();
-  assert.ok(sdk.httpClient instanceof HttpClient);
 });
 
 test('host runtime connects synchronous getWidget after SDK construction', () => {
@@ -174,20 +118,6 @@ test('host SDK forwards per-widget loading options to runtime', () => {
   sdk.getWidget('widget-id', { renderLoading });
 
   assert.equal(receivedRenderLoading, renderLoading);
-});
-
-test('HttpClient wraps fetch with HTTP helpers', async () => {
-  const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
-  const httpClient = new HttpClient(async (url, init) => {
-    calls.push([url, init]);
-    return Response.json({ id: 'order-42' });
-  });
-  assert.equal(
-    (await httpClient.post<{ id: string }>({ url: '/orders', body: 'payload' }))
-      .id,
-    'order-42',
-  );
-  assert.deepEqual(calls, [['/orders', { body: 'payload', method: 'POST' }]]);
 });
 
 test('host properties cannot replace core SDK capabilities', () => {
