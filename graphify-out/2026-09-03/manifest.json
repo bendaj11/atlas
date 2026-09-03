@@ -3160,13 +3160,13 @@
     "semantic_hash": ""
   },
   "packages/cli/src/development/workspace-dependencies/workspace-dependencies.specs.ts": {
-    "mtime": 1788443466.889472,
-    "ast_hash": "60d8bcee653ff1389a6198400cca7ceb",
+    "mtime": 1788443643.9351344,
+    "ast_hash": "5a2617bb071a97c173dcf9f13383e408",
     "semantic_hash": ""
   },
   "packages/cli/src/development/workspace-dependencies/workspace-dependencies.ts": {
-    "mtime": 1788443426.1817338,
-    "ast_hash": "a873701b0fd508ec7b79632549f24038",
+    "mtime": 1788443643.8533084,
+    "ast_hash": "d84d082cbf695d44ac85ad437d71409e",
     "semantic_hash": ""
   }
 }
