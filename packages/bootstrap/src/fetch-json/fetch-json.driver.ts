@@ -3,12 +3,25 @@ import { faker } from '@faker-js/faker';
 import { fetchJson } from './fetch-json.js';
 
 export class FetchJsonDriver {
-  private readonly url = faker.internet.url();
+  private url = faker.internet.url();
+  private readonly originalFetch = globalThis.fetch;
+  private readonly originalTimeout = AbortSignal.timeout;
+  private readonly timeoutSignal = new AbortController().signal;
   private responseBody: { name: string } | undefined;
   private response: Promise<unknown> | undefined;
   private fetchMock: jest.MockedFunction<typeof fetch> | undefined;
 
+  constructor() {
+    AbortSignal.timeout = jest
+      .fn<typeof AbortSignal.timeout>()
+      .mockReturnValue(this.timeoutSignal);
+  }
+
   readonly given = {
+    requestUrl: (url: string): FetchJsonDriver => {
+      this.url = url;
+      return this;
+    },
     successfulResponse: (responseBody: { name: string }): FetchJsonDriver => {
       this.responseBody = responseBody;
       this.fetchMock = jest
@@ -39,15 +52,10 @@ export class FetchJsonDriver {
     request: (): void => {
       this.response = fetchJson<{ name: string }>(this.url, {
         resourcesRetryCount: 0,
+      }).finally(() => {
+        globalThis.fetch = this.originalFetch;
+        AbortSignal.timeout = this.originalTimeout;
       });
-    },
-    loopbackRequest: (): void => {
-      this.response = fetchJson<{ name: string }>(
-        'http://localhost:4200/remoteEntry.json',
-        {
-          resourcesRetryCount: 0,
-        },
-      );
     },
   };
 
@@ -56,5 +64,6 @@ export class FetchJsonDriver {
     response: (): Promise<unknown> => this.response as Promise<unknown>,
     requestOptions: (): RequestInit | undefined =>
       this.fetchMock?.mock.calls[0]?.[1],
+    timeoutSignal: (): AbortSignal => this.timeoutSignal,
   };
 }

@@ -5,8 +5,8 @@ your work. This page does not cover local development or deployment.
 
 ## Before You Start
 
-Atlas requires Node.js 22.12 or newer within Node.js 22 LTS. Run commands from
-workspace root.
+Atlas supports Node.js 22.12 or newer within Node.js 22, or Node.js 24
+(`^22.12.0 || ^24.0.0`). Run commands from the workspace root.
 
 ## 1. Install Atlas
 

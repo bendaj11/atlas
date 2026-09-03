@@ -1,6 +1,6 @@
 {
   "name": "@atlas/sdk",
-  "version": "0.4.20",
+  "version": "0.4.21",
   "type": "module",
   "description": "Atlas app-to-host communication SDK and framework adapters.",
   "license": "MIT",
@@ -55,18 +55,20 @@
   },
   "files": [
     "dist/**/*.js",
+    "dist/**/*.cjs",
     "dist/**/*.d.ts",
+    "dist/**/*.d.cts",
     "federation-config.cjs",
     "federation-config.d.cts",
     "federation-config.mjs"
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=22.12.0 <23"
+    "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json && tsc -p tsconfig.federation-config.json",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/(src|tests)/'",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/(src|tests|e2e)/'",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {
@@ -99,6 +101,7 @@
     "@angular/compiler-cli": "^20.3.0",
     "@angular/core": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
+    "@faker-js/faker": "^10.5.0",
     "@types/react": "^19.2.0",
     "react": "^19.2.0",
     "vite": "^7.3.6"

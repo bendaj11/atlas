@@ -55,7 +55,7 @@ model.
 
 ## First Local System
 
-Requirements: Node.js `>=22.12.0 <23`, plus npm, pnpm, or Yarn.
+Requirements: Node.js `^22.12.0 || ^24.0.0`, plus npm, pnpm, or Yarn.
 
 ```sh
 npm install --save-dev --save-exact @atlas/cli

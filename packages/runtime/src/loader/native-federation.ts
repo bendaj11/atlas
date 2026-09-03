@@ -236,11 +236,7 @@ async function fetchRemoteBytes(
   url: string,
   signal: AbortSignal,
 ): Promise<ArrayBuffer> {
-  const request = {
-    signal,
-    ...(isLoopbackUrl(url) ? { targetAddressSpace: 'loopback' as const } : {}),
-  } as RequestInit & { targetAddressSpace?: 'loopback' };
-  const response = await fetch(url, request);
+  const response = await fetch(url, { signal });
   if (!response.ok) {
     throw runtimeError(
       `Atlas could not download remote entry "${url}": HTTP ${response.status}.`,

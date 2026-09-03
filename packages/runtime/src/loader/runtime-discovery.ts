@@ -473,29 +473,13 @@ async function defaultFetchBytes(
   url: string,
   signal?: AbortSignal,
 ): Promise<ArrayBuffer> {
-  const response = await fetch(url, fetchRequestOptions(url, signal));
+  const response = await fetch(url, signal ? { signal } : undefined);
   if (!response.ok) {
     throw networkError(
       `Atlas could not download asset "${url}": HTTP ${response.status} ${response.statusText}.`,
     );
   }
   return response.arrayBuffer();
-}
-
-function fetchRequestOptions(
-  url: string,
-  signal?: AbortSignal,
-): RequestInit & { targetAddressSpace?: 'loopback' } {
-  const target = new URL(
-    url,
-    globalThis.location?.href ?? 'http://atlas.local',
-  );
-  return {
-    ...(signal ? { signal } : {}),
-    ...(isLoopbackHostname(target.hostname)
-      ? { targetAddressSpace: 'loopback' as const }
-      : {}),
-  };
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

@@ -534,6 +534,9 @@ importers:
       '@angular/platform-browser':
         specifier: ^20.3.0
         version: 20.3.26(@angular/animations@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1)))(@angular/common@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@faker-js/faker':
+        specifier: ^10.5.0
+        version: 10.5.0
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.17

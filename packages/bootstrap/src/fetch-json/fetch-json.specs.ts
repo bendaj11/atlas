@@ -31,14 +31,25 @@ describe('fetchJson', () => {
     await expect(driver.get.response()).rejects.toThrow('network unavailable');
   });
 
-  it('should identify loopback address space when fetching local resources', async () => {
-    driver.given
-      .successfulResponse({ name: faker.person.fullName() })
-      .when.loopbackRequest();
-    await driver.get.response();
+  it.each([
+    'http://localhost:4200/remoteEntry.json',
+    'http://127.0.0.1:4200/remoteEntry.json',
+    'http://[::1]:4200/remoteEntry.json',
+    'https://preview.example/remoteEntry.json',
+    '/atlas.runtime.json',
+  ])(
+    'should use standard fetch options with caching and cancellation when requesting %s',
+    async (url) => {
+      driver.given
+        .requestUrl(url)
+        .given.successfulResponse({ name: faker.person.fullName() })
+        .when.request();
+      await driver.get.response();
 
-    expect(driver.get.requestOptions()).toMatchObject({
-      targetAddressSpace: 'loopback',
-    });
-  });
+      expect(driver.get.requestOptions()).toEqual({
+        cache: 'no-cache',
+        signal: driver.get.timeoutSignal(),
+      });
+    },
+  );
 });

@@ -30,6 +30,7 @@ import {
 import { readAtlasPreviewUrls } from '../target/previews.js';
 import { resolveDevTarget, resolveHostDevTarget } from '../target/target.js';
 import { assertUsableAngularBuildPackage } from '../preflight/preflight.js';
+import { warnWorkspaceDependencies } from '../workspace-dependencies/workspace-dependencies.js';
 import { writeDevOverrideDocument } from '../overrides.js';
 import { loadAngularHostProxy } from '../proxy-config.js';
 import { nonInteractivePrompter } from '../prompts.js';
@@ -70,6 +71,8 @@ export class AtlasDevService {
         '--host-url is not supported by atlas dev. Define package.json atlas.previews instead.',
       );
     }
+    await warnWorkspaceDependencies(project.root, config.framework);
+
     if (config.framework === 'angular' && !this.args.hasFlag('prepare-only')) {
       await assertUsableAngularBuildPackage(this.workspace.root, project.root);
       await ensureAngularBuildNotifications(project.root, project.id);

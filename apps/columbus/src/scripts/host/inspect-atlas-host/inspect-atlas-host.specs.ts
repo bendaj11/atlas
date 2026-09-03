@@ -97,6 +97,22 @@ describe('Atlas host inspection', () => {
     expect(driver.get.loadedManifestVersion()).toBe('0.0.0');
   });
 
+  it('should retain available previews when registry contains a stale preview', async () => {
+    driver.given.catalogWithStalePublishedPreview();
+    await driver.when.hostInspected();
+
+    expect(driver.get.appVersionChannels()).toEqual(['production', 'pr']);
+  });
+
+  it('should identify stale preview when registry manifest is missing', async () => {
+    driver.given.catalogWithStalePublishedPreview();
+    await driver.when.hostInspected();
+
+    expect(driver.get.versionErrors()).toEqual([
+      'Preview 43 is unavailable: http://localhost:4400/apps/orders/previews/43/missing-manifest.json returned 404.',
+    ]);
+  });
+
   it('should reject active host manifest when environment differs from runtime config', async () => {
     driver.given.hostDeploymentEnvironment('staging');
     await driver.when.hostInspected();

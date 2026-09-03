@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T13:49:14.537310+00:00",
+  "generated_at": "2026-09-03T10:11:19.445384+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
       "code_fingerprint": "9e95251b8d014ca40be90040ad0c219839f8b17554dcd93fad91baba7e71a5b5",
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.381105346,
+      "score": 0.365169832,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.381145089,
+      "score": 0.365207913,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
@@ -44,7 +44,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.369514879,
+      "score": 0.354064008,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -60,7 +60,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.369514879,
+      "score": 0.354064008,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -81,7 +81,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.739013267,
+      "score": 0.708112214,
       "source_file": "packages/cli/src/development/service/dev.service.ts",
       "status": "preferred",
       "uses": 2
@@ -108,7 +108,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.369539231,
+      "score": 0.354087342,
       "source_file": "packages/cli/src/development/session/session.ts",
       "status": "contested",
       "uses": 2,
@@ -125,8 +125,24 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.423244804,
+      "score": 0.405547273,
       "source_file": "packages/cli/src/generation/service/generate.service.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "packages_runtime_src_angular_angularhostdatainput": {
+      "code_fingerprint": "abab3b58c71c3016abcb4334b2efd811d855eb2315374021ad8114eb0feea72d",
+      "label": "AngularHostDataInput",
+      "last": "2026-09-03T09:15:08.124244+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-03T09:15:08.124244+00:00",
+          "outcome": "useful",
+          "q": "How can I use my custom httpClient in an Angular host to update signals and pass them into host data?"
+        }
+      ],
+      "score": 0.999098855,
+      "source_file": "packages/runtime/src/angular.ts",
       "status": "tentative",
       "uses": 1
     },
@@ -141,13 +157,13 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.434296959,
+      "score": 0.416137294,
       "source_file": "packages/runtime/src/index.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_loader_runtime_discovery_atlasruntimeoverridedocument": {
-      "code_fingerprint": "b6837fcb68f3d72ab7b9336873c9675dcf67b8ed06c1074ab139c61e5461325f",
+      "code_fingerprint": "2953cca0281a83c8ff00344b033bae950015753d4d7981d137906409b551b1c9",
       "label": "AtlasRuntimeOverrideDocument",
       "last": "2026-07-20T11:37:03.996118+00:00",
       "provenance": [
@@ -157,7 +173,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.369489954,
+      "score": 0.354040125,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -173,7 +189,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.369462731,
+      "score": 0.35401404,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -200,11 +216,27 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.369566455,
+      "score": 0.354113426,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
       "verdict": "useful"
+    },
+    "packages_sdk_src_host_data": {
+      "code_fingerprint": "4e601225f1519293c7900c722ef3b81d8c18188f3db175041784a6290ec60de9",
+      "label": "host-data.ts",
+      "last": "2026-09-03T09:15:08.124244+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-03T09:15:08.124244+00:00",
+          "outcome": "useful",
+          "q": "How can I use my custom httpClient in an Angular host to update signals and pass them into host data?"
+        }
+      ],
+      "score": 0.999098855,
+      "source_file": "packages/sdk/src/host-data.ts",
+      "status": "tentative",
+      "uses": 1
     },
     "packages_sdk_src_host_slots": {
       "code_fingerprint": "0cebf73baf8f62285e079faf6838f24094f9ce88e1735a35d95aab5afc7b5d15",
@@ -217,7 +249,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.434296959,
+      "score": 0.416137294,
       "source_file": "packages/sdk/src/host-slots.ts",
       "status": "tentative",
       "uses": 1
@@ -233,7 +265,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.434296959,
+      "score": 0.416137294,
       "source_file": "packages/sdk/src/route-context.ts",
       "status": "tentative",
       "uses": 1

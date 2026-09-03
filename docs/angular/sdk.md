@@ -132,6 +132,23 @@ readonly cesiumBaseUrl = this.atlas.assetBaseUrl();
 paths with no leading `/`; for example, `public/billboards/plane.png` becomes
 `billboards/plane.png`.
 
+In `app.config.ts`, use `createAtlasAppAssets(context)` before Angular injection.
+The `context` argument is already supplied to generated `createAppConfig()`:
+
+```ts
+import { createAtlasAppAssets } from '@atlas/sdk';
+
+// Inside createAppConfig({ context, sdk, ... }):
+const assets = createAtlasAppAssets(context);
+
+// In the returned providers array:
+{ provide: ASSETS_BASE_URL, useValue: assets.assetBaseUrl() }
+```
+
+`ASSETS_BASE_URL` represents your provider's token. Use `assets.assetUrl(path)`
+for individual files. These helpers use the mounted app's CDN or local override
+URL without modifying the host SDK. Keep passing `sdk` to `provideAtlasSdk()`.
+
 Custom SDK methods that call other SDK capabilities must use regular functions
 so Atlas can supply the Angular SDK facade as their receiver. Type that receiver
 with `AtlasSdk` from `@atlas/sdk/angular`; consumers still call the method with

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/bootstrap",
-  "version": "0.4.20",
+  "version": "0.4.21",
   "type": "module",
   "description": "Static Atlas browser bootstrap assets and Nginx configuration.",
   "license": "MIT",
@@ -35,7 +35,7 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=22.12.0 <23"
+    "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/atlas-loader/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/atlas.loader.js && esbuild node_modules/es-module-shims/dist/es-module-shims.js --format=esm --platform=browser --target=es2022 --outfile=dist/es-module-shims.js",

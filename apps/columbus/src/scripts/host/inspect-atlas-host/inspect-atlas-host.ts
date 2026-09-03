@@ -36,6 +36,15 @@ interface ManifestReference extends Descriptor {
   url: string;
 }
 
+type PreviewLoadResult =
+  | { kind: 'loaded'; manifest: Manifest }
+  | { kind: 'unavailable'; error: string };
+
+interface VersionOptions {
+  manifests: Manifest[];
+  errors: string[];
+}
+
 interface HostDeployment {
   schemaVersion: 'v1';
   kind: 'host-deployment';
@@ -282,11 +291,10 @@ async function readManifestVersions(
         : registry.apps[manifest.id];
     if (!artifact)
       throw new Error(`Artifact ${manifest.id} is not registered.`);
+    const versions = await versionOptions(manifest, artifact, root);
     return {
-      entry: [
-        manifestKey(manifest),
-        await versionOptions(manifest, artifact, root),
-      ],
+      entry: [manifestKey(manifest), versions.manifests],
+      ...(versions.errors.length ? { error: versions.errors.join(' ') } : {}),
     };
   } catch (error) {
     return {
@@ -325,7 +333,7 @@ async function versionOptions(
   selectedManifest: Manifest,
   artifact: RegistryArtifact,
   root: string,
-): Promise<Manifest[]> {
+): Promise<VersionOptions> {
   const artifactKey = manifestKey(selectedManifest);
   const releases = orderedReleases(artifact).map(([version, descriptor]) =>
     registerVersionOption({
@@ -339,17 +347,44 @@ async function versionOptions(
       descriptor: reference(root, descriptor),
     }),
   );
-  const previews = await Promise.all(
-    orderedPreviews(artifact).map(async ([, descriptor]) => {
-      const referenceDescriptor = reference(root, descriptor);
-      return registerVersionOption({
+  const previewResults = await Promise.all(
+    orderedPreviews(artifact).map(([previewNumber, descriptor]) =>
+      loadPreviewVersion({
         artifactKey,
-        manifest: await loadCachedManifest(referenceDescriptor),
-        descriptor: referenceDescriptor,
-      });
-    }),
+        previewNumber,
+        descriptor: reference(root, descriptor),
+      }),
+    ),
   );
-  return uniqueManifests([...releases, ...previews]);
+  const previews: Manifest[] = [];
+  const errors: string[] = [];
+  for (const result of previewResults) {
+    if (result.kind === 'loaded') previews.push(result.manifest);
+    else errors.push(result.error);
+  }
+  return { manifests: uniqueManifests([...releases, ...previews]), errors };
+}
+
+async function loadPreviewVersion(options: {
+  artifactKey: string;
+  previewNumber: string;
+  descriptor: ManifestReference;
+}): Promise<PreviewLoadResult> {
+  try {
+    return {
+      kind: 'loaded',
+      manifest: registerVersionOption({
+        artifactKey: options.artifactKey,
+        manifest: await loadCachedManifest(options.descriptor),
+        descriptor: options.descriptor,
+      }),
+    };
+  } catch (error) {
+    return {
+      kind: 'unavailable',
+      error: `Preview ${options.previewNumber} is unavailable: ${messageFromError(error)}`,
+    };
+  }
 }
 
 function orderedReleases(

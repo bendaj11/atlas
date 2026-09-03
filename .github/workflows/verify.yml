@@ -40,6 +40,10 @@ jobs:
 
   quality:
     needs: changes
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24']
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -51,15 +55,15 @@ jobs:
           version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - uses: actions/cache@v4
         with:
           path: .turbo/cache
-          key: turbo-quality-${{ runner.os }}-${{ github.sha }}
+          key: turbo-quality-${{ runner.os }}-node-${{ matrix.node-version }}-${{ github.sha }}
           restore-keys: |
-            turbo-quality-${{ runner.os }}-
+            turbo-quality-${{ runner.os }}-node-${{ matrix.node-version }}-
       - if: github.event_name == 'pull_request' && needs.changes.outputs.heavy == 'true'
         run: pnpm run ci:affected
       - if: github.event_name == 'push'

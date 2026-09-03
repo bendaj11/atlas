@@ -1,30 +1,11 @@
 declare function createReactWidgetEntries(options: any): any;
 declare function createReactHostViteConfig(options: any): {
-    plugins: ({
-        name: any;
-        configureServer(server: any): void;
-        writeBundle(): void;
-    } | {
-        name: string;
-        apply: "serve";
-        configureServer(server: any): void;
-        handleHotUpdate({ file }: {
-            file: any;
-        }): void;
-    } | {
-        name: string;
-        resolveId(source: any): string;
-        load(id: any): string;
-    } | {
-        name: string;
-        apply: "serve";
-        handleHotUpdate({ file, server }: {
-            file: any;
-            server: any;
-        }): any[];
-    })[];
+    plugins: any[];
     build: {
         target: string;
+        commonjsOptions: {
+            include: (string | RegExp)[];
+        };
         rollupOptions: {
             input: any;
             external: (source: any) => boolean;
@@ -40,31 +21,12 @@ declare function createReactHostViteConfig(options: any): {
     };
 };
 declare function createReactAppViteConfig(options: any): {
-    plugins: ({
-        name: any;
-        configureServer(server: any): void;
-        writeBundle(): void;
-    } | {
-        name: string;
-        apply: "serve";
-        configureServer(server: any): void;
-        handleHotUpdate({ file }: {
-            file: any;
-        }): void;
-    } | {
-        name: string;
-        resolveId(source: any): string;
-        load(id: any): string;
-    } | {
-        name: string;
-        apply: "serve";
-        handleHotUpdate({ file, server }: {
-            file: any;
-            server: any;
-        }): any[];
-    })[];
+    plugins: any[];
     build: {
         target: string;
+        commonjsOptions: {
+            include: (string | RegExp)[];
+        };
         rollupOptions: {
             input: any;
             external: (source: any) => boolean;

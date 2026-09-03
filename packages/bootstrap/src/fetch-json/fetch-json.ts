@@ -64,12 +64,10 @@ async function fetchJsonRequest<T>({
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
-      const request = {
+      const response = await fetch(url, {
         cache: 'no-cache',
         signal: AbortSignal.timeout(timeout),
-        ...(isLoopbackUrl(url) ? { targetAddressSpace: 'loopback' } : {}),
-      } as RequestInit & { targetAddressSpace?: 'loopback' };
-      const response = await fetch(url, request);
+      });
 
       if (!response.ok)
         throw new Error(url + ' returned HTTP ' + response.status + '.');
@@ -89,22 +87,6 @@ async function fetchJsonRequest<T>({
   }
 
   throw lastError;
-}
-
-function isLoopbackUrl(value: string): boolean {
-  try {
-    const baseUrl = globalThis.location?.href;
-    const hostname = baseUrl
-      ? new URL(value, baseUrl).hostname
-      : new URL(value).hostname;
-    return (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '[::1]'
-    );
-  } catch {
-    return false;
-  }
 }
 
 async function validateIntegrity(

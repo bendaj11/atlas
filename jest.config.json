@@ -9,7 +9,7 @@
   "testEnvironment": "node",
   "testMatch": ["**/*.specs.ts"],
   "transform": {
-    "^.+\\.tsx?$": [
+    "^.+\\.[cm]?tsx?$": [
       "ts-jest",
       {
         "diagnostics": true,

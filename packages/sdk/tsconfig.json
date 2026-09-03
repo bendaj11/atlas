@@ -19,5 +19,5 @@
     "skipLibCheck": true
   },
   "references": [{ "path": "../schema" }],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.cts"]
 }

@@ -1,6 +1,6 @@
 {
   "name": "@atlas/cli",
-  "version": "0.4.20",
+  "version": "0.4.21",
   "type": "module",
   "description": "Interactive Atlas project generation, development, and static publication tooling.",
   "license": "MIT",
@@ -32,7 +32,7 @@
     "dist/**/*.d.ts"
   ],
   "engines": {
-    "node": ">=22.12.0 <23"
+    "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",

@@ -3,6 +3,7 @@ const {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   writeFileSync,
 } = require('node:fs');
 const { createRequire } = require('node:module');
@@ -11,6 +12,10 @@ const {
   initSync: initializeCommonJsLexer,
   parse: parseCommonJs,
 } = require('cjs-module-lexer');
+const {
+  createSharedModuleProxy,
+  sharedProxyId,
+} = require('./dist/shared-module-proxy/shared-module-proxy.cjs');
 
 initializeCommonJsLexer();
 
@@ -234,23 +239,19 @@ function reactSharedDependencies(options, exposedEntryPoints) {
   return specifiers.flatMap((specifier) => {
     const packageName = rootPackageName(specifier);
     const entryPoint = resolveSharedEntry(requireFromProject, specifier);
-    if (!isSourceFile(entryPoint)) return [];
+    if (entryPoint && !isSourceFile(entryPoint)) return [];
     const packageInfo = readPackageInfo(
       requireFromProject,
       packageName,
       specifier,
     );
+    if (!entryPoint) validateSharedSubpath(packageInfo, specifier);
     const entryName = `shared/${sharedFileName(specifier)}`;
-    const commonJs = isCommonJsEntry(entryPoint);
     return [
       {
         specifier,
         entryName,
-        entryPoint,
-        commonJs,
-        namedExports: commonJs ? commonJsNamedExports(entryPoint) : [],
-        hasDefaultExport:
-          commonJs || hasEsmDefaultExport(typescript, entryPoint),
+        packageDirectory: packageInfo.directory,
         metadata: {
           packageName: specifier,
           outFileName: `${entryName}.js`,
@@ -285,6 +286,28 @@ function resolveSharedEntry(requireFromProject, specifier) {
   try {
     return requireFromProject.resolve(specifier);
   } catch {
+    return undefined;
+  }
+}
+
+function validateSharedSubpath(packageInfo, specifier) {
+  const exportMap = packageInfo.exports;
+  if (!exportMap) return;
+  const subpath = '.' + specifier.slice(rootPackageName(specifier).length);
+  const keys =
+    typeof exportMap === 'object' && !Array.isArray(exportMap)
+      ? Object.keys(exportMap).filter((key) => key.startsWith('.'))
+      : [];
+  const exportedSubpaths = keys.length > 0 ? keys : ['.'];
+  const matches = exportedSubpaths.some((key) => {
+    const wildcard = key.indexOf('*');
+    return wildcard < 0
+      ? key === subpath
+      : subpath.startsWith(key.slice(0, wildcard)) &&
+          subpath.endsWith(key.slice(wildcard + 1)) &&
+          subpath.length >= key.length - 1;
+  });
+  if (!matches) {
     throw new Error(
       `Atlas could not resolve shared dependency entry "${specifier}".`,
     );
@@ -452,51 +475,28 @@ function rootPackageName(specifier) {
 }
 
 function readPackageInfo(requireFromProject, packageName, specifier) {
+  const packageDirectories =
+    requireFromProject.resolve.paths(packageName) || [];
+  const candidates = packageDirectories.map((directory) =>
+    join(directory, packageName, 'package.json'),
+  );
   try {
-    return JSON.parse(
-      readFileSync(
-        requireFromProject.resolve(`${packageName}/package.json`),
-        'utf8',
-      ),
+    candidates.unshift(
+      requireFromProject.resolve(`${packageName}/package.json`),
     );
   } catch {
-    let resolvedEntry;
-    try {
-      resolvedEntry = requireFromProject.resolve(specifier);
-    } catch {
-      throw new Error(
-        `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
-      );
-    }
-    let directory = resolve(resolvedEntry, '..');
-    while (directory !== resolve(directory, '..')) {
-      const candidate = join(directory, 'package.json');
-      if (existsSync(candidate)) {
-        const value = JSON.parse(readFileSync(candidate, 'utf8'));
-        if (value.name === packageName && typeof value.version === 'string')
-          return value;
-      }
-      directory = resolve(directory, '..');
-    }
+    // Export maps can hide package.json even when the package is installed.
+  }
+  const packagePath = candidates.find((candidate) => existsSync(candidate));
+  if (!packagePath) {
     throw new Error(
       `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
     );
   }
-}
-
-function isCommonJsEntry(entryPoint) {
-  const extension = extname(entryPoint);
-  if (extension === '.cjs' || extension === '.cts') return true;
-  if (extension === '.mjs' || extension === '.mts') return false;
-  let directory = resolve(entryPoint, '..');
-  while (directory !== resolve(directory, '..')) {
-    const candidate = join(directory, 'package.json');
-    if (existsSync(candidate)) {
-      return JSON.parse(readFileSync(candidate, 'utf8')).type !== 'module';
-    }
-    directory = resolve(directory, '..');
-  }
-  return true;
+  return {
+    ...JSON.parse(readFileSync(packagePath, 'utf8')),
+    directory: realpathSync(resolve(packagePath, '..')),
+  };
 }
 
 function commonJsNamedExports(entryPoint, visited = new Set()) {
@@ -527,36 +527,6 @@ function commonJsNamedExports(entryPoint, visited = new Set()) {
     .sort();
 }
 
-function hasEsmDefaultExport(typescript, entryPoint) {
-  const sourceFile = typescript.createSourceFile(
-    entryPoint,
-    readFileSync(entryPoint, 'utf8'),
-    typescript.ScriptTarget.Latest,
-    true,
-  );
-  return sourceFile.statements.some((statement) => {
-    if (typescript.isExportAssignment(statement)) return true;
-    if (
-      (typescript.isClassDeclaration(statement) ||
-        typescript.isFunctionDeclaration(statement)) &&
-      statement.modifiers?.some(
-        ({ kind }) => kind === typescript.SyntaxKind.DefaultKeyword,
-      )
-    ) {
-      return true;
-    }
-    return (
-      typescript.isExportDeclaration(statement) &&
-      statement.exportClause &&
-      typescript.isNamedExports(statement.exportClause) &&
-      statement.exportClause.elements.some(
-        ({ name, propertyName }) =>
-          name.text === 'default' || propertyName?.text === 'default',
-      )
-    );
-  });
-}
-
 function sharedFileName(specifier) {
   return specifier
     .replace(/^@/, '')
@@ -569,9 +539,24 @@ function reactFederationBuild(options, exposedInputs) {
   const sharedSpecifiers = new Set(shared.map(({ specifier }) => specifier));
   return {
     shared,
-    sharedFallbackPlugin: reactSharedFallbackPlugin(
-      shared as SharedDependency[],
+    sharedFallbackPlugin: createSharedModuleProxy(
+      { projectRoot: options.projectRoot, specifiers: [...sharedSpecifiers] },
+      {
+        loadVite: () => import('vite'),
+        readCommonJsExports: commonJsNamedExports,
+      },
     ),
+    commonJsOptions: {
+      include: [
+        /node_modules/,
+        ...new Set(
+          shared.map(
+            ({ packageDirectory }) =>
+              packageDirectory.replaceAll('\\', '/') + '/**',
+          ),
+        ),
+      ],
+    },
     input: Object.fromEntries([
       ...Object.entries(exposedInputs),
       ...shared.map(({ entryName, specifier }) => [
@@ -581,76 +566,6 @@ function reactFederationBuild(options, exposedInputs) {
     ]),
     external(source) {
       return sharedSpecifiers.has(source);
-    },
-  };
-}
-
-const SHARED_PROXY_PREFIX = 'atlas:shared-proxy:';
-const SHARED_ENTRY_PREFIX = 'atlas:shared-entry:';
-
-interface SharedDependency {
-  readonly entryName: string;
-  readonly entryPoint: string;
-  readonly hasDefaultExport: boolean;
-  readonly namedExports: readonly string[];
-  readonly specifier: string;
-}
-
-function sharedProxyId(specifier) {
-  return `${SHARED_PROXY_PREFIX}${encodeURIComponent(specifier)}`;
-}
-
-function sharedEntryId(specifier) {
-  return `${SHARED_ENTRY_PREFIX}${encodeURIComponent(specifier)}`;
-}
-
-function reactSharedFallbackPlugin(
-  sharedDependencies: readonly SharedDependency[],
-) {
-  const dependencies = new Map(
-    sharedDependencies.map((dependency) => [dependency.specifier, dependency]),
-  );
-  const entryPoints = new Map(
-    sharedDependencies.map(({ specifier, entryPoint }) => [
-      specifier,
-      entryPoint,
-    ]),
-  );
-  return {
-    name: 'atlas-react-shared-fallbacks',
-    resolveId(source) {
-      if (source.startsWith(SHARED_PROXY_PREFIX)) return `\0${source}`;
-      if (!source.startsWith(SHARED_ENTRY_PREFIX)) return;
-      const specifier = decodeURIComponent(
-        source.slice(SHARED_ENTRY_PREFIX.length),
-      );
-      return entryPoints.get(specifier);
-    },
-    load(id) {
-      if (!id.startsWith(`\0${SHARED_PROXY_PREFIX}`)) return;
-      const specifier = decodeURIComponent(
-        id.slice(SHARED_PROXY_PREFIX.length + 1),
-      );
-      const entryId = sharedEntryId(specifier);
-      const dependency = dependencies.get(specifier);
-      if (!dependency) return;
-      const imports = dependency.namedExports.map(
-        (name, index) =>
-          `import { ${name} as sharedExport${index} } from ${JSON.stringify(entryId)};`,
-      );
-      const exports = dependency.namedExports.map(
-        (name, index) => `sharedExport${index} as ${name}`,
-      );
-      return [
-        ...imports,
-        `export * from ${JSON.stringify(entryId)};`,
-        exports.length > 0 ? `export { ${exports.join(', ')} };` : '',
-        dependency.hasDefaultExport
-          ? `export { default } from ${JSON.stringify(entryId)};`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
     },
   };
 }
@@ -725,6 +640,7 @@ function createReactHostViteConfig(options) {
     ],
     build: {
       target: 'esnext',
+      commonjsOptions: federation.commonJsOptions,
       rollupOptions: {
         input: federation.input,
         external: federation.external,
@@ -804,6 +720,7 @@ function createReactAppViteConfig(options) {
     ],
     build: {
       target: 'esnext',
+      commonjsOptions: federation.commonJsOptions,
       rollupOptions: {
         input: federation.input,
         external: federation.external,

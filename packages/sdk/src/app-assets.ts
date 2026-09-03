@@ -7,6 +7,11 @@ export interface AtlasAppAssets {
   assetUrl(path: string): string;
 }
 
+/** Resolves app assets before framework injection, including provider setup. */
+export function createAtlasAppAssets(context: AtlasAppContext): AtlasAppAssets {
+  return createAtlasAppAssetFacade({}, context);
+}
+
 export function createAtlasAppAssetFacade<TSdk extends object>(
   sdk: TSdk,
   context: AtlasAppContext,

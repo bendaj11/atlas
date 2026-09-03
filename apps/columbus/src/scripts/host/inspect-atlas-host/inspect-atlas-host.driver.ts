@@ -12,6 +12,7 @@ interface PageOptions {
   catalogHostId?: string;
   registryUrl?: string;
   registryUnavailable?: boolean;
+  stalePreview?: boolean;
   visibleAppIds?: string[];
   runtimeError?: { appId?: string; message: string };
   stored?: Record<string, unknown>;
@@ -99,6 +100,11 @@ export class InspectAtlasHostDriver {
         ],
         registryUrl: 'http://localhost:4400',
       };
+      return this;
+    },
+    catalogWithStalePublishedPreview: (): this => {
+      this.given.catalogWithPublishedVersions();
+      this.options.stalePreview = true;
       return this;
     },
     catalogHostId: (catalogHostId: string): this => {
@@ -285,6 +291,7 @@ export class InspectAtlasHostDriver {
       catalogAppVersion: this.result?.catalog.apps[0]?.version,
       versionErrors: this.result?.versionErrors,
     }),
+    versionErrors: (): string[] => this.result?.versionErrors ?? [],
     manifestRequestCache: (): RequestCache | undefined =>
       this.manifestRequestCaches[0],
   };
@@ -308,6 +315,7 @@ function installPage(options: PageOptions): void {
   const app = options.app ?? manifest({});
   const deploymentApp = options.deploymentApp ?? app;
   const fixtures = registryFixtures(host, options.appVersions ?? [app]);
+  if (options.stalePreview) addStalePreview(fixtures.registry, app.id);
   const localValues = new Map<string, string>();
   if (options.stored) {
     localValues.set(documentKey, JSON.stringify(options.stored));
@@ -439,7 +447,7 @@ function registryFixtures(
   host: AtlasExtensionManifest,
   apps: AtlasExtensionManifest[],
 ): {
-  registry: Record<string, unknown>;
+  registry: RegistryFixture;
   manifests: Map<string, Uint8Array>;
 } {
   const manifests = new Map<string, Uint8Array>();
@@ -465,7 +473,34 @@ function registryFixtures(
   };
 }
 
-function emptyArtifactRecord(manifest: AtlasExtensionManifest) {
+function addStalePreview(registry: RegistryFixture, appId: string): void {
+  registry.apps[appId]!.previews['43'] = {
+    path: `apps/${appId}/previews/43/missing-manifest.json`,
+    digest: `sha256:${'0'.repeat(64)}`,
+    size: 1,
+    mediaType: 'application/json',
+  };
+}
+
+interface RegistryArtifactFixture {
+  id: string;
+  name: string;
+  releases: Record<string, DescriptorFixture>;
+  previews: Record<string, DescriptorFixture>;
+  latest?: string;
+}
+
+interface RegistryFixture {
+  schemaVersion: '2';
+  revision: string;
+  updatedAt: string;
+  hosts: Record<string, RegistryArtifactFixture>;
+  apps: Record<string, RegistryArtifactFixture>;
+}
+
+function emptyArtifactRecord(
+  manifest: AtlasExtensionManifest,
+): RegistryArtifactFixture {
   return {
     id: manifest.id,
     name: manifest.name,
@@ -483,15 +518,12 @@ interface DescriptorFixture {
 }
 
 function descriptor(
-  registry: Record<string, unknown>,
+  registry: Pick<RegistryFixture, 'apps' | 'hosts'>,
   collection: 'apps' | 'hosts',
   id: string,
   version: string,
 ): DescriptorFixture {
-  const artifacts = registry[collection] as Record<
-    string,
-    { releases: Record<string, DescriptorFixture> }
-  >;
+  const artifacts = registry[collection];
   return artifacts[id]!.releases[version]!;
 }
 
