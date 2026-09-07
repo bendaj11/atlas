@@ -1,5 +1,56 @@
 # Workspaces and Monorepos
 
+## Developing local packages
+
+To edit a library alongside an Atlas app or host:
+
+1. Declare the library as a workspace dependency of the project that imports it,
+   then install dependencies from the workspace root.
+2. If the library's package entry points reference compiled files, start its
+   build watcher and wait for the first build to finish. The watcher must write
+   to those same files. Libraries consumed directly from source do not need a
+   separate compilation step.
+3. Run `atlas dev <project-name>` for the consuming app or host. Keep the library
+   watcher running while you edit.
+
+For example, an Angular library can define its `dev` script as
+`ng-packagr -p ng-package.json --watch`. From the workspace root, run these
+commands in separate terminals, replacing the example package and project names:
+
+```sh
+# Terminal 1: build the library and watch for changes.
+pnpm --filter @company/angular-ui run dev
+```
+
+```sh
+# Terminal 2: start the app after the first library build completes.
+atlas dev orders
+```
+
+Edit a visible part of the library and check that the app displays the change.
+Atlas starts the consuming project's development server; the library build and
+Federation rebuilds are handled by their respective tools.
+
+### Federation sharing
+
+Keep Angular Native Federation v4 libraries shared during local development.
+A shared package can be built and served from localhost. Adding a package to
+`skip` removes it from Federation sharing and may bundle it into the consuming
+project instead. Use `skip` for intentional sharing exclusions, not to choose
+between localhost and a CDN. Libraries that require one shared instance across
+the host and apps must remain shared.
+
+Restart `atlas dev` after changing federation configuration. If edits do not
+appear, follow [Angular refresh troubleshooting](angular/troubleshooting.md#local-library-changes-do-not-appear).
+For unexpected package URLs, see [React package loading](react/troubleshooting.md#a-local-workspace-package-loads-from-the-cdn).
+
+With pnpm, both `workspace:*` and `workspace:^` link local workspace packages.
+They differ in the version range written when packing or publishing, not in
+whether the dependency is local. See the
+[pnpm workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace).
+
+## Build and publication
+
 Generated tasks preserve the build/publish boundary:
 
 ```json

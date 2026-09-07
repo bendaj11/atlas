@@ -1,4 +1,4 @@
-import { assertAtlasRuntimeConfig } from '@atlas/bootstrap';
+import { resolveAtlasRuntimeConfig } from '@atlas/bootstrap';
 import type { AtlasConfig } from '@atlas/schema';
 import {
   configuredHostIds,
@@ -111,8 +111,7 @@ async function discoverHostId(hostUrl: string): Promise<string> {
       signal: AbortSignal.timeout(HOST_DISCOVERY_TIMEOUT_MS),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const runtime: unknown = await response.json();
-    assertAtlasRuntimeConfig(runtime);
+    const runtime = resolveAtlasRuntimeConfig(await response.json(), hostUrl);
     return runtime.hostId;
   } catch (cause) {
     throw new Error(

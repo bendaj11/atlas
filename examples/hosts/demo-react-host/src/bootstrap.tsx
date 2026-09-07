@@ -14,6 +14,7 @@ import {
   AtlasSlot,
 } from '@atlas/runtime/react';
 import atlasConfig from '../atlas.config';
+import { HostWidgets } from './host-widgets/host-widgets';
 import './styles.css';
 
 type HostMountRequest = Parameters<AtlasHostClientEntry['mount']>[0];
@@ -27,6 +28,7 @@ function HostLayout() {
         <AtlasSlot slotId="header" />
       </header>
       <AtlasNavigation aria-label="Application" />
+      <HostWidgets />
       <AtlasRouteOutlet />
     </AtlasHostLayout>
   );

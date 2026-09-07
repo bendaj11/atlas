@@ -1,15 +1,59 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { AngularBootstrapDriver } from './angular-bootstrap.driver.js';
 
-describe('Angular app bootstrap and provider configuration', () => {
+describe('Angular host and app SDK integration', () => {
   let driver: AngularBootstrapDriver;
 
   beforeEach(() => {
     driver = new AngularBootstrapDriver();
   });
 
-  afterEach(() => {
-    driver.when.cleanup();
+  afterEach(() => driver.when.cleanup());
+
+  it('should expose live host data when injected without app context', () => {
+    driver.when.injectInHost();
+    driver.when.updateHostData('updated');
+
+    expect(driver.get.userNames()).toEqual(['updated']);
+  });
+
+  it('should expose the provided SDK when injectAtlasSdk runs in a host without app context', () => {
+    driver.when.injectInHost();
+
+    expect(driver.get.injectedHostId()).toBe(driver.get.hostId());
+  });
+
+  it('should expose custom SDK methods when injectAtlasSdk runs in a host without app context', () => {
+    driver.when.injectInHost();
+    driver.when.sendMessage();
+
+    expect(driver.get.messageHandler()).toHaveBeenCalledWith(
+      driver.get.message(),
+    );
+  });
+
+  it('should explain missing app context when the host requests an app asset base', () => {
+    driver.when.injectInHost();
+
+    expect(() => driver.get.assetBaseUrl()).toThrow(
+      'App asset URLs require an Atlas app context.',
+    );
+  });
+
+  it('should explain missing app context when the host requests an app asset URL', () => {
+    driver.when.injectInHost();
+
+    expect(() => driver.get.assetUrl('logo.svg')).toThrow(
+      'App asset URLs require an Atlas app context.',
+    );
+  });
+
+  it('should resolve injected asset URLs when running inside an app', async () => {
+    await driver.when.mount('https://cdn.example/apps/orders/remoteEntry.json');
+
+    expect(driver.get.assetUrl('logo.svg')).toBe(
+      'https://cdn.example/apps/orders/logo.svg',
+    );
   });
 
   it('should configure the provider with the app base URL when bootstrap runs before injection', async () => {

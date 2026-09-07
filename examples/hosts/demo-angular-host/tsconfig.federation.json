@@ -3,14 +3,6 @@
   "compilerOptions": {
     "outDir": "./out-tsc/app"
   },
-  "files": [
-    "src/main.ts",
-    "atlas.config.ts"
-  ],
-  "include": [
-    "src/**/*.ts",
-    "../../../packages/schema/src/**/*.ts",
-    "../../../packages/sdk/src/**/*.ts",
-    "../../../packages/runtime/src/**/*.ts"
-  ]
+  "files": ["src/main.ts", "atlas.config.ts"],
+  "include": ["src/**/*.ts"]
 }

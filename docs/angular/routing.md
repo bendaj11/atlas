@@ -192,8 +192,8 @@ const element = document.createElement('atlas-orders-root');
 container.append(element);
 const app = await createApplication({
   providers: [
+    provideAtlasApp({ context, sdk, styleTarget, locationStrategy }),
     provideRouter(routes),
-    { provide: LocationStrategy, useValue: locationStrategy },
   ],
 });
 app.bootstrap(AppComponent, element);

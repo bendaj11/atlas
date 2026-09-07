@@ -237,8 +237,13 @@ export class AtlasPublishService {
       const { artifact } = resolveRegistryArtifact(current, artifactIdentifier);
       const mutation = removePreview(current, artifact.id, previewNumber);
       if (!mutation.changed) {
-        if (retryingAfterMutation) {
+        if (retryingAfterMutation || storage.verifyDelivery) {
           await config?.invalidate?.(['registry.json']);
+          if (storage.verifyDelivery) {
+            await lease.assertHeld();
+            await storage.verifyDelivery(['registry.json']);
+            await lease.assertHeld();
+          }
         }
         return {
           removed: retryingAfterMutation,
@@ -253,6 +258,11 @@ export class AtlasPublishService {
         state.versionToken,
       );
       await config?.invalidate?.(['registry.json']);
+      if (storage.verifyDelivery) {
+        await lease.assertHeld();
+        await storage.verifyDelivery(['registry.json']);
+        await lease.assertHeld();
+      }
       return { removed: true, registryRevision: mutation.registryRevision };
     });
   }
@@ -318,8 +328,13 @@ export class AtlasPublishService {
         await writeRegistry(storage, lease, registry, state.versionToken);
         onRegistryWritten(removed);
         await config?.invalidate?.(['registry.json']);
-      } else if (retryingAfterMutation) {
+      } else if (retryingAfterMutation || storage.verifyDelivery) {
         await config?.invalidate?.(['registry.json']);
+      }
+      if (storage.verifyDelivery) {
+        await lease.assertHeld();
+        await storage.verifyDelivery(['registry.json']);
+        await lease.assertHeld();
       }
       const removedGenerations = await pruneUnreferencedPreviewGenerations({
         storage,
@@ -350,6 +365,16 @@ export class AtlasPublishService {
     const current = state.registry;
     assertExpectedRegistryRevision(this.args, current);
     const mutation = publishArtifact(current, manifest, descriptor);
+    if (storage.verifyDelivery) {
+      const artifactPaths = [
+        ...immutable.payloads.map(({ path }) => path),
+        immutable.manifest.path,
+      ];
+      await config?.invalidate?.(artifactPaths);
+      await lease.assertHeld();
+      await storage.verifyDelivery(artifactPaths);
+      await lease.assertHeld();
+    }
     if (mutation.changed) {
       this.reportProgress('Updating registry.json and configured caches...');
       await writeRegistry(
@@ -358,6 +383,13 @@ export class AtlasPublishService {
         mutation.registry,
         state.versionToken,
       );
+    }
+    if (storage.verifyDelivery) {
+      await config?.invalidate?.(['registry.json']);
+      await lease.assertHeld();
+      await storage.verifyDelivery(['registry.json']);
+      await lease.assertHeld();
+    } else if (mutation.changed) {
       await config?.invalidate?.(['registry.json']);
     }
     this.reportProgress('Verifying published registry...');
@@ -521,6 +553,14 @@ async function createImmutable(
   try {
     await storage.create(file.path, file.bytes, file.metadata);
   } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'publicationOutcomeUnknown' in error &&
+      error.publicationOutcomeUnknown === true
+    )
+      throw error;
+
     const existing = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
     if (existing && metadata && digest(existing) === digest(file.bytes)) {

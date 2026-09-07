@@ -21,6 +21,7 @@ function staticServerCommand(directory: string, port: string, spa = false): stri
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "*.specs.ts",
+  testIgnore: "**/host-widgets/**",
   outputDir: process.env.ATLAS_E2E_OUTPUT_DIR ?? "test-results",
   fullyParallel: false,
   workers: 1,

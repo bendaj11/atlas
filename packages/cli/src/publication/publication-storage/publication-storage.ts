@@ -11,11 +11,17 @@ import {
 } from '@aws-sdk/client-s3';
 import { publicationContentType } from '../publication-metadata/publication-metadata.js';
 import type { CliArguments } from '../../cli/arguments.js';
+import {
+  ArtifactoryPublicationStorage,
+  type ArtifactoryOptions,
+} from '../artifactory-storage/artifactory-storage.js';
 
 export interface AtlasPublicationStorage {
   read(path: string): Promise<Uint8Array | undefined>;
   readStream(path: string): Promise<AsyncIterable<Uint8Array> | undefined>;
   inspect(path: string): Promise<AtlasPublicationObjectMetadata | undefined>;
+  /** Verify browser-visible bytes and headers after cache invalidation completes. */
+  verifyDelivery?(paths: readonly string[]): Promise<void>;
   list(prefix: string): Promise<AtlasPublicationListedObject[]>;
   create(
     path: string,
@@ -62,14 +68,25 @@ export type AtlasPublicationStorageSource =
   | AtlasPublicationStorage
   | (() => AtlasPublicationStorage | Promise<AtlasPublicationStorage>);
 
+interface PublicationStorageFactories {
+  readonly s3: (options: S3Options) => AtlasPublicationStorage;
+  readonly artifactory: (
+    options: ArtifactoryOptions,
+  ) => AtlasPublicationStorage;
+}
+
 export async function createPublicationStorage(
   storage?: AtlasPublicationStorageSource,
   args?: CliArguments,
+  factories: PublicationStorageFactories = {
+    s3: (options) => new S3PublicationStorage(options),
+    artifactory: (options) => new ArtifactoryPublicationStorage(options),
+  },
 ): Promise<AtlasPublicationStorage> {
-  const configured = storage ?? storageFromEnvironment(args);
+  const configured = storage ?? storageFromEnvironment(args, factories);
   if (!configured) {
     throw new Error(
-      'Publication storage is required. Pass --bucket (or ATLAS_S3_BUCKET), or configure storage in atlas.registry.ts.',
+      'Publication storage is required. Select --storage s3 with --bucket (or ATLAS_S3_BUCKET), --storage artifactory (or ATLAS_STORAGE=artifactory), or configure storage in atlas.registry.ts.',
     );
   }
   const resolvedStorage =
@@ -488,13 +505,19 @@ function requestBody(body: AtlasPublicationBody): Uint8Array | Readable {
 }
 
 function storageFromEnvironment(
-  args?: CliArguments,
+  args: CliArguments | undefined,
+  factories: PublicationStorageFactories,
 ): AtlasPublicationStorage | undefined {
-  const provider = process.env.ATLAS_STORAGE;
+  const provider = args?.flag('storage') ?? process.env.ATLAS_STORAGE;
+  if (provider === 'artifactory')
+    return factories.artifactory(artifactoryOptions(args));
+
   const bucket = args?.flag('bucket') ?? process.env.ATLAS_S3_BUCKET;
   if (!provider && !bucket) return undefined;
   if (provider && provider !== 's3')
-    throw new Error(`Unsupported ATLAS_STORAGE provider "${provider}".`);
+    throw new Error(
+      `Unsupported storage provider "${provider}". Use s3 or artifactory.`,
+    );
   if (!bucket)
     throw new Error('ATLAS_S3_BUCKET is required when ATLAS_STORAGE=s3.');
   const accessKeyId = process.env.ATLAS_STORAGE_ACCESS_KEY_ID;
@@ -504,7 +527,7 @@ function storageFromEnvironment(
       'ATLAS_STORAGE_ACCESS_KEY_ID and ATLAS_STORAGE_SECRET_ACCESS_KEY must be set together.',
     );
   }
-  return new S3PublicationStorage({
+  return factories.s3({
     bucket,
     ...((args?.flag('storage-api-url') ?? process.env.ATLAS_STORAGE_API_URL)
       ? {
@@ -536,6 +559,83 @@ function storageFromEnvironment(
         }
       : {}),
   });
+}
+
+function artifactoryOptions(args?: CliArguments): ArtifactoryOptions {
+  const lockResource = requiredStorageValue(
+    args,
+    'lock-resource',
+    'ATLAS_ARTIFACTORY_LOCK_RESOURCE',
+  );
+
+  return {
+    url: requiredStorageValue(args, 'storage-api-url', 'ATLAS_STORAGE_API_URL'),
+    repository: requiredStorageValue(
+      args,
+      'repository',
+      'ATLAS_ARTIFACTORY_REPOSITORY',
+    ),
+    prefix:
+      args?.flag('key-prefix') ??
+      process.env.ATLAS_STORAGE_KEY_PREFIX ??
+      'atlas',
+    accessToken: requiredStorageValue(
+      undefined,
+      undefined,
+      'ATLAS_ARTIFACTORY_ACCESS_TOKEN',
+    ),
+    publicUrl: artifactoryPublicUrl(args),
+    requestTimeoutMs: positiveEnvironmentInteger(
+      'ATLAS_ARTIFACTORY_REQUEST_TIMEOUT_MS',
+    ),
+    maxBufferedBytes: positiveEnvironmentInteger(
+      'ATLAS_ARTIFACTORY_MAX_BUFFERED_BYTES',
+    ),
+    assertExclusivePublishing: () => {
+      if (process.env.ATLAS_PUBLICATION_LOCK !== lockResource) {
+        throw new Error(
+          `Artifactory writes require the shared external lock "${lockResource}". Run the entire Atlas command inside Jenkins lock(resource: '${lockResource}', variable: 'ATLAS_PUBLICATION_LOCK').`,
+        );
+      }
+    },
+  };
+}
+
+function artifactoryPublicUrl(args?: CliArguments): string {
+  if (args?.command === 'deploy') {
+    const target =
+      args.flag('target-registry-url') ?? process.env.ATLAS_TARGET_REGISTRY_URL;
+    if (target) return target;
+  }
+
+  return requiredStorageValue(args, 'registry-url', 'ATLAS_REGISTRY_URL');
+}
+
+function requiredStorageValue(
+  args: CliArguments | undefined,
+  flag: string | undefined,
+  environmentName: string,
+): string {
+  const value =
+    (flag ? args?.flag(flag) : undefined) ?? process.env[environmentName];
+  if (!value?.trim()) {
+    throw new Error(
+      `${environmentName}${flag ? ` (or --${flag})` : ''} is required for Artifactory storage.`,
+    );
+  }
+
+  return value;
+}
+
+function positiveEnvironmentInteger(name: string): number | undefined {
+  const value = process.env[name];
+  if (value === undefined) return undefined;
+  const number = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(number) || number <= 0) {
+    throw new Error(`${name} must be a positive safe integer.`);
+  }
+
+  return number;
 }
 
 function externalPublicationLease(): AtlasPublicationLease {
@@ -661,6 +761,8 @@ export function isPublicationStorage(
     typeof storage.read === 'function' &&
     typeof storage.readStream === 'function' &&
     typeof storage.inspect === 'function' &&
+    (storage.verifyDelivery === undefined ||
+      typeof storage.verifyDelivery === 'function') &&
     typeof storage.list === 'function' &&
     typeof storage.create === 'function' &&
     typeof storage.replace === 'function' &&

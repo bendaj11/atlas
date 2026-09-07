@@ -1,13 +1,12 @@
 import 'zone.js';
 import { Component, signal } from '@angular/core';
-import { createApplication } from '@angular/platform-browser';
 import { createComponent } from '@angular/core';
+import { createApplication } from '@angular/platform-browser';
 import {
   defineApp,
   injectAtlasAppContext,
   injectAtlasSdk,
-  provideAtlasAppContext,
-  provideAtlasSdk,
+  provideAtlasApp,
   WidgetOutlet,
 } from '@atlas/sdk/angular';
 
@@ -46,11 +45,11 @@ class AtlasAppRootComponent {
   });
 }
 
-export default defineApp(async ({ container, sdk, context }) => {
+export default defineApp(async ({ container, styleTarget, sdk, context }) => {
   const element = document.createElement('atlas-dashboard-angular-root');
   container.append(element);
   const app = await createApplication({
-    providers: [provideAtlasAppContext(context), provideAtlasSdk(sdk)],
+    providers: [provideAtlasApp({ context, sdk, styleTarget })],
   });
   const component = createComponent(AtlasAppRootComponent, {
     environmentInjector: app.injector,

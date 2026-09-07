@@ -1,6 +1,6 @@
 import {
-  assertAtlasRuntimeConfig,
   environmentManifestUrl,
+  resolveAtlasRuntimeConfig,
 } from '@atlas/bootstrap/runtime';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
 import { versionKey } from '../../manifests/manifest-versions/manifest-versions.js';
@@ -199,8 +199,7 @@ async function readAtlasConfig(): Promise<HostData['config']> {
     throw new Error(`Atlas runtime config returned ${response.status}.`);
   }
   const value: unknown = await response.json();
-  assertAtlasRuntimeConfig(value);
-  return value as HostData['config'];
+  return resolveAtlasRuntimeConfig(value, globalThis.location.href);
 }
 
 async function readHostDeployment(

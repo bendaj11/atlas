@@ -383,6 +383,10 @@ function storageEnvironment(includeSource = false): HelpEntry[] {
             label: 'ATLAS_SOURCE_REGISTRY_URL',
             description: 'Public source registry root',
           },
+          {
+            label: 'ATLAS_TARGET_REGISTRY_URL',
+            description: 'Public target root for separate-registry deployment',
+          },
         ]
       : []),
     { label: 'ATLAS_REGISTRY_URL', description: 'Public target registry root' },
@@ -391,12 +395,40 @@ function storageEnvironment(includeSource = false): HelpEntry[] {
       description: 'Public host base URL used when deploying a host binding',
     },
     {
+      label: 'ATLAS_STORAGE',
+      description: 'Storage provider: s3 or artifactory (bucket implies s3)',
+    },
+    {
       label: 'ATLAS_STORAGE_API_URL',
-      description: 'Private S3-compatible write API',
+      description: 'Private S3-compatible endpoint or Artifactory API root',
     },
     { label: 'ATLAS_S3_BUCKET', description: 'Target bucket' },
     { label: 'ATLAS_STORAGE_KEY_PREFIX', description: 'Target key prefix' },
     { label: 'ATLAS_S3_REGION', description: 'Target signing region' },
+    {
+      label: 'ATLAS_ARTIFACTORY_REPOSITORY',
+      description: 'Artifactory local Generic repository',
+    },
+    {
+      label: 'ATLAS_ARTIFACTORY_ACCESS_TOKEN',
+      description: 'Private Artifactory token (environment only)',
+    },
+    {
+      label: 'ATLAS_ARTIFACTORY_LOCK_RESOURCE',
+      description: 'Required shared external writer lock name',
+    },
+    {
+      label: 'ATLAS_PUBLICATION_LOCK',
+      description: 'Held lock marker supplied by the Jenkins lock block',
+    },
+    {
+      label: 'ATLAS_ARTIFACTORY_REQUEST_TIMEOUT_MS',
+      description: 'Request timeout (default: 60000)',
+    },
+    {
+      label: 'ATLAS_ARTIFACTORY_MAX_BUFFERED_BYTES',
+      description: 'Per-object buffer limit (default: 268435456)',
+    },
   ];
 }
 
@@ -411,12 +443,24 @@ function storageOptions(includeRegistry = true): HelpEntry[] {
         ]
       : []),
     {
+      label: '--storage <s3|artifactory>',
+      description: 'Storage provider; overrides ATLAS_STORAGE',
+    },
+    {
       label: '--storage-api-url <url>',
-      description: 'Private S3-compatible write API',
+      description: 'Private S3-compatible endpoint or Artifactory API root',
     },
     { label: '--bucket <name>', description: 'Target bucket' },
     { label: '--key-prefix <prefix>', description: 'Target key prefix' },
     { label: '--region <region>', description: 'Target signing region' },
+    {
+      label: '--repository <name>',
+      description: 'Artifactory local Generic repository',
+    },
+    {
+      label: '--lock-resource <name>',
+      description: 'Artifactory shared external writer lock name',
+    },
   ];
 }
 

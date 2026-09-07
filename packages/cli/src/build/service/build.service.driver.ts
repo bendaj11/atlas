@@ -14,6 +14,7 @@ type BuildScenario =
   | 'source-maps'
   | 'pull-request'
   | 'angular-artifact'
+  | 'angular-global-styles'
   | 'missing-registry'
   | 'deterministic'
   | 'local-host-styles';
@@ -36,10 +37,9 @@ export class BuildServiceDriver {
       this.scenario = scenario;
       this.root = await mkdtemp(join(tmpdir(), 'atlas-build-service-'));
       const projectRoot = join(this.root, this.projectName);
-      this.artifactRoot =
-        scenario === 'angular-artifact'
-          ? join(projectRoot, 'dist', this.projectName, 'browser')
-          : join(projectRoot, 'dist');
+      this.artifactRoot = isAngularBuildScenario(scenario)
+        ? join(projectRoot, 'dist', this.projectName, 'browser')
+        : join(projectRoot, 'dist');
 
       await mkdir(this.artifactRoot, { recursive: true });
       await writeFile(
@@ -52,6 +52,15 @@ export class BuildServiceDriver {
       );
       await writeFile(join(this.artifactRoot, 'remoteEntry.json'), '{}\n');
 
+      if (scenario === 'angular-global-styles') {
+        await writeFile(
+          join(this.artifactRoot, 'index.html'),
+          '<link rel="stylesheet" href="styles-material.css"><link rel="stylesheet" href="styles-tailwind.css">',
+        );
+        await writeFile(join(this.artifactRoot, 'styles-material.css'), '');
+        await writeFile(join(this.artifactRoot, 'styles-tailwind.css'), '');
+      }
+
       if (scenario === 'source-maps') {
         await writeFile(
           join(this.artifactRoot, 'remoteEntry.js.map'),
@@ -60,18 +69,19 @@ export class BuildServiceDriver {
       }
 
       this.project = {
-        id:
-          scenario === 'angular-artifact'
-            ? `@example/${this.projectName}`
-            : this.projectName,
-        outputPaths: scenario === 'angular-artifact' ? [] : [this.artifactRoot],
+        id: isAngularBuildScenario(scenario)
+          ? `@example/${this.projectName}`
+          : this.projectName,
+        outputPaths: isAngularBuildScenario(scenario)
+          ? []
+          : [this.artifactRoot],
         packageName: this.projectName,
         root: projectRoot,
         version: this.version,
       };
       this.workspace = createTestWorkspace({
         findProject: async () => this.project!,
-        kind: scenario === 'angular-artifact' ? 'workspace' : 'standalone',
+        kind: isAngularBuildScenario(scenario) ? 'workspace' : 'standalone',
         root: this.root,
       });
     },
@@ -87,6 +97,8 @@ export class BuildServiceDriver {
       if (this.scenario === 'pull-request') await this.buildPullRequest();
       if (this.scenario === 'angular-artifact')
         await this.buildAngularArtifact();
+      if (this.scenario === 'angular-global-styles')
+        await this.buildAngularGlobalStyles();
       if (this.scenario === 'missing-registry')
         await this.buildMissingRegistry();
       if (this.scenario === 'deterministic')
@@ -109,7 +121,7 @@ export class BuildServiceDriver {
 
   private configSource(scenario: BuildScenario): string {
     const isAngular =
-      scenario === 'angular-artifact' || scenario === 'local-host-styles';
+      isAngularBuildScenario(scenario) || scenario === 'local-host-styles';
     const hostType = scenario === 'local-host-styles' ? ', type: "host"' : '';
     const framework = isAngular ? 'angular' : 'react';
 
@@ -182,6 +194,24 @@ export class BuildServiceDriver {
     this.observation = manifest.remoteEntryUrl.includes(`/apps/${this.appId}/`);
   }
 
+  private async buildAngularGlobalStyles(): Promise<void> {
+    const manifest = await this.service([
+      'build',
+      this.projectName,
+      '--skip-compile',
+    ]).buildManifest(this.projectName, 'production', {
+      baseUrl: faker.internet.url(),
+      skipCompile: true,
+    });
+
+    const stylesheetPaths = manifest.styles?.map(({ href }) =>
+      new URL(href).pathname.split('/').at(-1),
+    );
+    this.observation =
+      JSON.stringify(stylesheetPaths) ===
+      JSON.stringify(['styles-material.css', 'styles-tailwind.css']);
+  }
+
   private async buildMissingRegistry(): Promise<void> {
     const previous = process.env.ATLAS_REGISTRY_URL;
     delete process.env.ATLAS_REGISTRY_URL;
@@ -234,4 +264,10 @@ export class BuildServiceDriver {
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;
   }
+}
+
+function isAngularBuildScenario(scenario: BuildScenario): boolean {
+  return (
+    scenario === 'angular-artifact' || scenario === 'angular-global-styles'
+  );
 }

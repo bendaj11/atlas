@@ -1,6 +1,6 @@
-import { angularRemoteName } from './angular-names.js';
-import type { AngularVersionProfile } from './generator-versions.js';
-import type { AngularStylesheetFormat } from './generator-types.js';
+import { angularRemoteName } from '../angular-names.js';
+import type { AngularVersionProfile } from '../generator-versions.js';
+import type { AngularStylesheetFormat } from '../generator-types.js';
 
 const ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT =
   '/@angular-architects/native-federation:build-notifications';
@@ -52,7 +52,7 @@ export function angularWorkspace(
               outputPath: `dist/${name}`,
               index: 'src/index.html',
               browser: 'src/main.ts',
-              preserveSymlinks: true,
+              preserveSymlinks: false,
               polyfills: [
                 ...(!profile.zoneless ? ['zone.js'] : []),
                 'es-module-shims',

@@ -328,10 +328,15 @@ async function discoverStylesheets(options: {
       : [];
   }
 
+  const paths =
+    framework === 'angular'
+      ? await angularInitialStylesheetPaths(artifactRoot)
+      : [];
+  const stylesheetPaths = paths.length
+    ? paths
+    : (await listFiles(artifactRoot)).filter((path) => path.endsWith('.css'));
   const stylesheets: AtlasStylesheet[] = [];
-  for (const relativePath of (await listFiles(artifactRoot)).filter((path) =>
-    path.endsWith('.css'),
-  )) {
+  for (const relativePath of stylesheetPaths) {
     const bytes = await readFile(join(artifactRoot, relativePath));
     stylesheets.push({
       href: `${artifactBaseUrl}/${relativePath.split('\\').join('/')}`,
@@ -339,6 +344,55 @@ async function discoverStylesheets(options: {
     });
   }
   return stylesheets;
+}
+
+async function angularInitialStylesheetPaths(
+  artifactRoot: string,
+): Promise<string[]> {
+  try {
+    return stylesheetPathsFromIndex(
+      await readFile(join(artifactRoot, 'index.html'), 'utf8'),
+    );
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
+function stylesheetPathsFromIndex(indexHtml: string): string[] {
+  const paths = [...indexHtml.matchAll(/<link\b[^>]*>/giu)].flatMap((link) => {
+    const rel = htmlAttribute(link[0], 'rel');
+    const href = htmlAttribute(link[0], 'href');
+    if (!isStylesheetLink(rel) || !href) return [];
+    const path = artifactPathFromHref(href);
+    return path?.endsWith('.css') ? [path] : [];
+  });
+  return [...new Set(paths)];
+}
+
+function isStylesheetLink(rel: string | undefined): boolean {
+  return (
+    rel?.split(/\s+/u).some((value) => value.toLowerCase() === 'stylesheet') ??
+    false
+  );
+}
+
+function htmlAttribute(tag: string, name: 'href' | 'rel'): string | undefined {
+  const expression =
+    name === 'href'
+      ? /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/iu
+      : /\brel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/iu;
+  const match = tag.match(expression);
+  return match?.[1] ?? match?.[2] ?? match?.[3];
+}
+
+function artifactPathFromHref(href: string): string | undefined {
+  if (href.includes('?') || href.includes('#')) return undefined;
+  try {
+    return normalizeArtifactPath(href);
+  } catch {
+    return undefined;
+  }
 }
 
 async function discoverExportedWidgets(

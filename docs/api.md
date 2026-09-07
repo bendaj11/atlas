@@ -157,6 +157,7 @@ Import from `@atlas/sdk/angular` and `@atlas/runtime/angular`:
 | API                                   | Purpose                                                                            |
 | ------------------------------------- | ---------------------------------------------------------------------------------- |
 | `injectAtlasSdk<THostSdk, TEvents>()` | Read the typed SDK from Angular injection                                          |
+| `provideAtlasApp()`                   | Register Atlas app context, SDK, style hosting, and optional router strategy       |
 | `provideAtlasSdk()`                   | Register the host-provided SDK during app mount                                    |
 | `defineApp()`                         | Expose an Angular app lifecycle entry                                              |
 | `defineExportedWidget()`              | Low-level Angular widget lifecycle adapter; generated widgets do not call it       |
@@ -182,6 +183,7 @@ Import from `@atlas/sdk/react` and `@atlas/runtime/react`:
 | `createRoutedApp()`                | Expose a React Router app lifecycle entry                                                                   |
 | `defineExportedWidget()`           | Low-level React widget lifecycle adapter; generated widgets do not call it                                  |
 | `createRouterOptions()`            | Scope a memory router to the app path                                                                       |
+| `useAtlasStyleTarget()`            | Read the app Shadow Root for a CSS-in-JS library insertion target                                           |
 | `connectRouter()`                  | Synchronize React Router and host navigation                                                                |
 | `AtlasHostProvider`                | Create and provide the host SDK, then start Atlas after the React tree commits                              |
 | `AtlasDefaultHostLayout`           | Replaceable default React host layout; renders the Atlas status, navigation, route outlet, and slot anchors |

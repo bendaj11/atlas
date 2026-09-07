@@ -52,7 +52,10 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     host.get('federation.config.mjs'),
     /from "@angular-architects\/native-federation/,
   );
-  assert.match(host.get('src/main.ts'), /initFederation/);
+  assert.match(
+    host.get('src/main.ts'),
+    /Start this Atlas host with atlas dev/,
+  );
   assert.match(host.get('atlas.bootstrap.html'), /<title>Host<\/title>/);
   assert.match(
     host.get('atlas.bootstrap.html'),
@@ -63,11 +66,6 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     /src="\/atlas\.loader\.js\?v=[a-f0-9]{12}"/,
   );
   assert.equal(appFiles.has('atlas.bootstrap.html'), false);
-  assert.match(host.get('src/main.ts'), /from "@atlas\/sdk\/federation"/);
-  assert.doesNotMatch(
-    host.get('src/main.ts'),
-    /from "@angular-architects\/native-federation"/,
-  );
   assert.match(host.get('src/bootstrap.ts'), /bootstrapAngularHost/);
   assert.match(host.get('src/bootstrap.ts'), /from "@atlas\/sdk\/federation"/);
   assert.doesNotMatch(

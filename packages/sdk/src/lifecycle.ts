@@ -24,6 +24,8 @@ export interface AtlasAppContext {
 
 export interface AtlasAppMountRequest<THostSdk extends object = {}> {
   container: HTMLElement;
+  /** Boundary where framework runtime styles must be inserted. */
+  styleTarget: Node & ParentNode;
   sdk: AtlasSdk<THostSdk>;
   context: AtlasAppContext;
 }
@@ -53,6 +55,8 @@ export interface AtlasExportedWidgetMountRequest<
   THostSdk extends object = {},
 > {
   container: HTMLElement;
+  /** Boundary where framework runtime styles must be inserted. */
+  styleTarget: Node & ParentNode;
   props: TProps;
   sdk: AtlasSdk<THostSdk>;
   widget: AtlasExportedWidgetManifest;

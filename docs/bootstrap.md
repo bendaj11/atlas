@@ -23,6 +23,9 @@ generates or edits it.
 ```
 
 `environmentRegistryUrl` is optional and defaults to `artifactRegistryUrl`.
+Registry URLs may be absolute HTTP(S) URLs or relative URL references. Relative
+references resolve against the host's `/atlas.runtime.json`; use `/atlas` for a
+same-origin reverse proxy.
 The file contains no secrets. Serve it with HTTPS and revalidation or
 `no-cache`.
 

@@ -44,10 +44,20 @@ export ATLAS_STORAGE_KEY_PREFIX=platform
 export ATLAS_S3_REGION=us-east-1
 ```
 
-Flags with equivalent names override variables. Credentials use the provider
+Flags with equivalent names override variables. S3 credentials use the provider
 chain; there are no credential flags. `atlas.registry.ts` is optional for custom
 storage, invalidation, verification host URLs, preview-head resolution, or external
 locking.
+
+Artifactory is built in too: select `ATLAS_STORAGE=artifactory` or
+`--storage artifactory`. No `atlas.registry.ts` or adapter code is required.
+Set `ATLAS_STORAGE_API_URL`, `ATLAS_ARTIFACTORY_REPOSITORY`,
+`ATLAS_REGISTRY_URL`, `ATLAS_ARTIFACTORY_ACCESS_TOKEN`, and
+`ATLAS_ARTIFACTORY_LOCK_RESOURCE`. The key prefix defaults to `atlas`.
+Run the whole command inside your shared Jenkins lock, which supplies
+`ATLAS_PUBLICATION_LOCK`; manually setting this marker does not acquire a lock.
+See the [copyable Jenkins setup](../../docs/artifactory.md) for configuration,
+self-hosted requirements, and delivery policy.
 
 For separate source and target registries:
 

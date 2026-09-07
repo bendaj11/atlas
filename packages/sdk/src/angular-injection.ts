@@ -21,6 +21,7 @@ import {
   type AngularAtlasSdk,
 } from './angular-widget.js';
 import { createAtlasAppAssetFacade } from './app-assets.js';
+import { sdkError } from './sdk-error.js';
 
 const ATLAS_SDK = new InjectionToken<AtlasSdkValue>('AtlasSdk');
 const ATLAS_APP_CONTEXT = new InjectionToken<AtlasAppContext>(
@@ -65,12 +66,30 @@ export function injectAtlasSdk<
   TEvents extends object = AtlasEventMap,
 >(): AtlasSdk<THostSdk, TEvents> {
   const sdk = inject(ATLAS_SDK) as AtlasSdkValue<THostSdk, TEvents>;
-  return createAngularAtlasSdk(
-    createAtlasAppAssetFacade(sdk, injectAtlasAppContext()),
+  const context = inject(ATLAS_APP_CONTEXT, { optional: true });
+  const atlas = createAngularAtlasSdk(
+    context ? createAtlasAppAssetFacade(sdk, context) : sdk,
     inject(ApplicationRef),
     inject(EnvironmentInjector),
     createAtlasHostDataSignal(sdk),
   );
+
+  if (!context) {
+    Object.defineProperties(atlas, {
+      assetBaseUrl: { value: unavailableAppAssetUrl },
+      assetUrl: { value: unavailableAppAssetUrl },
+    });
+  }
+
+  return atlas;
+}
+
+function unavailableAppAssetUrl(): never {
+  throw sdkError('App asset URLs require an Atlas app context.', {
+    suggestedActions:
+      'Call assetBaseUrl() or assetUrl() inside a mounted app. Hosts should use their own asset URLs.',
+    code: 'ATLAS_ANGULAR_APP_CONTEXT_MISSING',
+  });
 }
 
 function createAtlasHostDataSignal<

@@ -8,8 +8,8 @@ import { assertHostDeploymentManifest } from '@atlas/schema';
 import { fetchBytes, fetchJson } from '../fetch-json/fetch-json.js';
 import { loadHostModule } from '../host-loader/host-loader.js';
 import {
-  assertAtlasRuntimeConfig,
   environmentManifestUrl,
+  resolveAtlasRuntimeConfig,
 } from '../runtime-config/runtime-config.js';
 import { installModuleShim } from '../module-shim/module-shim.js';
 import { applyOverrides } from '../overrides/overrides.js';
@@ -25,6 +25,7 @@ export interface AtlasLoaderDependencies {
     Document,
     'createElement' | 'getElementById' | 'head'
   >;
+  readonly location?: Pick<Location, 'href'>;
   readonly fetchBytes: typeof fetchBytes;
   readonly fetchJson: typeof fetchJson;
   readonly installModuleShim: typeof installModuleShim;
@@ -39,8 +40,10 @@ export async function startAtlasLoader(
 ): Promise<void> {
   await dependencies.installModuleShim();
 
-  const runtime: unknown = await dependencies.fetchJson('/atlas.runtime.json');
-  assertAtlasRuntimeConfig(runtime);
+  const runtime = resolveAtlasRuntimeConfig(
+    await dependencies.fetchJson('/atlas.runtime.json'),
+    dependencies.location?.href ?? globalThis.location?.href,
+  );
   const initial = await loadInitialCatalog(runtime, dependencies);
   const effectiveCatalog = await dependencies.applyOverrides(
     runtime,
@@ -113,6 +116,7 @@ async function loadInitialCatalog(
 function defaultDependencies(): AtlasLoaderDependencies {
   return {
     document,
+    location,
     fetchBytes,
     fetchJson,
     installModuleShim,

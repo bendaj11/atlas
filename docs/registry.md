@@ -25,6 +25,13 @@ active composition for that host.
 Artifact descriptor paths are relative to artifact registry. Environment state
 can live in different registry; runtime config supplies both roots.
 
+## Artifactory
+
+Select `ATLAS_STORAGE=artifactory` (or `--storage artifactory`), with external
+whole-command writer coordination and a browser-readable delivery root.
+No `atlas.registry.ts` or consumer adapter is required.
+See [Artifactory configuration and Jenkins pipeline](artifactory.md).
+
 ## Deploy
 
 Use one registry when artifacts and environment state share root:

@@ -7,5 +7,5 @@ module.exports = createAngularFederationConfig({
   name: 'atlas_orders_angular',
   expose: 'app',
   // Add skip, exposes, shared, or other Native Federation options here.
-  skip: [],
+  skip: ['@atlas/sdk/federation-config'],
 });

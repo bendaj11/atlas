@@ -69,7 +69,30 @@ or discard the app path.
 
 Atlas mounts apps in Shadow DOM by default and installs declared standalone
 stylesheets in that shadow root. This prevents global library CSS, including
-Ionic resets and variables, from leaking into the host or other apps. Use
+Ionic resets and variables, from leaking into the host or other apps. Atlas adapts
+`:root` selectors in these stylesheets to the app's shadow host, including rules
+inside CSS imports, layers, and media queries. Keep package variable declarations
+and global stylesheet imports unchanged; sibling apps can use different values
+for the same variable. Cross-origin stylesheets and their imports must allow CORS.
+Runtime CSS imports are fetched for adaptation; when using CSP, `connect-src` must
+also permit those import URLs.
+
+Atlas-generated Angular app entries also direct Angular's runtime component
+styles into that same shadow root. This covers every component library using
+Angular's standard style host. Keep generated entry code on the current Atlas
+SDK so this integration remains active, including for unscoped styles without
+Angular `_ngcontent` or `_nghost` markers.
+
+Apps keep ownership of Angular bootstrap. Add `provideAtlasApp({ context, sdk,
+styleTarget, locationStrategy })` to `ApplicationConfig.providers`; it groups
+Atlas context, SDK, style hosting, and optional router strategy without replacing
+`createApplication`.
+
+This adaptation applies to declared standalone stylesheets. It does not relocate
+library overlays, CSS injected directly into `document.head`, or JavaScript
+operations on `document.documentElement`. A library that writes directly to
+`document.head` must provide a supported insertion-target option; otherwise it
+cannot run with Shadow DOM isolation. Use
 `domIsolation: 'shared-dom'` only for an app intentionally sharing a documented
 host design-system contract. Shared DOM mode is a DOM wrapper, not CSS
 isolation.

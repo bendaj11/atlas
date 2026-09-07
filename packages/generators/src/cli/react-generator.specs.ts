@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals';
+import { expect, it, test } from '@jest/globals';
 import {
   generateReactAppFiles,
   generateReactHostFiles,
@@ -43,6 +43,21 @@ test('should include an empty preview array when generating a host', () => {
   expect(atlasPreviews(generateReactHostFiles(options(), 'host-id'))).toEqual(
     [],
   );
+});
+
+it('should use the style-aware React app adapter when generating a routed app', () => {
+  expect(file(generateReactAppFiles(options()), 'src/bootstrap.tsx')).toContain(
+    'createRoutedApp',
+  );
+});
+
+it('should use the style-aware React app adapter when generating a single-page app', () => {
+  expect(
+    file(
+      generateReactAppFiles({ ...options(), routing: false }),
+      'src/bootstrap.tsx',
+    ),
+  ).toContain('defineApp');
 });
 
 test('should expose local package skip configuration when generating an app', () => {
@@ -105,4 +120,14 @@ function viteConfig(files: { path: string; contents: string }[]): string {
     throw new Error('Generated project must have vite.config.ts.');
 
   return configFile.contents;
+}
+
+function file(
+  files: { path: string; contents: string }[],
+  path: string,
+): string {
+  const generatedFile = files.find((file) => file.path === path);
+  if (!generatedFile) throw new Error(`Generated project must have ${path}.`);
+
+  return generatedFile.contents;
 }

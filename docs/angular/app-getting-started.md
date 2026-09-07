@@ -92,6 +92,11 @@ Checkpoint: host preview renders Orders at `/orders`, nested refresh works, and
 Columbus can reset Orders without replacing host client. For multi-host apps,
 list each host page in `atlas.previews`; Atlas prompts for one at startup.
 
+If Orders imports a local workspace library, also run that library's build
+watcher when it exports compiled output. Keep it shared in Federation; adding it
+to `skip` is not required for local development. See
+[Developing local packages](../workspaces.md#developing-local-packages).
+
 ## 5. Test And Continue
 
 Test feature states plus mount/unmount and required SDK contracts. Run app inside

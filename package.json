@@ -1,6 +1,6 @@
 {
   "name": "atlas-platform",
-  "version": "0.4.21",
+  "version": "0.4.26",
   "private": true,
   "description": "TypeScript-first app platform with focused SDK, runtime, static registry, generators and test tooling.",
   "license": "MIT",
@@ -23,7 +23,8 @@
     "test:generated": "pnpm run pack:verify && tsx scripts/verify-generated-projects.ts --package-manager=yarn && tsx scripts/verify-generated-projects.ts --package-manager=pnpm",
     "test": "turbo run test --concurrency=1 --filter=\"@atlas/*\" && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json --roots scripts",
     "test:affected": "turbo run test --concurrency=1 --affected --filter=\"@atlas/*\"",
-    "test:e2e": "tsx tests/e2e/prepare.ts && playwright test",
+    "test:e2e": "tsx tests/e2e/prepare.ts && playwright test && pnpm run test:e2e:widgets",
+    "test:e2e:widgets": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/e2e/host-widgets/jest.config.cjs --runInBand",
     "test:container": "pnpm run pack:verify && tsx scripts/verify-bootstrap-container.ts",
     "test:e2e:prepare": "tsx tests/e2e/prepare.ts",
     "typecheck": "turbo run typecheck --filter=\"@atlas/*\" && tsc -p tsconfig.tests.json && tsc -p tsconfig.tooling.json",

@@ -28,6 +28,9 @@ const AtlasHostDataContext = createContext<object | undefined>(undefined);
 export const AtlasRuntimeContext = createContext<AtlasAppContext | undefined>(
   undefined,
 );
+export const AtlasStyleTargetContext = createContext<
+  (Node & ParentNode) | undefined
+>(undefined);
 
 export function AtlasSdkProvider<
   THostSdk extends object = {},
@@ -73,16 +76,6 @@ export function useAtlasSdk<
       },
     );
   }
-  if (!context) {
-    throw sdkError(
-      'Atlas app context is unavailable because useAtlasSdk was called outside an Atlas-mounted app.',
-      {
-        suggestedActions:
-          'Call useAtlasSdk only from a component rendered by the Atlas app mount lifecycle.',
-        code: 'ATLAS_REACT_APP_CONTEXT_MISSING',
-      },
-    );
-  }
   return createReactAtlasSdk(sdk as AtlasSdkValue<THostSdk, TEvents>, context);
 }
 
@@ -99,4 +92,18 @@ export function useAppLoaded(): () => void {
     );
   }
   return context.loading.waitUntilReady();
+}
+
+/** Returns the Atlas boundary for CSS-in-JS libraries that support a custom insertion target. */
+export function useAtlasStyleTarget(): Node & ParentNode {
+  const styleTarget = useContext(AtlasStyleTargetContext);
+  if (styleTarget) return styleTarget;
+  throw sdkError(
+    'Atlas style target is unavailable because useAtlasStyleTarget was called outside an Atlas-mounted app.',
+    {
+      suggestedActions:
+        'Call useAtlasStyleTarget only from a component rendered by the Atlas app mount lifecycle.',
+      code: 'ATLAS_REACT_STYLE_TARGET_MISSING',
+    },
+  );
 }

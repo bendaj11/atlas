@@ -1,3 +1,5 @@
+import { prepareShadowImports } from './shadow-imports/shadow-imports.js';
+import { adaptShadowStyleSheet } from './shadow-styles/shadow-styles.js';
 import type { AtlasManifest, AtlasStylesheet } from '@atlas/schema';
 import {
   assertManifestStylesTrust,
@@ -93,11 +95,12 @@ async function acquireStylesheet(
   element.rel = 'stylesheet';
   element.href = stylesheet.href;
   element.dataset.atlasStyle = appId;
+  if ('host' in target) element.crossOrigin = 'anonymous';
   if (stylesheet.integrity) {
     element.integrity = stylesheet.integrity;
     element.crossOrigin = 'anonymous';
   }
-  const ready = stylesheetReady(element, appId);
+  const ready = stylesheetReady(element, appId, target);
   const loaded = { element, ready, references: 1 };
   styles.set(stylesheet.href, loaded);
   target.append(element);
@@ -114,9 +117,29 @@ async function acquireStylesheet(
 function stylesheetReady(
   element: HTMLLinkElement,
   appId: string,
+  target: ParentNode,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    element.addEventListener('load', () => resolve(), { once: true });
+    element.addEventListener(
+      'load',
+      async () => {
+        try {
+          if ('host' in target && element.sheet) {
+            await prepareShadowImports(element.sheet, element.ownerDocument);
+            adaptShadowStyleSheet(element.sheet);
+          }
+          resolve();
+        } catch (cause) {
+          reject(
+            new Error(
+              `Atlas could not adapt stylesheet for app "${appId}": ${element.href}. Ensure this stylesheet and its CSS imports allow CORS.`,
+              { cause },
+            ),
+          );
+        }
+      },
+      { once: true },
+    );
     element.addEventListener(
       'error',
       () =>

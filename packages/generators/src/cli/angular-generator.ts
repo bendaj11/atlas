@@ -26,7 +26,7 @@ import {
   angularFederationConfigFile,
   angularRootTsconfig,
   angularWorkspace,
-} from './angular-workspace-generator.js';
+} from './angular-workspace-generator/angular-workspace-generator.js';
 import {
   atlasAppConfig,
   atlasBootstrapHtml,

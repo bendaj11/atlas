@@ -76,6 +76,30 @@ For Angular Native Federation v4 projects, make same change in
 Restart the development server after changing federation configuration. Warning
 gone only when package is excluded or package supplies a shareable entry point.
 
+## Local Library Changes Do Not Appear
+
+Start with the [local package workflow](../workspaces.md#developing-local-packages).
+Then check where the update stops:
+
+1. **Library output:** confirm the dependency links to the intended package and
+   its watcher updates the JavaScript referenced by its package entry points.
+2. **App output:** inspect the local `remoteEntry.json` and the library bundle it
+   identifies. Check that the served JavaScript contains your change.
+3. **Browser:** in developer tools, check the package request URL and the import
+   map that maps package names to URLs. Confirm the browser loads the expected
+   local bundle. Check Federation's build notifications connection if the code
+   is current but the page does not reload.
+
+Successful rebuild messages do not guarantee that the served code changed.
+If the served bundle is stale, investigate the build before browser caching.
+Keep the library shared unless you intentionally need separate bundled copies;
+restart `atlas dev` after changing its Federation settings.
+
+If a package loads from a CDN, check which host or remote supplied the shared
+package. Adding it to `skip` changes how it is bundled, not just where it loads
+from. For machine-specific failures, compare the installed dependency versions,
+lockfile, and framework configuration.
+
 ## Angular Compiler Rejects `emitDeclarationOnly`
 
 If `atlas dev` fails with `NG4006` for `emitDeclarationOnly`, keep

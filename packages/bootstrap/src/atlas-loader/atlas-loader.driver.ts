@@ -84,6 +84,7 @@ export class AtlasLoaderDriver {
       ),
       head: { append: jest.fn() } as unknown as HTMLHeadElement,
     },
+    location: { href: 'https://host.example/' },
     fetchBytes: this.fetchBytes,
     fetchJson: this.fetchJson,
     installModuleShim: this.installModuleShim,

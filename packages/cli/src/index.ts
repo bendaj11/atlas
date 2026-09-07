@@ -1,4 +1,6 @@
 export { runAtlasCli } from './cli/cli.service.js';
+export { ArtifactoryPublicationStorage } from './publication/artifactory-storage/artifactory-storage.js';
+export type { ArtifactoryOptions } from './publication/artifactory-storage/artifactory-storage.js';
 export {
   defineAtlasRegistryConfig,
   S3PublicationStorage,

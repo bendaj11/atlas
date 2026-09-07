@@ -68,6 +68,14 @@ into the host or other apps. Use `domIsolation: 'shared-dom'` only for an app
 intentionally sharing a documented host design-system contract. Shared DOM mode
 is a DOM wrapper, not CSS isolation.
 
+React does not own one universal runtime style injector. Static CSS is handled
+by Atlas. For a CSS-in-JS library, pass `useAtlasStyleTarget()` to that library's
+documented insertion-target option, such as Emotion's cache container or
+styled-components' stylesheet manager target. Do not rely on a library default
+that writes to `document.head`; that is outside the app shadow root. A library
+with no supported insertion target cannot run with Shadow DOM isolation; use
+`domIsolation: 'shared-dom'` only when sharing page DOM and CSS is intentional.
+
 ## Host Domain
 
 The host owns global layout styles, design-system CSS, fonts, and CSS variables

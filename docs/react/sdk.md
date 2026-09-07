@@ -43,6 +43,13 @@ function HostApplication() {
 Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
 host ID when omitted.
 
+Host components under `AtlasHostProvider` can call `useAtlasSdk()` without an
+app context. Host data, events, and custom SDK methods are available through the
+same hook. A separately created React root needs its own SDK provider.
+
+`assetBaseUrl()` and `assetUrl()` require an app context and throw an explanatory
+error when called in a host. Hosts use their own asset URLs.
+
 ## Live host data
 
 Atlas re-renders React consumers when host data changes. Read it through the

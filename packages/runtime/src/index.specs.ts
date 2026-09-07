@@ -1984,10 +1984,9 @@ test('DOM host mounts a deferred slot app when its anchor becomes available', as
           schemaVersion: 'v1',
           hostId: 'host',
           environment: 'production',
-          artifactRegistryUrl: 'https://platform.example/atlas',
+          artifactRegistryUrl: 'http://localhost:4173/atlas',
           manifestUrl:
-            'https://platform.example/atlas/environments/production/hosts/host/manifest.json',
-          assetOrigins: ['http://localhost:4173'],
+            'http://localhost:4173/atlas/environments/production/hosts/host/manifest.json',
         },
         catalog: createHostCatalog([widget]),
         federation: {

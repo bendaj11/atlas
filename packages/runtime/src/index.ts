@@ -701,6 +701,7 @@ export async function mountApp(
     connectAtlasWidgetResolver(options.sdk, widgets.getWidget);
     result = await entry.mount({
       container: boundary.container,
+      styleTarget: styleTargetFor(boundary, document),
       sdk: options.sdk,
       context: {
         manifest: options.manifest,
@@ -1077,6 +1078,7 @@ async function mountWidgetAttempt<TProps extends object>(
     try {
       result = await entry.mount({
         container: boundary.container,
+        styleTarget: styleTargetFor(boundary, card.element.ownerDocument),
         props: input.props,
         sdk: input.sdk,
         ...resolved,
@@ -1235,7 +1237,7 @@ function createMountBoundary(
   kind: 'app' | 'widget' = 'app',
 ): {
   container: HTMLElement;
-  styleTarget: ParentNode | undefined;
+  styleTarget: (Node & ParentNode) | undefined;
   remove(): void;
 } {
   const element =
@@ -1261,6 +1263,16 @@ function createMountBoundary(
     styleTarget: element.ownerDocument.head,
     remove: () => element.remove(),
   };
+}
+
+function styleTargetFor(
+  boundary: ReturnType<typeof createMountBoundary>,
+  document: Document | null | undefined,
+): Node & ParentNode {
+  const fallback = document?.head;
+  if (!boundary.styleTarget && !fallback)
+    throw new Error('Atlas could not determine an app style target.');
+  return (boundary.styleTarget ?? fallback)!;
 }
 
 export async function importExportedWidget(

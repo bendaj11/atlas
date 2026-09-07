@@ -101,10 +101,22 @@ export class AtlasDeployService {
             selected,
           );
           await writeDeployment(storage, lease, environment, prepared);
+          if (storage.verifyDelivery) {
+            const paths = [
+              envPath(environment),
+              ...prepared.manifests.map((manifest) =>
+                hostPath(environment, manifest.hostId),
+              ),
+            ];
+            await config?.invalidate?.(paths);
+            await lease.assertHeld();
+            await storage.verifyDelivery(paths);
+            await lease.assertHeld();
+          }
           return prepared;
         });
 
-    if (!dryRun) {
+    if (!dryRun && !storage.verifyDelivery) {
       await config?.invalidate?.([
         envPath(environment),
         ...deployment.manifests.map((manifest) =>

@@ -56,27 +56,48 @@ unmounts the app, and shows the host-owned fallback.
 Use Vite imports or relative URLs. Do not use `/assets/...` in a mounted app
 unless the host deliberately serves that path.
 
-## A Local Workspace Package Loads From The CDN
+## Local Development Reports A Missing Named Export
 
-Atlas shares imported runtime dependencies by default. Exclude app-local
-workspace packages from federation so Vite bundles and serves their linked
-source locally:
+When a React app runs locally inside a deployed Host, a valid named export can
+occasionally fail to resolve through a barrel module. The browser reports a
+temporary `blob:` module that does not provide the requested export. This is a
+local-development module-loading limitation; it does not indicate that the
+component itself is missing or that the production build will fail.
+
+Use explicit re-exports in public barrel modules instead of `export *`:
 
 ```ts
-createReactAppViteConfig({
-  projectRoot: __dirname,
-  projectName: 'orders',
-  reactMajor: 19,
-  skip: [
-    (packageName) =>
-      packageName === '@company/orders-ui' ||
-      packageName.startsWith('@company/orders-ui/'),
-  ],
-});
+// src/components/index.ts
+export { Component } from './Component';
+export type { ComponentProps } from './Component';
 ```
 
-Keep dependencies that must be singleton-shared between the host and apps out
-of `skip`.
+Consumers can keep importing from the barrel. Import types separately:
+
+```ts
+import { Component } from '../components';
+import type { ComponentProps } from '../components';
+```
+
+Restart `atlas dev` and hard-refresh the preview after the change. Do not
+replace barrel imports with deep imports unless deep imports are part of the
+intended public API.
+
+## A Local Workspace Package Loads From The CDN
+
+Atlas shares imported runtime dependencies by default. Sharing does not by itself
+mean that a package must load from a CDN. In browser developer tools, check the
+package request URL and the import map that maps package names to URLs. Identify
+which host or remote supplied the package.
+
+Confirm that the dependency resolves to the intended local workspace package.
+If its entry points reference compiled output, run the package's build watcher
+alongside `atlas dev`. See [Developing local packages](../workspaces.md#developing-local-packages).
+
+Use `skip` only when you intend to bundle a package separately from shared
+dependencies. Libraries that need one instance across the host and apps must
+remain shared. Verify rebuild behavior with your React federation adapter after
+changing sharing settings.
 
 ## Install Fails With Peer Conflicts
 

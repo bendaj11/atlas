@@ -33,6 +33,15 @@ await startHost<CustomerHostSdk>({
 Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
 host ID when omitted.
 
+Hosts bootstrapped with `bootstrapAngularHost()` can also use `injectAtlasSdk()`
+without an app context, once the runtime has created the SDK. Avoid injecting it
+eagerly in the host root or in `createCustomHostSdkOptions()`, before that point.
+The lower-level `startHost()` does not register an Angular SDK provider itself.
+
+Host data, events, and custom SDK methods are available in hosts.
+`assetBaseUrl()` and `assetUrl()` require an app context and throw an explanatory
+error when called in a host. Hosts use their own asset URLs.
+
 ## Live host data
 
 Host data is host-owned shared state. Each top-level field can be a fixed value

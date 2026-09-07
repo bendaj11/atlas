@@ -12,13 +12,21 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { build, type Plugin } from 'vite';
+import { build, type Plugin, type UserConfig } from 'vite';
+
+type ReactViteConfigFactory = (options: {
+  projectRoot: string;
+  projectName: string;
+}) => UserConfig & { plugins: Plugin[] };
 
 const { createReactAppViteConfig, createReactHostViteConfig } = createRequire(
   import.meta.url,
 )(
   '../../federation-config.cjs',
-) as typeof import('../../federation-config.cjs');
+) as {
+  createReactAppViteConfig: ReactViteConfigFactory;
+  createReactHostViteConfig: ReactViteConfigFactory;
+};
 
 interface PackageFixture {
   readonly manifest?: Readonly<Record<string, unknown>>;

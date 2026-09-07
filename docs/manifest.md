@@ -25,4 +25,6 @@ digests. Paths resolve against `artifactRegistryUrl` from same-origin
 ```
 
 `environmentRegistryUrl` defaults to `artifactRegistryUrl`. Platform/IaC owns
-runtime file. Atlas deploy creates neither runtime config nor URL bindings.
+runtime file. Registry URLs may be absolute HTTP(S) URLs or relative URL
+references resolved against `/atlas.runtime.json`. Atlas deploy creates neither
+runtime config nor URL bindings.

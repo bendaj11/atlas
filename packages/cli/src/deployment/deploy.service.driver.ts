@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
 import type {
   AtlasAppArtifactManifest,
   AtlasEnvironmentDeployment,
@@ -49,9 +50,37 @@ export class DeployServiceDriver {
   private insecureRegistry = false;
   private invalidations: string[] = [];
   private invalidationFailures = 0;
+  private permanentInvalidationFailures = 0;
+  private deliveryFailures = 0;
+  private readonly deliveryEvents: string[] = [];
+  private readonly cachedObjects = new Map<string, Uint8Array>();
   private result?: AtlasDeployResult;
 
   given = {
+    deliveryCache: (
+      failure: 'none' | 'invalidate-once' | 'verify-once',
+    ): void => {
+      this.permanentInvalidationFailures =
+        failure === 'invalidate-once' ? 1 : 0;
+      this.deliveryFailures = failure === 'verify-once' ? 1 : 0;
+      this.storage.verifyDelivery = jest
+        .fn<NonNullable<AtlasPublicationStorage['verifyDelivery']>>()
+        .mockImplementation(async (paths) => {
+          this.deliveryEvents.push('verify');
+          if (this.deliveryFailures-- > 0)
+            throw new Error('Delivery unavailable');
+          for (const path of paths) {
+            const stored = await this.storage.read(path);
+            const cached = this.cachedObjects.get(path);
+            if (
+              !stored ||
+              !cached ||
+              Buffer.compare(Buffer.from(stored), Buffer.from(cached)) !== 0
+            )
+              throw new Error('Stale delivery cache');
+          }
+        });
+    },
     catalog: async (): Promise<void> => {
       const registry = await this.catalogFor(this.storage);
       await this.storage.seedJson('registry.json', registry);
@@ -124,8 +153,15 @@ export class DeployServiceDriver {
           storage: this.storage,
           invalidate: async (paths) => {
             this.invalidations.push(...paths);
+            this.deliveryEvents.push('invalidate');
             if (this.invalidationFailures-- > 0) {
               throw { $metadata: { httpStatusCode: 503 } };
+            }
+            if (this.permanentInvalidationFailures-- > 0)
+              throw new Error('Cache refresh unavailable');
+            for (const path of paths) {
+              const bytes = await this.storage.read(path);
+              if (bytes) this.cachedObjects.set(path, bytes);
             }
           },
         },
@@ -137,6 +173,7 @@ export class DeployServiceDriver {
   };
 
   get = {
+    deliveryEvents: (): string[] => this.deliveryEvents,
     result: (): AtlasDeployResult | undefined => this.result,
     selectedAppVersion: (): string | undefined =>
       this.storage.json<AtlasEnvironmentDeployment>(
@@ -224,6 +261,7 @@ export class DeployServiceDriver {
 }
 
 class MemoryStorage implements AtlasPublicationStorage {
+  verifyDelivery?: AtlasPublicationStorage['verifyDelivery'];
   private readonly objects = new Map<string, Uint8Array>();
   async read(path: string): Promise<Uint8Array | undefined> {
     return this.objects.get(path);

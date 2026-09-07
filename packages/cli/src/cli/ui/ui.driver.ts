@@ -120,7 +120,9 @@ export class UiDriver {
       [`\nAtlas · Publish · ${this.subject}`],
     ],
     success: (): readonly unknown[][] => [[`✓ Built ${this.subject}.`]],
-    warning: (): readonly unknown[][] => [[`! ${this.subject} has no header.`]],
+    warning: (): readonly unknown[][] => [
+      [` WARN  ${this.subject} has no header.`],
+    ],
     singleActionError: (): readonly unknown[][] => [
       [`✖ Could not build ${this.subject}.`],
       [`  Suggested action: ${this.action}, then retry.`],

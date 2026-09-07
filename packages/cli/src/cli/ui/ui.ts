@@ -3,21 +3,29 @@ import { stderr, stdin, stdout } from 'node:process';
 import type { WriteStream } from 'node:tty';
 import selectPrompt from '@inquirer/select';
 
-type UiColor = 'bold' | 'blue' | 'cyan' | 'green' | 'yellow' | 'red' | 'dim';
+type UiColor =
+  | 'bold'
+  | 'blue'
+  | 'cyan'
+  | 'green'
+  | 'yellow'
+  | 'red'
+  | 'dim'
+  | 'warningBadge';
 type Status = 'info' | 'success' | 'warning' | 'error';
 type RgbColor = readonly [red: number, green: number, blue: number];
 
 const STATUS_SYMBOLS: Readonly<Record<Status, string>> = {
   info: 'i',
   success: '✓',
-  warning: '!',
+  warning: ' WARN ',
   error: '✖',
 };
 
 const STATUS_COLORS: Readonly<Record<Status, UiColor>> = {
   info: 'cyan',
   success: 'green',
-  warning: 'yellow',
+  warning: 'warningBadge',
   error: 'red',
 };
 
@@ -116,7 +124,7 @@ export const ui = {
     writeStatus(stdout, 'info', message);
   },
   warning(message: string): void {
-    writeStatus(stderr, 'warning', message);
+    writeStatus(stderr, 'warning', style(message, 'yellow', stderr));
   },
   success(message: string): void {
     writeStatus(stdout, 'success', message);
@@ -205,13 +213,14 @@ function writeLine(stream: WriteStream, message: string): void {
 function style(value: string, color: UiColor, stream: WriteStream): string {
   if (!stream.isTTY || process.env.NO_COLOR || process.env.TERM === 'dumb')
     return value;
-  const codes: Readonly<Record<UiColor, number>> = {
+  const codes: Readonly<Record<UiColor, number | string>> = {
     bold: 1,
     blue: 34,
     dim: 2,
     cyan: 36,
     green: 32,
     yellow: 33,
+    warningBadge: '30;43',
     red: 31,
   };
   return `\u001B[${codes[color]}m${value}\u001B[0m`;

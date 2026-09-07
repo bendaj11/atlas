@@ -8,9 +8,8 @@ export function angularAppConfig(zoneless: boolean): string {
   const zonelessProvider = zoneless
     ? 'provideZonelessChangeDetection(),\n      '
     : '';
-  return `${zonelessImport}import { LocationStrategy } from "@angular/common";
-import { provideRouter } from "@angular/router";
-import { provideAtlasAppContext, provideAtlasSdk, type LocationStrategyAdapter } from "@atlas/sdk/angular";
+  return `${zonelessImport}import { provideRouter } from "@angular/router";
+import { provideAtlasApp, type LocationStrategyAdapter } from "@atlas/sdk/angular";
 import type { AtlasSdk } from "@atlas/sdk";
 import type { AtlasAppContext } from "@atlas/sdk/lifecycle";
 import { routes } from "./app.routes";
@@ -18,16 +17,15 @@ import { routes } from "./app.routes";
 interface AtlasAppConfigOptions {
   context: AtlasAppContext;
   sdk: AtlasSdk;
+  styleTarget: Node & ParentNode;
   locationStrategy: LocationStrategyAdapter;
 }
 
-export function createAppConfig({ context, sdk, locationStrategy }: AtlasAppConfigOptions): ApplicationConfig {
+export function createAppConfig({ context, sdk, styleTarget, locationStrategy }: AtlasAppConfigOptions): ApplicationConfig {
   return {
     providers: [
-      ${zonelessProvider}provideRouter(routes),
-      ...provideAtlasAppContext(context),
-      provideAtlasSdk(sdk),
-      { provide: LocationStrategy, useValue: locationStrategy }
+      ${zonelessProvider}provideAtlasApp({ context, sdk, styleTarget, locationStrategy }),
+      provideRouter(routes),
     ]
   };
 }
@@ -41,20 +39,20 @@ export function angularSinglePageAppConfig(zoneless: boolean): string {
   const zonelessProvider = zoneless
     ? 'provideZonelessChangeDetection(),\n      '
     : '';
-  return `${zonelessImport}import { provideAtlasAppContext, provideAtlasSdk } from "@atlas/sdk/angular";
+  return `${zonelessImport}import { provideAtlasApp } from "@atlas/sdk/angular";
 import type { AtlasSdk } from "@atlas/sdk";
 import type { AtlasAppContext } from "@atlas/sdk/lifecycle";
 
 interface AtlasAppConfigOptions {
   context: AtlasAppContext;
   sdk: AtlasSdk;
+  styleTarget: Node & ParentNode;
 }
 
-export function createAppConfig({ context, sdk }: AtlasAppConfigOptions): ApplicationConfig {
+export function createAppConfig({ context, sdk, styleTarget }: AtlasAppConfigOptions): ApplicationConfig {
   return {
     providers: [
-      ${zonelessProvider}...provideAtlasAppContext(context),
-      provideAtlasSdk(sdk)
+      ${zonelessProvider}provideAtlasApp({ context, sdk, styleTarget })
     ]
   };
 }
@@ -78,12 +76,12 @@ import { createLocationStrategy, defineApp } from "@atlas/sdk/angular";
 import { AppComponent } from "./app/app.component";
 import { createAppConfig } from "./app/app.config";
 
-export default defineApp(async ({ container, sdk, context }) => {
+export default defineApp(async ({ container, styleTarget, sdk, context }) => {
   const element = document.createElement("${selector}");
   const locationStrategy = createLocationStrategy(context);
   container.append(element);
 
-  const app = await createApplication(createAppConfig({ context, sdk, locationStrategy }));
+  const app = await createApplication(createAppConfig({ context, sdk, styleTarget, locationStrategy }));
   app.bootstrap(AppComponent, element);
 
   return {
@@ -117,11 +115,11 @@ import { defineApp } from "@atlas/sdk/angular";
 import { AppComponent } from "./app/app.component";
 import { createAppConfig } from "./app/app.config";
 
-export default defineApp(async ({ container, sdk, context }) => {
+export default defineApp(async ({ container, styleTarget, sdk, context }) => {
   const element = document.createElement("${selector}");
   container.append(element);
 
-  const app = await createApplication(createAppConfig({ context, sdk }));
+  const app = await createApplication(createAppConfig({ context, sdk, styleTarget }));
   app.bootstrap(AppComponent, element);
 
   return {

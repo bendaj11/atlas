@@ -1,7 +1,18 @@
-import { createElement as createReactElement, type ReactNode } from "react";
-import type { AtlasExportedWidgetEntry, AtlasExportedWidgetMountRequest, AtlasExportedWidgetMountResult, AtlasAppEntry, AtlasAppMountRequest, AtlasAppMountResult } from "./lifecycle.js";
-import { AtlasRuntimeContext, AtlasSdkProvider } from "./react-context.js";
-import { connectRouter, type AppRouterLike } from "./react-router.js";
+import { createElement as createReactElement, type ReactNode } from 'react';
+import type {
+  AtlasExportedWidgetEntry,
+  AtlasExportedWidgetMountRequest,
+  AtlasExportedWidgetMountResult,
+  AtlasAppEntry,
+  AtlasAppMountRequest,
+  AtlasAppMountResult,
+} from './lifecycle.js';
+import {
+  AtlasRuntimeContext,
+  AtlasSdkProvider,
+  AtlasStyleTargetContext,
+} from './react-context.js';
+import { connectRouter, type AppRouterLike } from './react-router.js';
 
 export interface RootAdapter {
   render(element: unknown): void;
@@ -17,13 +28,15 @@ export function defineApp(options: AppOptions): AtlasAppEntry {
   return {
     mount(request): AtlasAppMountResult {
       const root = options.createRoot(request.container);
-      root.render(renderWithAtlasProviders(request, options.createElement(request)));
+      root.render(
+        renderWithAtlasProviders(request, options.createElement(request)),
+      );
       return {
         unmount() {
           root.unmount();
-        }
+        },
       };
-    }
+    },
   };
 }
 
@@ -38,16 +51,21 @@ export function createRoutedApp<TRouter extends AppRouterLike>(options: {
       const router = options.createRouter(request);
       const disconnect = connectRouter(router, request.context);
 
-      root.render(renderWithAtlasProviders(request, options.createElement(router, request)));
+      root.render(
+        renderWithAtlasProviders(
+          request,
+          options.createElement(router, request),
+        ),
+      );
 
       return {
         unmount() {
           disconnect();
           router.dispose?.();
           root.unmount();
-        }
+        },
       };
-    }
+    },
   };
 }
 
@@ -58,23 +76,56 @@ export function defineExportedWidget<TProps extends object>(options: {
   return {
     mount(request): AtlasExportedWidgetMountResult<TProps> {
       const root = options.createRoot(request.container);
-      root.render(options.createElement(request));
+      root.render(
+        renderWidgetWithAtlasProviders(request, options.createElement(request)),
+      );
       return {
         setInputs(inputs) {
-          root.render(options.createElement({ ...request, props: inputs }));
+          root.render(
+            renderWidgetWithAtlasProviders(
+              request,
+              options.createElement({ ...request, props: inputs }),
+            ),
+          );
         },
-        unmount: () => root.unmount()
+        unmount: () => root.unmount(),
       };
-    }
+    },
   };
 }
 
-function renderWithAtlasProviders(request: AtlasAppMountRequest, element: unknown): ReactNode {
-  return createReactElement(
-    AtlasSdkProvider,
-    {
-      sdk: request.sdk,
-      children: createReactElement(AtlasRuntimeContext.Provider, { value: request.context }, element as ReactNode),
-    },
-  );
+function renderWithAtlasProviders(
+  request: AtlasAppMountRequest,
+  element: unknown,
+): ReactNode {
+  return renderWithSdkAndStyleTarget(request, element, request.context);
+}
+
+function renderWidgetWithAtlasProviders(
+  request: AtlasExportedWidgetMountRequest<object>,
+  element: unknown,
+): ReactNode {
+  return renderWithSdkAndStyleTarget(request, element);
+}
+
+function renderWithSdkAndStyleTarget(
+  request: Pick<AtlasAppMountRequest, 'sdk' | 'styleTarget'>,
+  element: unknown,
+  context?: AtlasAppMountRequest['context'],
+): ReactNode {
+  const runtimeElement = context
+    ? createReactElement(
+        AtlasRuntimeContext.Provider,
+        { value: context },
+        element as ReactNode,
+      )
+    : (element as ReactNode);
+
+  return createReactElement(AtlasSdkProvider, {
+    sdk: request.sdk,
+    children: createReactElement(AtlasStyleTargetContext.Provider, {
+      value: request.styleTarget,
+      children: runtimeElement,
+    }),
+  });
 }

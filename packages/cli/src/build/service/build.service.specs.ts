@@ -32,6 +32,14 @@ describe('AtlasBuildService', () => {
     expect(driver.get.observation()).toBe(true);
   });
 
+  it('should preserve emitted Angular global stylesheet order when building a production manifest', async () => {
+    await driver.given.build('angular-global-styles');
+
+    await driver.when.buildManifest();
+
+    expect(driver.get.observation()).toBe(true);
+  });
+
   it('should return same manifest when build metadata is fixed', async () => {
     await driver.given.build('deterministic');
 

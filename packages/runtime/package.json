@@ -1,6 +1,6 @@
 {
   "name": "@atlas/runtime",
-  "version": "0.4.21",
+  "version": "0.4.26",
   "type": "module",
   "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
   "license": "MIT",
@@ -43,11 +43,13 @@
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/runtime/(src|tests)/'",
-    "typecheck": "ngc -p tsconfig.angular.json --noEmit"
+    "typecheck": "ngc -p tsconfig.angular.json --noEmit",
+    "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --runInBand --testPathPattern=packages/runtime/e2e/ --testTimeout=30000"
   },
   "dependencies": {
     "@atlas/schema": "workspace:^",
-    "@atlas/sdk": "workspace:^"
+    "@atlas/sdk": "workspace:^",
+    "css-tree": "^3.2.1"
   },
   "peerDependencies": {
     "@angular/core": ">=19 <23",
@@ -70,6 +72,7 @@
     "@angular/compiler-cli": "^20.3.0",
     "@angular/core": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
+    "@types/css-tree": "^3.2.0",
     "@types/react": "^19.2.0",
     "react": "^19.2.0"
   }

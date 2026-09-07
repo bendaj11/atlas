@@ -41,7 +41,10 @@ test('React generator emits React 19 Vite Native Federation projects', () => {
     '@acme/host',
   );
   assert.match(host.get('package.json'), /"react": "19\.2\.8"/);
-  assert.match(host.get('src/main.tsx'), /void mount/);
+  assert.match(
+    host.get('src/main.tsx'),
+    /Start this Atlas host with atlas dev/,
+  );
   const hostBootstrap = host.get('src/bootstrap.tsx');
   assert.match(hostBootstrap, /export const mount: AtlasHostClientEntry/);
   assert.match(host.get('atlas.bootstrap.html'), /<title>Host<\/title>/);
@@ -271,7 +274,7 @@ test('React generator targets selected supported majors without owning compiler 
   );
   assert.match(
     react17.get('vite.config.ts'),
-    /createReactAppViteConfig\(\{ projectRoot: __dirname, projectName: "oldest", reactMajor: 17 \}\)/,
+    /createReactAppViteConfig\(\{\s*projectRoot: __dirname,\s*projectName: "oldest",\s*reactMajor: 17,/s,
   );
   assert.match(react18.get('package.json'), /"react": "18\.3\.0"/);
   assert.doesNotMatch(react18.get('package.json'), /react-compiler-runtime/);

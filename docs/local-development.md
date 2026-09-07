@@ -170,6 +170,14 @@ an Atlas manifest.
 For a local host, include its page URL such as
 `http://localhost:4200/orders` in `atlas.previews`.
 
+## Edit a local library
+
+If an app or host imports a workspace library that exports compiled files, run
+that library's build watcher alongside `atlas dev`. Keep the library's sharing
+settings; a workspace dependency does not need to be added to `skip` for local
+development. Follow [Developing local packages](workspaces.md#developing-local-packages)
+for setup and troubleshooting links.
+
 ## Columbus selection model
 
 Columbus displays:

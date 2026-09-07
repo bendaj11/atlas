@@ -43,6 +43,11 @@ export class PublishServiceDriver {
   private verificationFailures = 0;
   private invalidationFailures = 0;
   private invalidationCalls = 0;
+  private permanentInvalidationFailures = 0;
+  private deliveryFailures = 0;
+  private artifactDeliveryFailures = 0;
+  private readonly deliveryEvents: string[] = [];
+  private readonly cachedObjects = new Map<string, Uint8Array>();
   private directory?: string;
   private result?: Awaited<ReturnType<AtlasPublishService['run']>>;
   private pruneResult?: Awaited<
@@ -58,6 +63,61 @@ export class PublishServiceDriver {
   };
 
   given = {
+    unknownWriteOutcome: (operation: 'create' | 'replace'): void => {
+      if (operation === 'create') {
+        const create = this.storage.create.bind(this.storage);
+        this.storage.create = jest
+          .fn<AtlasPublicationStorage['create']>()
+          .mockImplementation(async (...args) => {
+            await create(...args);
+            throw Object.assign(new Error('Mutation outcome unknown'), {
+              publicationOutcomeUnknown: true,
+            });
+          });
+      } else {
+        const replace = this.storage.replace.bind(this.storage);
+        this.storage.replace = jest
+          .fn<AtlasPublicationStorage['replace']>()
+          .mockImplementation(async (...args) => {
+            await replace(...args);
+            throw Object.assign(new Error('Mutation outcome unknown'), {
+              publicationOutcomeUnknown: true,
+            });
+          });
+      }
+    },
+    deliveryCache: (
+      failure:
+        'none' | 'invalidate-once' | 'verify-once' | 'artifact-verify-once',
+    ): void => {
+      this.permanentInvalidationFailures =
+        failure === 'invalidate-once' ? 1 : 0;
+      this.deliveryFailures = failure === 'verify-once' ? 1 : 0;
+      this.artifactDeliveryFailures =
+        failure === 'artifact-verify-once' ? 1 : 0;
+      this.storage.verifyDelivery = jest
+        .fn<NonNullable<AtlasPublicationStorage['verifyDelivery']>>()
+        .mockImplementation(async (paths) => {
+          this.deliveryEvents.push('verify');
+          if (paths.includes('registry.json') && this.deliveryFailures-- > 0)
+            throw new Error('Delivery unavailable');
+          if (
+            !paths.includes('registry.json') &&
+            this.artifactDeliveryFailures-- > 0
+          )
+            throw new Error('Artifact delivery unavailable');
+          for (const path of paths) {
+            const stored = await this.storage.read(path);
+            const cached = this.cachedObjects.get(path);
+            if (
+              !stored ||
+              !cached ||
+              Buffer.compare(Buffer.from(stored), Buffer.from(cached)) !== 0
+            )
+              throw new Error('Stale delivery cache');
+          }
+        });
+    },
     release: (version = '1.4.0'): void => {
       this.selector = { version };
     },
@@ -117,6 +177,7 @@ export class PublishServiceDriver {
         (message) => this.progress.push(message),
       ).run(this.name, {
         storage: this.storage,
+        invalidate: (paths) => this.invalidate(paths),
         resolvePreviewHead: this.resolvePreviewHead,
         verifyRegistry: async () => {
           if (this.verificationFailures-- > 0) {
@@ -137,12 +198,7 @@ export class PublishServiceDriver {
         new CliArguments(['prune-previews']),
       ).prunePreviews(states, {
         storage: this.storage,
-        invalidate: async () => {
-          this.invalidationCalls += 1;
-          if (this.invalidationFailures-- > 0) {
-            throw { $metadata: { httpStatusCode: 503 } };
-          }
-        },
+        invalidate: (paths) => this.invalidate(paths),
       });
     },
     removePreview: async (): Promise<void> => {
@@ -150,17 +206,14 @@ export class PublishServiceDriver {
         new CliArguments(['remove-preview']),
       ).removePreview(this.id, 1, {
         storage: this.storage,
-        invalidate: async () => {
-          this.invalidationCalls += 1;
-          if (this.invalidationFailures-- > 0) {
-            throw { $metadata: { httpStatusCode: 503 } };
-          }
-        },
+        invalidate: (paths) => this.invalidate(paths),
       });
     },
   };
 
   get = {
+    deliveryEvents: (): string[] => this.deliveryEvents,
+    registryExists: (): boolean => this.storage.has('registry.json'),
     result: () => this.result,
     name: (): string => this.name,
     identity: (): string =>
@@ -181,7 +234,10 @@ export class PublishServiceDriver {
       removed: this.pruneResult?.removed,
       invalidations: this.invalidationCalls,
     }),
-    removalRetry: (): { removed: boolean | undefined; invalidations: number } => ({
+    removalRetry: (): {
+      removed: boolean | undefined;
+      invalidations: number;
+    } => ({
       removed: this.removalResult?.removed,
       invalidations: this.invalidationCalls,
     }),
@@ -195,6 +251,22 @@ export class PublishServiceDriver {
       unscopedExists: this.storage.has(this.orphanPath(this.otherId)),
     }),
   };
+
+  private async invalidate(paths: string[]): Promise<void> {
+    this.invalidationCalls += 1;
+    this.deliveryEvents.push('invalidate');
+    if (this.invalidationFailures-- > 0)
+      throw { $metadata: { httpStatusCode: 503 } };
+    if (
+      paths.includes('registry.json') &&
+      this.permanentInvalidationFailures-- > 0
+    )
+      throw new Error('Cache refresh unavailable');
+    for (const path of paths) {
+      const bytes = await this.storage.read(path);
+      if (bytes) this.cachedObjects.set(path, bytes);
+    }
+  }
 
   private registryArtifact(
     id: string,
@@ -271,6 +343,7 @@ interface StoredObject {
 }
 
 class MemoryPublicationStorage implements AtlasPublicationStorage {
+  verifyDelivery?: AtlasPublicationStorage['verifyDelivery'];
   private readonly objects = new Map<string, StoredObject>();
 
   async read(path: string): Promise<Uint8Array | undefined> {

@@ -1,5 +1,6 @@
 import '@angular/compiler';
 import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
 import {
   ApplicationRef,
   createEnvironmentInjector,
@@ -26,6 +27,7 @@ import { createAppContext } from '../../src/app-context.testkit.js';
 
 interface CustomerSdk {
   readonly hostData: { readonly userName: string };
+  showMessage(message: string): void;
 }
 
 const ASSET_BASE_URL = new InjectionToken<string>('asset base URL');
@@ -51,12 +53,15 @@ function createAppConfig({
 }
 
 export class AngularBootstrapDriver {
+  private readonly message = faker.lorem.sentence();
+  private readonly showMessage = jest.fn<(message: string) => void>();
   private readonly hostSdk: AtlasSdk<CustomerSdk> = createAtlasSdk<CustomerSdk>(
     {
       hostId: faker.string.uuid(),
       hostData: { userName: faker.person.firstName() },
       navigation: createAppContext('https://cdn.example/remoteEntry.json')
         .navigation,
+      showMessage: this.showMessage,
     },
   );
   private readonly injectors: EnvironmentInjector[] = [];
@@ -72,6 +77,22 @@ export class AngularBootstrapDriver {
   };
 
   readonly when = {
+    injectInHost: (): void => {
+      const injector = createEnvironmentInjector(
+        [
+          provideAtlasSdk(() => this.hostSdk),
+          { provide: ApplicationRef, useValue: {} },
+        ],
+        null!,
+      );
+      this.injectors.push(injector);
+      this.injectedSdks.push(
+        runInInjectionContext(injector, () => injectAtlasSdk<CustomerSdk>()),
+      );
+    },
+    sendMessage: (): void => {
+      this.injectedSdks[0].showMessage(this.message);
+    },
     mount: async (remoteEntryUrl: string): Promise<void> => {
       const app = defineApp(async (request) => {
         if (this.bootstrapFailure) throw this.bootstrapFailure;
@@ -103,6 +124,12 @@ export class AngularBootstrapDriver {
   };
 
   readonly get = {
+    injectedHostId: (): string => this.injectedSdks[0].hostId,
+    hostId: (): string => this.hostSdk.hostId,
+    messageHandler: () => this.showMessage,
+    message: (): string => this.message,
+    assetBaseUrl: (): string => this.injectedSdks[0].assetBaseUrl(),
+    assetUrl: (path: string): string => this.injectedSdks[0].assetUrl(path),
     hostSdk: (): AtlasSdk<CustomerSdk> => this.hostSdk,
     bootstrapSdk: (): AtlasSdk | undefined => this.bootstrapSdk,
     copiedSdk: (): object => ({ ...this.bootstrapSdk }),

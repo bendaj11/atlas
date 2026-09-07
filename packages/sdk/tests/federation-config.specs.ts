@@ -19,9 +19,10 @@ type ReactFederationConfigFactory = (
   options: ReactFederationConfigOptions,
 ) => UserConfig;
 
+const federationConfigModule: string = '../federation-config.cjs';
 const { createReactAppViteConfig, createReactHostViteConfig } = createRequire(
   import.meta.url,
-)('../federation-config.cjs') as {
+)(federationConfigModule) as {
   createReactAppViteConfig: ReactFederationConfigFactory;
   createReactHostViteConfig: ReactFederationConfigFactory;
 };

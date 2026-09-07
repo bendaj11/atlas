@@ -11,8 +11,8 @@ import {
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
 import {
-  assertAtlasRuntimeConfig,
   environmentManifestUrl,
+  resolveAtlasRuntimeConfig,
 } from '@atlas/bootstrap';
 import {
   isRetryableHttpStatus,
@@ -114,13 +114,13 @@ export class AtlasVerifyService {
     if (!runtimeResponse) return undefined;
     this.verifyMutableCache(runtimeResponse, 'runtime config', context);
     try {
-      assertAtlasRuntimeConfig(config);
+      const runtime = resolveAtlasRuntimeConfig(config, context.hostUrl.href);
       pass(
         context,
         'runtime config',
-        `Selected environment "${config.environment}" for host "${config.hostId}".`,
+        `Selected environment "${runtime.environment}" for host "${runtime.hostId}".`,
       );
-      return config;
+      return runtime;
     } catch (error) {
       fail(context, 'runtime config', errorMessage(error));
       return undefined;
