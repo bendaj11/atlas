@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T14:23:51.809192+00:00",
+  "generated_at": "2026-09-08T12:14:17.977004+00:00",
   "nodes": {
     "apps_columbus_src_scripts_manifests_manifest_utils_manifest_utils": {
       "code_fingerprint": "9e95251b8d014ca40be90040ad0c219839f8b17554dcd93fad91baba7e71a5b5",
@@ -12,7 +12,7 @@
           "q": "columbus should allow any url its an internal extension"
         }
       ],
-      "score": 0.331587226,
+      "score": 0.324688044,
       "source_file": "apps/columbus/src/scripts/manifests/manifest-utils/manifest-utils.ts",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "default custom url in artifact configuration should not have predefined value but a http://localhost:4200 place holder"
         }
       ],
-      "score": 0.331621805,
+      "score": 0.324721903,
       "source_file": "apps/columbus/src/types/app.ts",
       "status": "tentative",
       "uses": 1
@@ -44,7 +44,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.321502742,
+      "score": 0.314813383,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -60,7 +60,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.321502742,
+      "score": 0.314813383,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -81,7 +81,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.642991136,
+      "score": 0.629612716,
       "source_file": "packages/cli/src/development/service/dev.service.ts",
       "status": "preferred",
       "uses": 2
@@ -108,7 +108,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.32152393,
+      "score": 0.31483413,
       "source_file": "packages/cli/src/development/session/session.ts",
       "status": "contested",
       "uses": 2,
@@ -125,7 +125,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.368251382,
+      "score": 0.360589346,
       "source_file": "packages/cli/src/generation/service/generate.service.ts",
       "status": "tentative",
       "uses": 1
@@ -141,13 +141,13 @@
           "q": "How can I use my custom httpClient in an Angular host to update signals and pass them into host data?"
         }
       ],
-      "score": 0.90721738,
+      "score": 0.888341327,
       "source_file": "packages/runtime/src/angular.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_index_mountapp": {
-      "code_fingerprint": "193fc910548cf678a12fc5fc761b4978e9dbd51b1ba0c006e7ec8633ada23cc2",
+      "code_fingerprint": "a7bc845f3b6db381ac0626fde25539aae44b5eb2667b980c2bcc0f3ac1432525",
       "label": "mountApp()",
       "last": "2026-09-03T10:15:04.926233+00:00",
       "provenance": [
@@ -157,13 +157,13 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.908090406,
+      "score": 0.889196188,
       "source_file": "packages/runtime/src/index.ts",
       "status": "tentative",
       "uses": 1
     },
     "packages_runtime_src_index_startatlashostruntime": {
-      "code_fingerprint": "193fc910548cf678a12fc5fc761b4978e9dbd51b1ba0c006e7ec8633ada23cc2",
+      "code_fingerprint": "a7bc845f3b6db381ac0626fde25539aae44b5eb2667b980c2bcc0f3ac1432525",
       "label": "startAtlasHostRuntime()",
       "last": "2026-07-27T11:29:00.276809+00:00",
       "provenance": [
@@ -173,7 +173,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.377867499,
+      "score": 0.370005385,
       "source_file": "packages/runtime/src/index.ts",
       "status": "tentative",
       "uses": 1
@@ -189,7 +189,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.321481055,
+      "score": 0.314792147,
       "source_file": "packages/runtime/src/loader/runtime-discovery.ts",
       "status": "tentative",
       "uses": 1
@@ -205,7 +205,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.908090406,
+      "score": 0.889196188,
       "source_file": "packages/runtime/src/remote-assets/document-styles.ts",
       "status": "tentative",
       "uses": 1
@@ -221,7 +221,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.908090406,
+      "score": 0.889196188,
       "source_file": "packages/runtime/src/stylesheets.ts",
       "status": "tentative",
       "uses": 1
@@ -237,7 +237,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.321457369,
+      "score": 0.314768954,
       "source_file": "packages/schema/src/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -264,7 +264,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.321547616,
+      "score": 0.314857323,
       "source_file": "packages/schema/src/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
@@ -281,7 +281,7 @@
           "q": "in angular app.config.ts the sdk doesnt have assetsUrl. why?"
         }
       ],
-      "score": 0.90804125,
+      "score": 0.889148055,
       "source_file": "packages/sdk/src/angular-injection.ts",
       "status": "tentative",
       "uses": 1
@@ -297,7 +297,7 @@
           "q": "in angular app.config.ts the sdk doesnt have assetsUrl. why?"
         }
       ],
-      "score": 0.90804125,
+      "score": 0.889148055,
       "source_file": "packages/sdk/src/app-assets.ts",
       "status": "tentative",
       "uses": 1
@@ -313,7 +313,7 @@
           "q": "How can I use my custom httpClient in an Angular host to update signals and pass them into host data?"
         }
       ],
-      "score": 0.90721738,
+      "score": 0.888341327,
       "source_file": "packages/sdk/src/host-data.ts",
       "status": "tentative",
       "uses": 1
@@ -329,7 +329,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.377867499,
+      "score": 0.370005385,
       "source_file": "packages/sdk/src/host-slots.ts",
       "status": "tentative",
       "uses": 1
@@ -345,7 +345,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.377867499,
+      "score": 0.370005385,
       "source_file": "packages/sdk/src/route-context.ts",
       "status": "tentative",
       "uses": 1
