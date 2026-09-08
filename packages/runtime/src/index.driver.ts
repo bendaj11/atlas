@@ -5,6 +5,7 @@ import {
 import { getAtlasNavigation } from '../../sdk/dist/index.js';
 import { createWidgetLoader, startAtlasHostRuntime } from './index.js';
 import type {
+  AtlasAppContext,
   AtlasAppEntry,
   AtlasMountedWidget,
 } from '../../sdk/dist/lifecycle.js';
@@ -199,6 +200,48 @@ export class WidgetRetryDriver {
   get remoteUnmounted(): boolean {
     return this.#unmounted;
   }
+}
+
+export class WidgetContextDriver {
+  private context: AtlasAppContext | undefined;
+  private ownerManifest: AtlasManifest | undefined;
+  private hostId: string | undefined;
+
+  readonly when = {
+    mount: async (): Promise<void> => {
+      const widget = widgetManifest(
+        'catalog',
+        '6f4994c1-b95f-4b24-a01a-106dd61aa4fb',
+        'Product Count',
+      );
+      const ownerManifest = createTestManifest({
+        id: 'catalog',
+        placements: [],
+        exportedWidgets: [widget],
+      });
+      const sdk = createTestHostSdk();
+      const driver = this;
+      const loader = createWidgetLoader([ownerManifest], sdk, {
+        async importWidget() {
+          return {
+            mount: (request) => {
+              driver.context = request.context;
+            },
+          };
+        },
+      });
+
+      this.ownerManifest = ownerManifest;
+      this.hostId = sdk.hostId;
+      await loader.mount(widget.id, createWidgetRendererContainer(), {});
+    },
+  };
+
+  readonly get = {
+    context: (): AtlasAppContext | undefined => this.context,
+    ownerManifest: (): AtlasManifest | undefined => this.ownerManifest,
+    hostId: (): string | undefined => this.hostId,
+  };
 }
 
 export async function duplicateWidgetResult(): Promise<{

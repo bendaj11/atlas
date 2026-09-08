@@ -440,8 +440,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/index.ts": {
-    "mtime": 1788861657.3309433,
-    "ast_hash": "1abc5ca759c6621637a52fed9d9550a2",
+    "mtime": 1788775757.9431677,
+    "ast_hash": "6565fdde4066a1b58d0da7f080e0e2fe",
     "semantic_hash": ""
   },
   "packages/runtime/src/loader/native-federation.ts": {
@@ -680,8 +680,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-app.ts": {
-    "mtime": 1788861619.6712613,
-    "ast_hash": "ac4816ab7a802fbe2cc6a0ebd3429935",
+    "mtime": 1788782987.4545722,
+    "ast_hash": "12ff27c154d5412ede72b4f24bbabb11",
     "semantic_hash": ""
   },
   "packages/sdk/src/angular-host-navigation.ts": {
@@ -740,8 +740,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/lifecycle.ts": {
-    "mtime": 1788861717.5557415,
-    "ast_hash": "87b01573aed9bf0782656bfd79e417ad",
+    "mtime": 1788775757.6031299,
+    "ast_hash": "f3c5ad6c9b4a65819858804fbe2dcd39",
     "semantic_hash": ""
   },
   "packages/sdk/src/navigation-paths.ts": {
@@ -760,8 +760,8 @@
     "semantic_hash": "4a3fca5771e1a93c6e8507fab86ea900"
   },
   "packages/sdk/src/react-app.ts": {
-    "mtime": 1788861619.7746832,
-    "ast_hash": "353f201a8624d5d269820180a26f790b",
+    "mtime": 1788776592.0683165,
+    "ast_hash": "ad9593c95bd9aba49331f4b0b8a996ab",
     "semantic_hash": ""
   },
   "packages/sdk/src/react-context.ts": {
@@ -1390,7 +1390,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1788861685.523881,
+    "mtime": 1788783672.992092,
     "ast_hash": "9400cbdd112c451f48aa3c2a309a84ff",
     "semantic_hash": ""
   },
@@ -1420,7 +1420,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1788861685.5254319,
+    "mtime": 1788783672.993495,
     "ast_hash": "5d27c259fdf117f77020a64185489958",
     "semantic_hash": ""
   },
@@ -2310,7 +2310,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1788861685.5268273,
+    "mtime": 1788783672.9941761,
     "ast_hash": "97b13ac0030eabf4caa40ffe2772da81",
     "semantic_hash": ""
   },
@@ -2860,13 +2860,13 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/index.driver.ts": {
-    "mtime": 1788861726.9296386,
-    "ast_hash": "534f72ebb062b3d5f850ab03dbbd3058",
+    "mtime": 1787740550.4159598,
+    "ast_hash": "f16c371c63c317c21b9f11ca2803a1b4",
     "semantic_hash": ""
   },
   "packages/runtime/src/index.specs.ts": {
-    "mtime": 1788861717.7565074,
-    "ast_hash": "dfc704d32f1d9380d264b866b754a34a",
+    "mtime": 1788728808.0769792,
+    "ast_hash": "7d56f5a9fdab70d604e342ede4294b71",
     "semantic_hash": ""
   },
   "packages/schema/src/atlas-placement.specs.ts": {

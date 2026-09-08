@@ -24,6 +24,7 @@ import type {
 import type {
   AtlasExportedWidgetEntry,
   AtlasExportedWidgetMountResult,
+  AtlasAppContext,
   AtlasAppEntry,
   AtlasAppMountResult,
   AtlasMountedWidget,
@@ -1081,6 +1082,10 @@ async function mountWidgetAttempt<TProps extends object>(
         styleTarget: styleTargetFor(boundary, card.element.ownerDocument),
         props: input.props,
         sdk: input.sdk,
+        context: createExportedWidgetContext(
+          resolved.ownerManifest,
+          input.sdk,
+        ),
         ...resolved,
       });
     } catch (error) {
@@ -1128,6 +1133,30 @@ async function mountWidgetAttempt<TProps extends object>(
       resolved,
     );
   }
+}
+
+function createExportedWidgetContext(
+  manifest: AtlasManifest,
+  sdk: AtlasSdk,
+): AtlasAppContext {
+  const hostNavigation = getAtlasNavigation(sdk);
+  const navigation = createScopedNavigation(
+    findDefaultPath(manifest),
+    hostNavigation,
+  );
+
+  return {
+    manifest,
+    hostId: sdk.hostId,
+    path: navigation.path,
+    navigation,
+    route: createRouteContext(navigation.path, hostNavigation),
+    loading: {
+      show: () => undefined,
+      hide: () => undefined,
+      waitUntilReady: () => () => undefined,
+    },
+  };
 }
 
 interface WidgetCardInput {

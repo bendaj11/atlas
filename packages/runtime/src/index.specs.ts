@@ -1,4 +1,4 @@
-import { test } from '@jest/globals';
+import { expect, test } from '@jest/globals';
 import assert from 'node:assert/strict';
 import {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
@@ -43,6 +43,7 @@ import type {
 import type { AtlasHostMountEvent, AtlasRuntimeEvent } from './index.js';
 import {
   HostRuntimeDriver,
+  WidgetContextDriver,
   WidgetRetryDriver,
   createDeferred,
   createHostCatalog,
@@ -939,6 +940,17 @@ test('widget loader mounts from the selected owner version', async () => {
   assert.equal(request.container.isConnected, true);
   await mounted.unmount();
   assert.equal(unmounted, true);
+});
+
+test('should provide owner app context when mounting an exported widget', async () => {
+  const driver = new WidgetContextDriver();
+
+  await driver.when.mount();
+
+  expect(driver.get.context()).toMatchObject({
+    manifest: driver.get.ownerManifest(),
+    hostId: driver.get.hostId(),
+  });
 });
 
 test('widget loader shares concurrent resolution and module imports', async () => {

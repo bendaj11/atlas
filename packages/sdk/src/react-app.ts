@@ -105,7 +105,7 @@ function renderWidgetWithAtlasProviders(
   request: AtlasExportedWidgetMountRequest<object>,
   element: unknown,
 ): ReactNode {
-  return renderWithSdkAndStyleTarget(request, element);
+  return renderWithSdkAndStyleTarget(request, element, request.context);
 }
 
 function renderWithSdkAndStyleTarget(

@@ -92,13 +92,12 @@ export function createExportedWidget<TProps extends object>(
   config: ApplicationConfig = { providers: [] },
 ): AtlasExportedWidgetEntry<TProps> {
   return defineExportedWidget(
-    async ({ props, sdk, styleTarget, container }) => {
+    async ({ props, sdk, context, styleTarget, container }) => {
       const application = await createApplication({
         ...config,
         providers: [
-          provideAtlasAngularStyles(styleTarget),
+          provideAtlasApp({ context, sdk, styleTarget }),
           ...config.providers,
-          provideAtlasSdk(sdk),
         ],
       });
       const component = createComponent(componentType, {

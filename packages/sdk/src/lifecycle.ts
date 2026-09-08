@@ -59,6 +59,7 @@ export interface AtlasExportedWidgetMountRequest<
   styleTarget: Node & ParentNode;
   props: TProps;
   sdk: AtlasSdk<THostSdk>;
+  context: AtlasAppContext;
   widget: AtlasExportedWidgetManifest;
   ownerManifest: AtlasManifest;
 }
