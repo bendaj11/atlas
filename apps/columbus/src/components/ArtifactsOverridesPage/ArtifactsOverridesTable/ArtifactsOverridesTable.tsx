@@ -1,33 +1,23 @@
 import { useState } from 'react';
 import { Card, Table, type TableColumn } from '@wix/design-system';
 import type { Artifact } from '../../../types/app.js';
-import { ArtifactOverrideToggle } from './ArtifactOverrideToggle/ArtifactOverrideToggle';
-import { ArtifactOverrideVersion } from './ArtifactOverrideVersion/ArtifactOverrideVersion';
-import { ArtifactOverrideActions } from './ArtifactOverrideActions/ArtifactOverrideActions';
-import { OverridesTableToolbar } from './OverridesTableToolbar/OverridesTableToolbar';
-import { useArtifacts } from '../useArtifacts/useArtifacts';
-import { ArtifactName } from './ArtifactName/ArtifactName';
+import { ArtifactOverrideToggle } from './ArtifactOverrideToggle/ArtifactOverrideToggle.js';
+import { ArtifactOverrideVersion } from './ArtifactOverrideVersion/ArtifactOverrideVersion.js';
+import { ArtifactOverrideActions } from './ArtifactOverrideActions/ArtifactOverrideActions.js';
+import { OverridesTableToolbar } from './OverridesTableToolbar/OverridesTableToolbar.js';
+import { useArtifacts } from '../useArtifacts/useArtifacts.js';
+import { ArtifactName } from './ArtifactName/ArtifactName.js';
+import { filterArtifacts } from './filterArtifacts/filterArtifacts.js';
 
 export function ArtifactsOverridesTable() {
-  const artifacts = useArtifacts();
+  const allArtifacts = useArtifacts();
   const [searchValue, setSearchValue] = useState('');
-  const [showVisibleOnly, setShowVisibleOnly] = useState(false);
-  const displayedArtifacts = showVisibleOnly
-    ? artifacts.filter((artifact) => artifact.visible)
-    : artifacts;
-  const searchQuery = searchValue.trim().toLocaleLowerCase();
-  const filteredArtifacts = searchQuery
-    ? displayedArtifacts.filter((artifact) =>
-        [artifact.productionManifest.name, artifact.sourceDescription].some(
-          (value) => value.toLocaleLowerCase().includes(searchQuery),
-        ),
-      )
-    : displayedArtifacts;
-  const sortedArtifacts = [...filteredArtifacts].sort(
-    (left, right) =>
-      Number(right.overrideEnabled) - Number(left.overrideEnabled) ||
-      Number(right.canToggle) - Number(left.canToggle),
-  );
+  const [visibleOnly, setVisibleOnly] = useState(false);
+  const { artifacts, totalCount } = filterArtifacts({
+    artifacts: allArtifacts,
+    searchValue,
+    visibleOnly,
+  });
 
   const columns: TableColumn<Artifact>[] = [
     {
@@ -59,15 +49,15 @@ export function ArtifactsOverridesTable() {
       <Table
         columns={columns}
         showHeaderWhenEmpty
-        data={sortedArtifacts}
+        data={artifacts}
         rowVerticalPadding="large"
       >
         <OverridesTableToolbar
           onSearch={setSearchValue}
-          totalCount={displayedArtifacts.length}
-          filteredCount={filteredArtifacts.length}
-          visibleOnly={showVisibleOnly}
-          onVisibleOnlyChange={setShowVisibleOnly}
+          totalCount={totalCount}
+          filteredCount={artifacts.length}
+          visibleOnly={visibleOnly}
+          onVisibleOnlyChange={setVisibleOnly}
         />
 
         <Table.Content titleBarVisible={false} />
