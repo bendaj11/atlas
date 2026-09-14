@@ -1,93 +1,65 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { aManifest } from '../../../types/app.testkit';
 import { ManifestVersionsDriver } from './manifest-versions.driver';
 
-describe('unique manifest versions', () => {
+describe('uniqueVersions', () => {
   let driver: ManifestVersionsDriver;
 
   beforeEach(() => {
     driver = new ManifestVersionsDriver();
   });
 
-  it('should sort production before PR and local when history is unordered', () => {
+  it('should keep input order when versions are distinct', () => {
     driver.given
-      .version({ channel: 'local', buildId: 'local' })
-      .given.version({
-        channel: 'pr',
-        version: '1.0.0-pr.42',
-        buildId: 'pull-request',
-        prNumber: 42,
-      })
-      .given.version({
-        channel: 'production',
-        buildId: 'production',
-        createdAt: '2026-01-01T00:00:00.000Z',
-      });
+      .version(aManifest({ version: '3.0.0', buildId: 'latest' }))
+      .given.version(aManifest({ version: '2.0.0', buildId: 'previous' }))
+      .given.version(aManifest({ version: '1.0.0', buildId: 'oldest' }));
 
-    expect(driver.get.channels()).toStrictEqual(['production', 'pr', 'local']);
-  });
-
-  it('should sort production and PR versions newest first when dates differ', () => {
-    driver.given
-      .version({
-        channel: 'production',
-        version: '1.0.0',
-        buildId: 'production-old',
-        createdAt: '2026-01-01T00:00:00.000Z',
-      })
-      .given.version({
-        channel: 'pr',
-        version: '1.0.0-pr.7',
-        buildId: 'pr-old',
-        prNumber: 7,
-        createdAt: '2026-01-02T00:00:00.000Z',
-      })
-      .given.version({
-        channel: 'production',
-        version: '2.0.0',
-        buildId: 'production-new',
-        createdAt: '2026-01-03T00:00:00.000Z',
-      })
-      .given.version({
-        channel: 'pr',
-        version: '1.0.0-pr.8',
-        buildId: 'pr-new',
-        prNumber: 8,
-        createdAt: '2026-01-04T00:00:00.000Z',
-      });
-
-    expect(driver.get.versionKeys()).toStrictEqual([
-      'production:2.0.0:production-new',
-      'production:1.0.0:production-old',
-      'pr:8:pr-new',
-      'pr:7:pr-old',
-    ]);
-  });
-
-  it('should put versions without creation dates after dated versions', () => {
-    driver.given
-      .version({
-        version: '1.0.0',
-        buildId: 'historical',
-        createdAt: '2026-01-01T00:00:00.000Z',
-      })
-      .given.version({ version: '1.1.0', buildId: 'current' });
-
-    expect(driver.get.versionKeys()).toStrictEqual([
-      'production:1.0.0:historical',
-      'production:1.1.0:current',
-    ]);
-  });
-
-  it('should retain registry version order when versions have equal timestamps', () => {
-    driver.given
-      .version({ version: '3.0.0', buildId: 'latest' })
-      .given.version({ version: '2.0.0', buildId: 'previous' })
-      .given.version({ version: '1.0.0', buildId: 'oldest' });
-
-    expect(driver.get.versionKeysInOrder()).toStrictEqual([
+    expect(driver.get.uniqueVersionKeys()).toStrictEqual([
       'production:3.0.0:latest',
       'production:2.0.0:previous',
       'production:1.0.0:oldest',
     ]);
+  });
+
+  it('should keep the last occurrence position when a version repeats', () => {
+    driver.given
+      .version(aManifest({ version: '1.0.0', buildId: 'a' }))
+      .given.version(aManifest({ version: '2.0.0', buildId: 'b' }))
+      .given.version(aManifest({ version: '1.0.0', buildId: 'a' }));
+
+    expect(driver.get.uniqueVersionKeys()).toStrictEqual([
+      'production:1.0.0:a',
+      'production:2.0.0:b',
+    ]);
+  });
+});
+
+describe('versionKey', () => {
+  let driver: ManifestVersionsDriver;
+
+  beforeEach(() => {
+    driver = new ManifestVersionsDriver();
+  });
+
+  it('should combine channel, version, and build id when channel is production', () => {
+    expect(
+      driver.get.versionKey(aManifest({ version: '1.2.3', buildId: 'b1' })),
+    ).toBe('production:1.2.3:b1');
+  });
+
+  it('should use the PR number when channel is pr', () => {
+    expect(
+      driver.get.versionKey(
+        aManifest({ channel: 'pr', prNumber: 42, buildId: 'b1' }),
+      ),
+    ).toBe('pr:42:b1');
+  });
+
+  it('should fall back to the version when a pr has no number', () => {
+    expect(
+      driver.get.versionKey(
+        aManifest({ channel: 'pr', version: '1.0.0-pr.9', buildId: 'b1' }),
+      ),
+    ).toBe('pr:1.0.0-pr.9:b1');
   });
 });

@@ -210,12 +210,7 @@ export async function writeOverrides({
   if (scope === 'all' && !count) await chrome.storage.local.remove(storageKey);
 }
 
-export async function validateLocalOverride({
-  manifest,
-}: {
-  tabId: number;
-  manifest: Manifest;
-}): Promise<void> {
+export async function validateLocalOverride(manifest: Manifest): Promise<void> {
   if (manifest.channel !== 'local') return;
   const error = await validateLocalRemoteEntry(
     manifest.remoteEntryUrl,

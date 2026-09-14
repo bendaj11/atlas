@@ -8,7 +8,6 @@ import {
   writeOverrides,
 } from './atlas-host';
 import { readHostDataCache } from '../host-data-cache';
-import { createCustomManifest } from '../../manifests/manifest-utils/manifest-utils';
 
 interface MockTab {
   active?: boolean;
@@ -71,13 +70,7 @@ export class AtlasHostDriver {
     },
     localOverrideValidated: async (): Promise<this> => {
       try {
-        await validateLocalOverride({
-          tabId: 7,
-          manifest: createCustomManifest({
-            productionManifest: appManifest(),
-            rawUrl: 'http://localhost:4513',
-          }),
-        });
+        await validateLocalOverride(localManifestOf(appManifest()));
       } catch (error) {
         this.validationError = error;
       }
@@ -94,10 +87,7 @@ export class AtlasHostDriver {
     validationError: (): unknown => this.validationError,
     runtimeOverrides: async () => {
       const productionManifest = appManifest();
-      const local = createCustomManifest({
-        productionManifest,
-        rawUrl: 'http://localhost:4513',
-      });
+      const local = localManifestOf(productionManifest);
       const documentValue = createOverrideDocument({
         hostData: {
           ...aHostData(hostId),
@@ -271,6 +261,18 @@ function aHostData(id: string): AtlasHostData {
     overrideScope: undefined,
     runtimeErrors: [],
     versionErrors: [],
+  };
+}
+
+function localManifestOf(
+  productionManifest: AtlasHostData['catalog']['apps'][number],
+): AtlasHostData['catalog']['apps'][number] {
+  return {
+    ...productionManifest,
+    version: '0.0.0-local',
+    buildId: 'custom-url',
+    channel: 'local',
+    remoteEntryUrl: 'http://localhost:4513/remoteEntry.json',
   };
 }
 

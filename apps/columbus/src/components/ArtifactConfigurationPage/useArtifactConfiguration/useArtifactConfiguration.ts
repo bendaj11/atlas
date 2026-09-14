@@ -6,7 +6,7 @@ import {
   useSession,
 } from '../../providers/index';
 import {
-  uniqueVersionsInOrder,
+  uniqueVersions,
   versionKey,
 } from '../../../scripts/manifests/manifest-versions/manifest-versions';
 import {
@@ -131,7 +131,7 @@ function configurationOf(
   { key, productionManifest }: Artifact,
   { activeOverrides, disabledOverrides, hostData }: ExtensionSession,
 ): ArtifactConfiguration {
-  const versions = uniqueVersionsInOrder([
+  const versions = uniqueVersions([
     ...(hostData.versions[key] ?? []),
     productionManifest,
   ]);

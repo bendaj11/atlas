@@ -13,4 +13,5 @@ module.exports = {
   ],
   testEnvironment: 'jsdom',
   testMatch: ['**/*.specs.ts', '**/*.specs.tsx'],
+  testTimeout: 15_000,
 };

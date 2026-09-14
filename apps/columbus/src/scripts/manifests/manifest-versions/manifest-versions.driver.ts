@@ -1,46 +1,21 @@
 import type { AtlasExtensionManifest } from '../../../types/contracts';
-import {
-  uniqueVersions,
-  uniqueVersionsInOrder,
-  versionKey,
-} from './manifest-versions';
+import { uniqueVersions, versionKey } from './manifest-versions';
 
 export class ManifestVersionsDriver {
   private versions: AtlasExtensionManifest[] = [];
 
   readonly given = {
-    version: (overrides: Partial<AtlasExtensionManifest>): this => {
-      this.versions.push(aManifest(overrides));
+    version: (version: AtlasExtensionManifest): this => {
+      this.versions.push(version);
 
       return this;
     },
   };
 
   readonly get = {
-    channels: (): AtlasExtensionManifest['channel'][] =>
-      uniqueVersions(this.versions).map(({ channel }) => channel),
-    versionKeys: (): string[] =>
+    uniqueVersionKeys: (): string[] =>
       uniqueVersions(this.versions).map((manifest) => versionKey(manifest)),
-    versionKeysInOrder: (): string[] =>
-      uniqueVersionsInOrder(this.versions).map((manifest) =>
-        versionKey(manifest),
-      ),
-  };
-}
-
-function aManifest(
-  overrides: Partial<AtlasExtensionManifest>,
-): AtlasExtensionManifest {
-  return {
-    schemaVersion: '1',
-    kind: 'app',
-    id: 'orders',
-    name: 'Orders',
-    version: '1.0.0',
-    buildId: 'build',
-    channel: 'production',
-    framework: 'react',
-    remoteEntryUrl: 'https://cdn.example/remoteEntry.json',
-    ...overrides,
+    versionKey: (manifest: AtlasExtensionManifest): string =>
+      versionKey(manifest),
   };
 }

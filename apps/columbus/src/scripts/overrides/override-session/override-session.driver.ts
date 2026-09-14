@@ -10,7 +10,6 @@ import {
   toggleOverrideInSession,
 } from './override-session';
 import type { ExtensionSession } from '../../../types/app';
-import { disabledOverrideIds } from '../persist-overrides';
 
 export class OverrideSessionDriver {
   private session = aSession();
@@ -105,7 +104,6 @@ export class OverrideSessionDriver {
       this.session.activeOverrides.get('app:orders'),
     disabledOverride: (): AtlasExtensionManifest | undefined =>
       this.session.disabledOverrides.get('app:orders'),
-    disabledOverrideIds: (): string[] => disabledOverrideIds(this.session),
     suppressedArtifactIds: (): string[] => [
       ...this.session.suppressedArtifactIds,
     ],

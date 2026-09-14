@@ -12,9 +12,7 @@ export async function persistOverrideSession(
   session: ExtensionSession,
 ): Promise<void> {
   await Promise.all(
-    [...session.activeOverrides.values()].map((manifest) =>
-      validateLocalOverride({ tabId: session.tabId, manifest }),
-    ),
+    [...session.activeOverrides.values()].map(validateLocalOverride),
   );
   const disabledArtifactIds = disabledOverrideIds(session);
   const documentValue = createOverrideDocument({
@@ -43,7 +41,7 @@ export async function persistOverrideSession(
   await reloadHostTab(session.tabId);
 }
 
-export function disabledOverrideIds(session: ExtensionSession): string[] {
+function disabledOverrideIds(session: ExtensionSession): string[] {
   return [
     ...new Set([
       ...[...session.disabledOverrides.values()].map((manifest) => manifest.id),

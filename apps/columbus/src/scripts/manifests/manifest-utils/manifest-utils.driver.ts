@@ -1,7 +1,6 @@
 import type { AtlasExtensionManifest } from '../../../types/contracts';
 import {
   artifactSourceDescription,
-  createCustomManifest,
   createEditorDraft,
   resolveSelectedManifest,
   versionLabel,
@@ -21,10 +20,7 @@ export class ManifestUtilsDriver {
       return this;
     },
     selectedCustomUrl: (rawUrl: string): this => {
-      this.selectedManifest = createCustomManifest({
-        productionManifest: this.productionManifest,
-        rawUrl,
-      });
+      this.selectedManifest = this.get.customManifest(rawUrl);
 
       return this;
     },
@@ -63,9 +59,16 @@ export class ManifestUtilsDriver {
         prOptions: [],
       }),
     customManifest: (rawUrl: string) =>
-      createCustomManifest({
+      resolveSelectedManifest({
         productionManifest: this.productionManifest,
-        rawUrl,
+        draft: {
+          type: 'custom',
+          customUrl: rawUrl,
+          productionKey: '',
+          prKey: '',
+        },
+        productionOptions: [],
+        prOptions: [],
       }),
     missingPrSelection: () =>
       resolveSelectedManifest({

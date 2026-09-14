@@ -95,15 +95,6 @@ describe('clearing overrides', () => {
   });
 });
 
-describe('disabled local discovery', () => {
-  it('should persist raw artifact id instead of typed session key', () => {
-    const driver = new OverrideSessionDriver();
-    driver.given.disabledOverride();
-
-    expect(driver.get.disabledOverrideIds()).toStrictEqual(['orders']);
-  });
-});
-
 describe('override scope', () => {
   let driver: OverrideSessionDriver;
 

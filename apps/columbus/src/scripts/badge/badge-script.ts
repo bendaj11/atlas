@@ -3,12 +3,13 @@ import {
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh';
 import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature';
+import { actionThemeMessage } from '../shared/action-icon-theme';
+import { DOCUMENT_KEY } from '../shared/constants';
 import {
   inspectAtlasHost,
   loadArtifactVersion,
 } from '../host/inspect-atlas-host/inspect-atlas-host';
 
-const DOCUMENT_KEY = 'atlas.runtime-overrides';
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
 const BADGE_DISABLED_LOCAL_APPS_KEY_PREFIX = 'atlas.disabled-local-apps.';
 const REFRESH_INTERVAL_MS = 2_000;
@@ -79,10 +80,9 @@ function messageFromError(error: unknown): string {
 }
 
 async function publishActionTheme(): Promise<void> {
-  await chrome.runtime.sendMessage({
-    type: 'columbus.action-theme',
-    colorScheme: darkColorScheme.matches ? 'dark' : 'light',
-  });
+  await chrome.runtime.sendMessage(
+    actionThemeMessage(darkColorScheme.matches ? 'dark' : 'light'),
+  );
 }
 
 async function startBadgeRefresh(): Promise<void> {

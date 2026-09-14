@@ -81,7 +81,7 @@ export function resolveSelectedManifest({
   return selectedManifest;
 }
 
-export function createCustomManifest({
+function createCustomManifest({
   productionManifest,
   rawUrl,
 }: CreateCustomManifestOptions): Manifest {

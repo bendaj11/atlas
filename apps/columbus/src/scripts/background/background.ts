@@ -14,7 +14,6 @@ interface BadgeCountMessage {
   overrideCount: number;
 }
 
-chrome.runtime.onInstalled.addListener(() => undefined);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'loading') void clearHostDataCache(tabId);
 });
