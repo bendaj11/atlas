@@ -1,4 +1,4 @@
-import { ARTIFACT_CONFIGURATION_ROUTE } from './routes.js';
+import { ARTIFACT_CONFIGURATION_ROUTE } from './routes';
 
 export class RoutesDriver {
   readonly get = {

@@ -7,9 +7,9 @@ import {
 import {
   isManifestSupportedByHost,
   versionLabel,
-} from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
-import { versionKey } from '../../../../scripts/manifests/manifest-versions/manifest-versions.js';
-import type { Manifest } from '../../../../types/app.js';
+} from '../../../../scripts/manifests/manifest-utils/manifest-utils';
+import { versionKey } from '../../../../scripts/manifests/manifest-versions/manifest-versions';
+import type { Manifest } from '../../../../types/app';
 
 interface VersionDropdownProps {
   disabled: boolean;

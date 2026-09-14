@@ -1,7 +1,7 @@
 import type {
   AtlasExtensionManifest as Manifest,
   AtlasHostData as HostData,
-} from './contracts.js';
+} from './contracts';
 
 export type OverrideType = 'none' | 'custom' | 'production' | 'pr';
 export type Scope = 'all' | 'tab';

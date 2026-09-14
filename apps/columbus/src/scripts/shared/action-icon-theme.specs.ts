@@ -3,7 +3,7 @@ import {
   actionIconPathsFor,
   actionThemeMessage,
   isActionThemeMessage,
-} from './action-icon-theme.js';
+} from './action-icon-theme';
 
 describe('action icon theme', () => {
   it('uses bright icon paths for dark mode', () => {

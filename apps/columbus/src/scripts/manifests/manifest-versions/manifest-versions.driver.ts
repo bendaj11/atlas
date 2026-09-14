@@ -1,16 +1,16 @@
-import type { AtlasExtensionManifest } from '../../../types/contracts.js';
+import type { AtlasExtensionManifest } from '../../../types/contracts';
 import {
   uniqueVersions,
   uniqueVersionsInOrder,
   versionKey,
-} from './manifest-versions.js';
+} from './manifest-versions';
 
 export class ManifestVersionsDriver {
   private versions: AtlasExtensionManifest[] = [];
 
   readonly given = {
     version: (overrides: Partial<AtlasExtensionManifest>): this => {
-      this.versions.push(createManifest(overrides));
+      this.versions.push(aManifest(overrides));
       return this;
     },
   };
@@ -27,7 +27,7 @@ export class ManifestVersionsDriver {
   };
 }
 
-function createManifest(
+function aManifest(
   overrides: Partial<AtlasExtensionManifest>,
 ): AtlasExtensionManifest {
   return {

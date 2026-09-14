@@ -1,18 +1,18 @@
 import { jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react';
-import type { HostStatus, OverrideStatus } from '../../../types/app.js';
-import type { useHost as useHostType } from '../HostContext/HostContext.js';
-import type { useOverrides as useOverridesType } from '../OverridesContext/OverridesContext.js';
+import type { HostStatus, OverrideStatus } from '../../../types/app';
+import type { useHost as useHostType } from '../HostContext/HostContext';
+import type { useOverrides as useOverridesType } from '../OverridesContext/OverridesContext';
 
 const useHost = jest.fn<typeof useHostType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
 
-jest.unstable_mockModule('../HostContext/HostContext.js', () => ({ useHost }));
-jest.unstable_mockModule('../OverridesContext/OverridesContext.js', () => ({
+jest.unstable_mockModule('../HostContext/HostContext', () => ({ useHost }));
+jest.unstable_mockModule('../OverridesContext/OverridesContext', () => ({
   useOverrides,
 }));
 
-const { useActionsDisabled } = await import('./useActionsDisabled.js');
+const { useActionsDisabled } = await import('./useActionsDisabled');
 
 type HostValue = ReturnType<typeof useHostType>;
 type OverridesValue = ReturnType<typeof useOverridesType>;

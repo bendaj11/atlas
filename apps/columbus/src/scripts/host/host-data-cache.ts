@@ -1,4 +1,4 @@
-import type { AtlasHostData as HostData } from '../../types/contracts.js';
+import type { AtlasHostData as HostData } from '../../types/contracts';
 
 const HOST_DATA_CACHE_KEY = 'atlas.host-data-cache';
 

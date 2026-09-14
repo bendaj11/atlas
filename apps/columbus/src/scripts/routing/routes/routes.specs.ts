@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { RoutesDriver } from './routes.driver.js';
+import { RoutesDriver } from './routes.driver';
 
 describe('routes', () => {
   let driver: RoutesDriver;

@@ -1,4 +1,4 @@
-import type { ArtifactProps } from '../../../../types/app.js';
+import type { ArtifactProps } from '../../../../types/app';
 import { Badge, Box, InfoIcon, Text } from '@wix/design-system';
 
 export const ArtifactName = ({ artifact }: ArtifactProps) => {

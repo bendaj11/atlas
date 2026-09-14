@@ -1,7 +1,7 @@
 import {
   countDevSessionOverrides,
   createBadgeRefresher,
-} from './badge-refresh.js';
+} from './badge-refresh';
 
 interface Deferred<T> {
   promise: Promise<T>;

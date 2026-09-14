@@ -2,15 +2,15 @@ import { faker } from '@faker-js/faker';
 import type {
   AtlasExtensionManifest as Manifest,
   AtlasHostData as HostData,
-} from '../../types/contracts.js';
+} from '../../types/contracts';
 import {
   extractActiveOverrideManifests,
   includeOverrideAppsInCatalog,
-} from './override-manifests.js';
+} from './override-manifests';
 
 export class OverrideManifestsDriver {
   private readonly hostId = faker.string.uuid();
-  private readonly localApp = this.createManifest('app', faker.string.uuid());
+  private readonly localApp = this.aManifest('app', faker.string.uuid());
   private readonly hostData: HostData = {
     config: {
       schemaVersion: 'v1',
@@ -23,7 +23,7 @@ export class OverrideManifestsDriver {
       schemaVersion: '1',
       hostId: this.hostId,
       revision: faker.string.uuid(),
-      host: this.createManifest('host', this.hostId),
+      host: this.aManifest('host', this.hostId),
       apps: [],
     },
     overrides: {
@@ -58,7 +58,7 @@ export class OverrideManifestsDriver {
     localAppId: (): string => this.localApp.id,
   };
 
-  private createManifest(kind: 'app' | 'host', id: string): Manifest {
+  private aManifest(kind: 'app' | 'host', id: string): Manifest {
     return {
       schemaVersion: '1',
       kind,

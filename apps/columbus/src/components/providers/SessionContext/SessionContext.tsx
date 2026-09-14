@@ -6,7 +6,7 @@ import {
   useContext,
   useState,
 } from 'react';
-import type { ExtensionSession } from '../../../types/app.js';
+import type { ExtensionSession } from '../../../types/app';
 
 interface SessionContextValue {
   session: ExtensionSession | undefined;

@@ -3,13 +3,13 @@ import {
   resolveAtlasRuntimeConfig,
 } from '@atlas/bootstrap/runtime';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
-import { versionKey } from '../../manifests/manifest-versions/manifest-versions.js';
+import { versionKey } from '../../manifests/manifest-versions/manifest-versions';
 import type {
   AtlasExtensionManifest as Manifest,
   AtlasHostData as HostData,
   AtlasOverrideDocument as OverrideDocument,
-} from '../../../types/contracts.js';
-import type { Scope } from '../../../types/app.js';
+} from '../../../types/contracts';
+import type { Scope } from '../../../types/app';
 
 interface Descriptor {
   path: string;

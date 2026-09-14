@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import type { HostStatus, OverrideStatus } from '../../../types/app.js';
-import { ActionsDisabledDriver } from './useActionsDisabled.driver.js';
+import type { HostStatus, OverrideStatus } from '../../../types/app';
+import { ActionsDisabledDriver } from './useActionsDisabled.driver';
 
 const NOT_LOADED_HOST_STATUSES: HostStatus[] = [
   'RESTORING',

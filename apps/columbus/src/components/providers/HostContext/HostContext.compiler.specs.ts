@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { HostContextCompilerDriver } from './HostContext.compiler.driver.js';
+import { HostContextCompilerDriver } from './HostContext.compiler.driver';
 
 describe('HostContext React compilation', () => {
   let driver: HostContextCompilerDriver;

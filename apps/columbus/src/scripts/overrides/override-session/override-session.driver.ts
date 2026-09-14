@@ -1,19 +1,19 @@
 import type {
   AtlasExtensionManifest,
   AtlasHostData,
-} from '../../../types/contracts.js';
+} from '../../../types/contracts';
 import {
   clearAllOverridesInSession,
   clearOverrideInSession,
   saveOverrideInSession,
   setOverrideScopeInSession,
   toggleOverrideInSession,
-} from './override-session.js';
-import type { ExtensionSession } from '../../../types/app.js';
-import { disabledOverrideIds } from '../persist-overrides.js';
+} from './override-session';
+import type { ExtensionSession } from '../../../types/app';
+import { disabledOverrideIds } from '../persist-overrides';
 
 export class OverrideSessionDriver {
-  private session = createSession();
+  private session = aSession();
 
   readonly given = {
     activeOverride: (): this => {
@@ -102,7 +102,7 @@ export class OverrideSessionDriver {
   };
 }
 
-function createSession(): ExtensionSession {
+function aSession(): ExtensionSession {
   const host = manifest({ kind: 'host', id: 'host', name: 'Host' });
   const hostData: AtlasHostData = {
     config: {

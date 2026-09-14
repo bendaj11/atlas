@@ -5,8 +5,8 @@ import {
   writeDisabledOverrides,
   writeOverrides,
   writeSuppressedArtifactIds,
-} from '../host/atlas-host/atlas-host.js';
-import type { ExtensionSession } from '../../types/app.js';
+} from '../host/atlas-host/atlas-host';
+import type { ExtensionSession } from '../../types/app';
 
 export async function persistOverrideSession(
   session: ExtensionSession,

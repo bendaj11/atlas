@@ -1,23 +1,15 @@
-import { useState } from 'react';
 import { Card, Table, type TableColumn } from '@wix/design-system';
-import type { Artifact } from '../../../types/app.js';
-import { ArtifactOverrideToggle } from './ArtifactOverrideToggle/ArtifactOverrideToggle.js';
-import { ArtifactOverrideVersion } from './ArtifactOverrideVersion/ArtifactOverrideVersion.js';
-import { ArtifactOverrideActions } from './ArtifactOverrideActions/ArtifactOverrideActions.js';
-import { OverridesTableToolbar } from './OverridesTableToolbar/OverridesTableToolbar.js';
-import { useArtifacts } from '../useArtifacts/useArtifacts.js';
-import { ArtifactName } from './ArtifactName/ArtifactName.js';
-import { filterArtifacts } from './filterArtifacts/filterArtifacts.js';
+import type { Artifact } from '../../../types/app';
+import { ArtifactOverrideToggle } from './ArtifactOverrideToggle/ArtifactOverrideToggle';
+import { ArtifactOverrideVersion } from './ArtifactOverrideVersion/ArtifactOverrideVersion';
+import { ArtifactOverrideActions } from './ArtifactOverrideActions/ArtifactOverrideActions';
+import { OverridesTableToolbar } from './OverridesTableToolbar/OverridesTableToolbar';
+import { useArtifacts } from '../useArtifacts/useArtifacts';
+import { ArtifactName } from './ArtifactName/ArtifactName';
 
 export function ArtifactsOverridesTable() {
-  const allArtifacts = useArtifacts();
-  const [searchValue, setSearchValue] = useState('');
-  const [visibleOnly, setVisibleOnly] = useState(false);
-  const { artifacts, totalCount } = filterArtifacts({
-    artifacts: allArtifacts,
-    searchValue,
-    visibleOnly,
-  });
+  const { artifacts, totalCount, setSearchValue, visibleOnly, setVisibleOnly } =
+    useArtifacts();
 
   const columns: TableColumn<Artifact>[] = [
     {

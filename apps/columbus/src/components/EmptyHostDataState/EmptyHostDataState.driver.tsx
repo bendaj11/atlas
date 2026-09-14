@@ -4,7 +4,7 @@ import {
   EmptyStateTestkit,
   TextButtonTestkit,
 } from '@wix/design-system/dist/testkit/testing-library.js';
-import { EmptyHostDataState } from './EmptyHostDataState.js';
+import { EmptyHostDataState } from './EmptyHostDataState';
 
 export class EmptyHostDataStateDriver {
   private message = 'No runtime found.';

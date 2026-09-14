@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest } from '../../../types/contracts.js';
+import type { AtlasExtensionManifest } from '../../../types/contracts';
 
 export function uniqueVersions(
   values: AtlasExtensionManifest[],

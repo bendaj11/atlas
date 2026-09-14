@@ -1,4 +1,4 @@
-import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature.js';
+import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature';
 
 export class AtlasBootstrapSignatureDriver {
   private page = document.implementation.createHTMLDocument();

@@ -1,9 +1,9 @@
-import type { ArtifactProps } from '../../../../types/app.js';
+import type { ArtifactProps } from '../../../../types/app';
 import { Delete, Edit } from '@wix/wix-ui-icons-common';
 import { TableActionCell } from '@wix/design-system';
-import { useActionsDisabled, useOverrides } from '../../../providers/index.js';
+import { useActionsDisabled, useOverrides } from '../../../providers/index';
 import { useNavigate } from 'react-router-dom';
-import { ARTIFACT_CONFIGURATION_ROUTE } from '../../../../scripts/routing/routes/routes.js';
+import { ARTIFACT_CONFIGURATION_ROUTE } from '../../../../scripts/routing/routes/routes';
 
 export const ArtifactOverrideActions = ({ artifact }: ArtifactProps) => {
   const navigate = useNavigate();

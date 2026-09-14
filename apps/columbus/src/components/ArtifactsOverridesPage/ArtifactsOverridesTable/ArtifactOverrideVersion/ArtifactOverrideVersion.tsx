@@ -1,5 +1,5 @@
-import type { ArtifactProps, OverrideType } from '../../../../types/app.js';
-import { versionBuildIdLabel } from '../../../../scripts/manifests/manifest-utils/manifest-utils.js';
+import type { ArtifactProps, OverrideType } from '../../../../types/app';
+import { versionBuildIdLabel } from '../../../../scripts/manifests/manifest-utils/manifest-utils';
 import { Text, Tooltip } from '@wix/design-system';
 
 const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {

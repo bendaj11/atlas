@@ -1,8 +1,8 @@
 import { render, type RenderResult } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { RadioGroupTestkit } from '@wix/design-system/dist/testkit/testing-library.js';
-import type { Scope } from '../../../types/app.js';
-import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker.js';
+import type { Scope } from '../../../types/app';
+import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker';
 
 export class BrowserOverrideScopePickerDriver {
   private value: Scope = 'all';

@@ -1,5 +1,5 @@
-import { useHost } from '../HostContext/HostContext.js';
-import { useOverrides } from '../OverridesContext/OverridesContext.js';
+import { useHost } from '../HostContext/HostContext';
+import { useOverrides } from '../OverridesContext/OverridesContext';
 
 export function useActionsDisabled(): boolean {
   const { status: hostStatus } = useHost();

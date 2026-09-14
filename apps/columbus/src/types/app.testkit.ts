@@ -1,8 +1,8 @@
 import { faker } from '@faker-js/faker';
-import type { Artifact, Manifest } from './app.js';
-import { getArtifactKey } from './contracts.js';
+import type { Artifact, ExtensionSession, Manifest } from './app';
+import { type AtlasHostData as HostData, getArtifactKey } from './contracts';
 
-export function createManifest(overrides: Partial<Manifest> = {}): Manifest {
+export function aManifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
     schemaVersion: '1',
     kind: 'app',
@@ -17,8 +17,8 @@ export function createManifest(overrides: Partial<Manifest> = {}): Manifest {
   };
 }
 
-export function createArtifact(overrides: Partial<Artifact> = {}): Artifact {
-  const productionManifest = overrides.productionManifest ?? createManifest();
+export function anArtifact(overrides: Partial<Artifact> = {}): Artifact {
+  const productionManifest = overrides.productionManifest ?? aManifest();
 
   return {
     id: getArtifactKey(productionManifest),
@@ -30,6 +30,47 @@ export function createArtifact(overrides: Partial<Artifact> = {}): Artifact {
     overrideEnabled: false,
     canToggle: false,
     visible: false,
+    ...overrides,
+  };
+}
+
+export function aHostData(overrides: Partial<HostData> = {}): HostData {
+  const hostId = faker.string.uuid();
+
+  return {
+    config: {
+      schemaVersion: 'v1',
+      hostId,
+      environment: 'production',
+      artifactRegistryUrl: faker.internet.url(),
+    },
+    pageUrl: faker.internet.url(),
+    catalog: {
+      schemaVersion: '1',
+      hostId,
+      revision: faker.string.uuid(),
+      host: aManifest({ kind: 'host', id: hostId }),
+      apps: [],
+    },
+    overrides: undefined,
+    overrideScope: undefined,
+    versions: {},
+    runtimeErrors: [],
+    versionErrors: [],
+    ...overrides,
+  };
+}
+
+export function aSession(
+  overrides: Partial<ExtensionSession> = {},
+): ExtensionSession {
+  return {
+    hostData: aHostData(),
+    tabId: faker.number.int({ min: 1, max: 1000 }),
+    activeOverrides: new Map(),
+    disabledOverrides: new Map(),
+    suppressedArtifactIds: new Set(),
+    scope: 'all',
     ...overrides,
   };
 }

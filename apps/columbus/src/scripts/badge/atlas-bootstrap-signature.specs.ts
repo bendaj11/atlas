@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { AtlasBootstrapSignatureDriver } from './atlas-bootstrap-signature.driver.js';
+import { AtlasBootstrapSignatureDriver } from './atlas-bootstrap-signature.driver';
 
 describe('Atlas bootstrap signature', () => {
   let driver: AtlasBootstrapSignatureDriver;

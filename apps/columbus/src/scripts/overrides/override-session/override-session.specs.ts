@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { OverrideSessionDriver } from './override-session.driver.js';
+import { OverrideSessionDriver } from './override-session.driver';
 
 describe('saving override', () => {
   let driver: OverrideSessionDriver;

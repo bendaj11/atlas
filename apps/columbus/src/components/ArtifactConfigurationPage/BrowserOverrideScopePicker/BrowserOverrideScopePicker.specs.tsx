@@ -1,6 +1,6 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { BrowserOverrideScopePickerDriver } from './BrowserOverrideScopePicker.driver.js';
+import { BrowserOverrideScopePickerDriver } from './BrowserOverrideScopePicker.driver';
 
 describe('browser override scope picker', () => {
   let driver: BrowserOverrideScopePickerDriver;

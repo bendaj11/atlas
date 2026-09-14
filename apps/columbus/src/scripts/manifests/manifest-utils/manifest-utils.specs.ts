@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { ManifestUtilsDriver } from './manifest-utils.driver.js';
+import { ManifestUtilsDriver } from './manifest-utils.driver';
 
 describe('custom manifest draft', () => {
   let driver: ManifestUtilsDriver;

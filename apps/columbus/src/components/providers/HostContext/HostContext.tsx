@@ -1,22 +1,18 @@
 import { createContext, type ReactNode, useContext, useState } from 'react';
-import type { AtlasHostData as HostData } from '../../../types/contracts.js';
+import type { AtlasHostData as HostData } from '../../../types/contracts';
 import {
   errorMessage,
   readDisabledOverrides,
   readHostData,
   readSuppressedArtifactIds,
-} from '../../../scripts/host/atlas-host/atlas-host.js';
-import { readHostDataCache } from '../../../scripts/host/host-data-cache.js';
+} from '../../../scripts/host/atlas-host/atlas-host';
+import { readHostDataCache } from '../../../scripts/host/host-data-cache';
 import {
   extractActiveOverrideManifests,
   includeOverrideAppsInCatalog,
-} from '../../../scripts/overrides/override-manifests.js';
-import type {
-  HostStatus,
-  ExtensionSession,
-  Scope,
-} from '../../../types/app.js';
-import { useSession } from '../SessionContext/SessionContext.js';
+} from '../../../scripts/overrides/override-manifests';
+import type { HostStatus, ExtensionSession, Scope } from '../../../types/app';
+import { useSession } from '../SessionContext/SessionContext';
 
 interface HostContextValue {
   hostData: HostData | undefined;

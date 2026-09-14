@@ -4,24 +4,24 @@ import {
   useActionsDisabled,
   useOverrides,
   useSession,
-} from '../../providers/index.js';
-import { uniqueVersionsInOrder } from '../../../scripts/manifests/manifest-versions/manifest-versions.js';
+} from '../../providers/index';
+import { uniqueVersionsInOrder } from '../../../scripts/manifests/manifest-versions/manifest-versions';
 import {
   createEditorDraft,
   isManifestSupportedByHost,
   resolveSelectedManifest,
-} from '../../../scripts/manifests/manifest-utils/manifest-utils.js';
-import { ARTIFACTS_ROUTE } from '../../../scripts/routing/routes/routes.js';
+} from '../../../scripts/manifests/manifest-utils/manifest-utils';
+import { ARTIFACTS_ROUTE } from '../../../scripts/routing/routes/routes';
 import {
   errorMessage,
   loadArtifactVersion,
-} from '../../../scripts/host/atlas-host/atlas-host.js';
-import { versionKey } from '../../../scripts/manifests/manifest-versions/manifest-versions.js';
+} from '../../../scripts/host/atlas-host/atlas-host';
+import { versionKey } from '../../../scripts/manifests/manifest-versions/manifest-versions';
 import type {
   ArtifactConfiguration,
   ArtifactProps,
   EditorDraft,
-} from '../../../types/app.js';
+} from '../../../types/app';
 
 type ArtifactConfigurationLocationState = ArtifactProps;
 

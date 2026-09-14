@@ -3,11 +3,11 @@ import {
   type AtlasHostData as HostData,
   type AtlasOverrideDocument as OverrideDocument,
   getArtifactKey,
-} from '../../../types/contracts.js';
-import { DOCUMENT_KEY } from '../../shared/constants.js';
-import { writeHostDataCache } from '../host-data-cache.js';
-import type { Scope } from '../../../types/app.js';
-import { normalizeStoredManifest } from '../../manifests/manifest-utils/manifest-utils.js';
+} from '../../../types/contracts';
+import { DOCUMENT_KEY } from '../../shared/constants';
+import { writeHostDataCache } from '../host-data-cache';
+import type { Scope } from '../../../types/app';
+import { normalizeStoredManifest } from '../../manifests/manifest-utils/manifest-utils';
 
 interface DisabledOverrideStorageLocation {
   hostId: string;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { cleanup } from '@testing-library/react';
-import { ArtifactOverrideVersionDriver } from './ArtifactOverrideVersion.driver.js';
+import { ArtifactOverrideVersionDriver } from './ArtifactOverrideVersion.driver';
 
 describe('artifact override version state', () => {
   let driver: ArtifactOverrideVersionDriver;

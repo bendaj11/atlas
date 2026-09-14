@@ -1,9 +1,9 @@
-import { getArtifactKey } from '../../../types/contracts.js';
+import { getArtifactKey } from '../../../types/contracts';
 import type {
   ArtifactSelection,
   ExtensionSession,
   Scope,
-} from '../../../types/app.js';
+} from '../../../types/app';
 
 export function toggleOverrideInSession({
   session,

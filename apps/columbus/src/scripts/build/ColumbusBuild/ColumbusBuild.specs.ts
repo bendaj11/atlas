@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { ColumbusBuildDriver } from './ColumbusBuild.driver.js';
+import { ColumbusBuildDriver } from './ColumbusBuild.driver';
 
 describe('Columbus extension build', () => {
   let driver: ColumbusBuildDriver;

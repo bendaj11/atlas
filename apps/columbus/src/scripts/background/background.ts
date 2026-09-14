@@ -1,16 +1,13 @@
-import {
-  BADGE_BACKGROUND_COLOR,
-  BADGE_TEXT_COLOR,
-} from '../shared/constants.js';
-import { clearHostDataCache } from '../host/host-data-cache.js';
+import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR } from '../shared/constants';
+import { clearHostDataCache } from '../host/host-data-cache';
 import {
   actionIconPathsFor,
   isActionThemeMessage,
-} from '../shared/action-icon-theme.js';
+} from '../shared/action-icon-theme';
 import {
   loadDevelopmentSession,
   type DevelopmentSessionRequest,
-} from '../development-session/development-session-background.js';
+} from '../development-session/development-session-background';
 
 interface BadgeCountMessage {
   type: 'atlas.override-count';

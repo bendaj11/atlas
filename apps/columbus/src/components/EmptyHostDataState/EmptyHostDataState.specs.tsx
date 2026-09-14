@@ -1,6 +1,6 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { EmptyHostDataStateDriver } from './EmptyHostDataState.driver.js';
+import { EmptyHostDataStateDriver } from './EmptyHostDataState.driver';
 
 describe('empty host data state', () => {
   let driver: EmptyHostDataStateDriver;

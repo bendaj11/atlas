@@ -1,12 +1,12 @@
 import {
   countDevSessionOverrides,
   createBadgeRefresher,
-} from './badge-refresh/badge-refresh.js';
-import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature.js';
+} from './badge-refresh/badge-refresh';
+import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature';
 import {
   inspectAtlasHost,
   loadArtifactVersion,
-} from '../host/inspect-atlas-host/inspect-atlas-host.js';
+} from '../host/inspect-atlas-host/inspect-atlas-host';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';

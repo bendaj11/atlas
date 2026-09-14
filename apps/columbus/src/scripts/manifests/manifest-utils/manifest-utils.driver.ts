@@ -1,11 +1,11 @@
-import type { AtlasExtensionManifest } from '../../../types/contracts.js';
+import type { AtlasExtensionManifest } from '../../../types/contracts';
 import {
   artifactSourceDescription,
   createCustomManifest,
   createEditorDraft,
   resolveSelectedManifest,
   versionLabel,
-} from './manifest-utils.js';
+} from './manifest-utils';
 
 export class ManifestUtilsDriver {
   private productionManifest = createProductionManifest();

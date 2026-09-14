@@ -2,8 +2,8 @@ import {
   type AtlasExtensionManifest as Manifest,
   type AtlasHostData as HostData,
   getArtifactKey,
-} from '../../types/contracts.js';
-import { normalizeStoredManifest } from '../manifests/manifest-utils/manifest-utils.js';
+} from '../../types/contracts';
+import { normalizeStoredManifest } from '../manifests/manifest-utils/manifest-utils';
 
 interface IncludeOverrideAppsOptions {
   hostData: HostData;

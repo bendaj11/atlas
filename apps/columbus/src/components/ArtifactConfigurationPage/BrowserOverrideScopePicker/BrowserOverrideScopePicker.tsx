@@ -1,5 +1,5 @@
 import { Box, Card, RadioGroup, Text } from '@wix/design-system';
-import type { Scope } from '../../../types/app.js';
+import type { Scope } from '../../../types/app';
 
 interface ScopePickerProps {
   value: Scope;

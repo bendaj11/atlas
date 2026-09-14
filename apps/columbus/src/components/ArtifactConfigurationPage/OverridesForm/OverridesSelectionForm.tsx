@@ -1,5 +1,5 @@
 import { OverrideRadioCard } from './OverrideRadioCard/OverrideRadioCard';
-import { type ArtifactConfiguration, EditorDraft } from '../../../types/app.js';
+import { type ArtifactConfiguration, EditorDraft } from '../../../types/app';
 import { Box, Input } from '@wix/design-system';
 import { OverrideVersionDropdown } from './OverrideVersionDropdown/OverrideVersionDropdown';
 

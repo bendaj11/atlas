@@ -4,7 +4,7 @@ import {
   ButtonTestkit,
   IconButtonTestkit,
 } from '@wix/design-system/dist/testkit/testing-library.js';
-import { ArtifactConfigurationActions } from './ArtifactConfigurationActions.js';
+import { ArtifactConfigurationActions } from './ArtifactConfigurationActions';
 
 export class ArtifactConfigurationActionsDriver {
   private readonly onSave = jest.fn();

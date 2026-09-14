@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { BadgeRefreshDriver } from './badge-refresh.driver.js';
+import { BadgeRefreshDriver } from './badge-refresh.driver';
 
 describe('badge refresh queue', () => {
   let driver: BadgeRefreshDriver;

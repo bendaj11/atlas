@@ -8,11 +8,7 @@ import {
   Text,
 } from '@wix/design-system';
 import { Delete } from '@wix/wix-ui-icons-common';
-import {
-  useActionsDisabled,
-  useHost,
-  useOverrides,
-} from '../providers/index.js';
+import { useActionsDisabled, useHost, useOverrides } from '../providers/index';
 import { EmptyHostDataState } from '../EmptyHostDataState/EmptyHostDataState';
 import { ArtifactsOverridesTable } from './ArtifactsOverridesTable/ArtifactsOverridesTable';
 import manifest from '../../manifest.json';

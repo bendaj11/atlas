@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import type { Manifest } from '../../../../types/app.js';
-import { isDeployedProductionVersion } from './OverrideVersionDropdown.js';
+import type { Manifest } from '../../../../types/app';
+import { isDeployedProductionVersion } from './OverrideVersionDropdown';
 
 const deployedManifest: Manifest = {
   schemaVersion: '1',

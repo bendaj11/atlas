@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { ManifestVersionsDriver } from './manifest-versions.driver.js';
+import { ManifestVersionsDriver } from './manifest-versions.driver';
 
 describe('unique manifest versions', () => {
   let driver: ManifestVersionsDriver;

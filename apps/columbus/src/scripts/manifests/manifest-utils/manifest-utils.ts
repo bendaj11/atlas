@@ -1,13 +1,13 @@
-import { type AtlasExtensionManifest as Manifest } from '../../../types/contracts.js';
+import { type AtlasExtensionManifest as Manifest } from '../../../types/contracts';
 import { placementTargetsHost } from '@atlas/schema';
-import { versionKey } from '../manifest-versions/manifest-versions.js';
-import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants.js';
+import { versionKey } from '../manifest-versions/manifest-versions';
+import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants';
 import type {
   ArtifactConfiguration,
   ArtifactSelection,
   EditorDraft,
   OverrideType,
-} from '../../../types/app.js';
+} from '../../../types/app';
 
 const SHORT_BUILD_ID_LENGTH = 7;
 

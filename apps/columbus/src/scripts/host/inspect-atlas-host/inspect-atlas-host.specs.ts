@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { InspectAtlasHostDriver } from './inspect-atlas-host.driver.js';
+import { InspectAtlasHostDriver } from './inspect-atlas-host.driver';
 
 describe('Atlas host inspection', () => {
   let driver: InspectAtlasHostDriver;

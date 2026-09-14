@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import type {
   AtlasExtensionManifest,
   AtlasExtensionWidgetManifest,
-} from '../../../types/contracts.js';
-import { inspectAtlasHost, loadArtifactVersion } from './inspect-atlas-host.js';
+} from '../../../types/contracts';
+import { inspectAtlasHost, loadArtifactVersion } from './inspect-atlas-host';
 
 interface PageOptions {
   app?: AtlasExtensionManifest;

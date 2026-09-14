@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { loadDevelopmentSession } from './development-session-background.js';
+import { loadDevelopmentSession } from './development-session-background';
 
 export class DevelopmentSessionBackgroundDriver {
   private readonly hostId = faker.string.uuid();

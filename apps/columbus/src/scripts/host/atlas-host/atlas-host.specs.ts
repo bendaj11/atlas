@@ -1,8 +1,8 @@
 /** @jest-environment node */
 
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { AtlasHostDriver } from './atlas-host.driver.js';
-import { errorMessage } from './atlas-host.js';
+import { AtlasHostDriver } from './atlas-host.driver';
+import { errorMessage } from './atlas-host';
 
 it('should replace terminal guidance when a CLI-shaped error reaches Columbus', () => {
   const message = errorMessage(

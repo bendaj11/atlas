@@ -1,7 +1,7 @@
 import { render, type RenderResult } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { jest } from '@jest/globals';
-import { OverridesTableToolbar } from './OverridesTableToolbar.js';
+import { OverridesTableToolbar } from './OverridesTableToolbar';
 
 export class OverridesTableToolbarDriver {
   private readonly onVisibleOnlyChange = jest.fn();

@@ -5,22 +5,22 @@ import {
   useRef,
   useState,
 } from 'react';
-import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host.js';
+import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host';
 import {
   clearAllOverridesInSession,
   clearOverrideInSession,
   saveOverrideInSession,
   setOverrideScopeInSession,
   toggleOverrideInSession,
-} from '../../../scripts/overrides/override-session/override-session.js';
-import { persistOverrideSession } from '../../../scripts/overrides/persist-overrides.js';
-import { useSession } from '../SessionContext/SessionContext.js';
+} from '../../../scripts/overrides/override-session/override-session';
+import { persistOverrideSession } from '../../../scripts/overrides/persist-overrides';
+import { useSession } from '../SessionContext/SessionContext';
 import type {
   ArtifactSelection,
   OverrideStatus,
   ExtensionSession,
   Scope,
-} from '../../../types/app.js';
+} from '../../../types/app';
 
 interface OverridesContextValue {
   hasOverrides: boolean;

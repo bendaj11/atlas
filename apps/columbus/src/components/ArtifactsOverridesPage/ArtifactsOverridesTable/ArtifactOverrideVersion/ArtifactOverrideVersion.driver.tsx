@@ -1,11 +1,11 @@
 import { render, type RenderResult, within } from '@testing-library/react';
 import { TextTestkit } from '@wix/design-system/dist/testkit/testing-library.js';
-import type { AtlasExtensionManifest } from '../../../../types/contracts.js';
-import type { Artifact, OverrideType } from '../../../../types/app.js';
-import { ArtifactOverrideVersion } from './ArtifactOverrideVersion.js';
+import type { AtlasExtensionManifest } from '../../../../types/contracts';
+import type { Artifact, OverrideType } from '../../../../types/app';
+import { ArtifactOverrideVersion } from './ArtifactOverrideVersion';
 
 export class ArtifactOverrideVersionDriver {
-  private artifact = createArtifact();
+  private artifact = anArtifact();
   private view: RenderResult | undefined;
 
   readonly given = {
@@ -79,7 +79,7 @@ export class ArtifactOverrideVersionDriver {
   };
 }
 
-function createArtifact(): Artifact {
+function anArtifact(): Artifact {
   const productionManifest = manifest({});
   return {
     id: 'app:orders',

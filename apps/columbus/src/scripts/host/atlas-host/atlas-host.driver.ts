@@ -1,14 +1,14 @@
-import type {} from '../../../types/chrome.js';
-import type { AtlasHostData } from '../../../types/contracts.js';
-import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/runtime-discovery.js';
+import type {} from '../../../types/chrome';
+import type { AtlasHostData } from '../../../types/contracts';
+import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/runtime-discovery';
 import {
   createOverrideDocument,
   readHostData,
   validateLocalOverride,
   writeOverrides,
-} from './atlas-host.js';
-import { readHostDataCache } from '../host-data-cache.js';
-import { createCustomManifest } from '../../manifests/manifest-utils/manifest-utils.js';
+} from './atlas-host';
+import { readHostDataCache } from '../host-data-cache';
+import { createCustomManifest } from '../../manifests/manifest-utils/manifest-utils';
 
 interface MockTab {
   active?: boolean;
@@ -34,7 +34,7 @@ export class AtlasHostDriver {
       return this;
     },
     inspectedHost: (tabId: number, id = hostId): this => {
-      this.inspections.set(tabId, createHostData(id));
+      this.inspections.set(tabId, aHostData(id));
       return this;
     },
     unreachableLocalRemoteEntry: (): this => {
@@ -94,9 +94,9 @@ export class AtlasHostDriver {
       });
       const documentValue = createOverrideDocument({
         hostData: {
-          ...createHostData(hostId),
+          ...aHostData(hostId),
           catalog: {
-            ...createHostData(hostId).catalog,
+            ...aHostData(hostId).catalog,
             apps: [productionManifest],
           },
         },
@@ -141,7 +141,7 @@ export class AtlasHostDriver {
         },
       });
       try {
-        const hostData = createHostData(hostId);
+        const hostData = aHostData(hostId);
         await writeOverrides({
           tabId: 7,
           hostData,
@@ -228,7 +228,7 @@ function pageStorageArea(values: Map<string, string>): Storage {
   };
 }
 
-function createHostData(id: string): AtlasHostData {
+function aHostData(id: string): AtlasHostData {
   const host = {
     schemaVersion: '1' as const,
     kind: 'host' as const,

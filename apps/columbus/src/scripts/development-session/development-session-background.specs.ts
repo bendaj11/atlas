@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { DevelopmentSessionBackgroundDriver } from './development-session-background.driver.js';
+import { DevelopmentSessionBackgroundDriver } from './development-session-background.driver';
 
 describe('development session background bridge', () => {
   let driver: DevelopmentSessionBackgroundDriver;

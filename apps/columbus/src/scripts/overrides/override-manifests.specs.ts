@@ -1,5 +1,5 @@
 import { expect, it } from '@jest/globals';
-import { OverrideManifestsDriver } from './override-manifests.driver.js';
+import { OverrideManifestsDriver } from './override-manifests.driver';
 
 it('should include active new local app in catalog', () => {
   const driver = new OverrideManifestsDriver();
