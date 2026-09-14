@@ -8,20 +8,19 @@ import {
   Text,
 } from '@wix/design-system';
 import { Delete } from '@wix/wix-ui-icons-common';
-import { useHost, useOverrides } from '../providers/index.js';
+import {
+  useActionsDisabled,
+  useHost,
+  useOverrides,
+} from '../providers/index.js';
 import { EmptyHostDataState } from '../EmptyHostDataState/EmptyHostDataState';
 import { ArtifactsOverridesTable } from './ArtifactsOverridesTable/ArtifactsOverridesTable';
 import manifest from '../../manifest.json';
 
 export function ArtifactsOverridesPage() {
   const { loadHost, message, status } = useHost();
-  const {
-    clearAllOverrides,
-    hasOverrides,
-    status: overrideStatus,
-  } = useOverrides();
-
-  const actionsDisabled = status !== 'LOADED' || overrideStatus === 'APPLYING';
+  const { clearAllOverrides, hasOverrides } = useOverrides();
+  const actionsDisabled = useActionsDisabled();
 
   return (
     <Page height="100%" minWidth={0}>

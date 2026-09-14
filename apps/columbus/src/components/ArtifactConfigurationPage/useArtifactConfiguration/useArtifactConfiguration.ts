@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useHost, useOverrides, useSession } from '../../providers/index.js';
+import {
+  useActionsDisabled,
+  useOverrides,
+  useSession,
+} from '../../providers/index.js';
 import { uniqueVersionsInOrder } from '../../../scripts/manifests/manifest-versions/manifest-versions.js';
 import {
   createEditorDraft,
@@ -24,7 +28,7 @@ type ArtifactConfigurationLocationState = ArtifactProps;
 export function useArtifactConfiguration() {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { status: hostStatus } = useHost();
+  const actionsDisabled = useActionsDisabled();
   const { session } = useSession();
   const {
     message: overrideMessage,
@@ -115,10 +119,7 @@ export function useArtifactConfiguration() {
   }
 
   return {
-    actionsDisabled:
-      hostStatus === 'LOADING' ||
-      overrideStatus === 'APPLYING' ||
-      loadingVersion,
+    actionsDisabled: actionsDisabled || loadingVersion,
     clearOverride,
     close,
     configuration,

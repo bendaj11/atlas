@@ -1,12 +1,10 @@
 import { ToggleSwitch } from '@wix/design-system';
 import type { ArtifactProps } from '../../../../types/app.js';
-import { useHost, useOverrides } from '../../../providers/index.js';
+import { useActionsDisabled, useOverrides } from '../../../providers/index.js';
 
 export const ArtifactOverrideToggle = ({ artifact }: ArtifactProps) => {
-  const { status: hostStatus } = useHost();
-  const { status: overrideStatus, toggleOverride } = useOverrides();
-  const actionsDisabled =
-    hostStatus === 'LOADING' || overrideStatus === 'APPLYING';
+  const { toggleOverride } = useOverrides();
+  const actionsDisabled = useActionsDisabled();
   const action = artifact.overrideEnabled ? 'Disable' : 'Enable';
 
   return (
