@@ -13,7 +13,7 @@ Rules live in `AGENTS.md` → "TypeScript tests". This skill is the procedure th
 
 1. **Locate the unit.** One source file = one spec. Spec goes next to it: `foo.ts` → `foo.specs.ts` (+ `foo.driver.ts`). Never in a central `tests/` dir.
 2. **Decide driver.** Skip the driver only if ALL hold: pure or plain I/O function, no mocks, no setup/teardown, **single** behavior case. Two or more `it` blocks → driver required.
-3. **Write driver** (`*.driver.ts`, `.tsx` if it renders JSX): class with `given` (fixtures/mocks, `@faker-js/faker` for generated fields), `when` (actions), `get` (observed results). Every `given`/`when` returns `this`. All arrangement lives here.
+3. **Write driver** (`*.driver.ts`, `.tsx` if it renders JSX): class with `given` (fixtures/mocks, `@faker-js/faker` for generated fields), `when` (actions), `get` (observed results). Shared factories live in `*.testkit.ts`, named `aThing()`/`anThing()` (`aManifest`, `anArtifact`), `aThingsList()` for arrays. Every `given`/`when` returns `this`. All arrangement lives here.
 4. **Write spec** (`*.specs.ts`): shape below. Cover primary success + failure/rejection branches.
 5. **Run tests** from repo root. Package `test` scripts cannot be narrowed (extra patterns are OR-ed):
    ```bash
@@ -53,6 +53,7 @@ describe('<exported symbol>', () => {
 - Group by precondition with nested `describe('when ...')` + `beforeEach` applying that `given`. Do not group by "topic".
 - No `afterEach(cleanup)`: RTL auto-cleanup runs (jest globals injected).
 - No comments in specs, drivers, or source. Blank line before every `return`.
+- Relative imports: apps use no extension; `packages/*` use `.js` (emitted ESM needs it). Follow the package you are in.
 
 ## Hooks
 
@@ -61,11 +62,11 @@ Mock the hooks the unit consumes, not the providers. Never wrap in real `Provide
 ```ts
 import { jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react';
-import type { useBar as useBarType } from '../bar/useBar.js';
+import type { useBar as useBarType } from '../bar/useBar';
 
 const useBar = jest.fn<typeof useBarType>();
-jest.unstable_mockModule('../bar/useBar.js', () => ({ useBar }));
-const { useFoo } = await import('./useFoo.js');
+jest.unstable_mockModule('../bar/useBar', () => ({ useBar }));
+const { useFoo } = await import('./useFoo');
 
 useBar.mockReturnValue({ status } as ReturnType<typeof useBarType>);
 renderHook(() => useFoo()).result.current;
