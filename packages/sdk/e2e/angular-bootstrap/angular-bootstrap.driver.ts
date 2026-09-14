@@ -111,6 +111,7 @@ export class AngularBootstrapDriver {
 
       await app.mount({
         container: {} as HTMLElement,
+        styleTarget: {} as HTMLElement,
         sdk: this.hostSdk,
         context: createAppContext(remoteEntryUrl),
       });

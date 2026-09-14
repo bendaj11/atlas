@@ -200,8 +200,7 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
     /export const routes: Routes/,
   );
   assert.match(appFiles.get('src/app/app.component.ts'), /router-outlet/);
-  assert.match(appFiles.get('src/app/app.config.ts'), /provideAtlasSdk/);
-  assert.match(appFiles.get('src/app/app.config.ts'), /provideAtlasAppContext/);
+  assert.match(appFiles.get('src/app/app.config.ts'), /provideAtlasApp/);
   assert.match(
     appFiles.get('src/app/app.config.ts'),
     /provideZonelessChangeDetection/,
@@ -221,12 +220,12 @@ test('Angular generator emits Angular 20 Native Federation projects', () => {
   assert.doesNotMatch(appFiles.get('src/main.ts'), /import "zone\.js"/);
   assert.match(
     appFiles.get('src/entry.ts'),
-    /createApplication\(createAppConfig\(\{ context, sdk, locationStrategy \}\)\);\s+app\.bootstrap\(AppComponent, element\);/,
+    /createApplication\(createAppConfig\(\{ context, sdk, styleTarget, locationStrategy \}\)\);\s+app\.bootstrap\(AppComponent, element\);/,
   );
   assert.doesNotMatch(appFiles.get('src/entry.ts'), /initFederation/);
   assert.doesNotMatch(
     appFiles.get('src/main.ts'),
-    /createAtlasSdk|provideAtlasSdk/,
+    /createAtlasSdk|provideAtlasApp/,
   );
   assert.doesNotMatch(appFiles.get('src/index.html'), /atlas-orders-root/);
   assert.doesNotMatch(

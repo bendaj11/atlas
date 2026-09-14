@@ -438,6 +438,7 @@ test('React app creates, renders, and unmounts one root', async () => {
   const container: HTMLElement = Object.create(null);
   const mounted = await entry.mount({
     container,
+    styleTarget: container,
     sdk: createTestHostSdk(),
     context: atlas.context,
   });
