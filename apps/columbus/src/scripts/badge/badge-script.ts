@@ -18,14 +18,13 @@ import {
 } from '../shared/storage-keys/storage-keys';
 import { isLoopbackHostname } from '../shared/urls/urls';
 import { countOverrides } from '../overrides/override-document/override-document';
-import {
-  inspectAtlasHost,
-  loadArtifactVersion,
-} from '../host/inspect-atlas-host/inspect-atlas-host';
+import { createArtifactRegistry } from '../host/artifact-registry/artifact-registry';
+import { inspectAtlasHost } from '../host/inspect-atlas-host/inspect-atlas-host';
 
 const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+const artifactRegistry = createArtifactRegistry();
 let atlasConfigPromise: Promise<{ hostId?: string } | undefined> | undefined;
 
 const refreshBadge = createBadgeRefresher({
@@ -43,17 +42,19 @@ window.addEventListener('storage', () => void refreshBadge());
 darkColorScheme.addEventListener('change', () => void publishActionTheme());
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (isInspectHostRequest(message)) {
-    void inspectAtlasHost(message.documentKey).then(
+    void inspectAtlasHost(message.documentKey, artifactRegistry).then(
       (hostData) => sendResponse({ ok: true, hostData }),
       (error) => sendResponse({ ok: false, error: messageFromError(error) }),
     );
     return true;
   }
   if (isLoadArtifactVersionRequest(message)) {
-    void loadArtifactVersion(message.artifactKey, message.versionKey).then(
-      (manifest) => sendResponse({ ok: true, manifest }),
-      (error) => sendResponse({ ok: false, error: messageFromError(error) }),
-    );
+    void artifactRegistry
+      .loadVersion(message.artifactKey, message.versionKey)
+      .then(
+        (manifest) => sendResponse({ ok: true, manifest }),
+        (error) => sendResponse({ ok: false, error: messageFromError(error) }),
+      );
     return true;
   }
   return false;
