@@ -7,11 +7,11 @@ import {
 } from '@testing-library/react';
 import type { ExtensionSession, Manifest } from '../../../types/app';
 import type { AtlasHostData as HostData } from '../../../types/contracts';
-import {
-  type readDisabledOverrides as readDisabledOverridesType,
-  type readHostData as readHostDataType,
-  type readSuppressedArtifactIds as readSuppressedArtifactIdsType,
-} from '../../../scripts/host/atlas-host/atlas-host';
+import type { readHostData as readHostDataType } from '../../../scripts/host/host-data/host-data';
+import type {
+  readDisabledOverrides as readDisabledOverridesType,
+  readSuppressedArtifactIds as readSuppressedArtifactIdsType,
+} from '../../../scripts/overrides/override-storage/override-storage';
 import type { readHostDataCache as readHostDataCacheType } from '../../../scripts/host/host-data-cache';
 import type { useSession as useSessionType } from '../SessionContext/SessionContext';
 
@@ -22,11 +22,13 @@ const readSuppressedArtifactIds =
 const readHostDataCache = jest.fn<typeof readHostDataCacheType>();
 const useSession = jest.fn<typeof useSessionType>();
 
-jest.unstable_mockModule('../../../scripts/host/atlas-host/atlas-host', () => ({
-  readDisabledOverrides,
+jest.unstable_mockModule('../../../scripts/host/host-data/host-data', () => ({
   readHostData,
-  readSuppressedArtifactIds,
 }));
+jest.unstable_mockModule(
+  '../../../scripts/overrides/override-storage/override-storage',
+  () => ({ readDisabledOverrides, readSuppressedArtifactIds }),
+);
 jest.unstable_mockModule('../../../scripts/host/host-data-cache', () => ({
   readHostDataCache,
 }));

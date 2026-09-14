@@ -1,23 +1,31 @@
 import { jest } from '@jest/globals';
 import type { ExtensionSession } from '../../types/app';
 import { aSession } from '../../types/app.testkit';
-import type * as AtlasHostModule from '../host/atlas-host/atlas-host';
+import type { reloadHostTab as reloadHostTabType } from '../host/host-tabs/host-tabs';
+import type { validateLocalOverride as validateLocalOverrideType } from './local-override/local-override';
+import type * as OverrideStorageModule from './override-storage/override-storage';
 
-type AtlasHost = typeof AtlasHostModule;
+type OverrideStorage = typeof OverrideStorageModule;
 
-const validateLocalOverride = jest.fn<AtlasHost['validateLocalOverride']>();
-const writeOverrides = jest.fn<AtlasHost['writeOverrides']>();
-const writeDisabledOverrides = jest.fn<AtlasHost['writeDisabledOverrides']>();
+const validateLocalOverride = jest.fn<typeof validateLocalOverrideType>();
+const writeOverrideDocument =
+  jest.fn<OverrideStorage['writeOverrideDocument']>();
+const writeDisabledOverrides =
+  jest.fn<OverrideStorage['writeDisabledOverrides']>();
 const writeSuppressedArtifactIds =
-  jest.fn<AtlasHost['writeSuppressedArtifactIds']>();
-const reloadHostTab = jest.fn<AtlasHost['reloadHostTab']>();
+  jest.fn<OverrideStorage['writeSuppressedArtifactIds']>();
+const reloadHostTab = jest.fn<typeof reloadHostTabType>();
 const calls: string[] = [];
 
-jest.unstable_mockModule('../host/atlas-host/atlas-host', () => ({
+jest.unstable_mockModule('../host/host-tabs/host-tabs', () => ({
   reloadHostTab,
+}));
+jest.unstable_mockModule('./local-override/local-override', () => ({
   validateLocalOverride,
+}));
+jest.unstable_mockModule('./override-storage/override-storage', () => ({
   writeDisabledOverrides,
-  writeOverrides,
+  writeOverrideDocument,
   writeSuppressedArtifactIds,
 }));
 
@@ -33,8 +41,8 @@ export class PersistOverridesDriver {
     validateLocalOverride.mockImplementation(async () => {
       calls.push('validate');
     });
-    writeOverrides.mockImplementation(async () => {
-      calls.push('writeOverrides');
+    writeOverrideDocument.mockImplementation(async () => {
+      calls.push('writeOverrideDocument');
     });
     writeDisabledOverrides.mockImplementation(async () => {
       calls.push('writeDisabledOverrides');
@@ -77,10 +85,9 @@ export class PersistOverridesDriver {
     callOrder: (): string[] => calls,
     validatedManifests: () =>
       validateLocalOverride.mock.calls.map(([manifest]) => manifest),
-    overridesWrite: () => writeOverrides.mock.calls[0]?.[0],
-    disabledOverridesWrite: () => writeDisabledOverrides.mock.calls[0]?.[0],
-    suppressedArtifactIdsWrite: () =>
-      writeSuppressedArtifactIds.mock.calls[0]?.[0],
+    overridesWrite: () => writeOverrideDocument.mock.calls[0]?.[0],
+    disabledOverridesWrite: () => writeDisabledOverrides.mock.calls[0],
+    suppressedArtifactIdsWrite: () => writeSuppressedArtifactIds.mock.calls[0],
     reloadedTabId: (): number | undefined => reloadHostTab.mock.calls[0]?.[0],
   };
 }

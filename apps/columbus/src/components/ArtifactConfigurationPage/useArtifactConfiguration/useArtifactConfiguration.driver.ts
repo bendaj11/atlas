@@ -9,7 +9,7 @@ import type {
   OverrideStatus,
 } from '../../../types/app';
 import { aManifest, anArtifact, aSession } from '../../../types/app.testkit';
-import type { loadArtifactVersion as loadArtifactVersionType } from '../../../scripts/host/atlas-host/atlas-host';
+import type { requestArtifactVersion as requestArtifactVersionType } from '../../../scripts/host/host-tabs/host-tabs';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
@@ -21,7 +21,7 @@ const useLocation = jest.fn<typeof useLocationType>();
 const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
 const useSession = jest.fn<typeof useSessionType>();
-const loadArtifactVersion = jest.fn<typeof loadArtifactVersionType>();
+const requestArtifactVersion = jest.fn<typeof requestArtifactVersionType>();
 
 jest.unstable_mockModule('react-router-dom', () => ({
   useNavigate: () => navigate,
@@ -32,8 +32,8 @@ jest.unstable_mockModule('../../providers', () => ({
   useOverrides,
   useSession,
 }));
-jest.unstable_mockModule('../../../scripts/host/atlas-host/atlas-host', () => ({
-  loadArtifactVersion,
+jest.unstable_mockModule('../../../scripts/host/host-tabs/host-tabs', () => ({
+  requestArtifactVersion,
 }));
 
 const { useArtifactConfiguration } = await import('./useArtifactConfiguration');
@@ -98,17 +98,17 @@ export class UseArtifactConfigurationDriver {
       return this;
     },
     loadedVersion: (manifest: Manifest): this => {
-      loadArtifactVersion.mockResolvedValue(manifest);
+      requestArtifactVersion.mockResolvedValue(manifest);
 
       return this;
     },
     versionLoadFailure: (reason: string): this => {
-      loadArtifactVersion.mockRejectedValue(new Error(reason));
+      requestArtifactVersion.mockRejectedValue(new Error(reason));
 
       return this;
     },
     pendingVersionLoad: (): this => {
-      loadArtifactVersion.mockReturnValue(new Promise(() => {}));
+      requestArtifactVersion.mockReturnValue(new Promise(() => {}));
 
       return this;
     },
@@ -174,8 +174,8 @@ export class UseArtifactConfigurationDriver {
     savedSelection: () => this.saveOverride.mock.calls[0]?.[0],
     reportedError: (): string | undefined =>
       this.reportError.mock.calls[0]?.[0],
-    versionLoadRequest: () => loadArtifactVersion.mock.calls[0]?.[0],
-    versionLoadCount: (): number => loadArtifactVersion.mock.calls.length,
+    versionLoadRequest: () => requestArtifactVersion.mock.calls[0],
+    versionLoadCount: (): number => requestArtifactVersion.mock.calls.length,
     productionManifest: (): Manifest => this.production,
     tabId: (): number => this.session.tabId,
     hostId: (): string => this.session.hostData.config.hostId,

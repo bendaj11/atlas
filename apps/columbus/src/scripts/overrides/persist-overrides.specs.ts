@@ -48,7 +48,7 @@ describe('persistOverrideSession', () => {
     await driver.when.persisted();
 
     expect(driver.get.callOrder()).toEqual([
-      'writeOverrides',
+      'writeOverrideDocument',
       'writeDisabledOverrides',
       'writeSuppressedArtifactIds',
       'reload',
@@ -103,12 +103,10 @@ describe('persistOverrideSession', () => {
 
     await driver.given.session(session).when.persisted();
 
-    expect(driver.get.disabledOverridesWrite()).toEqual({
-      hostId: session.hostData.config.hostId,
-      tabId: 7,
-      scope: 'tab',
-      overrides: session.disabledOverrides,
-    });
+    expect(driver.get.disabledOverridesWrite()).toEqual([
+      { hostId: session.hostData.config.hostId, tabId: 7, scope: 'tab' },
+      session.disabledOverrides,
+    ]);
   });
 
   it('should write suppressed artifact ids for the session host, tab, and scope', async () => {
@@ -119,12 +117,10 @@ describe('persistOverrideSession', () => {
 
     await driver.given.session(session).when.persisted();
 
-    expect(driver.get.suppressedArtifactIdsWrite()).toEqual({
-      hostId: session.hostData.config.hostId,
-      tabId: 7,
-      scope: 'all',
-      artifactIds: session.suppressedArtifactIds,
-    });
+    expect(driver.get.suppressedArtifactIdsWrite()).toEqual([
+      { hostId: session.hostData.config.hostId, tabId: 7, scope: 'all' },
+      session.suppressedArtifactIds,
+    ]);
   });
 
   it('should reload the session tab when everything is written', async () => {

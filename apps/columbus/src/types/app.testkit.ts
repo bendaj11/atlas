@@ -13,6 +13,11 @@ export function aManifest(overrides: Partial<Manifest> = {}): Manifest {
     channel: 'production',
     framework: 'react',
     remoteEntryUrl: faker.internet.url(),
+    createdAt: faker.date.recent().toISOString(),
+    exposes: { entry: './entry' },
+    requiredHostSdkVersion: '^1.0.0',
+    supportedHosts: ['*'],
+    placements: [],
     ...overrides,
   };
 }

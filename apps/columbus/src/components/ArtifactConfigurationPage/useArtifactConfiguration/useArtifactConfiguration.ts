@@ -15,7 +15,7 @@ import {
   resolveSelectedManifest,
 } from '../../../scripts/manifests/manifest-utils/manifest-utils';
 import { ARTIFACTS_ROUTE } from '../../../scripts/routing/routes/routes';
-import { loadArtifactVersion } from '../../../scripts/host/atlas-host/atlas-host';
+import { requestArtifactVersion } from '../../../scripts/host/host-tabs/host-tabs';
 import { failureMessage } from '../../../scripts/shared/errors/errors';
 import type {
   Artifact,
@@ -101,11 +101,11 @@ export function useArtifactConfiguration() {
     setLoadingVersion(true);
 
     try {
-      return await loadArtifactVersion({
+      return await requestArtifactVersion(
         tabId,
         artifactKey,
-        versionKey: versionKey(selected),
-      });
+        versionKey(selected),
+      );
     } finally {
       setLoadingVersion(false);
     }

@@ -1,10 +1,10 @@
 import { createContext, type ReactNode, useContext, useState } from 'react';
 import type { AtlasHostData as HostData } from '../../../types/contracts';
+import { readHostData } from '../../../scripts/host/host-data/host-data';
 import {
   readDisabledOverrides,
-  readHostData,
   readSuppressedArtifactIds,
-} from '../../../scripts/host/atlas-host/atlas-host';
+} from '../../../scripts/overrides/override-storage/override-storage';
 import { readHostDataCache } from '../../../scripts/host/host-data-cache';
 import { failureMessage } from '../../../scripts/shared/errors/errors';
 import {

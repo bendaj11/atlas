@@ -180,11 +180,11 @@ describe('useArtifactConfiguration', () => {
         })
         .when.saved();
 
-      expect(driver.get.versionLoadRequest()).toEqual({
-        tabId: driver.get.tabId(),
-        artifactKey: ARTIFACT_KEY,
-        versionKey: PRODUCTION_KEY,
-      });
+      expect(driver.get.versionLoadRequest()).toEqual([
+        driver.get.tabId(),
+        ARTIFACT_KEY,
+        PRODUCTION_KEY,
+      ]);
     });
 
     it('should save the loaded manifest when host supports it', async () => {

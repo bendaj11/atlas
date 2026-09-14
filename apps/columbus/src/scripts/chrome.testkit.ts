@@ -1,3 +1,5 @@
+import type {} from '../types/chrome';
+
 export interface FakeTab {
   active?: boolean;
   id?: number;
@@ -10,6 +12,8 @@ export interface FakeChrome {
   localStorage: Map<string, unknown>;
   sessionStorage: Map<string, unknown>;
   reloadedTabIds: number[];
+  tabMessages: Array<{ tabId: number; message: unknown }>;
+  onTabMessage: (tabId: number, message: unknown) => Promise<unknown>;
 }
 
 export function installFakeChrome(): FakeChrome {
@@ -18,6 +22,8 @@ export function installFakeChrome(): FakeChrome {
     localStorage: new Map(),
     sessionStorage: new Map(),
     reloadedTabIds: [],
+    tabMessages: [],
+    onTabMessage: async () => undefined,
   };
 
   Object.assign(globalThis, {
@@ -26,6 +32,24 @@ export function installFakeChrome(): FakeChrome {
         query: async () => fake.tabs,
         reload: async (tabId: number) => {
           fake.reloadedTabIds.push(tabId);
+        },
+        sendMessage: (tabId: number, message: unknown) => {
+          fake.tabMessages.push({ tabId, message });
+
+          return fake.onTabMessage(tabId, message);
+        },
+      },
+      scripting: {
+        executeScript: async ({
+          func,
+          args,
+        }: {
+          func: (...values: string[]) => void;
+          args: string[];
+        }) => {
+          func(...args);
+
+          return [{ result: undefined }];
         },
       },
       storage: {
