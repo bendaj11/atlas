@@ -57,10 +57,10 @@ export function useArtifactConfiguration() {
     navigate(ARTIFACTS_ROUTE);
   }
 
-  function clearOverride(): void {
-    if (!configuration) return;
+  function clearOverride(): Promise<void> {
+    if (!configuration) return Promise.resolve();
 
-    saveOverride({
+    return saveOverride({
       productionManifest: configuration.productionManifest,
       selectedManifest: undefined,
     });
@@ -80,7 +80,7 @@ export function useArtifactConfiguration() {
           'Selected artifact version does not support this host.',
         );
 
-      saveOverride({
+      await saveOverride({
         productionManifest: configuration.productionManifest,
         selectedManifest,
       });

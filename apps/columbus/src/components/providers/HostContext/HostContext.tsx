@@ -99,30 +99,24 @@ export function HostProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState('Reading active Atlas host...');
 
   async function loadHost(): Promise<void> {
-    if (!session) {
-      const cached = await readCachedHost();
-      if (cached?.status === 'LOADED') {
-        setSession(cached.session);
-        setStatus(cached.status);
-        setMessage('');
-        return;
-      }
-    }
+    const cached = session ? undefined : await readCachedHost();
+    if (cached) return applyLoadResult(cached);
 
     setStatus('LOADING');
     setMessage('Reading active Atlas host...');
+    applyLoadResult(await readActiveHost());
+  }
 
-    const result = await readActiveHost();
+  function applyLoadResult(result: HostLoadResult): void {
+    setStatus(result.status);
+
     if (result.status === 'LOADED') {
       setSession(result.session);
-      setStatus(result.status);
       setMessage('');
-      return;
+    } else {
+      setSession(undefined);
+      setMessage(result.message);
     }
-
-    setSession(undefined);
-    setStatus(result.status);
-    setMessage(result.message);
   }
 
   return (

@@ -9,8 +9,8 @@ import type {
   OverrideStatus,
 } from '../../../types/app';
 import { aManifest, anArtifact, aSession } from '../../../types/app.testkit';
-import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host';
 import type { loadArtifactVersion as loadArtifactVersionType } from '../../../scripts/host/atlas-host/atlas-host';
+import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
@@ -28,7 +28,7 @@ jest.unstable_mockModule('react-router-dom', () => ({
   useNavigate: () => navigate,
   useLocation,
 }));
-jest.unstable_mockModule('../../providers/index', () => ({
+jest.unstable_mockModule('../../providers', () => ({
   useActionsDisabled,
   useOverrides,
   useSession,

@@ -30,7 +30,7 @@ interface OverridesContextValue {
   clearAllOverrides: () => Promise<void>;
   clearOverride: (artifactKey: string) => Promise<void>;
   reportError: (message: string) => void;
-  saveOverride: (selection: ArtifactSelection) => void;
+  saveOverride: (selection: ArtifactSelection) => Promise<void>;
   setScope: (scope: Scope) => void;
   toggleOverride: (artifactKey: string) => Promise<void>;
 }
@@ -45,11 +45,21 @@ export function OverridesProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState('');
   const applying = useRef(false);
 
+  async function applyToSession(
+    transform: (session: ExtensionSession) => ExtensionSession | undefined,
+  ): Promise<void> {
+    if (!session || applying.current) return;
+
+    const nextSession = transform(session);
+    if (!nextSession) return;
+
+    setSession(nextSession);
+    await persistOverrides(nextSession);
+  }
+
   async function persistOverrides(
     nextSession: ExtensionSession,
   ): Promise<void> {
-    if (applying.current) return;
-
     applying.current = true;
     setStatus('APPLYING');
     setMessage('Applying overrides...');
@@ -73,33 +83,26 @@ export function OverridesProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function toggleOverride(artifactKey: string): Promise<void> {
-    if (!session || applying.current) return;
-    const nextSession = toggleOverrideInSession({ session, artifactKey });
-    if (!nextSession) return;
-    setSession(nextSession);
-    await persistOverrides(nextSession);
+  function toggleOverride(artifactKey: string): Promise<void> {
+    return applyToSession((current) =>
+      toggleOverrideInSession({ session: current, artifactKey }),
+    );
   }
 
-  function saveOverride(selection: ArtifactSelection): void {
-    if (!session || applying.current) return;
-    const nextSession = saveOverrideInSession({ session, selection });
-    setSession(nextSession);
-    void persistOverrides(nextSession);
+  function saveOverride(selection: ArtifactSelection): Promise<void> {
+    return applyToSession((current) =>
+      saveOverrideInSession({ session: current, selection }),
+    );
   }
 
-  async function clearAllOverrides(): Promise<void> {
-    if (!session || applying.current) return;
-    const nextSession = clearAllOverridesInSession(session);
-    setSession(nextSession);
-    await persistOverrides(nextSession);
+  function clearAllOverrides(): Promise<void> {
+    return applyToSession(clearAllOverridesInSession);
   }
 
-  async function clearOverride(artifactKey: string): Promise<void> {
-    if (!session || applying.current) return;
-    const nextSession = clearOverrideInSession({ session, artifactKey });
-    setSession(nextSession);
-    await persistOverrides(nextSession);
+  function clearOverride(artifactKey: string): Promise<void> {
+    return applyToSession((current) =>
+      clearOverrideInSession({ session: current, artifactKey }),
+    );
   }
 
   function setScope(scope: Scope): void {
