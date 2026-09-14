@@ -48,6 +48,7 @@ export class OverrideManifestsDriver {
         hostData: this.hostData,
         overrideManifests: activeOverrides.values(),
       });
+
       return this;
     },
   };

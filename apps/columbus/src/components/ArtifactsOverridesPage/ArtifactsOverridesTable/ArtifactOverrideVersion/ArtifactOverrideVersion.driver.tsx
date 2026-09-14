@@ -20,6 +20,7 @@ export class ArtifactOverrideVersionDriver {
         }),
         sourceDescription: 'feature/orders · abc1234 · Update orders',
       };
+
       return this;
     },
     customOverrideUrl: (url: string): this => {
@@ -33,6 +34,7 @@ export class ArtifactOverrideVersionDriver {
         }),
         sourceDescription: url,
       };
+
       return this;
     },
     enabledProductionSelection: (): this => {
@@ -42,10 +44,12 @@ export class ArtifactOverrideVersionDriver {
         selectedManifest: this.artifact.productionManifest,
         sourceDescription: '1.0.0-production',
       };
+
       return this;
     },
     loadError: (loadError: string): this => {
       this.artifact = { ...this.artifact, loadError };
+
       return this;
     },
     productionBuildId: (buildId: string): this => {
@@ -53,6 +57,7 @@ export class ArtifactOverrideVersionDriver {
         ...this.artifact,
         productionManifest: manifest({ buildId }),
       };
+
       return this;
     },
   };
@@ -60,6 +65,7 @@ export class ArtifactOverrideVersionDriver {
   readonly when = {
     rendered: (): this => {
       this.view = render(<ArtifactOverrideVersion artifact={this.artifact} />);
+
       return this;
     },
   };
@@ -74,6 +80,7 @@ export class ArtifactOverrideVersionDriver {
       within(this.get.container()).getByText(label).textContent,
     container: (): HTMLElement => {
       if (!this.view) throw new Error('Override version was not rendered.');
+
       return this.view.container;
     },
   };
@@ -81,6 +88,7 @@ export class ArtifactOverrideVersionDriver {
 
 function anArtifact(): Artifact {
   const productionManifest = manifest({});
+
   return {
     key: 'app:orders',
     productionManifest,

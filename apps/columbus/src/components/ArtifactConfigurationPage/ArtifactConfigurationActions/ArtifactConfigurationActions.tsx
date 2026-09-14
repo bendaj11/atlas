@@ -22,7 +22,7 @@ export const ArtifactConfigurationActions = ({
     <Box gap="SP2">
       <IconButton
         dataHook="clear-override"
-        aria-label="Clear override"
+        ariaLabel="Clear override"
         size="small"
         skin="destructive"
         priority="secondary"

@@ -31,16 +31,19 @@ export class AtlasHostDriver {
   readonly given = {
     tabs: (...tabs: MockTab[]): this => {
       this.tabs = tabs;
+
       return this;
     },
     inspectedHost: (tabId: number, id = hostId): this => {
       this.inspections.set(tabId, aHostData(id));
+
       return this;
     },
     unreachableLocalRemoteEntry: (): this => {
       this.installFetch(async () => {
         throw new TypeError('Failed to fetch');
       });
+
       return this;
     },
     validLocalRemoteEntry: (): this => {
@@ -50,6 +53,7 @@ export class AtlasHostDriver {
           exposes: [{ key: './entry', outFileName: 'entry.js' }],
         }),
       );
+
       return this;
     },
   };
@@ -62,6 +66,7 @@ export class AtlasHostDriver {
       } catch (error) {
         this.error = error;
       }
+
       return this;
     },
     localOverrideValidated: async (): Promise<this> => {
@@ -76,6 +81,7 @@ export class AtlasHostDriver {
       } catch (error) {
         this.validationError = error;
       }
+
       return this;
     },
   };
@@ -102,6 +108,7 @@ export class AtlasHostDriver {
         },
         overrides: new Map([['app:orders', local]]),
       });
+
       return loadBrowserRuntimeOverrides({
         hostId,
         search: '',
@@ -134,6 +141,7 @@ export class AtlasHostDriver {
               args: string[];
             }) => {
               func(...args);
+
               return [{ result: undefined }];
             },
           },
@@ -155,6 +163,7 @@ export class AtlasHostDriver {
           disabledAppIds: ['orders'],
         });
         const stored = localValues.get('atlas.runtime-overrides');
+
         return stored ? JSON.parse(stored) : undefined;
       } finally {
         Reflect.deleteProperty(globalThis, 'localStorage');
@@ -188,6 +197,7 @@ export class AtlasHostDriver {
             this.inspectionCount += 1;
             const hostData = this.inspections.get(tabId);
             if (!hostData) throw new Error('No Atlas runtime');
+
             return { ok: true, hostData };
           },
         },
@@ -240,6 +250,7 @@ function aHostData(id: string): AtlasHostData {
     framework: 'react' as const,
     remoteEntryUrl: 'http://127.0.0.1:4200/remoteEntry.json',
   };
+
   return {
     config: {
       schemaVersion: 'v1',

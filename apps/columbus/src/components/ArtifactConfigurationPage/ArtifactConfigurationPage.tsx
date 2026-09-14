@@ -1,4 +1,6 @@
 import { Box, Heading, Page, Text } from '@wix/design-system';
+import { Navigate } from 'react-router-dom';
+import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker/BrowserOverrideScopePicker';
 import { useArtifactConfiguration } from './useArtifactConfiguration/useArtifactConfiguration';
 import { OverridesSelectionForm } from './OverridesForm/OverridesSelectionForm';
@@ -18,7 +20,7 @@ export function ArtifactConfigurationPage() {
     clearOverride,
   } = useArtifactConfiguration();
 
-  if (!configuration) return 'Error';
+  if (!configuration) return <Navigate to={ARTIFACTS_ROUTE} replace />;
 
   return (
     <Page minWidth={0}>

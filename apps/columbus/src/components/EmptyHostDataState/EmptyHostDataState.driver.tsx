@@ -14,6 +14,7 @@ export class EmptyHostDataStateDriver {
   readonly given = {
     message: (message: string): this => {
       this.message = message;
+
       return this;
     },
   };
@@ -26,10 +27,12 @@ export class EmptyHostDataStateDriver {
           onRefresh={this.onRefresh}
         />,
       );
+
       return this;
     },
     refreshClicked: async (): Promise<this> => {
       await this.get.refreshButton().click();
+
       return this;
     },
   };
@@ -48,6 +51,7 @@ export class EmptyHostDataStateDriver {
     refreshCalls: (): number => this.onRefresh.mock.calls.length,
     container: (): HTMLElement => {
       if (!this.view) throw new Error('Empty state was not rendered.');
+
       return this.view.container;
     },
   };

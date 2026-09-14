@@ -36,6 +36,7 @@ export class DevelopmentSessionBackgroundDriver {
           {
             fetchJson: async (url) => {
               this.requestedUrl = url;
+
               return this.returnedSession;
             },
           },

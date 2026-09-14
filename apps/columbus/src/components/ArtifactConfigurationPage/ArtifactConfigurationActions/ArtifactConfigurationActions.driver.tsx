@@ -18,14 +18,17 @@ export class ArtifactConfigurationActionsDriver {
   readonly given = {
     saveDisabled: (): this => {
       this.saveDisabled = true;
+
       return this;
     },
     clearDisabled: (): this => {
       this.clearDisabled = true;
+
       return this;
     },
     cancelDisabled: (): this => {
       this.cancelDisabled = true;
+
       return this;
     },
   };
@@ -42,14 +45,17 @@ export class ArtifactConfigurationActionsDriver {
           cancelDisabled={this.cancelDisabled}
         />,
       );
+
       return this;
     },
     saveClicked: async (): Promise<this> => {
       await this.get.saveButton().click();
+
       return this;
     },
     clearClicked: async (): Promise<this> => {
       await this.get.clearButton().click();
+
       return this;
     },
   };
@@ -74,6 +80,7 @@ export class ArtifactConfigurationActionsDriver {
     clearCalls: (): number => this.onClear.mock.calls.length,
     container: (): HTMLElement => {
       if (!this.view) throw new Error('Actions were not rendered.');
+
       return this.view.container;
     },
   };

@@ -13,10 +13,12 @@ export class BrowserOverrideScopePickerDriver {
   readonly given = {
     value: (value: Scope): this => {
       this.value = value;
+
       return this;
     },
     disabled: (): this => {
       this.disabled = true;
+
       return this;
     },
   };
@@ -30,10 +32,12 @@ export class BrowserOverrideScopePickerDriver {
           onChange={this.onChange}
         />,
       );
+
       return this;
     },
     tabSelected: async (): Promise<this> => {
       await this.get.radioGroup().selectByValue('tab');
+
       return this;
     },
   };
@@ -47,6 +51,7 @@ export class BrowserOverrideScopePickerDriver {
     selectedScope: (): Scope | undefined => this.onChange.mock.calls[0]?.[0],
     container: (): HTMLElement => {
       if (!this.view) throw new Error('Scope picker was not rendered.');
+
       return this.view.container;
     },
   };

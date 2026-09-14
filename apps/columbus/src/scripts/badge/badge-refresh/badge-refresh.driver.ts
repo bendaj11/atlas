@@ -16,6 +16,7 @@ export class BadgeRefreshDriver {
   readonly given = {
     countReads: (...reads: Array<() => Promise<number>>): this => {
       this.reads = reads;
+
       return this;
     },
   };
@@ -26,16 +27,19 @@ export class BadgeRefreshDriver {
         readCount: () => {
           const read = this.reads.shift();
           if (!read) throw new Error('No count read configured.');
+
           return read();
         },
         publishCount: async (count) => {
           this.publishedCounts.push(count);
         },
       });
+
       return this;
     },
     refreshed: async (): Promise<this> => {
       await this.get.refresher()();
+
       return this;
     },
     refreshedTwiceConcurrently: async (
@@ -46,6 +50,7 @@ export class BadgeRefreshDriver {
       const queuedRefresh = refresh();
       firstCount.resolve(1);
       await Promise.all([firstRefresh, queuedRefresh]);
+
       return this;
     },
   };
@@ -54,6 +59,7 @@ export class BadgeRefreshDriver {
     publishedCounts: (): number[] => this.publishedCounts,
     refresher: (): (() => Promise<void>) => {
       if (!this.refresh) throw new Error('Refresher was not created.');
+
       return this.refresh;
     },
     overrideCount: (disabledAppIds = new Set<string>()): number =>
@@ -71,6 +77,7 @@ export class BadgeRefreshDriver {
     const promise = new Promise<number>((resolve) => {
       resolvePromise = resolve;
     });
+
     return {
       promise,
       resolve: (value) => resolvePromise?.(value),

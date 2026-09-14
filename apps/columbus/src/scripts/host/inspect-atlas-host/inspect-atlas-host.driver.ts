@@ -54,6 +54,7 @@ export class InspectAtlasHostDriver {
           generatedAt: '2026-07-20T00:00:00.000Z',
         },
       };
+
       return this;
     },
     localAppWithStoredPr: (): this => {
@@ -82,6 +83,7 @@ export class InspectAtlasHostDriver {
           generatedAt: '2026-07-20T00:00:00.000Z',
         },
       };
+
       return this;
     },
     catalogWithPublishedVersions: (): this => {
@@ -100,15 +102,18 @@ export class InspectAtlasHostDriver {
         ],
         registryUrl: 'http://localhost:4400',
       };
+
       return this;
     },
     catalogWithStalePublishedPreview: (): this => {
       this.given.catalogWithPublishedVersions();
       this.options.stalePreview = true;
+
       return this;
     },
     catalogHostId: (catalogHostId: string): this => {
       this.options.catalogHostId = catalogHostId;
+
       return this;
     },
     versionsForOtherApp: (): this => {
@@ -116,18 +121,22 @@ export class InspectAtlasHostDriver {
         manifest({ id: 'other-app', name: 'Other App' }),
       ];
       this.options.registryUrl = 'https://registry.example';
+
       return this;
     },
     unavailableRegistry: (): this => {
       this.options.registryUnavailable = true;
+
       return this;
     },
     runtimeError: (message: string, appId?: string): this => {
       this.options.runtimeError = appId ? { message, appId } : { message };
+
       return this;
     },
     visibleApps: (...appIds: string[]): this => {
       this.options.visibleAppIds = appIds;
+
       return this;
     },
     publishedAppWithExportedWidget: (
@@ -151,6 +160,7 @@ export class InspectAtlasHostDriver {
         appVersions: [app],
         registryUrl: 'https://registry.example',
       };
+
       return this;
     },
     publishedAppWithRuntimeFields: (): this => {
@@ -163,15 +173,18 @@ export class InspectAtlasHostDriver {
         appVersions: [app],
         registryUrl: 'https://registry.example',
       };
+
       return this;
     },
     hostDeploymentEnvironment: (environment: string): this => {
       this.options.useDevelopmentCatalog = false;
       this.options.deploymentEnvironment = environment;
+
       return this;
     },
     runtimeWithoutEnvironment: (): this => {
       this.options.runtimeEnvironment = '';
+
       return this;
     },
     developmentRuntimeSnapshot: (): this => {
@@ -185,6 +198,7 @@ export class InspectAtlasHostDriver {
         registryUrl: 'http://localhost:4400',
         runtimeSnapshot: true,
       };
+
       return this;
     },
     developmentSessionCatalog: (): this => {
@@ -197,6 +211,7 @@ export class InspectAtlasHostDriver {
         runtimeEnvironment: 'development',
         registryUrl: 'http://localhost:4400',
       };
+
       return this;
     },
     runtimeSnapshotWithProductionOverride: (
@@ -211,6 +226,7 @@ export class InspectAtlasHostDriver {
         deploymentApp,
         runtimeSnapshot: true,
       };
+
       return this;
     },
   };
@@ -231,6 +247,7 @@ export class InspectAtlasHostDriver {
       } catch (error) {
         this.error = error;
       }
+
       return this;
     },
     publishedAppVersionLoaded: async (): Promise<this> => {
@@ -238,6 +255,7 @@ export class InspectAtlasHostDriver {
         'app:orders',
         'production:1.0.0:canonical',
       );
+
       return this;
     },
     publishedPreviewLoaded: async (): Promise<this> => {
@@ -245,6 +263,7 @@ export class InspectAtlasHostDriver {
         'app:orders',
         'pr:42:abcdef123456',
       );
+
       return this;
     },
   };
@@ -252,6 +271,7 @@ export class InspectAtlasHostDriver {
   readonly get = {
     result: () => {
       if (!this.result) throw new Error('Host inspection did not succeed.');
+
       return this.result;
     },
     error: (): unknown => this.error,
@@ -271,10 +291,12 @@ export class InspectAtlasHostDriver {
     expectedWidget: (): AtlasExtensionWidgetManifest => {
       if (!this.expectedWidget)
         throw new Error('Expected widget was not configured.');
+
       return this.expectedWidget;
     },
     hydratedRuntimeFields: () => {
       const manifest = this.loadedManifest;
+
       return {
         createdAt: manifest?.createdAt,
         isolation: manifest?.isolation,
@@ -355,6 +377,7 @@ function installPage(options: PageOptions): void {
         }
         if (selector !== '[data-atlas-state="error"]' || !options.runtimeError)
           return [];
+
         return [
           {
             textContent: options.runtimeError.message,
@@ -390,6 +413,7 @@ function installPage(options: PageOptions): void {
               }
             : {}),
         };
+
         return jsonResponse(runtime);
       }
       if (url.pathname.endsWith('/atlas.dev-session.json')) {
@@ -407,6 +431,7 @@ function installPage(options: PageOptions): void {
         options.onRegistryRequest?.();
         if (options.registryUnavailable)
           return new Response('Not found', { status: 404 });
+
         return jsonResponse(fixtures.registry);
       }
       if (url.pathname.startsWith('/environments/'))
@@ -436,6 +461,7 @@ function installPage(options: PageOptions): void {
       }
       const bytes = fixtures.manifests.get(url.pathname.replace(/^\//u, ''));
       if (bytes) options.onManifestRequest?.(init?.cache);
+
       return bytes
         ? new Response(bytes.buffer as ArrayBuffer, { status: 200 })
         : new Response('Not found', { status: 404 });
@@ -461,6 +487,7 @@ function registryFixtures(
     current.latest = next.latest ?? current.latest;
     appRecords.set(app.id, current);
   }
+
   return {
     manifests,
     registry: {
@@ -524,6 +551,7 @@ function descriptor(
   version: string,
 ): DescriptorFixture {
   const artifacts = registry[collection];
+
   return artifacts[id]!.releases[version]!;
 }
 
@@ -605,6 +633,7 @@ function artifactRecord(
     record.releases[manifest.version] = descriptor;
     record.latest = manifest.version;
   }
+
   return record;
 }
 

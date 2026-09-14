@@ -21,6 +21,7 @@ export class OverrideSessionDriver {
         'app:orders',
         manifest({ channel: 'pr' }),
       );
+
       return this;
     },
     activeLocalOverride: (): this => {
@@ -28,6 +29,7 @@ export class OverrideSessionDriver {
         'app:orders',
         manifest({ channel: 'local' }),
       );
+
       return this;
     },
     disabledOverride: (): this => {
@@ -35,6 +37,7 @@ export class OverrideSessionDriver {
         'app:orders',
         manifest({ channel: 'pr', buildId: 'pr-build' }),
       );
+
       return this;
     },
     disabledLocalOverride: (): this => {
@@ -42,10 +45,12 @@ export class OverrideSessionDriver {
         'app:orders',
         manifest({ channel: 'local' }),
       );
+
       return this;
     },
     scope: (scope: ExtensionSession['scope']): this => {
       this.session.scope = scope;
+
       return this;
     },
   };
@@ -59,6 +64,7 @@ export class OverrideSessionDriver {
           selectedManifest: manifest({ channel: 'pr', buildId: 'pr-build' }),
         },
       });
+
       return this;
     },
     overrideToggled: (artifactKey = 'app:orders'): this => {
@@ -67,6 +73,7 @@ export class OverrideSessionDriver {
         artifactKey,
       });
       if (nextSession) this.session = nextSession;
+
       return this;
     },
     overrideCleared: (): this => {
@@ -74,10 +81,12 @@ export class OverrideSessionDriver {
         session: this.session,
         artifactKey: 'app:orders',
       });
+
       return this;
     },
     allOverridesCleared: (): this => {
       this.session = clearAllOverridesInSession(this.session);
+
       return this;
     },
     scopeChanged: (scope: ExtensionSession['scope']): this => {
@@ -85,6 +94,7 @@ export class OverrideSessionDriver {
         session: this.session,
         scope,
       });
+
       return this;
     },
   };
@@ -125,6 +135,7 @@ function aSession(): ExtensionSession {
     runtimeErrors: [],
     versionErrors: [],
   };
+
   return {
     hostData,
     tabId: 7,

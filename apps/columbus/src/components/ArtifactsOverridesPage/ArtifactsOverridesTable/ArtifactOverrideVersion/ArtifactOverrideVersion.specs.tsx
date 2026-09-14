@@ -1,5 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { cleanup } from '@testing-library/react';
 import { ArtifactOverrideVersionDriver } from './ArtifactOverrideVersion.driver';
 
 describe('artifact override version state', () => {
@@ -8,8 +6,6 @@ describe('artifact override version state', () => {
   beforeEach(() => {
     driver = new ArtifactOverrideVersionDriver();
   });
-
-  afterEach(cleanup);
 
   it('should use disabled text color when artifact uses production version', async () => {
     driver.when.rendered();

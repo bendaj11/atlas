@@ -22,6 +22,7 @@ export class ColumbusBuildDriver {
   readonly when = {
     manifestRead: async (): Promise<this> => {
       this.manifest = await readColumbusManifest();
+
       return this;
     },
   };
@@ -29,6 +30,7 @@ export class ColumbusBuildDriver {
   readonly get = {
     manifest: (): ColumbusManifest => {
       if (!this.manifest) throw new Error('Manifest was not read.');
+
       return this.manifest;
     },
   };
@@ -45,6 +47,7 @@ async function readColumbusManifest(): Promise<ColumbusManifest> {
   if (!isColumbusManifest(value)) {
     throw new Error('Columbus build manifest has an invalid shape.');
   }
+
   return value;
 }
 

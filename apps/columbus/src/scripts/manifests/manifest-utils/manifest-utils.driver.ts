@@ -17,6 +17,7 @@ export class ManifestUtilsDriver {
       framework: AtlasExtensionManifest['framework'],
     ): this => {
       this.productionManifest.framework = framework;
+
       return this;
     },
     selectedCustomUrl: (rawUrl: string): this => {
@@ -24,6 +25,7 @@ export class ManifestUtilsDriver {
         productionManifest: this.productionManifest,
         rawUrl,
       });
+
       return this;
     },
     newerPublishedVersion: (): this => {
@@ -35,6 +37,7 @@ export class ManifestUtilsDriver {
         },
         this.productionManifest,
       ];
+
       return this;
     },
     selectedProductionVersion: (): this => {
@@ -44,6 +47,7 @@ export class ManifestUtilsDriver {
         buildId: 'canonical',
       };
       this.productionOptions = [this.selectedManifest, this.productionManifest];
+
       return this;
     },
   };

@@ -1,5 +1,3 @@
-import { cleanup } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { EmptyHostDataStateDriver } from './EmptyHostDataState.driver';
 
 describe('empty host data state', () => {
@@ -8,8 +6,6 @@ describe('empty host data state', () => {
   beforeEach(() => {
     driver = new EmptyHostDataStateDriver();
   });
-
-  afterEach(cleanup);
 
   it('should show failure reason when host data is unavailable', async () => {
     driver.given.message('Active tab has no Atlas runtime.').when.rendered();

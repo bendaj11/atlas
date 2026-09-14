@@ -34,6 +34,7 @@ export class HostContextCompilerDriver {
       this.compiledFunctions = events.flatMap((event) =>
         event.kind === 'CompileSuccess' ? [event.fnName] : [],
       );
+
       return this;
     },
   };

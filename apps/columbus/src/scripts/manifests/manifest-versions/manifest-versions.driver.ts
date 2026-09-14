@@ -11,6 +11,7 @@ export class ManifestVersionsDriver {
   readonly given = {
     version: (overrides: Partial<AtlasExtensionManifest>): this => {
       this.versions.push(aManifest(overrides));
+
       return this;
     },
   };

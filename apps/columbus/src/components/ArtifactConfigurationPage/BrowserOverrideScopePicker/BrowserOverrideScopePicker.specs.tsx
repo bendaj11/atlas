@@ -1,5 +1,3 @@
-import { cleanup } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { BrowserOverrideScopePickerDriver } from './BrowserOverrideScopePicker.driver';
 
 describe('browser override scope picker', () => {
@@ -8,8 +6,6 @@ describe('browser override scope picker', () => {
   beforeEach(() => {
     driver = new BrowserOverrideScopePickerDriver();
   });
-
-  afterEach(cleanup);
 
   it('should show current scope when value is provided', async () => {
     driver.given.value('tab').when.rendered();

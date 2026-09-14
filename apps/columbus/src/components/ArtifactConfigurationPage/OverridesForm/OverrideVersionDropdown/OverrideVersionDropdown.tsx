@@ -58,7 +58,7 @@ export function OverrideVersionDropdown({
   );
 }
 
-export function isDeployedProductionVersion(
+function isDeployedProductionVersion(
   manifest: Manifest,
   deployedManifest: Manifest | undefined,
 ): boolean {

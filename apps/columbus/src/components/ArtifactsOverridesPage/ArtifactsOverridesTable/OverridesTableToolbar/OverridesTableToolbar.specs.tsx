@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { OverridesTableToolbarDriver } from './OverridesTableToolbar.driver';
 
 describe('overrides table toolbar', () => {

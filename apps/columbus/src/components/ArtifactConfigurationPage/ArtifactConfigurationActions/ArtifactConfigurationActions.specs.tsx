@@ -1,4 +1,3 @@
-import { cleanup } from '@testing-library/react';
 import { ArtifactConfigurationActionsDriver } from './ArtifactConfigurationActions.driver';
 
 describe('artifact configuration actions', () => {
@@ -7,8 +6,6 @@ describe('artifact configuration actions', () => {
   beforeEach(() => {
     driver = new ArtifactConfigurationActionsDriver();
   });
-
-  afterEach(cleanup);
 
   it('should call save action when save is clicked', async () => {
     driver.when.rendered();
