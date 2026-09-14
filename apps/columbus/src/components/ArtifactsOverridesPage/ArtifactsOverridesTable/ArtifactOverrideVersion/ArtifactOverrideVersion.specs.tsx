@@ -1,5 +1,3 @@
-/** @jest-environment jsdom */
-
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { cleanup } from '@testing-library/react';
 import { ArtifactOverrideVersionDriver } from './ArtifactOverrideVersion.driver.js';

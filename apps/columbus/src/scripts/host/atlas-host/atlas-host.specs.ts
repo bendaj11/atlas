@@ -1,3 +1,5 @@
+/** @jest-environment node */
+
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { AtlasHostDriver } from './atlas-host.driver.js';
 import { errorMessage } from './atlas-host.js';

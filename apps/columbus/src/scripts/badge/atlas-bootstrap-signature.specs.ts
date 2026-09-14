@@ -1,5 +1,3 @@
-/** @jest-environment jsdom */
-
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { AtlasBootstrapSignatureDriver } from './atlas-bootstrap-signature.driver.js';
 

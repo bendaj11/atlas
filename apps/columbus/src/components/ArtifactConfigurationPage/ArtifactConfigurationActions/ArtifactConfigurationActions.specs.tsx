@@ -1,5 +1,3 @@
-/** @jest-environment jsdom */
-
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ArtifactConfigurationActionsDriver } from './ArtifactConfigurationActions.driver.js';

@@ -1,5 +1,3 @@
-/** @jest-environment jsdom */
-
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { OverridesTableToolbarDriver } from './OverridesTableToolbar.driver.js';
 
