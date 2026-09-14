@@ -1,3 +1,5 @@
+import { isRecord } from '../../shared/messages/messages';
+
 interface BadgeRefreshDependencies {
   readCount: () => Promise<number>;
   publishCount: (count: number) => Promise<void>;
@@ -54,7 +56,7 @@ export function countDevSessionOverrides({
   disabledAppIds,
 }: CountDevSessionOverridesOptions): number {
   const enabledApps = session.overrides.filter((override) => {
-    if (typeof override !== 'object' || override === null) return false;
+    if (!isRecord(override)) return false;
     if (!('appId' in override)) return false;
     return (
       typeof override.appId === 'string' && !disabledAppIds.has(override.appId)

@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host';
+import { failureMessage } from '../../../scripts/shared/errors/errors';
 import {
   clearAllOverridesInSession,
   clearOverrideInSession,
@@ -72,7 +72,7 @@ export function OverridesProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       setStatus('ERROR');
       setMessage(
-        errorMessage(
+        failureMessage(
           error,
           'apply the selected overrides',
           'Reload the Atlas host tab, reopen Columbus, verify the selected build is available, and retry.',

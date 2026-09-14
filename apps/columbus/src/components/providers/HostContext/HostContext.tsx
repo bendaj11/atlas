@@ -1,12 +1,12 @@
 import { createContext, type ReactNode, useContext, useState } from 'react';
 import type { AtlasHostData as HostData } from '../../../types/contracts';
 import {
-  errorMessage,
   readDisabledOverrides,
   readHostData,
   readSuppressedArtifactIds,
 } from '../../../scripts/host/atlas-host/atlas-host';
 import { readHostDataCache } from '../../../scripts/host/host-data-cache';
+import { failureMessage } from '../../../scripts/shared/errors/errors';
 import {
   extractActiveOverrideManifests,
   includeOverrideAppsInCatalog,
@@ -75,7 +75,7 @@ async function readActiveHost(): Promise<HostLoadResult> {
   } catch (error) {
     return {
       status: 'ERROR',
-      message: errorMessage(
+      message: failureMessage(
         error,
         'read Atlas data from the active browser tab',
         'Open an Atlas host or App Preview tab, activate it, then retry.',

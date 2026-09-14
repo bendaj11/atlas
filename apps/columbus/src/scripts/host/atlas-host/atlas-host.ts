@@ -4,10 +4,34 @@ import {
   type AtlasOverrideDocument as OverrideDocument,
   getArtifactKey,
 } from '../../../types/contracts';
-import { DOCUMENT_KEY } from '../../shared/constants';
 import { writeHostDataCache } from '../host-data-cache';
 import type { Scope } from '../../../types/app';
 import { normalizeStoredManifest } from '../../manifests/manifest-utils/manifest-utils';
+import { failureMessage } from '../../shared/errors/errors';
+import {
+  inspectHostRequest,
+  isHostDataResponse,
+  isManifestResponse,
+  loadArtifactVersionRequest,
+  isRecord,
+} from '../../shared/messages/messages';
+import {
+  OVERRIDE_DOCUMENT_KEY,
+  disabledLocalAppsKey,
+  disabledOverridesKey,
+  persistedOverridesKey,
+  suppressedArtifactsKey,
+} from '../../shared/storage-keys/storage-keys';
+import {
+  isExtensionPageUrl,
+  isLoopbackUrl,
+  isWebPageUrl,
+} from '../../shared/urls/urls';
+import {
+  countOverrides,
+  isStoredManifest,
+  isStoredOverrideDocument,
+} from '../../overrides/override-document/override-document';
 
 interface DisabledOverrideStorageLocation {
   hostId: string;
@@ -21,11 +45,6 @@ interface WriteDisabledOverridesOptions extends DisabledOverrideStorageLocation 
 
 interface WriteSuppressedArtifactIdsOptions extends DisabledOverrideStorageLocation {
   artifactIds: Set<string>;
-}
-
-interface CreateOverrideDocumentOptions {
-  hostData: HostData;
-  overrides: Map<string, Manifest>;
 }
 
 export async function readHostData(): Promise<{
@@ -48,12 +67,11 @@ export async function loadArtifactVersion(options: {
   artifactKey: string;
   versionKey: string;
 }): Promise<Manifest> {
-  const response = await chrome.tabs.sendMessage(options.tabId, {
-    type: 'atlas.load-artifact-version',
-    artifactKey: options.artifactKey,
-    versionKey: options.versionKey,
-  });
-  if (!isArtifactVersionResponse(response))
+  const response = await chrome.tabs.sendMessage(
+    options.tabId,
+    loadArtifactVersionRequest(options.artifactKey, options.versionKey),
+  );
+  if (!isManifestResponse(response))
     throw new Error(
       'Active page did not return the selected artifact version.',
     );
@@ -71,7 +89,7 @@ async function findAtlasHostTab(): Promise<{
   );
   if (!activeTab)
     throw new Error('Open an Atlas host in the active tab first.');
-  if (isExtensionPage(activeTab.url)) {
+  if (isExtensionPageUrl(activeTab.url)) {
     for (const tab of recentWebTabs(tabs, activeTab.id)) {
       try {
         return { tab, hostData: await inspectTab(tab) };
@@ -81,7 +99,7 @@ async function findAtlasHostTab(): Promise<{
     }
     throw new Error('Open an Atlas host in the active tab first.');
   }
-  if (!isWebPage(activeTab.url))
+  if (!isWebPageUrl(activeTab.url))
     throw new Error('Open an Atlas host in the active tab first.');
 
   let activeHostData: HostData | undefined;
@@ -93,7 +111,7 @@ async function findAtlasHostTab(): Promise<{
     activeError = error;
   }
 
-  if (!isLoopbackPage(activeTab.url)) throw activeError;
+  if (!isLoopbackUrl(activeTab.url)) throw activeError;
 
   const expectedHostId = activeHostData?.config.hostId;
   const matchingPreviews: Array<{ tab: InspectableTab; hostData: HostData }> =
@@ -116,7 +134,7 @@ async function findAtlasHostTab(): Promise<{
   }
 
   throw new Error(
-    errorMessage(
+    failureMessage(
       activeError,
       'inspect the active host page',
       'Open the Atlas App Preview URL printed by atlas dev, activate that browser tab, then reopen Columbus.',
@@ -125,59 +143,14 @@ async function findAtlasHostTab(): Promise<{
 }
 
 async function inspectTab(tab: InspectableTab): Promise<HostData> {
-  const response = await chrome.tabs.sendMessage(tab.id, {
-    type: 'atlas.inspect-host',
-    documentKey: DOCUMENT_KEY,
-  });
-  if (!isInspectionResponse(response))
+  const response = await chrome.tabs.sendMessage(
+    tab.id,
+    inspectHostRequest(OVERRIDE_DOCUMENT_KEY),
+  );
+  if (!isHostDataResponse(response))
     throw new Error('Active page did not return Atlas runtime information.');
   if (!response.ok) throw new Error(response.error);
   return response.hostData;
-}
-
-function isInspectionResponse(
-  value: unknown,
-): value is { ok: true; hostData: HostData } | { ok: false; error: string } {
-  if (typeof value !== 'object' || value === null || !('ok' in value))
-    return false;
-  const response = value as Record<string, unknown>;
-  return response.ok === true
-    ? typeof response.hostData === 'object' && response.hostData !== null
-    : response.ok === false && typeof response.error === 'string';
-}
-
-function isArtifactVersionResponse(
-  value: unknown,
-): value is { ok: true; manifest: Manifest } | { ok: false; error: string } {
-  if (typeof value !== 'object' || value === null || !('ok' in value))
-    return false;
-  const response = value as Record<string, unknown>;
-  return response.ok === true
-    ? typeof response.manifest === 'object' && response.manifest !== null
-    : response.ok === false && typeof response.error === 'string';
-}
-
-export function createOverrideDocument({
-  hostData,
-  overrides,
-}: CreateOverrideDocumentOptions): OverrideDocument {
-  const selectedManifests = [...overrides.values()];
-  const hostManifest = selectedManifests.find(
-    (manifest) => manifest.kind === 'host',
-  );
-  return {
-    schemaVersion: '1',
-    hostId: hostData.config.hostId,
-    generatedAt: new Date().toISOString(),
-    ...(hostManifest ? { hostOverride: hostManifest } : {}),
-    overrides: selectedManifests
-      .filter((manifest) => manifest.kind === 'app')
-      .map((manifest) => ({
-        appId: manifest.id,
-        manifest,
-        reason: overrideReason(manifest),
-      })),
-  };
 }
 
 export async function writeOverrides({
@@ -193,18 +166,19 @@ export async function writeOverrides({
   scope: Scope;
   disabledAppIds?: string[];
 }): Promise<void> {
-  const storageKey = `atlas.overrides.${hostData.config.hostId}`;
+  const storageKey = persistedOverridesKey(hostData.config.hostId);
 
   await chrome.scripting.executeScript({
     target: { tabId },
     world: 'MAIN',
     func: persistOverrides,
     args: [
-      DOCUMENT_KEY,
+      OVERRIDE_DOCUMENT_KEY,
+      disabledLocalAppsKey(hostData.config.hostId),
       JSON.stringify({ documentValue, scope, disabledAppIds }),
     ],
   });
-  const count = overrideCount(documentValue);
+  const count = countOverrides(documentValue);
   if (scope === 'all' && count)
     await chrome.storage.local.set({ [storageKey]: documentValue });
   if (scope === 'all' && !count) await chrome.storage.local.remove(storageKey);
@@ -240,26 +214,6 @@ export async function readDisabledOverrides({
   );
 }
 
-function isStoredManifest(value: unknown): value is Manifest {
-  if (typeof value !== 'object' || value === null) return false;
-  const manifest = value as Partial<Manifest>;
-  return (
-    manifest.schemaVersion === '1' &&
-    (manifest.kind === 'host' || manifest.kind === 'app') &&
-    typeof manifest.id === 'string' &&
-    typeof manifest.name === 'string' &&
-    typeof manifest.version === 'string' &&
-    typeof manifest.buildId === 'string' &&
-    (manifest.channel === 'production' ||
-      manifest.channel === 'pr' ||
-      manifest.channel === 'local') &&
-    (manifest.framework === 'angular' ||
-      manifest.framework === 'react' ||
-      manifest.framework === 'vue') &&
-    typeof manifest.remoteEntryUrl === 'string'
-  );
-}
-
 export async function writeDisabledOverrides({
   hostId,
   tabId,
@@ -279,7 +233,7 @@ export async function readSuppressedArtifactIds({
   tabId,
   scope,
 }: DisabledOverrideStorageLocation): Promise<Set<string>> {
-  const key = suppressedArtifactIdsKey(hostId, tabId, scope);
+  const key = suppressedArtifactsKey(hostId, tabId, scope);
   const stored = await chrome.storage.local.get(key);
   const value = stored[key];
   return new Set(
@@ -298,7 +252,7 @@ export async function writeSuppressedArtifactIds({
   scope,
   artifactIds,
 }: WriteSuppressedArtifactIdsOptions): Promise<void> {
-  const key = suppressedArtifactIdsKey(hostId, tabId, scope);
+  const key = suppressedArtifactsKey(hostId, tabId, scope);
   if (artifactIds.size === 0) {
     await chrome.storage.local.remove(key);
     return;
@@ -306,56 +260,16 @@ export async function writeSuppressedArtifactIds({
   await chrome.storage.local.set({ [key]: [...artifactIds] });
 }
 
-export function errorMessage(
-  error: unknown,
-  operation = 'complete the requested action',
-  suggestedAction = 'Reload the Atlas host page, reopen Columbus, and retry.',
-): string {
-  const detail = (error instanceof Error ? error.message : String(error))
-    .replace(/\s+Suggested actions?:[\s\S]*$/u, '')
-    .trim();
-  return `Columbus could not ${operation}: ${detail} Suggested action: ${suggestedAction}`;
-}
-
 async function readPersistedOverrides(
   hostData: HostData,
 ): Promise<OverrideDocument | undefined> {
-  const key = `atlas.overrides.${hostData.config.hostId}`;
+  const key = persistedOverridesKey(hostData.config.hostId);
   const persisted = await chrome.storage.local.get(key);
   const value = persisted[key];
   return isStoredOverrideDocument(value) &&
     value.hostId === hostData.config.hostId
     ? value
     : undefined;
-}
-
-function isStoredOverrideDocument(value: unknown): value is OverrideDocument {
-  if (typeof value !== 'object' || value === null) return false;
-  const documentValue = value as Partial<OverrideDocument>;
-  return (
-    documentValue.schemaVersion === '1' &&
-    typeof documentValue.hostId === 'string' &&
-    typeof documentValue.generatedAt === 'string' &&
-    (documentValue.hostOverride === undefined ||
-      isStoredManifest(documentValue.hostOverride)) &&
-    Array.isArray(documentValue.overrides) &&
-    documentValue.overrides.every(isStoredOverride)
-  );
-}
-
-function isStoredOverride(
-  value: unknown,
-): value is OverrideDocument['overrides'][number] {
-  if (typeof value !== 'object' || value === null) return false;
-  const override = value as Partial<OverrideDocument['overrides'][number]>;
-  return (
-    typeof override.appId === 'string' &&
-    isStoredManifest(override.manifest) &&
-    override.appId === override.manifest.id &&
-    (override.reason === 'local' ||
-      override.reason === 'pr' ||
-      override.reason === 'historical')
-  );
 }
 
 type InspectableTab = chrome.tabs.Tab & { id: number };
@@ -367,7 +281,7 @@ function localPreviewCandidates(
   return tabs
     .filter(
       (tab): tab is InspectableTab =>
-        hasTabId(tab) && tab.id !== activeTabId && isLoopbackPage(tab.url),
+        hasTabId(tab) && tab.id !== activeTabId && isLoopbackUrl(tab.url),
     )
     .sort(
       (left, right) => (right.lastAccessed ?? 0) - (left.lastAccessed ?? 0),
@@ -381,7 +295,7 @@ function recentWebTabs(
   return tabs
     .filter(
       (tab): tab is InspectableTab =>
-        hasTabId(tab) && tab.id !== activeTabId && isWebPage(tab.url),
+        hasTabId(tab) && tab.id !== activeTabId && isWebPageUrl(tab.url),
     )
     .sort(
       (left, right) => (right.lastAccessed ?? 0) - (left.lastAccessed ?? 0),
@@ -392,26 +306,11 @@ function hasTabId(tab: chrome.tabs.Tab): tab is InspectableTab {
   return typeof tab.id === 'number';
 }
 
-function isWebPage(url: string | undefined): url is string {
-  return (
-    typeof url === 'string' &&
-    (url.startsWith('http://') || url.startsWith('https://'))
-  );
-}
-
-function isExtensionPage(url: string | undefined): boolean {
-  return typeof url === 'string' && url.startsWith('chrome-extension://');
-}
-
-function isLoopbackPage(url: string | undefined): boolean {
-  if (!isWebPage(url)) return false;
-  const hostname = new URL(url).hostname;
-  return (
-    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
-  );
-}
-
-function persistOverrides(documentKey: string, value: string): void {
+function persistOverrides(
+  documentKey: string,
+  disabledKey: string,
+  value: string,
+): void {
   const { documentValue, scope, disabledAppIds } = JSON.parse(value) as {
     documentValue: OverrideDocument;
     scope: Scope;
@@ -431,7 +330,6 @@ function persistOverrides(documentKey: string, value: string): void {
     sessionStorage.setItem(documentKey, serializedDocument);
   }
 
-  const disabledKey = `atlas.disabled-local-apps.${documentValue.hostId}`;
   if (scope === 'all') {
     if (disabledAppIds.length)
       localStorage.setItem(disabledKey, JSON.stringify(disabledAppIds));
@@ -452,7 +350,7 @@ async function validateLocalRemoteEntry(
     name: string;
     exposes: Array<{ key?: unknown; outFileName?: unknown }>;
   } => {
-    if (typeof value !== 'object' || value === null) return false;
+    if (!isRecord(value)) return false;
     const metadata = value as Partial<{ name: unknown; exposes: unknown }>;
     return typeof metadata.name === 'string' && Array.isArray(metadata.exposes);
   };
@@ -475,36 +373,4 @@ async function validateLocalRemoteEntry(
   } catch {
     return 'Local override remote entry is unreachable. Start its development server, then retry.';
   }
-}
-
-function overrideReason(manifest: Manifest): 'local' | 'pr' | 'historical' {
-  if (manifest.channel === 'local') return 'local';
-  if (manifest.channel === 'pr') return 'pr';
-  return 'historical';
-}
-
-function overrideCount(documentValue: OverrideDocument | undefined): number {
-  return documentValue
-    ? documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0)
-    : 0;
-}
-
-function disabledOverridesKey(
-  hostId: string,
-  tabId: number,
-  scope: Scope,
-): string {
-  return scope === 'tab'
-    ? `atlas.disabled-overrides.${hostId}.tab.${tabId}`
-    : `atlas.disabled-overrides.${hostId}.all`;
-}
-
-function suppressedArtifactIdsKey(
-  hostId: string,
-  tabId: number,
-  scope: Scope,
-): string {
-  return scope === 'tab'
-    ? `atlas.suppressed-artifacts.${hostId}.tab.${tabId}`
-    : `atlas.suppressed-artifacts.${hostId}.all`;
 }

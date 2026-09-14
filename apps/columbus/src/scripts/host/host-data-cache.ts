@@ -1,6 +1,7 @@
 import type { AtlasHostData as HostData } from '../../types/contracts';
-
-const HOST_DATA_CACHE_KEY = 'atlas.host-data-cache';
+import { HOST_DATA_CACHE_KEY } from '../shared/storage-keys/storage-keys';
+import { isExtensionPageUrl } from '../shared/urls/urls';
+import { isRecord } from '../shared/messages/messages';
 
 interface HostDataSnapshot {
   hostData: HostData;
@@ -20,7 +21,7 @@ export async function readHostDataCache(): Promise<
   const cachedTab = tabs.find((tab) => tab.id === snapshot.tabId);
   const cacheMatchesActiveHost =
     cachedTab?.url === snapshot.tabUrl &&
-    (activeTab?.id === snapshot.tabId || isExtensionPage(activeTab?.url));
+    (activeTab?.id === snapshot.tabId || isExtensionPageUrl(activeTab?.url));
 
   if (!cacheMatchesActiveHost) {
     await chrome.storage.session.remove(HOST_DATA_CACHE_KEY);
@@ -49,15 +50,11 @@ export async function clearHostDataCache(tabId?: number): Promise<void> {
 }
 
 function isHostDataSnapshot(value: unknown): value is HostDataSnapshot {
-  if (typeof value !== 'object' || value === null) return false;
+  if (!isRecord(value)) return false;
   const snapshot = value as Partial<HostDataSnapshot>;
   return (
     Number.isInteger(snapshot.tabId) &&
     typeof snapshot.tabUrl === 'string' &&
     typeof snapshot.hostData?.config?.hostId === 'string'
   );
-}
-
-function isExtensionPage(url: string | undefined): boolean {
-  return typeof url === 'string' && url.startsWith('chrome-extension://');
 }

@@ -6,7 +6,6 @@ import type {
   Scope,
 } from '../../../types/app';
 import { aSession } from '../../../types/app.testkit';
-import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host';
 import type * as OverrideSessionModule from '../../../scripts/overrides/override-session/override-session';
 import type { persistOverrideSession as persistOverrideSessionType } from '../../../scripts/overrides/persist-overrides';
 import type { useSession as useSessionType } from '../SessionContext/SessionContext';
@@ -26,9 +25,6 @@ const setOverrideScopeInSession =
 const persistOverrideSession = jest.fn<typeof persistOverrideSessionType>();
 const useSession = jest.fn<typeof useSessionType>();
 
-jest.unstable_mockModule('../../../scripts/host/atlas-host/atlas-host', () => ({
-  errorMessage,
-}));
 jest.unstable_mockModule(
   '../../../scripts/overrides/override-session/override-session',
   () => ({

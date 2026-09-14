@@ -5,6 +5,11 @@ import {
   type AtlasDevelopmentSessionRequest,
   type AtlasDevelopmentSessionResponse,
 } from '@atlas/schema';
+import { messageFromError } from '../shared/errors/errors';
+import {
+  isRecord,
+  loadDevelopmentSessionRequest,
+} from '../shared/messages/messages';
 
 const CONTROL_PORT_PARAMETER = 'atlas-dev-port';
 const controlPort = readControlPort();
@@ -36,12 +41,13 @@ function relayDevelopmentSessionRequest(event: MessageEvent): void {
   }
   const request = event.data;
   void chrome.runtime
-    .sendMessage({
-      type: 'atlas.load-development-session',
-      hostId: request.hostId,
-      previewUrl: location.href,
-      ...(controlPort === undefined ? {} : { controlPort }),
-    })
+    .sendMessage(
+      loadDevelopmentSessionRequest({
+        hostId: request.hostId,
+        previewUrl: location.href,
+        ...(controlPort === undefined ? {} : { controlPort }),
+      }),
+    )
     .then(
       (response: unknown) => publishResponse(request, bridgeResponse(response)),
       (error: unknown) =>
@@ -52,8 +58,9 @@ function relayDevelopmentSessionRequest(event: MessageEvent): void {
 function bridgeResponse(
   value: unknown,
 ): { document?: unknown; error?: string } | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
-  const response = value as Record<string, unknown>;
+  if (!isRecord(value)) return undefined;
+  const response = value;
+
   return {
     ...('document' in response ? { document: response.document } : {}),
     ...(typeof response.error === 'string' ? { error: response.error } : {}),
@@ -95,15 +102,12 @@ function removeControlPortFromAddressBar(): void {
 function isDevelopmentSessionRequest(
   value: unknown,
 ): value is AtlasDevelopmentSessionRequest {
-  if (typeof value !== 'object' || value === null) return false;
+  if (!isRecord(value)) return false;
   const request = value as Partial<AtlasDevelopmentSessionRequest>;
+
   return (
     request.type === ATLAS_DEV_SESSION_REQUEST &&
     typeof request.requestId === 'string' &&
     typeof request.hostId === 'string'
   );
-}
-
-function messageFromError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

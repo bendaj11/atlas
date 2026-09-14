@@ -10,7 +10,6 @@ import type {
 } from '../../../types/app';
 import { aManifest, anArtifact, aSession } from '../../../types/app.testkit';
 import type { loadArtifactVersion as loadArtifactVersionType } from '../../../scripts/host/atlas-host/atlas-host';
-import { errorMessage } from '../../../scripts/host/atlas-host/atlas-host';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
@@ -34,7 +33,6 @@ jest.unstable_mockModule('../../providers', () => ({
   useSession,
 }));
 jest.unstable_mockModule('../../../scripts/host/atlas-host/atlas-host', () => ({
-  errorMessage,
   loadArtifactVersion,
 }));
 

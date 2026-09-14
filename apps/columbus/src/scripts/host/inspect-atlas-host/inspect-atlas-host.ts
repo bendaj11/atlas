@@ -4,11 +4,13 @@ import {
 } from '@atlas/bootstrap/runtime';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
 import { versionKey } from '../../manifests/manifest-versions/manifest-versions';
-import type {
-  AtlasExtensionManifest as Manifest,
-  AtlasHostData as HostData,
-  AtlasOverrideDocument as OverrideDocument,
+import {
+  type AtlasExtensionManifest as Manifest,
+  type AtlasHostData as HostData,
+  type AtlasOverrideDocument as OverrideDocument,
+  getArtifactKey,
 } from '../../../types/contracts';
+import { messageFromError } from '../../shared/errors/errors';
 import type { Scope } from '../../../types/app';
 
 interface Descriptor {
@@ -281,7 +283,7 @@ async function readManifestVersions(
   root: string | undefined,
 ): Promise<{ entry: readonly [string, Manifest[]]; error?: string }> {
   if (!registry || !root) {
-    return { entry: [manifestKey(manifest), [manifest]] };
+    return { entry: [getArtifactKey(manifest), [manifest]] };
   }
   try {
     const artifact =
@@ -292,12 +294,12 @@ async function readManifestVersions(
       throw new Error(`Artifact ${manifest.id} is not registered.`);
     const versions = await versionOptions(manifest, artifact, root);
     return {
-      entry: [manifestKey(manifest), versions.manifests],
+      entry: [getArtifactKey(manifest), versions.manifests],
       ...(versions.errors.length ? { error: versions.errors.join(' ') } : {}),
     };
   } catch (error) {
     return {
-      entry: [manifestKey(manifest), [manifest]],
+      entry: [getArtifactKey(manifest), [manifest]],
       error: messageFromError(error),
     };
   }
@@ -319,7 +321,7 @@ export async function loadArtifactVersion(
   if (!descriptor) throw new Error('Selected artifact version is unavailable.');
   const manifest = await loadCachedManifest(descriptor);
   if (
-    manifestKey(manifest) !== artifactKey ||
+    getArtifactKey(manifest) !== artifactKey ||
     versionKey(manifest) !== selectedVersionKey
   )
     throw new Error(
@@ -333,7 +335,7 @@ async function versionOptions(
   artifact: RegistryArtifact,
   root: string,
 ): Promise<VersionOptions> {
-  const artifactKey = manifestKey(selectedManifest);
+  const artifactKey = getArtifactKey(selectedManifest);
   const releases = orderedReleases(artifact).map(([version, descriptor]) =>
     registerVersionOption({
       artifactKey,
@@ -554,10 +556,6 @@ function reference(root: string, descriptor: Descriptor): ManifestReference {
   return { ...descriptor, url: new URL(descriptor.path, `${root}/`).href };
 }
 
-function manifestKey(manifest: Manifest): string {
-  return `${manifest.kind}:${manifest.id}`;
-}
-
 function uniqueManifests(manifests: Manifest[]): Manifest[] {
   return [
     ...new Map(
@@ -567,8 +565,4 @@ function uniqueManifests(manifests: Manifest[]): Manifest[] {
       ]),
     ).values(),
   ];
-}
-
-function messageFromError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

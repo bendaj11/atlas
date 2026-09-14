@@ -1,9 +1,4 @@
-export type ColorScheme = 'dark' | 'light';
-
-export interface ActionThemeMessage {
-  type: 'columbus.action-theme';
-  colorScheme: ColorScheme;
-}
+import type { ColorScheme } from './messages/messages';
 
 const ACTION_ICON_PATHS: Record<
   ColorScheme,
@@ -23,25 +18,4 @@ export function actionIconPathsFor(
   colorScheme: ColorScheme,
 ): Readonly<Record<string, string>> {
   return ACTION_ICON_PATHS[colorScheme];
-}
-
-export function actionThemeMessage(
-  colorScheme: ColorScheme,
-): ActionThemeMessage {
-  return {
-    type: 'columbus.action-theme',
-    colorScheme,
-  };
-}
-
-export function isActionThemeMessage(
-  message: unknown,
-): message is ActionThemeMessage {
-  if (typeof message !== 'object' || message === null) return false;
-
-  const value = message as Partial<ActionThemeMessage>;
-  return (
-    value.type === 'columbus.action-theme' &&
-    (value.colorScheme === 'dark' || value.colorScheme === 'light')
-  );
 }

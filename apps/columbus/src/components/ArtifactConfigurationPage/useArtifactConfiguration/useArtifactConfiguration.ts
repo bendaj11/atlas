@@ -15,10 +15,8 @@ import {
   resolveSelectedManifest,
 } from '../../../scripts/manifests/manifest-utils/manifest-utils';
 import { ARTIFACTS_ROUTE } from '../../../scripts/routing/routes/routes';
-import {
-  errorMessage,
-  loadArtifactVersion,
-} from '../../../scripts/host/atlas-host/atlas-host';
+import { loadArtifactVersion } from '../../../scripts/host/atlas-host/atlas-host';
+import { failureMessage } from '../../../scripts/shared/errors/errors';
 import type {
   Artifact,
   ArtifactConfiguration,
@@ -86,7 +84,7 @@ export function useArtifactConfiguration() {
       });
     } catch (error) {
       reportError(
-        errorMessage(
+        failureMessage(
           error,
           'save this artifact override',
           'Correct the selected version or URL, then retry.',

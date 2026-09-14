@@ -2,11 +2,11 @@ import type {} from '../../../types/chrome';
 import type { AtlasHostData } from '../../../types/contracts';
 import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/runtime-discovery';
 import {
-  createOverrideDocument,
   readHostData,
   validateLocalOverride,
   writeOverrides,
 } from './atlas-host';
+import { createOverrideDocument } from '../../overrides/override-document/override-document';
 import { readHostDataCache } from '../host-data-cache';
 
 interface MockTab {

@@ -1,14 +1,18 @@
+import {
+  isRecord,
+  type LoadDevelopmentSessionRequest,
+} from '../shared/messages/messages';
+
 const DEFAULT_CONTROL_PORT = 4_400;
 
 interface DevelopmentSessionDependencies {
   fetchJson(url: string): Promise<unknown>;
 }
 
-export interface DevelopmentSessionRequest {
-  controlPort?: number;
-  hostId: string;
-  previewUrl: string;
-}
+export type DevelopmentSessionRequest = Omit<
+  LoadDevelopmentSessionRequest,
+  'type'
+>;
 
 export async function loadDevelopmentSession(
   request: DevelopmentSessionRequest,
@@ -55,8 +59,4 @@ function assertDevelopmentSession(value: unknown, hostId: string): void {
   ) {
     throw new Error('Atlas development session is invalid.');
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

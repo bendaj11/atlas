@@ -1,25 +1,21 @@
 import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR } from '../shared/constants';
 import { clearHostDataCache } from '../host/host-data-cache';
+import { actionIconPathsFor } from '../shared/action-icon-theme';
+import { messageFromError } from '../shared/errors/errors';
 import {
-  actionIconPathsFor,
   isActionThemeMessage,
-} from '../shared/action-icon-theme';
-import {
-  loadDevelopmentSession,
-  type DevelopmentSessionRequest,
-} from '../development-session/development-session-background';
-
-interface BadgeCountMessage {
-  type: 'atlas.override-count';
-  overrideCount: number;
-}
+  isLoadDevelopmentSessionRequest,
+  isOverrideCountMessage,
+  type LoadDevelopmentSessionRequest,
+} from '../shared/messages/messages';
+import { loadDevelopmentSession } from '../development-session/development-session-background';
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'loading') void clearHostDataCache(tabId);
 });
 chrome.tabs.onRemoved.addListener((tabId) => void clearHostDataCache(tabId));
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (isDevelopmentSessionMessage(message)) {
+  if (isLoadDevelopmentSessionRequest(message)) {
     void loadForTab(sender, message).then(
       (document) => sendResponse({ document }),
       (error) => sendResponse({ error: messageFromError(error) }),
@@ -34,14 +30,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
-  if (isBadgeCountMessage(message) && typeof sender.tab?.id === 'number') {
+  if (isOverrideCountMessage(message) && typeof sender.tab?.id === 'number') {
     void updateActionBadge(sender.tab.id, message.overrideCount);
   }
 });
 
 async function loadForTab(
   sender: { tab?: chrome.tabs.Tab; url?: string },
-  request: DevelopmentSessionRequest,
+  request: LoadDevelopmentSessionRequest,
 ): Promise<unknown> {
   const senderUrl = sender.url ?? sender.tab?.url;
   if (sender.tab?.id === undefined || !senderUrl) {
@@ -86,45 +82,8 @@ async function updateActionBadge(
   });
 }
 
-function isBadgeCountMessage(message: unknown): message is BadgeCountMessage {
-  if (typeof message !== 'object' || message === null) return false;
-
-  const value = message as Partial<BadgeCountMessage>;
-  return (
-    value.type === 'atlas.override-count' &&
-    Number.isInteger(value.overrideCount) &&
-    value.overrideCount! >= 0
-  );
-}
-
-function isDevelopmentSessionMessage(
-  value: unknown,
-): value is DevelopmentSessionRequest & {
-  type: 'atlas.load-development-session';
-} {
-  return (
-    isMessage(value, 'atlas.load-development-session') &&
-    typeof (value as { hostId?: unknown }).hostId === 'string' &&
-    typeof (value as { previewUrl?: unknown }).previewUrl === 'string' &&
-    ((value as { controlPort?: unknown }).controlPort === undefined ||
-      typeof (value as { controlPort?: unknown }).controlPort === 'number')
-  );
-}
-
 function previewIdentity(value: string): string {
   const url = new URL(value);
   url.searchParams.delete('atlas-dev-port');
   return url.href;
-}
-
-function isMessage(value: unknown, type: string): value is { type: string } {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    (value as { type?: unknown }).type === type
-  );
-}
-
-function messageFromError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

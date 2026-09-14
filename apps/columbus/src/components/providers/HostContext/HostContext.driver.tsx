@@ -8,7 +8,6 @@ import {
 import type { ExtensionSession, Manifest } from '../../../types/app';
 import type { AtlasHostData as HostData } from '../../../types/contracts';
 import {
-  errorMessage,
   type readDisabledOverrides as readDisabledOverridesType,
   type readHostData as readHostDataType,
   type readSuppressedArtifactIds as readSuppressedArtifactIdsType,
@@ -24,7 +23,6 @@ const readHostDataCache = jest.fn<typeof readHostDataCacheType>();
 const useSession = jest.fn<typeof useSessionType>();
 
 jest.unstable_mockModule('../../../scripts/host/atlas-host/atlas-host', () => ({
-  errorMessage,
   readDisabledOverrides,
   readHostData,
   readSuppressedArtifactIds,

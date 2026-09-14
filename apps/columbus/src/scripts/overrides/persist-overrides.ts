@@ -1,5 +1,4 @@
 import {
-  createOverrideDocument,
   reloadHostTab,
   validateLocalOverride,
   writeDisabledOverrides,
@@ -7,6 +6,7 @@ import {
   writeSuppressedArtifactIds,
 } from '../host/atlas-host/atlas-host';
 import type { ExtensionSession } from '../../types/app';
+import { createOverrideDocument } from './override-document/override-document';
 
 export async function persistOverrideSession(
   session: ExtensionSession,
