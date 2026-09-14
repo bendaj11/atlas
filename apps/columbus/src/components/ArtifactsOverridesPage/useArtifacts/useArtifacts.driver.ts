@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
 import type { Artifact, ExtensionSession, Manifest } from '../../../types/app';
-import { aManifest, aSession } from '../../../types/app.testkit';
+import { aSession } from '../../../types/app.testkit';
 import { getArtifactKey } from '../../../types/contracts';
 import type { useSession as useSessionType } from '../../providers/SessionContext/SessionContext';
 
@@ -9,7 +9,9 @@ const useSession = jest.fn<typeof useSessionType>();
 
 jest.unstable_mockModule(
   '../../providers/SessionContext/SessionContext',
-  () => ({ useSession }),
+  () => ({
+    useSession,
+  }),
 );
 
 const { useArtifacts } = await import('./useArtifacts');
@@ -22,22 +24,25 @@ export class UseArtifactsDriver {
   private hook: RenderHookResult<HookResult, undefined> | undefined;
 
   readonly given = {
-    noSession: (): this => {
-      this.session = undefined;
+    session: (session: ExtensionSession | undefined): this => {
+      this.session = session;
 
       return this;
     },
-    app: (overrides: Partial<Manifest> = {}): Manifest => {
-      const app = aManifest({ kind: 'app', ...overrides });
-      this.session!.hostData.catalog.apps.push(app);
+    catalogHost: (manifest: Manifest): this => {
+      this.session!.hostData.catalog.host = manifest;
 
-      return app;
+      return this;
     },
-    widgetProvider: (): Manifest => {
-      const provider = aManifest({ kind: 'app' });
-      this.session!.hostData.catalog.widgetProviders = [provider];
+    catalogApp: (manifest: Manifest): this => {
+      this.session!.hostData.catalog.apps.push(manifest);
 
-      return provider;
+      return this;
+    },
+    catalogWidgetProvider: (manifest: Manifest): this => {
+      this.session!.hostData.catalog.widgetProviders = [manifest];
+
+      return this;
     },
     activeOverride: (manifest: Manifest, override: Manifest): this => {
       this.session!.activeOverrides.set(getArtifactKey(manifest), override);
@@ -57,7 +62,7 @@ export class UseArtifactsDriver {
 
       return this;
     },
-    visibleAppIds: (...ids: string[]): this => {
+    visibleAppIds: (ids: string[]): this => {
       this.session!.hostData.visibleAppIds = ids;
 
       return this;
@@ -92,17 +97,17 @@ export class UseArtifactsDriver {
       return this.hook.result.current;
     },
     artifacts: (): Artifact[] => this.get.result().artifacts,
-    artifactIds: (): string[] =>
-      this.get.artifacts().map((artifact) => artifact.id),
-    artifact: (manifest: Manifest): Artifact => {
-      const key = getArtifactKey(manifest);
-      const artifact = this.get.artifacts().find((item) => item.id === key);
-      if (!artifact) throw new Error(`Artifact ${key} was not produced.`);
+    deployedManifests: (): Manifest[] =>
+      this.get.artifacts().map((artifact) => artifact.productionManifest),
+    artifactOf: (manifest: Manifest): Artifact => {
+      const artifact = this.get
+        .artifacts()
+        .find((item) => item.productionManifest === manifest);
+      if (!artifact) throw new Error(`No artifact for ${manifest.name}.`);
 
       return artifact;
     },
     totalCount: (): number => this.get.result().totalCount,
     visibleOnly: (): boolean => this.get.result().visibleOnly,
-    host: (): Manifest => this.session!.hostData.catalog.host,
   };
 }

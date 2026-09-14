@@ -24,7 +24,7 @@ export const ArtifactOverrideActions = ({ artifact }: ArtifactProps) => {
                 skin: 'destructive' as const,
                 tooltipProps: { disabled: true },
                 disabled: actionsDisabled,
-                onClick: () => void clearOverride(artifact.id),
+                onClick: () => void clearOverride(artifact.key),
               },
             ]
           : []),

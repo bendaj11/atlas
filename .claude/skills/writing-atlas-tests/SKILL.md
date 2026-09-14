@@ -49,9 +49,15 @@ describe('<exported symbol>', () => {
 
 - `new XDriver()` only in top `beforeEach`. Never inside `it`.
 - `given` and `when` chained in **one** statement. Blank line, then the single `expect`.
+- `given` methods are plain state setters, agnostic to the test's intent: `given.session(undefined)`, `given.actionsDisabled(true)`. Never `given.noSession()` / `given.actionsDisabled()`. Intent lives in the `it` name.
+- Expectations are hard-coded literals. Never call production helpers (`getArtifactKey`, `versionKey`) in a spec or a driver to compute an expected value. A literal repeated across cases becomes a `const` at file top.
+- Key getters and givens by the object the spec created, not by an id: `given.catalogApp(orders)`, `get.artifactOf(orders)`, `expect(get.deployedManifests()).toEqual([host, orders])`. Ids appear only when the id itself is the behavior (`visibleAppIds(['orders'])`). Composite keys are built inside the driver, never typed in a spec.
+- Pin every value you assert on through a `given` (`given.hostManifest(aHostManifest({ id: 'host' }))`), then assert the literal. `expect.any(String)` only when the value is truly irrelevant to the case.
+- `given` takes ready data, never builds it: `given.appManifest(anAppManifest({ name }))`, not `given.app({ name })`. Data comes from testkit factories in the spec. Name the given after the thing it sets (`appManifest`, `version`), not the test's concept.
 - Same assertion over varying inputs → `it.each(CONST_ARRAY)`, literal arrays at file top. No filtered/derived arrays.
 - Group by precondition with nested `describe('when ...')` + `beforeEach` applying that `given`. Do not group by "topic".
-- No `afterEach(cleanup)`: RTL auto-cleanup runs (jest globals injected).
+- Specs: no `import { describe, it, expect } from '@jest/globals'` — globals are injected and typed. Drivers keep `import { jest } from '@jest/globals'`: the global `jest` type lacks `unstable_mockModule` and the one-generic `jest.fn<typeof fn>()`.
+- No `afterEach(cleanup)`: RTL auto-cleanup runs between tests (verified: `document.body` is empty in the next `it`).
 - No comments in specs, drivers, or source. Blank line before every `return`.
 - Relative imports: apps use no extension; `packages/*` use `.js` (emitted ESM needs it). Follow the package you are in.
 
@@ -108,6 +114,8 @@ Mismatch → split the `it`, do not delete asserts.
 - `expect(` count ≠ test block count
 - `new XDriver()` inside `it`
 - Separate `driver.given...;` and `driver.when...;` statements
+- `given.noX()` / parameterless `given.flag()` — intent-named givens
+- Production helper imported into a spec to build the expected value
 - Spec in `tests/` outside `e2e/`
 - Inline fixtures in spec body
 - Comment in any file you touched

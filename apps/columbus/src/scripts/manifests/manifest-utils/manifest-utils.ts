@@ -60,7 +60,7 @@ export function resolveSelectedManifest({
   draft,
   productionOptions,
   prOptions,
-}: ResolveSelectedManifestOptions): Manifest | undefined {
+}: ResolveSelectedManifestOptions): Manifest {
   if (draft.type === 'custom')
     return createCustomManifest({
       productionManifest,

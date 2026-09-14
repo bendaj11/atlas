@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import {
   EmptyStateTestkit,
   TextButtonTestkit,
-} from '@wix/design-system/dist/testkit/testing-library.js';
+} from '@wix/design-system/dist/testkit/testing-library';
 import { EmptyHostDataState } from './EmptyHostDataState';
 
 export class EmptyHostDataStateDriver {

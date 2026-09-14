@@ -1,6 +1,6 @@
 import { render, type RenderResult } from '@testing-library/react';
 import { jest } from '@jest/globals';
-import { RadioGroupTestkit } from '@wix/design-system/dist/testkit/testing-library.js';
+import { RadioGroupTestkit } from '@wix/design-system/dist/testkit/testing-library';
 import type { Scope } from '../../../types/app';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker';
 

@@ -13,7 +13,7 @@ export const ArtifactOverrideToggle = ({ artifact }: ArtifactProps) => {
       disabled={actionsDisabled || !artifact.canToggle}
       checked={artifact.overrideEnabled}
       aria-label={`${action} ${artifact.productionManifest.name} override`}
-      onChange={() => void toggleOverride(artifact.id)}
+      onChange={() => void toggleOverride(artifact.key)}
     />
   );
 };

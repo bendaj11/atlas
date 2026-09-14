@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import {
   ButtonTestkit,
   IconButtonTestkit,
-} from '@wix/design-system/dist/testkit/testing-library.js';
+} from '@wix/design-system/dist/testkit/testing-library';
 import { ArtifactConfigurationActions } from './ArtifactConfigurationActions';
 
 export class ArtifactConfigurationActionsDriver {

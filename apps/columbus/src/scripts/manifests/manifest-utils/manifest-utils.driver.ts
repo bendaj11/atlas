@@ -51,7 +51,7 @@ export class ManifestUtilsDriver {
   readonly get = {
     editorDraft: () =>
       createEditorDraft({
-        id: this.productionManifest.id,
+        key: 'app:orders',
         hostId: 'host',
         productionManifest: this.productionManifest,
         selectedManifest: this.selectedManifest,

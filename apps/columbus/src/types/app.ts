@@ -14,7 +14,7 @@ export interface ArtifactSelection {
 }
 
 export interface Artifact extends ArtifactSelection {
-  id: string;
+  key: string;
   overrideType: OverrideType;
   sourceDescription: string;
   loadError: string | undefined;
@@ -32,7 +32,7 @@ export interface EditorDraft {
 
 export interface ArtifactConfiguration extends Pick<
   Artifact,
-  'id' | 'productionManifest' | 'selectedManifest'
+  'key' | 'productionManifest' | 'selectedManifest'
 > {
   hostId: string;
   productionOptions: Manifest[];

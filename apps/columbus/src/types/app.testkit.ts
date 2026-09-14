@@ -17,11 +17,34 @@ export function aManifest(overrides: Partial<Manifest> = {}): Manifest {
   };
 }
 
+export function anAppManifest(overrides: Partial<Manifest> = {}): Manifest {
+  return aManifest({ kind: 'app', ...overrides });
+}
+
+export function aHostManifest(overrides: Partial<Manifest> = {}): Manifest {
+  return aManifest({ kind: 'host', ...overrides });
+}
+
+export function aVersionOf(
+  manifest: Manifest,
+  overrides: Partial<Manifest> = {},
+): Manifest {
+  const { kind, id, name, supportedHosts } = manifest;
+
+  return aManifest({
+    kind,
+    id,
+    name,
+    ...(supportedHosts ? { supportedHosts } : {}),
+    ...overrides,
+  });
+}
+
 export function anArtifact(overrides: Partial<Artifact> = {}): Artifact {
   const productionManifest = overrides.productionManifest ?? aManifest();
 
   return {
-    id: getArtifactKey(productionManifest),
+    key: getArtifactKey(productionManifest),
     productionManifest,
     selectedManifest: undefined,
     overrideType: 'none',

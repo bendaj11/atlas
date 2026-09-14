@@ -5,7 +5,10 @@ import {
   useOverrides,
   useSession,
 } from '../../providers/index';
-import { uniqueVersionsInOrder } from '../../../scripts/manifests/manifest-versions/manifest-versions';
+import {
+  uniqueVersionsInOrder,
+  versionKey,
+} from '../../../scripts/manifests/manifest-versions/manifest-versions';
 import {
   createEditorDraft,
   isManifestSupportedByHost,
@@ -16,14 +19,14 @@ import {
   errorMessage,
   loadArtifactVersion,
 } from '../../../scripts/host/atlas-host/atlas-host';
-import { versionKey } from '../../../scripts/manifests/manifest-versions/manifest-versions';
 import type {
+  Artifact,
   ArtifactConfiguration,
   ArtifactProps,
   EditorDraft,
+  ExtensionSession,
+  Manifest,
 } from '../../../types/app';
-
-type ArtifactConfigurationLocationState = ArtifactProps;
 
 export function useArtifactConfiguration() {
   const navigate = useNavigate();
@@ -38,36 +41,14 @@ export function useArtifactConfiguration() {
     setScope,
     status: overrideStatus,
   } = useOverrides();
-
-  const hostData = session?.hostData;
-  const tabId = session?.tabId;
-  const artifact = (state as ArtifactConfigurationLocationState | null)
-    ?.artifact;
-  const productionManifest = artifact?.productionManifest;
-  const artifactId = artifact?.id ?? '';
-  const versions = artifactId ? (hostData?.versions[artifactId] ?? []) : [];
-  const uniqueArtifactVersions = uniqueVersionsInOrder(versions);
-  const configuration: ArtifactConfiguration | undefined = productionManifest
-    ? {
-        id: artifactId,
-        hostId: hostData?.config.hostId ?? '',
-        productionManifest,
-        selectedManifest:
-          session?.activeOverrides.get(artifactId) ??
-          session?.disabledOverrides.get(artifactId),
-        productionOptions: uniqueVersionsInOrder([
-          ...uniqueArtifactVersions,
-          productionManifest,
-        ]).filter((manifest) => manifest.channel === 'production'),
-        prOptions: uniqueArtifactVersions.filter(
-          (manifest) => manifest.channel === 'pr',
-        ),
-      }
-    : undefined;
+  const artifact = (state as ArtifactProps | null)?.artifact;
+  const configuration =
+    artifact && session ? configurationOf(artifact, session) : undefined;
   const [draft, setDraft] = useState<EditorDraft>(() =>
     createEditorDraft(configuration),
   );
   const [loadingVersion, setLoadingVersion] = useState(false);
+
   function updateDraft(changes: Partial<EditorDraft>): void {
     setDraft((current) => ({ ...current, ...changes }));
   }
@@ -78,6 +59,7 @@ export function useArtifactConfiguration() {
 
   function clearOverride(): void {
     if (!configuration) return;
+
     saveOverride({
       productionManifest: configuration.productionManifest,
       selectedManifest: undefined,
@@ -85,24 +67,19 @@ export function useArtifactConfiguration() {
   }
 
   async function save(): Promise<void> {
-    if (!configuration) return;
+    if (!configuration || !session) return;
 
     try {
-      const selected = resolveSelectedManifest({
-        productionManifest: configuration.productionManifest,
-        draft,
-        productionOptions: configuration.productionOptions,
-        prOptions: configuration.prOptions,
-      });
-      if (!selected) throw new Error('Choose an artifact version.');
+      const selected = resolveSelectedManifest({ ...configuration, draft });
       const selectedManifest =
         selected.channel === 'local'
           ? selected
-          : await fetchSelectedArtifactVersion(selected);
+          : await loadVersion(session.tabId, configuration.key, selected);
       if (!isManifestSupportedByHost(selectedManifest, configuration.hostId))
         throw new Error(
           'Selected artifact version does not support this host.',
         );
+
       saveOverride({
         productionManifest: configuration.productionManifest,
         selectedManifest,
@@ -118,6 +95,24 @@ export function useArtifactConfiguration() {
     }
   }
 
+  async function loadVersion(
+    tabId: number,
+    artifactKey: string,
+    selected: Manifest,
+  ): Promise<Manifest> {
+    setLoadingVersion(true);
+
+    try {
+      return await loadArtifactVersion({
+        tabId,
+        artifactKey,
+        versionKey: versionKey(selected),
+      });
+    } finally {
+      setLoadingVersion(false);
+    }
+  }
+
   return {
     actionsDisabled: actionsDisabled || loadingVersion,
     clearOverride,
@@ -130,20 +125,25 @@ export function useArtifactConfiguration() {
     setScope,
     updateDraft,
   };
+}
 
-  async function fetchSelectedArtifactVersion(
-    selected: NonNullable<ReturnType<typeof resolveSelectedManifest>>,
-  ) {
-    if (!tabId) throw new Error('Active Atlas host tab is unavailable.');
-    setLoadingVersion(true);
-    try {
-      return await loadArtifactVersion({
-        tabId,
-        artifactKey: artifactId,
-        versionKey: versionKey(selected),
-      });
-    } finally {
-      setLoadingVersion(false);
-    }
-  }
+function configurationOf(
+  { key, productionManifest }: Artifact,
+  { activeOverrides, disabledOverrides, hostData }: ExtensionSession,
+): ArtifactConfiguration {
+  const versions = uniqueVersionsInOrder([
+    ...(hostData.versions[key] ?? []),
+    productionManifest,
+  ]);
+
+  return {
+    key,
+    hostId: hostData.config.hostId,
+    productionManifest,
+    selectedManifest: activeOverrides.get(key) ?? disabledOverrides.get(key),
+    productionOptions: versions.filter(
+      (manifest) => manifest.channel === 'production',
+    ),
+    prOptions: versions.filter((manifest) => manifest.channel === 'pr'),
+  };
 }

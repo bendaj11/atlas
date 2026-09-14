@@ -1,6 +1,6 @@
 import { Box } from '@wix/design-system';
 import { lazy, Suspense, useEffect } from 'react';
-import { useHost } from '../providers/index';
+import { useHost } from '../providers';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   ARTIFACT_CONFIGURATION_ROUTE,

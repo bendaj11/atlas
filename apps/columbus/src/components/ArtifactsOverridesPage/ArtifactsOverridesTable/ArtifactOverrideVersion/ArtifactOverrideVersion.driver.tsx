@@ -1,5 +1,5 @@
 import { render, type RenderResult, within } from '@testing-library/react';
-import { TextTestkit } from '@wix/design-system/dist/testkit/testing-library.js';
+import { TextTestkit } from '@wix/design-system/dist/testkit/testing-library';
 import type { AtlasExtensionManifest } from '../../../../types/contracts';
 import type { Artifact, OverrideType } from '../../../../types/app';
 import { ArtifactOverrideVersion } from './ArtifactOverrideVersion';
@@ -82,7 +82,7 @@ export class ArtifactOverrideVersionDriver {
 function anArtifact(): Artifact {
   const productionManifest = manifest({});
   return {
-    id: 'app:orders',
+    key: 'app:orders',
     productionManifest,
     selectedManifest: undefined,
     overrideType: 'none',
