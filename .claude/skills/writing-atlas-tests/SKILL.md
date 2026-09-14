@@ -80,6 +80,10 @@ renderHook(() => useFoo()).result.current;
 
 Dynamic `await import` is required: static imports load before `unstable_mockModule` runs. `jest.mock` and `jest.spyOn` do not work under ESM (`Cannot assign to read only property`). Do not switch a package to CJS: faker v10 and workspace `dist/` are ESM-only.
 
+## Entry scripts (side effects at import)
+
+A module that registers listeners or runs work at import (`background.ts`, content scripts) is tested through its entry, not by extracting helpers. The driver imports it lazily: every `when` first calls a private `start()` that does `await import('./script')` once; the constructor runs `jest.resetModules()` so each test gets fresh module state. Global listeners added at import (`window.addEventListener`) are recorded by patching `addEventListener` at driver-module top and removed in the constructor. Browser APIs (`chrome.*`, `fetch`, `matchMedia`, `setInterval`) come from testkits or `jest.fn` globals set in the constructor; the driver emits events (`emitRuntimeMessage`, `dispatchEvent`) and awaits a `setTimeout(0)` flush before `get`.
+
 ## Environment
 
 - Default environment comes from the package's jest config. A suite that needs the other environment carries `/** @jest-environment jsdom */` or `/** @jest-environment node */` on line 1.

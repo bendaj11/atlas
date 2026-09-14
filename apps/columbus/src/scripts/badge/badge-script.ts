@@ -21,11 +21,11 @@ import { countOverrides } from '../overrides/override-document/override-document
 import { createArtifactRegistry } from '../host/artifact-registry/artifact-registry';
 import { inspectAtlasHost } from '../host/inspect-atlas-host/inspect-atlas-host';
 
-const DEV_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
+const DEVELOPMENT_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const artifactRegistry = createArtifactRegistry();
-let atlasConfigPromise: Promise<{ hostId?: string } | undefined> | undefined;
+let runtimeConfigPromise: Promise<{ hostId?: string } | undefined> | undefined;
 
 const refreshBadge = createBadgeRefresher({
   readCount: readOverrideCount,
@@ -46,6 +46,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       (hostData) => sendResponse({ ok: true, hostData }),
       (error) => sendResponse({ ok: false, error: messageFromError(error) }),
     );
+
     return true;
   }
   if (isLoadArtifactVersionRequest(message)) {
@@ -55,8 +56,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         (manifest) => sendResponse({ ok: true, manifest }),
         (error) => sendResponse({ ok: false, error: messageFromError(error) }),
       );
+
     return true;
   }
+
   return false;
 });
 
@@ -68,7 +71,7 @@ async function publishActionTheme(): Promise<void> {
 
 async function startBadgeRefresh(): Promise<void> {
   await refreshBadge();
-  if (await readAtlasConfig()) {
+  if (await readRuntimeConfig()) {
     window.setInterval(() => void refreshBadge(), REFRESH_INTERVAL_MS);
   }
 }
@@ -77,27 +80,29 @@ async function readOverrideCount(): Promise<number> {
   const stored =
     sessionStorage.getItem(OVERRIDE_DOCUMENT_KEY) ??
     localStorage.getItem(OVERRIDE_DOCUMENT_KEY);
-  if (stored) return storedOverrideCount(stored);
+  if (stored) return countStoredOverrides(stored);
 
-  const config = await readAtlasConfig();
+  const config = await readRuntimeConfig();
   if (!config?.hostId) return 0;
 
   if (isLoopbackHostname(location.hostname)) {
-    const devOverrideCount = await readDevOverrideCount(config.hostId);
-    if (devOverrideCount !== undefined) return devOverrideCount;
+    const developmentSessionOverrideCount =
+      await readDevelopmentSessionOverrideCount(config.hostId);
+    if (developmentSessionOverrideCount !== undefined)
+      return developmentSessionOverrideCount;
   }
 
   const key = persistedOverridesKey(config.hostId);
   const persisted = await chrome.storage.local.get(key);
 
-  return storedOverrideCount(persisted[key]);
+  return countStoredOverrides(persisted[key]);
 }
 
-async function readDevOverrideCount(
+async function readDevelopmentSessionOverrideCount(
   hostId: string,
 ): Promise<number | undefined> {
   try {
-    const url = new URL(DEV_SESSION_URL);
+    const url = new URL(DEVELOPMENT_SESSION_URL);
     url.searchParams.set('hostId', hostId);
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) return undefined;
@@ -114,7 +119,8 @@ async function readDevOverrideCount(
       !Array.isArray(session.overrides)
     )
       return undefined;
-    const disabledAppIds = readBadgeDisabledAppIds(hostId);
+    const disabledAppIds = readDisabledLocalAppIds(hostId);
+
     return countDevSessionOverrides({
       session: {
         overrides: session.overrides,
@@ -127,10 +133,11 @@ async function readDevOverrideCount(
   }
 }
 
-function readBadgeDisabledAppIds(hostId: string): Set<string> {
+function readDisabledLocalAppIds(hostId: string): Set<string> {
   const key = disabledLocalAppsKey(hostId);
   const stored = sessionStorage.getItem(key) ?? localStorage.getItem(key);
   const value = stored ? parseJson(stored) : [];
+
   return new Set(
     Array.isArray(value)
       ? value.filter((appId): appId is string => typeof appId === 'string')
@@ -138,12 +145,13 @@ function readBadgeDisabledAppIds(hostId: string): Set<string> {
   );
 }
 
-async function readAtlasConfig(): Promise<{ hostId?: string } | undefined> {
-  atlasConfigPromise ??= fetchAtlasConfig();
-  return atlasConfigPromise;
+async function readRuntimeConfig(): Promise<{ hostId?: string } | undefined> {
+  runtimeConfigPromise ??= fetchRuntimeConfig();
+
+  return runtimeConfigPromise;
 }
 
-async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
+async function fetchRuntimeConfig(): Promise<{ hostId?: string } | undefined> {
   if (!hasAtlasBootstrapSignature(document)) return undefined;
 
   try {
@@ -156,13 +164,14 @@ async function fetchAtlasConfig(): Promise<{ hostId?: string } | undefined> {
       schemaVersion?: string;
       hostId?: string;
     };
+
     return value.schemaVersion === 'v1' ? value : undefined;
   } catch {
     return undefined;
   }
 }
 
-function storedOverrideCount(value: unknown): number {
+function countStoredOverrides(value: unknown): number {
   const documentValue = typeof value === 'string' ? parseJson(value) : value;
   if (!isRecord(documentValue) || !Array.isArray(documentValue.overrides))
     return 0;

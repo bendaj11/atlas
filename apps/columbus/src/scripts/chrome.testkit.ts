@@ -7,23 +7,75 @@ export interface FakeTab {
   url?: string;
 }
 
+export interface MessageSender {
+  tab?: FakeTab;
+  url?: string;
+}
+
+type RuntimeMessageListener = (
+  message: unknown,
+  sender: MessageSender,
+  sendResponse: (response: unknown) => void,
+) => void | boolean;
+
 export interface FakeChrome {
   tabs: FakeTab[];
   localStorage: Map<string, unknown>;
   sessionStorage: Map<string, unknown>;
   reloadedTabIds: number[];
   tabMessages: Array<{ tabId: number; message: unknown }>;
+  runtimeMessages: unknown[];
+  badgeTexts: Array<{ tabId?: number; text: string }>;
+  badgeBackgroundColors: string[];
+  badgeTextColors: string[];
+  actionIconPaths: Array<Record<string, string>>;
   onTabMessage: (tabId: number, message: unknown) => Promise<unknown>;
+  onRuntimeMessage: (message: unknown) => Promise<unknown>;
+  emitTabUpdated: (
+    tabId: number,
+    changeInfo: chrome.tabs.TabChangeInfo,
+  ) => void;
+  emitTabRemoved: (tabId: number) => void;
+  emitRuntimeMessage: (
+    message: unknown,
+    sender?: MessageSender,
+  ) => Promise<unknown>;
 }
 
 export function installFakeChrome(): FakeChrome {
+  const tabUpdatedListeners: Array<
+    (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: FakeTab) => void
+  > = [];
+  const tabRemovedListeners: Array<(tabId: number) => void> = [];
+  const runtimeMessageListeners: RuntimeMessageListener[] = [];
   const fake: FakeChrome = {
     tabs: [],
     localStorage: new Map(),
     sessionStorage: new Map(),
     reloadedTabIds: [],
     tabMessages: [],
+    runtimeMessages: [],
+    badgeTexts: [],
+    badgeBackgroundColors: [],
+    badgeTextColors: [],
+    actionIconPaths: [],
     onTabMessage: async () => undefined,
+    onRuntimeMessage: async () => undefined,
+    emitTabUpdated: (tabId, changeInfo) => {
+      tabUpdatedListeners.forEach((listener) =>
+        listener(tabId, changeInfo, { id: tabId }),
+      );
+    },
+    emitTabRemoved: (tabId) => {
+      tabRemovedListeners.forEach((listener) => listener(tabId));
+    },
+    emitRuntimeMessage: (message, sender = {}) =>
+      new Promise((resolve) => {
+        const keepsChannelOpen = runtimeMessageListeners.some(
+          (listener) => listener(message, sender, resolve) === true,
+        );
+        if (!keepsChannelOpen) resolve(undefined);
+      }),
   };
 
   Object.assign(globalThis, {
@@ -37,6 +89,42 @@ export function installFakeChrome(): FakeChrome {
           fake.tabMessages.push({ tabId, message });
 
           return fake.onTabMessage(tabId, message);
+        },
+        onUpdated: {
+          addListener: (listener: (typeof tabUpdatedListeners)[number]) => {
+            tabUpdatedListeners.push(listener);
+          },
+        },
+        onRemoved: {
+          addListener: (listener: (tabId: number) => void) => {
+            tabRemovedListeners.push(listener);
+          },
+        },
+      },
+      runtime: {
+        sendMessage: (message: unknown) => {
+          fake.runtimeMessages.push(message);
+
+          return fake.onRuntimeMessage(message);
+        },
+        onMessage: {
+          addListener: (listener: RuntimeMessageListener) => {
+            runtimeMessageListeners.push(listener);
+          },
+        },
+      },
+      action: {
+        setIcon: async ({ path }: { path: Record<string, string> }) => {
+          fake.actionIconPaths.push(path);
+        },
+        setBadgeBackgroundColor: async ({ color }: { color: string }) => {
+          fake.badgeBackgroundColors.push(color);
+        },
+        setBadgeTextColor: async ({ color }: { color: string }) => {
+          fake.badgeTextColors.push(color);
+        },
+        setBadgeText: async (details: { tabId?: number; text: string }) => {
+          fake.badgeTexts.push(details);
         },
       },
       scripting: {

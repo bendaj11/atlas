@@ -24,6 +24,7 @@ function installBridgeMarker(): void {
   const append = (): boolean => {
     if (!document.documentElement) return false;
     document.documentElement.append(marker);
+
     return true;
   };
   if (append()) return;
@@ -59,11 +60,10 @@ function bridgeResponse(
   value: unknown,
 ): { document?: unknown; error?: string } | undefined {
   if (!isRecord(value)) return undefined;
-  const response = value;
 
   return {
-    ...('document' in response ? { document: response.document } : {}),
-    ...(typeof response.error === 'string' ? { error: response.error } : {}),
+    ...('document' in value ? { document: value.document } : {}),
+    ...(typeof value.error === 'string' ? { error: value.error } : {}),
   };
 }
 
@@ -87,6 +87,7 @@ function readControlPort(): number | undefined {
   const value = new URL(location.href).searchParams.get(CONTROL_PORT_PARAMETER);
   if (value === null) return undefined;
   const port = Number(value);
+
   return Number.isInteger(port) && port > 0 && port <= 65_535
     ? port
     : undefined;

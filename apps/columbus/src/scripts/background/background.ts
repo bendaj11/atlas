@@ -20,6 +20,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (document) => sendResponse({ document }),
       (error) => sendResponse({ error: messageFromError(error) }),
     );
+
     return true;
   }
 
@@ -27,6 +28,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void chrome.action.setIcon({
       path: actionIconPathsFor(message.colorScheme),
     });
+
     return;
   }
 
@@ -46,6 +48,7 @@ async function loadForTab(
   if (previewIdentity(senderUrl) !== previewIdentity(request.previewUrl)) {
     throw new Error('Atlas development preview URL does not match its tab.');
   }
+
   return loadDevelopmentSession(request, {
     fetchJson: fetchDevelopmentSession,
   });
@@ -65,6 +68,7 @@ async function fetchDevelopmentSession(url: string): Promise<unknown> {
         : `Atlas development session returned HTTP ${response.status}.`,
     );
   }
+
   return response.json();
 }
 
@@ -85,5 +89,6 @@ async function updateActionBadge(
 function previewIdentity(value: string): string {
   const url = new URL(value);
   url.searchParams.delete('atlas-dev-port');
+
   return url.href;
 }
