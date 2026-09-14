@@ -108,6 +108,26 @@ describe('badge-script', () => {
       expect(driver.get.fetchedUrls()).toEqual(['/atlas.runtime.json']);
     });
 
+    it('should fetch the development session from the remembered control port when one is stored', async () => {
+      await driver.given
+        .sessionStorageItem('atlas.development-control-port', '4512')
+        .when.started();
+
+      expect(driver.get.fetchedUrls()).toEqual([
+        '/atlas.runtime.json',
+        'http://localhost:4512/atlas.dev-session.json?hostId=shop',
+      ]);
+    });
+
+    it('should fetch the development session from the default control port when none is stored', async () => {
+      await driver.when.started();
+
+      expect(driver.get.fetchedUrls()).toEqual([
+        '/atlas.runtime.json',
+        DEV_SESSION_URL,
+      ]);
+    });
+
     it('should count the development session overrides when the page is local', async () => {
       await driver.given.response(DEV_SESSION_URL, DEV_SESSION).when.started();
 

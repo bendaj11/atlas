@@ -1,4 +1,5 @@
 import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR } from '../shared/constants';
+import { CONTROL_PORT_PARAMETER } from '../shared/control-port/control-port';
 import { clearHostDataCache } from '../host/host-data-cache';
 import { actionIconPathsFor } from '../shared/action-icon-theme';
 import { messageFromError } from '../shared/errors/errors';
@@ -88,7 +89,7 @@ async function updateActionBadge(
 
 function previewIdentity(value: string): string {
   const url = new URL(value);
-  url.searchParams.delete('atlas-dev-port');
+  url.searchParams.delete(CONTROL_PORT_PARAMETER);
 
   return url.href;
 }

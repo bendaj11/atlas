@@ -1,9 +1,11 @@
 import {
+  DEFAULT_CONTROL_PORT,
+  isControlPort,
+} from '../shared/control-port/control-port';
+import {
   isRecord,
   type LoadDevelopmentSessionRequest,
 } from '../shared/messages/messages';
-
-const DEFAULT_CONTROL_PORT = 4_400;
 
 interface DevelopmentSessionDependencies {
   fetchJson(url: string): Promise<unknown>;
@@ -31,6 +33,7 @@ export async function loadDevelopmentSession(
   sessionUrl.searchParams.set('previewUrl', previewUrl.href);
   const document = await dependencies.fetchJson(sessionUrl.href);
   assertDevelopmentSession(document, request.hostId);
+
   return document;
 }
 
@@ -45,7 +48,7 @@ function assertPreviewUrl(url: URL): void {
 }
 
 function assertControlPort(port: number): void {
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (!isControlPort(port)) {
     throw new Error('Atlas development control port is invalid.');
   }
 }

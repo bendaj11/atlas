@@ -5,13 +5,18 @@ import {
   type AtlasDevelopmentSessionRequest,
   type AtlasDevelopmentSessionResponse,
 } from '@atlas/schema';
+import {
+  CONTROL_PORT_PARAMETER,
+  parseControlPort,
+  rememberControlPort,
+  rememberedControlPort,
+} from '../shared/control-port/control-port';
 import { messageFromError } from '../shared/errors/errors';
 import {
   isRecord,
   loadDevelopmentSessionRequest,
 } from '../shared/messages/messages';
 
-const CONTROL_PORT_PARAMETER = 'atlas-dev-port';
 const controlPort = readControlPort();
 removeControlPortFromAddressBar();
 installBridgeMarker();
@@ -84,13 +89,13 @@ function publishResponse(
 }
 
 function readControlPort(): number | undefined {
-  const value = new URL(location.href).searchParams.get(CONTROL_PORT_PARAMETER);
-  if (value === null) return undefined;
-  const port = Number(value);
+  const port = parseControlPort(
+    new URL(location.href).searchParams.get(CONTROL_PORT_PARAMETER),
+  );
+  if (port === undefined) return rememberedControlPort();
+  rememberControlPort(port);
 
-  return Number.isInteger(port) && port > 0 && port <= 65_535
-    ? port
-    : undefined;
+  return port;
 }
 
 function removeControlPortFromAddressBar(): void {

@@ -47,6 +47,24 @@ describe('development-session-content', () => {
 
       expect(driver.get.addressBarSearch()).toBe('?tab=orders');
     });
+
+    it('should remember the control port when the address bar has one', async () => {
+      await driver.given
+        .addressBarSearch('?atlas-dev-port=4512')
+        .when.started();
+
+      expect(
+        driver.get.sessionStorageItem('atlas.development-control-port'),
+      ).toBe('4512');
+    });
+
+    it('should not remember a control port when the address bar has an invalid one', async () => {
+      await driver.given.addressBarSearch('?atlas-dev-port=abc').when.started();
+
+      expect(
+        driver.get.sessionStorageItem('atlas.development-control-port'),
+      ).toBeNull();
+    });
   });
 
   describe('when a session request is posted', () => {
@@ -63,6 +81,27 @@ describe('development-session-content', () => {
 
       expect(driver.get.runtimeMessages()).toEqual([
         { ...RELAYED_REQUEST, controlPort: 4512 },
+      ]);
+    });
+
+    it('should relay the remembered control port when the address bar has none', async () => {
+      await driver.given
+        .sessionStorageItem('atlas.development-control-port', '4512')
+        .when.messagePosted(REQUEST);
+
+      expect(driver.get.runtimeMessages()).toEqual([
+        { ...RELAYED_REQUEST, controlPort: 4512 },
+      ]);
+    });
+
+    it('should prefer the address bar port when both are given', async () => {
+      await driver.given
+        .sessionStorageItem('atlas.development-control-port', '4512')
+        .given.addressBarSearch('?atlas-dev-port=4600')
+        .when.messagePosted(REQUEST);
+
+      expect(driver.get.runtimeMessages()).toEqual([
+        { ...RELAYED_REQUEST, controlPort: 4600 },
       ]);
     });
 

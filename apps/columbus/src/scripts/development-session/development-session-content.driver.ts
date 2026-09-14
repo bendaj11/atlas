@@ -27,6 +27,7 @@ export class DevelopmentSessionContentDriver {
         window.removeEventListener(type, listener),
       );
     document.head.innerHTML = '';
+    sessionStorage.clear();
     history.replaceState(null, '', '/');
     window.postMessage = postMessage;
   }
@@ -34,6 +35,11 @@ export class DevelopmentSessionContentDriver {
   readonly given = {
     addressBarSearch: (search: string): this => {
       history.replaceState(null, '', `/${search}`);
+
+      return this;
+    },
+    sessionStorageItem: (key: string, value: string): this => {
+      sessionStorage.setItem(key, value);
 
       return this;
     },
@@ -75,6 +81,8 @@ export class DevelopmentSessionContentDriver {
     bridgeMarkerName: (): string | undefined =>
       document.querySelector('meta')?.name,
     addressBarSearch: (): string => location.search,
+    sessionStorageItem: (key: string): string | null =>
+      sessionStorage.getItem(key),
     runtimeMessages: (): unknown[] => this.chrome.runtimeMessages,
     publishedMessages: (): unknown[] =>
       postMessage.mock.calls.map(([message]) => message),

@@ -3,6 +3,10 @@ import {
   createBadgeRefresher,
 } from './badge-refresh/badge-refresh';
 import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature';
+import {
+  DEFAULT_CONTROL_PORT,
+  rememberedControlPort,
+} from '../shared/control-port/control-port';
 import { messageFromError } from '../shared/errors/errors';
 import {
   actionThemeMessage,
@@ -21,7 +25,6 @@ import { countOverrides } from '../overrides/override-document/override-document
 import { createArtifactRegistry } from '../host/artifact-registry/artifact-registry';
 import { inspectAtlasHost } from '../host/inspect-atlas-host/inspect-atlas-host';
 
-const DEVELOPMENT_SESSION_URL = 'http://localhost:4400/atlas.dev-session.json';
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const artifactRegistry = createArtifactRegistry();
@@ -102,7 +105,10 @@ async function readDevelopmentSessionOverrideCount(
   hostId: string,
 ): Promise<number | undefined> {
   try {
-    const url = new URL(DEVELOPMENT_SESSION_URL);
+    const url = new URL(
+      '/atlas.dev-session.json',
+      `http://localhost:${rememberedControlPort() ?? DEFAULT_CONTROL_PORT}`,
+    );
     url.searchParams.set('hostId', hostId);
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) return undefined;
