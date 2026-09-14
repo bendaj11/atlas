@@ -41,7 +41,7 @@ describe('findAtlasHostTab', () => {
   });
 
   describe('when the popup itself is the active tab', () => {
-    it('should select the most recent web tab hosting Atlas', async () => {
+    it('should select the most recent web tab when it hosts Atlas', async () => {
       await driver.given
         .tabs([
           { id: 9, active: true, lastAccessed: 30, url: POPUP_URL },
@@ -55,7 +55,7 @@ describe('findAtlasHostTab', () => {
       expect(driver.get.foundTabId()).toBe(7);
     });
 
-    it('should skip tabs that do not host Atlas', async () => {
+    it('should skip tabs when they do not host Atlas', async () => {
       await driver.given
         .tabs([
           { id: 9, active: true, lastAccessed: 30, url: POPUP_URL },
@@ -83,7 +83,7 @@ describe('findAtlasHostTab', () => {
   });
 
   describe('when the active tab is a local page without Atlas', () => {
-    it('should select the single open local preview', async () => {
+    it('should select the local preview when exactly one is open', async () => {
       await driver.given
         .tabs([
           { id: 8, active: true, url: 'http://localhost:4201/' },

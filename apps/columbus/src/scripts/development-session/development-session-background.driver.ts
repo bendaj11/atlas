@@ -1,62 +1,57 @@
-import { faker } from '@faker-js/faker';
-import { loadDevelopmentSession } from './development-session-background';
+import { jest } from '@jest/globals';
+import {
+  type DevelopmentSessionRequest,
+  loadDevelopmentSession,
+} from './development-session-background';
 
 export class DevelopmentSessionBackgroundDriver {
-  private readonly hostId = faker.string.uuid();
-  private readonly previewUrl = faker.internet.url();
-  private readonly session = {
-    schemaVersion: '1',
-    hostId: this.hostId,
-    overrides: [],
+  private request: DevelopmentSessionRequest = {
+    hostId: 'shop',
+    previewUrl: 'http://localhost:4300/dashboard',
   };
-  private controlPort?: number;
-  private requestedUrl?: string;
-  private returnedSession: unknown = this.session;
-  private result?: unknown;
-  private error?: unknown;
+  private readonly fetchJson = jest.fn<(url: string) => Promise<unknown>>();
+  private result: unknown;
+  private error: unknown;
+
+  constructor() {
+    this.fetchJson.mockResolvedValue({
+      schemaVersion: '1',
+      hostId: 'shop',
+      overrides: [],
+    });
+  }
 
   readonly given = {
-    customControlPort: (): void => {
-      this.controlPort = 4_512;
+    request: (request: Partial<DevelopmentSessionRequest>): this => {
+      this.request = { ...this.request, ...request };
+
+      return this;
     },
-    mismatchedSession: (): void => {
-      this.returnedSession = { ...this.session, hostId: faker.string.uuid() };
+    sessionResponse: (session: unknown): this => {
+      this.fetchJson.mockResolvedValue(session);
+
+      return this;
     },
   };
 
   readonly when = {
-    loaded: async (): Promise<void> => {
+    sessionLoaded: async (): Promise<this> => {
       try {
-        this.result = await loadDevelopmentSession(
-          {
-            controlPort: this.controlPort,
-            hostId: this.hostId,
-            previewUrl: this.previewUrl,
-          },
-          {
-            fetchJson: async (url) => {
-              this.requestedUrl = url;
-
-              return this.returnedSession;
-            },
-          },
-        );
+        this.result = await loadDevelopmentSession(this.request, {
+          fetchJson: this.fetchJson,
+        });
       } catch (error) {
         this.error = error;
       }
+
+      return this;
     },
   };
 
   readonly get = {
-    error: (): unknown => this.error,
-    previewUrl: (): string => new URL(this.previewUrl).href,
-    requestedControlPort: (): string | undefined =>
-      this.requestedUrl ? new URL(this.requestedUrl).port : undefined,
-    requestedPreviewUrl: (): string | null | undefined =>
-      this.requestedUrl
-        ? new URL(this.requestedUrl).searchParams.get('previewUrl')
-        : undefined,
     result: (): unknown => this.result,
-    session: (): unknown => this.session,
+    errorMessage: (): string | undefined =>
+      this.error instanceof Error ? this.error.message : undefined,
+    requestedUrl: (): string | undefined => this.fetchJson.mock.calls[0]?.[0],
   };
 }

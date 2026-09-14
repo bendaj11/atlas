@@ -105,7 +105,7 @@ describe('OverridesProvider', () => {
       expect(driver.get.persistCount()).toBe(0);
     });
 
-    it('should report applying while persisting is pending', () => {
+    it('should report applying when persisting is pending', () => {
       driver.given
         .persistPending()
         .when.rendered()
@@ -114,7 +114,7 @@ describe('OverridesProvider', () => {
       expect(driver.get.status()).toBe('APPLYING');
     });
 
-    it('should ignore a second action while persisting is pending', async () => {
+    it('should ignore a second action when persisting is pending', async () => {
       await driver.given
         .persistPending()
         .when.rendered()

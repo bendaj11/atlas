@@ -1,7 +1,10 @@
+import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
 import type {
-  AtlasExtensionManifest,
-  AtlasHostData,
-} from '../../../types/contracts';
+  ArtifactSelection,
+  ExtensionSession,
+  Scope,
+} from '../../../types/app';
+import { aSession } from '../../../types/app.testkit';
 import {
   clearAllOverridesInSession,
   clearOverrideInSession,
@@ -9,45 +12,28 @@ import {
   setOverrideScopeInSession,
   toggleOverrideInSession,
 } from './override-session';
-import type { ExtensionSession } from '../../../types/app';
 
 export class OverrideSessionDriver {
-  private session = aSession();
+  private session: ExtensionSession = aSession();
+  private result: ExtensionSession | undefined;
 
   readonly given = {
-    activeOverride: (): this => {
-      this.session.activeOverrides.set(
-        'app:orders',
-        manifest({ channel: 'pr' }),
-      );
+    activeOverride: (artifactKey: string, manifest: Manifest): this => {
+      this.session.activeOverrides.set(artifactKey, manifest);
 
       return this;
     },
-    activeLocalOverride: (): this => {
-      this.session.activeOverrides.set(
-        'app:orders',
-        manifest({ channel: 'local' }),
-      );
+    disabledOverride: (artifactKey: string, manifest: Manifest): this => {
+      this.session.disabledOverrides.set(artifactKey, manifest);
 
       return this;
     },
-    disabledOverride: (): this => {
-      this.session.disabledOverrides.set(
-        'app:orders',
-        manifest({ channel: 'pr', buildId: 'pr-build' }),
-      );
+    suppressedArtifactIds: (ids: string[]): this => {
+      this.session.suppressedArtifactIds = new Set(ids);
 
       return this;
     },
-    disabledLocalOverride: (): this => {
-      this.session.disabledOverrides.set(
-        'app:orders',
-        manifest({ channel: 'local' }),
-      );
-
-      return this;
-    },
-    scope: (scope: ExtensionSession['scope']): this => {
+    scope: (scope: Scope): this => {
       this.session.scope = scope;
 
       return this;
@@ -55,110 +41,48 @@ export class OverrideSessionDriver {
   };
 
   readonly when = {
-    overrideSaved: (): this => {
-      this.session = saveOverrideInSession({
-        session: this.session,
-        selection: {
-          productionManifest: manifest({ channel: 'production' }),
-          selectedManifest: manifest({ channel: 'pr', buildId: 'pr-build' }),
-        },
-      });
+    overrideSaved: (selection: ArtifactSelection): this => {
+      this.result = saveOverrideInSession({ session: this.session, selection });
 
       return this;
     },
-    overrideToggled: (artifactKey = 'app:orders'): this => {
-      const nextSession = toggleOverrideInSession({
+    overrideToggled: (artifactKey: string): this => {
+      this.result = toggleOverrideInSession({
         session: this.session,
         artifactKey,
       });
-      if (nextSession) this.session = nextSession;
 
       return this;
     },
-    overrideCleared: (): this => {
-      this.session = clearOverrideInSession({
+    overrideCleared: (artifactKey: string): this => {
+      this.result = clearOverrideInSession({
         session: this.session,
-        artifactKey: 'app:orders',
+        artifactKey,
       });
 
       return this;
     },
     allOverridesCleared: (): this => {
-      this.session = clearAllOverridesInSession(this.session);
+      this.result = clearAllOverridesInSession(this.session);
 
       return this;
     },
-    scopeChanged: (scope: ExtensionSession['scope']): this => {
-      this.session = setOverrideScopeInSession({
-        session: this.session,
-        scope,
-      });
+    scopeSet: (scope: Scope): this => {
+      this.result = setOverrideScopeInSession({ session: this.session, scope });
 
       return this;
     },
   };
 
   readonly get = {
-    session: (): ExtensionSession => this.session,
-    activeOverride: (): AtlasExtensionManifest | undefined =>
-      this.session.activeOverrides.get('app:orders'),
-    disabledOverride: (): AtlasExtensionManifest | undefined =>
-      this.session.disabledOverrides.get('app:orders'),
+    result: (): ExtensionSession | undefined => this.result,
+    activeOverride: (artifactKey: string): Manifest | undefined =>
+      this.result?.activeOverrides.get(artifactKey),
+    disabledOverride: (artifactKey: string): Manifest | undefined =>
+      this.result?.disabledOverrides.get(artifactKey),
     suppressedArtifactIds: (): string[] => [
-      ...this.session.suppressedArtifactIds,
+      ...(this.result?.suppressedArtifactIds ?? []),
     ],
-  };
-}
-
-function aSession(): ExtensionSession {
-  const host = manifest({ kind: 'host', id: 'host', name: 'Host' });
-  const hostData: AtlasHostData = {
-    config: {
-      schemaVersion: 'v1',
-      hostId: 'host',
-      environment: 'production',
-      artifactRegistryUrl: 'https://registry.example',
-    },
-    pageUrl: 'https://host.example/',
-    catalog: {
-      schemaVersion: '1',
-      hostId: 'host',
-      revision: 'test',
-      host,
-      apps: [manifest({})],
-    },
-    versions: {},
-    overrides: undefined,
-    overrideScope: undefined,
-    runtimeErrors: [],
-    versionErrors: [],
-  };
-
-  return {
-    hostData,
-    tabId: 7,
-    activeOverrides: new Map(),
-    disabledOverrides: new Map(),
-    suppressedArtifactIds: new Set(),
-    scope: 'all',
-  };
-}
-
-function manifest(
-  overrides: Partial<AtlasExtensionManifest>,
-): AtlasExtensionManifest {
-  return {
-    schemaVersion: '1',
-    kind: 'app',
-    id: 'orders',
-    name: 'Orders',
-    version: '1.0.0',
-    buildId: 'build',
-    channel: 'production',
-    framework: 'react',
-    remoteEntryUrl: 'https://cdn.example/remoteEntry.json',
-    supportedHosts: ['host'],
-    placements: [],
-    ...overrides,
+    scope: (): Scope | undefined => this.result?.scope,
   };
 }

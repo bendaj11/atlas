@@ -1,40 +1,45 @@
-import {
-  disabledLocalAppsKey,
-  disabledOverridesKey,
-  persistedOverridesKey,
-  suppressedArtifactsKey,
-} from './storage-keys';
+import { StorageKeysDriver } from './storage-keys.driver';
 
 describe('storage keys', () => {
-  it('should scope persisted overrides by host', () => {
-    expect(persistedOverridesKey('shop')).toBe('atlas.overrides.shop');
+  let driver: StorageKeysDriver;
+
+  beforeEach(() => {
+    driver = new StorageKeysDriver();
   });
 
-  it('should scope disabled local apps by host', () => {
-    expect(disabledLocalAppsKey('shop')).toBe('atlas.disabled-local-apps.shop');
+  it('should scope persisted overrides by host when built', () => {
+    driver.when.persistedOverridesKeyBuilt('shop');
+
+    expect(driver.get.key()).toBe('atlas.overrides.shop');
+  });
+
+  it('should scope disabled local apps by host when built', () => {
+    driver.when.disabledLocalAppsKeyBuilt('shop');
+
+    expect(driver.get.key()).toBe('atlas.disabled-local-apps.shop');
   });
 
   it('should scope disabled overrides by tab when scope is tab', () => {
-    expect(disabledOverridesKey('shop', 7, 'tab')).toBe(
-      'atlas.disabled-overrides.shop.tab.7',
-    );
+    driver.when.disabledOverridesKeyBuilt('shop', 7, 'tab');
+
+    expect(driver.get.key()).toBe('atlas.disabled-overrides.shop.tab.7');
   });
 
   it('should scope disabled overrides to all tabs when scope is all', () => {
-    expect(disabledOverridesKey('shop', 7, 'all')).toBe(
-      'atlas.disabled-overrides.shop.all',
-    );
+    driver.when.disabledOverridesKeyBuilt('shop', 7, 'all');
+
+    expect(driver.get.key()).toBe('atlas.disabled-overrides.shop.all');
   });
 
   it('should scope suppressed artifacts by tab when scope is tab', () => {
-    expect(suppressedArtifactsKey('shop', 7, 'tab')).toBe(
-      'atlas.suppressed-artifacts.shop.tab.7',
-    );
+    driver.when.suppressedArtifactsKeyBuilt('shop', 7, 'tab');
+
+    expect(driver.get.key()).toBe('atlas.suppressed-artifacts.shop.tab.7');
   });
 
   it('should scope suppressed artifacts to all tabs when scope is all', () => {
-    expect(suppressedArtifactsKey('shop', 7, 'all')).toBe(
-      'atlas.suppressed-artifacts.shop.all',
-    );
+    driver.when.suppressedArtifactsKeyBuilt('shop', 7, 'all');
+
+    expect(driver.get.key()).toBe('atlas.suppressed-artifacts.shop.all');
   });
 });

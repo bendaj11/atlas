@@ -1,28 +1,26 @@
 import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature';
 
 export class AtlasBootstrapSignatureDriver {
-  private page = document.implementation.createHTMLDocument();
+  private readonly page = document.implementation.createHTMLDocument();
+  private result: boolean | undefined;
 
   readonly given = {
-    atlasBootstrapPage: (): this => {
-      this.page.body.innerHTML =
-        '<div id="atlas-host-root"></div><script type="module" src="/atlas.loader.js?v=build"></script>';
+    pageBody: (html: string): this => {
+      this.page.body.innerHTML = html;
 
       return this;
     },
-    loaderScriptOnly: (): this => {
-      this.page.body.innerHTML = '<script src="/atlas.loader.js"></script>';
+  };
 
-      return this;
-    },
-    hostRootOnly: (): this => {
-      this.page.body.innerHTML = '<div id="atlas-host-root"></div>';
+  readonly when = {
+    signatureChecked: (): this => {
+      this.result = hasAtlasBootstrapSignature(this.page);
 
       return this;
     },
   };
 
   readonly get = {
-    isAtlasBootstrapPage: (): boolean => hasAtlasBootstrapSignature(this.page),
+    hasSignature: (): boolean | undefined => this.result,
   };
 }

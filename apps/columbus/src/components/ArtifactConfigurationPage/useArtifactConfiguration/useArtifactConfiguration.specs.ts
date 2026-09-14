@@ -239,7 +239,7 @@ describe('useArtifactConfiguration', () => {
       );
     });
 
-    it('should disable actions while version is loading', () => {
+    it('should disable actions when the version is loading', () => {
       driver.given
         .pendingVersionLoad()
         .when.rendered()

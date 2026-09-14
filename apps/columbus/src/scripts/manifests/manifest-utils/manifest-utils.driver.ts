@@ -1,129 +1,139 @@
-import type { AtlasExtensionManifest } from '../../../types/contracts';
+import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
+import type { ArtifactSelection, EditorDraft } from '../../../types/app';
+import { aManifest } from '../../../types/app.testkit';
 import {
   artifactSourceDescription,
   createEditorDraft,
+  isManifestSupportedByHost,
+  normalizeStoredManifest,
+  overrideTypeFor,
   resolveSelectedManifest,
+  versionBuildIdLabel,
   versionLabel,
 } from './manifest-utils';
 
 export class ManifestUtilsDriver {
-  private productionManifest = createProductionManifest();
-  private selectedManifest: AtlasExtensionManifest | undefined;
-  private productionOptions = [this.productionManifest];
+  private productionManifest: Manifest = aManifest();
+  private selectedManifest: Manifest | undefined;
+  private productionOptions: Manifest[] = [];
+  private prOptions: Manifest[] = [];
+  private draft: EditorDraft = {
+    type: 'custom',
+    customUrl: '',
+    productionKey: '',
+    prKey: '',
+  };
+  private createdDraft: EditorDraft | undefined;
+  private resolvedManifest: Manifest | undefined;
+  private normalizedManifest: Manifest | undefined;
+  private label: string | undefined;
+  private overrideType: string | undefined;
+  private supported: boolean | undefined;
+  private error: unknown;
 
   readonly given = {
-    productionFramework: (
-      framework: AtlasExtensionManifest['framework'],
-    ): this => {
-      this.productionManifest.framework = framework;
+    productionManifest: (manifest: Manifest): this => {
+      this.productionManifest = manifest;
 
       return this;
     },
-    selectedCustomUrl: (rawUrl: string): this => {
-      this.selectedManifest = this.get.customManifest(rawUrl);
+    selectedManifest: (manifest: Manifest | undefined): this => {
+      this.selectedManifest = manifest;
 
       return this;
     },
-    newerPublishedVersion: (): this => {
-      this.productionOptions = [
-        {
-          ...this.productionManifest,
-          version: '2.0.0',
-          buildId: 'canonical',
-        },
-        this.productionManifest,
-      ];
+    productionOptions: (options: Manifest[]): this => {
+      this.productionOptions = options;
 
       return this;
     },
-    selectedProductionVersion: (): this => {
-      this.selectedManifest = {
-        ...this.productionManifest,
-        version: '2.0.0',
-        buildId: 'canonical',
+    prOptions: (options: Manifest[]): this => {
+      this.prOptions = options;
+
+      return this;
+    },
+    draft: (draft: Partial<EditorDraft>): this => {
+      this.draft = { ...this.draft, ...draft };
+
+      return this;
+    },
+  };
+
+  readonly when = {
+    draftCreated: (withConfiguration = true): this => {
+      this.createdDraft = createEditorDraft(
+        withConfiguration
+          ? {
+              key: 'app:orders',
+              hostId: 'host',
+              productionManifest: this.productionManifest,
+              selectedManifest: this.selectedManifest,
+              productionOptions: this.productionOptions,
+              prOptions: this.prOptions,
+            }
+          : undefined,
+      );
+
+      return this;
+    },
+    manifestResolved: (): this => {
+      try {
+        this.resolvedManifest = resolveSelectedManifest({
+          productionManifest: this.productionManifest,
+          draft: this.draft,
+          productionOptions: this.productionOptions,
+          prOptions: this.prOptions,
+        });
+      } catch (error) {
+        this.error = error;
+      }
+
+      return this;
+    },
+    storedManifestNormalized: (manifest: Manifest): this => {
+      this.normalizedManifest = normalizeStoredManifest(manifest);
+
+      return this;
+    },
+    overrideTypeComputed: (): this => {
+      const selection: ArtifactSelection = {
+        productionManifest: this.productionManifest,
+        selectedManifest: this.selectedManifest,
       };
-      this.productionOptions = [this.selectedManifest, this.productionManifest];
+      this.overrideType = overrideTypeFor(selection);
+
+      return this;
+    },
+    versionLabelled: (manifest: Manifest): this => {
+      this.label = versionLabel(manifest);
+
+      return this;
+    },
+    versionBuildIdLabelled: (manifest: Manifest): this => {
+      this.label = versionBuildIdLabel(manifest);
+
+      return this;
+    },
+    sourceDescribed: (manifest: Manifest | undefined): this => {
+      this.label = artifactSourceDescription(manifest);
+
+      return this;
+    },
+    hostSupportChecked: (manifest: Manifest, hostId: string): this => {
+      this.supported = isManifestSupportedByHost(manifest, hostId);
 
       return this;
     },
   };
 
   readonly get = {
-    editorDraft: () =>
-      createEditorDraft({
-        key: 'app:orders',
-        hostId: 'host',
-        productionManifest: this.productionManifest,
-        selectedManifest: this.selectedManifest,
-        productionOptions: this.productionOptions,
-        prOptions: [],
-      }),
-    customManifest: (rawUrl: string) =>
-      resolveSelectedManifest({
-        productionManifest: this.productionManifest,
-        draft: {
-          type: 'custom',
-          customUrl: rawUrl,
-          productionKey: '',
-          prKey: '',
-        },
-        productionOptions: [],
-        prOptions: [],
-      }),
-    missingPrSelection: () =>
-      resolveSelectedManifest({
-        productionManifest: this.productionManifest,
-        draft: {
-          type: 'pr',
-          customUrl: '',
-          productionKey: '',
-          prKey: '',
-        },
-        productionOptions: [this.productionManifest],
-        prOptions: [],
-      }),
-    versionLabel: (manifest: Partial<AtlasExtensionManifest>) =>
-      versionLabel({ ...this.productionManifest, ...manifest }),
-    sourceDescription: (
-      manifest: Partial<AtlasExtensionManifest> | undefined,
-    ) =>
-      artifactSourceDescription(
-        manifest ? { ...this.productionManifest, ...manifest } : undefined,
-      ),
-  };
-}
-
-function createProductionManifest(): AtlasExtensionManifest {
-  return {
-    schemaVersion: '1',
-    kind: 'app',
-    id: 'app',
-    name: 'App',
-    version: '1.0.0',
-    buildId: 'production',
-    channel: 'production',
-    framework: 'angular',
-    remoteEntryUrl:
-      'https://cdn.example/apps/app/1.0.0/production/remoteEntry.json',
-    integrity: 'sha256-production',
-    styles: [
-      {
-        href: 'https://cdn.example/apps/app/1.0.0/production/assets/app.css',
-        integrity: 'sha256-production-style',
-      },
-    ],
-    exportedWidgets: [
-      {
-        schemaVersion: '1',
-        id: 'summary',
-        name: 'Summary',
-        ownerAppId: 'app',
-        framework: 'angular',
-        remoteEntryUrl:
-          'https://cdn.example/apps/app/1.0.0/production/widgets/summary.js',
-        expose: './widgets/summary',
-        contractVersion: '1',
-      },
-    ],
+    draft: (): EditorDraft => this.createdDraft!,
+    resolvedManifest: (): Manifest | undefined => this.resolvedManifest,
+    normalizedManifest: (): Manifest | undefined => this.normalizedManifest,
+    errorMessage: (): string | undefined =>
+      this.error instanceof Error ? this.error.message : undefined,
+    label: (): string | undefined => this.label,
+    overrideType: (): string | undefined => this.overrideType,
+    supported: (): boolean | undefined => this.supported,
   };
 }

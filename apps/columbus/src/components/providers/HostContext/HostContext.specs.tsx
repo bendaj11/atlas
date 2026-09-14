@@ -54,7 +54,7 @@ describe('HostProvider', () => {
   });
 
   describe('when the active tab is read', () => {
-    it('should report loading while the read is pending', async () => {
+    it('should report loading when the active read is pending', async () => {
       await driver.given
         .activeHostReadPending()
         .when.rendered()

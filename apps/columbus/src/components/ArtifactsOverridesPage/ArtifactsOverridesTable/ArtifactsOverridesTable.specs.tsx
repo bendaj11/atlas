@@ -22,7 +22,7 @@ describe('ArtifactsOverridesTable', () => {
     ]);
   });
 
-  it('should show a toggle only for artifacts that can toggle', () => {
+  it('should show a toggle only when the artifact can toggle', () => {
     driver.given
       .artifacts([
         anArtifact({ canToggle: true }),

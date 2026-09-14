@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import {
   countDevSessionOverrides,
   createBadgeRefresher,
@@ -9,78 +10,73 @@ interface Deferred<T> {
 }
 
 export class BadgeRefreshDriver {
-  private publishedCounts: number[] = [];
-  private reads: Array<() => Promise<number>> = [];
-  private refresh: (() => Promise<void>) | undefined;
+  private readonly readCount = jest.fn<() => Promise<number>>();
+  private readonly publishCount = jest.fn<(count: number) => Promise<void>>();
+  private readonly refresh = createBadgeRefresher({
+    readCount: this.readCount,
+    publishCount: this.publishCount,
+  });
+  private count: number | undefined;
+
+  constructor() {
+    this.publishCount.mockResolvedValue(undefined);
+  }
 
   readonly given = {
-    countReads: (...reads: Array<() => Promise<number>>): this => {
-      this.reads = reads;
+    counts: (...counts: Array<number | Error | Deferred<number>>): this => {
+      counts.forEach((count) => {
+        if (count instanceof Error) this.readCount.mockRejectedValueOnce(count);
+        else if (typeof count === 'number')
+          this.readCount.mockResolvedValueOnce(count);
+        else this.readCount.mockReturnValueOnce(count.promise);
+      });
 
       return this;
     },
   };
 
   readonly when = {
-    refresherCreated: (): this => {
-      this.refresh = createBadgeRefresher({
-        readCount: () => {
-          const read = this.reads.shift();
-          if (!read) throw new Error('No count read configured.');
-
-          return read();
-        },
-        publishCount: async (count) => {
-          this.publishedCounts.push(count);
-        },
-      });
-
-      return this;
-    },
     refreshed: async (): Promise<this> => {
-      await this.get.refresher()();
+      await this.refresh();
 
       return this;
     },
-    refreshedTwiceConcurrently: async (
-      firstCount: Deferred<number>,
+    refreshedTwiceWhileFirstReadPends: async (
+      firstRead: Deferred<number>,
+      firstCount: number,
     ): Promise<this> => {
-      const refresh = this.get.refresher();
-      const firstRefresh = refresh();
-      const queuedRefresh = refresh();
-      firstCount.resolve(1);
-      await Promise.all([firstRefresh, queuedRefresh]);
+      const first = this.refresh();
+      const second = this.refresh();
+      firstRead.resolve(firstCount);
+      await Promise.all([first, second]);
+
+      return this;
+    },
+    devSessionCounted: (
+      session: { overrides: unknown[]; hostOverride?: unknown },
+      disabledAppIds: string[] = [],
+    ): this => {
+      this.count = countDevSessionOverrides({
+        session,
+        disabledAppIds: new Set(disabledAppIds),
+      });
 
       return this;
     },
   };
 
   readonly get = {
-    publishedCounts: (): number[] => this.publishedCounts,
-    refresher: (): (() => Promise<void>) => {
-      if (!this.refresh) throw new Error('Refresher was not created.');
-
-      return this.refresh;
-    },
-    overrideCount: (disabledAppIds = new Set<string>()): number =>
-      countDevSessionOverrides({
-        session: {
-          overrides: [{ appId: 'orders' }, { appId: 'dashboard' }],
-          hostOverride: {},
-        },
-        disabledAppIds,
-      }),
+    publishedCounts: (): number[] =>
+      this.publishCount.mock.calls.map(([count]) => count),
+    count: (): number | undefined => this.count,
   };
+}
 
-  deferredCount(): Deferred<number> {
-    let resolvePromise: ((value: number) => void) | undefined;
-    const promise = new Promise<number>((resolve) => {
-      resolvePromise = resolve;
-    });
+export function aDeferredCount(): Deferred<number> {
+  let resolvePromise: ((value: number) => void) | undefined;
+  const promise = new Promise<number>((resolve) => {
+    resolvePromise = resolve;
+  });
 
-    return {
-      promise,
-      resolve: (value) => resolvePromise?.(value),
-    };
-  }
+  return { promise, resolve: (value) => resolvePromise?.(value) };
 }

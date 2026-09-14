@@ -43,7 +43,7 @@ describe('createOverrideDocument', () => {
     expect(driver.get.document().hostOverride).toBeUndefined();
   });
 
-  it('should count app and host overrides together', () => {
+  it('should count app and host overrides together when both exist', () => {
     driver.given
       .override('host:h', aHostManifest())
       .given.override('app:orders', aManifest())

@@ -8,7 +8,7 @@ describe('persistOverrideSession', () => {
     driver = new PersistOverridesDriver();
   });
 
-  it('should validate every active override before writing', async () => {
+  it('should validate every active override when persisting', async () => {
     const local = aManifest({ channel: 'local' });
     const preview = aManifest({ channel: 'pr' });
 
@@ -44,7 +44,7 @@ describe('persistOverrideSession', () => {
     expect(driver.get.error()).toEqual(new Error('Dev server down.'));
   });
 
-  it('should write the override document, then disabled, then suppressed, then reload', async () => {
+  it('should write document, disabled, suppressed, then reload when persisting', async () => {
     await driver.when.persisted();
 
     expect(driver.get.callOrder()).toEqual([
@@ -55,7 +55,7 @@ describe('persistOverrideSession', () => {
     ]);
   });
 
-  it('should build the override document from the active overrides', async () => {
+  it('should build the override document from the active overrides when persisting', async () => {
     const override = aManifest({ id: 'orders' });
 
     await driver.given
@@ -80,7 +80,7 @@ describe('persistOverrideSession', () => {
     });
   });
 
-  it('should list disabled app ids from disabled and suppressed overrides without keys', async () => {
+  it('should list raw app ids when disabled and suppressed overrides exist', async () => {
     await driver.given
       .session(
         aSession({
@@ -98,7 +98,7 @@ describe('persistOverrideSession', () => {
     ]);
   });
 
-  it('should write disabled overrides for the session host, tab, and scope', async () => {
+  it('should write disabled overrides when the session has a host, tab, and scope', async () => {
     const session = aSession({ tabId: 7, scope: 'tab' });
 
     await driver.given.session(session).when.persisted();
@@ -109,7 +109,7 @@ describe('persistOverrideSession', () => {
     ]);
   });
 
-  it('should write suppressed artifact ids for the session host, tab, and scope', async () => {
+  it('should write suppressed artifact ids when the session has a host, tab, and scope', async () => {
     const session = aSession({
       tabId: 7,
       suppressedArtifactIds: new Set(['cart']),

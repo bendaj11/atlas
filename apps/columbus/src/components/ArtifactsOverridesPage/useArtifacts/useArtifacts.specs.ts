@@ -261,7 +261,7 @@ describe('useArtifacts', () => {
       driver.given.catalogHost(host);
     });
 
-    it('should order enabled overrides before disabled before plain artifacts', () => {
+    it('should order enabled, then disabled, then plain artifacts when ranks differ', () => {
       const plain = anAppManifest();
       const disabled = anAppManifest();
       const enabled = anAppManifest();

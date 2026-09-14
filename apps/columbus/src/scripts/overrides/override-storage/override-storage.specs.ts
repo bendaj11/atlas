@@ -159,7 +159,7 @@ describe('disabled overrides storage', () => {
     driver = new OverrideStorageDriver();
   });
 
-  it('should read back written overrides keyed by artifact', async () => {
+  it('should read back overrides keyed by artifact when they were written', async () => {
     const manifest = aManifest({ kind: 'app', id: 'orders' });
 
     await driver.when.disabledOverridesWritten(
@@ -191,7 +191,7 @@ describe('disabled overrides storage', () => {
     ).toBeUndefined();
   });
 
-  it('should ignore stored values that are not manifests', async () => {
+  it('should ignore stored values when they are not manifests', async () => {
     await driver.given
       .extensionStorage(`atlas.disabled-overrides.${driver.get.hostId()}.all`, [
         { junk: true },
@@ -209,7 +209,7 @@ describe('suppressed artifact ids storage', () => {
     driver = new OverrideStorageDriver();
   });
 
-  it('should read back written ids', async () => {
+  it('should read back ids when they were written', async () => {
     await driver.when.suppressedArtifactIdsWritten(new Set(['orders']));
     await driver.when.suppressedArtifactIdsRead();
 
@@ -227,7 +227,7 @@ describe('suppressed artifact ids storage', () => {
     ).toBeUndefined();
   });
 
-  it('should ignore stored values that are not non-empty strings', async () => {
+  it('should ignore stored values when they are not non-empty strings', async () => {
     await driver.given
       .extensionStorage(
         `atlas.suppressed-artifacts.${driver.get.hostId()}.all`,

@@ -33,7 +33,7 @@ describe('Atlas host inspection', () => {
     ]);
   });
 
-  it('should list unique apps that currently have Atlas DOM containers', async () => {
+  it('should list unique apps when they have Atlas DOM containers', async () => {
     driver.given.visibleApps('orders', 'orders', 'billing');
     await driver.when.hostInspected();
     expect(driver.get.visibleAppIds()).toStrictEqual(['orders', 'billing']);

@@ -1,56 +1,99 @@
-import {
-  isExtensionPageUrl,
-  isLoopbackHostname,
-  isLoopbackUrl,
-  isWebPageUrl,
-} from './urls';
+import { UrlsDriver } from './urls.driver';
 
 describe('isLoopbackHostname', () => {
+  let driver: UrlsDriver;
+
+  beforeEach(() => {
+    driver = new UrlsDriver();
+  });
+
   it.each(['localhost', '127.0.0.1', '[::1]'])(
-    'should accept %s when hostname is loopback',
+    'should accept the hostname when it is %s',
     (hostname) => {
-      expect(isLoopbackHostname(hostname)).toBe(true);
+      driver.when.loopbackHostnameChecked(hostname);
+
+      expect(driver.get.result()).toBe(true);
     },
   );
 
   it.each(['example.com', '10.0.0.1', 'localhost.evil.com'])(
-    'should reject %s when hostname is not loopback',
+    'should reject the hostname when it is %s',
     (hostname) => {
-      expect(isLoopbackHostname(hostname)).toBe(false);
+      driver.when.loopbackHostnameChecked(hostname);
+
+      expect(driver.get.result()).toBe(false);
     },
   );
 });
 
 describe('isLoopbackUrl', () => {
-  it('should accept an http url on localhost', () => {
-    expect(isLoopbackUrl('http://localhost:4200/app')).toBe(true);
+  let driver: UrlsDriver;
+
+  beforeEach(() => {
+    driver = new UrlsDriver();
   });
 
-  it('should reject a remote https url', () => {
-    expect(isLoopbackUrl('https://shop.example/app')).toBe(false);
+  it('should accept the url when it is an http url on localhost', () => {
+    driver.when.loopbackUrlChecked('http://localhost:4200/app');
+
+    expect(driver.get.result()).toBe(true);
   });
 
-  it('should reject a non web url', () => {
-    expect(isLoopbackUrl('chrome://extensions')).toBe(false);
+  it('should reject the url when it is a remote https url', () => {
+    driver.when.loopbackUrlChecked('https://shop.example/app');
+
+    expect(driver.get.result()).toBe(false);
+  });
+
+  it('should reject the url when it is not a web url', () => {
+    driver.when.loopbackUrlChecked('chrome://extensions');
+
+    expect(driver.get.result()).toBe(false);
   });
 });
 
 describe('isWebPageUrl', () => {
-  it.each(['http://a', 'https://a'])('should accept %s', (url) => {
-    expect(isWebPageUrl(url)).toBe(true);
+  let driver: UrlsDriver;
+
+  beforeEach(() => {
+    driver = new UrlsDriver();
   });
 
-  it.each(['chrome://a', 'file:///a', undefined])('should reject %s', (url) => {
-    expect(isWebPageUrl(url)).toBe(false);
-  });
+  it.each(['http://a', 'https://a'])(
+    'should accept the url when it is %s',
+    (url) => {
+      driver.when.webPageUrlChecked(url);
+
+      expect(driver.get.result()).toBe(true);
+    },
+  );
+
+  it.each(['chrome://a', 'file:///a', undefined])(
+    'should reject the url when it is %s',
+    (url) => {
+      driver.when.webPageUrlChecked(url);
+
+      expect(driver.get.result()).toBe(false);
+    },
+  );
 });
 
 describe('isExtensionPageUrl', () => {
-  it('should accept a chrome-extension url', () => {
-    expect(isExtensionPageUrl('chrome-extension://abc/index.html')).toBe(true);
+  let driver: UrlsDriver;
+
+  beforeEach(() => {
+    driver = new UrlsDriver();
   });
 
-  it('should reject a web url', () => {
-    expect(isExtensionPageUrl('https://a')).toBe(false);
+  it('should accept the url when it is a chrome-extension url', () => {
+    driver.when.extensionPageUrlChecked('chrome-extension://abc/index.html');
+
+    expect(driver.get.result()).toBe(true);
+  });
+
+  it('should reject the url when it is a web url', () => {
+    driver.when.extensionPageUrlChecked('https://a');
+
+    expect(driver.get.result()).toBe(false);
   });
 });
