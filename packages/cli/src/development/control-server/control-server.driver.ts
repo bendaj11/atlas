@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
-import { createTestManifest } from '@atlas/testkit';
+import type { AtlasHostCatalog } from '@atlas/schema';
+import { aHostCatalog, aHostManifest, anAppManifest } from '@atlas/testkit';
+import { anOverrideDocument } from '../development.testkit.js';
 import type { AtlasDevOverrideDocument, DevControlServer } from '../types.js';
 import { startControlServer } from './control-server.js';
 
@@ -194,81 +195,40 @@ export class ControlServerDriver {
   };
 
   private publishedCatalog(): AtlasHostCatalog {
-    return {
-      schemaVersion: '1',
+    return aHostCatalog({
       hostId: this.hostId,
-      revision: 'production',
-      generatedAt: faker.date.past().toISOString(),
-      host: {
-        ...this.hostManifest(),
-        buildId: 'production',
-        channel: 'production',
-      },
+      host: aHostManifest({ id: this.hostId, channel: 'production' }),
       apps: [
-        createTestManifest({ id: this.appId, channel: 'production' }),
-        createTestManifest({ id: 'published-app', channel: 'production' }),
+        anAppManifest({ id: this.appId, channel: 'production' }),
+        anAppManifest({ id: 'published-app', channel: 'production' }),
       ],
-    };
+    });
   }
 
   private appDocument(): AtlasDevOverrideDocument {
-    return {
-      generatedAt: faker.date.past().toISOString(),
-      hostId: this.hostId,
-      previewUrl: this.previewUrl,
-      overrides: [
-        {
-          appId: this.appId,
-          manifest: createTestManifest({ id: this.appId }),
-          reason: 'local',
-        },
-      ],
-      schemaVersion: '1',
-    };
+    return this.overrideDocumentFor(this.appId);
   }
 
   private ownerAppDocument(): AtlasDevOverrideDocument {
-    return {
-      generatedAt: faker.date.past().toISOString(),
-      hostId: this.hostId,
-      previewUrl: this.previewUrl,
-      overrides: [
-        {
-          appId: this.ownerAppId,
-          manifest: createTestManifest({ id: this.ownerAppId }),
-          reason: 'local',
-        },
-      ],
-      schemaVersion: '1',
-    };
+    return this.overrideDocumentFor(this.ownerAppId);
   }
 
   private hostDocument(): AtlasDevOverrideDocument {
-    return {
-      generatedAt: faker.date.past().toISOString(),
+    return anOverrideDocument({
       hostId: this.hostId,
-      hostOverride: this.hostManifest(),
-      overrides: [],
+      hostOverride: aHostManifest({ id: this.hostId, channel: 'local' }),
       previewUrl: this.previewUrl,
-      schemaVersion: '1',
-    };
+    });
   }
 
-  private hostManifest(): AtlasHostManifest {
-    return {
-      buildId: faker.string.uuid(),
-      channel: 'local',
-      createdAt: faker.date.past().toISOString(),
-      exposes: { entry: './host' },
-      framework: 'react',
-      id: this.hostId,
-      kind: 'host',
-      name: faker.company.name(),
-      remoteEntryUrl: faker.internet.url(),
-      requiredLoaderApiVersion: '^1.0.0',
-      schemaVersion: '1',
-      version: faker.system.semver(),
-    };
+  private overrideDocumentFor(appId: string): AtlasDevOverrideDocument {
+    return anOverrideDocument({
+      hostId: this.hostId,
+      previewUrl: this.previewUrl,
+      overrides: [
+        { appId, manifest: anAppManifest({ id: appId }), reason: 'local' },
+      ],
+    });
   }
 
   private async previewSessionStatus(previewUrl: string): Promise<number> {

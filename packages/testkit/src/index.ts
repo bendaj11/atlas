@@ -45,9 +45,16 @@ export {
   PUBLISHED_CHANNELS,
 } from './manifests.js';
 export { aHostCatalog, aHostRuntimeConfig } from './host.js';
+export { anAppConfig, aHostConfig } from './config.js';
 export {
   aDeploymentManifest,
+  aHostArtifactManifest,
+  ALL_PAYLOAD_FILE_ROLES,
+  IMMUTABLE_CACHE_CONTROL,
   aManifestDescriptor,
+  anAppArtifactManifest,
+  anEnvironmentDeployment,
+  aPayloadFileDescriptor,
   aRegistryUrl,
   aSha256Digest,
   aStaticRegistry,

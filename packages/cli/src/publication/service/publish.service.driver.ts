@@ -10,6 +10,7 @@ import type {
   AtlasRegistryArtifact,
   AtlasStaticRegistry,
 } from '@atlas/schema';
+import { anAppArtifactManifest, aPayloadFileDescriptor } from '@atlas/testkit';
 import type { AtlasBuildResult } from '../../build/service/build.service.js';
 import { CliArguments } from '../../cli/arguments.js';
 import type {
@@ -57,6 +58,10 @@ export class PublishServiceDriver {
     ReturnType<AtlasPublishService['removePreview']>
   >;
   private bytes = new TextEncoder().encode(faker.string.alphanumeric(24));
+  private readonly artifact = anAppArtifactManifest({
+    id: this.id,
+    name: this.name,
+  });
   private dryRun = false;
   private selector: { version?: string; preview?: number } = {
     version: '1.4.0',
@@ -302,29 +307,23 @@ export class PublishServiceDriver {
     const digest =
       `sha256:${createHash('sha256').update(this.bytes).digest('hex')}` as const;
     const manifest: AtlasAppArtifactManifest = {
-      schemaVersion: '2',
-      kind: 'app-artifact',
-      id: this.id,
-      name: this.name,
+      ...this.artifact,
       ...(this.selector.version
         ? { release: { version: this.selector.version } }
-        : { preview: { number: this.selector.preview!, gitSha: 'abc123' } }),
-      framework: 'react',
+        : {
+            release: undefined,
+            preview: { number: this.selector.preview!, gitSha: 'abc123' },
+          }),
       entryPath: 'remoteEntry.json',
-      exposes: { entry: './entry' },
       files: [
-        {
+        aPayloadFileDescriptor({
           path: 'remoteEntry.json',
           digest,
           size: this.bytes.byteLength,
           mediaType: 'application/json',
-          cacheControl: 'public, max-age=31536000, immutable',
           role: 'remote-entry',
-        },
+        }),
       ],
-      requiredHostSdkVersion: '^0.1.0',
-      supportedHosts: ['*'],
-      placements: [],
     };
     return {
       artifact: 'app',

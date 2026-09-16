@@ -7,6 +7,7 @@ import type {
   AtlasHostManifest,
   AtlasManifest,
 } from '@atlas/schema';
+import { aHostRuntimeConfig } from '@atlas/testkit';
 import { CliArguments } from '../../cli/arguments.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import type { AtlasWorkspace } from '../../workspace/types.js';
@@ -66,14 +67,11 @@ export class DevServiceDriver {
       return this;
     },
     deployedHost: (hostId: string): this => {
-      globalThis.fetch = jest.fn<typeof fetch>().mockImplementation(async () =>
-        Response.json({
-          hostId,
-          environment: 'production',
-          artifactRegistryUrl: `https://${faker.internet.domainName()}/atlas`,
-          schemaVersion: 'v1',
-        }),
-      );
+      globalThis.fetch = jest
+        .fn<typeof fetch>()
+        .mockImplementation(async () =>
+          Response.json(aHostRuntimeConfig({ hostId })),
+        );
 
       return this;
     },

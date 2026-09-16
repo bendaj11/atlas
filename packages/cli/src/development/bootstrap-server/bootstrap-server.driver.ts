@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
-import { faker } from '@faker-js/faker';
 import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import { aHostRuntimeConfig } from '@atlas/testkit';
 import { closeServer } from '../http/http.js';
 import type { LocalNativeProxy } from '../types.js';
 import { startLocalBootstrapServer } from './bootstrap-server.js';
@@ -10,15 +10,13 @@ export class BootstrapServerDriver {
   private upstream?: Server;
   private proxy?: LocalNativeProxy;
   private html?: string;
-  private readonly runtime: AtlasHostRuntimeConfig = {
-    schemaVersion: 'v1',
-    hostId: faker.string.uuid(),
+  private readonly runtime = aHostRuntimeConfig({
     artifactRegistryUrl: 'http://localhost:4400',
     environmentRegistryUrl: 'http://localhost:4400',
     environment: 'development',
     resourcesTimeoutMs: 1000,
     resourcesRetryCount: 1,
-  };
+  });
 
   readonly given = {
     html: (html: string): this => {

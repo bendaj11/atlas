@@ -3,14 +3,15 @@ import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasConfig } from '@atlas/schema';
+import { anAppConfig } from '@atlas/testkit';
 import { CliArguments } from '../../cli/arguments.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import type { AtlasWorkspaceKind } from '../../workspace/types.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import type { startControlServer as startControlServerType } from '../control-server/control-server.js';
 import type * as ProcessModule from '../process/process.js';
-import type { AtlasDevOverrideDocument, DevControlServer } from '../types.js';
+import { anOverrideDocument } from '../development.testkit.js';
+import type { DevControlServer } from '../types.js';
 
 const startControlServer = jest.fn<typeof startControlServerType>();
 const waitForRemoteEntry = jest.fn<typeof ProcessModule.waitForRemoteEntry>();
@@ -114,13 +115,8 @@ export class SessionRunnerDriver {
         }),
         args: new CliArguments(['dev', 'x', ...this.flags]),
         project: aProject({ root: this.directory.root }),
-        config: { id: faker.string.uuid(), framework: 'react' } as AtlasConfig,
-        document: {
-          schemaVersion: '1',
-          hostId: faker.string.uuid(),
-          overrides: [],
-          generatedAt: new Date().toISOString(),
-        } as AtlasDevOverrideDocument,
+        config: anAppConfig(),
+        document: anOverrideDocument(),
         remoteEntryUrl: faker.internet.url(),
         frameworkPort: 4201,
         hostUrl: faker.internet.url(),

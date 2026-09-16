@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasAppConfig, AtlasHostConfig } from '@atlas/schema';
+import { aHostConfig, aHostRuntimeConfig, anAppConfig } from '@atlas/testkit';
 import { createPromptDriver } from '../../cli/interaction/interaction.testkit.js';
 import type { DevTarget } from '../types.js';
 import { resolveDevTarget, resolveHostDevTarget } from './target.js';
@@ -15,10 +16,7 @@ export class DevelopmentTargetDriver {
   private readonly secondPath = `/${faker.word.noun()}`;
   private readonly originalFetch = globalThis.fetch;
 
-  private config: AtlasAppConfig = {
-    id: this.appId,
-    framework: 'react',
-  };
+  private config: AtlasAppConfig = anAppConfig({ id: this.appId });
   private hostConfig?: AtlasHostConfig;
   private prompts = createPromptDriver([], false);
   private previewUrls: string[] = [];
@@ -55,12 +53,7 @@ export class DevelopmentTargetDriver {
       ];
       this.prompts = createPromptDriver([this.previewUrls[1]!], interactive);
       globalThis.fetch = jest.fn(async () =>
-        Response.json({
-          schemaVersion: 'v1',
-          hostId: this.firstHostId,
-          environment: 'production',
-          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
-        }),
+        Response.json(aHostRuntimeConfig({ hostId: this.firstHostId })),
       );
     },
 
@@ -76,12 +69,7 @@ export class DevelopmentTargetDriver {
         : faker.string.uuid();
 
       globalThis.fetch = jest.fn(async () =>
-        Response.json({
-          schemaVersion: 'v1',
-          hostId: discoveredHostId,
-          environment: 'production',
-          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
-        }),
+        Response.json(aHostRuntimeConfig({ hostId: discoveredHostId })),
       );
     },
 
@@ -89,22 +77,17 @@ export class DevelopmentTargetDriver {
       previewKind: 'default' | 'deployed' | 'local',
       matching = true,
     ): void => {
-      this.hostConfig = {
-        id: this.appId,
-        framework: 'react',
-        type: 'host',
-      };
+      this.hostConfig = aHostConfig({ id: this.appId });
       this.previewUrls =
         previewKind === 'default'
           ? []
           : [previewKind === 'local' ? this.localPreviewUrl : this.origin];
       globalThis.fetch = jest.fn(async () =>
-        Response.json({
-          schemaVersion: 'v1',
-          hostId: matching ? this.appId : this.firstHostId,
-          environment: 'production',
-          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
-        }),
+        Response.json(
+          aHostRuntimeConfig({
+            hostId: matching ? this.appId : this.firstHostId,
+          }),
+        ),
       );
     },
   };

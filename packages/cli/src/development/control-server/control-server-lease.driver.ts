@@ -35,15 +35,3 @@ export class ControlServerLeaseDriver {
     },
   };
 }
-
-export function anOverrideDocument(
-  overrides: Partial<AtlasDevOverrideDocument> = {},
-): AtlasDevOverrideDocument {
-  return {
-    schemaVersion: '1',
-    hostId: faker.string.uuid(),
-    overrides: [],
-    generatedAt: faker.date.recent().toISOString(),
-    ...overrides,
-  };
-}

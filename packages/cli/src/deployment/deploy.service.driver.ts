@@ -1,15 +1,17 @@
-import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type {
-  AtlasAppArtifactManifest,
   AtlasEnvironmentDeployment,
-  AtlasHostArtifactManifest,
   AtlasHostDeploymentManifest,
   AtlasManifestDescriptor,
   AtlasPublishedArtifactManifest,
   AtlasStaticRegistry,
 } from '@atlas/schema';
+import {
+  aHostArtifactManifest,
+  anAppArtifactManifest,
+  anEnvironmentDeployment,
+} from '@atlas/testkit';
 import { CliArguments } from '../cli/arguments.js';
 import type {
   AtlasPublicationBody,
@@ -30,7 +32,6 @@ import {
 } from './deploy.service.js';
 
 const MUTABLE = 'no-cache, max-age=0, must-revalidate';
-const IMMUTABLE = 'public, max-age=31536000, immutable';
 
 export class DeployServiceDriver {
   private readonly storage = new MemoryStorage();
@@ -38,8 +39,23 @@ export class DeployServiceDriver {
   private readonly targetRoot = 'https://target.example/atlas';
   private readonly hostId = faker.string.uuid();
   private readonly appId = faker.string.uuid();
-  private readonly host = hostManifest(this.hostId);
-  private readonly app = appManifest(this.appId, this.hostId);
+  private readonly host = aHostArtifactManifest({
+    id: this.hostId,
+    release: { version: '1.0.0' },
+  });
+  private readonly app = anAppArtifactManifest({
+    id: this.appId,
+    release: { version: '1.4.0' },
+    supportedHosts: [this.hostId],
+    placements: [
+      {
+        id: faker.string.uuid(),
+        kind: 'route',
+        hostId: this.hostId,
+        route: { path: `/${faker.word.noun()}`, title: faker.lorem.words() },
+      },
+    ],
+  });
   private readonly source = new Map<string, Uint8Array>();
   private readonly originalFetch = globalThis.fetch;
   private selector = '1.4.0';
@@ -84,27 +100,26 @@ export class DeployServiceDriver {
     catalog: async (): Promise<void> => {
       const registry = await this.catalogFor(this.storage);
       await this.storage.seedJson('registry.json', registry);
-      await this.storage.seedJson('environments/production/deployment.json', {
-        schemaVersion: 'v1',
-        environment: 'production',
-        revision: digest('host'),
-        updatedAt: faker.date.recent().toISOString(),
-        hosts: { [this.hostId]: { version: '1.0.0' } },
-        apps: {},
-      } satisfies AtlasEnvironmentDeployment);
+      await this.storage.seedJson(
+        'environments/production/deployment.json',
+        anEnvironmentDeployment({
+          environment: 'production',
+          hosts: { [this.hostId]: { version: '1.0.0' } },
+        }),
+      );
     },
     latest: (): void => {
       this.selector = 'latest';
     },
     sourceEnvironment: async (): Promise<void> => {
-      await this.storage.seedJson('environments/staging/deployment.json', {
-        schemaVersion: 'v1',
-        environment: 'staging',
-        revision: digest('staging'),
-        updatedAt: faker.date.recent().toISOString(),
-        hosts: { [this.hostId]: { version: '1.0.0' } },
-        apps: { [this.appId]: { version: '1.4.0' } },
-      } satisfies AtlasEnvironmentDeployment);
+      await this.storage.seedJson(
+        'environments/staging/deployment.json',
+        anEnvironmentDeployment({
+          environment: 'staging',
+          hosts: { [this.hostId]: { version: '1.0.0' } },
+          apps: { [this.appId]: { version: '1.4.0' } },
+        }),
+      );
       this.selector = 'staging';
     },
     separateRegistries: async (): Promise<void> => {
@@ -114,14 +129,13 @@ export class DeployServiceDriver {
       this.source.set('registry.json', jsonBytes(registry));
       for (const path of sourceStorage.paths())
         this.source.set(path, (await sourceStorage.read(path))!);
-      await this.storage.seedJson('environments/production/deployment.json', {
-        schemaVersion: 'v1',
-        environment: 'production',
-        revision: digest('host'),
-        updatedAt: faker.date.recent().toISOString(),
-        hosts: { [this.hostId]: { version: '1.0.0' } },
-        apps: {},
-      } satisfies AtlasEnvironmentDeployment);
+      await this.storage.seedJson(
+        'environments/production/deployment.json',
+        anEnvironmentDeployment({
+          environment: 'production',
+          hosts: { [this.hostId]: { version: '1.0.0' } },
+        }),
+      );
       globalThis.fetch = async (input) =>
         this.sourceResponse(requestUrl(input));
       this.separateRegistries = true;
@@ -349,54 +363,4 @@ function requestUrl(input: Parameters<typeof fetch>[0]): string {
     : input instanceof URL
       ? input.href
       : input.url;
-}
-function digest(value: string): `sha256:${string}` {
-  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
-}
-function file(): AtlasAppArtifactManifest['files'][number] {
-  return {
-    path: 'remoteEntry.js',
-    digest: digest('entry'),
-    size: 5,
-    mediaType: 'application/javascript',
-    cacheControl: IMMUTABLE,
-    role: 'remote-entry',
-  };
-}
-function appManifest(id: string, hostId: string): AtlasAppArtifactManifest {
-  return {
-    schemaVersion: '2',
-    kind: 'app-artifact',
-    id,
-    name: faker.word.noun(),
-    release: { version: '1.4.0' },
-    framework: 'react',
-    entryPath: 'remoteEntry.js',
-    exposes: { entry: './entry' },
-    files: [file()],
-    requiredHostSdkVersion: '^1.0.0',
-    supportedHosts: [hostId],
-    placements: [
-      {
-        id: faker.string.uuid(),
-        kind: 'route',
-        hostId,
-        route: { path: '/orders', title: 'Orders' },
-      },
-    ],
-  };
-}
-function hostManifest(id: string): AtlasHostArtifactManifest {
-  return {
-    schemaVersion: '2',
-    kind: 'host-artifact',
-    id,
-    name: faker.word.noun(),
-    release: { version: '1.0.0' },
-    framework: 'react',
-    entryPath: 'remoteEntry.js',
-    exposes: { entry: './entry' },
-    files: [file()],
-    requiredLoaderApiVersion: '^1.0.0',
-  };
 }

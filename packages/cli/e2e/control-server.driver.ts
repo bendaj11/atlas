@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
-import { createTestManifest } from '@atlas/testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { startControlServer } from '../src/development/control-server/control-server.js';
+import { anOverrideDocument } from '../src/development/development.testkit.js';
 import type {
   AtlasDevOverrideDocument,
   DevControlServer,
@@ -49,7 +50,7 @@ export class ControlServerDriver {
   };
 
   private document(appId: string): AtlasDevOverrideDocument {
-    const manifest = createTestManifest({
+    const manifest = anAppManifest({
       id: appId,
       placements: [
         {
@@ -61,12 +62,10 @@ export class ControlServerDriver {
       ],
     });
 
-    return {
-      generatedAt: faker.date.past().toISOString(),
+    return anOverrideDocument({
       hostId: this.hostId,
       overrides: [{ appId, manifest, reason: 'local' }],
-      schemaVersion: '1',
-    };
+    });
   }
 
   private async catalogIds(): Promise<string[]> {

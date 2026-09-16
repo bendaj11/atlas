@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasConfig } from '@atlas/schema';
+import { aHostConfig, anAppConfig } from '@atlas/testkit';
 import { AtlasConfigDriver } from './atlas-config.driver.js';
 
 describe('atlas-config', () => {
@@ -11,13 +12,13 @@ describe('atlas-config', () => {
 
   describe('isHostConfig', () => {
     it('should return true when type is host', () => {
-      driver.given.config(aConfig({ type: 'host' }));
+      driver.given.config(aHostConfig());
 
       expect(driver.get.isHost()).toBe(true);
     });
 
     it('should return false when type is app', () => {
-      driver.given.config(aConfig({ type: 'app' }));
+      driver.given.config(anAppConfig());
 
       expect(driver.get.isHost()).toBe(false);
     });
@@ -25,14 +26,17 @@ describe('atlas-config', () => {
     it.each(['resourcesTimeoutMs', 'resourcesRetryCount'])(
       'should return true when type is absent and %s is present',
       (field) => {
-        driver.given.config(aConfig({ [field]: faker.number.int() }));
+        driver.given.config({
+          ...aHostConfig({ type: undefined }),
+          [field]: faker.number.int(),
+        } as AtlasConfig);
 
         expect(driver.get.isHost()).toBe(true);
       },
     );
 
     it('should return false when type and host fields are absent', () => {
-      driver.given.config(aConfig({}));
+      driver.given.config(anAppConfig({ type: undefined }));
 
       expect(driver.get.isHost()).toBe(false);
     });
@@ -40,7 +44,7 @@ describe('atlas-config', () => {
 
   describe('assertAppConfig', () => {
     it('should return config when config is an app', () => {
-      const config = aConfig({ type: 'app' });
+      const config = anAppConfig();
       driver.given.config(config);
 
       expect(driver.get.appConfig()).toBe(config);
@@ -48,7 +52,7 @@ describe('atlas-config', () => {
 
     it('should throw with config id when config is a host', () => {
       const id = faker.string.uuid();
-      driver.given.config(aConfig({ type: 'host', id }));
+      driver.given.config(aHostConfig({ id }));
 
       expect(() => driver.get.appConfig()).toThrow(
         `Atlas build expects an app config for "${id}", but received a host config.`,
@@ -56,11 +60,3 @@ describe('atlas-config', () => {
     });
   });
 });
-
-function aConfig(overrides: Record<string, unknown>): AtlasConfig {
-  return {
-    id: faker.string.uuid(),
-    framework: faker.helpers.arrayElement(['react', 'angular']),
-    ...overrides,
-  } as AtlasConfig;
-}

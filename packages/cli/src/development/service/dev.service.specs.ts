@@ -1,28 +1,11 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasConfig, AtlasHostManifest } from '@atlas/schema';
-import { createTestManifest } from '@atlas/testkit';
+import {
+  aHostConfig,
+  aHostManifest,
+  anAppConfig,
+  anAppManifest,
+} from '@atlas/testkit';
 import { DevServiceDriver } from './dev.service.driver.js';
-
-function aHostConfig(id: string): AtlasConfig {
-  return { id, framework: 'react', type: 'host' } as AtlasConfig;
-}
-
-function aLocalHostManifest(id: string): AtlasHostManifest {
-  return {
-    schemaVersion: '1',
-    kind: 'host',
-    id,
-    name: faker.company.name(),
-    version: '1.0.0',
-    buildId: 'local',
-    channel: 'local',
-    framework: 'react',
-    remoteEntryUrl: 'http://localhost:4300/remoteEntry.json',
-    exposes: { entry: './host' },
-    requiredLoaderApiVersion: '^1.0.0',
-    createdAt: faker.date.past().toISOString(),
-  };
-}
 
 describe('AtlasDevService', () => {
   let driver: DevServiceDriver;
@@ -35,7 +18,7 @@ describe('AtlasDevService', () => {
 
   it('should reject --host-url when development starts', async () => {
     driver.given
-      .config(aHostConfig(faker.string.uuid()))
+      .config(aHostConfig({ id: faker.string.uuid() }))
       .given.flags([`--host-url=${faker.internet.url()}`]);
 
     await expect(driver.when.run()).rejects.toThrow(
@@ -48,8 +31,8 @@ describe('AtlasDevService', () => {
 
     beforeEach(async () => {
       driver.given
-        .config(aHostConfig(hostId))
-        .given.hostManifest(aLocalHostManifest(hostId));
+        .config(aHostConfig({ id: hostId }))
+        .given.hostManifest(aHostManifest({ id: hostId }));
 
       await driver.when.run();
     });
@@ -77,8 +60,8 @@ describe('AtlasDevService', () => {
     const hostId = faker.string.uuid();
     const previewUrl = `https://${faker.internet.domainName()}`;
     driver.given
-      .config(aHostConfig(hostId))
-      .given.hostManifest(aLocalHostManifest(hostId))
+      .config(aHostConfig({ id: hostId }))
+      .given.hostManifest(aHostManifest({ id: hostId }))
       .given.deployedHost(hostId)
       .given.flags(['--port=4500']);
     await driver.given.previews([previewUrl]);
@@ -91,8 +74,8 @@ describe('AtlasDevService', () => {
   it('should reject a local host preview when its port differs from the bootstrap port', async () => {
     const hostId = faker.string.uuid();
     driver.given
-      .config(aHostConfig(hostId))
-      .given.hostManifest(aLocalHostManifest(hostId))
+      .config(aHostConfig({ id: hostId }))
+      .given.hostManifest(aHostManifest({ id: hostId }))
       .given.flags(['--port=4500']);
     await driver.given.previews(['http://localhost:4999']);
 
@@ -105,20 +88,16 @@ describe('AtlasDevService', () => {
     const appId = faker.string.uuid();
     const hostId = faker.string.uuid();
     const previewUrl = `https://${faker.internet.domainName()}`;
-    const manifest = createTestManifest({
-      id: appId,
-      channel: 'local',
-      buildId: 'local',
-      remoteEntryUrl: 'http://localhost:4500/remoteEntry.json',
-    });
+    const manifest = anAppManifest({ id: appId });
 
     beforeEach(async () => {
       driver.given
-        .config({
-          id: appId,
-          framework: 'react',
-          routes: [{ hostId: '*', path: '/orders' }],
-        } as AtlasConfig)
+        .config(
+          anAppConfig({
+            id: appId,
+            routes: [{ hostId: '*', path: '/orders' }],
+          }),
+        )
         .given.appManifest(manifest)
         .given.deployedHost(hostId)
         .given.flags(['--port=4500']);

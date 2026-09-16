@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { createTestManifest } from '@atlas/testkit';
+import { anAppManifest } from '@atlas/testkit';
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
 import {
   AtlasVerifyService,
@@ -270,8 +270,9 @@ export class VerifyServiceDriver {
   private deploymentManifest(
     overrides: Partial<AtlasManifest> = {},
   ): AtlasManifest {
-    return createTestManifest({
+    return anAppManifest({
       id: this.appId,
+      exposes: { entry: './entry' },
       integrity: remoteIntegrity,
       remoteEntryUrl: `${this.assetOrigin}/${this.appId}/1/build/remoteEntry.json`,
       ...overrides,

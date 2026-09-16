@@ -4,7 +4,7 @@ import type { AtlasBuildResult } from '../../build/service/build.service.js';
 import { sha256Digest } from '../../shared/digest/digest.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject } from '../../workspace/workspace.testkit.js';
-import { anAppArtifactManifest } from '../publication.testkit.js';
+import { anAppArtifactManifest } from '@atlas/testkit';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
 import {
   publicationFiles,

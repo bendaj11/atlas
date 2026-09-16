@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { faker } from '@faker-js/faker';
+import { aHostRuntimeConfig } from '@atlas/testkit';
 import { startLocalBootstrapServer } from '../src/development/bootstrap-server/bootstrap-server.js';
 import { closeServer } from '../src/development/http/http.js';
 
@@ -44,12 +45,7 @@ export class BootstrapServerDriver {
         html: this.html,
         port: 0,
         proxy,
-        runtime: {
-          hostId: this.hostId,
-          environment: 'production',
-          schemaVersion: 'v1',
-          artifactRegistryUrl: faker.internet.url({ appendSlash: false }),
-        },
+        runtime: aHostRuntimeConfig({ hostId: this.hostId }),
       });
     },
   };

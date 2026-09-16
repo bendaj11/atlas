@@ -1,7 +1,8 @@
 import { faker } from '@faker-js/faker';
-import { createTestManifest } from '@atlas/testkit';
+import type { AtlasHostCatalog } from '@atlas/schema';
+import { aHostCatalog, aHostManifest, anAppManifest } from '@atlas/testkit';
+import { anOverrideDocument } from '../development.testkit.js';
 import type { AtlasDevOverrideDocument } from '../types.js';
-import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
 import {
   createDevSession,
   createDevSessionStore,
@@ -21,7 +22,7 @@ export class DevelopmentSessionDriver {
 
   given = {
     document: (scenario: SessionScenario): void => {
-      const manifest = createTestManifest({
+      const manifest = anAppManifest({
         channel: scenario === 'merged-catalog' ? 'local' : 'production',
         id: this.appId,
         placements: [
@@ -37,7 +38,7 @@ export class DevelopmentSessionDriver {
         { appId: this.appId, manifest, reason: 'local' as const },
       ];
 
-      this.document = {
+      this.document = anOverrideDocument({
         generatedAt: this.generatedAt,
         hostId: this.hostId,
         overrides:
@@ -51,8 +52,7 @@ export class DevelopmentSessionDriver {
                 },
               ]
             : overrides,
-        schemaVersion: '1',
-      };
+      });
     },
   };
 
@@ -135,33 +135,14 @@ export class DevelopmentSessionDriver {
   };
 
   private productionCatalog(): AtlasHostCatalog {
-    return {
-      schemaVersion: '1',
+    return aHostCatalog({
       hostId: this.hostId,
-      revision: 'production',
       generatedAt: this.generatedAt,
-      host: this.hostManifest(),
+      host: aHostManifest({ id: this.hostId, channel: 'production' }),
       apps: [
-        createTestManifest({ id: this.appId }),
-        createTestManifest({ id: 'published-app' }),
+        anAppManifest({ id: this.appId, channel: 'production' }),
+        anAppManifest({ id: 'published-app', channel: 'production' }),
       ],
-    };
-  }
-
-  private hostManifest(): AtlasHostManifest {
-    return {
-      schemaVersion: '1',
-      kind: 'host',
-      id: this.hostId,
-      name: 'Host',
-      version: '1.0.0',
-      buildId: 'production',
-      channel: 'production',
-      framework: 'react',
-      createdAt: this.generatedAt,
-      remoteEntryUrl: 'https://registry.example/host.js',
-      exposes: { entry: './host' },
-      requiredLoaderApiVersion: '^1.0.0',
-    };
+    });
   }
 }

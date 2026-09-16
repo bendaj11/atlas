@@ -1,7 +1,5 @@
-import {
-  anOverrideDocument,
-  ControlServerLeaseDriver,
-} from './control-server-lease.driver.js';
+import { anOverrideDocument } from '../development.testkit.js';
+import { ControlServerLeaseDriver } from './control-server-lease.driver.js';
 
 describe('control-server-lease', () => {
   let driver: ControlServerLeaseDriver;
