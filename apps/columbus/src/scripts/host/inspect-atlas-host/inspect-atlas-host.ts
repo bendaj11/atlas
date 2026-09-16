@@ -1,7 +1,5 @@
-import {
-  type AtlasHostData as HostData,
-  getArtifactKey,
-} from '../../../types/contracts';
+import type { HostData } from '../../../types/host-data';
+import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
 import { messageFromError } from '../../shared/errors/errors';
 import {

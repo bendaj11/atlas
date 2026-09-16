@@ -2,7 +2,7 @@ import { OverrideRadioCard } from './OverrideRadioCard/OverrideRadioCard';
 import type {
   ArtifactConfiguration,
   OverrideSelection,
-} from '../../../types/app';
+} from '../../../types/artifact';
 import { Box, Input } from '@wix/design-system';
 import { OverrideVersionDropdown } from './OverrideVersionDropdown/OverrideVersionDropdown';
 

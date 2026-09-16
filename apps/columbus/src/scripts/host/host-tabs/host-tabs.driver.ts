@@ -1,5 +1,6 @@
-import type { AtlasHostData as HostData } from '../../../types/contracts';
-import { aHostData, anAppArtifactVersion } from '../../../types/app.testkit';
+import type { HostData } from '../../../types/host-data';
+import { aHostData } from '../../../types/host-data.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import {
   type FakeChrome,
   type FakeTab,

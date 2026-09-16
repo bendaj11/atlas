@@ -1,10 +1,8 @@
-import type {
-  ArtifactVersion,
-  AtlasHostData as HostData,
-  AtlasOverrideDocument as OverrideDocument,
-} from '../../../types/contracts';
-import type { Scope } from '../../../types/app';
-import { aHostData } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import type { AtlasOverrideDocument as OverrideDocument } from '../../../types/override-document';
+import type { Scope } from '../../../types/columbus-state';
+import { aHostData } from '../../../types/host-data.testkit';
 import { type FakeChrome, installFakeChrome } from '../../chrome.testkit';
 import {
   type OverrideStorageLocation,

@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react';
-import type { HostStatus, OverrideStatus } from '../../types/app';
+import type { HostStatus } from '../columbus-state/columbus-state';
+import type { OverrideStatus } from '../overrides/overrides';
 import type { useHost as useHostType } from '../useHost/useHost';
 import type { useOverrides as useOverridesType } from '../useOverrides/useOverrides';
 

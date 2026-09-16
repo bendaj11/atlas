@@ -1,4 +1,5 @@
-import { aHostData, anAppArtifactVersion } from '../../types/app.testkit';
+import { aHostData } from '../../types/host-data.testkit';
+import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
 import {
   inspectHostRequest,
   loadArtifactVersionRequest,

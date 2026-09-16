@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import { render } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { RadioGroupTestkit } from '@wix/design-system/dist/testkit/testing-library';
-import type { Scope } from '../../../types/app';
+import type { Scope } from '../../../types/columbus-state';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker';
 
 type ScopePickerProps = ComponentProps<typeof BrowserOverrideScopePicker>;

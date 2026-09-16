@@ -5,12 +5,9 @@ import {
   setArtifactVersionOverrideScope,
   toggleArtifactVersionOverride,
 } from '../../scripts/overrides/artifact-version-override-reducers/artifact-version-override-reducers';
-import type {
-  Artifact,
-  ColumbusState,
-  OverrideStatus,
-  Scope,
-} from '../../types/app';
+import type { Artifact } from '../../types/artifact';
+import type { ColumbusState, Scope } from '../../types/columbus-state';
+import type { OverrideStatus } from '../overrides/overrides';
 import { hasOverrides, overrideStatusOf } from '../overrides/overrides';
 import { usePersistOverridesMutation } from '../usePersistOverridesMutation/usePersistOverridesMutation';
 import { useColumbusState } from '../useColumbusState/useColumbusState';

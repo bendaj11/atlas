@@ -1,12 +1,9 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type {
-  Artifact,
-  ColumbusState,
-  OverrideStatus,
-  Scope,
-} from '../../types/app';
-import { aColumbusState } from '../../types/app.testkit';
+import type { Artifact } from '../../types/artifact';
+import type { ColumbusState, Scope } from '../../types/columbus-state';
+import type { OverrideStatus } from '../overrides/overrides';
+import { aColumbusState } from '../../types/columbus-state.testkit';
 import type * as ArtifactVersionOverrideReducersModule from '../../scripts/overrides/artifact-version-override-reducers/artifact-version-override-reducers';
 import type * as OverridesModule from '../overrides/overrides';
 import type { usePersistOverridesMutation as usePersistOverridesMutationType } from '../usePersistOverridesMutation/usePersistOverridesMutation';

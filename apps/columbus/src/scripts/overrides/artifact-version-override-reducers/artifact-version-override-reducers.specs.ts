@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { ArtifactVersionOverrideReducersDriver } from './artifact-version-override-reducers.driver';
 
 const ORDERS = anAppArtifactVersion({ id: 'orders' });

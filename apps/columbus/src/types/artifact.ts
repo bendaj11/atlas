@@ -1,9 +1,6 @@
-import type { ArtifactVersion, AtlasHostData as HostData } from './contracts';
+import type { ArtifactVersion } from './artifact-version';
 
 export type OverrideType = 'custom' | 'production' | 'pr';
-export type Scope = 'all' | 'tab';
-export type HostStatus = 'LOADING' | 'ERROR' | 'LOADED';
-export type OverrideStatus = 'IDLE' | 'APPLYING' | 'ERROR';
 
 export interface Artifact {
   key: string;
@@ -27,18 +24,3 @@ export interface ArtifactConfiguration extends Artifact {
   productionArtifactVersions: ArtifactVersion[];
   prArtifactVersions: ArtifactVersion[];
 }
-
-export interface ArtifactProps {
-  artifact: Artifact;
-}
-
-export interface ColumbusState {
-  hostData: HostData;
-  tabId: number;
-  enabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
-  disabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
-  clearedLocalArtifactIds: Set<string>;
-  scope: Scope;
-}
-
-export type { ArtifactVersion };

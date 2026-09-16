@@ -1,7 +1,5 @@
-import type {
-  ArtifactVersion,
-  AtlasHostData as HostData,
-} from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
 import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { failureMessage } from '../../shared/errors/errors';
 import {

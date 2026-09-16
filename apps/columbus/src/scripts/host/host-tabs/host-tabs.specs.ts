@@ -1,7 +1,8 @@
 /** @jest-environment node */
 
 import { faker } from '@faker-js/faker';
-import { aHostData, anAppArtifactVersion } from '../../../types/app.testkit';
+import { aHostData } from '../../../types/host-data.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { HostTabsDriver } from './host-tabs.driver';
 
 const HOST_URL = 'http://127.0.0.1:4300/orders';

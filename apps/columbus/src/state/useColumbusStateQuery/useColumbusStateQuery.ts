@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ColumbusState } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
 import {
   loadColumbusState,
   COLUMBUS_STATE_QUERY_KEY,

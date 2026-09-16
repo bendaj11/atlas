@@ -1,5 +1,5 @@
 import { Box, Card, RadioGroup, Text } from '@wix/design-system';
-import type { Scope } from '../../../types/app';
+import type { Scope } from '../../../types/columbus-state';
 
 interface ScopePickerProps {
   selectedScope: Scope;

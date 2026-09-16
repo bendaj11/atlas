@@ -1,4 +1,4 @@
-import type { AtlasHostData as HostData } from '../../../types/contracts';
+import type { HostData } from '../../../types/host-data';
 import { writeHostDataCache } from '../host-data-cache';
 import { findAtlasHostTab } from '../host-tabs/host-tabs';
 import { readPersistedOverrideDocument } from '../../overrides/override-storage/override-storage';

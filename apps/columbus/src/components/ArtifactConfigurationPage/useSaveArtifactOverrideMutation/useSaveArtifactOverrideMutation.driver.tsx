@@ -4,14 +4,12 @@ import { act, renderHook, type RenderHookResult } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type {
   ArtifactConfiguration,
-  ColumbusState,
-  ArtifactVersion,
   OverrideSelection,
-} from '../../../types/app';
-import {
-  anArtifactConfiguration,
-  aColumbusState,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact';
+import type { ColumbusState } from '../../../types/columbus-state';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import { anArtifactConfiguration } from '../../../types/artifact.testkit';
+import { aColumbusState } from '../../../types/columbus-state.testkit';
 import type { loadArtifactVersionFromHostTab as loadArtifactVersionFromHostTabType } from '../../../scripts/host/host-tabs/host-tabs';
 import type {
   useOverrides as useOverridesType,

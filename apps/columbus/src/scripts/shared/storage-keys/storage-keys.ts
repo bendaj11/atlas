@@ -1,4 +1,4 @@
-import type { Scope } from '../../../types/app';
+import type { Scope } from '../../../types/columbus-state';
 
 export const OVERRIDE_DOCUMENT_KEY = 'atlas.runtime-overrides';
 export const HOST_DATA_CACHE_KEY = 'atlas.host-data-cache';

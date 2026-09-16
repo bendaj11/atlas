@@ -1,8 +1,10 @@
 import { jest } from '@jest/globals';
 import { renderHook, type RenderHookResult } from '@testing-library/react';
 import type { useLocation as useLocationType } from 'react-router-dom';
-import type { Artifact, ColumbusState } from '../../../types/app';
-import { anArtifact, aColumbusState } from '../../../types/app.testkit';
+import type { Artifact } from '../../../types/artifact';
+import type { ColumbusState } from '../../../types/columbus-state';
+import { anArtifact } from '../../../types/artifact.testkit';
+import { aColumbusState } from '../../../types/columbus-state.testkit';
 import type { useColumbusState as useColumbusStateType } from '../../../state';
 
 const useLocation = jest.fn<typeof useLocationType>();

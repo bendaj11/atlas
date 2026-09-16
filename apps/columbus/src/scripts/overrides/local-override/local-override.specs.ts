@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { LocalOverrideDriver } from './local-override.driver';
 
 describe('validateLocalOverride', () => {

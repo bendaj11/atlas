@@ -1,17 +1,15 @@
 import { faker } from '@faker-js/faker';
-import type { ArtifactVersion } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 import type {
   Artifact,
   ArtifactConfiguration,
-  ColumbusState,
   OverrideSelection,
   OverrideType,
-} from '../../../types/app';
-import {
-  anAppArtifactVersion,
-  anArtifact,
-  aColumbusState,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact';
+import type { ColumbusState } from '../../../types/columbus-state';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anArtifact } from '../../../types/artifact.testkit';
+import { aColumbusState } from '../../../types/columbus-state.testkit';
 import {
   artifactSourceDescription,
   configurationOf,

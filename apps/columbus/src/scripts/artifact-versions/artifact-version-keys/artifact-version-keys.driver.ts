@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest } from '../../../types/contracts';
+import type { AtlasExtensionManifest } from '../../../types/artifact-version';
 import { uniqueVersions, versionKey } from './artifact-version-keys';
 
 export class ArtifactVersionKeysDriver {

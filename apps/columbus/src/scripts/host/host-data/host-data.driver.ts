@@ -1,9 +1,7 @@
 import { jest } from '@jest/globals';
-import type {
-  AtlasHostData as HostData,
-  AtlasOverrideDocument as OverrideDocument,
-} from '../../../types/contracts';
-import { aHostData } from '../../../types/app.testkit';
+import type { HostData } from '../../../types/host-data';
+import type { AtlasOverrideDocument as OverrideDocument } from '../../../types/override-document';
+import { aHostData } from '../../../types/host-data.testkit';
 import type { findAtlasHostTab as findAtlasHostTabType } from '../host-tabs/host-tabs';
 import type { writeHostDataCache as writeHostDataCacheType } from '../host-data-cache';
 import type { readPersistedOverrideDocument as readPersistedOverrideDocumentType } from '../../overrides/override-storage/override-storage';

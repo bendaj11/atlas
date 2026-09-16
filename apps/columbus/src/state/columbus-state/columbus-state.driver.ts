@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
-import type { ColumbusState, ArtifactVersion } from '../../types/app';
-import type { AtlasHostData as HostData } from '../../types/contracts';
+import type { ColumbusState } from '../../types/columbus-state';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
 import type { readHostData as readHostDataType } from '../../scripts/host/host-data/host-data';
 import type {
   readDisabledArtifactVersionOverrides as readDisabledOverridesType,

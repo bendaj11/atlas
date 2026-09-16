@@ -1,4 +1,5 @@
-import { anAppArtifactVersion, aColumbusState } from '../../types/app.testkit';
+import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { aColumbusState } from '../../types/columbus-state.testkit';
 import { PersistOverridesDriver } from './persist-overrides.driver';
 
 describe('persistColumbusState', () => {

@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { InspectAtlasHostDriver } from './inspect-atlas-host.driver';
 
 const ORDERS = anAppArtifactVersion({ id: 'orders', version: '1.0.0' });

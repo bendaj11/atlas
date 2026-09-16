@@ -1,5 +1,5 @@
 import { useMutation, useMutationState } from '@tanstack/react-query';
-import type { ColumbusState } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
 import { persistOverrides } from '../overrides/overrides';
 import { useColumbusState } from '../useColumbusState/useColumbusState';
 

@@ -47,6 +47,11 @@ interface RegistryLocations {
   target: string;
 }
 
+interface RegistryAccess {
+  storage: AtlasPublicationStorage;
+  locations: RegistryLocations;
+}
+
 interface Selection {
   kind: 'app' | 'host';
   id: string;
@@ -76,55 +81,33 @@ export class AtlasDeployService {
     const selector = requiredFlag(this.args, 'version');
     assertEnvironmentName(environment);
 
-    const locations = registryLocations(this.args);
     const storage = await createPublicationStorage(config?.storage, this.args);
-    const registry = await sourceRegistry(storage, locations);
-    const selected = await selection(
-      storage,
-      locations,
+    const access = { storage, locations: registryLocations(this.args) };
+    const registry = await sourceRegistry(access);
+    const selected = await selection({
+      access,
       registry,
-      artifactIdentifier,
+      identifier: artifactIdentifier,
       selector,
-    );
+    });
     const dryRun = this.args.hasFlag('dry-run');
+    const prepare = () =>
+      prepareDeployment({ access, registry, environment, selected });
     const deployment = dryRun
-      ? await prepareDeployment(
-          storage,
-          locations,
-          registry,
-          environment,
-          selected,
-        )
+      ? await prepare()
       : await withPublicationLease(storage, async (lease) => {
-          const prepared = await prepareDeployment(
-            storage,
-            locations,
-            registry,
-            environment,
-            selected,
-          );
-          await writeDeployment(storage, lease, environment, prepared);
+          const prepared = await prepare();
+          await writeDeployment({ storage, lease, environment, prepared });
           if (storage.verifyDelivery) {
-            const paths = [
-              envPath(environment),
-              ...prepared.manifests.map((manifest) =>
-                hostPath(environment, manifest.hostId),
-              ),
-            ];
+            const paths = deploymentPaths(environment, prepared);
             await config?.invalidate?.(paths);
             await verifyDeliveryWhileHeld({ storage, lease, paths });
           }
+
           return prepared;
         });
-
-    if (!dryRun && !storage.verifyDelivery) {
-      await config?.invalidate?.([
-        envPath(environment),
-        ...deployment.manifests.map((manifest) =>
-          hostPath(environment, manifest.hostId),
-        ),
-      ]);
-    }
+    if (!dryRun && !storage.verifyDelivery)
+      await config?.invalidate?.(deploymentPaths(environment, deployment));
 
     return {
       artifactId: selected.id,
@@ -167,13 +150,13 @@ function registryLocations(args: CliArguments): RegistryLocations {
   );
 }
 
-async function selection(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
-  registry: AtlasStaticRegistry,
-  identifier: string,
-  selector: string,
-): Promise<Selection> {
+async function selection(options: {
+  access: RegistryAccess;
+  registry: AtlasStaticRegistry;
+  identifier: string;
+  selector: string;
+}): Promise<Selection> {
+  const { access, registry, identifier, selector } = options;
   const resolved = resolveRegistryArtifact(registry, identifier);
   const artifact = resolved.artifact;
   const version =
@@ -181,13 +164,12 @@ async function selection(
       ? artifact.latest
       : artifact.releases[selector]
         ? selector
-        : await sourceEnvironmentVersion(
-            storage,
-            locations,
-            selector,
-            resolved.kind,
-            artifact.id,
-          );
+        : await sourceEnvironmentVersion({
+            access,
+            environment: selector,
+            kind: resolved.kind,
+            id: artifact.id,
+          });
   const descriptor = version ? artifact.releases[version] : undefined;
   if (!version || !descriptor) {
     throw cliError(
@@ -202,42 +184,46 @@ async function selection(
   return { kind: resolved.kind, id: artifact.id, version };
 }
 
-async function sourceEnvironmentVersion(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
-  environment: string,
-  kind: 'app' | 'host',
-  id: string,
-): Promise<string | undefined> {
+async function sourceEnvironmentVersion(options: {
+  access: RegistryAccess;
+  environment: string;
+  kind: 'app' | 'host';
+  id: string;
+}): Promise<string | undefined> {
+  const { access, environment, kind, id } = options;
   assertEnvironmentName(environment);
-  const deployment = await sourceEnvironmentState(
-    storage,
-    locations,
-    environment,
-  );
+  const deployment = await sourceEnvironmentState(access, environment);
+
   return deployment?.[kind === 'app' ? 'apps' : 'hosts'][id]?.version;
 }
 
-async function prepareDeployment(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
-  registry: AtlasStaticRegistry,
-  environment: string,
-  selected: Selection,
-): Promise<DeploymentWrite> {
+async function prepareDeployment(options: {
+  access: RegistryAccess;
+  registry: AtlasStaticRegistry;
+  environment: string;
+  selected: Selection;
+}): Promise<DeploymentWrite> {
+  const { access, registry, environment, selected } = options;
   const state = select(
-    await targetEnvironmentState(storage, environment),
+    await targetEnvironmentState(access.storage, environment),
     environment,
     selected,
   );
-  const manifests = await hostManifests(
-    storage,
-    locations,
-    registry,
-    state,
-    selected,
-  );
+  const manifests = await hostManifests({ access, registry, state, selected });
+
   return { state, manifests };
+}
+
+function deploymentPaths(
+  environment: string,
+  deployment: DeploymentWrite,
+): string[] {
+  return [
+    envPath(environment),
+    ...deployment.manifests.map((manifest) =>
+      hostPath(environment, manifest.hostId),
+    ),
+  ];
 }
 
 function select(
@@ -261,22 +247,27 @@ function select(
   };
 }
 
-async function hostManifests(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
-  registry: AtlasStaticRegistry,
-  state: AtlasEnvironmentDeployment,
-  selected: Selection,
-): Promise<AtlasHostDeploymentManifest[]> {
+async function hostManifests(options: {
+  access: RegistryAccess;
+  registry: AtlasStaticRegistry;
+  state: AtlasEnvironmentDeployment;
+  selected: Selection;
+}): Promise<AtlasHostDeploymentManifest[]> {
+  const { access, registry, state, selected } = options;
   const apps = await Promise.all(
     Object.entries(state.apps).map(async ([id, entry]) => {
-      const descriptor = release(registry, 'app', id, entry.version);
+      const descriptor = release({
+        registry,
+        kind: 'app',
+        id,
+        version: entry.version,
+      });
+
       return {
         id,
         descriptor,
         manifest: (await publishedManifest(
-          storage,
-          locations,
+          access,
           descriptor,
         )) as AtlasAppArtifactManifest,
       };
@@ -309,7 +300,12 @@ async function hostManifests(
     const content = {
       hostId,
       environment: state.environment,
-      host: release(registry, 'host', hostId, host.version),
+      host: release({
+        registry,
+        kind: 'host',
+        id: hostId,
+        version: host.version,
+      }),
       apps: appsForHost,
     };
     return {
@@ -321,12 +317,13 @@ async function hostManifests(
   });
 }
 
-function release(
-  registry: AtlasStaticRegistry,
-  kind: 'app' | 'host',
-  id: string,
-  version: string,
-): AtlasManifestDescriptor {
+function release(options: {
+  registry: AtlasStaticRegistry;
+  kind: 'app' | 'host';
+  id: string;
+  version: string;
+}): AtlasManifestDescriptor {
+  const { registry, kind, id, version } = options;
   const descriptor = (kind === 'app' ? registry.apps : registry.hosts)[id]
     ?.releases[version];
   if (!descriptor)
@@ -337,10 +334,9 @@ function release(
 }
 
 async function sourceRegistry(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
+  access: RegistryAccess,
 ): Promise<AtlasStaticRegistry> {
-  const registry = await sourceJson(storage, locations, 'registry.json');
+  const registry = await sourceJson(access, 'registry.json');
   if (!registry) throw new Error('Source registry.json is missing.');
   assertStaticRegistry(registry);
   return registry;
@@ -358,12 +354,11 @@ async function targetEnvironmentState(
 }
 
 async function sourceEnvironmentState(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
+  access: RegistryAccess,
   environment: string,
 ): Promise<AtlasEnvironmentDeployment | undefined> {
   return parseEnvironmentState(
-    await sourceJson(storage, locations, envPath(environment)),
+    await sourceJson(access, envPath(environment)),
     environment,
     'source',
   );
@@ -400,11 +395,10 @@ async function storageJson(
 }
 
 async function sourceJson(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
+  access: RegistryAccess,
   path: string,
 ): Promise<unknown | undefined> {
-  const bytes = await sourceBytes(storage, locations, path);
+  const bytes = await sourceBytes(access, path);
   return bytes ? parseJson(bytes, `source ${path}`) : undefined;
 }
 
@@ -419,11 +413,10 @@ function parseJson(bytes: Uint8Array, subject: string): unknown {
 }
 
 async function publishedManifest(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
+  access: RegistryAccess,
   descriptor: AtlasManifestDescriptor,
 ): Promise<AtlasPublishedArtifactManifest> {
-  const bytes = await sourceBytes(storage, locations, descriptor.path);
+  const bytes = await sourceBytes(access, descriptor.path);
   if (
     !bytes ||
     bytes.byteLength !== descriptor.size ||
@@ -439,8 +432,7 @@ async function publishedManifest(
 }
 
 async function sourceBytes(
-  storage: AtlasPublicationStorage,
-  locations: RegistryLocations,
+  { storage, locations }: RegistryAccess,
   path: string,
 ): Promise<Uint8Array | undefined> {
   if (locations.source === locations.target) return storage.read(path);
@@ -454,29 +446,36 @@ async function sourceBytes(
   return new Uint8Array(await response.arrayBuffer());
 }
 
-async function writeDeployment(
-  storage: AtlasPublicationStorage,
-  lease: AtlasPublicationLease,
-  environment: string,
-  deployment: DeploymentWrite,
-): Promise<void> {
-  await writeJson(storage, lease, envPath(environment), deployment.state);
-  for (const manifest of deployment.manifests) {
-    await writeJson(
+async function writeDeployment(options: {
+  storage: AtlasPublicationStorage;
+  lease: AtlasPublicationLease;
+  environment: string;
+  prepared: DeploymentWrite;
+}): Promise<void> {
+  const { storage, lease, environment, prepared } = options;
+  await writeJson({
+    storage,
+    lease,
+    path: envPath(environment),
+    value: prepared.state,
+  });
+  for (const manifest of prepared.manifests) {
+    await writeJson({
       storage,
       lease,
-      hostPath(environment, manifest.hostId),
-      manifest,
-    );
+      path: hostPath(environment, manifest.hostId),
+      value: manifest,
+    });
   }
 }
 
-async function writeJson(
-  storage: AtlasPublicationStorage,
-  lease: AtlasPublicationLease,
-  path: string,
-  value: unknown,
-): Promise<void> {
+async function writeJson(options: {
+  storage: AtlasPublicationStorage;
+  lease: AtlasPublicationLease;
+  path: string;
+  value: unknown;
+}): Promise<void> {
+  const { storage, lease, path, value } = options;
   await lease.assertHeld();
   const bytes = new TextEncoder().encode(`${canonicalJson(value)}\n`);
   const previous = await storage.inspect(path);

@@ -1,7 +1,7 @@
 import {
   aHostArtifactVersion,
   anAppArtifactVersion,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact-version.testkit';
 import { OverrideDocumentDriver } from './override-document.driver';
 
 describe('createOverrideDocument', () => {

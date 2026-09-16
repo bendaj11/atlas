@@ -1,7 +1,7 @@
 import { render, type RenderResult, within } from '@testing-library/react';
 import { TextTestkit } from '@wix/design-system/dist/testkit/testing-library';
-import type { AtlasExtensionManifest } from '../../../../types/contracts';
-import type { Artifact, OverrideType } from '../../../../types/app';
+import type { AtlasExtensionManifest } from '../../../../types/artifact-version';
+import type { Artifact, OverrideType } from '../../../../types/artifact';
 import { ArtifactOverrideVersion } from './ArtifactOverrideVersion';
 
 export class ArtifactOverrideVersionDriver {

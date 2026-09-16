@@ -1,6 +1,7 @@
-import type { ArtifactVersion } from '../../../types/contracts';
-import type { Artifact, ColumbusState, Scope } from '../../../types/app';
-import { aColumbusState } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { Artifact } from '../../../types/artifact';
+import type { ColumbusState, Scope } from '../../../types/columbus-state';
+import { aColumbusState } from '../../../types/columbus-state.testkit';
 import {
   clearAllArtifactVersionOverrides,
   clearArtifactVersionOverride,

@@ -1,7 +1,7 @@
-import type { ArtifactProps } from '../../../../types/app';
+import type { Artifact } from '../../../../types/artifact';
 import { Badge, Box, InfoIcon, Text } from '@wix/design-system';
 
-export const ArtifactName = ({ artifact }: ArtifactProps) => {
+export const ArtifactName = ({ artifact }: { artifact: Artifact }) => {
   const isHost = artifact.productionArtifactVersion.kind === 'host';
 
   return (

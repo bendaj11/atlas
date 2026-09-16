@@ -1,4 +1,4 @@
-import type { ColumbusState } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
 import { reloadHostTab } from '../host/host-tabs/host-tabs';
 import { validateLocalOverride } from './local-override/local-override';
 import { createOverrideDocument } from './override-document/override-document';

@@ -1,4 +1,4 @@
-import { type ArtifactVersion } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 import { placementTargetsHost } from '@atlas/schema';
 import {
   uniqueVersions,
@@ -8,10 +8,10 @@ import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants';
 import type {
   Artifact,
   ArtifactConfiguration,
-  ColumbusState,
   OverrideSelection,
   OverrideType,
-} from '../../../types/app';
+} from '../../../types/artifact';
+import type { ColumbusState } from '../../../types/columbus-state';
 
 const SHORT_BUILD_ID_LENGTH = 7;
 

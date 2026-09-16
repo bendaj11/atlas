@@ -1,5 +1,5 @@
 import { Card, Table, type TableColumn } from '@wix/design-system';
-import type { Artifact } from '../../../types/app';
+import type { Artifact } from '../../../types/artifact';
 import { ArtifactOverrideToggle } from './ArtifactOverrideToggle/ArtifactOverrideToggle';
 import { ArtifactOverrideVersion } from './ArtifactOverrideVersion/ArtifactOverrideVersion';
 import { ArtifactOverrideActions } from './ArtifactOverrideActions/ArtifactOverrideActions';

@@ -1,4 +1,4 @@
-import { aColumbusState } from '../../types/app.testkit';
+import { aColumbusState } from '../../types/columbus-state.testkit';
 import { ColumbusStateDriver } from './useColumbusState.driver';
 
 describe('useColumbusState', () => {

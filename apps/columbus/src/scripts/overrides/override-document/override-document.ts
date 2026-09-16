@@ -1,8 +1,6 @@
-import {
-  type ArtifactVersion,
-  type AtlasHostData as HostData,
-  type AtlasOverrideDocument as OverrideDocument,
-} from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import type { AtlasOverrideDocument as OverrideDocument } from '../../../types/override-document';
 import { isRecord } from '../../shared/messages/messages';
 
 interface CreateOverrideDocumentOptions {

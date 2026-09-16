@@ -1,5 +1,5 @@
-import type { ArtifactVersion } from '../../../types/contracts';
-import { aHostData } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import { aHostData } from '../../../types/host-data.testkit';
 import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/runtime-discovery';
 import { countOverrides, createOverrideDocument } from './override-document';
 

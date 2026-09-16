@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppArtifactVersion } from '../../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../../types/artifact-version.testkit';
 import { OverrideVersionDropdownDriver } from './OverrideVersionDropdown.driver';
 
 describe('OverrideVersionDropdown', () => {

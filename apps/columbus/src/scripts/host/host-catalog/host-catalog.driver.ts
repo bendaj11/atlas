@@ -1,13 +1,11 @@
 import { jest } from '@jest/globals';
-import type {
-  ArtifactVersion,
-  AtlasHostData as HostData,
-} from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import { aHostData } from '../../../types/host-data.testkit';
 import {
-  aHostData,
   aHostArtifactVersion,
   anAppArtifactVersion,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact-version.testkit';
 import {
   aPublishedArtifact,
   type PublishedArtifact,

@@ -1,10 +1,8 @@
-import {
-  type ArtifactVersion,
-  type AtlasHostData as HostData,
-  type AtlasOverrideDocument as OverrideDocument,
-  getArtifactKey,
-} from '../../../types/contracts';
-import type { Scope } from '../../../types/app';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import type { AtlasOverrideDocument as OverrideDocument } from '../../../types/override-document';
+import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
+import type { Scope } from '../../../types/columbus-state';
 import { normalizeStoredArtifactVersion } from '../../artifact-versions/artifact-version-utils/artifact-version-utils';
 import {
   OVERRIDE_DOCUMENT_KEY,

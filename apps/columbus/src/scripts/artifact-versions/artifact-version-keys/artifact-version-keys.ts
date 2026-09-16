@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest } from '../../../types/contracts';
+import type { AtlasExtensionManifest } from '../../../types/artifact-version';
 
 export function uniqueVersions(
   versions: AtlasExtensionManifest[],
@@ -16,4 +16,10 @@ export function versionKey(artifactVersion: AtlasExtensionManifest): string {
   }
 
   return `${artifactVersion.channel}:${artifactVersion.version}:${artifactVersion.buildId}`;
+}
+
+export function getArtifactKey(
+  artifactVersion: AtlasExtensionManifest,
+): string {
+  return `${artifactVersion.kind}:${artifactVersion.id}`;
 }

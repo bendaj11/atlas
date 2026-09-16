@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { ArtifactVersion } from '../../types/contracts';
+import type { ArtifactVersion } from '../../types/artifact-version';
 import type { ManifestDescriptor } from './manifest-fetch/manifest-fetch';
 import type {
   Registry,

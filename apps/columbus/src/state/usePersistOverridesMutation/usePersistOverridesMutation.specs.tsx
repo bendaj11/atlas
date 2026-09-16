@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { aColumbusState } from '../../types/app.testkit';
+import { aColumbusState } from '../../types/columbus-state.testkit';
 import { UsePersistOverridesMutationDriver } from './usePersistOverridesMutation.driver';
 
 describe('usePersistOverridesMutation', () => {

@@ -1,7 +1,8 @@
 import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { HostStatus, OverrideStatus } from '../../types/app';
+import type { HostStatus } from '../../state/columbus-state/columbus-state';
+import type { OverrideStatus } from '../../state/overrides/overrides';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useHost as useHostType,

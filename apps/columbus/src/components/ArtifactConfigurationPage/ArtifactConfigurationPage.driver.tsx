@@ -6,12 +6,10 @@ import {
   TextTestkit,
 } from '@wix/design-system/dist/testkit/testing-library';
 import userEvent from '@testing-library/user-event';
-import type {
-  ArtifactConfiguration,
-  ArtifactVersion,
-  Scope,
-} from '../../types/app';
-import { anArtifactConfiguration } from '../../types/app.testkit';
+import type { ArtifactConfiguration } from '../../types/artifact';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { Scope } from '../../types/columbus-state';
+import { anArtifactConfiguration } from '../../types/artifact.testkit';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,

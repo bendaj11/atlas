@@ -1,4 +1,4 @@
-import { anArtifact } from '../../../../types/app.testkit';
+import { anArtifact } from '../../../../types/artifact.testkit';
 import { ARTIFACT_CONFIGURATION_ROUTE } from '../../../../scripts/routing/routes/routes';
 import { ArtifactOverrideActionsDriver } from './ArtifactOverrideActions.driver';
 

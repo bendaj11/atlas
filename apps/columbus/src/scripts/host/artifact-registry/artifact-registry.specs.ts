@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { aPublishedArtifact } from '../registry.testkit';
 import { ArtifactRegistryDriver } from './artifact-registry.driver';
 

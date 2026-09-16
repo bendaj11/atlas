@@ -1,12 +1,10 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type {
-  Artifact,
-  ColumbusState,
-  ArtifactVersion,
-} from '../../../types/app';
-import { aColumbusState } from '../../../types/app.testkit';
-import { getArtifactKey } from '../../../types/contracts';
+import type { Artifact } from '../../../types/artifact';
+import type { ColumbusState } from '../../../types/columbus-state';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import { aColumbusState } from '../../../types/columbus-state.testkit';
+import { getArtifactKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
 import type { useColumbusState as useColumbusStateType } from '../../../state/useColumbusState/useColumbusState';
 
 const useColumbusState = jest.fn<typeof useColumbusStateType>();

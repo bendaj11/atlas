@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { ColumbusState } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
 import type { persistColumbusState as persistColumbusStateType } from '../../scripts/overrides/persist-overrides';
 
 const persistColumbusState = jest.fn<typeof persistColumbusStateType>();

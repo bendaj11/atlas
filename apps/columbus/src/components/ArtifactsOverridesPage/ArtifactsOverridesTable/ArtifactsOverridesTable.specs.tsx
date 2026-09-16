@@ -1,4 +1,5 @@
-import { anAppArtifactVersion, anArtifact } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anArtifact } from '../../../types/artifact.testkit';
 import { ArtifactsOverridesTableDriver } from './ArtifactsOverridesTable.driver';
 
 describe('ArtifactsOverridesTable', () => {

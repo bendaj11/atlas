@@ -2,10 +2,8 @@ import {
   environmentManifestUrl,
   resolveAtlasRuntimeConfig,
 } from '@atlas/bootstrap/runtime';
-import type {
-  ArtifactVersion,
-  AtlasHostData as HostData,
-} from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
 import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
 import { isRecord } from '../../shared/messages/messages';
 import {

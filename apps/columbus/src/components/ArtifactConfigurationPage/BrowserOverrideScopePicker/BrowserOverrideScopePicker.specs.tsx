@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import type { Scope } from '../../../types/app';
+import type { Scope } from '../../../types/columbus-state';
 import { BrowserOverrideScopePickerDriver } from './BrowserOverrideScopePicker.driver';
 
 const SCOPES: Scope[] = ['all', 'tab'];

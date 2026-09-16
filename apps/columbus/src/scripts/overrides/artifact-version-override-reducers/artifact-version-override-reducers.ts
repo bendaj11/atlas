@@ -1,5 +1,6 @@
-import { getArtifactKey } from '../../../types/contracts';
-import type { Artifact, ColumbusState, Scope } from '../../../types/app';
+import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
+import type { Artifact } from '../../../types/artifact';
+import type { ColumbusState, Scope } from '../../../types/columbus-state';
 
 export function toggleArtifactVersionOverride({
   columbusState,

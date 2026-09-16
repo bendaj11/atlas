@@ -1,7 +1,7 @@
 import {
   aHostArtifactVersion,
   anAppArtifactVersion,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact-version.testkit';
 import { PageRuntimeStateDriver } from './page-runtime-state.driver';
 
 const DOCUMENT = JSON.stringify({

@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { render } from '@testing-library/react';
 import { DropdownTestkit } from '@wix/design-system/dist/testkit/testing-library';
 import type { ComponentProps } from 'react';
-import type { ArtifactVersion } from '../../../../types/app';
+import type { ArtifactVersion } from '../../../../types/artifact-version';
 import { OverrideVersionDropdown } from './OverrideVersionDropdown';
 
 type OverrideVersionDropdownProps = ComponentProps<

@@ -1,15 +1,13 @@
 import { useState } from 'react';
-import { getArtifactKey } from '../../../types/contracts';
+import { getArtifactKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
 import { useColumbusState } from '../../../state';
 import {
   artifactSourceDescription,
   overrideTypeFor,
 } from '../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
-import type {
-  Artifact,
-  ColumbusState,
-  ArtifactVersion,
-} from '../../../types/app';
+import type { Artifact } from '../../../types/artifact';
+import type { ColumbusState } from '../../../types/columbus-state';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 
 interface Artifacts {
   artifacts: Artifact[];

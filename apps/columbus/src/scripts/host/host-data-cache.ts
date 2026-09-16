@@ -1,4 +1,4 @@
-import type { AtlasHostData as HostData } from '../../types/contracts';
+import type { HostData } from '../../types/host-data';
 import { HOST_DATA_CACHE_KEY } from '../shared/storage-keys/storage-keys';
 import { isExtensionPageUrl } from '../shared/urls/urls';
 import { isRecord } from '../shared/messages/messages';

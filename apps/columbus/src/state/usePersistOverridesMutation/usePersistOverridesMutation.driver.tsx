@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import { notifyManager, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { ColumbusState } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
 import type * as OverridesModule from '../overrides/overrides';
 import type { useColumbusState as useColumbusStateType } from '../useColumbusState/useColumbusState';
 import { createQueryClient } from '../query-client/query-client';

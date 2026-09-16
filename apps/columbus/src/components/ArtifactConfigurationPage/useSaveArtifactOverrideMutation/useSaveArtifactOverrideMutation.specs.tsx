@@ -1,10 +1,10 @@
 import { faker } from '@faker-js/faker';
 import {
   anAppArtifactVersion,
-  anArtifactConfiguration,
-  aColumbusState,
   aVersionOf,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact-version.testkit';
+import { anArtifactConfiguration } from '../../../types/artifact.testkit';
+import { aColumbusState } from '../../../types/columbus-state.testkit';
 import { UseSaveArtifactOverrideMutationDriver } from './useSaveArtifactOverrideMutation.driver';
 
 describe('useSaveArtifactOverrideMutation', () => {

@@ -9,11 +9,11 @@ import {
 import type { ComponentProps } from 'react';
 import type {
   ArtifactConfiguration,
-  ArtifactVersion,
   OverrideSelection,
   OverrideType,
-} from '../../../types/app';
-import { anArtifactConfiguration } from '../../../types/app.testkit';
+} from '../../../types/artifact';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import { anArtifactConfiguration } from '../../../types/artifact.testkit';
 import { OverridesSelectionForm } from './OverridesSelectionForm';
 
 type OverridesSelectionFormProps = ComponentProps<

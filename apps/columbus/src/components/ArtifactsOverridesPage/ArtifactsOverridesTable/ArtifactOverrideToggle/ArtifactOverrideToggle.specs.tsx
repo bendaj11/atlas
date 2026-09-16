@@ -1,7 +1,5 @@
-import {
-  anArtifact,
-  anAppArtifactVersion,
-} from '../../../../types/app.testkit';
+import { anArtifact } from '../../../../types/artifact.testkit';
+import { anAppArtifactVersion } from '../../../../types/artifact-version.testkit';
 import { ArtifactOverrideToggleDriver } from './ArtifactOverrideToggle.driver';
 
 describe('ArtifactOverrideToggle', () => {

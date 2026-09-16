@@ -2,9 +2,9 @@ import { faker } from '@faker-js/faker';
 import {
   aHostArtifactVersion,
   anAppArtifactVersion,
-  anArtifact,
   aVersionOf,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact-version.testkit';
+import { anArtifact } from '../../../types/artifact.testkit';
 import { ArtifactVersionUtilsDriver } from './artifact-version-utils.driver';
 
 const DEPLOYED = anAppArtifactVersion({

@@ -1,9 +1,8 @@
 import { jest } from '@jest/globals';
-import type {
-  ArtifactVersion,
-  AtlasHostData as HostData,
-} from '../../../types/contracts';
-import { aHostData, aHostArtifactVersion } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import { aHostData } from '../../../types/host-data.testkit';
+import { aHostArtifactVersion } from '../../../types/artifact-version.testkit';
 import type { ArtifactRegistry } from '../artifact-registry/artifact-registry';
 import type * as ArtifactRegistryModule from '../artifact-registry/artifact-registry';
 import type * as HostCatalogModule from '../host-catalog/host-catalog';

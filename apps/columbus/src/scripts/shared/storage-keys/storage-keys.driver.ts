@@ -1,4 +1,4 @@
-import type { Scope } from '../../../types/app';
+import type { Scope } from '../../../types/columbus-state';
 import {
   disabledLocalAppsKey,
   disabledOverridesKey,

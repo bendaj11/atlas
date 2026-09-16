@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type {
   AtlasManifestDescriptor,
   AtlasPublishedArtifactManifest,
@@ -7,37 +5,40 @@ import type {
 } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
 import { cliError } from '../../cli/cli-error/cli-error.js';
-import { sha256Digest } from '../../shared/digest/digest.js';
+import { withExponentialRetry } from '../../cli/retry/retry.js';
+import type { AtlasBuildResult } from '../../build/service/build.service.js';
+import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
+import { pruneUnreferencedPreviewGenerations } from '../preview-pruning/preview-pruning.js';
 import {
-  isSecureOrLoopbackUrl,
-  trimTrailingSlash,
-} from '../../shared/url/url.js';
-import {
-  IMMUTABLE_CACHE_CONTROL,
-  MUTABLE_CACHE_CONTROL,
-} from '../publication-metadata/publication-metadata.js';
+  publicationFiles,
+  publicationIdentity,
+  uploadAndVerify,
+  type PublicationFiles,
+  type PublicationProgressReporter,
+} from '../publication-files/publication-files.js';
 import {
   verifyDeliveryWhileHeld,
   withPublicationLease,
 } from '../publication-lease/publication-lease.js';
-import { withExponentialRetry } from '../../cli/retry/retry.js';
-import type { AtlasBuildResult } from '../../build/service/build.service.js';
 import {
   createPublicationStorage,
   type AtlasPublicationLease,
-  type AtlasPublicationObjectMetadata,
   type AtlasPublicationStorage,
 } from '../publication-storage/publication-storage.js';
-import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import { resolvePullRequestStatus } from '../pull-request/pull-request.js';
+import {
+  assertExpectedRegistryRevision,
+  assertPublicRegistryConfigured,
+  readRegistry,
+  readRegistryState,
+  REGISTRY_PATH,
+  verifyPublicRegistry,
+  writeRegistry,
+} from '../registry-io/registry-io.js';
 import type { AtlasRegistryConfig } from '../registry-config.js';
 import {
-  assertStaticRegistry,
-  canonicalJson,
   descriptorFor,
-  manifestBytes,
   publishArtifact,
-  registryRevision,
   removePreview,
   resolveRegistryArtifact,
 } from '../static-registry/static-registry.js';
@@ -59,40 +60,7 @@ export type {
   AtlasPublicationStorage,
   S3Options,
 } from '../publication-storage/publication-storage.js';
-
-interface PublicationFile {
-  path: string;
-  bytes: Uint8Array;
-  metadata: AtlasPublicationObjectMetadata;
-}
-
-interface PreparedPublication {
-  readonly build: AtlasBuildResult;
-  readonly immutable: PublicationFiles;
-  readonly config: AtlasRegistryConfig | undefined;
-}
-
-interface PublicationFiles {
-  readonly payloads: PublicationFile[];
-  readonly manifest: PublicationFile;
-}
-
-interface PreviewRemovalOptions {
-  readonly storage: AtlasPublicationStorage;
-  readonly artifactIdentifier: string;
-  readonly previewNumber: number;
-  readonly config: AtlasRegistryConfig | undefined;
-  readonly retryingAfterMutation: boolean;
-}
-
-interface PreviewPruneOptions {
-  readonly storage: AtlasPublicationStorage;
-  readonly previewStates: readonly AtlasArtifactPreviewState[];
-  readonly config: AtlasRegistryConfig | undefined;
-  readonly retryingAfterMutation: boolean;
-  readonly committedRemovals: number;
-  readonly onRegistryWritten: (removed: number) => void;
-}
+export { readRegistry, readRegistryState } from '../registry-io/registry-io.js';
 
 export interface AtlasPublishResult {
   uploaded: string[];
@@ -117,7 +85,39 @@ export interface AtlasProjectBuilder {
   publication(projectName: string): Promise<AtlasBuildResult>;
 }
 
-export type AtlasPublishProgressReporter = (message: string) => void;
+export type AtlasPublishProgressReporter = PublicationProgressReporter;
+
+interface PreparedPublication {
+  readonly build: AtlasBuildResult;
+  readonly immutable: PublicationFiles;
+  readonly config: AtlasRegistryConfig | undefined;
+}
+
+interface CommitOptions {
+  readonly storage: AtlasPublicationStorage;
+  readonly lease: AtlasPublicationLease;
+  readonly manifest: AtlasPublishedArtifactManifest;
+  readonly descriptor: AtlasManifestDescriptor;
+  readonly immutable: PublicationFiles;
+  readonly config: AtlasRegistryConfig | undefined;
+}
+
+interface PreviewRemovalOptions {
+  readonly storage: AtlasPublicationStorage;
+  readonly artifactIdentifier: string;
+  readonly previewNumber: number;
+  readonly config: AtlasRegistryConfig | undefined;
+  readonly retryingAfterMutation: boolean;
+}
+
+interface PreviewPruneOptions {
+  readonly storage: AtlasPublicationStorage;
+  readonly previewStates: readonly AtlasArtifactPreviewState[];
+  readonly config: AtlasRegistryConfig | undefined;
+  readonly retryingAfterMutation: boolean;
+  readonly committedRemovals: number;
+  readonly onRegistryWritten: (removed: number) => void;
+}
 
 export class AtlasPublishService {
   constructor(
@@ -153,75 +153,6 @@ export class AtlasPublishService {
     );
   }
 
-  private async publishPrepared({
-    build,
-    immutable,
-    config,
-  }: PreparedPublication): Promise<AtlasPublishResult> {
-    const descriptor = descriptorFor(
-      immutable.manifest.path,
-      immutable.manifest.bytes,
-    );
-    const storage = await createPublicationStorage(config?.storage, this.args);
-    if (this.args.hasFlag('dry-run')) {
-      this.reportProgress('Reading registry.json for dry-run validation...');
-      const current = await readRegistry(storage);
-      assertExpectedRegistryRevision(this.args, current);
-      const mutation = publishArtifact(current, build.manifest, descriptor);
-      return {
-        uploaded: [
-          ...immutable.payloads.map(({ path }) => path),
-          descriptor.path,
-          'registry.json',
-        ],
-        dryRun: true,
-        manifest: descriptor,
-        registryRevision: mutation.registryRevision,
-      };
-    }
-    if (build.manifest.preview) {
-      await createAndVerify(
-        storage,
-        [...immutable.payloads, immutable.manifest],
-        undefined,
-        this.reportProgress,
-      );
-      this.reportProgress('Waiting to acquire publication lock...');
-      return withPublicationLease(storage, async (lease) => {
-        await assertPreviewIsCurrent(build.manifest, config);
-        return this.commitPublication(
-          storage,
-          lease,
-          build.manifest,
-          descriptor,
-          immutable,
-          config,
-        );
-      });
-    }
-    this.reportProgress('Waiting to acquire publication lock...');
-    return withPublicationLease(storage, async (lease) => {
-      this.reportProgress('Checking current registry revision...');
-      const current = await readRegistry(storage);
-      assertExpectedRegistryRevision(this.args, current);
-      publishArtifact(current, build.manifest, descriptor);
-      await createAndVerify(
-        storage,
-        [...immutable.payloads, immutable.manifest],
-        lease,
-        this.reportProgress,
-      );
-      return this.commitPublication(
-        storage,
-        lease,
-        build.manifest,
-        descriptor,
-        immutable,
-        config,
-      );
-    });
-  }
-
   async removePreview(
     artifactIdentifier: string,
     previewNumber: number,
@@ -229,6 +160,7 @@ export class AtlasPublishService {
   ): Promise<AtlasPreviewRemovalResult> {
     const storage = await createPublicationStorage(config?.storage, this.args);
     let retryingAfterMutation = false;
+
     return withExponentialRetry(
       () =>
         this.removePreviewOnce({
@@ -246,51 +178,6 @@ export class AtlasPublishService {
     );
   }
 
-  private async removePreviewOnce({
-    storage,
-    artifactIdentifier,
-    previewNumber,
-    config,
-    retryingAfterMutation,
-  }: PreviewRemovalOptions): Promise<AtlasPreviewRemovalResult> {
-    return withPublicationLease(storage, async (lease) => {
-      const state = await readRegistryState(storage);
-      const current = state.registry;
-      if (!current) throw new Error('Atlas registry.json does not exist.');
-      const { artifact } = resolveRegistryArtifact(current, artifactIdentifier);
-      const mutation = removePreview(current, artifact.id, previewNumber);
-      if (!mutation.changed) {
-        if (retryingAfterMutation || storage.verifyDelivery) {
-          await config?.invalidate?.(['registry.json']);
-          await verifyDeliveryWhileHeld({
-            storage,
-            lease,
-            paths: ['registry.json'],
-          });
-        }
-        return {
-          removed: retryingAfterMutation,
-          registryRevision: mutation.registryRevision,
-        };
-      }
-      assertExpectedRegistryRevision(this.args, current);
-      await writeRegistry(
-        storage,
-        lease,
-        mutation.registry,
-        state.versionToken,
-      );
-      await config?.invalidate?.(['registry.json']);
-      await verifyDeliveryWhileHeld({
-        storage,
-        lease,
-        paths: ['registry.json'],
-      });
-
-      return { removed: true, registryRevision: mutation.registryRevision };
-    });
-  }
-
   async prunePreviews(
     previewStates: readonly AtlasArtifactPreviewState[],
     config?: AtlasRegistryConfig,
@@ -298,6 +185,7 @@ export class AtlasPublishService {
     const storage = await createPublicationStorage(config?.storage, this.args);
     let retryingAfterMutation = false;
     let committedRemovals = 0;
+
     return withExponentialRetry(
       () =>
         this.prunePreviewsOnce({
@@ -318,6 +206,171 @@ export class AtlasPublishService {
     );
   }
 
+  private async publishPrepared({
+    build,
+    immutable,
+    config,
+  }: PreparedPublication): Promise<AtlasPublishResult> {
+    const descriptor = descriptorFor(
+      immutable.manifest.path,
+      immutable.manifest.bytes,
+    );
+    const storage = await createPublicationStorage(config?.storage, this.args);
+    const files = [...immutable.payloads, immutable.manifest];
+    if (this.args.hasFlag('dry-run')) {
+      this.reportProgress('Reading registry.json for dry-run validation...');
+      const current = await readRegistry(storage);
+      assertExpectedRegistryRevision(this.args, current);
+      const mutation = publishArtifact(current, build.manifest, descriptor);
+
+      return {
+        uploaded: [...files.map(({ path }) => path), REGISTRY_PATH],
+        dryRun: true,
+        manifest: descriptor,
+        registryRevision: mutation.registryRevision,
+      };
+    }
+    if (build.manifest.preview) {
+      await uploadAndVerify({
+        storage,
+        files,
+        reportProgress: this.reportProgress,
+      });
+      this.reportProgress('Waiting to acquire publication lock...');
+
+      return withPublicationLease(storage, async (lease) => {
+        await assertPreviewIsCurrent(build.manifest, config);
+
+        return this.commitPublication({
+          storage,
+          lease,
+          manifest: build.manifest,
+          descriptor,
+          immutable,
+          config,
+        });
+      });
+    }
+    this.reportProgress('Waiting to acquire publication lock...');
+
+    return withPublicationLease(storage, async (lease) => {
+      this.reportProgress('Checking current registry revision...');
+      const current = await readRegistry(storage);
+      assertExpectedRegistryRevision(this.args, current);
+      publishArtifact(current, build.manifest, descriptor);
+      await uploadAndVerify({
+        storage,
+        files,
+        lease,
+        reportProgress: this.reportProgress,
+      });
+
+      return this.commitPublication({
+        storage,
+        lease,
+        manifest: build.manifest,
+        descriptor,
+        immutable,
+        config,
+      });
+    });
+  }
+
+  private async commitPublication({
+    storage,
+    lease,
+    manifest,
+    descriptor,
+    immutable,
+    config,
+  }: CommitOptions): Promise<AtlasPublishResult> {
+    await lease.assertHeld();
+    this.reportProgress('Reading latest registry.json...');
+    const state = await readRegistryState(storage);
+    assertExpectedRegistryRevision(this.args, state.registry);
+    const mutation = publishArtifact(state.registry, manifest, descriptor);
+    const artifactPaths = [
+      ...immutable.payloads.map(({ path }) => path),
+      immutable.manifest.path,
+    ];
+    if (storage.verifyDelivery) {
+      await config?.invalidate?.(artifactPaths);
+      await verifyDeliveryWhileHeld({ storage, lease, paths: artifactPaths });
+    }
+    if (mutation.changed) {
+      this.reportProgress('Updating registry.json and configured caches...');
+      await writeRegistry({
+        storage,
+        lease,
+        registry: mutation.registry,
+        versionToken: state.versionToken,
+      });
+    }
+    if (storage.verifyDelivery) {
+      await config?.invalidate?.([REGISTRY_PATH]);
+      await verifyDeliveryWhileHeld({ storage, lease, paths: [REGISTRY_PATH] });
+    } else if (mutation.changed) {
+      await config?.invalidate?.([REGISTRY_PATH]);
+    }
+    this.reportProgress('Verifying published registry...');
+    await verifyPublicRegistry({
+      args: this.args,
+      config,
+      expected: mutation.registry,
+    });
+
+    return {
+      uploaded: [
+        ...artifactPaths,
+        ...(mutation.changed ? [REGISTRY_PATH] : []),
+      ],
+      dryRun: false,
+      manifest: descriptor,
+      registryRevision: mutation.registryRevision,
+    };
+  }
+
+  private async removePreviewOnce({
+    storage,
+    artifactIdentifier,
+    previewNumber,
+    config,
+    retryingAfterMutation,
+  }: PreviewRemovalOptions): Promise<AtlasPreviewRemovalResult> {
+    return withPublicationLease(storage, async (lease) => {
+      const state = await readRegistryState(storage);
+      const current = requireRegistry(state.registry);
+      const { artifact } = resolveRegistryArtifact(current, artifactIdentifier);
+      const mutation = removePreview(current, artifact.id, previewNumber);
+      if (!mutation.changed) {
+        if (retryingAfterMutation || storage.verifyDelivery) {
+          await config?.invalidate?.([REGISTRY_PATH]);
+          await verifyDeliveryWhileHeld({
+            storage,
+            lease,
+            paths: [REGISTRY_PATH],
+          });
+        }
+
+        return {
+          removed: retryingAfterMutation,
+          registryRevision: mutation.registryRevision,
+        };
+      }
+      assertExpectedRegistryRevision(this.args, current);
+      await writeRegistry({
+        storage,
+        lease,
+        registry: mutation.registry,
+        versionToken: state.versionToken,
+      });
+      await config?.invalidate?.([REGISTRY_PATH]);
+      await verifyDeliveryWhileHeld({ storage, lease, paths: [REGISTRY_PATH] });
+
+      return { removed: true, registryRevision: mutation.registryRevision };
+    });
+  }
+
   private async prunePreviewsOnce({
     storage,
     previewStates,
@@ -328,8 +381,7 @@ export class AtlasPublishService {
   }: PreviewPruneOptions): Promise<AtlasPreviewPruneResult> {
     return withPublicationLease(storage, async (lease) => {
       const state = await readRegistryState(storage);
-      const current = state.registry;
-      if (!current) throw new Error('Atlas registry.json does not exist.');
+      const current = requireRegistry(state.registry);
       assertExpectedRegistryRevision(this.args, current);
       let registry = current;
       let checked = 0;
@@ -349,23 +401,25 @@ export class AtlasPublishService {
         }
       }
       if (removed) {
-        await writeRegistry(storage, lease, registry, state.versionToken);
+        await writeRegistry({
+          storage,
+          lease,
+          registry,
+          versionToken: state.versionToken,
+        });
         onRegistryWritten(removed);
-        await config?.invalidate?.(['registry.json']);
+        await config?.invalidate?.([REGISTRY_PATH]);
       } else if (retryingAfterMutation || storage.verifyDelivery) {
-        await config?.invalidate?.(['registry.json']);
+        await config?.invalidate?.([REGISTRY_PATH]);
       }
-      await verifyDeliveryWhileHeld({
-        storage,
-        lease,
-        paths: ['registry.json'],
-      });
+      await verifyDeliveryWhileHeld({ storage, lease, paths: [REGISTRY_PATH] });
       const removedGenerations = await pruneUnreferencedPreviewGenerations({
         storage,
         lease,
         registry,
         previewStates,
       });
+
       return {
         checked,
         removed: removed || committedRemovals,
@@ -374,291 +428,14 @@ export class AtlasPublishService {
       };
     });
   }
-
-  private async commitPublication(
-    storage: AtlasPublicationStorage,
-    lease: AtlasPublicationLease,
-    manifest: AtlasPublishedArtifactManifest,
-    descriptor: AtlasManifestDescriptor,
-    immutable: PublicationFiles,
-    config: AtlasRegistryConfig | undefined,
-  ): Promise<AtlasPublishResult> {
-    await lease.assertHeld();
-    this.reportProgress('Reading latest registry.json...');
-    const state = await readRegistryState(storage);
-    const current = state.registry;
-    assertExpectedRegistryRevision(this.args, current);
-    const mutation = publishArtifact(current, manifest, descriptor);
-    if (storage.verifyDelivery) {
-      const artifactPaths = [
-        ...immutable.payloads.map(({ path }) => path),
-        immutable.manifest.path,
-      ];
-      await config?.invalidate?.(artifactPaths);
-      await verifyDeliveryWhileHeld({ storage, lease, paths: artifactPaths });
-    }
-    if (mutation.changed) {
-      this.reportProgress('Updating registry.json and configured caches...');
-      await writeRegistry(
-        storage,
-        lease,
-        mutation.registry,
-        state.versionToken,
-      );
-    }
-    if (storage.verifyDelivery) {
-      await config?.invalidate?.(['registry.json']);
-      await verifyDeliveryWhileHeld({
-        storage,
-        lease,
-        paths: ['registry.json'],
-      });
-    } else if (mutation.changed) {
-      await config?.invalidate?.(['registry.json']);
-    }
-    this.reportProgress('Verifying published registry...');
-    await verifyPublicRegistry(this.args, config, mutation.registry);
-    return {
-      uploaded: [
-        ...immutable.payloads.map(({ path }) => path),
-        immutable.manifest.path,
-        ...(mutation.changed ? ['registry.json'] : []),
-      ],
-      dryRun: false,
-      manifest: descriptor,
-      registryRevision: mutation.registryRevision,
-    };
-  }
 }
 
-interface PreviewGenerationPruneOptions {
-  readonly storage: AtlasPublicationStorage;
-  readonly lease: AtlasPublicationLease;
-  readonly registry: AtlasStaticRegistry;
-  readonly previewStates: readonly AtlasArtifactPreviewState[];
-  readonly now?: number;
-}
+function requireRegistry(
+  registry: AtlasStaticRegistry | undefined,
+): AtlasStaticRegistry {
+  if (!registry) throw new Error('Atlas registry.json does not exist.');
 
-async function pruneUnreferencedPreviewGenerations({
-  storage,
-  lease,
-  registry,
-  previewStates,
-  now = Date.now(),
-}: PreviewGenerationPruneOptions): Promise<number> {
-  const graceMilliseconds = 24 * 60 * 60 * 1000;
-  const referenced = new Set(
-    [...Object.values(registry.apps), ...Object.values(registry.hosts)]
-      .flatMap((artifact) => Object.values(artifact.previews))
-      .map(({ path }) => path.slice(0, -'/manifest.json'.length)),
-  );
-  const artifactScopes = previewStates.map(({ kind, id }) => {
-    const collection = kind === 'app' ? 'apps' : 'hosts';
-    return { prefix: `${collection}/${id}/previews/` };
-  });
-  let removed = 0;
-  for (const { prefix } of artifactScopes) {
-    const objects = await storage.list(prefix);
-    const generations = new Map<string, typeof objects>();
-    for (const object of objects) {
-      const suffix = object.path.slice(prefix.length).split('/');
-      if (suffix.length < 3) continue;
-      const generation = `${prefix}${suffix[0]}/${suffix[1]}`;
-      const entries = generations.get(generation) ?? [];
-      entries.push(object);
-      generations.set(generation, entries);
-    }
-    for (const [generation, entries] of generations) {
-      if (referenced.has(generation)) continue;
-      const modified = entries
-        .map(({ lastModified }) =>
-          lastModified ? Date.parse(lastModified) : Number.NaN,
-        )
-        .filter(Number.isFinite);
-      if (!modified.length || Math.max(...modified) > now - graceMilliseconds)
-        continue;
-      for (const { path } of entries) {
-        await lease.assertHeld();
-        await storage.remove(path);
-      }
-      removed += 1;
-    }
-  }
-  return removed;
-}
-
-async function publicationFiles(
-  build: AtlasBuildResult,
-): Promise<PublicationFiles> {
-  const bytes = manifestBytes(build.manifest);
-  const prefix = artifactPrefix(build.manifest, bytes);
-  const payloads = await Promise.all(
-    build.manifest.files.map(async (file) => {
-      const sourceBytes = new Uint8Array(
-        await readFile(join(build.sourceDirectory, file.path)),
-      );
-      assertPayload(file.path, sourceBytes, file.digest, file.size);
-      return {
-        path: `${prefix}/${file.path}`,
-        bytes: sourceBytes,
-        metadata: {
-          cacheControl: file.cacheControl,
-          contentType: file.mediaType,
-        },
-      };
-    }),
-  );
-  return {
-    payloads,
-    manifest: {
-      path: `${prefix}/manifest.json`,
-      bytes,
-      metadata: {
-        cacheControl: IMMUTABLE_CACHE_CONTROL,
-        contentType: 'application/json',
-      },
-    },
-  };
-}
-
-function artifactPrefix(
-  manifest: AtlasPublishedArtifactManifest,
-  bytes: Uint8Array,
-): string {
-  const collection = manifest.kind === 'app-artifact' ? 'apps' : 'hosts';
-  if (manifest.release)
-    return `${collection}/${manifest.id}/${manifest.release.version}`;
-  const digest = sha256Digest(bytes).slice('sha256:'.length);
-
-  return `${collection}/${manifest.id}/previews/${manifest.preview!.number}/${digest}`;
-}
-
-async function createAndVerify(
-  storage: AtlasPublicationStorage,
-  files: readonly PublicationFile[],
-  lease?: AtlasPublicationLease,
-  reportProgress: AtlasPublishProgressReporter = () => undefined,
-): Promise<void> {
-  reportProgress(
-    `Uploading ${files.length} immutable file(s) to publication storage...`,
-  );
-  for (const file of files) {
-    await lease?.assertHeld();
-    await createImmutable(storage, file);
-  }
-  reportProgress(
-    `Verifying ${files.length} uploaded immutable file(s) and metadata...`,
-  );
-  for (const file of files) {
-    await lease?.assertHeld();
-    const bytes = await storage.read(file.path);
-    const metadata = await storage.inspect(file.path);
-    if (!bytes || !metadata) {
-      throw new Error(`Published object ${file.path} is missing.`);
-    }
-    assertPayload(
-      file.path,
-      bytes,
-      sha256Digest(file.bytes),
-      file.bytes.byteLength,
-    );
-    assertMetadata(file.path, metadata, file.metadata);
-  }
-}
-
-function publicationIdentity(manifest: AtlasPublishedArtifactManifest): string {
-  const artifact = manifest.kind === 'app-artifact' ? 'app' : 'host';
-  const version = manifest.release
-    ? `release ${manifest.release.version}`
-    : `preview #${manifest.preview!.number}`;
-  return `${artifact} ${manifest.name} (${manifest.id}), ${version}`;
-}
-
-async function createImmutable(
-  storage: AtlasPublicationStorage,
-  file: PublicationFile,
-): Promise<void> {
-  try {
-    await storage.create(file.path, file.bytes, file.metadata);
-  } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'publicationOutcomeUnknown' in error &&
-      error.publicationOutcomeUnknown === true
-    )
-      throw error;
-
-    const existing = await storage.read(file.path);
-    const metadata = await storage.inspect(file.path);
-    if (
-      existing &&
-      metadata &&
-      sha256Digest(existing) === sha256Digest(file.bytes)
-    ) {
-      assertMetadata(file.path, metadata, file.metadata);
-      return;
-    }
-    throw error;
-  }
-}
-
-async function writeRegistry(
-  storage: AtlasPublicationStorage,
-  lease: AtlasPublicationLease,
-  registry: AtlasStaticRegistry,
-  versionToken?: string,
-): Promise<void> {
-  await lease.assertHeld();
-  const bytes = new TextEncoder().encode(`${canonicalJson(registry)}\n`);
-  await storage.replace(
-    'registry.json',
-    bytes,
-    {
-      cacheControl: MUTABLE_CACHE_CONTROL,
-      contentType: 'application/json',
-    },
-    versionToken ? { versionToken } : { createOnly: true },
-  );
-  const stored = await storage.read('registry.json');
-  if (!stored || sha256Digest(stored) !== sha256Digest(bytes)) {
-    throw new Error('Atlas could not verify registry.json after write.');
-  }
-}
-
-export async function readRegistry(
-  storage: AtlasPublicationStorage,
-): Promise<AtlasStaticRegistry | undefined> {
-  const bytes = await storage.read('registry.json');
-  if (!bytes) return undefined;
-  let value: unknown;
-  try {
-    value = JSON.parse(new TextDecoder().decode(bytes));
-  } catch (error) {
-    throw new Error('Atlas registry.json is not valid JSON.', { cause: error });
-  }
-  assertStaticRegistry(value);
-  return value;
-}
-
-export async function readRegistryState(
-  storage: AtlasPublicationStorage,
-): Promise<{
-  registry: AtlasStaticRegistry | undefined;
-  versionToken?: string;
-}> {
-  const before = await storage.inspect('registry.json');
-  const registry = await readRegistry(storage);
-  const after = await storage.inspect('registry.json');
-  if (before?.versionToken !== after?.versionToken) {
-    throw new Error(
-      'Atlas registry.json changed while it was being read. Retry the operation.',
-    );
-  }
-  return {
-    registry,
-    ...(after?.versionToken ? { versionToken: after.versionToken } : {}),
-  };
+  return registry;
 }
 
 async function assertPreviewIsCurrent(
@@ -690,97 +467,5 @@ async function assertPreviewIsCurrent(
       'Let the CI job for the current head publish; this build is superseded.',
       { code: 'ATLAS_PREVIEW_STALE' },
     );
-  }
-}
-
-function assertExpectedRegistryRevision(
-  args: CliArguments,
-  current: AtlasStaticRegistry | undefined,
-): void {
-  const expected = args.flag('expected-registry-revision');
-  if (expected && expected !== registryRevision(current)) {
-    throw new Error(
-      `Registry revision conflict: expected ${expected}, found ${registryRevision(current)}.`,
-    );
-  }
-}
-
-async function verifyPublicRegistry(
-  args: CliArguments,
-  config: AtlasRegistryConfig | undefined,
-  expected: AtlasStaticRegistry,
-): Promise<void> {
-  if (config?.verifyRegistry) {
-    await config.verifyRegistry(expected);
-    return;
-  }
-  const root = publicRegistryRoot(args);
-  const response = await fetch(new URL('registry.json', `${root}/`), {
-    cache: 'no-store',
-    redirect: 'manual',
-  });
-  if (!response.ok || (response.status >= 300 && response.status < 400)) {
-    throw new Error(
-      `Atlas could not verify public registry.json: HTTP ${response.status}.`,
-    );
-  }
-  const value: unknown = await response.json();
-  assertStaticRegistry(value);
-  if (value.revision !== expected.revision) {
-    throw new Error(
-      `Public registry revision ${value.revision} does not match published revision ${expected.revision}.`,
-    );
-  }
-}
-
-function assertPublicRegistryConfigured(
-  args: CliArguments,
-  config: AtlasRegistryConfig | undefined,
-): void {
-  if (!config?.verifyRegistry) publicRegistryRoot(args);
-}
-
-function publicRegistryRoot(args: CliArguments): string {
-  const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
-  if (!value || value === 'true') {
-    throw new Error('--registry-url or ATLAS_REGISTRY_URL is required.');
-  }
-  const url = new URL(value);
-  if (!isSecureOrLoopbackUrl(url)) {
-    throw new Error(
-      'Atlas public registry URL must use HTTPS outside loopback.',
-    );
-  }
-  if (url.pathname.endsWith('/registry.json')) {
-    url.pathname = url.pathname.slice(0, -'registry.json'.length);
-  }
-
-  return trimTrailingSlash(url.href);
-}
-
-function assertPayload(
-  path: string,
-  bytes: Uint8Array,
-  expectedDigest: string,
-  expectedSize: number,
-): void {
-  if (
-    bytes.byteLength !== expectedSize ||
-    sha256Digest(bytes) !== expectedDigest
-  ) {
-    throw new Error(`Atlas payload ${path} changed after manifest generation.`);
-  }
-}
-
-function assertMetadata(
-  path: string,
-  actual: AtlasPublicationObjectMetadata,
-  expected: AtlasPublicationObjectMetadata,
-): void {
-  if (
-    actual.cacheControl !== expected.cacheControl ||
-    actual.contentType !== expected.contentType
-  ) {
-    throw new Error(`Atlas object ${path} has unexpected HTTP metadata.`);
   }
 }

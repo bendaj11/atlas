@@ -1,8 +1,6 @@
-import type {
-  ArtifactVersion,
-  AtlasHostData as HostData,
-} from '../../types/contracts';
-import { aHostData } from '../../types/app.testkit';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import { aHostData } from '../../types/host-data.testkit';
 import {
   extractEnabledArtifactVersionOverrides,
   includeOverrideAppsInCatalog,

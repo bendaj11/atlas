@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Artifact } from '../../../../types/app';
-import { anArtifact } from '../../../../types/app.testkit';
+import type { Artifact } from '../../../../types/artifact';
+import { anArtifact } from '../../../../types/artifact.testkit';
 import { ArtifactName } from './ArtifactName';
 
 export class ArtifactNameDriver {

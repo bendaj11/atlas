@@ -1,5 +1,5 @@
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
-import type { ArtifactVersion } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 
 export interface ManifestDescriptor {
   path: string;

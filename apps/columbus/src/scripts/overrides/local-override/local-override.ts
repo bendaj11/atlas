@@ -1,4 +1,4 @@
-import type { ArtifactVersion } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 import { isRecord } from '../../shared/messages/messages';
 
 interface FederationMetadata {

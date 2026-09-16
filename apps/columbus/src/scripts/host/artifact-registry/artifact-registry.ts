@@ -1,8 +1,6 @@
-import {
-  type ArtifactVersion,
-  type AtlasHostData as HostData,
-  getArtifactKey,
-} from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { messageFromError } from '../../shared/errors/errors';
 import { isRecord } from '../../shared/messages/messages';

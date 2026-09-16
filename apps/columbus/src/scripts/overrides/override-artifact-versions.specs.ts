@@ -1,8 +1,8 @@
+import { aHostData } from '../../types/host-data.testkit';
 import {
-  aHostData,
   aHostArtifactVersion,
   anAppArtifactVersion,
-} from '../../types/app.testkit';
+} from '../../types/artifact-version.testkit';
 import { OverrideArtifactVersionsDriver } from './override-artifact-versions.driver';
 
 const DOCUMENT = {

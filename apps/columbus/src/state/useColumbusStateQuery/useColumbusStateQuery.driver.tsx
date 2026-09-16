@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { ColumbusState } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
 import type { loadColumbusState as loadColumbusStateType } from '../columbus-state/columbus-state';
 import { createQueryClient } from '../query-client/query-client';
 

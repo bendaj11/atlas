@@ -10,7 +10,7 @@ import {
   versionLabel,
 } from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 import { versionKey } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
-import type { ArtifactVersion } from '../../../../types/app';
+import type { ArtifactVersion } from '../../../../types/artifact-version';
 
 interface VersionDropdownProps {
   dataHook: string;

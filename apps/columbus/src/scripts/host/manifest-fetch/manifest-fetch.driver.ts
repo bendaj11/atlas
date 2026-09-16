@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import type { ArtifactVersion } from '../../../types/contracts';
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { aPublishedArtifact } from '../registry.testkit';
 import {
   fetchVerifiedManifest,

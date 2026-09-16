@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type { ColumbusState, HostStatus } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
+import type { HostStatus } from '../columbus-state/columbus-state';
 import type { useColumbusStateQuery as useColumbusStateQueryType } from '../useColumbusStateQuery/useColumbusStateQuery';
 import type { hostStatusOf as hostStatusOfType } from '../columbus-state/columbus-state';
 

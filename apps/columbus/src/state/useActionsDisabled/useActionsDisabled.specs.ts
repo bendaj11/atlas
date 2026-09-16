@@ -1,4 +1,5 @@
-import type { HostStatus, OverrideStatus } from '../../types/app';
+import type { HostStatus } from '../columbus-state/columbus-state';
+import type { OverrideStatus } from '../overrides/overrides';
 import { ActionsDisabledDriver } from './useActionsDisabled.driver';
 
 const NOT_LOADED_HOST_STATUSES: HostStatus[] = ['LOADING', 'ERROR'];

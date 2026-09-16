@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { anAppArtifactVersion, aColumbusState } from '../../types/app.testkit';
+import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { aColumbusState } from '../../types/columbus-state.testkit';
 import { OverridesDriver } from './useOverrides.driver';
 
 describe('useOverrides', () => {

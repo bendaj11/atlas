@@ -1,7 +1,8 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type { ArtifactConfiguration, OverrideStatus } from '../../../types/app';
-import { anArtifactConfiguration } from '../../../types/app.testkit';
+import type { ArtifactConfiguration } from '../../../types/artifact';
+import type { OverrideStatus } from '../../../state/overrides/overrides';
+import { anArtifactConfiguration } from '../../../types/artifact.testkit';
 import type { useOverrides as useOverridesType } from '../../../state';
 import type { useSaveArtifactOverrideMutation as useSaveArtifactOverrideMutationType } from '../useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation';
 

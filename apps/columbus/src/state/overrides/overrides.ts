@@ -1,6 +1,8 @@
 import { failureMessage } from '../../scripts/shared/errors/errors';
 import { persistColumbusState } from '../../scripts/overrides/persist-overrides';
-import type { ColumbusState, OverrideStatus } from '../../types/app';
+import type { ColumbusState } from '../../types/columbus-state';
+
+export type OverrideStatus = 'IDLE' | 'APPLYING' | 'ERROR';
 
 export async function persistOverrides(
   columbusState: ColumbusState,

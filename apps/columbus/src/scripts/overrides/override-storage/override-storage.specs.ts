@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { OverrideStorageDriver } from './override-storage.driver';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';

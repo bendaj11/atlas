@@ -8,7 +8,7 @@ import { loadArtifactVersionFromHostTab } from '../../../scripts/host/host-tabs/
 import type {
   ArtifactConfiguration,
   OverrideSelection,
-} from '../../../types/app';
+} from '../../../types/artifact';
 
 export interface SaveArtifactOverrideMutationOptions {
   configuration: ArtifactConfiguration | undefined;

@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Artifact } from '../../../../types/app';
-import { anArtifact } from '../../../../types/app.testkit';
+import type { Artifact } from '../../../../types/artifact';
+import { anArtifact } from '../../../../types/artifact.testkit';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,

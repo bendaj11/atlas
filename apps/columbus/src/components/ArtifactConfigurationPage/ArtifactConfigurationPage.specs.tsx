@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppArtifactVersion } from '../../types/app.testkit';
+import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
 import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
 import { ArtifactConfigurationPageDriver } from './ArtifactConfigurationPage.driver';
 

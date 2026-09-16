@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
-import type { OverrideType } from '../../../types/app';
-import { anAppArtifactVersion } from '../../../types/app.testkit';
+import type { OverrideType } from '../../../types/artifact';
+import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
 import { OverridesSelectionFormDriver } from './OverridesSelectionForm.driver';
 
 const OVERRIDE_TYPES: OverrideType[] = ['custom', 'production', 'pr'];

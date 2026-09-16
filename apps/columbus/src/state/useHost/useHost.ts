@@ -1,5 +1,5 @@
-import type { AtlasHostData as HostData } from '../../types/contracts';
-import type { HostStatus } from '../../types/app';
+import type { HostData } from '../../types/host-data';
+import type { HostStatus } from '../columbus-state/columbus-state';
 import { hostStatusOf } from '../columbus-state/columbus-state';
 import { useColumbusStateQuery } from '../useColumbusStateQuery/useColumbusStateQuery';
 

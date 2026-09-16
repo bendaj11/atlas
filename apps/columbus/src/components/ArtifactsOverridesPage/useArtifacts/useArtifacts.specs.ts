@@ -1,7 +1,7 @@
 import {
   aHostArtifactVersion,
   anAppArtifactVersion,
-} from '../../../types/app.testkit';
+} from '../../../types/artifact-version.testkit';
 import { UseArtifactsDriver } from './useArtifacts.driver';
 
 describe('useArtifacts', () => {

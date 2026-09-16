@@ -1,4 +1,4 @@
-import type { AtlasHostData as HostData } from '../../types/contracts';
+import type { HostData } from '../../types/host-data';
 import { readHostData } from '../../scripts/host/host-data/host-data';
 import {
   readDisabledArtifactVersionOverrides,
@@ -10,7 +10,9 @@ import {
   extractEnabledArtifactVersionOverrides,
   includeOverrideAppsInCatalog,
 } from '../../scripts/overrides/override-artifact-versions';
-import type { ColumbusState, HostStatus, Scope } from '../../types/app';
+import type { ColumbusState, Scope } from '../../types/columbus-state';
+
+export type HostStatus = 'LOADING' | 'ERROR' | 'LOADED';
 
 export const COLUMBUS_STATE_QUERY_KEY = ['columbusState'] as const;
 

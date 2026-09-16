@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import type { ColumbusState } from '../../types/app';
-import { aColumbusState } from '../../types/app.testkit';
+import type { ColumbusState } from '../../types/columbus-state';
+import { aColumbusState } from '../../types/columbus-state.testkit';
 import type { reloadHostTab as reloadHostTabType } from '../host/host-tabs/host-tabs';
 import type { validateLocalOverride as validateLocalOverrideType } from './local-override/local-override';
 import type * as OverrideStorageModule from './override-storage/override-storage';

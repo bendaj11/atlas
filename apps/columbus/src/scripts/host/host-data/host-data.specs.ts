@@ -1,4 +1,4 @@
-import { aHostData } from '../../../types/app.testkit';
+import { aHostData } from '../../../types/host-data.testkit';
 import { HostDataDriver } from './host-data.driver';
 
 const PERSISTED = {
