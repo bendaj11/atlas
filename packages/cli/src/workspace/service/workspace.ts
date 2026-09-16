@@ -9,6 +9,7 @@ import {
 } from '../../cli/process/process.js';
 import type { AngularStylesheetFormat } from '@atlas/generators';
 import { exists, readJsonFile } from '../../shared/fs/fs.js';
+import { cliError } from '../../cli/cli-error/cli-error.js';
 
 export type AtlasWorkspaceKind = 'nx' | 'turbo' | 'workspace' | 'standalone';
 export type AtlasPackageManager = 'yarn' | 'pnpm' | 'npm';
@@ -318,11 +319,18 @@ async function findAtlasProject(
   const matches = await discoverProjects(root, name, root, 0);
   if (matches.length === 1) return matches[0]!;
   if (matches.length > 1)
-    throw new Error(
-      `Atlas found multiple projects named "${name}". Pass the project directory instead.`,
+    throw cliError(
+      `Atlas found multiple projects named "${name}".`,
+      'Pass the project directory instead of its name.',
+      { code: 'ATLAS_PROJECT_AMBIGUOUS' },
     );
-  throw new Error(
+  throw cliError(
     `Could not find Atlas project "${name}" from workspace ${root}.`,
+    [
+      'Pass the project package name, Nx project name, or directory.',
+      'Run `atlas generate` to create the project when it does not exist.',
+    ],
+    { code: 'ATLAS_PROJECT_NOT_FOUND' },
   );
 }
 

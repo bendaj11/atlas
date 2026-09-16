@@ -12,6 +12,7 @@ import {
   placementTargetsHost,
 } from '@atlas/schema';
 import { CliArguments } from '../cli/arguments.js';
+import { cliError } from '../cli/cli-error/cli-error.js';
 import { sha256Digest } from '../shared/digest/digest.js';
 import { isSecureOrLoopbackUrl, trimTrailingSlash } from '../shared/url/url.js';
 import { MUTABLE_CACHE_CONTROL } from '../publication/publication-metadata/publication-metadata.js';
@@ -189,8 +190,13 @@ async function selection(
           );
   const descriptor = version ? artifact.releases[version] : undefined;
   if (!version || !descriptor) {
-    throw new Error(
+    throw cliError(
       `Atlas selector "${selector}" is neither an exact release, latest, nor a source environment selection for "${identifier}".`,
+      [
+        `Pass --version <release> with a version published for "${identifier}".`,
+        'Pass --version latest or the name of a source environment that selects this artifact.',
+      ],
+      { code: 'ATLAS_VERSION_SELECTOR_INVALID' },
     );
   }
   return { kind: resolved.kind, id: artifact.id, version };
@@ -441,8 +447,9 @@ async function sourceBytes(
   const response = await fetch(new URL(path, `${locations.source}/`));
   if (response.status === 404) return undefined;
   if (!response.ok)
-    throw new Error(
-      `Atlas source returned HTTP ${response.status} for ${path}.`,
+    throw Object.assign(
+      new Error(`Atlas source returned HTTP ${response.status} for ${path}.`),
+      { status: response.status },
     );
   return new Uint8Array(await response.arrayBuffer());
 }

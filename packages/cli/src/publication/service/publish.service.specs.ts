@@ -178,12 +178,22 @@ describe('AtlasPublishService', () => {
     ]);
   });
 
-  it('should retry publication when registry verification is transiently unavailable', async () => {
-    driver.given.transientVerificationFailure();
+  describe('when registry verification is transiently unavailable', () => {
+    beforeEach(async () => {
+      driver.given.transientVerificationFailure();
 
-    await driver.when.publish();
+      await driver.when.publish();
+    });
 
-    expect(driver.get.publicationAttempts()).toBe(2);
+    it('should report the retry when publication completes', () => {
+      expect(driver.get.progress()).toContainEqual(
+        expect.stringMatching(/retrying attempt 2 in \d+ms/),
+      );
+    });
+
+    it('should build the project once when publication completes', () => {
+      expect(driver.get.publicationAttempts()).toBe(1);
+    });
   });
 
   it('should keep registry entries as descriptors when release is published', async () => {

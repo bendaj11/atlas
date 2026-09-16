@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { AtlasConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
+import { cliError } from '../../cli/cli-error/cli-error.js';
 import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
 import {
   DEFAULT_CONTROL_PORT,
@@ -41,8 +42,13 @@ export async function waitForRemoteEntry(
       setTimeout(resolve, REMOTE_POLL_INTERVAL_MS),
     );
   }
-  throw new Error(
+  throw cliError(
     `Framework dev server did not serve ${remoteEntryUrl} within ${REMOTE_START_TIMEOUT_MS / 1000} seconds.`,
+    [
+      'Check the framework server output above for build errors.',
+      'Pass --port when the framework server listens on another port.',
+    ],
+    { code: 'ATLAS_DEV_SERVER_TIMEOUT' },
   );
 }
 

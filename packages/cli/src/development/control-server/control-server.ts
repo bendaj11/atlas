@@ -19,6 +19,8 @@ import {
   LOCAL_HOST,
 } from '../http/http.js';
 import { CONTROL_RECONCILIATION_INTERVAL_MS } from '../constants.js';
+import { ui } from '../../cli/ui/ui.js';
+import { errorMessage } from '../../shared/errors/errors.js';
 import type {
   AtlasDevOverrideDocument,
   DevControlServer,
@@ -275,9 +277,29 @@ async function developmentSession(
           options.registryUrl,
           hostId,
           options.environment ?? 'production',
-        ).catch(() => undefined)
+        ).catch((error: unknown) => {
+          warnPublishedCatalogOnce(options.registryUrl!, hostId, error);
+
+          return undefined;
+        })
       : undefined;
+
   return session.devSession(hostId, publishedCatalog);
+}
+
+const warnedCatalogs = new Set<string>();
+
+function warnPublishedCatalogOnce(
+  registryUrl: string,
+  hostId: string,
+  error: unknown,
+): void {
+  const key = `${registryUrl}|${hostId}`;
+  if (warnedCatalogs.has(key)) return;
+  warnedCatalogs.add(key);
+  ui.warning(
+    `Published catalog for host "${hostId}" could not be loaded from ${registryUrl}; serving local overrides only. ${errorMessage(error)}`,
+  );
 }
 
 async function readPublishedCatalog(

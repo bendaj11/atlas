@@ -6,6 +6,7 @@ import type {
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
+import { cliError } from '../../cli/cli-error/cli-error.js';
 import { sha256Digest } from '../../shared/digest/digest.js';
 import {
   isSecureOrLoopbackUrl,
@@ -65,6 +66,17 @@ interface PublicationFile {
   metadata: AtlasPublicationObjectMetadata;
 }
 
+interface PreparedPublication {
+  readonly build: AtlasBuildResult;
+  readonly immutable: PublicationFiles;
+  readonly config: AtlasRegistryConfig | undefined;
+}
+
+interface PublicationFiles {
+  readonly payloads: PublicationFile[];
+  readonly manifest: PublicationFile;
+}
+
 interface PreviewRemovalOptions {
   readonly storage: AtlasPublicationStorage;
   readonly artifactIdentifier: string;
@@ -119,18 +131,6 @@ export class AtlasPublishService {
     projectName: string,
     config?: AtlasRegistryConfig,
   ): Promise<AtlasPublishResult> {
-    return withExponentialRetry(() => this.runOnce(projectName, config), {
-      onRetry: (attempt, delayMs) =>
-        this.reportProgress(
-          `Transient publication failure; retrying attempt ${attempt + 1} in ${delayMs}ms...`,
-        ),
-    });
-  }
-
-  private async runOnce(
-    projectName: string,
-    config?: AtlasRegistryConfig,
-  ): Promise<AtlasPublishResult> {
     if (!this.builds)
       throw new Error('Atlas publish requires a workspace project.');
     this.reportProgress(`Building ${projectName}...`);
@@ -140,11 +140,28 @@ export class AtlasPublishService {
     this.reportProgress(
       `Prepared ${publicationIdentity(build.manifest)}; ${immutable.payloads.length + 1} immutable file(s) ready.`,
     );
+    assertPublicRegistryConfigured(this.args, config);
+
+    return withExponentialRetry(
+      () => this.publishPrepared({ build, immutable, config }),
+      {
+        onRetry: (attempt, delayMs) =>
+          this.reportProgress(
+            `Transient publication failure; retrying attempt ${attempt + 1} in ${delayMs}ms...`,
+          ),
+      },
+    );
+  }
+
+  private async publishPrepared({
+    build,
+    immutable,
+    config,
+  }: PreparedPublication): Promise<AtlasPublishResult> {
     const descriptor = descriptorFor(
       immutable.manifest.path,
       immutable.manifest.bytes,
     );
-    assertPublicRegistryConfigured(this.args, config);
     const storage = await createPublicationStorage(config?.storage, this.args);
     if (this.args.hasFlag('dry-run')) {
       this.reportProgress('Reading registry.json for dry-run validation...');
@@ -363,7 +380,7 @@ export class AtlasPublishService {
     lease: AtlasPublicationLease,
     manifest: AtlasPublishedArtifactManifest,
     descriptor: AtlasManifestDescriptor,
-    immutable: Awaited<ReturnType<typeof publicationFiles>>,
+    immutable: PublicationFiles,
     config: AtlasRegistryConfig | undefined,
   ): Promise<AtlasPublishResult> {
     await lease.assertHeld();
@@ -470,10 +487,9 @@ async function pruneUnreferencedPreviewGenerations({
   return removed;
 }
 
-async function publicationFiles(build: AtlasBuildResult): Promise<{
-  payloads: PublicationFile[];
-  manifest: PublicationFile;
-}> {
+async function publicationFiles(
+  build: AtlasBuildResult,
+): Promise<PublicationFiles> {
   const bytes = manifestBytes(build.manifest);
   const prefix = artifactPrefix(build.manifest, bytes);
   const payloads = await Promise.all(
@@ -662,11 +678,17 @@ async function assertPreviewIsCurrent(
     config,
   );
   if (status.state !== 'open') {
-    throw new Error(`Preview #${manifest.preview.number} is ${status.state}.`);
+    throw cliError(
+      `Preview #${manifest.preview.number} is ${status.state}.`,
+      'Publish previews only from open pull requests; nothing to do for this job.',
+      { code: 'ATLAS_PREVIEW_CLOSED' },
+    );
   }
   if (status.headSha !== manifest.preview.gitSha) {
-    throw new Error(
+    throw cliError(
       `Stale preview job: built ${manifest.preview.gitSha}, current head is ${status.headSha}.`,
+      'Let the CI job for the current head publish; this build is superseded.',
+      { code: 'ATLAS_PREVIEW_STALE' },
     );
   }
 }

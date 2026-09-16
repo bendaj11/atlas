@@ -13,6 +13,7 @@ import { publicationContentType } from '../publication-metadata/publication-meta
 import { httpStatusOf } from '../../shared/errors/errors.js';
 import { wait } from '../../shared/timers/timers.js';
 import type { CliArguments } from '../../cli/arguments.js';
+import { cliError } from '../../cli/cli-error/cli-error.js';
 import {
   ArtifactoryPublicationStorage,
   type ArtifactoryOptions,
@@ -87,8 +88,14 @@ export async function createPublicationStorage(
 ): Promise<AtlasPublicationStorage> {
   const configured = storage ?? storageFromEnvironment(args, factories);
   if (!configured) {
-    throw new Error(
-      'Publication storage is required. Select --storage s3 with --bucket (or ATLAS_S3_BUCKET), --storage artifactory (or ATLAS_STORAGE=artifactory), or configure storage in atlas.registry.ts.',
+    throw cliError(
+      'Publication storage is not configured.',
+      [
+        'Pass --storage s3 with --bucket (or set ATLAS_S3_BUCKET).',
+        'Pass --storage artifactory (or set ATLAS_STORAGE=artifactory).',
+        'Configure storage in atlas.registry.ts.',
+      ],
+      { code: 'ATLAS_STORAGE_NOT_CONFIGURED' },
     );
   }
   const resolvedStorage =
@@ -323,8 +330,13 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     let stored = await this.tryAcquireLease(owner, token);
     while (!stored) {
       if (Date.now() >= deadline) {
-        throw new Error(
+        throw cliError(
           `Timed out after ${this.lockTimeoutMs}ms waiting for Atlas deployment lock.`,
+          [
+            'Wait for the other publisher to finish, then rerun the command.',
+            `Delete a stale ${DEPLOYMENT_LOCK_PATH} object only after confirming no publisher is running.`,
+          ],
+          { code: 'ATLAS_LOCK_TIMEOUT' },
         );
       }
       await wait(randomBackoffMs());

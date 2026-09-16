@@ -2,10 +2,32 @@ import { AtlasError, errorSummary } from '@atlas/schema';
 import { COMMAND_ALIASES } from '../arguments.js';
 import { httpStatusOf } from '../../shared/errors/errors.js';
 
+export function cliError(
+  summary: string,
+  suggestedActions: string | readonly string[],
+  options: { code?: string; cause?: unknown } = {},
+): AtlasError {
+  return new AtlasError(summary, {
+    suggestedActions,
+    surface: 'cli',
+    ...(options.code ? { code: options.code } : {}),
+    ...(options.cause !== undefined ? { cause: options.cause } : {}),
+  });
+}
+
 export function createCliError(
   command: string | undefined,
   value: unknown,
 ): AtlasError {
+  if (value instanceof AtlasError && value.surface === 'cli') return value;
+  if (value instanceof AtlasError && value.surface === 'universal') {
+    return new AtlasError(value.summary, {
+      suggestedActions: value.suggestedActions,
+      cause: value.cause,
+      ...(value.code ? { code: value.code } : {}),
+      surface: 'cli',
+    });
+  }
   const normalizedCommand = command
     ? (COMMAND_ALIASES[command] ?? command)
     : undefined;

@@ -28,6 +28,7 @@ import {
 } from '@atlas/schema';
 import ts from 'typescript';
 import { CliArguments } from '../../cli/arguments.js';
+import { cliError } from '../../cli/cli-error/cli-error.js';
 import { compileAtlasConfig } from '../config-compiler/config-compiler.js';
 import {
   assertAppConfig,
@@ -309,8 +310,13 @@ export class AtlasBuildService {
         continue;
       }
     }
-    throw new Error(
-      `Compiled atlas.config.js was not found for ${root}. Run without --skip-compile.`,
+    throw cliError(
+      `Compiled atlas.config.js was not found for ${root}.`,
+      [
+        'Rerun without --skip-compile.',
+        'Run `atlas compile-config <project>` to emit .atlas/atlas.config.js.',
+      ],
+      { code: 'ATLAS_CONFIG_NOT_COMPILED' },
     );
   }
 
@@ -319,8 +325,10 @@ export class AtlasBuildService {
       this.args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
     if (explicit) return explicit;
     if (channel === 'local') return 'http://localhost:4400';
-    throw new Error(
+    throw cliError(
       '--registry-url or ATLAS_REGISTRY_URL is required for non-local builds.',
+      'Pass --registry-url <https://registry-root> or export ATLAS_REGISTRY_URL.',
+      { code: 'ATLAS_REGISTRY_URL_MISSING' },
     );
   }
 }
@@ -501,8 +509,13 @@ async function findArtifactRoot(
     entryPath,
   );
   if (artifactRoot) return artifactRoot;
-  throw new Error(
-    `Atlas could not find build artifacts for "${config.id}". Run its production build first.`,
+  throw cliError(
+    `Atlas could not find build artifacts containing ${entryPath} for "${config.id}".`,
+    [
+      'Run the project production build first.',
+      'Pass --entry <path> when the remote entry has another name.',
+    ],
+    { code: 'ATLAS_ARTIFACTS_MISSING' },
   );
 }
 
