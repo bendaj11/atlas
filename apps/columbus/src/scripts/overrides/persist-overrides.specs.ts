@@ -136,7 +136,11 @@ describe('persistColumbusState', () => {
     await driver.given.columbusState(columbusState).when.persisted();
 
     expect(driver.get.suppressedArtifactIdsWrite()).toEqual([
-      { hostId: columbusState.hostData.config.hostId, tabId: 7, scope: 'all' },
+      {
+        hostId: columbusState.hostData.config.hostId,
+        tabId: 7,
+        scope: columbusState.scope,
+      },
       columbusState.clearedLocalArtifactIds,
     ]);
   });

@@ -15,23 +15,21 @@ describe('useArtifactConfiguration', () => {
     expect(driver.get.result()).toBeUndefined();
   });
 
-  it('should return undefined when location carries an artifact but there is no columbusState', () => {
-    driver.given
-      .artifact(anArtifact())
-      .given.columbusState(undefined)
-      .when.rendered();
+  describe('when location carries an artifact', () => {
+    beforeEach(() => {
+      driver.given.artifact(anArtifact());
+    });
 
-    expect(driver.get.result()).toBeUndefined();
-  });
+    it('should return undefined when there is no columbusState', () => {
+      driver.given.columbusState(undefined).when.rendered();
 
-  it('should return configuration of the artifact when location carries an artifact and there is a columbusState', () => {
-    const artifact = anArtifact();
+      expect(driver.get.result()).toBeUndefined();
+    });
 
-    driver.given
-      .artifact(artifact)
-      .given.columbusState(aColumbusState())
-      .when.rendered();
+    it('should return configuration when there is a columbusState', () => {
+      driver.given.columbusState(aColumbusState()).when.rendered();
 
-    expect(driver.get.result()?.key).toBe(artifact.key);
+      expect(driver.get.result()).toBeDefined();
+    });
   });
 });

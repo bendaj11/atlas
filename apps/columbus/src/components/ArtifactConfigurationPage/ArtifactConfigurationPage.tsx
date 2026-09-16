@@ -6,24 +6,36 @@ import { initialOverrideSelection } from '../../scripts/artifact-versions/artifa
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker/BrowserOverrideScopePicker';
 import { useActionsDisabled, useOverrides } from '../../state';
 import { useArtifactConfiguration } from './hooks/useArtifactConfiguration/useArtifactConfiguration';
-import { useSaveArtifactOverride } from './hooks/useSaveArtifactOverride/useSaveArtifactOverride';
+import { useSaveArtifactOverrideMutation } from './hooks/useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation';
+import { failureMessage } from '../../scripts/shared/errors/errors';
 import { OverridesSelectionForm } from './OverridesForm/OverridesSelectionForm';
 import { ArtifactConfigurationActions } from './ArtifactConfigurationActions/ArtifactConfigurationActions';
 
 export function ArtifactConfigurationPage() {
   const navigate = useNavigate();
   const configuration = useArtifactConfiguration();
-  const { scope, setScope } = useOverrides();
+  const { clearOverride, message, scope, setScope, status } = useOverrides();
   const actionsDisabled = useActionsDisabled();
   const [selection, setSelection] = useState(() =>
     initialOverrideSelection(configuration?.selectedArtifactVersion),
   );
-  const { clearOverride, errorMessage, loading, save } =
-    useSaveArtifactOverride({ configuration, selection });
+  const { error, isPending, mutate } = useSaveArtifactOverrideMutation({
+    configuration,
+    selection,
+  });
 
   if (!configuration) return <Navigate to={ARTIFACTS_ROUTE} replace />;
 
-  const disabled = actionsDisabled || loading;
+  const disabled = actionsDisabled || isPending;
+  const errorMessage = error
+    ? failureMessage(
+        error,
+        'save this artifact override',
+        'Correct the selected version or URL, then retry.',
+      )
+    : status === 'ERROR'
+      ? message
+      : undefined;
 
   function close(): void {
     navigate(ARTIFACTS_ROUTE);
@@ -46,9 +58,9 @@ export function ArtifactConfigurationPage() {
         }
         actionsBar={
           <ArtifactConfigurationActions
-            onSave={save}
+            onSave={() => mutate()}
             onCancel={close}
-            onClear={clearOverride}
+            onClear={() => void clearOverride(configuration.key)}
             saveDisabled={disabled}
             cancelDisabled={disabled}
             clearDisabled={disabled || !configuration.selectedArtifactVersion}

@@ -1,27 +1,29 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen, type RenderResult } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import {
+  ButtonTestkit,
   HeadingTestkit,
+  IconButtonTestkit,
   RadioGroupTestkit,
   TextTestkit,
 } from '@wix/design-system/dist/testkit/testing-library';
-import userEvent from '@testing-library/user-event';
 import type { ArtifactConfiguration } from '../../types/artifact';
-import type { ArtifactVersion } from '../../types/artifact-version';
 import type { Scope } from '../../types/columbus-state';
+import type { OverrideStatus } from '../../state/overrides/overrides';
 import { anArtifactConfiguration } from '../../types/artifact.testkit';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
 } from '../../state';
 import type { useArtifactConfiguration as useArtifactConfigurationType } from './hooks/useArtifactConfiguration/useArtifactConfiguration';
-import type { useSaveArtifactOverride as useSaveArtifactOverrideType } from './hooks/useSaveArtifactOverride/useSaveArtifactOverride';
+import type { useSaveArtifactOverrideMutation as useSaveArtifactOverrideMutationType } from './hooks/useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation';
 
 const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
 const useArtifactConfiguration = jest.fn<typeof useArtifactConfigurationType>();
-const useSaveArtifactOverride = jest.fn<typeof useSaveArtifactOverrideType>();
-
+const useSaveArtifactOverrideMutation =
+  jest.fn<typeof useSaveArtifactOverrideMutationType>();
 const navigate = jest.fn();
 
 jest.unstable_mockModule('react-router-dom', () => ({
@@ -37,30 +39,39 @@ jest.unstable_mockModule(
   () => ({ useArtifactConfiguration }),
 );
 jest.unstable_mockModule(
-  './hooks/useSaveArtifactOverride/useSaveArtifactOverride',
-  () => ({ useSaveArtifactOverride }),
+  './hooks/useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation',
+  () => ({ useSaveArtifactOverrideMutation }),
 );
 
 const { ArtifactConfigurationPage } =
   await import('./ArtifactConfigurationPage');
 
+const OVERRIDE_STATUSES: OverrideStatus[] = ['IDLE', 'APPLYING', 'ERROR'];
+const SCOPES: Scope[] = ['all', 'tab'];
+
 type OverridesValue = ReturnType<typeof useOverridesType>;
-type SaveValue = ReturnType<typeof useSaveArtifactOverrideType>;
+type MutationResult = ReturnType<typeof useSaveArtifactOverrideMutationType>;
 
 export class ArtifactConfigurationPageDriver {
   private configuration: ArtifactConfiguration | undefined =
     anArtifactConfiguration();
-  private actionsDisabled = false;
-  private loading = false;
-  private errorMessage: string | undefined;
-  private scope: Scope = 'all';
-  private readonly save = jest.fn<SaveValue['save']>();
-  private readonly clearOverride = jest.fn<SaveValue['clearOverride']>();
+  private actionsDisabled = faker.datatype.boolean();
+  private mutationPending = faker.datatype.boolean();
+  private mutationError = faker.helpers.arrayElement([
+    new Error(faker.lorem.sentence()),
+    null,
+  ]);
+  private overrideStatus = faker.helpers.arrayElement(OVERRIDE_STATUSES);
+  private overrideMessage = faker.lorem.sentence();
+  private scope = faker.helpers.arrayElement(SCOPES);
+  private readonly mutate = jest.fn<MutationResult['mutate']>();
+  private readonly clearOverride = jest.fn<OverridesValue['clearOverride']>();
   private readonly setScope = jest.fn<OverridesValue['setScope']>();
-  private view: RenderResult | undefined;
+  private baseElement!: Element;
 
   constructor() {
     navigate.mockClear();
+    this.clearOverride.mockResolvedValue(undefined);
   }
 
   readonly given = {
@@ -69,41 +80,33 @@ export class ArtifactConfigurationPageDriver {
 
       return this;
     },
-    productionArtifactVersion: (manifest: ArtifactVersion): this => {
-      this.configuration = {
-        ...this.configuration!,
-        productionArtifactVersion: manifest,
-      };
-
-      return this;
-    },
-    selectedArtifactVersion: (
-      manifest: ArtifactConfiguration['selectedArtifactVersion'],
-    ): this => {
-      this.configuration = {
-        ...this.configuration!,
-        selectedArtifactVersion: manifest,
-      };
-
-      return this;
-    },
     actionsDisabled: (disabled: boolean): this => {
       this.actionsDisabled = disabled;
 
       return this;
     },
-    loading: (loading: boolean): this => {
-      this.loading = loading;
+    mutationPending: (pending: boolean): this => {
+      this.mutationPending = pending;
+
+      return this;
+    },
+    mutationError: (error: Error | null): this => {
+      this.mutationError = error;
+
+      return this;
+    },
+    overrideStatus: (status: OverrideStatus): this => {
+      this.overrideStatus = status;
+
+      return this;
+    },
+    overrideMessage: (message: string): this => {
+      this.overrideMessage = message;
 
       return this;
     },
     scope: (scope: Scope): this => {
       this.scope = scope;
-
-      return this;
-    },
-    errorMessage: (message: string | undefined): this => {
-      this.errorMessage = message;
 
       return this;
     },
@@ -113,57 +116,69 @@ export class ArtifactConfigurationPageDriver {
     rendered: (): void => {
       useArtifactConfiguration.mockReturnValue(this.configuration);
       useOverrides.mockReturnValue({
+        clearOverride: this.clearOverride,
+        message: this.overrideMessage,
         scope: this.scope,
         setScope: this.setScope,
+        status: this.overrideStatus,
       } as Partial<OverridesValue> as OverridesValue);
       useActionsDisabled.mockReturnValue(this.actionsDisabled);
-      useSaveArtifactOverride.mockReturnValue({
-        clearOverride: this.clearOverride,
-        errorMessage: this.errorMessage,
-        loading: this.loading,
-        save: this.save,
-      });
-      this.view = render(<ArtifactConfigurationPage />);
+      useSaveArtifactOverrideMutation.mockReturnValue({
+        error: this.mutationError,
+        isPending: this.mutationPending,
+        mutate: this.mutate,
+      } as Partial<MutationResult> as MutationResult);
+      this.baseElement = render(<ArtifactConfigurationPage />).baseElement;
     },
     saveClicked: async (): Promise<void> => {
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await this.get.saveButton().click();
     },
     cancelClicked: async (): Promise<void> => {
-      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await this.get.cancelButton().click();
     },
     clearClicked: async (): Promise<void> => {
-      await userEvent.click(
-        screen.getByRole('button', { name: 'Clear override' }),
-      );
+      await this.get.clearButton().click();
     },
     scopeChosen: async (scope: Scope): Promise<void> => {
-      await RadioGroupTestkit({
-        wrapper: this.get.container(),
-        dataHook: 'override-scope',
-      }).selectByValue(scope);
+      await this.get.radioGroup().selectByValue(scope);
     },
   };
 
   readonly get = {
-    title: () =>
+    heading: () =>
       HeadingTestkit({
-        wrapper: this.get.container(),
+        wrapper: this.baseElement,
         dataHook: 'artifact-configuration-title',
       }),
-    redirected: (): boolean => screen.queryByTestId('navigate') !== null,
     error: () =>
       TextTestkit({
-        wrapper: this.get.container(),
+        wrapper: this.baseElement,
         dataHook: 'artifact-configuration-error',
       }),
-    saveCount: (): number => this.save.mock.calls.length,
-    navigatedTo: (): unknown => navigate.mock.calls[0]?.[0],
-    clearCount: (): number => this.clearOverride.mock.calls.length,
-    chosenScope: (): Scope | undefined => this.setScope.mock.calls[0]?.[0],
-    container: (): HTMLElement => {
-      if (!this.view) throw new Error('Page was not rendered.');
-
-      return this.view.container;
-    },
+    saveButton: () =>
+      ButtonTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'save-configuration',
+      }),
+    cancelButton: () =>
+      ButtonTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'cancel-configuration',
+      }),
+    clearButton: () =>
+      IconButtonTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'clear-override',
+      }),
+    radioGroup: () =>
+      RadioGroupTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'override-scope',
+      }),
+    redirected: (): boolean => screen.queryByTestId('navigate') !== null,
+    navigate: () => navigate,
+    mutate: () => this.mutate,
+    clearOverride: () => this.clearOverride,
+    setScope: () => this.setScope,
   };
 }

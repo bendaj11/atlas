@@ -1,6 +1,8 @@
 import { faker } from '@faker-js/faker';
-import type { ColumbusState } from './columbus-state';
+import type { ColumbusState, Scope } from './columbus-state';
 import { aHostData } from './host-data.testkit';
+
+const SCOPES: Scope[] = ['all', 'tab'];
 
 export function aColumbusState(
   overrides: Partial<ColumbusState> = {},
@@ -11,7 +13,7 @@ export function aColumbusState(
     enabledArtifactVersionOverrides: new Map(),
     disabledArtifactVersionOverrides: new Map(),
     clearedLocalArtifactIds: new Set(),
-    scope: 'all',
+    scope: faker.helpers.arrayElement(SCOPES),
     ...overrides,
   };
 }
