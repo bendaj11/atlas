@@ -19,7 +19,7 @@ describe('generatedOverlay', () => {
     ).toStrictEqual(['package.json', 'atlas.config.ts', 'anything.txt']);
   });
 
-  it('should keep only Atlas integration files for a scaffolded react app', () => {
+  it('should keep only Atlas integration files when a react app was scaffolded', () => {
     driver.given.files([
       'package.json',
       'atlas.config.ts',
@@ -36,7 +36,7 @@ describe('generatedOverlay', () => {
     ).toStrictEqual(['atlas.config.ts', 'src/App.tsx']);
   });
 
-  it('should keep the bootstrap template for a scaffolded host', () => {
+  it('should keep the bootstrap template when a host was scaffolded', () => {
     driver.given.files(['atlas.bootstrap.html', 'src/main.tsx']);
 
     expect(

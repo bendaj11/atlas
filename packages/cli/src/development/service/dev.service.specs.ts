@@ -88,7 +88,7 @@ describe('AtlasDevService', () => {
     expect((await driver.get.overrideDocument()).previewUrl).toBe(previewUrl);
   });
 
-  it('should reject a local host preview whose port differs from the bootstrap port', async () => {
+  it('should reject a local host preview when its port differs from the bootstrap port', async () => {
     const hostId = faker.string.uuid();
     driver.given
       .config(aHostConfig(hostId))

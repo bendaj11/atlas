@@ -15,10 +15,10 @@ describe('http', () => {
   });
 
   it.each([
-    [{ code: 'EADDRINUSE' }, true],
-    [{ code: 'ECONNREFUSED' }, false],
-    [null, false],
-  ])('should classify %p as address-in-use %p', (error, expected) => {
+    [true, { code: 'EADDRINUSE' }],
+    [false, { code: 'ECONNREFUSED' }],
+    [false, null],
+  ])('should report address-in-use %p when error is %p', (expected, error) => {
     expect(driver.get.addressInUse(error)).toBe(expected);
   });
 
