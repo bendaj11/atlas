@@ -1,0 +1,46 @@
+export function atlasHostStyles(): string {
+  return `body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+atlas-navigation {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+atlas-route-outlet {
+  padding: 1rem;
+}
+
+[data-atlas-status] {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #b8bec7;
+}
+
+[data-atlas-spinner] {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #b8bec7;
+  border-top-color: #2463eb;
+  border-radius: 50%;
+  animation: atlas-spin 0.7s linear infinite;
+}
+
+@keyframes atlas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-atlas-spinner] {
+    animation-duration: 1.5s;
+  }
+}
+`;
+}

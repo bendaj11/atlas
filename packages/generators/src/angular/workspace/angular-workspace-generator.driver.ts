@@ -1,5 +1,5 @@
 import { angularWorkspace } from './angular-workspace-generator.js';
-import type { AngularVersionProfile } from '../generator-versions.js';
+import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
 
 export class AngularWorkspaceGeneratorDriver {
   private host = false;

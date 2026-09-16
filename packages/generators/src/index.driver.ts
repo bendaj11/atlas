@@ -1,7 +1,7 @@
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
-} from './cli/generator-types.js';
+} from './shared/types/generator-types.js';
 import {
   generateAppFiles,
   generateHostFiles,

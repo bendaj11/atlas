@@ -1,7 +1,7 @@
 import {
   atlasPackageRange,
   type ReactVersionProfile,
-} from './generator-versions.js';
+} from '../../shared/versions/generator-versions.js';
 
 const VITE_REACT_PLUGIN_VERSION = '^5.0.4';
 const VITE_VERSION = '^7.3.6';

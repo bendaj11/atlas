@@ -1,7 +1,7 @@
 import {
   atlasPackageRange,
   type AngularVersionProfile,
-} from './generator-versions.js';
+} from '../../shared/versions/generator-versions.js';
 
 interface AngularPackageOptions {
   packageName: string;

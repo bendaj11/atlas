@@ -1,4 +1,4 @@
-import type { AtlasGeneratorOptions } from './generator-types.js';
+import type { AtlasGeneratorOptions } from '../types/generator-types.js';
 
 export const ATLAS_PACKAGE_VERSION = '0.4.26';
 const DEFAULT_REACT_VERSION = '19.2.8';

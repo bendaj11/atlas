@@ -1,4 +1,4 @@
-import type { ReactVersionProfile } from './generator-versions.js';
+import type { ReactVersionProfile } from '../../shared/versions/generator-versions.js';
 
 export function reactHostBootstrap(profile: ReactVersionProfile): string {
   const imports =

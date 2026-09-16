@@ -6,11 +6,18 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@atlas/bootstrap": ["../bootstrap/src/index.ts"],
-      "@atlas/schema": ["../schema/src/index.ts"]
+      "@atlas/bootstrap": [
+        "../bootstrap/src/index.ts"
+      ],
+      "@atlas/schema": [
+        "../schema/src/index.ts"
+      ]
     },
     "rootDir": "src",
     "outDir": "dist",
@@ -19,6 +26,20 @@
     "noUnusedParameters": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "../bootstrap" }, { "path": "../schema" }],
-  "include": ["src/**/*.ts"]
+  "references": [
+    {
+      "path": "../bootstrap"
+    },
+    {
+      "path": "../schema"
+    }
+  ],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.driver.ts",
+    "src/**/*.specs.ts",
+    "src/**/*.testkit.ts"
+  ]
 }

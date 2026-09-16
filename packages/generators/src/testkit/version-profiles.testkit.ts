@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import type {
   AngularVersionProfile,
   ReactVersionProfile,
-} from '../cli/generator-versions.js';
+} from '../shared/versions/generator-versions.js';
 
 export function aSemver(major = faker.number.int({ min: 1, max: 30 })): string {
   return `${major}.${faker.number.int({ min: 0, max: 20 })}.${faker.number.int({ min: 0, max: 20 })}`;

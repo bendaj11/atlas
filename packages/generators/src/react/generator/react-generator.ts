@@ -2,20 +2,19 @@ import {
   atlasAppConfig,
   atlasBootstrapHtml,
   atlasHostConfig,
-  atlasHostStyles,
-  json,
-  title,
-} from './common-generator.js';
+} from '../../shared/atlas-config/atlas-config.js';
+import { atlasHostStyles } from '../../shared/host-styles/host-styles.js';
+import { json, title } from '../../shared/text/text.js';
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
-} from './generator-types.js';
-import { reactVersionProfile } from './generator-versions.js';
+} from '../../shared/types/generator-types.js';
+import { reactVersionProfile } from '../../shared/versions/generator-versions.js';
 import {
   reactHostBootstrap,
   reactHostMain,
   reactHostSdkConfig,
-} from './react-host-generator.js';
+} from '../host/react-host-generator.js';
 import {
   reactAppApp,
   reactAppBootstrap,
@@ -24,17 +23,17 @@ import {
   reactAppRoutes,
   reactSinglePageApp,
   reactSinglePageAppBootstrap,
-} from './react-app-generator.js';
+} from '../app/react-app-generator.js';
 import {
   reactAppIndex,
   reactIndex,
   reactPackage,
-} from './react-package-generator.js';
-import { reactTsconfig } from './react-tsconfig-generator.js';
+} from '../package/react-package-generator.js';
+import { reactTsconfig } from '../tsconfig/react-tsconfig-generator.js';
 import {
   reactHostViteConfig,
   reactAppViteConfig,
-} from './react-vite-generator.js';
+} from '../vite/react-vite-generator.js';
 
 export function generateReactHostFiles(
   options: AtlasGeneratorOptions,

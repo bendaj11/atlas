@@ -1,4 +1,4 @@
-import type { AngularVersionProfile } from './generator-versions.js';
+import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
 
 export function angularHostComponent(): string {
   return `import { Component } from "@angular/core";

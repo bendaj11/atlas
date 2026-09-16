@@ -1,5 +1,5 @@
-import { title } from './common-generator.js';
-import type { ReactVersionProfile } from './generator-versions.js';
+import { title } from '../../shared/text/text.js';
+import type { ReactVersionProfile } from '../../shared/versions/generator-versions.js';
 
 export function reactAppBootstrap(profile: ReactVersionProfile): string {
   const root =

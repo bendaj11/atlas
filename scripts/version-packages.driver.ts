@@ -45,7 +45,7 @@ export class VersionPackagesDriver {
         version,
       });
       await writeFileInDirectory(
-        join(this.root, 'packages/generators/src/cli/generator-versions.ts'),
+        join(this.root, 'packages/generators/src/shared/versions/generator-versions.ts'),
         `export const ATLAS_PACKAGE_VERSION = "${version}";\n`,
       );
     },
@@ -64,7 +64,7 @@ export class VersionPackagesDriver {
           readVersion(join(this.root, 'packages', directory, 'package.json')),
         ),
         readGeneratorVersion(
-          join(this.root, 'packages/generators/src/cli/generator-versions.ts'),
+          join(this.root, 'packages/generators/src/shared/versions/generator-versions.ts'),
         ),
       ]),
     columbusVersions: async (): Promise<string[]> =>

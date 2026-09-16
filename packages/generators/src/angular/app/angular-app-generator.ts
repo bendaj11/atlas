@@ -1,5 +1,5 @@
-import { angularRootSelector } from './angular-names.js';
-import { title } from './common-generator.js';
+import { angularRootSelector } from '../names/angular-names.js';
+import { title } from '../../shared/text/text.js';
 
 export function angularAppConfig(zoneless: boolean): string {
   const zonelessImport = zoneless

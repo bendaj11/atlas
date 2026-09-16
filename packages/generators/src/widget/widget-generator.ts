@@ -2,11 +2,9 @@ import { randomUUID } from 'node:crypto';
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
-} from './generator-types.js';
-import {
-  assertSupportedGeneratorFramework,
-  title,
-} from './common-generator.js';
+} from '../shared/types/generator-types.js';
+import { pascal, title } from '../shared/text/text.js';
+import { assertSupportedGeneratorFramework } from '../shared/validation/validation.js';
 
 export function generateWidgetFiles(
   options: AtlasGeneratorOptions,
@@ -83,8 +81,4 @@ export const widgetConfig: ApplicationConfig = {
 };
 `,
   };
-}
-
-function pascal(value: string): string {
-  return title(value).replace(/\s+/g, '');
 }

@@ -46,7 +46,7 @@ export async function versionPackages(
 
   const generatorVersionsPath = join(
     workspaceRoot,
-    'packages/generators/src/cli/generator-versions.ts',
+    'packages/generators/src/shared/versions/generator-versions.ts',
   );
   const generatorVersions = await readFile(generatorVersionsPath, 'utf8');
   const versionDeclaration = /ATLAS_PACKAGE_VERSION = (["'])[^"']+\1/;

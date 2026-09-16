@@ -1,0 +1,18 @@
+export function reactTsconfig(): unknown {
+  return {
+    compilerOptions: {
+      target: 'ES2022',
+      useDefineForClassFields: true,
+      lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+      module: 'ESNext',
+      moduleResolution: 'bundler',
+      jsx: 'react-jsx',
+      strict: true,
+      noEmit: true,
+      skipLibCheck: true,
+      allowImportingTsExtensions: true,
+      types: ['vite/client'],
+    },
+    include: ['src', 'vite.config.ts', 'atlas.config.ts'],
+  };
+}

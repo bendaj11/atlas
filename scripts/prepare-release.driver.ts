@@ -27,7 +27,7 @@ export async function createReleaseWorkspace(version: string): Promise<string> {
   }
   const generatorPath = join(
     root,
-    'packages/generators/src/cli/generator-versions.ts',
+    'packages/generators/src/shared/versions/generator-versions.ts',
   );
   await mkdir(join(generatorPath, '..'), { recursive: true });
   await writeFile(

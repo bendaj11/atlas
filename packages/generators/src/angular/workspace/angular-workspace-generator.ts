@@ -1,6 +1,6 @@
-import { angularRemoteName } from '../angular-names.js';
-import type { AngularVersionProfile } from '../generator-versions.js';
-import type { AngularStylesheetFormat } from '../generator-types.js';
+import { angularRemoteName } from '../names/angular-names.js';
+import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
+import type { AngularStylesheetFormat } from '../../shared/types/generator-types.js';
 
 const ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT =
   '/@angular-architects/native-federation:build-notifications';

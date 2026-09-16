@@ -5,7 +5,7 @@ import {
   angularHostMain,
   angularHostRoutes,
   angularHostSdkConfig,
-} from './angular-host-generator.js';
+} from '../host/angular-host-generator.js';
 import {
   angularAppAppComponent,
   angularAppConfig,
@@ -18,28 +18,30 @@ import {
   angularSinglePageAppConfig,
   angularSinglePageAppEntry,
   angularSinglePageAppMain,
-} from './angular-app-generator.js';
-import { angularIndex, angularPackage } from './angular-package-generator.js';
+} from '../app/angular-app-generator.js';
+import {
+  angularIndex,
+  angularPackage,
+} from '../package/angular-package-generator.js';
 import {
   angularAppTsconfig,
   angularFederationConfig,
   angularFederationConfigFile,
   angularRootTsconfig,
   angularWorkspace,
-} from './angular-workspace-generator/angular-workspace-generator.js';
+} from '../workspace/angular-workspace-generator.js';
 import {
   atlasAppConfig,
   atlasBootstrapHtml,
   atlasHostConfig,
-  atlasHostStyles,
-  json,
-  title,
-} from './common-generator.js';
-import { angularVersionProfile } from './generator-versions.js';
+} from '../../shared/atlas-config/atlas-config.js';
+import { atlasHostStyles } from '../../shared/host-styles/host-styles.js';
+import { json, title } from '../../shared/text/text.js';
+import { angularVersionProfile } from '../../shared/versions/generator-versions.js';
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
-} from './generator-types.js';
+} from '../../shared/types/generator-types.js';
 
 export function generateAngularHostFiles(
   options: AtlasGeneratorOptions,
