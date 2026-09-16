@@ -3,8 +3,7 @@ import { join, relative } from 'node:path';
 import type { SupportedFramework } from '../../cli/arguments.js';
 import { ensureAngularNativeFederationTargets } from '../angular.js';
 import { addUniqueString } from '../files/files.js';
-import { readJsonFile, writeJsonFile } from '../json.js';
-import { exists } from '../paths/paths.js';
+import { exists, readJsonFile, writeJsonFile } from '../../shared/fs/fs.js';
 
 type ProjectType = 'host' | 'app';
 type PackageManager = 'yarn' | 'pnpm' | 'npm';

@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { readJsonFile, writeJsonFile } from './json.js';
+import { readJsonFile, writeJsonFile } from '../shared/fs/fs.js';
 
 type ProjectType = 'host' | 'app';
 type RunnerKey = 'builder' | 'executor';

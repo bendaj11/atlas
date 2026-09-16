@@ -1,0 +1,19 @@
+import type { AtlasConfig } from '@atlas/schema';
+import { assertAppConfig, isHostConfig } from './atlas-config.js';
+
+export class AtlasConfigDriver {
+  private config!: AtlasConfig;
+
+  readonly given = {
+    config: (config: AtlasConfig): this => {
+      this.config = config;
+
+      return this;
+    },
+  };
+
+  readonly get = {
+    isHost: (): boolean => isHostConfig(this.config),
+    appConfig: (): AtlasConfig => assertAppConfig(this.config),
+  };
+}

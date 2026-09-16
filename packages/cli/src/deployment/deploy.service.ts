@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type {
   AtlasAppArtifactManifest,
   AtlasEnvironmentDeployment,
@@ -13,6 +12,13 @@ import {
   placementTargetsHost,
 } from '@atlas/schema';
 import { CliArguments } from '../cli/arguments.js';
+import { sha256Digest } from '../shared/digest/digest.js';
+import { isSecureOrLoopbackUrl, trimTrailingSlash } from '../shared/url/url.js';
+import { MUTABLE_CACHE_CONTROL } from '../publication/publication-metadata/publication-metadata.js';
+import {
+  verifyDeliveryWhileHeld,
+  withPublicationLease,
+} from '../publication/publication-lease/publication-lease.js';
 import { withExponentialRetry } from '../cli/retry/retry.js';
 import {
   createPublicationStorage,
@@ -26,8 +32,6 @@ import {
   canonicalJson,
   resolveRegistryArtifact,
 } from '../publication/static-registry/static-registry.js';
-
-const MUTABLE_CACHE_CONTROL = 'no-cache, max-age=0, must-revalidate';
 
 export interface AtlasDeployResult {
   artifactId: string;
@@ -90,7 +94,7 @@ export class AtlasDeployService {
           environment,
           selected,
         )
-      : await withLease(storage, async (lease) => {
+      : await withPublicationLease(storage, async (lease) => {
           const prepared = await prepareDeployment(
             storage,
             locations,
@@ -107,9 +111,7 @@ export class AtlasDeployService {
               ),
             ];
             await config?.invalidate?.(paths);
-            await lease.assertHeld();
-            await storage.verifyDelivery(paths);
-            await lease.assertHeld();
+            await verifyDeliveryWhileHeld({ storage, lease, paths });
           }
           return prepared;
         });
@@ -371,7 +373,8 @@ function parseEnvironmentState(
     assertEnvironmentDeployment(value);
   } catch (error) {
     throw new Error(
-      `Atlas ${registry} environment "${environment}" deployment state is invalid: ${message(error)}`,
+      `Atlas ${registry} environment "${environment}" deployment state is invalid.`,
+      { cause: error },
     );
   }
   if (value.environment !== environment) {
@@ -403,9 +406,9 @@ function parseJson(bytes: Uint8Array, subject: string): unknown {
   try {
     return JSON.parse(new TextDecoder().decode(bytes));
   } catch (error) {
-    throw new Error(
-      `Atlas ${subject} contains invalid JSON: ${message(error)}`,
-    );
+    throw new Error(`Atlas ${subject} contains invalid JSON.`, {
+      cause: error,
+    });
   }
 }
 
@@ -418,7 +421,7 @@ async function publishedManifest(
   if (
     !bytes ||
     bytes.byteLength !== descriptor.size ||
-    digest(bytes) !== descriptor.digest
+    sha256Digest(bytes) !== descriptor.digest
   ) {
     throw new Error(
       `Atlas artifact descriptor ${descriptor.path} failed integrity verification.`,
@@ -480,18 +483,6 @@ async function writeJson(
   );
 }
 
-async function withLease<T>(
-  storage: AtlasPublicationStorage,
-  operation: (lease: AtlasPublicationLease) => Promise<T>,
-): Promise<T> {
-  const lease = await storage.acquireLock(`atlas:${process.pid}:${Date.now()}`);
-  try {
-    return await operation(lease);
-  } finally {
-    await lease.release();
-  }
-}
-
 function envPath(environment: string): string {
   return `environments/${environment}/deployment.json`;
 }
@@ -499,10 +490,7 @@ function hostPath(environment: string, id: string): string {
   return `environments/${environment}/hosts/${id}/manifest.json`;
 }
 function revision(value: unknown): `sha256:${string}` {
-  return `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
-}
-function digest(bytes: Uint8Array): `sha256:${string}` {
-  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  return sha256Digest(canonicalJson(value));
 }
 function requiredFlag(args: CliArguments, name: string): string {
   const value = args.flag(name);
@@ -512,24 +500,10 @@ function requiredFlag(args: CliArguments, name: string): string {
 function root(value: string, flag: string): string {
   if (value === 'true') throw new Error(`${flag} requires a URL.`);
   const url = new URL(value);
-  if (!isSecureRegistryProtocol(url))
+  if (!isSecureOrLoopbackUrl(url))
     throw new Error(`${flag} must use HTTPS except for loopback development.`);
   if (url.search || url.hash || url.username || url.password)
     throw new Error(`${flag} must be a registry root URL.`);
-  return url.href.replace(/\/+$/u, '');
-}
-function isSecureRegistryProtocol(url: URL): boolean {
-  return (
-    url.protocol === 'https:' || (url.protocol === 'http:' && isLoopback(url))
-  );
-}
-function isLoopback(url: URL): boolean {
-  return (
-    url.hostname === 'localhost' ||
-    url.hostname === '127.0.0.1' ||
-    url.hostname === '[::1]'
-  );
-}
-function message(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+
+  return trimTrailingSlash(url.href);
 }

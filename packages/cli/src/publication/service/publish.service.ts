@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
@@ -7,6 +6,19 @@ import type {
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
+import { sha256Digest } from '../../shared/digest/digest.js';
+import {
+  isSecureOrLoopbackUrl,
+  trimTrailingSlash,
+} from '../../shared/url/url.js';
+import {
+  IMMUTABLE_CACHE_CONTROL,
+  MUTABLE_CACHE_CONTROL,
+} from '../publication-metadata/publication-metadata.js';
+import {
+  verifyDeliveryWhileHeld,
+  withPublicationLease,
+} from '../publication-lease/publication-lease.js';
 import { withExponentialRetry } from '../../cli/retry/retry.js';
 import type { AtlasBuildResult } from '../../build/service/build.service.js';
 import {
@@ -46,9 +58,6 @@ export type {
   AtlasPublicationStorage,
   S3Options,
 } from '../publication-storage/publication-storage.js';
-
-const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
-const MUTABLE_CACHE_CONTROL = 'no-cache, max-age=0, must-revalidate';
 
 interface PublicationFile {
   path: string;
@@ -236,11 +245,11 @@ export class AtlasPublishService {
       if (!mutation.changed) {
         if (retryingAfterMutation || storage.verifyDelivery) {
           await config?.invalidate?.(['registry.json']);
-          if (storage.verifyDelivery) {
-            await lease.assertHeld();
-            await storage.verifyDelivery(['registry.json']);
-            await lease.assertHeld();
-          }
+          await verifyDeliveryWhileHeld({
+            storage,
+            lease,
+            paths: ['registry.json'],
+          });
         }
         return {
           removed: retryingAfterMutation,
@@ -255,11 +264,12 @@ export class AtlasPublishService {
         state.versionToken,
       );
       await config?.invalidate?.(['registry.json']);
-      if (storage.verifyDelivery) {
-        await lease.assertHeld();
-        await storage.verifyDelivery(['registry.json']);
-        await lease.assertHeld();
-      }
+      await verifyDeliveryWhileHeld({
+        storage,
+        lease,
+        paths: ['registry.json'],
+      });
+
       return { removed: true, registryRevision: mutation.registryRevision };
     });
   }
@@ -328,11 +338,11 @@ export class AtlasPublishService {
       } else if (retryingAfterMutation || storage.verifyDelivery) {
         await config?.invalidate?.(['registry.json']);
       }
-      if (storage.verifyDelivery) {
-        await lease.assertHeld();
-        await storage.verifyDelivery(['registry.json']);
-        await lease.assertHeld();
-      }
+      await verifyDeliveryWhileHeld({
+        storage,
+        lease,
+        paths: ['registry.json'],
+      });
       const removedGenerations = await pruneUnreferencedPreviewGenerations({
         storage,
         lease,
@@ -368,9 +378,7 @@ export class AtlasPublishService {
         immutable.manifest.path,
       ];
       await config?.invalidate?.(artifactPaths);
-      await lease.assertHeld();
-      await storage.verifyDelivery(artifactPaths);
-      await lease.assertHeld();
+      await verifyDeliveryWhileHeld({ storage, lease, paths: artifactPaths });
     }
     if (mutation.changed) {
       this.reportProgress('Updating registry.json and configured caches...');
@@ -383,9 +391,11 @@ export class AtlasPublishService {
     }
     if (storage.verifyDelivery) {
       await config?.invalidate?.(['registry.json']);
-      await lease.assertHeld();
-      await storage.verifyDelivery(['registry.json']);
-      await lease.assertHeld();
+      await verifyDeliveryWhileHeld({
+        storage,
+        lease,
+        paths: ['registry.json'],
+      });
     } else if (mutation.changed) {
       await config?.invalidate?.(['registry.json']);
     }
@@ -502,7 +512,8 @@ function artifactPrefix(
   const collection = manifest.kind === 'app-artifact' ? 'apps' : 'hosts';
   if (manifest.release)
     return `${collection}/${manifest.id}/${manifest.release.version}`;
-  const digest = createHash('sha256').update(bytes).digest('hex');
+  const digest = sha256Digest(bytes).slice('sha256:'.length);
+
   return `${collection}/${manifest.id}/previews/${manifest.preview!.number}/${digest}`;
 }
 
@@ -529,7 +540,12 @@ async function createAndVerify(
     if (!bytes || !metadata) {
       throw new Error(`Published object ${file.path} is missing.`);
     }
-    assertPayload(file.path, bytes, digest(file.bytes), file.bytes.byteLength);
+    assertPayload(
+      file.path,
+      bytes,
+      sha256Digest(file.bytes),
+      file.bytes.byteLength,
+    );
     assertMetadata(file.path, metadata, file.metadata);
   }
 }
@@ -559,7 +575,11 @@ async function createImmutable(
 
     const existing = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
-    if (existing && metadata && digest(existing) === digest(file.bytes)) {
+    if (
+      existing &&
+      metadata &&
+      sha256Digest(existing) === sha256Digest(file.bytes)
+    ) {
       assertMetadata(file.path, metadata, file.metadata);
       return;
     }
@@ -585,7 +605,7 @@ async function writeRegistry(
     versionToken ? { versionToken } : { createOnly: true },
   );
   const stored = await storage.read('registry.json');
-  if (!stored || digest(stored) !== digest(bytes)) {
+  if (!stored || sha256Digest(stored) !== sha256Digest(bytes)) {
     throw new Error('Atlas could not verify registry.json after write.');
   }
 }
@@ -704,8 +724,7 @@ function publicRegistryRoot(args: CliArguments): string {
     throw new Error('--registry-url or ATLAS_REGISTRY_URL is required.');
   }
   const url = new URL(value);
-  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
+  if (!isSecureOrLoopbackUrl(url)) {
     throw new Error(
       'Atlas public registry URL must use HTTPS outside loopback.',
     );
@@ -713,19 +732,8 @@ function publicRegistryRoot(args: CliArguments): string {
   if (url.pathname.endsWith('/registry.json')) {
     url.pathname = url.pathname.slice(0, -'registry.json'.length);
   }
-  return url.href.replace(/\/$/u, '');
-}
 
-async function withPublicationLease<T>(
-  storage: AtlasPublicationStorage,
-  operation: (lease: AtlasPublicationLease) => Promise<T>,
-): Promise<T> {
-  const lease = await storage.acquireLock(publicationOwner());
-  try {
-    return await operation(lease);
-  } finally {
-    await lease.release();
-  }
+  return trimTrailingSlash(url.href);
 }
 
 function assertPayload(
@@ -734,7 +742,10 @@ function assertPayload(
   expectedDigest: string,
   expectedSize: number,
 ): void {
-  if (bytes.byteLength !== expectedSize || digest(bytes) !== expectedDigest) {
+  if (
+    bytes.byteLength !== expectedSize ||
+    sha256Digest(bytes) !== expectedDigest
+  ) {
     throw new Error(`Atlas payload ${path} changed after manifest generation.`);
   }
 }
@@ -750,12 +761,4 @@ function assertMetadata(
   ) {
     throw new Error(`Atlas object ${path} has unexpected HTTP metadata.`);
   }
-}
-
-function digest(bytes: Uint8Array): `sha256:${string}` {
-  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-}
-
-function publicationOwner(): string {
-  return `atlas:${process.pid}:${Date.now()}`;
 }

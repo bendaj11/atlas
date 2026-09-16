@@ -1,10 +1,11 @@
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
   AtlasProject,
   AtlasWorkspace,
 } from '../workspace/service/workspace.js';
 import { defaultDevServerPort } from '../workspace/service/workspace.js';
+import { readTextFile } from '../shared/fs/fs.js';
+import { isRecord } from '../shared/records/records.js';
 
 type ProjectType = 'host' | 'app';
 
@@ -51,7 +52,7 @@ async function jsonDevServerPorts(
 }
 
 async function viteDevServerPorts(path: string): Promise<number[]> {
-  const source = await readText(path);
+  const source = await readTextFile(path);
   const match = source?.match(VITE_PORT);
   return match ? validPort(match[1]) : [];
 }
@@ -64,7 +65,7 @@ function targetPorts(project: Record<string, unknown>): number[] {
 async function readJson(
   path: string,
 ): Promise<Record<string, unknown> | undefined> {
-  const source = await readText(path);
+  const source = await readTextFile(path);
   if (!source) return undefined;
   try {
     return asRecord(JSON.parse(source));
@@ -73,18 +74,8 @@ async function readJson(
   }
 }
 
-async function readText(path: string): Promise<string | undefined> {
-  try {
-    return await readFile(path, 'utf8');
-  } catch {
-    return undefined;
-  }
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return isRecord(value) ? value : {};
 }
 
 function recordValues(value: unknown): Record<string, unknown>[] {

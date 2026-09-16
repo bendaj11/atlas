@@ -1,9 +1,11 @@
-import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import ts from 'typescript';
 import { CliArguments } from '../cli/arguments.js';
+import { exists } from '../shared/fs/fs.js';
+import { formatTypeScriptDiagnostics } from '../build/config-compiler/config-compiler.js';
 import {
   isPublicationStorage,
   type AtlasPublicationStorageSource,
@@ -45,7 +47,7 @@ export async function loadAtlasRegistryConfig(
 ): Promise<AtlasRegistryConfig | undefined> {
   const explicit = args.flag('registry-config');
   const path = resolve(workingDirectory, explicit ?? 'atlas.registry.ts');
-  if (!(await configExists(path, Boolean(explicit)))) return undefined;
+  if (!explicit && !(await exists(path))) return undefined;
   const compiled = await compileConfig(path);
   try {
     const loaded = (await import(
@@ -59,17 +61,6 @@ export async function loadAtlasRegistryConfig(
     return loaded.default;
   } finally {
     await rm(compiled.directory, { recursive: true, force: true });
-  }
-}
-
-async function configExists(path: string, required: boolean): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch (error) {
-    if (!required && isNodeError(error) && error.code === 'ENOENT')
-      return false;
-    throw error;
   }
 }
 
@@ -99,13 +90,7 @@ async function compileConfig(path: string): Promise<{
   ].filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
   if (result.emitSkipped || diagnostics.length) {
     await rm(directory, { recursive: true, force: true });
-    throw new Error(
-      ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-        getCanonicalFileName: (fileName) => fileName,
-        getCurrentDirectory: () => dirname(path),
-        getNewLine: () => '\n',
-      }),
-    );
+    throw new Error(formatTypeScriptDiagnostics(diagnostics, dirname(path)));
   }
   await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');
   return {
@@ -131,8 +116,4 @@ function isRegistryConfig(value: unknown): value is AtlasRegistryConfig {
       (Array.isArray(config.hostUrls) &&
         config.hostUrls.every((url) => typeof url === 'string')))
   );
-}
-
-function isNodeError(error: unknown): error is NodeJS.ErrnoException {
-  return typeof error === 'object' && error !== null && 'code' in error;
 }

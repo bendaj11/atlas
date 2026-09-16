@@ -5,9 +5,9 @@ import {
   type CommandHelp,
   type HelpEntry,
 } from './content.js';
+import { COMMAND_ALIASES } from '../cli/arguments.js';
 
 const HELP_FLAGS = new Set(['--help', '-h']);
-const COMMAND_ALIASES: Readonly<Record<string, string>> = { g: 'generate' };
 const GENERATOR_TYPES = new Set(['host', 'app', 'widget']);
 
 export function requestedHelpTopic(

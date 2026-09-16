@@ -3,6 +3,10 @@ import type { AngularStylesheetFormat } from '@atlas/generators';
 
 export type SupportedFramework = Exclude<AtlasFramework, 'vue'>;
 
+export const COMMAND_ALIASES: Readonly<Record<string, string>> = {
+  g: 'generate',
+};
+
 export class CliArguments {
   constructor(readonly values: readonly string[]) {}
 

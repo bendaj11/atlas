@@ -1,6 +1,7 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import { assertManifestDescriptor, assertReleaseVersion } from '@atlas/schema';
 import { registryRevision } from '../revision/registry-revision.js';
+import { isRecord } from '../../../shared/records/records.js';
 
 export function assertStaticRegistry(
   value: unknown,
@@ -116,8 +117,4 @@ function assertPreviewNumber(value: string, subject: string): void {
       `Atlas registry ${subject}.${value} is not a preview number.`,
     );
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

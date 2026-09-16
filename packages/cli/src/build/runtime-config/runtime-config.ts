@@ -4,6 +4,7 @@ import type {
   AtlasHostRuntimeConfig,
 } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
+import { isLoopbackUrl, trimTrailingSlash } from '../../shared/url/url.js';
 
 const DEFAULT_LOCAL_REGISTRY_URL = 'http://localhost:4400';
 
@@ -35,7 +36,7 @@ function resolveRuntimeEnvironment(
     assertSafeEnvironment(value);
     return value;
   }
-  if (isLoopbackUrl(new URL(registryUrl))) return 'development';
+  if (isLocalHttpUrl(new URL(registryUrl))) return 'development';
   throw new Error(
     '--environment or ATLAS_ENVIRONMENT is required for a deployed host runtime.',
   );
@@ -51,20 +52,20 @@ function assertSafeEnvironment(value: string): void {
 
 export function resolveRegistryUrl(args: CliArguments): string | undefined {
   const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
-  return value ? trimSlash(value) : undefined;
+  return value ? trimTrailingSlash(value) : undefined;
 }
 
 function resolveEnvironmentRegistryUrl(args: CliArguments): string | undefined {
   const value =
     args.flag('environment-registry-url') ??
     process.env.ATLAS_ENVIRONMENT_REGISTRY_URL;
-  return value ? trimSlash(value) : undefined;
+  return value ? trimTrailingSlash(value) : undefined;
 }
 
-function isLoopbackUrl(url: URL): boolean {
+function isLocalHttpUrl(url: URL): boolean {
   return (
     (url.protocol === 'http:' || url.protocol === 'https:') &&
-    ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    isLoopbackUrl(url)
   );
 }
 
@@ -82,8 +83,4 @@ function assertHostConfig(
       `Atlas bootstrap build expects a host config for "${config.id}", but received an app config.`,
     );
   }
-}
-
-function trimSlash(value: string): string {
-  return value.replace(/\/$/, '');
 }

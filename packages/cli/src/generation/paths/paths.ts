@@ -1,6 +1,7 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type { AtlasWorkspace } from '../../workspace/service/workspace.js';
+import { isMissingPathError } from '../../shared/fs/fs.js';
 
 export function workspaceLabel(kind: AtlasWorkspace['kind']): string {
   if (kind === 'nx') return 'an Nx workspace';
@@ -47,17 +48,7 @@ export async function assertWritable(
     await access(path);
     throw new Error(message);
   } catch (error) {
-    if (!isNodeError(error) || error.code !== 'ENOENT') throw error;
-  }
-}
-
-export async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch (error) {
-    if (isNodeError(error) && error.code === 'ENOENT') return false;
-    throw error;
+    if (!isMissingPathError(error)) throw error;
   }
 }
 
@@ -84,8 +75,4 @@ export function resolveContainedPath(root: string, path: string): string {
     throw new Error(`Generated path "${path}" escapes its target directory.`);
   }
   return target;
-}
-
-export function isNodeError(error: unknown): error is NodeJS.ErrnoException {
-  return typeof error === 'object' && error !== null && 'code' in error;
 }

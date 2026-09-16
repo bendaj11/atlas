@@ -19,7 +19,6 @@ import {
 import {
   ensureAtlasGeneratedFilesIgnored,
   existingPackageName,
-  exists,
   removeDelegatedReactViteConfigs,
   takeOverAppSource,
   writeGenerated,
@@ -45,7 +44,9 @@ import {
   workspaceLabel,
 } from '../paths/paths.js';
 import { ui, type AtlasPrompter } from '../../cli/ui/ui.js';
-import { readJsonFile, writeJsonFile } from '../json.js';
+import { readJsonFile, writeJsonFile } from '../../shared/fs/fs.js';
+import { isRecord } from '../../shared/records/records.js';
+import { exists } from '../../shared/fs/fs.js';
 import {
   defaultDevServerPort,
   type AtlasNxProjectType,
@@ -564,10 +565,6 @@ function turboTasks(
   if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];
   if (isRecord(turbo.pipeline)) return ['pipeline', turbo.pipeline];
   return ['tasks', {}];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 async function readWidgetApp(

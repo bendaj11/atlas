@@ -10,6 +10,8 @@ import {
   type S3ClientConfig,
 } from '@aws-sdk/client-s3';
 import { publicationContentType } from '../publication-metadata/publication-metadata.js';
+import { httpStatusOf } from '../../shared/errors/errors.js';
+import { wait } from '../../shared/timers/timers.js';
 import type { CliArguments } from '../../cli/arguments.js';
 import {
   ArtifactoryPublicationStorage,
@@ -217,15 +219,19 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     const objects: AtlasPublicationListedObject[] = [];
     let continuationToken: string | undefined;
     do {
-      const response = await this.client.send(
-        new ListObjectsV2Command({
-          Bucket: this.options.bucket,
-          Prefix: this.objectKey(prefix),
-          ...(continuationToken
-            ? { ContinuationToken: continuationToken }
-            : {}),
-        }),
-      );
+      const response = await this.client
+        .send(
+          new ListObjectsV2Command({
+            Bucket: this.options.bucket,
+            Prefix: this.objectKey(prefix),
+            ...(continuationToken
+              ? { ContinuationToken: continuationToken }
+              : {}),
+          }),
+        )
+        .catch((error: unknown) => {
+          throw storageError(`list ${prefix}`, error);
+        });
       for (const object of response.Contents ?? []) {
         if (!object.Key || object.Size === undefined) continue;
         objects.push({
@@ -483,10 +489,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   }
 
   private objectInput(path: string): { Bucket: string; Key: string } {
-    return {
-      Bucket: this.options.bucket,
-      Key: [this.prefix, path].filter(Boolean).join('/'),
-    };
+    return { Bucket: this.options.bucket, Key: this.objectKey(path) };
   }
 
   private objectKey(path: string): string {
@@ -711,27 +714,19 @@ function requiredEtag(etag: string | undefined): string {
 
 function isMissingObject(error: unknown): boolean {
   return (
-    errorStatus(error) === 404 ||
+    httpStatusOf(error) === 404 ||
     errorName(error) === 'NoSuchKey' ||
     errorName(error) === 'NotFound'
   );
 }
 
 function isPreconditionFailure(error: unknown): boolean {
-  const status = errorStatus(error);
+  const status = httpStatusOf(error);
   return (
     status === 409 ||
     status === 412 ||
     errorName(error) === 'PreconditionFailed'
   );
-}
-
-function errorStatus(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null || !('$metadata' in error))
-    return undefined;
-  const metadata = (error as { $metadata?: { httpStatusCode?: number } })
-    .$metadata;
-  return metadata?.httpStatusCode;
 }
 
 function errorName(error: unknown): string | undefined {
@@ -746,10 +741,6 @@ function storageError(operation: string, cause: unknown): Error {
 
 function randomBackoffMs(): number {
   return 200 + Math.floor(Math.random() * 300);
-}
-
-function wait(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 export function isPublicationStorage(

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { AtlasStaticRegistry } from '@atlas/schema';
+import { isRecord } from '../../../shared/records/records.js';
 
 export function registryRevision(
   registry: AtlasStaticRegistry | undefined,
@@ -26,8 +27,4 @@ function sortJson(value: unknown): unknown {
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, entry]) => [key, sortJson(entry)]),
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

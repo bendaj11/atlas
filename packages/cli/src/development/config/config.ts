@@ -1,11 +1,10 @@
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
+import type { AtlasConfig } from '@atlas/schema';
+import { readJsonFile, readTextFile } from '../../shared/fs/fs.js';
+import { asRecord } from '../../shared/records/records.js';
+import { isHostConfig } from '../../shared/atlas-config/atlas-config.js';
 
-export function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
-  if (config.type) return config.type === 'host';
-  return 'resourcesTimeoutMs' in config || 'resourcesRetryCount' in config;
-}
+export { isHostConfig };
 
 export function configuredHostIds(config: AtlasConfig): string[] {
   if (isHostConfig(config)) return [];
@@ -88,8 +87,7 @@ export async function readAngularProxyConfigPath(
     join(projectRoot, 'angular.json'),
   );
   const projects = asObject(workspace?.projects);
-  const project =
-    objectValue(projects[projectName]) ?? firstObjectValue(projects);
+  const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
   const targets = asObject(project?.architect ?? project?.targets);
   return (
     readTargetProxyConfig(targets['serve-original']) ??
@@ -111,8 +109,7 @@ function readAngularProjectPort(
   projectName: string,
 ): number | undefined {
   const projects = asObject(workspace?.projects);
-  const project =
-    objectValue(projects[projectName]) ?? firstObjectValue(projects);
+  const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
   return readPortFromTargets(asObject(project?.architect ?? project?.targets));
 }
 
@@ -139,15 +136,11 @@ function readTargetProxyConfig(target: unknown): string | undefined {
 async function readViteDevServerPort(
   projectRoot: string,
 ): Promise<number | undefined> {
-  try {
-    const source = await readFile(join(projectRoot, 'vite.config.ts'), 'utf8');
-    const match = /\bserver\s*:\s*\{[^}]*\bport\s*:\s*(\d{1,5})\b/s.exec(
-      source,
-    );
-    return match?.[1] ? parsePort(match[1]) : undefined;
-  } catch {
-    return undefined;
-  }
+  const source = await readTextFile(join(projectRoot, 'vite.config.ts'));
+  if (source === undefined) return undefined;
+  const match = /\bserver\s*:\s*\{[^}]*\bport\s*:\s*(\d{1,5})\b/s.exec(source);
+
+  return match?.[1] ? parsePort(match[1]) : undefined;
 }
 
 function parsePort(value: string | number): number | undefined {
@@ -157,31 +150,14 @@ function parsePort(value: string | number): number | undefined {
     : undefined;
 }
 
-function objectValue(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 function firstObjectValue(
   value: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   return Object.values(value).find(
-    (entry): entry is Record<string, unknown> =>
-      objectValue(entry) !== undefined,
+    (entry): entry is Record<string, unknown> => asRecord(entry) !== undefined,
   );
 }
 
-async function readJsonFile<T>(path: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(path, 'utf8')) as T;
-  } catch {
-    return undefined;
-  }
-}
-
 function asObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return asRecord(value) ?? {};
 }

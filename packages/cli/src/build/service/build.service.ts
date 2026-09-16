@@ -20,8 +20,6 @@ import {
   type AtlasHostArtifactManifest,
   type AtlasHostManifest,
   type AtlasManifest,
-  type AtlasAppConfig,
-  type AtlasHostConfig,
   type AtlasPayloadFileDescriptor,
   type AtlasPublishedArtifactManifest,
   type AtlasStylesheet,
@@ -31,6 +29,18 @@ import {
 import ts from 'typescript';
 import { CliArguments } from '../../cli/arguments.js';
 import { compileAtlasConfig } from '../config-compiler/config-compiler.js';
+import {
+  assertAppConfig,
+  isHostConfig,
+} from '../../shared/atlas-config/atlas-config.js';
+import { isNodeError } from '../../shared/fs/fs.js';
+import { trimTrailingSlash } from '../../shared/url/url.js';
+import {
+  integrityFromDigest,
+  sha256Digest,
+  sha256Integrity,
+  type Sha256Digest,
+} from '../../shared/digest/digest.js';
 import { publicationContentType } from '../../publication/publication-metadata/publication-metadata.js';
 import type {
   AtlasProject,
@@ -115,7 +125,9 @@ export class AtlasBuildService {
       ? await hashArtifactDirectory(artifactRoot)
       : 'local';
     const buildId = this.args.flag('build-id') ?? artifactDigest.slice(0, 12);
-    const baseUrl = trimSlash(options.baseUrl ?? this.registryUrl(channel));
+    const baseUrl = trimTrailingSlash(
+      options.baseUrl ?? this.registryUrl(channel),
+    );
     const remoteEntryUrl =
       channel === 'local'
         ? `${baseUrl}/${entryPath}`
@@ -136,9 +148,7 @@ export class AtlasBuildService {
     });
     const integrity =
       artifactRoot && channel !== 'local'
-        ? `sha256-${createHash('sha256')
-            .update(await readFile(join(artifactRoot, entryPath)))
-            .digest('base64')}`
+        ? sha256Integrity(await readFile(join(artifactRoot, entryPath)))
         : undefined;
     const manifest = createManifestFromConfig({
       config,
@@ -168,7 +178,7 @@ export class AtlasBuildService {
       throw new Error(`Atlas dev expected "${projectName}" to be a host.`);
     const styles = await discoverStylesheets({
       artifactRoot: project.root,
-      artifactBaseUrl: trimSlash(baseUrl),
+      artifactBaseUrl: trimTrailingSlash(baseUrl),
       framework: config.framework,
       channel: 'local',
     });
@@ -181,7 +191,7 @@ export class AtlasBuildService {
       buildId: 'local',
       channel: 'local',
       framework: config.framework,
-      remoteEntryUrl: `${trimSlash(baseUrl)}/remoteEntry.json`,
+      remoteEntryUrl: `${trimTrailingSlash(baseUrl)}/remoteEntry.json`,
       exposes: { entry: './host' },
       requiredLoaderApiVersion: '^1.0.0',
       createdAt: buildTimestamp(),
@@ -213,7 +223,7 @@ export class AtlasBuildService {
       .filter(({ role }) => role === 'stylesheet')
       .map(({ path, digest }) => ({
         path,
-        integrity: sha256Integrity(digest),
+        integrity: integrityFromDigest(digest as Sha256Digest),
       }));
     const base = {
       schemaVersion: '2' as const,
@@ -340,7 +350,7 @@ async function discoverStylesheets(options: {
     const bytes = await readFile(join(artifactRoot, relativePath));
     stylesheets.push({
       href: `${artifactBaseUrl}/${relativePath.split('\\').join('/')}`,
-      integrity: `sha256-${createHash('sha256').update(bytes).digest('base64')}`,
+      integrity: sha256Integrity(bytes),
     });
   }
   return stylesheets;
@@ -571,7 +581,7 @@ async function payloadDescriptors(
       const bytes = await readFile(join(root, path));
       return {
         path: normalized,
-        digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+        digest: sha256Digest(bytes),
         size: bytes.byteLength,
         mediaType: publicationContentType(normalized),
         cacheControl: 'public, max-age=31536000, immutable',
@@ -607,10 +617,6 @@ function normalizeArtifactPath(path: string): string {
   return normalized;
 }
 
-function sha256Integrity(digest: `sha256:${string}`): string {
-  return `sha256-${Buffer.from(digest.slice('sha256:'.length), 'hex').toString('base64')}`;
-}
-
 function withoutUndefined<T extends object>(value: T): T {
   return Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined),
@@ -624,25 +630,6 @@ function isAtlasConfig(value: unknown): value is AtlasConfig {
     'id' in value &&
     'framework' in value
   );
-}
-function isHostConfig(config: AtlasConfig): config is AtlasHostConfig {
-  if (config.type) return config.type === 'host';
-  return 'resourcesTimeoutMs' in config || 'resourcesRetryCount' in config;
-}
-function assertAppConfig(config: AtlasConfig): AtlasAppConfig {
-  if (isHostConfig(config)) {
-    throw new Error(
-      `Atlas build expects an app config for "${config.id}", but received a host config.`,
-    );
-  }
-  return config;
-}
-function isNodeError(error: unknown): error is NodeJS.ErrnoException {
-  return typeof error === 'object' && error !== null && 'code' in error;
-}
-
-function trimSlash(value: string): string {
-  return value.replace(/\/$/, '');
 }
 function optionalNumber(value: string | undefined): number | undefined {
   if (!value) return undefined;

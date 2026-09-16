@@ -1,4 +1,4 @@
-import { access, readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import type { ChildProcess } from 'node:child_process';
 import { ATLAS_NX_TAG } from '../../generation/nx/nx.js';
@@ -8,6 +8,7 @@ import {
   type ProcessCommand,
 } from '../../cli/process/process.js';
 import type { AngularStylesheetFormat } from '@atlas/generators';
+import { exists, readJsonFile } from '../../shared/fs/fs.js';
 
 export type AtlasWorkspaceKind = 'nx' | 'turbo' | 'workspace' | 'standalone';
 export type AtlasPackageManager = 'yarn' | 'pnpm' | 'npm';
@@ -276,7 +277,7 @@ async function findWorkspaceRoot(start: string): Promise<string> {
 async function workspaceKind(root: string): Promise<AtlasWorkspaceKind> {
   if (await exists(join(root, 'nx.json'))) return 'nx';
   if (await exists(join(root, 'turbo.json'))) return 'turbo';
-  const packageJson = await readJson<{ workspaces?: unknown }>(
+  const packageJson = await readJsonFile<{ workspaces?: unknown }>(
     join(root, 'package.json'),
   );
   return packageJson?.workspaces ||
@@ -288,7 +289,7 @@ async function workspaceKind(root: string): Promise<AtlasWorkspaceKind> {
 async function detectPackageManager(
   root: string,
 ): Promise<AtlasPackageManager> {
-  const packageJson = await readJson<{ packageManager?: string }>(
+  const packageJson = await readJsonFile<{ packageManager?: string }>(
     join(root, 'package.json'),
   );
   const declared = packageJson?.packageManager?.split('@')[0];
@@ -424,16 +425,16 @@ async function readProject(
   requestedName: string,
   workspaceRoot: string,
 ): Promise<AtlasProject | undefined> {
-  const packageJson = await readJson<{ name?: string; version?: string }>(
+  const packageJson = await readJsonFile<{ name?: string; version?: string }>(
     join(root, 'package.json'),
   );
   const workspacePackageJson =
     root === workspaceRoot
       ? packageJson
-      : await readJson<{ version?: string }>(
+      : await readJsonFile<{ version?: string }>(
           join(workspaceRoot, 'package.json'),
         );
-  const nxProject = await readJson<NxProjectConfiguration>(
+  const nxProject = await readJsonFile<NxProjectConfiguration>(
     join(root, 'project.json'),
   );
   const packageName = packageJson?.name ?? nxProject?.name;
@@ -705,7 +706,7 @@ function quietCommand(command: ProcessCommand): ProcessCommand {
 }
 
 async function packageScripts(root: string): Promise<Record<string, unknown>> {
-  const packageJson = await readJson<{ scripts?: Record<string, unknown> }>(
+  const packageJson = await readJsonFile<{ scripts?: Record<string, unknown> }>(
     join(root, 'package.json'),
   );
   return packageJson?.scripts ?? {};
@@ -730,7 +731,7 @@ async function detectGenerationBase(
 }
 
 async function workspacePatterns(root: string): Promise<string[]> {
-  const packageJson = await readJson<{
+  const packageJson = await readJsonFile<{
     workspaces?: string[] | { packages?: string[] };
   }>(join(root, 'package.json'));
   const declared = Array.isArray(packageJson?.workspaces)
@@ -775,7 +776,7 @@ async function packageIsInstalled(
     )
   )
     return true;
-  const packageJson = await readJson<Record<string, unknown>>(
+  const packageJson = await readJsonFile<Record<string, unknown>>(
     join(root, 'package.json'),
   );
   return ['dependencies', 'devDependencies', 'optionalDependencies'].some(
@@ -796,25 +797,8 @@ async function hasAny(root: string, names: string[]): Promise<boolean> {
 }
 
 async function declaresWorkspaces(root: string): Promise<boolean> {
-  const packageJson = await readJson<{ workspaces?: unknown }>(
+  const packageJson = await readJsonFile<{ workspaces?: unknown }>(
     join(root, 'package.json'),
   );
   return packageJson?.workspaces !== undefined;
-}
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(path: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(path, 'utf8')) as T;
-  } catch {
-    return undefined;
-  }
 }

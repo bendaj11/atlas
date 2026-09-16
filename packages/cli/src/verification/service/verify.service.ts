@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import {
   assertAtlasManifest,
   assertAtlasHostManifest,
@@ -18,6 +17,9 @@ import {
   isRetryableHttpStatus,
   withExponentialRetry,
 } from '../../cli/retry/retry.js';
+import { sha256Integrity } from '../../shared/digest/digest.js';
+import { errorMessage } from '../../shared/errors/errors.js';
+import { asRecord, nonEmptyString } from '../../shared/records/records.js';
 
 type AtlasVerificationStatus = 'pass' | 'warning' | 'failure';
 
@@ -593,7 +595,7 @@ function verifyIntegrity(
       );
     return;
   }
-  const actual = `sha256-${createHash('sha256').update(bytes).digest('base64')}`;
+  const actual = sha256Integrity(bytes);
   if (actual === asset.integrity)
     pass(context, `${asset.subject} integrity`, 'SHA-256 matches.');
   else
@@ -700,16 +702,6 @@ interface FederationMetadata {
   shared: Array<{ packageName: string; outFileName: string }>;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-function nonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0;
-}
-
 function absoluteHttpUrl(value: string, flag: string): URL {
   let url: URL;
   try {
@@ -763,8 +755,4 @@ function fail(
   message: string,
 ): void {
   context.checks.push({ status: 'failure', subject, message });
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

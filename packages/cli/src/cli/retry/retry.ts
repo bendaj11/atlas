@@ -1,3 +1,6 @@
+import { errorCauseOf, httpStatusOf } from '../../shared/errors/errors.js';
+import { wait } from '../../shared/timers/timers.js';
+
 const MAX_ATTEMPTS = 4;
 const INITIAL_DELAY_MS = 250;
 
@@ -40,17 +43,8 @@ export function isRetryableHttpStatus(status: number): boolean {
 
 function statusCode(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
-  if ('$metadata' in error) {
-    const status = (error as { $metadata?: { httpStatusCode?: unknown } })
-      .$metadata?.httpStatusCode;
-    if (typeof status === 'number') return status;
-  }
-  if ('status' in error) {
-    const status = (error as { status?: unknown }).status;
-    if (typeof status === 'number') return status;
-  }
-  if ('cause' in error) return statusCode((error as { cause?: unknown }).cause);
-  return undefined;
+
+  return httpStatusOf(error) ?? statusCode(errorCauseOf(error));
 }
 
 function transientNetworkCode(error: unknown): boolean {
@@ -67,11 +61,6 @@ function transientNetworkCode(error: unknown): boolean {
   ) {
     return true;
   }
-  return 'cause' in error
-    ? transientNetworkCode((error as { cause?: unknown }).cause)
-    : false;
-}
 
-function wait(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  return transientNetworkCode(errorCauseOf(error));
 }

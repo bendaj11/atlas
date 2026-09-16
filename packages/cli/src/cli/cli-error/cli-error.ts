@@ -1,6 +1,6 @@
 import { AtlasError, errorSummary } from '@atlas/schema';
-
-const COMMAND_ALIASES: Readonly<Record<string, string>> = { g: 'generate' };
+import { COMMAND_ALIASES } from '../arguments.js';
+import { httpStatusOf } from '../../shared/errors/errors.js';
 
 export function createCliError(
   command: string | undefined,
@@ -42,18 +42,11 @@ function errorCauses(error: Error): readonly string[] {
 
 function errorCauseMessage(cause: unknown): string {
   if (cause instanceof Error) {
-    const status = errorStatus(cause);
+    const status = httpStatusOf(cause);
     return `${cause.name}: ${cause.message}${status ? ` (HTTP ${status})` : ''}`;
   }
 
   return String(cause);
-}
-
-function errorStatus(error: Error): number | undefined {
-  if (!('$metadata' in error)) return undefined;
-  const metadata = (error as { $metadata?: { httpStatusCode?: number } })
-    .$metadata;
-  return metadata?.httpStatusCode;
 }
 
 function cliSummary(command: string | undefined, summary: string): string {

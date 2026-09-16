@@ -1,11 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import type { AtlasGeneratedFile } from '@atlas/generators';
-import {
-  assertWritable,
-  exists,
-  resolveContainedPath,
-} from '../paths/paths.js';
+import { assertWritable, resolveContainedPath } from '../paths/paths.js';
 
 const ATLAS_IGNORE_PATTERN = '.atlas/';
 const EQUIVALENT_ATLAS_IGNORE_PATTERNS = new Set([
@@ -142,5 +138,3 @@ export async function removeDelegatedReactViteConfigs(
 export function addUniqueString(values: unknown[], value: string): unknown[] {
   return values.includes(value) ? values : [...values, value];
 }
-
-export { exists };

@@ -1,10 +1,19 @@
-import { access, mkdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import ts from 'typescript';
 import type {
   AtlasProject,
   AtlasWorkspace,
 } from '../../workspace/service/workspace.js';
+import { exists } from '../../shared/fs/fs.js';
+
+export function compiledAtlasConfigCandidates(projectRoot: string): string[] {
+  return [
+    join(projectRoot, '.atlas', 'atlas.config.js'),
+    join(projectRoot, 'dist', 'atlas.config.js'),
+    join(projectRoot, 'atlas.config.js'),
+  ];
+}
 
 export async function compileAtlasConfig(
   workspace: AtlasWorkspace,
@@ -24,7 +33,8 @@ export async function compileAtlasConfig(
 async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   const configPath = findCompilerConfig(projectRoot);
   const raw = ts.readConfigFile(configPath, ts.sys.readFile);
-  if (raw.error) throw new Error(formatDiagnostics([raw.error], projectRoot));
+  if (raw.error)
+    throw new Error(formatTypeScriptDiagnostics([raw.error], projectRoot));
 
   const parsed = ts.parseJsonConfigFileContent(raw.config, ts.sys, projectRoot);
   const atlasConfigPath = join(projectRoot, 'atlas.config.ts');
@@ -57,7 +67,10 @@ async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   );
   if (errors.length > 0 || emitResult.emitSkipped)
     throw new Error(
-      formatDiagnostics(errors.length > 0 ? errors : diagnostics, projectRoot),
+      formatTypeScriptDiagnostics(
+        errors.length > 0 ? errors : diagnostics,
+        projectRoot,
+      ),
     );
 }
 
@@ -72,7 +85,7 @@ function findCompilerConfig(projectRoot: string): string {
   return config;
 }
 
-function formatDiagnostics(
+export function formatTypeScriptDiagnostics(
   diagnostics: readonly ts.Diagnostic[],
   projectRoot: string,
 ): string {
@@ -86,17 +99,9 @@ function formatDiagnostics(
 async function compiledAtlasConfigExists(
   projectRoot: string,
 ): Promise<boolean> {
-  for (const candidate of [
-    join(projectRoot, '.atlas', 'atlas.config.js'),
-    join(projectRoot, 'dist', 'atlas.config.js'),
-    join(projectRoot, 'atlas.config.js'),
-  ]) {
-    try {
-      await access(candidate);
-      return true;
-    } catch {
-      continue;
-    }
+  for (const candidate of compiledAtlasConfigCandidates(projectRoot)) {
+    if (await exists(candidate)) return true;
   }
+
   return false;
 }

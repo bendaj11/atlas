@@ -1,5 +1,8 @@
 import { extname } from 'node:path';
 
+export const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+export const MUTABLE_CACHE_CONTROL = 'no-cache, max-age=0, must-revalidate';
+
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.avif': 'image/avif',
   '.css': 'text/css; charset=utf-8',
