@@ -68,7 +68,7 @@ export class BootstrapServerDriver {
         throw new Error('Expected bootstrap TCP address.');
       }
 
-      this.response = await fetch(`http://127.0.0.1:${address.port}${path}`);
+      this.response = await fetch(`http://localhost:${address.port}${path}`);
     },
   };
 

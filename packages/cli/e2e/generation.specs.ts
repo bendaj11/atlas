@@ -14,7 +14,7 @@ it('should generate a runnable project when creating a standalone Angular host',
     framework: true,
     buildTarget: `${driver.get.projectName()}:esbuild:production`,
     serveTarget: `${driver.get.projectName()}:serve-original:development`,
-    devCommand: `npx --no-install atlas dev ${driver.get.projectName()}`,
+    devCommand: `atlas dev ${driver.get.projectName()}`,
   });
 });
 
@@ -52,7 +52,7 @@ it('should place the project in the package directory when generating inside a p
     entry: true,
     federation: true,
     detected: true,
-    devCommand: `pnpm exec atlas dev ${driver.get.projectName()}`,
-    publishCommand: `pnpm exec atlas publish ${driver.get.projectName()}`,
+    devCommand: `atlas dev ${driver.get.projectName()}`,
+    publishCommand: `atlas publish ${driver.get.projectName()}`,
   });
 });
