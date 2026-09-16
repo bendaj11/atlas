@@ -1,14 +1,14 @@
 import { useMutation } from '@tanstack/react-query';
-import { useOverrides, useColumbusState } from '../../../state';
+import { useOverrides, useColumbusState } from '../../../../state';
 import {
   isArtifactVersionSupportedByHost,
   artifactVersionFromSelection,
-} from '../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
-import { loadArtifactVersionFromHostTab } from '../../../scripts/host/host-tabs/host-tabs';
+} from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
+import { loadArtifactVersionFromHostTab } from '../../../../scripts/host/host-tabs/host-tabs';
 import type {
   ArtifactConfiguration,
   OverrideSelection,
-} from '../../../types/artifact';
+} from '../../../../types/artifact';
 
 export interface SaveArtifactOverrideMutationOptions {
   configuration: ArtifactConfiguration | undefined;

@@ -11,17 +11,17 @@ type OverrideVersionDropdownProps = ComponentProps<
 >;
 
 export class OverrideVersionDropdownDriver {
-  private versions: ArtifactVersion[] = [];
+  private artifactVersions: ArtifactVersion[] = [];
   private hostId = faker.string.uuid();
   private deployedArtifactVersion: ArtifactVersion | undefined;
-  private disabled = false;
+  private disabled = faker.datatype.boolean();
   private readonly onChange =
     jest.fn<OverrideVersionDropdownProps['onChange']>();
   private baseElement!: Element;
 
   readonly given = {
-    versions: (versions: ArtifactVersion[]): this => {
-      this.versions = versions;
+    artifactVersions: (artifactVersions: ArtifactVersion[]): this => {
+      this.artifactVersions = artifactVersions;
 
       return this;
     },
@@ -30,8 +30,10 @@ export class OverrideVersionDropdownDriver {
 
       return this;
     },
-    deployedArtifactVersion: (manifest: ArtifactVersion | undefined): this => {
-      this.deployedArtifactVersion = manifest;
+    deployedArtifactVersion: (
+      deployedArtifactVersion: ArtifactVersion | undefined,
+    ): this => {
+      this.deployedArtifactVersion = deployedArtifactVersion;
 
       return this;
     },
@@ -48,8 +50,8 @@ export class OverrideVersionDropdownDriver {
         <OverrideVersionDropdown
           dataHook="override-version-dropdown"
           disabled={this.disabled}
-          selectedId=""
-          versions={this.versions}
+          selectedArtifactVersionKey={faker.string.uuid()}
+          artifactVersions={this.artifactVersions}
           hostId={this.hostId}
           deployedArtifactVersion={this.deployedArtifactVersion}
           onChange={this.onChange}
@@ -59,8 +61,10 @@ export class OverrideVersionDropdownDriver {
     opened: async (): Promise<void> => {
       await this.get.dropdown().inputDriver.click();
     },
-    versionChosen: async (version: ArtifactVersion): Promise<void> => {
-      const option = await this.get.option(version);
+    artifactVersionChosen: async (
+      artifactVersion: ArtifactVersion,
+    ): Promise<void> => {
+      const option = await this.get.option(artifactVersion);
       await option.click();
     },
   };
@@ -71,11 +75,13 @@ export class OverrideVersionDropdownDriver {
         wrapper: this.baseElement,
         dataHook: 'override-version-dropdown',
       }),
-    option: async (version: ArtifactVersion) => {
+    option: async (artifactVersion: ArtifactVersion) => {
       const options = await this.get.dropdown().dropdownLayoutDriver.options();
+      const option = options[this.artifactVersions.indexOf(artifactVersion)];
+      if (!option) throw new Error('Option was not rendered.');
 
-      return options[this.versions.indexOf(version)];
+      return option;
     },
-    changeMock: (): OverrideVersionDropdownProps['onChange'] => this.onChange,
+    changeMock: () => this.onChange,
   };
 }

@@ -20,16 +20,16 @@ type OverridesSelectionFormProps = ComponentProps<
   typeof OverridesSelectionForm
 >;
 
-const OVERRIDE_TYPES: OverrideType[] = ['custom', 'production', 'pr'];
-
 export class OverridesSelectionFormDriver {
   private selection: OverrideSelection = {
-    type: faker.helpers.arrayElement(OVERRIDE_TYPES),
+    type: faker.helpers.arrayElement<OverrideType>([
+      'custom',
+      'production',
+      'pr',
+    ]),
     value: faker.string.alphanumeric(8),
   };
-  private configuration: ArtifactConfiguration = anArtifactConfiguration({
-    productionArtifactVersions: [],
-  });
+  private configuration: ArtifactConfiguration = anArtifactConfiguration();
   private readonly onChange =
     jest.fn<OverridesSelectionFormProps['onChange']>();
   private baseElement!: Element;
@@ -72,24 +72,26 @@ export class OverridesSelectionFormDriver {
         />,
       ).baseElement;
     },
-    typeSelected: async (type: OverrideType): Promise<void> => {
-      await this.get.radio(`override-card-${type}`).click();
+    overrideTypeSelected: async (overrideType: OverrideType): Promise<void> => {
+      await this.get.radio(`override-card-${overrideType}`).click();
     },
     customUrlEntered: async (url: string): Promise<void> => {
       await this.get.customUrlInput().enterText(url);
     },
-    productionVersionChosen: async (
-      version: ArtifactVersion,
+    productionArtifactVersionChosen: async (
+      artifactVersion: ArtifactVersion,
     ): Promise<void> => {
-      await this.versionChosen(
+      await this.artifactVersionChosen(
         this.get.dropdown('override-version-production'),
-        this.configuration.productionArtifactVersions.indexOf(version),
+        this.configuration.productionArtifactVersions.indexOf(artifactVersion),
       );
     },
-    prVersionChosen: async (version: ArtifactVersion): Promise<void> => {
-      await this.versionChosen(
+    prArtifactVersionChosen: async (
+      artifactVersion: ArtifactVersion,
+    ): Promise<void> => {
+      await this.artifactVersionChosen(
         this.get.dropdown('override-version-pr'),
-        this.configuration.prArtifactVersions.indexOf(version),
+        this.configuration.prArtifactVersions.indexOf(artifactVersion),
       );
     },
   };
@@ -104,15 +106,18 @@ export class OverridesSelectionFormDriver {
       }),
     dropdown: (dataHook: string) =>
       DropdownTestkit({ wrapper: this.baseElement, dataHook }),
-    changeMock: (): OverridesSelectionFormProps['onChange'] => this.onChange,
+    changeMock: () => this.onChange,
   };
 
-  private async versionChosen(
+  private async artifactVersionChosen(
     dropdown: ReturnType<typeof DropdownTestkit>,
     index: number,
   ): Promise<void> {
     await dropdown.inputDriver.click();
     const options = await dropdown.dropdownLayoutDriver.options();
-    await options[index]!.click();
+    const option = options[index];
+    if (!option) throw new Error('Option was not rendered.');
+
+    await option.click();
   }
 }

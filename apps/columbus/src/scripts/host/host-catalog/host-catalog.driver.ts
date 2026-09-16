@@ -2,10 +2,7 @@ import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 import type { HostData } from '../../../types/host-data';
 import { aHostData } from '../../../types/host-data.testkit';
-import {
-  aHostArtifactVersion,
-  anAppArtifactVersion,
-} from '../../../types/artifact-version.testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import {
   aPublishedArtifact,
   type PublishedArtifact,
@@ -36,11 +33,9 @@ export class HostCatalogDriver {
   };
   private readonly responses = new Map<string, () => Response>();
   private readonly published = new Map<string, PublishedArtifact>();
-  private readonly host = aPublishedArtifact(
-    aHostArtifactVersion({ id: 'shop' }),
-  );
+  private readonly host = aPublishedArtifact(aHostManifest({ id: 'shop' }));
   private readonly app = aPublishedArtifact(
-    anAppArtifactVersion({ id: 'orders', version: '1.0.0' }),
+    anAppManifest({ id: 'orders', version: '1.0.0' }),
   );
   private catalog: Catalog | undefined;
   private runtimeConfig: RuntimeConfig | undefined;

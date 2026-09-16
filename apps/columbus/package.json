@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {
+    "@atlas/testkit": "workspace:*",
     "@faker-js/faker": "^10.5.0",
     "@file-services/node": "^9.4.1",
     "@stylable/core": "^6.1.1",

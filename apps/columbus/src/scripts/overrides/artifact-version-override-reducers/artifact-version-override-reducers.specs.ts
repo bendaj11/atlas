@@ -1,9 +1,9 @@
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { ArtifactVersionOverrideReducersDriver } from './artifact-version-override-reducers.driver';
 
-const ORDERS = anAppArtifactVersion({ id: 'orders' });
-const PREVIEW = anAppArtifactVersion({ id: 'orders', channel: 'pr' });
-const LOCAL = anAppArtifactVersion({ id: 'orders', channel: 'local' });
+const ORDERS = anAppManifest({ id: 'orders' });
+const PREVIEW = anAppManifest({ id: 'orders', channel: 'pr' });
+const LOCAL = anAppManifest({ id: 'orders', channel: 'local' });
 
 describe('saveArtifactVersionOverride', () => {
   let driver: ArtifactVersionOverrideReducersDriver;
@@ -159,7 +159,7 @@ describe('clearAllArtifactVersionOverrides', () => {
       .activeOverride('app:orders', LOCAL)
       .given.disabledOverride(
         'app:cart',
-        anAppArtifactVersion({ id: 'cart', channel: 'local' }),
+        anAppManifest({ id: 'cart', channel: 'local' }),
       )
       .when.allOverridesCleared();
 

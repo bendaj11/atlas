@@ -1,5 +1,5 @@
-import { anArtifact } from '../../../types/artifact.testkit';
-import { aColumbusState } from '../../../types/columbus-state.testkit';
+import { anArtifact } from '../../../../types/artifact.testkit';
+import { aColumbusState } from '../../../../types/columbus-state.testkit';
 import { UseArtifactConfigurationDriver } from './useArtifactConfiguration.driver';
 
 describe('useArtifactConfiguration', () => {

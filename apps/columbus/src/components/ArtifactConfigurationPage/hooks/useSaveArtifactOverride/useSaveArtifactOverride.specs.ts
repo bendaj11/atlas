@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anArtifactConfiguration } from '../../../types/artifact.testkit';
+import { anArtifactConfiguration } from '../../../../types/artifact.testkit';
 import { UseSaveArtifactOverrideDriver } from './useSaveArtifactOverride.driver';
 
 describe('useSaveArtifactOverride', () => {

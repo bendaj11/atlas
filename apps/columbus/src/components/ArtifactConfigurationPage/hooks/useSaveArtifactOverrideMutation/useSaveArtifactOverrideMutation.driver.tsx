@@ -5,28 +5,28 @@ import type { ReactNode } from 'react';
 import type {
   ArtifactConfiguration,
   OverrideSelection,
-} from '../../../types/artifact';
-import type { ColumbusState } from '../../../types/columbus-state';
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import { anArtifactConfiguration } from '../../../types/artifact.testkit';
-import { aColumbusState } from '../../../types/columbus-state.testkit';
-import type { loadArtifactVersionFromHostTab as loadArtifactVersionFromHostTabType } from '../../../scripts/host/host-tabs/host-tabs';
+} from '../../../../types/artifact';
+import type { ColumbusState } from '../../../../types/columbus-state';
+import type { ArtifactVersion } from '../../../../types/artifact-version';
+import { anArtifactConfiguration } from '../../../../types/artifact.testkit';
+import { aColumbusState } from '../../../../types/columbus-state.testkit';
+import type { loadArtifactVersionFromHostTab as loadArtifactVersionFromHostTabType } from '../../../../scripts/host/host-tabs/host-tabs';
 import type {
   useOverrides as useOverridesType,
   useColumbusState as useColumbusStateType,
-} from '../../../state';
-import { createQueryClient } from '../../../state/query-client/query-client';
+} from '../../../../state';
+import { createQueryClient } from '../../../../state/query-client/query-client';
 
 const useOverrides = jest.fn<typeof useOverridesType>();
 const useColumbusState = jest.fn<typeof useColumbusStateType>();
 const loadArtifactVersionFromHostTab =
   jest.fn<typeof loadArtifactVersionFromHostTabType>();
 
-jest.unstable_mockModule('../../../state', () => ({
+jest.unstable_mockModule('../../../../state', () => ({
   useOverrides,
   useColumbusState,
 }));
-jest.unstable_mockModule('../../../scripts/host/host-tabs/host-tabs', () => ({
+jest.unstable_mockModule('../../../../scripts/host/host-tabs/host-tabs', () => ({
   loadArtifactVersionFromHostTab,
 }));
 

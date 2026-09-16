@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { OverrideStorageDriver } from './override-storage.driver';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
@@ -55,7 +55,7 @@ describe('writeOverrideDocument', () => {
   it('should store the document in page local storage when scope is all', async () => {
     const override = {
       appId: 'orders',
-      manifest: anAppArtifactVersion({ id: 'orders' }),
+      manifest: anAppManifest({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -69,7 +69,7 @@ describe('writeOverrideDocument', () => {
   it('should store the document in page columbusState storage when scope is tab', async () => {
     const override = {
       appId: 'orders',
-      manifest: anAppArtifactVersion({ id: 'orders' }),
+      manifest: anAppManifest({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -109,7 +109,7 @@ describe('writeOverrideDocument', () => {
   it('should persist the document in extension storage when scope is all and overrides exist', async () => {
     const override = {
       appId: 'orders',
-      manifest: anAppArtifactVersion({ id: 'orders' }),
+      manifest: anAppManifest({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -125,7 +125,7 @@ describe('writeOverrideDocument', () => {
   it('should drop the persisted document when scope is all and no overrides remain', async () => {
     const override = {
       appId: 'orders',
-      manifest: anAppArtifactVersion({ id: 'orders' }),
+      manifest: anAppManifest({ id: 'orders' }),
       reason: 'pr' as const,
     };
     await driver.when.documentWritten([override]);
@@ -140,7 +140,7 @@ describe('writeOverrideDocument', () => {
   it('should not touch extension storage when scope is tab', async () => {
     const override = {
       appId: 'orders',
-      manifest: anAppArtifactVersion({ id: 'orders' }),
+      manifest: anAppManifest({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -160,7 +160,7 @@ describe('disabled overrides storage', () => {
   });
 
   it('should read back overrides keyed by artifact when they were written', async () => {
-    const manifest = anAppArtifactVersion({ kind: 'app', id: 'orders' });
+    const manifest = anAppManifest({ kind: 'app', id: 'orders' });
 
     await driver.when.disabledOverridesWritten(
       new Map([['app:orders', manifest]]),
@@ -180,7 +180,7 @@ describe('disabled overrides storage', () => {
 
   it('should clear the entry when an empty map is written', async () => {
     await driver.when.disabledOverridesWritten(
-      new Map([['app:orders', anAppArtifactVersion()]]),
+      new Map([['app:orders', anAppManifest()]]),
     );
     await driver.when.disabledOverridesWritten(new Map());
 

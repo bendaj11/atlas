@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppArtifactVersion } from '../../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { OverrideVersionDropdownDriver } from './OverrideVersionDropdown.driver';
 
 describe('OverrideVersionDropdown', () => {
@@ -11,12 +11,12 @@ describe('OverrideVersionDropdown', () => {
 
   describe('when there are no versions', () => {
     beforeEach(() => {
-      driver.when.rendered();
+      driver.given.artifactVersions([]).when.rendered();
     });
 
-    it('should show correct placeholder when rendered', async () => {
+    it('should show no versions placeholder when rendered', async () => {
       expect(await driver.get.dropdown().inputDriver.getPlaceholder()).toBe(
-        'Choose a version',
+        'No versions available',
       );
     });
 
@@ -25,26 +25,38 @@ describe('OverrideVersionDropdown', () => {
     });
   });
 
-  it('should disable dropdown when disabled with versions', async () => {
-    driver.given
-      .versions([anAppArtifactVersion()])
-      .given.disabled(true)
-      .when.rendered();
+  describe('when versions are provided', () => {
+    beforeEach(() => {
+      driver.given.artifactVersions([anAppManifest()]);
+    });
 
-    expect(await driver.get.dropdown().inputDriver.isDisabled()).toBe(true);
+    it('should show choose version placeholder when rendered', async () => {
+      driver.when.rendered();
+
+      expect(await driver.get.dropdown().inputDriver.getPlaceholder()).toBe(
+        'Choose a version',
+      );
+    });
+
+    it('should disable dropdown when disabled', async () => {
+      driver.given.disabled(true).when.rendered();
+
+      expect(await driver.get.dropdown().inputDriver.isDisabled()).toBe(true);
+    });
   });
 
   describe('when versions are listed', () => {
     const hostId = faker.string.uuid();
-    const supported = anAppArtifactVersion({ supportedHosts: [hostId] });
-    const unsupported = anAppArtifactVersion({
+    const supported = anAppManifest({ supportedHosts: [hostId] });
+    const unsupported = anAppManifest({
       supportedHosts: [faker.string.uuid()],
     });
 
     beforeEach(async () => {
       driver.given
-        .versions([supported, unsupported])
+        .artifactVersions([supported, unsupported])
         .given.hostId(hostId)
+        .given.disabled(false)
         .when.rendered();
 
       await driver.when.opened();
@@ -69,28 +81,15 @@ describe('OverrideVersionDropdown', () => {
     });
   });
 
-  it('should call onChange with version key when a version is chosen', async () => {
-    const hostId = faker.string.uuid();
-    const version = anAppArtifactVersion({ supportedHosts: [hostId] });
-
-    driver.given.versions([version]).given.hostId(hostId).when.rendered();
-
-    await driver.when.opened();
-    await driver.when.versionChosen(version);
-
-    expect(driver.get.changeMock()).toHaveBeenCalledWith(
-      `${version.channel}:${version.version}:${version.buildId}`,
-    );
-  });
-
   describe('when the deployed production version is among the production versions', () => {
-    const deployed = anAppArtifactVersion({ channel: 'production' });
-    const other = anAppArtifactVersion({ channel: 'production' });
+    const deployed = anAppManifest({ channel: 'production' });
+    const other = anAppManifest({ channel: 'production' });
 
     beforeEach(async () => {
       driver.given
-        .versions([deployed, other])
+        .artifactVersions([deployed, other])
         .given.deployedArtifactVersion(deployed)
+        .given.disabled(false)
         .when.rendered();
 
       await driver.when.opened();
@@ -107,5 +106,23 @@ describe('OverrideVersionDropdown', () => {
 
       expect(await option.content()).not.toContain('Deployed');
     });
+  });
+
+  it('should call onChange with artifact version key when an artifact version is chosen', async () => {
+    const hostId = faker.string.uuid();
+    const artifactVersion = anAppManifest({ supportedHosts: [hostId] });
+
+    driver.given
+      .artifactVersions([artifactVersion])
+      .given.hostId(hostId)
+      .given.disabled(false)
+      .when.rendered();
+
+    await driver.when.opened();
+    await driver.when.artifactVersionChosen(artifactVersion);
+
+    expect(driver.get.changeMock()).toHaveBeenCalledWith(
+      `${artifactVersion.channel}:${artifactVersion.version}:${artifactVersion.buildId}`,
+    );
   });
 });

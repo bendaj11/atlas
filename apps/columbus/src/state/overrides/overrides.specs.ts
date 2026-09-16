@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { aColumbusState } from '../../types/columbus-state.testkit';
 import { OverridesDriver } from './overrides.driver';
 
@@ -59,7 +59,7 @@ describe('hasOverrides', () => {
   it('should report true when columbusState has an active override', () => {
     const columbusState = aColumbusState({
       enabledArtifactVersionOverrides: new Map([
-        ['app:orders', anAppArtifactVersion()],
+        ['app:orders', anAppManifest()],
       ]),
     });
 
@@ -69,7 +69,7 @@ describe('hasOverrides', () => {
   it('should report true when columbusState has a disabled override', () => {
     const columbusState = aColumbusState({
       disabledArtifactVersionOverrides: new Map([
-        ['app:orders', anAppArtifactVersion()],
+        ['app:orders', anAppManifest()],
       ]),
     });
 

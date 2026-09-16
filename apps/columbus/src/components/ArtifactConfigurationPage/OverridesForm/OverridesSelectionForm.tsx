@@ -48,11 +48,15 @@ export const OverridesSelectionForm = ({
         <OverrideVersionDropdown
           dataHook="override-version-production"
           disabled={selection.type !== 'production'}
-          selectedId={selection.type === 'production' ? selection.value : ''}
-          versions={configuration.productionArtifactVersions}
+          selectedArtifactVersionKey={
+            selection.type === 'production' ? selection.value : ''
+          }
+          artifactVersions={configuration.productionArtifactVersions}
           hostId={configuration.hostId}
           deployedArtifactVersion={configuration.productionArtifactVersion}
-          onChange={(value) => onChange({ type: 'production', value })}
+          onChange={(artifactVersionKey) =>
+            onChange({ type: 'production', value: artifactVersionKey })
+          }
         />
       </OverrideRadioCard>
 
@@ -66,10 +70,14 @@ export const OverridesSelectionForm = ({
         <OverrideVersionDropdown
           dataHook="override-version-pr"
           disabled={selection.type !== 'pr'}
-          selectedId={selection.type === 'pr' ? selection.value : ''}
+          selectedArtifactVersionKey={
+            selection.type === 'pr' ? selection.value : ''
+          }
           hostId={configuration.hostId}
-          versions={configuration.prArtifactVersions}
-          onChange={(value) => onChange({ type: 'pr', value })}
+          artifactVersions={configuration.prArtifactVersions}
+          onChange={(artifactVersionKey) =>
+            onChange({ type: 'pr', value: artifactVersionKey })
+          }
         />
       </OverrideRadioCard>
     </Box>

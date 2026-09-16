@@ -1,6 +1,6 @@
 import type { HostData } from '../../../types/host-data';
 import { aHostData } from '../../../types/host-data.testkit';
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import {
   type FakeChrome,
   type FakeTab,
@@ -19,7 +19,7 @@ export class HostTabsDriver {
   private readonly hosts = new Map<number, HostData>();
   private artifactVersionResponse: unknown = {
     ok: true,
-    manifest: anAppArtifactVersion(),
+    manifest: anAppManifest(),
   };
   private found: InspectedHostTab | undefined;
   private error: unknown;

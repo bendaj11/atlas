@@ -1,17 +1,17 @@
 /** @jest-environment node */
 
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { aPublishedArtifact } from '../registry.testkit';
 import { ArtifactRegistryDriver } from './artifact-registry.driver';
 
-const ORDERS = anAppArtifactVersion({
+const ORDERS = anAppManifest({
   id: 'orders',
   channel: 'production',
   version: '1.0.0',
   buildId: 'canonical',
 });
 const RELEASE_1 = aPublishedArtifact(
-  anAppArtifactVersion({
+  anAppManifest({
     id: 'orders',
     channel: 'production',
     version: '1.0.0',
@@ -19,7 +19,7 @@ const RELEASE_1 = aPublishedArtifact(
   }),
 );
 const RELEASE_2 = aPublishedArtifact(
-  anAppArtifactVersion({
+  anAppManifest({
     id: 'orders',
     channel: 'production',
     version: '2.0.0',
@@ -27,7 +27,7 @@ const RELEASE_2 = aPublishedArtifact(
   }),
 );
 const PREVIEW_42 = aPublishedArtifact(
-  anAppArtifactVersion({
+  anAppManifest({
     id: 'orders',
     channel: 'pr',
     prNumber: 42,
@@ -169,7 +169,7 @@ describe('loadVersion', () => {
       .registeredApp(ORDERS, [RELEASE_2])
       .given.fetchedManifestAt(
         RELEASE_2.path,
-        anAppArtifactVersion({
+        anAppManifest({
           id: 'orders',
           channel: 'production',
           version: '3.0.0',
@@ -235,17 +235,17 @@ describe('uniqueManifests', () => {
 
   it('should keep one manifest per channel and version when duplicates exist', () => {
     driver.when.deduplicated([
-      anAppArtifactVersion({
+      anAppManifest({
         id: 'orders',
         channel: 'production',
         version: '1.0.0',
       }),
-      anAppArtifactVersion({
+      anAppManifest({
         id: 'orders',
         channel: 'production',
         version: '1.0.0',
       }),
-      anAppArtifactVersion({
+      anAppManifest({
         id: 'orders',
         channel: 'production',
         version: '2.0.0',

@@ -1,5 +1,5 @@
 import { aHostData } from '../../types/host-data.testkit';
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { ColumbusStateDriver } from './columbus-state.driver';
 
 const HOST_STATUSES = [
@@ -81,7 +81,7 @@ describe('loadColumbusState', () => {
     });
 
     it('should expose active overrides from the override document when loaded', async () => {
-      const override = anAppArtifactVersion({ id: 'orders' });
+      const override = anAppManifest({ id: 'orders' });
       const hostData = aHostData({
         overrides: {
           schemaVersion: '1',
@@ -101,7 +101,7 @@ describe('loadColumbusState', () => {
     });
 
     it('should expose disabled overrides when loaded', async () => {
-      const disabled = new Map([['app:orders', anAppArtifactVersion()]]);
+      const disabled = new Map([['app:orders', anAppManifest()]]);
 
       await driver.given
         .activeHost(aHostData(), 3)
@@ -127,7 +127,7 @@ describe('loadColumbusState', () => {
     });
 
     it('should add override apps to the catalog when they are not deployed', async () => {
-      const overrideApp = anAppArtifactVersion({ id: 'preview' });
+      const overrideApp = anAppManifest({ id: 'preview' });
 
       await driver.given
         .activeHost(aHostData(), 3)

@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { anArtifact } from '../../../types/artifact.testkit';
 import { ArtifactsOverridesTableDriver } from './ArtifactsOverridesTable.driver';
 
@@ -13,10 +13,10 @@ describe('ArtifactsOverridesTable', () => {
     driver.given
       .artifacts([
         anArtifact({
-          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
+          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
         }),
         anArtifact({
-          productionArtifactVersion: anAppArtifactVersion({ name: 'Cart' }),
+          productionArtifactVersion: anAppManifest({ name: 'Cart' }),
         }),
       ])
       .when.rendered();

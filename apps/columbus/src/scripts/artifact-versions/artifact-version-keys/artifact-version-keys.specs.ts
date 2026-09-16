@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { ArtifactVersionKeysDriver } from './artifact-version-keys.driver';
 
 describe('uniqueVersions', () => {
@@ -11,21 +11,21 @@ describe('uniqueVersions', () => {
   it('should keep input order when versions are distinct', () => {
     driver.given
       .version(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '3.0.0',
           buildId: 'latest',
         }),
       )
       .given.version(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '2.0.0',
           buildId: 'previous',
         }),
       )
       .given.version(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '1.0.0',
           buildId: 'oldest',
@@ -42,21 +42,21 @@ describe('uniqueVersions', () => {
   it('should keep the last occurrence position when a version repeats', () => {
     driver.given
       .version(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '1.0.0',
           buildId: 'a',
         }),
       )
       .given.version(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '2.0.0',
           buildId: 'b',
         }),
       )
       .given.version(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '1.0.0',
           buildId: 'a',
@@ -80,7 +80,7 @@ describe('versionKey', () => {
   it('should combine channel, version, and build id when channel is production', () => {
     expect(
       driver.get.versionKey(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'production',
           version: '1.2.3',
           buildId: 'b1',
@@ -92,7 +92,7 @@ describe('versionKey', () => {
   it('should use the PR number when channel is pr', () => {
     expect(
       driver.get.versionKey(
-        anAppArtifactVersion({ channel: 'pr', prNumber: 42, buildId: 'b1' }),
+        anAppManifest({ channel: 'pr', prNumber: 42, buildId: 'b1' }),
       ),
     ).toBe('pr:42:b1');
   });
@@ -100,7 +100,7 @@ describe('versionKey', () => {
   it('should fall back to the version when a pr has no number', () => {
     expect(
       driver.get.versionKey(
-        anAppArtifactVersion({
+        anAppManifest({
           channel: 'pr',
           version: '1.0.0-pr.9',
           buildId: 'b1',

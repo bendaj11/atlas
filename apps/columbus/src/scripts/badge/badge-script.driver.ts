@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../types/artifact-version';
 import type { HostData } from '../../types/host-data';
 import { aHostData } from '../../types/host-data.testkit';
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { type FakeChrome, installFakeChrome } from '../chrome.testkit';
 import type { ArtifactRegistry } from '../host/artifact-registry/artifact-registry';
 import type { inspectAtlasHost as inspectAtlasHostType } from '../host/inspect-atlas-host/inspect-atlas-host';
@@ -58,7 +58,7 @@ export class BadgeScriptDriver {
     localStorage.clear();
     globalThis.fetch = fetch;
     inspectAtlasHost.mockResolvedValue(aHostData());
-    loadVersion.mockResolvedValue(anAppArtifactVersion());
+    loadVersion.mockResolvedValue(anAppManifest());
     window.setInterval = setInterval as unknown as typeof window.setInterval;
     window.matchMedia = () =>
       this.colorSchemeQuery as unknown as MediaQueryList;

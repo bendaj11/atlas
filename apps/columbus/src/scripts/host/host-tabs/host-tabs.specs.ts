@@ -2,7 +2,7 @@
 
 import { faker } from '@faker-js/faker';
 import { aHostData } from '../../../types/host-data.testkit';
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { HostTabsDriver } from './host-tabs.driver';
 
 const HOST_URL = 'http://127.0.0.1:4300/orders';
@@ -149,7 +149,7 @@ describe('loadArtifactVersionFromHostTab', () => {
 
   it('should send a load artifact version request with the manifest version key when the manifest is a production version', async () => {
     const artifactKey = faker.string.uuid();
-    const manifest = anAppArtifactVersion({ channel: 'production' });
+    const manifest = anAppManifest({ channel: 'production' });
     await driver.when.manifestLoaded({
       tabId: faker.number.int(),
       artifactKey,
@@ -169,7 +169,7 @@ describe('loadArtifactVersionFromHostTab', () => {
       .when.manifestLoaded({
         tabId: faker.number.int(),
         artifactKey: faker.string.uuid(),
-        manifest: anAppArtifactVersion(),
+        manifest: anAppManifest(),
       });
 
     expect(driver.get.errorMessage()).toBe('Version missing.');
@@ -179,7 +179,7 @@ describe('loadArtifactVersionFromHostTab', () => {
     await driver.given.artifactVersionResponse(undefined).when.manifestLoaded({
       tabId: faker.number.int(),
       artifactKey: faker.string.uuid(),
-      manifest: anAppArtifactVersion(),
+      manifest: anAppManifest(),
     });
 
     expect(driver.get.errorMessage()).toBe(

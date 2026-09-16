@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../../types/artifact-version';
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { aPublishedArtifact } from '../registry.testkit';
 import {
   fetchVerifiedManifest,
@@ -12,7 +12,7 @@ import {
 export class ManifestFetchDriver {
   private readonly fetch = jest.fn<typeof globalThis.fetch>();
   private readonly published = aPublishedArtifact(
-    anAppArtifactVersion({
+    anAppManifest({
       id: 'orders',
       channel: 'production',
       version: '1.0.0',

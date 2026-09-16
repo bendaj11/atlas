@@ -32,7 +32,7 @@ describe('ArtifactConfigurationActions', () => {
   it('should call onSave once when save is enabled and save button is clicked', async () => {
     driver.given.saveDisabled(false).when.rendered();
 
-    await driver.when.saved();
+    await driver.when.saveClicked();
 
     expect(driver.get.saveMock()).toHaveBeenCalledTimes(1);
   });
@@ -40,7 +40,7 @@ describe('ArtifactConfigurationActions', () => {
   it('should call onClear once when clear is enabled and clear button is clicked', async () => {
     driver.given.clearDisabled(false).when.rendered();
 
-    await driver.when.cleared();
+    await driver.when.clearClicked();
 
     expect(driver.get.clearMock()).toHaveBeenCalledTimes(1);
   });
@@ -48,7 +48,7 @@ describe('ArtifactConfigurationActions', () => {
   it('should call onCancel once when cancel is enabled and cancel button is clicked', async () => {
     driver.given.cancelDisabled(false).when.rendered();
 
-    await driver.when.cancelled();
+    await driver.when.cancelClicked();
 
     expect(driver.get.cancelMock()).toHaveBeenCalledTimes(1);
   });

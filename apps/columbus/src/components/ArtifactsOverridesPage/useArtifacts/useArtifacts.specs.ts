@@ -1,7 +1,4 @@
-import {
-  aHostArtifactVersion,
-  anAppArtifactVersion,
-} from '../../../types/artifact-version.testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import { UseArtifactsDriver } from './useArtifacts.driver';
 
 describe('useArtifacts', () => {
@@ -18,9 +15,9 @@ describe('useArtifacts', () => {
   });
 
   it('should list host, apps, and widget providers when columbusState is loaded', () => {
-    const host = aHostArtifactVersion();
-    const app = anAppArtifactVersion();
-    const provider = anAppArtifactVersion();
+    const host = aHostManifest();
+    const app = anAppManifest();
+    const provider = anAppManifest();
 
     driver.given
       .catalogHost(host)
@@ -36,7 +33,7 @@ describe('useArtifacts', () => {
   });
 
   describe('when artifact has no override', () => {
-    const app = anAppArtifactVersion();
+    const app = anAppManifest();
 
     beforeEach(() => {
       driver.given.catalogApp(app);
@@ -56,8 +53,8 @@ describe('useArtifacts', () => {
   });
 
   describe('when artifact has an active override', () => {
-    const app = anAppArtifactVersion();
-    const override = anAppArtifactVersion({ channel: 'pr' });
+    const app = anAppManifest();
+    const override = anAppManifest({ channel: 'pr' });
 
     beforeEach(() => {
       driver.given.catalogApp(app).given.activeOverride(app, override);
@@ -77,7 +74,7 @@ describe('useArtifacts', () => {
 
     it('should prefer active override when a disabled override also exists', () => {
       driver.given
-        .disabledOverride(app, anAppArtifactVersion({ channel: 'local' }))
+        .disabledOverride(app, anAppManifest({ channel: 'local' }))
         .when.rendered();
 
       expect(driver.get.artifactOf(app).selectedArtifactVersion).toBe(override);
@@ -85,15 +82,12 @@ describe('useArtifacts', () => {
   });
 
   describe('when artifact has a disabled override', () => {
-    const app = anAppArtifactVersion();
+    const app = anAppManifest();
 
     beforeEach(() => {
       driver.given
         .catalogApp(app)
-        .given.disabledOverride(
-          app,
-          anAppArtifactVersion({ channel: 'local' }),
-        );
+        .given.disabledOverride(app, anAppManifest({ channel: 'local' }));
     });
 
     it('should keep override disabled when override is only disabled', () => {
@@ -110,7 +104,7 @@ describe('useArtifacts', () => {
   });
 
   describe('when host reports runtime errors', () => {
-    const app = anAppArtifactVersion();
+    const app = anAppManifest();
 
     beforeEach(() => {
       driver.given.catalogApp(app);
@@ -137,7 +131,7 @@ describe('useArtifacts', () => {
     });
 
     it('should leave load error undefined when runtime error targets another artifact', () => {
-      const other = anAppArtifactVersion();
+      const other = anAppManifest();
 
       driver.given
         .catalogApp(other)
@@ -149,8 +143,8 @@ describe('useArtifacts', () => {
   });
 
   describe('when host lists visible app ids', () => {
-    const host = aHostArtifactVersion();
-    const app = anAppArtifactVersion({ id: 'orders' });
+    const host = aHostManifest();
+    const app = anAppManifest({ id: 'orders' });
 
     beforeEach(() => {
       driver.given.catalogHost(host).given.catalogApp(app);
@@ -182,8 +176,8 @@ describe('useArtifacts', () => {
   });
 
   describe('when visibleOnly is toggled on', () => {
-    const host = aHostArtifactVersion();
-    const app = anAppArtifactVersion();
+    const host = aHostManifest();
+    const app = anAppManifest();
 
     beforeEach(() => {
       driver.given.catalogHost(host).given.catalogApp(app);
@@ -225,10 +219,10 @@ describe('useArtifacts', () => {
 
   describe('when searching', () => {
     it('should match name case-insensitively when search has padding', () => {
-      const orders = anAppArtifactVersion({ name: 'Orders' });
+      const orders = anAppManifest({ name: 'Orders' });
 
       driver.given
-        .catalogApp(anAppArtifactVersion({ name: 'Cart' }))
+        .catalogApp(anAppManifest({ name: 'Cart' }))
         .given.catalogApp(orders)
         .when.rendered();
 
@@ -238,14 +232,14 @@ describe('useArtifacts', () => {
     });
 
     it('should match override source when search hits it', () => {
-      const app = anAppArtifactVersion();
+      const app = anAppManifest();
 
       driver.given
-        .catalogApp(anAppArtifactVersion())
+        .catalogApp(anAppManifest())
         .given.catalogApp(app)
         .given.activeOverride(
           app,
-          anAppArtifactVersion({
+          anAppManifest({
             channel: 'local',
             remoteEntryUrl: 'http://localhost:4200/remoteEntry.json',
           }),
@@ -259,8 +253,8 @@ describe('useArtifacts', () => {
 
     it('should keep total count unfiltered when search narrows results', () => {
       driver.given
-        .catalogApp(anAppArtifactVersion({ name: 'Alpha' }))
-        .given.catalogApp(anAppArtifactVersion({ name: 'Beta' }))
+        .catalogApp(anAppManifest({ name: 'Alpha' }))
+        .given.catalogApp(anAppManifest({ name: 'Beta' }))
         .when.rendered();
 
       driver.when.searched('alpha');
@@ -270,26 +264,23 @@ describe('useArtifacts', () => {
   });
 
   describe('when ordering', () => {
-    const host = aHostArtifactVersion();
+    const host = aHostManifest();
 
     beforeEach(() => {
       driver.given.catalogHost(host);
     });
 
     it('should order enabled, then disabled, then plain artifacts when ranks differ', () => {
-      const plain = anAppArtifactVersion();
-      const disabled = anAppArtifactVersion();
-      const enabled = anAppArtifactVersion();
+      const plain = anAppManifest();
+      const disabled = anAppManifest();
+      const enabled = anAppManifest();
 
       driver.given
         .catalogApp(plain)
         .given.catalogApp(disabled)
         .given.catalogApp(enabled)
-        .given.disabledOverride(
-          disabled,
-          anAppArtifactVersion({ channel: 'pr' }),
-        )
-        .given.activeOverride(enabled, anAppArtifactVersion({ channel: 'pr' }))
+        .given.disabledOverride(disabled, anAppManifest({ channel: 'pr' }))
+        .given.activeOverride(enabled, anAppManifest({ channel: 'pr' }))
         .when.rendered();
 
       expect(driver.get.deployedArtifactVersions()).toEqual([
@@ -301,8 +292,8 @@ describe('useArtifacts', () => {
     });
 
     it('should keep catalog order when artifacts share the same rank', () => {
-      const first = anAppArtifactVersion();
-      const second = anAppArtifactVersion();
+      const first = anAppManifest();
+      const second = anAppManifest();
 
       driver.given.catalogApp(first).given.catalogApp(second).when.rendered();
 

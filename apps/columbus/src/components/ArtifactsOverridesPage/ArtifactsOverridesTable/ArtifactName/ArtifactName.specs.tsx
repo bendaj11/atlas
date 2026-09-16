@@ -1,7 +1,4 @@
-import {
-  aHostArtifactVersion,
-  anAppArtifactVersion,
-} from '../../../../types/artifact-version.testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import { anArtifact } from '../../../../types/artifact.testkit';
 import { ArtifactNameDriver } from './ArtifactName.driver';
 
@@ -16,7 +13,7 @@ describe('ArtifactName', () => {
     driver.given
       .artifact(
         anArtifact({
-          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
+          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
         }),
       )
       .when.rendered();
@@ -28,7 +25,7 @@ describe('ArtifactName', () => {
     driver.given
       .artifact(
         anArtifact({
-          productionArtifactVersion: anAppArtifactVersion({ id: 'orders-app' }),
+          productionArtifactVersion: anAppManifest({ id: 'orders-app' }),
         }),
       )
       .when.rendered();
@@ -40,9 +37,7 @@ describe('ArtifactName', () => {
 
   it('should mark the host when artifact is the host', async () => {
     driver.given
-      .artifact(
-        anArtifact({ productionArtifactVersion: aHostArtifactVersion() }),
-      )
+      .artifact(anArtifact({ productionArtifactVersion: aHostManifest() }))
       .when.rendered();
 
     await driver.when.infoHovered();
@@ -52,9 +47,7 @@ describe('ArtifactName', () => {
 
   it('should not mark the host when artifact is an app', async () => {
     driver.given
-      .artifact(
-        anArtifact({ productionArtifactVersion: anAppArtifactVersion() }),
-      )
+      .artifact(anArtifact({ productionArtifactVersion: anAppManifest() }))
       .when.rendered();
 
     await driver.when.infoHovered();

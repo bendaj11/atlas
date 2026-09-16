@@ -49,13 +49,13 @@ export class ArtifactConfigurationActionsDriver {
         />,
       ).baseElement;
     },
-    saved: async (): Promise<void> => {
+    saveClicked: async (): Promise<void> => {
       await this.get.button('save-configuration').click();
     },
-    cleared: async (): Promise<void> => {
+    clearClicked: async (): Promise<void> => {
       await this.get.iconButton().click();
     },
-    cancelled: async (): Promise<void> => {
+    cancelClicked: async (): Promise<void> => {
       await this.get.button('cancel-configuration').click();
     },
   };

@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { aColumbusState } from '../../types/columbus-state.testkit';
 import { OverridesDriver } from './useOverrides.driver';
 
@@ -36,8 +36,8 @@ describe('useOverrides', () => {
 
     it('should call mutateAsync with the next columbusState when an override is saved', async () => {
       await driver.when.overrideSaved({
-        productionArtifactVersion: anAppArtifactVersion(),
-        selectedArtifactVersion: anAppArtifactVersion(),
+        productionArtifactVersion: anAppManifest(),
+        selectedArtifactVersion: anAppManifest(),
       });
 
       expect(driver.get.mutateAsync()).toHaveBeenCalledWith(
@@ -159,8 +159,8 @@ describe('useOverrides', () => {
 
     it('should call saveArtifactVersionOverride with the columbusState and selection when an override is saved', async () => {
       const selection = {
-        productionArtifactVersion: anAppArtifactVersion(),
-        selectedArtifactVersion: anAppArtifactVersion(),
+        productionArtifactVersion: anAppManifest(),
+        selectedArtifactVersion: anAppManifest(),
       };
 
       await driver.when.overrideSaved(selection);

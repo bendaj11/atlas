@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import type { OverrideType } from '../../../types/artifact';
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { OverridesSelectionFormDriver } from './OverridesSelectionForm.driver';
 
 const OVERRIDE_TYPES: OverrideType[] = ['custom', 'production', 'pr'];
@@ -23,7 +23,9 @@ describe('OverridesSelectionForm', () => {
   it.each(OVERRIDE_TYPES)(
     'should check the matching card when the selection type is %s',
     async (type) => {
-      driver.given.selection({ type, value: '' }).when.rendered();
+      const value = faker.string.alphanumeric(8);
+
+      driver.given.selection({ type, value }).when.rendered();
 
       expect(await driver.get.radio(`override-card-${type}`).isChecked()).toBe(
         true,
@@ -34,9 +36,10 @@ describe('OverridesSelectionForm', () => {
   it.each(OVERRIDE_TYPES)(
     'should not check the other cards when the selection type is %s',
     async (type) => {
+      const value = faker.string.alphanumeric(8);
       const others = OVERRIDE_TYPES.filter((other) => other !== type);
 
-      driver.given.selection({ type, value: '' }).when.rendered();
+      driver.given.selection({ type, value }).when.rendered();
 
       expect(
         await Promise.all(
@@ -57,9 +60,7 @@ describe('OverridesSelectionForm', () => {
   });
 
   it('should enable the production card when production versions exist', async () => {
-    driver.given
-      .productionArtifactVersions([anAppArtifactVersion()])
-      .when.rendered();
+    driver.given.productionArtifactVersions([anAppManifest()]).when.rendered();
 
     expect(
       await driver.get.radio('override-card-production').isDisabled(),
@@ -73,7 +74,7 @@ describe('OverridesSelectionForm', () => {
   });
 
   it('should enable the pr card when pr versions exist', async () => {
-    driver.given.prArtifactVersions([anAppArtifactVersion()]).when.rendered();
+    driver.given.prArtifactVersions([anAppManifest()]).when.rendered();
 
     expect(await driver.get.radio('override-card-pr').isDisabled()).toBe(false);
   });
@@ -106,20 +107,35 @@ describe('OverridesSelectionForm', () => {
   });
 
   it.each(['production', 'pr'] satisfies OverrideType[])(
+    'should show an empty custom url when the selection type is %s',
+    async (type) => {
+      const value = faker.string.alphanumeric(8);
+
+      driver.given.selection({ type, value }).when.rendered();
+
+      expect(await driver.get.customUrlInput().getValue()).toBe('');
+    },
+  );
+
+  it.each(['production', 'pr'] satisfies OverrideType[])(
     'should disable the custom url input when the selection type is %s',
     async (type) => {
-      driver.given.selection({ type, value: '' }).when.rendered();
+      const value = faker.string.alphanumeric(8);
+
+      driver.given.selection({ type, value }).when.rendered();
 
       expect(await driver.get.customUrlInput().isDisabled()).toBe(true);
     },
   );
 
   it.each(['custom', 'pr'] satisfies OverrideType[])(
-    'should disable the production dropdown when the selection type is %s',
+    'should disable the production dropdown when production versions exist and the selection type is %s',
     async (type) => {
+      const value = faker.string.alphanumeric(8);
+
       driver.given
-        .selection({ type, value: '' })
-        .given.productionArtifactVersions([anAppArtifactVersion()])
+        .selection({ type, value })
+        .given.productionArtifactVersions([anAppManifest()])
         .when.rendered();
 
       expect(
@@ -131,11 +147,13 @@ describe('OverridesSelectionForm', () => {
   );
 
   it.each(['custom', 'production'] satisfies OverrideType[])(
-    'should disable the pr dropdown when the selection type is %s',
+    'should disable the pr dropdown when pr versions exist and the selection type is %s',
     async (type) => {
+      const value = faker.string.alphanumeric(8);
+
       driver.given
-        .selection({ type, value: '' })
-        .given.prArtifactVersions([anAppArtifactVersion()])
+        .selection({ type, value })
+        .given.prArtifactVersions([anAppManifest()])
         .when.rendered();
 
       expect(
@@ -149,20 +167,21 @@ describe('OverridesSelectionForm', () => {
   describe('when production and pr versions exist', () => {
     beforeEach(() => {
       driver.given
-        .productionArtifactVersions([anAppArtifactVersion()])
-        .given.prArtifactVersions([anAppArtifactVersion()]);
+        .productionArtifactVersions([anAppManifest()])
+        .given.prArtifactVersions([anAppManifest()]);
     });
 
     it.each(OVERRIDE_TYPES)(
-      'should call onChange with empty %s selection when its card is selected',
+      'should call onChange with empty %s selection when the %s card is selected',
       async (type) => {
         const current = faker.helpers.arrayElement(
           OVERRIDE_TYPES.filter((other) => other !== type),
         );
+        const value = faker.string.alphanumeric(8);
 
-        driver.given.selection({ type: current, value: '' }).when.rendered();
+        driver.given.selection({ type: current, value }).when.rendered();
 
-        await driver.when.typeSelected(type);
+        await driver.when.overrideTypeSelected(type);
 
         expect(driver.get.changeMock()).toHaveBeenCalledWith({
           type,
@@ -174,13 +193,13 @@ describe('OverridesSelectionForm', () => {
 
   describe('when the selection is production and a production version supports the host', () => {
     const hostId = faker.string.uuid();
-    const version = anAppArtifactVersion({ supportedHosts: [hostId] });
+    const artifactVersion = anAppManifest({ supportedHosts: [hostId] });
 
     beforeEach(() => {
       driver.given
         .selection({ type: 'production', value: '' })
         .given.hostId(hostId)
-        .given.productionArtifactVersions([version])
+        .given.productionArtifactVersions([artifactVersion])
         .when.rendered();
     });
 
@@ -193,24 +212,24 @@ describe('OverridesSelectionForm', () => {
     });
 
     it('should call onChange with production selection of chosen version key when the production version is chosen', async () => {
-      await driver.when.productionVersionChosen(version);
+      await driver.when.productionArtifactVersionChosen(artifactVersion);
 
       expect(driver.get.changeMock()).toHaveBeenCalledWith({
         type: 'production',
-        value: `${version.channel}:${version.version}:${version.buildId}`,
+        value: `${artifactVersion.channel}:${artifactVersion.version}:${artifactVersion.buildId}`,
       });
     });
   });
 
   describe('when the selection is pr and a pr version supports the host', () => {
     const hostId = faker.string.uuid();
-    const version = anAppArtifactVersion({ supportedHosts: [hostId] });
+    const artifactVersion = anAppManifest({ supportedHosts: [hostId] });
 
     beforeEach(() => {
       driver.given
         .selection({ type: 'pr', value: '' })
         .given.hostId(hostId)
-        .given.prArtifactVersions([version])
+        .given.prArtifactVersions([artifactVersion])
         .when.rendered();
     });
 
@@ -223,11 +242,11 @@ describe('OverridesSelectionForm', () => {
     });
 
     it('should call onChange with pr selection of chosen version key when the pr version is chosen', async () => {
-      await driver.when.prVersionChosen(version);
+      await driver.when.prArtifactVersionChosen(artifactVersion);
 
       expect(driver.get.changeMock()).toHaveBeenCalledWith({
         type: 'pr',
-        value: `${version.channel}:${version.version}:${version.buildId}`,
+        value: `${artifactVersion.channel}:${artifactVersion.version}:${artifactVersion.buildId}`,
       });
     });
   });

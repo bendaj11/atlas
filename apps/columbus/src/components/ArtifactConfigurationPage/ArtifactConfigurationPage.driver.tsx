@@ -14,8 +14,8 @@ import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
 } from '../../state';
-import type { useArtifactConfiguration as useArtifactConfigurationType } from './useArtifactConfiguration/useArtifactConfiguration';
-import type { useSaveArtifactOverride as useSaveArtifactOverrideType } from './useSaveArtifactOverride/useSaveArtifactOverride';
+import type { useArtifactConfiguration as useArtifactConfigurationType } from './hooks/useArtifactConfiguration/useArtifactConfiguration';
+import type { useSaveArtifactOverride as useSaveArtifactOverrideType } from './hooks/useSaveArtifactOverride/useSaveArtifactOverride';
 
 const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
@@ -33,11 +33,11 @@ jest.unstable_mockModule('../../state', () => ({
   useOverrides,
 }));
 jest.unstable_mockModule(
-  './useArtifactConfiguration/useArtifactConfiguration',
+  './hooks/useArtifactConfiguration/useArtifactConfiguration',
   () => ({ useArtifactConfiguration }),
 );
 jest.unstable_mockModule(
-  './useSaveArtifactOverride/useSaveArtifactOverride',
+  './hooks/useSaveArtifactOverride/useSaveArtifactOverride',
   () => ({ useSaveArtifactOverride }),
 );
 
@@ -49,7 +49,7 @@ type SaveValue = ReturnType<typeof useSaveArtifactOverrideType>;
 
 export class ArtifactConfigurationPageDriver {
   private configuration: ArtifactConfiguration | undefined =
-    anArtifactConfiguration({ productionArtifactVersions: [] });
+    anArtifactConfiguration();
   private actionsDisabled = false;
   private loading = false;
   private errorMessage: string | undefined;

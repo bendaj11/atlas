@@ -1,17 +1,17 @@
 import { jest } from '@jest/globals';
 import { renderHook, type RenderHookResult } from '@testing-library/react';
 import type { useLocation as useLocationType } from 'react-router-dom';
-import type { Artifact } from '../../../types/artifact';
-import type { ColumbusState } from '../../../types/columbus-state';
-import { anArtifact } from '../../../types/artifact.testkit';
-import { aColumbusState } from '../../../types/columbus-state.testkit';
-import type { useColumbusState as useColumbusStateType } from '../../../state';
+import type { Artifact } from '../../../../types/artifact';
+import type { ColumbusState } from '../../../../types/columbus-state';
+import { anArtifact } from '../../../../types/artifact.testkit';
+import { aColumbusState } from '../../../../types/columbus-state.testkit';
+import type { useColumbusState as useColumbusStateType } from '../../../../state';
 
 const useLocation = jest.fn<typeof useLocationType>();
 const useColumbusState = jest.fn<typeof useColumbusStateType>();
 
 jest.unstable_mockModule('react-router-dom', () => ({ useLocation }));
-jest.unstable_mockModule('../../../state', () => ({ useColumbusState }));
+jest.unstable_mockModule('../../../../state', () => ({ useColumbusState }));
 
 const { useArtifactConfiguration } = await import('./useArtifactConfiguration');
 

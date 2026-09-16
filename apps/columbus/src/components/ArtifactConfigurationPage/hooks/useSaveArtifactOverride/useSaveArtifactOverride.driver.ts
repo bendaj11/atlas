@@ -1,16 +1,16 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type { ArtifactConfiguration } from '../../../types/artifact';
-import type { OverrideStatus } from '../../../state/overrides/overrides';
-import { anArtifactConfiguration } from '../../../types/artifact.testkit';
-import type { useOverrides as useOverridesType } from '../../../state';
+import type { ArtifactConfiguration } from '../../../../types/artifact';
+import type { OverrideStatus } from '../../../../state/overrides/overrides';
+import { anArtifactConfiguration } from '../../../../types/artifact.testkit';
+import type { useOverrides as useOverridesType } from '../../../../state';
 import type { useSaveArtifactOverrideMutation as useSaveArtifactOverrideMutationType } from '../useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation';
 
 const useOverrides = jest.fn<typeof useOverridesType>();
 const useSaveArtifactOverrideMutation =
   jest.fn<typeof useSaveArtifactOverrideMutationType>();
 
-jest.unstable_mockModule('../../../state', () => ({ useOverrides }));
+jest.unstable_mockModule('../../../../state', () => ({ useOverrides }));
 jest.unstable_mockModule(
   '../useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation',
   () => ({ useSaveArtifactOverrideMutation }),

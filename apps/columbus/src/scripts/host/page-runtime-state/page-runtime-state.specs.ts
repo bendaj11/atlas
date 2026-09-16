@@ -1,7 +1,4 @@
-import {
-  aHostArtifactVersion,
-  anAppArtifactVersion,
-} from '../../../types/artifact-version.testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import { PageRuntimeStateDriver } from './page-runtime-state.driver';
 
 const DOCUMENT = JSON.stringify({
@@ -76,17 +73,17 @@ describe('localOverridesOf', () => {
 
   it('should return nothing when no manifest is local', () => {
     driver.when.localOverridesBuilt('shop', [
-      anAppArtifactVersion({ channel: 'production' }),
+      anAppManifest({ channel: 'production' }),
     ]);
 
     expect(driver.get.localOverrides()).toBeUndefined();
   });
 
   it('should list local apps as overrides when apps are local', () => {
-    const local = anAppArtifactVersion({ id: 'orders', channel: 'local' });
+    const local = anAppManifest({ id: 'orders', channel: 'local' });
 
     driver.when.localOverridesBuilt('shop', [
-      anAppArtifactVersion({ channel: 'production' }),
+      anAppManifest({ channel: 'production' }),
       local,
     ]);
 
@@ -96,7 +93,7 @@ describe('localOverridesOf', () => {
   });
 
   it('should set the host override when the host is local', () => {
-    const host = aHostArtifactVersion({ channel: 'local' });
+    const host = aHostManifest({ channel: 'local' });
 
     driver.when.localOverridesBuilt('shop', [host]);
 

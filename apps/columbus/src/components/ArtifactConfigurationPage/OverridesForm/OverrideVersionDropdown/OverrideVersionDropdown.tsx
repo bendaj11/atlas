@@ -12,36 +12,40 @@ import {
 import { versionKey } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
 import type { ArtifactVersion } from '../../../../types/artifact-version';
 
-interface VersionDropdownProps {
+interface OverrideVersionDropdownProps {
   dataHook: string;
   disabled: boolean;
-  selectedId: string;
-  versions: ArtifactVersion[];
+  selectedArtifactVersionKey: string;
+  artifactVersions: ArtifactVersion[];
   hostId: string;
-  deployedArtifactVersion?: ArtifactVersion;
-  onChange: (value: string) => void;
+  deployedArtifactVersion?: ArtifactVersion | undefined;
+  onChange: (artifactVersionKey: string) => void;
 }
 
 export function OverrideVersionDropdown({
   dataHook,
   disabled,
-  selectedId,
-  versions,
+  selectedArtifactVersionKey,
+  artifactVersions,
   hostId,
   deployedArtifactVersion,
   onChange,
-}: VersionDropdownProps) {
-  const options = versions.map((version) =>
+}: OverrideVersionDropdownProps) {
+  const hasArtifactVersions = artifactVersions.length > 0;
+  const options = artifactVersions.map((artifactVersion) =>
     listItemSelectBuilder({
-      id: versionKey(version),
-      title: versionLabel(version),
-      suffix: isDeployedProductionVersion(version, deployedArtifactVersion) && (
+      id: versionKey(artifactVersion),
+      title: versionLabel(artifactVersion),
+      suffix: isDeployedProductionVersion(
+        artifactVersion,
+        deployedArtifactVersion,
+      ) && (
         <Badge size="tiny" skin="neutralSuccess">
           Deployed
         </Badge>
       ),
       disabled: !isArtifactVersionSupportedByHost({
-        artifactVersion: version,
+        artifactVersion,
         hostId,
       }),
     }),
@@ -53,9 +57,11 @@ export function OverrideVersionDropdown({
         dataHook={dataHook}
         size="small"
         options={options}
-        selectedId={selectedId}
-        placeholder="Choose a version"
-        disabled={disabled || versions.length === 0}
+        selectedId={selectedArtifactVersionKey}
+        placeholder={
+          hasArtifactVersions ? 'Choose a version' : 'No versions available'
+        }
+        disabled={disabled || !hasArtifactVersions}
         onSelect={(option) => onChange(String(option.id))}
       />
     </Box>

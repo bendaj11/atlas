@@ -1,5 +1,5 @@
 import { aHostData } from '../../types/host-data.testkit';
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import {
   inspectHostRequest,
   loadArtifactVersionRequest,
@@ -243,7 +243,7 @@ describe('badge-script', () => {
     });
 
     it('should respond with the manifest when the version loads', async () => {
-      const manifest = anAppArtifactVersion();
+      const manifest = anAppManifest();
       await driver.given.loadedVersion(manifest).when.messageReceived(
         loadArtifactVersionRequest({
           artifactKey: 'app:orders',

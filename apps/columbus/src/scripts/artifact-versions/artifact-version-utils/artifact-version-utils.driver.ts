@@ -10,7 +10,7 @@ import type {
   OverrideType,
 } from '../../../types/artifact';
 import type { ColumbusState } from '../../../types/columbus-state';
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { anArtifact } from '../../../types/artifact.testkit';
 import { aColumbusState } from '../../../types/columbus-state.testkit';
 import {
@@ -29,7 +29,7 @@ import {
 const OVERRIDE_TYPES: OverrideType[] = ['custom', 'production', 'pr'];
 
 export class ArtifactVersionUtilsDriver {
-  private productionArtifactVersion: ArtifactVersion = anAppArtifactVersion();
+  private productionArtifactVersion: ArtifactVersion = anAppManifest();
   private selectedArtifactVersion: ArtifactVersion | undefined;
   private productionArtifactVersions: ArtifactVersion[] = [];
   private prArtifactVersions: ArtifactVersion[] = [];

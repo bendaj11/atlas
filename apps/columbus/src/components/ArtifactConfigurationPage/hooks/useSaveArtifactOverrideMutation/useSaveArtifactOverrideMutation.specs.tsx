@@ -1,10 +1,7 @@
 import { faker } from '@faker-js/faker';
-import {
-  anAppArtifactVersion,
-  aVersionOf,
-} from '../../../types/artifact-version.testkit';
-import { anArtifactConfiguration } from '../../../types/artifact.testkit';
-import { aColumbusState } from '../../../types/columbus-state.testkit';
+import { anAppManifest, aVersionOf } from '@atlas/testkit';
+import { anArtifactConfiguration } from '../../../../types/artifact.testkit';
+import { aColumbusState } from '../../../../types/columbus-state.testkit';
 import { UseSaveArtifactOverrideMutationDriver } from './useSaveArtifactOverrideMutation.driver';
 
 describe('useSaveArtifactOverrideMutation', () => {
@@ -32,7 +29,7 @@ describe('useSaveArtifactOverrideMutation', () => {
 
   describe('when the production manifest supports the host', () => {
     const hostId = faker.string.uuid();
-    const production = anAppArtifactVersion({
+    const production = anAppManifest({
       channel: 'production',
       supportedHosts: [hostId],
     });

@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
 import { ArtifactConfigurationPageDriver } from './ArtifactConfigurationPage.driver';
 
@@ -12,7 +12,7 @@ describe('ArtifactConfigurationPage', () => {
 
   describe('when rendered without an override or error', () => {
     beforeEach(() => {
-      driver.when.rendered();
+      driver.given.selectedArtifactVersion(undefined).when.rendered();
     });
 
     it('should hide the error when there is no error', async () => {
@@ -55,7 +55,7 @@ describe('ArtifactConfigurationPage', () => {
   it('should show the artifact name as title when rendered', async () => {
     const name = faker.commerce.productName();
     driver.given
-      .productionArtifactVersion(anAppArtifactVersion({ name }))
+      .productionArtifactVersion(anAppManifest({ name }))
       .when.rendered();
 
     expect(await driver.get.title().getText()).toBe(name);
@@ -85,9 +85,7 @@ describe('ArtifactConfigurationPage', () => {
   });
 
   it('should clear the override when clear is clicked and an override exists', async () => {
-    driver.given
-      .selectedArtifactVersion(anAppArtifactVersion())
-      .when.rendered();
+    driver.given.selectedArtifactVersion(anAppManifest()).when.rendered();
 
     await driver.when.clearClicked();
 

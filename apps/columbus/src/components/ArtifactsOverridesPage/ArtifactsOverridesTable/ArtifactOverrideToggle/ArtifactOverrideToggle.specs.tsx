@@ -1,5 +1,5 @@
 import { anArtifact } from '../../../../types/artifact.testkit';
-import { anAppArtifactVersion } from '../../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { ArtifactOverrideToggleDriver } from './ArtifactOverrideToggle.driver';
 
 describe('ArtifactOverrideToggle', () => {
@@ -30,7 +30,8 @@ describe('ArtifactOverrideToggle', () => {
       .artifact(
         anArtifact({
           canToggle: true,
-          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
+          overrideEnabled: false,
+          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
         }),
       )
       .when.rendered();
@@ -44,7 +45,7 @@ describe('ArtifactOverrideToggle', () => {
         anArtifact({
           canToggle: true,
           overrideEnabled: true,
-          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
+          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
         }),
       )
       .when.rendered();

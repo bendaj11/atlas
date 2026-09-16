@@ -1,28 +1,24 @@
 import { faker } from '@faker-js/faker';
-import {
-  aHostArtifactVersion,
-  anAppArtifactVersion,
-  aVersionOf,
-} from '../../../types/artifact-version.testkit';
+import { aHostManifest, anAppManifest, aVersionOf } from '@atlas/testkit';
 import { anArtifact } from '../../../types/artifact.testkit';
 import { ArtifactVersionUtilsDriver } from './artifact-version-utils.driver';
 
-const DEPLOYED = anAppArtifactVersion({
+const DEPLOYED = anAppManifest({
   channel: 'production',
   version: '1.0.0',
   buildId: 'b1',
 });
-const NEWER = anAppArtifactVersion({
+const NEWER = anAppManifest({
   channel: 'production',
   version: '2.0.0',
   buildId: 'b2',
 });
-const PREVIEW = anAppArtifactVersion({
+const PREVIEW = anAppManifest({
   channel: 'pr',
   prNumber: 42,
   buildId: 'pr42',
 });
-const LOCAL = anAppArtifactVersion({
+const LOCAL = anAppManifest({
   channel: 'local',
   remoteEntryUrl: 'http://localhost:4201/app/remoteEntry.json',
 });
@@ -187,7 +183,7 @@ describe('artifactVersionFromSelection', () => {
 
   it('should build a local manifest when the selection is custom', () => {
     driver.given
-      .productionArtifactVersion(anAppArtifactVersion({ framework: 'react' }))
+      .productionArtifactVersion(anAppManifest({ framework: 'react' }))
       .given.selection({ type: 'custom', value: 'http://localhost:4201/' })
       .when.manifestResolved();
 
@@ -200,7 +196,7 @@ describe('artifactVersionFromSelection', () => {
 
   it('should add a local stylesheet when the custom app is angular', () => {
     driver.given
-      .productionArtifactVersion(anAppArtifactVersion({ framework: 'angular' }))
+      .productionArtifactVersion(anAppManifest({ framework: 'angular' }))
       .given.selection({ type: 'custom', value: 'http://localhost:4201' })
       .when.manifestResolved();
 
@@ -211,9 +207,7 @@ describe('artifactVersionFromSelection', () => {
 
   it('should drop the production integrity when the selection is custom', () => {
     driver.given
-      .productionArtifactVersion(
-        anAppArtifactVersion({ integrity: 'sha256-prod' }),
-      )
+      .productionArtifactVersion(anAppManifest({ integrity: 'sha256-prod' }))
       .given.selection({ type: 'custom', value: 'http://localhost:4201' })
       .when.manifestResolved();
 
@@ -223,7 +217,7 @@ describe('artifactVersionFromSelection', () => {
   it('should point exported widgets at the local entry when the selection is custom', () => {
     driver.given
       .productionArtifactVersion(
-        anAppArtifactVersion({
+        anAppManifest({
           exportedWidgets: [
             {
               schemaVersion: '1',
@@ -330,7 +324,7 @@ describe('normalizeStoredArtifactVersion', () => {
 
   it('should restore the local version when a legacy local manifest stored the build id as version', () => {
     driver.when.storedManifestNormalized(
-      anAppArtifactVersion({ channel: 'local', version: 'custom-url' }),
+      anAppManifest({ channel: 'local', version: 'custom-url' }),
     );
 
     expect(driver.get.normalizedManifest()?.version).toBe('0.0.0-local');
@@ -378,7 +372,7 @@ describe('versionLabel', () => {
 
   it('should join version, build id, and commit title when the release is production', () => {
     driver.when.versionLabelled(
-      anAppArtifactVersion({
+      anAppManifest({
         channel: 'production',
         version: '1.2.3',
         buildId: 'abcdef123456',
@@ -391,7 +385,7 @@ describe('versionLabel', () => {
 
   it('should show only the version when the build is canonical and the title is punctuation', () => {
     driver.when.versionLabelled(
-      anAppArtifactVersion({
+      anAppManifest({
         channel: 'production',
         version: '0.1.2',
         buildId: 'canonical',
@@ -404,7 +398,7 @@ describe('versionLabel', () => {
 
   it('should show pr number, branch, short sha, and title when the release is a pr', () => {
     driver.when.versionLabelled(
-      anAppArtifactVersion({
+      anAppManifest({
         channel: 'pr',
         prNumber: 42,
         gitBranch: 'feature/labels',
@@ -419,16 +413,14 @@ describe('versionLabel', () => {
   });
 
   it('should fall back to the pr number when the pr has no metadata', () => {
-    driver.when.versionLabelled(
-      anAppArtifactVersion({ channel: 'pr', prNumber: 42 }),
-    );
+    driver.when.versionLabelled(anAppManifest({ channel: 'pr', prNumber: 42 }));
 
     expect(driver.get.label()).toBe('PR #42');
   });
 
   it('should show version, short build id, and Local when the release is local', () => {
     driver.when.versionLabelled(
-      anAppArtifactVersion({
+      anAppManifest({
         channel: 'local',
         version: '0.0.0-local',
         buildId: 'custom-url',
@@ -448,7 +440,7 @@ describe('versionBuildIdLabel', () => {
 
   it('should append the build id when the build is not canonical', () => {
     driver.when.versionBuildIdLabelled(
-      anAppArtifactVersion({ version: '1.0.0', buildId: 'b1' }),
+      anAppManifest({ version: '1.0.0', buildId: 'b1' }),
     );
 
     expect(driver.get.label()).toBe('1.0.0-b1');
@@ -456,7 +448,7 @@ describe('versionBuildIdLabel', () => {
 
   it('should show only the version when the build is canonical', () => {
     driver.when.versionBuildIdLabelled(
-      anAppArtifactVersion({ version: '1.0.0', buildId: 'canonical' }),
+      anAppManifest({ version: '1.0.0', buildId: 'canonical' }),
     );
 
     expect(driver.get.label()).toBe('1.0.0');
@@ -483,9 +475,7 @@ describe('artifactSourceDescription', () => {
   });
 
   it('should show the version label when the override is not local', () => {
-    driver.when.sourceDescribed(
-      anAppArtifactVersion({ channel: 'pr', prNumber: 7 }),
-    );
+    driver.when.sourceDescribed(anAppManifest({ channel: 'pr', prNumber: 7 }));
 
     expect(driver.get.label()).toBe('PR #7');
   });
@@ -499,17 +489,14 @@ describe('isArtifactVersionSupportedByHost', () => {
   });
 
   it('should support the host manifest when its id is the host id', () => {
-    driver.when.hostSupportChecked(
-      aHostArtifactVersion({ id: 'shop' }),
-      'shop',
-    );
+    driver.when.hostSupportChecked(aHostManifest({ id: 'shop' }), 'shop');
 
     expect(driver.get.supported()).toBe(true);
   });
 
   it('should support an app when it lists every host', () => {
     driver.when.hostSupportChecked(
-      anAppArtifactVersion({ supportedHosts: ['*'] }),
+      anAppManifest({ supportedHosts: ['*'] }),
       'shop',
     );
 
@@ -518,7 +505,7 @@ describe('isArtifactVersionSupportedByHost', () => {
 
   it('should support an app when it lists the host id', () => {
     driver.when.hostSupportChecked(
-      anAppArtifactVersion({ supportedHosts: ['shop'] }),
+      anAppManifest({ supportedHosts: ['shop'] }),
       'shop',
     );
 
@@ -527,7 +514,7 @@ describe('isArtifactVersionSupportedByHost', () => {
 
   it('should support an app when a placement targets the host', () => {
     driver.when.hostSupportChecked(
-      anAppArtifactVersion({
+      anAppManifest({
         supportedHosts: [],
         placements: [{ id: 'orders', kind: 'route', hostId: 'shop' }],
       }),
@@ -539,7 +526,7 @@ describe('isArtifactVersionSupportedByHost', () => {
 
   it('should not support an app when nothing targets the host', () => {
     driver.when.hostSupportChecked(
-      anAppArtifactVersion({ supportedHosts: ['other'], placements: [] }),
+      anAppManifest({ supportedHosts: ['other'], placements: [] }),
       'shop',
     );
 

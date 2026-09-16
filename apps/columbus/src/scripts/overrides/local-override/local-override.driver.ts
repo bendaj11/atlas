@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../../types/artifact-version';
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { validateLocalOverride } from './local-override';
 
 export class LocalOverrideDriver {
-  private manifest: ArtifactVersion = anAppArtifactVersion({
+  private manifest: ArtifactVersion = anAppManifest({
     channel: 'local',
     remoteEntryUrl: 'http://localhost:4513/remoteEntry.json',
     exposes: { entry: './entry' },

@@ -1,4 +1,4 @@
-import { anAppArtifactVersion } from '../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { aColumbusState } from '../../types/columbus-state.testkit';
 import { PersistOverridesDriver } from './persist-overrides.driver';
 
@@ -10,8 +10,8 @@ describe('persistColumbusState', () => {
   });
 
   it('should validate every active override when persisting', async () => {
-    const local = anAppArtifactVersion({ channel: 'local' });
-    const preview = anAppArtifactVersion({ channel: 'pr' });
+    const local = anAppManifest({ channel: 'local' });
+    const preview = anAppManifest({ channel: 'pr' });
 
     await driver.given
       .columbusState(
@@ -32,7 +32,7 @@ describe('persistColumbusState', () => {
       .columbusState(
         aColumbusState({
           enabledArtifactVersionOverrides: new Map([
-            ['app:a', anAppArtifactVersion()],
+            ['app:a', anAppManifest()],
           ]),
         }),
       )
@@ -47,7 +47,7 @@ describe('persistColumbusState', () => {
       .columbusState(
         aColumbusState({
           enabledArtifactVersionOverrides: new Map([
-            ['app:a', anAppArtifactVersion()],
+            ['app:a', anAppManifest()],
           ]),
         }),
       )
@@ -69,7 +69,7 @@ describe('persistColumbusState', () => {
   });
 
   it('should build the override document from the active overrides when persisting', async () => {
-    const override = anAppArtifactVersion({
+    const override = anAppManifest({
       id: 'orders',
       channel: 'production',
     });
@@ -103,7 +103,7 @@ describe('persistColumbusState', () => {
       .columbusState(
         aColumbusState({
           disabledArtifactVersionOverrides: new Map([
-            ['app:orders', anAppArtifactVersion({ id: 'orders' })],
+            ['app:orders', anAppManifest({ id: 'orders' })],
           ]),
           clearedLocalArtifactIds: new Set(['cart', 'orders']),
         }),

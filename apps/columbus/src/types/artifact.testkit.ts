@@ -1,22 +1,27 @@
 import { faker } from '@faker-js/faker';
 import { getArtifactKey } from '../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
-import type { Artifact, ArtifactConfiguration } from './artifact';
-import { anAppArtifactVersion } from './artifact-version.testkit';
+import type { Artifact, ArtifactConfiguration, OverrideType } from './artifact';
+import { anAppManifest } from '@atlas/testkit';
+
+const OVERRIDE_TYPES: OverrideType[] = ['custom', 'production', 'pr'];
 
 export function anArtifact(overrides: Partial<Artifact> = {}): Artifact {
   const productionArtifactVersion =
-    overrides.productionArtifactVersion ?? anAppArtifactVersion();
+    overrides.productionArtifactVersion ?? anAppManifest();
 
   return {
     key: getArtifactKey(productionArtifactVersion),
     productionArtifactVersion,
-    selectedArtifactVersion: undefined,
-    overrideType: undefined,
-    sourceDescription: '',
-    loadError: undefined,
-    overrideEnabled: false,
-    canToggle: false,
-    visible: false,
+    selectedArtifactVersion: faker.helpers.arrayElement([
+      anAppManifest(),
+      undefined,
+    ]),
+    overrideType: faker.helpers.arrayElement([...OVERRIDE_TYPES, undefined]),
+    sourceDescription: faker.lorem.sentence(),
+    loadError: faker.helpers.arrayElement([faker.lorem.sentence(), undefined]),
+    overrideEnabled: faker.datatype.boolean(),
+    canToggle: faker.datatype.boolean(),
+    visible: faker.datatype.boolean(),
     ...overrides,
   };
 }
@@ -30,7 +35,7 @@ export function anArtifactConfiguration(
     ...artifact,
     hostId: faker.string.uuid(),
     productionArtifactVersions: [artifact.productionArtifactVersion],
-    prArtifactVersions: [],
+    prArtifactVersions: [anAppManifest({ channel: 'pr' })],
     ...overrides,
   };
 }

@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { anAppArtifactVersion } from '../../../types/artifact-version.testkit';
+import { anAppManifest } from '@atlas/testkit';
 import { LocalOverrideDriver } from './local-override.driver';
 
 describe('validateLocalOverride', () => {
@@ -12,7 +12,7 @@ describe('validateLocalOverride', () => {
 
   it('should skip validation when the manifest is not local', async () => {
     await driver.given
-      .manifest(anAppArtifactVersion({ channel: 'pr' }))
+      .manifest(anAppManifest({ channel: 'pr' }))
       .when.validated();
 
     expect(driver.get.fetchCount()).toBe(0);
