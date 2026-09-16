@@ -1,6 +1,6 @@
-export { ATLAS_BROWSER_LOADER } from './bootstrap/bootstrap-assets.js';
+export { ATLAS_BROWSER_LOADER } from './node/bootstrap-assets.js';
 
-export { createAtlasBootstrapFiles } from './bootstrap/bootstrap-files.js';
+export { createAtlasBootstrapFiles } from './node/bootstrap-files.js';
 export {
   artifactUrl,
   assertAtlasRuntimeConfig,
@@ -8,14 +8,14 @@ export {
   environmentManifestUrl,
   environmentRegistryUrl,
   resolveAtlasRuntimeConfig,
-} from './runtime-config/runtime-config.js';
+} from './shared/runtime-config/runtime-config.js';
 
 export {
   createBootstrapHtml,
   validateBootstrapHtml,
-} from './bootstrap/bootstrap-html.js';
+} from './node/bootstrap-html.js';
 
 export type {
   AtlasBootstrapFile,
   AtlasBootstrapOptions,
-} from './bootstrap/bootstrap-types.js';
+} from './node/bootstrap-types.js';

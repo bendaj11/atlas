@@ -1,96 +1,94 @@
-import { faker } from '@faker-js/faker';
-import {
-  ATLAS_DEV_BRIDGE_MARKER,
-  ATLAS_DEV_SESSION_REQUEST,
-  ATLAS_DEV_SESSION_RESPONSE,
-  type AtlasDevelopmentSessionRequest,
-} from '@atlas/schema';
+import { jest } from '@jest/globals';
+import { ATLAS_DEV_BRIDGE_MARKER } from '@atlas/schema';
 import { requestDevelopmentSession } from './development-session.js';
 
 export class DevelopmentSessionDriver {
-  private readonly hostId = faker.string.uuid();
-  private readonly requestId = faker.string.uuid();
-  private readonly document = { hostId: this.hostId };
-  private bridgeInstalled = false;
+  private bridgeMarkerPresent = false;
+  private requestId!: string;
+  private origin!: string;
+  private reply: unknown;
   private listener: ((event: Event) => void) | undefined;
   private timeout: (() => void) | undefined;
+  private pending!: Promise<unknown>;
   private result: unknown;
+  private readonly postMessage = jest.fn<
+    (message: unknown, origin: string) => void
+  >(() => {
+    if (this.reply !== undefined)
+      this.listener?.({ data: this.reply } as MessageEvent);
+  });
+  private readonly removeEventListener = jest.fn();
 
   readonly given = {
-    bridgeInstalled: (): DevelopmentSessionDriver => {
-      this.bridgeInstalled = true;
+    bridgeMarkerPresent: (present: boolean): DevelopmentSessionDriver => {
+      this.bridgeMarkerPresent = present;
+
       return this;
     },
-    matchingResponse: (): DevelopmentSessionDriver => {
-      this.bridgeInstalled = true;
-      this.respond = (request) => {
-        this.listener?.({
-          data: {
-            type: ATLAS_DEV_SESSION_RESPONSE,
-            requestId: request.requestId,
-            hostId: request.hostId,
-            document: this.document,
-          },
-        } as MessageEvent);
-      };
+    requestId: (requestId: string): DevelopmentSessionDriver => {
+      this.requestId = requestId;
+
+      return this;
+    },
+    origin: (origin: string): DevelopmentSessionDriver => {
+      this.origin = origin;
+
+      return this;
+    },
+    bridgeReply: (reply: unknown): DevelopmentSessionDriver => {
+      this.reply = reply;
+
       return this;
     },
   };
 
   readonly when = {
-    requested: async (): Promise<void> => {
-      this.result = await requestDevelopmentSession(this.hostId, {
-        document: {
-          querySelector: (selector: string) =>
-            this.bridgeInstalled &&
-            selector === `meta[name="${ATLAS_DEV_BRIDGE_MARKER}"]`
-              ? ({} as Element)
-              : null,
-        },
-        window: {
-          addEventListener: (
-            _type: string,
-            listener: EventListenerOrEventListenerObject,
-          ) => {
-            this.listener = listener as (event: Event) => void;
+    requested: (hostId: string): void => {
+      this.pending = requestDevelopmentSession({
+        hostId,
+        dependencies: {
+          document: {
+            querySelector: (selector: string) =>
+              this.bridgeMarkerPresent &&
+              selector === `meta[name="${ATLAS_DEV_BRIDGE_MARKER}"]`
+                ? ({} as Element)
+                : null,
           },
-          removeEventListener: () => {
-            this.listener = undefined;
+          window: {
+            addEventListener: (
+              _type: string,
+              listener: EventListenerOrEventListenerObject,
+            ) => {
+              this.listener = listener as (event: Event) => void;
+            },
+            removeEventListener: this.removeEventListener,
+            postMessage: this.postMessage as Window['postMessage'],
           },
-          postMessage: (message) =>
-            this.respond(message as AtlasDevelopmentSessionRequest),
-        },
-        origin: faker.internet.url(),
-        requestId: () => this.requestId,
-        scheduleTimeout: (operation) => {
-          this.timeout = operation;
-          return 1;
-        },
-        clearScheduledTimeout: () => {
-          this.timeout = undefined;
+          origin: this.origin,
+          requestId: () => this.requestId,
+          scheduleTimeout: (operation) => {
+            this.timeout = operation;
+
+            return 1;
+          },
+          clearScheduledTimeout: () => {
+            this.timeout = undefined;
+          },
         },
       });
     },
+    settled: async (): Promise<void> => {
+      this.result = await this.pending;
+    },
     timedOut: async (): Promise<void> => {
-      const pending = this.when.requested();
       this.timeout?.();
-      await pending;
+      this.result = await this.pending;
     },
   };
 
   readonly get = {
-    document: (): unknown => this.document,
     result: (): unknown => this.result,
+    postMessageMock: () => this.postMessage,
+    removeEventListenerMock: () => this.removeEventListener,
   };
-
-  private respond(_request: AtlasDevelopmentSessionRequest): void {
-    if (!this.bridgeInstalled) return;
-    this.listener?.({
-      data: {
-        type: ATLAS_DEV_SESSION_REQUEST,
-        requestId: faker.string.uuid(),
-        hostId: this.hostId,
-      },
-    } as MessageEvent);
-  }
 }

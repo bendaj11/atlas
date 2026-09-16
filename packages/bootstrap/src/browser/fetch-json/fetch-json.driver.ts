@@ -1,69 +1,76 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
-import { fetchJson } from './fetch-json.js';
+import { fetchBytes, fetchJson } from './fetch-json.js';
 
 export class FetchJsonDriver {
   private url = faker.internet.url();
+  private retryCount = 0;
+  private integrity: string | undefined;
   private readonly originalFetch = globalThis.fetch;
   private readonly originalTimeout = AbortSignal.timeout;
   private readonly timeoutSignal = new AbortController().signal;
-  private responseBody: { name: string } | undefined;
-  private response: Promise<unknown> | undefined;
-  private fetchMock: jest.MockedFunction<typeof fetch> | undefined;
+  private readonly fetchMock = jest.fn<typeof fetch>();
+  private result!: Promise<unknown>;
 
   constructor() {
     AbortSignal.timeout = jest
       .fn<typeof AbortSignal.timeout>()
       .mockReturnValue(this.timeoutSignal);
+    globalThis.fetch = this.fetchMock;
   }
 
   readonly given = {
-    requestUrl: (url: string): FetchJsonDriver => {
+    url: (url: string): FetchJsonDriver => {
       this.url = url;
+
       return this;
     },
-    successfulResponse: (responseBody: { name: string }): FetchJsonDriver => {
-      this.responseBody = responseBody;
-      this.fetchMock = jest
-        .fn<typeof fetch>()
-        .mockResolvedValue(
-          new Response(JSON.stringify(this.responseBody), { status: 200 }),
-        );
-      Object.assign(globalThis, { fetch: this.fetchMock });
+    retryCount: (retryCount: number): FetchJsonDriver => {
+      this.retryCount = retryCount;
+
       return this;
     },
-    missingResponse: (status: number): FetchJsonDriver => {
-      Object.assign(globalThis, {
-        fetch: jest
-          .fn<typeof fetch>()
-          .mockResolvedValue(new Response(null, { status })),
-      });
+    integrity: (integrity: string): FetchJsonDriver => {
+      this.integrity = integrity;
+
       return this;
     },
-    failedRequest: (error: Error): FetchJsonDriver => {
-      Object.assign(globalThis, {
-        fetch: jest.fn<typeof fetch>().mockRejectedValue(error),
-      });
+    response: (body: string, status = 200): FetchJsonDriver => {
+      this.fetchMock.mockResolvedValueOnce(new Response(body, { status }));
+
+      return this;
+    },
+    failure: (error: Error): FetchJsonDriver => {
+      this.fetchMock.mockRejectedValueOnce(error);
+
       return this;
     },
   };
 
   readonly when = {
-    request: (): void => {
-      this.response = fetchJson<{ name: string }>(this.url, {
-        resourcesRetryCount: 0,
-      }).finally(() => {
-        globalThis.fetch = this.originalFetch;
-        AbortSignal.timeout = this.originalTimeout;
-      });
+    jsonRequested: (): void => {
+      this.result = fetchJson({
+        url: this.url,
+        runtime: { resourcesRetryCount: this.retryCount },
+        ...(this.integrity === undefined ? {} : { integrity: this.integrity }),
+      }).finally(() => this.restore());
+    },
+    bytesRequested: (): void => {
+      this.result = fetchBytes({
+        url: this.url,
+        runtime: { resourcesRetryCount: this.retryCount },
+      }).finally(() => this.restore());
     },
   };
 
   readonly get = {
-    responseBody: (): { name: string } | undefined => this.responseBody,
-    response: (): Promise<unknown> => this.response as Promise<unknown>,
-    requestOptions: (): RequestInit | undefined =>
-      this.fetchMock?.mock.calls[0]?.[1],
+    result: (): Promise<unknown> => this.result,
+    fetchMock: (): jest.Mock<typeof fetch> => this.fetchMock,
     timeoutSignal: (): AbortSignal => this.timeoutSignal,
   };
+
+  private restore(): void {
+    globalThis.fetch = this.originalFetch;
+    AbortSignal.timeout = this.originalTimeout;
+  }
 }

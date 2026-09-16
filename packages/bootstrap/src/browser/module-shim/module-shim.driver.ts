@@ -1,33 +1,38 @@
-import type { HostModule } from '../types.js';
-import { faker } from '@faker-js/faker';
-import { importModule } from './module-shim.js';
+import { jest } from '@jest/globals';
+import type { HostModule } from '../host-module.js';
+import {
+  importModule,
+  installModuleShim,
+  type ModuleShimGlobal,
+} from './module-shim.js';
 
 export class ModuleShimDriver {
-  private error: unknown;
+  private readonly moduleShim: ModuleShimGlobal = {};
+  private readonly importShim =
+    jest.fn<NonNullable<ModuleShimGlobal['importShim']>>();
   private module: HostModule | undefined;
-  private moduleUrl = faker.internet.url();
+  private error: unknown;
 
   readonly given = {
-    unavailable: (moduleUrl: string): ModuleShimDriver => {
-      this.moduleUrl = moduleUrl;
-      delete (globalThis as typeof globalThis & { importShim?: unknown })
-        .importShim;
-      return this;
-    },
-    available: (module: HostModule): ModuleShimDriver => {
-      (
-        globalThis as typeof globalThis & {
-          importShim?: (url: string) => Promise<HostModule>;
-        }
-      ).importShim = async () => module;
+    importShimInstalled: (module: HostModule): ModuleShimDriver => {
+      this.importShim.mockResolvedValue(module);
+      this.moduleShim.importShim = this.importShim;
+
       return this;
     },
   };
 
   readonly when = {
-    import: async (): Promise<void> => {
+    installed: async (): Promise<void> => {
       try {
-        this.module = await importModule(this.moduleUrl);
+        await installModuleShim(this.moduleShim);
+      } catch (error) {
+        this.error = error;
+      }
+    },
+    imported: async (url: string): Promise<void> => {
+      try {
+        this.module = await importModule({ url, moduleShim: this.moduleShim });
       } catch (error) {
         this.error = error;
       }
@@ -35,7 +40,10 @@ export class ModuleShimDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
     module: (): HostModule | undefined => this.module,
+    error: (): unknown => this.error,
+    shimOptions: (): ModuleShimGlobal['esmsInitOptions'] =>
+      this.moduleShim.esmsInitOptions,
+    importShimMock: () => this.importShim,
   };
 }

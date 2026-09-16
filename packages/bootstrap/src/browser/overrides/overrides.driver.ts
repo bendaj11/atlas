@@ -1,133 +1,126 @@
-import type { AtlasHostCatalog } from '@atlas/schema';
-import { faker } from '../test-utils/faker.js';
-import { applyOverrides } from './overrides.js';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasHostRuntimeConfig,
+  AtlasManifest,
+  AtlasStaticRegistry,
+} from '@atlas/schema';
+import { jest } from '@jest/globals';
+import {
+  applyOverrides,
+  type DevSession,
+  type OverridesDependencies,
+} from './overrides.js';
+
+const STORAGE_KEY = 'atlas.runtime-overrides';
 
 export class OverridesDriver {
-  private readonly storage = new Map<string, string>();
-  private readonly schemaVersion = faker.custom.schemaVersion();
-  private readonly channel = faker.custom.channel();
-  private readonly framework = faker.custom.framework();
-  private readonly hostId = faker.string.uuid();
-  private readonly hostName = faker.company.name();
-  private readonly remoteEntryUrl = faker.internet.url();
+  private runtime!: AtlasHostRuntimeConfig;
+  private catalog!: AtlasHostCatalog;
+  private suppliedSession: DevSession | undefined;
+  private fetchedSession: DevSession | undefined;
+  private registry: AtlasStaticRegistry | undefined;
+  private registryFailure: Error | undefined;
+  private readonly sessionStore = new Map<string, string>();
+  private readonly localStore = new Map<string, string>();
+  private readonly fetchJson = jest.fn<
+    (options: { url: string }) => Promise<unknown>
+  >(async ({ url }) => {
+    if (url === this.runtime.developmentSessionUrl) return this.fetchedSession;
+    if (this.registryFailure) throw this.registryFailure;
+
+    return this.registry;
+  });
+  private readonly requestDevelopmentSession = jest.fn<
+    OverridesDependencies['requestDevelopmentSession']
+  >(async () => undefined);
+  private readonly loadPublishedArtifact =
+    jest.fn<OverridesDependencies['loadPublishedArtifact']>();
   private result: AtlasHostCatalog | undefined;
   private error: unknown;
 
   readonly given = {
-    noStoredOverride: (_stored: undefined): OverridesDriver => {
-      this.storage.clear();
-      Object.assign(globalThis, {
-        location: { search: '' },
-        localStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-        sessionStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-      });
+    runtime: (runtime: AtlasHostRuntimeConfig): OverridesDriver => {
+      this.runtime = runtime;
+
       return this;
     },
-    overrideForAnotherHost: (hostId: string): OverridesDriver => {
-      this.storage.clear();
-      this.storage.set('atlas.runtime-overrides', JSON.stringify({ hostId }));
-      Object.assign(globalThis, {
-        localStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-        sessionStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-      });
+    catalog: (catalog: AtlasHostCatalog): OverridesDriver => {
+      this.catalog = catalog;
+
       return this;
     },
-    invalidAppOverride: (override: object): OverridesDriver => {
-      this.storage.clear();
-      this.storage.set('atlas.runtime-overrides', JSON.stringify(override));
-      Object.assign(globalThis, {
-        localStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-        sessionStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-      });
+    suppliedSession: (session: DevSession): OverridesDriver => {
+      this.suppliedSession = session;
+
       return this;
     },
-    newLocalAppOverride: (): OverridesDriver => {
-      this.storage.clear();
-      this.storage.set(
-        'atlas.runtime-overrides',
-        JSON.stringify({
-          schemaVersion: '1',
-          hostId: this.hostId,
-          overrides: [
-            {
-              appId: 'new-app',
-              reason: 'local',
-              manifest: {
-                schemaVersion: '1',
-                kind: 'app',
-                id: 'new-app',
-                name: 'New App',
-                version: '0.0.0-local',
-                buildId: 'local',
-                channel: 'local',
-                framework: 'angular',
-                remoteEntryUrl: 'http://localhost:4203/remoteEntry.json',
-                createdAt: faker.date.recent().toISOString(),
-                supportedHosts: [this.hostId],
-                placements: [{ hostId: this.hostId, route: { path: '/new' } }],
-              },
-            },
-          ],
-          generatedAt: faker.date.recent().toISOString(),
-        }),
-      );
-      Object.assign(globalThis, {
-        localStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-        sessionStorage: {
-          getItem: (key: string) => this.storage.get(key) ?? null,
-        },
-      });
+    fetchedSession: (session: DevSession): OverridesDriver => {
+      this.fetchedSession = session;
+
+      return this;
+    },
+    bridgeSession: (session: DevSession): OverridesDriver => {
+      this.requestDevelopmentSession.mockResolvedValue(session);
+
+      return this;
+    },
+    sessionStorageDocument: (document: unknown): OverridesDriver => {
+      this.sessionStore.set(STORAGE_KEY, JSON.stringify(document));
+
+      return this;
+    },
+    localStorageDocument: (document: unknown): OverridesDriver => {
+      this.localStore.set(STORAGE_KEY, JSON.stringify(document));
+
+      return this;
+    },
+    registry: (registry: AtlasStaticRegistry): OverridesDriver => {
+      this.registry = registry;
+
+      return this;
+    },
+    registryFailure: (error: Error): OverridesDriver => {
+      this.registryFailure = error;
+
+      return this;
+    },
+    publishedArtifactFailure: (error: Error): OverridesDriver => {
+      this.loadPublishedArtifact.mockRejectedValue(error);
+
+      return this;
+    },
+    publishedArtifact: (
+      manifest: AtlasManifest | AtlasHostManifest,
+    ): OverridesDriver => {
+      this.loadPublishedArtifact.mockResolvedValue(manifest);
+
       return this;
     },
   };
 
   readonly when = {
-    apply: async (): Promise<void> => {
+    applied: async (): Promise<void> => {
       try {
-        this.result = await applyOverrides(
-          {
-            schemaVersion: 'v1',
-            hostId: this.hostId,
-            environment: 'production',
-            artifactRegistryUrl: faker.internet.url(),
-            manifestUrl: faker.internet.url(),
-          },
-          {
-            schemaVersion: this.schemaVersion,
-            hostId: this.hostId,
-            revision: 'sha256:' + faker.string.alphanumeric(32),
-            generatedAt: faker.date.past().toISOString(),
-            host: {
-              schemaVersion: this.schemaVersion,
-              kind: 'host',
-              id: this.hostId,
-              name: this.hostName,
-              version: faker.system.semver(),
-              buildId: faker.string.uuid(),
-              channel: this.channel,
-              framework: this.framework,
-              remoteEntryUrl: this.remoteEntryUrl,
-              exposes: { entry: './host' },
-              requiredLoaderApiVersion: '^1.0.0',
-              createdAt: faker.date.past().toISOString(),
+        this.result = await applyOverrides({
+          runtime: this.runtime,
+          catalog: this.catalog,
+          ...(this.suppliedSession === undefined
+            ? {}
+            : { developmentSession: this.suppliedSession }),
+          dependencies: {
+            sessionStorage: {
+              getItem: (key) => this.sessionStore.get(key) ?? null,
+              setItem: (key, value) => void this.sessionStore.set(key, value),
             },
-            apps: [],
+            localStorage: {
+              getItem: (key) => this.localStore.get(key) ?? null,
+            },
+            fetchJson: this.fetchJson as OverridesDependencies['fetchJson'],
+            requestDevelopmentSession: this.requestDevelopmentSession,
+            loadPublishedArtifact: this.loadPublishedArtifact,
           },
-        );
+        });
       } catch (error) {
         this.error = error;
       }
@@ -135,10 +128,12 @@ export class OverridesDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
-    hostId: (): string => this.hostId,
     result: (): AtlasHostCatalog | undefined => this.result,
-    resultAppIds: (): string[] =>
-      this.result?.apps.map((manifest) => manifest.id) ?? [],
+    error: (): unknown => this.error,
+    storedSessionDocument: (): unknown =>
+      JSON.parse(this.sessionStore.get(STORAGE_KEY) ?? 'null'),
+    fetchJsonMock: () => this.fetchJson,
+    requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
+    loadPublishedArtifactMock: () => this.loadPublishedArtifact,
   };
 }

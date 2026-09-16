@@ -20,10 +20,13 @@ interface DevelopmentSessionBridgeDependencies {
   clearScheduledTimeout(timeout: number): void;
 }
 
-export function requestDevelopmentSession(
-  hostId: string,
-  dependencies?: DevelopmentSessionBridgeDependencies,
-): Promise<unknown | undefined> {
+export function requestDevelopmentSession({
+  hostId,
+  dependencies,
+}: {
+  hostId: string;
+  dependencies?: DevelopmentSessionBridgeDependencies;
+}): Promise<unknown | undefined> {
   const bridge = dependencies ?? defaultDependencies();
   if (!bridge) return Promise.resolve(undefined);
   if (!bridge.document.querySelector(bridgeMarkerSelector())) {

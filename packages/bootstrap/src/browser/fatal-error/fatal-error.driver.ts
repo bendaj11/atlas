@@ -1,55 +1,104 @@
-import { showFatalError } from './fatal-error.js';
 import { jest } from '@jest/globals';
+import { showFatalError, type FatalErrorDependencies } from './fatal-error.js';
+
+interface FakeElement {
+  tagName: string;
+  textContent: string;
+  onclick: (() => void) | null;
+  children: FakeElement[];
+  attributes: Record<string, string>;
+  append(...elements: FakeElement[]): void;
+  replaceChildren(): void;
+  setAttribute(name: string, value: string): void;
+}
+
+function aFakeElement(tagName: string): FakeElement {
+  return {
+    tagName,
+    textContent: '',
+    onclick: null,
+    children: [],
+    attributes: {},
+    append(...elements) {
+      this.children.push(...elements);
+    },
+    replaceChildren() {
+      this.children = [];
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  };
+}
 
 export class FatalErrorDriver {
-  private error: Error | undefined;
-  private root: { append: jest.Mock; replaceChildren: jest.Mock } | undefined;
-  private createElement = jest.fn();
-  private resetButton: { onclick: (() => void) | null } | undefined;
+  private readonly body = aFakeElement('body');
+  private readonly hostRoot = aFakeElement('div');
+  private hostRootPresent = true;
+  private readonly sessionStorage = { removeItem: jest.fn() };
+  private readonly localStorage = { removeItem: jest.fn() };
+  private readonly reloadPage = jest.fn();
+  private readonly logError = jest.fn<FatalErrorDependencies['logError']>();
 
   readonly given = {
-    error: (error: Error): FatalErrorDriver => {
-      this.error = error;
-      this.resetButton = undefined;
-      Object.assign(console, { error: jest.fn() });
-      this.root = { append: jest.fn(), replaceChildren: jest.fn() };
-      this.createElement.mockImplementation((...args: unknown[]) => {
-        const [tagName] = args;
-        const element = {
-          onclick: null as (() => void) | null,
-          textContent: '',
-          append: jest.fn(),
-          setAttribute: jest.fn(),
-        };
+    hostRootPresent: (present: boolean): FatalErrorDriver => {
+      this.hostRootPresent = present;
 
-        if (tagName === 'button') this.resetButton = element;
-
-        return element;
-      });
-      Object.assign(globalThis, {
-        document: {
-          body: this.root,
-          createElement: this.createElement,
-          getElementById: () => this.root,
-        },
-        localStorage: { removeItem: jest.fn() },
-        sessionStorage: { removeItem: jest.fn() },
-        location: { reload: jest.fn() },
-      });
       return this;
     },
   };
 
   readonly when = {
-    clearOverrides: (): void => {
-      this.resetButton?.onclick?.();
+    shown: (error: unknown): void => {
+      showFatalError({
+        error,
+        dependencies: {
+          document: {
+            body: this.body as unknown as HTMLElement,
+            getElementById: () =>
+              this.hostRootPresent
+                ? (this.hostRoot as unknown as HTMLElement)
+                : null,
+            createElement: ((tagName: string) =>
+              aFakeElement(tagName)) as Document['createElement'],
+          },
+          sessionStorage: this.sessionStorage,
+          localStorage: this.localStorage,
+          reloadPage: this.reloadPage,
+          logError: this.logError,
+        },
+      });
     },
-    show: (): void => showFatalError(this.error),
+    overridesCleared: (): void => {
+      this.panel()
+        .children.find((element) => element.tagName === 'button')
+        ?.onclick?.();
+    },
   };
 
   readonly get = {
-    rendered: (): boolean => this.root?.append.mock.calls.length === 1,
-    reloadCount: (): number =>
-      (location.reload as unknown as jest.Mock).mock.calls.length,
+    hostRootChildCount: (): number => this.hostRoot.children.length,
+    bodyChildCount: (): number => this.body.children.length,
+    message: (): string | undefined => this.childText('p'),
+    actionHeading: (): string | undefined => this.childText('strong'),
+    actions: (): string[] =>
+      this.panel()
+        .children.find((element) => element.tagName === 'ol')
+        ?.children.map((item) => item.textContent) ?? [],
+    sessionStorageMock: () => this.sessionStorage.removeItem,
+    localStorageMock: () => this.localStorage.removeItem,
+    reloadPageMock: () => this.reloadPage,
+    logErrorMock: () => this.logError,
   };
+
+  private panel(): FakeElement {
+    const root = this.hostRootPresent ? this.hostRoot : this.body;
+
+    return root.children[0]!;
+  }
+
+  private childText(tagName: string): string | undefined {
+    return this.panel().children.find((element) => element.tagName === tagName)
+      ?.textContent;
+  }
 }

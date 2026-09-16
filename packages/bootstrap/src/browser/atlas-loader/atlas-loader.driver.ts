@@ -4,59 +4,55 @@ import type {
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
   AtlasManifest,
+  AtlasManifestDescriptor,
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
-import { faker } from '../test-utils/faker.js';
-import type { DevSession, HostModule } from '../types.js';
+import type { HostModule, HostMountRequest } from '../host-module.js';
 import {
   startAtlasLoader,
   type AtlasLoaderDependencies,
 } from './atlas-loader.js';
 
+interface SnapshotElement {
+  id: string;
+  type: string;
+  textContent: string;
+}
+
 export class AtlasLoaderDriver {
-  private readonly root = {
-    replaceChildren: jest.fn(),
-  } as unknown as HTMLElement;
-  private readonly snapshot = {
-    id: '',
-    textContent: '',
-    type: '',
-  } as HTMLScriptElement;
-  private readonly runtime: AtlasHostRuntimeConfig = {
-    schemaVersion: 'v1',
-    hostId: faker.string.uuid(),
-    environment: 'production',
-    artifactRegistryUrl: 'https://registry.example',
-  };
-  private readonly host = this.createHost();
-  private readonly app = this.createApp();
-  private readonly widgetProvider = this.createApp();
-  private readonly catalog: AtlasHostCatalog = {
-    schemaVersion: '1',
-    hostId: this.runtime.hostId,
-    revision: faker.git.commitSha(),
-    generatedAt: faker.date.past().toISOString(),
-    host: this.host,
-    apps: [this.app],
-  };
-  private readonly fetchBytes =
-    jest.fn<typeof import('../fetch-json/fetch-json.js').fetchBytes>();
-  private readonly fetchJson = async <T>(url: string): Promise<T> => {
-    if (url === '/atlas.runtime.json') return this.runtime as T;
-    if (url === this.runtime.developmentSessionUrl)
-      return this.developmentSession as T;
-    return this.catalog as T;
-  };
-  private readonly installModuleShim = jest.fn(async () => undefined);
-  private readonly loadHostModule = jest.fn(async (): Promise<HostModule> => ({
-    mount: async (request) => {
-      this.mountedCatalog = request.catalog;
-    },
-  }));
-  private readonly loadPublishedArtifact = async (): Promise<
+  private runtimeConfig!: AtlasHostRuntimeConfig;
+  private deployment: AtlasHostDeploymentManifest | undefined;
+  private developmentSession: unknown;
+  private readonly artifacts = new Map<
+    string,
     AtlasManifest | AtlasHostManifest
-  > => {
-    const index = this.artifactIndex++;
+  >();
+  private hostRootPresent = true;
+  private existingSnapshot: SnapshotElement | undefined;
+  private createdSnapshot: SnapshotElement | undefined;
+  private activeArtifactLoads = 0;
+  private maximumArtifactLoads = 0;
+  private readonly root = { replaceChildren: jest.fn() };
+  private readonly mount = jest.fn<
+    (request: HostMountRequest) => Promise<void>
+  >(async () => undefined);
+  private hostModule: HostModule = { mount: this.mount };
+  private readonly installModuleShim = jest.fn<
+    AtlasLoaderDependencies['installModuleShim']
+  >(async () => undefined);
+  private readonly fetchBytes = jest.fn<AtlasLoaderDependencies['fetchBytes']>(
+    async () => new TextEncoder().encode(JSON.stringify(this.deployment)),
+  );
+  private readonly fetchJson = jest.fn<
+    (options: { url: string }) => Promise<unknown>
+  >(async ({ url }) =>
+    url === '/atlas.runtime.json'
+      ? this.runtimeConfig
+      : this.developmentSession,
+  );
+  private readonly loadPublishedArtifact = jest.fn<
+    AtlasLoaderDependencies['loadPublishedArtifact']
+  >(async ({ reference }) => {
     this.activeArtifactLoads += 1;
     this.maximumArtifactLoads = Math.max(
       this.maximumArtifactLoads,
@@ -64,88 +60,98 @@ export class AtlasLoaderDriver {
     );
     await Promise.resolve();
     this.activeArtifactLoads -= 1;
-    return this.nonHostArtifact
-      ? this.app
-      : ([this.host, this.app, this.widgetProvider][index] ?? this.app);
-  };
-  private readonly applyOverrides = jest.fn(
-    async (
-      _runtime: AtlasHostRuntimeConfig,
-      catalog: AtlasHostCatalog,
-      _developmentSession?: DevSession,
-    ) => catalog,
-  );
-  private readonly validateCatalog = jest.fn();
-  private readonly dependencies: AtlasLoaderDependencies = {
-    document: {
-      createElement: jest.fn(() => this.snapshot),
-      getElementById: jest.fn((id) =>
-        id === 'atlas-host-root' ? this.root : null,
-      ),
-      head: { append: jest.fn() } as unknown as HTMLHeadElement,
-    },
-    location: { href: 'https://host.example/' },
-    fetchBytes: this.fetchBytes,
-    fetchJson: this.fetchJson,
-    installModuleShim: this.installModuleShim,
-    loadHostModule: this.loadHostModule,
-    loadPublishedArtifact: this.loadPublishedArtifact,
-    applyOverrides: this.applyOverrides,
-    validateCatalog: this.validateCatalog,
-  };
-  private mountedCatalog: AtlasHostCatalog | undefined;
-  private error: unknown;
-  private deployment = this.createDeployment();
-  private artifactIndex = 0;
-  private nonHostArtifact = false;
-  private activeArtifactLoads = 0;
-  private maximumArtifactLoads = 0;
-  private readonly developmentSession: DevSession = {
-    schemaVersion: '1',
-    hostId: this.runtime.hostId,
-    catalog: this.catalog,
-    overrides: [],
-  };
 
-  constructor() {
-    this.configureProductionRuntime();
-  }
+    return this.artifacts.get(reference.path)!;
+  });
+  private readonly applyOverrides = jest.fn<
+    AtlasLoaderDependencies['applyOverrides']
+  >(async ({ catalog }) => catalog);
+  private readonly validateCatalog =
+    jest.fn<AtlasLoaderDependencies['validateCatalog']>();
+  private readonly loadHostModule = jest.fn<
+    AtlasLoaderDependencies['loadHostModule']
+  >(async () => this.hostModule);
+  private error: unknown;
 
   readonly given = {
-    localHostDevelopment: (): AtlasLoaderDriver => {
-      Object.assign(this.runtime, {
-        environment: 'development',
-        developmentSessionUrl: 'http://localhost:4400/atlas.dev-session.json',
-      });
+    runtimeConfig: (
+      runtimeConfig: AtlasHostRuntimeConfig,
+    ): AtlasLoaderDriver => {
+      this.runtimeConfig = runtimeConfig;
+
       return this;
     },
-    invalidDeployment: (): AtlasLoaderDriver => {
-      this.deployment = {
-        ...this.deployment,
-        environment: faker.word.noun(),
-      };
-      this.configureProductionRuntime();
+    deployment: (
+      deployment: AtlasHostDeploymentManifest,
+    ): AtlasLoaderDriver => {
+      this.deployment = deployment;
+
       return this;
     },
-    deploymentWithNonHostArtifact: (): AtlasLoaderDriver => {
-      this.nonHostArtifact = true;
+    publishedArtifact: (
+      reference: AtlasManifestDescriptor,
+      manifest: AtlasManifest | AtlasHostManifest,
+    ): AtlasLoaderDriver => {
+      this.artifacts.set(reference.path, manifest);
+
       return this;
     },
-    deploymentWithManyArtifacts: (): AtlasLoaderDriver => {
-      this.deployment = {
-        ...this.deployment,
-        apps: Array.from({ length: 8 }, () => this.createDescriptor()),
-        widgetProviders: [],
-      };
-      this.configureProductionRuntime();
+    developmentSession: (session: unknown): AtlasLoaderDriver => {
+      this.developmentSession = session;
+
+      return this;
+    },
+    overriddenCatalog: (catalog: AtlasHostCatalog): AtlasLoaderDriver => {
+      this.applyOverrides.mockResolvedValue(catalog);
+
+      return this;
+    },
+    hostModule: (module: HostModule): AtlasLoaderDriver => {
+      this.hostModule = module;
+
+      return this;
+    },
+    hostRootPresent: (present: boolean): AtlasLoaderDriver => {
+      this.hostRootPresent = present;
+
+      return this;
+    },
+    existingSnapshotElement: (element: SnapshotElement): AtlasLoaderDriver => {
+      this.existingSnapshot = element;
+
       return this;
     },
   };
 
   readonly when = {
-    start: async (): Promise<void> => {
+    started: async (): Promise<void> => {
       try {
-        await startAtlasLoader(this.dependencies);
+        await startAtlasLoader({
+          document: {
+            createElement: (() => {
+              this.createdSnapshot = { id: '', type: '', textContent: '' };
+
+              return this.createdSnapshot;
+            }) as unknown as Document['createElement'],
+            getElementById: (id: string) => {
+              if (id === 'atlas-host-root')
+                return this.hostRootPresent
+                  ? (this.root as unknown as HTMLElement)
+                  : null;
+
+              return (this.existingSnapshot as unknown as HTMLElement) ?? null;
+            },
+            head: { append: jest.fn() } as unknown as HTMLHeadElement,
+          },
+          location: { href: 'https://host.example/' },
+          fetchBytes: this.fetchBytes,
+          fetchJson: this.fetchJson as AtlasLoaderDependencies['fetchJson'],
+          installModuleShim: this.installModuleShim,
+          loadHostModule: this.loadHostModule,
+          loadPublishedArtifact: this.loadPublishedArtifact,
+          applyOverrides: this.applyOverrides,
+          validateCatalog: this.validateCatalog,
+        });
       } catch (error) {
         this.error = error;
       }
@@ -153,112 +159,25 @@ export class AtlasLoaderDriver {
   };
 
   readonly get = {
-    catalog: (): AtlasHostCatalog | undefined => this.mountedCatalog,
     error: (): unknown => this.error,
-    productionCatalog: (): AtlasHostCatalog => ({
-      schemaVersion: '1',
-      hostId: this.runtime.hostId,
-      revision: this.deployment.deploymentRevision,
-      generatedAt: '1970-01-01T00:00:00.000Z',
-      host: this.host,
-      apps: [this.app],
-      widgetProviders: [this.widgetProvider],
-    }),
-    developmentCatalog: (): AtlasHostCatalog => this.catalog,
-    developmentStartup: () => ({
-      catalog: this.mountedCatalog,
-      deploymentRequests: this.fetchBytes.mock.calls.length,
-      suppliedSession: this.applyOverrides.mock.calls[0]?.[2],
-    }),
-    expectedDevelopmentStartup: () => ({
-      catalog: this.catalog,
-      deploymentRequests: 0,
-      suppliedSession: this.developmentSession,
-    }),
+    mountedCatalog: (): AtlasHostCatalog | undefined =>
+      this.mount.mock.calls[0]?.[0].catalog,
+    mountRequest: (): HostMountRequest | undefined =>
+      this.mount.mock.calls[0]?.[0],
+    createdSnapshot: (): unknown =>
+      this.createdSnapshot && {
+        ...this.createdSnapshot,
+        textContent: JSON.parse(this.createdSnapshot.textContent),
+      },
     maximumArtifactLoads: (): number => this.maximumArtifactLoads,
-    runtimeSnapshot: (): unknown => JSON.parse(this.snapshot.textContent ?? ''),
+    rootReplaceChildrenMock: () => this.root.replaceChildren,
+    installModuleShimMock: () => this.installModuleShim,
+    fetchBytesMock: () => this.fetchBytes,
+    fetchJsonMock: () => this.fetchJson,
+    loadPublishedArtifactMock: () => this.loadPublishedArtifact,
+    applyOverridesMock: () => this.applyOverrides,
+    validateCatalogMock: () => this.validateCatalog,
+    loadHostModuleMock: () => this.loadHostModule,
+    mountMock: () => this.mount,
   };
-
-  private configureProductionRuntime(): void {
-    this.fetchBytes.mockResolvedValue(
-      new TextEncoder().encode(JSON.stringify(this.deployment)),
-    );
-    this.artifactIndex = 0;
-  }
-
-  private createDeployment(): AtlasHostDeploymentManifest {
-    return {
-      schemaVersion: 'v1',
-      kind: 'host-deployment',
-      hostId: this.runtime.hostId,
-      environment: this.runtime.environment,
-      deploymentRevision: `sha256:${faker.string
-        .hexadecimal({
-          length: 64,
-          prefix: '',
-        })
-        .toLowerCase()}`,
-      host: this.createDescriptor(),
-      apps: [this.createDescriptor()],
-      widgetProviders: [this.createDescriptor()],
-    };
-  }
-
-  private createDescriptor(): AtlasHostDeploymentManifest['host'] {
-    return {
-      ...this.createDescriptorBase(),
-    };
-  }
-
-  private createDescriptorBase(): {
-    path: string;
-    digest: `sha256:${string}`;
-    size: number;
-    mediaType: 'application/json';
-  } {
-    return {
-      path: faker.system.fileName(),
-      digest: `sha256:${faker.string
-        .hexadecimal({ length: 64, prefix: '' })
-        .toLowerCase()}`,
-      size: faker.number.int({ min: 1 }),
-      mediaType: 'application/json',
-    };
-  }
-
-  private createHost(): AtlasHostManifest {
-    return {
-      schemaVersion: '1',
-      kind: 'host',
-      id: this.runtime.hostId,
-      name: faker.company.name(),
-      version: faker.system.semver(),
-      buildId: faker.string.uuid(),
-      channel: faker.custom.channel(),
-      framework: faker.custom.framework(),
-      remoteEntryUrl: faker.internet.url(),
-      exposes: { entry: './host' },
-      requiredLoaderApiVersion: '^1.0.0',
-      createdAt: faker.date.past().toISOString(),
-    };
-  }
-
-  private createApp(): AtlasManifest {
-    return {
-      schemaVersion: '1',
-      kind: 'app',
-      id: faker.string.uuid(),
-      name: faker.company.name(),
-      version: faker.system.semver(),
-      buildId: faker.string.uuid(),
-      channel: faker.custom.channel(),
-      framework: faker.custom.framework(),
-      remoteEntryUrl: faker.internet.url(),
-      exposes: { entry: './app' },
-      requiredHostSdkVersion: '^1.0.0',
-      supportedHosts: [this.runtime.hostId],
-      placements: [],
-      createdAt: faker.date.past().toISOString(),
-    };
-  }
 }

@@ -1,96 +1,71 @@
-import type { AtlasHostManifest } from '@atlas/schema';
-import { faker } from '../test-utils/faker.js';
-import { validateArtifactUrl, validateHostManifest } from './validation.js';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasHostRuntimeConfig,
+  AtlasManifest,
+} from '@atlas/schema';
+import {
+  validateArtifactUrl,
+  validateCatalog,
+  validateHostManifest,
+} from './validation.js';
 
 export class ValidationDriver {
+  private runtime!: AtlasHostRuntimeConfig;
+  private catalog!: AtlasHostCatalog;
+  private manifest!: AtlasHostManifest | AtlasManifest;
+  private url!: URL;
   private error: unknown;
-  private readonly schemaVersion = faker.custom.schemaVersion();
-  private readonly channel = faker.custom.publishedChannel();
-  private readonly framework = faker.custom.framework();
-  private readonly hostId = faker.string.uuid();
-  private readonly assetOrigin = new URL(faker.internet.url()).origin;
-  private readonly bootstrapUrl = faker.internet.url();
-  private manifest: AtlasHostManifest = {
-    schemaVersion: this.schemaVersion,
-    kind: 'host',
-    id: this.hostId,
-    name: faker.company.name(),
-    version: faker.system.semver(),
-    buildId: faker.string.uuid(),
-    channel: this.channel,
-    framework: this.framework,
-    remoteEntryUrl: this.assetOrigin + '/' + faker.system.fileName(),
-    exposes: { entry: './host' },
-    requiredLoaderApiVersion: '^1.0.0',
-    createdAt: faker.date.past().toISOString(),
-  };
-  private url = new URL(this.manifest.remoteEntryUrl);
 
   readonly given = {
-    approvedHostArtifact: (location: URL): ValidationDriver => {
-      Object.assign(globalThis, {
-        location,
-      });
+    runtime: (runtime: AtlasHostRuntimeConfig): ValidationDriver => {
+      this.runtime = runtime;
+
       return this;
     },
-    unapprovedHostArtifact: (url: URL): ValidationDriver => {
-      Object.assign(globalThis, {
-        location: new URL(this.bootstrapUrl),
-      });
-      this.url = url;
+    catalog: (catalog: AtlasHostCatalog): ValidationDriver => {
+      this.catalog = catalog;
+
       return this;
     },
-    incompatibleLoaderApi: (
-      requiredLoaderApiVersion: string,
+    manifest: (
+      manifest: AtlasHostManifest | AtlasManifest,
     ): ValidationDriver => {
-      Object.assign(globalThis, {
-        location: new URL(this.bootstrapUrl),
-      });
-      this.manifest = { ...this.manifest, requiredLoaderApiVersion };
+      this.manifest = manifest;
+
       return this;
     },
-    localLoopbackArtifact: (url: URL): ValidationDriver => {
-      Object.assign(globalThis, {
-        location: new URL(this.bootstrapUrl),
-      });
-      this.manifest = { ...this.manifest, channel: 'local' };
+    url: (url: URL): ValidationDriver => {
       this.url = url;
-      return this;
-    },
-    localRemoteArtifact: (url: URL): ValidationDriver => {
-      Object.assign(globalThis, {
-        location: new URL(this.bootstrapUrl),
-      });
-      this.manifest = { ...this.manifest, channel: 'local' };
-      this.url = url;
+
       return this;
     },
   };
 
   readonly when = {
-    validateHost: (): void => {
+    catalogValidated: (): void => {
       try {
-        validateHostManifest(this.manifest, {
-          schemaVersion: 'v1',
-          hostId: this.hostId,
-          environment: 'production',
-          artifactRegistryUrl: this.assetOrigin,
-          manifestUrl: this.bootstrapUrl,
-          assetOrigins: [this.assetOrigin],
+        validateCatalog({ runtime: this.runtime, catalog: this.catalog });
+      } catch (error) {
+        this.error = error;
+      }
+    },
+    hostManifestValidated: (): void => {
+      try {
+        validateHostManifest({
+          manifest: this.manifest as AtlasHostManifest,
+          runtime: this.runtime,
         });
       } catch (error) {
         this.error = error;
       }
     },
-    validateArtifact: (): void => {
+    artifactUrlValidated: (): void => {
       try {
-        validateArtifactUrl(this.url, this.manifest, {
-          schemaVersion: 'v1',
-          hostId: this.hostId,
-          environment: 'production',
-          artifactRegistryUrl: this.assetOrigin,
-          manifestUrl: this.bootstrapUrl,
-          assetOrigins: [this.assetOrigin],
+        validateArtifactUrl({
+          url: this.url,
+          manifest: this.manifest,
+          runtime: this.runtime,
         });
       } catch (error) {
         this.error = error;

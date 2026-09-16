@@ -1,7 +1,32 @@
-import { DOCUMENT_KEY } from '../constants.js';
-import type { BootstrapFailure } from '../types.js';
+import { AtlasError, errorSummary } from '@atlas/schema';
+import { OVERRIDES_STORAGE_KEY } from '../overrides/overrides.js';
 
-export function showFatalError(error: unknown): void {
+export interface BootstrapFailure {
+  message: string;
+  suggestedActions: string[];
+  code: string;
+  cause: Error;
+}
+
+export interface FatalErrorDependencies {
+  readonly document: Pick<
+    Document,
+    'getElementById' | 'createElement' | 'body'
+  >;
+  readonly sessionStorage: Pick<Storage, 'removeItem'>;
+  readonly localStorage: Pick<Storage, 'removeItem'>;
+  readonly reloadPage: () => void;
+  readonly logError: (message: string, failure: BootstrapFailure) => void;
+}
+
+export function showFatalError({
+  error,
+  dependencies = defaultDependencies(),
+}: {
+  error: unknown;
+  dependencies?: FatalErrorDependencies;
+}): void {
+  const { document } = dependencies;
   const failure = describeFatalError(error);
   const root = document.getElementById('atlas-host-root') || document.body;
 
@@ -32,32 +57,52 @@ export function showFatalError(error: unknown): void {
   const reset = document.createElement('button');
   reset.textContent = 'Clear overrides and reload';
   reset.onclick = () => {
-    localStorage.removeItem(DOCUMENT_KEY);
-    sessionStorage.removeItem(DOCUMENT_KEY);
-    location.reload();
+    dependencies.localStorage.removeItem(OVERRIDES_STORAGE_KEY);
+    dependencies.sessionStorage.removeItem(OVERRIDES_STORAGE_KEY);
+    dependencies.reloadPage();
   };
 
   panel.append(heading, message, actionHeading, actions, reset);
   root.append(panel);
 
-  console.error('Atlas bootstrap could not start the product.', failure);
+  dependencies.logError(
+    'Atlas bootstrap could not start the product.',
+    failure,
+  );
+}
+
+function defaultDependencies(): FatalErrorDependencies {
+  return {
+    document,
+    sessionStorage,
+    localStorage,
+    reloadPage: () => location.reload(),
+    logError: (message, failure) => console.error(message, failure),
+  };
 }
 
 function describeFatalError(error: unknown): BootstrapFailure {
+  if (error instanceof AtlasError) {
+    return {
+      message: 'Atlas could not start this page: ' + error.summary,
+      suggestedActions: [...error.suggestedActions],
+      code: error.code ?? 'ATLAS_BOOTSTRAP_FAILED',
+      cause: error,
+    };
+  }
+
   const cause = error instanceof Error ? error : new Error(String(error));
-  const detail = cause.message
-    .replace(/\s+Suggested actions?:[\s\S]*$/, '')
-    .trim();
+  const detail = errorSummary(cause.message);
 
   return {
     message: 'Atlas could not start this page: ' + detail,
-    suggestedActions: bootstrapActions(detail),
+    suggestedActions: suggestedActionsFor(detail),
     code: 'ATLAS_BOOTSTRAP_FAILED',
     cause,
   };
 }
 
-function bootstrapActions(message: string): string[] {
+function suggestedActionsFor(message: string): string[] {
   if (/override/i.test(message))
     return [
       'Select Clear overrides and reload below.',

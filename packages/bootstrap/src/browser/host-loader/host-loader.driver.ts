@@ -1,175 +1,116 @@
-import type {
-  AtlasHostManifest,
-  AtlasHostRuntimeConfig,
-  AtlasStylesheet,
-} from '@atlas/schema';
+import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
-import { faker } from '../test-utils/faker.js';
-import type { HostModule } from '../types.js';
-import { loadHostModule, type HostLoaderDependencies } from './host-loader.js';
+import type { HostModule } from '../host-module.js';
+import {
+  loadHostModule,
+  type HostLoaderDependencies,
+  type RemoteMetadata,
+} from './host-loader.js';
+
+interface AppendedElement {
+  tagName: string;
+  [property: string]: unknown;
+}
 
 export class HostLoaderDriver {
+  private manifest!: AtlasHostManifest;
+  private runtime!: AtlasHostRuntimeConfig;
+  private eventSourceSupported = true;
+  private eventSource: Pick<EventSource, 'onmessage'> | undefined;
+  private readonly appended: AppendedElement[] = [];
   private readonly fetchJson =
-    jest.fn<
-      (url: string, runtime: unknown, integrity?: string) => Promise<unknown>
-    >();
-  private readonly importedResourceUrls: string[] = [];
-  private readonly importedModule = { mount: async () => undefined };
-  private readonly importModule = jest.fn<(url: string) => Promise<HostModule>>(
-    async (url) => {
-      this.importedResourceUrls.push(url);
-      return this.importedModule;
-    },
-  );
-  private readonly stylesheetUrls: string[] = [];
-  private readonly document = {
-    createElement: jest.fn(() => ({})),
-    head: {
-      append: jest.fn((element: { href?: string }) => {
-        if (element.href) this.stylesheetUrls.push(element.href);
-      }),
-    },
-  } as unknown as Document;
-  private readonly dependencies: HostLoaderDependencies = {
-    document: this.document,
-    fetchJson: async <T>(
-      url: string,
-      runtime?: Pick<
-        AtlasHostRuntimeConfig,
-        'resourcesRetryCount' | 'resourcesTimeoutMs'
-      >,
-      integrity?: string,
-    ) => this.fetchJson(url, runtime, integrity) as Promise<T>,
-    importModule: this.importModule,
-    validateArtifactUrl: jest.fn(),
-    validateHostManifest: jest.fn(),
-  };
-  private error: unknown;
+    jest.fn<(options: unknown) => Promise<unknown>>();
+  private readonly importModule =
+    jest.fn<HostLoaderDependencies['importModule']>();
+  private readonly validateArtifactUrl =
+    jest.fn<HostLoaderDependencies['validateArtifactUrl']>();
+  private readonly validateHostManifest =
+    jest.fn<HostLoaderDependencies['validateHostManifest']>();
+  private readonly reloadPage = jest.fn();
   private module: HostModule | undefined;
-  private readonly schemaVersion = faker.custom.schemaVersion();
-  private readonly channel = faker.custom.channel();
-  private readonly framework = faker.custom.framework();
-  private readonly hostId = faker.string.uuid();
-  private readonly hostName = faker.company.name();
-  private readonly remoteEntryUrl = faker.internet.url();
-  private exposeKey = './' + faker.system.commonFileName('js');
-  private buildNotificationsEndpoint: string | undefined;
-  private buildNotificationListener:
-    ((event: MessageEvent<string>) => void) | undefined;
-  private readonly reload = jest.fn();
-  private styles: AtlasStylesheet[] = [];
+  private error: unknown;
 
   readonly given = {
-    availableExpose: (exposeKey: string): HostLoaderDriver => {
-      this.reset(exposeKey);
+    manifest: (manifest: AtlasHostManifest): HostLoaderDriver => {
+      this.manifest = manifest;
+
       return this;
     },
-    hostWithStyles: (exposeKey: string): HostLoaderDriver => {
-      this.reset(exposeKey);
-      this.styles = [{ href: faker.internet.url() }];
-      this.configureHost();
+    runtime: (runtime: AtlasHostRuntimeConfig): HostLoaderDriver => {
+      this.runtime = runtime;
+
       return this;
     },
-    missingExpose: (exposeKey: string): HostLoaderDriver => {
-      this.reset(exposeKey);
-      this.fetchJson.mockResolvedValue({ exposes: [] });
+    remoteMetadata: (metadata: RemoteMetadata): HostLoaderDriver => {
+      this.fetchJson.mockResolvedValue(metadata);
+
       return this;
     },
-    invalidSharedDependency: (exposeKey: string): HostLoaderDriver => {
-      this.reset(exposeKey);
-      this.fetchJson.mockResolvedValue({
-        exposes: [
-          { key: this.exposeKey, outFileName: faker.system.filePath() },
-        ],
-        shared: [{ packageName: faker.system.commonFileName() }],
-      });
+    importedModule: (module: HostModule): HostLoaderDriver => {
+      this.importModule.mockResolvedValue(module);
+
       return this;
     },
-    hostWithBuildNotifications: (exposeKey: string): HostLoaderDriver => {
-      this.reset(exposeKey);
-      this.buildNotificationsEndpoint = faker.internet.url();
-      const driver = this;
-      Object.assign(globalThis, {
-        EventSource: jest.fn().mockImplementation(() => ({
-          set onmessage(listener: (event: MessageEvent<string>) => void) {
-            driver.buildNotificationListener = listener;
-          },
-        })),
-        location: { reload: this.reload },
-      });
-      this.configureHost();
+    eventSourceSupported: (supported: boolean): HostLoaderDriver => {
+      this.eventSourceSupported = supported;
+
       return this;
     },
   };
 
   readonly when = {
-    load: async (): Promise<void> => {
+    loaded: async (): Promise<void> => {
       try {
-        this.module = await loadHostModule(
-          this.manifest(),
-          {
-            schemaVersion: 'v1',
-            hostId: this.hostId,
-            environment: 'production',
-            artifactRegistryUrl: faker.internet.url(),
-            manifestUrl: faker.internet.url(),
+        this.module = await loadHostModule({
+          manifest: this.manifest,
+          runtime: this.runtime,
+          dependencies: {
+            document: {
+              createElement: ((tagName: string) => ({
+                tagName,
+              })) as Document['createElement'],
+              head: {
+                append: (element: AppendedElement) =>
+                  this.appended.push(element),
+              } as unknown as HTMLHeadElement,
+            },
+            fetchJson: this.fetchJson as HostLoaderDependencies['fetchJson'],
+            importModule: this.importModule,
+            validateArtifactUrl: this.validateArtifactUrl,
+            validateHostManifest: this.validateHostManifest,
+            ...(this.eventSourceSupported
+              ? {
+                  createEventSource: () => {
+                    this.eventSource = { onmessage: null };
+
+                    return this.eventSource;
+                  },
+                }
+              : {}),
+            reloadPage: this.reloadPage,
           },
-          this.dependencies,
-        );
+        });
       } catch (error) {
         this.error = error;
       }
     },
-    reloadAfterBuild: async (): Promise<void> => {
-      await this.when.load();
-      this.buildNotificationListener?.({
-        data: JSON.stringify({ type: 'federation-rebuild-complete' }),
-      } as MessageEvent<string>);
+    buildNotified: (data: string): void => {
+      this.eventSource?.onmessage?.call(
+        this.eventSource as EventSource,
+        { data } as MessageEvent<string>,
+      );
     },
   };
 
   readonly get = {
-    error: (): unknown => this.error,
     module: (): HostModule | undefined => this.module,
-    reloadCount: (): number => this.reload.mock.calls.length,
-    stylesheetUrls: (): readonly string[] => this.stylesheetUrls,
+    error: (): unknown => this.error,
+    appendedElements: (): readonly AppendedElement[] => this.appended,
+    eventSourceCreated: (): boolean => this.eventSource !== undefined,
+    fetchJsonMock: () => this.fetchJson,
+    importModuleMock: () => this.importModule,
+    validateArtifactUrlMock: () => this.validateArtifactUrl,
+    validateHostManifestMock: () => this.validateHostManifest,
+    reloadPageMock: () => this.reloadPage,
   };
-
-  private reset(exposeKey: string): void {
-    this.exposeKey = exposeKey;
-    this.buildNotificationsEndpoint = undefined;
-    this.styles = [];
-    this.stylesheetUrls.length = 0;
-    this.importedResourceUrls.length = 0;
-    this.fetchJson.mockReset();
-    this.importModule.mockClear();
-    this.configureHost();
-  }
-
-  private configureHost(): void {
-    this.fetchJson.mockResolvedValue({
-      exposes: [{ key: this.exposeKey, outFileName: faker.system.filePath() }],
-      ...(this.buildNotificationsEndpoint
-        ? { buildNotificationsEndpoint: this.buildNotificationsEndpoint }
-        : {}),
-    });
-  }
-
-  private manifest(): AtlasHostManifest {
-    return {
-      schemaVersion: this.schemaVersion,
-      kind: 'host',
-      id: this.hostId,
-      name: this.hostName,
-      version: faker.system.semver(),
-      buildId: faker.string.uuid(),
-      channel: this.channel,
-      framework: this.framework,
-      remoteEntryUrl: this.remoteEntryUrl,
-      exposes: { entry: this.exposeKey },
-      requiredLoaderApiVersion: '^1.0.0',
-      createdAt: faker.date.past().toISOString(),
-      ...(this.styles.length ? { styles: this.styles } : {}),
-    };
-  }
 }

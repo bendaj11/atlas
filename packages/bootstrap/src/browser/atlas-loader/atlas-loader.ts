@@ -5,16 +5,19 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { assertHostDeploymentManifest } from '@atlas/schema';
+import { errorSummary } from '@atlas/schema';
+import { bootstrapError } from '../../shared/errors/bootstrap-error.js';
 import { fetchBytes, fetchJson } from '../fetch-json/fetch-json.js';
 import { loadHostModule } from '../host-loader/host-loader.js';
 import {
+  ATLAS_RUNTIME_CONFIG_PATH,
   environmentManifestUrl,
   resolveAtlasRuntimeConfig,
-} from '../runtime-config/runtime-config.js';
+} from '../../shared/runtime-config/runtime-config.js';
 import { installModuleShim } from '../module-shim/module-shim.js';
-import { applyOverrides } from '../overrides/overrides.js';
+import { applyOverrides, type DevSession } from '../overrides/overrides.js';
 import { loadPublishedArtifact } from '../published-artifact/published-artifact.js';
-import type { DevSession } from '../types.js';
+import { decodeJson } from '../../shared/decode-json.js';
 import { validateCatalog } from '../validation/validation.js';
 
 const ARTIFACT_LOAD_CONCURRENCY = 6;
@@ -41,29 +44,42 @@ export async function startAtlasLoader(
   await dependencies.installModuleShim();
 
   const runtime = resolveAtlasRuntimeConfig(
-    await dependencies.fetchJson('/atlas.runtime.json'),
+    await dependencies.fetchJson({ url: ATLAS_RUNTIME_CONFIG_PATH }),
     dependencies.location?.href ?? globalThis.location?.href,
   );
-  const initial = await loadInitialCatalog(runtime, dependencies);
-  const effectiveCatalog = await dependencies.applyOverrides(
+  const startup = await loadStartupCatalog({ runtime, dependencies });
+  const effectiveCatalog = await dependencies.applyOverrides({
     runtime,
-    initial.catalog,
-    initial.developmentSession,
-  );
+    catalog: startup.catalog,
+    ...(startup.developmentSession === undefined
+      ? {}
+      : { developmentSession: startup.developmentSession }),
+  });
 
-  dependencies.validateCatalog(runtime, effectiveCatalog);
-  publishRuntimeSnapshot(dependencies.document, runtime, effectiveCatalog);
+  dependencies.validateCatalog({ runtime, catalog: effectiveCatalog });
+  publishRuntimeSnapshot({
+    document: dependencies.document,
+    runtime,
+    catalog: effectiveCatalog,
+  });
 
   const root = dependencies.document.getElementById('atlas-host-root');
-  if (!root) throw new Error('Atlas host root is missing.');
+  if (!root)
+    throw bootstrapError({
+      code: 'HOST_MOUNT_FAILED',
+      message: 'Atlas bootstrap page has no element with id="atlas-host-root".',
+    });
 
-  const module = await dependencies.loadHostModule(
-    effectiveCatalog.host,
+  const module = await dependencies.loadHostModule({
+    manifest: effectiveCatalog.host,
     runtime,
-  );
+  });
   const entry = module.default?.mount ? module.default : module;
   if (typeof entry.mount !== 'function')
-    throw new Error('Selected host client does not export mount(request).');
+    throw bootstrapError({
+      code: 'HOST_MOUNT_FAILED',
+      message: `Selected host client "${effectiveCatalog.host.id}" does not export mount(request).`,
+    });
 
   root.replaceChildren();
   await entry.mount({
@@ -73,11 +89,15 @@ export async function startAtlasLoader(
   });
 }
 
-function publishRuntimeSnapshot(
-  document: AtlasLoaderDependencies['document'],
-  runtime: AtlasHostRuntimeConfig,
-  catalog: AtlasHostCatalog,
-): void {
+function publishRuntimeSnapshot({
+  document,
+  runtime,
+  catalog,
+}: {
+  document: AtlasLoaderDependencies['document'];
+  runtime: AtlasHostRuntimeConfig;
+  catalog: AtlasHostCatalog;
+}): void {
   const existing = document.getElementById(RUNTIME_SNAPSHOT_ELEMENT_ID);
   const snapshot = JSON.stringify({ schemaVersion: '1', runtime, catalog });
   if (existing) {
@@ -91,24 +111,30 @@ function publishRuntimeSnapshot(
   document.head.append(element);
 }
 
-async function loadInitialCatalog(
-  runtime: AtlasHostRuntimeConfig,
-  dependencies: AtlasLoaderDependencies,
-): Promise<{
+interface LoaderContext {
+  runtime: AtlasHostRuntimeConfig;
+  dependencies: AtlasLoaderDependencies;
+}
+
+async function loadStartupCatalog({
+  runtime,
+  dependencies,
+}: LoaderContext): Promise<{
   catalog: AtlasHostCatalog;
   developmentSession?: DevSession;
 }> {
   if (!runtime.developmentSessionUrl) {
-    return { catalog: await loadDeployment(runtime, dependencies) };
+    return { catalog: await loadDeployment({ runtime, dependencies }) };
   }
-  const developmentSession = await dependencies.fetchJson<DevSession>(
-    runtime.developmentSessionUrl,
+  const developmentSession = await dependencies.fetchJson<DevSession>({
+    url: runtime.developmentSessionUrl,
     runtime,
-  );
+  });
   if (!developmentSession.catalog) {
-    throw new Error(
-      'Atlas development session does not include a host catalog.',
-    );
+    throw bootstrapError({
+      code: 'CATALOG_INVALID',
+      message: `Atlas development session at "${runtime.developmentSessionUrl}" does not include a host catalog.`,
+    });
   }
   return { catalog: developmentSession.catalog, developmentSession };
 }
@@ -127,35 +153,47 @@ function defaultDependencies(): AtlasLoaderDependencies {
   };
 }
 
-async function loadDeployment(
-  runtime: AtlasHostRuntimeConfig,
-  dependencies: AtlasLoaderDependencies,
-): Promise<AtlasHostCatalog> {
-  const deployment: unknown = JSON.parse(
-    new TextDecoder().decode(
-      await dependencies.fetchBytes(environmentManifestUrl(runtime), runtime),
-    ),
+async function loadDeployment({
+  runtime,
+  dependencies,
+}: LoaderContext): Promise<AtlasHostCatalog> {
+  const deployment = decodeJson(
+    await dependencies.fetchBytes({
+      url: environmentManifestUrl(runtime),
+      runtime,
+    }),
   );
   try {
     assertHostDeploymentManifest(deployment);
-  } catch {
-    throw new Error('Active host manifest is invalid.');
+  } catch (cause) {
+    throw bootstrapError({
+      code: 'DEPLOYMENT_INVALID',
+      message: `Atlas deployment manifest at "${environmentManifestUrl(runtime)}" is invalid: ${errorSummary(cause instanceof Error ? cause.message : String(cause))}`,
+      cause,
+    });
   }
   if (
     deployment.hostId !== runtime.hostId ||
     deployment.environment !== runtime.environment
   ) {
-    throw new Error('Active host manifest is invalid.');
+    throw bootstrapError({
+      code: 'DEPLOYMENT_INVALID',
+      message: `Atlas deployment manifest targets host "${deployment.hostId}" in environment "${deployment.environment}" but runtime selects host "${runtime.hostId}" in environment "${runtime.environment}".`,
+    });
   }
 
-  const manifests = await mapWithConcurrency(
-    deploymentReferences(deployment),
-    (reference) => dependencies.loadPublishedArtifact(reference, runtime),
-    ARTIFACT_LOAD_CONCURRENCY,
-  );
+  const manifests = await mapWithConcurrency({
+    values: deploymentReferences(deployment),
+    operation: (reference) =>
+      dependencies.loadPublishedArtifact({ reference, runtime }),
+    concurrency: ARTIFACT_LOAD_CONCURRENCY,
+  });
   const host = manifests[0];
   if (!host || host.kind !== 'host') {
-    throw new Error('Active host manifest does not select a host artifact.');
+    throw bootstrapError({
+      code: 'DEPLOYMENT_INVALID',
+      message: `Atlas deployment manifest host reference "${deployment.host.path}" does not resolve to a host manifest.`,
+    });
   }
 
   const appCount = deployment.apps.length;
@@ -172,11 +210,15 @@ async function loadDeployment(
   };
 }
 
-async function mapWithConcurrency<T, R>(
-  values: readonly T[],
-  operation: (value: T) => Promise<R>,
-  concurrency: number,
-): Promise<R[]> {
+async function mapWithConcurrency<T, R>({
+  values,
+  operation,
+  concurrency,
+}: {
+  values: readonly T[];
+  operation: (value: T) => Promise<R>;
+  concurrency: number;
+}): Promise<R[]> {
   let nextIndex = 0;
   const results = new Array<R>(values.length);
   const worker = async (): Promise<void> => {

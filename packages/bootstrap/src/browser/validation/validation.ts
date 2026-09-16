@@ -4,88 +4,141 @@ import type {
   AtlasHostRuntimeConfig,
   AtlasManifest,
 } from '@atlas/schema';
-import { LOADER_API_VERSION } from '../constants.js';
+import { bootstrapError } from '../../shared/errors/bootstrap-error.js';
+import { isLoopbackHostname } from '../../shared/loopback.js';
 
-export function validateCatalog(
-  runtime: AtlasHostRuntimeConfig,
-  catalog: AtlasHostCatalog,
-): void {
-  if (catalog.schemaVersion !== '1' || catalog.hostId !== runtime.hostId)
-    throw new Error('Atlas catalog does not match runtime host.');
+export const LOADER_API_VERSION = '1.0.0';
+
+export function validateCatalog({
+  runtime,
+  catalog,
+}: {
+  runtime: AtlasHostRuntimeConfig;
+  catalog: AtlasHostCatalog;
+}): void {
+  if (catalog.schemaVersion !== '1')
+    throw catalogError(
+      `Atlas catalog schemaVersion must be "1", got ${JSON.stringify(catalog.schemaVersion)}.`,
+    );
+  if (catalog.hostId !== runtime.hostId)
+    throw catalogError(
+      `Atlas catalog belongs to host "${catalog.hostId}" but runtime selects host "${runtime.hostId}".`,
+    );
 
   if (catalog.host.kind !== 'host' || catalog.host.id !== runtime.hostId)
-    throw new Error('Atlas catalog has no matching host client.');
+    throw catalogError(
+      `Atlas catalog host entry must be a host manifest with id "${runtime.hostId}", got ${describeManifest(catalog.host)}.`,
+    );
 
-  if (
-    !Array.isArray(catalog.apps) ||
-    catalog.apps.some((manifest) => manifest.kind !== 'app')
-  )
-    throw new Error('Atlas catalog apps are invalid.');
+  const invalidApp = Array.isArray(catalog.apps)
+    ? catalog.apps.find((manifest) => manifest.kind !== 'app')
+    : undefined;
+  if (!Array.isArray(catalog.apps) || invalidApp)
+    throw catalogError(
+      invalidApp
+        ? `Atlas catalog apps must contain app manifests only, got ${describeManifest(invalidApp)}.`
+        : 'Atlas catalog apps must be an array.',
+    );
 
-  if (
-    catalog.widgetProviders &&
-    (!Array.isArray(catalog.widgetProviders) ||
-      catalog.widgetProviders.some((manifest) => manifest.kind !== 'app'))
-  ) {
-    throw new Error('Atlas catalog widget providers are invalid.');
+  if (catalog.widgetProviders) {
+    const invalidProvider = Array.isArray(catalog.widgetProviders)
+      ? catalog.widgetProviders.find((manifest) => manifest.kind !== 'app')
+      : undefined;
+    if (!Array.isArray(catalog.widgetProviders) || invalidProvider)
+      throw catalogError(
+        invalidProvider
+          ? `Atlas catalog widget providers must contain app manifests only, got ${describeManifest(invalidProvider)}.`
+          : 'Atlas catalog widget providers must be an array.',
+      );
   }
 
-  validateHostManifest(catalog.host, runtime);
+  validateHostManifest({ manifest: catalog.host, runtime });
 }
 
-export function validateHostManifest(
-  manifest: AtlasHostManifest,
-  runtime: AtlasHostRuntimeConfig,
-): void {
+export function validateHostManifest({
+  manifest,
+  runtime,
+}: {
+  manifest: AtlasHostManifest;
+  runtime: AtlasHostRuntimeConfig;
+}): void {
   if (manifest.kind !== 'host' || manifest.id !== runtime.hostId)
-    throw new Error('Selected host manifest does not match this server.');
+    throw hostManifestError(
+      `Selected host manifest must be a host manifest with id "${runtime.hostId}", got ${describeManifest(manifest)}.`,
+    );
 
   if (typeof manifest.exposes.entry !== 'string')
-    throw new Error('Selected host manifest has no entry expose.');
+    throw hostManifestError(
+      `Selected host manifest "${manifest.id}" has no entry expose.`,
+    );
 
   const requiredMajor = Number(
     manifest.requiredLoaderApiVersion.match(/\d+/)?.[0],
   );
   if (requiredMajor !== Number(LOADER_API_VERSION.split('.')[0]))
-    throw new Error(
-      'Selected host client requires an incompatible Atlas loader API.',
+    throw hostManifestError(
+      `Selected host manifest "${manifest.id}" requires Atlas loader API ${manifest.requiredLoaderApiVersion} but this loader provides ${LOADER_API_VERSION}.`,
     );
 
-  validateArtifactUrl(new URL(manifest.remoteEntryUrl), manifest, runtime);
+  validateArtifactUrl({
+    url: new URL(manifest.remoteEntryUrl),
+    manifest,
+    runtime,
+  });
 }
 
-export function validateArtifactUrl(
-  url: URL,
-  manifest: AtlasHostManifest | AtlasManifest,
-  runtime: AtlasHostRuntimeConfig,
-): void {
-  const loopbackHosts = ['localhost', '127.0.0.1', '::1'];
+export function validateArtifactUrl({
+  url,
+  manifest,
+  runtime,
+}: {
+  url: URL;
+  manifest: AtlasHostManifest | AtlasManifest;
+  runtime: AtlasHostRuntimeConfig;
+}): void {
+  const subject = `${describeManifest(manifest)} URL "${url.href}"`;
 
   if (manifest.channel === 'local') {
     if (url.protocol !== 'http:' && url.protocol !== 'https:')
-      throw new Error('Local host URL must use HTTP(S).');
-    if (!loopbackHosts.includes(url.hostname))
-      throw new Error('Local host URL must use loopback.');
+      throw artifactUrlError(`Local ${subject} must use HTTP(S).`);
+    if (!isLoopbackHostname(url.hostname))
+      throw artifactUrlError(`Local ${subject} must use a loopback hostname.`);
+
     return;
   }
 
-  const artifactRegistryUrl = new URL(runtime.artifactRegistryUrl, location.href);
+  const artifactRegistryUrl = new URL(
+    runtime.artifactRegistryUrl,
+    globalThis.location?.href,
+  );
   if (
     url.protocol === 'http:' &&
-    loopbackHosts.includes(url.hostname) &&
-    loopbackHosts.includes(artifactRegistryUrl.hostname)
+    isLoopbackHostname(url.hostname) &&
+    isLoopbackHostname(artifactRegistryUrl.hostname)
   )
     return;
 
   if (url.protocol !== 'https:')
-    throw new Error('Published host URL must use HTTPS.');
+    throw artifactUrlError(`Published ${subject} must use HTTPS.`);
 
-  const allowed = new Set([
-    artifactRegistryUrl.origin,
-  ]);
-
-  if (!allowed.has(url.origin))
-    throw new Error(
-      'Selected host URL uses an origin outside artifactRegistryUrl.',
+  if (url.origin !== artifactRegistryUrl.origin)
+    throw artifactUrlError(
+      `Published ${subject} uses origin "${url.origin}" outside artifactRegistryUrl origin "${artifactRegistryUrl.origin}".`,
     );
+}
+
+function describeManifest(manifest: { kind: string; id: string }): string {
+  return `${manifest.kind} manifest "${manifest.id}"`;
+}
+
+function catalogError(message: string) {
+  return bootstrapError({ code: 'CATALOG_INVALID', message });
+}
+
+function hostManifestError(message: string) {
+  return bootstrapError({ code: 'HOST_MANIFEST_INVALID', message });
+}
+
+function artifactUrlError(message: string) {
+  return bootstrapError({ code: 'ARTIFACT_URL_REJECTED', message });
 }

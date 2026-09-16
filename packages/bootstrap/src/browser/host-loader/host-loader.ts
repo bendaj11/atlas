@@ -4,54 +4,68 @@ import type {
   AtlasStylesheet,
 } from '@atlas/schema';
 import { fetchJson } from '../fetch-json/fetch-json.js';
+import { bootstrapError } from '../../shared/errors/bootstrap-error.js';
 import { importModule } from '../module-shim/module-shim.js';
-import type { HostModule, RemoteMetadata } from '../types.js';
+import type { HostModule } from '../host-module.js';
 import {
   validateArtifactUrl,
   validateHostManifest,
 } from '../validation/validation.js';
 
+export interface RemoteMetadata {
+  buildNotificationsEndpoint?: string;
+  exposes?: Array<{ key?: string; outFileName?: string }>;
+  shared?: Array<{ packageName?: string; outFileName?: string }>;
+}
+
 export interface HostLoaderDependencies {
-  readonly document: Document;
+  readonly document: Pick<Document, 'createElement' | 'head'>;
   readonly fetchJson: typeof fetchJson;
   readonly importModule: typeof importModule;
   readonly validateArtifactUrl: typeof validateArtifactUrl;
   readonly validateHostManifest: typeof validateHostManifest;
+  readonly createEventSource?: (url: URL) => Pick<EventSource, 'onmessage'>;
+  readonly reloadPage: () => void;
 }
 
-export async function loadHostModule(
-  manifest: AtlasHostManifest,
-  runtime: AtlasHostRuntimeConfig,
-  dependencies: HostLoaderDependencies = defaultDependencies(),
-): Promise<HostModule> {
-  dependencies.validateHostManifest(manifest, runtime);
+export interface LoadHostModuleOptions {
+  manifest: AtlasHostManifest;
+  runtime: AtlasHostRuntimeConfig;
+  dependencies?: HostLoaderDependencies;
+}
 
-  const metadata = await dependencies.fetchJson<RemoteMetadata>(
-    manifest.remoteEntryUrl,
+export async function loadHostModule({
+  manifest,
+  runtime,
+  dependencies = defaultDependencies(),
+}: LoadHostModuleOptions): Promise<HostModule> {
+  dependencies.validateHostManifest({ manifest, runtime });
+
+  const metadata = await dependencies.fetchJson<RemoteMetadata>({
+    url: manifest.remoteEntryUrl,
     runtime,
-    manifest.integrity,
-  );
+    ...(manifest.integrity === undefined
+      ? {}
+      : { integrity: manifest.integrity }),
+  });
 
   const expose = metadata.exposes?.find(
     (candidate) => candidate.key === manifest.exposes.entry,
   );
   if (!expose?.outFileName)
-    throw new Error(
-      'Selected host remote does not expose ' + manifest.exposes.entry + '.',
-    );
+    throw bootstrapError({
+      code: 'HOST_REMOTE_INVALID',
+      message: `Selected host remote entry "${manifest.remoteEntryUrl}" does not expose "${manifest.exposes.entry}".`,
+    });
 
-  watchHostBuildNotifications(metadata, manifest.remoteEntryUrl);
-  installHostSharedDependencies(
-    metadata,
-    manifest.remoteEntryUrl,
-    dependencies.document,
-  );
-  loadHostStyles(manifest, runtime, dependencies);
+  watchHostBuildNotifications({ metadata, manifest, dependencies });
+  installHostSharedDependencies({ metadata, manifest, dependencies });
+  loadHostStyles({ manifest, runtime, dependencies });
 
   const moduleUrl = new URL(expose.outFileName, manifest.remoteEntryUrl);
-  dependencies.validateArtifactUrl(moduleUrl, manifest, runtime);
+  dependencies.validateArtifactUrl({ url: moduleUrl, manifest, runtime });
 
-  return dependencies.importModule(moduleUrl.href);
+  return dependencies.importModule({ url: moduleUrl.href });
 }
 
 function defaultDependencies(): HostLoaderDependencies {
@@ -61,27 +75,36 @@ function defaultDependencies(): HostLoaderDependencies {
     importModule,
     validateArtifactUrl,
     validateHostManifest,
+    ...(globalThis.EventSource
+      ? { createEventSource: (url: URL) => new EventSource(url) }
+      : {}),
+    reloadPage: () => globalThis.location.reload(),
   };
 }
 
-function loadHostStyles(
-  manifest: AtlasHostManifest,
-  runtime: AtlasHostRuntimeConfig,
-  dependencies: HostLoaderDependencies,
-): void {
-  manifest.styles?.forEach((stylesheet) =>
-    appendHostStylesheet({ stylesheet, manifest, runtime, dependencies }),
+interface HostLoadContext {
+  manifest: AtlasHostManifest;
+  runtime: AtlasHostRuntimeConfig;
+  dependencies: HostLoaderDependencies;
+}
+
+function loadHostStyles(context: HostLoadContext): void {
+  context.manifest.styles?.forEach((stylesheet) =>
+    appendHostStylesheet({ ...context, stylesheet }),
   );
 }
 
-function appendHostStylesheet(input: {
-  readonly stylesheet: AtlasStylesheet;
-  readonly manifest: AtlasHostManifest;
-  readonly runtime: AtlasHostRuntimeConfig;
-  readonly dependencies: HostLoaderDependencies;
-}): void {
-  const { stylesheet, manifest, runtime, dependencies } = input;
-  dependencies.validateArtifactUrl(new URL(stylesheet.href), manifest, runtime);
+function appendHostStylesheet({
+  stylesheet,
+  manifest,
+  runtime,
+  dependencies,
+}: HostLoadContext & { stylesheet: AtlasStylesheet }): void {
+  dependencies.validateArtifactUrl({
+    url: new URL(stylesheet.href),
+    manifest,
+    runtime,
+  });
 
   const element = dependencies.document.createElement('link');
   element.rel = 'stylesheet';
@@ -93,17 +116,21 @@ function appendHostStylesheet(input: {
   dependencies.document.head.append(element);
 }
 
-function watchHostBuildNotifications(
-  metadata: RemoteMetadata,
-  remoteEntryUrl: string,
-): void {
-  if (!metadata.buildNotificationsEndpoint || !globalThis.EventSource) return;
+function watchHostBuildNotifications({
+  metadata,
+  manifest,
+  dependencies,
+}: Pick<HostLoadContext, 'manifest' | 'dependencies'> & {
+  metadata: RemoteMetadata;
+}): void {
+  if (!metadata.buildNotificationsEndpoint || !dependencies.createEventSource)
+    return;
 
-  const source = new EventSource(
-    new URL(metadata.buildNotificationsEndpoint, remoteEntryUrl),
+  const source = dependencies.createEventSource(
+    new URL(metadata.buildNotificationsEndpoint, manifest.remoteEntryUrl),
   );
   source.onmessage = ({ data }) => {
-    if (hasCompletedFederationBuild(data)) globalThis.location.reload();
+    if (hasCompletedFederationBuild(data)) dependencies.reloadPage();
   };
 }
 
@@ -115,12 +142,16 @@ function hasCompletedFederationBuild(data: string): boolean {
   }
 }
 
-function installHostSharedDependencies(
-  metadata: RemoteMetadata,
-  remoteEntryUrl: string,
-  document: Document,
-): void {
+function installHostSharedDependencies({
+  metadata,
+  manifest,
+  dependencies,
+}: Pick<HostLoadContext, 'manifest' | 'dependencies'> & {
+  metadata: RemoteMetadata;
+}): void {
   if (!metadata.shared?.length) return;
+  const { remoteEntryUrl } = manifest;
+  const { document } = dependencies;
 
   const imports: Record<string, string> = {};
   for (const shared of metadata.shared) {
@@ -128,9 +159,10 @@ function installHostSharedDependencies(
       typeof shared.packageName !== 'string' ||
       typeof shared.outFileName !== 'string'
     ) {
-      throw new Error(
-        'Selected host remote contains invalid shared dependency metadata.',
-      );
+      throw bootstrapError({
+        code: 'HOST_REMOTE_INVALID',
+        message: `Selected host remote entry "${remoteEntryUrl}" declares shared dependency ${JSON.stringify(shared)} without packageName and outFileName.`,
+      });
     }
     imports[shared.packageName] = new URL(
       shared.outFileName,

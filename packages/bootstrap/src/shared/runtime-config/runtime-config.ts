@@ -1,4 +1,6 @@
 import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import { bootstrapError } from '../errors/bootstrap-error.js';
+import { isLoopbackHostname } from '../loopback.js';
 
 export const ATLAS_RUNTIME_CONFIG_PATH = '/atlas.runtime.json';
 
@@ -6,9 +8,15 @@ export function assertAtlasRuntimeConfig(
   value: unknown,
 ): asserts value is AtlasHostRuntimeConfig {
   assertRuntimeConfigFields(value);
-  assertRegistryUrl(value.artifactRegistryUrl, 'artifactRegistryUrl');
+  assertRegistryUrl({
+    value: value.artifactRegistryUrl,
+    field: 'artifactRegistryUrl',
+  });
   if (value.environmentRegistryUrl !== undefined)
-    assertRegistryUrl(value.environmentRegistryUrl, 'environmentRegistryUrl');
+    assertRegistryUrl({
+      value: value.environmentRegistryUrl,
+      field: 'environmentRegistryUrl',
+    });
 }
 
 export function resolveAtlasRuntimeConfig(
@@ -19,84 +27,118 @@ export function resolveAtlasRuntimeConfig(
   const runtimeConfigUrl = hostUrl
     ? new URL(ATLAS_RUNTIME_CONFIG_PATH, hostUrl)
     : undefined;
-  const runtime = {
+
+  return {
     ...value,
-    artifactRegistryUrl: resolveRegistryUrl(
-      value.artifactRegistryUrl,
+    artifactRegistryUrl: resolveRegistryUrl({
+      value: value.artifactRegistryUrl,
       runtimeConfigUrl,
-      'artifactRegistryUrl',
-    ),
+      field: 'artifactRegistryUrl',
+    }),
     ...(value.environmentRegistryUrl === undefined
       ? {}
       : {
-          environmentRegistryUrl: resolveRegistryUrl(
-            value.environmentRegistryUrl,
+          environmentRegistryUrl: resolveRegistryUrl({
+            value: value.environmentRegistryUrl,
             runtimeConfigUrl,
-            'environmentRegistryUrl',
-          ),
+            field: 'environmentRegistryUrl',
+          }),
         }),
   };
-  return runtime;
 }
+
+const BASE_FIELDS = [
+  'schemaVersion',
+  'hostId',
+  'hostVersion',
+  'environment',
+  'artifactRegistryUrl',
+  'environmentRegistryUrl',
+];
+const DEVELOPMENT_FIELDS = [
+  'developmentSessionUrl',
+  'resourcesTimeoutMs',
+  'resourcesRetryCount',
+];
 
 function assertRuntimeConfigFields(
   value: unknown,
 ): asserts value is AtlasHostRuntimeConfig {
-  if (!isRecord(value) || value.schemaVersion !== 'v1')
-    throw new Error('Atlas runtime config requires schemaVersion "v1".');
-  assertSegment(value.hostId, 'hostId');
-  assertSegment(value.environment, 'environment');
+  if (!isRecord(value))
+    throw runtimeConfigError('Atlas runtime config must be a JSON object.');
+  if (value.schemaVersion !== 'v1')
+    throw runtimeConfigError(
+      `Atlas runtime config requires schemaVersion "v1", got ${JSON.stringify(value.schemaVersion)}.`,
+    );
+  assertSegment({ value: value.hostId, field: 'hostId' });
+  assertSegment({ value: value.environment, field: 'environment' });
   if (value.hostVersion !== undefined)
-    assertSegment(value.hostVersion, 'hostVersion');
-  const developmentFields =
-    value.environment === 'development'
-      ? ['developmentSessionUrl', 'resourcesTimeoutMs', 'resourcesRetryCount']
-      : [];
-  const fields = new Set([
-    'schemaVersion',
-    'hostId',
-    'hostVersion',
-    'environment',
-    'artifactRegistryUrl',
-    'environmentRegistryUrl',
-    ...developmentFields,
-  ]);
-  if (Object.keys(value).some((field) => !fields.has(field)))
-    throw new Error('Atlas runtime config has unsupported fields.');
-  if (value.environment !== 'development') return;
-  if (value.developmentSessionUrl !== undefined)
-    assertDevelopmentSessionUrl(value.developmentSessionUrl);
-  assertOptionalInteger(value.resourcesRetryCount, 'resourcesRetryCount', 0);
-  assertOptionalInteger(value.resourcesTimeoutMs, 'resourcesTimeoutMs', 1);
+    assertSegment({ value: value.hostVersion, field: 'hostVersion' });
+  assertKnownFields(value);
+  if (value.environment === 'development') assertDevelopmentFields(value);
 }
 
-function resolveRegistryUrl(
-  value: unknown,
-  runtimeConfigUrl: URL | undefined,
-  field: string,
-): string {
+function assertKnownFields(value: Record<string, unknown>): void {
+  const fields = new Set([
+    ...BASE_FIELDS,
+    ...(value.environment === 'development' ? DEVELOPMENT_FIELDS : []),
+  ]);
+  const unsupported = Object.keys(value).filter((field) => !fields.has(field));
+  if (unsupported.length > 0)
+    throw runtimeConfigError(
+      `Atlas runtime config has unsupported fields for environment "${value.environment}": ${unsupported.join(', ')}.`,
+    );
+}
+
+function assertDevelopmentFields(value: Record<string, unknown>): void {
+  if (value.developmentSessionUrl !== undefined)
+    assertDevelopmentSessionUrl(value.developmentSessionUrl);
+  assertOptionalInteger({
+    value: value.resourcesRetryCount,
+    field: 'resourcesRetryCount',
+    minimum: 0,
+  });
+  assertOptionalInteger({
+    value: value.resourcesTimeoutMs,
+    field: 'resourcesTimeoutMs',
+    minimum: 1,
+  });
+}
+
+function resolveRegistryUrl({
+  value,
+  runtimeConfigUrl,
+  field,
+}: {
+  value: unknown;
+  runtimeConfigUrl: URL | undefined;
+  field: string;
+}): string {
   if (typeof value !== 'string')
-    throw new Error(`Atlas runtime ${field} is required.`);
+    throw runtimeConfigError(`Atlas runtime ${field} is required.`);
   if (isAbsoluteUrl(value)) {
-    assertRegistryUrl(value, field);
+    assertRegistryUrl({ value, field });
+
     return value;
   }
   if (!runtimeConfigUrl)
-    throw new Error(
-      `Atlas runtime ${field} requires a host URL when relative.`,
+    throw runtimeConfigError(
+      `Atlas runtime ${field} "${value}" is relative and requires a host URL to resolve against.`,
     );
   const url = new URL(value, runtimeConfigUrl);
   const resolved =
     url.pathname.endsWith('/') && !url.search && !url.hash
       ? url.href.slice(0, -1)
       : url.href;
-  assertRegistryUrl(resolved, field);
+  assertRegistryUrl({ value: resolved, field });
+
   return resolved;
 }
 
 function isAbsoluteUrl(value: string): boolean {
   try {
     new URL(value);
+
     return true;
   } catch {
     return false;
@@ -125,19 +167,29 @@ export function artifactUrl(
   return new URL(path, `${runtime.artifactRegistryUrl}/`).href;
 }
 
-function assertRegistryUrl(value: unknown, field: string): void {
+function assertRegistryUrl({
+  value,
+  field,
+}: {
+  value: unknown;
+  field: string;
+}): void {
   if (typeof value !== 'string')
-    throw new Error(`Atlas runtime ${field} is required.`);
+    throw runtimeConfigError(`Atlas runtime ${field} is required.`);
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    throw new Error(`Atlas runtime ${field} must be an absolute URL.`);
+    throw runtimeConfigError(
+      `Atlas runtime ${field} "${value}" must be an absolute URL.`,
+    );
   }
-  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback))
-    throw new Error(
-      `Atlas runtime ${field} requires HTTPS outside local development.`,
+  if (
+    url.protocol !== 'https:' &&
+    !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))
+  )
+    throw runtimeConfigError(
+      `Atlas runtime ${field} "${value}" requires HTTPS outside local development.`,
     );
   if (
     url.username ||
@@ -146,54 +198,67 @@ function assertRegistryUrl(value: unknown, field: string): void {
     url.hash ||
     value.endsWith('/')
   )
-    throw new Error(
-      `Atlas runtime ${field} must be a normalized registry root.`,
+    throw runtimeConfigError(
+      `Atlas runtime ${field} "${value}" must be a normalized registry root without credentials, query, hash, or trailing slash.`,
     );
 }
 
 function assertDevelopmentSessionUrl(value: unknown): void {
+  const message = `Atlas runtime developmentSessionUrl ${JSON.stringify(value)} must be an absolute http loopback URL.`;
   let url: URL;
   try {
     url = new URL(String(value));
   } catch {
-    throw new Error(
-      'Atlas runtime developmentSessionUrl must be an absolute loopback URL.',
-    );
+    throw runtimeConfigError(message);
   }
   if (
     typeof value !== 'string' ||
     url.protocol !== 'http:' ||
-    !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    !isLoopbackHostname(url.hostname)
   ) {
-    throw new Error(
-      'Atlas runtime developmentSessionUrl must be an absolute loopback URL.',
-    );
+    throw runtimeConfigError(message);
   }
 }
 
-function assertOptionalInteger(
-  value: unknown,
-  field: string,
-  minimum: number,
-): void {
+function assertOptionalInteger({
+  value,
+  field,
+  minimum,
+}: {
+  value: unknown;
+  field: string;
+  minimum: number;
+}): void {
   if (
     value !== undefined &&
     (!Number.isInteger(value) || Number(value) < minimum)
   ) {
-    throw new Error(
-      `Atlas runtime ${field} must be an integer of at least ${minimum}.`,
+    throw runtimeConfigError(
+      `Atlas runtime ${field} ${JSON.stringify(value)} must be an integer of at least ${minimum}.`,
     );
   }
 }
 
-function assertSegment(value: unknown, field: string): void {
+function assertSegment({
+  value,
+  field,
+}: {
+  value: unknown;
+  field: string;
+}): void {
   if (
     typeof value !== 'string' ||
     !/^[A-Za-z0-9][A-Za-z0-9._~-]*$/u.test(value)
   )
-    throw new Error(`Atlas runtime ${field} must be a URL-safe path segment.`);
+    throw runtimeConfigError(
+      `Atlas runtime ${field} ${JSON.stringify(value)} must be a URL-safe path segment.`,
+    );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function runtimeConfigError(message: string) {
+  return bootstrapError({ code: 'RUNTIME_CONFIG_INVALID', message });
 }
