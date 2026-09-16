@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { anAppManifest } from '@atlas/testkit';
+import {
+  anAppManifest,
+  aPayloadFileDescriptor,
+  aRoutePlacement,
+} from '@atlas/testkit';
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
 import {
   AtlasVerifyService,
@@ -214,24 +218,20 @@ export class VerifyServiceDriver {
           id: this.appId,
           supportedHosts: [this.hostId],
           placements: [
-            {
+            aRoutePlacement({
               hostId: this.hostId,
-              id: faker.string.uuid(),
-              kind: 'route',
-              route: { path: '/orders', title: faker.commerce.department() },
-            },
+              route: { path: '/orders' },
+            }),
           ],
         }),
         this.deploymentManifest({
           id: this.secondAppId,
           supportedHosts: [this.hostId],
           placements: [
-            {
+            aRoutePlacement({
               hostId: this.hostId,
-              id: faker.string.uuid(),
-              kind: 'route',
-              route: { path: '/orders/', title: faker.commerce.department() },
-            },
+              route: { path: '/orders/' },
+            }),
           ],
         }),
       ];
@@ -527,14 +527,13 @@ function canonicalArtifact(manifest: AtlasManifest | AtlasHostManifest) {
     entryPath,
     exposes: manifest.exposes,
     files: [
-      {
+      aPayloadFileDescriptor({
         path: entryPath,
         digest: entryDigest,
         size: entryBytes.byteLength,
         mediaType: 'application/json',
-        cacheControl: 'public, max-age=31536000, immutable',
         role: 'remote-entry',
-      },
+      }),
     ],
   };
   if (manifest.kind === 'host') {

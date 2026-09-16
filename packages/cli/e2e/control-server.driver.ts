@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { anAppManifest } from '@atlas/testkit';
+import { anAppManifest, aRoutePlacement } from '@atlas/testkit';
 import { startControlServer } from '../src/development/control-server/control-server.js';
 import { anOverrideDocument } from '../src/development/development.testkit.js';
 import type {
@@ -53,12 +53,7 @@ export class ControlServerDriver {
     const manifest = anAppManifest({
       id: appId,
       placements: [
-        {
-          hostId: this.hostId,
-          id: faker.string.uuid(),
-          kind: 'route',
-          route: { path: `/${appId}`, title: faker.lorem.words() },
-        },
+        aRoutePlacement({ hostId: this.hostId, route: { path: `/${appId}` } }),
       ],
     });
 
