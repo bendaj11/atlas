@@ -296,7 +296,7 @@ export class AtlasBuildService {
         )
           return module.default.default;
       } catch {
-        /* Try the next conventional compiler output. */
+        continue;
       }
     }
     throw new Error(
@@ -525,7 +525,7 @@ async function findArtifactRootIfPresent(
       )
         return candidate;
     } catch {
-      /* Continue. */
+      continue;
     }
   }
   return undefined;
@@ -673,9 +673,6 @@ function publicationIdentity(
     throw new Error(
       'Atlas publish requires exactly one of --version, --pr, or --mr.',
     );
-  }
-  if (pr !== undefined && mr !== undefined) {
-    throw new Error('--pr and --mr are aliases and cannot be passed together.');
   }
   const gitSha =
     args.flag('git-sha') ?? gitOutput(project.root, ['rev-parse', 'HEAD']);

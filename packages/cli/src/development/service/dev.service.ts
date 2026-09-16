@@ -135,6 +135,11 @@ export class AtlasDevService {
     const controlPort = this.args.port('control-port', DEFAULT_CONTROL_PORT);
     const controlOrigin = localOrigin(controlPort);
     const registryUrl = resolveRegistryUrl(this.args);
+    const usesLocalBootstrap = target.previewKind === 'local';
+    const template = usesLocalBootstrap
+      ? await loadBootstrapTemplate(project.root)
+      : undefined;
+    const devTask = await this.frameworkDevTask(project);
     const control = await startControlServer({
       port: controlPort,
       document,
@@ -144,13 +149,9 @@ export class AtlasDevService {
     });
     const frameworkServer = this.workspace.spawn(
       project,
-      await this.frameworkDevTask(project),
+      devTask,
       frameworkServerArguments(config.framework, clientPort),
     );
-    const usesLocalBootstrap = target.previewKind === 'local';
-    const template = usesLocalBootstrap
-      ? await loadBootstrapTemplate(project.root)
-      : undefined;
     let bootstrap: Server | undefined;
     try {
       await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
@@ -189,6 +190,10 @@ export class AtlasDevService {
       logHostViewUrl(hostUrl, browserUrl);
       openBrowserWhenReady(this.args, browserUrl);
       await waitForShutdown(frameworkServer, control);
+    } catch (error) {
+      if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');
+      await control.close();
+      throw error;
     } finally {
       if (bootstrap) await closeServer(bootstrap);
     }
@@ -226,6 +231,7 @@ export class AtlasDevService {
       return;
     }
     const registryUrl = resolveRegistryUrl(this.args);
+    const devTask = await this.frameworkDevTask(project);
     const control = await startControlServer({
       port: controlPort,
       document,
@@ -235,7 +241,7 @@ export class AtlasDevService {
     });
     const frameworkServer = this.workspace.spawn(
       project,
-      await this.frameworkDevTask(project),
+      devTask,
       frameworkServerArguments(config.framework, remotePort),
     );
     try {

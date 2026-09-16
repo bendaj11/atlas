@@ -96,7 +96,6 @@ export async function detectWorkspace(
       runProcess(
         createInstallCommand(
           packageManager,
-          root,
           await installationRoot(kind, root, projectRoot),
         ),
       ),
@@ -204,11 +203,8 @@ export function createNxPluginInstallCommand(
 
 export function createInstallCommand(
   manager: AtlasPackageManager,
-  _workspaceRoot: string,
   projectRoot: string,
 ): ProcessCommand {
-  // npm discovers the applicable project/workspace .npmrc itself. Passing the
-  // same file as --globalconfig makes npm load it twice and abort.
   return { command: manager, args: ['install'], cwd: projectRoot };
 }
 

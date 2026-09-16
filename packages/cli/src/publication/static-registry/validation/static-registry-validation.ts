@@ -1,8 +1,5 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
-import {
-  assertManifestDescriptor,
-  assertReleaseVersion,
-} from '@atlas/schema';
+import { assertManifestDescriptor, assertReleaseVersion } from '@atlas/schema';
 import { registryRevision } from '../revision/registry-revision.js';
 
 export function assertStaticRegistry(

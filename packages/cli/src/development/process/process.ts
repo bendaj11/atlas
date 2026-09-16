@@ -33,12 +33,10 @@ export async function waitForRemoteEntry(
         await completedProcessOutput(child),
       );
     }
-    try {
-      const response = await fetch(remoteEntryUrl, { cache: 'no-store' });
-      if (await remoteEntryIsReady(response)) return;
-    } catch {
-      // Framework server has not opened its port yet.
-    }
+    const response = await fetch(remoteEntryUrl, { cache: 'no-store' }).catch(
+      () => undefined,
+    );
+    if (response && (await remoteEntryIsReady(response))) return;
     await new Promise((resolve) =>
       setTimeout(resolve, REMOTE_POLL_INTERVAL_MS),
     );
@@ -181,7 +179,7 @@ export function openBrowserWhenReady(
     );
     child.unref();
   } catch {
-    // Logged URL remains fallback when platform opener unavailable.
+    ui.warning('Could not open browser automatically. Use App preview link.');
   }
 }
 

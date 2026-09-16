@@ -52,6 +52,7 @@ export class UiDriver {
         value: outputIsTTY,
       });
       if (colors) delete process.env.NO_COLOR;
+      else process.env.NO_COLOR = '1';
       process.env.TERM = 'xterm-256color';
     },
   };

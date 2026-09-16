@@ -34,8 +34,6 @@ export interface AtlasDeployResult {
   environment: string;
   version: string;
   registryRevision: string;
-  convergedHosts: string[];
-  pendingHosts: string[];
   dryRun: boolean;
 }
 
@@ -130,8 +128,6 @@ export class AtlasDeployService {
       environment,
       version: selected.version,
       registryRevision: deployment.state.revision,
-      convergedHosts: deployment.manifests.map((manifest) => manifest.hostId),
-      pendingHosts: [],
       dryRun,
     };
   }

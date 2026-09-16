@@ -95,7 +95,7 @@ async function compiledAtlasConfigExists(
       await access(candidate);
       return true;
     } catch {
-      /* Try next compiler output location. */
+      continue;
     }
   }
   return false;

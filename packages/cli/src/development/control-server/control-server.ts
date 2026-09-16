@@ -406,7 +406,7 @@ async function joinControlServer(
         ...(document.hostOverride ? [deleteJson(hostPath)] : []),
       ]);
     } catch {
-      // Control server may already have stopped. No override remains to remove.
+      return;
     }
   }
 }

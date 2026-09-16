@@ -76,8 +76,6 @@ interface PreviewPruneOptions {
 export interface AtlasPublishResult {
   uploaded: string[];
   dryRun: boolean;
-  skippedReason?: string;
-  cleanupWarnings: string[];
   manifest: AtlasManifestDescriptor;
   registryRevision: string;
 }
@@ -151,7 +149,6 @@ export class AtlasPublishService {
           'registry.json',
         ],
         dryRun: true,
-        cleanupWarnings: [],
         manifest: descriptor,
         registryRevision: mutation.registryRevision,
       };
@@ -401,7 +398,6 @@ export class AtlasPublishService {
         ...(mutation.changed ? ['registry.json'] : []),
       ],
       dryRun: false,
-      cleanupWarnings: [],
       manifest: descriptor,
       registryRevision: mutation.registryRevision,
     };

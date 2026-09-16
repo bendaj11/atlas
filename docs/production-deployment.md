@@ -279,12 +279,13 @@ registry.
 
 ## Safe convergence
 
-Atlas first commits desired state to `registry.json`, then replaces affected
-environment manifests. Every individual manifest is complete: browsers see the
+Atlas first writes the environment deployment state, then replaces every
+affected host manifest. Every individual manifest is complete: browsers see the
 old composition or the new composition, never a half-written JSON document.
 
-If a post-commit write fails, Atlas reports pending hosts and exits non-zero.
-Repeat the exact deploy command to resume convergence.
+If a host manifest write fails after the state is written, Atlas exits non-zero
+with the failed path. Repeat the exact deploy command: it recomputes the same
+state and manifests and rewrites them.
 
 Use these safety options:
 

@@ -224,7 +224,7 @@ describe('AtlasPublishService', () => {
 
     await driver.when.publish();
 
-    expect(driver.get.resolverCalls()).toBe(2);
+    expect(driver.get.resolverMock()).toHaveBeenCalledTimes(2);
   });
 
   it('should prune only declared artifact selections when reconciling preview state', async () => {

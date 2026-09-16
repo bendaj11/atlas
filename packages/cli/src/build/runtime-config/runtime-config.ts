@@ -13,7 +13,8 @@ export function createHostRuntimeConfig(
   _hostVersion?: string,
 ): AtlasHostRuntimeConfig {
   assertHostConfig(config);
-  const artifactRegistryUrl = resolveRegistryUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
+  const artifactRegistryUrl =
+    resolveRegistryUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
   const environment = resolveRuntimeEnvironment(args, artifactRegistryUrl);
   const environmentRegistryUrl = resolveEnvironmentRegistryUrl(args);
   return {
@@ -54,7 +55,9 @@ export function resolveRegistryUrl(args: CliArguments): string | undefined {
 }
 
 function resolveEnvironmentRegistryUrl(args: CliArguments): string | undefined {
-  const value = args.flag('environment-registry-url') ?? process.env.ATLAS_ENVIRONMENT_REGISTRY_URL;
+  const value =
+    args.flag('environment-registry-url') ??
+    process.env.ATLAS_ENVIRONMENT_REGISTRY_URL;
   return value ? trimSlash(value) : undefined;
 }
 

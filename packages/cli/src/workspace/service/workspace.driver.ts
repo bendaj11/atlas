@@ -84,7 +84,7 @@ export class WorkspaceDriver {
 
       if (scenario === 'install') {
         this.value = this.normalizeCommand(
-          createInstallCommand('pnpm', this.root, this.projectRoot),
+          createInstallCommand('pnpm', this.projectRoot),
         );
       }
 

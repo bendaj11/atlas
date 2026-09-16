@@ -224,7 +224,7 @@ export class PublishServiceDriver {
       ) as AtlasStaticRegistry,
     paths: (): string[] => [...this.storage.paths()].sort(),
     progress: (): readonly string[] => this.progress,
-    resolverCalls: (): number => this.resolvePreviewHead.mock.calls.length,
+    resolverMock: () => this.resolvePreviewHead,
     publicationAttempts: (): number => this.publication.mock.calls.length,
     prunedSelections: (): Record<string, string[]> => ({
       scoped: Object.keys(this.get.registry().apps[this.id]!.previews),

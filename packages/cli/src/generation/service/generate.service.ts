@@ -252,12 +252,8 @@ export class AtlasGenerateService {
         value: app.id,
       })),
     );
-    const selectedApp = apps.find(({ id }) => id === selectedAppId);
-    if (!selectedApp)
-      throw new Error(
-        `Could not find selected Atlas app ID "${selectedAppId}".`,
-      );
-    return selectedApp;
+
+    return apps.find(({ id }) => id === selectedAppId)!;
   }
 
   private async configuredWidgetApps(): Promise<WidgetAppSelection[]> {

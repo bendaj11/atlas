@@ -91,9 +91,7 @@ export class AtlasVerifyService {
         catalog.host,
         ...catalog.apps,
         ...(catalog.widgetProviders ?? []),
-      ].flatMap((manifest) =>
-        this.verifyManifestAssets(manifest, runtime, context),
-      ),
+      ].flatMap((manifest) => this.verifyManifestAssets(manifest, context)),
     );
     return createReport(context, runtime.hostId);
   }
@@ -279,10 +277,8 @@ export class AtlasVerifyService {
 
   private verifyManifestAssets(
     manifest: AtlasManifest | AtlasHostManifest,
-    runtime: AtlasHostRuntimeConfig,
     context: VerificationContext,
   ): Promise<void>[] {
-    new URL(environmentManifestUrl(runtime));
     const assets: AssetExpectation[] = [
       {
         url: manifest.remoteEntryUrl,

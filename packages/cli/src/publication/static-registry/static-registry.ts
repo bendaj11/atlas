@@ -14,9 +14,7 @@ import {
   canonicalJson,
   registryRevision,
 } from './revision/registry-revision.js';
-import {
-  assertStaticRegistry,
-} from './validation/static-registry-validation.js';
+import { assertStaticRegistry } from './validation/static-registry-validation.js';
 
 export {
   canonicalJson,

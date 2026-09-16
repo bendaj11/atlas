@@ -158,15 +158,9 @@ async function runWorkspaceFreeCommand(
       invocation.subcommand,
       config,
     );
-    if (result.pendingHosts.length) {
-      ui.warning(
-        `Desired state committed; pending hosts: ${result.pendingHosts.join(', ')}. Repeat deploy to resume convergence.`,
-      );
-    } else {
-      ui.success(
-        `${result.artifactId}@${result.version} deployed to ${result.environment}.`,
-      );
-    }
+    ui.success(
+      `${result.artifactId}@${result.version} deployed to ${result.environment}.`,
+    );
     if (!result.dryRun) {
       const hostUrls = config?.hostUrls ?? [];
       if (hostUrls.length) await verifyHostUrls(hostUrls);
