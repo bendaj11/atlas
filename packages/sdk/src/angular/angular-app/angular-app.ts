@@ -13,13 +13,13 @@ import {
   createApplication,
   ɵSharedStylesHost,
 } from '@angular/platform-browser';
-import { attachAngularComponentStyles } from './angular-style-host.js';
+import { attachAngularComponentStyles } from '../angular-style-host/angular-style-host.js';
 import {
   provideAtlasAppContext,
   provideAtlasSdk,
-} from './angular-injection.js';
-import type { LocationStrategyAdapter } from './angular-types.js';
-import type { AtlasSdk as AtlasSdkValue } from './host.js';
+} from '../angular-injection/angular-injection.js';
+import type { LocationStrategyAdapter } from '../angular-types/angular-types.js';
+import type { AtlasSdk as AtlasSdkValue } from '../../host.js';
 import type {
   AtlasExportedWidgetEntry,
   AtlasExportedWidgetMountRequest,
@@ -27,7 +27,7 @@ import type {
   AtlasAppContext,
   AtlasAppMountRequest,
   AtlasAppMountResult,
-} from './lifecycle.js';
+} from '../../lifecycle.js';
 
 export interface AppBootstrap {
   (

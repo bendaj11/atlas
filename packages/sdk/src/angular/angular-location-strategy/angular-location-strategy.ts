@@ -1,10 +1,14 @@
-import type { AtlasAppContext } from "./lifecycle.js";
-import type { LocationStrategyAdapter } from "./angular-types.js";
+import type { AtlasAppContext } from '../../lifecycle.js';
+import { readInnerUrl } from '../../navigation/inner-url/inner-url.js';
+import { goThroughHistory } from '../../navigation/navigation-paths/navigation-paths.js';
+import type { LocationStrategyAdapter } from '../angular-types/angular-types.js';
 
-type PopStateListener = (event: { type: "popstate"; state: unknown }) => void;
+type PopStateListener = (event: { type: 'popstate'; state: unknown }) => void;
 
 /** Creates the LocationStrategy used by an Angular Router mounted inside an Atlas app. */
-export function createLocationStrategy(context: AtlasAppContext): LocationStrategyAdapter {
+export function createLocationStrategy(
+  context: AtlasAppContext,
+): LocationStrategyAdapter {
   const listeners = new Set<PopStateListener>();
   let ignoredUrl: string | undefined;
 
@@ -12,6 +16,7 @@ export function createLocationStrategy(context: AtlasAppContext): LocationStrate
     const current = readInnerUrl(context);
     if (ignoredUrl === current) {
       ignoredUrl = undefined;
+
       return;
     }
     notifyPopState(listeners);
@@ -19,10 +24,10 @@ export function createLocationStrategy(context: AtlasAppContext): LocationStrate
 
   return {
     path(includeHash = true) {
-      return readInnerUrl(context, includeHash);
+      return readInnerUrl(context, { includeHash });
     },
     prepareExternalUrl(internal) {
-      return context.navigation.toInnerPath(internal);
+      return context.navigation.toHostPath(internal);
     },
     getState() {
       return undefined;
@@ -42,34 +47,27 @@ export function createLocationStrategy(context: AtlasAppContext): LocationStrate
       context.navigation.back();
     },
     historyGo(delta) {
-      if (context.navigation.go) context.navigation.go(delta);
-      else if (delta === -1) context.navigation.back();
+      goThroughHistory(context.navigation, delta);
     },
     onPopState(listener) {
       listeners.add(listener);
     },
     getBaseHref() {
-      return "/";
+      return '/';
     },
     ngOnDestroy() {
       stop();
       listeners.clear();
-    }
+    },
   };
 }
 
-function readInnerUrl(context: AtlasAppContext, includeHash = true): string {
-  const route = context.route.getCurrent();
-  const host = context.navigation.getCurrentLocation();
-  return `${route.pathname}${host.search}${includeHash ? host.hash : ""}`;
-}
-
 function targetUrl(url: string, query: string): string {
-  return `${url.startsWith("/") ? url : `/${url}`}${query || ""}`;
+  return `${url.startsWith('/') ? url : `/${url}`}${query || ''}`;
 }
 
 function notifyPopState(listeners: Set<PopStateListener>): void {
   for (const listener of listeners) {
-    listener({ type: "popstate", state: undefined });
+    listener({ type: 'popstate', state: undefined });
   }
 }

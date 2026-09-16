@@ -2,7 +2,7 @@ import type {
   AtlasHostDataOf,
   AtlasHostDataValue,
   AtlasSdk,
-} from './sdk-types.js';
+} from '../sdk-types/sdk-types.js';
 
 type HostDataListener = () => void;
 

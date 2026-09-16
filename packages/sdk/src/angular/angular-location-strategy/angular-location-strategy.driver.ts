@@ -1,0 +1,53 @@
+import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
+import type { AtlasAppContext } from '../../lifecycle.js';
+import { anAppContext } from '../../testkit/app-context.testkit.js';
+import { urlOf } from '../../testkit/navigation.testkit.js';
+import type { LocationStrategyAdapter } from '../angular-types/angular-types.js';
+import { createLocationStrategy } from './angular-location-strategy.js';
+
+type PopStateListener = Parameters<LocationStrategyAdapter['onPopState']>[0];
+
+export class AngularLocationStrategyDriver {
+  private readonly path = `/${faker.lorem.slug()}`;
+  private readonly popState = jest.fn<PopStateListener>();
+  private context!: AtlasAppContext;
+  private strategy!: LocationStrategyAdapter;
+
+  readonly given = {
+    innerUrl: (innerUrl: string): this => {
+      this.context = anAppContext({ path: this.path });
+      this.context.navigation.navigate(innerUrl);
+
+      return this;
+    },
+  };
+
+  readonly when = {
+    created: (): void => {
+      this.strategy = createLocationStrategy(this.context);
+      this.strategy.onPopState(this.popState);
+    },
+    routerPushed: (url: string, query: string): void => {
+      this.strategy.pushState(undefined, '', url, query);
+    },
+    routerReplaced: (url: string, query: string): void => {
+      this.strategy.replaceState(undefined, '', url, query);
+    },
+    hostNavigated: (innerUrl: string): void => {
+      this.context.navigation.navigate(innerUrl);
+    },
+    destroyed: (): void => {
+      this.strategy.ngOnDestroy();
+    },
+  };
+
+  readonly get = {
+    strategy: (): LocationStrategyAdapter => this.strategy,
+    hostPath: (): string => this.path,
+    hostUrl: (): string => urlOf(this.context.navigation.getCurrentLocation()),
+    popStateMock: (): jest.Mock<PopStateListener> => this.popState,
+    hostGoMock: () => this.context.navigation.go,
+    hostBackMock: () => this.context.navigation.back,
+  };
+}

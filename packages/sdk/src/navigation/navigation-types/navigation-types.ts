@@ -14,7 +14,7 @@ export type AtlasNavigationListener = (location: AtlasLocation) => void;
 /** Host-owned browser navigation exposed through framework adapters. */
 export interface AtlasNavigation {
   navigate(to: string, options?: AtlasNavigateOptions): void;
-  replace(to: string, options?: Omit<AtlasNavigateOptions, "replace">): void;
+  replace(to: string, options?: Omit<AtlasNavigateOptions, 'replace'>): void;
   back(): void;
   /** Moves through host history when the host adapter supports an arbitrary delta. */
   go?(delta: number): void;
@@ -31,7 +31,8 @@ export interface AtlasBrowserNavigation extends AtlasNavigation {
 /** App navigation restricted to the path assigned by the host catalog. */
 export interface AtlasScopedNavigation extends AtlasNavigation {
   readonly path: string;
-  toInnerPath(to: string): string;
+  /** Maps an app-relative path to the host path it navigates to. */
+  toHostPath(to: string): string;
 }
 
 export interface AtlasInnerLocation {

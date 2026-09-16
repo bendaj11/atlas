@@ -1,46 +1,76 @@
-import type { AtlasAppContext } from './lifecycle.js';
+import { faker } from '@faker-js/faker';
+import type { AtlasExportedWidgetManifest, AtlasManifest } from '@atlas/schema';
+import type { AtlasAppContext } from '../lifecycle.js';
+import { createRouteContext } from '../navigation/route-context/route-context.js';
+import { createScopedNavigation } from '../navigation/scoped-navigation/scoped-navigation.js';
+import { aMemoryNavigation } from './navigation.testkit.js';
 
-export function createAppContext(remoteEntryUrl: string): AtlasAppContext {
+export const ALL_FRAMEWORKS: readonly AtlasManifest['framework'][] = [
+  'angular',
+  'react',
+  'vue',
+];
+export const ALL_CHANNELS: readonly AtlasManifest['channel'][] = [
+  'production',
+  'pr',
+  'local',
+];
+
+export function anAppManifest(
+  overrides: Partial<AtlasManifest> = {},
+): AtlasManifest {
   return {
-    manifest: {
-      schemaVersion: '1',
-      kind: 'app',
-      id: 'orders',
-      name: 'Orders',
-      version: '1.2.3',
-      buildId: 'build',
-      channel: 'production',
-      framework: 'angular',
-      remoteEntryUrl,
-      exposes: { entry: './entry' },
-      requiredHostSdkVersion: '^1.0.0',
-      supportedHosts: ['*'],
-      placements: [],
-      createdAt: '2026-09-01T00:00:00.000Z',
-    },
-    hostId: 'host',
-    path: '/orders',
-    navigation: {
-      path: '/orders',
-      navigate: () => undefined,
-      replace: () => undefined,
-      back: () => undefined,
-      createHref: (path) => path,
-      subscribe: () => () => undefined,
-      getCurrentLocation: () => ({ pathname: '/', search: '', hash: '' }),
-      toInnerPath: (path) => path,
-    },
-    route: {
-      path: '/orders',
-      getCurrent: () => ({ pathname: '/', query: {}, hash: '' }),
-      setTabTitle: () => undefined,
-      subscribe: () => () => undefined,
-      match: () => undefined,
-    },
+    schemaVersion: '1',
+    kind: 'app',
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    version: faker.system.semver(),
+    buildId: faker.string.alphanumeric(8),
+    channel: faker.helpers.arrayElement(ALL_CHANNELS),
+    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    remoteEntryUrl: `${faker.internet.url()}/${faker.system.semver()}/remoteEntry.json`,
+    exposes: { entry: `./${faker.word.noun()}` },
+    requiredHostSdkVersion: `^${faker.system.semver()}`,
+    supportedHosts: [faker.string.uuid()],
+    placements: [],
+    createdAt: faker.date.recent().toISOString(),
+    ...overrides,
+  };
+}
+
+export function anExportedWidgetManifest(
+  overrides: Partial<AtlasExportedWidgetManifest> = {},
+): AtlasExportedWidgetManifest {
+  return {
+    schemaVersion: '1',
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    ownerAppId: faker.string.uuid(),
+    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    remoteEntryUrl: `${faker.internet.url()}/remoteEntry.json`,
+    expose: `./widgets/${faker.lorem.slug()}`,
+    contractVersion: '1',
+    ...overrides,
+  };
+}
+
+export function anAppContext(
+  overrides: Partial<AtlasAppContext> = {},
+): AtlasAppContext {
+  const path = overrides.path ?? `/${faker.lorem.slug()}`;
+  const hostNavigation = aMemoryNavigation(path);
+
+  return {
+    manifest: anAppManifest(),
+    hostId: faker.string.uuid(),
+    path,
+    navigation: createScopedNavigation(path, hostNavigation),
+    route: createRouteContext(path, hostNavigation),
     loading: {
       show: () => undefined,
       hide: () => undefined,
       waitUntilReady: () => () => undefined,
     },
+    ...overrides,
   };
 }

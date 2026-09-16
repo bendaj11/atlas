@@ -5,7 +5,10 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import type { AtlasSdk } from './host.js';
-import type { AtlasGetWidgetOptions, AtlasWidgetHandle } from './sdk-types.js';
+import type {
+  AtlasGetWidgetOptions,
+  AtlasWidgetHandle,
+} from './core/sdk-types/sdk-types.js';
 import type { AtlasRouteContext, AtlasScopedNavigation } from './navigation.js';
 
 /** Runtime context scoped to one mounted app and its assigned host route. */

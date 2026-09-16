@@ -23,7 +23,11 @@ import {
   provideAtlasSdk,
   type AtlasSdk as AngularAtlasSdk,
 } from '../../src/angular.js';
-import { createAppContext } from '../../src/app-context.testkit.js';
+import {
+  anAppContext,
+  anAppManifest,
+} from '../../src/testkit/app-context.testkit.js';
+import { aMemoryNavigation } from '../../src/testkit/navigation.testkit.js';
 
 interface CustomerSdk {
   readonly hostData: { readonly userName: string };
@@ -59,8 +63,7 @@ export class AngularBootstrapDriver {
     {
       hostId: faker.string.uuid(),
       hostData: { userName: faker.person.firstName() },
-      navigation: createAppContext('https://cdn.example/remoteEntry.json')
-        .navigation,
+      navigation: aMemoryNavigation(),
       showMessage: this.showMessage,
     },
   );
@@ -113,7 +116,7 @@ export class AngularBootstrapDriver {
         container: {} as HTMLElement,
         styleTarget: {} as HTMLElement,
         sdk: this.hostSdk,
-        context: createAppContext(remoteEntryUrl),
+        context: anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
       });
     },
     updateHostData: (userName: string): void => {

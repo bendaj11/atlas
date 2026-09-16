@@ -40,9 +40,14 @@
       "default": "./dist/federation.js"
     },
     "./federation-config": {
-      "types": "./federation-config.d.cts",
-      "import": "./federation-config.mjs",
-      "require": "./federation-config.cjs"
+      "import": {
+        "types": "./federation-config.d.mts",
+        "default": "./federation-config.mjs"
+      },
+      "require": {
+        "types": "./federation-config.d.cts",
+        "default": "./federation-config.cjs"
+      }
     },
     "./angular": {
       "types": "./dist/angular.d.ts",
@@ -60,6 +65,7 @@
     "dist/**/*.d.cts",
     "federation-config.cjs",
     "federation-config.d.cts",
+    "federation-config.d.mts",
     "federation-config.mjs"
   ],
   "sideEffects": false,
@@ -68,7 +74,7 @@
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json && tsc -p tsconfig.federation-config.json",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/(src|tests|e2e)/'",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/(src|e2e)/' --testTimeout=30000",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {

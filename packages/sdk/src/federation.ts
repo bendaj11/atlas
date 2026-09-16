@@ -1,1 +1,4 @@
-export { initFederation, loadRemoteModule } from "@softarc/native-federation-runtime";
+export {
+  initFederation,
+  loadRemoteModule,
+} from '@softarc/native-federation-runtime';

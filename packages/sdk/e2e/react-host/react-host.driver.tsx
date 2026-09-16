@@ -7,9 +7,13 @@ import {
   AtlasRuntimeContext,
   AtlasSdkProvider,
   useAtlasSdk,
-} from '../../src/react-context.js';
+} from '../../src/react/react-context/react-context.js';
 import { createAtlasSdk, updateAtlasHostData } from '../../src/index.js';
-import { createAppContext } from '../../src/app-context.testkit.js';
+import {
+  anAppContext,
+  anAppManifest,
+} from '../../src/testkit/app-context.testkit.js';
+import { aMemoryNavigation } from '../../src/testkit/navigation.testkit.js';
 
 interface HostSdk {
   readonly hostData: { readonly userName: string };
@@ -55,8 +59,7 @@ export class ReactHostDriver {
   private readonly sdk = createAtlasSdk<HostSdk>({
     hostId: faker.string.uuid(),
     hostData: { userName: this.initialName },
-    navigation: createAppContext('https://cdn.example/remoteEntry.json')
-      .navigation,
+    navigation: aMemoryNavigation(),
     showMessage: this.showMessage,
   });
 
@@ -72,7 +75,9 @@ export class ReactHostDriver {
       render(
         <AtlasSdkProvider sdk={this.sdk}>
           <AtlasRuntimeContext.Provider
-            value={createAppContext(remoteEntryUrl)}
+            value={anAppContext({
+              manifest: anAppManifest({ remoteEntryUrl }),
+            })}
           >
             <HostFixture message={this.message} />
           </AtlasRuntimeContext.Provider>

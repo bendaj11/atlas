@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { faker } from '@faker-js/faker';
 import { AppAssetsDriver } from './app-assets.driver.js';
 
 describe('createAtlasAppAssetFacade', () => {
@@ -8,33 +8,29 @@ describe('createAtlasAppAssetFacade', () => {
     driver = new AppAssetsDriver();
   });
 
-  it('should resolve a public asset from the app artifact directory when given an output path', () => {
-    driver.given.appAt(
-      'https://cdn.example/apps/orders/1.2.3/remoteEntry.json',
-    );
+  describe('when the app is published under a versioned directory', () => {
+    const artifactDirectory = `${faker.internet.url()}/apps/${faker.lorem.slug()}/${faker.system.semver()}/`;
 
-    expect(driver.get.assetUrl('billboards/plane.png')).toBe(
-      'https://cdn.example/apps/orders/1.2.3/billboards/plane.png',
-    );
-  });
+    beforeEach(() => {
+      driver.given.remoteEntryUrl(`${artifactDirectory}remoteEntry.json`);
+    });
 
-  it('should return the app artifact directory when an app needs an asset base URL', () => {
-    driver.given.appAt(
-      'https://cdn.example/apps/orders/1.2.3/remoteEntry.json',
-    );
+    it('should return the artifact directory when assetBaseUrl is called', () => {
+      expect(driver.get.assets().assetBaseUrl()).toBe(artifactDirectory);
+    });
 
-    expect(driver.get.assetBaseUrl()).toBe(
-      'https://cdn.example/apps/orders/1.2.3/',
-    );
-  });
+    it('should resolve a relative path inside the artifact directory when assetUrl is called', () => {
+      const path = `${faker.lorem.slug()}/${faker.system.commonFileName('png')}`;
 
-  it('should reject a path outside the app artifact directory when an asset path escapes it', () => {
-    driver.given.appAt(
-      'https://cdn.example/apps/orders/1.2.3/remoteEntry.json',
-    );
+      expect(driver.get.assets().assetUrl(path)).toBe(
+        `${artifactDirectory}${path}`,
+      );
+    });
 
-    expect(() => driver.get.assetUrl('../shared/plane.png')).toThrow(
-      RangeError,
-    );
+    it('should throw ATLAS_ASSET_PATH_OUTSIDE_ARTIFACT when assetUrl is called with a path that escapes the directory', () => {
+      expect(() => driver.get.assets().assetUrl('../shared/plane.png')).toThrow(
+        expect.objectContaining({ code: 'ATLAS_ASSET_PATH_OUTSIDE_ARTIFACT' }),
+      );
+    });
   });
 });

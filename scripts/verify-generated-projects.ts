@@ -8,6 +8,7 @@ import { execute } from "./process.js";
 const root = resolve(import.meta.dirname, "..");
 const artifacts = join(root, "dist/package-verification");
 const packageManager = readPackageManager(process.argv.slice(2));
+const frameworks = readFrameworks(process.argv.slice(2));
 const cleanRoom = await mkdtemp(join(tmpdir(), `atlas-generated-project-verification-${packageManager}-`));
 const atlasPackages = ["schema", "sdk", "runtime", "bootstrap", "generators", "testkit", "cli"];
 const pnpmVersion = "10.34.4";
@@ -17,7 +18,7 @@ const projects = [
   { type: "app", name: "clean-react-app", framework: "react" },
   { type: "host", name: "clean-angular-host", framework: "angular" },
   { type: "app", name: "clean-angular-app", framework: "angular" }
-];
+].filter((project) => frameworks.includes(project.framework));
 const expectedVersion = JSON.parse(await readFile(join(root, "packages/schema/package.json"), "utf8")).version;
 
 await mkdir(join(cleanRoom, "projects"), { recursive: true });
@@ -32,7 +33,7 @@ for (const project of projects) {
 
 await assertGeneratedAtlasRanges();
 const generatedProjects = await updateGeneratedManifests(localPackages);
-for (const framework of ["angular", "react"]) {
+for (const framework of frameworks) {
   const frameworkProjects = generatedProjects.filter((project) => project.framework === framework);
   await writeJson(join(cleanRoom, "package.json"), rootManifest(localPackages, frameworkProjects));
   await installDependencies(cleanRoom);
@@ -112,7 +113,7 @@ async function assertGeneratedAtlasRanges() {
 }
 
 async function runAtlas(args) {
-  const cli = join(cleanRoom, "node_modules", "@atlas", "cli", "dist", "index.js");
+  const cli = join(cleanRoom, "node_modules", "@atlas", "cli", "dist", "cli", "entrypoint", "entrypoint.js");
   await run(process.execPath, [cli, ...args], cleanRoom);
 }
 
@@ -162,4 +163,12 @@ async function run(command, args, cwd) {
 
 async function writeJson(path, value) {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function readFrameworks(args) {
+  const value = args.find((arg) => arg.startsWith("--framework="))?.slice("--framework=".length);
+  const all = ["angular", "react"];
+  if (!value) return all;
+  if (!all.includes(value)) throw new Error(`Unsupported --framework "${value}". Use angular or react.`);
+  return [value];
 }

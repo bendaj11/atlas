@@ -9,19 +9,21 @@ import {
   type Provider,
   type Signal,
 } from '@angular/core';
-import type { AtlasAppContext } from './lifecycle.js';
+import type { AtlasAppContext } from '../../lifecycle.js';
 import {
   subscribeAtlasHostData,
   type AtlasEventMap,
   type AtlasHostDataValue,
   type AtlasSdk as AtlasSdkValue,
-} from './host.js';
+} from '../../host.js';
 import {
   createAngularAtlasSdk,
   type AngularAtlasSdk,
-} from './angular-widget.js';
-import { createAtlasAppAssetFacade } from './app-assets.js';
-import { sdkError } from './sdk-error.js';
+} from '../angular-widget/angular-widget.js';
+import {
+  createAtlasAppAssetFacade,
+  defineUnavailableAppAssets,
+} from '../../core/app-assets/app-assets.js';
 
 const ATLAS_SDK = new InjectionToken<AtlasSdkValue>('AtlasSdk');
 const ATLAS_APP_CONTEXT = new InjectionToken<AtlasAppContext>(
@@ -67,29 +69,15 @@ export function injectAtlasSdk<
 >(): AtlasSdk<THostSdk, TEvents> {
   const sdk = inject(ATLAS_SDK) as AtlasSdkValue<THostSdk, TEvents>;
   const context = inject(ATLAS_APP_CONTEXT, { optional: true });
-  const atlas = createAngularAtlasSdk(
-    context ? createAtlasAppAssetFacade(sdk, context) : sdk,
-    inject(ApplicationRef),
-    inject(EnvironmentInjector),
-    createAtlasHostDataSignal(sdk),
-  );
-
-  if (!context) {
-    Object.defineProperties(atlas, {
-      assetBaseUrl: { value: unavailableAppAssetUrl },
-      assetUrl: { value: unavailableAppAssetUrl },
-    });
-  }
+  const atlas = createAngularAtlasSdk({
+    sdk: context ? createAtlasAppAssetFacade(sdk, context) : sdk,
+    applicationRef: inject(ApplicationRef),
+    environmentInjector: inject(EnvironmentInjector),
+    hostData: createAtlasHostDataSignal(sdk),
+  });
+  if (!context) defineUnavailableAppAssets(atlas);
 
   return atlas;
-}
-
-function unavailableAppAssetUrl(): never {
-  throw sdkError('App asset URLs require an Atlas app context.', {
-    suggestedActions:
-      'Call assetBaseUrl() or assetUrl() inside a mounted app. Hosts should use their own asset URLs.',
-    code: 'ATLAS_ANGULAR_APP_CONTEXT_MISSING',
-  });
 }
 
 function createAtlasHostDataSignal<
@@ -101,6 +89,7 @@ function createAtlasHostDataSignal<
     hostData.set(sdk.hostData),
   );
   inject(DestroyRef).onDestroy(unsubscribe);
+
   return hostData.asReadonly();
 }
 

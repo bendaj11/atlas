@@ -21,9 +21,7 @@ type ReactViteConfigFactory = (options: {
 
 const { createReactAppViteConfig, createReactHostViteConfig } = createRequire(
   import.meta.url,
-)(
-  '../../federation-config.cjs',
-) as {
+)('../../federation-config.cjs') as {
   createReactAppViteConfig: ReactViteConfigFactory;
   createReactHostViteConfig: ReactViteConfigFactory;
 };

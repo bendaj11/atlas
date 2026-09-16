@@ -7,14 +7,17 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
-import type { AtlasAppContext } from './lifecycle.js';
+import type { AtlasAppContext } from '../../lifecycle.js';
 import {
   subscribeAtlasHostData,
   type AtlasEventMap,
   type AtlasSdk as AtlasSdkValue,
-} from './host.js';
-import { createReactAtlasSdk, type ReactAtlasSdk } from './react-widget.js';
-import { sdkError } from './sdk-error.js';
+} from '../../host.js';
+import {
+  createReactAtlasSdk,
+  type ReactAtlasSdk,
+} from '../react-widget/react-widget.js';
+import { sdkError } from '../../core/sdk-error/sdk-error.js';
 
 export type AtlasSdk<
   THostSdk extends object = {},
@@ -72,10 +75,11 @@ export function useAtlasSdk<
       {
         suggestedActions:
           'Render this component below AtlasSdkProvider, then reload the app.',
-        code: 'ATLAS_REACT_SDK_CONTEXT_MISSING',
+        code: 'ATLAS_SDK_CONTEXT_MISSING',
       },
     );
   }
+
   return createReactAtlasSdk(sdk as AtlasSdkValue<THostSdk, TEvents>, context);
 }
 
@@ -87,10 +91,11 @@ export function useAppLoaded(): () => void {
       {
         suggestedActions:
           'Call useAppLoaded only from a component rendered by the Atlas app mount lifecycle.',
-        code: 'ATLAS_REACT_APP_CONTEXT_MISSING',
+        code: 'ATLAS_APP_CONTEXT_MISSING',
       },
     );
   }
+
   return context.loading.waitUntilReady();
 }
 
@@ -103,7 +108,7 @@ export function useAtlasStyleTarget(): Node & ParentNode {
     {
       suggestedActions:
         'Call useAtlasStyleTarget only from a component rendered by the Atlas app mount lifecycle.',
-      code: 'ATLAS_REACT_STYLE_TARGET_MISSING',
+      code: 'ATLAS_STYLE_TARGET_MISSING',
     },
   );
 }

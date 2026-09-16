@@ -1,5 +1,5 @@
-import type { AtlasNavigation } from './navigation.js';
-import type { AtlasEventBus, AtlasEventMap } from './event-bus.js';
+import type { AtlasNavigation } from '../../navigation.js';
+import type { AtlasEventBus, AtlasEventMap } from '../event-bus/event-bus.js';
 
 export interface AtlasMountedWidgetHandle<
   TInputs extends object = Record<string, unknown>,
@@ -77,7 +77,7 @@ type HostDataOption<THostSdk extends object> =
 
 type HostSdkProperties<THostSdk extends object> = Omit<
   THostSdk,
-  'hostId' | 'hostData' | 'navigation' | 'events' | 'getWidget'
+  'hostId' | 'hostData' | 'navigation' | 'eventBus' | 'events' | 'getWidget'
 >;
 
 /** Atlas runtime capabilities combined with a host-owned, consumer-typed API. */

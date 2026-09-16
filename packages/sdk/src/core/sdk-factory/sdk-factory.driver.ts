@@ -1,51 +1,103 @@
-import type { AtlasNavigation } from './navigation-types.js';
-import { createAtlasSdk } from './sdk-factory.js';
+import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
+import type { AtlasEventBus } from '../event-bus/event-bus.js';
+import type {
+  AtlasGetWidget,
+  AtlasGetWidgetOptions,
+  AtlasNavigationState,
+  AtlasSdk,
+  AtlasSdkOptions,
+  AtlasWidgetHandle,
+} from '../sdk-types/sdk-types.js';
+import type { AtlasNavigation } from '../../navigation/navigation-types/navigation-types.js';
+import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
+import {
+  connectAtlasNavigationResolver,
+  connectAtlasWidgetResolver,
+  createAtlasSdk,
+  getAtlasNavigation,
+} from './sdk-factory.js';
 
-type Orders = { create: () => Promise<void> };
+interface CommerceHostSdk {
+  hostData: { storeId: string };
+  showToast(message: string): void;
+}
+
+type NavigationResolver = (appId: string, state?: AtlasNavigationState) => void;
 
 export class SdkFactoryDriver {
-  private orders?: Orders;
-  private sdk?: ReturnType<typeof createAtlasSdk<{ orders: Orders }>>;
+  private readonly navigation = aMemoryNavigation();
+  private readonly widgetResolver = jest.fn<AtlasGetWidget>();
+  private readonly navigationResolver = jest.fn<NavigationResolver>();
+  private options: AtlasSdkOptions<CommerceHostSdk> = {
+    hostId: faker.string.uuid(),
+    navigation: this.navigation,
+    hostData: { storeId: faker.string.uuid() },
+    showToast: jest.fn<CommerceHostSdk['showToast']>(),
+  };
+  private sdk!: AtlasSdk<CommerceHostSdk>;
 
   readonly given = {
-    orders: (orders: Orders): SdkFactoryDriver => {
-      this.orders = orders;
+    hostId: (hostId: string): this => {
+      this.options = { ...this.options, hostId };
+
+      return this;
+    },
+    hostData: (
+      hostData: AtlasSdkOptions<CommerceHostSdk>['hostData'],
+    ): this => {
+      this.options = { ...this.options, hostData };
+
+      return this;
+    },
+    showToast: (showToast: CommerceHostSdk['showToast']): this => {
+      this.options = { ...this.options, showToast };
+
+      return this;
+    },
+    eventBus: (eventBus: AtlasEventBus): this => {
+      this.options = { ...this.options, eventBus };
+
+      return this;
+    },
+    reservedProperty: (name: string, value: unknown): this => {
+      this.options = { ...this.options, [name]: value };
+
+      return this;
+    },
+    widgetHandle: (handle: AtlasWidgetHandle): this => {
+      this.widgetResolver.mockReturnValue(handle);
+
       return this;
     },
   };
 
   readonly when = {
-    createSdk: (): void => {
-      if (!this.orders) {
-        throw new Error('Host orders must be set before creating the SDK.');
-      }
-
-      this.sdk = createAtlasSdk({
-        hostId: 'host',
-        navigation: createMemoryNavigation(),
-        orders: this.orders,
-      });
+    sdkCreated: (): void => {
+      this.sdk = createAtlasSdk<CommerceHostSdk>(this.options);
+    },
+    widgetResolverConnected: (): void => {
+      connectAtlasWidgetResolver(this.sdk, this.widgetResolver);
+    },
+    navigationResolverConnected: (): void => {
+      connectAtlasNavigationResolver(this.sdk, this.navigationResolver);
+    },
+    navigatedTo: (appId: string, state?: AtlasNavigationState): void => {
+      this.sdk.navigateTo(appId, state);
     },
   };
 
   readonly get = {
-    orders: (): Orders => {
-      if (!this.sdk) {
-        throw new Error('SDK must be created before reading orders.');
-      }
-
-      return this.sdk.orders;
-    },
-  };
-}
-
-function createMemoryNavigation(): AtlasNavigation {
-  return {
-    navigate: () => undefined,
-    replace: () => undefined,
-    back: () => undefined,
-    createHref: (to) => to,
-    subscribe: () => () => undefined,
-    getCurrentLocation: () => ({ pathname: '/', search: '', hash: '' }),
+    sdk: (): AtlasSdk<CommerceHostSdk> => this.sdk,
+    widget: (
+      widgetId: string,
+      options?: AtlasGetWidgetOptions,
+    ): AtlasWidgetHandle => this.sdk.getWidget(widgetId, options),
+    widgetResolverMock: (): jest.Mock<AtlasGetWidget> => this.widgetResolver,
+    navigationResolverMock: (): jest.Mock<NavigationResolver> =>
+      this.navigationResolver,
+    hostNavigation: (): AtlasNavigation => this.navigation,
+    atlasNavigationOf: (sdk: object): AtlasNavigation =>
+      getAtlasNavigation(sdk),
   };
 }

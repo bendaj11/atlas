@@ -19,9 +19,9 @@ import type {
   AtlasSdk as AtlasSdkValue,
   AtlasWidgetHandle,
   AtlasWidgetLoadingRenderer,
-} from './host.js';
-import { sdkError } from './sdk-error.js';
-import type { AtlasAppAssets } from './app-assets.js';
+} from '../../host.js';
+import { sdkError } from '../../core/sdk-error/sdk-error.js';
+import type { AtlasAppAssets } from '../../core/app-assets/app-assets.js';
 
 export interface AngularGetWidgetOptions<TInputs extends object> {
   readonly inputs: TInputs;
@@ -62,15 +62,23 @@ const widgetRuntimes = new WeakMap<object, AngularWidgetRuntime>();
 
 type WidgetErrorHandler = (error: unknown) => void;
 
+export interface CreateAngularAtlasSdkInput<
+  THostSdk extends object,
+  TEvents extends object,
+> {
+  readonly sdk: AtlasSdkValue<THostSdk, TEvents>;
+  readonly applicationRef: ApplicationRef;
+  readonly environmentInjector: EnvironmentInjector;
+  readonly hostData: Signal<AtlasHostDataValue<THostSdk>>;
+}
+
 export function createAngularAtlasSdk<
   THostSdk extends object,
   TEvents extends object,
 >(
-  sdk: AtlasSdkValue<THostSdk, TEvents>,
-  applicationRef: ApplicationRef,
-  environmentInjector: EnvironmentInjector,
-  hostData: Signal<AtlasHostDataValue<THostSdk>>,
+  input: CreateAngularAtlasSdkInput<THostSdk, TEvents>,
 ): AngularAtlasSdk<THostSdk, TEvents> {
+  const { sdk, applicationRef, environmentInjector, hostData } = input;
   const facade = Object.create(sdk) as AngularAtlasSdk<THostSdk, TEvents>;
   Object.defineProperty(facade, 'hostData', { value: hostData });
   Object.defineProperty(facade, 'getWidget', {
@@ -98,30 +106,33 @@ interface CreateWidgetBindingInput<TInputs extends object> {
 }
 
 function createWidgetBinding<TInputs extends object>(
-  input: CreateWidgetBindingInput<TInputs>,
+  request: CreateWidgetBindingInput<TInputs>,
 ): AngularWidgetBinding<TInputs> {
-  const renderLoading = input.options.loadingComponent
-    ? createAngularLoadingRenderer(
-        input.options.loadingComponent,
-        input.applicationRef,
-        input.environmentInjector,
-      )
+  const { sdk, applicationRef, environmentInjector, widgetId, options } =
+    request;
+  const renderLoading = options.loadingComponent
+    ? createAngularLoadingRenderer({
+        loadingComponent: options.loadingComponent,
+        applicationRef,
+        environmentInjector,
+      })
     : undefined;
-  const handle = input.sdk.getWidget<object>(
-    input.widgetId,
+  const handle = sdk.getWidget<object>(
+    widgetId,
     renderLoading ? { renderLoading } : undefined,
   );
   const binding: AngularWidgetBinding<TInputs> = Object.freeze({
-    widgetId: input.widgetId,
-    inputs: input.options.inputs,
+    widgetId,
+    inputs: options.inputs,
   });
   widgetRuntimes.set(binding, {
-    widgetId: input.widgetId,
+    widgetId,
     handle,
-    ...(input.options.loadingComponent
-      ? { loadingComponent: input.options.loadingComponent }
+    ...(options.loadingComponent
+      ? { loadingComponent: options.loadingComponent }
       : {}),
   });
+
   return binding;
 }
 
@@ -170,6 +181,7 @@ export class AngularWidgetOutletController<TInputs extends object> {
   private enqueueUpdate(update: () => Promise<void>): Promise<void> {
     this.updateQueue = this.updateQueue.then(update, update);
     void this.updateQueue.catch(this.handleError);
+
     return this.updateQueue;
   }
 
@@ -206,6 +218,7 @@ export class AngularWidgetOutletController<TInputs extends object> {
     if (this.activeWidget?.widgetId !== runtime.widgetId) return undefined;
     if (this.activeWidget.loadingComponent !== runtime.loadingComponent)
       return undefined;
+
     return this.activeWidget.mounted;
   }
 
@@ -221,6 +234,7 @@ function readWidgetRuntime(
 ): AngularWidgetRuntime {
   const runtime = widgetRuntimes.get(binding);
   if (runtime) return runtime;
+
   throw sdkError(
     `Atlas cannot render widget "${binding.widgetId}" because its Angular binding was not created by sdk.getWidget().`,
     {
@@ -231,11 +245,13 @@ function readWidgetRuntime(
   );
 }
 
-function createAngularLoadingRenderer(
-  loadingComponent: Type<unknown>,
-  applicationRef: ApplicationRef,
-  environmentInjector: EnvironmentInjector,
-): AtlasWidgetLoadingRenderer {
+function createAngularLoadingRenderer(request: {
+  readonly loadingComponent: Type<unknown>;
+  readonly applicationRef: ApplicationRef;
+  readonly environmentInjector: EnvironmentInjector;
+}): AtlasWidgetLoadingRenderer {
+  const { loadingComponent, applicationRef, environmentInjector } = request;
+
   return (container) => {
     const hostElement = container.ownerDocument.createElement('div');
     container.append(hostElement);
@@ -245,6 +261,7 @@ function createAngularLoadingRenderer(
     });
     applicationRef.attachView(component.hostView);
     component.changeDetectorRef.detectChanges();
+
     return () => {
       applicationRef.detachView(component.hostView);
       component.destroy();

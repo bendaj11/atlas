@@ -1,4 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { AngularBootstrapDriver } from './angular-bootstrap.driver.js';
 
 describe('Angular host and app SDK integration', () => {

@@ -1,8 +1,18 @@
-import type { AtlasNavigation, AtlasScopedNavigation } from "./navigation-types.js";
-import { normalizePath, scopePath } from "./navigation-paths.js";
+import type {
+  AtlasNavigation,
+  AtlasScopedNavigation,
+} from '../navigation-types/navigation-types.js';
+import {
+  goThroughHistory,
+  normalizePath,
+  scopePath,
+} from '../navigation-paths/navigation-paths.js';
 
 /** Restricts an app's relative and absolute-path navigation to its assigned path. */
-export function createScopedNavigation(path: string, navigation: AtlasNavigation): AtlasScopedNavigation {
+export function createScopedNavigation(
+  path: string,
+  navigation: AtlasNavigation,
+): AtlasScopedNavigation {
   const normalizedPath = normalizePath(path);
 
   return {
@@ -17,8 +27,7 @@ export function createScopedNavigation(path: string, navigation: AtlasNavigation
       navigation.back();
     },
     go(delta) {
-      if (navigation.go) navigation.go(delta);
-      else if (delta === -1) navigation.back();
+      goThroughHistory(navigation, delta);
     },
     createHref(to) {
       return navigation.createHref(scopePath(normalizedPath, to));
@@ -29,8 +38,8 @@ export function createScopedNavigation(path: string, navigation: AtlasNavigation
     getCurrentLocation() {
       return navigation.getCurrentLocation();
     },
-    toInnerPath(to) {
+    toHostPath(to) {
       return scopePath(normalizedPath, to);
-    }
+    },
   };
 }

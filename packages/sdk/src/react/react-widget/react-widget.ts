@@ -7,17 +7,19 @@ import {
   type ComponentType,
   type FunctionComponent,
 } from 'react';
+import { errorSummary } from '@atlas/schema';
 import type {
   AtlasEventMap,
   AtlasMountedWidgetHandle,
   AtlasSdk as AtlasSdkValue,
-} from './host.js';
+} from '../../host.js';
 import {
   createAtlasAppAssetFacade,
+  defineUnavailableAppAssets,
   type AtlasAppAssets,
-} from './app-assets.js';
-import type { AtlasAppContext } from './lifecycle.js';
-import { sdkError } from './sdk-error.js';
+} from '../../core/app-assets/app-assets.js';
+import type { AtlasAppContext } from '../../lifecycle.js';
+import { sdkError } from '../../core/sdk-error/sdk-error.js';
 
 export interface ReactGetWidgetOptions {
   loadingComponent?: ComponentType;
@@ -56,12 +58,7 @@ export function createReactAtlasSdk<
   const facade = Object.create(
     context ? createAtlasAppAssetFacade(sdk, context) : sdk,
   ) as ReactAtlasSdk<THostSdk, TEvents>;
-  if (!context) {
-    Object.defineProperties(facade, {
-      assetBaseUrl: { value: unavailableAppAssetUrl },
-      assetUrl: { value: unavailableAppAssetUrl },
-    });
-  }
+  if (!context) defineUnavailableAppAssets(facade);
   Object.defineProperty(facade, 'getWidget', {
     value: <TInputs extends object>(
       widgetId: string,
@@ -73,42 +70,43 @@ export function createReactAtlasSdk<
       const cachedWidget = widgetsByLoadingComponent.get(loadingComponent);
       if (cachedWidget) return cachedWidget as ComponentType<TInputs>;
 
-      const widget = createWidgetComponent<TInputs>(
+      const widget = createWidgetComponent<TInputs>({
         sdk,
         widgetId,
         loadingComponent,
-      );
+      });
       widgetsByLoadingComponent.set(
         loadingComponent,
         widget as ComponentType<object>,
       );
+
       return widget;
     },
   });
   appFacades.set(facadeContext, facade);
+
   return facade;
 }
 
-function unavailableAppAssetUrl(): never {
-  throw sdkError('App asset URLs require an Atlas app context.', {
-    suggestedActions:
-      'Call assetBaseUrl() or assetUrl() inside a mounted app. Hosts should use their own asset URLs.',
-    code: 'ATLAS_REACT_APP_CONTEXT_MISSING',
-  });
+interface CreateWidgetComponentInput {
+  readonly sdk: Pick<AtlasSdkValue, 'getWidget'>;
+  readonly widgetId: string;
+  readonly loadingComponent: ComponentType | undefined;
 }
 
 function createWidgetComponent<TInputs extends object>(
-  sdk: Pick<AtlasSdkValue, 'getWidget'>,
-  widgetId: string,
-  LoadingComponent?: ComponentType,
+  input: CreateWidgetComponentInput,
 ): FunctionComponent<TInputs> {
+  const { sdk, widgetId, loadingComponent: LoadingComponent } = input;
   const Widget: FunctionComponent<TInputs> = (inputs) => {
     const container = useRef<HTMLDivElement>(null);
     const mountedWidget = useRef<AtlasMountedWidgetHandle<TInputs> | undefined>(
       undefined,
     );
     const latestInputs = useRef(inputs);
+    const appliedInputs = useRef<TInputs | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
+    const [mountError, setMountError] = useState<unknown>(undefined);
     latestInputs.current = inputs;
 
     useEffect(() => {
@@ -119,6 +117,7 @@ function createWidgetComponent<TInputs extends object>(
       const renderLoading = LoadingComponent
         ? () => {
             setIsLoading(true);
+
             return () => {
               if (!disposed) setIsLoading(false);
             };
@@ -128,15 +127,21 @@ function createWidgetComponent<TInputs extends object>(
         widgetId,
         renderLoading ? { renderLoading } : undefined,
       );
-      void handle.mount(element, initialInputs).then((mounted) => {
-        if (disposed) {
-          void mounted.unmount();
-          return;
-        }
-        mountedWidget.current = mounted;
-        if (latestInputs.current !== initialInputs)
-          mounted.setInputs?.(latestInputs.current);
-      });
+      handle.mount(element, initialInputs).then(
+        (mounted) => {
+          if (disposed) {
+            void mounted.unmount();
+
+            return;
+          }
+          mountedWidget.current = mounted;
+          appliedInputs.current = initialInputs;
+          applyInputs(mounted, appliedInputs, latestInputs.current);
+        },
+        (error: unknown) => {
+          if (!disposed) setMountError(widgetMountError(widgetId, error));
+        },
+      );
 
       return () => {
         disposed = true;
@@ -147,8 +152,11 @@ function createWidgetComponent<TInputs extends object>(
     }, []);
 
     useEffect(() => {
-      mountedWidget.current?.setInputs?.(inputs);
+      const mounted = mountedWidget.current;
+      if (mounted) applyInputs(mounted, appliedInputs, inputs);
     }, [inputs]);
+
+    if (mountError !== undefined) throw mountError;
 
     return createElement(
       Fragment,
@@ -163,5 +171,49 @@ function createWidgetComponent<TInputs extends object>(
     );
   };
   Widget.displayName = `AtlasWidget(${widgetId})`;
+
   return Widget;
+}
+
+function applyInputs<TInputs extends object>(
+  mounted: AtlasMountedWidgetHandle<TInputs>,
+  appliedInputs: { current: TInputs | undefined },
+  inputs: TInputs,
+): void {
+  if (
+    appliedInputs.current !== undefined &&
+    shallowEqual(appliedInputs.current, inputs)
+  ) {
+    return;
+  }
+  appliedInputs.current = inputs;
+  mounted.setInputs?.(inputs);
+}
+
+function shallowEqual(left: object, right: object): boolean {
+  const leftKeys = Object.keys(left) as Array<keyof typeof left>;
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+
+  return leftKeys.every(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(right, key) &&
+      Object.is(left[key], (right as Record<string, unknown>)[key]),
+  );
+}
+
+function widgetMountError(widgetId: string, error: unknown): Error {
+  const cause = error instanceof Error ? error : new Error(String(error));
+
+  return sdkError(
+    `Atlas widget "${widgetId}" failed to mount: ${errorSummary(cause.message)}`,
+    {
+      suggestedActions: [
+        'Check that the widget id exists in the host catalog and that its owner app is deployed.',
+        'Wrap the widget in an error boundary to render a fallback while the owner app is unavailable.',
+      ],
+      cause,
+      code: 'ATLAS_WIDGET_MOUNT_FAILED',
+    },
+  );
 }

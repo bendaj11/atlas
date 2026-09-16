@@ -1,13 +1,18 @@
-import type { AtlasLocation, AtlasNavigation } from "./navigation.js";
-import type { LocationLike, RouterLike } from "./angular-types.js";
+import type { AtlasLocation, AtlasNavigation } from '../../navigation.js';
+import { defaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
+import type {
+  LocationLike,
+  RouterLike,
+} from '../angular-types/angular-types.js';
 
 export function createHostNavigation(
   router: RouterLike,
   location: LocationLike,
-  origin = typeof window === "undefined" ? "http://localhost" : window.location.origin
+  origin = defaultHostOrigin(),
 ): AtlasNavigation {
   const read = (): AtlasLocation => {
     const url = new URL(router.url, origin);
+
     return { pathname: url.pathname, search: url.search, hash: url.hash };
   };
 
@@ -16,7 +21,10 @@ export function createHostNavigation(
       void router.navigateByUrl(to, navigateOptions(options));
     },
     replace(to, options) {
-      void router.navigateByUrl(to, navigateOptions({ ...options, replace: true }));
+      void router.navigateByUrl(
+        to,
+        navigateOptions({ ...options, replace: true }),
+      );
     },
     back() {
       location.back();
@@ -37,19 +45,26 @@ export function createHostNavigation(
         previous = next;
         listener(next);
       });
+
       return () => subscription.unsubscribe();
     },
-    getCurrentLocation: read
+    getCurrentLocation: read,
   };
 }
 
 function sameLocation(left: AtlasLocation, right: AtlasLocation): boolean {
-  return left.pathname === right.pathname && left.search === right.search && left.hash === right.hash;
+  return (
+    left.pathname === right.pathname &&
+    left.search === right.search &&
+    left.hash === right.hash
+  );
 }
 
-function navigateOptions(options: { replace?: boolean; state?: unknown } | undefined): { replaceUrl?: boolean; state?: unknown } {
+function navigateOptions(
+  options: { replace?: boolean; state?: unknown } | undefined,
+): { replaceUrl?: boolean; state?: unknown } {
   return {
     ...(options?.replace ? { replaceUrl: true } : {}),
-    ...(options?.state !== undefined ? { state: options.state } : {})
+    ...(options?.state !== undefined ? { state: options.state } : {}),
   };
 }

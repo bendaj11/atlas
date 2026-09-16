@@ -6,13 +6,16 @@ import type {
   AtlasAppEntry,
   AtlasAppMountRequest,
   AtlasAppMountResult,
-} from './lifecycle.js';
+} from '../../lifecycle.js';
 import {
   AtlasRuntimeContext,
   AtlasSdkProvider,
   AtlasStyleTargetContext,
-} from './react-context.js';
-import { connectRouter, type AppRouterLike } from './react-router.js';
+} from '../react-context/react-context.js';
+import {
+  connectRouter,
+  type AppRouterLike,
+} from '../react-router/react-router.js';
 
 export interface RootAdapter {
   render(element: unknown): void;

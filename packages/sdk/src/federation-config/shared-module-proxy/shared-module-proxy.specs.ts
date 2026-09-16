@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { SharedModuleProxyDriver } from './shared-module-proxy.driver.js';
 
 describe('shared module proxy', () => {

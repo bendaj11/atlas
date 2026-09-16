@@ -1,0 +1,89 @@
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+import {
+  initSync as initializeCommonJsLexer,
+  parse as parseCommonJs,
+} from 'cjs-module-lexer';
+import { federationConfigError } from '../federation-config-error/federation-config-error.cjs';
+
+const IDENTIFIER_PATTERN = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+const RESERVED_EXPORT_NAMES = new Set(['default', '__esModule']);
+
+let lexerReady = false;
+
+/**
+ * Lists the named exports of a CommonJS entry, following `module.exports = require(...)` re-exports.
+ * The entry itself must lex; unreadable re-export targets are skipped.
+ */
+export function commonJsNamedExports(entryPoint: string): readonly string[] {
+  ensureLexer();
+  const resolvedEntry = resolve(entryPoint);
+  const names = new Set<string>();
+  const visited = new Set<string>();
+  const parsed = parseEntry(resolvedEntry);
+  visited.add(resolvedEntry);
+  for (const name of parsed.exports) names.add(name);
+  collectReexports(resolvedEntry, parsed.reexports, names, visited);
+
+  return [...names]
+    .filter(
+      (name) =>
+        !RESERVED_EXPORT_NAMES.has(name) && IDENTIFIER_PATTERN.test(name),
+    )
+    .sort();
+}
+
+function parseEntry(entryPoint: string): ReturnType<typeof parseCommonJs> {
+  try {
+    return parseCommonJs(readFileSync(entryPoint, 'utf8'));
+  } catch (cause) {
+    throw federationConfigError(
+      `Atlas could not read the CommonJS exports of shared dependency entry "${entryPoint}".`,
+      {
+        suggestedActions:
+          'Verify the package installs correctly and its entry is valid CommonJS, or skip the package in the Atlas federation config to bundle it instead.',
+        code: 'ATLAS_SHARED_COMMONJS_EXPORTS_UNREADABLE',
+        cause,
+      },
+    );
+  }
+}
+
+function collectReexports(
+  entryPoint: string,
+  specifiers: readonly string[],
+  names: Set<string>,
+  visited: Set<string>,
+): void {
+  const requireFromEntry = createRequire(entryPoint);
+  for (const specifier of specifiers) {
+    const parsed = tryParseReexport(requireFromEntry, specifier, visited);
+    if (!parsed) continue;
+    for (const name of parsed.exports) names.add(name);
+    collectReexports(parsed.entryPoint, parsed.reexports, names, visited);
+  }
+}
+
+function tryParseReexport(
+  requireFromEntry: NodeJS.Require,
+  specifier: string,
+  visited: Set<string>,
+): { entryPoint: string; exports: string[]; reexports: string[] } | undefined {
+  try {
+    const entryPoint = requireFromEntry.resolve(specifier);
+    if (visited.has(entryPoint)) return undefined;
+    visited.add(entryPoint);
+    const parsed = parseCommonJs(readFileSync(entryPoint, 'utf8'));
+
+    return { entryPoint, exports: parsed.exports, reexports: parsed.reexports };
+  } catch {
+    return undefined;
+  }
+}
+
+function ensureLexer(): void {
+  if (lexerReady) return;
+  initializeCommonJsLexer();
+  lexerReady = true;
+}

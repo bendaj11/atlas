@@ -1,29 +1,27 @@
 import {
+  anAppContext,
+  anAppManifest,
+} from '../../testkit/app-context.testkit.js';
+import {
   createAtlasAppAssetFacade,
   type AtlasAppAssets,
 } from './app-assets.js';
-import { createAppContext } from './app-context.testkit.js';
 
 export class AppAssetsDriver {
-  private sdk: AtlasAppAssets | undefined;
+  private facade!: AtlasAppAssets;
 
-  given = {
-    appAt: (remoteEntryUrl: string): AppAssetsDriver => {
-      this.sdk = createAtlasAppAssetFacade(
+  readonly given = {
+    remoteEntryUrl: (remoteEntryUrl: string): this => {
+      this.facade = createAtlasAppAssetFacade(
         {},
-        createAppContext(remoteEntryUrl),
+        anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
       );
+
       return this;
     },
   };
 
-  get = {
-    assetUrl: (path: string): string => this.getSdk().assetUrl(path),
-    assetBaseUrl: (): string => this.getSdk().assetBaseUrl(),
+  readonly get = {
+    assets: (): AtlasAppAssets => this.facade,
   };
-
-  private getSdk(): AtlasAppAssets {
-    if (!this.sdk) throw new Error('SDK was not configured.');
-    return this.sdk;
-  }
 }

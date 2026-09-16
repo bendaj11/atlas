@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { AngularStyleHostDriver } from './angular-style-host.driver.js';
 
 describe('attachAngularComponentStyles', () => {
@@ -8,22 +7,36 @@ describe('attachAngularComponentStyles', () => {
     driver = new AngularStyleHostDriver();
   });
 
-  it('should attach component styles to the shadow root when Atlas isolates an app', () => {
-    driver.given.styleTarget('shadow-root');
-    driver.when.attachComponentStyles();
+  describe('when the style target is a shadow root', () => {
+    beforeEach(() => {
+      driver.given.styleTarget('shadow-root').when.componentStylesAttached();
+    });
 
-    expect(driver.get.stylesAreAttachedOnlyToShadowRoot()).toBe(true);
+    it('should remove the document head from the style host when styles are attached', () => {
+      expect(driver.get.removeHostMock()).toHaveBeenCalledWith(
+        driver.get.documentHead(),
+      );
+    });
+
+    it('should add the shadow root to the style host when styles are attached', () => {
+      expect(driver.get.addHostMock()).toHaveBeenCalledWith(
+        driver.get.shadowRoot(),
+      );
+    });
   });
 
-  it('should preserve document styles when Atlas uses shared DOM', () => {
-    driver.given.styleTarget('document-head');
-    driver.when.attachComponentStyles();
+  it('should leave the style host untouched when the style target is the document head', () => {
+    driver.given.styleTarget('document-head').when.componentStylesAttached();
 
-    expect(driver.get.stylesRemainAtDocumentHead()).toBe(true);
+    expect(driver.get.addHostMock()).not.toHaveBeenCalled();
   });
-  it('should attach unscoped component styles to shadow root when Atlas isolates an app', () => {
-    driver.when.attachAndAddUnscopedComponentStyle();
 
-    expect(driver.get.unscopedStylesAreAttachedOnlyToShadowRoot()).toBe(true);
+  it('should leave the style host untouched when the document has no head', () => {
+    driver.given
+      .styleTarget('shadow-root')
+      .given.documentHead('missing')
+      .when.componentStylesAttached();
+
+    expect(driver.get.addHostMock()).not.toHaveBeenCalled();
   });
 });

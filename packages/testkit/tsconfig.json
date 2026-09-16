@@ -10,7 +10,7 @@
     "baseUrl": ".",
     "paths": {
       "@atlas/schema": ["../schema/src/index.ts"],
-      "@atlas/sdk/*": ["../sdk/src/*.ts"]
+      "@atlas/sdk/*": ["../sdk/dist/*.d.ts"]
     },
     "rootDir": "src",
     "outDir": "dist",
@@ -19,6 +19,6 @@
     "noUnusedParameters": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "../schema" }, { "path": "../sdk" }],
+  "references": [{ "path": "../schema" }],
   "include": ["src/**/*.ts"]
 }

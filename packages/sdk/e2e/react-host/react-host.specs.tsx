@@ -1,5 +1,4 @@
 /** @jest-environment <rootDir>/packages/sdk/node_modules/jest-environment-jsdom */
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { ReactHostDriver } from './react-host.driver.js';
 
 describe('React host SDK access', () => {

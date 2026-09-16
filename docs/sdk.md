@@ -274,7 +274,8 @@ The host configures UI once; individual apps never choose a spinner or fallback.
 - `renderLoading` is the one renderer shared by every app placement. It appears only when an app calls `context.loading.show()` or opts into manual readiness, and is removed by `hide()` or the app-loaded callback.
 - `renderError` is the one fallback shared by every app placement. Atlas supplies the failed manifest, error, and retry action.
 - `renderWidgetLoading` is the renderer shared by every independent widget card. Atlas supplies the widget id and resolved widget/provider manifests when already known.
-- A `loadingComponent` passed to framework SDK `getWidget(...)` replaces `renderWidgetLoading` for that widget mount only.
+- A `loadingComponent` passed to framework SDK `getWidget(...)` replaces `renderWidgetLoading` for that widget mount only. In React, pass a component defined outside the render function: the returned widget component is cached per `(widgetId, loadingComponent)` pair, so an inline arrow creates a new component type on every render and remounts the widget.
+- A React widget component that fails to mount throws an `ATLAS_WIDGET_MOUNT_FAILED` error during render. Wrap it in an error boundary to render a fallback.
 - `renderWidgetError` receives the same context, the error, and a retry action. Failure stays inside that widget card.
 
 If an app never requests loading or manual readiness, its route or slot is ready as soon as mount completes.

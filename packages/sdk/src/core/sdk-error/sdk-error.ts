@@ -1,4 +1,4 @@
-import { AtlasError } from "@atlas/schema";
+import { AtlasError } from '@atlas/schema';
 
 interface SdkErrorOptions {
   suggestedActions: string | readonly string[];
@@ -8,12 +8,12 @@ interface SdkErrorOptions {
 
 export function sdkError(
   summary: string,
-  options: SdkErrorOptions
+  options: SdkErrorOptions,
 ): AtlasError {
   return new AtlasError(summary, {
     suggestedActions: options.suggestedActions,
     ...(options.cause !== undefined ? { cause: options.cause } : {}),
     code: options.code,
-    surface: "browser"
+    surface: 'browser',
   });
 }

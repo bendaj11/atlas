@@ -55,9 +55,9 @@ friendly string.
 | ------------------------------------------ | ----------------------------------------------- |
 | `packages/cli/src/cli-error.ts`            | Command-aware CLI classification                |
 | `packages/bootstrap/src/browser-loader.ts` | Static bootstrap fatal panel and console report |
-| `packages/runtime/src/browser-error.ts`    | Structured runtime console reports              |
-| `packages/runtime/src/index.ts`            | App, route, and widget lifecycle failures       |
-| `packages/sdk/src/sdk-error.ts`            | Public SDK misuse and unavailable capabilities  |
+| `packages/runtime/src/shared/errors.ts`    | Structured runtime console reports              |
+| `packages/runtime/src/host-runtime/`       | App, route, and widget lifecycle failures       |
+| `packages/sdk/src/core/sdk-error/sdk-error.ts`| Public SDK misuse and unavailable capabilities  |
 | `apps/columbus/.../atlas-host.ts`          | Chrome/inspection failures shown by Columbus    |
 
 Internal validation functions may throw focused errors. Their nearest public

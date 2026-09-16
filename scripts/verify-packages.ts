@@ -81,7 +81,7 @@ async function atlasGeneratorVersion() {
 }
 
 function exportedTargets(exports) {
-  return Object.values(exports).flatMap((entry) => typeof entry === "string" ? [entry] : Object.values(entry));
+  return Object.values(exports).flatMap((entry) => typeof entry === "string" ? [entry] : exportedTargets(entry));
 }
 
 function assertPacked(entries, target, packageName) {
