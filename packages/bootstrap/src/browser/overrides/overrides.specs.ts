@@ -1,14 +1,14 @@
 import { faker } from '@faker-js/faker';
 import {
+  PUBLISHED_CHANNELS,
   aHostCatalog,
   aHostManifest,
+  aHostRuntimeConfig,
   aManifestDescriptor,
-  anAppManifest,
   aRegistryUrl,
-  aRuntimeConfig,
   aStaticRegistry,
-  PUBLISHED_CHANNELS,
-} from '../../testkit/manifests.testkit.js';
+  anAppManifest,
+} from '@atlas/testkit';
 import { OverridesDriver } from './overrides.driver.js';
 
 describe('applyOverrides', () => {
@@ -19,7 +19,7 @@ describe('applyOverrides', () => {
   });
 
   describe('when the runtime selects a host with a catalog', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const catalogApp = anAppManifest();
     const catalog = aHostCatalog({
       host: aHostManifest({ id: runtime.hostId, channel: 'local' }),
@@ -114,7 +114,7 @@ describe('applyOverrides', () => {
 
     it('should fetch the development session when the runtime names a session URL', async () => {
       const developmentSessionUrl = 'http://localhost:4400/session.json';
-      const sessionRuntime = aRuntimeConfig({
+      const sessionRuntime = aHostRuntimeConfig({
         hostId: runtime.hostId,
         developmentSessionUrl,
       });

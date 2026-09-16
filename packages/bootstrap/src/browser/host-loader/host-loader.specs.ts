@@ -1,8 +1,5 @@
 import { faker } from '@faker-js/faker';
-import {
-  aHostManifest,
-  aRuntimeConfig,
-} from '../../testkit/manifests.testkit.js';
+import { aHostManifest, aHostRuntimeConfig } from '@atlas/testkit';
 import { HostLoaderDriver } from './host-loader.driver.js';
 
 describe('loadHostModule', () => {
@@ -13,7 +10,7 @@ describe('loadHostModule', () => {
   });
 
   describe('when the remote entry exposes the host entry', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const manifest = aHostManifest({
       integrity: `sha256-${faker.string.alphanumeric(43)}=`,
     });
@@ -87,7 +84,7 @@ describe('loadHostModule', () => {
   });
 
   describe('when the manifest declares styles', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const plain = { href: faker.internet.url() };
     const verified = {
       href: faker.internet.url(),
@@ -141,7 +138,7 @@ describe('loadHostModule', () => {
     };
 
     beforeEach(() => {
-      driver.given.runtime(aRuntimeConfig()).given.manifest(manifest);
+      driver.given.runtime(aHostRuntimeConfig()).given.manifest(manifest);
     });
 
     it('should append a shim import map resolving each package next to the remote entry when loaded', async () => {
@@ -187,7 +184,7 @@ describe('loadHostModule', () => {
 
     beforeEach(() => {
       driver.given
-        .runtime(aRuntimeConfig())
+        .runtime(aHostRuntimeConfig())
         .given.manifest(manifest)
         .given.remoteMetadata({
           exposes: [{ key: manifest.exposes.entry, outFileName: './host.js' }],
@@ -234,7 +231,7 @@ describe('loadHostModule', () => {
   it('should reject when the remote entry does not expose the host entry', async () => {
     const manifest = aHostManifest();
     driver.given
-      .runtime(aRuntimeConfig())
+      .runtime(aHostRuntimeConfig())
       .given.manifest(manifest)
       .given.remoteMetadata({ exposes: [] });
     await driver.when.loaded();

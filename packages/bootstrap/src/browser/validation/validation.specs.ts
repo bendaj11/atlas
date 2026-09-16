@@ -1,13 +1,13 @@
 import { faker } from '@faker-js/faker';
 import {
+  PUBLISHED_CHANNELS,
   aHostCatalog,
   aHostManifest,
-  anAppManifest,
-  aPublishedHostManifestFor,
+  aHostRuntimeConfig,
   aRegistryUrl,
-  aRuntimeConfig,
-  PUBLISHED_CHANNELS,
-} from '../../testkit/manifests.testkit.js';
+  anAppManifest,
+} from '@atlas/testkit';
+import { aPublishedHostManifestFor } from '../../testkit/host-manifests.testkit.js';
 import { ValidationDriver } from './validation.driver.js';
 
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
@@ -20,7 +20,7 @@ describe('validateCatalog', () => {
   });
 
   describe('when the runtime selects a host', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
 
     beforeEach(() => {
       driver.given.runtime(runtime);
@@ -143,7 +143,7 @@ describe('validateHostManifest', () => {
   });
 
   describe('when the runtime selects a host', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
 
     beforeEach(() => {
       driver.given.runtime(runtime);
@@ -219,7 +219,7 @@ describe('validateArtifactUrl', () => {
   });
 
   describe('when the manifest is on the local channel', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const manifest = anAppManifest({ channel: 'local' });
 
     beforeEach(() => {
@@ -269,7 +269,7 @@ describe('validateArtifactUrl', () => {
     });
 
     it('should accept an https URL on the artifact registry origin when validated', () => {
-      const runtime = aRuntimeConfig();
+      const runtime = aHostRuntimeConfig();
       driver.given
         .runtime(runtime)
         .given.url(
@@ -283,7 +283,7 @@ describe('validateArtifactUrl', () => {
     it('should accept an http loopback URL when the artifact registry is loopback', () => {
       driver.given
         .runtime(
-          aRuntimeConfig({ artifactRegistryUrl: 'http://localhost:4400' }),
+          aHostRuntimeConfig({ artifactRegistryUrl: 'http://localhost:4400' }),
         )
         .given.url(new URL('http://127.0.0.1:4200/remote-entry.json'))
         .when.artifactUrlValidated();
@@ -292,7 +292,7 @@ describe('validateArtifactUrl', () => {
     });
 
     it('should reject an http URL when the artifact registry is not loopback', () => {
-      const runtime = aRuntimeConfig();
+      const runtime = aHostRuntimeConfig();
       driver.given
         .runtime(runtime)
         .given.url(new URL('http://localhost:4200/remote-entry.json'))
@@ -305,7 +305,7 @@ describe('validateArtifactUrl', () => {
     });
 
     it('should reject an https URL on another origin when validated', () => {
-      const runtime = aRuntimeConfig();
+      const runtime = aHostRuntimeConfig();
       const url = new URL(`${aRegistryUrl()}/${faker.system.fileName()}`);
       driver.given.runtime(runtime).given.url(url).when.artifactUrlValidated();
 

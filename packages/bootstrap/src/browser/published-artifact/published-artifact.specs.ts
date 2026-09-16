@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import {
+  aHostRuntimeConfig,
   aManifestDescriptor,
-  anAppManifest,
-  aRuntimeConfig,
   aSha256Digest,
-} from '../../testkit/manifests.testkit.js';
+  anAppManifest,
+} from '@atlas/testkit';
 import { PublishedArtifactDriver } from './published-artifact.driver.js';
 
 describe('loadPublishedArtifact', () => {
@@ -16,7 +16,7 @@ describe('loadPublishedArtifact', () => {
   });
 
   describe('when the runtime selects an artifact registry', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const body = JSON.stringify({ name: faker.company.name() });
     const bytes = new TextEncoder().encode(body);
     const digest =

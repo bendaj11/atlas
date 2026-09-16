@@ -1,8 +1,5 @@
 import { faker } from '@faker-js/faker';
-import {
-  aRegistryUrl,
-  aRuntimeConfig,
-} from '../../testkit/manifests.testkit.js';
+import { aHostRuntimeConfig, aRegistryUrl } from '@atlas/testkit';
 import { RuntimeConfigDriver } from './runtime-config.driver.js';
 
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
@@ -28,7 +25,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should resolve a root-relative artifact registry against the host origin when resolved', () => {
       driver.given
-        .value(aRuntimeConfig({ artifactRegistryUrl: '/atlas' }))
+        .value(aHostRuntimeConfig({ artifactRegistryUrl: '/atlas' }))
         .when.resolved();
 
       expect(driver.get.runtime()?.artifactRegistryUrl).toBe(
@@ -38,7 +35,9 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should resolve a relative environment registry without its trailing slash when resolved', () => {
       driver.given
-        .value(aRuntimeConfig({ environmentRegistryUrl: './environments/' }))
+        .value(
+          aHostRuntimeConfig({ environmentRegistryUrl: './environments/' }),
+        )
         .when.resolved();
 
       expect(driver.get.runtime()?.environmentRegistryUrl).toBe(
@@ -49,7 +48,7 @@ describe('resolveAtlasRuntimeConfig', () => {
     it('should preserve an absolute artifact registry when resolved', () => {
       const artifactRegistryUrl = aRegistryUrl();
       driver.given
-        .value(aRuntimeConfig({ artifactRegistryUrl }))
+        .value(aHostRuntimeConfig({ artifactRegistryUrl }))
         .when.resolved();
 
       expect(driver.get.runtime()?.artifactRegistryUrl).toBe(
@@ -58,7 +57,7 @@ describe('resolveAtlasRuntimeConfig', () => {
     });
 
     it('should omit the environment registry when the config has none', () => {
-      driver.given.value(aRuntimeConfig()).when.resolved();
+      driver.given.value(aHostRuntimeConfig()).when.resolved();
 
       expect(driver.get.runtime()).not.toHaveProperty('environmentRegistryUrl');
     });
@@ -67,7 +66,9 @@ describe('resolveAtlasRuntimeConfig', () => {
       'should preserve an http artifact registry on %s when resolved',
       (host) => {
         driver.given
-          .value(aRuntimeConfig({ artifactRegistryUrl: `http://${host}:4400` }))
+          .value(
+            aHostRuntimeConfig({ artifactRegistryUrl: `http://${host}:4400` }),
+          )
           .when.resolved();
 
         expect(driver.get.runtime()?.artifactRegistryUrl).toBe(
@@ -79,7 +80,9 @@ describe('resolveAtlasRuntimeConfig', () => {
     it('should reject an insecure absolute artifact registry when resolved', () => {
       driver.given
         .value(
-          aRuntimeConfig({ artifactRegistryUrl: 'http://registry.example' }),
+          aHostRuntimeConfig({
+            artifactRegistryUrl: 'http://registry.example',
+          }),
         )
         .when.resolved();
 
@@ -101,7 +104,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should reject an unsupported schema version when resolved', () => {
       driver.given
-        .value({ ...aRuntimeConfig(), schemaVersion: 'v2' })
+        .value({ ...aHostRuntimeConfig(), schemaVersion: 'v2' })
         .when.resolved();
 
       expect(driver.get.error()).toMatchObject({
@@ -112,14 +115,14 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should preserve a host version when the config has one', () => {
       const hostVersion = faker.system.semver();
-      driver.given.value(aRuntimeConfig({ hostVersion })).when.resolved();
+      driver.given.value(aHostRuntimeConfig({ hostVersion })).when.resolved();
 
       expect(driver.get.runtime()?.hostVersion).toBe(hostVersion);
     });
 
     it('should reject a host version that is not a URL-safe path segment when resolved', () => {
       driver.given
-        .value(aRuntimeConfig({ hostVersion: '1.0/beta' }))
+        .value(aHostRuntimeConfig({ hostVersion: '1.0/beta' }))
         .when.resolved();
 
       expect(driver.get.error()).toMatchObject({
@@ -131,7 +134,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should reject a missing artifact registry when resolved', () => {
       driver.given
-        .value({ ...aRuntimeConfig(), artifactRegistryUrl: undefined })
+        .value({ ...aHostRuntimeConfig(), artifactRegistryUrl: undefined })
         .when.resolved();
 
       expect(driver.get.error()).toMatchObject({
@@ -142,7 +145,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should reject a host id that is not a URL-safe path segment when resolved', () => {
       driver.given
-        .value(aRuntimeConfig({ hostId: 'orders/admin' }))
+        .value(aHostRuntimeConfig({ hostId: 'orders/admin' }))
         .when.resolved();
 
       expect(driver.get.error()).toMatchObject({
@@ -154,7 +157,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should reject an unknown field when resolved', () => {
       driver.given
-        .value({ ...aRuntimeConfig(), registryUrl: aRegistryUrl() })
+        .value({ ...aHostRuntimeConfig(), registryUrl: aRegistryUrl() })
         .when.resolved();
 
       expect(driver.get.error()).toMatchObject({
@@ -168,7 +171,7 @@ describe('resolveAtlasRuntimeConfig', () => {
       (field) => {
         driver.given
           .value({
-            ...aRuntimeConfig({ environment: 'production' }),
+            ...aHostRuntimeConfig({ environment: 'production' }),
             [field]: 1,
           })
           .when.resolved();
@@ -188,7 +191,7 @@ describe('resolveAtlasRuntimeConfig', () => {
       it('should accept a loopback development session URL when resolved', () => {
         const developmentSessionUrl = 'http://localhost:4400/session.json';
         driver.given
-          .value(aRuntimeConfig({ environment, developmentSessionUrl }))
+          .value(aHostRuntimeConfig({ environment, developmentSessionUrl }))
           .when.resolved();
 
         expect(driver.get.runtime()?.developmentSessionUrl).toBe(
@@ -199,7 +202,7 @@ describe('resolveAtlasRuntimeConfig', () => {
       it('should reject a non-loopback development session URL when resolved', () => {
         driver.given
           .value(
-            aRuntimeConfig({
+            aHostRuntimeConfig({
               environment,
               developmentSessionUrl: 'https://session.example/session.json',
             }),
@@ -216,7 +219,7 @@ describe('resolveAtlasRuntimeConfig', () => {
       it('should reject a non-string development session URL when resolved', () => {
         driver.given
           .value({
-            ...aRuntimeConfig({ environment }),
+            ...aHostRuntimeConfig({ environment }),
             developmentSessionUrl: 4400,
           })
           .when.resolved();
@@ -230,7 +233,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
       it('should reject a negative retry count when resolved', () => {
         driver.given
-          .value(aRuntimeConfig({ environment, resourcesRetryCount: -1 }))
+          .value(aHostRuntimeConfig({ environment, resourcesRetryCount: -1 }))
           .when.resolved();
 
         expect(driver.get.error()).toMatchObject({
@@ -242,7 +245,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
       it('should reject a zero timeout when resolved', () => {
         driver.given
-          .value(aRuntimeConfig({ environment, resourcesTimeoutMs: 0 }))
+          .value(aHostRuntimeConfig({ environment, resourcesTimeoutMs: 0 }))
           .when.resolved();
 
         expect(driver.get.error()).toMatchObject({
@@ -262,7 +265,7 @@ describe('resolveAtlasRuntimeConfig', () => {
     it('should preserve an absolute artifact registry when resolved', () => {
       const artifactRegistryUrl = aRegistryUrl();
       driver.given
-        .value(aRuntimeConfig({ artifactRegistryUrl }))
+        .value(aHostRuntimeConfig({ artifactRegistryUrl }))
         .when.resolved();
 
       expect(driver.get.runtime()?.artifactRegistryUrl).toBe(
@@ -272,7 +275,7 @@ describe('resolveAtlasRuntimeConfig', () => {
 
     it('should reject a relative artifact registry when resolved', () => {
       driver.given
-        .value(aRuntimeConfig({ artifactRegistryUrl: '/atlas' }))
+        .value(aHostRuntimeConfig({ artifactRegistryUrl: '/atlas' }))
         .when.resolved();
 
       expect(driver.get.error()).toMatchObject({
@@ -292,14 +295,14 @@ describe('assertAtlasRuntimeConfig', () => {
   });
 
   it('should accept an absolute registry config when asserted', () => {
-    driver.given.value(aRuntimeConfig()).when.asserted();
+    driver.given.value(aHostRuntimeConfig()).when.asserted();
 
     expect(driver.get.error()).toBeUndefined();
   });
 
   it('should reject a missing artifact registry when asserted', () => {
     driver.given
-      .value({ ...aRuntimeConfig(), artifactRegistryUrl: undefined })
+      .value({ ...aHostRuntimeConfig(), artifactRegistryUrl: undefined })
       .when.asserted();
 
     expect(driver.get.error()).toMatchObject({
@@ -310,7 +313,7 @@ describe('assertAtlasRuntimeConfig', () => {
 
   it('should reject a relative artifact registry when asserted', () => {
     driver.given
-      .value(aRuntimeConfig({ artifactRegistryUrl: '/atlas' }))
+      .value(aHostRuntimeConfig({ artifactRegistryUrl: '/atlas' }))
       .when.asserted();
 
     expect(driver.get.error()).toMatchObject({
@@ -323,7 +326,7 @@ describe('assertAtlasRuntimeConfig', () => {
   it('should reject an environment registry with a trailing slash when asserted', () => {
     const environmentRegistryUrl = `${aRegistryUrl()}/`;
     driver.given
-      .value(aRuntimeConfig({ environmentRegistryUrl }))
+      .value(aHostRuntimeConfig({ environmentRegistryUrl }))
       .when.asserted();
 
     expect(driver.get.error()).toMatchObject({
@@ -341,14 +344,16 @@ describe('environmentRegistryUrl', () => {
   });
 
   it('should return the artifact registry when the config has no environment registry', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     driver.given.runtime(runtime).when.environmentRegistryUrlBuilt();
 
     expect(driver.get.url()).toBe(runtime.artifactRegistryUrl);
   });
 
   it('should return the environment registry when the config has one', () => {
-    const runtime = aRuntimeConfig({ environmentRegistryUrl: aRegistryUrl() });
+    const runtime = aHostRuntimeConfig({
+      environmentRegistryUrl: aRegistryUrl(),
+    });
     driver.given.runtime(runtime).when.environmentRegistryUrlBuilt();
 
     expect(driver.get.url()).toBe(runtime.environmentRegistryUrl);
@@ -363,7 +368,9 @@ describe('environmentManifestUrl', () => {
   });
 
   it('should build the host manifest path under the environment registry when built', () => {
-    const runtime = aRuntimeConfig({ environmentRegistryUrl: aRegistryUrl() });
+    const runtime = aHostRuntimeConfig({
+      environmentRegistryUrl: aRegistryUrl(),
+    });
     driver.given.runtime(runtime).when.environmentManifestUrlBuilt();
 
     expect(driver.get.url()).toBe(
@@ -380,7 +387,7 @@ describe('artifactUrl', () => {
   });
 
   it('should join the path under the artifact registry when built', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const path = `${faker.lorem.slug()}/manifest.json`;
     driver.given.runtime(runtime).when.artifactUrlBuilt(path);
 

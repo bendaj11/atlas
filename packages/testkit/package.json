@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@atlas/schema": "workspace:^",
-    "@atlas/sdk": "workspace:^"
+    "@atlas/sdk": "workspace:^",
+    "@faker-js/faker": "^10.5.0"
   }
 }

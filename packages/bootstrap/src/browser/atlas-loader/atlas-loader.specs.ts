@@ -3,10 +3,10 @@ import {
   aDeploymentManifest,
   aHostCatalog,
   aHostManifest,
+  aHostRuntimeConfig,
   aManifestDescriptor,
   anAppManifest,
-  aRuntimeConfig,
-} from '../../testkit/manifests.testkit.js';
+} from '@atlas/testkit';
 import { AtlasLoaderDriver } from './atlas-loader.driver.js';
 
 describe('startAtlasLoader', () => {
@@ -17,7 +17,7 @@ describe('startAtlasLoader', () => {
   });
 
   describe('when the runtime selects a deployed environment', () => {
-    const runtime = aRuntimeConfig();
+    const runtime = aHostRuntimeConfig();
     const host = aHostManifest({ id: runtime.hostId });
     const app = anAppManifest();
     const widgetProvider = anAppManifest();
@@ -247,7 +247,7 @@ describe('startAtlasLoader', () => {
 
   describe('when the runtime names a development session', () => {
     const developmentSessionUrl = 'http://localhost:4400/session.json';
-    const runtime = aRuntimeConfig({
+    const runtime = aHostRuntimeConfig({
       environment: 'development',
       developmentSessionUrl,
     });
