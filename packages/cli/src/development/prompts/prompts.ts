@@ -1,4 +1,4 @@
-import type { DevPrompts } from './types.js';
+import type { DevPrompts } from '../types.js';
 
 export const nonInteractivePrompter: DevPrompts = {
   interactive: false,

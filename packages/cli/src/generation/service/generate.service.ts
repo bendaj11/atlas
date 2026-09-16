@@ -1,5 +1,5 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import {
   generateAppFiles,
   generateHostFiles,
@@ -9,6 +9,9 @@ import {
   type AtlasGeneratorOptions,
 } from '@atlas/generators';
 import { CliArguments, type SupportedFramework } from '../../cli/arguments.js';
+import { ui, type AtlasPrompter } from '../../cli/ui/ui.js';
+import { exists } from '../../shared/fs/fs.js';
+import type { AtlasWorkspace } from '../../workspace/types.js';
 import { ensureAngularWorkspaceFederationConfig } from '../angular.js';
 import {
   dependencyManifestPath,
@@ -27,14 +30,9 @@ import { frameworkLabel } from '../labels.js';
 import {
   alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
-  ATLAS_NX_TAG,
-  atlasCommand,
-  atlasConfigNxTarget,
   ensureDelegatedNxTargets,
-  nxTarget,
 } from '../nx/nx.js';
 import { generatedOverlay } from '../overlay.js';
-import { suggestedDevServerPort } from '../ports.js';
 import {
   assertSafeId,
   assertWritable,
@@ -43,23 +41,18 @@ import {
   resolveContainedPath,
   workspaceLabel,
 } from '../paths/paths.js';
-import { ui, type AtlasPrompter } from '../../cli/ui/ui.js';
-import { readJsonFile, writeJsonFile } from '../../shared/fs/fs.js';
-import { isRecord } from '../../shared/records/records.js';
-import { exists } from '../../shared/fs/fs.js';
 import {
-  defaultDevServerPort,
-  type AtlasNxProjectType,
-  type AtlasProject,
-  type AtlasWorkspace,
-} from '../../workspace/service/workspace.js';
-
-interface WidgetAppSelection {
-  id: string;
-  name: string;
-  framework: SupportedFramework;
-  project: AtlasProject;
-}
+  ensureWorkspaceGenerator,
+  resolveDevServerPort,
+  resolveInnerRouting,
+  resolveStylesheetFormat,
+  type ProjectOptionsContext,
+} from '../project-options/project-options.js';
+import { resolveWidgetApp } from '../widget-apps/widget-apps.js';
+import {
+  ensureTurboTasks,
+  writeNxProject,
+} from '../workspace-targets/workspace-targets.js';
 
 export class AtlasGenerateService {
   constructor(
@@ -87,15 +80,17 @@ export class AtlasGenerateService {
         ? resolve(explicit)
         : this.workspace.kind === 'nx' || segments.length > 1
           ? resolve(process.cwd(), ...segments)
-          : this.defaultRoot(type, name);
+          : this.workspace.generationRoot(type, name);
     const targetExisted = await exists(root);
     try {
       this.logGenerationPlan(selectedFramework, root);
-      await this.ensureWorkspaceGeneratorAvailable(selectedFramework);
-      const innerRouting = await this.resolveInnerRouting(type);
-      const stylesheetFormat =
-        await this.resolveStylesheetFormat(selectedFramework);
-      const devServerPort = await this.resolveDevServerPort(type);
+      await ensureWorkspaceGenerator(this.context(), selectedFramework);
+      const innerRouting = await resolveInnerRouting(this.context(), type);
+      const stylesheetFormat = await resolveStylesheetFormat(
+        this.context(),
+        selectedFramework,
+      );
+      const devServerPort = await resolveDevServerPort(this.context(), type);
       if (
         this.workspace.kind === 'nx' &&
         !this.args.hasFlag('skip-workspace-generator') &&
@@ -185,8 +180,15 @@ export class AtlasGenerateService {
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === 'nx' && !workspaceScaffolded)
-        await this.writeNxProject(root, name, type);
-      if (this.workspace.kind === 'turbo') await this.ensureTurboTasks();
+        await writeNxProject({
+          workspaceRoot: this.workspace.root,
+          packageManager: this.workspace.packageManager,
+          root,
+          name,
+          type,
+        });
+      if (this.workspace.kind === 'turbo')
+        await ensureTurboTasks(this.workspace.root);
       await this.formatGenerated(root);
       const roots = [root];
       await afterGeneration?.(roots);
@@ -209,7 +211,11 @@ export class AtlasGenerateService {
 
   async widget(name: string, requestedAppId?: string): Promise<void> {
     assertSafeId(name, 'widget name');
-    const app = await this.resolveWidgetApp(requestedAppId);
+    const app = await resolveWidgetApp({
+      workspace: this.workspace,
+      prompts: this.prompts,
+      requestedAppId,
+    });
     for (const file of generateWidgetFiles({
       name,
       framework: app.framework,
@@ -224,47 +230,6 @@ export class AtlasGenerateService {
       await writeFile(target, file.contents, 'utf8');
     }
     await this.formatGenerated(app.project.root);
-  }
-
-  private async resolveWidgetApp(
-    requestedAppId?: string,
-  ): Promise<WidgetAppSelection> {
-    const apps = await this.configuredWidgetApps();
-    if (apps.length === 0)
-      throw new Error(
-        `Atlas found no configured apps in workspace ${this.workspace.root}.`,
-      );
-    if (requestedAppId) {
-      const requestedApp = apps.find(({ id }) => id === requestedAppId);
-      if (requestedApp) return requestedApp;
-      throw new Error(
-        `Could not find Atlas app ID "${requestedAppId}". ${availableAppsMessage(apps)}`,
-      );
-    }
-    if (!this.prompts.interactive) {
-      throw new Error(
-        `--app-id <app-id> is required to generate a widget in non-interactive mode. ${availableAppsMessage(apps)}`,
-      );
-    }
-    const selectedAppId = await this.prompts.select(
-      'Which Atlas app should own this widget?',
-      apps.map((app) => ({
-        label: `${app.name} (${app.id})`,
-        value: app.id,
-      })),
-    );
-
-    return apps.find(({ id }) => id === selectedAppId)!;
-  }
-
-  private async configuredWidgetApps(): Promise<WidgetAppSelection[]> {
-    const projects = await this.workspace.listProjects();
-    const apps = await Promise.all(
-      projects.map((project) => readWidgetApp(project)),
-    );
-    return apps
-      .filter((app): app is WidgetAppSelection => app !== undefined)
-      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   private logGenerationPlan(framework: SupportedFramework, root: string): void {
@@ -291,43 +256,6 @@ export class AtlasGenerateService {
     );
   }
 
-  private async ensureWorkspaceGeneratorAvailable(
-    framework: SupportedFramework,
-  ): Promise<void> {
-    if (this.args.hasFlag('skip-workspace-generator')) return;
-    await this.ensureWorkspaceGenerator(framework);
-  }
-
-  private async ensureWorkspaceGenerator(
-    projectType: AtlasNxProjectType,
-  ): Promise<void> {
-    const dependency =
-      await this.workspace.missingScaffoldDependency(projectType);
-    if (!dependency) return;
-    const approved =
-      this.args.hasFlag('yes') || (await this.confirmPluginInstall(dependency));
-    if (!approved)
-      throw new Error(`${dependency} is required to generate this Nx project.`);
-    await this.workspace.installScaffoldDependency(projectType);
-  }
-
-  private async confirmPluginInstall(dependency: string): Promise<boolean> {
-    if (!this.prompts.interactive) {
-      throw new Error(
-        `${dependency} is not installed. Re-run with --yes to let Atlas add it automatically.`,
-      );
-    }
-    return (
-      (await this.prompts.select(
-        `Nx needs ${dependency}. Add it to this workspace?`,
-        [
-          { label: 'Yes, install it', value: 'yes' },
-          { label: 'No, cancel', value: 'no' },
-        ],
-      )) === 'yes'
-    );
-  }
-
   private logFrameworkVersionSelection(
     framework: SupportedFramework,
     detected: FrameworkVersionInfo,
@@ -343,52 +271,6 @@ export class AtlasGenerateService {
       ui.info(
         `Detected existing ${label} version ${detected.version} in ${source}; Atlas will align ${label} companion dependencies to it.`,
       );
-    }
-  }
-
-  private async resolveInnerRouting(type: 'host' | 'app'): Promise<boolean> {
-    if (type === 'host') return true;
-    if (this.args.hasFlag('routing') || this.args.hasFlag('no-routing'))
-      return this.args.routing();
-    if (!this.prompts.interactive) return true;
-    return (
-      (await this.prompts.select('Add Atlas inner routing to this app?', [
-        { label: 'Yes, create sample routes', value: 'true' },
-        { label: 'No, single-page app', value: 'false' },
-      ])) === 'true'
-    );
-  }
-
-  private async resolveStylesheetFormat(
-    framework: SupportedFramework,
-  ): Promise<AngularStylesheetFormat | undefined> {
-    if (framework !== 'angular') return undefined;
-    if (this.args.hasFlag('style')) return this.args.stylesheetFormat();
-    if (!this.prompts.interactive) return 'css';
-    return await this.prompts.select<AngularStylesheetFormat>(
-      'Which stylesheet format would you like to use?',
-      [
-        { label: 'CSS', value: 'css' },
-        { label: 'SCSS', value: 'scss' },
-        { label: 'Sass', value: 'sass' },
-        { label: 'Less', value: 'less' },
-      ],
-    );
-  }
-
-  private async resolveDevServerPort(type: 'host' | 'app'): Promise<number> {
-    const defaultPort = defaultDevServerPort(type);
-    if (this.args.hasFlag('port')) return this.args.port('port', defaultPort);
-    const fallback = await suggestedDevServerPort(this.workspace, type);
-    if (!this.prompts.interactive) return fallback;
-    while (true) {
-      const value = await this.prompts.input(
-        'Which port would you like to use for the dev server?',
-        String(fallback),
-      );
-      const port = Number(value);
-      if (Number.isInteger(port) && port >= 1 && port <= 65535) return port;
-      ui.warning('Port must be an integer between 1 and 65535.');
     }
   }
 
@@ -418,88 +300,6 @@ export class AtlasGenerateService {
     };
   }
 
-  private defaultRoot(type: 'host' | 'app', name: string): string {
-    if (
-      this.workspace.root.endsWith('/atlas') &&
-      this.workspace.kind === 'workspace'
-    ) {
-      return join(
-        this.workspace.root,
-        'examples',
-        type === 'host' ? 'hosts' : 'apps',
-        name,
-      );
-    }
-    return this.workspace.generationRoot(type, name);
-  }
-
-  private async writeNxProject(
-    root: string,
-    name: string,
-    type: 'host' | 'app',
-  ): Promise<void> {
-    const cwd = relative(this.workspace.root, root) || '.';
-    if (cwd === '..' || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
-      throw new Error(
-        'Nx projects must be generated inside the workspace root.',
-      );
-    }
-    const targets: Record<string, unknown> = {
-      build: nxTarget(this.workspace.packageManager, cwd, 'build'),
-      serve: nxTarget(this.workspace.packageManager, cwd, 'dev'),
-      dev: {
-        executor: 'nx:run-commands',
-        options: {
-          command: atlasCommand(this.workspace.packageManager, `dev ${name}`),
-          forwardAllArgs: true,
-          tty: true,
-        },
-      },
-    };
-    targets['atlas:config'] = atlasConfigNxTarget(
-      this.workspace.packageManager,
-      cwd,
-    );
-    targets['atlas:publish'] = {
-      cache: false,
-      executor: 'nx:run-commands',
-      options: {
-        command: atlasCommand(this.workspace.packageManager, `publish ${name}`),
-        forwardAllArgs: true,
-      },
-    };
-    if (type === 'host') {
-      targets['atlas:bootstrap'] = {
-        dependsOn: ['atlas:config'],
-        outputs: ['{projectRoot}/dist/bootstrap'],
-        executor: 'nx:run-commands',
-        options: {
-          command: atlasCommand(
-            this.workspace.packageManager,
-            `bootstrap ${name} --skip-compile`,
-          ),
-          forwardAllArgs: true,
-        },
-      };
-    }
-    targets[name] = {
-      executor: 'nx:run-commands',
-      options: { command: `nx run ${name}:dev`, forwardAllArgs: true },
-    };
-    const project = {
-      name,
-      sourceRoot: `${cwd}/src`,
-      projectType: 'application',
-      tags: [ATLAS_NX_TAG],
-      targets,
-    };
-    await writeFile(
-      join(root, 'project.json'),
-      `${JSON.stringify(project, null, 2)}\n`,
-      'utf8',
-    );
-  }
-
   private async mergeDelegatedDependencies(
     root: string,
     files: AtlasGeneratedFile[],
@@ -519,34 +319,12 @@ export class AtlasGenerateService {
       );
   }
 
-  private async ensureTurboTasks(): Promise<void> {
-    const turboPath = join(this.workspace.root, 'turbo.json');
-    const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
-    if (!turbo) return;
-    const [taskKey, tasks] = turboTasks(turbo);
-    tasks.dev = isRecord(tasks.dev)
-      ? tasks.dev
-      : { cache: false, persistent: true };
-    tasks['framework:dev'] ??= { cache: false, persistent: true };
-    tasks['atlas:config'] ??= { outputs: ['.atlas/**'] };
-    tasks['atlas:publish'] ??= {
-      cache: false,
-      env: [
-        'ATLAS_*',
-        'AWS_*',
-        'GITHUB_*',
-        'CI_PROJECT_ID',
-        'CI_API_V4_URL',
-        'CI_JOB_TOKEN',
-        'BITBUCKET_*',
-      ],
+  private context(): ProjectOptionsContext {
+    return {
+      workspace: this.workspace,
+      args: this.args,
+      prompts: this.prompts,
     };
-    tasks['atlas:bootstrap'] ??= {
-      dependsOn: ['atlas:config'],
-      outputs: ['dist/bootstrap/**'],
-    };
-    turbo[taskKey] = tasks;
-    await writeJsonFile(turboPath, turbo);
   }
 
   private async formatGenerated(root: string): Promise<void> {
@@ -557,50 +335,4 @@ export class AtlasGenerateService {
       );
     }
   }
-}
-
-function turboTasks(
-  turbo: Record<string, unknown>,
-): ['tasks' | 'pipeline', Record<string, unknown>] {
-  if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];
-  if (isRecord(turbo.pipeline)) return ['pipeline', turbo.pipeline];
-  return ['tasks', {}];
-}
-
-async function readWidgetApp(
-  project: AtlasProject,
-): Promise<WidgetAppSelection | undefined> {
-  const configPath = join(project.root, 'atlas.config.ts');
-  const source = await readFile(configPath, 'utf8');
-  if (literalConfigValue(source, 'type') === 'host') return undefined;
-  const id = literalConfigValue(source, 'id');
-  if (!id)
-    throw new Error(
-      `Could not determine the stable Atlas app ID from ${configPath}.`,
-    );
-  const framework = literalConfigValue(source, 'framework');
-  if (framework !== 'angular' && framework !== 'react') {
-    throw new Error(
-      `Could not determine a supported app framework from ${configPath}.`,
-    );
-  }
-  return {
-    id,
-    name: literalConfigValue(source, 'name') ?? id,
-    framework,
-    project,
-  };
-}
-
-function literalConfigValue(
-  source: string,
-  field: 'type' | 'id' | 'name' | 'framework',
-): string | undefined {
-  return source.match(
-    new RegExp(`(?:["']${field}["']|\\b${field})\\s*:\\s*["']([^"']+)["']`),
-  )?.[1];
-}
-
-function availableAppsMessage(apps: readonly WidgetAppSelection[]): string {
-  return `Available apps: ${apps.map(({ id, name }) => `${name} (${id})`).join(', ')}.`;
 }

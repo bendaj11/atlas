@@ -1,237 +1,138 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasHostManifest } from '@atlas/schema';
-import { createTestManifest } from '@atlas/testkit';
+import type {
+  AtlasConfig,
+  AtlasHostManifest,
+  AtlasManifest,
+} from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
-import {
-  createTestWorkspace,
-  testTypeScriptConfig,
-} from '../../test-utils/build.testkit.js';
-import type { AtlasWorkspace } from '../../workspace/service/workspace.js';
-import type { AtlasDevBuildService } from '../types.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import type { AtlasWorkspace } from '../../workspace/types.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import type {
+  AtlasDevBuildService,
+  AtlasDevOverrideDocument,
+} from '../types.js';
 import { AtlasDevService } from './dev.service.js';
 
-type DevelopmentScenario =
-  | 'host-prepare'
-  | 'host-deployed-prepare'
-  | 'host-local-port-mismatch'
-  | 'host-url-removed'
-  | 'app-prepare';
-
 export class DevServiceDriver {
-  private readonly appId = faker.string.uuid();
-  private readonly hostId = faker.string.uuid();
+  private readonly directory = new TemporaryDirectory();
   private readonly projectName = faker.word.noun().toLowerCase();
-  private readonly port = faker.number.int({ min: 4500, max: 5999 });
-  private readonly hostUrl = faker.internet.url();
   private readonly spawn = jest.fn<AtlasWorkspace['spawn']>(() => {
     throw new Error('Prepare-only development must not spawn.');
   });
-  private root = '';
-  private projectRoot = '';
-  private service?: AtlasDevService;
-  private originalFetch?: typeof globalThis.fetch;
-  private observation?: unknown;
-  private previewUrl?: string;
-  private error?: Error;
+  private readonly originalFetch = globalThis.fetch;
+  private config!: AtlasConfig;
+  private flags: string[] = ['--prepare-only'];
+  private hostManifest?: AtlasHostManifest;
+  private appManifest?: AtlasManifest;
 
-  given = {
-    project: async (scenario: DevelopmentScenario): Promise<void> => {
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-dev-service-'));
-      this.projectRoot = join(this.root, this.projectName);
+  readonly given = {
+    project: async (): Promise<this> => {
+      await this.directory.create('atlas-dev-service-');
+      await this.directory.writeJson('tsconfig.json', {
+        compilerOptions: { module: 'ESNext', target: 'ES2022', types: [] },
+      });
+      await this.directory.writeFile('atlas.config.ts', 'export default {};\n');
+      await this.previews([]);
 
-      await mkdir(this.projectRoot, { recursive: true });
-      await writeFile(
-        join(this.projectRoot, 'package.json'),
-        JSON.stringify({
-          name: this.projectName,
-          type: 'module',
-          version: '1.0.0',
-          atlas: {
-            previews:
-              scenario === 'host-prepare'
-                ? []
-                : [
-                    scenario === 'app-prepare'
-                      ? this.hostUrl
-                      : scenario === 'host-deployed-prepare'
-                        ? this.hostUrl
-                        : scenario === 'host-local-port-mismatch'
-                          ? 'http://localhost:4999'
-                          : 'http://localhost:4200',
-                  ],
-          },
+      return this;
+    },
+    config: (config: AtlasConfig): this => {
+      this.config = config;
+
+      return this;
+    },
+    previews: async (previews: string[]): Promise<this> => {
+      await this.previews(previews);
+
+      return this;
+    },
+    flags: (flags: string[]): this => {
+      this.flags = ['--prepare-only', ...flags];
+
+      return this;
+    },
+    hostManifest: (manifest: AtlasHostManifest): this => {
+      this.hostManifest = manifest;
+
+      return this;
+    },
+    appManifest: (manifest: AtlasManifest): this => {
+      this.appManifest = manifest;
+
+      return this;
+    },
+    deployedHost: (hostId: string): this => {
+      globalThis.fetch = jest.fn<typeof fetch>().mockImplementation(async () =>
+        Response.json({
+          hostId,
+          environment: 'production',
+          artifactRegistryUrl: `https://${faker.internet.domainName()}/atlas`,
+          schemaVersion: 'v1',
         }),
       );
-      await writeFile(
-        join(this.projectRoot, 'tsconfig.json'),
-        JSON.stringify(testTypeScriptConfig()),
-      );
-      await writeFile(
-        join(this.projectRoot, 'atlas.config.ts'),
-        this.configSource(scenario),
-      );
 
-      const project = {
-        id: this.projectName,
-        outputPaths: [],
-        packageName: this.projectName,
-        root: this.projectRoot,
-        version: '1.0.0',
-      };
-      const workspace = createTestWorkspace({
-        findProject: async () => project,
-        root: this.root,
-        spawn: this.spawn,
-      });
-      const arguments_ =
-        scenario === 'host-prepare'
-          ? ['dev', this.projectName, '--prepare-only']
-          : ['dev', this.projectName, `--port=${this.port}`, '--prepare-only'];
-      if (scenario === 'host-url-removed')
-        arguments_.push(`--host-url=${this.hostUrl}`);
-      const builds = this.builds(scenario);
-
-      if (scenario === 'app-prepare' || scenario === 'host-deployed-prepare') {
-        this.originalFetch = globalThis.fetch;
-        globalThis.fetch = jest.fn<typeof globalThis.fetch>().mockResolvedValue(
-          Response.json({
-            hostId: this.hostId,
-            environment: 'production',
-            artifactRegistryUrl: 'https://registry.example',
-            schemaVersion: 'v1',
-          }),
-        );
-      }
-
-      this.service = new AtlasDevService(
-        workspace,
-        new CliArguments(arguments_),
-        builds,
-      );
+      return this;
     },
   };
 
-  when = {
-    prepare: async (): Promise<void> => {
-      if (!this.service) throw new Error('Development setup is required.');
-
+  readonly when = {
+    run: async (): Promise<void> => {
       try {
-        await this.service.run(this.projectName);
+        await new AtlasDevService(
+          aWorkspace({
+            root: this.directory.root,
+            findProject: async () =>
+              aProject({
+                id: this.projectName,
+                packageName: this.projectName,
+                root: this.directory.root,
+              }),
+            spawn: this.spawn,
+          }),
+          new CliArguments(['dev', this.projectName, ...this.flags]),
+          this.builds(),
+        ).run(this.projectName);
       } finally {
-        if (this.originalFetch) globalThis.fetch = this.originalFetch;
+        globalThis.fetch = this.originalFetch;
       }
+    },
+  };
 
-      const document = JSON.parse(
+  readonly get = {
+    overrideDocument: async (): Promise<AtlasDevOverrideDocument> =>
+      JSON.parse(
         await readFile(
-          join(this.projectRoot, '.atlas', 'local-overrides.json'),
+          join(this.directory.root, '.atlas', 'local-overrides.json'),
           'utf8',
         ),
-      );
-      this.previewUrl = document.previewUrl;
-
-      this.observation = {
-        appId: document.overrides[0]?.appId,
-        hostId: document.hostId,
-        hostOverrideId: document.hostOverride?.id,
-        remoteEntryUrl: document.overrides[0]?.manifest.remoteEntryUrl,
-        spawnCount: this.spawn.mock.calls.length,
-      };
-    },
-    prepareRejected: async (): Promise<void> => {
-      if (!this.service) throw new Error('Development setup is required.');
-      try {
-        await this.service.run(this.projectName);
-      } catch (error) {
-        this.error = error as Error;
-      }
-    },
+      ) as AtlasDevOverrideDocument,
+    spawnMock: () => this.spawn,
   };
 
-  get = {
-    appPreparation: () => ({
-      appId: this.appId,
-      hostId: this.hostId,
-      hostOverrideId: undefined,
-      remoteEntryUrl: `http://localhost:${this.port}/remoteEntry.json`,
-      spawnCount: 0,
-    }),
-    hostPreparation: () => ({
-      appId: undefined,
-      hostId: this.hostId,
-      hostOverrideId: this.hostId,
-      remoteEntryUrl: undefined,
-      spawnCount: 0,
-    }),
-    observation: (): unknown => this.observation,
-    previewUrl: (): string | undefined => this.previewUrl,
-    hostUrl: (): string => this.hostUrl,
-    localHostUrl: (): string => 'http://localhost:4200',
-    errorMessage: (): string | undefined => this.error?.message,
-  };
-
-  private configSource(scenario: DevelopmentScenario): string {
-    return scenario !== 'app-prepare'
-      ? `export default { type: "host", id: "${this.hostId}", framework: "react" };\n`
-      : `export default { id: "${this.appId}", name: "${faker.company.name()}", framework: "react", routes: [{ hostId: "*", path: "/orders" }] };\n`;
+  private async previews(previews: string[]): Promise<void> {
+    await this.directory.writeJson('package.json', {
+      name: this.projectName,
+      type: 'module',
+      version: '1.0.0',
+      atlas: { previews },
+    });
   }
 
-  private builds(scenario: DevelopmentScenario): AtlasDevBuildService {
-    if (scenario !== 'app-prepare') {
-      const manifest: AtlasHostManifest = {
-        buildId: 'local',
-        channel: 'local',
-        createdAt: faker.date.past().toISOString(),
-        exposes: { entry: './host' },
-        framework: 'react',
-        id: this.hostId,
-        kind: 'host',
-        name: faker.company.name(),
-        remoteEntryUrl: `http://localhost:4300/remoteEntry.json`,
-        requiredLoaderApiVersion: '^1.0.0',
-        schemaVersion: '1',
-        version: '1.0.0',
-      };
-
-      return {
-        buildLocalHostManifest: jest
-          .fn<NonNullable<AtlasDevBuildService['buildLocalHostManifest']>>()
-          .mockResolvedValue(manifest),
-        buildManifest: jest.fn<AtlasDevBuildService['buildManifest']>(),
-        loadConfig: jest
-          .fn<AtlasDevBuildService['loadConfig']>()
-          .mockResolvedValue({
-            framework: 'react',
-            id: this.hostId,
-            type: 'host',
-          }),
-      };
-    }
-
+  private builds(): AtlasDevBuildService {
     return {
-      buildManifest: jest
-        .fn<AtlasDevBuildService['buildManifest']>()
-        .mockResolvedValue(
-          createTestManifest({
-            buildId: 'local',
-            channel: 'local',
-            id: this.appId,
-            remoteEntryUrl: `http://localhost:${this.port}/remoteEntry.json`,
-          }),
-        ),
       loadConfig: jest
         .fn<AtlasDevBuildService['loadConfig']>()
-        .mockResolvedValue({
-          framework: 'react',
-          id: this.appId,
-          name: faker.company.name(),
-          routes: [
-            { hostId: '*', path: '/orders', title: faker.lorem.words() },
-          ],
-        }),
+        .mockResolvedValue(this.config),
+      buildLocalHostManifest: jest
+        .fn<AtlasDevBuildService['buildLocalHostManifest']>()
+        .mockImplementation(async () => this.hostManifest!),
+      buildManifest: jest
+        .fn<AtlasDevBuildService['buildManifest']>()
+        .mockImplementation(async () => this.appManifest!),
     };
   }
 }

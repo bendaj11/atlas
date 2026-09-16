@@ -8,7 +8,7 @@ import type {
 } from '@atlas/schema';
 import type { AtlasBuildService } from '../build/service/build.service.js';
 import type { AtlasPrompter } from '../cli/ui/ui.js';
-import type { AtlasProject } from '../workspace/service/workspace.js';
+import type { AtlasProject } from '../workspace/types.js';
 
 export type DevPrompts = Pick<AtlasPrompter, 'interactive' | 'select'>;
 
@@ -48,9 +48,8 @@ export interface ResolveHostDevTargetOptions {
 
 export type AtlasDevBuildService = Pick<
   AtlasBuildService,
-  'loadConfig' | 'buildManifest'
-> &
-  Partial<Pick<AtlasBuildService, 'buildLocalHostManifest'>>;
+  'loadConfig' | 'buildManifest' | 'buildLocalHostManifest'
+>;
 
 export interface AtlasDevSessionDocument {
   schemaVersion: '1';

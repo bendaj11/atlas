@@ -108,11 +108,14 @@ describe('detection', () => {
     });
   });
 
-  describe('detectGenerationBase', () => {
-    it('should return the start directory when started one level below the root', async () => {
+  describe('detectGenerationBases', () => {
+    it('should return the start directory for both types when started one level below the root', async () => {
       await driver.given.subdirectory('services');
 
-      expect(await driver.get.generationBaseFrom('services')).toBe('services');
+      expect(await driver.get.generationBasesFrom('services')).toStrictEqual({
+        host: 'services',
+        app: 'services',
+      });
     });
 
     it('should prefer the apps pattern when package.json declares several workspaces', async () => {
@@ -120,7 +123,18 @@ describe('detection', () => {
         workspaces: ['packages/*', 'apps/*'],
       });
 
-      expect(await driver.get.generationBaseFrom('.')).toBe('apps');
+      expect((await driver.get.generationBasesFrom('.')).app).toBe('apps');
+    });
+
+    it('should place hosts under a hosts pattern when one is declared', async () => {
+      await driver.given.rootPackageJson({
+        workspaces: ['packages/*', 'examples/hosts/*', 'examples/apps/*'],
+      });
+
+      expect(await driver.get.generationBasesFrom('.')).toStrictEqual({
+        host: 'examples/hosts',
+        app: 'examples/apps',
+      });
     });
 
     it('should use the first wildcard pattern when no apps pattern exists', async () => {
@@ -128,7 +142,10 @@ describe('detection', () => {
         workspaces: { packages: ['libs/*', 'tools/*'] },
       });
 
-      expect(await driver.get.generationBaseFrom('.')).toBe('libs');
+      expect(await driver.get.generationBasesFrom('.')).toStrictEqual({
+        host: 'libs',
+        app: 'libs',
+      });
     });
 
     it('should read pnpm-workspace.yaml when package.json declares no workspaces', async () => {
@@ -137,11 +154,14 @@ describe('detection', () => {
         "packages:\n  - 'packages/*'\n",
       );
 
-      expect(await driver.get.generationBaseFrom('.')).toBe('packages');
+      expect((await driver.get.generationBasesFrom('.')).app).toBe('packages');
     });
 
     it('should fall back to apps when no pattern is declared', async () => {
-      expect(await driver.get.generationBaseFrom('.')).toBe('apps');
+      expect(await driver.get.generationBasesFrom('.')).toStrictEqual({
+        host: 'apps',
+        app: 'apps',
+      });
     });
   });
 });

@@ -11,7 +11,7 @@ import {
   packageIsInstalled,
 } from '../commands/commands.js';
 import {
-  detectGenerationBase,
+  detectGenerationBases,
   detectPackageManager,
   detectWorkspaceKind,
   findWorkspaceRoot,
@@ -38,7 +38,7 @@ export async function detectWorkspace(
   const root = await findWorkspaceRoot(currentDirectory);
   const kind = await detectWorkspaceKind(root);
   const manager = await detectPackageManager(root);
-  const generationBase = await detectGenerationBase({
+  const generationBases = await detectGenerationBases({
     root,
     start: currentDirectory,
   });
@@ -126,6 +126,6 @@ export async function detectWorkspace(
 
       return true;
     },
-    generationRoot: (_type, name) => join(root, generationBase, name),
+    generationRoot: (type, name) => join(root, generationBases[type], name),
   };
 }

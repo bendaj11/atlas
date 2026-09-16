@@ -7,34 +7,6 @@ describe('ArtifactConfigurationActions', () => {
     driver = new ArtifactConfigurationActionsDriver();
   });
 
-  describe('when every action is available', () => {
-    beforeEach(() => {
-      driver.given
-        .saveDisabled(false)
-        .given.clearDisabled(false)
-        .given.cancelDisabled(false)
-        .when.rendered();
-    });
-
-    it('should call onSave once when save button is clicked', async () => {
-      await driver.when.saved();
-
-      expect(driver.get.saveMock()).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call onClear once when clear button is clicked', async () => {
-      await driver.when.cleared();
-
-      expect(driver.get.clearMock()).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call onCancel once when cancel button is clicked', async () => {
-      await driver.when.cancelled();
-
-      expect(driver.get.cancelMock()).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('should disable save button when save is disabled', async () => {
     driver.given.saveDisabled(true).when.rendered();
 
@@ -55,5 +27,29 @@ describe('ArtifactConfigurationActions', () => {
     expect(
       await driver.get.button('cancel-configuration').isButtonDisabled(),
     ).toBe(true);
+  });
+
+  it('should call onSave once when save is enabled and save button is clicked', async () => {
+    driver.given.saveDisabled(false).when.rendered();
+
+    await driver.when.saved();
+
+    expect(driver.get.saveMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onClear once when clear is enabled and clear button is clicked', async () => {
+    driver.given.clearDisabled(false).when.rendered();
+
+    await driver.when.cleared();
+
+    expect(driver.get.clearMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onCancel once when cancel is enabled and cancel button is clicked', async () => {
+    driver.given.cancelDisabled(false).when.rendered();
+
+    await driver.when.cancelled();
+
+    expect(driver.get.cancelMock()).toHaveBeenCalledTimes(1);
   });
 });

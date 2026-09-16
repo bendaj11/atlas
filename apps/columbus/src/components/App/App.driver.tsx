@@ -1,19 +1,28 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+
+const ArtifactsOverridesPage = jest.fn(() => null);
+const ArtifactConfigurationPage = jest.fn(() => null);
 jest.unstable_mockModule(
   '../ArtifactsOverridesPage/ArtifactsOverridesPage',
-  () => ({ ArtifactsOverridesPage: () => <div>artifacts page</div> }),
+  () => ({ ArtifactsOverridesPage }),
 );
 jest.unstable_mockModule(
   '../ArtifactConfigurationPage/ArtifactConfigurationPage',
-  () => ({ ArtifactConfigurationPage: () => <div>configuration page</div> }),
+  () => ({ ArtifactConfigurationPage }),
 );
 
 const { App } = await import('./App');
 
 export class AppDriver {
-  private route = '/';
+  private route = `/${faker.lorem.slug()}`;
+
+  constructor() {
+    ArtifactsOverridesPage.mockClear();
+    ArtifactConfigurationPage.mockClear();
+  }
 
   readonly given = {
     route: (route: string): this => {
@@ -34,7 +43,7 @@ export class AppDriver {
   };
 
   readonly get = {
-    page: (name: string): Promise<HTMLElement | null> =>
-      screen.findByText(name).catch(() => null),
+    artifactsOverridesPageMock: () => ArtifactsOverridesPage,
+    artifactConfigurationPageMock: () => ArtifactConfigurationPage,
   };
 }

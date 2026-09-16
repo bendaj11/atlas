@@ -1,7 +1,7 @@
 import { relative } from 'node:path';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  detectGenerationBase,
+  detectGenerationBases,
   detectPackageManager,
   detectWorkspaceKind,
   findWorkspaceRoot,
@@ -41,8 +41,8 @@ export class DetectionDriver {
       ) || '.',
     kind: () => detectWorkspaceKind(this.directory.root),
     packageManager: () => detectPackageManager(this.directory.root),
-    generationBaseFrom: (relativePath: string) =>
-      detectGenerationBase({
+    generationBasesFrom: (relativePath: string) =>
+      detectGenerationBases({
         root: this.directory.root,
         start: this.directory.path(relativePath),
       }),

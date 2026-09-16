@@ -1,39 +1,31 @@
-import type { Server } from 'node:http';
-import { readFile } from 'node:fs/promises';
 import type { AtlasHostConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
+import { ui } from '../../cli/ui/ui.js';
 import { loadBootstrapTemplate } from '../../bootstrap/template/bootstrap-template.js';
 import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
-import { resolveRegistryUrl } from '../../build/runtime-config/runtime-config.js';
 import { ensureAngularBuildNotifications } from '../../generation/angular.js';
+import { isHostConfig } from '../../shared/atlas-config/atlas-config.js';
+import { loadEnvFiles } from '../../workspace/env/env.js';
+import type { AtlasProject, AtlasWorkspace } from '../../workspace/types.js';
 import { startLocalBootstrapServer } from '../bootstrap-server/bootstrap-server.js';
-import { startControlServer } from '../control-server/control-server.js';
 import {
-  isHostConfig,
   readAngularProxyConfigPath,
   readConfiguredDevServerPort,
 } from '../config/config.js';
-import { closeServer, localOrigin } from '../http/http.js';
 import {
   DEFAULT_APP_DEV_PORT,
-  DEFAULT_CONTROL_PORT,
   DEFAULT_HOST_BOOTSTRAP_PORT,
 } from '../constants.js';
-import {
-  developmentPreviewUrl,
-  frameworkServerArguments,
-  logHostViewUrl,
-  openBrowserWhenReady,
-  waitForRemoteEntry,
-  waitForShutdown,
-} from '../process/process.js';
+import { localOrigin } from '../http/http.js';
+import { writeDevOverrideDocument } from '../overrides/overrides.js';
+import { resolveHostDevPorts } from '../ports/ports.js';
+import { assertUsableAngularBuildPackage } from '../preflight/preflight.js';
+import { developmentPreviewUrl, logHostViewUrl } from '../process/process.js';
+import { nonInteractivePrompter } from '../prompts/prompts.js';
+import { loadAngularHostProxy } from '../proxy-config/proxy-config.js';
+import { runDevSession } from '../session-runner/session-runner.js';
 import { readAtlasPreviewUrls } from '../target/previews.js';
 import { resolveDevTarget, resolveHostDevTarget } from '../target/target.js';
-import { assertUsableAngularBuildPackage } from '../preflight/preflight.js';
-import { writeDevOverrideDocument } from '../overrides.js';
-import { loadAngularHostProxy } from '../proxy-config.js';
-import { nonInteractivePrompter } from '../prompts.js';
-import { resolveHostDevPorts } from '../ports/ports.js';
 import type {
   AppDevelopmentOptions,
   AtlasDevBuildService,
@@ -41,12 +33,6 @@ import type {
   DevPrompts,
   HostDevTarget,
 } from '../types.js';
-import { loadEnvFiles } from '../../workspace/env/env.js';
-import { ui } from '../../cli/ui/ui.js';
-import type {
-  AtlasProject,
-  AtlasWorkspace,
-} from '../../workspace/service/workspace.js';
 
 export class AtlasDevService {
   constructor(
@@ -76,6 +62,7 @@ export class AtlasDevService {
     }
     if (isHostConfig(config)) {
       await this.runHost(project, config, prompts);
+
       return;
     }
     await this.runApp({ project, name, config, prompts });
@@ -106,11 +93,6 @@ export class AtlasDevService {
       previewKind: target.previewKind,
     });
     assertLocalPreviewPort(target, bootstrapPort);
-    if (!this.builds.buildLocalHostManifest) {
-      throw new Error(
-        'Atlas host development requires host-client build support.',
-      );
-    }
     const manifest = await this.builds.buildLocalHostManifest(
       project.id,
       localOrigin(clientPort),
@@ -125,78 +107,57 @@ export class AtlasDevService {
       previewUrl: hostUrl,
     };
     await writeDevOverrideDocument(project.root, document);
-
     if (this.args.hasFlag('prepare-only')) {
       ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
       ui.info('Run without --prepare-only to start development servers.');
+
       return;
     }
-
-    const controlPort = this.args.port('control-port', DEFAULT_CONTROL_PORT);
-    const controlOrigin = localOrigin(controlPort);
-    const registryUrl = resolveRegistryUrl(this.args);
     const usesLocalBootstrap = target.previewKind === 'local';
     const template = usesLocalBootstrap
       ? await loadBootstrapTemplate(project.root)
       : undefined;
-    const devTask = await this.frameworkDevTask(project);
-    const control = await startControlServer({
-      port: controlPort,
-      document,
-      overrideUrl: `${controlOrigin}/atlas.local-overrides.json`,
-      ...(registryUrl ? { registryUrl } : {}),
-      environment: this.args.flag('environment') ?? 'production',
-    });
-    const frameworkServer = this.workspace.spawn(
+    await runDevSession({
+      workspace: this.workspace,
+      args: this.args,
       project,
-      devTask,
-      frameworkServerArguments(config.framework, clientPort),
-    );
-    let bootstrap: Server | undefined;
-    try {
-      await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
-      const proxy =
-        config.framework === 'angular'
-          ? await loadAngularHostProxy(
-              project.root,
-              await readAngularProxyConfigPath(project.root, project.id),
-              localOrigin(clientPort),
-            )
-          : undefined;
-      bootstrap = usesLocalBootstrap
-        ? await startLocalBootstrapServer({
-            port: bootstrapPort,
-            ...(template !== undefined ? { html: template } : {}),
-            ...(proxy !== undefined ? { proxy } : {}),
-            runtime: {
-              schemaVersion: 'v1',
-              hostId: config.id,
-              artifactRegistryUrl: registryUrl ?? controlOrigin,
-              environmentRegistryUrl: controlOrigin,
-              developmentSessionUrl: `${controlOrigin}/atlas.dev-session.json?hostId=${encodeURIComponent(config.id)}`,
-              environment: 'development',
-              resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
-              resourcesRetryCount: config.resourcesRetryCount ?? 3,
-            },
-          })
-        : undefined;
-      await control.markReady();
-      const browserUrl = usesLocalBootstrap
-        ? hostUrl
-        : developmentPreviewUrl({
-            hostUrl,
-            controlPort,
-          });
-      logHostViewUrl(hostUrl, browserUrl);
-      openBrowserWhenReady(this.args, browserUrl);
-      await waitForShutdown(frameworkServer, control);
-    } catch (error) {
-      if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');
-      await control.close();
-      throw error;
-    } finally {
-      if (bootstrap) await closeServer(bootstrap);
-    }
+      config,
+      document,
+      remoteEntryUrl: manifest.remoteEntryUrl,
+      frameworkPort: clientPort,
+      hostUrl,
+      beforeReady: async ({ controlOrigin, registryUrl }) => {
+        if (!usesLocalBootstrap) return undefined;
+        const proxy =
+          config.framework === 'angular'
+            ? await loadAngularHostProxy(
+                project.root,
+                await readAngularProxyConfigPath(project.root, project.id),
+                localOrigin(clientPort),
+              )
+            : undefined;
+
+        return startLocalBootstrapServer({
+          port: bootstrapPort,
+          ...(template !== undefined ? { html: template } : {}),
+          ...(proxy !== undefined ? { proxy } : {}),
+          runtime: {
+            schemaVersion: 'v1',
+            hostId: config.id,
+            artifactRegistryUrl: registryUrl ?? controlOrigin,
+            environmentRegistryUrl: controlOrigin,
+            developmentSessionUrl: `${controlOrigin}/atlas.dev-session.json?hostId=${encodeURIComponent(config.id)}`,
+            environment: 'development',
+            resourcesTimeoutMs: config.resourcesTimeoutMs ?? 15_000,
+            resourcesRetryCount: config.resourcesRetryCount ?? 3,
+          },
+        });
+      },
+      browserUrl: ({ controlPort }) =>
+        usesLocalBootstrap
+          ? hostUrl
+          : developmentPreviewUrl({ hostUrl, controlPort }),
+    });
   }
 
   private async runApp({
@@ -206,7 +167,6 @@ export class AtlasDevService {
     prompts,
   }: AppDevelopmentOptions): Promise<void> {
     const remotePort = await this.resolveRemotePort(project);
-    const controlPort = this.args.port('control-port', DEFAULT_CONTROL_PORT);
     const manifest = await this.builds.buildManifest(name, 'local', {
       skipCompile: true,
       baseUrl: localOrigin(remotePort),
@@ -224,51 +184,23 @@ export class AtlasDevService {
       previewUrl: target.hostUrl,
     };
     await writeDevOverrideDocument(project.root, document);
-
-    const overrideUrl = `${localOrigin(controlPort)}/atlas.local-overrides.json`;
     if (this.args.hasFlag('prepare-only')) {
       logHostViewUrl(target.hostUrl);
+
       return;
     }
-    const registryUrl = resolveRegistryUrl(this.args);
-    const devTask = await this.frameworkDevTask(project);
-    const control = await startControlServer({
-      port: controlPort,
-      document,
-      overrideUrl,
-      ...(registryUrl ? { registryUrl } : {}),
-      environment: this.args.flag('environment') ?? 'production',
-    });
-    const frameworkServer = this.workspace.spawn(
+    await runDevSession({
+      workspace: this.workspace,
+      args: this.args,
       project,
-      devTask,
-      frameworkServerArguments(config.framework, remotePort),
-    );
-    try {
-      await waitForRemoteEntry(manifest.remoteEntryUrl, frameworkServer);
-      await control.markReady();
-      const browserUrl = developmentPreviewUrl({
-        hostUrl: target.hostUrl,
-        controlPort,
-      });
-      logHostViewUrl(target.hostUrl, browserUrl);
-      openBrowserWhenReady(this.args, browserUrl);
-    } catch (error) {
-      if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');
-      await control.close();
-      throw error;
-    }
-    await waitForShutdown(frameworkServer, control);
-  }
-
-  private async frameworkDevTask(
-    project: AtlasProject,
-  ): Promise<'dev' | 'framework:dev' | 'serve'> {
-    if (this.workspace.kind === 'nx') return 'serve';
-    const packageJson = JSON.parse(
-      await readFile(`${project.root}/package.json`, 'utf8'),
-    ) as { scripts?: Record<string, string> };
-    return packageJson.scripts?.['framework:dev'] ? 'framework:dev' : 'dev';
+      config,
+      document,
+      remoteEntryUrl: manifest.remoteEntryUrl,
+      frameworkPort: remotePort,
+      hostUrl: target.hostUrl,
+      browserUrl: ({ controlPort }) =>
+        developmentPreviewUrl({ hostUrl: target.hostUrl, controlPort }),
+    });
   }
 
   private async resolveRemotePort(
@@ -276,6 +208,7 @@ export class AtlasDevService {
     fallback = DEFAULT_APP_DEV_PORT,
   ): Promise<number> {
     if (this.args.hasFlag('port')) return this.args.port('port', fallback);
+
     return (
       (await readConfiguredDevServerPort(project.root, project.id)) ?? fallback
     );

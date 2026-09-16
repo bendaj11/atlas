@@ -17,25 +17,27 @@ import {
   isRetryableHttpStatus,
   withExponentialRetry,
 } from '../../cli/retry/retry.js';
-import { sha256Integrity } from '../../shared/digest/digest.js';
 import { errorMessage } from '../../shared/errors/errors.js';
 import { asRecord, nonEmptyString } from '../../shared/records/records.js';
+import {
+  VerificationChecks,
+  type AtlasVerificationReport,
+} from '../checks/checks.js';
+import { parseFederationMetadata } from '../federation-metadata/federation-metadata.js';
+import {
+  checkContentType,
+  checkCors,
+  checkImmutableCache,
+  checkIntegrity,
+  checkMutableCache,
+  type ExpectedContentType,
+} from '../header-checks/header-checks.js';
+import { NetworkLimiter } from '../network-limiter/network-limiter.js';
 
-type AtlasVerificationStatus = 'pass' | 'warning' | 'failure';
-
-export interface AtlasVerificationCheck {
-  status: AtlasVerificationStatus;
-  subject: string;
-  message: string;
-}
-
-export interface AtlasVerificationReport {
-  hostUrl: string;
-  hostId?: string;
-  checks: AtlasVerificationCheck[];
-  failures: number;
-  warnings: number;
-}
+export type {
+  AtlasVerificationCheck,
+  AtlasVerificationReport,
+} from '../checks/checks.js';
 
 export interface AtlasVerifyOptions {
   hostUrl: string;
@@ -49,14 +51,14 @@ interface VerificationContext {
   hostUrl: URL;
   hostOrigin: string;
   timeoutMs: number;
-  checks: AtlasVerificationCheck[];
+  checks: VerificationChecks;
 }
 
 interface AssetExpectation {
   url: string;
   subject: string;
   integrity?: string;
-  contentType: 'json' | 'css';
+  contentType: ExpectedContentType;
   inspectFederationReferences?: boolean;
 }
 
@@ -79,13 +81,13 @@ export class AtlasVerifyService {
       hostUrl,
       hostOrigin: hostUrl.origin,
       timeoutMs,
-      checks: [],
+      checks: new VerificationChecks(),
     };
 
     const runtime = await this.resolveRuntime(context);
-    if (!runtime) return createReport(context);
+    if (!runtime) return context.checks.report(hostUrl.href);
     const catalog = await this.fetchCatalog(runtime, context);
-    if (!catalog) return createReport(context, runtime.hostId);
+    if (!catalog) return context.checks.report(hostUrl.href, runtime.hostId);
 
     this.verifyCatalog(runtime, catalog, context);
     await Promise.all(
@@ -95,7 +97,7 @@ export class AtlasVerifyService {
         ...(catalog.widgetProviders ?? []),
       ].flatMap((manifest) => this.verifyManifestAssets(manifest, context)),
     );
-    return createReport(context, runtime.hostId);
+    return context.checks.report(hostUrl.href, runtime.hostId);
   }
 
   private async resolveRuntime(
@@ -112,17 +114,20 @@ export class AtlasVerifyService {
       },
     );
     if (!runtimeResponse) return undefined;
-    this.verifyMutableCache(runtimeResponse, 'runtime config', context);
+    checkMutableCache({
+      checks: context.checks,
+      response: runtimeResponse,
+      subject: 'runtime config',
+    });
     try {
       const runtime = resolveAtlasRuntimeConfig(config, context.hostUrl.href);
-      pass(
-        context,
+      context.checks.pass(
         'runtime config',
         `Selected environment "${runtime.environment}" for host "${runtime.hostId}".`,
       );
       return runtime;
     } catch (error) {
-      fail(context, 'runtime config', errorMessage(error));
+      context.checks.fail('runtime config', errorMessage(error));
       return undefined;
     }
   }
@@ -142,16 +147,20 @@ export class AtlasVerifyService {
       },
     );
     if (!response) return undefined;
-    this.verifyCors(
+    checkCors({
+      checks: context.checks,
       response,
-      deploymentManifestUrl,
-      'active host manifest',
-      context,
-    );
-    this.verifyMutableCache(response, 'active host manifest', context);
+      url: deploymentManifestUrl,
+      subject: 'active host manifest',
+      hostOrigin: context.hostOrigin,
+    });
+    checkMutableCache({
+      checks: context.checks,
+      response,
+      subject: 'active host manifest',
+    });
     if (!isHostDeployment(value)) {
-      fail(
-        context,
+      context.checks.fail(
         'active host manifest',
         'Expected schemaVersion v1 host-deployment with descriptor references.',
       );
@@ -166,16 +175,31 @@ export class AtlasVerifyService {
         const loaded = await this.fetchResponse(new URL(url), context, false);
         if (!loaded.ok)
           throw new Error(`${url} returned HTTP ${loaded.status}.`);
-        this.verifyCors(loaded, new URL(url), 'artifact manifest', context);
-        verifyJsonContentType(loaded, 'artifact manifest', context);
+        checkCors({
+          checks: context.checks,
+          response: loaded,
+          url: new URL(url),
+          subject: 'artifact manifest',
+          hostOrigin: context.hostOrigin,
+        });
+        checkContentType({
+          checks: context.checks,
+          response: loaded,
+          subject: 'artifact manifest',
+          expected: 'json',
+        });
         if (url !== deploymentManifestUrl.href) {
-          verifyImmutableCacheHeader(loaded, 'artifact manifest', context);
+          checkImmutableCache({
+            checks: context.checks,
+            response: loaded,
+            subject: 'artifact manifest',
+            channel: 'production',
+          });
         }
         return loaded.arrayBuffer();
       },
     });
-    pass(
-      context,
+    context.checks.pass(
       'active host manifest',
       `Loaded ${deployment.host.path} and ${deployment.apps.length} selected app(s).`,
     );
@@ -188,24 +212,21 @@ export class AtlasVerifyService {
     context: VerificationContext,
   ): void {
     if (catalog.hostId === runtime.hostId)
-      pass(context, 'catalog host', `Matches "${runtime.hostId}".`);
+      context.checks.pass('catalog host', `Matches "${runtime.hostId}".`);
     else
-      fail(
-        context,
+      context.checks.fail(
         'catalog host',
         `Expected "${runtime.hostId}", received "${catalog.hostId}".`,
       );
 
     try {
       assertAtlasHostManifest(catalog.host);
-      pass(
-        context,
+      context.checks.pass(
         `${catalog.host.id} host manifest`,
         `${catalog.host.version} (${catalog.host.buildId}) is valid.`,
       );
     } catch (error) {
-      fail(
-        context,
+      context.checks.fail(
         `${catalog.host.id || 'unknown'} host manifest`,
         errorMessage(error),
       );
@@ -216,29 +237,25 @@ export class AtlasVerifyService {
     for (const manifest of selectedApps) {
       try {
         assertAtlasManifest(manifest);
-        pass(
-          context,
+        context.checks.pass(
           `${manifest.id} manifest`,
           `${manifest.version} (${manifest.buildId}) is valid.`,
         );
       } catch (error) {
-        fail(
-          context,
+        context.checks.fail(
           `${manifest.id || 'unknown'} manifest`,
           errorMessage(error),
         );
       }
       if (ids.has(manifest.id))
-        fail(
-          context,
+        context.checks.fail(
           'catalog versions',
           `app "${manifest.id}" is selected more than once.`,
         );
       ids.add(manifest.id);
     }
     if (ids.size === selectedApps.length)
-      pass(
-        context,
+      context.checks.pass(
         'catalog versions',
         'Exactly one version is selected per app.',
       );
@@ -269,12 +286,12 @@ export class AtlasVerifyService {
       }
     }
     if (conflicts.length > 0)
-      fail(
-        context,
+      context.checks.fail(
         'route ownership',
         `Duplicate routes: ${conflicts.join(', ')}. In atlas.config.ts routes, each hostId can use a path only once. Use a different path or hostId.`,
       );
-    else pass(context, 'route ownership', 'Every exact path has one owner.');
+    else
+      context.checks.pass('route ownership', 'Every exact path has one owner.');
   }
 
   private verifyManifestAssets(
@@ -305,7 +322,7 @@ export class AtlasVerifyService {
     context: VerificationContext,
   ): Promise<void> {
     const url = new URL(asset.url, context.hostUrl);
-    pass(context, `${asset.subject} URL`, url.href);
+    context.checks.pass(`${asset.subject} URL`, url.href);
     let bytes: Uint8Array | undefined;
     const response = await this.fetch(
       url,
@@ -316,11 +333,33 @@ export class AtlasVerifyService {
       },
     );
     if (!response) return;
-    this.verifyCors(response, url, asset.subject, context);
-    verifyContentType(response, asset, context);
-    verifyImmutableCache(response, asset.subject, manifest.channel, context);
+    checkCors({
+      checks: context.checks,
+      response,
+      url,
+      subject: asset.subject,
+      hostOrigin: context.hostOrigin,
+    });
+    checkContentType({
+      checks: context.checks,
+      response,
+      subject: asset.subject,
+      expected: asset.contentType,
+    });
+    checkImmutableCache({
+      checks: context.checks,
+      response,
+      subject: asset.subject,
+      channel: manifest.channel,
+    });
     if (!bytes) return;
-    verifyIntegrity(bytes, asset, manifest.channel, context);
+    checkIntegrity({
+      checks: context.checks,
+      bytes,
+      subject: asset.subject,
+      integrity: asset.integrity,
+      channel: manifest.channel,
+    });
     if (asset.inspectFederationReferences)
       await this.verifyFederationReferences(bytes, url, manifest, context);
   }
@@ -331,8 +370,17 @@ export class AtlasVerifyService {
     manifest: AtlasManifest | AtlasHostManifest,
     context: VerificationContext,
   ): Promise<void> {
-    const metadata = parseFederationMetadata(bytes, manifest.id, context);
-    if (!metadata) return;
+    let metadata;
+    try {
+      metadata = parseFederationMetadata(bytes);
+    } catch (error) {
+      context.checks.fail(
+        `${manifest.id} federation metadata`,
+        errorMessage(error),
+      );
+
+      return;
+    }
     const exposedKeys = new Set(metadata.exposes.map((entry) => entry.key));
     const requiredExposes = new Set([
       ...Object.values(manifest.exposes),
@@ -344,14 +392,12 @@ export class AtlasVerifyService {
       (expose) => !exposedKeys.has(expose),
     );
     if (missingExposes.length > 0)
-      fail(
-        context,
+      context.checks.fail(
         `${manifest.id} federation exposes`,
         `Missing: ${missingExposes.join(', ')}.`,
       );
     else
-      pass(
-        context,
+      context.checks.pass(
         `${manifest.id} federation exposes`,
         'Manifest exposes are present in remote metadata.',
       );
@@ -372,9 +418,25 @@ export class AtlasVerifyService {
         const subject = reference.subject;
         const response = await this.fetch(url, subject, context);
         if (!response) return;
-        this.verifyCors(response, url, subject, context);
-        verifyJavaScriptContentType(response, subject, context);
-        verifyImmutableCache(response, subject, manifest.channel, context);
+        checkCors({
+          checks: context.checks,
+          response,
+          url,
+          subject,
+          hostOrigin: context.hostOrigin,
+        });
+        checkContentType({
+          checks: context.checks,
+          response,
+          subject,
+          expected: 'javascript',
+        });
+        checkImmutableCache({
+          checks: context.checks,
+          response,
+          subject,
+          channel: manifest.channel,
+        });
       }),
     );
   }
@@ -388,8 +450,7 @@ export class AtlasVerifyService {
     try {
       const response = await this.fetchResponse(url, context, true, consume);
       if (!response.ok) {
-        fail(
-          context,
+        context.checks.fail(
           subject,
           `${url.href} returned ${response.status} ${response.statusText}.`,
         );
@@ -397,8 +458,7 @@ export class AtlasVerifyService {
       }
       return response;
     } catch (error) {
-      fail(
-        context,
+      context.checks.fail(
         subject,
         `${url.href} could not be fetched: ${errorMessage(error)}`,
       );
@@ -434,176 +494,6 @@ export class AtlasVerifyService {
       return response;
     });
   }
-
-  private verifyCors(
-    response: Response,
-    url: URL,
-    subject: string,
-    context: VerificationContext,
-  ): void {
-    if (url.origin === context.hostOrigin) return;
-    const allowed = response.headers.get('access-control-allow-origin');
-    if (allowed === '*' || allowed === context.hostOrigin)
-      pass(context, `${subject} CORS`, `Allows ${context.hostOrigin}.`);
-    else
-      fail(
-        context,
-        `${subject} CORS`,
-        `Expected Access-Control-Allow-Origin for ${context.hostOrigin}.`,
-      );
-  }
-
-  private verifyMutableCache(
-    response: Response,
-    subject: string,
-    context: VerificationContext,
-  ): void {
-    const cacheControl = response.headers.get('cache-control') ?? '';
-    if (/\bimmutable\b/i.test(cacheControl))
-      fail(
-        context,
-        `${subject} cache`,
-        'Mutable metadata must not be immutable.',
-      );
-    else if (!cacheControl)
-      warn(
-        context,
-        `${subject} cache`,
-        'No Cache-Control header; use revalidation or a short max-age.',
-      );
-    else pass(context, `${subject} cache`, cacheControl);
-  }
-}
-
-class NetworkLimiter {
-  private active = 0;
-  private readonly waiting: (() => void)[] = [];
-
-  constructor(private readonly limit: number) {
-    if (!Number.isInteger(limit) || limit < 1)
-      throw new Error('Verification concurrency must be a positive integer.');
-  }
-
-  async run<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.active >= this.limit)
-      await new Promise<void>((resolve) => this.waiting.push(resolve));
-    this.active += 1;
-    try {
-      return await operation();
-    } finally {
-      this.active -= 1;
-      this.waiting.shift()?.();
-    }
-  }
-}
-
-function verifyContentType(
-  response: Response,
-  asset: AssetExpectation,
-  context: VerificationContext,
-): void {
-  const actual = response.headers.get('content-type')?.toLowerCase() ?? '';
-  const valid =
-    asset.contentType === 'json'
-      ? actual.includes('json')
-      : actual.includes('text/css');
-  if (valid) pass(context, `${asset.subject} MIME`, actual);
-  else
-    fail(
-      context,
-      `${asset.subject} MIME`,
-      `Expected ${asset.contentType === 'json' ? 'JSON' : 'text/css'}, received "${actual || 'missing'}".`,
-    );
-}
-
-function verifyJsonContentType(
-  response: Response,
-  subject: string,
-  context: VerificationContext,
-): void {
-  verifyContentType(
-    response,
-    { url: response.url, subject, contentType: 'json' },
-    context,
-  );
-}
-
-function verifyImmutableCacheHeader(
-  response: Response,
-  subject: string,
-  context: VerificationContext,
-): void {
-  verifyImmutableCache(response, subject, 'production', context);
-}
-
-function verifyJavaScriptContentType(
-  response: Response,
-  subject: string,
-  context: VerificationContext,
-): void {
-  const actual = response.headers.get('content-type')?.toLowerCase() ?? '';
-  if (actual.includes('javascript')) pass(context, `${subject} MIME`, actual);
-  else
-    fail(
-      context,
-      `${subject} MIME`,
-      `Expected JavaScript, received "${actual || 'missing'}".`,
-    );
-}
-
-function verifyImmutableCache(
-  response: Response,
-  subject: string,
-  channel: AtlasManifest['channel'],
-  context: VerificationContext,
-): void {
-  if (channel === 'local') return;
-  const cacheControl = response.headers.get('cache-control') ?? '';
-  const maxAge = cacheControl.match(/(?:^|,)\s*max-age\s*=\s*(\d+)\b/i)?.[1];
-  if (
-    /\bimmutable\b/i.test(cacheControl) &&
-    maxAge !== undefined &&
-    Number(maxAge) > 0
-  )
-    pass(context, `${subject} cache`, cacheControl);
-  else
-    warn(
-      context,
-      `${subject} cache`,
-      'Versioned assets should use Cache-Control: public, max-age=31536000, immutable.',
-    );
-}
-
-function verifyIntegrity(
-  bytes: Uint8Array,
-  asset: AssetExpectation,
-  channel: AtlasManifest['channel'],
-  context: VerificationContext,
-): void {
-  if (!asset.integrity) {
-    if (channel === 'local')
-      warn(
-        context,
-        `${asset.subject} integrity`,
-        'Skipped for a local manifest.',
-      );
-    else
-      warn(
-        context,
-        `${asset.subject} integrity`,
-        'Missing optional SHA-256 integrity metadata.',
-      );
-    return;
-  }
-  const actual = sha256Integrity(bytes);
-  if (actual === asset.integrity)
-    pass(context, `${asset.subject} integrity`, 'SHA-256 matches.');
-  else
-    fail(
-      context,
-      `${asset.subject} integrity`,
-      'SHA-256 does not match the manifest.',
-    );
 }
 
 async function parseJson(
@@ -614,7 +504,7 @@ async function parseJson(
   try {
     return await response.json();
   } catch (error) {
-    fail(context, subject, `Invalid JSON: ${errorMessage(error)}`);
+    context.checks.fail(subject, `Invalid JSON: ${errorMessage(error)}`);
     return undefined;
   }
 }
@@ -652,56 +542,6 @@ function withArtifactUrls(
   };
 }
 
-function parseFederationMetadata(
-  bytes: Uint8Array,
-  appId: string,
-  context: VerificationContext,
-): FederationMetadata | undefined {
-  try {
-    const value = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-    const record = asRecord(value);
-    if (!Array.isArray(record?.exposes))
-      throw new Error('Expected an exposes array.');
-    if (!Array.isArray(record.shared))
-      throw new Error('Expected a shared array.');
-    const exposes = record.exposes.map((candidate) => {
-      const expose = asRecord(candidate);
-      if (!nonEmptyString(expose?.key) || !nonEmptyString(expose.outFileName)) {
-        throw new Error('Every expose requires key and outFileName.');
-      }
-      return { key: expose.key, outFileName: expose.outFileName };
-    });
-    const shared = record.shared.map((candidate) => {
-      const dependency = asRecord(candidate);
-      if (
-        !nonEmptyString(dependency?.packageName) ||
-        !nonEmptyString(dependency.outFileName) ||
-        !nonEmptyString(dependency.version) ||
-        !nonEmptyString(dependency.requiredVersion) ||
-        typeof dependency.singleton !== 'boolean' ||
-        typeof dependency.strictVersion !== 'boolean'
-      ) {
-        throw new Error(
-          'Every shared dependency requires packageName, outFileName, version, requiredVersion, singleton, and strictVersion.',
-        );
-      }
-      return {
-        packageName: dependency.packageName,
-        outFileName: dependency.outFileName,
-      };
-    });
-    return { exposes, shared };
-  } catch (error) {
-    fail(context, `${appId} federation metadata`, errorMessage(error));
-    return undefined;
-  }
-}
-
-interface FederationMetadata {
-  exposes: Array<{ key: string; outFileName: string }>;
-  shared: Array<{ packageName: string; outFileName: string }>;
-}
-
 function absoluteHttpUrl(value: string, flag: string): URL {
   let url: URL;
   try {
@@ -716,43 +556,4 @@ function absoluteHttpUrl(value: string, flag: string): URL {
 
 function normalizeRoutePath(path: string): string {
   return path === '/' ? path : path.replace(/\/+$/, '');
-}
-
-function createReport(
-  context: VerificationContext,
-  hostId?: string,
-): AtlasVerificationReport {
-  return {
-    hostUrl: context.hostUrl.href,
-    ...(hostId ? { hostId } : {}),
-    checks: context.checks,
-    failures: context.checks.filter((check) => check.status === 'failure')
-      .length,
-    warnings: context.checks.filter((check) => check.status === 'warning')
-      .length,
-  };
-}
-
-function pass(
-  context: VerificationContext,
-  subject: string,
-  message: string,
-): void {
-  context.checks.push({ status: 'pass', subject, message });
-}
-
-function warn(
-  context: VerificationContext,
-  subject: string,
-  message: string,
-): void {
-  context.checks.push({ status: 'warning', subject, message });
-}
-
-function fail(
-  context: VerificationContext,
-  subject: string,
-  message: string,
-): void {
-  context.checks.push({ status: 'failure', subject, message });
 }

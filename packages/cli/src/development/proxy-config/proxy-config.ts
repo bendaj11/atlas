@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import type { LocalNativeProxy } from './types.js';
+import type { LocalNativeProxy } from '../types.js';
 
 interface AngularBuildPrivateApi {
   loadProxyConfiguration(

@@ -2,6 +2,11 @@ import { dirname, join, relative } from 'node:path';
 import { exists, readJsonFile, readTextFile } from '../../shared/fs/fs.js';
 import type { AtlasPackageManager, AtlasWorkspaceKind } from '../types.js';
 
+export interface GenerationBases {
+  host: string;
+  app: string;
+}
+
 const WORKSPACE_ROOT_MARKERS = [
   'nx.json',
   'turbo.json',
@@ -51,23 +56,44 @@ export async function detectPackageManager(
   return 'npm';
 }
 
-export async function detectGenerationBase(options: {
+export async function detectGenerationBases(options: {
   root: string;
   start: string;
-}): Promise<string> {
+}): Promise<GenerationBases> {
   const startDirectory = relative(options.root, options.start);
-  if (startDirectory && dirname(startDirectory) === '.') return startDirectory;
-
+  if (startDirectory && dirname(startDirectory) === '.')
+    return { host: startDirectory, app: startDirectory };
   const patterns = await workspacePatterns(options.root);
-  const conventional = patterns.find(
-    (pattern) => pattern === 'apps/*' || pattern.startsWith('apps/'),
-  );
-  const selected =
-    conventional ?? patterns.find((pattern) => pattern.includes('*'));
-  if (selected)
-    return selected.slice(0, selected.indexOf('*')).replace(/\/$/, '') || '.';
+  const app = patternBase(patterns, 'apps') ?? wildcardBase(patterns) ?? 'apps';
 
-  return 'apps';
+  return { host: patternBase(patterns, 'hosts') ?? app, app };
+}
+
+function patternBase(
+  patterns: readonly string[],
+  segment: string,
+): string | undefined {
+  const pattern = patterns.find(
+    (candidate) =>
+      candidate === `${segment}/*` ||
+      candidate.startsWith(`${segment}/`) ||
+      candidate.includes(`/${segment}/`),
+  );
+
+  return pattern ? baseOf(pattern) : undefined;
+}
+
+function wildcardBase(patterns: readonly string[]): string | undefined {
+  const pattern = patterns.find((candidate) => candidate.includes('*'));
+
+  return pattern ? baseOf(pattern) : undefined;
+}
+
+function baseOf(pattern: string): string {
+  const wildcard = pattern.indexOf('*');
+  const base = wildcard >= 0 ? pattern.slice(0, wildcard) : pattern;
+
+  return base.replace(/\/$/, '') || '.';
 }
 
 async function isWorkspaceRoot(directory: string): Promise<boolean> {

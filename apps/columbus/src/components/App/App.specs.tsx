@@ -1,4 +1,8 @@
-import { ARTIFACT_CONFIGURATION_ROUTE } from '../../scripts/routing/routes/routes';
+import { faker } from '@faker-js/faker';
+import {
+  ARTIFACT_CONFIGURATION_ROUTE,
+  ARTIFACTS_ROUTE,
+} from '../../scripts/routing/routes/routes';
 import { AppDriver } from './App.driver';
 
 describe('App', () => {
@@ -8,21 +12,23 @@ describe('App', () => {
     driver = new AppDriver();
   });
 
-  it('should show the artifacts page when at the root route', async () => {
-    driver.when.rendered();
+  it('should render artifacts overrides page when the route is the artifacts route', () => {
+    driver.given.route(ARTIFACTS_ROUTE).when.rendered();
 
-    expect(await driver.get.page('artifacts page')).not.toBeNull();
+    expect(driver.get.artifactsOverridesPageMock()).toHaveBeenCalled();
   });
 
-  it('should show the configuration page when at the configuration route', async () => {
+  it('should render artifact configuration page when the route is the artifact configuration route', () => {
     driver.given.route(ARTIFACT_CONFIGURATION_ROUTE).when.rendered();
 
-    expect(await driver.get.page('configuration page')).not.toBeNull();
+    expect(driver.get.artifactConfigurationPageMock()).toHaveBeenCalled();
   });
 
-  it('should fall back to the artifacts page when the route is unknown', async () => {
-    driver.given.route('/nowhere').when.rendered();
+  it('should render artifacts overrides page when the route is unknown', () => {
+    const route = `/${faker.lorem.slug()}`;
 
-    expect(await driver.get.page('artifacts page')).not.toBeNull();
+    driver.given.route(route).when.rendered();
+
+    expect(driver.get.artifactsOverridesPageMock()).toHaveBeenCalled();
   });
 });
