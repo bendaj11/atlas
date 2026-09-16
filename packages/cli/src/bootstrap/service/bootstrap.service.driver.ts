@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import type { AtlasBootstrapFile } from '@atlas/bootstrap';
 import type { AtlasConfig } from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
-import { createTestWorkspace } from '../../test-utils/build.testkit.js';
+import { aWorkspace } from '../../workspace/workspace.testkit.js';
 import type { AtlasProject } from '../../workspace/service/workspace.js';
 import {
   type AtlasBootstrapBuildResult,
@@ -88,7 +88,9 @@ export class AtlasBootstrapServiceDriver {
       );
 
       this.service = new AtlasBootstrapService({
-        workspace: createTestWorkspace({
+        workspace: aWorkspace({
+          kind: 'standalone',
+          packageManager: 'npm',
           findProject: async () => this.project,
         }),
         args: new CliArguments([

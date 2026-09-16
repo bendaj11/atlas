@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { DevelopmentPortsDriver } from './ports.driver.js';
 
 describe('resolveHostDevPorts', () => {
@@ -7,64 +8,61 @@ describe('resolveHostDevPorts', () => {
     driver = new DevelopmentPortsDriver();
   });
 
-  it('should keep configured port browser-facing when options are absent', () => {
-    driver.given.configuration('default');
-
-    driver.when.resolve();
+  it('should serve bootstrap on the configured port and the client on 4300 when no flags are given', () => {
+    const configuredPort = faker.number.int({ min: 4500, max: 4999 });
+    driver.given.configuredPort(configuredPort);
 
     expect(driver.get.ports()).toStrictEqual({
-      bootstrapPort: 4200,
+      bootstrapPort: configuredPort,
       clientPort: 4300,
     });
   });
 
-  it('should use custom browser port when port is explicit', () => {
-    driver.given.configuration('custom-browser');
-
-    driver.when.resolve();
+  it('should move the client to 4200 when the configured port is 4300', () => {
+    driver.given.configuredPort(4300);
 
     expect(driver.get.ports()).toStrictEqual({
-      bootstrapPort: driver.get.customPort(),
-      clientPort: 4300,
+      bootstrapPort: 4300,
+      clientPort: 4200,
     });
   });
 
-  it('should split ports when bootstrap port is explicit', () => {
-    driver.given.configuration('explicit-bootstrap');
-
-    driver.when.resolve();
+  it('should split bootstrap and client when --bootstrap-port is given', () => {
+    const configuredPort = faker.number.int({ min: 4500, max: 4999 });
+    const bootstrapPort = faker.number.int({ min: 5000, max: 5499 });
+    driver.given
+      .configuredPort(configuredPort)
+      .given.flags([`--bootstrap-port=${bootstrapPort}`]);
 
     expect(driver.get.ports()).toStrictEqual({
-      bootstrapPort: driver.get.bootstrapPort(),
-      clientPort: driver.get.customPort(),
+      bootstrapPort,
+      clientPort: configuredPort,
     });
   });
 
-  it('should reuse client port when deployed host URL is configured', () => {
-    driver.given.configuration('deployed');
+  it('should honor --host-client-port when given', () => {
+    const clientPort = faker.number.int({ min: 5000, max: 5499 });
+    driver.given.flags([`--host-client-port=${clientPort}`]);
 
-    driver.when.resolve();
+    expect(driver.get.ports().clientPort).toBe(clientPort);
+  });
+
+  it('should reuse the configured port for the client when the preview is deployed', () => {
+    const configuredPort = faker.number.int({ min: 4500, max: 4999 });
+    driver.given.configuredPort(configuredPort).given.previewKind('deployed');
 
     expect(driver.get.ports()).toStrictEqual({
-      bootstrapPort: driver.get.customPort(),
-      clientPort: driver.get.customPort(),
+      bootstrapPort: configuredPort,
+      clientPort: configuredPort,
     });
   });
 
-  it('should reject ports when local servers share one port', () => {
-    driver.given.configuration('conflict');
+  it('should throw when a local preview would share one port', () => {
+    const port = faker.number.int({ min: 4500, max: 4999 });
+    driver.given
+      .configuredPort(port)
+      .given.flags([`--host-client-port=${port}`]);
 
-    expect(driver.when.resolve).toThrow(/must differ/);
-  });
-
-  it('should keep generated port browser-facing when options are absent', () => {
-    driver.given.configuration('generated');
-
-    driver.when.resolve();
-
-    expect(driver.get.ports()).toStrictEqual({
-      bootstrapPort: driver.get.generatedPort(),
-      clientPort: 4300,
-    });
+    expect(() => driver.get.ports()).toThrow(/must differ/);
   });
 });

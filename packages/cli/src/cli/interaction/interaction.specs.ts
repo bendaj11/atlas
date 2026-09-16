@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { InteractionDriver } from './interaction.driver.js';
 
 describe('resolveInvocation', () => {
@@ -7,81 +8,118 @@ describe('resolveInvocation', () => {
     driver = new InteractionDriver();
   });
 
-  it('should resolve missing generation configuration when answers are provided', async () => {
-    driver.given.scenario('interactive-generation');
+  describe('when generation is interactive and nothing is configured', () => {
+    const name = faker.word.noun();
 
-    await driver.when.resolve();
+    beforeEach(async () => {
+      driver.given.values(['g']).given.prompts(['app', name, 'angular'], true);
 
-    expect(driver.get.invocation()).toStrictEqual(driver.get.generation());
+      await driver.when.resolved();
+    });
+
+    it('should fill the invocation from the answers when resolved', () => {
+      expect(driver.get.invocation()).toStrictEqual({
+        appId: undefined,
+        command: 'g',
+        framework: 'angular',
+        name,
+        subcommand: 'app',
+        version: undefined,
+      });
+    });
+
+    it('should ask for kind, name, and framework in order when resolved', () => {
+      expect(driver.get.questions()).toStrictEqual([
+        'select:What would you like to generate?',
+        'input:App name',
+        'select:Framework',
+      ]);
+    });
+
+    it('should list every generation kind when asking for the kind', () => {
+      expect(driver.get.choiceLabels(0)).toStrictEqual([
+        'Application',
+        'Host',
+        'Exported widget',
+      ]);
+    });
   });
 
-  it('should ask only for missing configuration when generation is interactive', async () => {
-    driver.given.scenario('interactive-generation');
+  describe('when generation is fully configured', () => {
+    const name = faker.word.noun();
 
-    await driver.when.resolve();
+    beforeEach(async () => {
+      driver.given
+        .values(['g', 'host', name, '--framework=react'])
+        .given.prompts([], false);
 
-    expect(driver.get.questions()).toStrictEqual(
-      driver.get.generationQuestions(),
-    );
+      await driver.when.resolved();
+    });
+
+    it('should read the invocation from the arguments when resolved', () => {
+      expect(driver.get.invocation()).toStrictEqual({
+        appId: undefined,
+        command: 'g',
+        framework: 'react',
+        name,
+        subcommand: 'host',
+        version: undefined,
+      });
+    });
+
+    it('should not prompt when resolved', () => {
+      expect(driver.get.questions()).toStrictEqual([]);
+    });
   });
 
-  it('should list generation kinds when generation kind is missing', async () => {
-    driver.given.scenario('interactive-generation');
+  it('should ask for the widget name only when generating a widget interactively', async () => {
+    const name = faker.word.noun();
+    driver.given.values(['g', 'widget']).given.prompts([name], true);
 
-    await driver.when.resolve();
+    await driver.when.resolved();
 
-    expect(driver.get.choiceLabels()).toStrictEqual(
-      driver.get.generationChoices(),
-    );
+    expect(driver.get.questions()).toStrictEqual(['input:Widget name']);
   });
 
-  it('should resolve invocation when all arguments are provided', async () => {
-    driver.given.scenario('configured-generation');
+  it('should leave the app id unresolved when a widget has no --app-id', async () => {
+    driver.given
+      .values(['g', 'widget', faker.word.noun()])
+      .given.prompts([], true);
 
-    await driver.when.resolve();
+    await driver.when.resolved();
 
-    expect(driver.get.invocation()).toStrictEqual(
-      driver.get.configuredGeneration(),
-    );
+    expect(driver.get.invocation().appId).toBeUndefined();
   });
 
-  it('should not prompt when invocation is configured', async () => {
-    driver.given.scenario('configured-generation');
+  it('should carry --app-id when a widget is configured', async () => {
+    const appId = faker.string.uuid();
+    driver.given
+      .values(['g', 'widget', faker.word.noun(), `--app-id=${appId}`])
+      .given.prompts([], false);
 
-    await driver.when.resolve();
+    await driver.when.resolved();
 
-    expect(driver.get.questions()).toStrictEqual([]);
+    expect(driver.get.invocation().appId).toBe(appId);
   });
 
-  it('should defer widget app selection when configured apps are unavailable', async () => {
-    driver.given.scenario('unconfigured-widget');
+  it.each(['build', 'bootstrap', 'publish', 'deploy', 'remove-preview'])(
+    'should ask for the project when %s has no subcommand interactively',
+    async (command) => {
+      const project = faker.word.noun();
+      driver.given.values([command]).given.prompts([project], true);
 
-    await driver.when.resolve();
+      await driver.when.resolved();
 
-    expect(driver.get.invocation()).toStrictEqual(driver.get.widget());
-  });
+      expect(driver.get.invocation().subcommand).toBe(project);
+    },
+  );
 
-  it('should not prompt for widget app when configured apps are unavailable', async () => {
-    driver.given.scenario('unconfigured-widget');
+  it('should carry --version when given', async () => {
+    const version = faker.system.semver();
+    driver.given.values(['deploy', 'orders', `--version=${version}`]);
 
-    await driver.when.resolve();
+    await driver.when.resolved();
 
-    expect(driver.get.questions()).toStrictEqual([]);
-  });
-
-  it('should resolve app ID when widget app ID flag is provided', async () => {
-    driver.given.scenario('configured-widget');
-
-    await driver.when.resolve();
-
-    expect(driver.get.appId()).toBe(driver.get.widgetAppId());
-  });
-
-  it('should not prompt when widget app ID is provided', async () => {
-    driver.given.scenario('configured-widget');
-
-    await driver.when.resolve();
-
-    expect(driver.get.questions()).toStrictEqual([]);
+    expect(driver.get.invocation().version).toBe(version);
   });
 });

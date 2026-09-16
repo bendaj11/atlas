@@ -2,7 +2,7 @@ import { access, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import { cliEntrypointPath, run } from '../src/test-utils/build.testkit.js';
+import { cliEntrypointPath, run } from './e2e.testkit.js';
 
 type GeneratedProjectType = 'app' | 'host';
 type GeneratedFramework = 'angular' | 'react';
