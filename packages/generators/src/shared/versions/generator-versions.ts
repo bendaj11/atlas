@@ -6,7 +6,8 @@ const DEFAULT_REACT_VERSION = '19.2.8';
 const DEFAULT_ANGULAR_VERSION = '20.3.0';
 const VERIFIED_REACT_MAJORS = [17, 18, 19];
 const EXACT_SEMVER_PATTERN = /^[=~^]?(\d+\.\d+\.\d+(?:-[\w.-]+)?)$/;
-const LEADING_MAJOR_PATTERN = /^\s*(?:[=~^v]|>=?|<=?)?\s*(\d+)(?:[.\s-]|$)/;
+const LEADING_MAJOR_PATTERN =
+  /^\s*(?:npm:@?[^@]+@)?(?:[=~^v]|>=?|<=?)?\s*(\d+)(?:[.\s-]|$)/;
 
 export function atlasPackageRange(): string {
   return `^${ATLAS_PACKAGE_VERSION}`;

@@ -76,9 +76,10 @@ export class AtlasGenerateService {
     const { name, segments } = parseProjectPath(projectPath);
     const selectedFramework = framework ?? this.args.framework();
     const hostId = type === 'app' ? this.args.flag('host-id') : undefined;
-    validateGeneratorOptions(
-      this.options({ name, framework: selectedFramework, hostId }),
-    );
+    validateGeneratorOptions({
+      ...this.options({ name, framework: selectedFramework, hostId }),
+      ...(this.delegatesScaffold() ? { frameworkVersion: undefined } : {}),
+    });
     const explicit = this.args.flag('directory');
     const root =
       explicit && explicit !== 'true'
@@ -318,6 +319,13 @@ export class AtlasGenerateService {
       ui.info(
         `Added Atlas dependencies to ${displayTarget(this.workspace.root, target)}.`,
       );
+  }
+
+  private delegatesScaffold(): boolean {
+    return (
+      this.workspace.kind === 'nx' &&
+      !this.args.hasFlag('skip-workspace-generator')
+    );
   }
 
   private context(): ProjectOptionsContext {

@@ -256,6 +256,23 @@ describe('angularVersionProfile', () => {
     });
   });
 
+  it.each([
+    '20',
+    'v20.1.0',
+    '~20.3.0',
+    '>=20.0.0 <21.0.0',
+    'npm:@angular/core@^20.3.0',
+  ])(
+    'should resolve major 20 when framework version is %s',
+    (frameworkVersion) => {
+      driver.given
+        .options(aGeneratorOptions({ frameworkVersion }))
+        .when.angularProfileResolved();
+
+      expect(driver.get.angularProfile().major).toBe(20);
+    },
+  );
+
   it('should throw when framework version does not start with a major', () => {
     driver.given.options(aGeneratorOptions({ frameworkVersion: 'latest' }));
 
