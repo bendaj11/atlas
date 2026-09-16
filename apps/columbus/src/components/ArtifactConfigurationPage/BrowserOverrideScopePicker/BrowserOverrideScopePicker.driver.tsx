@@ -13,7 +13,7 @@ export class BrowserOverrideScopePickerDriver {
     'all',
     'tab',
   ]);
-  private disabled = false;
+  private disabled = faker.datatype.boolean();
   private readonly onChange = jest.fn<ScopePickerProps['onChange']>();
   private baseElement!: Element;
 
@@ -51,6 +51,6 @@ export class BrowserOverrideScopePickerDriver {
         wrapper: this.baseElement,
         dataHook: 'override-scope',
       }),
-    onChangeMock: (): ScopePickerProps['onChange'] => this.onChange,
+    onChangeMock: () => this.onChange,
   };
 }

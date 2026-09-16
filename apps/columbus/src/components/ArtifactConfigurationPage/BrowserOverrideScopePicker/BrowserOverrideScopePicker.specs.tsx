@@ -26,12 +26,10 @@ describe('BrowserOverrideScopePicker', () => {
   });
 
   it('should call onChange with other scope when another scope is selected', async () => {
-    const [selected, other] = faker.helpers.shuffle(SCOPES);
+    driver.given.selectedScope('all').given.disabled(false).when.rendered();
 
-    driver.given.selectedScope(selected).when.rendered();
+    await driver.when.scopeSelected('tab');
 
-    await driver.when.scopeSelected(other);
-
-    expect(driver.get.onChangeMock()).toHaveBeenCalledWith(other);
+    expect(driver.get.onChangeMock()).toHaveBeenCalledWith('tab');
   });
 });

@@ -8,18 +8,6 @@ describe('OverrideRadioCard', () => {
     driver = new OverrideRadioCardDriver();
   });
 
-  describe('when enabled', () => {
-    beforeEach(() => {
-      driver.given.disabled(false).when.rendered();
-    });
-
-    it('should call onSelect once when radio is clicked', async () => {
-      await driver.when.selected();
-
-      expect(driver.get.selectMock()).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('should show title in radio label when rendered', async () => {
     const title = faker.commerce.productName();
 
@@ -48,5 +36,13 @@ describe('OverrideRadioCard', () => {
     driver.given.disabled(true).when.rendered();
 
     expect(await driver.get.radio().isDisabled()).toBe(true);
+  });
+
+  it('should call onSelect once when unchecked enabled radio is selected', async () => {
+    driver.given.checked(false).given.disabled(false).when.rendered();
+
+    await driver.when.selected();
+
+    expect(driver.get.selectMock()).toHaveBeenCalledTimes(1);
   });
 });
