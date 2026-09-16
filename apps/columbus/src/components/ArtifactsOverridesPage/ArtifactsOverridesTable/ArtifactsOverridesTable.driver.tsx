@@ -5,7 +5,7 @@ import type { Artifact } from '../../../types/app';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
-} from '../../providers';
+} from '../../../state';
 import type { useArtifacts as useArtifactsType } from '../useArtifacts/useArtifacts';
 
 const useArtifacts = jest.fn<typeof useArtifactsType>();
@@ -18,7 +18,7 @@ jest.unstable_mockModule('react-router-dom', () => ({
 jest.unstable_mockModule('../useArtifacts/useArtifacts', () => ({
   useArtifacts,
 }));
-jest.unstable_mockModule('../../providers', () => ({
+jest.unstable_mockModule('../../../state', () => ({
   useActionsDisabled,
   useOverrides,
 }));

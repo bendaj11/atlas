@@ -7,12 +7,12 @@ import type {
 } from '../../../types/app';
 import { aColumbusState } from '../../../types/app.testkit';
 import { getArtifactKey } from '../../../types/contracts';
-import type { useColumbusState as useColumbusStateType } from '../../providers/useColumbusState/useColumbusState';
+import type { useColumbusState as useColumbusStateType } from '../../../state/useColumbusState/useColumbusState';
 
 const useColumbusState = jest.fn<typeof useColumbusStateType>();
 
 jest.unstable_mockModule(
-  '../../providers/useColumbusState/useColumbusState',
+  '../../../state/useColumbusState/useColumbusState',
   () => ({
     useColumbusState,
   }),

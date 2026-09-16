@@ -6,12 +6,12 @@ import { anArtifact } from '../../../../types/app.testkit';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
-} from '../../../providers';
+} from '../../../../state';
 
 const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
 
-jest.unstable_mockModule('../../../providers', () => ({
+jest.unstable_mockModule('../../../../state', () => ({
   useActionsDisabled,
   useOverrides,
 }));

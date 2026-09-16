@@ -1,7 +1,7 @@
 import type { ArtifactProps } from '../../../../types/app';
 import { Delete, Edit } from '@wix/wix-ui-icons-common';
 import { TableActionCell } from '@wix/design-system';
-import { useActionsDisabled, useOverrides } from '../../../providers/index';
+import { useActionsDisabled, useOverrides } from '../../../../state';
 import { useNavigate } from 'react-router-dom';
 import { ARTIFACT_CONFIGURATION_ROUTE } from '../../../../scripts/routing/routes/routes';
 

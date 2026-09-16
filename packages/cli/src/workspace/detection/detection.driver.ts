@@ -1,5 +1,5 @@
 import { relative } from 'node:path';
-import { TemporaryDirectory } from '../workspace.testkit.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   detectGenerationBase,
   detectPackageManager,

@@ -1,273 +1,145 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import type {
+  AtlasHostManifest,
+  AtlasManifest,
+  AtlasVersionChannel,
+} from '@atlas/schema';
 import { CliArguments } from '../../cli/arguments.js';
-import { createTestWorkspace } from '../../test-utils/build.testkit.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import type {
   AtlasProject,
-  AtlasWorkspace,
-} from '../../workspace/service/workspace.js';
-import { AtlasBuildService } from './build.service.js';
-
-type BuildScenario =
-  | 'source-maps'
-  | 'pull-request'
-  | 'angular-artifact'
-  | 'angular-global-styles'
-  | 'missing-registry'
-  | 'deterministic'
-  | 'local-host-styles';
+  AtlasWorkspaceKind,
+} from '../../workspace/types.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import {
+  AtlasBuildService,
+  type AtlasBuildResult,
+  type BuildManifestOptions,
+} from './build.service.js';
 
 export class BuildServiceDriver {
-  private readonly appId = faker.string.uuid();
+  private readonly directory = new TemporaryDirectory();
   private readonly projectName = faker.word.noun().toLowerCase();
-  private readonly gitSha = faker.git.commitSha();
-  private readonly prNumber = faker.number.int({ min: 1, max: 999 });
-  private readonly version = faker.system.semver();
-  private scenario?: BuildScenario;
-  private root = '';
-  private artifactRoot = '';
-  private project?: AtlasProject;
-  private workspace?: AtlasWorkspace;
-  private observation?: unknown;
+  private project!: AtlasProject;
+  private kind: AtlasWorkspaceKind = 'standalone';
+  private flags: string[] = ['--skip-compile'];
+  private readonly environment = new Map<string, string | undefined>();
+  private result?: AtlasBuildResult;
+  private manifest?: AtlasManifest;
+  private hostManifest?: AtlasHostManifest;
 
-  given = {
-    build: async (scenario: BuildScenario): Promise<void> => {
-      this.scenario = scenario;
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-build-service-'));
-      const projectRoot = join(this.root, this.projectName);
-      this.artifactRoot = isAngularBuildScenario(scenario)
-        ? join(projectRoot, 'dist', this.projectName, 'browser')
-        : join(projectRoot, 'dist');
-
-      await mkdir(this.artifactRoot, { recursive: true });
-      await writeFile(
-        join(this.root, 'package.json'),
-        JSON.stringify({ type: 'module' }),
-      );
-      await writeFile(
-        join(projectRoot, 'atlas.config.js'),
-        this.configSource(scenario),
-      );
-      await writeFile(join(this.artifactRoot, 'remoteEntry.json'), '{}\n');
-
-      if (scenario === 'angular-global-styles') {
-        await writeFile(
-          join(this.artifactRoot, 'index.html'),
-          '<link rel="stylesheet" href="styles-material.css"><link rel="stylesheet" href="styles-tailwind.css">',
-        );
-        await writeFile(join(this.artifactRoot, 'styles-material.css'), '');
-        await writeFile(join(this.artifactRoot, 'styles-tailwind.css'), '');
-      }
-
-      if (scenario === 'source-maps') {
-        await writeFile(
-          join(this.artifactRoot, 'remoteEntry.js.map'),
-          faker.lorem.sentence(),
-        );
-      }
-
-      this.project = {
-        id: isAngularBuildScenario(scenario)
-          ? `@example/${this.projectName}`
-          : this.projectName,
-        outputPaths: isAngularBuildScenario(scenario)
-          ? []
-          : [this.artifactRoot],
+  readonly given = {
+    project: async (): Promise<this> => {
+      await this.directory.create('atlas-build-service-');
+      await this.directory.writeJson('package.json', { type: 'module' });
+      this.project = aProject({
+        id: this.projectName,
         packageName: this.projectName,
-        root: projectRoot,
-        version: this.version,
-      };
-      this.workspace = createTestWorkspace({
-        findProject: async () => this.project!,
-        kind: isAngularBuildScenario(scenario) ? 'workspace' : 'standalone',
-        root: this.root,
+        root: this.directory.path(this.projectName),
+        outputPaths: [],
       });
+      await this.directory.mkdir(this.projectName);
+
+      return this;
+    },
+    projectField: (overrides: Partial<AtlasProject>): this => {
+      this.project = { ...this.project, ...overrides };
+
+      return this;
+    },
+    workspaceKind: (kind: AtlasWorkspaceKind): this => {
+      this.kind = kind;
+
+      return this;
+    },
+    config: async (source: string): Promise<this> => {
+      await this.directory.writeFile(
+        `${this.projectName}/atlas.config.js`,
+        source,
+      );
+
+      return this;
+    },
+    artifactFile: async (
+      relativePath: string,
+      contents = '',
+    ): Promise<this> => {
+      await this.directory.writeFile(
+        `${this.projectName}/dist/${relativePath}`,
+        contents,
+      );
+
+      return this;
+    },
+    flags: (flags: string[]): this => {
+      this.flags = ['--skip-compile', ...flags];
+
+      return this;
+    },
+    environment: (name: string, value: string | undefined): this => {
+      if (!this.environment.has(name))
+        this.environment.set(name, process.env[name]);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+
+      return this;
     },
   };
 
-  when = {
-    buildManifest: async (): Promise<void> => {
-      if (!this.workspace || !this.project || !this.scenario) {
-        throw new Error('Build setup is required.');
+  readonly when = {
+    publicationBuilt: async (): Promise<void> => {
+      this.result = await this.service().publication(this.projectName);
+    },
+    manifestBuilt: async (
+      channel?: AtlasVersionChannel,
+      options: BuildManifestOptions = { skipCompile: true },
+    ): Promise<void> => {
+      this.manifest = await this.service().buildManifest(
+        this.projectName,
+        channel,
+        options,
+      );
+    },
+    localHostManifestBuilt: async (baseUrl: string): Promise<void> => {
+      this.hostManifest = await this.service().buildLocalHostManifest(
+        this.projectName,
+        baseUrl,
+      );
+    },
+  };
+
+  readonly get = {
+    result: (): AtlasBuildResult => this.result!,
+    manifest: (): AtlasManifest => this.manifest!,
+    hostManifest: (): AtlasHostManifest => this.hostManifest!,
+    writtenHostManifest: async (): Promise<unknown> =>
+      JSON.parse(
+        await readFile(
+          join(this.project.root, '.atlas', 'local-host.manifest.json'),
+          'utf8',
+        ),
+      ),
+    artifactRoot: (): string => this.directory.path(`${this.projectName}/dist`),
+    restoreEnvironment: (): void => {
+      for (const [name, value] of this.environment) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
       }
-
-      if (this.scenario === 'source-maps') await this.buildSourceMaps();
-      if (this.scenario === 'pull-request') await this.buildPullRequest();
-      if (this.scenario === 'angular-artifact')
-        await this.buildAngularArtifact();
-      if (this.scenario === 'angular-global-styles')
-        await this.buildAngularGlobalStyles();
-      if (this.scenario === 'missing-registry')
-        await this.buildMissingRegistry();
-      if (this.scenario === 'deterministic')
-        await this.buildDeterministically();
-      if (this.scenario === 'local-host-styles')
-        await this.buildLocalHostStyles();
     },
-    publishVersion: (version: string) =>
-      this.service([
-        'publish',
-        this.projectName,
-        '--skip-compile',
-        `--version=${version}`,
-      ]).publication(this.projectName),
   };
 
-  get = {
-    observation: <T>(): T => this.observation as T,
-  };
-
-  private configSource(scenario: BuildScenario): string {
-    const isAngular =
-      isAngularBuildScenario(scenario) || scenario === 'local-host-styles';
-    const hostType = scenario === 'local-host-styles' ? ', type: "host"' : '';
-    const framework = isAngular ? 'angular' : 'react';
-
-    return `export default { id: "${this.appId}", name: "${faker.company.name()}", framework: "${framework}"${hostType} };\n`;
-  }
-
-  private service(arguments_: string[]): AtlasBuildService {
-    return new AtlasBuildService(this.workspace!, new CliArguments(arguments_));
-  }
-
-  private async buildSourceMaps(): Promise<void> {
-    const arguments_ = [
-      'build',
-      this.projectName,
-      '--skip-compile',
-      '--channel=local',
-    ];
-    const first = await this.service(arguments_).buildManifest(
-      this.projectName,
-    );
-
-    await writeFile(
-      join(this.artifactRoot, 'remoteEntry.js.map'),
-      faker.lorem.paragraphs(),
-    );
-
-    const second = await this.service(arguments_).buildManifest(
-      this.projectName,
-    );
-    this.observation = first.buildId !== second.buildId;
-  }
-
-  private async buildPullRequest(): Promise<void> {
-    const previousPr = process.env.CI_MERGE_REQUEST_IID;
-    const previousSha = process.env.CI_COMMIT_SHA;
-    process.env.CI_MERGE_REQUEST_IID = String(this.prNumber);
-    process.env.CI_COMMIT_SHA = this.gitSha;
-
-    try {
-      const manifest = await this.service([
-        'build',
-        this.projectName,
-        '--skip-compile',
-        `--registry-url=${faker.internet.url()}`,
-      ]).buildManifest(this.projectName, undefined, { skipCompile: true });
-
-      this.observation = {
-        channel: manifest.channel,
-        gitShaMatches: manifest.gitSha === this.gitSha,
-        prNumberMatches: manifest.prNumber === this.prNumber,
-        versionMatches:
-          manifest.version === `${this.version}-pr.${this.prNumber}`,
-      };
-    } finally {
-      this.restoreEnvironment('CI_MERGE_REQUEST_IID', previousPr);
-      this.restoreEnvironment('CI_COMMIT_SHA', previousSha);
-    }
-  }
-
-  private async buildAngularArtifact(): Promise<void> {
-    const manifest = await this.service([
-      'build',
-      this.projectName,
-      '--skip-compile',
-    ]).buildManifest(this.projectName, 'production', {
-      baseUrl: faker.internet.url(),
-      skipCompile: true,
+  private service(): AtlasBuildService {
+    const workspace = aWorkspace({
+      kind: this.kind,
+      root: this.directory.root,
+      findProject: async () => this.project,
     });
 
-    this.observation = manifest.remoteEntryUrl.includes(`/apps/${this.appId}/`);
-  }
-
-  private async buildAngularGlobalStyles(): Promise<void> {
-    const manifest = await this.service([
-      'build',
-      this.projectName,
-      '--skip-compile',
-    ]).buildManifest(this.projectName, 'production', {
-      baseUrl: faker.internet.url(),
-      skipCompile: true,
-    });
-
-    const stylesheetPaths = manifest.styles?.map(({ href }) =>
-      new URL(href).pathname.split('/').at(-1),
+    return new AtlasBuildService(
+      workspace,
+      new CliArguments(['build', this.projectName, ...this.flags]),
     );
-    this.observation =
-      JSON.stringify(stylesheetPaths) ===
-      JSON.stringify(['styles-material.css', 'styles-tailwind.css']);
   }
-
-  private async buildMissingRegistry(): Promise<void> {
-    const previous = process.env.ATLAS_REGISTRY_URL;
-    delete process.env.ATLAS_REGISTRY_URL;
-
-    try {
-      await this.service([
-        'build',
-        this.projectName,
-        '--skip-compile',
-      ]).buildManifest(this.projectName, 'production', { skipCompile: true });
-    } finally {
-      this.restoreEnvironment('ATLAS_REGISTRY_URL', previous);
-    }
-  }
-
-  private async buildDeterministically(): Promise<void> {
-    const previous = process.env.ATLAS_CREATED_AT;
-    process.env.ATLAS_CREATED_AT = faker.date.past().toISOString();
-    const arguments_ = [
-      'build',
-      this.projectName,
-      '--skip-compile',
-      `--registry-url=${faker.internet.url()}`,
-    ];
-
-    try {
-      const first = await this.service(arguments_).buildManifest(
-        this.projectName,
-      );
-      const second = await this.service(arguments_).buildManifest(
-        this.projectName,
-      );
-
-      this.observation = JSON.stringify(first) === JSON.stringify(second);
-    } finally {
-      this.restoreEnvironment('ATLAS_CREATED_AT', previous);
-    }
-  }
-
-  private async buildLocalHostStyles(): Promise<void> {
-    const manifest = await this.service([
-      'build',
-      this.projectName,
-    ]).buildLocalHostManifest(this.projectName, faker.internet.url());
-
-    this.observation = manifest.styles?.[0]?.href.endsWith('/styles.css');
-  }
-
-  private restoreEnvironment(name: string, value: string | undefined): void {
-    if (value === undefined) delete process.env[name];
-    else process.env[name] = value;
-  }
-}
-
-function isAngularBuildScenario(scenario: BuildScenario): boolean {
-  return (
-    scenario === 'angular-artifact' || scenario === 'angular-global-styles'
-  );
 }

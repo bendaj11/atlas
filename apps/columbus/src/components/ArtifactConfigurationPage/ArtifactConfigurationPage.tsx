@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
 import { initialOverrideSelection } from '../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker/BrowserOverrideScopePicker';
-import { useActionsDisabled, useOverrides } from '../providers';
+import { useActionsDisabled, useOverrides } from '../../state';
 import { useArtifactConfiguration } from './useArtifactConfiguration/useArtifactConfiguration';
 import { useSaveArtifactOverride } from './useSaveArtifactOverride/useSaveArtifactOverride';
 import { OverridesSelectionForm } from './OverridesForm/OverridesSelectionForm';

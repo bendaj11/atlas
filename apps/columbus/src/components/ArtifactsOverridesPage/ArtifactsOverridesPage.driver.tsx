@@ -6,13 +6,13 @@ import type {
   useActionsDisabled as useActionsDisabledType,
   useHost as useHostType,
   useOverrides as useOverridesType,
-} from '../providers';
+} from '../../state';
 
 const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
 const useHost = jest.fn<typeof useHostType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
 
-jest.unstable_mockModule('../providers', () => ({
+jest.unstable_mockModule('../../state', () => ({
   useActionsDisabled,
   useHost,
   useOverrides,

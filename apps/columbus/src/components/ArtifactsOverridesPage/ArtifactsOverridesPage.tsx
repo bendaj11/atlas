@@ -8,10 +8,10 @@ import {
   Text,
 } from '@wix/design-system';
 import { Delete } from '@wix/wix-ui-icons-common';
-import { useActionsDisabled, useHost, useOverrides } from '../providers/index';
+import { useActionsDisabled, useHost, useOverrides } from '../../state';
 import { EmptyHostDataState } from '../EmptyHostDataState/EmptyHostDataState';
 import { ArtifactsOverridesTable } from './ArtifactsOverridesTable/ArtifactsOverridesTable';
-import manifest from '../../manifest.json';
+import manifest from '../../../public/manifest.json';
 
 export function ArtifactsOverridesPage() {
   const { loadHost, message, status } = useHost();

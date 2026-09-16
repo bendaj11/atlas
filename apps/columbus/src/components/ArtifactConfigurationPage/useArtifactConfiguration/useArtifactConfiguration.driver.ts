@@ -3,13 +3,13 @@ import { renderHook, type RenderHookResult } from '@testing-library/react';
 import type { useLocation as useLocationType } from 'react-router-dom';
 import type { Artifact, ColumbusState } from '../../../types/app';
 import { anArtifact, aColumbusState } from '../../../types/app.testkit';
-import type { useColumbusState as useColumbusStateType } from '../../providers/index';
+import type { useColumbusState as useColumbusStateType } from '../../../state';
 
 const useLocation = jest.fn<typeof useLocationType>();
 const useColumbusState = jest.fn<typeof useColumbusStateType>();
 
 jest.unstable_mockModule('react-router-dom', () => ({ useLocation }));
-jest.unstable_mockModule('../../providers', () => ({ useColumbusState }));
+jest.unstable_mockModule('../../../state', () => ({ useColumbusState }));
 
 const { useArtifactConfiguration } = await import('./useArtifactConfiguration');
 

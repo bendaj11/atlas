@@ -1,6 +1,6 @@
 import { ToggleSwitch } from '@wix/design-system';
 import type { ArtifactProps } from '../../../../types/app';
-import { useActionsDisabled, useOverrides } from '../../../providers/index';
+import { useActionsDisabled, useOverrides } from '../../../../state';
 
 export const ArtifactOverrideToggle = ({ artifact }: ArtifactProps) => {
   const { toggleOverride } = useOverrides();

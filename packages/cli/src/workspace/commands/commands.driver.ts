@@ -7,7 +7,7 @@ import type {
   AtlasTask,
   AtlasWorkspaceKind,
 } from '../types.js';
-import { TemporaryDirectory } from '../workspace.testkit.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   createFormatGeneratedCommand,
   createInstallCommand,

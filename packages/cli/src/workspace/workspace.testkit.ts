@@ -1,8 +1,5 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import type { AtlasProject } from './types.js';
+import type { AtlasProject, AtlasWorkspace } from './types.js';
 
 export function aProject(overrides: Partial<AtlasProject> = {}): AtlasProject {
   const id = faker.word.noun().toLowerCase();
@@ -17,30 +14,33 @@ export function aProject(overrides: Partial<AtlasProject> = {}): AtlasProject {
   };
 }
 
-export class TemporaryDirectory {
-  root = '';
+export function aWorkspace(
+  overrides: Partial<AtlasWorkspace> = {},
+): AtlasWorkspace {
+  const project = aProject();
 
-  async create(prefix: string): Promise<string> {
-    this.root = await mkdtemp(join(tmpdir(), prefix));
-
-    return this.root;
-  }
-
-  async writeFile(relativePath: string, contents: string): Promise<void> {
-    const path = join(this.root, relativePath);
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, contents, 'utf8');
-  }
-
-  async writeJson(relativePath: string, value: unknown): Promise<void> {
-    await this.writeFile(relativePath, `${JSON.stringify(value)}\n`);
-  }
-
-  async mkdir(relativePath: string): Promise<void> {
-    await mkdir(join(this.root, relativePath), { recursive: true });
-  }
-
-  path(relativePath: string): string {
-    return join(this.root, relativePath);
-  }
+  return {
+    kind: faker.helpers.arrayElement([
+      'nx',
+      'turbo',
+      'workspace',
+      'standalone',
+    ]),
+    root: faker.system.directoryPath(),
+    packageManager: faker.helpers.arrayElement(['yarn', 'pnpm', 'npm']),
+    findProject: async () => project,
+    listProjects: async () => [project],
+    run: async () => undefined,
+    spawn: () => {
+      throw new Error('Workspace spawn was not expected.');
+    },
+    formatGenerated: async () => false,
+    installDependencies: async () => undefined,
+    missingScaffoldDependency: async () => undefined,
+    installScaffoldDependency: async () => undefined,
+    scaffoldProject: async () => false,
+    generationRoot: (_type, name) =>
+      `${overrides.root ?? '/workspace'}/${name}`,
+    ...overrides,
+  };
 }

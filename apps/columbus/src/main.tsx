@@ -1,8 +1,8 @@
 import '@wix/design-system/styles.global.css';
 import { createRoot } from 'react-dom/client';
-import './styles/app.css';
+import './index.css';
 import { App } from './components/App/App';
-import { AppProvider } from './components/providers/AppProvider/AppProvider';
+import { AppProvider } from './providers/AppProvider/AppProvider';
 
 const root = document.getElementById('root');
 

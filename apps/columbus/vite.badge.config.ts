@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 const directory = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  publicDir: false,
   build: {
     emptyOutDir: false,
     outDir: 'dist',

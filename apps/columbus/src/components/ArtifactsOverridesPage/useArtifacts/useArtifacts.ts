@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getArtifactKey } from '../../../types/contracts';
-import { useColumbusState } from '../../providers';
+import { useColumbusState } from '../../../state';
 import {
   artifactSourceDescription,
   overrideTypeFor,

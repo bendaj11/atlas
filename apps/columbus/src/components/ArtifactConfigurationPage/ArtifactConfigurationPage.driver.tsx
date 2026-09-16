@@ -15,7 +15,7 @@ import { anArtifactConfiguration } from '../../types/app.testkit';
 import type {
   useActionsDisabled as useActionsDisabledType,
   useOverrides as useOverridesType,
-} from '../providers/index';
+} from '../../state';
 import type { useArtifactConfiguration as useArtifactConfigurationType } from './useArtifactConfiguration/useArtifactConfiguration';
 import type { useSaveArtifactOverride as useSaveArtifactOverrideType } from './useSaveArtifactOverride/useSaveArtifactOverride';
 
@@ -30,7 +30,7 @@ jest.unstable_mockModule('react-router-dom', () => ({
   Navigate: () => <div data-testid="navigate" />,
   useNavigate: () => navigate,
 }));
-jest.unstable_mockModule('../providers', () => ({
+jest.unstable_mockModule('../../state', () => ({
   useActionsDisabled,
   useOverrides,
 }));

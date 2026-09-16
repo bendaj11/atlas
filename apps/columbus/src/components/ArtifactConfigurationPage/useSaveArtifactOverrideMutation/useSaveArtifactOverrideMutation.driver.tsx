@@ -16,15 +16,15 @@ import type { loadArtifactVersionFromHostTab as loadArtifactVersionFromHostTabTy
 import type {
   useOverrides as useOverridesType,
   useColumbusState as useColumbusStateType,
-} from '../../providers/index';
-import { createQueryClient } from '../../providers/query-client/query-client';
+} from '../../../state';
+import { createQueryClient } from '../../../state/query-client/query-client';
 
 const useOverrides = jest.fn<typeof useOverridesType>();
 const useColumbusState = jest.fn<typeof useColumbusStateType>();
 const loadArtifactVersionFromHostTab =
   jest.fn<typeof loadArtifactVersionFromHostTabType>();
 
-jest.unstable_mockModule('../../providers', () => ({
+jest.unstable_mockModule('../../../state', () => ({
   useOverrides,
   useColumbusState,
 }));
