@@ -479,6 +479,10 @@ importers:
       '@atlas/schema':
         specifier: workspace:^
         version: link:../schema
+    devDependencies:
+      '@faker-js/faker':
+        specifier: ^10.5.0
+        version: 10.5.0
 
   packages/runtime:
     dependencies:
