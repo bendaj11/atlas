@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { BootstrapTemplateDriver } from './bootstrap-template.driver.js';
 
 describe('loadBootstrapTemplate', () => {

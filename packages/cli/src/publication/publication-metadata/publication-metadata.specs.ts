@@ -1,4 +1,3 @@
-import { expect, it } from '@jest/globals';
 import { publicationContentType } from './publication-metadata.js';
 
 it.each([

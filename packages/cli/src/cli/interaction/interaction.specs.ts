@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { InteractionDriver } from './interaction.driver.js';
 
 describe('resolveInvocation', () => {

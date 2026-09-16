@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { NxDriver } from './nx.driver.js';
 
 describe('Nx generation', () => {

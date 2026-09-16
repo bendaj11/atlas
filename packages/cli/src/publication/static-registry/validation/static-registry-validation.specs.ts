@@ -1,4 +1,3 @@
-import { describe, expect, it } from '@jest/globals';
 import { emptyStaticRegistry } from '../static-registry.js';
 import { assertStaticRegistry } from './static-registry-validation.js';
 

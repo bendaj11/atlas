@@ -1,4 +1,3 @@
-import { beforeEach, expect, it } from '@jest/globals';
 import { AtlasPreviewUrlsDriver } from './previews.driver.js';
 
 let driver: AtlasPreviewUrlsDriver;

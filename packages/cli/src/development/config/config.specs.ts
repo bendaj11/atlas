@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { DevelopmentConfigDriver } from './config.driver.js';
 
 describe('development configuration', () => {

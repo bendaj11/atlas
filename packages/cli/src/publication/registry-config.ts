@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import ts from 'typescript';
 import { CliArguments } from '../cli/arguments.js';
+import { cliError } from '../cli/cli-error/cli-error.js';
 import { exists } from '../shared/fs/fs.js';
 import { formatTypeScriptDiagnostics } from '../build/config-compiler/config-compiler.js';
 import {
@@ -47,7 +48,14 @@ export async function loadAtlasRegistryConfig(
 ): Promise<AtlasRegistryConfig | undefined> {
   const explicit = args.flag('registry-config');
   const path = resolve(workingDirectory, explicit ?? 'atlas.registry.ts');
-  if (!explicit && !(await exists(path))) return undefined;
+  if (!(await exists(path))) {
+    if (!explicit) return undefined;
+    throw cliError(
+      `Registry config ${path} does not exist.`,
+      'Pass --registry-config with an existing atlas.registry.ts path.',
+      { code: 'ATLAS_REGISTRY_CONFIG_MISSING' },
+    );
+  }
   const compiled = await compileConfig(path);
   try {
     const loaded = (await import(

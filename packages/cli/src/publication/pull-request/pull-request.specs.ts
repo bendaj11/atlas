@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { PullRequestDriver } from './pull-request.driver.js';
 
 describe('resolvePullRequestStatus', () => {

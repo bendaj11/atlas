@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { EntrypointDriver } from './entrypoint.driver.js';
 
 describe('CLI entrypoint', () => {

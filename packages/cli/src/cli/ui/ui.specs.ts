@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { UiDriver } from './ui.driver.js';
 
 describe('ui', () => {

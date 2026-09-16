@@ -1,4 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { BootstrapServerDriver } from './bootstrap-server.driver.js';
 
 describe('local bootstrap server', () => {

@@ -1,4 +1,3 @@
-import { describe, expect, it } from '@jest/globals';
 import { AngularGenerationDriver } from './angular.driver.js';
 import { ensureAngularNativeFederationTargets } from './angular.js';
 

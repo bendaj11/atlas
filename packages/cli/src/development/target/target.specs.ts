@@ -1,4 +1,3 @@
-import { beforeEach, expect, it } from '@jest/globals';
 import { DevelopmentTargetDriver } from './target.driver.js';
 
 let driver: DevelopmentTargetDriver;

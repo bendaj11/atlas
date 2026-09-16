@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ArtifactoryClientDriver } from './artifactory-client.driver.js';
 
 describe('ArtifactoryClient', () => {

@@ -19,7 +19,7 @@ import {
 import { loadEnvFiles } from '../workspace/env/env.js';
 import { detectWorkspace } from '../workspace/service/workspace.js';
 import { CliArguments } from './arguments.js';
-import { createCliError } from './cli-error/cli-error.js';
+import { cliError, createCliError } from './cli-error/cli-error.js';
 import {
   resolveInvocation,
   type AtlasInvocation,
@@ -137,8 +137,10 @@ export async function runAtlasCli(
       return;
     }
 
-    throw new Error(
-      `Unknown or incomplete command "${values.join(' ')}". Run atlas --help for usage.`,
+    throw cliError(
+      `Unknown or incomplete command "${values.join(' ')}".`,
+      'Run `atlas --help` to choose a supported command, then retry with the documented arguments.',
+      { code: 'ATLAS_UNKNOWN_COMMAND' },
     );
   } catch (error) {
     throw createCliError(args.command, error);

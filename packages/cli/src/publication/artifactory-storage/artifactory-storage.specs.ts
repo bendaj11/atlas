@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ArtifactoryStorageDriver } from './artifactory-storage.driver.js';
 
 describe('ArtifactoryPublicationStorage', () => {

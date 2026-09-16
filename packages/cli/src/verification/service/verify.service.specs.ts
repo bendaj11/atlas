@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { VerifyServiceDriver } from './verify.service.driver.js';
 
 describe('AtlasVerifyService', () => {
