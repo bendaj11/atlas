@@ -1,4 +1,6 @@
-export function reactTsconfig(): unknown {
+import type { TsconfigDocument } from '../../shared/types/generated-documents.js';
+
+export function reactTsconfig(): TsconfigDocument {
   return {
     compilerOptions: {
       target: 'ES2022',

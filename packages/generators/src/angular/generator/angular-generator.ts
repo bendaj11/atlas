@@ -1,4 +1,13 @@
 import {
+  angularAppComponent,
+  angularAppConfig,
+  angularAppDetailsComponent,
+  angularAppEntry,
+  angularAppHomeComponent,
+  angularAppMain,
+  angularAppRoutes,
+} from '../app/angular-app-generator.js';
+import {
   angularHostAppConfig,
   angularHostBootstrap,
   angularHostComponent,
@@ -6,19 +15,6 @@ import {
   angularHostRoutes,
   angularHostSdkConfig,
 } from '../host/angular-host-generator.js';
-import {
-  angularAppAppComponent,
-  angularAppConfig,
-  angularAppDetailsComponent,
-  angularAppEntry,
-  angularAppHomeComponent,
-  angularAppMain,
-  angularAppRoutes,
-  angularSinglePageAppComponent,
-  angularSinglePageAppConfig,
-  angularSinglePageAppEntry,
-  angularSinglePageAppMain,
-} from '../app/angular-app-generator.js';
 import {
   angularIndex,
   angularPackage,
@@ -37,19 +33,26 @@ import {
 } from '../../shared/atlas-config/atlas-config.js';
 import { atlasHostStyles } from '../../shared/host-styles/host-styles.js';
 import { json, title } from '../../shared/text/text.js';
-import { angularVersionProfile } from '../../shared/versions/generator-versions.js';
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
 } from '../../shared/types/generator-types.js';
+import { angularVersionProfile } from '../../shared/versions/generator-versions.js';
+import { exportedWidgetsReadme } from '../../shared/widgets-readme/widgets-readme.js';
 
-export function generateAngularHostFiles(
-  options: AtlasGeneratorOptions,
-  hostId: string,
-): AtlasGeneratedFile[] {
-  const { name } = options;
+interface AngularHostFilesOptions {
+  options: AtlasGeneratorOptions;
+  hostId: string;
+}
+
+export function generateAngularHostFiles({
+  options,
+  hostId,
+}: AngularHostFilesOptions): AtlasGeneratedFile[] {
+  const { name, devServerPort, stylesheetFormat } = options;
   const profile = angularVersionProfile(options);
-  const stylesheetPath = `src/styles.${options.stylesheetFormat ?? 'css'}`;
+  const stylesheetPath = `src/styles.${stylesheetFormat ?? 'css'}`;
+
   return [
     {
       path: 'package.json',
@@ -65,35 +68,40 @@ export function generateAngularHostFiles(
     {
       path: 'angular.json',
       contents: json(
-        angularWorkspace(
+        angularWorkspace({
           name,
-          true,
-          options.devServerPort,
-          options.stylesheetFormat,
+          type: 'host',
+          devServerPort,
+          stylesheetFormat,
           profile,
-        ),
+        }),
       ),
     },
     { path: 'tsconfig.json', contents: json(angularRootTsconfig()) },
     { path: 'tsconfig.app.json', contents: json(angularAppTsconfig()) },
     {
       path: angularFederationConfigFile(profile),
-      contents: angularFederationConfig(name, true, profile),
+      contents: angularFederationConfig({ name, type: 'host', profile }),
     },
     { path: 'atlas.config.ts', contents: atlasHostConfig(options, hostId) },
     { path: 'atlas.bootstrap.html', contents: atlasBootstrapHtml(name) },
     { path: 'public/.gitkeep', contents: '' },
     {
       path: 'src/index.html',
-      contents: angularIndex(
-        'Atlas Host',
-        '<atlas-host-root></atlas-host-root>',
-      ),
+      contents: angularIndex({
+        pageTitle: 'Atlas Host',
+        body: '<atlas-host-root></atlas-host-root>',
+      }),
     },
     { path: stylesheetPath, contents: atlasHostStyles() },
     { path: 'src/assets/.gitkeep', contents: '' },
     { path: 'src/app/app.component.ts', contents: angularHostComponent() },
-    { path: 'src/app/app.config.ts', contents: angularHostAppConfig(profile) },
+    {
+      path: 'src/app/app.config.ts',
+      contents: angularHostAppConfig({
+        requiresZonelessProvider: profile.requiresZonelessProvider,
+      }),
+    },
     { path: 'src/app/app.routes.ts', contents: angularHostRoutes() },
     { path: 'src/app/host.config.ts', contents: angularHostSdkConfig() },
     { path: 'src/main.ts', contents: angularHostMain() },
@@ -104,10 +112,11 @@ export function generateAngularHostFiles(
 export function generateAngularAppFiles(
   options: AtlasGeneratorOptions,
 ): AtlasGeneratedFile[] {
-  const { name } = options;
+  const { name, devServerPort, stylesheetFormat } = options;
   const profile = angularVersionProfile(options);
   const routed = options.routing ?? true;
-  const stylesheetPath = `src/styles.${options.stylesheetFormat ?? 'css'}`;
+  const stylesheetPath = `src/styles.${stylesheetFormat ?? 'css'}`;
+
   return [
     {
       path: 'package.json',
@@ -124,44 +133,39 @@ export function generateAngularAppFiles(
     {
       path: 'angular.json',
       contents: json(
-        angularWorkspace(
+        angularWorkspace({
           name,
-          false,
-          options.devServerPort,
-          options.stylesheetFormat,
+          type: 'app',
+          devServerPort,
+          stylesheetFormat,
           profile,
-        ),
+        }),
       ),
     },
     { path: 'tsconfig.json', contents: json(angularRootTsconfig()) },
     { path: 'tsconfig.app.json', contents: json(angularAppTsconfig()) },
     {
       path: angularFederationConfigFile(profile),
-      contents: angularFederationConfig(name, false, profile),
+      contents: angularFederationConfig({ name, type: 'app', profile }),
     },
     { path: 'atlas.config.ts', contents: atlasAppConfig(options) },
     { path: 'public/.gitkeep', contents: '' },
     {
       path: 'src/index.html',
-      contents: angularIndex(title(name), ''),
+      contents: angularIndex({ pageTitle: title(name), body: '' }),
     },
     { path: stylesheetPath, contents: '' },
-    {
-      path: 'src/main.ts',
-      contents: routed ? angularAppMain() : angularSinglePageAppMain(),
-    },
+    { path: 'src/main.ts', contents: angularAppMain() },
     {
       path: 'src/entry.ts',
-      contents: routed
-        ? angularAppEntry(name, profile.zoneless)
-        : angularSinglePageAppEntry(name, profile.zoneless),
+      contents: angularAppEntry({ name, routed, zoneless: profile.zoneless }),
+    },
+    {
+      path: 'src/app/app.component.ts',
+      contents: angularAppComponent({ name, routed }),
     },
     ...(routed
       ? [
-          {
-            path: 'src/app/app.component.ts',
-            contents: angularAppAppComponent(name),
-          },
           {
             path: 'src/app/home/home.component.ts',
             contents: angularAppHomeComponent(name),
@@ -170,27 +174,21 @@ export function generateAngularAppFiles(
             path: 'src/app/details/details.component.ts',
             contents: angularAppDetailsComponent(),
           },
-          {
-            path: 'src/app/app.config.ts',
-            contents: angularAppConfig(profile.requiresZonelessProvider),
-          },
-          { path: 'src/app/app.routes.ts', contents: angularAppRoutes() },
         ]
-      : [
-          {
-            path: 'src/app/app.component.ts',
-            contents: angularSinglePageAppComponent(name),
-          },
-          {
-            path: 'src/app/app.config.ts',
-            contents: angularSinglePageAppConfig(
-              profile.requiresZonelessProvider,
-            ),
-          },
-        ]),
+      : []),
+    {
+      path: 'src/app/app.config.ts',
+      contents: angularAppConfig({
+        routed,
+        requiresZonelessProvider: profile.requiresZonelessProvider,
+      }),
+    },
+    ...(routed
+      ? [{ path: 'src/app/app.routes.ts', contents: angularAppRoutes() }]
+      : []),
     {
       path: 'src/exported-widgets/README.md',
-      contents: `# Exported widgets\n\nRun \`atlas g widget <name>\` to choose an app, or pass its stable config ID with \`--app-id=<app-id>\`. Atlas generates widget source plus \`atlas.config.ts\` with stable UUIDv4 identity. Consumers call \`sdk.getWidget(widgetId)\`; do not maintain widget lists in app config.\n`,
+      contents: exportedWidgetsReadme(),
     },
   ];
 }

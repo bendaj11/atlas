@@ -12,13 +12,19 @@ export class AngularWorkspaceGeneratorDriver {
 
   readonly get = {
     workspace: () =>
-      angularWorkspace('example', this.host, 4200, 'css', {
-        major: 20,
-        version: '20.3.0',
-        typescript: '>=5.8.0 <6.0.0',
-        zone: '^0.15.0',
-        zoneless: true,
-        requiresZonelessProvider: true,
-      } satisfies AngularVersionProfile),
+      angularWorkspace({
+        name: 'example',
+        type: this.host ? 'host' : 'app',
+        devServerPort: 4200,
+        stylesheetFormat: 'css',
+        profile: {
+          major: 20,
+          version: '20.3.0',
+          typescript: '>=5.8.0 <6.0.0',
+          zone: '^0.15.0',
+          zoneless: true,
+          requiresZonelessProvider: true,
+        } satisfies AngularVersionProfile,
+      }),
   };
 }

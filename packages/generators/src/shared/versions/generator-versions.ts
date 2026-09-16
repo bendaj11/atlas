@@ -2,6 +2,9 @@ import type { AtlasGeneratorOptions } from '../types/generator-types.js';
 
 export const ATLAS_PACKAGE_VERSION = '0.4.26';
 const DEFAULT_REACT_VERSION = '19.2.8';
+const DEFAULT_ANGULAR_VERSION = '20.3.0';
+const VERIFIED_REACT_MAJORS = [17, 18, 19];
+const EXACT_SEMVER_PATTERN = /^[=~^]?(\d+\.\d+\.\d+(?:-[\w.-]+)?)$/;
 
 export function atlasPackageRange(): string {
   return `^${ATLAS_PACKAGE_VERSION}`;
@@ -25,27 +28,25 @@ export interface AngularVersionProfile {
 export function reactVersionProfile(
   options: AtlasGeneratorOptions,
 ): ReactVersionProfile {
-  const version = pinSimpleReactVersion(
-    options.frameworkVersion ?? DEFAULT_REACT_VERSION,
-  );
+  const requested = options.frameworkVersion ?? DEFAULT_REACT_VERSION;
+  const version = exactSemver(requested) ?? requested;
   const major = frameworkMajor(version, 'React');
-  if (![17, 18, 19].includes(major) && !options.allowUnsupportedVersion) {
+  if (
+    !VERIFIED_REACT_MAJORS.includes(major) &&
+    !options.allowUnsupportedVersion
+  ) {
     throw new Error(
       `React ${major} is not verified by Atlas. Pass allowUnsupportedVersion to generate it explicitly.`,
     );
   }
-  return { version, major, routerVersion: major === 17 ? '^6.30.1' : '^7.9.0' };
-}
 
-function pinSimpleReactVersion(version: string): string {
-  const exactVersion = version.match(/^[=~^]?(\d+\.\d+\.\d+(?:-[\w.-]+)?)$/);
-  return exactVersion?.[1] ?? version;
+  return { version, major, routerVersion: major === 17 ? '^6.30.1' : '^7.9.0' };
 }
 
 export function angularVersionProfile(
   options: AtlasGeneratorOptions,
 ): AngularVersionProfile {
-  const version = options.frameworkVersion ?? '20.3.0';
+  const version = options.frameworkVersion ?? DEFAULT_ANGULAR_VERSION;
   const major = frameworkMajor(version, 'Angular');
   const verified: Record<
     number,
@@ -63,6 +64,7 @@ export function angularVersionProfile(
     );
   }
   const zoneless = supportsZonelessAngular(version, major);
+
   return {
     version,
     major,
@@ -72,9 +74,14 @@ export function angularVersionProfile(
   };
 }
 
+export function exactSemver(version: string): string | undefined {
+  return version.match(EXACT_SEMVER_PATTERN)?.[1];
+}
+
 function supportsZonelessAngular(version: string, major: number): boolean {
   if (major >= 21) return true;
   if (major !== 20) return false;
+
   return /20\.(?:[2-9]|[1-9]\d)/.test(version);
 }
 
@@ -83,5 +90,6 @@ function frameworkMajor(value: string, framework: string): number {
   const major = match ? Number(match[0]) : NaN;
   if (!Number.isInteger(major) || major < 1)
     throw new Error(`Invalid ${framework} framework version "${value}".`);
+
   return major;
 }

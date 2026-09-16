@@ -5,7 +5,11 @@ import {
 } from './react-generator.js';
 
 test('should pin matching runtime versions when generating a React host', () => {
-  expect(reactDependencies(generateReactHostFiles(options(), 'host'))).toEqual({
+  expect(
+    reactDependencies(
+      generateReactHostFiles({ options: options(), hostId: 'host' }),
+    ),
+  ).toEqual({
     react: '19.2.8',
     'react-dom': '19.2.8',
   });
@@ -27,7 +31,11 @@ test('should use local Atlas commands when generating an app', () => {
 });
 
 test('should use local Atlas commands when generating a host', () => {
-  expect(atlasScripts(generateReactHostFiles(options(), 'host-id'))).toEqual({
+  expect(
+    atlasScripts(
+      generateReactHostFiles({ options: options(), hostId: 'host-id' }),
+    ),
+  ).toEqual({
     dev: 'atlas dev orders',
     config: 'atlas compile-config orders',
     publish: 'atlas publish orders',
@@ -40,9 +48,11 @@ test('should include an empty preview array when generating an app', () => {
 });
 
 test('should include an empty preview array when generating a host', () => {
-  expect(atlasPreviews(generateReactHostFiles(options(), 'host-id'))).toEqual(
-    [],
-  );
+  expect(
+    atlasPreviews(
+      generateReactHostFiles({ options: options(), hostId: 'host-id' }),
+    ),
+  ).toEqual([]);
 });
 
 it('should use the style-aware React app adapter when generating a routed app', () => {

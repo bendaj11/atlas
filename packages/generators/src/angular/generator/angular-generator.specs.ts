@@ -19,7 +19,9 @@ test('should use caret Angular dependency versions when generating an app', () =
 
 test('should use caret Angular dependency versions when generating a host', () => {
   expect(
-    angularVersions(generateAngularHostFiles(options(), 'host-id')),
+    angularVersions(
+      generateAngularHostFiles({ options: options(), hostId: 'host-id' }),
+    ),
   ).toEqual([
     '^20.3.0',
     '^20.3.0',
@@ -41,7 +43,11 @@ test('should use local Atlas commands when generating an app', () => {
 });
 
 test('should use local Atlas commands when generating a host', () => {
-  expect(atlasScripts(generateAngularHostFiles(options(), 'host-id'))).toEqual({
+  expect(
+    atlasScripts(
+      generateAngularHostFiles({ options: options(), hostId: 'host-id' }),
+    ),
+  ).toEqual({
     dev: 'atlas dev orders',
     config: 'atlas compile-config orders',
     publish: 'atlas publish orders',
@@ -54,9 +60,11 @@ test('should include an empty preview array when generating an app', () => {
 });
 
 test('should include an empty preview array when generating a host', () => {
-  expect(atlasPreviews(generateAngularHostFiles(options(), 'host-id'))).toEqual(
-    [],
-  );
+  expect(
+    atlasPreviews(
+      generateAngularHostFiles({ options: options(), hostId: 'host-id' }),
+    ),
+  ).toEqual([]);
 });
 
 function options() {

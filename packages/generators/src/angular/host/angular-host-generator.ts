@@ -1,5 +1,3 @@
-import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
-
 export function angularHostComponent(): string {
   return `import { Component } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
@@ -44,14 +42,18 @@ export const routes: Routes = [
 `;
 }
 
-export function angularHostAppConfig(profile: AngularVersionProfile): string {
-  const zonelessProvider = profile.requiresZonelessProvider
+export function angularHostAppConfig(options: {
+  requiresZonelessProvider: boolean;
+}): string {
+  const { requiresZonelessProvider } = options;
+  const coreImport = requiresZonelessProvider
     ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
     : 'import { ApplicationConfig } from "@angular/core";\n';
-  const providers = profile.requiresZonelessProvider
+  const providers = requiresZonelessProvider
     ? 'provideZonelessChangeDetection(),\n    provideRouter(routes)'
     : 'provideRouter(routes)';
-  return `${zonelessProvider}import { provideRouter } from "@angular/router";
+
+  return `${coreImport}import { provideRouter } from "@angular/router";
 import { routes } from "./app.routes";
 
 export const appConfig: ApplicationConfig = {

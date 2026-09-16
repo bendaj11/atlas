@@ -4,12 +4,10 @@ import type {
   AtlasGeneratorOptions,
 } from '../shared/types/generator-types.js';
 import { pascal, title } from '../shared/text/text.js';
-import { assertSupportedGeneratorFramework } from '../shared/validation/validation.js';
 
 export function generateWidgetFiles(
-  options: AtlasGeneratorOptions,
+  options: AtlasGeneratorOptions & { framework: 'angular' | 'react' },
 ): AtlasGeneratedFile[] {
-  assertSupportedGeneratorFramework(options);
   const baseName = pascal(options.name);
   const componentName = baseName.endsWith('Widget')
     ? baseName

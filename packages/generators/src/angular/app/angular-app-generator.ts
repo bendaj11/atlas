@@ -1,58 +1,48 @@
 import { angularRootSelector } from '../names/angular-names.js';
 import { title } from '../../shared/text/text.js';
 
-export function angularAppConfig(zoneless: boolean): string {
-  const zonelessImport = zoneless
+interface AngularAppConfigOptions {
+  routed: boolean;
+  requiresZonelessProvider: boolean;
+}
+
+export function angularAppConfig(options: AngularAppConfigOptions): string {
+  const { routed, requiresZonelessProvider } = options;
+  const coreImport = requiresZonelessProvider
     ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
     : 'import type { ApplicationConfig } from "@angular/core";\n';
-  const zonelessProvider = zoneless
+  const zonelessProvider = requiresZonelessProvider
     ? 'provideZonelessChangeDetection(),\n      '
     : '';
-  return `${zonelessImport}import { provideRouter } from "@angular/router";
-import { provideAtlasApp, type LocationStrategyAdapter } from "@atlas/sdk/angular";
+  const routerImport = routed
+    ? 'import { provideRouter } from "@angular/router";\n'
+    : '';
+  const atlasImport = routed
+    ? 'import { provideAtlasApp, type LocationStrategyAdapter } from "@atlas/sdk/angular";'
+    : 'import { provideAtlasApp } from "@atlas/sdk/angular";';
+  const routesImport = routed ? 'import { routes } from "./app.routes";\n' : '';
+  const locationStrategyField = routed
+    ? '\n  locationStrategy: LocationStrategyAdapter;'
+    : '';
+  const configFields = routed
+    ? 'context, sdk, styleTarget, locationStrategy'
+    : 'context, sdk, styleTarget';
+  const routerProvider = routed ? ',\n      provideRouter(routes),' : '';
+
+  return `${coreImport}${routerImport}${atlasImport}
 import type { AtlasSdk } from "@atlas/sdk";
 import type { AtlasAppContext } from "@atlas/sdk/lifecycle";
-import { routes } from "./app.routes";
-
+${routesImport}
 interface AtlasAppConfigOptions {
   context: AtlasAppContext;
   sdk: AtlasSdk;
-  styleTarget: Node & ParentNode;
-  locationStrategy: LocationStrategyAdapter;
+  styleTarget: Node & ParentNode;${locationStrategyField}
 }
 
-export function createAppConfig({ context, sdk, styleTarget, locationStrategy }: AtlasAppConfigOptions): ApplicationConfig {
+export function createAppConfig({ ${configFields} }: AtlasAppConfigOptions): ApplicationConfig {
   return {
     providers: [
-      ${zonelessProvider}provideAtlasApp({ context, sdk, styleTarget, locationStrategy }),
-      provideRouter(routes),
-    ]
-  };
-}
-`;
-}
-
-export function angularSinglePageAppConfig(zoneless: boolean): string {
-  const zonelessImport = zoneless
-    ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
-    : 'import type { ApplicationConfig } from "@angular/core";\n';
-  const zonelessProvider = zoneless
-    ? 'provideZonelessChangeDetection(),\n      '
-    : '';
-  return `${zonelessImport}import { provideAtlasApp } from "@atlas/sdk/angular";
-import type { AtlasSdk } from "@atlas/sdk";
-import type { AtlasAppContext } from "@atlas/sdk/lifecycle";
-
-interface AtlasAppConfigOptions {
-  context: AtlasAppContext;
-  sdk: AtlasSdk;
-  styleTarget: Node & ParentNode;
-}
-
-export function createAppConfig({ context, sdk, styleTarget }: AtlasAppConfigOptions): ApplicationConfig {
-  return {
-    providers: [
-      ${zonelessProvider}provideAtlasApp({ context, sdk, styleTarget })
+      ${zonelessProvider}provideAtlasApp({ ${configFields} })${routerProvider}
     ]
   };
 }
@@ -68,26 +58,44 @@ export { default } from "./entry";
 `;
 }
 
-export function angularAppEntry(name: string, zoneless: boolean): string {
+interface AngularAppEntryOptions {
+  name: string;
+  routed: boolean;
+  zoneless: boolean;
+}
+
+export function angularAppEntry(options: AngularAppEntryOptions): string {
+  const { name, routed, zoneless } = options;
   const selector = angularRootSelector(name);
   const zoneImport = zoneless ? '' : 'import "zone.js";\n';
+  const atlasImport = routed
+    ? 'import { createLocationStrategy, defineApp } from "@atlas/sdk/angular";'
+    : 'import { defineApp } from "@atlas/sdk/angular";';
+  const locationStrategy = routed
+    ? '\n  const locationStrategy = createLocationStrategy(context);'
+    : '';
+  const configFields = routed
+    ? 'context, sdk, styleTarget, locationStrategy'
+    : 'context, sdk, styleTarget';
+  const locationStrategyDestroy = routed
+    ? '\n      locationStrategy.ngOnDestroy();'
+    : '';
+
   return `${zoneImport}import { createApplication } from "@angular/platform-browser";
-import { createLocationStrategy, defineApp } from "@atlas/sdk/angular";
+${atlasImport}
 import { AppComponent } from "./app/app.component";
 import { createAppConfig } from "./app/app.config";
 
 export default defineApp(async ({ container, styleTarget, sdk, context }) => {
-  const element = document.createElement("${selector}");
-  const locationStrategy = createLocationStrategy(context);
+  const element = document.createElement("${selector}");${locationStrategy}
   container.append(element);
 
-  const app = await createApplication(createAppConfig({ context, sdk, styleTarget, locationStrategy }));
+  const app = await createApplication(createAppConfig({ ${configFields} }));
   app.bootstrap(AppComponent, element);
 
   return {
     unmount() {
-      app.destroy();
-      locationStrategy.ngOnDestroy();
+      app.destroy();${locationStrategyDestroy}
       element.remove();
     }
   };
@@ -95,46 +103,18 @@ export default defineApp(async ({ container, styleTarget, sdk, context }) => {
 `;
 }
 
-export function angularSinglePageAppMain(): string {
-  return `import { initFederation } from "@atlas/sdk/federation";
-
-void initFederation();
-
-export { default } from "./entry";
-`;
+interface AngularAppComponentOptions {
+  name: string;
+  routed: boolean;
 }
 
-export function angularSinglePageAppEntry(
-  name: string,
-  zoneless: boolean,
+export function angularAppComponent(
+  options: AngularAppComponentOptions,
 ): string {
+  const { name, routed } = options;
   const selector = angularRootSelector(name);
-  const zoneImport = zoneless ? '' : 'import "zone.js";\n';
-  return `${zoneImport}import { createApplication } from "@angular/platform-browser";
-import { defineApp } from "@atlas/sdk/angular";
-import { AppComponent } from "./app/app.component";
-import { createAppConfig } from "./app/app.config";
-
-export default defineApp(async ({ container, styleTarget, sdk, context }) => {
-  const element = document.createElement("${selector}");
-  container.append(element);
-
-  const app = await createApplication(createAppConfig({ context, sdk, styleTarget }));
-  app.bootstrap(AppComponent, element);
-
-  return {
-    unmount() {
-      app.destroy();
-      element.remove();
-    }
-  };
-});
-`;
-}
-
-export function angularAppAppComponent(name: string): string {
-  const selector = angularRootSelector(name);
-  return `import { Component } from "@angular/core";
+  if (routed) {
+    return `import { Component } from "@angular/core";
 import { RouterLink, RouterOutlet } from "@angular/router";
 
 @Component({
@@ -154,10 +134,8 @@ import { RouterLink, RouterOutlet } from "@angular/router";
 })
 export class AppComponent {}
 `;
-}
+  }
 
-export function angularSinglePageAppComponent(name: string): string {
-  const selector = angularRootSelector(name);
   return `import { Component } from "@angular/core";
 
 @Component({

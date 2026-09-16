@@ -1,3 +1,4 @@
+import { defaultDevServerPort, hostClientPort } from '@atlas/generators';
 import { join } from 'node:path';
 import { readJsonFile, writeJsonFile } from '../shared/fs/fs.js';
 
@@ -118,14 +119,6 @@ export function ensureAngularNativeFederationTargets(
     };
     enableAngularBuildNotifications(targets.serve);
   }
-}
-
-function defaultDevServerPort(type: ProjectType): number {
-  return type === 'host' ? 4200 : 4201;
-}
-
-function hostClientPort(bootstrapPort: number): number {
-  return bootstrapPort === 4300 ? 4200 : 4300;
 }
 
 function setAngularDevServerPort(target: unknown, port: number): void {

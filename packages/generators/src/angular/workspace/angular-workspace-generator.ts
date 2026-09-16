@@ -1,20 +1,45 @@
+import {
+  nativeFederationBuilder,
+  nativeFederationPackage,
+  usesNativeFederationV4ConfigApi,
+} from '../federation/angular-federation.js';
 import { angularRemoteName } from '../names/angular-names.js';
+import {
+  defaultDevServerPort,
+  hostClientPort,
+} from '../../shared/ports/ports.js';
+import type {
+  AngularWorkspaceDocument,
+  TsconfigDocument,
+} from '../../shared/types/generated-documents.js';
+import type {
+  AngularStylesheetFormat,
+  AtlasProjectType,
+} from '../../shared/types/generator-types.js';
 import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
-import type { AngularStylesheetFormat } from '../../shared/types/generator-types.js';
 
 const ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT =
   '/@angular-architects/native-federation:build-notifications';
 
+interface AngularWorkspaceOptions {
+  name: string;
+  type: AtlasProjectType;
+  profile: AngularVersionProfile;
+  devServerPort?: number;
+  stylesheetFormat?: AngularStylesheetFormat;
+}
+
 export function angularWorkspace(
-  name: string,
-  host: boolean,
-  devServerPort = defaultDevServerPort(host),
-  stylesheetFormat: AngularStylesheetFormat = 'css',
-  profile: AngularVersionProfile,
-): unknown {
+  options: AngularWorkspaceOptions,
+): AngularWorkspaceDocument {
+  const { name, type, profile } = options;
+  const host = type === 'host';
+  const devServerPort = options.devServerPort ?? defaultDevServerPort(type);
+  const stylesheetFormat = options.stylesheetFormat ?? 'css';
   const originalDevServerPort = host
     ? hostClientPort(devServerPort)
     : devServerPort;
+
   return {
     version: 1,
     projects: {
@@ -24,14 +49,14 @@ export function angularWorkspace(
         sourceRoot: 'src',
         architect: {
           build: {
-            builder: angularNativeFederationBuilder(profile),
+            builder: nativeFederationBuilder(profile),
             options: { target: `${name}:esbuild:production` },
             configurations: {
               development: { target: `${name}:esbuild:development`, dev: true },
             },
           },
           serve: {
-            builder: angularNativeFederationBuilder(profile),
+            builder: nativeFederationBuilder(profile),
             options: {
               target: `${name}:serve-original:development`,
               dev: true,
@@ -81,32 +106,7 @@ export function angularWorkspace(
   };
 }
 
-function defaultDevServerPort(host: boolean): number {
-  return host ? 4200 : 4201;
-}
-
-function hostClientPort(bootstrapPort: number): number {
-  return bootstrapPort === 4300 ? 4200 : 4300;
-}
-
-function angularCompilerOptions(): Record<string, unknown> {
-  return {
-    target: 'ES2022',
-    module: 'ES2022',
-    moduleResolution: 'bundler',
-    strict: true,
-    experimentalDecorators: true,
-    useDefineForClassFields: false,
-    lib: ['ES2022', 'DOM'],
-    skipLibCheck: true,
-  };
-}
-
-function angularTemplateCompilerOptions(): Record<string, unknown> {
-  return { strictTemplates: true, strictInjectionParameters: true };
-}
-
-export function angularAppTsconfig(): unknown {
+export function angularAppTsconfig(): TsconfigDocument {
   return {
     extends: './tsconfig.json',
     compilerOptions: { outDir: './out-tsc/app' },
@@ -115,37 +115,55 @@ export function angularAppTsconfig(): unknown {
   };
 }
 
-export function angularRootTsconfig(): unknown {
+export function angularRootTsconfig(): TsconfigDocument {
   return {
-    compilerOptions: angularCompilerOptions(),
-    angularCompilerOptions: angularTemplateCompilerOptions(),
+    compilerOptions: {
+      target: 'ES2022',
+      module: 'ES2022',
+      moduleResolution: 'bundler',
+      strict: true,
+      experimentalDecorators: true,
+      useDefineForClassFields: false,
+      lib: ['ES2022', 'DOM'],
+      skipLibCheck: true,
+    },
+    angularCompilerOptions: {
+      strictTemplates: true,
+      strictInjectionParameters: true,
+    },
   };
 }
 
+interface AngularFederationConfigOptions {
+  name: string;
+  type: AtlasProjectType;
+  profile: AngularVersionProfile;
+}
+
 export function angularFederationConfig(
-  name: string,
-  host: boolean,
-  profile: AngularVersionProfile,
+  options: AngularFederationConfigOptions,
 ): string {
-  if (usesNativeFederationV4(profile)) {
+  const { name, type, profile } = options;
+  if (usesNativeFederationV4ConfigApi(profile)) {
     return `import { createAngularV4FederationConfig } from "@atlas/sdk/federation-config";
 
 export default await createAngularV4FederationConfig({
   projectRoot: import.meta.dirname,
   name: "${angularRemoteName(name)}",
-  expose: "${host ? 'host' : 'app'}",
+  expose: "${type}",
   nativeFederationPackage: "${nativeFederationPackage(profile)}",
   // Add skip, exposes, shared, or other Native Federation options here.
   skip: []
 });
 `;
   }
+
   return `const { createAngularFederationConfig } = require("@atlas/sdk/federation-config");
 
 module.exports = createAngularFederationConfig({
   projectRoot: __dirname,
   name: "${angularRemoteName(name)}",
-  expose: "${host ? 'host' : 'app'}",
+  expose: "${type}",
   // Add skip, exposes, shared, or other Native Federation options here.
   skip: []
 });
@@ -155,23 +173,7 @@ module.exports = createAngularFederationConfig({
 export function angularFederationConfigFile(
   profile: AngularVersionProfile,
 ): string {
-  return usesNativeFederationV4(profile)
+  return usesNativeFederationV4ConfigApi(profile)
     ? 'federation.config.mjs'
     : 'federation.config.js';
-}
-
-function angularNativeFederationBuilder(
-  profile: AngularVersionProfile,
-): string {
-  return `${nativeFederationPackage(profile)}:build`;
-}
-
-function nativeFederationPackage(profile: AngularVersionProfile): string {
-  return profile.major === 20 || profile.major === 21
-    ? '@angular-architects/native-federation-v4'
-    : '@angular-architects/native-federation';
-}
-
-function usesNativeFederationV4(profile: AngularVersionProfile): boolean {
-  return profile.major >= 20;
 }

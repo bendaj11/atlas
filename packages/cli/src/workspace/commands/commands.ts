@@ -1,3 +1,5 @@
+import { defaultDevServerPort } from '@atlas/generators';
+export { defaultDevServerPort };
 import { join, relative } from 'node:path';
 import type { AngularStylesheetFormat } from '@atlas/generators';
 import type { ProcessCommand } from '../../cli/process/process.js';
@@ -34,10 +36,6 @@ export interface NxGenerationOptions {
   interactive: boolean;
   routing: boolean;
   stylesheetFormat?: AngularStylesheetFormat;
-}
-
-export function defaultDevServerPort(type: AtlasProjectType): number {
-  return type === 'host' ? 4200 : 4201;
 }
 
 export function nxProjectPlugin(projectType: AtlasNxProjectType): string {

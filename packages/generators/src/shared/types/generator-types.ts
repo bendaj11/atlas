@@ -1,7 +1,7 @@
 import type { AtlasFramework } from '@atlas/schema';
 
 export type AngularStylesheetFormat = 'css' | 'scss' | 'sass' | 'less';
-export type AtlasPackageManager = 'yarn' | 'pnpm' | 'npm';
+export type AtlasProjectType = 'host' | 'app';
 
 export interface AtlasGeneratorOptions {
   name: string;
@@ -18,8 +18,6 @@ export interface AtlasGeneratorOptions {
   devServerPort?: number;
   /** Exact version or semver range used by the generated framework dependencies. */
   frameworkVersion?: string;
-  /** Package manager used to run generated local Atlas CLI commands. */
-  packageManager?: AtlasPackageManager;
   /** Allows generation outside Atlas' verified framework-major matrix. */
   allowUnsupportedVersion?: boolean;
 }

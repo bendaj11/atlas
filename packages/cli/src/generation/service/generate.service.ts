@@ -131,7 +131,6 @@ export class AtlasGenerateService {
         name,
         framework: selectedFramework,
         packageName,
-        packageManager: this.workspace.packageManager,
         detectedFrameworkVersion,
         hostId,
         routing: innerRouting,
@@ -278,7 +277,6 @@ export class AtlasGenerateService {
     name: string;
     framework?: SupportedFramework;
     packageName?: string;
-    packageManager?: AtlasGeneratorOptions['packageManager'];
     detectedFrameworkVersion?: string;
     hostId?: string;
     routing?: boolean;
@@ -288,7 +286,6 @@ export class AtlasGenerateService {
     return {
       name: options.name,
       packageName: options.packageName,
-      packageManager: options.packageManager,
       framework: options.framework ?? this.args.framework(),
       hostId: options.hostId,
       routing: options.routing,

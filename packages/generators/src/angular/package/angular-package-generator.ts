@@ -1,21 +1,31 @@
 import {
+  nativeFederationPackage,
+  usesNativeFederationV4Package,
+} from '../federation/angular-federation.js';
+import type { PackageManifest } from '../../shared/types/generated-documents.js';
+import type { AtlasProjectType } from '../../shared/types/generator-types.js';
+import {
   atlasPackageRange,
+  exactSemver,
   type AngularVersionProfile,
 } from '../../shared/versions/generator-versions.js';
 
 interface AngularPackageOptions {
   packageName: string;
   projectName: string;
-  type: 'host' | 'app';
+  type: AtlasProjectType;
   profile: AngularVersionProfile;
   routed?: boolean;
 }
 
-export function angularPackage(options: AngularPackageOptions): unknown {
+export function angularPackage(
+  options: AngularPackageOptions,
+): PackageManifest {
   const { packageName, projectName, profile } = options;
   const host = options.type === 'host';
   const angular = angularDependencyRange(profile.version);
   const routed = host || (options.routed ?? true);
+
   return {
     name: packageName,
     version: '0.1.0',
@@ -43,7 +53,7 @@ export function angularPackage(options: AngularPackageOptions): unknown {
       '@angular/platform-browser': angular,
       ...(routed ? { '@angular/router': angular } : {}),
       [nativeFederationPackage(profile)]: `^${profile.major}.0.0`,
-      ...(usesNativeFederationV4(profile)
+      ...(usesNativeFederationV4Package(profile)
         ? { '@softarc/native-federation': '^4.3.2' }
         : {}),
       '@atlas/schema': atlasPackageRange(),
@@ -69,21 +79,17 @@ export function angularPackage(options: AngularPackageOptions): unknown {
   };
 }
 
-function nativeFederationPackage(profile: AngularVersionProfile): string {
-  return usesNativeFederationV4(profile)
-    ? '@angular-architects/native-federation-v4'
-    : '@angular-architects/native-federation';
-}
-
-function usesNativeFederationV4(profile: AngularVersionProfile): boolean {
-  return profile.major === 20 || profile.major === 21;
-}
-
 function angularDependencyRange(version: string): string {
-  const exactVersion = version.match(/^[=~^]?(\d+\.\d+\.\d+(?:-[\w.-]+)?)$/);
-  return exactVersion ? `^${exactVersion[1]}` : version;
+  const exact = exactSemver(version);
+
+  return exact ? `^${exact}` : version;
 }
 
-export function angularIndex(pageTitle: string, body: string): string {
+export function angularIndex(options: {
+  pageTitle: string;
+  body: string;
+}): string {
+  const { pageTitle, body } = options;
+
   return `<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8">\n  <title>${pageTitle}</title>\n  <base href="/">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n  ${body}\n</body>\n</html>\n`;
 }

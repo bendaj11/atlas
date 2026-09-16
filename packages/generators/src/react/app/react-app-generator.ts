@@ -1,51 +1,50 @@
 import { title } from '../../shared/text/text.js';
 import type { ReactVersionProfile } from '../../shared/versions/generator-versions.js';
 
-export function reactAppBootstrap(profile: ReactVersionProfile): string {
-  const root =
-    profile.major === 17
-      ? `import type { ReactNode } from "react";
-import { render, unmountComponentAtNode } from "react-dom";
-
-function createRoot(container: Element) {
-  return {
-    render(element: ReactNode) {
-      render(element, container);
-    },
-    unmount() {
-      unmountComponentAtNode(container);
-    }
-  };
-}`
-      : 'import { createRoot } from "react-dom/client";';
-  return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";\nimport { routes } from "./routes";\nimport "./index.css";\n\nexport default createRoutedApp({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+interface ReactAppBootstrapOptions {
+  name: string;
+  routed: boolean;
+  profile: ReactVersionProfile;
 }
 
-export function reactSinglePageAppBootstrap(
-  name: string,
-  profile: ReactVersionProfile,
-): string {
-  const root =
-    profile.major === 17
-      ? `import type { ReactNode } from "react";
-import { render, unmountComponentAtNode } from "react-dom";
+export function reactAppBootstrap(options: ReactAppBootstrapOptions): string {
+  const { name, routed, profile } = options;
+  const root = reactCreateRootImport(profile);
+  if (routed) {
+    return `import { createElement } from "react";\n${root}\nimport { createMemoryRouter, RouterProvider } from "react-router-dom";\nimport { createRouterOptions, createRoutedApp } from "@atlas/sdk/react";\nimport { routes } from "./routes";\nimport "./index.css";\n\nexport default createRoutedApp({\n  createRoot,\n  createRouter: ({ context }) => createMemoryRouter(routes, createRouterOptions(context)),\n  createElement: (router) => createElement(RouterProvider, { router })\n});\n`;
+  }
 
-function createRoot(container: Element) {
-  return {
-    render(element: ReactNode) {
-      render(element, container);
-    },
-    unmount() {
-      unmountComponentAtNode(container);
-    }
-  };
-}`
-      : 'import { createRoot } from "react-dom/client";';
   return `import { createElement } from "react";\n${root}\nimport { defineApp } from "@atlas/sdk/react";\nimport { App } from "./App";\nimport "./index.css";\n\nexport default defineApp({\n  createRoot,\n  createElement: () => createElement(App, { name: "${title(name)}" })\n});\n`;
 }
 
-export function reactAppApp(name: string): string {
-  return `import { Link, Outlet } from "react-router-dom";
+function reactCreateRootImport(profile: ReactVersionProfile): string {
+  if (profile.major !== 17)
+    return 'import { createRoot } from "react-dom/client";';
+
+  return `import type { ReactNode } from "react";
+import { render, unmountComponentAtNode } from "react-dom";
+
+function createRoot(container: Element) {
+  return {
+    render(element: ReactNode) {
+      render(element, container);
+    },
+    unmount() {
+      unmountComponentAtNode(container);
+    }
+  };
+}`;
+}
+
+interface ReactAppComponentOptions {
+  name: string;
+  routed: boolean;
+}
+
+export function reactAppComponent(options: ReactAppComponentOptions): string {
+  const { name, routed } = options;
+  if (routed) {
+    return `import { Link, Outlet } from "react-router-dom";
 export function App() {
   return (
     <section>
@@ -59,9 +58,8 @@ export function App() {
   );
 }
 `;
-}
+  }
 
-export function reactSinglePageApp(name: string): string {
   return `interface AppProps {
   name?: string;
 }

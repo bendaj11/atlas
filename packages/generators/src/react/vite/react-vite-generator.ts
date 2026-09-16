@@ -1,40 +1,32 @@
-export function reactHostViteConfig(
-  name: string,
-  devServerPort = 4200,
-): string {
-  return reactViteConfig({ type: 'Host', name, devServerPort });
+import { defaultDevServerPort } from '../../shared/ports/ports.js';
+import type { AtlasProjectType } from '../../shared/types/generator-types.js';
+
+interface ReactViteConfigOptions {
+  name: string;
+  type: AtlasProjectType;
+  reactMajor?: number;
+  devServerPort?: number;
 }
 
-export function reactAppViteConfig(
-  name: string,
-  reactMajor: number,
-  devServerPort = 4201,
-): string {
-  return reactViteConfig({ type: 'App', name, reactMajor, devServerPort });
-}
+export function reactViteConfig(options: ReactViteConfigOptions): string {
+  const { name, type, reactMajor } = options;
+  const devServerPort = options.devServerPort ?? defaultDevServerPort(type);
+  const factory =
+    type === 'host' ? 'createReactHostViteConfig' : 'createReactAppViteConfig';
+  const reactMajorField =
+    type === 'app'
+      ? `
+    reactMajor: ${reactMajor},`
+      : '';
 
-interface ReactViteConfigTemplateOptions {
-  readonly type: 'App' | 'Host';
-  readonly name: string;
-  readonly reactMajor?: number;
-  readonly devServerPort: number;
-}
-
-function reactViteConfig(options: ReactViteConfigTemplateOptions): string {
-  const { type, name, reactMajor, devServerPort } = options;
-  return `import { createReact${type}ViteConfig } from "@atlas/sdk/federation-config";
+  return `import { ${factory} } from "@atlas/sdk/federation-config";
 import { defineConfig, mergeConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(mergeConfig(
-  createReact${type}ViteConfig({
+  ${factory}({
     projectRoot: __dirname,
-    projectName: "${name}",${
-      type === 'App'
-        ? `
-    reactMajor: ${reactMajor},`
-        : ''
-    }
+    projectName: "${name}",${reactMajorField}
     // Add app-local workspace packages here so Vite bundles and serves them locally.
     skip: []
   }),

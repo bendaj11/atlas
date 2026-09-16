@@ -1,3 +1,5 @@
+import type { PackageManifest } from '../../shared/types/generated-documents.js';
+import type { AtlasProjectType } from '../../shared/types/generator-types.js';
 import {
   atlasPackageRange,
   type ReactVersionProfile,
@@ -9,12 +11,12 @@ const VITE_VERSION = '^7.3.6';
 interface ReactPackageOptions {
   packageName: string;
   projectName: string;
-  type: 'host' | 'app';
+  type: AtlasProjectType;
   profile: ReactVersionProfile;
   routed?: boolean;
 }
 
-export function reactPackage(options: ReactPackageOptions): unknown {
+export function reactPackage(options: ReactPackageOptions): PackageManifest {
   const { packageName, projectName, profile } = options;
   const host = options.type === 'host';
   const routed = host || (options.routed ?? true);
