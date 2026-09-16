@@ -11,10 +11,7 @@ import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
 } from './shared/types/generator-types.js';
-import {
-  assertSupportedGeneratorFramework,
-  assertValidGeneratorOptions,
-} from './shared/validation/validation.js';
+import { validateGeneratorOptions } from './shared/validation/validation.js';
 import { generateWidgetFiles as generateWidgetTemplates } from './widget/widget-generator.js';
 
 export type {
@@ -23,6 +20,10 @@ export type {
   AtlasGeneratorOptions,
   AtlasProjectType,
 } from './shared/types/generator-types.js';
+export {
+  assertValidGeneratorName,
+  validateGeneratorOptions,
+} from './shared/validation/validation.js';
 export {
   DEFAULT_APP_DEV_PORT,
   DEFAULT_HOST_BOOTSTRAP_PORT,
@@ -34,8 +35,7 @@ export {
 export function generateHostFiles(
   options: AtlasGeneratorOptions,
 ): AtlasGeneratedFile[] {
-  assertValidGeneratorOptions(options);
-  assertSupportedGeneratorFramework(options);
+  validateGeneratorOptions(options);
   const hostId = randomUUID();
 
   return options.framework === 'angular'
@@ -46,8 +46,7 @@ export function generateHostFiles(
 export function generateAppFiles(
   options: AtlasGeneratorOptions,
 ): AtlasGeneratedFile[] {
-  assertValidGeneratorOptions(options);
-  assertSupportedGeneratorFramework(options);
+  validateGeneratorOptions(options);
 
   return options.framework === 'angular'
     ? generateAngularAppFiles(options)
@@ -57,8 +56,7 @@ export function generateAppFiles(
 export function generateWidgetFiles(
   options: AtlasGeneratorOptions,
 ): AtlasGeneratedFile[] {
-  assertValidGeneratorOptions(options);
-  assertSupportedGeneratorFramework(options);
+  validateGeneratorOptions(options);
 
   return generateWidgetTemplates(options);
 }

@@ -1,9 +1,11 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
+  assertValidGeneratorName,
   generateAppFiles,
   generateHostFiles,
   generateWidgetFiles,
+  validateGeneratorOptions,
   type AngularStylesheetFormat,
   type AtlasGeneratedFile,
   type AtlasGeneratorOptions,
@@ -34,7 +36,6 @@ import {
 } from '../nx/nx.js';
 import { generatedOverlay } from '../overlay.js';
 import {
-  assertSafeId,
   assertWritable,
   displayTarget,
   parseProjectPath,
@@ -74,6 +75,10 @@ export class AtlasGenerateService {
     }
     const { name, segments } = parseProjectPath(projectPath);
     const selectedFramework = framework ?? this.args.framework();
+    const hostId = type === 'app' ? this.args.flag('host-id') : undefined;
+    validateGeneratorOptions(
+      this.options({ name, framework: selectedFramework, hostId }),
+    );
     const explicit = this.args.flag('directory');
     const root =
       explicit && explicit !== 'true'
@@ -126,7 +131,6 @@ export class AtlasGenerateService {
           scaffoldedFrameworkVersion,
         );
       const detectedFrameworkVersion = scaffoldedFrameworkVersion?.version;
-      const hostId = type === 'app' ? this.args.flag('host-id') : undefined;
       const generatorOptions = this.options({
         name,
         framework: selectedFramework,
@@ -209,7 +213,7 @@ export class AtlasGenerateService {
   }
 
   async widget(name: string, requestedAppId?: string): Promise<void> {
-    assertSafeId(name, 'widget name');
+    assertValidGeneratorName(name);
     const app = await resolveWidgetApp({
       workspace: this.workspace,
       prompts: this.prompts,

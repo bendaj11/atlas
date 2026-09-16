@@ -2,11 +2,11 @@ import type { ReactVersionProfile } from '../../shared/versions/generator-versio
 
 export function reactHostBootstrap(profile: ReactVersionProfile): string {
   const imports =
-    profile.major === 17
+    profile.major <= 17
       ? 'import { render, unmountComponentAtNode } from "react-dom";'
       : 'import { flushSync } from "react-dom";\nimport { createRoot } from "react-dom/client";';
   const renderHost =
-    profile.major === 17
+    profile.major <= 17
       ? 'render(element, container);\n  return { unmount: () => unmountComponentAtNode(container) };'
       : 'const root = createRoot(container);\n  flushSync(() => root.render(element));\n  return { unmount: () => root.unmount() };';
   return `import "es-module-shims";

@@ -18,7 +18,7 @@ export function reactAppBootstrap(options: ReactAppBootstrapOptions): string {
 }
 
 function reactCreateRootImport(profile: ReactVersionProfile): string {
-  if (profile.major !== 17)
+  if (profile.major > 17)
     return 'import { createRoot } from "react-dom/client";';
 
   return `import type { ReactNode } from "react";

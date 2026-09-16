@@ -149,7 +149,7 @@ describe('generateHostFiles', () => {
     driver.given.options(aGeneratorOptions({ name: 'Orders_App' }));
 
     expect(() => driver.when.hostGenerated()).toThrow(
-      'Invalid generator name "Orders_App"',
+      'Invalid name "Orders_App"',
     );
   });
 
@@ -157,7 +157,7 @@ describe('generateHostFiles', () => {
     driver.given.options(aGeneratorOptions({ framework: 'vue' }));
 
     expect(() => driver.when.hostGenerated()).toThrow(
-      'Unsupported Atlas generator framework: vue',
+      'Unsupported Atlas generator framework "vue"',
     );
   });
 });
@@ -240,7 +240,7 @@ describe('generateAppFiles', () => {
     driver.given.options(aGeneratorOptions({ hostId: 'Main.Host' }));
 
     expect(() => driver.when.appGenerated()).toThrow(
-      'Invalid generator hostId "Main.Host"',
+      'Invalid host id "Main.Host"',
     );
   });
 });
@@ -281,7 +281,7 @@ describe('generateWidgetFiles', () => {
     driver.given.options(aGeneratorOptions({ framework: 'vue' }));
 
     expect(() => driver.when.widgetGenerated()).toThrow(
-      'Unsupported Atlas generator framework: vue',
+      'Unsupported Atlas generator framework "vue"',
     );
   });
 });
