@@ -1,11 +1,9 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
 import { CliArguments } from '../../cli/arguments.js';
 import type { ArtifactoryOptions } from '../artifactory-storage/artifactory-storage.js';
 import {
   createPublicationStorage,
-  S3PublicationStorage,
   type AtlasPublicationStorage,
   type AtlasPublicationStorageSource,
   type S3Options,
@@ -39,7 +37,6 @@ export class PublicationStorageDriver {
   private readonly accessKeyId = faker.string.alphanumeric();
   private readonly bucket = faker.word.noun();
   private externalLeaseAcquired = false;
-  private readonly putInputs: Array<PutObjectCommand['input']> = [];
   private environment: NodeJS.ProcessEnv = {};
   private arguments: string[] = ['publish'];
   private configuredStorage?: AtlasPublicationStorageSource;
@@ -154,21 +151,6 @@ export class PublicationStorageDriver {
         this.externalLeaseAcquired = true;
       });
     },
-    createImmutableObject: async (): Promise<void> => {
-      await this.s3Storage().create(
-        'apps/orders/1.4.0/manifest.json',
-        new Uint8Array([1]),
-        { cacheControl: 'immutable', contentType: 'application/json' },
-      );
-    },
-    replaceMutableObject: async (): Promise<void> => {
-      await this.s3Storage().replace(
-        'registry.json',
-        new Uint8Array([1]),
-        { cacheControl: 'no-cache', contentType: 'application/json' },
-        { versionToken: 'etag-1' },
-      );
-    },
   };
 
   get = {
@@ -189,29 +171,7 @@ export class PublicationStorageDriver {
       this.factories.s3.mock.calls.length === 0 &&
       this.factories.artifactory.mock.calls.length === 0,
     externalLockIsUsable: (): boolean => this.externalLeaseAcquired,
-    latestPutCondition: (): {
-      ifMatch?: string;
-      ifNoneMatch?: string;
-    } => {
-      const input = this.putInputs.at(-1);
-      return {
-        ...(input?.IfMatch ? { ifMatch: input.IfMatch } : {}),
-        ...(input?.IfNoneMatch ? { ifNoneMatch: input.IfNoneMatch } : {}),
-      };
-    },
   };
-
-  private s3Storage(): S3PublicationStorage {
-    const client = {
-      send: async (command: unknown) => {
-        if (command instanceof PutObjectCommand) {
-          this.putInputs.push(command.input);
-        }
-        return {};
-      },
-    } as unknown as Pick<S3Client, 'send'>;
-    return new S3PublicationStorage({ bucket: this.bucket }, client);
-  }
 
   private artifactoryOptions(): ArtifactoryOptions {
     const options = this.factories.artifactory.mock.calls.at(-1)?.[0];
