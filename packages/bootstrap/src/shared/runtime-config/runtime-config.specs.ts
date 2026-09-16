@@ -110,6 +110,36 @@ describe('resolveAtlasRuntimeConfig', () => {
       });
     });
 
+    it('should preserve a host version when the config has one', () => {
+      const hostVersion = faker.system.semver();
+      driver.given.value(aRuntimeConfig({ hostVersion })).when.resolved();
+
+      expect(driver.get.runtime()?.hostVersion).toBe(hostVersion);
+    });
+
+    it('should reject a host version that is not a URL-safe path segment when resolved', () => {
+      driver.given
+        .value(aRuntimeConfig({ hostVersion: '1.0/beta' }))
+        .when.resolved();
+
+      expect(driver.get.error()).toMatchObject({
+        code: 'RUNTIME_CONFIG_INVALID',
+        summary:
+          'Atlas runtime hostVersion "1.0/beta" must be a URL-safe path segment.',
+      });
+    });
+
+    it('should reject a missing artifact registry when resolved', () => {
+      driver.given
+        .value({ ...aRuntimeConfig(), artifactRegistryUrl: undefined })
+        .when.resolved();
+
+      expect(driver.get.error()).toMatchObject({
+        code: 'RUNTIME_CONFIG_INVALID',
+        summary: 'Atlas runtime artifactRegistryUrl is required.',
+      });
+    });
+
     it('should reject a host id that is not a URL-safe path segment when resolved', () => {
       driver.given
         .value(aRuntimeConfig({ hostId: 'orders/admin' }))
@@ -183,6 +213,21 @@ describe('resolveAtlasRuntimeConfig', () => {
         });
       });
 
+      it('should reject a non-string development session URL when resolved', () => {
+        driver.given
+          .value({
+            ...aRuntimeConfig({ environment }),
+            developmentSessionUrl: 4400,
+          })
+          .when.resolved();
+
+        expect(driver.get.error()).toMatchObject({
+          code: 'RUNTIME_CONFIG_INVALID',
+          summary:
+            'Atlas runtime developmentSessionUrl 4400 must be an absolute http loopback URL.',
+        });
+      });
+
       it('should reject a negative retry count when resolved', () => {
         driver.given
           .value(aRuntimeConfig({ environment, resourcesRetryCount: -1 }))
@@ -250,6 +295,17 @@ describe('assertAtlasRuntimeConfig', () => {
     driver.given.value(aRuntimeConfig()).when.asserted();
 
     expect(driver.get.error()).toBeUndefined();
+  });
+
+  it('should reject a missing artifact registry when asserted', () => {
+    driver.given
+      .value({ ...aRuntimeConfig(), artifactRegistryUrl: undefined })
+      .when.asserted();
+
+    expect(driver.get.error()).toMatchObject({
+      code: 'RUNTIME_CONFIG_INVALID',
+      summary: 'Atlas runtime artifactRegistryUrl is required.',
+    });
   });
 
   it('should reject a relative artifact registry when asserted', () => {

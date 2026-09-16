@@ -38,6 +38,15 @@ describe('createAtlasBootstrapFiles', () => {
     );
   });
 
+  it('should generate the page with the given loading html when no html is given', () => {
+    const loadingHtml = `<p>${faker.lorem.sentence()}</p>`;
+    driver.given.options({ loadingHtml }).when.created();
+
+    expect(driver.get.contents('index.html')).toContain(
+      `<div id="atlas-host-root">${loadingHtml}</div>`,
+    );
+  });
+
   it('should version the loader source when html is given', () => {
     driver.given.options({ html: VALID_TEMPLATE }).when.created();
 

@@ -47,6 +47,20 @@ describe('fetchJson', () => {
     });
   });
 
+  it('should reject with the stringified reason when fetch rejects with a non-error', async () => {
+    const url = faker.internet.url();
+    const reason = faker.lorem.word();
+    driver.given
+      .url(url)
+      .given.failure(reason as never)
+      .when.jsonRequested();
+
+    await expect(driver.get.result()).rejects.toMatchObject({
+      code: 'RESOURCE_UNAVAILABLE',
+      summary: `Atlas could not fetch "${url}" after 1 attempt: ${reason}`,
+    });
+  });
+
   it.each(REQUEST_URLS)(
     'should fetch with no-cache and a timeout signal only when requesting %s',
     async (url) => {

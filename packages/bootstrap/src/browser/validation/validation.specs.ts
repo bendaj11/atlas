@@ -72,6 +72,30 @@ describe('validateCatalog', () => {
       });
     });
 
+    it('should reject a catalog whose apps are not an array when validated', () => {
+      const host = aPublishedHostManifestFor(runtime);
+      driver.given
+        .catalog({ ...aHostCatalog({ host }), apps: {} as never })
+        .when.catalogValidated();
+
+      expect(driver.get.error()).toMatchObject({
+        code: 'CATALOG_INVALID',
+        summary: 'Atlas catalog apps must be an array.',
+      });
+    });
+
+    it('should reject a catalog whose widget providers are not an array when validated', () => {
+      const host = aPublishedHostManifestFor(runtime);
+      driver.given
+        .catalog({ ...aHostCatalog({ host }), widgetProviders: {} as never })
+        .when.catalogValidated();
+
+      expect(driver.get.error()).toMatchObject({
+        code: 'CATALOG_INVALID',
+        summary: 'Atlas catalog widget providers must be an array.',
+      });
+    });
+
     it('should reject a catalog whose apps contain a host manifest when validated', () => {
       const host = aPublishedHostManifestFor(runtime);
       const stray = aHostManifest();

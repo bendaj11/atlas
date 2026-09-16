@@ -191,6 +191,23 @@ describe('applyOverrides', () => {
         expect(driver.get.result()?.apps).toEqual([manifest]);
       });
 
+      it('should keep existing widget providers when overrides do not target them', async () => {
+        const provider = anAppManifest();
+        const hostOverride = aHostManifest({
+          id: runtime.hostId,
+          channel: 'local',
+        });
+        driver.given
+          .catalog(aHostCatalog({ ...catalog, widgetProviders: [provider] }))
+          .given.sessionStorageDocument({
+            hostId: runtime.hostId,
+            hostOverride,
+          });
+        await driver.when.applied();
+
+        expect(driver.get.result()?.widgetProviders).toEqual([provider]);
+      });
+
       it('should add a widget provider when an override targets an external dependency', async () => {
         const providerId = faker.string.uuid();
         const dependent = anAppManifest({
