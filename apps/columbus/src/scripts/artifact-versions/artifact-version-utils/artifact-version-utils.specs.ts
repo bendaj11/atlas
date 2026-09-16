@@ -241,7 +241,7 @@ describe('artifactVersionFromSelection', () => {
       .given.selection({ type: 'custom', value: 'http://localhost:4201' })
       .when.manifestResolved();
 
-    expect(driver.get.resolved()?.exportedWidgets?.[0]?.remoteEntryUrl).toBe(
+    expect(driver.get.resolvedExportedWidgets()[0]?.remoteEntryUrl).toBe(
       'http://localhost:4201/remoteEntry.json',
     );
   });
@@ -500,7 +500,7 @@ describe('isArtifactVersionSupportedByHost', () => {
 
   it('should support the host manifest when its id is the host id', () => {
     driver.when.hostSupportChecked(
-      aHostArtifactVersion({ id: 'shop', supportedHosts: [] }),
+      aHostArtifactVersion({ id: 'shop' }),
       'shop',
     );
 
@@ -529,7 +529,7 @@ describe('isArtifactVersionSupportedByHost', () => {
     driver.when.hostSupportChecked(
       anAppArtifactVersion({
         supportedHosts: [],
-        placements: [{ hostId: 'shop' }],
+        placements: [{ id: 'orders', kind: 'route', hostId: 'shop' }],
       }),
       'shop',
     );

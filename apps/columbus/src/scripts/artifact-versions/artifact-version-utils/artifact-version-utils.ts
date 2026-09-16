@@ -1,4 +1,7 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
+import {
+  type ArtifactVersion,
+  isAppArtifactVersion,
+} from '../../../types/artifact-version';
 import { placementTargetsHost } from '@atlas/schema';
 import {
   uniqueVersions,
@@ -126,7 +129,11 @@ function createCustomArtifactVersion({
         : [],
   };
   delete artifactVersion.integrity;
-  if (productionArtifactVersion.exportedWidgets) {
+  if (
+    isAppArtifactVersion(productionArtifactVersion) &&
+    isAppArtifactVersion(artifactVersion) &&
+    productionArtifactVersion.exportedWidgets
+  ) {
     artifactVersion.exportedWidgets =
       productionArtifactVersion.exportedWidgets.map((widget) => ({
         ...widget,
@@ -260,13 +267,15 @@ export function isArtifactVersionSupportedByHost({
   artifactVersion,
   hostId,
 }: IsArtifactVersionSupportedByHostOptions): boolean {
+  if (!isAppArtifactVersion(artifactVersion))
+    return artifactVersion.id === hostId;
+
   return (
-    (artifactVersion.kind === 'host' && artifactVersion.id === hostId) ||
-    artifactVersion.supportedHosts?.includes('*') === true ||
-    artifactVersion.supportedHosts?.includes(hostId) === true ||
-    artifactVersion.placements?.some((placement) =>
+    artifactVersion.supportedHosts.includes('*') ||
+    artifactVersion.supportedHosts.includes(hostId) ||
+    artifactVersion.placements.some((placement) =>
       placementTargetsHost(placement, hostId),
-    ) === true
+    )
   );
 }
 

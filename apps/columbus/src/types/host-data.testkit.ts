@@ -17,6 +17,7 @@ export function aHostData(overrides: Partial<HostData> = {}): HostData {
       schemaVersion: '1',
       hostId,
       revision: faker.string.uuid(),
+      generatedAt: faker.date.recent().toISOString(),
       host: aHostArtifactVersion({ id: hostId }),
       apps: [],
     },

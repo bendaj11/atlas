@@ -1,5 +1,8 @@
 import { faker } from '@faker-js/faker';
-import type { ArtifactVersion } from '../../../types/artifact-version';
+import {
+  type ArtifactVersion,
+  isAppArtifactVersion,
+} from '../../../types/artifact-version';
 import type {
   Artifact,
   ArtifactConfiguration,
@@ -169,6 +172,10 @@ export class ArtifactVersionUtilsDriver {
     hostId: (): string => this.session.hostData.config.hostId,
     initialSelection: (): OverrideSelection => this.initialSelection!,
     resolved: (): ArtifactVersion | undefined => this.resolved,
+    resolvedExportedWidgets: () =>
+      this.resolved && isAppArtifactVersion(this.resolved)
+        ? (this.resolved.exportedWidgets ?? [])
+        : [],
     normalizedManifest: (): ArtifactVersion | undefined =>
       this.normalizedManifest,
     errorMessage: (): string | undefined =>

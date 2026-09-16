@@ -1,11 +1,11 @@
-import type { AtlasExtensionManifest } from '../../../types/artifact-version';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 import { uniqueVersions, versionKey } from './artifact-version-keys';
 
 export class ArtifactVersionKeysDriver {
-  private versions: AtlasExtensionManifest[] = [];
+  private versions: ArtifactVersion[] = [];
 
   readonly given = {
-    version: (version: AtlasExtensionManifest): this => {
+    version: (version: ArtifactVersion): this => {
       this.versions.push(version);
 
       return this;
@@ -15,7 +15,6 @@ export class ArtifactVersionKeysDriver {
   readonly get = {
     uniqueVersionKeys: (): string[] =>
       uniqueVersions(this.versions).map((manifest) => versionKey(manifest)),
-    versionKey: (manifest: AtlasExtensionManifest): string =>
-      versionKey(manifest),
+    versionKey: (manifest: ArtifactVersion): string => versionKey(manifest),
   };
 }

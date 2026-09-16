@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
 import type { Artifact } from '../../../types/artifact';
 import type { ColumbusState } from '../../../types/columbus-state';
+import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 import { aColumbusState } from '../../../types/columbus-state.testkit';
 import { getArtifactKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
@@ -31,17 +32,17 @@ export class UseArtifactsDriver {
 
       return this;
     },
-    catalogHost: (manifest: ArtifactVersion): this => {
+    catalogHost: (manifest: AtlasHostManifest): this => {
       this.columbusState!.hostData.catalog.host = manifest;
 
       return this;
     },
-    catalogApp: (manifest: ArtifactVersion): this => {
+    catalogApp: (manifest: AtlasManifest): this => {
       this.columbusState!.hostData.catalog.apps.push(manifest);
 
       return this;
     },
-    catalogWidgetProvider: (manifest: ArtifactVersion): this => {
+    catalogWidgetProvider: (manifest: AtlasManifest): this => {
       this.columbusState!.hostData.catalog.widgetProviders = [manifest];
 
       return this;

@@ -1,8 +1,6 @@
-import type { AtlasExtensionManifest } from '../../../types/artifact-version';
+import type { ArtifactVersion } from '../../../types/artifact-version';
 
-export function uniqueVersions(
-  versions: AtlasExtensionManifest[],
-): AtlasExtensionManifest[] {
+export function uniqueVersions(versions: ArtifactVersion[]): ArtifactVersion[] {
   return [
     ...new Map(
       versions.map((version) => [versionKey(version), version]),
@@ -10,7 +8,7 @@ export function uniqueVersions(
   ];
 }
 
-export function versionKey(artifactVersion: AtlasExtensionManifest): string {
+export function versionKey(artifactVersion: ArtifactVersion): string {
   if (artifactVersion.channel === 'pr') {
     return `pr:${artifactVersion.prNumber ?? artifactVersion.version}:${artifactVersion.buildId}`;
   }
@@ -18,8 +16,6 @@ export function versionKey(artifactVersion: AtlasExtensionManifest): string {
   return `${artifactVersion.channel}:${artifactVersion.version}:${artifactVersion.buildId}`;
 }
 
-export function getArtifactKey(
-  artifactVersion: AtlasExtensionManifest,
-): string {
+export function getArtifactKey(artifactVersion: ArtifactVersion): string {
   return `${artifactVersion.kind}:${artifactVersion.id}`;
 }

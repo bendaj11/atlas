@@ -1,15 +1,17 @@
 import { faker } from '@faker-js/faker';
+import type {
+  AtlasArtifactManifestBase,
+  AtlasHostManifest,
+  AtlasManifest,
+} from '@atlas/schema';
 import type { ArtifactVersion } from './artifact-version';
 
 const CHANNELS: ArtifactVersion['channel'][] = ['production', 'pr', 'local'];
 const FRAMEWORKS: ArtifactVersion['framework'][] = ['angular', 'react', 'vue'];
 
-function anArtifactVersion(
-  overrides: Partial<ArtifactVersion> = {},
-): ArtifactVersion {
+function anArtifactManifestBase(): Omit<AtlasArtifactManifestBase, 'kind'> {
   return {
     schemaVersion: '1',
-    kind: faker.helpers.arrayElement(['app', 'host']),
     id: faker.string.uuid(),
     name: faker.commerce.productName(),
     version: faker.system.semver(),
@@ -18,6 +20,15 @@ function anArtifactVersion(
     framework: faker.helpers.arrayElement(FRAMEWORKS),
     remoteEntryUrl: faker.internet.url(),
     createdAt: faker.date.recent().toISOString(),
+  };
+}
+
+export function anAppArtifactVersion(
+  overrides: Partial<AtlasManifest> = {},
+): AtlasManifest {
+  return {
+    ...anArtifactManifestBase(),
+    kind: 'app',
     exposes: { entry: `./${faker.word.noun()}` },
     requiredHostSdkVersion: `^${faker.system.semver()}`,
     supportedHosts: [faker.string.uuid()],
@@ -26,29 +37,32 @@ function anArtifactVersion(
   };
 }
 
-export function anAppArtifactVersion(
-  overrides: Partial<ArtifactVersion> = {},
-): ArtifactVersion {
-  return anArtifactVersion({ kind: 'app', ...overrides });
-}
-
 export function aHostArtifactVersion(
-  overrides: Partial<ArtifactVersion> = {},
-): ArtifactVersion {
-  return anArtifactVersion({ kind: 'host', ...overrides });
+  overrides: Partial<AtlasHostManifest> = {},
+): AtlasHostManifest {
+  return {
+    ...anArtifactManifestBase(),
+    kind: 'host',
+    exposes: { entry: `./${faker.word.noun()}` },
+    requiredLoaderApiVersion: `^${faker.system.semver()}`,
+    ...overrides,
+  };
 }
 
-export function aVersionOf(
-  manifest: ArtifactVersion,
-  overrides: Partial<ArtifactVersion> = {},
-): ArtifactVersion {
-  const { kind, id, name, supportedHosts } = manifest;
+export function aVersionOf<T extends ArtifactVersion>(
+  manifest: T,
+  overrides: Partial<T> = {},
+): T {
+  const { id, name } = manifest;
 
-  return anArtifactVersion({
-    kind,
-    id,
-    name,
-    ...(supportedHosts ? { supportedHosts } : {}),
+  return {
+    ...(manifest.kind === 'host'
+      ? aHostArtifactVersion({ id, name })
+      : anAppArtifactVersion({
+          id,
+          name,
+          supportedHosts: manifest.supportedHosts,
+        })),
     ...overrides,
-  });
+  } as T;
 }

@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import type { AtlasManifest } from '@atlas/schema';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 import type { HostData } from '../../../types/host-data';
 import { aHostData } from '../../../types/host-data.testkit';
@@ -45,7 +46,7 @@ export class InspectAtlasHostDriver {
     ...aHostData().config,
     hostId: 'shop',
   };
-  private readonly host: ArtifactVersion = aHostArtifactVersion({
+  private readonly host = aHostArtifactVersion({
     id: 'shop',
     channel: 'production',
   });
@@ -53,6 +54,7 @@ export class InspectAtlasHostDriver {
     schemaVersion: '1',
     hostId: 'shop',
     revision: 'rev',
+    generatedAt: '2024-01-01T00:00:00.000Z',
     host: this.host,
     apps: [],
   };
@@ -89,7 +91,7 @@ export class InspectAtlasHostDriver {
   }
 
   readonly given = {
-    catalogApp: (manifest: ArtifactVersion): this => {
+    catalogApp: (manifest: AtlasManifest): this => {
       this.catalog.apps.push(manifest);
 
       return this;

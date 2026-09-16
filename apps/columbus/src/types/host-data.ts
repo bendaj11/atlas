@@ -1,3 +1,4 @@
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import type { ArtifactVersion } from './artifact-version';
 import type { AtlasOverrideDocument } from './override-document';
 
@@ -7,24 +8,9 @@ interface AtlasRuntimeError {
 }
 
 export interface HostData {
-  config: {
-    schemaVersion: 'v1';
-    hostId: string;
-    environment: string;
-    artifactRegistryUrl: string;
-    environmentRegistryUrl?: string;
-    developmentSessionUrl?: string;
-  };
+  config: AtlasHostRuntimeConfig;
   pageUrl: string;
-  catalog: {
-    schemaVersion: '1';
-    hostId: string;
-    revision: string;
-    environment?: string;
-    host: ArtifactVersion;
-    apps: ArtifactVersion[];
-    widgetProviders?: ArtifactVersion[];
-  };
+  catalog: AtlasHostCatalog;
   versions: Record<string, ArtifactVersion[]>;
   overrides: AtlasOverrideDocument | undefined;
   overrideScope: 'all' | 'tab' | undefined;

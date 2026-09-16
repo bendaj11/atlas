@@ -1,6 +1,7 @@
+import type { AtlasManifest } from '@atlas/schema';
 import { render, type RenderResult, within } from '@testing-library/react';
 import { TextTestkit } from '@wix/design-system/dist/testkit/testing-library';
-import type { AtlasExtensionManifest } from '../../../../types/artifact-version';
+import { anAppArtifactVersion } from '../../../../types/artifact-version.testkit';
 import type { Artifact, OverrideType } from '../../../../types/artifact';
 import { ArtifactOverrideVersion } from './ArtifactOverrideVersion';
 
@@ -100,12 +101,8 @@ function anArtifact(): Artifact {
   };
 }
 
-function manifest(
-  overrides: Partial<AtlasExtensionManifest>,
-): AtlasExtensionManifest {
-  return {
-    schemaVersion: '1',
-    kind: 'app',
+function manifest(overrides: Partial<AtlasManifest>): AtlasManifest {
+  return anAppArtifactVersion({
     id: 'orders',
     name: 'Orders',
     version: '1.0.0',
@@ -114,5 +111,5 @@ function manifest(
     framework: 'react',
     remoteEntryUrl: 'https://cdn.example/orders/remoteEntry.json',
     ...overrides,
-  };
+  });
 }

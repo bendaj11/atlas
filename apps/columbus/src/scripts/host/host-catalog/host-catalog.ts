@@ -2,7 +2,10 @@ import {
   environmentManifestUrl,
   resolveAtlasRuntimeConfig,
 } from '@atlas/bootstrap/runtime';
-import type { ArtifactVersion } from '../../../types/artifact-version';
+import {
+  type ArtifactVersion,
+  isAppArtifactVersion,
+} from '../../../types/artifact-version';
 import type { HostData } from '../../../types/host-data';
 import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
 import { isRecord } from '../../shared/messages/messages';
@@ -127,11 +130,15 @@ async function readDeployedCatalog(
     schemaVersion: '1',
     hostId: deployment.hostId,
     revision: deployment.deploymentRevision,
-    environment: deployment.environment,
+    generatedAt: new Date().toISOString(),
     host,
-    apps: manifests.slice(1, 1 + appCount),
+    apps: manifests.slice(1, 1 + appCount).filter(isAppArtifactVersion),
     ...(deployment.widgetProviders?.length
-      ? { widgetProviders: manifests.slice(1 + appCount) }
+      ? {
+          widgetProviders: manifests
+            .slice(1 + appCount)
+            .filter(isAppArtifactVersion),
+        }
       : {}),
   };
 }

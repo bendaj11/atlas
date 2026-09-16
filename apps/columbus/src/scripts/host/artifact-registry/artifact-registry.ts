@@ -199,9 +199,9 @@ function orderedPreviews(
   );
 }
 
-export function uniqueManifests(
-  manifests: ArtifactVersion[],
-): ArtifactVersion[] {
+export function uniqueManifests<T extends ArtifactVersion>(
+  manifests: T[],
+): T[] {
   return [
     ...new Map(
       manifests.map((manifest) => [
