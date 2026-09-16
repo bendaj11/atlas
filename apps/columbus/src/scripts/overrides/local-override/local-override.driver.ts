@@ -1,12 +1,13 @@
 import { jest } from '@jest/globals';
-import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
-import { aManifest } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/contracts';
+import { anAppArtifactVersion } from '../../../types/app.testkit';
 import { validateLocalOverride } from './local-override';
 
 export class LocalOverrideDriver {
-  private manifest: Manifest = aManifest({
+  private manifest: ArtifactVersion = anAppArtifactVersion({
     channel: 'local',
     remoteEntryUrl: 'http://localhost:4513/remoteEntry.json',
+    exposes: { entry: './entry' },
   });
   private readonly fetch = jest.fn<typeof globalThis.fetch>();
   private error: unknown;
@@ -16,7 +17,7 @@ export class LocalOverrideDriver {
   }
 
   readonly given = {
-    manifest: (manifest: Manifest): this => {
+    manifest: (manifest: ArtifactVersion): this => {
       this.manifest = manifest;
 
       return this;
@@ -39,14 +40,12 @@ export class LocalOverrideDriver {
   };
 
   readonly when = {
-    validated: async (): Promise<this> => {
+    validated: async (): Promise<void> => {
       try {
         await validateLocalOverride(this.manifest);
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
   };
 

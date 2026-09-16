@@ -29,7 +29,7 @@ describe('extension message guards', () => {
   it('should accept a load artifact version request when built by its constructor', () => {
     driver.when.checked(
       'loadArtifactVersionRequest',
-      loadArtifactVersionRequest('app:a', 'v'),
+      loadArtifactVersionRequest({ artifactKey: 'app:a', versionKey: 'v' }),
     );
 
     expect(driver.get.result()).toBe(true);

@@ -1,4 +1,7 @@
-import { aHostManifest, aManifest } from '../../../types/app.testkit';
+import {
+  aHostArtifactVersion,
+  anAppArtifactVersion,
+} from '../../../types/app.testkit';
 import { PageRuntimeStateDriver } from './page-runtime-state.driver';
 
 const DOCUMENT = JSON.stringify({
@@ -72,15 +75,20 @@ describe('localOverridesOf', () => {
   });
 
   it('should return nothing when no manifest is local', () => {
-    driver.when.localOverridesBuilt('shop', [aManifest()]);
+    driver.when.localOverridesBuilt('shop', [
+      anAppArtifactVersion({ channel: 'production' }),
+    ]);
 
     expect(driver.get.localOverrides()).toBeUndefined();
   });
 
   it('should list local apps as overrides when apps are local', () => {
-    const local = aManifest({ id: 'orders', channel: 'local' });
+    const local = anAppArtifactVersion({ id: 'orders', channel: 'local' });
 
-    driver.when.localOverridesBuilt('shop', [aManifest(), local]);
+    driver.when.localOverridesBuilt('shop', [
+      anAppArtifactVersion({ channel: 'production' }),
+      local,
+    ]);
 
     expect(driver.get.localOverrides()?.overrides).toEqual([
       { appId: 'orders', manifest: local, reason: 'local' },
@@ -88,7 +96,7 @@ describe('localOverridesOf', () => {
   });
 
   it('should set the host override when the host is local', () => {
-    const host = aHostManifest({ channel: 'local' });
+    const host = aHostArtifactVersion({ channel: 'local' });
 
     driver.when.localOverridesBuilt('shop', [host]);
 

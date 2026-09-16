@@ -16,15 +16,11 @@ export class ArtifactNameDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       render(<ArtifactName artifact={this.artifact} />);
-
-      return this;
     },
-    infoHovered: async (): Promise<this> => {
+    infoHovered: async (): Promise<void> => {
       await userEvent.hover(screen.getByRole('button'));
-
-      return this;
     },
   };
 

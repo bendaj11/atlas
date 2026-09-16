@@ -2,11 +2,11 @@ import type { ArtifactProps } from '../../../../types/app';
 import { Badge, Box, InfoIcon, Text } from '@wix/design-system';
 
 export const ArtifactName = ({ artifact }: ArtifactProps) => {
-  const isHost = artifact.productionManifest.kind === 'host';
+  const isHost = artifact.productionArtifactVersion.kind === 'host';
 
   return (
     <Text size="small" weight="bold" skin={isHost ? 'primary' : 'standard'}>
-      {artifact.productionManifest.name}
+      {artifact.productionArtifactVersion.name}
 
       <Box inline paddingLeft="SP1">
         <InfoIcon
@@ -25,7 +25,7 @@ export const ArtifactName = ({ artifact }: ArtifactProps) => {
                 )}
               </Text>
               <Text size="tiny" secondary light>
-                {artifact.productionManifest.id}
+                {artifact.productionArtifactVersion.id}
               </Text>
             </Box>
           }

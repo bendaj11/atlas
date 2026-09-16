@@ -9,12 +9,12 @@ export class ArtifactOverrideVersionDriver {
   private view: RenderResult | undefined;
 
   readonly given = {
-    override: (overrideType: Exclude<OverrideType, 'none'>): this => {
+    override: (overrideType: OverrideType): this => {
       this.artifact = {
         ...this.artifact,
         overrideType,
         overrideEnabled: true,
-        selectedManifest: manifest({
+        selectedArtifactVersion: manifest({
           channel: 'pr',
           buildId: 'pull-request-build-123',
         }),
@@ -28,7 +28,7 @@ export class ArtifactOverrideVersionDriver {
         ...this.artifact,
         overrideType: 'custom',
         overrideEnabled: true,
-        selectedManifest: manifest({
+        selectedArtifactVersion: manifest({
           channel: 'local',
           remoteEntryUrl: `${url}/remoteEntry.json`,
         }),
@@ -41,7 +41,7 @@ export class ArtifactOverrideVersionDriver {
       this.artifact = {
         ...this.artifact,
         overrideEnabled: true,
-        selectedManifest: this.artifact.productionManifest,
+        selectedArtifactVersion: this.artifact.productionArtifactVersion,
         sourceDescription: '1.0.0-production',
       };
 
@@ -55,7 +55,7 @@ export class ArtifactOverrideVersionDriver {
     productionBuildId: (buildId: string): this => {
       this.artifact = {
         ...this.artifact,
-        productionManifest: manifest({ buildId }),
+        productionArtifactVersion: manifest({ buildId }),
       };
 
       return this;
@@ -63,10 +63,8 @@ export class ArtifactOverrideVersionDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       this.view = render(<ArtifactOverrideVersion artifact={this.artifact} />);
-
-      return this;
     },
   };
 
@@ -87,13 +85,13 @@ export class ArtifactOverrideVersionDriver {
 }
 
 function anArtifact(): Artifact {
-  const productionManifest = manifest({});
+  const productionArtifactVersion = manifest({});
 
   return {
     key: 'app:orders',
-    productionManifest,
-    selectedManifest: undefined,
-    overrideType: 'none',
+    productionArtifactVersion,
+    selectedArtifactVersion: undefined,
+    overrideType: undefined,
     sourceDescription: '',
     loadError: undefined,
     overrideEnabled: false,

@@ -8,12 +8,6 @@ describe('App', () => {
     driver = new AppDriver();
   });
 
-  it('should load the host when mounted', () => {
-    driver.when.rendered();
-
-    expect(driver.get.loadHostCount()).toBe(1);
-  });
-
   it('should show the artifacts page when at the root route', async () => {
     driver.when.rendered();
 

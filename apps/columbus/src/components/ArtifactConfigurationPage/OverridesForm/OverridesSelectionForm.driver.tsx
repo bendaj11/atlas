@@ -1,91 +1,118 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render } from '@testing-library/react';
+import {
+  DropdownTestkit,
+  InputTestkit,
+  RadioTestkit,
+} from '@wix/design-system/dist/testkit/testing-library';
+import type { ComponentProps } from 'react';
 import type {
   ArtifactConfiguration,
-  EditorDraft,
-  Manifest,
+  ArtifactVersion,
+  OverrideSelection,
+  OverrideType,
 } from '../../../types/app';
-import { aManifest } from '../../../types/app.testkit';
+import { anArtifactConfiguration } from '../../../types/app.testkit';
 import { OverridesSelectionForm } from './OverridesSelectionForm';
 
+type OverridesSelectionFormProps = ComponentProps<
+  typeof OverridesSelectionForm
+>;
+
+const OVERRIDE_TYPES: OverrideType[] = ['custom', 'production', 'pr'];
+
 export class OverridesSelectionFormDriver {
-  private draft: EditorDraft = {
-    type: 'custom',
-    customUrl: '',
-    productionKey: '',
-    prKey: '',
+  private selection: OverrideSelection = {
+    type: faker.helpers.arrayElement(OVERRIDE_TYPES),
+    value: faker.string.alphanumeric(8),
   };
-  private configuration: ArtifactConfiguration = {
-    key: 'app:orders',
-    hostId: 'host',
-    productionManifest: aManifest(),
-    selectedManifest: undefined,
-    productionOptions: [],
-    prOptions: [],
-  };
-  private readonly onDraftChange =
-    jest.fn<(draft: Partial<EditorDraft>) => void>();
+  private configuration: ArtifactConfiguration = anArtifactConfiguration({
+    productionArtifactVersions: [],
+  });
+  private readonly onChange =
+    jest.fn<OverridesSelectionFormProps['onChange']>();
+  private baseElement!: Element;
 
   readonly given = {
-    draft: (draft: Partial<EditorDraft>): this => {
-      this.draft = { ...this.draft, ...draft };
+    selection: (selection: OverrideSelection): this => {
+      this.selection = selection;
 
       return this;
     },
-    productionOptions: (options: Manifest[]): this => {
+    hostId: (hostId: string): this => {
+      this.configuration = { ...this.configuration, hostId };
+
+      return this;
+    },
+    productionArtifactVersions: (
+      productionArtifactVersions: ArtifactVersion[],
+    ): this => {
       this.configuration = {
         ...this.configuration,
-        productionOptions: options,
+        productionArtifactVersions,
       };
 
       return this;
     },
-    prOptions: (options: Manifest[]): this => {
-      this.configuration = { ...this.configuration, prOptions: options };
+    prArtifactVersions: (prArtifactVersions: ArtifactVersion[]): this => {
+      this.configuration = { ...this.configuration, prArtifactVersions };
 
       return this;
     },
   };
 
   readonly when = {
-    rendered: (): this => {
-      render(
+    rendered: (): void => {
+      this.baseElement = render(
         <OverridesSelectionForm
-          draft={this.draft}
+          selection={this.selection}
           configuration={this.configuration}
-          onDraftChange={this.onDraftChange}
+          onChange={this.onChange}
         />,
+      ).baseElement;
+    },
+    typeSelected: async (type: OverrideType): Promise<void> => {
+      await this.get.radio(`override-card-${type}`).click();
+    },
+    customUrlEntered: async (url: string): Promise<void> => {
+      await this.get.customUrlInput().enterText(url);
+    },
+    productionVersionChosen: async (
+      version: ArtifactVersion,
+    ): Promise<void> => {
+      await this.versionChosen(
+        this.get.dropdown('override-version-production'),
+        this.configuration.productionArtifactVersions.indexOf(version),
       );
-
-      return this;
     },
-    typeChosen: async (title: string): Promise<this> => {
-      await userEvent.click(screen.getByRole('radio', { name: title }));
-
-      return this;
-    },
-    customUrlTyped: async (url: string): Promise<this> => {
-      await userEvent.type(this.get.customUrlInput(), url);
-
-      return this;
-    },
-    versionChosen: async (label: string): Promise<this> => {
-      await userEvent.click(screen.getAllByRole('combobox')[0]!);
-      await userEvent.click(
-        screen.getByRole('option', { name: new RegExp(`^${label}`) }),
+    prVersionChosen: async (version: ArtifactVersion): Promise<void> => {
+      await this.versionChosen(
+        this.get.dropdown('override-version-pr'),
+        this.configuration.prArtifactVersions.indexOf(version),
       );
-
-      return this;
     },
   };
 
   readonly get = {
-    radio: (title: string): HTMLInputElement =>
-      screen.getByRole('radio', { name: title }),
-    customUrlInput: (): HTMLInputElement =>
-      screen.getByPlaceholderText('http://localhost:4200'),
-    lastDraftChange: (): Partial<EditorDraft> | undefined =>
-      this.onDraftChange.mock.calls.at(-1)?.[0],
+    radio: (dataHook: string) =>
+      RadioTestkit({ wrapper: this.baseElement, dataHook }),
+    customUrlInput: () =>
+      InputTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'override-custom-url',
+      }),
+    dropdown: (dataHook: string) =>
+      DropdownTestkit({ wrapper: this.baseElement, dataHook }),
+    changeMock: (): OverridesSelectionFormProps['onChange'] => this.onChange,
   };
+
+  private async versionChosen(
+    dropdown: ReturnType<typeof DropdownTestkit>,
+    index: number,
+  ): Promise<void> {
+    await dropdown.inputDriver.click();
+    const options = await dropdown.dropdownLayoutDriver.options();
+    await options[index]!.click();
+  }
 }

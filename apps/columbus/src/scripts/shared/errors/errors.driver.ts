@@ -4,19 +4,15 @@ export class ErrorsDriver {
   private message: string | undefined;
 
   readonly when = {
-    messageExtracted: (error: unknown): this => {
+    messageExtracted: (error: unknown): void => {
       this.message = messageFromError(error);
-
-      return this;
     },
     failureDescribed: (
       error: unknown,
       operation?: string,
       suggestedAction?: string,
-    ): this => {
+    ): void => {
       this.message = failureMessage(error, operation, suggestedAction);
-
-      return this;
     },
   };
 

@@ -1,23 +1,33 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { EditorDraft } from '../../../../types/app';
+import { render } from '@testing-library/react';
+import { RadioTestkit } from '@wix/design-system/dist/testkit/testing-library';
+import type { ComponentProps } from 'react';
 import { OverrideRadioCard } from './OverrideRadioCard';
 
+type OverrideRadioCardProps = ComponentProps<typeof OverrideRadioCard>;
+
 export class OverrideRadioCardDriver {
-  private type: EditorDraft['type'] = 'custom';
-  private currentSelectedType: EditorDraft['type'] = 'production';
+  private title = faker.commerce.productName();
+  private children = faker.lorem.sentence();
+  private checked = false;
   private disabled = false;
-  private readonly onSelect = jest.fn();
+  private readonly onSelect = jest.fn<OverrideRadioCardProps['onSelect']>();
+  private baseElement!: Element;
 
   readonly given = {
-    type: (type: EditorDraft['type']): this => {
-      this.type = type;
+    title: (title: string): this => {
+      this.title = title;
 
       return this;
     },
-    currentSelectedType: (type: EditorDraft['type']): this => {
-      this.currentSelectedType = type;
+    children: (children: string): this => {
+      this.children = children;
+
+      return this;
+    },
+    checked: (checked: boolean): this => {
+      this.checked = checked;
 
       return this;
     },
@@ -29,32 +39,30 @@ export class OverrideRadioCardDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
-      render(
+    rendered: (): void => {
+      this.baseElement = render(
         <OverrideRadioCard
-          type={this.type}
-          title="Custom URL"
+          dataHook="override-radio-card"
+          title={this.title}
+          checked={this.checked}
           disabled={this.disabled}
-          currentSelectedType={this.currentSelectedType}
           onSelect={this.onSelect}
         >
-          <span>child content</span>
+          {this.children}
         </OverrideRadioCard>,
-      );
-
-      return this;
+      ).baseElement;
     },
-    selected: async (): Promise<this> => {
-      await userEvent.click(this.get.radio());
-
-      return this;
+    selected: async (): Promise<void> => {
+      await this.get.radio().click();
     },
   };
 
   readonly get = {
-    radio: (): HTMLInputElement => screen.getByRole('radio'),
-    title: (): HTMLElement | null => screen.queryByText('Custom URL'),
-    children: (): HTMLElement | null => screen.queryByText('child content'),
-    selectCount: (): number => this.onSelect.mock.calls.length,
+    radio: () =>
+      RadioTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'override-radio-card',
+      }),
+    selectMock: (): OverrideRadioCardProps['onSelect'] => this.onSelect,
   };
 }

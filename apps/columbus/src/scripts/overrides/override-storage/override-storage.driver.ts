@@ -1,5 +1,5 @@
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
   AtlasOverrideDocument as OverrideDocument,
 } from '../../../types/contracts';
@@ -8,12 +8,12 @@ import { aHostData } from '../../../types/app.testkit';
 import { type FakeChrome, installFakeChrome } from '../../chrome.testkit';
 import {
   type OverrideStorageLocation,
-  readDisabledOverrides,
+  readDisabledArtifactVersionOverrides,
   readPersistedOverrideDocument,
-  readSuppressedArtifactIds,
-  writeDisabledOverrides,
+  readClearedLocalArtifactIds,
+  writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
-  writeSuppressedArtifactIds,
+  writeClearedLocalArtifactIds,
 } from './override-storage';
 
 export class OverrideStorageDriver {
@@ -31,8 +31,9 @@ export class OverrideStorageDriver {
     generatedAt: '2026-01-01T00:00:00.000Z',
   };
   private persistedDocument: OverrideDocument | undefined;
-  private disabledOverrides: Map<string, Manifest> = new Map();
-  private suppressedArtifactIds: Set<string> = new Set();
+  private disabledArtifactVersionOverrides: Map<string, ArtifactVersion> =
+    new Map();
+  private clearedLocalArtifactIds: Set<string> = new Set();
 
   constructor() {
     localStorage.clear();
@@ -53,17 +54,15 @@ export class OverrideStorageDriver {
   };
 
   readonly when = {
-    persistedDocumentRead: async (): Promise<this> => {
+    persistedDocumentRead: async (): Promise<void> => {
       this.persistedDocument = await readPersistedOverrideDocument(
         this.hostData,
       );
-
-      return this;
     },
     documentWritten: async (
       overrides: OverrideDocument['overrides'],
       disabledAppIds: string[] = [],
-    ): Promise<this> => {
+    ): Promise<void> => {
       await writeOverrideDocument({
         tabId: 7,
         hostData: this.hostData,
@@ -71,40 +70,32 @@ export class OverrideStorageDriver {
         scope: this.location.scope,
         disabledAppIds,
       });
-
-      return this;
     },
     disabledOverridesWritten: async (
-      overrides: Map<string, Manifest>,
-    ): Promise<this> => {
-      await writeDisabledOverrides(this.location, overrides);
-
-      return this;
+      overrides: Map<string, ArtifactVersion>,
+    ): Promise<void> => {
+      await writeDisabledArtifactVersionOverrides(this.location, overrides);
     },
-    disabledOverridesRead: async (): Promise<this> => {
-      this.disabledOverrides = await readDisabledOverrides(this.location);
-
-      return this;
+    disabledOverridesRead: async (): Promise<void> => {
+      this.disabledArtifactVersionOverrides =
+        await readDisabledArtifactVersionOverrides(this.location);
     },
-    suppressedArtifactIdsWritten: async (ids: Set<string>): Promise<this> => {
-      await writeSuppressedArtifactIds(this.location, ids);
-
-      return this;
+    suppressedArtifactIdsWritten: async (ids: Set<string>): Promise<void> => {
+      await writeClearedLocalArtifactIds(this.location, ids);
     },
-    suppressedArtifactIdsRead: async (): Promise<this> => {
-      this.suppressedArtifactIds = await readSuppressedArtifactIds(
+    suppressedArtifactIdsRead: async (): Promise<void> => {
+      this.clearedLocalArtifactIds = await readClearedLocalArtifactIds(
         this.location,
       );
-
-      return this;
     },
   };
 
   readonly get = {
     hostId: (): string => this.hostData.config.hostId,
     persistedDocument: () => this.persistedDocument,
-    disabledOverrides: () => this.disabledOverrides,
-    suppressedArtifactIds: () => this.suppressedArtifactIds,
+    disabledArtifactVersionOverrides: () =>
+      this.disabledArtifactVersionOverrides,
+    clearedLocalArtifactIds: () => this.clearedLocalArtifactIds,
     extensionStorage: (key: string): unknown =>
       this.chrome.localStorage.get(key),
     pageLocalStorage: (key: string): unknown =>

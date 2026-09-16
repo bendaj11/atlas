@@ -41,20 +41,14 @@ export class HostDataCacheDriver {
   };
 
   readonly when = {
-    cacheRead: async (): Promise<this> => {
+    cacheRead: async (): Promise<void> => {
       this.result = await readHostDataCache();
-
-      return this;
     },
-    cacheWritten: async (tabId: number, tabUrl: string): Promise<this> => {
+    cacheWritten: async (tabId: number, tabUrl: string): Promise<void> => {
       await writeHostDataCache({ hostData: this.hostData, tabId, tabUrl });
-
-      return this;
     },
-    cacheCleared: async (tabId?: number): Promise<this> => {
+    cacheCleared: async (tabId?: number): Promise<void> => {
       await clearHostDataCache(tabId);
-
-      return this;
     },
   };
 

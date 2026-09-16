@@ -39,19 +39,15 @@ export class ArtifactOverrideToggleDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       useActionsDisabled.mockReturnValue(this.actionsDisabled);
       useOverrides.mockReturnValue({
         toggleOverride: this.toggleOverride,
       } as Partial<OverridesValue> as OverridesValue);
       render(<ArtifactOverrideToggle artifact={this.artifact} />);
-
-      return this;
     },
-    toggled: async (): Promise<this> => {
+    toggled: async (): Promise<void> => {
       await userEvent.click(this.get.toggle());
-
-      return this;
     },
   };
 

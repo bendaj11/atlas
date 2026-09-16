@@ -1,15 +1,15 @@
-import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/contracts';
 import { aHostData } from '../../../types/app.testkit';
 import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/runtime-discovery';
 import { countOverrides, createOverrideDocument } from './override-document';
 
 export class OverrideDocumentDriver {
   private readonly hostData = aHostData();
-  private readonly overrides = new Map<string, Manifest>();
+  private readonly overrides = new Map<string, ArtifactVersion>();
   private document: ReturnType<typeof createOverrideDocument> | undefined;
 
   readonly given = {
-    override: (artifactKey: string, manifest: Manifest): this => {
+    override: (artifactKey: string, manifest: ArtifactVersion): this => {
       this.overrides.set(artifactKey, manifest);
 
       return this;
@@ -17,13 +17,11 @@ export class OverrideDocumentDriver {
   };
 
   readonly when = {
-    documentCreated: (): this => {
+    documentCreated: (): void => {
       this.document = createOverrideDocument({
         hostData: this.hostData,
         overrides: this.overrides,
       });
-
-      return this;
     },
   };
 

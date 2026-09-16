@@ -1,7 +1,8 @@
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../../types/contracts';
+import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { failureMessage } from '../../shared/errors/errors';
 import {
   inspectHostRequest,
@@ -21,6 +22,12 @@ export type HostTab = chrome.tabs.Tab & { id: number; url: string };
 export interface InspectedHostTab {
   tab: HostTab;
   hostData: HostData;
+}
+
+export interface LoadArtifactVersionFromHostTabOptions {
+  tabId: number;
+  artifactKey: string;
+  manifest: ArtifactVersion;
 }
 
 const NO_HOST_TAB = 'Open an Atlas host in the active tab first.';
@@ -43,14 +50,17 @@ export async function findAtlasHostTab(): Promise<InspectedHostTab> {
   }
 }
 
-export async function requestArtifactVersion(
-  tabId: number,
-  artifactKey: string,
-  versionKey: string,
-): Promise<Manifest> {
+export async function loadArtifactVersionFromHostTab({
+  tabId,
+  artifactKey,
+  manifest,
+}: LoadArtifactVersionFromHostTabOptions): Promise<ArtifactVersion> {
   const response = await chrome.tabs.sendMessage(
     tabId,
-    loadArtifactVersionRequest(artifactKey, versionKey),
+    loadArtifactVersionRequest({
+      artifactKey,
+      versionKey: versionKey(manifest),
+    }),
   );
   if (!isManifestResponse(response))
     throw new Error(

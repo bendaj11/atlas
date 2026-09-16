@@ -6,7 +6,7 @@ export class ConcurrencyDriver {
   private results: number[] = [];
 
   readonly when = {
-    mapped: async (values: number[], concurrency: number): Promise<this> => {
+    mapped: async (values: number[], concurrency: number): Promise<void> => {
       this.results = await mapWithConcurrency(
         values,
         async (value) => {
@@ -19,8 +19,6 @@ export class ConcurrencyDriver {
         },
         concurrency,
       );
-
-      return this;
     },
   };
 

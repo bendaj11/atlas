@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../types/contracts';
-import { aHostData, aManifest } from '../../types/app.testkit';
+import { aHostData, anAppArtifactVersion } from '../../types/app.testkit';
 import { type FakeChrome, installFakeChrome } from '../chrome.testkit';
 import type { ArtifactRegistry } from '../host/artifact-registry/artifact-registry';
 import type { inspectAtlasHost as inspectAtlasHostType } from '../host/inspect-atlas-host/inspect-atlas-host';
@@ -59,7 +59,7 @@ export class BadgeScriptDriver {
     localStorage.clear();
     globalThis.fetch = fetch;
     inspectAtlasHost.mockResolvedValue(aHostData());
-    loadVersion.mockResolvedValue(aManifest());
+    loadVersion.mockResolvedValue(anAppArtifactVersion());
     window.setInterval = setInterval as unknown as typeof window.setInterval;
     window.matchMedia = () =>
       this.colorSchemeQuery as unknown as MediaQueryList;
@@ -120,7 +120,7 @@ export class BadgeScriptDriver {
 
       return this;
     },
-    loadedVersion: (manifest: Manifest): this => {
+    loadedVersion: (manifest: ArtifactVersion): this => {
       loadVersion.mockResolvedValue(manifest);
 
       return this;
@@ -133,15 +133,13 @@ export class BadgeScriptDriver {
   };
 
   readonly when = {
-    started: async (): Promise<this> => {
+    started: async (): Promise<void> => {
       await this.start();
-
-      return this;
     },
     overridesStoredAndEventFired: async (
       document: unknown,
       eventType: string,
-    ): Promise<this> => {
+    ): Promise<void> => {
       await this.start();
       sessionStorage.setItem(
         'atlas.runtime-overrides',
@@ -149,12 +147,10 @@ export class BadgeScriptDriver {
       );
       window.dispatchEvent(new Event(eventType));
       await flushAsyncWork();
-
-      return this;
     },
     overridesStoredAndIntervalElapsed: async (
       document: unknown,
-    ): Promise<this> => {
+    ): Promise<void> => {
       await this.start();
       sessionStorage.setItem(
         'atlas.runtime-overrides',
@@ -162,22 +158,16 @@ export class BadgeScriptDriver {
       );
       setInterval.mock.calls.forEach(([callback]) => callback());
       await flushAsyncWork();
-
-      return this;
     },
-    colorSchemeChanged: async (dark: boolean): Promise<this> => {
+    colorSchemeChanged: async (dark: boolean): Promise<void> => {
       await this.start();
       this.colorSchemeQuery.matches = dark;
       this.colorSchemeListeners.forEach((listener) => listener());
       await flushAsyncWork();
-
-      return this;
     },
-    messageReceived: async (message: unknown): Promise<this> => {
+    messageReceived: async (message: unknown): Promise<void> => {
       await this.start();
       this.response = await this.chrome.emitRuntimeMessage(message);
-
-      return this;
     },
   };
 

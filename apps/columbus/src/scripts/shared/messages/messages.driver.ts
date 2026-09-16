@@ -26,10 +26,8 @@ export class MessagesDriver {
   private result: boolean | undefined;
 
   readonly when = {
-    checked: (guard: MessageGuard, value: unknown): this => {
+    checked: (guard: MessageGuard, value: unknown): void => {
       this.result = GUARDS[guard](value);
-
-      return this;
     },
   };
 

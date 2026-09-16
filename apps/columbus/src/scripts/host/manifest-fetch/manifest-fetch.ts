@@ -1,5 +1,5 @@
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
-import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/contracts';
 
 export interface ManifestDescriptor {
   path: string;
@@ -40,7 +40,7 @@ export async function fetchWithTimeout(
 
 export async function fetchVerifiedManifest(
   reference: ManifestReference,
-): Promise<Manifest> {
+): Promise<ArtifactVersion> {
   const response = await fetchWithTimeout(reference.url, 'force-cache');
   if (!response.ok)
     throw new Error(`${reference.url} returned ${response.status}.`);
@@ -51,7 +51,7 @@ export async function fetchVerifiedManifest(
   return hydratePublishedArtifactManifest(
     JSON.parse(new TextDecoder().decode(bytes)),
     reference.url,
-  ) as Manifest;
+  ) as ArtifactVersion;
 }
 
 async function assertMatchesDescriptor(

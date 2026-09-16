@@ -1,26 +1,33 @@
 import { Box, Heading, Page, Text } from '@wix/design-system';
-import { Navigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
+import { initialOverrideSelection } from '../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker/BrowserOverrideScopePicker';
+import { useActionsDisabled, useOverrides } from '../providers';
 import { useArtifactConfiguration } from './useArtifactConfiguration/useArtifactConfiguration';
+import { useSaveArtifactOverride } from './useSaveArtifactOverride/useSaveArtifactOverride';
 import { OverridesSelectionForm } from './OverridesForm/OverridesSelectionForm';
 import { ArtifactConfigurationActions } from './ArtifactConfigurationActions/ArtifactConfigurationActions';
 
 export function ArtifactConfigurationPage() {
-  const {
-    scope,
-    draft,
-    configuration,
-    actionsDisabled,
-    errorMessage,
-    close,
-    save,
-    setScope,
-    updateDraft,
-    clearOverride,
-  } = useArtifactConfiguration();
+  const navigate = useNavigate();
+  const configuration = useArtifactConfiguration();
+  const { scope, setScope } = useOverrides();
+  const actionsDisabled = useActionsDisabled();
+  const [selection, setSelection] = useState(() =>
+    initialOverrideSelection(configuration?.selectedArtifactVersion),
+  );
+  const { clearOverride, errorMessage, loading, save } =
+    useSaveArtifactOverride({ configuration, selection });
 
   if (!configuration) return <Navigate to={ARTIFACTS_ROUTE} replace />;
+
+  const disabled = actionsDisabled || loading;
+
+  function close(): void {
+    navigate(ARTIFACTS_ROUTE);
+  }
 
   return (
     <Page minWidth={0}>
@@ -33,8 +40,8 @@ export function ArtifactConfigurationPage() {
           </Text>
         }
         title={
-          <Heading size="medium">
-            {configuration.productionManifest.name}
+          <Heading dataHook="artifact-configuration-title" size="medium">
+            {configuration.productionArtifactVersion.name}
           </Heading>
         }
         actionsBar={
@@ -42,27 +49,35 @@ export function ArtifactConfigurationPage() {
             onSave={save}
             onCancel={close}
             onClear={clearOverride}
-            saveDisabled={actionsDisabled}
-            cancelDisabled={actionsDisabled}
-            clearDisabled={actionsDisabled || !configuration.selectedManifest}
+            saveDisabled={disabled}
+            cancelDisabled={disabled}
+            clearDisabled={disabled || !configuration.selectedArtifactVersion}
           />
         }
       />
 
       <Page.Content>
         <Box direction="vertical" gap="SP4">
-          {errorMessage && <div role="alert">{errorMessage}</div>}
+          {errorMessage && (
+            <Text
+              dataHook="artifact-configuration-error"
+              role="alert"
+              skin="error"
+            >
+              {errorMessage}
+            </Text>
+          )}
 
           <BrowserOverrideScopePicker
-            value={scope}
+            selectedScope={scope}
             onChange={setScope}
-            disabled={actionsDisabled}
+            disabled={disabled}
           />
 
           <OverridesSelectionForm
-            draft={draft}
+            selection={selection}
             configuration={configuration}
-            onDraftChange={updateDraft}
+            onChange={setSelection}
           />
         </Box>
       </Page.Content>

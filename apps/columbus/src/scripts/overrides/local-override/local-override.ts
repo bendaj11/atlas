@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/contracts';
 import { isRecord } from '../../shared/messages/messages';
 
 interface FederationMetadata {
@@ -6,7 +6,9 @@ interface FederationMetadata {
   exposes: Array<{ key?: unknown; outFileName?: unknown }>;
 }
 
-export async function validateLocalOverride(manifest: Manifest): Promise<void> {
+export async function validateLocalOverride(
+  manifest: ArtifactVersion,
+): Promise<void> {
   if (manifest.channel !== 'local') return;
 
   const failure = await remoteEntryFailure(

@@ -1,5 +1,5 @@
 import type { AtlasHostData as HostData } from '../../../types/contracts';
-import { aHostData, aManifest } from '../../../types/app.testkit';
+import { aHostData, anAppArtifactVersion } from '../../../types/app.testkit';
 import {
   type FakeChrome,
   type FakeTab,
@@ -8,8 +8,9 @@ import {
 import {
   findAtlasHostTab,
   type InspectedHostTab,
+  loadArtifactVersionFromHostTab,
+  type LoadArtifactVersionFromHostTabOptions,
   reloadHostTab,
-  requestArtifactVersion,
 } from './host-tabs';
 
 export class HostTabsDriver {
@@ -17,7 +18,7 @@ export class HostTabsDriver {
   private readonly hosts = new Map<number, HostData>();
   private artifactVersionResponse: unknown = {
     ok: true,
-    manifest: aManifest(),
+    manifest: anAppArtifactVersion(),
   };
   private found: InspectedHostTab | undefined;
   private error: unknown;
@@ -49,28 +50,24 @@ export class HostTabsDriver {
   };
 
   readonly when = {
-    hostTabSearched: async (): Promise<this> => {
+    hostTabSearched: async (): Promise<void> => {
       try {
         this.found = await findAtlasHostTab();
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
-    artifactVersionRequested: async (): Promise<this> => {
+    manifestLoaded: async (
+      request: LoadArtifactVersionFromHostTabOptions,
+    ): Promise<void> => {
       try {
-        await requestArtifactVersion(7, 'app:orders', 'production:1.0.0:b1');
+        await loadArtifactVersionFromHostTab(request);
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
-    tabReloaded: async (tabId: number): Promise<this> => {
+    tabReloaded: async (tabId: number): Promise<void> => {
       await reloadHostTab(tabId);
-
-      return this;
     },
   };
 

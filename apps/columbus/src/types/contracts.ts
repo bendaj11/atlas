@@ -86,6 +86,8 @@ export interface AtlasHostData {
   versionErrors: string[];
 }
 
+export type ArtifactVersion = AtlasExtensionManifest;
+
 export function getArtifactKey(manifest: AtlasExtensionManifest): string {
   return `${manifest.kind}:${manifest.id}`;
 }

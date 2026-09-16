@@ -1,4 +1,7 @@
-import { anArtifact, anAppManifest } from '../../../../types/app.testkit';
+import {
+  anArtifact,
+  anAppArtifactVersion,
+} from '../../../../types/app.testkit';
 import { ArtifactOverrideToggleDriver } from './ArtifactOverrideToggle.driver';
 
 describe('ArtifactOverrideToggle', () => {
@@ -29,7 +32,7 @@ describe('ArtifactOverrideToggle', () => {
       .artifact(
         anArtifact({
           canToggle: true,
-          productionManifest: anAppManifest({ name: 'Orders' }),
+          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
         }),
       )
       .when.rendered();
@@ -43,7 +46,7 @@ describe('ArtifactOverrideToggle', () => {
         anArtifact({
           canToggle: true,
           overrideEnabled: true,
-          productionManifest: anAppManifest({ name: 'Orders' }),
+          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
         }),
       )
       .when.rendered();
@@ -52,25 +55,27 @@ describe('ArtifactOverrideToggle', () => {
   });
 
   it('should toggle the artifact override when clicked', async () => {
-    await driver.given
+    driver.given
       .artifact(anArtifact({ key: 'app:orders', canToggle: true }))
-      .when.rendered()
-      .when.toggled();
+      .when.rendered();
+
+    await driver.when.toggled();
 
     expect(driver.get.toggledArtifactKey()).toBe('app:orders');
   });
 
   it('should not toggle when actions are disabled', async () => {
-    await driver.given.actionsDisabled(true).when.rendered().when.toggled();
+    driver.given.actionsDisabled(true).when.rendered();
+
+    await driver.when.toggled();
 
     expect(driver.get.toggledArtifactKey()).toBeUndefined();
   });
 
   it('should not toggle when artifact cannot toggle', async () => {
-    await driver.given
-      .artifact(anArtifact({ canToggle: false }))
-      .when.rendered()
-      .when.toggled();
+    driver.given.artifact(anArtifact({ canToggle: false })).when.rendered();
+
+    await driver.when.toggled();
 
     expect(driver.get.toggledArtifactKey()).toBeUndefined();
   });

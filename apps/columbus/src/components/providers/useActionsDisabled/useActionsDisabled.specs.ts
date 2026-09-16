@@ -1,11 +1,7 @@
 import type { HostStatus, OverrideStatus } from '../../../types/app';
 import { ActionsDisabledDriver } from './useActionsDisabled.driver';
 
-const NOT_LOADED_HOST_STATUSES: HostStatus[] = [
-  'RESTORING',
-  'LOADING',
-  'ERROR',
-];
+const NOT_LOADED_HOST_STATUSES: HostStatus[] = ['LOADING', 'ERROR'];
 const NOT_APPLYING_OVERRIDE_STATUSES: OverrideStatus[] = ['IDLE', 'ERROR'];
 
 describe('useActionsDisabled', () => {

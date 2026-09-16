@@ -54,7 +54,7 @@ export class ArtifactsOverridesTableDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       useArtifacts.mockReturnValue({
         artifacts: this.artifacts,
         totalCount: this.totalCount,
@@ -66,20 +66,14 @@ export class ArtifactsOverridesTableDriver {
       useActionsDisabled.mockReturnValue(false);
       useOverrides.mockReturnValue({} as OverridesValue);
       render(<ArtifactsOverridesTable />);
-
-      return this;
     },
-    searched: async (value: string): Promise<this> => {
+    searched: async (value: string): Promise<void> => {
       await userEvent.type(screen.getByRole('textbox'), value);
-
-      return this;
     },
-    visibleFilterClicked: async (): Promise<this> => {
+    visibleFilterClicked: async (): Promise<void> => {
       await userEvent.click(
         screen.getByRole('button', { name: 'Show visible artifacts only' }),
       );
-
-      return this;
     },
   };
 

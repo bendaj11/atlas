@@ -2,13 +2,13 @@ import { Box, Card, RadioGroup, Text } from '@wix/design-system';
 import type { Scope } from '../../../types/app';
 
 interface ScopePickerProps {
-  value: Scope;
+  selectedScope: Scope;
   disabled: boolean;
   onChange: (value: Scope) => void;
 }
 
 export function BrowserOverrideScopePicker({
-  value,
+  selectedScope,
   disabled,
   onChange,
 }: ScopePickerProps) {
@@ -21,7 +21,7 @@ export function BrowserOverrideScopePicker({
 
         <RadioGroup
           dataHook="override-scope"
-          value={value}
+          value={selectedScope}
           size="small"
           disabled={disabled}
           display="horizontal"

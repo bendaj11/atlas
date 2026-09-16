@@ -1,9 +1,8 @@
 import type { ArtifactProps, OverrideType } from '../../../../types/app';
-import { versionBuildIdLabel } from '../../../../scripts/manifests/manifest-utils/manifest-utils';
+import { versionBuildIdLabel } from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 import { Text, Tooltip } from '@wix/design-system';
 
 const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {
-  none: '',
   custom: 'Custom URL override',
   pr: 'PR / MR preview override',
   production: 'Other release override',
@@ -13,7 +12,7 @@ export const ArtifactOverrideVersion = ({ artifact }: ArtifactProps) => {
   const hasOverride = artifact.overrideEnabled;
   const displayedVersion = hasOverride
     ? artifact.sourceDescription
-    : versionBuildIdLabel(artifact.productionManifest);
+    : versionBuildIdLabel(artifact.productionArtifactVersion);
 
   const getTextSkin = () => {
     if (artifact.loadError) return 'error';
@@ -26,7 +25,9 @@ export const ArtifactOverrideVersion = ({ artifact }: ArtifactProps) => {
       dataHook="override-version-tooltip"
       content={
         <Text size="tiny" light>
-          {artifact.loadError ?? OVERRIDE_TYPE_LABELS[artifact.overrideType]}
+          {artifact.loadError ??
+            (artifact.overrideType &&
+              OVERRIDE_TYPE_LABELS[artifact.overrideType])}
         </Text>
       }
       disabled={!artifact.loadError && !hasOverride}

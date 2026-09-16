@@ -1,4 +1,4 @@
-import { aManifest } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/app.testkit';
 import { OverrideStorageDriver } from './override-storage.driver';
 
 const DOCUMENT_KEY = 'atlas.runtime-overrides';
@@ -55,7 +55,7 @@ describe('writeOverrideDocument', () => {
   it('should store the document in page local storage when scope is all', async () => {
     const override = {
       appId: 'orders',
-      manifest: aManifest({ id: 'orders' }),
+      manifest: anAppArtifactVersion({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -66,10 +66,10 @@ describe('writeOverrideDocument', () => {
     });
   });
 
-  it('should store the document in page session storage when scope is tab', async () => {
+  it('should store the document in page columbusState storage when scope is tab', async () => {
     const override = {
       appId: 'orders',
-      manifest: aManifest({ id: 'orders' }),
+      manifest: anAppArtifactVersion({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -109,7 +109,7 @@ describe('writeOverrideDocument', () => {
   it('should persist the document in extension storage when scope is all and overrides exist', async () => {
     const override = {
       appId: 'orders',
-      manifest: aManifest({ id: 'orders' }),
+      manifest: anAppArtifactVersion({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -125,7 +125,7 @@ describe('writeOverrideDocument', () => {
   it('should drop the persisted document when scope is all and no overrides remain', async () => {
     const override = {
       appId: 'orders',
-      manifest: aManifest({ id: 'orders' }),
+      manifest: anAppArtifactVersion({ id: 'orders' }),
       reason: 'pr' as const,
     };
     await driver.when.documentWritten([override]);
@@ -140,7 +140,7 @@ describe('writeOverrideDocument', () => {
   it('should not touch extension storage when scope is tab', async () => {
     const override = {
       appId: 'orders',
-      manifest: aManifest({ id: 'orders' }),
+      manifest: anAppArtifactVersion({ id: 'orders' }),
       reason: 'pr' as const,
     };
 
@@ -160,14 +160,14 @@ describe('disabled overrides storage', () => {
   });
 
   it('should read back overrides keyed by artifact when they were written', async () => {
-    const manifest = aManifest({ kind: 'app', id: 'orders' });
+    const manifest = anAppArtifactVersion({ kind: 'app', id: 'orders' });
 
     await driver.when.disabledOverridesWritten(
       new Map([['app:orders', manifest]]),
     );
     await driver.when.disabledOverridesRead();
 
-    expect(driver.get.disabledOverrides()).toEqual(
+    expect(driver.get.disabledArtifactVersionOverrides()).toEqual(
       new Map([['app:orders', manifest]]),
     );
   });
@@ -175,12 +175,12 @@ describe('disabled overrides storage', () => {
   it('should read an empty map when nothing was written', async () => {
     await driver.when.disabledOverridesRead();
 
-    expect(driver.get.disabledOverrides()).toEqual(new Map());
+    expect(driver.get.disabledArtifactVersionOverrides()).toEqual(new Map());
   });
 
   it('should clear the entry when an empty map is written', async () => {
     await driver.when.disabledOverridesWritten(
-      new Map([['app:orders', aManifest()]]),
+      new Map([['app:orders', anAppArtifactVersion()]]),
     );
     await driver.when.disabledOverridesWritten(new Map());
 
@@ -198,7 +198,7 @@ describe('disabled overrides storage', () => {
       ])
       .when.disabledOverridesRead();
 
-    expect(driver.get.disabledOverrides()).toEqual(new Map());
+    expect(driver.get.disabledArtifactVersionOverrides()).toEqual(new Map());
   });
 });
 
@@ -213,7 +213,7 @@ describe('suppressed artifact ids storage', () => {
     await driver.when.suppressedArtifactIdsWritten(new Set(['orders']));
     await driver.when.suppressedArtifactIdsRead();
 
-    expect(driver.get.suppressedArtifactIds()).toEqual(new Set(['orders']));
+    expect(driver.get.clearedLocalArtifactIds()).toEqual(new Set(['orders']));
   });
 
   it('should clear the entry when an empty set is written', async () => {
@@ -235,6 +235,6 @@ describe('suppressed artifact ids storage', () => {
       )
       .when.suppressedArtifactIdsRead();
 
-    expect(driver.get.suppressedArtifactIds()).toEqual(new Set(['orders']));
+    expect(driver.get.clearedLocalArtifactIds()).toEqual(new Set(['orders']));
   });
 });

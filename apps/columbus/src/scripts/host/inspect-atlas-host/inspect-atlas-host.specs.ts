@@ -1,7 +1,7 @@
-import { aManifest, anAppManifest } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/app.testkit';
 import { InspectAtlasHostDriver } from './inspect-atlas-host.driver';
 
-const ORDERS = anAppManifest({ id: 'orders', version: '1.0.0' });
+const ORDERS = anAppArtifactVersion({ id: 'orders', version: '1.0.0' });
 
 describe('inspectAtlasHost', () => {
   let driver: InspectAtlasHostDriver;
@@ -49,7 +49,7 @@ describe('inspectAtlasHost', () => {
     });
 
     it('should list the registry versions when the registry lists them', async () => {
-      const newer = aManifest({ id: 'orders', version: '2.0.0' });
+      const newer = anAppArtifactVersion({ id: 'orders', version: '2.0.0' });
 
       await driver.given.versions([ORDERS, newer]).when.hostInspected();
 
@@ -136,7 +136,7 @@ describe('inspectAtlasHost', () => {
 
     it('should derive overrides from local manifests when nothing is stored', async () => {
       await driver.given
-        .catalogApp(aManifest({ id: 'orders', channel: 'local' }))
+        .catalogApp(anAppArtifactVersion({ id: 'orders', channel: 'local' }))
         .when.hostInspected();
 
       expect(driver.get.result()?.overrides).toMatchObject({ hostId: 'shop' });

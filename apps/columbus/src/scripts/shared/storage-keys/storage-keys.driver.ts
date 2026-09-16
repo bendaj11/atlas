@@ -10,33 +10,25 @@ export class StorageKeysDriver {
   private key: string | undefined;
 
   readonly when = {
-    persistedOverridesKeyBuilt: (hostId: string): this => {
+    persistedOverridesKeyBuilt: (hostId: string): void => {
       this.key = persistedOverridesKey(hostId);
-
-      return this;
     },
-    disabledLocalAppsKeyBuilt: (hostId: string): this => {
+    disabledLocalAppsKeyBuilt: (hostId: string): void => {
       this.key = disabledLocalAppsKey(hostId);
-
-      return this;
     },
     disabledOverridesKeyBuilt: (
       hostId: string,
       tabId: number,
       scope: Scope,
-    ): this => {
+    ): void => {
       this.key = disabledOverridesKey(hostId, tabId, scope);
-
-      return this;
     },
     suppressedArtifactsKeyBuilt: (
       hostId: string,
       tabId: number,
       scope: Scope,
-    ): this => {
+    ): void => {
       this.key = suppressedArtifactsKey(hostId, tabId, scope);
-
-      return this;
     },
   };
 

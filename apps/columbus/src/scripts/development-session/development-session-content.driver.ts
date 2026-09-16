@@ -58,22 +58,18 @@ export class DevelopmentSessionContentDriver {
   };
 
   readonly when = {
-    started: async (): Promise<this> => {
+    started: async (): Promise<void> => {
       await this.start();
-
-      return this;
     },
     messagePosted: async (
       data: unknown,
       source: Window | null = window,
-    ): Promise<this> => {
+    ): Promise<void> => {
       await this.start();
       const event = new MessageEvent('message', { data });
       Object.defineProperty(event, 'source', { value: source });
       window.dispatchEvent(event);
       await new Promise((resolve) => setTimeout(resolve, 0));
-
-      return this;
     },
   };
 

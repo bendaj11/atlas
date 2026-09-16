@@ -13,10 +13,8 @@ export class AtlasBootstrapSignatureDriver {
   };
 
   readonly when = {
-    signatureChecked: (): this => {
+    signatureChecked: (): void => {
       this.result = hasAtlasBootstrapSignature(this.page);
-
-      return this;
     },
   };
 

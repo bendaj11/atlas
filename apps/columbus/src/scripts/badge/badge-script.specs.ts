@@ -1,4 +1,4 @@
-import { aHostData, aManifest } from '../../types/app.testkit';
+import { aHostData, anAppArtifactVersion } from '../../types/app.testkit';
 import {
   inspectHostRequest,
   loadArtifactVersionRequest,
@@ -232,19 +232,23 @@ describe('badge-script', () => {
   describe('when a load version request arrives', () => {
     it('should load the given version when requested', async () => {
       await driver.when.messageReceived(
-        loadArtifactVersionRequest('app:orders', '1.2.0'),
+        loadArtifactVersionRequest({
+          artifactKey: 'app:orders',
+          versionKey: '1.2.0',
+        }),
       );
 
       expect(driver.get.loadedVersionKeys()).toEqual([['app:orders', '1.2.0']]);
     });
 
     it('should respond with the manifest when the version loads', async () => {
-      const manifest = aManifest();
-      await driver.given
-        .loadedVersion(manifest)
-        .when.messageReceived(
-          loadArtifactVersionRequest('app:orders', '1.2.0'),
-        );
+      const manifest = anAppArtifactVersion();
+      await driver.given.loadedVersion(manifest).when.messageReceived(
+        loadArtifactVersionRequest({
+          artifactKey: 'app:orders',
+          versionKey: '1.2.0',
+        }),
+      );
 
       expect(driver.get.response()).toEqual({ ok: true, manifest });
     });
@@ -253,7 +257,10 @@ describe('badge-script', () => {
       await driver.given
         .versionLoadFailure('Version 1.2.0 is not published.')
         .when.messageReceived(
-          loadArtifactVersionRequest('app:orders', '1.2.0'),
+          loadArtifactVersionRequest({
+            artifactKey: 'app:orders',
+            versionKey: '1.2.0',
+          }),
         );
 
       expect(driver.get.response()).toEqual({

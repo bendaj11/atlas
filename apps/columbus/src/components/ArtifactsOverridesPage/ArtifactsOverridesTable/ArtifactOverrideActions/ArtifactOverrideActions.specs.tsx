@@ -10,10 +10,11 @@ describe('ArtifactOverrideActions', () => {
   });
 
   it('should clear the artifact override when clear is clicked', async () => {
-    await driver.given
+    driver.given
       .artifact(anArtifact({ key: 'app:orders', canToggle: true }))
-      .when.rendered()
-      .when.clearClicked();
+      .when.rendered();
+
+    await driver.when.clearClicked();
 
     expect(driver.get.clearedArtifactKey()).toBe('app:orders');
   });
@@ -25,10 +26,9 @@ describe('ArtifactOverrideActions', () => {
   });
 
   it('should not clear when actions are disabled', async () => {
-    await driver.given
-      .actionsDisabled(true)
-      .when.rendered()
-      .when.clearClicked();
+    driver.given.actionsDisabled(true).when.rendered();
+
+    await driver.when.clearClicked();
 
     expect(driver.get.clearedArtifactKey()).toBeUndefined();
   });
@@ -36,7 +36,9 @@ describe('ArtifactOverrideActions', () => {
   it('should open the configuration page with the artifact when edit is clicked', async () => {
     const artifact = anArtifact();
 
-    await driver.given.artifact(artifact).when.rendered().when.editClicked();
+    driver.given.artifact(artifact).when.rendered();
+
+    await driver.when.editClicked();
 
     expect(driver.get.navigation()).toEqual([
       ARTIFACT_CONFIGURATION_ROUTE,
@@ -45,7 +47,9 @@ describe('ArtifactOverrideActions', () => {
   });
 
   it('should not navigate when actions are disabled', async () => {
-    await driver.given.actionsDisabled(true).when.rendered().when.editClicked();
+    driver.given.actionsDisabled(true).when.rendered();
+
+    await driver.when.editClicked();
 
     expect(driver.get.navigation()).toBeUndefined();
   });

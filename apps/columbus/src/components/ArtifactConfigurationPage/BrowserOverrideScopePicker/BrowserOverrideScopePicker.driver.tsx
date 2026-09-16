@@ -1,58 +1,56 @@
-import { render, type RenderResult } from '@testing-library/react';
+import { faker } from '@faker-js/faker';
+import type { ComponentProps } from 'react';
+import { render } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { RadioGroupTestkit } from '@wix/design-system/dist/testkit/testing-library';
 import type { Scope } from '../../../types/app';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker';
 
+type ScopePickerProps = ComponentProps<typeof BrowserOverrideScopePicker>;
+
 export class BrowserOverrideScopePickerDriver {
-  private value: Scope = 'all';
+  private selectedScope: Scope = faker.helpers.arrayElement<Scope>([
+    'all',
+    'tab',
+  ]);
   private disabled = false;
-  private readonly onChange = jest.fn<(scope: Scope) => void>();
-  private view: RenderResult | undefined;
+  private readonly onChange = jest.fn<ScopePickerProps['onChange']>();
+  private baseElement!: Element;
 
   readonly given = {
-    value: (value: Scope): this => {
-      this.value = value;
+    selectedScope: (selectedScope: Scope): this => {
+      this.selectedScope = selectedScope;
 
       return this;
     },
-    disabled: (): this => {
-      this.disabled = true;
+    disabled: (disabled: boolean): this => {
+      this.disabled = disabled;
 
       return this;
     },
   };
 
   readonly when = {
-    rendered: (): this => {
-      this.view = render(
+    rendered: (): void => {
+      this.baseElement = render(
         <BrowserOverrideScopePicker
-          value={this.value}
+          selectedScope={this.selectedScope}
           disabled={this.disabled}
           onChange={this.onChange}
         />,
-      );
-
-      return this;
+      ).baseElement;
     },
-    tabSelected: async (): Promise<this> => {
-      await this.get.radioGroup().selectByValue('tab');
-
-      return this;
+    scopeSelected: async (scope: Scope): Promise<void> => {
+      await this.get.radioGroup().selectByValue(scope);
     },
   };
 
   readonly get = {
     radioGroup: () =>
       RadioGroupTestkit({
-        wrapper: this.get.container(),
+        wrapper: this.baseElement,
         dataHook: 'override-scope',
       }),
-    selectedScope: (): Scope | undefined => this.onChange.mock.calls[0]?.[0],
-    container: (): HTMLElement => {
-      if (!this.view) throw new Error('Scope picker was not rendered.');
-
-      return this.view.container;
-    },
+    onChangeMock: (): ScopePickerProps['onChange'] => this.onChange,
   };
 }

@@ -1,9 +1,9 @@
 import {
-  type AtlasExtensionManifest as Manifest,
+  type ArtifactVersion,
   type AtlasHostData as HostData,
   getArtifactKey,
 } from '../../../types/contracts';
-import { versionKey } from '../../manifests/manifest-versions/manifest-versions';
+import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { messageFromError } from '../../shared/errors/errors';
 import { isRecord } from '../../shared/messages/messages';
 import {
@@ -29,19 +29,22 @@ export interface Registry {
 }
 
 export interface ArtifactVersions {
-  manifests: Manifest[];
+  manifests: ArtifactVersion[];
   error?: string;
 }
 
 export interface ArtifactRegistry {
   readRegistry(root: string): Promise<Registry>;
   readVersions(
-    deployed: Manifest,
+    deployed: ArtifactVersion,
     registry: Registry,
     root: string,
   ): Promise<ArtifactVersions>;
-  loadManifest(reference: ManifestReference): Promise<Manifest>;
-  loadVersion(artifactKey: string, versionKey: string): Promise<Manifest>;
+  loadManifest(reference: ManifestReference): Promise<ArtifactVersion>;
+  loadVersion(
+    artifactKey: string,
+    versionKey: string,
+  ): Promise<ArtifactVersion>;
 }
 
 const CANONICAL_BUILD_ID = 'canonical';
@@ -63,9 +66,11 @@ export function registryRootFor(
 
 export function createArtifactRegistry(): ArtifactRegistry {
   const versionReferences = new Map<string, ManifestReference>();
-  const loadedManifests = new Map<string, Promise<Manifest>>();
+  const loadedManifests = new Map<string, Promise<ArtifactVersion>>();
 
-  function loadManifest(reference: ManifestReference): Promise<Manifest> {
+  function loadManifest(
+    reference: ManifestReference,
+  ): Promise<ArtifactVersion> {
     const cached = loadedManifests.get(reference.digest);
     if (cached) return cached;
 
@@ -77,16 +82,16 @@ export function createArtifactRegistry(): ArtifactRegistry {
 
   function rememberVersion(
     artifactKey: string,
-    manifest: Manifest,
+    manifest: ArtifactVersion,
     reference: ManifestReference,
-  ): Manifest {
+  ): ArtifactVersion {
     versionReferences.set(`${artifactKey}:${versionKey(manifest)}`, reference);
 
     return manifest;
   }
 
   async function readVersions(
-    deployed: Manifest,
+    deployed: ArtifactVersion,
     registry: Registry,
     root: string,
   ): Promise<ArtifactVersions> {
@@ -110,7 +115,7 @@ export function createArtifactRegistry(): ArtifactRegistry {
         manifestReference(root, descriptor),
       ),
     );
-    const previews: Manifest[] = [];
+    const previews: ArtifactVersion[] = [];
     const errors: string[] = [];
     for (const [previewNumber, descriptor] of orderedPreviews(artifact)) {
       const reference = manifestReference(root, descriptor);
@@ -138,7 +143,7 @@ export function createArtifactRegistry(): ArtifactRegistry {
   async function loadVersion(
     artifactKey: string,
     selectedVersionKey: string,
-  ): Promise<Manifest> {
+  ): Promise<ArtifactVersion> {
     const reference = versionReferences.get(
       `${artifactKey}:${selectedVersionKey}`,
     );
@@ -196,7 +201,9 @@ function orderedPreviews(
   );
 }
 
-export function uniqueManifests(manifests: Manifest[]): Manifest[] {
+export function uniqueManifests(
+  manifests: ArtifactVersion[],
+): ArtifactVersion[] {
   return [
     ...new Map(
       manifests.map((manifest) => [

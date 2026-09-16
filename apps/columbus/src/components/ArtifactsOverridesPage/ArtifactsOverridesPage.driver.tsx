@@ -64,7 +64,7 @@ export class ArtifactsOverridesPageDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       useHost.mockReturnValue({
         status: this.hostStatus,
         message: this.hostMessage,
@@ -77,18 +77,12 @@ export class ArtifactsOverridesPageDriver {
       } as Partial<OverridesValue> as OverridesValue);
       useActionsDisabled.mockReturnValue(this.actionsDisabled);
       render(<ArtifactsOverridesPage />);
-
-      return this;
     },
-    clearClicked: async (): Promise<this> => {
+    clearClicked: async (): Promise<void> => {
       await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
-
-      return this;
     },
-    refreshClicked: async (): Promise<this> => {
+    refreshClicked: async (): Promise<void> => {
       await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-
-      return this;
     },
   };
 

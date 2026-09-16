@@ -1,4 +1,7 @@
-import { aHostManifest, aManifest } from '../../../types/app.testkit';
+import {
+  aHostArtifactVersion,
+  anAppArtifactVersion,
+} from '../../../types/app.testkit';
 import { OverrideDocumentDriver } from './override-document.driver';
 
 describe('createOverrideDocument', () => {
@@ -10,11 +13,17 @@ describe('createOverrideDocument', () => {
 
   it('should list app overrides with their reason when apps are overridden', () => {
     driver.given
-      .override('app:orders', aManifest({ id: 'orders', channel: 'local' }))
-      .given.override('app:cart', aManifest({ id: 'cart', channel: 'pr' }))
+      .override(
+        'app:orders',
+        anAppArtifactVersion({ id: 'orders', channel: 'local' }),
+      )
+      .given.override(
+        'app:cart',
+        anAppArtifactVersion({ id: 'cart', channel: 'pr' }),
+      )
       .given.override(
         'app:old',
-        aManifest({ id: 'old', channel: 'production' }),
+        anAppArtifactVersion({ id: 'old', channel: 'production' }),
       )
       .when.documentCreated();
 
@@ -30,7 +39,7 @@ describe('createOverrideDocument', () => {
   });
 
   it('should set the host override when the host is overridden', () => {
-    const host = aHostManifest();
+    const host = aHostArtifactVersion();
 
     driver.given.override('host:h', host).when.documentCreated();
 
@@ -38,15 +47,17 @@ describe('createOverrideDocument', () => {
   });
 
   it('should omit the host override when only apps are overridden', () => {
-    driver.given.override('app:orders', aManifest()).when.documentCreated();
+    driver.given
+      .override('app:orders', anAppArtifactVersion())
+      .when.documentCreated();
 
     expect(driver.get.document().hostOverride).toBeUndefined();
   });
 
   it('should count app and host overrides together when both exist', () => {
     driver.given
-      .override('host:h', aHostManifest())
-      .given.override('app:orders', aManifest())
+      .override('host:h', aHostArtifactVersion())
+      .given.override('app:orders', anAppArtifactVersion())
       .when.documentCreated();
 
     expect(driver.get.count()).toBe(2);
@@ -56,7 +67,7 @@ describe('createOverrideDocument', () => {
     driver.given
       .override(
         'app:orders',
-        aManifest({
+        anAppArtifactVersion({
           id: 'orders',
           channel: 'local',
           remoteEntryUrl: 'http://localhost:4513/remoteEntry.json',

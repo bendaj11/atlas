@@ -1,67 +1,75 @@
 import { OverrideRadioCard } from './OverrideRadioCard/OverrideRadioCard';
-import { type ArtifactConfiguration, EditorDraft } from '../../../types/app';
+import type {
+  ArtifactConfiguration,
+  OverrideSelection,
+} from '../../../types/app';
 import { Box, Input } from '@wix/design-system';
 import { OverrideVersionDropdown } from './OverrideVersionDropdown/OverrideVersionDropdown';
 
 interface OverridesSelectionFormProps {
-  draft: EditorDraft;
+  selection: OverrideSelection;
   configuration: ArtifactConfiguration;
-  onDraftChange: (draft: Partial<EditorDraft>) => void;
+  onChange: (selection: OverrideSelection) => void;
 }
 
 export const OverridesSelectionForm = ({
-  draft,
-  onDraftChange,
+  selection,
+  onChange,
   configuration,
 }: OverridesSelectionFormProps) => {
   return (
     <Box direction="vertical" gap="SP2">
       <OverrideRadioCard
-        type="custom"
+        dataHook="override-card-custom"
         title="Custom URL"
-        currentSelectedType={draft.type}
+        checked={selection.type === 'custom'}
         disabled={false}
-        onSelect={() => onDraftChange({ type: 'custom' })}
+        onSelect={() => onChange({ type: 'custom', value: '' })}
       >
         <Input
+          dataHook="override-custom-url"
           size="small"
-          value={draft.customUrl}
-          disabled={draft.type !== 'custom'}
+          value={selection.type === 'custom' ? selection.value : ''}
+          disabled={selection.type !== 'custom'}
           placeholder="http://localhost:4200"
-          onChange={(event) => onDraftChange({ customUrl: event.target.value })}
+          onChange={(event) =>
+            onChange({ type: 'custom', value: event.target.value })
+          }
         />
       </OverrideRadioCard>
 
       <OverrideRadioCard
-        type="production"
+        dataHook="override-card-production"
         title="Production"
-        currentSelectedType={draft.type}
-        disabled={configuration.productionOptions.length === 0}
-        onSelect={() => onDraftChange({ type: 'production' })}
+        checked={selection.type === 'production'}
+        disabled={configuration.productionArtifactVersions.length === 0}
+        onSelect={() => onChange({ type: 'production', value: '' })}
       >
         <OverrideVersionDropdown
-          disabled={draft.type !== 'production'}
-          selectedId={draft.productionKey}
-          versions={configuration.productionOptions}
+          dataHook="override-version-production"
+          disabled={selection.type !== 'production'}
+          selectedId={selection.type === 'production' ? selection.value : ''}
+          versions={configuration.productionArtifactVersions}
           hostId={configuration.hostId}
-          deployedManifest={configuration.productionManifest}
-          onChange={(productionKey) => onDraftChange({ productionKey })}
+          deployedArtifactVersion={configuration.productionArtifactVersion}
+          onChange={(value) => onChange({ type: 'production', value })}
         />
       </OverrideRadioCard>
 
       <OverrideRadioCard
-        disabled={configuration.prOptions.length === 0}
+        dataHook="override-card-pr"
+        disabled={configuration.prArtifactVersions.length === 0}
         title="PR Preview"
-        currentSelectedType={draft.type}
-        type="pr"
-        onSelect={() => onDraftChange({ type: 'pr' })}
+        checked={selection.type === 'pr'}
+        onSelect={() => onChange({ type: 'pr', value: '' })}
       >
         <OverrideVersionDropdown
-          disabled={draft.type !== 'pr'}
-          selectedId={draft.prKey}
+          dataHook="override-version-pr"
+          disabled={selection.type !== 'pr'}
+          selectedId={selection.type === 'pr' ? selection.value : ''}
           hostId={configuration.hostId}
-          versions={configuration.prOptions}
-          onChange={(prKey) => onDraftChange({ prKey })}
+          versions={configuration.prArtifactVersions}
+          onChange={(value) => onChange({ type: 'pr', value })}
         />
       </OverrideRadioCard>
     </Box>

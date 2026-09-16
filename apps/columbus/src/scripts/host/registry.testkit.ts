@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { AtlasExtensionManifest as Manifest } from '../../types/contracts';
+import type { ArtifactVersion } from '../../types/contracts';
 import type { ManifestDescriptor } from './manifest-fetch/manifest-fetch';
 import type {
   Registry,
@@ -7,13 +7,15 @@ import type {
 } from './artifact-registry/artifact-registry';
 
 export interface PublishedArtifact {
-  manifest: Manifest;
+  manifest: ArtifactVersion;
   path: string;
   bytes: Uint8Array;
   descriptor: ManifestDescriptor;
 }
 
-export function aPublishedArtifact(manifest: Manifest): PublishedArtifact {
+export function aPublishedArtifact(
+  manifest: ArtifactVersion,
+): PublishedArtifact {
   const preview = manifest.channel === 'pr';
   const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
   const identity = preview
@@ -74,7 +76,7 @@ export function aPublishedArtifact(manifest: Manifest): PublishedArtifact {
 }
 
 export function aRegistryArtifact(
-  manifest: Manifest,
+  manifest: ArtifactVersion,
   published: PublishedArtifact[] = [],
 ): RegistryArtifact {
   const releases: RegistryArtifact['releases'] = {};

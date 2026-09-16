@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
-import { aManifest } from '../../../types/app.testkit';
+import type { ArtifactVersion } from '../../../types/contracts';
+import { anAppArtifactVersion } from '../../../types/app.testkit';
 import { aPublishedArtifact } from '../registry.testkit';
 import {
   fetchVerifiedManifest,
@@ -12,10 +12,14 @@ import {
 export class ManifestFetchDriver {
   private readonly fetch = jest.fn<typeof globalThis.fetch>();
   private readonly published = aPublishedArtifact(
-    aManifest({ id: 'orders', version: '1.0.0' }),
+    anAppArtifactVersion({
+      id: 'orders',
+      channel: 'production',
+      version: '1.0.0',
+    }),
   );
   private descriptor: ManifestDescriptor = this.published.descriptor;
-  private result: Manifest | undefined;
+  private result: ArtifactVersion | undefined;
   private response: Response | undefined;
   private error: unknown;
 
@@ -40,7 +44,7 @@ export class ManifestFetchDriver {
   };
 
   readonly when = {
-    manifestFetched: async (): Promise<this> => {
+    manifestFetched: async (): Promise<void> => {
       try {
         this.result = await fetchVerifiedManifest(
           manifestReference('https://registry.example', this.descriptor),
@@ -48,16 +52,12 @@ export class ManifestFetchDriver {
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
     fetchedWithTimeout: async (
       input: string,
       cache?: RequestCache,
-    ): Promise<this> => {
+    ): Promise<void> => {
       this.response = await fetchWithTimeout(input, cache);
-
-      return this;
     },
   };
 

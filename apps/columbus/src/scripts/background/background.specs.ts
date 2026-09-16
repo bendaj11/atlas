@@ -158,14 +158,20 @@ describe('background', () => {
   });
 
   describe('when the session is fetched', () => {
+    beforeEach(() => {
+      driver.given
+        .sender({ tab: { id: 1, url: PREVIEW_URL } })
+        .given.developmentSessionUrl(SESSION_URL);
+    });
+
     it('should request the given url when fetching', async () => {
-      await driver.when.developmentSessionFetched(SESSION_URL);
+      await driver.when.messageReceived(LOAD_REQUEST);
 
       expect(driver.get.fetchedUrls()).toEqual([SESSION_URL]);
     });
 
     it('should bypass the http cache when fetching', async () => {
-      await driver.when.developmentSessionFetched(SESSION_URL);
+      await driver.when.messageReceived(LOAD_REQUEST);
 
       expect(driver.get.fetchCacheMode()).toBe('no-store');
     });
@@ -173,7 +179,7 @@ describe('background', () => {
     it('should respond with the body when the fetch succeeds', async () => {
       await driver.given
         .fetchResponse(SESSION, 200)
-        .when.developmentSessionFetched(SESSION_URL);
+        .when.messageReceived(LOAD_REQUEST);
 
       expect(driver.get.response()).toEqual({ document: SESSION });
     });
@@ -181,7 +187,7 @@ describe('background', () => {
     it('should respond with the server error when the fetch fails with a message', async () => {
       await driver.given
         .fetchResponse({ error: 'Host is not registered.' }, 404)
-        .when.developmentSessionFetched(SESSION_URL);
+        .when.messageReceived(LOAD_REQUEST);
 
       expect(driver.get.response()).toEqual({
         error: 'Host is not registered.',
@@ -191,7 +197,7 @@ describe('background', () => {
     it('should respond with the status when the fetch fails without a message', async () => {
       await driver.given
         .fetchResponse(undefined, 500)
-        .when.developmentSessionFetched(SESSION_URL);
+        .when.messageReceived(LOAD_REQUEST);
 
       expect(driver.get.response()).toEqual({
         error: 'Atlas development session returned HTTP 500.',

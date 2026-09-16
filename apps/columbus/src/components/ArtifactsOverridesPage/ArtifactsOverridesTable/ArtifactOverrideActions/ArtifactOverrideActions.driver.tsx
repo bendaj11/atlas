@@ -47,24 +47,18 @@ export class ArtifactOverrideActionsDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       useActionsDisabled.mockReturnValue(this.actionsDisabled);
       useOverrides.mockReturnValue({
         clearOverride: this.clearOverride,
       } as Partial<OverridesValue> as OverridesValue);
       render(<ArtifactOverrideActions artifact={this.artifact} />);
-
-      return this;
     },
-    clearClicked: async (): Promise<this> => {
+    clearClicked: async (): Promise<void> => {
       await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
-
-      return this;
     },
-    editClicked: async (): Promise<this> => {
+    editClicked: async (): Promise<void> => {
       await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-
-      return this;
     },
   };
 

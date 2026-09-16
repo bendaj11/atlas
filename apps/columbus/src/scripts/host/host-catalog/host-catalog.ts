@@ -3,7 +3,7 @@ import {
   resolveAtlasRuntimeConfig,
 } from '@atlas/bootstrap/runtime';
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../../types/contracts';
 import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
@@ -42,7 +42,7 @@ export async function readRuntimeConfig(): Promise<RuntimeConfig> {
 
 export async function readCatalog(
   config: RuntimeConfig,
-  loadManifest: (reference: ManifestReference) => Promise<Manifest>,
+  loadManifest: (reference: ManifestReference) => Promise<ArtifactVersion>,
 ): Promise<Catalog> {
   if (config.environment !== 'development')
     return readDeployedCatalog(config, loadManifest);
@@ -98,7 +98,7 @@ async function readDevelopmentSessionCatalog(
 
 async function readDeployedCatalog(
   config: RuntimeConfig,
-  loadManifest: (reference: ManifestReference) => Promise<Manifest>,
+  loadManifest: (reference: ManifestReference) => Promise<ArtifactVersion>,
 ): Promise<Catalog> {
   const response = await fetchWithTimeout(environmentManifestUrl(config));
   if (!response.ok)

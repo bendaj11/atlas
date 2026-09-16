@@ -1,21 +1,15 @@
-import type {
-  AtlasExtensionManifest as Manifest,
-  AtlasHostData as HostData,
-} from './contracts';
+import type { ArtifactVersion, AtlasHostData as HostData } from './contracts';
 
-export type OverrideType = 'none' | 'custom' | 'production' | 'pr';
+export type OverrideType = 'custom' | 'production' | 'pr';
 export type Scope = 'all' | 'tab';
-export type HostStatus = 'RESTORING' | 'LOADING' | 'ERROR' | 'LOADED';
+export type HostStatus = 'LOADING' | 'ERROR' | 'LOADED';
 export type OverrideStatus = 'IDLE' | 'APPLYING' | 'ERROR';
 
-export interface ArtifactSelection {
-  productionManifest: Manifest;
-  selectedManifest: Manifest | undefined;
-}
-
-export interface Artifact extends ArtifactSelection {
+export interface Artifact {
   key: string;
-  overrideType: OverrideType;
+  productionArtifactVersion: ArtifactVersion;
+  selectedArtifactVersion: ArtifactVersion | undefined;
+  overrideType: OverrideType | undefined;
   sourceDescription: string;
   loadError: string | undefined;
   overrideEnabled: boolean;
@@ -23,33 +17,28 @@ export interface Artifact extends ArtifactSelection {
   visible: boolean;
 }
 
-export interface EditorDraft {
-  type: Exclude<OverrideType, 'none'>;
-  customUrl: string;
-  productionKey: string;
-  prKey: string;
+export interface OverrideSelection {
+  type: OverrideType;
+  value: string;
 }
 
-export interface ArtifactConfiguration extends Pick<
-  Artifact,
-  'key' | 'productionManifest' | 'selectedManifest'
-> {
+export interface ArtifactConfiguration extends Artifact {
   hostId: string;
-  productionOptions: Manifest[];
-  prOptions: Manifest[];
+  productionArtifactVersions: ArtifactVersion[];
+  prArtifactVersions: ArtifactVersion[];
 }
 
 export interface ArtifactProps {
   artifact: Artifact;
 }
 
-export interface ExtensionSession {
+export interface ColumbusState {
   hostData: HostData;
   tabId: number;
-  activeOverrides: Map<string, Manifest>;
-  disabledOverrides: Map<string, Manifest>;
-  suppressedArtifactIds: Set<string>;
+  enabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
+  disabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
+  clearedLocalArtifactIds: Set<string>;
   scope: Scope;
 }
 
-export type { Manifest };
+export type { ArtifactVersion };

@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import type { ExtensionSession } from '../../types/app';
-import { aSession } from '../../types/app.testkit';
+import type { ColumbusState } from '../../types/app';
+import { aColumbusState } from '../../types/app.testkit';
 import type { reloadHostTab as reloadHostTabType } from '../host/host-tabs/host-tabs';
 import type { validateLocalOverride as validateLocalOverrideType } from './local-override/local-override';
 import type * as OverrideStorageModule from './override-storage/override-storage';
@@ -10,10 +10,10 @@ type OverrideStorage = typeof OverrideStorageModule;
 const validateLocalOverride = jest.fn<typeof validateLocalOverrideType>();
 const writeOverrideDocument =
   jest.fn<OverrideStorage['writeOverrideDocument']>();
-const writeDisabledOverrides =
-  jest.fn<OverrideStorage['writeDisabledOverrides']>();
-const writeSuppressedArtifactIds =
-  jest.fn<OverrideStorage['writeSuppressedArtifactIds']>();
+const writeDisabledArtifactVersionOverrides =
+  jest.fn<OverrideStorage['writeDisabledArtifactVersionOverrides']>();
+const writeClearedLocalArtifactIds =
+  jest.fn<OverrideStorage['writeClearedLocalArtifactIds']>();
 const reloadHostTab = jest.fn<typeof reloadHostTabType>();
 const calls: string[] = [];
 
@@ -24,15 +24,15 @@ jest.unstable_mockModule('./local-override/local-override', () => ({
   validateLocalOverride,
 }));
 jest.unstable_mockModule('./override-storage/override-storage', () => ({
-  writeDisabledOverrides,
+  writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
-  writeSuppressedArtifactIds,
+  writeClearedLocalArtifactIds,
 }));
 
-const { persistOverrideSession } = await import('./persist-overrides');
+const { persistColumbusState } = await import('./persist-overrides');
 
 export class PersistOverridesDriver {
-  private session: ExtensionSession = aSession();
+  private columbusState: ColumbusState = aColumbusState();
   private error: unknown;
 
   constructor() {
@@ -44,11 +44,11 @@ export class PersistOverridesDriver {
     writeOverrideDocument.mockImplementation(async () => {
       calls.push('writeOverrideDocument');
     });
-    writeDisabledOverrides.mockImplementation(async () => {
-      calls.push('writeDisabledOverrides');
+    writeDisabledArtifactVersionOverrides.mockImplementation(async () => {
+      calls.push('writeDisabledArtifactVersionOverrides');
     });
-    writeSuppressedArtifactIds.mockImplementation(async () => {
-      calls.push('writeSuppressedArtifactIds');
+    writeClearedLocalArtifactIds.mockImplementation(async () => {
+      calls.push('writeClearedLocalArtifactIds');
     });
     reloadHostTab.mockImplementation(async () => {
       calls.push('reload');
@@ -56,8 +56,8 @@ export class PersistOverridesDriver {
   }
 
   readonly given = {
-    session: (session: ExtensionSession): this => {
-      this.session = session;
+    columbusState: (columbusState: ColumbusState): this => {
+      this.columbusState = columbusState;
 
       return this;
     },
@@ -69,14 +69,12 @@ export class PersistOverridesDriver {
   };
 
   readonly when = {
-    persisted: async (): Promise<this> => {
+    persisted: async (): Promise<void> => {
       try {
-        await persistOverrideSession(this.session);
+        await persistColumbusState(this.columbusState);
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
   };
 
@@ -86,8 +84,10 @@ export class PersistOverridesDriver {
     validatedManifests: () =>
       validateLocalOverride.mock.calls.map(([manifest]) => manifest),
     overridesWrite: () => writeOverrideDocument.mock.calls[0]?.[0],
-    disabledOverridesWrite: () => writeDisabledOverrides.mock.calls[0],
-    suppressedArtifactIdsWrite: () => writeSuppressedArtifactIds.mock.calls[0],
+    disabledOverridesWrite: () =>
+      writeDisabledArtifactVersionOverrides.mock.calls[0],
+    suppressedArtifactIdsWrite: () =>
+      writeClearedLocalArtifactIds.mock.calls[0],
     reloadedTabId: (): number | undefined => reloadHostTab.mock.calls[0]?.[0],
   };
 }

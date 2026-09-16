@@ -1,61 +1,77 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type { Artifact, ExtensionSession, Manifest } from '../../../types/app';
-import { aSession } from '../../../types/app.testkit';
+import type {
+  Artifact,
+  ColumbusState,
+  ArtifactVersion,
+} from '../../../types/app';
+import { aColumbusState } from '../../../types/app.testkit';
 import { getArtifactKey } from '../../../types/contracts';
-import type { useSession as useSessionType } from '../../providers/SessionContext/SessionContext';
+import type { useColumbusState as useColumbusStateType } from '../../providers/useColumbusState/useColumbusState';
 
-const useSession = jest.fn<typeof useSessionType>();
+const useColumbusState = jest.fn<typeof useColumbusStateType>();
 
 jest.unstable_mockModule(
-  '../../providers/SessionContext/SessionContext',
+  '../../providers/useColumbusState/useColumbusState',
   () => ({
-    useSession,
+    useColumbusState,
   }),
 );
 
 const { useArtifacts } = await import('./useArtifacts');
 
-type SessionValue = ReturnType<typeof useSessionType>;
+type ColumbusStateValue = ReturnType<typeof useColumbusStateType>;
 type HookResult = ReturnType<typeof useArtifacts>;
 
 export class UseArtifactsDriver {
-  private session: ExtensionSession | undefined = aSession();
+  private columbusState: ColumbusState | undefined = aColumbusState();
   private hook: RenderHookResult<HookResult, undefined> | undefined;
 
   readonly given = {
-    session: (session: ExtensionSession | undefined): this => {
-      this.session = session;
+    columbusState: (columbusState: ColumbusState | undefined): this => {
+      this.columbusState = columbusState;
 
       return this;
     },
-    catalogHost: (manifest: Manifest): this => {
-      this.session!.hostData.catalog.host = manifest;
+    catalogHost: (manifest: ArtifactVersion): this => {
+      this.columbusState!.hostData.catalog.host = manifest;
 
       return this;
     },
-    catalogApp: (manifest: Manifest): this => {
-      this.session!.hostData.catalog.apps.push(manifest);
+    catalogApp: (manifest: ArtifactVersion): this => {
+      this.columbusState!.hostData.catalog.apps.push(manifest);
 
       return this;
     },
-    catalogWidgetProvider: (manifest: Manifest): this => {
-      this.session!.hostData.catalog.widgetProviders = [manifest];
+    catalogWidgetProvider: (manifest: ArtifactVersion): this => {
+      this.columbusState!.hostData.catalog.widgetProviders = [manifest];
 
       return this;
     },
-    activeOverride: (manifest: Manifest, override: Manifest): this => {
-      this.session!.activeOverrides.set(getArtifactKey(manifest), override);
+    activeOverride: (
+      manifest: ArtifactVersion,
+      override: ArtifactVersion,
+    ): this => {
+      this.columbusState!.enabledArtifactVersionOverrides.set(
+        getArtifactKey(manifest),
+        override,
+      );
 
       return this;
     },
-    disabledOverride: (manifest: Manifest, override: Manifest): this => {
-      this.session!.disabledOverrides.set(getArtifactKey(manifest), override);
+    disabledOverride: (
+      manifest: ArtifactVersion,
+      override: ArtifactVersion,
+    ): this => {
+      this.columbusState!.disabledArtifactVersionOverrides.set(
+        getArtifactKey(manifest),
+        override,
+      );
 
       return this;
     },
-    runtimeError: (manifest: Manifest, message: string): this => {
-      this.session!.hostData.runtimeErrors.push({
+    runtimeError: (manifest: ArtifactVersion, message: string): this => {
+      this.columbusState!.hostData.runtimeErrors.push({
         artifactId: getArtifactKey(manifest),
         message,
       });
@@ -63,30 +79,26 @@ export class UseArtifactsDriver {
       return this;
     },
     visibleAppIds: (ids: string[]): this => {
-      this.session!.hostData.visibleAppIds = ids;
+      this.columbusState!.hostData.visibleAppIds = ids;
 
       return this;
     },
   };
 
   readonly when = {
-    rendered: (): this => {
-      useSession.mockReturnValue({ session: this.session } as SessionValue);
+    rendered: (): void => {
+      useColumbusState.mockReturnValue({
+        columbusState: this.columbusState,
+      } as ColumbusStateValue);
       this.hook = renderHook(() => useArtifacts());
-
-      return this;
     },
-    searched: (value: string): this => {
+    searched: (value: string): void => {
       act(() => this.get.result().setSearchValue(value));
-
-      return this;
     },
-    visibleOnlyToggled: (): this => {
+    visibleOnlyToggled: (): void => {
       act(() =>
         this.get.result().setVisibleOnly(!this.get.result().visibleOnly),
       );
-
-      return this;
     },
   };
 
@@ -97,12 +109,14 @@ export class UseArtifactsDriver {
       return this.hook.result.current;
     },
     artifacts: (): Artifact[] => this.get.result().artifacts,
-    deployedManifests: (): Manifest[] =>
-      this.get.artifacts().map((artifact) => artifact.productionManifest),
-    artifactOf: (manifest: Manifest): Artifact => {
+    deployedArtifactVersions: (): ArtifactVersion[] =>
+      this.get
+        .artifacts()
+        .map((artifact) => artifact.productionArtifactVersion),
+    artifactOf: (manifest: ArtifactVersion): Artifact => {
       const artifact = this.get
         .artifacts()
-        .find((item) => item.productionManifest === manifest);
+        .find((item) => item.productionArtifactVersion === manifest);
       if (!artifact) throw new Error(`No artifact for ${manifest.name}.`);
 
       return artifact;

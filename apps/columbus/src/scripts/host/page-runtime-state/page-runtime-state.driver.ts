@@ -1,4 +1,4 @@
-import type { AtlasExtensionManifest as Manifest } from '../../../types/contracts';
+import type { ArtifactVersion } from '../../../types/contracts';
 import {
   localOverridesOf,
   readRuntimeErrors,
@@ -40,25 +40,20 @@ export class PageRuntimeStateDriver {
   };
 
   readonly when = {
-    storedOverridesRead: (hostId: string): this => {
+    storedOverridesRead: (hostId: string): void => {
       this.stored = readStoredOverrides(DOCUMENT_KEY, hostId);
-
-      return this;
     },
-    localOverridesBuilt: (hostId: string, manifests: Manifest[]): this => {
+    localOverridesBuilt: (
+      hostId: string,
+      manifests: ArtifactVersion[],
+    ): void => {
       this.localOverrides = localOverridesOf(hostId, manifests);
-
-      return this;
     },
-    runtimeErrorsRead: (): this => {
+    runtimeErrorsRead: (): void => {
       this.runtimeErrors = readRuntimeErrors();
-
-      return this;
     },
-    visibleAppIdsRead: (): this => {
+    visibleAppIdsRead: (): void => {
       this.visibleAppIds = readVisibleAppIds();
-
-      return this;
     },
   };
 

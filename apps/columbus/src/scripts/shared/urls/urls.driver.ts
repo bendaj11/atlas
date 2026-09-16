@@ -9,25 +9,17 @@ export class UrlsDriver {
   private result: boolean | undefined;
 
   readonly when = {
-    loopbackHostnameChecked: (hostname: string): this => {
+    loopbackHostnameChecked: (hostname: string): void => {
       this.result = isLoopbackHostname(hostname);
-
-      return this;
     },
-    loopbackUrlChecked: (url: string | undefined): this => {
+    loopbackUrlChecked: (url: string | undefined): void => {
       this.result = isLoopbackUrl(url);
-
-      return this;
     },
-    webPageUrlChecked: (url: string | undefined): this => {
+    webPageUrlChecked: (url: string | undefined): void => {
       this.result = isWebPageUrl(url);
-
-      return this;
     },
-    extensionPageUrlChecked: (url: string | undefined): this => {
+    extensionPageUrlChecked: (url: string | undefined): void => {
       this.result = isExtensionPageUrl(url);
-
-      return this;
     },
   };
 

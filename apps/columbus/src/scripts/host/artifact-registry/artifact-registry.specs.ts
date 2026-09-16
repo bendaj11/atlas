@@ -1,22 +1,38 @@
 /** @jest-environment node */
 
-import { aManifest, anAppManifest } from '../../../types/app.testkit';
+import { anAppArtifactVersion } from '../../../types/app.testkit';
 import { aPublishedArtifact } from '../registry.testkit';
 import { ArtifactRegistryDriver } from './artifact-registry.driver';
 
-const ORDERS = anAppManifest({
+const ORDERS = anAppArtifactVersion({
   id: 'orders',
+  channel: 'production',
   version: '1.0.0',
   buildId: 'canonical',
 });
 const RELEASE_1 = aPublishedArtifact(
-  aManifest({ id: 'orders', version: '1.0.0', buildId: 'canonical' }),
+  anAppArtifactVersion({
+    id: 'orders',
+    channel: 'production',
+    version: '1.0.0',
+    buildId: 'canonical',
+  }),
 );
 const RELEASE_2 = aPublishedArtifact(
-  aManifest({ id: 'orders', version: '2.0.0', buildId: 'canonical' }),
+  anAppArtifactVersion({
+    id: 'orders',
+    channel: 'production',
+    version: '2.0.0',
+    buildId: 'canonical',
+  }),
 );
 const PREVIEW_42 = aPublishedArtifact(
-  aManifest({ id: 'orders', channel: 'pr', prNumber: 42, buildId: 'abcdef1' }),
+  anAppArtifactVersion({
+    id: 'orders',
+    channel: 'pr',
+    prNumber: 42,
+    buildId: 'abcdef1',
+  }),
 );
 
 describe('readRegistry', () => {
@@ -153,7 +169,11 @@ describe('loadVersion', () => {
       .registeredApp(ORDERS, [RELEASE_2])
       .given.fetchedManifestAt(
         RELEASE_2.path,
-        aManifest({ id: 'orders', version: '3.0.0' }),
+        anAppArtifactVersion({
+          id: 'orders',
+          channel: 'production',
+          version: '3.0.0',
+        }),
       )
       .when.versionsRead(ORDERS);
     await driver.when.versionLoaded('app:orders', 'production:2.0.0:canonical');
@@ -215,9 +235,21 @@ describe('uniqueManifests', () => {
 
   it('should keep one manifest per channel and version when duplicates exist', () => {
     driver.when.deduplicated([
-      aManifest({ id: 'orders', version: '1.0.0' }),
-      aManifest({ id: 'orders', version: '1.0.0' }),
-      aManifest({ id: 'orders', version: '2.0.0' }),
+      anAppArtifactVersion({
+        id: 'orders',
+        channel: 'production',
+        version: '1.0.0',
+      }),
+      anAppArtifactVersion({
+        id: 'orders',
+        channel: 'production',
+        version: '1.0.0',
+      }),
+      anAppArtifactVersion({
+        id: 'orders',
+        channel: 'production',
+        version: '2.0.0',
+      }),
     ]);
 
     expect(driver.get.uniqueVersions()).toEqual(['1.0.0', '2.0.0']);

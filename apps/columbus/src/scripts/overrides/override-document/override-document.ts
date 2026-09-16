@@ -1,5 +1,5 @@
 import {
-  type AtlasExtensionManifest as Manifest,
+  type ArtifactVersion,
   type AtlasHostData as HostData,
   type AtlasOverrideDocument as OverrideDocument,
 } from '../../../types/contracts';
@@ -7,15 +7,15 @@ import { isRecord } from '../../shared/messages/messages';
 
 interface CreateOverrideDocumentOptions {
   hostData: HostData;
-  overrides: Map<string, Manifest>;
+  overrides: Map<string, ArtifactVersion>;
 }
 
 export function createOverrideDocument({
   hostData,
   overrides,
 }: CreateOverrideDocumentOptions): OverrideDocument {
-  const selectedManifests = [...overrides.values()];
-  const hostManifest = selectedManifests.find(
+  const selectedArtifactVersions = [...overrides.values()];
+  const hostManifest = selectedArtifactVersions.find(
     (manifest) => manifest.kind === 'host',
   );
   return {
@@ -23,7 +23,7 @@ export function createOverrideDocument({
     hostId: hostData.config.hostId,
     generatedAt: new Date().toISOString(),
     ...(hostManifest ? { hostOverride: hostManifest } : {}),
-    overrides: selectedManifests
+    overrides: selectedArtifactVersions
       .filter((manifest) => manifest.kind === 'app')
       .map((manifest) => ({
         appId: manifest.id,
@@ -71,15 +71,17 @@ function isStoredOverride(
   );
 }
 
-function overrideReason(manifest: Manifest): 'local' | 'pr' | 'historical' {
+function overrideReason(
+  manifest: ArtifactVersion,
+): 'local' | 'pr' | 'historical' {
   if (manifest.channel === 'local') return 'local';
   if (manifest.channel === 'pr') return 'pr';
   return 'historical';
 }
 
-export function isStoredManifest(value: unknown): value is Manifest {
+export function isStoredManifest(value: unknown): value is ArtifactVersion {
   if (!isRecord(value)) return false;
-  const manifest = value as Partial<Manifest>;
+  const manifest = value as Partial<ArtifactVersion>;
   return (
     manifest.schemaVersion === '1' &&
     (manifest.kind === 'host' || manifest.kind === 'app') &&

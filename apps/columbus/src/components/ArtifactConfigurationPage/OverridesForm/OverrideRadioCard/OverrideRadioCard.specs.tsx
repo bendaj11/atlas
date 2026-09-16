@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { OverrideRadioCardDriver } from './OverrideRadioCard.driver';
 
 describe('OverrideRadioCard', () => {
@@ -7,39 +8,45 @@ describe('OverrideRadioCard', () => {
     driver = new OverrideRadioCardDriver();
   });
 
-  it('should show the title when rendered', () => {
-    driver.when.rendered();
+  describe('when enabled', () => {
+    beforeEach(() => {
+      driver.given.disabled(false).when.rendered();
+    });
 
-    expect(driver.get.title()).not.toBeNull();
+    it('should call onSelect once when radio is clicked', async () => {
+      await driver.when.selected();
+
+      expect(driver.get.selectMock()).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should render children when rendered', () => {
-    driver.when.rendered();
+  it('should show title in radio label when rendered', async () => {
+    const title = faker.commerce.productName();
 
-    expect(driver.get.children()).not.toBeNull();
+    driver.given.title(title).when.rendered();
+
+    expect(await driver.get.radio().getLabel()).toContain(title);
   });
 
-  it('should be checked when its type is the selected type', () => {
-    driver.given.type('pr').given.currentSelectedType('pr').when.rendered();
+  it('should show children in radio label when rendered', async () => {
+    const children = faker.lorem.sentence();
 
-    expect(driver.get.radio().checked).toBe(true);
+    driver.given.children(children).when.rendered();
+
+    expect(await driver.get.radio().getLabel()).toContain(children);
   });
 
-  it('should be unchecked when another type is selected', () => {
-    driver.given.type('pr').given.currentSelectedType('custom').when.rendered();
+  it('should check radio according to checked prop when rendered', async () => {
+    const checked = faker.datatype.boolean();
 
-    expect(driver.get.radio().checked).toBe(false);
+    driver.given.checked(checked).when.rendered();
+
+    expect(await driver.get.radio().isChecked()).toBe(checked);
   });
 
-  it('should select when the radio is clicked', async () => {
-    await driver.when.rendered().when.selected();
+  it('should disable radio when disabled', async () => {
+    driver.given.disabled(true).when.rendered();
 
-    expect(driver.get.selectCount()).toBe(1);
-  });
-
-  it('should not select when disabled', async () => {
-    await driver.given.disabled(true).when.rendered().when.selected();
-
-    expect(driver.get.selectCount()).toBe(0);
+    expect(await driver.get.radio().isDisabled()).toBe(true);
   });
 });

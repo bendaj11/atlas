@@ -1,25 +1,27 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { Manifest } from '../../../../types/app';
+import { render } from '@testing-library/react';
+import { DropdownTestkit } from '@wix/design-system/dist/testkit/testing-library';
+import type { ComponentProps } from 'react';
+import type { ArtifactVersion } from '../../../../types/app';
 import { OverrideVersionDropdown } from './OverrideVersionDropdown';
 
+type OverrideVersionDropdownProps = ComponentProps<
+  typeof OverrideVersionDropdown
+>;
+
 export class OverrideVersionDropdownDriver {
-  private versions: Manifest[] = [];
-  private selectedId = '';
-  private hostId = 'host';
-  private deployedManifest: Manifest | undefined;
+  private versions: ArtifactVersion[] = [];
+  private hostId = faker.string.uuid();
+  private deployedArtifactVersion: ArtifactVersion | undefined;
   private disabled = false;
-  private readonly onChange = jest.fn<(value: string) => void>();
+  private readonly onChange =
+    jest.fn<OverrideVersionDropdownProps['onChange']>();
+  private baseElement!: Element;
 
   readonly given = {
-    versions: (versions: Manifest[]): this => {
+    versions: (versions: ArtifactVersion[]): this => {
       this.versions = versions;
-
-      return this;
-    },
-    selectedId: (selectedId: string): this => {
-      this.selectedId = selectedId;
 
       return this;
     },
@@ -28,8 +30,8 @@ export class OverrideVersionDropdownDriver {
 
       return this;
     },
-    deployedManifest: (manifest: Manifest | undefined): this => {
-      this.deployedManifest = manifest;
+    deployedArtifactVersion: (manifest: ArtifactVersion | undefined): this => {
+      this.deployedArtifactVersion = manifest;
 
       return this;
     },
@@ -41,47 +43,39 @@ export class OverrideVersionDropdownDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
-      render(
+    rendered: (): void => {
+      this.baseElement = render(
         <OverrideVersionDropdown
+          dataHook="override-version-dropdown"
           disabled={this.disabled}
-          selectedId={this.selectedId}
+          selectedId=""
           versions={this.versions}
           hostId={this.hostId}
-          deployedManifest={this.deployedManifest}
+          deployedArtifactVersion={this.deployedArtifactVersion}
           onChange={this.onChange}
         />,
-      );
-
-      return this;
+      ).baseElement;
     },
-    opened: async (): Promise<this> => {
-      await userEvent.click(this.get.input());
-
-      return this;
+    opened: async (): Promise<void> => {
+      await this.get.dropdown().inputDriver.click();
     },
-    optionChosen: async (label: string): Promise<this> => {
-      await userEvent.click(this.get.input());
-      await userEvent.click(this.get.option(label));
-
-      return this;
+    versionChosen: async (version: ArtifactVersion): Promise<void> => {
+      const option = await this.get.option(version);
+      await option.click();
     },
   };
 
   readonly get = {
-    input: (): HTMLInputElement => screen.getByRole('combobox'),
-    optionLabels: (): string[] =>
-      screen.getAllByRole('option').map((option) => option.textContent ?? ''),
-    option: (label: string): HTMLElement => {
-      const option = screen
-        .getAllByRole('option', { hidden: true })
-        .find((item) => item.textContent?.startsWith(label));
-      if (!option) throw new Error(`Option ${label} was not found.`);
+    dropdown: () =>
+      DropdownTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'override-version-dropdown',
+      }),
+    option: async (version: ArtifactVersion) => {
+      const options = await this.get.dropdown().dropdownLayoutDriver.options();
 
-      return option;
+      return options[this.versions.indexOf(version)];
     },
-    optionHasBadge: (label: string, badge: string): boolean =>
-      within(this.get.option(label)).queryByText(badge) !== null,
-    selectedValue: (): string | undefined => this.onChange.mock.calls[0]?.[0],
+    changeMock: (): OverrideVersionDropdownProps['onChange'] => this.onChange,
   };
 }

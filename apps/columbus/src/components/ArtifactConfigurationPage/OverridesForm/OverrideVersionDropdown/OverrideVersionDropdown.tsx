@@ -5,66 +5,59 @@ import {
   listItemSelectBuilder,
 } from '@wix/design-system';
 import {
-  isManifestSupportedByHost,
+  isDeployedProductionVersion,
+  isArtifactVersionSupportedByHost,
   versionLabel,
-} from '../../../../scripts/manifests/manifest-utils/manifest-utils';
-import { versionKey } from '../../../../scripts/manifests/manifest-versions/manifest-versions';
-import type { Manifest } from '../../../../types/app';
+} from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
+import { versionKey } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+import type { ArtifactVersion } from '../../../../types/app';
 
 interface VersionDropdownProps {
+  dataHook: string;
   disabled: boolean;
   selectedId: string;
-  versions: Manifest[];
+  versions: ArtifactVersion[];
   hostId: string;
-  deployedManifest?: Manifest;
+  deployedArtifactVersion?: ArtifactVersion;
   onChange: (value: string) => void;
 }
 
 export function OverrideVersionDropdown({
+  dataHook,
   disabled,
   selectedId,
   versions,
   hostId,
-  deployedManifest,
+  deployedArtifactVersion,
   onChange,
 }: VersionDropdownProps) {
   const options = versions.map((version) =>
     listItemSelectBuilder({
       id: versionKey(version),
       title: versionLabel(version),
-      suffix: isDeployedProductionVersion(version, deployedManifest) && (
+      suffix: isDeployedProductionVersion(version, deployedArtifactVersion) && (
         <Badge size="tiny" skin="neutralSuccess">
           Deployed
         </Badge>
       ),
-      disabled: !isManifestSupportedByHost(version, hostId),
+      disabled: !isArtifactVersionSupportedByHost({
+        artifactVersion: version,
+        hostId,
+      }),
     }),
   );
 
   return (
     <Box direction="vertical">
       <Dropdown
+        dataHook={dataHook}
         size="small"
         options={options}
         selectedId={selectedId}
-        defaultValue={selectedId}
-        placeholder="No versions found"
+        placeholder="Choose a version"
         disabled={disabled || versions.length === 0}
-        onSelect={(option: { id: string | number }) =>
-          onChange(String(option.id))
-        }
+        onSelect={(option) => onChange(String(option.id))}
       />
     </Box>
-  );
-}
-
-function isDeployedProductionVersion(
-  manifest: Manifest,
-  deployedManifest: Manifest | undefined,
-): boolean {
-  return (
-    manifest.channel === 'production' &&
-    deployedManifest?.channel === 'production' &&
-    versionKey(manifest) === versionKey(deployedManifest)
   );
 }

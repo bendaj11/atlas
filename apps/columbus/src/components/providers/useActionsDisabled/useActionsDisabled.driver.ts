@@ -1,14 +1,14 @@
 import { jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react';
 import type { HostStatus, OverrideStatus } from '../../../types/app';
-import type { useHost as useHostType } from '../HostContext/HostContext';
-import type { useOverrides as useOverridesType } from '../OverridesContext/OverridesContext';
+import type { useHost as useHostType } from '../useHost/useHost';
+import type { useOverrides as useOverridesType } from '../useOverrides/useOverrides';
 
 const useHost = jest.fn<typeof useHostType>();
 const useOverrides = jest.fn<typeof useOverridesType>();
 
-jest.unstable_mockModule('../HostContext/HostContext', () => ({ useHost }));
-jest.unstable_mockModule('../OverridesContext/OverridesContext', () => ({
+jest.unstable_mockModule('../useHost/useHost', () => ({ useHost }));
+jest.unstable_mockModule('../useOverrides/useOverrides', () => ({
   useOverrides,
 }));
 
@@ -36,14 +36,12 @@ export class ActionsDisabledDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       useHost.mockReturnValue({ status: this.hostStatus } as HostValue);
       useOverrides.mockReturnValue({
         status: this.overrideStatus,
       } as OverridesValue);
       this.disabled = renderHook(() => useActionsDisabled()).result.current;
-
-      return this;
     },
   };
 

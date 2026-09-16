@@ -1,11 +1,11 @@
 import {
-  type AtlasExtensionManifest as Manifest,
+  type ArtifactVersion,
   type AtlasHostData as HostData,
   type AtlasOverrideDocument as OverrideDocument,
   getArtifactKey,
 } from '../../../types/contracts';
 import type { Scope } from '../../../types/app';
-import { normalizeStoredManifest } from '../../manifests/manifest-utils/manifest-utils';
+import { normalizeStoredArtifactVersion } from '../../artifact-versions/artifact-version-utils/artifact-version-utils';
 import {
   OVERRIDE_DOCUMENT_KEY,
   disabledLocalAppsKey,
@@ -73,9 +73,9 @@ export async function writeOverrideDocument({
   else await chrome.storage.local.remove(key);
 }
 
-export async function readDisabledOverrides(
+export async function readDisabledArtifactVersionOverrides(
   location: OverrideStorageLocation,
-): Promise<Map<string, Manifest>> {
+): Promise<Map<string, ArtifactVersion>> {
   const key = disabledOverridesKey(
     location.hostId,
     location.tabId,
@@ -83,20 +83,22 @@ export async function readDisabledOverrides(
   );
   const stored = await chrome.storage.local.get(key);
   const value = stored[key];
-  const manifests = Array.isArray(value) ? value.filter(isStoredManifest) : [];
+  const artifactVersions = Array.isArray(value)
+    ? value.filter(isStoredManifest)
+    : [];
 
   return new Map(
-    manifests.map((manifest) => {
-      const normalized = normalizeStoredManifest(manifest);
+    artifactVersions.map((artifactVersion) => {
+      const normalized = normalizeStoredArtifactVersion(artifactVersion);
 
       return [getArtifactKey(normalized), normalized];
     }),
   );
 }
 
-export async function writeDisabledOverrides(
+export async function writeDisabledArtifactVersionOverrides(
   location: OverrideStorageLocation,
-  overrides: Map<string, Manifest>,
+  overrides: Map<string, ArtifactVersion>,
 ): Promise<void> {
   await writeList(
     disabledOverridesKey(location.hostId, location.tabId, location.scope),
@@ -104,7 +106,7 @@ export async function writeDisabledOverrides(
   );
 }
 
-export async function readSuppressedArtifactIds(
+export async function readClearedLocalArtifactIds(
   location: OverrideStorageLocation,
 ): Promise<Set<string>> {
   const key = suppressedArtifactsKey(
@@ -125,7 +127,7 @@ export async function readSuppressedArtifactIds(
   );
 }
 
-export async function writeSuppressedArtifactIds(
+export async function writeClearedLocalArtifactIds(
   location: OverrideStorageLocation,
   artifactIds: Set<string>,
 ): Promise<void> {

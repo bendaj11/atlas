@@ -6,7 +6,6 @@ import {
 } from '../chrome.testkit';
 import type { loadDevelopmentSession as loadDevelopmentSessionType } from '../development-session/development-session-background';
 import type { clearHostDataCache as clearHostDataCacheType } from '../host/host-data-cache';
-import { loadDevelopmentSessionRequest } from '../shared/messages/messages';
 
 const clearHostDataCache = jest.fn<typeof clearHostDataCacheType>();
 const loadDevelopmentSession = jest.fn<typeof loadDevelopmentSessionType>();
@@ -19,8 +18,6 @@ jest.unstable_mockModule(
   '../development-session/development-session-background',
   () => ({ loadDevelopmentSession }),
 );
-
-const PREVIEW_URL = 'http://localhost:4300/dashboard';
 
 export class BackgroundDriver {
   private readonly chrome: FakeChrome = installFakeChrome();
@@ -58,44 +55,32 @@ export class BackgroundDriver {
 
       return this;
     },
+    developmentSessionUrl: (url: string): this => {
+      loadDevelopmentSession.mockImplementation((_request, dependencies) =>
+        dependencies.fetchJson(url),
+      );
+
+      return this;
+    },
   };
 
   readonly when = {
     tabUpdated: async (
       tabId: number,
       changeInfo: chrome.tabs.TabChangeInfo,
-    ): Promise<this> => {
+    ): Promise<void> => {
       await this.start();
       this.chrome.emitTabUpdated(tabId, changeInfo);
-
-      return this;
     },
-    tabRemoved: async (tabId: number): Promise<this> => {
+    tabRemoved: async (tabId: number): Promise<void> => {
       await this.start();
       this.chrome.emitTabRemoved(tabId);
-
-      return this;
     },
-    messageReceived: async (message: unknown): Promise<this> => {
+    messageReceived: async (message: unknown): Promise<void> => {
       await this.start();
       this.response = await this.chrome.emitRuntimeMessage(
         message,
         this.sender,
-      );
-
-      return this;
-    },
-    developmentSessionFetched: async (url: string): Promise<this> => {
-      loadDevelopmentSession.mockImplementation((_request, dependencies) =>
-        dependencies.fetchJson(url),
-      );
-      this.sender = { tab: { id: 1, url: PREVIEW_URL } };
-
-      return this.when.messageReceived(
-        loadDevelopmentSessionRequest({
-          hostId: 'shop',
-          previewUrl: PREVIEW_URL,
-        }),
       );
     },
   };

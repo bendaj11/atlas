@@ -1,5 +1,5 @@
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../../types/contracts';
 
@@ -49,10 +49,10 @@ export function isInspectHostRequest(
   );
 }
 
-export function loadArtifactVersionRequest(
-  artifactKey: string,
-  versionKey: string,
-): LoadArtifactVersionRequest {
+export function loadArtifactVersionRequest({
+  artifactKey,
+  versionKey,
+}: Omit<LoadArtifactVersionRequest, 'type'>): LoadArtifactVersionRequest {
   return { type: 'atlas.load-artifact-version', artifactKey, versionKey };
 }
 
@@ -122,7 +122,7 @@ export function isHostDataResponse(
 
 export function isManifestResponse(
   value: unknown,
-): value is ContentResponse<{ manifest: Manifest }> {
+): value is ContentResponse<{ manifest: ArtifactVersion }> {
   return isContentResponse(value, (payload) => isRecord(payload.manifest));
 }
 

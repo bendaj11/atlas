@@ -18,7 +18,7 @@ export class OverridesTableToolbarDriver {
   };
 
   readonly when = {
-    rendered: (): this => {
+    rendered: (): void => {
       this.view = render(
         <OverridesTableToolbar
           onSearch={jest.fn()}
@@ -28,13 +28,9 @@ export class OverridesTableToolbarDriver {
           onVisibleOnlyChange={this.onVisibleOnlyChange}
         />,
       );
-
-      return this;
     },
-    visibleFilterClicked: async (): Promise<this> => {
+    visibleFilterClicked: async (): Promise<void> => {
       await this.user.click(this.get.visibleFilter());
-
-      return this;
     },
   };
 

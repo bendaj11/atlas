@@ -1,7 +1,7 @@
-import { aManifest, aSession } from '../../types/app.testkit';
+import { anAppArtifactVersion, aColumbusState } from '../../types/app.testkit';
 import { PersistOverridesDriver } from './persist-overrides.driver';
 
-describe('persistOverrideSession', () => {
+describe('persistColumbusState', () => {
   let driver: PersistOverridesDriver;
 
   beforeEach(() => {
@@ -9,13 +9,13 @@ describe('persistOverrideSession', () => {
   });
 
   it('should validate every active override when persisting', async () => {
-    const local = aManifest({ channel: 'local' });
-    const preview = aManifest({ channel: 'pr' });
+    const local = anAppArtifactVersion({ channel: 'local' });
+    const preview = anAppArtifactVersion({ channel: 'pr' });
 
     await driver.given
-      .session(
-        aSession({
-          activeOverrides: new Map([
+      .columbusState(
+        aColumbusState({
+          enabledArtifactVersionOverrides: new Map([
             ['app:a', local],
             ['app:b', preview],
           ]),
@@ -28,7 +28,13 @@ describe('persistOverrideSession', () => {
 
   it('should write nothing when validation fails', async () => {
     await driver.given
-      .session(aSession({ activeOverrides: new Map([['app:a', aManifest()]]) }))
+      .columbusState(
+        aColumbusState({
+          enabledArtifactVersionOverrides: new Map([
+            ['app:a', anAppArtifactVersion()],
+          ]),
+        }),
+      )
       .given.validationFailure('Dev server down.')
       .when.persisted();
 
@@ -37,7 +43,13 @@ describe('persistOverrideSession', () => {
 
   it('should surface the validation error when validation fails', async () => {
     await driver.given
-      .session(aSession({ activeOverrides: new Map([['app:a', aManifest()]]) }))
+      .columbusState(
+        aColumbusState({
+          enabledArtifactVersionOverrides: new Map([
+            ['app:a', anAppArtifactVersion()],
+          ]),
+        }),
+      )
       .given.validationFailure('Dev server down.')
       .when.persisted();
 
@@ -49,18 +61,23 @@ describe('persistOverrideSession', () => {
 
     expect(driver.get.callOrder()).toEqual([
       'writeOverrideDocument',
-      'writeDisabledOverrides',
-      'writeSuppressedArtifactIds',
+      'writeDisabledArtifactVersionOverrides',
+      'writeClearedLocalArtifactIds',
       'reload',
     ]);
   });
 
   it('should build the override document from the active overrides when persisting', async () => {
-    const override = aManifest({ id: 'orders' });
+    const override = anAppArtifactVersion({
+      id: 'orders',
+      channel: 'production',
+    });
 
     await driver.given
-      .session(
-        aSession({ activeOverrides: new Map([['app:orders', override]]) }),
+      .columbusState(
+        aColumbusState({
+          enabledArtifactVersionOverrides: new Map([['app:orders', override]]),
+        }),
       )
       .when.persisted();
 
@@ -69,9 +86,9 @@ describe('persistOverrideSession', () => {
     ]);
   });
 
-  it('should pass the session scope and tab when writing the override document', async () => {
+  it('should pass the columbusState scope and tab when writing the override document', async () => {
     await driver.given
-      .session(aSession({ tabId: 7, scope: 'tab' }))
+      .columbusState(aColumbusState({ tabId: 7, scope: 'tab' }))
       .when.persisted();
 
     expect(driver.get.overridesWrite()).toMatchObject({
@@ -82,12 +99,12 @@ describe('persistOverrideSession', () => {
 
   it('should list raw app ids when disabled and suppressed overrides exist', async () => {
     await driver.given
-      .session(
-        aSession({
-          disabledOverrides: new Map([
-            ['app:orders', aManifest({ id: 'orders' })],
+      .columbusState(
+        aColumbusState({
+          disabledArtifactVersionOverrides: new Map([
+            ['app:orders', anAppArtifactVersion({ id: 'orders' })],
           ]),
-          suppressedArtifactIds: new Set(['cart', 'orders']),
+          clearedLocalArtifactIds: new Set(['cart', 'orders']),
         }),
       )
       .when.persisted();
@@ -98,33 +115,35 @@ describe('persistOverrideSession', () => {
     ]);
   });
 
-  it('should write disabled overrides when the session has a host, tab, and scope', async () => {
-    const session = aSession({ tabId: 7, scope: 'tab' });
+  it('should write disabled overrides when the columbusState has a host, tab, and scope', async () => {
+    const columbusState = aColumbusState({ tabId: 7, scope: 'tab' });
 
-    await driver.given.session(session).when.persisted();
+    await driver.given.columbusState(columbusState).when.persisted();
 
     expect(driver.get.disabledOverridesWrite()).toEqual([
-      { hostId: session.hostData.config.hostId, tabId: 7, scope: 'tab' },
-      session.disabledOverrides,
+      { hostId: columbusState.hostData.config.hostId, tabId: 7, scope: 'tab' },
+      columbusState.disabledArtifactVersionOverrides,
     ]);
   });
 
-  it('should write suppressed artifact ids when the session has a host, tab, and scope', async () => {
-    const session = aSession({
+  it('should write suppressed artifact ids when the columbusState has a host, tab, and scope', async () => {
+    const columbusState = aColumbusState({
       tabId: 7,
-      suppressedArtifactIds: new Set(['cart']),
+      clearedLocalArtifactIds: new Set(['cart']),
     });
 
-    await driver.given.session(session).when.persisted();
+    await driver.given.columbusState(columbusState).when.persisted();
 
     expect(driver.get.suppressedArtifactIdsWrite()).toEqual([
-      { hostId: session.hostData.config.hostId, tabId: 7, scope: 'all' },
-      session.suppressedArtifactIds,
+      { hostId: columbusState.hostData.config.hostId, tabId: 7, scope: 'all' },
+      columbusState.clearedLocalArtifactIds,
     ]);
   });
 
-  it('should reload the session tab when everything is written', async () => {
-    await driver.given.session(aSession({ tabId: 7 })).when.persisted();
+  it('should reload the columbusState tab when everything is written', async () => {
+    await driver.given
+      .columbusState(aColumbusState({ tabId: 7 }))
+      .when.persisted();
 
     expect(driver.get.reloadedTabId()).toBe(7);
   });

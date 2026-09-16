@@ -1,4 +1,5 @@
-import { render, type RenderResult } from '@testing-library/react';
+import type { ComponentProps } from 'react';
+import { render } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import {
   ButtonTestkit,
@@ -6,36 +7,38 @@ import {
 } from '@wix/design-system/dist/testkit/testing-library';
 import { ArtifactConfigurationActions } from './ArtifactConfigurationActions';
 
+type ActionsProps = ComponentProps<typeof ArtifactConfigurationActions>;
+
 export class ArtifactConfigurationActionsDriver {
-  private readonly onSave = jest.fn();
-  private readonly onClear = jest.fn();
-  private readonly onCancel = jest.fn();
+  private readonly onSave = jest.fn<ActionsProps['onSave']>();
+  private readonly onClear = jest.fn<ActionsProps['onClear']>();
+  private readonly onCancel = jest.fn<ActionsProps['onCancel']>();
   private saveDisabled = false;
   private clearDisabled = false;
   private cancelDisabled = false;
-  private view: RenderResult | undefined;
+  private baseElement!: Element;
 
   readonly given = {
-    saveDisabled: (): this => {
-      this.saveDisabled = true;
+    saveDisabled: (disabled: boolean): this => {
+      this.saveDisabled = disabled;
 
       return this;
     },
-    clearDisabled: (): this => {
-      this.clearDisabled = true;
+    clearDisabled: (disabled: boolean): this => {
+      this.clearDisabled = disabled;
 
       return this;
     },
-    cancelDisabled: (): this => {
-      this.cancelDisabled = true;
+    cancelDisabled: (disabled: boolean): this => {
+      this.cancelDisabled = disabled;
 
       return this;
     },
   };
 
   readonly when = {
-    rendered: (): this => {
-      this.view = render(
+    rendered: (): void => {
+      this.baseElement = render(
         <ArtifactConfigurationActions
           onSave={this.onSave}
           onClear={this.onClear}
@@ -44,44 +47,29 @@ export class ArtifactConfigurationActionsDriver {
           clearDisabled={this.clearDisabled}
           cancelDisabled={this.cancelDisabled}
         />,
-      );
-
-      return this;
+      ).baseElement;
     },
-    saveClicked: async (): Promise<this> => {
-      await this.get.saveButton().click();
-
-      return this;
+    saved: async (): Promise<void> => {
+      await this.get.button('save-configuration').click();
     },
-    clearClicked: async (): Promise<this> => {
-      await this.get.clearButton().click();
-
-      return this;
+    cleared: async (): Promise<void> => {
+      await this.get.iconButton().click();
+    },
+    cancelled: async (): Promise<void> => {
+      await this.get.button('cancel-configuration').click();
     },
   };
 
   readonly get = {
-    saveButton: () =>
-      ButtonTestkit({
-        wrapper: this.get.container(),
-        dataHook: 'save-configuration',
-      }),
-    clearButton: () =>
+    button: (dataHook: string) =>
+      ButtonTestkit({ wrapper: this.baseElement, dataHook }),
+    iconButton: () =>
       IconButtonTestkit({
-        wrapper: this.get.container(),
+        wrapper: this.baseElement,
         dataHook: 'clear-override',
       }),
-    cancelButton: () =>
-      ButtonTestkit({
-        wrapper: this.get.container(),
-        dataHook: 'cancel-configuration',
-      }),
-    saveCalls: (): number => this.onSave.mock.calls.length,
-    clearCalls: (): number => this.onClear.mock.calls.length,
-    container: (): HTMLElement => {
-      if (!this.view) throw new Error('Actions were not rendered.');
-
-      return this.view.container;
-    },
+    saveMock: (): ActionsProps['onSave'] => this.onSave,
+    clearMock: (): ActionsProps['onClear'] => this.onClear,
+    cancelMock: (): ActionsProps['onCancel'] => this.onCancel,
   };
 }

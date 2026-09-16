@@ -14,10 +14,9 @@ describe('ArtifactsOverridesPage', () => {
   });
 
   it('should reload the host when refresh is clicked after a failure', async () => {
-    await driver.given
-      .hostStatus('ERROR', 'No Atlas tab.')
-      .when.rendered()
-      .when.refreshClicked();
+    driver.given.hostStatus('ERROR', 'No Atlas tab.').when.rendered();
+
+    await driver.when.refreshClicked();
 
     expect(driver.get.loadHostCount()).toBe(1);
   });
@@ -28,7 +27,7 @@ describe('ArtifactsOverridesPage', () => {
     expect(driver.get.text('artifacts table')).not.toBeNull();
   });
 
-  it.each(['RESTORING', 'LOADING', 'ERROR'] as const)(
+  it.each(['LOADING', 'ERROR'] as const)(
     'should hide the table when host status is %s',
     (status) => {
       driver.given.hostStatus(status).when.rendered();
@@ -38,23 +37,25 @@ describe('ArtifactsOverridesPage', () => {
   );
 
   it('should clear all overrides when clear is clicked and overrides exist', async () => {
-    await driver.given.hasOverrides(true).when.rendered().when.clearClicked();
+    driver.given.hasOverrides(true).when.rendered();
+
+    await driver.when.clearClicked();
 
     expect(driver.get.clearCount()).toBe(1);
   });
 
   it('should not clear when there are no overrides', async () => {
-    await driver.when.rendered().when.clearClicked();
+    driver.when.rendered();
+
+    await driver.when.clearClicked();
 
     expect(driver.get.clearCount()).toBe(0);
   });
 
   it('should not clear when actions are disabled', async () => {
-    await driver.given
-      .hasOverrides(true)
-      .given.actionsDisabled(true)
-      .when.rendered()
-      .when.clearClicked();
+    driver.given.hasOverrides(true).given.actionsDisabled(true).when.rendered();
+
+    await driver.when.clearClicked();
 
     expect(driver.get.clearCount()).toBe(0);
   });

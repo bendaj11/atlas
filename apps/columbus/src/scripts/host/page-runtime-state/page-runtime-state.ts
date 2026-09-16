@@ -1,5 +1,5 @@
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
   AtlasOverrideDocument as OverrideDocument,
 } from '../../../types/contracts';
@@ -40,7 +40,7 @@ export function readStoredOverrides(
 
 export function localOverridesOf(
   hostId: string,
-  manifests: Manifest[],
+  manifests: ArtifactVersion[],
 ): OverrideDocument | undefined {
   const local = manifests.filter(({ channel }) => channel === 'local');
   if (!local.length) return undefined;

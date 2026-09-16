@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../../types/contracts';
-import { aHostData, aHostManifest } from '../../../types/app.testkit';
+import { aHostData, aHostArtifactVersion } from '../../../types/app.testkit';
 import type { ArtifactRegistry } from '../artifact-registry/artifact-registry';
 import type * as ArtifactRegistryModule from '../artifact-registry/artifact-registry';
 import type * as HostCatalogModule from '../host-catalog/host-catalog';
@@ -23,14 +23,14 @@ const readVisibleAppIds =
 
 jest.unstable_mockModule('../artifact-registry/artifact-registry', () => ({
   registryRootFor,
-  uniqueManifests: (manifests: Manifest[]) => manifests,
+  uniqueManifests: (manifests: ArtifactVersion[]) => manifests,
 }));
 jest.unstable_mockModule('../host-catalog/host-catalog', () => ({
   readRuntimeConfig,
   readCatalog,
 }));
 jest.unstable_mockModule('../page-runtime-state/page-runtime-state', () => ({
-  localOverridesOf: (hostId: string, manifests: Manifest[]) =>
+  localOverridesOf: (hostId: string, manifests: ArtifactVersion[]) =>
     manifests.some(({ channel }) => channel === 'local')
       ? { schemaVersion: '1', hostId, overrides: [], generatedAt: '' }
       : undefined,
@@ -46,7 +46,10 @@ export class InspectAtlasHostDriver {
     ...aHostData().config,
     hostId: 'shop',
   };
-  private readonly host: Manifest = aHostManifest({ id: 'shop' });
+  private readonly host: ArtifactVersion = aHostArtifactVersion({
+    id: 'shop',
+    channel: 'production',
+  });
   private catalog: HostData['catalog'] = {
     schemaVersion: '1',
     hostId: 'shop',
@@ -87,7 +90,7 @@ export class InspectAtlasHostDriver {
   }
 
   readonly given = {
-    catalogApp: (manifest: Manifest): this => {
+    catalogApp: (manifest: ArtifactVersion): this => {
       this.catalog.apps.push(manifest);
 
       return this;
@@ -109,7 +112,7 @@ export class InspectAtlasHostDriver {
 
       return this;
     },
-    versions: (manifests: Manifest[], error?: string): this => {
+    versions: (manifests: ArtifactVersion[], error?: string): this => {
       jest.mocked(this.registry.readVersions).mockResolvedValue({
         manifests,
         ...(error ? { error } : {}),
@@ -142,7 +145,7 @@ export class InspectAtlasHostDriver {
   };
 
   readonly when = {
-    hostInspected: async (): Promise<this> => {
+    hostInspected: async (): Promise<void> => {
       try {
         this.result = await inspectAtlasHost(
           'atlas.runtime-overrides',
@@ -151,8 +154,6 @@ export class InspectAtlasHostDriver {
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
   };
 

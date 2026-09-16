@@ -1,29 +1,37 @@
+import { faker } from '@faker-js/faker';
+import type { Scope } from '../../../types/app';
 import { BrowserOverrideScopePickerDriver } from './BrowserOverrideScopePicker.driver';
 
-describe('browser override scope picker', () => {
+const SCOPES: Scope[] = ['all', 'tab'];
+
+describe('BrowserOverrideScopePicker', () => {
   let driver: BrowserOverrideScopePickerDriver;
 
   beforeEach(() => {
     driver = new BrowserOverrideScopePickerDriver();
   });
 
-  it('should show current scope when value is provided', async () => {
-    driver.given.value('tab').when.rendered();
+  it('should select radio of selected scope when rendered', async () => {
+    const scope = faker.helpers.arrayElement(SCOPES);
 
-    expect(await driver.get.radioGroup().getSelectedValue()).toBe('tab');
+    driver.given.selectedScope(scope).when.rendered();
+
+    expect(await driver.get.radioGroup().getSelectedValue()).toBe(scope);
   });
 
-  it('should report tab scope when tab is selected', async () => {
-    driver.when.rendered();
-
-    await driver.when.tabSelected();
-
-    expect(driver.get.selectedScope()).toBe('tab');
-  });
-
-  it('should disable choices when scope changes are unavailable', async () => {
-    driver.given.disabled().when.rendered();
+  it('should disable scope radios when disabled', async () => {
+    driver.given.disabled(true).when.rendered();
 
     expect(await driver.get.radioGroup().isRadioDisabled(0)).toBe(true);
+  });
+
+  it('should call onChange with other scope when another scope is selected', async () => {
+    const [selected, other] = faker.helpers.shuffle(SCOPES);
+
+    driver.given.selectedScope(selected).when.rendered();
+
+    await driver.when.scopeSelected(other);
+
+    expect(driver.get.onChangeMock()).toHaveBeenCalledWith(other);
   });
 });

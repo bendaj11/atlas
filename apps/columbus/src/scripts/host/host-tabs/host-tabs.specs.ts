@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
-import { aHostData } from '../../../types/app.testkit';
+import { faker } from '@faker-js/faker';
+import { aHostData, anAppArtifactVersion } from '../../../types/app.testkit';
 import { HostTabsDriver } from './host-tabs.driver';
 
 const HOST_URL = 'http://127.0.0.1:4300/orders';
@@ -138,35 +139,47 @@ describe('findAtlasHostTab', () => {
   });
 });
 
-describe('requestArtifactVersion', () => {
+describe('loadArtifactVersionFromHostTab', () => {
   let driver: HostTabsDriver;
 
   beforeEach(() => {
     driver = new HostTabsDriver();
   });
 
-  it('should ask the tab for the artifact version when requested', async () => {
-    await driver.when.artifactVersionRequested();
+  it('should send a load artifact version request with the manifest version key when the manifest is a production version', async () => {
+    const artifactKey = faker.string.uuid();
+    const manifest = anAppArtifactVersion({ channel: 'production' });
+    await driver.when.manifestLoaded({
+      tabId: faker.number.int(),
+      artifactKey,
+      manifest,
+    });
 
     expect(driver.get.lastTabMessage()).toEqual({
       type: 'atlas.load-artifact-version',
-      artifactKey: 'app:orders',
-      versionKey: 'production:1.0.0:b1',
+      artifactKey,
+      versionKey: `production:${manifest.version}:${manifest.buildId}`,
     });
   });
 
   it('should fail with the page error when the page reports one', async () => {
     await driver.given
       .artifactVersionResponse({ ok: false, error: 'Version missing.' })
-      .when.artifactVersionRequested();
+      .when.manifestLoaded({
+        tabId: faker.number.int(),
+        artifactKey: faker.string.uuid(),
+        manifest: anAppArtifactVersion(),
+      });
 
     expect(driver.get.errorMessage()).toBe('Version missing.');
   });
 
   it('should fail when the page returns an unexpected shape', async () => {
-    await driver.given
-      .artifactVersionResponse(undefined)
-      .when.artifactVersionRequested();
+    await driver.given.artifactVersionResponse(undefined).when.manifestLoaded({
+      tabId: faker.number.int(),
+      artifactKey: faker.string.uuid(),
+      manifest: anAppArtifactVersion(),
+    });
 
     expect(driver.get.errorMessage()).toBe(
       'Active page did not return the selected artifact version.',

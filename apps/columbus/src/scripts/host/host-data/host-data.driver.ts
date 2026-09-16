@@ -66,14 +66,12 @@ export class HostDataDriver {
   };
 
   readonly when = {
-    hostDataRead: async (): Promise<this> => {
+    hostDataRead: async (): Promise<void> => {
       try {
         this.result = await readHostData();
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
   };
 

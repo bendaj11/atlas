@@ -1,4 +1,7 @@
-import type { AtlasHostData as HostData } from '../../../types/contracts';
+import {
+  type AtlasHostData as HostData,
+  getArtifactKey,
+} from '../../../types/contracts';
 import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
 import { messageFromError } from '../../shared/errors/errors';
 import {
@@ -40,7 +43,7 @@ export async function inspectAtlasHost(
   const versionReads = await mapWithConcurrency(
     deployed,
     async (manifest) => {
-      const key = `${manifest.kind}:${manifest.id}`;
+      const key = getArtifactKey(manifest);
       if (!registryRead.registry || !registryRoot)
         return { key, manifests: [manifest] };
 

@@ -1,33 +1,33 @@
 import { Box, Card, Cell, Layout, Radio, Text } from '@wix/design-system';
 import type { ReactNode } from 'react';
-import { EditorDraft } from '../../../../types/app';
 import './OverrideRadioCard.css';
 
 interface OverrideRadioCardProps {
   children: ReactNode;
+  dataHook: string;
   disabled: boolean;
   title: string;
-  currentSelectedType: EditorDraft['type'];
-  type: EditorDraft['type'];
+  checked: boolean;
   onSelect: () => void;
 }
 
 export const OverrideRadioCard = ({
-  type,
+  dataHook,
   title,
+  checked,
   disabled,
   children,
   onSelect,
-  currentSelectedType,
 }: OverrideRadioCardProps) => {
   return (
     <Card>
       <Box padding="SP3">
         <Radio
           className="overrideRadioCard"
+          dataHook={dataHook}
           disabled={disabled}
-          checked={currentSelectedType === type}
-          onChange={() => onSelect()}
+          checked={checked}
+          onChange={onSelect}
           label={
             <Layout alignItems="center">
               <Cell span={3}>

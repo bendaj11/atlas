@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { getArtifactKey } from '../../../types/contracts';
-import { useSession } from '../../providers';
+import { useColumbusState } from '../../providers';
 import {
   artifactSourceDescription,
   overrideTypeFor,
-} from '../../../scripts/manifests/manifest-utils/manifest-utils';
-import type { Artifact, ExtensionSession, Manifest } from '../../../types/app';
+} from '../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
+import type {
+  Artifact,
+  ColumbusState,
+  ArtifactVersion,
+} from '../../../types/app';
 
 interface Artifacts {
   artifacts: Artifact[];
@@ -17,13 +21,15 @@ interface Artifacts {
 }
 
 export function useArtifacts(): Artifacts {
-  const { session } = useSession();
+  const { columbusState } = useColumbusState();
   const [searchValue, setSearchValue] = useState('');
   const [visibleOnly, setVisibleOnly] = useState(false);
-  const sessionArtifacts = session ? createArtifacts(session) : [];
+  const columbusStateArtifacts = columbusState
+    ? createArtifacts(columbusState)
+    : [];
   const visibilityFiltered = visibleOnly
-    ? sessionArtifacts.filter((artifact) => artifact.visible)
-    : sessionArtifacts;
+    ? columbusStateArtifacts.filter((artifact) => artifact.visible)
+    : columbusStateArtifacts;
   const searchFiltered = visibilityFiltered.filter((artifact) =>
     matchesSearch(artifact, searchValue),
   );
@@ -38,41 +44,51 @@ export function useArtifacts(): Artifacts {
   };
 }
 
-function createArtifacts(session: ExtensionSession): Artifact[] {
-  const { catalog } = session.hostData;
-  const manifests = [
+function createArtifacts(columbusState: ColumbusState): Artifact[] {
+  const { catalog } = columbusState.hostData;
+  const artifactVersions = [
     catalog.host,
     ...catalog.apps,
     ...(catalog.widgetProviders ?? []),
   ];
 
-  return manifests.map((manifest) => createArtifact(manifest, session));
+  return artifactVersions.map((artifactVersion) =>
+    createArtifact(artifactVersion, columbusState),
+  );
 }
 
 function createArtifact(
-  productionManifest: Manifest,
-  { activeOverrides, disabledOverrides, hostData }: ExtensionSession,
+  productionArtifactVersion: ArtifactVersion,
+  {
+    enabledArtifactVersionOverrides,
+    disabledArtifactVersionOverrides,
+    hostData,
+  }: ColumbusState,
 ): Artifact {
-  const key = getArtifactKey(productionManifest);
-  const selectedManifest =
-    activeOverrides.get(key) ?? disabledOverrides.get(key);
+  const key = getArtifactKey(productionArtifactVersion);
+  const selectedArtifactVersion =
+    enabledArtifactVersionOverrides.get(key) ??
+    disabledArtifactVersionOverrides.get(key);
 
   return {
     key,
-    productionManifest,
-    selectedManifest,
-    overrideType: overrideTypeFor({ productionManifest, selectedManifest }),
-    sourceDescription: artifactSourceDescription(selectedManifest),
+    productionArtifactVersion,
+    selectedArtifactVersion,
+    overrideType: overrideTypeFor({
+      productionArtifactVersion,
+      selectedArtifactVersion,
+    }),
+    sourceDescription: artifactSourceDescription(selectedArtifactVersion),
     loadError: loadErrorOf(key, hostData.runtimeErrors),
-    overrideEnabled: activeOverrides.has(key),
-    canToggle: Boolean(selectedManifest),
-    visible: isVisible(productionManifest, hostData.visibleAppIds),
+    overrideEnabled: enabledArtifactVersionOverrides.has(key),
+    canToggle: Boolean(selectedArtifactVersion),
+    visible: isVisible(productionArtifactVersion, hostData.visibleAppIds),
   };
 }
 
 function loadErrorOf(
   artifactKey: string,
-  runtimeErrors: ExtensionSession['hostData']['runtimeErrors'],
+  runtimeErrors: ColumbusState['hostData']['runtimeErrors'],
 ): string | undefined {
   const runtimeError = runtimeErrors.find(
     (error) => error.artifactId === artifactKey,
@@ -84,10 +100,14 @@ function loadErrorOf(
   return summary ? `${summary} Check override URL and server.` : undefined;
 }
 
-function isVisible(manifest: Manifest, visibleAppIds: string[] = []): boolean {
+function isVisible(
+  artifactVersion: ArtifactVersion,
+  visibleAppIds: string[] = [],
+): boolean {
   return (
-    manifest.kind === 'host' ||
-    (manifest.kind === 'app' && visibleAppIds.includes(manifest.id))
+    artifactVersion.kind === 'host' ||
+    (artifactVersion.kind === 'app' &&
+      visibleAppIds.includes(artifactVersion.id))
   );
 }
 
@@ -95,9 +115,10 @@ function matchesSearch(artifact: Artifact, searchValue: string): boolean {
   const query = searchValue.trim().toLocaleLowerCase();
   if (!query) return true;
 
-  return [artifact.productionManifest.name, artifact.sourceDescription].some(
-    (value) => value.toLocaleLowerCase().includes(query),
-  );
+  return [
+    artifact.productionArtifactVersion.name,
+    artifact.sourceDescription,
+  ].some((value) => value.toLocaleLowerCase().includes(query));
 }
 
 function overriddenArtifactsFirst(left: Artifact, right: Artifact): number {

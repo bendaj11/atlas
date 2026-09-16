@@ -52,6 +52,10 @@ test.describe('Atlas Columbus extension', () => {
 
     const secondHost = await session.context.newPage();
     await secondHost.goto(hostUrl);
+    const historicalHeading = firstHost.getByRole('heading', {
+      name: 'Dashboard React Historical',
+    });
+    await historicalHeading.waitFor({ state: 'visible' });
 
     expect({
       firstVersion: await storedVersion(firstHost, 'localStorage'),
@@ -61,9 +65,7 @@ test.describe('Atlas Columbus extension', () => {
         firstHost.url(),
         '1',
       ),
-      historicalHeading: await firstHost
-        .getByRole('heading', { name: 'Dashboard React Historical' })
-        .isVisible(),
+      historicalHeading: await historicalHeading.isVisible(),
     }).toStrictEqual({
       firstVersion: '0.0.9',
       secondVersion: '0.0.9',

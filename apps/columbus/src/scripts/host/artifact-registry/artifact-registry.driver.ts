@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../../types/contracts';
 import { aHostData } from '../../../types/app.testkit';
@@ -36,9 +36,9 @@ export class ArtifactRegistryDriver {
   private registryDocument = aRegistry();
   private versions:
     Awaited<ReturnType<typeof this.registry.readVersions>> | undefined;
-  private loaded: Manifest | undefined;
+  private loaded: ArtifactVersion | undefined;
   private root: string | undefined;
-  private unique: Manifest[] = [];
+  private unique: ArtifactVersion[] = [];
   private error: unknown;
 
   constructor() {
@@ -66,7 +66,7 @@ export class ArtifactRegistryDriver {
       return this;
     },
     registeredApp: (
-      deployed: Manifest,
+      deployed: ArtifactVersion,
       published: PublishedArtifact[],
     ): this => {
       published.forEach((artifact) =>
@@ -79,14 +79,14 @@ export class ArtifactRegistryDriver {
 
       return this;
     },
-    fetchedManifestAt: (path: string, manifest: Manifest): this => {
+    fetchedManifestAt: (path: string, manifest: ArtifactVersion): this => {
       const artifact = this.published.get(path);
       if (artifact) this.published.set(path, { ...artifact, manifest });
 
       return this;
     },
     unpublishedPreview: (
-      deployed: Manifest,
+      deployed: ArtifactVersion,
       published: PublishedArtifact,
     ): this => {
       this.registryDocument.apps[deployed.id] = aRegistryArtifact(deployed, [
@@ -98,16 +98,14 @@ export class ArtifactRegistryDriver {
   };
 
   readonly when = {
-    registryRead: async (): Promise<this> => {
+    registryRead: async (): Promise<void> => {
       try {
         this.registryDocument = await this.registry.readRegistry(ROOT);
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
-    versionsRead: async (deployed: Manifest): Promise<this> => {
+    versionsRead: async (deployed: ArtifactVersion): Promise<void> => {
       try {
         this.versions = await this.registry.readVersions(
           deployed,
@@ -117,30 +115,22 @@ export class ArtifactRegistryDriver {
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
     versionLoaded: async (
       artifactKey: string,
       versionKey: string,
-    ): Promise<this> => {
+    ): Promise<void> => {
       try {
         this.loaded = await this.registry.loadVersion(artifactKey, versionKey);
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
-    rootResolved: (config: Partial<HostData['config']>): this => {
+    rootResolved: (config: Partial<HostData['config']>): void => {
       this.root = registryRootFor({ ...aHostData().config, ...config });
-
-      return this;
     },
-    deduplicated: (manifests: Manifest[]): this => {
+    deduplicated: (manifests: ArtifactVersion[]): void => {
       this.unique = uniqueManifests(manifests);
-
-      return this;
     },
   };
 

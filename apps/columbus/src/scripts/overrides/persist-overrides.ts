@@ -1,44 +1,54 @@
-import type { ExtensionSession } from '../../types/app';
+import type { ColumbusState } from '../../types/app';
 import { reloadHostTab } from '../host/host-tabs/host-tabs';
 import { validateLocalOverride } from './local-override/local-override';
 import { createOverrideDocument } from './override-document/override-document';
 import {
-  writeDisabledOverrides,
+  writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
-  writeSuppressedArtifactIds,
+  writeClearedLocalArtifactIds,
 } from './override-storage/override-storage';
 
-export async function persistOverrideSession(
-  session: ExtensionSession,
+export async function persistColumbusState(
+  columbusState: ColumbusState,
 ): Promise<void> {
   await Promise.all(
-    [...session.activeOverrides.values()].map(validateLocalOverride),
+    [...columbusState.enabledArtifactVersionOverrides.values()].map(
+      validateLocalOverride,
+    ),
   );
   const location = {
-    hostId: session.hostData.config.hostId,
-    tabId: session.tabId,
-    scope: session.scope,
+    hostId: columbusState.hostData.config.hostId,
+    tabId: columbusState.tabId,
+    scope: columbusState.scope,
   };
   await writeOverrideDocument({
-    tabId: session.tabId,
-    hostData: session.hostData,
+    tabId: columbusState.tabId,
+    hostData: columbusState.hostData,
     documentValue: createOverrideDocument({
-      hostData: session.hostData,
-      overrides: session.activeOverrides,
+      hostData: columbusState.hostData,
+      overrides: columbusState.enabledArtifactVersionOverrides,
     }),
-    scope: session.scope,
-    disabledAppIds: disabledAppIds(session),
+    scope: columbusState.scope,
+    disabledAppIds: disabledAppIds(columbusState),
   });
-  await writeDisabledOverrides(location, session.disabledOverrides);
-  await writeSuppressedArtifactIds(location, session.suppressedArtifactIds);
-  await reloadHostTab(session.tabId);
+  await writeDisabledArtifactVersionOverrides(
+    location,
+    columbusState.disabledArtifactVersionOverrides,
+  );
+  await writeClearedLocalArtifactIds(
+    location,
+    columbusState.clearedLocalArtifactIds,
+  );
+  await reloadHostTab(columbusState.tabId);
 }
 
-function disabledAppIds(session: ExtensionSession): string[] {
+function disabledAppIds(columbusState: ColumbusState): string[] {
   return [
     ...new Set([
-      ...[...session.disabledOverrides.values()].map((manifest) => manifest.id),
-      ...session.suppressedArtifactIds,
+      ...[...columbusState.disabledArtifactVersionOverrides.values()].map(
+        (artifactVersion) => artifactVersion.id,
+      ),
+      ...columbusState.clearedLocalArtifactIds,
     ]),
   ];
 }

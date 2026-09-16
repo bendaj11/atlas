@@ -1,4 +1,4 @@
-import { anAppManifest, anArtifact } from '../../../types/app.testkit';
+import { anAppArtifactVersion, anArtifact } from '../../../types/app.testkit';
 import { ArtifactsOverridesTableDriver } from './ArtifactsOverridesTable.driver';
 
 describe('ArtifactsOverridesTable', () => {
@@ -11,8 +11,12 @@ describe('ArtifactsOverridesTable', () => {
   it('should render a row per artifact when artifacts exist', () => {
     driver.given
       .artifacts([
-        anArtifact({ productionManifest: anAppManifest({ name: 'Orders' }) }),
-        anArtifact({ productionManifest: anAppManifest({ name: 'Cart' }) }),
+        anArtifact({
+          productionArtifactVersion: anAppArtifactVersion({ name: 'Orders' }),
+        }),
+        anArtifact({
+          productionArtifactVersion: anAppArtifactVersion({ name: 'Cart' }),
+        }),
       ])
       .when.rendered();
 
@@ -40,22 +44,25 @@ describe('ArtifactsOverridesTable', () => {
   });
 
   it('should forward the search text when typed', async () => {
-    await driver.when.rendered().when.searched('ord');
+    driver.when.rendered();
+
+    await driver.when.searched('ord');
 
     expect(driver.get.searchValue()).toBe('ord');
   });
 
   it('should turn the visible filter on when clicked while off', async () => {
-    await driver.when.rendered().when.visibleFilterClicked();
+    driver.when.rendered();
+
+    await driver.when.visibleFilterClicked();
 
     expect(driver.get.visibleOnlyChange()).toBe(true);
   });
 
   it('should turn the visible filter off when clicked while on', async () => {
-    await driver.given
-      .visibleOnly(true)
-      .when.rendered()
-      .when.visibleFilterClicked();
+    driver.given.visibleOnly(true).when.rendered();
+
+    await driver.when.visibleFilterClicked();
 
     expect(driver.get.visibleOnlyChange()).toBe(false);
   });

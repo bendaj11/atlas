@@ -1,7 +1,6 @@
 import {
-  aHostManifest,
-  aManifest,
-  anAppManifest,
+  aHostArtifactVersion,
+  anAppArtifactVersion,
 } from '../../../types/app.testkit';
 import { UseArtifactsDriver } from './useArtifacts.driver';
 
@@ -12,16 +11,16 @@ describe('useArtifacts', () => {
     driver = new UseArtifactsDriver();
   });
 
-  it('should return no artifacts when session is missing', () => {
-    driver.given.session(undefined).when.rendered();
+  it('should return no artifacts when columbusState is missing', () => {
+    driver.given.columbusState(undefined).when.rendered();
 
     expect(driver.get.artifacts()).toEqual([]);
   });
 
-  it('should list host, apps, and widget providers when session is loaded', () => {
-    const host = aHostManifest();
-    const app = anAppManifest();
-    const provider = anAppManifest();
+  it('should list host, apps, and widget providers when columbusState is loaded', () => {
+    const host = aHostArtifactVersion();
+    const app = anAppArtifactVersion();
+    const provider = anAppArtifactVersion();
 
     driver.given
       .catalogHost(host)
@@ -29,11 +28,15 @@ describe('useArtifacts', () => {
       .given.catalogWidgetProvider(provider)
       .when.rendered();
 
-    expect(driver.get.deployedManifests()).toEqual([host, app, provider]);
+    expect(driver.get.deployedArtifactVersions()).toEqual([
+      host,
+      app,
+      provider,
+    ]);
   });
 
   describe('when artifact has no override', () => {
-    const app = anAppManifest();
+    const app = anAppArtifactVersion();
 
     beforeEach(() => {
       driver.given.catalogApp(app);
@@ -45,16 +48,16 @@ describe('useArtifacts', () => {
       expect(driver.get.artifactOf(app).canToggle).toBe(false);
     });
 
-    it('should report override type none when no override exists', () => {
+    it('should report no override type when no override exists', () => {
       driver.when.rendered();
 
-      expect(driver.get.artifactOf(app).overrideType).toBe('none');
+      expect(driver.get.artifactOf(app).overrideType).toBeUndefined();
     });
   });
 
   describe('when artifact has an active override', () => {
-    const app = anAppManifest();
-    const override = aManifest({ channel: 'pr' });
+    const app = anAppArtifactVersion();
+    const override = anAppArtifactVersion({ channel: 'pr' });
 
     beforeEach(() => {
       driver.given.catalogApp(app).given.activeOverride(app, override);
@@ -69,25 +72,28 @@ describe('useArtifacts', () => {
     it('should select active override manifest when override is active', () => {
       driver.when.rendered();
 
-      expect(driver.get.artifactOf(app).selectedManifest).toBe(override);
+      expect(driver.get.artifactOf(app).selectedArtifactVersion).toBe(override);
     });
 
     it('should prefer active override when a disabled override also exists', () => {
       driver.given
-        .disabledOverride(app, aManifest({ channel: 'local' }))
+        .disabledOverride(app, anAppArtifactVersion({ channel: 'local' }))
         .when.rendered();
 
-      expect(driver.get.artifactOf(app).selectedManifest).toBe(override);
+      expect(driver.get.artifactOf(app).selectedArtifactVersion).toBe(override);
     });
   });
 
   describe('when artifact has a disabled override', () => {
-    const app = anAppManifest();
+    const app = anAppArtifactVersion();
 
     beforeEach(() => {
       driver.given
         .catalogApp(app)
-        .given.disabledOverride(app, aManifest({ channel: 'local' }));
+        .given.disabledOverride(
+          app,
+          anAppArtifactVersion({ channel: 'local' }),
+        );
     });
 
     it('should keep override disabled when override is only disabled', () => {
@@ -104,7 +110,7 @@ describe('useArtifacts', () => {
   });
 
   describe('when host reports runtime errors', () => {
-    const app = anAppManifest();
+    const app = anAppArtifactVersion();
 
     beforeEach(() => {
       driver.given.catalogApp(app);
@@ -131,7 +137,7 @@ describe('useArtifacts', () => {
     });
 
     it('should leave load error undefined when runtime error targets another artifact', () => {
-      const other = anAppManifest();
+      const other = anAppArtifactVersion();
 
       driver.given
         .catalogApp(other)
@@ -143,8 +149,8 @@ describe('useArtifacts', () => {
   });
 
   describe('when host lists visible app ids', () => {
-    const host = aHostManifest();
-    const app = anAppManifest({ id: 'orders' });
+    const host = aHostArtifactVersion();
+    const app = anAppArtifactVersion({ id: 'orders' });
 
     beforeEach(() => {
       driver.given.catalogHost(host).given.catalogApp(app);
@@ -176,8 +182,8 @@ describe('useArtifacts', () => {
   });
 
   describe('when visibleOnly is toggled on', () => {
-    const host = aHostManifest();
-    const app = anAppManifest();
+    const host = aHostArtifactVersion();
+    const app = anAppArtifactVersion();
 
     beforeEach(() => {
       driver.given.catalogHost(host).given.catalogApp(app);
@@ -190,91 +196,103 @@ describe('useArtifacts', () => {
     });
 
     it('should drop hidden apps when visibleOnly is on', () => {
-      driver.when.rendered().when.visibleOnlyToggled();
+      driver.when.rendered();
 
-      expect(driver.get.deployedManifests()).toEqual([host]);
+      driver.when.visibleOnlyToggled();
+
+      expect(driver.get.deployedArtifactVersions()).toEqual([host]);
     });
 
     it('should count only visible artifacts as total when visibleOnly is on', () => {
-      driver.when.rendered().when.visibleOnlyToggled().when.searched('none');
+      driver.when.rendered();
+      driver.when.visibleOnlyToggled();
+
+      driver.when.searched('none');
 
       expect(driver.get.totalCount()).toBe(1);
     });
 
     it('should restore hidden apps when visibleOnly is toggled off again', () => {
-      driver.when
-        .rendered()
-        .when.visibleOnlyToggled()
-        .when.visibleOnlyToggled();
+      driver.when.rendered();
 
-      expect(driver.get.deployedManifests()).toEqual([host, app]);
+      driver.when.visibleOnlyToggled();
+
+      driver.when.visibleOnlyToggled();
+
+      expect(driver.get.deployedArtifactVersions()).toEqual([host, app]);
     });
   });
 
   describe('when searching', () => {
     it('should match name case-insensitively when search has padding', () => {
-      const orders = anAppManifest({ name: 'Orders' });
+      const orders = anAppArtifactVersion({ name: 'Orders' });
 
       driver.given
-        .catalogApp(anAppManifest({ name: 'Cart' }))
+        .catalogApp(anAppArtifactVersion({ name: 'Cart' }))
         .given.catalogApp(orders)
-        .when.rendered()
-        .when.searched('  oRdErS ');
+        .when.rendered();
 
-      expect(driver.get.deployedManifests()).toEqual([orders]);
+      driver.when.searched('  oRdErS ');
+
+      expect(driver.get.deployedArtifactVersions()).toEqual([orders]);
     });
 
     it('should match override source when search hits it', () => {
-      const app = anAppManifest();
+      const app = anAppArtifactVersion();
 
       driver.given
-        .catalogApp(anAppManifest())
+        .catalogApp(anAppArtifactVersion())
         .given.catalogApp(app)
         .given.activeOverride(
           app,
-          aManifest({
+          anAppArtifactVersion({
             channel: 'local',
             remoteEntryUrl: 'http://localhost:4200/remoteEntry.json',
           }),
         )
-        .when.rendered()
-        .when.searched('localhost');
+        .when.rendered();
 
-      expect(driver.get.deployedManifests()).toEqual([app]);
+      driver.when.searched('localhost');
+
+      expect(driver.get.deployedArtifactVersions()).toEqual([app]);
     });
 
     it('should keep total count unfiltered when search narrows results', () => {
       driver.given
-        .catalogApp(anAppManifest({ name: 'Alpha' }))
-        .given.catalogApp(anAppManifest({ name: 'Beta' }))
-        .when.rendered()
-        .when.searched('alpha');
+        .catalogApp(anAppArtifactVersion({ name: 'Alpha' }))
+        .given.catalogApp(anAppArtifactVersion({ name: 'Beta' }))
+        .when.rendered();
+
+      driver.when.searched('alpha');
 
       expect(driver.get.totalCount()).toBe(3);
     });
   });
 
   describe('when ordering', () => {
-    const host = aHostManifest();
+    const host = aHostArtifactVersion();
 
     beforeEach(() => {
       driver.given.catalogHost(host);
     });
 
     it('should order enabled, then disabled, then plain artifacts when ranks differ', () => {
-      const plain = anAppManifest();
-      const disabled = anAppManifest();
-      const enabled = anAppManifest();
+      const plain = anAppArtifactVersion();
+      const disabled = anAppArtifactVersion();
+      const enabled = anAppArtifactVersion();
 
       driver.given
         .catalogApp(plain)
         .given.catalogApp(disabled)
         .given.catalogApp(enabled)
-        .given.disabledOverride(disabled, aManifest({ channel: 'pr' }))
-        .given.activeOverride(enabled, aManifest({ channel: 'pr' }))
+        .given.disabledOverride(
+          disabled,
+          anAppArtifactVersion({ channel: 'pr' }),
+        )
+        .given.activeOverride(enabled, anAppArtifactVersion({ channel: 'pr' }))
         .when.rendered();
 
-      expect(driver.get.deployedManifests()).toEqual([
+      expect(driver.get.deployedArtifactVersions()).toEqual([
         enabled,
         disabled,
         host,
@@ -283,12 +301,16 @@ describe('useArtifacts', () => {
     });
 
     it('should keep catalog order when artifacts share the same rank', () => {
-      const first = anAppManifest();
-      const second = anAppManifest();
+      const first = anAppArtifactVersion();
+      const second = anAppArtifactVersion();
 
       driver.given.catalogApp(first).given.catalogApp(second).when.rendered();
 
-      expect(driver.get.deployedManifests()).toEqual([host, first, second]);
+      expect(driver.get.deployedArtifactVersions()).toEqual([
+        host,
+        first,
+        second,
+      ]);
     });
   });
 });

@@ -1,12 +1,12 @@
 import { jest } from '@jest/globals';
 import type {
-  AtlasExtensionManifest as Manifest,
+  ArtifactVersion,
   AtlasHostData as HostData,
 } from '../../../types/contracts';
 import {
   aHostData,
-  aHostManifest,
-  anAppManifest,
+  aHostArtifactVersion,
+  anAppArtifactVersion,
 } from '../../../types/app.testkit';
 import {
   aPublishedArtifact,
@@ -38,9 +38,11 @@ export class HostCatalogDriver {
   };
   private readonly responses = new Map<string, () => Response>();
   private readonly published = new Map<string, PublishedArtifact>();
-  private readonly host = aPublishedArtifact(aHostManifest({ id: 'shop' }));
+  private readonly host = aPublishedArtifact(
+    aHostArtifactVersion({ id: 'shop' }),
+  );
   private readonly app = aPublishedArtifact(
-    anAppManifest({ id: 'orders', version: '1.0.0' }),
+    anAppArtifactVersion({ id: 'orders', version: '1.0.0' }),
   );
   private catalog: Catalog | undefined;
   private runtimeConfig: RuntimeConfig | undefined;
@@ -113,16 +115,14 @@ export class HostCatalogDriver {
   };
 
   readonly when = {
-    runtimeConfigRead: async (): Promise<this> => {
+    runtimeConfigRead: async (): Promise<void> => {
       try {
         this.runtimeConfig = await readRuntimeConfig();
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
-    catalogRead: async (): Promise<this> => {
+    catalogRead: async (): Promise<void> => {
       try {
         this.catalog = await readCatalog(this.config, async (reference) => {
           const artifact = this.published.get(reference.path);
@@ -133,8 +133,6 @@ export class HostCatalogDriver {
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
   };
 
@@ -147,8 +145,8 @@ export class HostCatalogDriver {
       this.error instanceof Error ? this.error.message : undefined,
     fetchedUrls: (): string[] =>
       fetchWithTimeout.mock.calls.map(([input]) => String(input)),
-    hostManifest: (): Manifest => this.host.manifest,
-    appManifest: (): Manifest => this.app.manifest,
+    hostManifest: (): ArtifactVersion => this.host.manifest,
+    appManifest: (): ArtifactVersion => this.app.manifest,
   };
 }
 

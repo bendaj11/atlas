@@ -1,26 +1,14 @@
 import { Box } from '@wix/design-system';
-import { lazy, Suspense, useEffect } from 'react';
-import { useHost } from '../providers';
+import { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   ARTIFACT_CONFIGURATION_ROUTE,
   ARTIFACTS_ROUTE,
 } from '../../scripts/routing/routes/routes';
 import { ArtifactsOverridesPage } from '../ArtifactsOverridesPage/ArtifactsOverridesPage';
-
-const ArtifactConfigurationPage = lazy(() =>
-  import('../ArtifactConfigurationPage/ArtifactConfigurationPage').then(
-    ({ ArtifactConfigurationPage }) => ({ default: ArtifactConfigurationPage }),
-  ),
-);
+import { ArtifactConfigurationPage } from '../ArtifactConfigurationPage/ArtifactConfigurationPage';
 
 export function App() {
-  const { loadHost } = useHost();
-
-  useEffect(() => {
-    void loadHost();
-  }, []);
-
   return (
     <Box direction="vertical" gap="12px" height="100%">
       <Routes>

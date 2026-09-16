@@ -1,4 +1,6 @@
-import { aManifest } from '../../types/app.testkit';
+import { faker } from '@faker-js/faker';
+import { anAppArtifactVersion } from '../../types/app.testkit';
+import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
 import { ArtifactConfigurationPageDriver } from './ArtifactConfigurationPage.driver';
 
 describe('ArtifactConfigurationPage', () => {
@@ -8,66 +10,87 @@ describe('ArtifactConfigurationPage', () => {
     driver = new ArtifactConfigurationPageDriver();
   });
 
+  describe('when rendered without an override or error', () => {
+    beforeEach(() => {
+      driver.when.rendered();
+    });
+
+    it('should hide the error when there is no error', async () => {
+      expect(await driver.get.error().exists()).toBe(false);
+    });
+
+    it('should save when save is clicked', async () => {
+      await driver.when.saveClicked();
+
+      expect(driver.get.saveCount()).toBe(1);
+    });
+
+    it('should navigate to the artifacts route when cancel is clicked', async () => {
+      await driver.when.cancelClicked();
+
+      expect(driver.get.navigatedTo()).toBe(ARTIFACTS_ROUTE);
+    });
+
+    it('should not clear when no override exists', async () => {
+      await driver.when.clearClicked();
+
+      expect(driver.get.clearCount()).toBe(0);
+    });
+  });
+
+  it('should change scope when another scope is chosen', async () => {
+    driver.given.scope('all').when.rendered();
+
+    await driver.when.scopeChosen('tab');
+
+    expect(driver.get.chosenScope()).toBe('tab');
+  });
+
   it('should redirect to the artifacts list when no configuration exists', () => {
     driver.given.configuration(undefined).when.rendered();
 
-    expect(driver.get.text('navigate:/')).not.toBeNull();
+    expect(driver.get.redirected()).toBe(true);
   });
 
-  it('should show the artifact name as title when rendered', () => {
-    driver.when.rendered();
+  it('should show the artifact name as title when rendered', async () => {
+    const name = faker.commerce.productName();
+    driver.given
+      .productionArtifactVersion(anAppArtifactVersion({ name }))
+      .when.rendered();
 
-    expect(driver.get.text('Orders')).not.toBeNull();
+    expect(await driver.get.title().getText()).toBe(name);
   });
 
-  it('should show the error when the hook reports one', () => {
-    driver.given.errorMessage('Boom').when.rendered();
+  it('should show the error when the hook reports one', async () => {
+    const errorMessage = faker.lorem.sentence();
+    driver.given.errorMessage(errorMessage).when.rendered();
 
-    expect(driver.get.alert()?.textContent).toBe('Boom');
-  });
-
-  it('should hide the alert when there is no error', () => {
-    driver.when.rendered();
-
-    expect(driver.get.alert()).toBeNull();
-  });
-
-  it('should save when save is clicked', async () => {
-    await driver.when.rendered().when.saveClicked();
-
-    expect(driver.get.saveCount()).toBe(1);
-  });
-
-  it('should close when cancel is clicked', async () => {
-    await driver.when.rendered().when.cancelClicked();
-
-    expect(driver.get.closeCount()).toBe(1);
-  });
-
-  it('should clear the override when clear is clicked and an override exists', async () => {
-    await driver.given
-      .selectedManifest(aManifest())
-      .when.rendered()
-      .when.clearClicked();
-
-    expect(driver.get.clearCount()).toBe(1);
-  });
-
-  it('should not clear when no override exists', async () => {
-    await driver.when.rendered().when.clearClicked();
-
-    expect(driver.get.clearCount()).toBe(0);
+    expect(await driver.get.error().getText()).toBe(errorMessage);
   });
 
   it('should not save when actions are disabled', async () => {
-    await driver.given.actionsDisabled(true).when.rendered().when.saveClicked();
+    driver.given.actionsDisabled(true).when.rendered();
+
+    await driver.when.saveClicked();
 
     expect(driver.get.saveCount()).toBe(0);
   });
 
-  it('should change scope when a scope is chosen', async () => {
-    await driver.when.rendered().when.scopeChosen('This tab');
+  it('should not save when a version is loading', async () => {
+    driver.given.loading(true).when.rendered();
 
-    expect(driver.get.chosenScope()).toBe('tab');
+    await driver.when.saveClicked();
+
+    expect(driver.get.saveCount()).toBe(0);
+  });
+
+  it('should clear the override when clear is clicked and an override exists', async () => {
+    driver.given
+      .selectedArtifactVersion(anAppArtifactVersion())
+      .when.rendered();
+
+    await driver.when.clearClicked();
+
+    expect(driver.get.clearCount()).toBe(1);
   });
 });

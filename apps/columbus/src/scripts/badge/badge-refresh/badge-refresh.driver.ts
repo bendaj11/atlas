@@ -36,32 +36,26 @@ export class BadgeRefreshDriver {
   };
 
   readonly when = {
-    refreshed: async (): Promise<this> => {
+    refreshed: async (): Promise<void> => {
       await this.refresh();
-
-      return this;
     },
     refreshedTwiceWhileFirstReadPends: async (
       firstRead: Deferred<number>,
       firstCount: number,
-    ): Promise<this> => {
+    ): Promise<void> => {
       const first = this.refresh();
       const second = this.refresh();
       firstRead.resolve(firstCount);
       await Promise.all([first, second]);
-
-      return this;
     },
     devSessionCounted: (
       session: { overrides: unknown[]; hostOverride?: unknown },
       disabledAppIds: string[] = [],
-    ): this => {
+    ): void => {
       this.count = countDevSessionOverrides({
         session,
         disabledAppIds: new Set(disabledAppIds),
       });
-
-      return this;
     },
   };
 

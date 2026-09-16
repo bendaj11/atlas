@@ -21,25 +21,17 @@ export class ControlPortDriver {
   };
 
   readonly when = {
-    validated: (value: unknown): this => {
+    validated: (value: unknown): void => {
       this.result = isControlPort(value);
-
-      return this;
     },
-    parsed: (value: string | null): this => {
+    parsed: (value: string | null): void => {
       this.result = parseControlPort(value);
-
-      return this;
     },
-    remembered: (port: number): this => {
+    remembered: (port: number): void => {
       rememberControlPort(port);
-
-      return this;
     },
-    rememberedRead: (): this => {
+    rememberedRead: (): void => {
       this.result = rememberedControlPort();
-
-      return this;
     },
   };
 

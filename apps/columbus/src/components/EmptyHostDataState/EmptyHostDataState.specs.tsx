@@ -20,6 +20,6 @@ describe('empty host data state', () => {
 
     await driver.when.refreshClicked();
 
-    expect(driver.get.refreshCalls()).toBe(1);
+    expect(driver.get.refreshMock()).toHaveBeenCalledTimes(1);
   });
 });

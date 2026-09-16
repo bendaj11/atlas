@@ -1,18 +1,17 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { HostProvider, OverridesProvider, SessionProvider } from '../index';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { WixDesignSystemProvider } from '@wix/design-system';
+import { createQueryClient } from '../query-client/query-client';
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createQueryClient);
+
   return (
-    <MemoryRouter>
-      <SessionProvider>
-        <HostProvider>
-          <OverridesProvider>
-            <WixDesignSystemProvider>{children}</WixDesignSystemProvider>
-          </OverridesProvider>
-        </HostProvider>
-      </SessionProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <WixDesignSystemProvider>{children}</WixDesignSystemProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }

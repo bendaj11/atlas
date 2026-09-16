@@ -35,7 +35,7 @@ export class DevelopmentSessionBackgroundDriver {
   };
 
   readonly when = {
-    sessionLoaded: async (): Promise<this> => {
+    sessionLoaded: async (): Promise<void> => {
       try {
         this.result = await loadDevelopmentSession(this.request, {
           fetchJson: this.fetchJson,
@@ -43,8 +43,6 @@ export class DevelopmentSessionBackgroundDriver {
       } catch (error) {
         this.error = error;
       }
-
-      return this;
     },
   };
 
