@@ -34,7 +34,10 @@
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/schema/(src|tests)/'",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/schema/src/'",
     "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.5.0"
   }
 }

@@ -198,7 +198,7 @@ describe('startAtlasLoader', () => {
 
       expect(driver.get.error()).toMatchObject({
         code: 'DEPLOYMENT_INVALID',
-        summary: `Atlas deployment manifest at "${runtime.artifactRegistryUrl}/environments/${runtime.environment}/hosts/${runtime.hostId}/manifest.json" is invalid: Atlas host deployment manifest is invalid.`,
+        summary: `Atlas deployment manifest at "${runtime.artifactRegistryUrl}/environments/${runtime.environment}/hosts/${runtime.hostId}/manifest.json" is invalid: Invalid Atlas host deployment manifest. kind: Expected kind to be "host-deployment".`,
       });
     });
 

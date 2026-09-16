@@ -6,37 +6,52 @@ export type {
   AtlasRouteMount,
   AtlasSlotMount,
   AtlasWidgetConfig,
-} from './atlas-config.js';
-export type { AtlasArtifactManifestBase } from './atlas-artifact-manifest-base.js';
+} from './config/atlas-config.js';
+export type { AtlasArtifactManifestBase } from './manifest/atlas-artifact-manifest-base.js';
 export type {
   AtlasAppDomIsolation,
   AtlasDomIsolation,
-} from './atlas-dom-isolation.js';
-export {
-  ATLAS_DEV_BRIDGE_MARKER,
-  ATLAS_DEV_SESSION_REQUEST,
-  ATLAS_DEV_SESSION_RESPONSE,
-} from './atlas-development-session-bridge.js';
+} from './manifest/atlas-dom-isolation.js';
+export { ATLAS_DOM_ISOLATIONS } from './manifest/atlas-dom-isolation.js';
+export type { AtlasExportedWidgetManifest } from './manifest/atlas-exported-widget-manifest.js';
+export type { AtlasExposeMap } from './manifest/atlas-expose-map.js';
+export type { AtlasFramework } from './manifest/atlas-framework.js';
+export { ATLAS_FRAMEWORKS } from './manifest/atlas-framework.js';
 export type {
-  AtlasDevelopmentSessionRequest,
-  AtlasDevelopmentSessionResponse,
-} from './atlas-development-session-bridge.js';
-export type { AtlasExportedWidgetManifest } from './atlas-exported-widget-manifest.js';
-export type { AtlasExposeMap } from './atlas-expose-map.js';
-export type { AtlasFramework } from './atlas-framework.js';
-export type { AtlasHostCatalog } from './atlas-host-catalog.js';
-export type { AtlasDeploymentCatalog } from './atlas-host-catalog.js';
-export type { AtlasHostManifest } from './atlas-host-manifest.js';
-export type { AtlasHostRuntimeConfig } from './atlas-host-runtime-config.js';
-export type { AtlasManifest, AtlasAppManifest } from './atlas-manifest.js';
-export type { AtlasMetadata } from './atlas-metadata.js';
-export type { AtlasMetadataValue } from './atlas-metadata-value.js';
-export type { AtlasPlacement } from './atlas-placement.js';
-export { ATLAS_ALL_HOSTS, placementTargetsHost } from './atlas-placement.js';
-export type { AtlasPlacementKind } from './atlas-placement-kind.js';
-export type { AtlasRouteNavigation } from './atlas-route-navigation.js';
-export type { AtlasRouteContribution } from './atlas-route-contribution.js';
-export type { AtlasStaticRegistry } from './atlas-static-registry.js';
+  AtlasManifest,
+  AtlasAppManifest,
+} from './manifest/atlas-manifest.js';
+export type { AtlasMetadata } from './manifest/atlas-metadata.js';
+export type { AtlasMetadataValue } from './manifest/atlas-metadata-value.js';
+export type { AtlasPlacement } from './manifest/atlas-placement/atlas-placement.js';
+export {
+  ATLAS_ALL_HOSTS,
+  placementTargetsHost,
+} from './manifest/atlas-placement/atlas-placement.js';
+export type { AtlasPlacementKind } from './manifest/atlas-placement-kind.js';
+export { ATLAS_PLACEMENT_KINDS } from './manifest/atlas-placement-kind.js';
+export type {
+  AtlasRouteContribution,
+  AtlasRouteMatch,
+} from './manifest/atlas-route-contribution.js';
+export { ATLAS_ROUTE_MATCHES } from './manifest/atlas-route-contribution.js';
+export type { AtlasRouteNavigation } from './manifest/atlas-route-navigation.js';
+export type { AtlasStylesheet } from './manifest/atlas-stylesheet.js';
+export type { AtlasVersionChannel } from './manifest/atlas-version-channel.js';
+export { ATLAS_VERSION_CHANNELS } from './manifest/atlas-version-channel.js';
+export type { CreateManifestFromConfigInput } from './manifest/create-manifest-from-config/create-manifest-from-config-input.js';
+export { createManifestFromConfig } from './manifest/create-manifest-from-config/create-manifest-from-config.js';
+export { validateAtlasManifest } from './manifest/validate-atlas-manifest/validate-atlas-manifest.js';
+export { assertAtlasManifest } from './manifest/assert-atlas-manifest/assert-atlas-manifest.js';
+export type { AtlasHostManifest } from './host-manifest/atlas-host-manifest.js';
+export { validateAtlasHostManifest } from './host-manifest/validate-atlas-host-manifest/validate-atlas-host-manifest.js';
+export { assertAtlasHostManifest } from './host-manifest/assert-atlas-host-manifest/assert-atlas-host-manifest.js';
+export type {
+  AtlasDeploymentCatalog,
+  AtlasHostCatalog,
+} from './catalog/atlas-host-catalog.js';
+export { validateAtlasHostCatalog } from './catalog/validate-atlas-host-catalog/validate-atlas-host-catalog.js';
+export { assertAtlasHostCatalog } from './catalog/assert-atlas-host-catalog/assert-atlas-host-catalog.js';
 export type {
   AtlasAppArtifactManifest,
   AtlasArtifactKind,
@@ -51,41 +66,57 @@ export type {
   AtlasHostDeploymentManifest,
   AtlasManifestDescriptor,
   AtlasPayloadFileDescriptor,
+  AtlasPayloadFileRole,
   AtlasPreviewIdentity,
   AtlasPublishedArtifactManifest,
   AtlasPublishedWidgetManifest,
   AtlasRegistryArtifact,
   AtlasReleaseIdentity,
-} from './atlas-publication.js';
-export type { AtlasStylesheet } from './atlas-stylesheet.js';
-export type { AtlasValidationIssue } from './atlas-validation-issue.js';
-export type { AtlasVersionChannel } from './atlas-version-channel.js';
-export type { CreateManifestFromConfigInput } from './create-manifest-from-config-input.js';
-export { assertAtlasHostCatalog } from './assert-atlas-host-catalog.js';
-export { assertAtlasHostManifest } from './assert-atlas-host-manifest.js';
-export { assertAtlasManifest } from './assert-atlas-manifest.js';
+} from './publication/atlas-publication.js';
+export {
+  ATLAS_IMMUTABLE_CACHE_CONTROL,
+  ATLAS_PAYLOAD_FILE_ROLES,
+} from './publication/atlas-publication.js';
+export {
+  assertPublishedArtifactManifest,
+  validatePublishedArtifactManifest,
+} from './publication/validate-published-artifact-manifest/validate-published-artifact-manifest.js';
+export {
+  assertHostDeploymentManifest,
+  validateHostDeploymentManifest,
+} from './publication/validate-host-deployment-manifest/validate-host-deployment-manifest.js';
+export {
+  assertEnvironmentDeployment,
+  validateEnvironmentDeployment,
+} from './publication/validate-environment-deployment/validate-environment-deployment.js';
+export { assertManifestDescriptor } from './publication/validate-manifest-descriptor/validate-manifest-descriptor.js';
+export { assertReleaseVersion } from './publication/release-version/release-version.js';
+export {
+  assertSafeArtifactId,
+  assertSafeRelativePath,
+} from './publication/safe-paths/safe-paths.js';
+export { hydratePublishedArtifactManifest } from './publication/hydrate-published-artifact-manifest/hydrate-published-artifact-manifest.js';
+export type { AtlasHostRuntimeConfig } from './runtime/atlas-host-runtime-config.js';
+export type { AtlasStaticRegistry } from './runtime/atlas-static-registry.js';
+export {
+  ATLAS_DEV_BRIDGE_MARKER,
+  ATLAS_DEV_SESSION_REQUEST,
+  ATLAS_DEV_SESSION_RESPONSE,
+} from './runtime/atlas-development-session-bridge.js';
+export type {
+  AtlasDevelopmentSessionRequest,
+  AtlasDevelopmentSessionResponse,
+} from './runtime/atlas-development-session-bridge.js';
 export {
   actionableMessage,
   AtlasError,
   ensureActionableError,
   errorSummary,
   suggestedActionFor,
-} from './actionable-error.js';
+} from './errors/atlas-error/atlas-error.js';
 export type {
   AtlasErrorOptions,
   AtlasErrorSurface,
-} from './actionable-error.js';
-export { AtlasValidationError } from './atlas-validation-error.js';
-export { createManifestFromConfig } from './create-manifest-from-config.js';
-export { hydratePublishedArtifactManifest } from './hydrate-published-artifact.js';
-export { validateAtlasHostCatalog } from './validate-atlas-host-catalog.js';
-export { validateAtlasHostManifest } from './validate-atlas-host-manifest.js';
-export { validateAtlasManifest } from './validate-atlas-manifest.js';
-export {
-  assertEnvironmentDeployment,
-  assertHostDeploymentManifest,
-  assertManifestDescriptor,
-  assertPublishedArtifactManifest,
-  assertReleaseVersion,
-  assertSafeRelativePath,
-} from './publication-validation.js';
+} from './errors/atlas-error/atlas-error.js';
+export { AtlasValidationError } from './errors/atlas-validation-error/atlas-validation-error.js';
+export type { AtlasValidationIssue } from './errors/atlas-validation-issue.js';
