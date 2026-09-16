@@ -25,7 +25,6 @@
     "test:affected": "turbo run test --concurrency=1 --affected --filter=\"@atlas/*\"",
     "test:e2e": "tsx tests/e2e/prepare.ts && playwright test && pnpm run test:e2e:widgets",
     "test:e2e:widgets": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/e2e/host-widgets/jest.config.cjs --runInBand",
-    "test:container": "pnpm run pack:verify && tsx scripts/verify-bootstrap-container.ts",
     "test:e2e:prepare": "tsx tests/e2e/prepare.ts",
     "typecheck": "turbo run typecheck --filter=\"@atlas/*\" && tsc -p tsconfig.tests.json && tsc -p tsconfig.tooling.json",
     "typecheck:affected": "turbo run typecheck --affected --filter=\"@atlas/*\"",
