@@ -118,6 +118,12 @@ export class ControlServerDriver {
       });
       await this.host.markReady();
     },
+    appStopped: async (): Promise<void> => {
+      if (!this.app) throw new Error('Running app is required.');
+
+      await this.app.close();
+      this.app = undefined;
+    },
     ownerStoppedAndAppReconciled: async (): Promise<void> => {
       if (!this.host || !this.app)
         throw new Error('Running host and app are required.');
@@ -148,6 +154,7 @@ export class ControlServerDriver {
   get = {
     allAppIds: (): string[] => [this.appId, this.ownerAppId].sort(),
     appIds: (): string[] => [this.appId],
+    ownerAppIds: (): string[] => [this.ownerAppId],
     catalogAppIds: async (): Promise<string[]> => {
       if (!this.host) throw new Error('Host is required.');
 
