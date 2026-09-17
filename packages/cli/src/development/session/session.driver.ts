@@ -1,6 +1,11 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasHostCatalog } from '@atlas/schema';
-import { aHostCatalog, aHostManifest, anAppManifest } from '@atlas/testkit';
+import {
+  aHostCatalog,
+  aHostManifest,
+  anAppManifest,
+  aRoutePlacement,
+} from '@atlas/testkit';
 import { anOverrideDocument } from '../development.testkit.js';
 import type { AtlasDevOverrideDocument } from '../types.js';
 import {
@@ -25,14 +30,7 @@ export class DevelopmentSessionDriver {
       const manifest = anAppManifest({
         channel: scenario === 'merged-catalog' ? 'local' : 'production',
         id: this.appId,
-        placements: [
-          {
-            hostId: this.hostId,
-            id: faker.string.uuid(),
-            kind: 'route',
-            route: { path: '/login', title: faker.lorem.words() },
-          },
-        ],
+        placements: [aRoutePlacement({ hostId: this.hostId })],
       });
       const overrides = [
         { appId: this.appId, manifest, reason: 'local' as const },

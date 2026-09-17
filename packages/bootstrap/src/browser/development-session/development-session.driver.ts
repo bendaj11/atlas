@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { ATLAS_DEV_BRIDGE_MARKER } from '@atlas/schema';
-import { requestDevelopmentSession } from './development-session.js';
+import { requestDevelopmentSession } from './index.js';
 
 export class DevelopmentSessionDriver {
   private bridgeMarkerPresent = false;

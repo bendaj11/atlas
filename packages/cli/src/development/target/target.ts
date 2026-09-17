@@ -1,5 +1,4 @@
-import { resolveAtlasRuntimeConfig } from '@atlas/bootstrap';
-import type { AtlasConfig } from '@atlas/schema';
+import { resolveAtlasRuntimeConfig, type AtlasConfig } from '@atlas/schema';
 import {
   configuredHostIds,
   hostIdFromRoute,

@@ -47,6 +47,24 @@ describe('development control server', () => {
     );
   });
 
+  it('should list both apps when a second app joins the owner control server', async () => {
+    await driver.given.runningApps();
+
+    expect(await driver.get.catalogAppIds()).toStrictEqual(
+      driver.get.allAppIds(),
+    );
+  });
+
+  it('should drop the app from the catalog when the app control server stops', async () => {
+    await driver.given.runningApps();
+
+    await driver.when.appStopped();
+
+    expect(await driver.get.catalogAppIds()).toStrictEqual(
+      driver.get.ownerAppIds(),
+    );
+  });
+
   it('should restore both apps when control server owner restarts', async () => {
     await driver.given.runningApps();
 

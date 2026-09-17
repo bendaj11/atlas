@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { showFatalError, type FatalErrorDependencies } from './fatal-error.js';
+import { showFatalError, type FatalErrorDependencies } from './index.js';
 
 interface FakeElement {
   tagName: string;

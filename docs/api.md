@@ -16,7 +16,7 @@ Atlas uses focused packages so the app-facing SDK does not also contain host and
 | `@atlas/schema`         | Configuration, canonical artifact manifests, registry, and deployment manifests      |
 | `@atlas/sdk`            | app-to-host capabilities and lifecycle types                                         |
 | `@atlas/runtime`        | Deployment discovery, catalog hydration, overrides, federation loading, and mounting |
-| `@atlas/bootstrap`      | Static bootstrap file and Nginx configuration generation                             |
+| `@atlas/bootstrap`      | Static bootstrap files and browser loader                                            |
 | `@atlas/sdk/navigation` | Host-owned and app-scoped navigation                                                 |
 | `@atlas/sdk/angular`    | Angular host, app, and widget integration                                            |
 | `@atlas/sdk/react`      | React host, app, and widget integration                                              |

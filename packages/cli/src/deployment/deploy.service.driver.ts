@@ -11,6 +11,7 @@ import {
   aHostArtifactManifest,
   anAppArtifactManifest,
   anEnvironmentDeployment,
+  aRoutePlacement,
 } from '@atlas/testkit';
 import { CliArguments } from '../cli/arguments.js';
 import type {
@@ -47,14 +48,7 @@ export class DeployServiceDriver {
     id: this.appId,
     release: { version: '1.4.0' },
     supportedHosts: [this.hostId],
-    placements: [
-      {
-        id: faker.string.uuid(),
-        kind: 'route',
-        hostId: this.hostId,
-        route: { path: `/${faker.word.noun()}`, title: faker.lorem.words() },
-      },
-    ],
+    placements: [aRoutePlacement({ hostId: this.hostId })],
   });
   private readonly source = new Map<string, Uint8Array>();
   private readonly originalFetch = globalThis.fetch;

@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 import {
   loadPublishedArtifact,
   type PublishedArtifactDependencies,
-} from './published-artifact.js';
+} from './index.js';
 
 export class PublishedArtifactDriver {
   private readonly fetchBytes =

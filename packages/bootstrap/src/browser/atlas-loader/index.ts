@@ -1,4 +1,3 @@
-import { showFatalError } from '../fatal-error/fatal-error.js';
-import { startAtlasLoader } from './atlas-loader.js';
-
-void startAtlasLoader().catch((error) => showFatalError({ error }));
+export { startAtlasLoader } from './atlas-loader.js';
+export { RUNTIME_SNAPSHOT_ELEMENT_ID } from './atlas-loader.constants.js';
+export type { AtlasLoaderDependencies } from './atlas-loader.types.js';

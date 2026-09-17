@@ -2,7 +2,7 @@
   "name": "@atlas/bootstrap",
   "version": "0.4.26",
   "type": "module",
-  "description": "Static Atlas browser bootstrap assets and runtime config helpers.",
+  "description": "Static Atlas browser bootstrap assets and loader.",
   "license": "MIT",
   "keywords": [
     "atlas",
@@ -23,10 +23,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./runtime": {
-      "types": "./dist/runtime.d.ts",
-      "default": "./dist/runtime.js"
     }
   },
   "files": [
@@ -38,7 +34,7 @@
     "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
-    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/browser/atlas-loader/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/atlas.loader.js && esbuild node_modules/es-module-shims/dist/es-module-shims.js --format=esm --platform=browser --target=es2022 --outfile=dist/es-module-shims.js",
+    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/browser/atlas-loader/main.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/atlas.loader.js && esbuild node_modules/es-module-shims/dist/es-module-shims.js --format=esm --platform=browser --target=es2022 --outfile=dist/es-module-shims.js",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/bootstrap/src/",
     "typecheck": "tsc -b --pretty false"
   },

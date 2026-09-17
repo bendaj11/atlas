@@ -12,6 +12,7 @@ const SHA_256_DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const SAFE_IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9_-]|\.(?=[A-Za-z0-9_-]))*$/;
 const URL_SAFE_PATH_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._~-]*$/u;
 const UNSAFE_PATH_CHARACTERS = /[%?#\\\p{Cc}]/u;
+const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]'];
 
 export function asRecord(value: unknown): UnknownRecord | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
@@ -351,6 +352,10 @@ function isSafeRelativePath(value: string): boolean {
       .split('/')
       .every((segment) => segment && segment !== '.' && segment !== '..')
   );
+}
+
+export function isLoopbackHostname(hostname: string): boolean {
+  return LOOPBACK_HOSTNAMES.includes(hostname);
 }
 
 function isHttpUrl(value: string): boolean {

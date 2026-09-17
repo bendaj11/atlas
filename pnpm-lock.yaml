@@ -47,9 +47,6 @@ importers:
 
   apps/columbus:
     dependencies:
-      '@atlas/bootstrap':
-        specifier: workspace:*
-        version: link:../../packages/bootstrap
       '@atlas/schema':
         specifier: workspace:*
         version: link:../../packages/schema

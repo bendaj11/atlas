@@ -97,6 +97,15 @@ export {
 } from './publication/safe-paths/safe-paths.js';
 export { hydratePublishedArtifactManifest } from './publication/hydrate-published-artifact-manifest/hydrate-published-artifact-manifest.js';
 export type { AtlasHostRuntimeConfig } from './runtime/atlas-host-runtime-config.js';
+export {
+  ATLAS_RUNTIME_CONFIG_PATH,
+  artifactUrl,
+  assertAtlasRuntimeConfig,
+  environmentManifestUrl,
+  environmentRegistryUrl,
+  resolveAtlasRuntimeConfig,
+  validateHostRuntimeConfig,
+} from './runtime/host-runtime-config/index.js';
 export type { AtlasStaticRegistry } from './runtime/atlas-static-registry.js';
 export {
   ATLAS_DEV_BRIDGE_MARKER,
@@ -120,3 +129,4 @@ export type {
 } from './errors/atlas-error/atlas-error.js';
 export { AtlasValidationError } from './errors/atlas-validation-error/atlas-validation-error.js';
 export type { AtlasValidationIssue } from './errors/atlas-validation-issue.js';
+export { isLoopbackHostname } from './validation/validators.js';

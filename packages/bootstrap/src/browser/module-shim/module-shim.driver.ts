@@ -4,7 +4,7 @@ import {
   importModule,
   installModuleShim,
   type ModuleShimGlobal,
-} from './module-shim.js';
+} from './index.js';
 
 export class ModuleShimDriver {
   private readonly moduleShim: ModuleShimGlobal = {};

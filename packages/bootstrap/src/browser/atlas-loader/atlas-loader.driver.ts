@@ -8,10 +8,7 @@ import type {
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { HostModule, HostMountRequest } from '../host-module.js';
-import {
-  startAtlasLoader,
-  type AtlasLoaderDependencies,
-} from './atlas-loader.js';
+import { startAtlasLoader, type AtlasLoaderDependencies } from './index.js';
 
 interface SnapshotElement {
   id: string;
