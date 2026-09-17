@@ -91,10 +91,13 @@ jest.unstable_mockModule('../publication/service/publish.service.js', () => ({
 }));
 const registryConfig =
   await import('../publication/registry-config/registry-config.js');
-jest.unstable_mockModule('../publication/registry-config/registry-config.js', () => ({
-  ...registryConfig,
-  loadAtlasRegistryConfig,
-}));
+jest.unstable_mockModule(
+  '../publication/registry-config/registry-config.js',
+  () => ({
+    ...registryConfig,
+    loadAtlasRegistryConfig,
+  }),
+);
 jest.unstable_mockModule('../verification/service/verify.service.js', () => ({
   AtlasVerifyService: class {
     run = verifyRun;

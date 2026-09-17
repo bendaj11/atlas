@@ -1,4 +1,5 @@
-export { ATLAS_NX_TAG, defaultDevServerPort } from './commands/commands.js';
+export { defaultDevServerPort } from '@atlas/generators';
+export { ATLAS_NX_TAG } from './constants.js';
 export { loadEnvFiles } from './env/env.js';
 export { detectWorkspace } from './service/workspace.js';
 export type {
