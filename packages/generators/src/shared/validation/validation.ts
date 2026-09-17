@@ -1,19 +1,16 @@
 import {
   InvalidGeneratorIdError,
-  MAX_ATLAS_ID_LENGTH,
   UnsupportedGeneratorFrameworkError,
 } from '../errors/generator-errors.js';
-import type { AtlasGeneratorOptions } from '../types/generator-types.js';
+import { ATLAS_ID_PATTERN, MAX_ATLAS_ID_LENGTH } from './atlas-id-rules.js';
+import type {
+  AtlasGeneratorOptions,
+  SupportedGeneratorOptions,
+} from '../types/generator-types.js';
 import {
   resolveAngularVersionProfileFromOptions,
   resolveReactVersionProfileFromOptions,
 } from '../versions/generator-versions.js';
-
-const ATLAS_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-export type SupportedGeneratorOptions = AtlasGeneratorOptions & {
-  framework: 'angular' | 'react';
-};
 
 export function validateGeneratorOptions(
   options: AtlasGeneratorOptions,

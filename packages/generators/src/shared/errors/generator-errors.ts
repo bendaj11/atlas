@@ -1,6 +1,5 @@
 import { AtlasError } from '@atlas/schema';
-
-const MAX_ATLAS_ID_LENGTH = 214;
+import { MAX_ATLAS_ID_LENGTH } from '../validation/atlas-id-rules.js';
 
 export class InvalidGeneratorIdError extends AtlasError {
   constructor(options: { field: 'name' | 'host id'; value: string }) {
@@ -55,5 +54,3 @@ export class UnverifiedFrameworkVersionError extends AtlasError {
     this.name = 'UnverifiedFrameworkVersionError';
   }
 }
-
-export { MAX_ATLAS_ID_LENGTH };

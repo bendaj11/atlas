@@ -2,8 +2,8 @@ import { faker } from '@faker-js/faker';
 import type {
   AngularStylesheetFormat,
   AtlasGeneratorOptions,
+  SupportedGeneratorOptions,
 } from '../shared/types/generator-types.js';
-import type { SupportedGeneratorOptions } from '../shared/validation/validation.js';
 
 export const ALL_GENERATOR_FRAMEWORKS = ['angular', 'react'] as const;
 export const ALL_STYLESHEET_FORMATS: readonly AngularStylesheetFormat[] = [

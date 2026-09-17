@@ -83,16 +83,14 @@ export function renderAngularHostBootstrap(): string {
   return `import { Location } from "@angular/common";
 import { Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
+import type { AtlasHostClientEntry, AtlasHostMountRequest } from "@atlas/sdk/lifecycle";
 import { AtlasAngularHostAnchors, bootstrapAngularHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { appConfig } from "./app/app.config";
 import { AppComponent } from "./app/app.component";
 import { createCustomHostSdkOptions } from "./app/host.config";
 
-type HostMountRequest = Parameters<AtlasHostClientEntry["mount"]>[0];
-
-export async function bootstrap(request: HostMountRequest) {
+export async function bootstrap(request: AtlasHostMountRequest) {
   return bootstrapAngularHost({
     component: AppComponent,
     appConfig,

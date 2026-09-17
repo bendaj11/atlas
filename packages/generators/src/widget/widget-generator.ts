@@ -3,8 +3,10 @@ import {
   convertIdToPascalCase,
   convertIdToTitle,
 } from '../shared/text/text.js';
-import type { AtlasGeneratedFile } from '../shared/types/generator-types.js';
-import type { SupportedGeneratorOptions } from '../shared/validation/validation.js';
+import type {
+  AtlasGeneratedFile,
+  SupportedGeneratorOptions,
+} from '../shared/types/generator-types.js';
 
 export function generateWidgetFilesForFramework(
   options: SupportedGeneratorOptions,

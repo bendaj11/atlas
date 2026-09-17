@@ -1,6 +1,8 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasGeneratedFile } from '../shared/types/generator-types.js';
-import type { SupportedGeneratorOptions } from '../shared/validation/validation.js';
+import type {
+  AtlasGeneratedFile,
+  SupportedGeneratorOptions,
+} from '../shared/types/generator-types.js';
 import {
   anAngularGeneratorOptions,
   aReactGeneratorOptions,
