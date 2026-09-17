@@ -1,7 +1,6 @@
-import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type { AtlasWorkspaceKind } from '../../workspace/index.js';
-import { isMissingPathError } from '../../shared/index.js';
+import { doesPathExist } from '../../shared/index.js';
 
 export function getWorkspaceLabel(kind: AtlasWorkspaceKind): string {
   if (kind === 'nx') return 'an Nx workspace';
@@ -54,16 +53,10 @@ export async function assertWritable(
 ): Promise<void> {
   if (force) return;
 
-  try {
-    await access(path);
-
-    throw new Error(message);
-  } catch (error) {
-    if (!isMissingPathError(error)) throw error;
-  }
+  if (await doesPathExist(path)) throw new Error(message);
 }
 
-export function assertSafeId(value: string, subject: string): void {
+function assertSafeId(value: string, subject: string): void {
   if (
     !/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i.test(value) ||
     value === '.' ||

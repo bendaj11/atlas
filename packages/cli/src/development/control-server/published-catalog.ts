@@ -1,6 +1,11 @@
 import type { AtlasHostCatalog } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
-import { extractErrorMessage, ui } from '../../shared/index.js';
+import { buildHostManifestPath } from '../../deployment/index.js';
+import {
+  extractErrorMessage,
+  trimTrailingSlash,
+  ui,
+} from '../../shared/index.js';
 import type { PublishedCatalogLoader } from '../types.js';
 
 const warnedCatalogs = new Set<string>();
@@ -10,11 +15,11 @@ export const readPublishedCatalog: PublishedCatalogLoader = ({
   hostId,
   environment,
 }): Promise<AtlasHostCatalog> => {
-  const root = registryUrl.endsWith('/') ? registryUrl : `${registryUrl}/`;
-  const manifestPath = `environments/${encodeURIComponent(environment)}/hosts/${encodeURIComponent(hostId)}/manifest.json`;
+  const manifestPath = buildHostManifestPath({ environment, hostId });
 
   return loadHostDeployment({
-    manifestUrl: new URL(manifestPath, root).href,
+    manifestUrl: new URL(manifestPath, `${trimTrailingSlash(registryUrl)}/`)
+      .href,
     expectedHostId: hostId,
     expectedEnvironment: environment,
   });

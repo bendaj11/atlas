@@ -1,11 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import type { AtlasConfig } from '@atlas/schema';
-import {
-  CliError,
-  doesPathExist,
-  isRecord,
-  compiledAtlasConfigCandidates,
-} from '../../shared/index.js';
+import { CliError, doesPathExist, isRecord } from '../../shared/index.js';
+import { compiledAtlasConfigCandidates } from '../../workspace/index.js';
 
 export async function loadCompiledAtlasConfig(
   projectRoot: string,

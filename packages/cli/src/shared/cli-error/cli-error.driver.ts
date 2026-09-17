@@ -7,12 +7,12 @@ export class CliErrorDriver {
   private error!: AtlasError;
 
   readonly given = {
-    command: (command: string | undefined): this => {
+    command: (command: string | undefined) => {
       this.command = command;
 
       return this;
     },
-    cause: (cause: unknown): this => {
+    cause: (cause: unknown) => {
       this.cause = cause;
 
       return this;
@@ -20,13 +20,13 @@ export class CliErrorDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       this.error = normalizeToCliError(this.command, this.cause);
     },
   };
 
   readonly get = {
-    error: (): AtlasError => this.error,
-    formattedError: (): string => formatErrorWithCauses(this.error),
+    error: () => this.error,
+    formattedError: () => formatErrorWithCauses(this.error),
   };
 }

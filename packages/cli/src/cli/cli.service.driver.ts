@@ -4,7 +4,7 @@ import type { AtlasDevService as DevType } from '../development/index.js';
 import { aProject, aWorkspace } from '../workspace/workspace.testkit.js';
 import { PromptTestDouble } from '../shared/interaction/interaction.testkit.js';
 import type { AtlasBootstrapService as BootstrapType } from '../bootstrap/index.js';
-import type { compileAtlasConfig as compileAtlasConfigType } from '../shared/index.js';
+import type { compileAtlasConfig as compileAtlasConfigType } from '../workspace/index.js';
 import type { AtlasDeployService as DeployType } from '../deployment/index.js';
 import type { AtlasGenerateService as GenerateType } from '../generation/index.js';
 import type {
@@ -38,15 +38,19 @@ const loadEnvFiles = jest.fn<typeof loadEnvFilesType>();
 const detectWorkspace = jest.fn<typeof detectWorkspaceType>();
 const buildServiceConstructor = jest.fn();
 
+jest.unstable_mockModule('../workspace/env/env.js', () => ({ loadEnvFiles }));
+jest.unstable_mockModule('../workspace/service/workspace.js', () => ({
+  detectWorkspace,
+}));
 jest.unstable_mockModule('../bootstrap/service/bootstrap.service.js', () => ({
   AtlasBootstrapService: class {
     build = bootstrapBuild;
   },
 }));
 const configCompiler =
-  await import('../shared/config-compiler/config-compiler.js');
+  await import('../workspace/config-compiler/config-compiler.js');
 jest.unstable_mockModule(
-  '../shared/config-compiler/config-compiler.js',
+  '../workspace/config-compiler/config-compiler.js',
   () => ({
     ...configCompiler,
     compileAtlasConfig,
@@ -102,10 +106,6 @@ jest.unstable_mockModule('../verification/service/verify.service.js', () => ({
   AtlasVerifyService: class {
     run = verifyRun;
   },
-}));
-jest.unstable_mockModule('../workspace/env/env.js', () => ({ loadEnvFiles }));
-jest.unstable_mockModule('../workspace/service/workspace.js', () => ({
-  detectWorkspace,
 }));
 
 const { runAtlasCli } = await import('./cli.service.js');
@@ -176,26 +176,26 @@ export class CliServiceDriver {
   }
 
   readonly given = {
-    prompts: (answers: string[], interactive: boolean): this => {
+    prompts: (answers: string[], interactive: boolean) => {
       this.prompts = new PromptTestDouble(answers, interactive);
 
       return this;
     },
-    verificationReport: (report: AtlasVerificationReport): this => {
+    verificationReport: (report: AtlasVerificationReport) => {
       verifyRun.mockResolvedValue(report);
 
       return this;
     },
     registryConfig: (
       config: Awaited<ReturnType<typeof loadAtlasRegistryConfigType>>,
-    ): this => {
+    ) => {
       loadAtlasRegistryConfig.mockResolvedValue(config);
 
       return this;
     },
     openPreviews: (
       states: Awaited<ReturnType<typeof readOpenPreviewsType>>,
-    ): this => {
+    ) => {
       readOpenPreviews.mockResolvedValue(states);
       prunePreviews.mockResolvedValue({
         checked: 2,
@@ -209,7 +209,7 @@ export class CliServiceDriver {
   };
 
   readonly when = {
-    run: async (values: string[]): Promise<void> => {
+    run: async (values: string[]) => {
       Object.assign(console, { info: this.info, error: this.error });
       try {
         await runAtlasCli(values, this.prompts);
@@ -223,9 +223,9 @@ export class CliServiceDriver {
   };
 
   readonly get = {
-    infoOutput: (): string =>
+    infoOutput: () =>
       this.info.mock.calls.map((call) => String(call[0])).join('\n'),
-    errorOutput: (): string =>
+    errorOutput: () =>
       this.error.mock.calls.map((call) => String(call[0])).join('\n'),
     project: () => this.project,
     workspace: () => this.workspace,

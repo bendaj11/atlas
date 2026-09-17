@@ -1,17 +1,19 @@
-import { createEmptyStaticRegistry } from '../static-registry.js';
-import { assertStaticRegistry } from './static-registry-validation.js';
+import { StaticRegistryValidationDriver } from './static-registry-validation.driver.js';
 
 describe('static registry validation', () => {
+  let driver: StaticRegistryValidationDriver;
+
+  beforeEach(() => {
+    driver = new StaticRegistryValidationDriver();
+  });
+
   it('should accept registry when content revision is valid', () => {
-    expect(() =>
-      assertStaticRegistry(createEmptyStaticRegistry()),
-    ).not.toThrow();
+    expect(() => driver.when.validated()).not.toThrow();
   });
 
   it('should reject registry when content revision is stale', () => {
-    const registry = createEmptyStaticRegistry();
-    registry.revision = `sha256:${'0'.repeat(64)}`;
+    driver.given.revision(`sha256:${'0'.repeat(64)}`);
 
-    expect(() => assertStaticRegistry(registry)).toThrow(/revision is invalid/);
+    expect(() => driver.when.validated()).toThrow(/revision is invalid/);
   });
 });

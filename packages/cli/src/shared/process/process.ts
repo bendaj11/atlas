@@ -57,7 +57,7 @@ export function spawnProcess(input: ProcessCommand): ChildProcess {
   return child;
 }
 
-export function readCapturedProcessOutput(child: ChildProcess): string {
+function readCapturedProcessOutput(child: ChildProcess): string {
   return processOutput.get(child)?.() ?? '';
 }
 

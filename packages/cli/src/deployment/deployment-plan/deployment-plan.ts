@@ -102,7 +102,7 @@ async function buildHostDeploymentManifests({
   state: AtlasEnvironmentDeployment;
   selected: ArtifactSelection;
 }): Promise<AtlasHostDeploymentManifest[]> {
-  const apps = await selectedApps({ access, registry, state });
+  const apps = await readSelectedAppReleases({ access, registry, state });
   const hostIds =
     selected.kind === 'host'
       ? [selected.id]
@@ -117,7 +117,7 @@ async function buildHostDeploymentManifests({
     );
 }
 
-async function selectedApps({
+async function readSelectedAppReleases({
   access,
   registry,
   state,
@@ -134,10 +134,12 @@ async function selectedApps({
         id,
         version: entry.version,
       });
-      const manifest = (await readPublishedManifest({
-        access,
-        descriptor,
-      })) as AtlasAppArtifactManifest;
+      const manifest = await readPublishedManifest({ access, descriptor });
+
+      if (manifest.kind !== 'app-artifact')
+        throw new Error(
+          `Atlas deployment state lists "${id}" as an app, but ${descriptor.path} is a host artifact.`,
+        );
 
       return { id, descriptor, manifest };
     }),

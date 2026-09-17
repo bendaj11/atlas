@@ -12,7 +12,7 @@ export class WorkspaceEnvDriver {
   private loadedValues?: Record<string, string | undefined>;
 
   given = {
-    layeredFiles: async (): Promise<void> => {
+    layeredFiles: async () => {
       this.root = await mkdtemp(join(tmpdir(), 'atlas-env-'));
       process.env.ATLAS_REGISTRY_URL = this.registryUrl;
 
@@ -28,7 +28,7 @@ export class WorkspaceEnvDriver {
   };
 
   when = {
-    load: async (): Promise<void> => {
+    load: async () => {
       try {
         await loadEnvFiles(this.root);
         this.loadedValues = {
@@ -41,9 +41,8 @@ export class WorkspaceEnvDriver {
   };
 
   get = {
-    loadedValues: (): Record<string, string | undefined> =>
-      this.loadedValues ?? {},
-    layeredValues: (): Record<string, string> => ({
+    loadedValues: () => this.loadedValues ?? {},
+    layeredValues: () => ({
       registryUrl: this.registryUrl,
     }),
   };

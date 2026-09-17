@@ -7,18 +7,12 @@ export {
   formatErrorWithCauses,
 } from './cli-error/cli-error.js';
 export {
-  compileAtlasConfig,
-  compiledAtlasConfigCandidates,
-  formatTypeScriptDiagnostics,
-} from './config-compiler/config-compiler.js';
-export {
   convertDigestToIntegrity,
   computeSha256Digest,
   computeSha256Integrity,
 } from './digest/digest.js';
 export type { Sha256Digest } from './digest/digest.js';
 export {
-  extractErrorCause,
   extractErrorMessage,
   extractHttpStatus,
   HttpStatusError,
@@ -26,7 +20,6 @@ export {
 export {
   doesPathExist,
   isMissingPathError,
-  isNodeError,
   readJsonFile,
   readTextFile,
   writeJsonFile,
@@ -34,8 +27,6 @@ export {
 export { resolveInvocation } from './interaction/interaction.js';
 export type { AtlasInvocation } from './interaction/interaction.js';
 export {
-  readCapturedProcessOutput,
-  captureProcessOutput,
   awaitProcessOutput,
   runProcess,
   spawnProcess,
@@ -58,11 +49,13 @@ export {
 export type { UnknownRecord } from './records/records.js';
 export { isRetryableHttpStatus, withExponentialRetry } from './retry/retry.js';
 export { delay } from './timers/timers.js';
+export { formatTypeScriptDiagnostics } from './typescript/typescript.js';
 export { TerminalPrompter, ui } from './ui/ui.js';
 export type { AtlasPrompter } from './ui/ui.js';
 export {
   parseAbsoluteHttpUrl,
   isLoopbackUrl,
   isSecureOrLoopbackUrl,
+  normalizeRoutePath,
   trimTrailingSlash,
 } from './url/url.js';

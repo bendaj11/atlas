@@ -55,6 +55,7 @@ export {
   anAppArtifactManifest,
   anEnvironmentDeployment,
   aPayloadFileDescriptor,
+  aRegistryArtifact,
   aRegistryUrl,
   aSha256Digest,
   aStaticRegistry,

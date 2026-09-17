@@ -8,7 +8,7 @@ export class ErrorsDriver {
   private error: unknown;
 
   readonly given = {
-    error: (error: unknown): this => {
+    error: (error: unknown) => {
       this.error = error;
 
       return this;
@@ -16,8 +16,8 @@ export class ErrorsDriver {
   };
 
   readonly get = {
-    message: (): string => extractErrorMessage(this.error),
-    status: (): number | undefined => extractHttpStatus(this.error),
-    cause: (): unknown => extractErrorCause(this.error),
+    message: () => extractErrorMessage(this.error),
+    status: () => extractHttpStatus(this.error),
+    cause: () => extractErrorCause(this.error),
   };
 }

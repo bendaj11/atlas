@@ -15,7 +15,7 @@ export class CliProcessDriver {
   private readOutput?: () => string;
 
   when = {
-    capture: (): void => {
+    capture: () => {
       this.readOutput = captureProcessOutput(
         { stderr: this.stderr, stdout: this.stdout },
         {
@@ -30,7 +30,7 @@ export class CliProcessDriver {
   };
 
   get = {
-    capturedOutput: (): string => this.readOutput?.() ?? '',
-    expectedOutput: (): string => `${this.stdoutText}${this.stderrText}`,
+    capturedOutput: () => this.readOutput?.() ?? '',
+    expectedOutput: () => `${this.stdoutText}${this.stderrText}`,
   };
 }

@@ -8,12 +8,12 @@ export class NxOutputPathsDriver {
   private projectRoot = '';
 
   readonly given = {
-    project: (project: NxProjectConfiguration | undefined): this => {
+    project: (project: NxProjectConfiguration | undefined) => {
       this.project = project;
 
       return this;
     },
-    projectRoot: (projectRoot: string): this => {
+    projectRoot: (projectRoot: string) => {
       this.projectRoot = projectRoot;
 
       return this;
@@ -21,7 +21,7 @@ export class NxOutputPathsDriver {
   };
 
   readonly get = {
-    outputPaths: (): string[] =>
+    outputPaths: () =>
       resolveNxOutputPaths({
         project: this.project,
         workspaceRoot: '/repo',

@@ -11,6 +11,7 @@ import {
   optionalRecord,
   extractErrorMessage,
   isNonEmptyString,
+  normalizeRoutePath,
 } from '../../shared/index.js';
 import type { VerificationContext } from '../types.js';
 
@@ -175,8 +176,4 @@ export function withArtifactUrls({
       ? { widgetProviders: deployment.widgetProviders.map(reference) }
       : {}),
   };
-}
-
-function normalizeRoutePath(path: string): string {
-  return path === '/' ? path : path.replace(/\/+$/, '');
 }

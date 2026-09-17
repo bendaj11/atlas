@@ -11,7 +11,6 @@ import {
   convertDigestToIntegrity,
   isHostConfig,
   type CliArguments,
-  type Sha256Digest,
 } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
 import { discoverExportedWidgets } from '../exported-widgets/exported-widgets.js';
@@ -47,7 +46,7 @@ export async function buildPublishedManifest({
     .filter(({ role }) => role === 'stylesheet')
     .map(({ path, digest }) => ({
       path,
-      integrity: convertDigestToIntegrity(digest as Sha256Digest),
+      integrity: convertDigestToIntegrity(digest),
     }));
   const base = {
     schemaVersion: '2' as const,

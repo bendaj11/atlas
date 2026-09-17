@@ -59,4 +59,19 @@ describe('url', () => {
       expect(driver.get.trimmed()).toBe(base);
     });
   });
+
+  describe('normalizeRoutePath', () => {
+    it('should keep root when path is root', () => {
+      driver.given.value('/');
+
+      expect(driver.get.routePath()).toBe('/');
+    });
+
+    it('should remove trailing slashes when path is not root', () => {
+      const segment = faker.word.noun();
+      driver.given.value(`/${segment}//`);
+
+      expect(driver.get.routePath()).toBe(`/${segment}`);
+    });
+  });
 });

@@ -17,7 +17,6 @@ import {
   isPackageInstalled,
   type NxGenerationOptions,
 } from './commands.js';
-import type { ProcessCommand } from '../../shared/index.js';
 
 export class CommandsDriver {
   private readonly directory = new TemporaryDirectory();
@@ -25,25 +24,22 @@ export class CommandsDriver {
   private manager: AtlasPackageManager = 'npm';
 
   readonly given = {
-    kind: (kind: AtlasWorkspaceKind): this => {
+    kind: (kind: AtlasWorkspaceKind) => {
       this.kind = kind;
 
       return this;
     },
-    manager: (manager: AtlasPackageManager): this => {
+    manager: (manager: AtlasPackageManager) => {
       this.manager = manager;
 
       return this;
     },
-    workspace: async (): Promise<this> => {
+    workspace: async () => {
       await this.directory.create('atlas-commands-');
 
       return this;
     },
-    workspaceFile: async (
-      relativePath: string,
-      value: unknown,
-    ): Promise<this> => {
+    workspaceFile: async (relativePath: string, value: unknown) => {
       await this.directory.writeJson(relativePath, value);
 
       return this;
@@ -51,11 +47,7 @@ export class CommandsDriver {
   };
 
   readonly get = {
-    taskCommand: (
-      project: AtlasProject,
-      task: AtlasTask,
-      args?: string[],
-    ): ProcessCommand =>
+    taskCommand: (project: AtlasProject, task: AtlasTask, args?: string[]) =>
       createTaskCommand({
         kind: this.kind,
         manager: this.manager,
@@ -64,23 +56,21 @@ export class CommandsDriver {
         task,
         args,
       }),
-    nxGenerationCommand: (generation: NxGenerationOptions): ProcessCommand =>
+    nxGenerationCommand: (generation: NxGenerationOptions) =>
       createNxGenerationCommand({
         manager: this.manager,
         root: '/repo',
         generation,
       }),
-    nxPluginInstallCommand: (projectType: AtlasNxProjectType): ProcessCommand =>
+    nxPluginInstallCommand: (projectType: AtlasNxProjectType) =>
       createNxPluginInstallCommand({
         manager: this.manager,
         root: '/repo',
         projectType,
       }),
-    installCommand: (projectRoot: string): ProcessCommand =>
+    installCommand: (projectRoot: string) =>
       createInstallCommand({ manager: this.manager, projectRoot }),
-    formatCommand: async (
-      projectRoot: string,
-    ): Promise<ProcessCommand | undefined> => {
+    formatCommand: async (projectRoot: string) => {
       const command = await createFormatGeneratedCommand({
         kind: this.kind,
         manager: this.manager,
@@ -92,7 +82,7 @@ export class CommandsDriver {
         ? { ...command, cwd: relative(this.directory.root, command.cwd) || '.' }
         : undefined;
     },
-    installationRoot: async (projectRoot: string): Promise<string> =>
+    installationRoot: async (projectRoot: string) =>
       relative(
         this.directory.root,
         await resolveInstallationRoot({
@@ -101,7 +91,7 @@ export class CommandsDriver {
           projectRoot: this.directory.path(projectRoot),
         }),
       ) || '.',
-    packageInstalled: (packageName: string): Promise<boolean> =>
+    packageInstalled: (packageName: string) =>
       isPackageInstalled(this.directory.root, packageName),
   };
 }

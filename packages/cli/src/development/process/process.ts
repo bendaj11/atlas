@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { AtlasFramework } from '@atlas/schema';
-import { closeServer, buildLocalOrigin, LOCAL_HOST } from '../http/http.js';
+import { LOCAL_HOST } from '../http/http.js';
 import {
   DEFAULT_CONTROL_PORT,
   REMOTE_POLL_INTERVAL_MS,
@@ -219,4 +219,3 @@ export function buildBrowserOpenCommand(
   return { command: 'xdg-open', args: [url] };
 }
 
-export { closeServer, buildLocalOrigin };

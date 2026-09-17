@@ -63,9 +63,7 @@ export class DeployServiceDriver {
   private result?: AtlasDeployResult;
 
   given = {
-    deliveryCache: (
-      failure: 'none' | 'invalidate-once' | 'verify-once',
-    ): void => {
+    deliveryCache: (failure: 'none' | 'invalidate-once' | 'verify-once') => {
       this.permanentInvalidationFailures =
         failure === 'invalidate-once' ? 1 : 0;
       this.deliveryFailures = failure === 'verify-once' ? 1 : 0;
@@ -87,7 +85,7 @@ export class DeployServiceDriver {
           }
         });
     },
-    catalog: async (): Promise<void> => {
+    catalog: async () => {
       const registry = await this.catalogFor(this.storage);
       await this.storage.seedJson('registry.json', registry);
       await this.storage.seedJson(
@@ -98,10 +96,10 @@ export class DeployServiceDriver {
         }),
       );
     },
-    latest: (): void => {
+    latest: () => {
       this.selector = 'latest';
     },
-    sourceEnvironment: async (): Promise<void> => {
+    sourceEnvironment: async () => {
       await this.storage.seedJson(
         'environments/staging/deployment.json',
         anEnvironmentDeployment({
@@ -112,7 +110,7 @@ export class DeployServiceDriver {
       );
       this.selector = 'staging';
     },
-    separateRegistries: async (): Promise<void> => {
+    separateRegistries: async () => {
       this.storage.clear();
       const sourceStorage = new MemoryStorage();
       const registry = await this.catalogFor(sourceStorage);
@@ -130,27 +128,26 @@ export class DeployServiceDriver {
         this.sourceResponse(extractRequestUrl(input));
       this.separateRegistries = true;
     },
-    conflictingFlags: (): void => {
+    conflictingFlags: () => {
       this.invalidFlags = true;
     },
-    dryRun: (): void => {
+    dryRun: () => {
       this.dryRun = true;
     },
-    malformedTargetState: async (): Promise<void> => {
-      await this.storage.seedJson('environments/production/deployment.json', {
+    malformedTargetState: () =>
+      this.storage.seedJson('environments/production/deployment.json', {
         schemaVersion: 'v1',
-      });
-    },
-    insecureRegistry: (): void => {
+      }),
+    insecureRegistry: () => {
       this.insecureRegistry = true;
     },
-    transientInvalidationFailure: (): void => {
+    transientInvalidationFailure: () => {
       this.invalidationFailures = 1;
     },
   };
 
   when = {
-    deploy: async (): Promise<void> => {
+    deploy: async () => {
       this.result = await new AtlasDeployService(this.arguments()).run(
         this.appId,
         {
@@ -171,30 +168,30 @@ export class DeployServiceDriver {
         },
       );
     },
-    cleanup: (): void => {
+    cleanup: () => {
       globalThis.fetch = this.originalFetch;
     },
   };
 
   get = {
-    deliveryEvents: (): string[] => this.deliveryEvents,
-    result: (): AtlasDeployResult | undefined => this.result,
-    selectedAppVersion: (): string | undefined =>
+    deliveryEvents: () => this.deliveryEvents,
+    result: () => this.result,
+    selectedAppVersion: () =>
       this.storage.json<AtlasEnvironmentDeployment>(
         'environments/production/deployment.json',
       ).apps[this.appId]?.version,
-    activeManifest: (): AtlasHostDeploymentManifest =>
-      this.storage.json(
+    activeManifest: () =>
+      this.storage.json<AtlasHostDeploymentManifest>(
         `environments/production/hosts/${this.hostId}/manifest.json`,
       ),
-    targetArtifactPaths: (): string[] =>
+    targetArtifactPaths: () =>
       this.storage
         .paths()
         .filter(
           (path) => path.startsWith('apps/') || path.startsWith('hosts/'),
         ),
-    invalidations: (): string[] => this.invalidations,
-    deployError: async (): Promise<unknown> => {
+    invalidations: () => this.invalidations,
+    deployError: async () => {
       try {
         await this.when.deploy();
       } catch (error) {

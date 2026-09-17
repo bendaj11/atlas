@@ -25,15 +25,11 @@ import type {
   DevPrompts,
   HostDevTarget,
 } from '../types.js';
-import {
-  CliArguments,
-  ui,
-  compileAtlasConfig,
-  isHostConfig,
-} from '../../shared/index.js';
+import { CliArguments, ui, isHostConfig } from '../../shared/index.js';
 import { loadBootstrapTemplate } from '../../bootstrap/index.js';
 import { ensureAngularBuildNotifications } from '../../generation/index.js';
 import {
+  compileAtlasConfig,
   loadEnvFiles,
   type AtlasProject,
   type AtlasWorkspace,

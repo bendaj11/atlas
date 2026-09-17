@@ -13,16 +13,13 @@ export class DiscoveryDriver {
   private readonly directory = new TemporaryDirectory();
 
   readonly given = {
-    workspace: async (rootPackageJson: unknown = {}): Promise<this> => {
+    workspace: async (rootPackageJson: unknown = {}) => {
       await this.directory.create('atlas-discovery-');
       await this.directory.writeJson('package.json', rootPackageJson);
 
       return this;
     },
-    project: async (
-      relativeRoot: string,
-      files: ProjectFiles,
-    ): Promise<this> => {
+    project: async (relativeRoot: string, files: ProjectFiles) => {
       await this.directory.mkdir(relativeRoot);
       if (files.packageJson !== undefined)
         await this.directory.writeJson(
@@ -45,10 +42,7 @@ export class DiscoveryDriver {
   };
 
   readonly get = {
-    project: async (
-      name: string,
-      currentDirectory = '.',
-    ): Promise<AtlasProject> =>
+    project: async (name: string, currentDirectory = '.') =>
       this.relativeProject(
         await findAtlasProject({
           workspaceRoot: this.directory.root,
@@ -56,7 +50,7 @@ export class DiscoveryDriver {
           currentDirectory: this.directory.path(currentDirectory),
         }),
       ),
-    projects: async (): Promise<AtlasProject[]> =>
+    projects: async () =>
       (await listAtlasProjects(this.directory.root)).map((project) =>
         this.relativeProject(project),
       ),

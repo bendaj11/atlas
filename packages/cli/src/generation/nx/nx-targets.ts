@@ -32,7 +32,7 @@ export function createAtlasConfigNxTarget({
   };
 }
 
-export function buildAtlasCommand({
+function buildAtlasCommand({
   packageManager,
   command,
 }: {

@@ -9,12 +9,14 @@ import {
 } from '../../publication/index.js';
 import {
   CliArguments,
-  compileAtlasConfig,
   ui,
   type AtlasInvocation,
   type AtlasPrompter,
 } from '../../shared/index.js';
-import type { AtlasWorkspace } from '../../workspace/index.js';
+import {
+  compileAtlasConfig,
+  type AtlasWorkspace,
+} from '../../workspace/index.js';
 
 interface WorkspaceCommandContext {
   workspace: AtlasWorkspace;
