@@ -43,13 +43,15 @@ jest.unstable_mockModule('../bootstrap/service/bootstrap.service.js', () => ({
     build = bootstrapBuild;
   },
 }));
-const configCompiler = await import(
-  '../shared/config-compiler/config-compiler.js'
+const configCompiler =
+  await import('../shared/config-compiler/config-compiler.js');
+jest.unstable_mockModule(
+  '../shared/config-compiler/config-compiler.js',
+  () => ({
+    ...configCompiler,
+    compileAtlasConfig,
+  }),
 );
-jest.unstable_mockModule('../shared/config-compiler/config-compiler.js', () => ({
-  ...configCompiler,
-  compileAtlasConfig,
-}));
 jest.unstable_mockModule('../build/service/build.service.js', () => ({
   AtlasBuildService: class {
     constructor(...args: unknown[]) {
@@ -57,7 +59,7 @@ jest.unstable_mockModule('../build/service/build.service.js', () => ({
     }
   },
 }));
-jest.unstable_mockModule('../deployment/deploy.service.js', () => ({
+jest.unstable_mockModule('../deployment/service/deploy.service.js', () => ({
   AtlasDeployService: class {
     run = deployRun;
   },

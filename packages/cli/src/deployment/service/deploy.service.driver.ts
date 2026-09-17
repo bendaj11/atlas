@@ -13,11 +13,9 @@ import {
   anEnvironmentDeployment,
   aRoutePlacement,
 } from '@atlas/testkit';
-import {
-  AtlasDeployService,
-  type AtlasDeployResult,
-} from './deploy.service.js';
-import { CliArguments } from '../shared/index.js';
+import type { AtlasDeployResult } from '../types.js';
+import { AtlasDeployService } from './deploy.service.js';
+import { CliArguments } from '../../shared/index.js';
 import {
   type AtlasPublicationBody,
   type AtlasPublicationLease,
@@ -28,7 +26,7 @@ import {
   descriptorFor,
   manifestBytes,
   publishArtifact,
-} from '../publication/index.js';
+} from '../../publication/index.js';
 
 const MUTABLE = 'no-cache, max-age=0, must-revalidate';
 
