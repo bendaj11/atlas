@@ -19,6 +19,21 @@ export interface DevControlServer {
   close(): Promise<void>;
 }
 
+export type PublishedCatalogLoader = (options: {
+  registryUrl: string;
+  hostId: string;
+  environment: string;
+}) => Promise<AtlasHostCatalog>;
+
+export interface StartControlServerOptions {
+  port: number;
+  document: AtlasDevOverrideDocument;
+  overrideUrl: string;
+  registryUrl?: string;
+  environment?: string;
+  loadPublishedCatalog?: PublishedCatalogLoader;
+}
+
 export interface HostDevPorts {
   bootstrapPort: number;
   clientPort: number;
