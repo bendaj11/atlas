@@ -39,8 +39,9 @@ eagerly in the host root or in `createCustomHostSdkOptions()`, before that point
 The lower-level `startHost()` does not register an Angular SDK provider itself.
 
 Host data, events, and custom SDK methods are available in hosts.
-`assetBaseUrl()` and `assetUrl()` require an app context and throw an explanatory
-error when called in a host. Hosts use their own asset URLs.
+`assetBaseUrl()` and `assetUrl()` require an app context and throw an
+`ATLAS_APP_CONTEXT_MISSING` error when called in a host. Hosts use their own
+asset URLs.
 
 ## Live host data
 
@@ -139,7 +140,8 @@ readonly cesiumBaseUrl = this.atlas.assetBaseUrl();
 
 `assetUrl()` accepts only paths inside app artifact. Use public-output-relative
 paths with no leading `/`; for example, `public/billboards/plane.png` becomes
-`billboards/plane.png`.
+`billboards/plane.png`. A path that escapes the artifact directory throws
+`ATLAS_ASSET_PATH_OUTSIDE_ARTIFACT`.
 
 In `app.config.ts`, use `createAtlasAppAssets(context)` before Angular injection.
 The `context` argument is already supplied to generated `createAppConfig()`:

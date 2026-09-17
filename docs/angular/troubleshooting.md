@@ -72,7 +72,9 @@ module.exports = createAngularFederationConfig({
 ```
 
 For Angular Native Federation v4 projects, make same change in
-`federation.config.mjs`. Keep Atlas-generated exposes and sharing settings.
+`federation.config.mjs`. Both `createAngularFederationConfig` and
+`createAngularV4FederationConfig` accept a typed `AngularFederationConfigOptions`
+object; unknown fields pass through to `withNativeFederation`. Keep Atlas-generated exposes and sharing settings.
 Restart the development server after changing federation configuration. Warning
 gone only when package is excluded or package supplies a shareable entry point.
 

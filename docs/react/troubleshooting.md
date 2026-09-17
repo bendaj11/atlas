@@ -99,6 +99,23 @@ dependencies. Libraries that need one instance across the host and apps must
 remain shared. Verify rebuild behavior with your React federation adapter after
 changing sharing settings.
 
+## Federation Config Fails At Build Time
+
+`createReactAppViteConfig` and `createReactHostViteConfig` throw an
+`AtlasError`-shaped error (`code`, `suggestedActions`, `cause`) instead of a
+bare message:
+
+| Code                                       | Cause                                                                                | Action                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `ATLAS_SHARED_ENTRY_NOT_EXPORTED`          | Source imports a subpath the package does not list in its `exports`                  | Import an exported subpath, or add the specifier to `skip` so Vite bundles it |
+| `ATLAS_SHARED_PACKAGE_NOT_INSTALLED`       | A declared dependency has no resolvable `package.json`                               | Install the package in the project, then rebuild                              |
+| `ATLAS_FEDERATION_TYPESCRIPT_MISSING`      | Neither the project nor Atlas can load `typescript`, which discovers runtime imports | Add `typescript` to `devDependencies` and reinstall                           |
+| `ATLAS_FEDERATION_TSCONFIG_INVALID`        | The project `tsconfig.json` does not parse                                           | Fix the reported syntax error                                                 |
+| `ATLAS_SHARED_COMMONJS_EXPORTS_UNREADABLE` | A shared CommonJS entry cannot be read or lexed for its named exports                | Verify the package installs correctly, or add it to `skip`                    |
+
+Both factories accept a typed `ReactFederationConfigOptions` object; `skip`
+entries are strings, regular expressions, or `(specifier) => boolean` functions.
+
 ## Install Fails With Peer Conflicts
 
 In workspaces that already declare `react`, Atlas aligns companion React

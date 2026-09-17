@@ -47,8 +47,11 @@ Host components under `AtlasHostProvider` can call `useAtlasSdk()` without an
 app context. Host data, events, and custom SDK methods are available through the
 same hook. A separately created React root needs its own SDK provider.
 
-`assetBaseUrl()` and `assetUrl()` require an app context and throw an explanatory
-error when called in a host. Hosts use their own asset URLs.
+`assetBaseUrl()` and `assetUrl()` require an app context and throw an
+`ATLAS_APP_CONTEXT_MISSING` error when called in a host. Hosts use their own
+asset URLs. `useAtlasSdk()` itself throws `ATLAS_SDK_CONTEXT_MISSING` outside
+`AtlasSdkProvider`, and `useAppLoaded()` throws `ATLAS_APP_CONTEXT_MISSING`
+outside an Atlas-mounted app.
 
 ## Live host data
 
@@ -136,7 +139,8 @@ const cesiumBaseUrl = atlas.assetBaseUrl();
 
 `assetUrl()` accepts only paths inside app artifact. Use public-output-relative
 paths with no leading `/`; for example, `public/billboards/plane.png` becomes
-`billboards/plane.png`.
+`billboards/plane.png`. A path that escapes the artifact directory throws
+`ATLAS_ASSET_PATH_OUTSIDE_ARTIFACT`.
 
 ## Navigation
 
