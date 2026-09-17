@@ -1,3 +1,4 @@
+/** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
 import { aHostManifest } from '@atlas/testkit';
 import { SharedDependenciesDriver } from './shared-dependencies.driver.js';
@@ -12,7 +13,7 @@ describe('installHostSharedDependencies', () => {
   it('should append nothing when the remote declares no shared dependencies', () => {
     driver.when.installed({ metadata: {}, manifest: aHostManifest() });
 
-    expect(driver.get.appendedElements()).toEqual([]);
+    expect(driver.get.importMapScripts()).toEqual([]);
   });
 
   it('should append nothing when the shared list is empty', () => {
@@ -21,7 +22,7 @@ describe('installHostSharedDependencies', () => {
       manifest: aHostManifest(),
     });
 
-    expect(driver.get.appendedElements()).toEqual([]);
+    expect(driver.get.importMapScripts()).toEqual([]);
   });
 
   describe('when the remote declares shared dependencies', () => {
@@ -34,9 +35,8 @@ describe('installHostSharedDependencies', () => {
     it('should append a shim import map resolving each package next to the remote entry when installed', () => {
       driver.when.installed({ metadata: { shared: [shared] }, manifest });
 
-      expect(driver.get.appendedElements()).toEqual([
+      expect(driver.get.importMapScripts()).toEqual([
         {
-          tagName: 'script',
           type: 'importmap-shim',
           textContent: JSON.stringify({
             imports: {

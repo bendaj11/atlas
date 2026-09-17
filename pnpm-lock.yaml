@@ -26,6 +26,9 @@ importers:
       jest:
         specifier: 29.7.0
         version: 29.7.0(@types/node@22.20.1)
+      jest-environment-jsdom:
+        specifier: 29.7.0
+        version: 29.7.0
       prettier:
         specifier: 3.9.5
         version: 3.9.5
@@ -502,6 +505,15 @@ importers:
       '@angular/platform-browser':
         specifier: ^20.3.0
         version: 20.3.26(@angular/animations@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1)))(@angular/common@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@atlas/testkit':
+        specifier: workspace:*
+        version: link:../testkit
+      '@faker-js/faker':
+        specifier: ^10.5.0
+        version: 10.5.0
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/css-tree':
         specifier: ^3.2.0
         version: 3.2.0
@@ -511,6 +523,9 @@ importers:
       react:
         specifier: ^19.2.0
         version: 19.2.8
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.8(react@19.2.8)
 
   packages/schema:
     devDependencies:

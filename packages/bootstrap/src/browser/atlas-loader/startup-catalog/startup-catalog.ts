@@ -1,8 +1,20 @@
 import type { AtlasHostCatalog } from '@atlas/schema';
 import { CatalogInvalidError } from '../../../shared/errors/index.js';
 import type { DevSession } from '../../overrides/index.js';
-import type { LoaderContext } from '../atlas-loader.types.js';
+import type {
+  AtlasLoaderDependencies,
+  LoaderContext,
+} from '../atlas-loader.types.js';
 import { loadDeploymentCatalog } from '../deployment-catalog/deployment-catalog.js';
+
+export type StartupCatalogDependencies = Pick<
+  AtlasLoaderDependencies,
+  'fetchJson' | 'fetchBytes' | 'loadPublishedArtifact'
+>;
+
+export interface StartupCatalogContext extends Pick<LoaderContext, 'runtime'> {
+  dependencies: StartupCatalogDependencies;
+}
 
 export interface StartupCatalog {
   catalog: AtlasHostCatalog;
@@ -12,7 +24,7 @@ export interface StartupCatalog {
 export async function loadStartupCatalog({
   runtime,
   dependencies,
-}: LoaderContext): Promise<StartupCatalog> {
+}: StartupCatalogContext): Promise<StartupCatalog> {
   if (!runtime.developmentSessionUrl) {
     return { catalog: await loadDeploymentCatalog({ runtime, dependencies }) };
   }

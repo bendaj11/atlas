@@ -1,6 +1,8 @@
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { DevSession } from '../../overrides/index.js';
 import { jest } from '@jest/globals';
-import type { AtlasLoaderDependencies } from '../atlas-loader.types.js';
+import type { fetchBytes, fetchJson } from '../../fetch-json/index.js';
+import type { loadPublishedArtifact } from '../../published-artifact/index.js';
 import type { loadDeploymentCatalog as loadDeploymentCatalogType } from '../deployment-catalog/deployment-catalog.js';
 
 const loadDeploymentCatalog = jest.fn<typeof loadDeploymentCatalogType>();
@@ -12,10 +14,10 @@ type StartupCatalog = Awaited<ReturnType<typeof loadStartupCatalog>>;
 
 export class StartupCatalogDriver {
   private runtime!: AtlasHostRuntimeConfig;
-  private session: unknown;
-  private readonly fetchJson = jest.fn<
-    (options: { url: string }) => Promise<unknown>
-  >(async () => this.session);
+  private readonly fetchJson = jest.fn<typeof fetchJson>();
+  private readonly fetchBytes = jest.fn<typeof fetchBytes>();
+  private readonly loadPublishedArtifact =
+    jest.fn<typeof loadPublishedArtifact>();
   private result: StartupCatalog | undefined;
   private error: unknown;
 
@@ -34,8 +36,8 @@ export class StartupCatalogDriver {
 
       return this;
     },
-    developmentSession: (session: unknown) => {
-      this.session = session;
+    developmentSession: (session: DevSession) => {
+      this.fetchJson.mockResolvedValue(session);
 
       return this;
     },
@@ -47,8 +49,10 @@ export class StartupCatalogDriver {
         this.result = await loadStartupCatalog({
           runtime: this.runtime,
           dependencies: {
-            fetchJson: this.fetchJson,
-          } as unknown as AtlasLoaderDependencies,
+            fetchJson: this.fetchJson as typeof fetchJson,
+            fetchBytes: this.fetchBytes,
+            loadPublishedArtifact: this.loadPublishedArtifact,
+          },
         });
       } catch (error) {
         this.error = error;

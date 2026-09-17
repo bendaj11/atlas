@@ -1,18 +1,13 @@
 import type { AtlasHostManifest } from '@atlas/schema';
-import type {
-  HostLoaderDependencies,
-  RemoteMetadata,
-} from '../host-loader.types.js';
+import type { RemoteMetadata } from '../host-loader.types.js';
 import { installHostSharedDependencies } from './shared-dependencies.js';
 
-interface AppendedElement {
-  tagName: string;
-  [property: string]: unknown;
-}
-
 export class SharedDependenciesDriver {
-  private readonly appended: AppendedElement[] = [];
   private error: unknown;
+
+  constructor() {
+    document.head.replaceChildren();
+  }
 
   readonly when = {
     installed: (input: {
@@ -22,17 +17,7 @@ export class SharedDependenciesDriver {
       try {
         installHostSharedDependencies({
           ...input,
-          dependencies: {
-            document: {
-              createElement: ((tagName: string) => ({
-                tagName,
-              })) as Document['createElement'],
-              head: {
-                append: (element: AppendedElement) =>
-                  this.appended.push(element),
-              } as unknown as HTMLHeadElement,
-            },
-          } as unknown as HostLoaderDependencies,
+          dependencies: { document },
         });
       } catch (error) {
         this.error = error;
@@ -41,7 +26,11 @@ export class SharedDependenciesDriver {
   };
 
   readonly get = {
-    appendedElements: () => this.appended,
+    importMapScripts: () =>
+      Array.from(document.head.querySelectorAll('script'), (script) => ({
+        type: script.type,
+        textContent: script.textContent,
+      })),
     error: () => this.error,
   };
 }

@@ -4,7 +4,22 @@ import type {
   AtlasManifestDescriptor,
   AtlasStaticRegistry,
 } from '@atlas/schema';
-import type { OverridesContext } from '../overrides.types.js';
+import type {
+  OverridesContext,
+  OverridesDependencies,
+} from '../overrides.types.js';
+
+export type ResolveOverrideManifestDependencies = Pick<
+  OverridesDependencies,
+  'fetchJson' | 'loadPublishedArtifact'
+>;
+
+export interface ResolveOverrideManifestContext extends Pick<
+  OverridesContext,
+  'runtime'
+> {
+  dependencies: ResolveOverrideManifestDependencies;
+}
 
 type OverrideManifest = AtlasHostManifest | AtlasManifest;
 
@@ -14,7 +29,9 @@ export async function resolveOverrideManifest<
   manifest,
   runtime,
   dependencies,
-}: OverridesContext & { manifest: TManifest }): Promise<TManifest | undefined> {
+}: ResolveOverrideManifestContext & {
+  manifest: TManifest;
+}): Promise<TManifest | undefined> {
   if (manifest.channel === 'local') return manifest;
 
   const registryRoot = extractRegistryRootFromRemoteEntryUrl(manifest);
@@ -46,7 +63,7 @@ async function fetchRegistryDescriptor({
   registryRoot,
   runtime,
   dependencies,
-}: OverridesContext & {
+}: ResolveOverrideManifestContext & {
   manifest: OverrideManifest;
   registryRoot: string;
 }): Promise<AtlasManifestDescriptor | undefined> {

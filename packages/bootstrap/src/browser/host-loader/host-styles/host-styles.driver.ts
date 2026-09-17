@@ -1,17 +1,14 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { validateArtifactUrl } from '../../validation/index.js';
-import type { HostLoaderDependencies } from '../host-loader.types.js';
 import { loadHostStyles } from './host-styles.js';
 
-interface AppendedElement {
-  tagName: string;
-  [property: string]: unknown;
-}
-
 export class HostStylesDriver {
-  private readonly appended: AppendedElement[] = [];
   private readonly validateArtifactUrl = jest.fn<typeof validateArtifactUrl>();
+
+  constructor() {
+    document.head.replaceChildren();
+  }
 
   readonly when = {
     loaded: (input: {
@@ -21,22 +18,21 @@ export class HostStylesDriver {
       loadHostStyles({
         ...input,
         dependencies: {
-          document: {
-            createElement: ((tagName: string) => ({
-              tagName,
-            })) as Document['createElement'],
-            head: {
-              append: (element: AppendedElement) => this.appended.push(element),
-            } as unknown as HTMLHeadElement,
-          },
+          document,
           validateArtifactUrl: this.validateArtifactUrl,
-        } as unknown as HostLoaderDependencies,
+        },
       });
     },
   };
 
   readonly get = {
-    appendedElements: () => this.appended,
+    stylesheetLinks: () =>
+      Array.from(document.head.querySelectorAll('link'), (link) => ({
+        rel: link.rel,
+        href: link.getAttribute('href'),
+        integrity: link.integrity,
+        crossOrigin: link.getAttribute('crossorigin'),
+      })),
     validateArtifactUrlMock: () => this.validateArtifactUrl,
   };
 }

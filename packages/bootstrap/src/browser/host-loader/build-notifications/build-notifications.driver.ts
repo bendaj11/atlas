@@ -1,10 +1,7 @@
 import type { AtlasHostManifest } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import { watchHostBuildNotifications } from './build-notifications.js';
-import type {
-  HostLoaderDependencies,
-  RemoteMetadata,
-} from '../host-loader.types.js';
+import type { RemoteMetadata } from '../host-loader.types.js';
 
 export class BuildNotificationsDriver {
   private eventSourceSupported = true;
@@ -39,7 +36,7 @@ export class BuildNotificationsDriver {
               }
             : {}),
           reloadPage: this.reloadPage,
-        } as unknown as HostLoaderDependencies,
+        },
       });
     },
     notified: (data: string) => {

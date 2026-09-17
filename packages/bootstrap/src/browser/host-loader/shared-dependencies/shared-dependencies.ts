@@ -1,12 +1,22 @@
-import type { HostLoadContext, RemoteMetadata } from '../host-loader.types.js';
+import type {
+  HostLoadContext,
+  HostLoaderDependencies,
+  RemoteMetadata,
+} from '../host-loader.types.js';
+
+export type SharedDependenciesDependencies = Pick<
+  HostLoaderDependencies,
+  'document'
+>;
 import { HostRemoteInvalidError } from '../../../shared/errors/index.js';
 
 export function installHostSharedDependencies({
   metadata,
   manifest,
   dependencies,
-}: Pick<HostLoadContext, 'manifest' | 'dependencies'> & {
+}: Pick<HostLoadContext, 'manifest'> & {
   metadata: RemoteMetadata;
+  dependencies: SharedDependenciesDependencies;
 }): void {
   if (!metadata.shared?.length) return;
 

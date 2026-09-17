@@ -1,4 +1,13 @@
-import type { HostLoadContext, RemoteMetadata } from '../host-loader.types.js';
+import type {
+  HostLoadContext,
+  HostLoaderDependencies,
+  RemoteMetadata,
+} from '../host-loader.types.js';
+
+export type BuildNotificationsDependencies = Pick<
+  HostLoaderDependencies,
+  'createEventSource' | 'reloadPage'
+>;
 
 const REBUILD_COMPLETE_EVENT = 'federation-rebuild-complete';
 
@@ -6,8 +15,9 @@ export function watchHostBuildNotifications({
   metadata,
   manifest,
   dependencies,
-}: Pick<HostLoadContext, 'manifest' | 'dependencies'> & {
+}: Pick<HostLoadContext, 'manifest'> & {
   metadata: RemoteMetadata;
+  dependencies: BuildNotificationsDependencies;
 }): void {
   if (!metadata.buildNotificationsEndpoint) return;
 

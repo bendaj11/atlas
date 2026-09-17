@@ -1,3 +1,4 @@
+/** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
 import { aHostManifest, aHostRuntimeConfig } from '@atlas/testkit';
 import { HostStylesDriver } from './host-styles.driver.js';
@@ -15,7 +16,7 @@ describe('loadHostStyles', () => {
       runtime: aHostRuntimeConfig(),
     });
 
-    expect(driver.get.appendedElements()).toEqual([]);
+    expect(driver.get.stylesheetLinks()).toEqual([]);
   });
 
   describe('when the manifest declares styles', () => {
@@ -40,16 +41,16 @@ describe('loadHostStyles', () => {
     });
 
     it('should append a stylesheet link without integrity when the stylesheet has none', () => {
-      expect(driver.get.appendedElements()).toContainEqual({
-        tagName: 'link',
+      expect(driver.get.stylesheetLinks()).toContainEqual({
         rel: 'stylesheet',
         href: plain.href,
+        integrity: undefined,
+        crossOrigin: null,
       });
     });
 
     it('should append an anonymous stylesheet link with integrity when the stylesheet has one', () => {
-      expect(driver.get.appendedElements()).toContainEqual({
-        tagName: 'link',
+      expect(driver.get.stylesheetLinks()).toContainEqual({
         rel: 'stylesheet',
         href: verified.href,
         integrity: verified.integrity,
