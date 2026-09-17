@@ -59,3 +59,9 @@ export {
   aSha256Digest,
   aStaticRegistry,
 } from './publication.js';
+export {
+  anExportedWidgetManifest,
+  aRoutePlacement,
+  aSlotPlacement,
+  aStylesheet,
+} from './manifests.js';
