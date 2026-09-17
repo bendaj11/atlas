@@ -40,9 +40,9 @@ export { canonicalJson } from './static-registry/revision/registry-revision.js';
 export {
   descriptorFor,
   manifestBytes,
-  publishArtifact,
-  resolveRegistryArtifact,
-} from './static-registry/static-registry.js';
+} from './static-registry/descriptors/descriptors.js';
+export { resolveRegistryArtifact } from './static-registry/resolution/artifact-resolution.js';
+export { publishArtifact } from './static-registry/static-registry.js';
 export {
   assertEnvironmentName,
   assertStaticRegistry,

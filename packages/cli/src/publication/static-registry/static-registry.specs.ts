@@ -1,11 +1,10 @@
 import { faker } from '@faker-js/faker';
 import { aManifestDescriptor, anAppArtifactManifest } from '@atlas/testkit';
 import {
-  emptyStaticRegistry,
-  publishArtifact,
   resolveRegistryArtifact,
   resolveRelease,
-} from './static-registry.js';
+} from './resolution/artifact-resolution.js';
+import { emptyStaticRegistry, publishArtifact } from './static-registry.js';
 
 describe('static registry v2', () => {
   it('should omit environment deployments when empty registry is created', () => {

@@ -35,10 +35,8 @@ import {
   verifyPublicRegistry,
   writeRegistry,
 } from '../registry-io/registry-io.js';
-import {
-  descriptorFor,
-  publishArtifact,
-} from '../static-registry/static-registry.js';
+import { descriptorFor } from '../static-registry/descriptors/descriptors.js';
+import { publishArtifact } from '../static-registry/static-registry.js';
 import type {
   AtlasPreviewPruneResult,
   AtlasPreviewRemovalResult,

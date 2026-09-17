@@ -8,11 +8,8 @@ import type {
 } from '@atlas/schema';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
-import {
-  AtlasBuildService,
-  type AtlasBuildResult,
-  type BuildManifestOptions,
-} from './build.service.js';
+import type { AtlasBuildResult, BuildManifestOptions } from '../types.js';
+import { AtlasBuildService } from './build.service.js';
 import { CliArguments } from '../../shared/index.js';
 import type {
   AtlasProject,

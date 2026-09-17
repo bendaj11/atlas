@@ -6,8 +6,8 @@ import { anAppArtifactManifest } from '@atlas/testkit';
 import {
   descriptorFor,
   manifestBytes,
-  publishArtifact,
-} from './static-registry/static-registry.js';
+} from './static-registry/descriptors/descriptors.js';
+import { publishArtifact } from './static-registry/static-registry.js';
 
 export function aRegistryWith(
   manifest: AtlasAppArtifactManifest = anAppArtifactManifest(),

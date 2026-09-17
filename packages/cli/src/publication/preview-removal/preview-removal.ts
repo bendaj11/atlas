@@ -14,10 +14,8 @@ import {
   REGISTRY_PATH,
   writeRegistry,
 } from '../registry-io/registry-io.js';
-import {
-  removePreview,
-  resolveRegistryArtifact,
-} from '../static-registry/static-registry.js';
+import { resolveRegistryArtifact } from '../static-registry/resolution/artifact-resolution.js';
+import { removePreview } from '../static-registry/static-registry.js';
 import type {
   AtlasPreviewPruneResult,
   AtlasPreviewRemovalResult,

@@ -6,7 +6,7 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationStorage,
 } from '../publication-storage/publication-storage.js';
-import { manifestBytes } from '../static-registry/static-registry.js';
+import { manifestBytes } from '../static-registry/descriptors/descriptors.js';
 import type { AtlasBuildResult } from '../../build/index.js';
 import { sha256Digest, IMMUTABLE_CACHE_CONTROL } from '../../shared/index.js';
 
