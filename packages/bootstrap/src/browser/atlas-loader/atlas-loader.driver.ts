@@ -1,4 +1,5 @@
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { HostModule, HostMountRequest } from '../host-module.js';
 import type { fetchBytes, fetchJson } from '../fetch-json/index.js';
@@ -8,7 +9,6 @@ import type { applyOverrides } from '../overrides/index.js';
 import type { loadPublishedArtifact } from '../published-artifact/index.js';
 import type { validateCatalog } from '../validation/index.js';
 import { HOST_ROOT_ELEMENT_ID } from './atlas-loader.constants.js';
-import type { LoaderDocument } from './atlas-loader.types.js';
 import type { publishRuntimeSnapshot as publishRuntimeSnapshotType } from './runtime-snapshot/runtime-snapshot.js';
 import type { loadStartupCatalog as loadStartupCatalogType } from './startup-catalog/startup-catalog.js';
 
@@ -24,16 +24,7 @@ const { startAtlasLoader } = await import('./atlas-loader.js');
 
 export class AtlasLoaderDriver {
   private runtimeConfig!: AtlasHostRuntimeConfig;
-  private hostRootPresent = true;
-  private readonly root = { replaceChildren: jest.fn() };
-  private readonly document: LoaderDocument = {
-    createElement: jest.fn() as unknown as Document['createElement'],
-    getElementById: (id: string) =>
-      id === HOST_ROOT_ELEMENT_ID && this.hostRootPresent
-        ? (this.root as unknown as HTMLElement)
-        : null,
-    head: {} as HTMLHeadElement,
-  };
+  private readonly hostRoot = document.createElement('div');
   private readonly mount = jest.fn<
     (request: HostMountRequest) => Promise<void>
   >(async () => undefined);
@@ -59,6 +50,11 @@ export class AtlasLoaderDriver {
   constructor() {
     loadStartupCatalog.mockReset();
     publishRuntimeSnapshot.mockReset();
+
+    this.hostRoot.id = HOST_ROOT_ELEMENT_ID;
+    this.hostRoot.textContent = faker.lorem.sentence();
+
+    document.body.replaceChildren(this.hostRoot);
   }
 
   readonly given = {
@@ -85,7 +81,7 @@ export class AtlasLoaderDriver {
       return this;
     },
     hostRootPresent: (present: boolean) => {
-      this.hostRootPresent = present;
+      if (!present) this.hostRoot.remove();
 
       return this;
     },
@@ -95,7 +91,7 @@ export class AtlasLoaderDriver {
     started: async () => {
       try {
         await startAtlasLoader({
-          document: this.document,
+          document,
           location: { href: 'https://host.example/' },
           fetchBytes: this.fetchBytes,
           fetchJson: this.fetchJson as typeof fetchJson,
@@ -114,7 +110,8 @@ export class AtlasLoaderDriver {
   readonly get = {
     error: () => this.error,
     mountRequest: () => this.mount.mock.calls[0]?.[0],
-    rootReplaceChildrenMock: () => this.root.replaceChildren,
+    hostRoot: () => this.hostRoot,
+    hostRootChildCount: () => this.hostRoot.childNodes.length,
     installModuleShimMock: () => this.installModuleShim,
     fetchJsonMock: () => this.fetchJson,
     loadStartupCatalogMock: () => loadStartupCatalog,

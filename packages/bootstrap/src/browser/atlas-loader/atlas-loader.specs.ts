@@ -1,3 +1,4 @@
+/** @jest-environment jsdom */
 import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
 import { AtlasLoaderDriver } from './atlas-loader.driver.js';
 
@@ -69,14 +70,12 @@ describe('startAtlasLoader', () => {
       });
 
       it('should clear the host root before mounting when started', () => {
-        expect(driver.get.rootReplaceChildrenMock()).toHaveBeenCalledTimes(1);
+        expect(driver.get.hostRootChildCount()).toBe(0);
       });
 
       it('should mount into the host root with the runtime and catalog when started', () => {
-        expect(driver.get.mountRequest()).toMatchObject({
-          container: expect.objectContaining({
-            replaceChildren: expect.any(Function),
-          }),
+        expect(driver.get.mountRequest()).toEqual({
+          container: driver.get.hostRoot(),
           runtimeConfig: runtime,
           catalog,
         });

@@ -1,3 +1,4 @@
+/** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
 import { aBootstrapFailure } from '../../testkit/bootstrap-failure.testkit.js';
 import { FatalErrorDriver } from './fatal-error.driver.js';

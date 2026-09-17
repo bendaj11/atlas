@@ -1,21 +1,20 @@
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
-import { jest } from '@jest/globals';
+import { RUNTIME_SNAPSHOT_ELEMENT_ID } from '../atlas-loader.constants.js';
 import { publishRuntimeSnapshot } from './runtime-snapshot.js';
 
-interface SnapshotElement {
-  id: string;
-  type: string;
-  textContent: string;
-}
-
 export class RuntimeSnapshotDriver {
-  private existing: SnapshotElement | undefined;
-  private created: SnapshotElement | undefined;
-  private readonly append = jest.fn();
+  constructor() {
+    document.head.replaceChildren();
+  }
 
   readonly given = {
-    existingSnapshotElement: (element: SnapshotElement) => {
-      this.existing = element;
+    existingSnapshotContent: (content: string) => {
+      const element = document.createElement('script');
+      element.id = RUNTIME_SNAPSHOT_ELEMENT_ID;
+      element.type = 'application/json';
+      element.textContent = content;
+
+      document.head.append(element);
 
       return this;
     },
@@ -26,24 +25,16 @@ export class RuntimeSnapshotDriver {
       runtime: AtlasHostRuntimeConfig;
       catalog: AtlasHostCatalog;
     }) => {
-      publishRuntimeSnapshot({
-        ...input,
-        document: {
-          getElementById: () =>
-            (this.existing as unknown as HTMLElement) ?? null,
-          createElement: (() => {
-            this.created = { id: '', type: '', textContent: '' };
-
-            return this.created;
-          }) as unknown as Document['createElement'],
-          head: { append: this.append } as unknown as HTMLHeadElement,
-        },
-      });
+      publishRuntimeSnapshot({ ...input, document });
     },
   };
 
   readonly get = {
-    createdElement: () => this.created,
-    appendMock: () => this.append,
+    snapshotElements: () =>
+      Array.from(document.head.querySelectorAll('script'), (element) => ({
+        id: element.id,
+        type: element.type,
+        textContent: element.textContent,
+      })),
   };
 }

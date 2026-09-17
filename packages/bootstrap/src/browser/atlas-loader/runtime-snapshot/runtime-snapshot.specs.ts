@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+import { faker } from '@faker-js/faker';
 import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
 import { RuntimeSnapshotDriver } from './runtime-snapshot.driver.js';
 
@@ -8,51 +10,38 @@ describe('publishRuntimeSnapshot', () => {
     driver = new RuntimeSnapshotDriver();
   });
 
-  describe('when no snapshot element exists', () => {
+  it('should append a JSON script element holding the snapshot when no snapshot element exists', () => {
     const runtime = aHostRuntimeConfig();
     const catalog = aHostCatalog();
+    driver.when.published({ runtime, catalog });
 
-    beforeEach(() => {
-      driver.when.published({ runtime, catalog });
-    });
-
-    it('should create a JSON script element holding the snapshot when published', () => {
-      expect(driver.get.createdElement()).toEqual({
+    expect(driver.get.snapshotElements()).toEqual([
+      {
         id: 'atlas-runtime-snapshot',
         type: 'application/json',
         textContent: JSON.stringify({ schemaVersion: '1', runtime, catalog }),
-      });
-    });
-
-    it('should append the element to the head when published', () => {
-      expect(driver.get.appendMock()).toHaveBeenCalledWith(
-        driver.get.createdElement(),
-      );
-    });
+      },
+    ]);
   });
 
   describe('when a snapshot element already exists', () => {
-    const existing = {
-      id: 'atlas-runtime-snapshot',
-      type: 'application/json',
-      textContent: '',
-    };
     const runtime = aHostRuntimeConfig();
     const catalog = aHostCatalog();
 
     beforeEach(() => {
-      driver.given.existingSnapshotElement(existing);
-      driver.when.published({ runtime, catalog });
+      driver.given
+        .existingSnapshotContent(faker.lorem.sentence())
+        .when.published({ runtime, catalog });
     });
 
     it('should replace its content when published', () => {
-      expect(existing.textContent).toBe(
+      expect(driver.get.snapshotElements()[0]?.textContent).toBe(
         JSON.stringify({ schemaVersion: '1', runtime, catalog }),
       );
     });
 
-    it('should not append a new element when published', () => {
-      expect(driver.get.appendMock()).not.toHaveBeenCalled();
+    it('should not append a second element when published', () => {
+      expect(driver.get.snapshotElements()).toHaveLength(1);
     });
   });
 });

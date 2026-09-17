@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { HOST_ROOT_ELEMENT_ID } from '../atlas-loader/atlas-loader.constants.js';
 import type { describeFatalError as describeFatalErrorType } from './describe-fatal-error/describe-fatal-error.js';
 import type {
   BootstrapFailure,
@@ -14,40 +15,8 @@ jest.unstable_mockModule(
 );
 const { showFatalError } = await import('./fatal-error.js');
 
-interface FakeElement {
-  tagName: string;
-  textContent: string;
-  onclick: (() => void) | null;
-  children: FakeElement[];
-  attributes: Record<string, string>;
-  append(...elements: FakeElement[]): void;
-  replaceChildren(): void;
-  setAttribute(name: string, value: string): void;
-}
-
-function aFakeElement(tagName: string): FakeElement {
-  return {
-    tagName,
-    textContent: '',
-    onclick: null,
-    children: [],
-    attributes: {},
-    append(...elements) {
-      this.children.push(...elements);
-    },
-    replaceChildren() {
-      this.children = [];
-    },
-    setAttribute(name, value) {
-      this.attributes[name] = value;
-    },
-  };
-}
-
 export class FatalErrorDriver {
-  private readonly body = aFakeElement('body');
-  private readonly hostRoot = aFakeElement('div');
-  private hostRootPresent = true;
+  private readonly hostRoot = document.createElement('div');
   private readonly sessionStorage = { removeItem: jest.fn() };
   private readonly localStorage = { removeItem: jest.fn() };
   private readonly reloadPage = jest.fn();
@@ -55,6 +24,10 @@ export class FatalErrorDriver {
 
   constructor() {
     describeFatalError.mockReset();
+
+    this.hostRoot.id = HOST_ROOT_ELEMENT_ID;
+
+    document.body.replaceChildren(this.hostRoot);
   }
 
   readonly given = {
@@ -64,7 +37,7 @@ export class FatalErrorDriver {
       return this;
     },
     hostRootPresent: (present: boolean) => {
-      this.hostRootPresent = present;
+      if (!present) this.hostRoot.remove();
 
       return this;
     },
@@ -75,15 +48,7 @@ export class FatalErrorDriver {
       showFatalError({
         error,
         dependencies: {
-          document: {
-            body: this.body as unknown as HTMLElement,
-            getElementById: () =>
-              this.hostRootPresent
-                ? (this.hostRoot as unknown as HTMLElement)
-                : null,
-            createElement: ((tagName: string) =>
-              aFakeElement(tagName)) as Document['createElement'],
-          },
+          document,
           sessionStorage: this.sessionStorage,
           localStorage: this.localStorage,
           reloadPage: this.reloadPage,
@@ -92,36 +57,21 @@ export class FatalErrorDriver {
       });
     },
     overridesCleared: () => {
-      this.panel()
-        .children.find((element) => element.tagName === 'button')
-        ?.onclick?.();
+      document.querySelector('button')?.click();
     },
   };
 
   readonly get = {
-    hostRootChildCount: () => this.hostRoot.children.length,
-    bodyChildCount: () => this.body.children.length,
-    message: () => this.childText('p'),
-    actionHeading: () => this.childText('strong'),
+    hostRootChildCount: () => this.hostRoot.childNodes.length,
+    bodyChildCount: () => document.body.childNodes.length,
+    message: () => document.querySelector('p')?.textContent,
+    actionHeading: () => document.querySelector('strong')?.textContent,
     actions: () =>
-      this.panel()
-        .children.find((element) => element.tagName === 'ol')
-        ?.children.map((item) => item.textContent) ?? [],
+      Array.from(document.querySelectorAll('li'), (item) => item.textContent),
     sessionStorageMock: () => this.sessionStorage.removeItem,
     localStorageMock: () => this.localStorage.removeItem,
     reloadPageMock: () => this.reloadPage,
     logErrorMock: () => this.logError,
     describeFatalErrorMock: () => describeFatalError,
   };
-
-  private panel(): FakeElement {
-    const root = this.hostRootPresent ? this.hostRoot : this.body;
-
-    return root.children[0]!;
-  }
-
-  private childText(tagName: string): string | undefined {
-    return this.panel().children.find((element) => element.tagName === tagName)
-      ?.textContent;
-  }
 }
