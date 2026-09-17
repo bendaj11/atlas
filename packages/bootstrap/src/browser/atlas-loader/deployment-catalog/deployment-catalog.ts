@@ -16,12 +16,27 @@ import {
   ARTIFACT_LOAD_CONCURRENCY,
   DEPLOYMENT_CATALOG_GENERATED_AT,
 } from '../atlas-loader.constants.js';
-import type { LoaderContext } from '../atlas-loader.types.js';
+import type {
+  AtlasLoaderDependencies,
+  LoaderContext,
+} from '../atlas-loader.types.js';
+
+export type DeploymentCatalogDependencies = Pick<
+  AtlasLoaderDependencies,
+  'fetchBytes' | 'loadPublishedArtifact'
+>;
+
+export interface DeploymentCatalogContext extends Pick<
+  LoaderContext,
+  'runtime'
+> {
+  dependencies: DeploymentCatalogDependencies;
+}
 
 export async function loadDeploymentCatalog({
   runtime,
   dependencies,
-}: LoaderContext): Promise<AtlasHostCatalog> {
+}: DeploymentCatalogContext): Promise<AtlasHostCatalog> {
   const deployment = await fetchDeploymentManifest({ runtime, dependencies });
 
   const manifests = await mapWithConcurrency({
@@ -57,7 +72,7 @@ export async function loadDeploymentCatalog({
 async function fetchDeploymentManifest({
   runtime,
   dependencies,
-}: LoaderContext): Promise<AtlasHostDeploymentManifest> {
+}: DeploymentCatalogContext): Promise<AtlasHostDeploymentManifest> {
   const url = environmentManifestUrl(runtime);
   const deployment = decodeJson(
     await dependencies.fetchBytes({ url, runtime }),
