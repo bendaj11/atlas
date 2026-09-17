@@ -1,5 +1,6 @@
 import type {
   AtlasHostCatalog,
+  AtlasHostDeploymentManifest,
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
   AtlasManifest,
@@ -25,7 +26,9 @@ export class DeploymentCatalogDriver {
 
       return this;
     },
-    deployment: (deployment: unknown): DeploymentCatalogDriver => {
+    deployment: (
+      deployment: AtlasHostDeploymentManifest | null,
+    ): DeploymentCatalogDriver => {
       this.fetchBytes.mockResolvedValue(
         new TextEncoder().encode(JSON.stringify(deployment)),
       );
