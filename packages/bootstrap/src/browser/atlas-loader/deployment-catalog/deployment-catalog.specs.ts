@@ -105,7 +105,7 @@ describe('loadDeploymentCatalog', () => {
     });
 
     it('should reject when the deployment manifest fails schema validation', async () => {
-      driver.given.deployment({ ...deployment, kind: 'app' });
+      driver.given.deployment({});
       await driver.when.loaded();
 
       expect(driver.get.error()).toMatchObject({
