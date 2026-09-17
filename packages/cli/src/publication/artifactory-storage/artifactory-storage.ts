@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
-import {
-  ArtifactoryClient,
-  type ArtifactoryConnectionOptions,
-} from '../artifactory-client/artifactory-client.js';
+import { ArtifactoryClient } from '../artifactory-client/artifactory-client.js';
+import type { ArtifactoryConnectionOptions } from '../artifactory-client/types.js';
 import type {
   AtlasPublicationBody,
   AtlasPublicationLease,

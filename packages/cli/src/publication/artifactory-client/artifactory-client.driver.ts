@@ -1,9 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import {
-  ArtifactoryClient,
-  type ArtifactoryConnectionOptions,
-} from './artifactory-client.js';
+import { ArtifactoryClient } from './artifactory-client.js';
+import type { ArtifactoryConnectionOptions } from './types.js';
 
 interface TransportFailureDetails {
   readonly code?: string;
