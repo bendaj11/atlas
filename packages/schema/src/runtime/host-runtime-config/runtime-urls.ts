@@ -1,4 +1,6 @@
-import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
+
+export const ATLAS_RUNTIME_CONFIG_PATH = '/atlas.runtime.json';
 
 export function environmentRegistryUrl(
   runtime: AtlasHostRuntimeConfig,

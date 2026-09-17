@@ -2,10 +2,6 @@ import type { BootstrapErrorCode } from './bootstrap-error-code.js';
 
 export const SUGGESTED_ACTIONS: Record<BootstrapErrorCode, readonly string[]> =
   {
-    RUNTIME_CONFIG_INVALID: [
-      'Verify /atlas.runtime.json matches the Atlas runtime config schema and names the intended host and environment.',
-      'Correct the deployed runtime config, then reload.',
-    ],
     DEPLOYMENT_INVALID: [
       'Verify the environment manifest at the environment registry returns valid Atlas JSON for this host and environment.',
       'Redeploy the host to this environment, then reload.',

@@ -6,13 +6,11 @@ import {
   type AtlasHostManifest,
   type AtlasHostRuntimeConfig,
   type AtlasManifest,
+  environmentManifestUrl,
   placementTargetsHost,
+  resolveAtlasRuntimeConfig,
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
-import {
-  environmentManifestUrl,
-  resolveAtlasRuntimeConfig,
-} from '@atlas/bootstrap';
 import {
   isRetryableHttpStatus,
   withExponentialRetry,

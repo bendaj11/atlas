@@ -7,7 +7,7 @@ import { assertHostDeploymentManifest, errorSummary } from '@atlas/schema';
 import { decodeJson } from '../../shared/decode-json.js';
 import { bootstrapError } from '../../shared/errors/index.js';
 import { mapWithConcurrency } from '../../shared/map-with-concurrency.js';
-import { environmentManifestUrl } from '../../shared/runtime-config/index.js';
+import { environmentManifestUrl } from '@atlas/schema';
 import {
   ARTIFACT_LOAD_CONCURRENCY,
   DEPLOYMENT_CATALOG_GENERATED_AT,

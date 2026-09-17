@@ -2,7 +2,7 @@ import { bootstrapError } from '../../shared/errors/index.js';
 import {
   ATLAS_RUNTIME_CONFIG_PATH,
   resolveAtlasRuntimeConfig,
-} from '../../shared/runtime-config/index.js';
+} from '@atlas/schema';
 import { fetchBytes, fetchJson } from '../fetch-json/index.js';
 import { loadHostModule } from '../host-loader/index.js';
 import type { HostEntry } from '../host-module.js';

@@ -1,4 +1,4 @@
-import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
 import {
   artifactUrl,
   environmentManifestUrl,

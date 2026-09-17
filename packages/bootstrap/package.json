@@ -2,7 +2,7 @@
   "name": "@atlas/bootstrap",
   "version": "0.4.26",
   "type": "module",
-  "description": "Static Atlas browser bootstrap assets and runtime config helpers.",
+  "description": "Static Atlas browser bootstrap assets and loader.",
   "license": "MIT",
   "keywords": [
     "atlas",
@@ -23,10 +23,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./runtime": {
-      "types": "./dist/runtime.d.ts",
-      "default": "./dist/runtime.js"
     }
   },
   "files": [

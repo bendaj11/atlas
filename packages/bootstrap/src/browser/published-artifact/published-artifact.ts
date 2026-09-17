@@ -1,7 +1,7 @@
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
 import { hydratePublishedArtifactManifest } from '@atlas/schema';
 import { decodeJson } from '../../shared/decode-json.js';
-import { artifactUrl } from '../../shared/runtime-config/index.js';
+import { artifactUrl } from '@atlas/schema';
 import { fetchBytes } from '../fetch-json/index.js';
 import { assertBytesMatchDescriptor } from './assert-bytes-match-descriptor.js';
 import type {

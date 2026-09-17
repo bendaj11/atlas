@@ -3,7 +3,7 @@ import type {
   AtlasHostRuntimeConfig,
   AtlasManifest,
 } from '@atlas/schema';
-import { isLoopbackHostname } from '../../shared/loopback.js';
+import { isLoopbackHostname } from '@atlas/schema';
 import { describeManifest, validationError } from './validation-error.js';
 
 export function validateArtifactUrl({

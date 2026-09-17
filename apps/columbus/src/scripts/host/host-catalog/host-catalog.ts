@@ -1,7 +1,7 @@
 import {
   environmentManifestUrl,
   resolveAtlasRuntimeConfig,
-} from '@atlas/bootstrap/runtime';
+} from '@atlas/schema';
 import {
   type ArtifactVersion,
   isAppArtifactVersion,

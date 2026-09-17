@@ -1,5 +1,4 @@
 export type BootstrapErrorCode =
-  | 'RUNTIME_CONFIG_INVALID'
   | 'DEPLOYMENT_INVALID'
   | 'CATALOG_INVALID'
   | 'HOST_MANIFEST_INVALID'
