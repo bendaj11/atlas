@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import type { AtlasConfig } from '@atlas/schema';
 import {
-  cliError,
+  CliError,
   pathExists,
   isRecord,
   compiledAtlasConfigCandidates,
@@ -22,14 +22,14 @@ export async function loadCompiledAtlasConfig(
     if (isRecord(exported) && isAtlasConfig(exported.default))
       return exported.default;
 
-    throw cliError(
+    throw new CliError(
       `${path} does not default-export an Atlas config.`,
       'Export the atlas.config.ts object as the default export, then recompile.',
       { code: 'ATLAS_CONFIG_INVALID' },
     );
   }
 
-  throw cliError(
+  throw new CliError(
     `Compiled atlas.config.js was not found for ${projectRoot}.`,
     [
       'Rerun without --skip-compile.',

@@ -31,7 +31,7 @@ it('should reject previews that are not HTTP URLs', async () => {
 
   await driver.when.read();
 
-  expect(driver.get.errorMessage()).toBe(
+  expect(driver.get.extractErrorMessage()).toBe(
     'package.json atlas.previews[0] must be an absolute HTTP URL.',
   );
 });

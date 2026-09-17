@@ -2,7 +2,7 @@ import { artifactoryOptionsFromEnvironment } from '../artifactory-options/artifa
 import { ArtifactoryPublicationStorage } from '../artifactory-storage/artifactory-storage.js';
 import { S3PublicationStorage } from '../s3-storage/s3-storage.js';
 import { selectStorageFromEnvironment } from '../storage-environment/storage-environment.js';
-import { type CliArguments, cliError } from '../../shared/index.js';
+import { type CliArguments, CliError } from '../../shared/index.js';
 import type {
   AtlasPublicationStorage,
   AtlasPublicationStorageSource,
@@ -22,7 +22,7 @@ export async function createPublicationStorage(
   const configured = storage ?? storageFromEnvironment(args, factories);
 
   if (!configured) {
-    throw cliError(
+    throw new CliError(
       'Publication storage is not configured.',
       [
         'Pass --storage s3 with --bucket (or set ATLAS_S3_BUCKET).',

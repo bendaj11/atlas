@@ -25,7 +25,9 @@ it('should not request selection when one preview is configured', async () => {
 it('should reject when no previews are configured', async () => {
   await driver.when.resolve();
 
-  expect(driver.get.errorMessage()).toBe(driver.get.missingPreviewsError());
+  expect(driver.get.extractErrorMessage()).toBe(
+    driver.get.missingPreviewsError(),
+  );
 });
 
 it('should use selected preview when multiple previews are configured', async () => {
@@ -51,7 +53,9 @@ it('should reject when multiple previews are configured outside interactive mode
 
   await driver.when.resolve();
 
-  expect(driver.get.errorMessage()).toBe(driver.get.multiplePreviewsError());
+  expect(driver.get.extractErrorMessage()).toBe(
+    driver.get.multiplePreviewsError(),
+  );
 });
 
 it('should use the selected route when multiple routes are configured', async () => {
@@ -93,7 +97,7 @@ it('should reject the host when runtime discovery returns an unsupported host', 
 
   await driver.when.resolve();
 
-  expect(driver.get.errorMessage()).toContain(
+  expect(driver.get.extractErrorMessage()).toContain(
     driver.get.unsupportedHostError(),
   );
 });
@@ -130,5 +134,5 @@ it('should reject deployed preview when runtime identifies another host', async 
 
   await driver.when.resolveHost();
 
-  expect(driver.get.errorMessage()).toContain('but local host is');
+  expect(driver.get.extractErrorMessage()).toContain('but local host is');
 });

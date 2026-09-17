@@ -3,8 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { formatHelp, requestedHelpTopic } from '../help/index.js';
 import {
   CliArguments,
-  cliError,
-  createCliError,
+  CliError,
+  normalizeToCliError,
   resolveInvocation,
   TerminalPrompter,
   type AtlasPrompter,
@@ -49,13 +49,13 @@ export async function runAtlasCli(
     if (await runWorkspaceCommand({ workspace, args, prompts, invocation }))
       return;
 
-    throw cliError(
+    throw new CliError(
       `Unknown or incomplete command "${values.join(' ')}".`,
       'Run `atlas --help` to choose a supported command, then retry with the documented arguments.',
       { code: 'ATLAS_UNKNOWN_COMMAND' },
     );
   } catch (error) {
-    throw createCliError(args.command, error);
+    throw normalizeToCliError(args.command, error);
   } finally {
     prompts.close();
   }

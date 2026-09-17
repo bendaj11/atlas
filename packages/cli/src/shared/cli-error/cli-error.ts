@@ -1,21 +1,24 @@
 import { AtlasError, errorSummary } from '@atlas/schema';
 import { COMMAND_ALIASES } from '../arguments/arguments.js';
-import { httpStatusOf } from '../errors/errors.js';
+import { extractHttpStatus } from '../errors/errors.js';
 
-export function cliError(
-  summary: string,
-  suggestedActions: string | readonly string[],
-  options: { code?: string; cause?: unknown } = {},
-): AtlasError {
-  return new AtlasError(summary, {
-    suggestedActions,
-    surface: 'cli',
-    ...(options.code ? { code: options.code } : {}),
-    ...(options.cause !== undefined ? { cause: options.cause } : {}),
-  });
+export class CliError extends AtlasError {
+  constructor(
+    summary: string,
+    suggestedActions: string | readonly string[],
+    options: { code?: string; cause?: unknown } = {},
+  ) {
+    super(summary, {
+      suggestedActions,
+      surface: 'cli',
+      ...(options.code ? { code: options.code } : {}),
+      ...(options.cause !== undefined ? { cause: options.cause } : {}),
+    });
+    this.name = 'CliError';
+  }
 }
 
-export function createCliError(
+export function normalizeToCliError(
   command: string | undefined,
   value: unknown,
 ): AtlasError {
@@ -67,7 +70,7 @@ function errorCauses(error: Error): readonly string[] {
 
 function errorCauseMessage(cause: unknown): string {
   if (cause instanceof Error) {
-    const status = httpStatusOf(cause);
+    const status = extractHttpStatus(cause);
 
     return `${cause.name}: ${cause.message}${status ? ` (HTTP ${status})` : ''}`;
   }

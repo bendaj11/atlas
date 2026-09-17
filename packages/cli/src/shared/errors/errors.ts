@@ -1,13 +1,24 @@
-export function errorMessage(error: unknown): string {
+export class HttpStatusError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'HttpStatusError';
+  }
+}
+
+export function extractErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function httpStatusOf(error: unknown): number | undefined {
+export function extractHttpStatus(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
 
   if ('$metadata' in error) {
     const status = (error as { $metadata?: { httpStatusCode?: unknown } })
       .$metadata?.httpStatusCode;
+
     if (typeof status === 'number') return status;
   }
 
@@ -20,7 +31,7 @@ export function httpStatusOf(error: unknown): number | undefined {
   return undefined;
 }
 
-export function errorCauseOf(error: unknown): unknown {
+export function extractErrorCause(error: unknown): unknown {
   return typeof error === 'object' && error !== null && 'cause' in error
     ? (error as { cause?: unknown }).cause
     : undefined;

@@ -47,7 +47,7 @@ describe('s3-errors', () => {
     });
   });
 
-  describe('storageError', () => {
+  describe('S3StorageError', () => {
     it('should name the operation and keep the cause when wrapped', () => {
       const cause = new Error(faker.lorem.word());
       driver.given.error(cause);

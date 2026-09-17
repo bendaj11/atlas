@@ -1,4 +1,4 @@
-import { errorCauseOf, httpStatusOf } from '../errors/errors.js';
+import { extractErrorCause, extractHttpStatus } from '../errors/errors.js';
 import { delay } from '../timers/timers.js';
 
 const MAX_ATTEMPTS = 4;
@@ -46,7 +46,7 @@ export function isRetryableHttpStatus(status: number): boolean {
 function httpStatusCodeOf(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
 
-  return httpStatusOf(error) ?? httpStatusCodeOf(errorCauseOf(error));
+  return extractHttpStatus(error) ?? httpStatusCodeOf(extractErrorCause(error));
 }
 
 function transientNetworkCode(error: unknown): boolean {
@@ -65,5 +65,5 @@ function transientNetworkCode(error: unknown): boolean {
     return true;
   }
 
-  return transientNetworkCode(errorCauseOf(error));
+  return transientNetworkCode(extractErrorCause(error));
 }

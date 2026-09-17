@@ -5,7 +5,7 @@ import {
   type AtlasHostRuntimeConfig,
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
-import { absoluteHttpUrl, errorMessage } from '../../shared/index.js';
+import { absoluteHttpUrl, extractErrorMessage } from '../../shared/index.js';
 import { verifyManifestAssets } from '../asset-checks/asset-checks.js';
 import {
   isHostDeployment,
@@ -99,7 +99,7 @@ export class AtlasVerifyService {
 
       return runtime;
     } catch (error) {
-      context.checks.fail(subject, errorMessage(error));
+      context.checks.fail(subject, extractErrorMessage(error));
 
       return undefined;
     }

@@ -1,5 +1,5 @@
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
-import { errorMessage } from '../../shared/index.js';
+import { extractErrorMessage } from '../../shared/index.js';
 import { parseFederationMetadata } from '../federation-metadata/federation-metadata.js';
 import {
   checkContentType,
@@ -128,7 +128,7 @@ async function verifyFederationReferences({
   } catch (error) {
     context.checks.fail(
       `${manifest.id} federation metadata`,
-      errorMessage(error),
+      extractErrorMessage(error),
     );
 
     return;

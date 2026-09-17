@@ -4,7 +4,7 @@ import { basename, join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
 import { toPosixPath } from '../payload/payload.js';
 import {
-  cliError,
+  CliError,
   IMMUTABLE_CACHE_CONTROL,
   publicationContentType,
 } from '../../shared/index.js';
@@ -23,7 +23,7 @@ export async function findArtifactRoot(
   const artifactRoot = await findArtifactRootIfPresent(lookup);
 
   if (artifactRoot) return artifactRoot;
-  throw cliError(
+  throw new CliError(
     `Atlas could not find build artifacts containing ${lookup.entryPath} for "${lookup.config.id}".`,
     [
       'Run the project production build first.',

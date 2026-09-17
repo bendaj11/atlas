@@ -10,7 +10,7 @@ import {
 import {
   assertAppConfig,
   CliArguments,
-  cliError,
+  CliError,
   compileAtlasConfig,
   isHostConfig,
   sha256Integrity,
@@ -173,7 +173,7 @@ export class AtlasBuildService {
 
     if (channel === 'local') return LOCAL_REGISTRY_URL;
 
-    throw cliError(
+    throw new CliError(
       '--registry-url or ATLAS_REGISTRY_URL is required for non-local builds.',
       'Pass --registry-url <https://registry-root> or export ATLAS_REGISTRY_URL.',
       { code: 'ATLAS_REGISTRY_URL_MISSING' },

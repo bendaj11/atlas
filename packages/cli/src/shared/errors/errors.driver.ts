@@ -1,4 +1,8 @@
-import { errorCauseOf, errorMessage, httpStatusOf } from './errors.js';
+import {
+  extractErrorCause,
+  extractErrorMessage,
+  extractHttpStatus,
+} from './errors.js';
 
 export class ErrorsDriver {
   private error: unknown;
@@ -12,8 +16,8 @@ export class ErrorsDriver {
   };
 
   readonly get = {
-    message: (): string => errorMessage(this.error),
-    status: (): number | undefined => httpStatusOf(this.error),
-    cause: (): unknown => errorCauseOf(this.error),
+    message: (): string => extractErrorMessage(this.error),
+    status: (): number | undefined => extractHttpStatus(this.error),
+    cause: (): unknown => extractErrorCause(this.error),
   };
 }

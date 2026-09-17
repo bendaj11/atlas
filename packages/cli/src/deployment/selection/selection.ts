@@ -3,7 +3,7 @@ import {
   assertEnvironmentName,
   resolveRegistryArtifact,
 } from '../../publication/index.js';
-import { cliError } from '../../shared/index.js';
+import { CliError } from '../../shared/index.js';
 import { sourceEnvironmentState } from '../registry-access/registry-access.js';
 import type {
   ArtifactKind,
@@ -37,7 +37,7 @@ export async function selectArtifactVersion({
   const descriptor = version ? artifact.releases[version] : undefined;
 
   if (!version || !descriptor)
-    throw cliError(
+    throw new CliError(
       `Atlas selector "${selector}" is neither an exact release, latest, nor a source environment selection for "${identifier}".`,
       [
         `Pass --version <release> with a version published for "${identifier}".`,

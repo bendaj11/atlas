@@ -2,8 +2,8 @@ export { CliArguments, COMMAND_ALIASES } from './arguments/arguments.js';
 export type { SupportedFramework } from './arguments/arguments.js';
 export { assertAppConfig, isHostConfig } from './atlas-config/atlas-config.js';
 export {
-  cliError,
-  createCliError,
+  CliError,
+  normalizeToCliError,
   formatErrorWithCauses,
 } from './cli-error/cli-error.js';
 export {
@@ -17,7 +17,12 @@ export {
   sha256Integrity,
 } from './digest/digest.js';
 export type { Sha256Digest } from './digest/digest.js';
-export { errorCauseOf, errorMessage, httpStatusOf } from './errors/errors.js';
+export {
+  extractErrorCause,
+  extractErrorMessage,
+  extractHttpStatus,
+  HttpStatusError,
+} from './errors/errors.js';
 export {
   pathExists,
   isMissingPathError,

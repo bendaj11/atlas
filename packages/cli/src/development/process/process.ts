@@ -9,7 +9,7 @@ import {
 import type { DevControlServer } from '../types.js';
 import {
   CliArguments,
-  cliError,
+  CliError,
   ui,
   completedProcessOutput,
 } from '../../shared/index.js';
@@ -47,7 +47,7 @@ export async function waitForRemoteEntry(
     );
   }
 
-  throw cliError(
+  throw new CliError(
     `Framework dev server did not serve ${remoteEntryUrl} within ${REMOTE_START_TIMEOUT_MS / 1000} seconds.`,
     [
       'Check the framework server output above for build errors.',

@@ -1,7 +1,7 @@
 import {
   isMissingObject,
   isPreconditionFailure,
-  storageError,
+  S3StorageError,
 } from './s3-errors.js';
 
 export class S3ErrorsDriver {
@@ -19,6 +19,6 @@ export class S3ErrorsDriver {
     missing: (): boolean => isMissingObject(this.error),
     precondition: (): boolean => isPreconditionFailure(this.error),
     storageError: (operation: string): Error =>
-      storageError(operation, this.error),
+      new S3StorageError(operation, this.error),
   };
 }

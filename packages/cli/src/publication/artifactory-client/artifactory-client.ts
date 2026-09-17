@@ -1,7 +1,7 @@
 import type { AtlasPublicationListedObject } from '../publication-storage/types.js';
 import {
-  transportError,
-  unknownMutationOutcome,
+  ArtifactoryTransportError,
+  ArtifactoryUnknownMutationOutcomeError,
 } from './artifactory-errors.js';
 import { encodePath, validateBaseUrl } from './artifactory-paths.js';
 import {
@@ -282,9 +282,9 @@ export class ArtifactoryClient {
       return { response, signal };
     } catch (error) {
       if (options.method === 'PUT' || options.method === 'DELETE')
-        throw unknownMutationOutcome();
+        throw new ArtifactoryUnknownMutationOutcomeError();
 
-      throw transportError({
+      throw new ArtifactoryTransportError({
         message:
           'Artifactory request failed; check connectivity, TLS trust, and request timeout.',
         error,

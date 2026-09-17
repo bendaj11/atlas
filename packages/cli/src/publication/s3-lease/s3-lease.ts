@@ -9,9 +9,9 @@ import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import {
   isMissingObject,
   isPreconditionFailure,
-  storageError,
+  S3StorageError,
 } from '../s3-storage/s3-errors.js';
-import { cliError, delay, publicationContentType } from '../../shared/index.js';
+import { CliError, delay, publicationContentType } from '../../shared/index.js';
 
 export const DEPLOYMENT_LOCK_PATH = '.atlas/deployment.lock';
 export const DEFAULT_LOCK_TIMEOUT_MS = 120_000;
@@ -48,7 +48,7 @@ export class S3DeploymentLock {
     let stored = await this.tryAcquire(owner, token);
     while (!stored) {
       if (Date.now() >= deadline) {
-        throw cliError(
+        throw new CliError(
           `Timed out after ${this.options.timeoutMs}ms waiting for Atlas deployment lock.`,
           [
             'Wait for the other publisher to finish, then rerun the command.',
@@ -147,7 +147,7 @@ export class S3DeploymentLock {
       return { lease, etag: requiredEtag(response.ETag) };
     } catch (error) {
       if (!isPreconditionFailure(error))
-        throw storageError('acquire deployment lock', error);
+        throw new S3StorageError('acquire deployment lock', error);
     }
 
     const existing = await this.read();
@@ -163,7 +163,7 @@ export class S3DeploymentLock {
       return { lease, etag: requiredEtag(response.ETag) };
     } catch (error) {
       if (isPreconditionFailure(error)) return undefined;
-      throw storageError('recover expired deployment lock', error);
+      throw new S3StorageError('recover expired deployment lock', error);
     }
   }
 
@@ -193,7 +193,7 @@ export class S3DeploymentLock {
       );
     } catch (error) {
       if (!isMissingObject(error) && !isPreconditionFailure(error))
-        throw storageError('release deployment lock', error);
+        throw new S3StorageError('release deployment lock', error);
     }
   }
 
@@ -211,7 +211,7 @@ export class S3DeploymentLock {
       return { lease: assertLease(value), etag: response.ETag };
     } catch (error) {
       if (isMissingObject(error)) return undefined;
-      throw storageError('read deployment lock', error);
+      throw new S3StorageError('read deployment lock', error);
     }
   }
 

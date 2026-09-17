@@ -1,5 +1,5 @@
 import type { AtlasError } from '@atlas/schema';
-import { createCliError, formatErrorWithCauses } from './cli-error.js';
+import { normalizeToCliError, formatErrorWithCauses } from './cli-error.js';
 
 export class CliErrorDriver {
   private command?: string;
@@ -21,7 +21,7 @@ export class CliErrorDriver {
 
   readonly when = {
     created: (): void => {
-      this.error = createCliError(this.command, this.cause);
+      this.error = normalizeToCliError(this.command, this.cause);
     },
   };
 

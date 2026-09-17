@@ -9,7 +9,7 @@ import {
 } from '@atlas/schema';
 import {
   optionalRecord,
-  errorMessage,
+  extractErrorMessage,
   isNonEmptyString,
 } from '../../shared/index.js';
 import type { VerificationContext } from '../types.js';
@@ -54,7 +54,7 @@ function verifyCatalogHost({
   } catch (error) {
     context.checks.fail(
       `${catalog.host.id || 'unknown'} host manifest`,
-      errorMessage(error),
+      extractErrorMessage(error),
     );
   }
 }
@@ -79,7 +79,7 @@ function verifySelectedVersions({
     } catch (error) {
       context.checks.fail(
         `${manifest.id || 'unknown'} manifest`,
-        errorMessage(error),
+        extractErrorMessage(error),
       );
     }
 

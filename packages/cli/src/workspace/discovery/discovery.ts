@@ -5,7 +5,7 @@ import {
   type NxProjectConfiguration,
 } from '../nx-output-paths/nx-output-paths.js';
 import type { AtlasProject } from '../types.js';
-import { cliError, pathExists, readJsonFile } from '../../shared/index.js';
+import { CliError, pathExists, readJsonFile } from '../../shared/index.js';
 
 const MAX_DISCOVERY_DEPTH = 5;
 const IGNORED_DIRECTORIES = new Set([
@@ -61,13 +61,13 @@ export async function findAtlasProject(options: {
   if (matches.length === 1) return matches[0]!;
 
   if (matches.length > 1)
-    throw cliError(
+    throw new CliError(
       `Atlas found multiple projects named "${name}".`,
       'Pass the project directory instead of its name.',
       { code: 'ATLAS_PROJECT_AMBIGUOUS' },
     );
 
-  throw cliError(
+  throw new CliError(
     `Could not find Atlas project "${name}" from workspace ${workspaceRoot}.`,
     [
       'Pass the project package name, Nx project name, or directory.',

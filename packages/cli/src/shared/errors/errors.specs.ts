@@ -8,7 +8,7 @@ describe('errors', () => {
     driver = new ErrorsDriver();
   });
 
-  describe('errorMessage', () => {
+  describe('extractErrorMessage', () => {
     it('should return message when value is an Error', () => {
       const message = faker.lorem.sentence();
       driver.given.error(new Error(message));
@@ -24,7 +24,7 @@ describe('errors', () => {
     });
   });
 
-  describe('httpStatusOf', () => {
+  describe('extractHttpStatus', () => {
     it('should read SDK metadata status when $metadata carries a number', () => {
       const status = faker.internet.httpStatusCode();
       driver.given.error({ $metadata: { httpStatusCode: status } });
@@ -52,7 +52,7 @@ describe('errors', () => {
     });
   });
 
-  describe('errorCauseOf', () => {
+  describe('extractErrorCause', () => {
     it('should return cause when error carries one', () => {
       const cause = new Error(faker.lorem.word());
       driver.given.error(new Error(faker.lorem.word(), { cause }));

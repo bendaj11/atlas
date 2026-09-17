@@ -7,7 +7,7 @@ import {
   type AtlasStaticRegistry,
 } from '@atlas/schema';
 import { assertStaticRegistry } from '../../publication/index.js';
-import { sha256Digest } from '../../shared/index.js';
+import { sha256Digest, HttpStatusError } from '../../shared/index.js';
 import type { RegistryAccess } from '../types.js';
 
 export function environmentStatePath(environment: string): string {
@@ -150,9 +150,9 @@ async function sourceBytes({
   if (response.status === 404) return undefined;
 
   if (!response.ok)
-    throw Object.assign(
-      new Error(`Atlas source returned HTTP ${response.status} for ${path}.`),
-      { status: response.status },
+    throw new HttpStatusError(
+      `Atlas source returned HTTP ${response.status} for ${path}.`,
+      response.status,
     );
 
   return new Uint8Array(await response.arrayBuffer());
