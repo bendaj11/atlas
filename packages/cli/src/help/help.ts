@@ -1,10 +1,6 @@
-import {
-  COMMAND_HELP,
-  ROOT_COMMANDS,
-  ROOT_EXAMPLES,
-  type CommandHelp,
-  type HelpEntry,
-} from './content.js';
+import { COMMAND_HELP } from './content.js';
+import { ROOT_COMMANDS, ROOT_EXAMPLES } from './content/root.js';
+import type { CommandHelp, HelpEntry } from './content/types.js';
 import { COMMAND_ALIASES } from '../shared/index.js';
 
 const HELP_FLAGS = new Set(['--help', '-h']);
