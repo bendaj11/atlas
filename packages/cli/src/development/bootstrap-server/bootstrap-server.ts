@@ -8,7 +8,10 @@ import {
 } from 'node:http';
 import { connect } from 'node:net';
 import type { Duplex } from 'node:stream';
-import type { LocalBootstrapServerOptions } from '../types.js';
+import type {
+  LocalBootstrapServerOptions,
+  LocalNativeProxy,
+} from '../types.js';
 import { listenOnLocalHost, LOCAL_HOST } from '../http/http.js';
 
 export async function startLocalBootstrapServer(
@@ -24,6 +27,7 @@ export async function startLocalBootstrapServer(
 
       return;
     }
+
     proxyNativeUpgrade(request, socket, head, options.proxy!.origin);
   });
 
@@ -46,7 +50,7 @@ function createBootstrapFileMap(
 
 function createBootstrapRequestHandler(
   files: ReadonlyMap<string, string>,
-  proxy: LocalBootstrapServerOptions['proxy'],
+  proxy: LocalNativeProxy | undefined,
 ) {
   return (
     request: import('node:http').IncomingMessage,
@@ -59,6 +63,7 @@ function createBootstrapRequestHandler(
     }
     const path = new URL(request.url ?? '/', `http://${LOCAL_HOST}`).pathname;
     const method = request.method ?? 'GET';
+
     if (!isBootstrapMethod(method)) {
       response.writeHead(405, { allow: 'GET, HEAD' });
       response.end();
@@ -66,6 +71,7 @@ function createBootstrapRequestHandler(
       return;
     }
     const exactContents = files.get(path);
+
     if (exactContents !== undefined) {
       writeBootstrapResponse(response, path, exactContents, method);
 
@@ -78,6 +84,7 @@ function createBootstrapRequestHandler(
 
       return;
     }
+
     writeBootstrapResponse(
       response,
       '/index.html',
@@ -89,7 +96,7 @@ function createBootstrapRequestHandler(
 
 function matchesNativeProxyRoute(
   requestUrl: string | undefined,
-  proxy: LocalBootstrapServerOptions['proxy'],
+  proxy: LocalNativeProxy | undefined,
 ): boolean {
   if (!proxy || !requestUrl) return false;
   return Object.entries(proxy.routes).some(
@@ -129,6 +136,7 @@ function proxyNativeRequest(
   proxy.on('error', () => {
     if (!response.headersSent)
       response.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
+
     response.end('Proxy request failed\n');
   });
   request.pipe(proxy);

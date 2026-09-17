@@ -1,18 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
-  AtlasConfig,
   AtlasStylesheet,
   AtlasVersionChannel,
+  AtlasFramework,
 } from '@atlas/schema';
 import { listArtifactFiles } from '../artifact-root/artifact-root.js';
-import { normalizeArtifactPath, toPosixPath } from '../payload/payload.js';
-import { sha256Integrity, readTextFile } from '../../shared/index.js';
+import {
+  normalizeArtifactPath,
+  convertToPosixPath,
+} from '../payload/payload.js';
+import { computeSha256Integrity, readTextFile } from '../../shared/index.js';
 
 export async function discoverStylesheets(options: {
   artifactRoot: string;
   artifactBaseUrl: string;
-  framework: AtlasConfig['framework'];
+  framework: AtlasFramework;
   channel: AtlasVersionChannel;
 }): Promise<AtlasStylesheet[]> {
   const { artifactRoot, artifactBaseUrl, framework, channel } = options;
@@ -24,7 +27,7 @@ export async function discoverStylesheets(options: {
   }
   const declared =
     framework === 'angular'
-      ? await angularInitialStylesheetPaths(artifactRoot)
+      ? await listAngularInitialStylesheetPaths(artifactRoot)
       : [];
   const paths = declared.length
     ? declared
@@ -35,21 +38,23 @@ export async function discoverStylesheets(options: {
 
   for (const relativePath of paths) {
     const bytes = await readFile(join(artifactRoot, relativePath));
+
     stylesheets.push({
-      href: `${artifactBaseUrl}/${toPosixPath(relativePath)}`,
-      integrity: sha256Integrity(bytes),
+      href: `${artifactBaseUrl}/${convertToPosixPath(relativePath)}`,
+      integrity: computeSha256Integrity(bytes),
     });
   }
 
   return stylesheets;
 }
 
-export function stylesheetPathsFromIndex(indexHtml: string): string[] {
+export function extractStylesheetPathsFromIndex(indexHtml: string): string[] {
   const paths = [...indexHtml.matchAll(/<link\b[^>]*>/giu)].flatMap((link) => {
-    const rel = htmlAttribute(link[0], 'rel');
-    const href = htmlAttribute(link[0], 'href');
+    const rel = extractHtmlAttributeValue(link[0], 'rel');
+    const href = extractHtmlAttributeValue(link[0], 'href');
+
     if (!isStylesheetLink(rel) || !href) return [];
-    const path = artifactPathFromHref(href);
+    const path = extractArtifactPathFromHref(href);
 
     return path?.endsWith('.css') ? [path] : [];
   });
@@ -57,12 +62,14 @@ export function stylesheetPathsFromIndex(indexHtml: string): string[] {
   return [...new Set(paths)];
 }
 
-async function angularInitialStylesheetPaths(
+async function listAngularInitialStylesheetPaths(
   artifactRoot: string,
 ): Promise<string[]> {
   const indexHtml = await readTextFile(join(artifactRoot, 'index.html'));
 
-  return indexHtml === undefined ? [] : stylesheetPathsFromIndex(indexHtml);
+  return indexHtml === undefined
+    ? []
+    : extractStylesheetPathsFromIndex(indexHtml);
 }
 
 function isStylesheetLink(rel: string | undefined): boolean {
@@ -72,7 +79,10 @@ function isStylesheetLink(rel: string | undefined): boolean {
   );
 }
 
-function htmlAttribute(tag: string, name: 'href' | 'rel'): string | undefined {
+function extractHtmlAttributeValue(
+  tag: string,
+  name: 'href' | 'rel',
+): string | undefined {
   const expression =
     name === 'href'
       ? /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/iu
@@ -82,7 +92,7 @@ function htmlAttribute(tag: string, name: 'href' | 'rel'): string | undefined {
   return match?.[1] ?? match?.[2] ?? match?.[3];
 }
 
-function artifactPathFromHref(href: string): string | undefined {
+function extractArtifactPathFromHref(href: string): string | undefined {
   if (href.includes('?') || href.includes('#')) return undefined;
 
   try {

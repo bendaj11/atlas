@@ -7,15 +7,15 @@ import {
   type AtlasRegistryArtifact,
   type AtlasStaticRegistry,
 } from '@atlas/schema';
-import { sameDescriptor } from './descriptors/descriptors.js';
-import { registryRevision } from './revision/registry-revision.js';
+import { isSameDescriptor } from './descriptors/descriptors.js';
+import { computeRegistryRevision } from './revision/registry-revision.js';
 import type { AtlasRegistryMutation } from './types.js';
 import { assertStaticRegistry } from './validation/static-registry-validation.js';
 
-export function emptyStaticRegistry(
+export function createEmptyStaticRegistry(
   updatedAt = new Date().toISOString(),
 ): AtlasStaticRegistry {
-  return withRegistryRevision({
+  return applyRegistryRevision({
     schemaVersion: '2',
     revision: `sha256:${'0'.repeat(64)}`,
     updatedAt,
@@ -33,13 +33,16 @@ export function publishArtifact(
   assertPublishedArtifactManifest(manifest);
   assertManifestDescriptor(descriptor);
 
-  const registry = structuredClone(current ?? emptyStaticRegistry(updatedAt));
+  const registry = structuredClone(
+    current ?? createEmptyStaticRegistry(updatedAt),
+  );
   assertStaticRegistry(registry);
 
-  const baseRevision = registryRevision(registry);
-  const kind = artifactKind(manifest);
+  const baseRevision = computeRegistryRevision(registry);
+  const kind = resolveArtifactKind(manifest);
   const collection = kind === 'app' ? registry.apps : registry.hosts;
   const otherCollection = kind === 'app' ? registry.hosts : registry.apps;
+
   if (otherCollection[manifest.id])
     throw new Error(
       `Atlas stable ID "${manifest.id}" is already registered to another artifact kind.`,
@@ -68,10 +71,10 @@ export function publishArtifact(
   collection[manifest.id] = artifact;
 
   if (!identityChanged && !changed)
-    return unchangedMutation({ registry, baseRevision });
+    return createUnchangedMutation({ registry, baseRevision });
 
   registry.updatedAt = updatedAt;
-  const revised = withRegistryRevision(registry);
+  const revised = applyRegistryRevision(registry);
 
   return {
     registry: revised,
@@ -91,15 +94,16 @@ export function removePreview(
   assertStaticRegistry(current);
 
   const registry = structuredClone(current);
-  const baseRevision = registryRevision(current);
+  const baseRevision = computeRegistryRevision(current);
   const artifact = registry.apps[artifactId] ?? registry.hosts[artifactId];
   const removed = artifact?.previews[String(previewNumber)];
+
   if (!artifact || !removed)
-    return unchangedMutation({ registry, baseRevision });
+    return createUnchangedMutation({ registry, baseRevision });
 
   delete artifact.previews[String(previewNumber)];
   registry.updatedAt = updatedAt;
-  const revised = withRegistryRevision(registry);
+  const revised = applyRegistryRevision(registry);
 
   return {
     registry: revised,
@@ -139,10 +143,12 @@ function applyArtifactVersion({
   if (manifest.release) {
     const version = manifest.release.version;
     const existing = artifact.releases[version];
+
     if (existing && existing.digest !== descriptor.digest)
       throw new Error(
         `Immutable release ${manifest.id}@${version} already exists with a different digest.`,
       );
+
     if (existing) return { changed: false };
 
     artifact.releases[version] = descriptor;
@@ -154,7 +160,8 @@ function applyArtifactVersion({
   if (manifest.preview) {
     const number = String(manifest.preview.number);
     const existing = artifact.previews[number];
-    if (sameDescriptor(existing, descriptor)) return { changed: false };
+
+    if (isSameDescriptor(existing, descriptor)) return { changed: false };
 
     artifact.previews[number] = descriptor;
 
@@ -166,7 +173,7 @@ function applyArtifactVersion({
   );
 }
 
-function unchangedMutation({
+function createUnchangedMutation({
   registry,
   baseRevision,
 }: {
@@ -181,7 +188,7 @@ function unchangedMutation({
   };
 }
 
-function artifactKind(
+function resolveArtifactKind(
   manifest: AtlasPublishedArtifactManifest,
 ): AtlasArtifactKind {
   return manifest.kind === 'app-artifact' ? 'app' : 'host';
@@ -214,10 +221,10 @@ function assertUniqueName({
     );
 }
 
-function withRegistryRevision(
+function applyRegistryRevision(
   registry: AtlasStaticRegistry,
 ): AtlasStaticRegistry {
-  registry.revision = registryRevision(registry) as `sha256:${string}`;
+  registry.revision = computeRegistryRevision(registry) as `sha256:${string}`;
 
   return registry;
 }

@@ -7,14 +7,14 @@ import {
   type AtlasStaticRegistry,
 } from '@atlas/schema';
 import { assertStaticRegistry } from '../../publication/index.js';
-import { sha256Digest } from '../../shared/index.js';
+import { computeSha256Digest, HttpStatusError } from '../../shared/index.js';
 import type { RegistryAccess } from '../types.js';
 
-export function environmentStatePath(environment: string): string {
+export function buildEnvironmentStatePath(environment: string): string {
   return `environments/${environment}/deployment.json`;
 }
 
-export function hostManifestPath({
+export function buildHostManifestPath({
   environment,
   hostId,
 }: {
@@ -24,10 +24,11 @@ export function hostManifestPath({
   return `environments/${environment}/hosts/${hostId}/manifest.json`;
 }
 
-export async function sourceRegistry(
+export async function readSourceRegistry(
   access: RegistryAccess,
 ): Promise<AtlasStaticRegistry> {
-  const registry = await sourceJson({ access, path: 'registry.json' });
+  const registry = await readSourceJson({ access, path: 'registry.json' });
+
   if (!registry) throw new Error('Source registry.json is missing.');
 
   assertStaticRegistry(registry);
@@ -35,56 +36,56 @@ export async function sourceRegistry(
   return registry;
 }
 
-export async function sourceEnvironmentState({
+export async function readSourceEnvironmentState({
   access,
   environment,
 }: {
   access: RegistryAccess;
   environment: string;
 }): Promise<AtlasEnvironmentDeployment | undefined> {
-  const value = await sourceJson({
+  const value = await readSourceJson({
     access,
-    path: environmentStatePath(environment),
+    path: buildEnvironmentStatePath(environment),
   });
 
   return parseEnvironmentState({ value, environment, registry: 'source' });
 }
 
-export async function targetEnvironmentState({
+export async function readTargetEnvironmentState({
   access,
   environment,
 }: {
   access: RegistryAccess;
   environment: string;
 }): Promise<AtlasEnvironmentDeployment | undefined> {
-  const path = environmentStatePath(environment);
+  const path = buildEnvironmentStatePath(environment);
   const bytes = await access.storage.read(path);
   const value = bytes
-    ? parseJson({ bytes, subject: `target ${path}` })
+    ? parseJsonBytes({ bytes, subject: `target ${path}` })
     : undefined;
 
   return parseEnvironmentState({ value, environment, registry: 'target' });
 }
 
-export async function publishedManifest({
+export async function readPublishedManifest({
   access,
   descriptor,
 }: {
   access: RegistryAccess;
   descriptor: AtlasManifestDescriptor;
 }): Promise<AtlasPublishedArtifactManifest> {
-  const bytes = await sourceBytes({ access, path: descriptor.path });
+  const bytes = await readSourceBytes({ access, path: descriptor.path });
 
   if (
     !bytes ||
     bytes.byteLength !== descriptor.size ||
-    sha256Digest(bytes) !== descriptor.digest
+    computeSha256Digest(bytes) !== descriptor.digest
   )
     throw new Error(
       `Atlas artifact descriptor ${descriptor.path} failed integrity verification.`,
     );
 
-  const manifest = parseJson({
+  const manifest = parseJsonBytes({
     bytes,
     subject: `artifact descriptor ${descriptor.path}`,
   });
@@ -121,19 +122,21 @@ function parseEnvironmentState({
   return value;
 }
 
-async function sourceJson({
+async function readSourceJson({
   access,
   path,
 }: {
   access: RegistryAccess;
   path: string;
 }): Promise<unknown> {
-  const bytes = await sourceBytes({ access, path });
+  const bytes = await readSourceBytes({ access, path });
 
-  return bytes ? parseJson({ bytes, subject: `source ${path}` }) : undefined;
+  return bytes
+    ? parseJsonBytes({ bytes, subject: `source ${path}` })
+    : undefined;
 }
 
-async function sourceBytes({
+async function readSourceBytes({
   access: { storage, locations },
   path,
 }: {
@@ -143,18 +146,19 @@ async function sourceBytes({
   if (locations.source === locations.target) return storage.read(path);
 
   const response = await fetch(new URL(path, `${locations.source}/`));
+
   if (response.status === 404) return undefined;
 
   if (!response.ok)
-    throw Object.assign(
-      new Error(`Atlas source returned HTTP ${response.status} for ${path}.`),
-      { status: response.status },
+    throw new HttpStatusError(
+      `Atlas source returned HTTP ${response.status} for ${path}.`,
+      response.status,
     );
 
   return new Uint8Array(await response.arrayBuffer());
 }
 
-function parseJson({
+function parseJsonBytes({
   bytes,
   subject,
 }: {

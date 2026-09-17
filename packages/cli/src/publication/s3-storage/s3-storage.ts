@@ -22,12 +22,12 @@ import {
   DEPLOYMENT_LOCK_PATH,
   MINIMUM_LOCK_LEASE_MS,
   S3DeploymentLock,
-  externalPublicationLease,
+  createExternalPublicationLease,
 } from '../s3-lease/s3-lease.js';
 import {
   isMissingObject,
   isPreconditionFailure,
-  storageError,
+  S3StorageError,
 } from './s3-errors.js';
 
 export type S3PublicationLockMode = 'external' | 's3';
@@ -57,18 +57,20 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   ) {
     if (!options.bucket)
       throw new Error('S3 publication storage requires a bucket.');
+
     this.prefix = options.prefix?.replace(/^\/+|\/+$/g, '') ?? '';
     const lockTimeoutMs = options.lockTimeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
     const lockLeaseMs = options.lockLeaseMs ?? DEFAULT_LOCK_LEASE_MS;
 
     if (lockTimeoutMs < 0)
       throw new Error('S3 lock timeout must not be negative.');
+
     if (lockLeaseMs < MINIMUM_LOCK_LEASE_MS) {
       throw new Error(
         `S3 lock lease must be at least ${MINIMUM_LOCK_LEASE_MS}ms.`,
       );
     }
-    this.client = client ?? new S3Client(s3ClientConfig(options));
+    this.client = client ?? new S3Client(buildS3ClientConfig(options));
     this.lock = new S3DeploymentLock({
       client: this.client,
       bucket: options.bucket,
@@ -89,7 +91,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
         : new Uint8Array();
     } catch (error) {
       if (isMissingObject(error)) return undefined;
-      throw storageError(`read ${path}`, error);
+      throw new S3StorageError(`read ${path}`, error);
     }
   }
 
@@ -104,7 +106,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       return response.Body as AsyncIterable<Uint8Array> | undefined;
     } catch (error) {
       if (isMissingObject(error)) return undefined;
-      throw storageError(`stream ${path}`, error);
+      throw new S3StorageError(`stream ${path}`, error);
     }
   }
 
@@ -115,7 +117,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       .send(new HeadObjectCommand(this.objectInput(path)))
       .catch((error: unknown) => {
         if (isMissingObject(error)) return undefined;
-        throw storageError(`inspect ${path}`, error);
+        throw new S3StorageError(`inspect ${path}`, error);
       });
     if (!response) return undefined;
 
@@ -153,7 +155,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
           }),
         )
         .catch((error: unknown) => {
-          throw storageError(`list ${prefix}`, error);
+          throw new S3StorageError(`list ${prefix}`, error);
         });
       for (const object of response.Contents ?? []) {
         if (!object.Key || object.Size === undefined) continue;
@@ -182,7 +184,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       await this.client.send(
         new PutObjectCommand({
           ...this.objectInput(path),
-          Body: requestBody(bytes),
+          Body: uploadBodyOf(bytes),
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
           IfNoneMatch: '*',
@@ -194,7 +196,8 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
           `Immutable publication object already exists: ${path}`,
           { cause: error },
         );
-      throw storageError(`create ${path}`, error);
+
+      throw new S3StorageError(`create ${path}`, error);
     }
   }
 
@@ -208,7 +211,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       await this.client.send(
         new PutObjectCommand({
           ...this.objectInput(path),
-          Body: requestBody(bytes),
+          Body: uploadBodyOf(bytes),
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
           ...(condition.createOnly ? { IfNoneMatch: '*' } : {}),
@@ -224,7 +227,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
         });
       }
 
-      throw storageError(`replace ${path}`, error);
+      throw new S3StorageError(`replace ${path}`, error);
     }
   }
 
@@ -232,13 +235,14 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     try {
       await this.client.send(new DeleteObjectCommand(this.objectInput(path)));
     } catch (error) {
-      if (!isMissingObject(error)) throw storageError(`remove ${path}`, error);
+      if (!isMissingObject(error))
+        throw new S3StorageError(`remove ${path}`, error);
     }
   }
 
   acquireLock(owner: string): Promise<AtlasPublicationLease> {
     if (this.options.lockMode === 'external')
-      return Promise.resolve(externalPublicationLease());
+      return Promise.resolve(createExternalPublicationLease());
 
     return this.lock.acquire(owner);
   }
@@ -258,11 +262,11 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   }
 }
 
-function requestBody(body: AtlasPublicationBody): Uint8Array | Readable {
+function uploadBodyOf(body: AtlasPublicationBody): Uint8Array | Readable {
   return body instanceof Uint8Array ? body : Readable.from(body);
 }
 
-function s3ClientConfig(options: S3Options): S3ClientConfig {
+function buildS3ClientConfig(options: S3Options): S3ClientConfig {
   const credentials =
     options.accessKeyId && options.secretAccessKey
       ? {

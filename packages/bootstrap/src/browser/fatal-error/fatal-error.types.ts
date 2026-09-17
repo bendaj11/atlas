@@ -5,6 +5,11 @@ export interface BootstrapFailure {
   cause: Error;
 }
 
+export type FatalErrorLogger = (
+  message: string,
+  failure: BootstrapFailure,
+) => void;
+
 export interface FatalErrorDependencies {
   readonly document: Pick<
     Document,
@@ -13,5 +18,5 @@ export interface FatalErrorDependencies {
   readonly sessionStorage: Pick<Storage, 'removeItem'>;
   readonly localStorage: Pick<Storage, 'removeItem'>;
   readonly reloadPage: () => void;
-  readonly logError: (message: string, failure: BootstrapFailure) => void;
+  readonly logError: FatalErrorLogger;
 }

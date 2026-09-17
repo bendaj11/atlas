@@ -1,4 +1,4 @@
-import { asRecord, nonEmptyString } from '../../shared/index.js';
+import { optionalRecord, isNonEmptyString } from '../../shared/index.js';
 
 export interface FederationMetadata {
   exposes: Array<{ key: string; outFileName: string }>;
@@ -7,27 +7,34 @@ export interface FederationMetadata {
 
 export function parseFederationMetadata(bytes: Uint8Array): FederationMetadata {
   const value = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-  const record = asRecord(value);
+  const record = optionalRecord(value);
+
   if (!Array.isArray(record?.exposes))
     throw new Error('Expected an exposes array.');
+
   if (!Array.isArray(record.shared))
     throw new Error('Expected a shared array.');
+
   const exposes = record.exposes.map((candidate) => {
-    const expose = asRecord(candidate);
-    if (!nonEmptyString(expose?.key) || !nonEmptyString(expose.outFileName)) {
+    const expose = optionalRecord(candidate);
+
+    if (
+      !isNonEmptyString(expose?.key) ||
+      !isNonEmptyString(expose.outFileName)
+    ) {
       throw new Error('Every expose requires key and outFileName.');
     }
 
     return { key: expose.key, outFileName: expose.outFileName };
   });
   const shared = record.shared.map((candidate) => {
-    const dependency = asRecord(candidate);
+    const dependency = optionalRecord(candidate);
 
     if (
-      !nonEmptyString(dependency?.packageName) ||
-      !nonEmptyString(dependency.outFileName) ||
-      !nonEmptyString(dependency.version) ||
-      !nonEmptyString(dependency.requiredVersion) ||
+      !isNonEmptyString(dependency?.packageName) ||
+      !isNonEmptyString(dependency.outFileName) ||
+      !isNonEmptyString(dependency.version) ||
+      !isNonEmptyString(dependency.requiredVersion) ||
       typeof dependency.singleton !== 'boolean' ||
       typeof dependency.strictVersion !== 'boolean'
     ) {

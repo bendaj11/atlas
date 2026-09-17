@@ -2,7 +2,7 @@ import { CONTROL_RECONCILIATION_INTERVAL_MS } from '../constants.js';
 import {
   deleteJson,
   isAddressInUse,
-  localOrigin,
+  buildLocalOrigin,
   postJson,
 } from '../http/http.js';
 import type { DevControlServer, StartControlServerOptions } from '../types.js';
@@ -12,7 +12,7 @@ export async function joinControlServer(
   options: StartControlServerOptions,
 ): Promise<DevControlServer> {
   const { document, port } = options;
-  const baseUrl = localOrigin(port);
+  const baseUrl = buildLocalOrigin(port);
   const appIds = document.overrides.map((override) => override.manifest.id);
   const hostQuery = `?hostId=${encodeURIComponent(document.hostId)}`;
   const hostPath = `${baseUrl}/atlas.dev-session/hosts/${encodeURIComponent(document.hostId)}`;

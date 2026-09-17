@@ -30,6 +30,6 @@ export class AtlasPreviewUrlsDriver {
 
   get = {
     result: (): readonly string[] | undefined => this.result,
-    errorMessage: (): string | undefined => this.error?.message,
+    extractErrorMessage: (): string | undefined => this.error?.message,
   };
 }

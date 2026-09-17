@@ -2,7 +2,12 @@ import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import { exists, readJsonFile, readTextFile, writeJsonFile } from './fs.js';
+import {
+  doesPathExist,
+  readJsonFile,
+  readTextFile,
+  writeJsonFile,
+} from './fs.js';
 
 export class FsDriver {
   private root = '';
@@ -32,7 +37,8 @@ export class FsDriver {
   };
 
   readonly get = {
-    exists: (name: string): Promise<boolean> => exists(this.path(name)),
+    pathExists: (name: string): Promise<boolean> =>
+      doesPathExist(this.path(name)),
     text: (name: string): Promise<string | undefined> =>
       readTextFile(this.path(name)),
     json: <T>(name: string): Promise<T | undefined> =>

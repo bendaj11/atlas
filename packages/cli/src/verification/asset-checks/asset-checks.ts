@@ -1,5 +1,5 @@
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
-import { errorMessage } from '../../shared/index.js';
+import { extractErrorMessage } from '../../shared/index.js';
 import { parseFederationMetadata } from '../federation-metadata/federation-metadata.js';
 import {
   checkContentType,
@@ -10,14 +10,14 @@ import {
 import type { AssetExpectation, VerificationContext } from '../types.js';
 import type { VerifiedFetch } from '../verified-fetch/verified-fetch.js';
 
-type ArtifactManifest = AtlasManifest | AtlasHostManifest;
+type VerifiedManifest = AtlasManifest | AtlasHostManifest;
 
 export function verifyManifestAssets({
   manifest,
   context,
   fetch,
 }: {
-  manifest: ArtifactManifest;
+  manifest: VerifiedManifest;
   context: VerificationContext;
   fetch: VerifiedFetch;
 }): Promise<void>[] {
@@ -49,7 +49,7 @@ async function verifyAsset({
   fetch,
 }: {
   asset: AssetExpectation;
-  manifest: ArtifactManifest;
+  manifest: VerifiedManifest;
   context: VerificationContext;
   fetch: VerifiedFetch;
 }): Promise<void> {
@@ -117,7 +117,7 @@ async function verifyFederationReferences({
 }: {
   bytes: Uint8Array;
   remoteEntryUrl: URL;
-  manifest: ArtifactManifest;
+  manifest: VerifiedManifest;
   context: VerificationContext;
   fetch: VerifiedFetch;
 }): Promise<void> {
@@ -128,7 +128,7 @@ async function verifyFederationReferences({
   } catch (error) {
     context.checks.fail(
       `${manifest.id} federation metadata`,
-      errorMessage(error),
+      extractErrorMessage(error),
     );
 
     return;
@@ -151,6 +151,7 @@ async function verifyFederationReferences({
     references.map(async ({ subject, outFileName }) => {
       const url = new URL(outFileName, remoteEntryUrl);
       const response = await fetch.checked({ url, subject, context });
+
       if (!response) return;
 
       checkCors({
@@ -182,7 +183,7 @@ function verifyExposes({
   context,
 }: {
   metadata: ReturnType<typeof parseFederationMetadata>;
-  manifest: ArtifactManifest;
+  manifest: VerifiedManifest;
   context: VerificationContext;
 }): void {
   const exposedKeys = new Set(metadata.exposes.map((entry) => entry.key));

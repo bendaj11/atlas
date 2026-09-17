@@ -7,6 +7,8 @@ import type {
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { AtlasLoaderDependencies } from '../atlas-loader.types.js';
+import type { fetchBytes } from '../../fetch-json/index.js';
+import type { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { loadDeploymentCatalog } from './deployment-catalog.js';
 
 export class DeploymentCatalogDriver {
@@ -18,11 +20,11 @@ export class DeploymentCatalogDriver {
   >();
   private activeArtifactLoads = 0;
   private maximumArtifactLoads = 0;
-  private readonly fetchBytes = jest.fn<AtlasLoaderDependencies['fetchBytes']>(
-    async () => new TextEncoder().encode(JSON.stringify(this.deployment)),
+  private readonly fetchBytes = jest.fn<typeof fetchBytes>(async () =>
+    new TextEncoder().encode(JSON.stringify(this.deployment)),
   );
   private readonly loadPublishedArtifact = jest.fn<
-    AtlasLoaderDependencies['loadPublishedArtifact']
+    typeof loadPublishedArtifact
   >(async ({ reference }) => {
     this.activeArtifactLoads += 1;
     this.maximumArtifactLoads = Math.max(

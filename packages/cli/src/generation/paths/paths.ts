@@ -1,9 +1,9 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
-import type { AtlasWorkspace } from '../../workspace/index.js';
+import type { AtlasWorkspaceKind } from '../../workspace/index.js';
 import { isMissingPathError } from '../../shared/index.js';
 
-export function workspaceLabel(kind: AtlasWorkspace['kind']): string {
+export function getWorkspaceLabel(kind: AtlasWorkspaceKind): string {
   if (kind === 'nx') return 'an Nx workspace';
 
   if (kind === 'turbo') return 'a Turborepo workspace';
@@ -12,7 +12,10 @@ export function workspaceLabel(kind: AtlasWorkspace['kind']): string {
   return 'a standalone project';
 }
 
-export function displayTarget(workspaceRoot: string, root: string): string {
+export function formatDisplayTarget(
+  workspaceRoot: string,
+  root: string,
+): string {
   const target = relative(workspaceRoot, root);
 
   return !target || target === '.'
@@ -36,6 +39,7 @@ export function parseProjectPath(value: string): {
       `Invalid project name or path "${value}". Use a relative path with safe directory names.`,
     );
   }
+
   segments.forEach((segment) =>
     assertSafeId(segment, 'project name or path segment'),
   );

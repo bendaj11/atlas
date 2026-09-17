@@ -1,7 +1,7 @@
 import {
-  httpStatusError,
-  transportError,
-  unknownMutationOutcome,
+  ArtifactoryHttpStatusError,
+  ArtifactoryTransportError,
+  ArtifactoryUnknownMutationOutcomeError,
 } from './artifactory-errors.js';
 
 export function requireRecord(value: unknown): Record<string, unknown> {
@@ -44,7 +44,7 @@ export function lastModified(value: unknown): { lastModified?: string } {
   return { lastModified: value };
 }
 
-export async function readJson({
+export async function readJsonBody({
   response,
   signal,
 }: {
@@ -54,7 +54,7 @@ export async function readJson({
   try {
     return await response.json();
   } catch (error) {
-    throw transportError({
+    throw new ArtifactoryTransportError({
       message: 'Artifactory returned an unreadable JSON response.',
       error,
       signal,
@@ -73,7 +73,7 @@ export async function requireStatus({
 
   await discardResponse(response);
 
-  throw httpStatusError(response.status);
+  throw new ArtifactoryHttpStatusError(response.status);
 }
 
 export async function requireMutationStatus({
@@ -93,7 +93,7 @@ export async function requireMutationStatus({
   ) {
     await discardResponse(response);
 
-    throw unknownMutationOutcome();
+    throw new ArtifactoryUnknownMutationOutcomeError();
   }
 
   await requireStatus({ response, accepted });
@@ -140,6 +140,7 @@ async function* readBody({
   try {
     while (true) {
       const chunk = await reader.read();
+
       if (chunk.done) {
         completed = true;
 
@@ -149,7 +150,7 @@ async function* readBody({
       yield chunk.value;
     }
   } catch (error) {
-    throw transportError({
+    throw new ArtifactoryTransportError({
       message: 'Artifactory download stream failed.',
       error,
       signal,
@@ -160,6 +161,7 @@ async function* readBody({
     } catch {
       completed = true;
     }
+
     reader.releaseLock();
   }
 }

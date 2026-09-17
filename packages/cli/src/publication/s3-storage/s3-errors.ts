@@ -1,28 +1,31 @@
-import { httpStatusOf } from '../../shared/index.js';
+import { extractHttpStatus } from '../../shared/index.js';
 
 export function isMissingObject(error: unknown): boolean {
   return (
-    httpStatusOf(error) === 404 ||
-    errorName(error) === 'NoSuchKey' ||
-    errorName(error) === 'NotFound'
+    extractHttpStatus(error) === 404 ||
+    extractErrorName(error) === 'NoSuchKey' ||
+    extractErrorName(error) === 'NotFound'
   );
 }
 
 export function isPreconditionFailure(error: unknown): boolean {
-  const status = httpStatusOf(error);
+  const status = extractHttpStatus(error);
 
   return (
     status === 409 ||
     status === 412 ||
-    errorName(error) === 'PreconditionFailed'
+    extractErrorName(error) === 'PreconditionFailed'
   );
 }
 
-export function storageError(operation: string, cause: unknown): Error {
-  return new Error(`S3-compatible storage could not ${operation}.`, { cause });
+export class S3StorageError extends Error {
+  constructor(operation: string, cause: unknown) {
+    super(`S3-compatible storage could not ${operation}.`, { cause });
+    this.name = 'S3StorageError';
+  }
 }
 
-function errorName(error: unknown): string | undefined {
+function extractErrorName(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'name' in error
     ? String((error as { name?: unknown }).name)
     : undefined;

@@ -11,7 +11,7 @@ import {
 } from '@atlas/generators';
 import {
   CliArguments,
-  exists,
+  doesPathExist,
   ui,
   type AtlasPrompter,
   type SupportedFramework,
@@ -20,21 +20,21 @@ import type {
   AtlasProjectType,
   AtlasWorkspace,
 } from '../../workspace/index.js';
-import { existingFrameworkVersionInfo } from '../dependencies/dependencies.js';
+import { detectExistingFrameworkVersion } from '../dependencies/dependencies.js';
 import {
   ensureAtlasGeneratedFilesIgnored,
-  existingPackageName,
+  readExistingPackageName,
   writeGenerated,
 } from '../files/files.js';
 import {
-  delegatesScaffold,
+  doesDelegateScaffold,
   logFrameworkVersionSelection,
   logGenerationPlan,
 } from '../generation-log/generation-log.js';
 import { generatedOverlay } from '../overlay/overlay.js';
 import {
   assertWritable,
-  displayTarget,
+  formatDisplayTarget,
   parseProjectPath,
   resolveContainedPath,
 } from '../paths/paths.js';
@@ -86,9 +86,10 @@ export class AtlasGenerateService {
     const { name, segments } = parseProjectPath(projectPath);
     const selectedFramework = framework ?? this.args.framework();
     const hostId = type === 'app' ? this.args.flag('host-id') : undefined;
+
     validateGeneratorOptions({
       ...this.options({ name, framework: selectedFramework, hostId }),
-      ...(this.delegatesScaffold() ? { frameworkVersion: undefined } : {}),
+      ...(this.doesDelegateScaffold() ? { frameworkVersion: undefined } : {}),
     });
 
     const root = resolveGenerationRoot({
@@ -98,7 +99,7 @@ export class AtlasGenerateService {
       name,
       segments,
     });
-    const targetExisted = await exists(root);
+    const targetExisted = await doesPathExist(root);
 
     try {
       await this.generateProject({
@@ -144,6 +145,7 @@ export class AtlasGenerateService {
 
     for (const file of files) {
       const target = resolveContainedPath(app.project.root, file.path);
+
       await assertWritable(
         target,
         this.args.hasFlag('force'),
@@ -184,7 +186,7 @@ export class AtlasGenerateService {
     );
     const devServerPort = await resolveDevServerPort(this.context(), type);
 
-    if (this.delegatesScaffold() && this.prompts.interactive)
+    if (this.doesDelegateScaffold() && this.prompts.interactive)
       this.prompts.close();
 
     const workspaceScaffolded =
@@ -200,10 +202,14 @@ export class AtlasGenerateService {
         stylesheetFormat,
       }));
     const packageName = workspaceScaffolded
-      ? await existingPackageName(root)
+      ? await readExistingPackageName(root)
       : undefined;
     const detected = workspaceScaffolded
-      ? await existingFrameworkVersionInfo(root, this.workspace.root, framework)
+      ? await detectExistingFrameworkVersion(
+          root,
+          this.workspace.root,
+          framework,
+        )
       : undefined;
     if (detected)
       logFrameworkVersionSelection({
@@ -253,6 +259,7 @@ export class AtlasGenerateService {
         frameworkVersion: generatorOptions.frameworkVersion,
         files,
       });
+
     await registerWorkspaceProject({
       workspace: this.workspace,
       root,
@@ -279,8 +286,8 @@ export class AtlasGenerateService {
     };
   }
 
-  private delegatesScaffold(): boolean {
-    return delegatesScaffold({ workspace: this.workspace, args: this.args });
+  private doesDelegateScaffold(): boolean {
+    return doesDelegateScaffold({ workspace: this.workspace, args: this.args });
   }
 
   private context(): ProjectOptionsContext {
@@ -296,7 +303,7 @@ export class AtlasGenerateService {
 
     if (await this.workspace.formatGenerated(root))
       ui.info(
-        `Formatted generated files in ${displayTarget(this.workspace.root, root)}.`,
+        `Formatted generated files in ${formatDisplayTarget(this.workspace.root, root)}.`,
       );
   }
 }

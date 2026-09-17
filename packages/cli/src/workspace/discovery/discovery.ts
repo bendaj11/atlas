@@ -1,11 +1,11 @@
 import { readdir } from 'node:fs/promises';
 import { basename, join, relative, resolve } from 'node:path';
 import {
-  nxOutputPaths,
+  resolveNxOutputPaths,
   type NxProjectConfiguration,
 } from '../nx-output-paths/nx-output-paths.js';
 import type { AtlasProject } from '../types.js';
-import { cliError, exists, readJsonFile } from '../../shared/index.js';
+import { CliError, doesPathExist, readJsonFile } from '../../shared/index.js';
 
 const MAX_DISCOVERY_DEPTH = 5;
 const IGNORED_DIRECTORIES = new Set([
@@ -36,7 +36,7 @@ export async function findAtlasProject(options: {
   ];
 
   for (const candidate of [...requestedRoots, currentDirectory]) {
-    const project = await readProject({
+    const project = await readProjectAt({
       root: candidate,
       requestedName,
       requestedRoots,
@@ -45,12 +45,12 @@ export async function findAtlasProject(options: {
 
     if (project) return project;
   }
-  const matches = await walkProjects({
+  const matches = await walkProjectDirectories({
     directory: workspaceRoot,
     workspaceRoot,
     depth: 0,
     read: (root) =>
-      readProject({
+      readProjectAt({
         root,
         requestedName: name,
         requestedRoots: [],
@@ -61,12 +61,13 @@ export async function findAtlasProject(options: {
   if (matches.length === 1) return matches[0]!;
 
   if (matches.length > 1)
-    throw cliError(
+    throw new CliError(
       `Atlas found multiple projects named "${name}".`,
       'Pass the project directory instead of its name.',
       { code: 'ATLAS_PROJECT_AMBIGUOUS' },
     );
-  throw cliError(
+
+  throw new CliError(
     `Could not find Atlas project "${name}" from workspace ${workspaceRoot}.`,
     [
       'Pass the project package name, Nx project name, or directory.',
@@ -79,13 +80,13 @@ export async function findAtlasProject(options: {
 export async function listAtlasProjects(
   workspaceRoot: string,
 ): Promise<AtlasProject[]> {
-  const projects = await walkProjects({
+  const projects = await walkProjectDirectories({
     directory: workspaceRoot,
     workspaceRoot,
     depth: 0,
     read: async (root) =>
-      (await exists(join(root, 'atlas.config.ts')))
-        ? ((await readProject({
+      (await doesPathExist(join(root, 'atlas.config.ts')))
+        ? ((await readProjectAt({
             root,
             requestedName: basename(root),
             requestedRoots: [],
@@ -97,7 +98,7 @@ export async function listAtlasProjects(
   return projects.sort((left, right) => left.root.localeCompare(right.root));
 }
 
-async function walkProjects(options: {
+async function walkProjectDirectories(options: {
   directory: string;
   workspaceRoot: string;
   depth: number;
@@ -107,6 +108,7 @@ async function walkProjects(options: {
 
   if (depth > MAX_DISCOVERY_DEPTH) return [];
   const project = await read(directory);
+
   if (project === null) return [];
 
   if (project) return [project];
@@ -122,7 +124,7 @@ async function walkProjects(options: {
           !entry.name.startsWith('.'),
       )
       .map((entry) =>
-        walkProjects({
+        walkProjectDirectories({
           directory: join(directory, entry.name),
           workspaceRoot,
           depth: depth + 1,
@@ -134,7 +136,7 @@ async function walkProjects(options: {
   return nested.flat();
 }
 
-async function readProject(options: {
+async function readProjectAt(options: {
   root: string;
   requestedName: string;
   requestedRoots: readonly string[];
@@ -148,6 +150,7 @@ async function readProject(options: {
     join(root, 'project.json'),
   );
   const packageName = packageJson?.name ?? nxProject?.name;
+
   if (!packageName || (!packageJson?.version && !nxProject)) return undefined;
   const identifiers = [
     packageName,
@@ -158,8 +161,10 @@ async function readProject(options: {
 
   if (!identifiers.includes(requestedName) && !requestedRoots.includes(root))
     return undefined;
+
   const configPath = join(root, 'atlas.config.ts');
-  if (!(await exists(configPath))) {
+
+  if (!(await doesPathExist(configPath))) {
     throw new Error(
       `Atlas project "${requestedName}" is missing required configuration file "${relative(workspaceRoot, configPath)}".`,
     );
@@ -176,7 +181,7 @@ async function readProject(options: {
     root,
     packageName,
     version: packageJson?.version ?? workspacePackageJson?.version ?? '0.0.0',
-    outputPaths: nxOutputPaths({
+    outputPaths: resolveNxOutputPaths({
       project: nxProject,
       workspaceRoot,
       projectRoot: relative(workspaceRoot, root),

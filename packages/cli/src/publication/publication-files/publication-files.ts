@@ -6,9 +6,12 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationStorage,
 } from '../publication-storage/types.js';
-import { manifestBytes } from '../static-registry/descriptors/descriptors.js';
+import { encodeManifestBytes } from '../static-registry/descriptors/descriptors.js';
 import type { AtlasBuildResult } from '../../build/index.js';
-import { sha256Digest, IMMUTABLE_CACHE_CONTROL } from '../../shared/index.js';
+import {
+  computeSha256Digest,
+  IMMUTABLE_CACHE_CONTROL,
+} from '../../shared/index.js';
 
 export interface PublicationFile {
   path: string;
@@ -23,26 +26,26 @@ export interface PublicationFiles {
 
 export type PublicationProgressReporter = (message: string) => void;
 
-export async function publicationFiles(
+export async function preparePublicationFiles(
   build: AtlasBuildResult,
 ): Promise<PublicationFiles> {
-  const bytes = manifestBytes(build.manifest);
-  const prefix = artifactPrefix(build.manifest, bytes);
+  const bytes = encodeManifestBytes(build.manifest);
+  const prefix = resolveArtifactPrefix(build.manifest, bytes);
   const payloads = await Promise.all(
     build.manifest.files.map(async (file) => {
-      const sourceBytes = new Uint8Array(
+      const readSourceBytes = new Uint8Array(
         await readFile(join(build.sourceDirectory, file.path)),
       );
       assertPayload({
         path: file.path,
-        bytes: sourceBytes,
+        bytes: readSourceBytes,
         expectedDigest: file.digest,
         expectedSize: file.size,
       });
 
       return {
         path: `${prefix}/${file.path}`,
-        bytes: sourceBytes,
+        bytes: readSourceBytes,
         metadata: {
           cacheControl: file.cacheControl,
           contentType: file.mediaType,
@@ -64,7 +67,7 @@ export async function publicationFiles(
   };
 }
 
-export function publicationIdentity(
+export function derivePublicationIdentity(
   manifest: AtlasPublishedArtifactManifest,
 ): string {
   const artifact = manifest.kind === 'app-artifact' ? 'app' : 'host';
@@ -90,6 +93,7 @@ export async function uploadAndVerify(options: {
     await lease?.assertHeld();
     await createImmutable(storage, file);
   }
+
   reportProgress(
     `Verifying ${files.length} uploaded immutable file(s) and metadata...`,
   );
@@ -98,20 +102,22 @@ export async function uploadAndVerify(options: {
     await lease?.assertHeld();
     const bytes = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
+
     if (!bytes || !metadata) {
       throw new Error(`Published object ${file.path} is missing.`);
     }
+
     assertPayload({
       path: file.path,
       bytes,
-      expectedDigest: sha256Digest(file.bytes),
+      expectedDigest: computeSha256Digest(file.bytes),
       expectedSize: file.bytes.byteLength,
     });
     assertMetadata(file.path, metadata, file.metadata);
   }
 }
 
-function artifactPrefix(
+function resolveArtifactPrefix(
   manifest: AtlasPublishedArtifactManifest,
   bytes: Uint8Array,
 ): string {
@@ -119,7 +125,8 @@ function artifactPrefix(
 
   if (manifest.release)
     return `${collection}/${manifest.id}/${manifest.release.version}`;
-  const digest = sha256Digest(bytes).slice('sha256:'.length);
+
+  const digest = computeSha256Digest(bytes).slice('sha256:'.length);
 
   return `${collection}/${manifest.id}/previews/${manifest.preview!.number}/${digest}`;
 }
@@ -138,7 +145,7 @@ async function createImmutable(
     if (
       existing &&
       metadata &&
-      sha256Digest(existing) === sha256Digest(file.bytes)
+      computeSha256Digest(existing) === computeSha256Digest(file.bytes)
     ) {
       assertMetadata(file.path, metadata, file.metadata);
 
@@ -168,7 +175,7 @@ function assertPayload(options: {
 
   if (
     bytes.byteLength !== expectedSize ||
-    sha256Digest(bytes) !== expectedDigest
+    computeSha256Digest(bytes) !== expectedDigest
   ) {
     throw new Error(`Atlas payload ${path} changed after manifest generation.`);
   }

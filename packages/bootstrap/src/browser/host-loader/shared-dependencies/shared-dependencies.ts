@@ -1,5 +1,5 @@
 import type { HostLoadContext, RemoteMetadata } from '../host-loader.types.js';
-import { hostRemoteError } from '../host-remote-error.js';
+import { HostRemoteInvalidError } from '../../../shared/errors/index.js';
 
 export function installHostSharedDependencies({
   metadata,
@@ -19,7 +19,7 @@ export function installHostSharedDependencies({
       typeof shared.packageName !== 'string' ||
       typeof shared.outFileName !== 'string'
     ) {
-      throw hostRemoteError(
+      throw new HostRemoteInvalidError(
         `Selected host remote entry "${remoteEntryUrl}" declares shared dependency ${JSON.stringify(shared)} without packageName and outFileName.`,
       );
     }

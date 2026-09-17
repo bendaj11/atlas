@@ -19,8 +19,8 @@ const waitForShutdown = jest.fn<typeof ProcessModule.waitForShutdown>();
 const openBrowserWhenReady =
   jest.fn<typeof ProcessModule.openBrowserWhenReady>();
 const logHostViewUrl = jest.fn<typeof ProcessModule.logHostViewUrl>();
-const frameworkServerArguments = jest.fn<
-  typeof ProcessModule.frameworkServerArguments
+const buildFrameworkServerArguments = jest.fn<
+  typeof ProcessModule.buildFrameworkServerArguments
 >((_framework, port) => ['--port', String(port)]);
 
 jest.unstable_mockModule('../control-server/control-server.js', () => ({
@@ -31,7 +31,7 @@ jest.unstable_mockModule('../process/process.js', () => ({
   waitForShutdown,
   openBrowserWhenReady,
   logHostViewUrl,
-  frameworkServerArguments,
+  buildFrameworkServerArguments,
   developmentPreviewUrl: ({ hostUrl }: { hostUrl: string }) => hostUrl,
 }));
 

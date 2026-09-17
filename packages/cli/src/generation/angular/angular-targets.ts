@@ -1,6 +1,6 @@
+import { recordOrEmpty } from '../../shared/index.js';
 import { defaultDevServerPort, hostClientPort } from '@atlas/generators';
 import type { AtlasProjectType } from '../../workspace/index.js';
-import { asObject } from '../nx/nx-project.js';
 
 export type AngularRunnerKey = 'builder' | 'executor';
 
@@ -30,7 +30,7 @@ export function ensureAngularNativeFederationTargets({
   nativeFederationBuilder?: string;
 }): void {
   const builder =
-    nativeFederationBuilderOf({ value: targets.build, runnerKey }) ??
+    findNativeFederationBuilder({ value: targets.build, runnerKey }) ??
     nativeFederationBuilder;
 
   if (
@@ -70,6 +70,7 @@ export function ensureAngularNativeFederationTargets({
         target: targets['serve-original'],
         port: hostClientPort(devServerPort),
       });
+
     targets.serve = {
       [runnerKey]: builder,
       options: {
@@ -91,11 +92,13 @@ export function configureAngularDevelopmentTargets({
   targetsKey: 'architect' | 'targets';
   runnerKey: AngularRunnerKey;
 }): boolean {
-  const targets = asObject(project[targetsKey]);
-  const serve = asObject(targets.serve);
+  const targets = recordOrEmpty(project[targetsKey]);
+  const serve = recordOrEmpty(targets.serve);
+
   if (!isNativeFederationTarget({ value: serve, runnerKey })) return false;
 
-  const options = asObject(serve.options);
+  const options = recordOrEmpty(serve.options);
+
   configureAngularBuildNotifications(options);
   serve.options = options;
   targets.serve = serve;
@@ -111,15 +114,16 @@ function setAngularDevServerPort({
   target: unknown;
   port: number;
 }): void {
-  const targetObject = asObject(target);
-  const options = asObject(targetObject.options);
+  const targetObject = recordOrEmpty(target);
+  const options = recordOrEmpty(targetObject.options);
   options.port = port;
   targetObject.options = options;
 }
 
 function enableAngularBuildNotifications(target: unknown): void {
-  const targetObject = asObject(target);
-  const options = asObject(targetObject.options);
+  const targetObject = recordOrEmpty(target);
+  const options = recordOrEmpty(targetObject.options);
+
   configureAngularBuildNotifications(options);
   targetObject.options = options;
 }
@@ -136,15 +140,17 @@ function configureAngularBuildNotifications(
     return;
   }
 
-  const notifications = asObject(options.buildNotifications);
+  const notifications = recordOrEmpty(options.buildNotifications);
+
   if (notifications.enable === true && notifications.endpoint === undefined)
     notifications.endpoint = ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT;
+
   options.buildNotifications = notifications;
 }
 
 function ensureAngularFederationPolyfills(target: unknown): void {
-  const targetObject = asObject(target);
-  const options = asObject(targetObject.options);
+  const targetObject = recordOrEmpty(target);
+  const options = recordOrEmpty(targetObject.options);
   options.polyfills = addUniquePolyfill({
     value: options.polyfills,
     polyfill: ES_MODULE_SHIMS_POLYFILL,
@@ -180,17 +186,18 @@ function retargetAngularServeBuild({
   target: unknown;
   projectName: string;
 }): void {
-  const serveTarget = asObject(target);
+  const serveTarget = recordOrEmpty(target);
+
   retargetAngularBuildReference({
-    options: asObject(serveTarget.options),
+    options: recordOrEmpty(serveTarget.options),
     projectName,
   });
 
   for (const configuration of Object.values(
-    asObject(serveTarget.configurations),
+    recordOrEmpty(serveTarget.configurations),
   ))
     retargetAngularBuildReference({
-      options: asObject(configuration),
+      options: recordOrEmpty(configuration),
       projectName,
     });
 }
@@ -204,6 +211,7 @@ function retargetAngularBuildReference({
 }): void {
   for (const key of ['buildTarget', 'browserTarget']) {
     const value = options[key];
+
     if (typeof value === 'string')
       options[key] = retargetAngularBuildTarget({ value, projectName });
   }
@@ -230,17 +238,17 @@ function isNativeFederationTarget({
   value: unknown;
   runnerKey: AngularRunnerKey;
 }): boolean {
-  return nativeFederationBuilderOf({ value, runnerKey }) !== undefined;
+  return findNativeFederationBuilder({ value, runnerKey }) !== undefined;
 }
 
-function nativeFederationBuilderOf({
+function findNativeFederationBuilder({
   value,
   runnerKey,
 }: {
   value: unknown;
   runnerKey: AngularRunnerKey;
 }): string | undefined {
-  const builder = asObject(value)[runnerKey];
+  const builder = recordOrEmpty(value)[runnerKey];
 
   return typeof builder === 'string' && NATIVE_FEDERATION_BUILDERS.has(builder)
     ? builder

@@ -2,8 +2,8 @@ import type { AtlasPayloadFileDescriptor } from '@atlas/schema';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   normalizeArtifactPath,
-  payloadDescriptors,
-  payloadRole,
+  describePayloadFiles,
+  classifyPayloadRole,
 } from './payload.js';
 
 export class PayloadDriver {
@@ -24,11 +24,12 @@ export class PayloadDriver {
 
   readonly get = {
     normalized: (path: string): string => normalizeArtifactPath(path),
-    role: (path: string, entryPath: string) => payloadRole(path, entryPath),
+    role: (path: string, entryPath: string) =>
+      classifyPayloadRole(path, entryPath),
     descriptors: (
       paths: readonly string[],
       entryPath: string,
     ): Promise<AtlasPayloadFileDescriptor[]> =>
-      payloadDescriptors({ root: this.directory.root, paths, entryPath }),
+      describePayloadFiles({ root: this.directory.root, paths, entryPath }),
   };
 }

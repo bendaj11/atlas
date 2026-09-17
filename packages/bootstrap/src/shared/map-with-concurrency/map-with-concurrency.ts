@@ -16,11 +16,13 @@ export async function mapWithConcurrency<T, R>({
       nextIndex += 1;
 
       const value = values[index];
+
       if (value !== undefined) results[index] = await operation(value);
     }
   };
 
   const workerCount = Math.min(concurrency, values.length);
+
   await Promise.all(Array.from({ length: workerCount }, worker));
 
   return results;

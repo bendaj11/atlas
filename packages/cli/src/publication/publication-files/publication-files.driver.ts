@@ -5,14 +5,14 @@ import { aProject } from '../../workspace/workspace.testkit.js';
 import { anAppArtifactManifest } from '@atlas/testkit';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
 import {
-  publicationFiles,
-  publicationIdentity,
+  preparePublicationFiles,
+  derivePublicationIdentity,
   uploadAndVerify,
   type PublicationFile,
   type PublicationFiles,
 } from './publication-files.js';
 import type { AtlasBuildResult } from '../../build/index.js';
-import { sha256Digest } from '../../shared/index.js';
+import { computeSha256Digest } from '../../shared/index.js';
 
 export class PublicationFilesDriver {
   private readonly directory = new TemporaryDirectory();
@@ -40,7 +40,7 @@ export class PublicationFilesDriver {
       const bytes = new TextEncoder().encode(declared);
       this.files.push({
         path,
-        digest: sha256Digest(bytes),
+        digest: computeSha256Digest(bytes),
         size: bytes.byteLength,
         mediaType: 'text/plain',
         cacheControl: 'public, max-age=31536000, immutable',
@@ -69,8 +69,9 @@ export class PublicationFilesDriver {
   };
 
   readonly get = {
-    files: (): Promise<PublicationFiles> => publicationFiles(this.build()),
-    identity: (): string => publicationIdentity(this.manifest()),
+    files: (): Promise<PublicationFiles> =>
+      preparePublicationFiles(this.build()),
+    identity: (): string => derivePublicationIdentity(this.manifest()),
     manifest: (): AtlasPublishedArtifactManifest => this.manifest(),
     storedPaths: (): string[] => [...this.storage.objects.keys()],
   };

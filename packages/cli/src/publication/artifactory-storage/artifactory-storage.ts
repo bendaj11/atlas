@@ -17,7 +17,7 @@ export interface ArtifactoryOptions extends ArtifactoryConnectionOptions {
   readonly maxBufferedBytes?: number;
 }
 
-type StorageClient = Pick<
+type ArtifactoryStorageClient = Pick<
   ArtifactoryClient,
   | 'readStream'
   | 'readPublicStream'
@@ -33,14 +33,14 @@ const DEFAULT_MAX_BUFFERED_BYTES = 256 * 1024 * 1024;
 
 /** Artifactory-backed publication under an organization-owned, whole-command writer lock. */
 export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
-  private readonly client: StorageClient;
+  private readonly client: ArtifactoryStorageClient;
   private readonly maxBufferedBytes: number;
   private pendingMutation: Promise<void> = Promise.resolve();
   private unknownMutationFailure: unknown;
 
   constructor(
     private readonly options: ArtifactoryOptions,
-    client?: StorageClient,
+    client?: ArtifactoryStorageClient,
   ) {
     if (typeof options.assertExclusivePublishing !== 'function') {
       throw new Error(
@@ -76,6 +76,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     path: string,
   ): Promise<AtlasPublicationObjectMetadata | undefined> {
     const info = await this.client.fileInfo(path);
+
     if (!info) return undefined;
 
     const headers = await this.client.metadata(path);
@@ -86,6 +87,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
   async verifyDelivery(paths: readonly string[]): Promise<void> {
     for (const path of new Set(paths)) {
       const stored = await this.inspect(path);
+
       if (!stored?.versionToken || stored.size === undefined)
         throw new Error(`Artifactory object is missing from storage: ${path}`);
 
@@ -99,6 +101,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
           'Artifactory delivery verification failed: Content-Type or Cache-Control do not match stored metadata.',
         );
       }
+
       await this.verifyPublicBytes(path, {
         size: stored.size,
         versionToken: stored.versionToken,
@@ -125,9 +128,10 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
   }
 
   replace(
-    ...[path, bytes, metadata, condition]: Parameters<
-      AtlasPublicationStorage['replace']
-    >
+    path: string,
+    bytes: AtlasPublicationBody,
+    metadata: AtlasPublicationObjectMetadata,
+    condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
     return this.serializeMutation(async () => {
       const existing = await this.client.fileInfo(path);
@@ -149,12 +153,14 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
 
   async acquireLock(_owner: string): Promise<AtlasPublicationLease> {
     await this.options.assertExclusivePublishing();
+
     let released = false;
 
     return {
       assertHeld: async () => {
         if (released)
           throw new Error('Artifactory publication lease has been released.');
+
         await this.options.assertExclusivePublishing();
       },
       release: async () => {
@@ -196,6 +202,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     }
 
     const bytes = await collectBody(body, this.maxBufferedBytes);
+
     if (metadata.size !== undefined && metadata.size !== bytes.byteLength) {
       throw new Error(
         'Artifactory upload size does not match publication metadata.',
@@ -203,7 +210,9 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     }
 
     await this.options.assertExclusivePublishing();
+
     const sha256 = createHash('sha256').update(bytes).digest('hex');
+
     await this.client.upload({
       path,
       bytes,
@@ -225,6 +234,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
         'Artifactory publication verification failed: bytes, Content-Type, or Cache-Control do not match.',
       );
     }
+
     await this.options.assertExclusivePublishing();
   }
 
@@ -233,6 +243,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     expected: { size: number; versionToken: string },
   ): Promise<void> {
     const stream = await this.client.readPublicStream(path);
+
     if (!stream)
       throw new Error('Artifactory object is missing from public delivery.');
 
@@ -246,6 +257,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
         throw new Error(
           'Artifactory public delivery size does not match stored object.',
         );
+
       digest.update(chunk);
     }
 
@@ -292,6 +304,7 @@ async function collectBody(
 
     if (size > maximumBytes)
       throw new Error('Artifactory object exceeds maxBufferedBytes.');
+
     chunks.push(chunk);
   }
 

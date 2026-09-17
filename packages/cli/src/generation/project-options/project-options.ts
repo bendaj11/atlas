@@ -1,5 +1,5 @@
 import type { AngularStylesheetFormat } from '@atlas/generators';
-import { suggestedDevServerPort } from '../ports/ports.js';
+import { suggestDevServerPort } from '../ports/ports.js';
 import {
   type CliArguments,
   type SupportedFramework,
@@ -27,6 +27,7 @@ export async function resolveInnerRouting(
 
   if (args.hasFlag('routing') || args.hasFlag('no-routing'))
     return args.routing();
+
   if (!prompts.interactive) return true;
 
   return (
@@ -63,8 +64,10 @@ export async function resolveDevServerPort(
   type: AtlasProjectType,
 ): Promise<number> {
   const defaultPort = defaultDevServerPort(type);
+
   if (args.hasFlag('port')) return args.port('port', defaultPort);
-  const fallback = await suggestedDevServerPort(workspace, type);
+  const fallback = await suggestDevServerPort(workspace, type);
+
   if (!prompts.interactive) return fallback;
 
   while (true) {
@@ -73,6 +76,7 @@ export async function resolveDevServerPort(
       String(fallback),
     );
     const port = Number(value);
+
     if (Number.isInteger(port) && port >= 1 && port <= 65535) return port;
     ui.warning('Port must be an integer between 1 and 65535.');
   }
@@ -84,11 +88,13 @@ export async function ensureWorkspaceGenerator(
 ): Promise<void> {
   if (args.hasFlag('skip-workspace-generator')) return;
   const dependency = await workspace.missingScaffoldDependency(projectType);
+
   if (!dependency) return;
   const approved =
     args.hasFlag('yes') || (await confirmPluginInstall(prompts, dependency));
   if (!approved)
     throw new Error(`${dependency} is required to generate this Nx project.`);
+
   await workspace.installScaffoldDependency(projectType);
 }
 

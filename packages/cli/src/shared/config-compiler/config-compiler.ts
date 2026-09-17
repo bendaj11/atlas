@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import ts from 'typescript';
-import { exists } from '../fs/fs.js';
+import { doesPathExist } from '../fs/fs.js';
 import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 
 export function compiledAtlasConfigCandidates(projectRoot: string): string[] {
@@ -31,6 +31,7 @@ export async function compileAtlasConfig(
 async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   const configPath = findCompilerConfig(projectRoot);
   const raw = ts.readConfigFile(configPath, ts.sys.readFile);
+
   if (raw.error)
     throw new Error(formatTypeScriptDiagnostics([raw.error], projectRoot));
 
@@ -81,6 +82,7 @@ function findCompilerConfig(projectRoot: string): string {
     throw new Error(
       `Could not find tsconfig.app.json or tsconfig.json in ${projectRoot}.`,
     );
+
   return config;
 }
 
@@ -99,7 +101,7 @@ async function compiledAtlasConfigExists(
   projectRoot: string,
 ): Promise<boolean> {
   for (const candidate of compiledAtlasConfigCandidates(projectRoot)) {
-    if (await exists(candidate)) return true;
+    if (await doesPathExist(candidate)) return true;
   }
 
   return false;

@@ -1,7 +1,8 @@
 import {
-  errorMessage,
+  extractErrorMessage,
   isRetryableHttpStatus,
   withExponentialRetry,
+  HttpStatusError,
 } from '../../shared/index.js';
 import { NetworkLimiter } from '../network-limiter/network-limiter.js';
 import type { VerificationContext } from '../types.js';
@@ -45,7 +46,7 @@ export class VerifiedFetch {
     } catch (error) {
       context.checks.fail(
         subject,
-        `${url.href} could not be fetched: ${errorMessage(error)}`,
+        `${url.href} could not be fetched: ${extractErrorMessage(error)}`,
       );
 
       return undefined;
@@ -71,9 +72,9 @@ export class VerifiedFetch {
       });
 
       if (isRetryableHttpStatus(response.status)) {
-        throw Object.assign(
-          new Error(`${url.href} returned HTTP ${response.status}.`),
-          { status: response.status },
+        throw new HttpStatusError(
+          `${url.href} returned HTTP ${response.status}.`,
+          response.status,
         );
       }
 
@@ -88,7 +89,7 @@ export class VerifiedFetch {
   }
 }
 
-export async function parseJson({
+export async function parseJsonResponse({
   response,
   subject,
   context,
@@ -100,7 +101,7 @@ export async function parseJson({
   try {
     return await response.json();
   } catch (error) {
-    context.checks.fail(subject, `Invalid JSON: ${errorMessage(error)}`);
+    context.checks.fail(subject, `Invalid JSON: ${extractErrorMessage(error)}`);
 
     return undefined;
   }

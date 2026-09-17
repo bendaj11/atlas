@@ -1,7 +1,7 @@
 import type { ProcessCommand } from '../../shared/index.js';
 import type { AtlasPackageManager } from '../types.js';
 
-export function packageExecutor({
+export function buildPackageExecutorCommand({
   manager,
   root,
   args,
@@ -18,7 +18,7 @@ export function packageExecutor({
   return { command: 'npx', args, cwd: root };
 }
 
-export function packageScript({
+export function buildPackageScriptCommand({
   manager,
   root,
   script,
@@ -39,6 +39,6 @@ export function packageScript({
   };
 }
 
-export function quietCommand(command: ProcessCommand): ProcessCommand {
+export function silenceCommandOutput(command: ProcessCommand): ProcessCommand {
   return { ...command, stdio: ['ignore', 'ignore', 'inherit'] };
 }

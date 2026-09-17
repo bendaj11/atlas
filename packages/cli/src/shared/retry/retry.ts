@@ -1,12 +1,12 @@
-import { errorCauseOf, httpStatusOf } from '../errors/errors.js';
-import { wait } from '../timers/timers.js';
+import { extractErrorCause, extractHttpStatus } from '../errors/errors.js';
+import { delay } from '../timers/timers.js';
 
 const MAX_ATTEMPTS = 4;
 const INITIAL_DELAY_MS = 250;
 
 export interface RetryOptions {
   readonly onRetry?: (attempt: number, delayMs: number, error: unknown) => void;
-  readonly wait?: (milliseconds: number) => Promise<void>;
+  readonly delay?: (milliseconds: number) => Promise<void>;
 }
 
 export async function withExponentialRetry<T>(
@@ -23,18 +23,18 @@ export async function withExponentialRetry<T>(
 
       const delayMs = INITIAL_DELAY_MS * 2 ** (attempt - 1);
       options.onRetry?.(attempt, delayMs, error);
-      await (options.wait ?? wait)(delayMs);
+      await (options.delay ?? delay)(delayMs);
       attempt += 1;
     }
   }
 }
 
 function isTransientError(error: unknown): boolean {
-  return transientStatus(error) || transientNetworkCode(error);
+  return extractTransientStatus(error) || extractTransientNetworkCode(error);
 }
 
-function transientStatus(error: unknown): boolean {
-  const status = statusCode(error);
+function extractTransientStatus(error: unknown): boolean {
+  const status = httpStatusCodeOf(error);
 
   return status !== undefined && isRetryableHttpStatus(status);
 }
@@ -43,13 +43,13 @@ export function isRetryableHttpStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
 }
 
-function statusCode(error: unknown): number | undefined {
+function httpStatusCodeOf(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
 
-  return httpStatusOf(error) ?? statusCode(errorCauseOf(error));
+  return extractHttpStatus(error) ?? httpStatusCodeOf(extractErrorCause(error));
 }
 
-function transientNetworkCode(error: unknown): boolean {
+function extractTransientNetworkCode(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
 
@@ -65,5 +65,5 @@ function transientNetworkCode(error: unknown): boolean {
     return true;
   }
 
-  return transientNetworkCode(errorCauseOf(error));
+  return extractTransientNetworkCode(extractErrorCause(error));
 }

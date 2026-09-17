@@ -26,7 +26,7 @@ export class RetryDriver {
     run: async (): Promise<void> => {
       try {
         this.result = await withExponentialRetry(this.operation, {
-          wait: async (milliseconds) => {
+          delay: async (milliseconds) => {
             this.delays.push(milliseconds);
           },
         });

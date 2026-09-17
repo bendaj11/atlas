@@ -29,7 +29,7 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
         label: '--registry-config <path>',
         description: 'Optional atlas.registry.ts path',
       },
-      ...storageOptions(),
+      ...buildStorageOptionsHelp(),
       {
         label: '--expected-registry-revision <digest>',
         description: 'Require current registry revision',
@@ -44,7 +44,7 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       { label: '-h, --help', description: 'Show help for this command' },
     ],
-    environment: storageEnvironment(),
+    environment: buildStorageEnvironmentHelp(),
     examples: [
       'atlas publish orders --version 1.4.0',
       'atlas publish orders --pr 123',
@@ -90,7 +90,7 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
         label: '--registry-config <path>',
         description: 'Optional atlas.registry.ts path',
       },
-      ...storageOptions({ includeRegistry: false }),
+      ...buildStorageOptionsHelp({ includeRegistry: false }),
       {
         label: '--expected-registry-revision <digest>',
         description: 'Require current target registry revision',
@@ -101,7 +101,7 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       { label: '-h, --help', description: 'Show help for this command' },
     ],
-    environment: storageEnvironment({ includeSource: true }),
+    environment: buildStorageEnvironmentHelp({ includeSource: true }),
     examples: [
       'atlas deploy orders --to production --version 1.4.0',
       'atlas deploy orders --to production --version latest',
@@ -126,14 +126,14 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
         label: '--registry-config <path>',
         description: 'Optional atlas.registry.ts path',
       },
-      ...storageOptions(),
+      ...buildStorageOptionsHelp(),
       {
         label: '--expected-registry-revision <digest>',
         description: 'Require current registry revision',
       },
       { label: '-h, --help', description: 'Show help for this command' },
     ],
-    environment: storageEnvironment(),
+    environment: buildStorageEnvironmentHelp(),
     examples: ['atlas remove-preview orders --pr 123'],
   },
   'prune-previews': {
@@ -149,19 +149,19 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
         label: '--registry-config <path>',
         description: 'Optional atlas.registry.ts path',
       },
-      ...storageOptions(),
+      ...buildStorageOptionsHelp(),
       {
         label: '--expected-registry-revision <digest>',
         description: 'Require current registry revision',
       },
       { label: '-h, --help', description: 'Show help for this command' },
     ],
-    environment: storageEnvironment(),
+    environment: buildStorageEnvironmentHelp(),
     examples: ['atlas prune-previews --state-file open-previews.json'],
   },
 };
 
-function storageEnvironment({
+function buildStorageEnvironmentHelp({
   includeSource = false,
 }: {
   includeSource?: boolean;
@@ -222,7 +222,7 @@ function storageEnvironment({
   ];
 }
 
-function storageOptions({
+function buildStorageOptionsHelp({
   includeRegistry = true,
 }: {
   includeRegistry?: boolean;

@@ -15,7 +15,7 @@ const {
   deleteJson,
   isAddressInUse,
   listenOnLocalHost,
-  localOrigin,
+  buildLocalOrigin,
   postJson,
   readJsonRequest,
   writeError,
@@ -74,18 +74,18 @@ export class HttpDriver {
       await closeServer(this.server!);
     },
     posted: (path: string, value: unknown): Promise<void> =>
-      postJson(`${localOrigin(this.port)}${path}`, value),
+      postJson(`${buildLocalOrigin(this.port)}${path}`, value),
     deleted: (path: string): Promise<void> =>
-      deleteJson(`${localOrigin(this.port)}${path}`),
+      deleteJson(`${buildLocalOrigin(this.port)}${path}`),
     rawPosted: async (path: string, body: string): Promise<Response> =>
-      fetch(`${localOrigin(this.port)}${path}`, { method: 'POST', body }),
+      fetch(`${buildLocalOrigin(this.port)}${path}`, { method: 'POST', body }),
   };
 
   readonly get = {
     received: () => this.received,
     infoMock: () => info,
     listening: (): boolean => this.server?.listening ?? false,
-    localOrigin: (port: number): string => localOrigin(port),
+    localOrigin: (port: number): string => buildLocalOrigin(port),
     addressInUse: (error: unknown): boolean => isAddressInUse(error),
   };
 }

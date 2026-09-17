@@ -1,6 +1,6 @@
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
-import { suggestedDevServerPort } from './ports.js';
+import { suggestDevServerPort } from './ports.js';
 import type { AtlasProject } from '../../workspace/index.js';
 
 export class PortsDriver {
@@ -30,7 +30,7 @@ export class PortsDriver {
 
   readonly get = {
     suggestedPort: (type: 'host' | 'app'): Promise<number> =>
-      suggestedDevServerPort(
+      suggestDevServerPort(
         aWorkspace({ listProjects: async () => this.projects }),
         type,
       ),

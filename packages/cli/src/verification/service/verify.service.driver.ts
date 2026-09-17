@@ -295,7 +295,7 @@ export class VerifyServiceDriver {
     );
     const host = this.deploymentHostManifest();
     const published = [host, ...manifests].map((manifest) => {
-      const artifact = canonicalArtifact(manifest);
+      const artifact = buildCanonicalArtifact(manifest);
       const bytes = new TextEncoder().encode(JSON.stringify(artifact));
       const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
       const path = `${collection}/${manifest.id}/${manifest.version}/manifest.json`;
@@ -303,7 +303,7 @@ export class VerifyServiceDriver {
         bytes,
         descriptor: {
           path,
-          digest: sha256Digest(bytes),
+          digest: computeSha256Digest(bytes),
           size: bytes.byteLength,
           mediaType: 'application/json' as const,
           url: `${this.assetOrigin}/${path}`,
@@ -373,9 +373,9 @@ export class VerifyServiceDriver {
         });
       }
 
-      const manifestBytes = manifestsByUrl.get(url);
-      if (manifestBytes) {
-        return new Response(manifestBytes, { headers: assetHeaders });
+      const encodeManifestBytes = manifestsByUrl.get(url);
+      if (encodeManifestBytes) {
+        return new Response(encodeManifestBytes, { headers: assetHeaders });
       }
 
       if (
@@ -505,13 +505,13 @@ export class VerifyServiceDriver {
   }
 }
 
-function canonicalArtifact(manifest: AtlasManifest | AtlasHostManifest) {
+function buildCanonicalArtifact(manifest: AtlasManifest | AtlasHostManifest) {
   const entryPath = 'remoteEntry.json';
   const entryBytes = manifest.kind === 'host' ? hostRemoteBytes : remoteBytes;
   const entryDigest: `sha256:${string}` =
     manifest.integrity === 'sha256-invalid'
       ? `sha256:${'0'.repeat(64)}`
-      : sha256Digest(entryBytes);
+      : computeSha256Digest(entryBytes);
   const base = {
     schemaVersion: '2' as const,
     kind:
@@ -554,7 +554,7 @@ function canonicalArtifact(manifest: AtlasManifest | AtlasHostManifest) {
   };
 }
 
-function sha256Digest(bytes: Uint8Array): `sha256:${string}` {
+function computeSha256Digest(bytes: Uint8Array): `sha256:${string}` {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 

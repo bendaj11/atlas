@@ -2,10 +2,10 @@ import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
 import type { AtlasConfig } from '@atlas/schema';
 import { startControlServer } from '../control-server/control-server.js';
-import { closeServer, localOrigin } from '../http/http.js';
+import { closeServer, buildLocalOrigin } from '../http/http.js';
 import { DEFAULT_CONTROL_PORT } from '../constants.js';
 import {
-  frameworkServerArguments,
+  buildFrameworkServerArguments,
   logHostViewUrl,
   openBrowserWhenReady,
   waitForRemoteEntry,
@@ -16,7 +16,7 @@ import { type CliArguments, readJsonFile } from '../../shared/index.js';
 import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 import { resolveRegistryUrl } from '../../build/index.js';
 
-export interface DevSessionContext {
+export interface DevSessionRuntime {
   controlPort: number;
   controlOrigin: string;
   registryUrl: string | undefined;
@@ -24,7 +24,7 @@ export interface DevSessionContext {
   control: DevControlServer;
 }
 
-export interface DevSessionOptions {
+export interface RunDevSessionOptions {
   workspace: AtlasWorkspace;
   args: CliArguments;
   project: AtlasProject;
@@ -33,16 +33,18 @@ export interface DevSessionOptions {
   remoteEntryUrl: string;
   frameworkPort: number;
   hostUrl: string;
-  beforeReady?: (context: DevSessionContext) => Promise<Server | undefined>;
-  browserUrl: (context: DevSessionContext) => string;
+  beforeReady?: (context: DevSessionRuntime) => Promise<Server | undefined>;
+  browserUrl: (context: DevSessionRuntime) => string;
 }
 
-export async function runDevSession(options: DevSessionOptions): Promise<void> {
+export async function runDevSession(
+  options: RunDevSessionOptions,
+): Promise<void> {
   const { workspace, args, project, config, document } = options;
   const controlPort = args.port('control-port', DEFAULT_CONTROL_PORT);
-  const controlOrigin = localOrigin(controlPort);
+  const controlOrigin = buildLocalOrigin(controlPort);
   const registryUrl = resolveRegistryUrl(args);
-  const devTask = await frameworkDevTask(workspace, project);
+  const devTask = await resolveFrameworkDevTask(workspace, project);
   const control = await startControlServer({
     port: controlPort,
     document,
@@ -53,9 +55,9 @@ export async function runDevSession(options: DevSessionOptions): Promise<void> {
   const frameworkServer = workspace.spawn(
     project,
     devTask,
-    frameworkServerArguments(config.framework, options.frameworkPort),
+    buildFrameworkServerArguments(config.framework, options.frameworkPort),
   );
-  const context: DevSessionContext = {
+  const context: DevSessionRuntime = {
     controlPort,
     controlOrigin,
     registryUrl,
@@ -68,6 +70,7 @@ export async function runDevSession(options: DevSessionOptions): Promise<void> {
     await waitForRemoteEntry(options.remoteEntryUrl, frameworkServer);
     bootstrap = await options.beforeReady?.(context);
     await control.markReady();
+
     const browserUrl = options.browserUrl(context);
     logHostViewUrl(options.hostUrl, browserUrl);
     openBrowserWhenReady(args, browserUrl);
@@ -82,7 +85,7 @@ export async function runDevSession(options: DevSessionOptions): Promise<void> {
   }
 }
 
-async function frameworkDevTask(
+async function resolveFrameworkDevTask(
   workspace: AtlasWorkspace,
   project: AtlasProject,
 ): Promise<'dev' | 'framework:dev' | 'serve'> {

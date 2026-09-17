@@ -22,7 +22,7 @@ export async function writeControlServerLease(options: {
   if (options.port === 0) return;
   await ensureLeaseDirectory();
   await writeFile(
-    leasePath(options.port, options.document),
+    buildLeaseFilePath(options.port, options.document),
     JSON.stringify({
       document: options.document,
       processId: process.pid,
@@ -41,7 +41,7 @@ export async function readActiveControlServerLeases(
   const leases = await Promise.all(
     paths
       .filter((path) => path.startsWith(`${port}-`))
-      .map(async (path) => readLease(join(LEASE_DIRECTORY, path))),
+      .map(async (path) => readLeaseFile(join(LEASE_DIRECTORY, path))),
   );
 
   return leases.flatMap((lease) => (lease ? [lease] : []));
@@ -52,18 +52,21 @@ export async function removeControlServerLease(options: {
   document: AtlasDevOverrideDocument;
 }): Promise<void> {
   if (options.port === 0) return;
-  await rm(leasePath(options.port, options.document), { force: true });
+  await rm(buildLeaseFilePath(options.port, options.document), { force: true });
 }
 
-function leasePath(port: number, document: AtlasDevOverrideDocument): string {
-  return join(LEASE_DIRECTORY, `${port}-${leaseId(document)}.json`);
+function buildLeaseFilePath(
+  port: number,
+  document: AtlasDevOverrideDocument,
+): string {
+  return join(LEASE_DIRECTORY, `${port}-${buildLeaseFileId(document)}.json`);
 }
 
 async function ensureLeaseDirectory(): Promise<void> {
   await mkdir(LEASE_DIRECTORY, { recursive: true, mode: 0o700 });
 }
 
-function leaseId(document: AtlasDevOverrideDocument): string {
+function buildLeaseFileId(document: AtlasDevOverrideDocument): string {
   const appIds = document.overrides
     .map((override) => override.appId)
     .sort()
@@ -73,7 +76,7 @@ function leaseId(document: AtlasDevOverrideDocument): string {
   return encodeURIComponent(`${document.hostId}-${artifactKey}`);
 }
 
-async function readLease(
+async function readLeaseFile(
   path: string,
 ): Promise<ControlServerLease | undefined> {
   try {
@@ -100,14 +103,14 @@ function isActiveLease(lease: ControlServerLease): boolean {
     typeof lease.renewedAt === 'number' &&
     Date.now() - lease.renewedAt < LEASE_LIFETIME_MS &&
     typeof lease.processId === 'number' &&
-    processExists(lease.processId) &&
+    isProcessRunning(lease.processId) &&
     typeof lease.ready === 'boolean' &&
     typeof lease.document === 'object' &&
     lease.document !== null
   );
 }
 
-function processExists(processId: number): boolean {
+function isProcessRunning(processId: number): boolean {
   try {
     process.kill(processId, 0);
 

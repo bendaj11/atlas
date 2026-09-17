@@ -1,10 +1,10 @@
 import { isAbsolute, join, relative, sep } from 'node:path';
 import {
-  atlasConfigNxTarget,
-  atlasDevTarget,
-  atlasPublicationTargets,
-  nxTarget,
-  projectAliasTarget,
+  createAtlasConfigNxTarget,
+  createAtlasDevTarget,
+  createAtlasPublicationTargets,
+  createNxTarget,
+  createProjectAliasTarget,
 } from '../nx/nx-targets.js';
 import { readJsonFile, writeJsonFile, isRecord } from '../../shared/index.js';
 import {
@@ -32,16 +32,21 @@ export async function writeNxProject(options: {
 }): Promise<void> {
   const { workspaceRoot, packageManager, root, name, type } = options;
   const cwd = relative(workspaceRoot, root) || '.';
+
   if (cwd === '..' || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
     throw new Error('Nx projects must be generated inside the workspace root.');
   }
   const targets: Record<string, unknown> = {
-    build: nxTarget({ packageManager, cwd, script: 'build' }),
-    serve: nxTarget({ packageManager, cwd, script: 'dev' }),
-    dev: atlasDevTarget({ projectName: name, packageManager }),
-    'atlas:config': atlasConfigNxTarget({ packageManager, cwd }),
-    ...atlasPublicationTargets({ projectName: name, type, packageManager }),
-    [name]: projectAliasTarget(name),
+    build: createNxTarget({ packageManager, cwd, script: 'build' }),
+    serve: createNxTarget({ packageManager, cwd, script: 'dev' }),
+    dev: createAtlasDevTarget({ projectName: name, packageManager }),
+    'atlas:config': createAtlasConfigNxTarget({ packageManager, cwd }),
+    ...createAtlasPublicationTargets({
+      projectName: name,
+      type,
+      packageManager,
+    }),
+    [name]: createProjectAliasTarget(name),
   };
 
   await writeJsonFile(join(root, 'project.json'), {
@@ -56,8 +61,9 @@ export async function writeNxProject(options: {
 export async function ensureTurboTasks(workspaceRoot: string): Promise<void> {
   const turboPath = join(workspaceRoot, 'turbo.json');
   const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
+
   if (!turbo) return;
-  const [taskKey, tasks] = turboTasks(turbo);
+  const [taskKey, tasks] = buildTurboTasks(turbo);
   tasks.dev = isRecord(tasks.dev)
     ? tasks.dev
     : { cache: false, persistent: true };
@@ -72,7 +78,7 @@ export async function ensureTurboTasks(workspaceRoot: string): Promise<void> {
   await writeJsonFile(turboPath, turbo);
 }
 
-function turboTasks(
+function buildTurboTasks(
   turbo: Record<string, unknown>,
 ): ['tasks' | 'pipeline', Record<string, unknown>] {
   if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];

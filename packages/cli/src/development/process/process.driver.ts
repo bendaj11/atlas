@@ -1,10 +1,10 @@
 import { faker } from '@faker-js/faker';
 import {
-  browserOpenCommand,
+  buildBrowserOpenCommand,
   developmentPreviewUrl,
   formatFrameworkServerError,
-  frameworkServerArguments,
-  remoteEntryIsReady,
+  buildFrameworkServerArguments,
+  isRemoteEntryReady,
 } from './process.js';
 
 type RemoteEntryScenario = 'html' | 'missing' | 'metadata';
@@ -44,7 +44,7 @@ export class DevelopmentProcessDriver {
   when = {
     buildBrowserCommand: (platform: NodeJS.Platform): void => {
       const url = faker.internet.url();
-      const result = browserOpenCommand(url, platform);
+      const result = buildBrowserOpenCommand(url, platform);
 
       this.value = {
         args: result.args.map((argument) =>
@@ -56,7 +56,7 @@ export class DevelopmentProcessDriver {
     check: async (): Promise<void> => {
       if (!this.response) throw new Error('Response setup is required.');
 
-      this.ready = await remoteEntryIsReady(this.response);
+      this.ready = await isRemoteEntryReady(this.response);
     },
     formatFailure: (): void => {
       const message = faker.lorem.sentence();
@@ -72,7 +72,7 @@ export class DevelopmentProcessDriver {
       framework: 'angular' | 'react',
       port: number,
     ): void => {
-      this.value = frameworkServerArguments(framework, port);
+      this.value = buildFrameworkServerArguments(framework, port);
     },
     activateHostUrl: (hostUrl: string, controlPort: number): void => {
       this.value = developmentPreviewUrl({

@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import { AtlasError } from '@atlas/schema';
 import { CliErrorDriver } from './cli-error.driver.js';
 
-describe('createCliError', () => {
+describe('normalizeToCliError', () => {
   let driver: CliErrorDriver;
 
   beforeEach(() => {

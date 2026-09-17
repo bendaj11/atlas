@@ -4,7 +4,7 @@ import type { applyOverridesDocument as applyOverridesDocumentType } from '../ap
 import type {
   discoverDevelopmentSession as discoverDevelopmentSessionType,
   storeDevelopmentSession as storeDevelopmentSessionType,
-  storedOverridesDocument as storedOverridesDocumentType,
+  readStoredOverridesDocument as storedOverridesDocumentType,
 } from '../development-session-source/development-session-source.js';
 import type { mergeDevelopmentSession as mergeDevelopmentSessionType } from '../merge-development-session/merge-development-session.js';
 import type { DevSession, OverridesDependencies } from '../overrides.types.js';
@@ -13,7 +13,8 @@ const applyOverridesDocument = jest.fn<typeof applyOverridesDocumentType>();
 const discoverDevelopmentSession =
   jest.fn<typeof discoverDevelopmentSessionType>();
 const storeDevelopmentSession = jest.fn<typeof storeDevelopmentSessionType>();
-const storedOverridesDocument = jest.fn<typeof storedOverridesDocumentType>();
+const readStoredOverridesDocument =
+  jest.fn<typeof storedOverridesDocumentType>();
 const mergeDevelopmentSession = jest.fn<typeof mergeDevelopmentSessionType>();
 jest.unstable_mockModule(
   '../apply-overrides-document/apply-overrides-document.js',
@@ -26,7 +27,7 @@ jest.unstable_mockModule(
   () => ({
     discoverDevelopmentSession,
     storeDevelopmentSession,
-    storedOverridesDocument,
+    readStoredOverridesDocument,
   }),
 );
 jest.unstable_mockModule(
@@ -50,13 +51,13 @@ export class ApplyOverridesDriver {
       applyOverridesDocument,
       discoverDevelopmentSession,
       storeDevelopmentSession,
-      storedOverridesDocument,
+      readStoredOverridesDocument,
       mergeDevelopmentSession,
     ]) {
       mock.mockReset();
     }
     discoverDevelopmentSession.mockResolvedValue(undefined);
-    storedOverridesDocument.mockReturnValue(null);
+    readStoredOverridesDocument.mockReturnValue(null);
     storeDevelopmentSession.mockImplementation(({ session }) =>
       JSON.stringify(session),
     );
@@ -91,7 +92,7 @@ export class ApplyOverridesDriver {
       return this;
     },
     storedDocument: (document: unknown): ApplyOverridesDriver => {
-      storedOverridesDocument.mockReturnValue(JSON.stringify(document));
+      readStoredOverridesDocument.mockReturnValue(JSON.stringify(document));
 
       return this;
     },

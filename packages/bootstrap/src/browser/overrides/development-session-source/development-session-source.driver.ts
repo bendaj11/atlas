@@ -3,9 +3,12 @@ import { jest } from '@jest/globals';
 import {
   discoverDevelopmentSession,
   storeDevelopmentSession,
-  storedOverridesDocument,
+  readStoredOverridesDocument,
 } from './development-session-source.js';
-import type { DevSession, OverridesDependencies } from '../overrides.types.js';
+import type { requestDevelopmentSession } from '../../development-session/index.js';
+import type { fetchJson } from '../../fetch-json/index.js';
+import type { loadPublishedArtifact } from '../../published-artifact/index.js';
+import type { DevSession } from '../overrides.types.js';
 
 export class DevelopmentSessionSourceDriver {
   private readonly sessionStore = new Map<string, string>();
@@ -13,7 +16,7 @@ export class DevelopmentSessionSourceDriver {
   private readonly fetchJson =
     jest.fn<(options: unknown) => Promise<unknown>>();
   private readonly requestDevelopmentSession =
-    jest.fn<OverridesDependencies['requestDevelopmentSession']>();
+    jest.fn<typeof requestDevelopmentSession>();
   private readonly dependencies = {
     sessionStorage: {
       getItem: (key: string) => this.sessionStore.get(key) ?? null,
@@ -23,10 +26,9 @@ export class DevelopmentSessionSourceDriver {
     localStorage: {
       getItem: (key: string) => this.localStore.get(key) ?? null,
     },
-    fetchJson: this.fetchJson as OverridesDependencies['fetchJson'],
+    fetchJson: this.fetchJson as typeof fetchJson,
     requestDevelopmentSession: this.requestDevelopmentSession,
-    loadPublishedArtifact:
-      jest.fn<OverridesDependencies['loadPublishedArtifact']>(),
+    loadPublishedArtifact: jest.fn<typeof loadPublishedArtifact>(),
   };
   private discovered: unknown;
   private stored: string | null | undefined;
@@ -68,7 +70,7 @@ export class DevelopmentSessionSourceDriver {
       });
     },
     documentRead: (): void => {
-      this.stored = storedOverridesDocument(this.dependencies);
+      this.stored = readStoredOverridesDocument(this.dependencies);
     },
   };
 

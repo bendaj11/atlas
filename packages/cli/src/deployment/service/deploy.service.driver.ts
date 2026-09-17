@@ -23,8 +23,8 @@ import {
   type AtlasPublicationObjectMetadata,
   type AtlasPublicationReplaceCondition,
   type AtlasPublicationStorage,
-  descriptorFor,
-  manifestBytes,
+  createManifestDescriptor,
+  encodeManifestBytes,
   publishArtifact,
 } from '../../publication/index.js';
 
@@ -116,7 +116,7 @@ export class DeployServiceDriver {
       this.storage.clear();
       const sourceStorage = new MemoryStorage();
       const registry = await this.catalogFor(sourceStorage);
-      this.source.set('registry.json', jsonBytes(registry));
+      this.source.set('registry.json', encodeJsonBytes(registry));
       for (const path of sourceStorage.paths())
         this.source.set(path, (await sourceStorage.read(path))!);
       await this.storage.seedJson(
@@ -127,7 +127,7 @@ export class DeployServiceDriver {
         }),
       );
       globalThis.fetch = async (input) =>
-        this.sourceResponse(requestUrl(input));
+        this.sourceResponse(extractRequestUrl(input));
       this.separateRegistries = true;
     },
     conflictingFlags: (): void => {
@@ -249,9 +249,9 @@ export class DeployServiceDriver {
   ): Promise<AtlasManifestDescriptor> {
     const collection = manifest.kind === 'app-artifact' ? 'apps' : 'hosts';
     const path = `${collection}/${manifest.id}/${manifest.release!.version}/manifest.json`;
-    const bytes = manifestBytes(manifest);
+    const bytes = encodeManifestBytes(manifest);
     await storage.seed(path, bytes);
-    return descriptorFor(path, bytes);
+    return createManifestDescriptor(path, bytes);
   }
 
   private sourceResponse(url: string): Response {
@@ -323,7 +323,7 @@ class MemoryStorage implements AtlasPublicationStorage {
     this.objects.set(path, bytes);
   }
   async seedJson(path: string, value: unknown): Promise<void> {
-    await this.seed(path, jsonBytes(value));
+    await this.seed(path, encodeJsonBytes(value));
   }
   json<T>(path: string): T {
     const bytes = this.objects.get(path);
@@ -344,10 +344,10 @@ async function collect(body: AtlasPublicationBody): Promise<Uint8Array> {
   for await (const chunk of body) chunks.push(chunk);
   return new Uint8Array(chunks.flatMap((chunk) => [...chunk]));
 }
-function jsonBytes(value: unknown): Uint8Array {
+function encodeJsonBytes(value: unknown): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(value));
 }
-function requestUrl(input: Parameters<typeof fetch>[0]): string {
+function extractRequestUrl(input: Parameters<typeof fetch>[0]): string {
   return typeof input === 'string'
     ? input
     : input instanceof URL

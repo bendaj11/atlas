@@ -9,9 +9,13 @@ import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import {
   isMissingObject,
   isPreconditionFailure,
-  storageError,
+  S3StorageError,
 } from '../s3-storage/s3-errors.js';
-import { cliError, wait, publicationContentType } from '../../shared/index.js';
+import {
+  CliError,
+  delay,
+  resolvePublicationContentType,
+} from '../../shared/index.js';
 
 export const DEPLOYMENT_LOCK_PATH = '.atlas/deployment.lock';
 export const DEFAULT_LOCK_TIMEOUT_MS = 120_000;
@@ -48,7 +52,7 @@ export class S3DeploymentLock {
     let stored = await this.tryAcquire(owner, token);
     while (!stored) {
       if (Date.now() >= deadline) {
-        throw cliError(
+        throw new CliError(
           `Timed out after ${this.options.timeoutMs}ms waiting for Atlas deployment lock.`,
           [
             'Wait for the other publisher to finish, then rerun the command.',
@@ -57,7 +61,8 @@ export class S3DeploymentLock {
           { code: 'ATLAS_LOCK_TIMEOUT' },
         );
       }
-      await wait((this.options.backoffMs ?? randomBackoffMs)());
+
+      await delay((this.options.backoffMs ?? pickRandomBackoffMs)());
       stored = await this.tryAcquire(owner, token);
     }
 
@@ -101,6 +106,7 @@ export class S3DeploymentLock {
             'Atlas deployment lease renewal failed; publication stopped before further mutation.',
             { cause: leaseError },
           );
+
         const current = await this.read();
 
         if (
@@ -125,6 +131,7 @@ export class S3DeploymentLock {
             'Atlas deployment lease was lost during publication.',
             { cause: leaseError },
           );
+
         await this.release(token);
       },
     };
@@ -144,12 +151,14 @@ export class S3DeploymentLock {
       return { lease, etag: requiredEtag(response.ETag) };
     } catch (error) {
       if (!isPreconditionFailure(error))
-        throw storageError('acquire deployment lock', error);
+        throw new S3StorageError('acquire deployment lock', error);
     }
 
     const existing = await this.read();
+
     if (!existing || Date.parse(existing.lease.expiresAt) > Date.now())
       return undefined;
+
     try {
       const response = await this.options.client.send(
         this.putCommand(lease, { IfMatch: existing.etag }),
@@ -158,7 +167,7 @@ export class S3DeploymentLock {
       return { lease, etag: requiredEtag(response.ETag) };
     } catch (error) {
       if (isPreconditionFailure(error)) return undefined;
-      throw storageError('recover expired deployment lock', error);
+      throw new S3StorageError('recover expired deployment lock', error);
     }
   }
 
@@ -176,6 +185,7 @@ export class S3DeploymentLock {
 
   private async release(token: string): Promise<void> {
     const current = await this.read();
+
     if (!current || current.lease.token !== token) return;
 
     try {
@@ -187,7 +197,7 @@ export class S3DeploymentLock {
       );
     } catch (error) {
       if (!isMissingObject(error) && !isPreconditionFailure(error))
-        throw storageError('release deployment lock', error);
+        throw new S3StorageError('release deployment lock', error);
     }
   }
 
@@ -205,7 +215,7 @@ export class S3DeploymentLock {
       return { lease: assertLease(value), etag: response.ETag };
     } catch (error) {
       if (isMissingObject(error)) return undefined;
-      throw storageError('read deployment lock', error);
+      throw new S3StorageError('read deployment lock', error);
     }
   }
 
@@ -217,7 +227,7 @@ export class S3DeploymentLock {
       ...this.objectInput(),
       Body: new TextEncoder().encode(`${JSON.stringify(lease)}\n`),
       CacheControl: 'no-store',
-      ContentType: publicationContentType('lock.json'),
+      ContentType: resolvePublicationContentType('lock.json'),
       ...condition,
     });
   }
@@ -238,7 +248,7 @@ export class S3DeploymentLock {
   }
 }
 
-export function externalPublicationLease(): AtlasPublicationLease {
+export function createExternalPublicationLease(): AtlasPublicationLease {
   return {
     assertHeld: async () => undefined,
     release: async () => undefined,
@@ -248,6 +258,7 @@ export function externalPublicationLease(): AtlasPublicationLease {
 function assertLease(value: unknown): DeploymentLease {
   if (typeof value !== 'object' || value === null)
     throw new Error('Atlas deployment lock is malformed.');
+
   const lease = value as Partial<DeploymentLease>;
 
   if (
@@ -273,6 +284,6 @@ function requiredEtag(etag: string | undefined): string {
   return etag;
 }
 
-function randomBackoffMs(): number {
+function pickRandomBackoffMs(): number {
   return 200 + Math.floor(Math.random() * 300);
 }

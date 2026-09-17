@@ -83,7 +83,7 @@ describe('storeDevelopmentSession', () => {
   });
 });
 
-describe('storedOverridesDocument', () => {
+describe('readStoredOverridesDocument', () => {
   let driver: DevelopmentSessionSourceDriver;
 
   beforeEach(() => {

@@ -4,7 +4,7 @@ import type { AtlasHostConfig, AtlasHostManifest } from '@atlas/schema';
 import { trimTrailingSlash, writeJsonFile } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
 import { discoverStylesheets } from '../stylesheets/stylesheets.js';
-import { buildTimestamp } from '../timestamp/timestamp.js';
+import { createBuildTimestamp } from '../timestamp/timestamp.js';
 
 export const DEFAULT_ENTRY_PATH = 'remoteEntry.json';
 
@@ -36,7 +36,7 @@ export async function writeLocalHostManifest({
     remoteEntryUrl: `${origin}/${DEFAULT_ENTRY_PATH}`,
     exposes: { entry: './host' },
     requiredLoaderApiVersion: '^1.0.0',
-    createdAt: buildTimestamp(),
+    createdAt: createBuildTimestamp(),
     ...(styles.length ? { styles } : {}),
   };
 

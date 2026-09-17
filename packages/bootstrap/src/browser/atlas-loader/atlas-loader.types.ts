@@ -6,11 +6,13 @@ import type { applyOverrides } from '../overrides/index.js';
 import type { loadPublishedArtifact } from '../published-artifact/index.js';
 import type { validateCatalog } from '../validation/index.js';
 
+export type LoaderDocument = Pick<
+  Document,
+  'createElement' | 'getElementById' | 'head'
+>;
+
 export interface AtlasLoaderDependencies {
-  readonly document: Pick<
-    Document,
-    'createElement' | 'getElementById' | 'head'
-  >;
+  readonly document: LoaderDocument;
   readonly location?: Pick<Location, 'href'>;
   readonly fetchBytes: typeof fetchBytes;
   readonly fetchJson: typeof fetchJson;

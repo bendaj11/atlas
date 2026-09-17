@@ -1,14 +1,14 @@
 import type { AtlasPublicationListedObject } from '../publication-storage/types.js';
 import {
-  transportError,
-  unknownMutationOutcome,
+  ArtifactoryTransportError,
+  ArtifactoryUnknownMutationOutcomeError,
 } from './artifactory-errors.js';
 import { encodePath, validateBaseUrl } from './artifactory-paths.js';
 import {
   discardResponse,
   downloadResponse,
   lastModified,
-  readJson,
+  readJsonBody,
   requireMutationStatus,
   requireProperty,
   requireRecord,
@@ -43,6 +43,7 @@ export class ArtifactoryClient {
   ) {
     const baseUrl = validateBaseUrl(options.url);
     const repository = encodePath(options.repository);
+
     if (options.repository.includes('/'))
       throw new Error('Artifactory repository must be one path segment.');
 
@@ -106,7 +107,7 @@ export class ArtifactoryClient {
     }
 
     await requireStatus({ response, accepted: [200] });
-    const info = requireRecord(await readJson({ response, signal }));
+    const info = requireRecord(await readJsonBody({ response, signal }));
     const checksums = requireRecord(info.checksums);
 
     if (
@@ -132,7 +133,7 @@ export class ArtifactoryClient {
     await requireStatus({ response, accepted: [200] });
 
     const properties = requireRecord(
-      requireRecord(await readJson({ response, signal })).properties,
+      requireRecord(await readJsonBody({ response, signal })).properties,
     );
 
     return {
@@ -154,6 +155,7 @@ export class ArtifactoryClient {
 
     const cacheControl = response.headers.get('cache-control')?.trim();
     const contentType = response.headers.get('content-type')?.trim();
+
     if (!cacheControl || !contentType)
       throw new Error(
         'Artifactory delivery requires actual Cache-Control and Content-Type response headers.',
@@ -164,6 +166,7 @@ export class ArtifactoryClient {
 
   async list(prefix: string): Promise<AtlasPublicationListedObject[]> {
     const normalizedPrefix = prefix.replace(/\/$/, '');
+
     if (prefix && !normalizedPrefix)
       throw new Error('Artifactory listing prefix must be relative.');
 
@@ -180,7 +183,8 @@ export class ArtifactoryClient {
     }
 
     await requireStatus({ response, accepted: [200] });
-    const listing = requireRecord(await readJson({ response, signal }));
+    const listing = requireRecord(await readJsonBody({ response, signal }));
+
     if (!Array.isArray(listing.files))
       throw new Error('Artifactory returned an invalid file listing.');
 
@@ -198,11 +202,13 @@ export class ArtifactoryClient {
 
       const relativePath = item.uri.slice(1);
       encodePath(relativePath);
+
       const path = normalizedPrefix
         ? `${normalizedPrefix}/${relativePath}`
         : relativePath;
       if (paths.has(path))
         throw new Error('Artifactory returned duplicate file listing entries.');
+
       paths.add(path);
 
       return {
@@ -276,9 +282,9 @@ export class ArtifactoryClient {
       return { response, signal };
     } catch (error) {
       if (options.method === 'PUT' || options.method === 'DELETE')
-        throw unknownMutationOutcome();
+        throw new ArtifactoryUnknownMutationOutcomeError();
 
-      throw transportError({
+      throw new ArtifactoryTransportError({
         message:
           'Artifactory request failed; check connectivity, TLS trust, and request timeout.',
         error,

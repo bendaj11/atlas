@@ -1,6 +1,6 @@
 import type { AtlasHostCatalog } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
-import { errorMessage, ui } from '../../shared/index.js';
+import { extractErrorMessage, ui } from '../../shared/index.js';
 import type { PublishedCatalogLoader } from '../types.js';
 
 const warnedCatalogs = new Set<string>();
@@ -30,10 +30,11 @@ export function warnPublishedCatalogOnce({
   error: unknown;
 }): void {
   const key = `${registryUrl}|${hostId}`;
+
   if (warnedCatalogs.has(key)) return;
 
   warnedCatalogs.add(key);
   ui.warning(
-    `Published catalog for host "${hostId}" could not be loaded from ${registryUrl}; serving local overrides only. ${errorMessage(error)}`,
+    `Published catalog for host "${hostId}" could not be loaded from ${registryUrl}; serving local overrides only. ${extractErrorMessage(error)}`,
   );
 }

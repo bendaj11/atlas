@@ -14,6 +14,7 @@ export async function readAtlasPreviewUrls(
     await readFile(join(projectRoot, 'package.json'), 'utf8'),
   ) as AtlasPackageMetadata;
   const previews = packageJson.atlas?.previews;
+
   if (previews === undefined) return [];
 
   if (!Array.isArray(previews)) {
@@ -26,20 +27,24 @@ export async function readAtlasPreviewUrls(
 }
 
 function assertPreviewUrl(value: unknown, index: number): string {
-  if (typeof value !== 'string') return invalidPreviewUrl(index);
+  if (typeof value !== 'string') throw new InvalidPreviewUrlError(index);
 
   try {
     const url = new URL(value);
+
     if (url.protocol === 'http:' || url.protocol === 'https:') return value;
   } catch {
-    return invalidPreviewUrl(index);
+    throw new InvalidPreviewUrlError(index);
   }
 
-  return invalidPreviewUrl(index);
+  throw new InvalidPreviewUrlError(index);
 }
 
-function invalidPreviewUrl(index: number): never {
-  throw new Error(
-    `package.json atlas.previews[${index}] must be an absolute HTTP URL.`,
-  );
+class InvalidPreviewUrlError extends Error {
+  constructor(index: number) {
+    super(
+      `package.json atlas.previews[${index}] must be an absolute HTTP URL.`,
+    );
+    this.name = 'InvalidPreviewUrlError';
+  }
 }

@@ -1,11 +1,11 @@
 import type { ArtifactoryOptions } from '../artifactory-storage/artifactory-storage.js';
 import {
-  positiveEnvironmentInteger,
+  readPositiveEnvironmentInteger,
   requiredStorageValue,
 } from '../storage-environment/storage-environment.js';
 import type { CliArguments } from '../../shared/index.js';
 
-export function artifactoryOptionsFromEnvironment(
+export function readArtifactoryOptionsFromEnvironment(
   args?: CliArguments,
 ): ArtifactoryOptions {
   const lockResource = requiredStorageValue({
@@ -32,11 +32,11 @@ export function artifactoryOptionsFromEnvironment(
     accessToken: requiredStorageValue({
       environmentName: 'ATLAS_ARTIFACTORY_ACCESS_TOKEN',
     }),
-    publicUrl: artifactoryPublicUrl(args),
-    requestTimeoutMs: positiveEnvironmentInteger(
+    publicUrl: resolveArtifactoryPublicUrl(args),
+    requestTimeoutMs: readPositiveEnvironmentInteger(
       'ATLAS_ARTIFACTORY_REQUEST_TIMEOUT_MS',
     ),
-    maxBufferedBytes: positiveEnvironmentInteger(
+    maxBufferedBytes: readPositiveEnvironmentInteger(
       'ATLAS_ARTIFACTORY_MAX_BUFFERED_BYTES',
     ),
     assertExclusivePublishing: () => {
@@ -49,7 +49,7 @@ export function artifactoryOptionsFromEnvironment(
   };
 }
 
-function artifactoryPublicUrl(args?: CliArguments): string {
+function resolveArtifactoryPublicUrl(args?: CliArguments): string {
   if (args?.command === 'deploy') {
     const target =
       args.flag('target-registry-url') ?? process.env.ATLAS_TARGET_REGISTRY_URL;

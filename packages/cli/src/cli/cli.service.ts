@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { formatHelp, requestedHelpTopic } from '../help/index.js';
+import { formatHelp, resolveRequestedHelpTopic } from '../help/index.js';
 import {
   CliArguments,
-  cliError,
-  createCliError,
+  CliError,
+  normalizeToCliError,
   resolveInvocation,
   TerminalPrompter,
   type AtlasPrompter,
@@ -25,12 +25,13 @@ export async function runAtlasCli(
 
   try {
     if (VERSION_ARGUMENTS.includes(values[0] ?? '') && values.length === 1) {
-      console.info(cliVersion());
+      console.info(readCliVersion());
 
       return;
     }
 
-    const helpTopic = requestedHelpTopic(values);
+    const helpTopic = resolveRequestedHelpTopic(values);
+
     if (helpTopic) {
       console.info(formatHelp(helpTopic));
 
@@ -38,27 +39,29 @@ export async function runAtlasCli(
     }
 
     const invocation = await resolveInvocation(args, prompts);
+
     if (await runRegistryCommand({ args, invocation })) return;
 
     const workspace = await detectWorkspace();
+
     if (invocation.command !== 'dev') await loadEnvFiles(workspace.root);
 
     if (await runWorkspaceCommand({ workspace, args, prompts, invocation }))
       return;
 
-    throw cliError(
+    throw new CliError(
       `Unknown or incomplete command "${values.join(' ')}".`,
       'Run `atlas --help` to choose a supported command, then retry with the documented arguments.',
       { code: 'ATLAS_UNKNOWN_COMMAND' },
     );
   } catch (error) {
-    throw createCliError(args.command, error);
+    throw normalizeToCliError(args.command, error);
   } finally {
     prompts.close();
   }
 }
 
-function cliVersion(): string {
+function readCliVersion(): string {
   const packageJson = JSON.parse(
     readFileSync(
       fileURLToPath(new URL('../../package.json', import.meta.url)),

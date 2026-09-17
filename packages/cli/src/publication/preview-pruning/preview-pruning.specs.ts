@@ -1,16 +1,16 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasStaticRegistry } from '@atlas/schema';
-import { emptyStaticRegistry } from '../static-registry/static-registry.js';
+import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
 import { PreviewPruningDriver } from './preview-pruning.driver.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function registryReferencing(
+function isRegistryReferencing(
   appId: string,
   generation: string,
 ): AtlasStaticRegistry {
   return {
-    ...emptyStaticRegistry(),
+    ...createEmptyStaticRegistry(),
     apps: {
       [appId]: {
         id: appId,
@@ -66,7 +66,7 @@ describe('pruneUnreferencedPreviewGenerations', () => {
 
   it('should keep a generation the registry still references when pruned', async () => {
     driver.given
-      .registry(registryReferencing(appId, generation))
+      .registry(isRegistryReferencing(appId, generation))
       .given.object(`${generation}/manifest.json`, 2 * DAY_MS);
 
     await driver.when.pruned([

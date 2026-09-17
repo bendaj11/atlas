@@ -11,7 +11,7 @@ import type {
 } from '../../workspace/index.js';
 import { ensureAngularWorkspaceFederationConfig } from '../angular/angular-workspace.js';
 import {
-  dependencyManifestPath,
+  resolveDependencyManifestPath,
   mergePackageDependencies,
 } from '../dependencies/dependencies.js';
 import {
@@ -21,7 +21,7 @@ import {
 import { alignDelegatedAngularFederationConfig } from '../nx/delegated-federation-config.js';
 import { alignDelegatedTsconfig } from '../nx/delegated-tsconfig.js';
 import { ensureDelegatedNxTargets } from '../nx/nx.js';
-import { displayTarget } from '../paths/paths.js';
+import { formatDisplayTarget } from '../paths/paths.js';
 import {
   ensureTurboTasks,
   writeNxProject,
@@ -41,6 +41,7 @@ export function resolveGenerationRoot({
   segments: string[];
 }): string {
   const explicit = args.flag('directory');
+
   if (explicit && explicit !== 'true') return resolve(explicit);
 
   if (workspace.kind === 'nx' || segments.length > 1)
@@ -163,9 +164,10 @@ async function mergeDelegatedDependencies({
   framework: SupportedFramework;
 }): Promise<void> {
   const packageFile = files.find((file) => file.path === 'package.json');
+
   if (!packageFile) return;
 
-  const target = await dependencyManifestPath(root, workspace.root);
+  const target = await resolveDependencyManifestPath(root, workspace.root);
   const changed = await mergePackageDependencies(
     target,
     packageFile.contents,
@@ -174,6 +176,6 @@ async function mergeDelegatedDependencies({
 
   if (changed)
     ui.info(
-      `Added Atlas dependencies to ${displayTarget(workspace.root, target)}.`,
+      `Added Atlas dependencies to ${formatDisplayTarget(workspace.root, target)}.`,
     );
 }

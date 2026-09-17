@@ -27,7 +27,7 @@ interface GitIdentity {
   gitCommitTitle?: string;
 }
 
-export function publicationIdentity(options: {
+export function derivePublicationIdentity(options: {
   args: CliArguments;
   project: AtlasProject;
 }): PublicationIdentity {
@@ -36,12 +36,13 @@ export function publicationIdentity(options: {
   const pr = args.flag('pr');
   const mr = args.flag('mr');
   const selected = [version, pr, mr].filter((value) => value !== undefined);
+
   if (selected.length !== 1) {
     throw new Error(
       'Atlas publish requires exactly one of --version, --pr, or --mr.',
     );
   }
-  const source = gitIdentity(args, project.root);
+  const source = readGitIdentity(args, project.root);
 
   if (version !== undefined) {
     assertReleaseVersion(version);
@@ -51,11 +52,13 @@ export function publicationIdentity(options: {
       ...(Object.keys(source).length ? { source } : {}),
     };
   }
-  const previewNumber = optionalNumber(pr ?? mr);
+  const previewNumber = parseOptionalNumber(pr ?? mr);
+
   if (!previewNumber || previewNumber < 1) {
     throw new Error('--pr and --mr must be positive integers.');
   }
   const { gitSha, ...rest } = source;
+
   if (!gitSha) {
     throw new Error(
       'Preview publication requires the checked-out Git SHA or --git-sha.',
@@ -65,13 +68,13 @@ export function publicationIdentity(options: {
   return { preview: { number: previewNumber, gitSha, ...rest } };
 }
 
-export function releaseIdentity(options: {
+export function deriveReleaseIdentity(options: {
   args: CliArguments;
   project: AtlasProject;
   environment?: NodeJS.ProcessEnv;
 }): ReleaseIdentity {
   const { args, project, environment = process.env } = options;
-  const prNumber = optionalNumber(
+  const prNumber = parseOptionalNumber(
     args.flag('pr') ?? args.flag('mr') ?? args.flag('pr-number'),
   );
   const explicitChannel = args.flag('channel') ?? environment.ATLAS_CHANNEL;
@@ -89,18 +92,20 @@ export function releaseIdentity(options: {
   return {
     channel,
     version,
-    ...gitIdentity(args, project.root),
+    ...readGitIdentity(args, project.root),
     ...(prNumber ? { prNumber } : {}),
   };
 }
 
-function gitIdentity(args: CliArguments, root: string): GitIdentity {
-  const gitSha = args.flag('git-sha') ?? gitOutput(root, ['rev-parse', 'HEAD']);
+function readGitIdentity(args: CliArguments, root: string): GitIdentity {
+  const gitSha =
+    args.flag('git-sha') ?? readGitOutput(root, ['rev-parse', 'HEAD']);
   const gitBranch =
-    args.flag('git-branch') ?? gitOutput(root, ['branch', '--show-current']);
+    args.flag('git-branch') ??
+    readGitOutput(root, ['branch', '--show-current']);
   const gitCommitTitle =
     args.flag('git-commit-title') ??
-    gitOutput(root, ['log', '-1', '--pretty=%s']);
+    readGitOutput(root, ['log', '-1', '--pretty=%s']);
 
   return {
     ...(gitSha ? { gitSha } : {}),
@@ -109,7 +114,10 @@ function gitIdentity(args: CliArguments, root: string): GitIdentity {
   };
 }
 
-function gitOutput(root: string, args: readonly string[]): string | undefined {
+function readGitOutput(
+  root: string,
+  args: readonly string[],
+): string | undefined {
   try {
     return (
       execFileSync('git', args, {
@@ -123,9 +131,10 @@ function gitOutput(root: string, args: readonly string[]): string | undefined {
   }
 }
 
-function optionalNumber(value: string | undefined): number | undefined {
+function parseOptionalNumber(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
+
   if (!Number.isInteger(parsed))
     throw new Error(`Expected an integer, received "${value}".`);
 

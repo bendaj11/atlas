@@ -39,6 +39,7 @@ export function createControlRequestHandler({
 }): ControlRequestHandler {
   return (request, response) => {
     const control = parseControlRequest(request);
+
     setControlHeaders(response);
 
     if (control.method === 'OPTIONS') {
@@ -61,7 +62,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const appReady = pathSegment({
+    const appReady = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${OVERRIDES_PATH}/`,
       suffix: '/ready',
@@ -74,7 +75,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const appRemoved = pathSegment({
+    const appRemoved = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${OVERRIDES_PATH}/`,
     });
@@ -86,7 +87,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const hostReady = pathSegment({
+    const hostReady = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${HOSTS_PATH}/`,
       suffix: '/ready',
@@ -99,7 +100,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const hostRemoved = pathSegment({
+    const hostRemoved = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${HOSTS_PATH}/`,
     });
@@ -136,6 +137,7 @@ export function createControlRequestHandler({
 
     if (control.method === 'GET' && control.pathname === '/health') {
       const ready = session.hasReadySession();
+
       writeJson(
         response,
         ready ? { status: 'ok' } : { status: 'starting' },
@@ -224,6 +226,7 @@ async function loadPublishedCatalog({
   options: StartControlServerOptions;
 }) {
   const { registryUrl, environment = 'production' } = options;
+
   if (!registryUrl || !hostId) return undefined;
 
   const load = options.loadPublishedCatalog ?? readPublishedCatalog;
@@ -257,7 +260,7 @@ function respondWithSession({
   response.end('{"status":"starting"}\n');
 }
 
-function pathSegment({
+function extractPathSegmentBetween({
   pathname,
   prefix,
   suffix = '',

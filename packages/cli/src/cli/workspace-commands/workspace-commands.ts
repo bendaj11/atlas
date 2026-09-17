@@ -64,6 +64,7 @@ async function bootstrap({
   hostName,
 }: WorkspaceCommandContext & { hostName: string }): Promise<void> {
   ui.heading(`Bootstrap · ${hostName}`);
+
   const builds = new AtlasBuildService(workspace, args);
   const result = await new AtlasBootstrapService({
     workspace,
@@ -93,6 +94,7 @@ async function generate({
 
   if (invocation.subcommand === 'host' || invocation.subcommand === 'app') {
     ui.heading(`Generate ${invocation.subcommand} · ${invocation.name}`);
+
     const roots = await service.project(
       invocation.subcommand,
       invocation.name,
@@ -126,6 +128,7 @@ async function publish({
   projectName,
 }: WorkspaceCommandContext & { projectName: string }): Promise<void> {
   ui.heading(`Publish · ${projectName}`);
+
   const builds = new AtlasBuildService(workspace, args);
   const config = await loadAtlasRegistryConfig(args, workspace.root);
   const result = await new AtlasPublishService(args, builds, ui.info).run(
@@ -147,9 +150,11 @@ async function develop({
   prompts,
   invocation,
 }: WorkspaceCommandContext): Promise<void> {
-  const project = projectArgument(invocation);
+  const project = resolveProjectArgument(invocation);
+
   ui.logo();
   ui.heading(`Develop · ${project}`);
+
   const builds = new AtlasBuildService(workspace, args);
   await new AtlasDevService(workspace, args, builds).run(project, prompts);
 }
@@ -158,12 +163,14 @@ async function compileConfig({
   workspace,
   invocation,
 }: WorkspaceCommandContext): Promise<void> {
-  const project = await workspace.findProject(projectArgument(invocation));
+  const project = await workspace.findProject(
+    resolveProjectArgument(invocation),
+  );
   await compileAtlasConfig(workspace, project);
   ui.success(`Compiled ${project.id} atlas.config.ts.`);
 }
 
-function projectArgument(invocation: AtlasInvocation): string {
+function resolveProjectArgument(invocation: AtlasInvocation): string {
   return invocation.subcommand && !invocation.subcommand.startsWith('-')
     ? invocation.subcommand
     : '.';

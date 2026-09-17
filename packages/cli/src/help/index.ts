@@ -1,1 +1,1 @@
-export { formatHelp, requestedHelpTopic } from './help.js';
+export { formatHelp, resolveRequestedHelpTopic } from './help.js';

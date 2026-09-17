@@ -3,13 +3,14 @@ import type { AtlasConfig } from '@atlas/schema';
 import {
   readJsonFile,
   readTextFile,
-  asRecord,
+  optionalRecord,
+  recordOrEmpty,
   isHostConfig,
 } from '../../shared/index.js';
 
 export { isHostConfig };
 
-export function configuredHostIds(config: AtlasConfig): string[] {
+export function listConfiguredHostIds(config: AtlasConfig): string[] {
   if (isHostConfig(config)) return [];
   return [
     ...new Set([
@@ -19,14 +20,14 @@ export function configuredHostIds(config: AtlasConfig): string[] {
   ].filter((hostId) => hostId !== '*');
 }
 
-export function supportsAnyHost(config: AtlasConfig): boolean {
+export function doesSupportAnyHost(config: AtlasConfig): boolean {
   if (isHostConfig(config)) return false;
   return [...(config.routes ?? []), ...(config.slots ?? [])].some(
     (placement) => placement.hostId === '*',
   );
 }
 
-export function routePaths(config: AtlasConfig, hostId: string): string[] {
+export function listRoutePaths(config: AtlasConfig, hostId: string): string[] {
   if (isHostConfig(config)) return [];
   return (
     config.routes
@@ -35,7 +36,7 @@ export function routePaths(config: AtlasConfig, hostId: string): string[] {
   );
 }
 
-export function hostIdFromRoute(
+export function resolveHostIdFromRoute(
   config: AtlasConfig,
   hostUrl: string,
 ): string | undefined {
@@ -45,7 +46,7 @@ export function hostIdFromRoute(
     config.routes
       ?.filter(
         (route) =>
-          route.hostId !== '*' && routeMatchesPath(route.path, pathname),
+          route.hostId !== '*' && doesRouteMatchPath(route.path, pathname),
       )
       .map((route) => route.hostId),
   );
@@ -61,7 +62,7 @@ export function isBaseHostUrl(value: string): boolean {
   return url.pathname === '/' && !url.search && !url.hash;
 }
 
-export function urlWithPath(hostUrl: string, path: string): string {
+export function appendUrlPath(hostUrl: string, path: string): string {
   return `${hostUrl.replace(/\/$/, '')}${path}`;
 }
 
@@ -73,12 +74,14 @@ export async function readConfiguredDevServerPort(
     join(projectRoot, 'angular.json'),
   );
   const angularPort = readAngularProjectPort(angularWorkspace, projectName);
+
   if (angularPort !== undefined) return angularPort;
 
   const nxProject = await readJsonFile<Record<string, unknown>>(
     join(projectRoot, 'project.json'),
   );
-  const nxPort = readPortFromTargets(asObject(nxProject?.targets));
+  const nxPort = readPortFromTargets(recordOrEmpty(nxProject?.targets));
+
   if (nxPort !== undefined) return nxPort;
 
   return await readViteDevServerPort(projectRoot);
@@ -91,9 +94,10 @@ export async function readAngularProxyConfigPath(
   const workspace = await readJsonFile<Record<string, unknown>>(
     join(projectRoot, 'angular.json'),
   );
-  const projects = asObject(workspace?.projects);
-  const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
-  const targets = asObject(project?.architect ?? project?.targets);
+  const projects = recordOrEmpty(workspace?.projects);
+  const project =
+    optionalRecord(projects[projectName]) ?? pickFirstRecordValue(projects);
+  const targets = recordOrEmpty(project?.architect ?? project?.targets);
 
   return (
     readTargetProxyConfig(targets['serve-original']) ??
@@ -101,7 +105,7 @@ export async function readAngularProxyConfigPath(
   );
 }
 
-function routeMatchesPath(path: string, pathname: string): boolean {
+function doesRouteMatchPath(path: string, pathname: string): boolean {
   const normalizedPath = path === '/' ? '/' : path.replace(/\/+$/, '');
 
   return (
@@ -115,10 +119,13 @@ function readAngularProjectPort(
   workspace: Record<string, unknown> | undefined,
   projectName: string,
 ): number | undefined {
-  const projects = asObject(workspace?.projects);
-  const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
+  const projects = recordOrEmpty(workspace?.projects);
+  const project =
+    optionalRecord(projects[projectName]) ?? pickFirstRecordValue(projects);
 
-  return readPortFromTargets(asObject(project?.architect ?? project?.targets));
+  return readPortFromTargets(
+    recordOrEmpty(project?.architect ?? project?.targets),
+  );
 }
 
 function readPortFromTargets(
@@ -130,13 +137,13 @@ function readPortFromTargets(
 }
 
 function readTargetPort(target: unknown): number | undefined {
-  const port = asObject(asObject(target).options).port;
+  const port = recordOrEmpty(recordOrEmpty(target).options).port;
 
   return typeof port === 'number' ? parsePort(port) : undefined;
 }
 
 function readTargetProxyConfig(target: unknown): string | undefined {
-  const proxyConfig = asObject(asObject(target).options).proxyConfig;
+  const proxyConfig = recordOrEmpty(recordOrEmpty(target).options).proxyConfig;
 
   return typeof proxyConfig === 'string' && proxyConfig
     ? proxyConfig
@@ -147,6 +154,7 @@ async function readViteDevServerPort(
   projectRoot: string,
 ): Promise<number | undefined> {
   const source = await readTextFile(join(projectRoot, 'vite.config.ts'));
+
   if (source === undefined) return undefined;
   const match = /\bserver\s*:\s*\{[^}]*\bport\s*:\s*(\d{1,5})\b/s.exec(source);
 
@@ -161,14 +169,11 @@ function parsePort(value: string | number): number | undefined {
     : undefined;
 }
 
-function firstObjectValue(
+function pickFirstRecordValue(
   value: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   return Object.values(value).find(
-    (entry): entry is Record<string, unknown> => asRecord(entry) !== undefined,
+    (entry): entry is Record<string, unknown> =>
+      optionalRecord(entry) !== undefined,
   );
-}
-
-function asObject(value: unknown): Record<string, unknown> {
-  return asRecord(value) ?? {};
 }

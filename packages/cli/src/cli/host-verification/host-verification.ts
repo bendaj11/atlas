@@ -4,7 +4,7 @@ import {
   type AtlasVerificationCheck,
 } from '../../verification/index.js';
 
-export function configuredHostUrls({
+export function collectConfiguredHostUrls({
   args,
   configured = [],
 }: {
@@ -15,7 +15,7 @@ export function configuredHostUrls({
 
   return [
     ...new Set([
-      ...splitUrls(args.flag('host-urls') ?? process.env.ATLAS_HOST_URLS),
+      ...splitUrlList(args.flag('host-urls') ?? process.env.ATLAS_HOST_URLS),
       ...(singleHostUrl ? [singleHostUrl] : []),
       ...configured,
     ]),
@@ -44,6 +44,6 @@ function printVerificationCheck(check: AtlasVerificationCheck): void {
   else ui.error(message);
 }
 
-function splitUrls(value: string | undefined): string[] {
+function splitUrlList(value: string | undefined): string[] {
   return value?.split(/[\s,]+/).filter(Boolean) ?? [];
 }

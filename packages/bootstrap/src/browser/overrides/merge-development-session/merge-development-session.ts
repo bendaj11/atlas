@@ -12,7 +12,6 @@ export function mergeDevelopmentSession({
   const manifestsByAppId = new Map(
     sessionOverrides.map((override) => [override.appId, override.manifest]),
   );
-
   const apps = catalog.apps.map(
     (manifest) => manifestsByAppId.get(manifest.id) || manifest,
   );
@@ -20,6 +19,7 @@ export function mergeDevelopmentSession({
 
   for (const override of sessionOverrides) {
     if (!override.appId || !override.manifest) continue;
+
     if (presentAppIds.has(override.appId)) continue;
 
     apps.push(override.manifest);

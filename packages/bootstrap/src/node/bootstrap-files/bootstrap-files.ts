@@ -2,7 +2,7 @@ import { createBrowserAssetFiles } from '../bootstrap-assets.js';
 import {
   createBootstrapHtml,
   validateBootstrapHtml,
-  versionLoaderSource,
+  applyVersionedLoaderSource,
 } from '../bootstrap-html/bootstrap-html.js';
 import type {
   AtlasBootstrapFile,
@@ -12,7 +12,7 @@ import type {
 export function createAtlasBootstrapFiles(
   options: AtlasBootstrapOptions,
 ): AtlasBootstrapFile[] {
-  const html = versionLoaderSource(
+  const html = applyVersionedLoaderSource(
     options.html ??
       createBootstrapHtml({
         ...(options.title !== undefined ? { title: options.title } : {}),
@@ -25,11 +25,11 @@ export function createAtlasBootstrapFiles(
   validateBootstrapHtml(html);
 
   return [
-    { path: 'index.html', contents: withTrailingNewline(html) },
+    { path: 'index.html', contents: ensureTrailingNewline(html) },
     ...createBrowserAssetFiles(),
   ];
 }
 
-function withTrailingNewline(contents: string): string {
+function ensureTrailingNewline(contents: string): string {
   return contents.endsWith('\n') ? contents : `${contents}\n`;
 }

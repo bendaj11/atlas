@@ -1,21 +1,24 @@
 import { AtlasError, errorSummary } from '@atlas/schema';
 import { COMMAND_ALIASES } from '../arguments/arguments.js';
-import { httpStatusOf } from '../errors/errors.js';
+import { extractHttpStatus } from '../errors/errors.js';
 
-export function cliError(
-  summary: string,
-  suggestedActions: string | readonly string[],
-  options: { code?: string; cause?: unknown } = {},
-): AtlasError {
-  return new AtlasError(summary, {
-    suggestedActions,
-    surface: 'cli',
-    ...(options.code ? { code: options.code } : {}),
-    ...(options.cause !== undefined ? { cause: options.cause } : {}),
-  });
+export class CliError extends AtlasError {
+  constructor(
+    summary: string,
+    suggestedActions: string | readonly string[],
+    options: { code?: string; cause?: unknown } = {},
+  ) {
+    super(summary, {
+      suggestedActions,
+      surface: 'cli',
+      ...(options.code ? { code: options.code } : {}),
+      ...(options.cause !== undefined ? { cause: options.cause } : {}),
+    });
+    this.name = 'CliError';
+  }
 }
 
-export function createCliError(
+export function normalizeToCliError(
   command: string | undefined,
   value: unknown,
 ): AtlasError {
@@ -35,8 +38,8 @@ export function createCliError(
   const cause = value instanceof Error ? value : new Error(String(value));
   const sourceSummary = errorSummary(cause.message);
 
-  return new AtlasError(cliSummary(normalizedCommand, sourceSummary), {
-    suggestedActions: cliActions(normalizedCommand, sourceSummary),
+  return new AtlasError(formatCliSummary(normalizedCommand, sourceSummary), {
+    suggestedActions: resolveCliActions(normalizedCommand, sourceSummary),
     cause,
     code: 'ATLAS_CLI_FAILURE',
     surface: 'cli',
@@ -44,29 +47,30 @@ export function createCliError(
 }
 
 export function formatErrorWithCauses(error: Error): string {
-  const causes = errorCauses(error);
+  const causes = collectErrorCauseMessages(error);
+
   if (causes.length === 0) return error.message;
 
   return `${error.message}\nCaused by: ${causes.join('\nCaused by: ')}`;
 }
 
-function errorCauses(error: Error): readonly string[] {
+function collectErrorCauseMessages(error: Error): readonly string[] {
   const messages: string[] = [];
   const seen = new Set<unknown>([error]);
   let cause = error.cause;
 
   while (cause !== undefined && !seen.has(cause)) {
     seen.add(cause);
-    messages.push(errorCauseMessage(cause));
+    messages.push(formatErrorCauseMessage(cause));
     cause = cause instanceof Error ? cause.cause : undefined;
   }
 
   return messages;
 }
 
-function errorCauseMessage(cause: unknown): string {
+function formatErrorCauseMessage(cause: unknown): string {
   if (cause instanceof Error) {
-    const status = httpStatusOf(cause);
+    const status = extractHttpStatus(cause);
 
     return `${cause.name}: ${cause.message}${status ? ` (HTTP ${status})` : ''}`;
   }
@@ -74,7 +78,10 @@ function errorCauseMessage(cause: unknown): string {
   return String(cause);
 }
 
-function cliSummary(command: string | undefined, summary: string): string {
+function formatCliSummary(
+  command: string | undefined,
+  summary: string,
+): string {
   if (
     /^(Atlas\b|--|ATLAS_|Unknown help topic|Unknown or incomplete command)/i.test(
       summary,
@@ -88,7 +95,7 @@ function cliSummary(command: string | undefined, summary: string): string {
     : `Atlas CLI failed: ${summary}`;
 }
 
-function cliActions(
+function resolveCliActions(
   command: string | undefined,
   message: string,
 ): readonly string[] {
@@ -101,7 +108,7 @@ function cliActions(
   if (/EACCES|EPERM|permission denied|not writable/i.test(message)) {
     return [
       'Give the current user read and write access to the named path.',
-      rerunAction(command),
+      formatRerunCommandAction(command),
     ];
   }
 
@@ -112,21 +119,21 @@ function cliActions(
   ) {
     return [
       'Restore the named file or pass an existing Atlas project or path.',
-      rerunAction(command),
+      formatRerunCommandAction(command),
     ];
   }
 
   if (/CORS|fetch|network|HTTP \d|timed out|could not query/i.test(message)) {
     return [
       'Verify the named URL is reachable with the required credentials and CORS policy.',
-      rerunAction(command),
+      formatRerunCommandAction(command),
     ];
   }
 
   if (/storage|S3|bucket|registry|deployment lock|lease/i.test(message)) {
     return [
       'Correct the named storage, registry, credentials, or deployment-lock condition.',
-      rerunAction(command),
+      formatRerunCommandAction(command),
     ];
   }
 
@@ -137,7 +144,7 @@ function cliActions(
   ) {
     return [
       'Correct the named configuration or TypeScript diagnostic.',
-      rerunAction(command),
+      formatRerunCommandAction(command),
     ];
   }
 
@@ -186,7 +193,7 @@ function cliActions(
   }
 }
 
-function rerunAction(command: string | undefined): string {
+function formatRerunCommandAction(command: string | undefined): string {
   return command
     ? `Rerun \`atlas ${command}\` after correcting the condition.`
     : 'Rerun the Atlas command after correcting the condition.';

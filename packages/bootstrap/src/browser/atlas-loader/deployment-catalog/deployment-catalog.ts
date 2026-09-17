@@ -1,13 +1,17 @@
 import type {
+  AtlasDeploymentManifestReference,
   AtlasHostCatalog,
   AtlasHostDeploymentManifest,
   AtlasManifest,
 } from '@atlas/schema';
-import { assertHostDeploymentManifest, errorSummary } from '@atlas/schema';
+import {
+  assertHostDeploymentManifest,
+  environmentManifestUrl,
+  errorSummary,
+} from '@atlas/schema';
 import { decodeJson } from '../../../shared/decode-json/decode-json.js';
-import { bootstrapError } from '../../../shared/errors/index.js';
+import { DeploymentInvalidError } from '../../../shared/errors/index.js';
 import { mapWithConcurrency } from '../../../shared/map-with-concurrency/map-with-concurrency.js';
-import { environmentManifestUrl } from '@atlas/schema';
 import {
   ARTIFACT_LOAD_CONCURRENCY,
   DEPLOYMENT_CATALOG_GENERATED_AT,
@@ -18,18 +22,19 @@ export async function loadDeploymentCatalog({
   runtime,
   dependencies,
 }: LoaderContext): Promise<AtlasHostCatalog> {
-  const deployment = await fetchDeployment({ runtime, dependencies });
+  const deployment = await fetchDeploymentManifest({ runtime, dependencies });
 
   const manifests = await mapWithConcurrency({
-    values: deploymentReferences(deployment),
+    values: collectDeploymentManifestReferences(deployment),
     operation: (reference) =>
       dependencies.loadPublishedArtifact({ reference, runtime }),
     concurrency: ARTIFACT_LOAD_CONCURRENCY,
   });
 
   const host = manifests[0];
+
   if (!host || host.kind !== 'host') {
-    throw deploymentError(
+    throw new DeploymentInvalidError(
       `Atlas deployment manifest host reference "${deployment.host.path}" does not resolve to a host manifest.`,
     );
   }
@@ -49,7 +54,7 @@ export async function loadDeploymentCatalog({
   };
 }
 
-async function fetchDeployment({
+async function fetchDeploymentManifest({
   runtime,
   dependencies,
 }: LoaderContext): Promise<AtlasHostDeploymentManifest> {
@@ -63,9 +68,9 @@ async function fetchDeployment({
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause);
 
-    throw deploymentError(
+    throw new DeploymentInvalidError(
       `Atlas deployment manifest at "${url}" is invalid: ${errorSummary(detail)}`,
-      cause,
+      { cause },
     );
   }
 
@@ -73,7 +78,7 @@ async function fetchDeployment({
     deployment.hostId !== runtime.hostId ||
     deployment.environment !== runtime.environment
   ) {
-    throw deploymentError(
+    throw new DeploymentInvalidError(
       `Atlas deployment manifest targets host "${deployment.hostId}" in environment "${deployment.environment}" but runtime selects host "${runtime.hostId}" in environment "${runtime.environment}".`,
     );
   }
@@ -81,20 +86,12 @@ async function fetchDeployment({
   return deployment;
 }
 
-function deploymentReferences(
+function collectDeploymentManifestReferences(
   deployment: AtlasHostDeploymentManifest,
-): AtlasHostDeploymentManifest['apps'] {
+): AtlasDeploymentManifestReference[] {
   return [
     deployment.host,
     ...deployment.apps,
     ...(deployment.widgetProviders ?? []),
   ];
-}
-
-function deploymentError(message: string, cause?: unknown) {
-  return bootstrapError({
-    code: 'DEPLOYMENT_INVALID',
-    message,
-    ...(cause === undefined ? {} : { cause }),
-  });
 }

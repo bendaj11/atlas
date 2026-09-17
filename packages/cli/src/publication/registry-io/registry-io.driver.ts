@@ -5,7 +5,7 @@ import { InMemoryPublicationStorage } from '../publication-storage/publication-s
 import type { AtlasRegistryConfig } from '../registry-config/types.js';
 import {
   assertExpectedRegistryRevision,
-  publicRegistryRoot,
+  resolvePublicRegistryRoot,
   readRegistry,
   readRegistryState,
   verifyPublicRegistry,
@@ -102,7 +102,7 @@ export class RegistryIoDriver {
     expectedRevisionAssertion:
       (current: AtlasStaticRegistry | undefined) => () =>
         assertExpectedRegistryRevision(this.args(), current),
-    publicRegistryRoot: (): string => publicRegistryRoot(this.args()),
+    publicRegistryRoot: (): string => resolvePublicRegistryRoot(this.args()),
     fetchMock: () => this.fetchResource,
   };
 

@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
-import { toPosixPath } from '../payload/payload.js';
+import { convertToPosixPath } from '../payload/payload.js';
 import {
-  cliError,
+  CliError,
   IMMUTABLE_CACHE_CONTROL,
-  publicationContentType,
+  resolvePublicationContentType,
 } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
 
@@ -21,8 +21,9 @@ export async function findArtifactRoot(
   lookup: ArtifactRootLookup,
 ): Promise<string> {
   const artifactRoot = await findArtifactRootIfPresent(lookup);
+
   if (artifactRoot) return artifactRoot;
-  throw cliError(
+  throw new CliError(
     `Atlas could not find build artifacts containing ${lookup.entryPath} for "${lookup.config.id}".`,
     [
       'Run the project production build first.',
@@ -52,7 +53,7 @@ export async function findArtifactRootIfPresent(
         ])
       : conventional;
   for (const candidate of candidates) {
-    if (await containsEntry(candidate, entryPath)) return candidate;
+    if (await doesDirectoryContainEntry(candidate, entryPath)) return candidate;
   }
 
   return undefined;
@@ -66,6 +67,7 @@ export async function listArtifactFiles(
   const files = await Promise.all(
     entries.map(async (entry) => {
       const path = join(relative, entry.name);
+
       if (entry.isDirectory()) return listArtifactFiles(root, path);
 
       if (entry.isFile()) return [path];
@@ -82,9 +84,9 @@ export async function hashArtifactDirectory(root: string): Promise<string> {
   const hash = createHash('sha256');
 
   for (const relativePath of await listArtifactFiles(root)) {
-    hash.update(toPosixPath(relativePath));
+    hash.update(convertToPosixPath(relativePath));
     hash.update('\0');
-    hash.update(publicationContentType(relativePath));
+    hash.update(resolvePublicationContentType(relativePath));
     hash.update(`\0${IMMUTABLE_CACHE_CONTROL}\0`);
     hash.update(await readFile(join(root, relativePath)));
     hash.update('\0');
@@ -93,7 +95,7 @@ export async function hashArtifactDirectory(root: string): Promise<string> {
   return hash.digest('hex');
 }
 
-async function containsEntry(
+async function doesDirectoryContainEntry(
   directory: string,
   entryPath: string,
 ): Promise<boolean> {

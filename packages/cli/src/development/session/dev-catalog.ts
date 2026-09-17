@@ -1,5 +1,9 @@
-import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
-import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
+import type { AtlasRuntimeOverride } from '@atlas/runtime';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasManifest,
+} from '@atlas/schema';
 import { LOCAL_HOST_PLACEHOLDER_PORT } from '../constants.js';
 import type {
   AtlasDevOverrideDocument,
@@ -11,7 +15,7 @@ export function createLocalDevCatalog(
 ): AtlasHostCatalog {
   const host =
     document.hostOverride ??
-    localHostPlaceholder({
+    createLocalHostPlaceholder({
       hostId: document.hostId,
       createdAt: document.generatedAt,
     });
@@ -22,7 +26,7 @@ export function createLocalDevCatalog(
     revision: `local:${document.generatedAt}`,
     generatedAt: document.generatedAt,
     host,
-    apps: uniqueManifests(document.overrides),
+    apps: dedupeManifests(document.overrides),
   };
 }
 
@@ -69,9 +73,7 @@ export function mergeLocalCatalog({
   };
 }
 
-function uniqueManifests(
-  overrides: AtlasRuntimeOverrideDocument['overrides'],
-): AtlasHostCatalog['apps'] {
+function dedupeManifests(overrides: AtlasRuntimeOverride[]): AtlasManifest[] {
   const manifests = overrides.map((override) => override.manifest);
 
   return [
@@ -79,7 +81,7 @@ function uniqueManifests(
   ];
 }
 
-function localHostPlaceholder({
+function createLocalHostPlaceholder({
   hostId,
   createdAt,
 }: {

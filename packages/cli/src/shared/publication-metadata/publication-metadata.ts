@@ -26,7 +26,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.woff2': 'font/woff2',
 };
 
-export function publicationContentType(path: string): string {
+export function resolvePublicationContentType(path: string): string {
   return (
     CONTENT_TYPES[extname(path).toLowerCase()] ?? 'application/octet-stream'
   );

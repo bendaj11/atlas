@@ -6,5 +6,6 @@ export {
 } from './bootstrap-html/bootstrap-html.js';
 export type {
   AtlasBootstrapFile,
+  AtlasBootstrapFilePath,
   AtlasBootstrapOptions,
 } from './bootstrap-types.js';

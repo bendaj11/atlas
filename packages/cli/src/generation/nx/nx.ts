@@ -11,9 +11,10 @@ import {
 } from '../../workspace/index.js';
 import { ensureAngularNativeFederationTargets } from '../angular/angular-targets.js';
 import { addUniqueString } from '../files/files.js';
-import { asObject, assertNxProjectRootMatches } from './nx-project.js';
+import { recordOrEmpty } from '../../shared/index.js';
+import { assertNxProjectRootMatches } from './nx-project.js';
 import {
-  atlasPublicationTargets,
+  createAtlasPublicationTargets,
   ensureAtlasConfigTarget,
   ensureDevTarget,
   preserveNativeDevTarget,
@@ -40,6 +41,7 @@ export async function ensureDelegatedNxTargets({
 }): Promise<void> {
   const projectFile = join(root, 'project.json');
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
+
   if (!project) return;
 
   const projectName =
@@ -49,7 +51,7 @@ export async function ensureDelegatedNxTargets({
     workspaceRoot,
     root,
   });
-  const targets = asObject(project.targets);
+  const targets = recordOrEmpty(project.targets);
 
   preserveNativeDevTarget({ targets, projectName });
 
@@ -60,12 +62,14 @@ export async function ensureDelegatedNxTargets({
       type,
       runnerKey: 'executor',
       devServerPort,
-      nativeFederationBuilder: angularNativeFederationBuilder(frameworkVersion),
+      nativeFederationBuilder:
+        selectAngularNativeFederationBuilder(frameworkVersion),
     });
+
   ensureAtlasConfigTarget({ targets, projectName });
   Object.assign(
     targets,
-    atlasPublicationTargets({ projectName, type, packageManager }),
+    createAtlasPublicationTargets({ projectName, type, packageManager }),
   );
   ensureDevTarget({
     targets,
@@ -85,7 +89,7 @@ export async function ensureDelegatedNxTargets({
   await writeJsonFile(projectFile, project);
 }
 
-function angularNativeFederationBuilder(version?: string): string {
+function selectAngularNativeFederationBuilder(version?: string): string {
   const major = Number(version?.match(/\d+/u)?.[0]);
 
   return major >= 20

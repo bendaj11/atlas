@@ -12,47 +12,60 @@ const TRANSPORT_TIMEOUT_CODES = new Set([
   'UND_ERR_BODY_TIMEOUT',
 ]);
 
-export function unknownMutationOutcome(): Error {
-  return Object.assign(
-    new Error(
+export class ArtifactoryUnknownMutationOutcomeError extends Error {
+  readonly publicationOutcomeUnknown = true;
+
+  constructor() {
+    super(
       'Artifactory mutation outcome is unknown; stop publishers and reconcile outstanding requests before retrying.',
-    ),
-    { publicationOutcomeUnknown: true },
-  );
+    );
+    this.name = 'ArtifactoryUnknownMutationOutcomeError';
+  }
 }
 
-export function httpStatusError(status: number): Error {
-  return Object.assign(
-    new Error(`Artifactory request returned HTTP ${status}.`),
-    { status },
-  );
+export class ArtifactoryHttpStatusError extends Error {
+  constructor(readonly status: number) {
+    super(`Artifactory request returned HTTP ${status}.`);
+    this.name = 'ArtifactoryHttpStatusError';
+  }
 }
 
-export function transportError({
-  message,
-  error,
-  signal,
-}: {
-  message: string;
-  error: unknown;
-  signal: AbortSignal;
-}): Error {
-  if (
+export class ArtifactoryTransportError extends Error {
+  declare readonly code?: string;
+
+  constructor({
+    message,
+    error,
+    signal,
+  }: {
+    message: string;
+    error: unknown;
+    signal: AbortSignal;
+  }) {
+    super(message);
+    this.name = 'ArtifactoryTransportError';
+
+    const code = isSyntaxError(error)
+      ? undefined
+      : (extractTransportFailureCode(error) ??
+        (signal.aborted
+          ? extractTransportFailureCode(signal.reason)
+          : undefined));
+
+    if (code) this.code = code;
+  }
+}
+
+function isSyntaxError(error: unknown): boolean {
+  return (
     typeof error === 'object' &&
     error !== null &&
     'name' in error &&
     error.name === 'SyntaxError'
-  )
-    return new Error(message);
-
-  const code =
-    transportFailureCode(error) ??
-    (signal.aborted ? transportFailureCode(signal.reason) : undefined);
-
-  return Object.assign(new Error(message), code ? { code } : {});
+  );
 }
 
-function transportFailureCode(error: unknown): string | undefined {
+function extractTransportFailureCode(error: unknown): string | undefined {
   const visited = new Set<object>();
   let failure = error;
 
@@ -67,9 +80,9 @@ function transportFailureCode(error: unknown): string | undefined {
       return 'ETIMEDOUT';
 
     const code = 'code' in failure ? failure.code : undefined;
+
     if (typeof code === 'string') {
       if (TRANSIENT_NETWORK_CODES.has(code)) return code;
-
       if (TRANSPORT_TIMEOUT_CODES.has(code)) return 'ETIMEDOUT';
     }
 

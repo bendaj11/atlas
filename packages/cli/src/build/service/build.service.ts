@@ -10,10 +10,10 @@ import {
 import {
   assertAppConfig,
   CliArguments,
-  cliError,
+  CliError,
   compileAtlasConfig,
   isHostConfig,
-  sha256Integrity,
+  computeSha256Integrity,
   trimTrailingSlash,
 } from '../../shared/index.js';
 import type { AtlasWorkspace } from '../../workspace/index.js';
@@ -30,9 +30,9 @@ import {
   writeLocalHostManifest,
 } from '../local-host-manifest/local-host-manifest.js';
 import { buildPublishedManifest } from '../published-manifest/published-manifest.js';
-import { releaseIdentity } from '../release-identity/release-identity.js';
+import { deriveReleaseIdentity } from '../release-identity/release-identity.js';
 import { discoverStylesheets } from '../stylesheets/stylesheets.js';
-import { buildTimestamp } from '../timestamp/timestamp.js';
+import { createBuildTimestamp } from '../timestamp/timestamp.js';
 import type { AtlasBuildResult, BuildManifestOptions } from '../types.js';
 
 const LOCAL_REGISTRY_URL = 'http://localhost:4400';
@@ -87,7 +87,7 @@ export class AtlasBuildService {
       await this.workspace.run(project, 'build');
 
     const config = assertAppConfig(await this.loadConfig(project.root));
-    const release = releaseIdentity({ args: this.args, project });
+    const release = deriveReleaseIdentity({ args: this.args, project });
     const channel = forcedChannel ?? release.channel;
     const entryPath = this.entryPath();
     const lookup = {
@@ -116,7 +116,7 @@ export class AtlasBuildService {
     );
     const integrity =
       artifactRoot && channel !== 'local'
-        ? sha256Integrity(await readFile(join(artifactRoot, entryPath)))
+        ? computeSha256Integrity(await readFile(join(artifactRoot, entryPath)))
         : undefined;
 
     return createManifestFromConfig({
@@ -129,7 +129,7 @@ export class AtlasBuildService {
       gitBranch: release.gitBranch,
       gitCommitTitle: release.gitCommitTitle,
       prNumber: release.prNumber,
-      createdAt: buildTimestamp(),
+      createdAt: createBuildTimestamp(),
       exportedWidgets: await discoverExportedWidgets({
         projectRoot: project.root,
         config,
@@ -151,6 +151,7 @@ export class AtlasBuildService {
   ): Promise<AtlasHostManifest> {
     const project = await this.workspace.findProject(projectName);
     const config = await this.loadConfig(project.root);
+
     if (!isHostConfig(config))
       throw new Error(`Atlas dev expected "${projectName}" to be a host.`);
 
@@ -172,7 +173,7 @@ export class AtlasBuildService {
 
     if (channel === 'local') return LOCAL_REGISTRY_URL;
 
-    throw cliError(
+    throw new CliError(
       '--registry-url or ATLAS_REGISTRY_URL is required for non-local builds.',
       'Pass --registry-url <https://registry-root> or export ATLAS_REGISTRY_URL.',
       { code: 'ATLAS_REGISTRY_URL_MISSING' },

@@ -10,7 +10,7 @@ export function isMissingPathError(error: unknown): boolean {
   );
 }
 
-export async function exists(path: string): Promise<boolean> {
+export async function doesPathExist(path: string): Promise<boolean> {
   try {
     await access(path);
 
@@ -32,6 +32,7 @@ export async function readTextFile(path: string): Promise<string | undefined> {
 
 export async function readJsonFile<T>(path: string): Promise<T | undefined> {
   const source = await readTextFile(path);
+
   if (source === undefined) return undefined;
 
   try {

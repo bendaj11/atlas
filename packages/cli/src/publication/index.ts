@@ -36,10 +36,10 @@ export type {
   AtlasPublishProgressReporter,
   AtlasPublishResult,
 } from './types.js';
-export { canonicalJson } from './static-registry/revision/registry-revision.js';
+export { stringifyCanonicalJson } from './static-registry/revision/registry-revision.js';
 export {
-  descriptorFor,
-  manifestBytes,
+  createManifestDescriptor,
+  encodeManifestBytes,
 } from './static-registry/descriptors/descriptors.js';
 export { resolveRegistryArtifact } from './static-registry/resolution/artifact-resolution.js';
 export { publishArtifact } from './static-registry/static-registry.js';

@@ -8,7 +8,7 @@ import {
   DEFAULT_APP_DEV_PORT,
   DEFAULT_HOST_BOOTSTRAP_PORT,
 } from '../constants.js';
-import { localOrigin } from '../http/http.js';
+import { buildLocalOrigin } from '../http/http.js';
 import { writeDevOverrideDocument } from '../overrides/overrides.js';
 import { resolveHostDevPorts } from '../ports/ports.js';
 import { assertUsableAngularBuildPackage } from '../preflight/preflight.js';
@@ -55,6 +55,7 @@ export class AtlasDevService {
 
     if (project.root !== this.workspace.root)
       await loadEnvFiles(this.workspace.root);
+
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
 
@@ -77,6 +78,7 @@ export class AtlasDevService {
 
       return;
     }
+
     await this.runApp({ project, name, config, prompts });
   }
 
@@ -95,7 +97,7 @@ export class AtlasDevService {
     );
     const target = await resolveHostDevTarget({
       config,
-      localPreviewUrl: localOrigin(configuredBootstrapPort),
+      localPreviewUrl: buildLocalOrigin(configuredBootstrapPort),
       prompts,
       previewUrls: await readAtlasPreviewUrls(project.root),
     });
@@ -105,9 +107,10 @@ export class AtlasDevService {
       previewKind: target.previewKind,
     });
     assertLocalPreviewPort(target, bootstrapPort);
+
     const manifest = await this.builds.buildLocalHostManifest(
       project.id,
-      localOrigin(clientPort),
+      buildLocalOrigin(clientPort),
     );
     const hostUrl = target.hostUrl;
     const document: AtlasDevOverrideDocument = {
@@ -146,7 +149,7 @@ export class AtlasDevService {
             ? await loadAngularHostProxy(
                 project.root,
                 await readAngularProxyConfigPath(project.root, project.id),
-                localOrigin(clientPort),
+                buildLocalOrigin(clientPort),
               )
             : undefined;
 
@@ -182,7 +185,7 @@ export class AtlasDevService {
     const remotePort = await this.resolveRemotePort(project);
     const manifest = await this.builds.buildManifest(name, 'local', {
       skipCompile: true,
-      baseUrl: localOrigin(remotePort),
+      baseUrl: buildLocalOrigin(remotePort),
     });
     const target = await resolveDevTarget({
       config,
@@ -203,6 +206,7 @@ export class AtlasDevService {
 
       return;
     }
+
     await runDevSession({
       workspace: this.workspace,
       args: this.args,

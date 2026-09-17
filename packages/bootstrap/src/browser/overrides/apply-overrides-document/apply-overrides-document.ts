@@ -1,5 +1,5 @@
 import type { AtlasHostCatalog, AtlasManifest } from '@atlas/schema';
-import { overrideError } from '../override-error.js';
+import { OverrideInvalidError } from '../../../shared/errors/index.js';
 import type {
   OverridesContext,
   RuntimeAppOverride,
@@ -36,8 +36,9 @@ export async function applyOverridesDocument({
   for (const override of overrides.apps || overrides.overrides || []) {
     const manifest = await resolveOverrideManifest({
       ...context,
-      manifest: assertAppOverride(override),
+      manifest: extractAppManifestFromOverride(override),
     });
+
     if (!manifest) continue;
 
     if (appsById.has(manifest.id)) {
@@ -47,7 +48,7 @@ export async function applyOverridesDocument({
     } else if (manifest.channel === 'local') {
       appsById.set(manifest.id, manifest);
     } else {
-      throw overrideError(
+      throw new OverrideInvalidError(
         `Atlas app override "${manifest.id}" (${manifest.channel}) targets neither a catalog app nor an external widget provider of host "${runtime.hostId}".`,
       );
     }
@@ -61,21 +62,25 @@ export async function applyOverridesDocument({
   };
 }
 
-function assertAppOverride(override: RuntimeAppOverride): AtlasManifest {
+function extractAppManifestFromOverride(
+  override: RuntimeAppOverride,
+): AtlasManifest {
   const { appId, manifest } = override;
 
   if (!manifest) {
-    throw overrideError(`Atlas app override for "${appId}" has no manifest.`);
+    throw new OverrideInvalidError(
+      `Atlas app override for "${appId}" has no manifest.`,
+    );
   }
 
   if (manifest.kind !== 'app') {
-    throw overrideError(
+    throw new OverrideInvalidError(
       `Atlas app override for "${appId ?? manifest.id}" carries a ${manifest.kind} manifest instead of an app manifest.`,
     );
   }
 
   if (manifest.id !== (appId || manifest.id)) {
-    throw overrideError(
+    throw new OverrideInvalidError(
       `Atlas app override for "${appId}" carries a manifest for app "${manifest.id}".`,
     );
   }

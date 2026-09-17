@@ -125,7 +125,7 @@ export class DevelopmentTargetDriver {
 
   get = {
     result: (): DevTarget | undefined => this.result,
-    errorMessage: (): string | undefined => this.error?.message,
+    extractErrorMessage: (): string | undefined => this.error?.message,
     routeQuestion: (): string | undefined => this.prompts.questions[0],
     firstTarget: (): Pick<DevTarget, 'hostId' | 'hostUrl'> => ({
       hostId: this.firstHostId,

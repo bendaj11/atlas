@@ -5,8 +5,8 @@ import { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { applyOverridesDocument } from '../apply-overrides-document/apply-overrides-document.js';
 import {
   discoverDevelopmentSession,
+  readStoredOverridesDocument,
   storeDevelopmentSession,
-  storedOverridesDocument,
 } from '../development-session-source/development-session-source.js';
 import { mergeDevelopmentSession } from '../merge-development-session/merge-development-session.js';
 import type {
@@ -19,15 +19,14 @@ export async function applyOverrides({
   runtime,
   catalog,
   developmentSession,
-  dependencies = defaultDependencies(),
+  dependencies = createBrowserOverridesDependencies(),
 }: ApplyOverridesOptions): Promise<AtlasHostCatalog> {
   const context = { runtime, dependencies };
   const session =
     developmentSession ?? (await discoverDevelopmentSession(context));
-
   const stored = session
     ? storeDevelopmentSession({ session, dependencies })
-    : storedOverridesDocument(dependencies);
+    : readStoredOverridesDocument(dependencies);
   const baseCatalog = session
     ? mergeDevelopmentSession({ catalog, session })
     : catalog;
@@ -35,6 +34,7 @@ export async function applyOverrides({
   if (!stored) return baseCatalog;
 
   const overrides = JSON.parse(stored) as RuntimeOverrides;
+
   if (overrides.hostId !== runtime.hostId) return baseCatalog;
 
   return applyOverridesDocument({
@@ -44,7 +44,7 @@ export async function applyOverrides({
   });
 }
 
-function defaultDependencies(): OverridesDependencies {
+function createBrowserOverridesDependencies(): OverridesDependencies {
   return {
     sessionStorage,
     localStorage,

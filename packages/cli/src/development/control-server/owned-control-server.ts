@@ -27,6 +27,7 @@ export async function startOwnedControlServer(
       server.off('error', reject);
 
       const address = server.address();
+
       if (!address || typeof address === 'string') {
         reject(
           new Error('Atlas dev control server did not receive a TCP port.'),

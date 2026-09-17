@@ -11,8 +11,8 @@ import {
   removePreviewOnce,
 } from '../preview-removal/preview-removal.js';
 import {
-  publicationFiles,
-  publicationIdentity,
+  preparePublicationFiles,
+  derivePublicationIdentity,
   uploadAndVerify,
   type PublicationFiles,
 } from '../publication-files/publication-files.js';
@@ -35,7 +35,7 @@ import {
   verifyPublicRegistry,
   writeRegistry,
 } from '../registry-io/registry-io.js';
-import { descriptorFor } from '../static-registry/descriptors/descriptors.js';
+import { createManifestDescriptor } from '../static-registry/descriptors/descriptors.js';
 import { publishArtifact } from '../static-registry/static-registry.js';
 import type {
   AtlasPreviewPruneResult,
@@ -79,9 +79,10 @@ export class AtlasPublishService {
     const build = await this.builds.publication(projectName);
     await assertPreviewIsCurrent({ manifest: build.manifest, config });
 
-    const immutable = await publicationFiles(build);
+    const immutable = await preparePublicationFiles(build);
+
     this.reportProgress(
-      `Prepared ${publicationIdentity(build.manifest)}; ${immutable.payloads.length + 1} immutable file(s) ready.`,
+      `Prepared ${derivePublicationIdentity(build.manifest)}; ${immutable.payloads.length + 1} immutable file(s) ready.`,
     );
     assertPublicRegistryConfigured(this.args, config);
 
@@ -156,7 +157,7 @@ export class AtlasPublishService {
     immutable,
     config,
   }: PreparedPublication): Promise<AtlasPublishResult> {
-    const descriptor = descriptorFor(
+    const descriptor = createManifestDescriptor(
       immutable.manifest.path,
       immutable.manifest.bytes,
     );
@@ -165,6 +166,7 @@ export class AtlasPublishService {
 
     if (this.args.hasFlag('dry-run')) {
       this.reportProgress('Reading registry.json for dry-run validation...');
+
       const current = await readRegistry(storage);
       assertExpectedRegistryRevision(this.args, current);
       const mutation = publishArtifact(current, build.manifest, descriptor);
@@ -230,6 +232,7 @@ export class AtlasPublishService {
   }: CommitOptions): Promise<AtlasPublishResult> {
     await lease.assertHeld();
     this.reportProgress('Reading latest registry.json...');
+
     const state = await readRegistryState(storage);
     assertExpectedRegistryRevision(this.args, state.registry);
     const mutation = publishArtifact(state.registry, manifest, descriptor);

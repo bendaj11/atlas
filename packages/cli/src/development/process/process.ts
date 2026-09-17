@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { AtlasConfig } from '@atlas/schema';
-import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
+import type { AtlasFramework } from '@atlas/schema';
+import { closeServer, buildLocalOrigin, LOCAL_HOST } from '../http/http.js';
 import {
   DEFAULT_CONTROL_PORT,
   REMOTE_POLL_INTERVAL_MS,
@@ -9,13 +9,13 @@ import {
 import type { DevControlServer } from '../types.js';
 import {
   CliArguments,
-  cliError,
+  CliError,
   ui,
-  completedProcessOutput,
+  awaitProcessOutput,
 } from '../../shared/index.js';
 
-export function frameworkServerArguments(
-  framework: AtlasConfig['framework'],
+export function buildFrameworkServerArguments(
+  framework: AtlasFramework,
   port: number,
 ): string[] {
   const portArguments = ['--port', String(port)];
@@ -34,20 +34,20 @@ export async function waitForRemoteEntry(
     if (child.exitCode !== null || child.signalCode !== null) {
       throw formatFrameworkServerError(
         `Framework dev server exited before ${remoteEntryUrl} became available.`,
-        await completedProcessOutput(child),
+        await awaitProcessOutput(child),
       );
     }
     const response = await fetch(remoteEntryUrl, { cache: 'no-store' }).catch(
       () => undefined,
     );
 
-    if (response && (await remoteEntryIsReady(response))) return;
+    if (response && (await isRemoteEntryReady(response))) return;
     await new Promise((resolve) =>
       setTimeout(resolve, REMOTE_POLL_INTERVAL_MS),
     );
   }
 
-  throw cliError(
+  throw new CliError(
     `Framework dev server did not serve ${remoteEntryUrl} within ${REMOTE_START_TIMEOUT_MS / 1000} seconds.`,
     [
       'Check the framework server output above for build errors.',
@@ -57,9 +57,10 @@ export async function waitForRemoteEntry(
   );
 }
 
-export async function remoteEntryIsReady(response: Response): Promise<boolean> {
+export async function isRemoteEntryReady(response: Response): Promise<boolean> {
   if (!response.ok) return false;
   const contentType = response.headers.get('content-type') ?? '';
+
   if (!contentType.includes('application/json')) return false;
 
   try {
@@ -135,7 +136,7 @@ export function waitForShutdown(
       if (settled) return;
       settled = true;
       removeSignalListeners();
-      void completedProcessOutput(child).then((output) =>
+      void awaitProcessOutput(child).then((output) =>
         reject(
           formatFrameworkServerError(
             `Framework dev server exited with code ${code ?? 'unknown'}.`,
@@ -169,6 +170,7 @@ export function logHostViewUrl(
 
     return;
   }
+
   ui.warning('App preview unresolved. Define atlas.previews in package.json.');
 }
 
@@ -180,6 +182,7 @@ export function developmentPreviewUrl(options: {
 
   if (options.controlPort !== DEFAULT_CONTROL_PORT)
     url.searchParams.set('atlas-dev-port', String(options.controlPort));
+
   return url.href;
 }
 
@@ -188,7 +191,7 @@ export function openBrowserWhenReady(
   url: string | undefined,
 ): void {
   if (!url || args.hasFlag('no-open')) return;
-  const command = browserOpenCommand(url);
+  const command = buildBrowserOpenCommand(url);
 
   try {
     const child = spawn(command.command, command.args, {
@@ -204,7 +207,7 @@ export function openBrowserWhenReady(
   }
 }
 
-export function browserOpenCommand(
+export function buildBrowserOpenCommand(
   url: string,
   platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] } {
@@ -212,7 +215,8 @@ export function browserOpenCommand(
 
   if (platform === 'win32')
     return { command: 'cmd', args: ['/c', 'start', '', url] };
+
   return { command: 'xdg-open', args: [url] };
 }
 
-export { closeServer, localOrigin };
+export { closeServer, buildLocalOrigin };

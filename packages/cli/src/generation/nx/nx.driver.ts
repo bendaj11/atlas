@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import { alignDelegatedAngularFederationConfig } from './delegated-federation-config.js';
 import { alignDelegatedTsconfig } from './delegated-tsconfig.js';
-import { atlasConfigNxTarget, nxTarget } from './nx-targets.js';
+import { createAtlasConfigNxTarget, createNxTarget } from './nx-targets.js';
 import { ensureDelegatedNxTargets } from './nx.js';
 import type { SupportedFramework } from '../../shared/index.js';
 
@@ -142,13 +142,13 @@ module.exports = {
       };
     },
     createConfigTarget: (): void => {
-      this.value = atlasConfigNxTarget({
+      this.value = createAtlasConfigNxTarget({
         packageManager: this.packageManager,
         cwd: this.projectRoot,
       });
     },
     createTarget: (): void => {
-      this.value = nxTarget({
+      this.value = createNxTarget({
         packageManager: this.packageManager,
         cwd: this.projectRoot,
         script: this.script,

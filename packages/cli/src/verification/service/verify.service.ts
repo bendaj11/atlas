@@ -5,7 +5,10 @@ import {
   type AtlasHostRuntimeConfig,
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
-import { absoluteHttpUrl, errorMessage } from '../../shared/index.js';
+import {
+  parseAbsoluteHttpUrl,
+  extractErrorMessage,
+} from '../../shared/index.js';
 import { verifyManifestAssets } from '../asset-checks/asset-checks.js';
 import {
   isHostDeployment,
@@ -23,7 +26,10 @@ import {
   checkMutableCache,
 } from '../header-checks/header-checks.js';
 import type { AtlasVerifyOptions, VerificationContext } from '../types.js';
-import { parseJson, VerifiedFetch } from '../verified-fetch/verified-fetch.js';
+import {
+  parseJsonResponse,
+  VerifiedFetch,
+} from '../verified-fetch/verified-fetch.js';
 
 const DEFAULT_NETWORK_CONCURRENCY = 8;
 const DEFAULT_NETWORK_TIMEOUT_MS = 10_000;
@@ -41,9 +47,11 @@ export class AtlasVerifyService {
   async run(options: AtlasVerifyOptions): Promise<AtlasVerificationReport> {
     const context = createContext(options);
     const runtime = await this.resolveRuntime(context);
+
     if (!runtime) return context.checks.report(context.hostUrl.href);
 
     const catalog = await this.fetchCatalog({ runtime, context });
+
     if (!catalog)
       return context.checks.report(context.hostUrl.href, runtime.hostId);
 
@@ -72,7 +80,11 @@ export class AtlasVerifyService {
       subject,
       context,
       consume: async (loaded) => {
-        config = await parseJson({ response: loaded, subject, context });
+        config = await parseJsonResponse({
+          response: loaded,
+          subject,
+          context,
+        });
       },
     });
 
@@ -82,6 +94,7 @@ export class AtlasVerifyService {
 
     try {
       const runtime = resolveAtlasRuntimeConfig(config, context.hostUrl.href);
+
       context.checks.pass(
         subject,
         `Selected environment "${runtime.environment}" for host "${runtime.hostId}".`,
@@ -89,7 +102,7 @@ export class AtlasVerifyService {
 
       return runtime;
     } catch (error) {
-      context.checks.fail(subject, errorMessage(error));
+      context.checks.fail(subject, extractErrorMessage(error));
 
       return undefined;
     }
@@ -110,7 +123,7 @@ export class AtlasVerifyService {
       subject,
       context,
       consume: async (loaded) => {
-        value = await parseJson({ response: loaded, subject, context });
+        value = await parseJsonResponse({ response: loaded, subject, context });
       },
     });
 
@@ -200,8 +213,9 @@ export class AtlasVerifyService {
 }
 
 function createContext(options: AtlasVerifyOptions): VerificationContext {
-  const hostUrl = absoluteHttpUrl(options.hostUrl, '--host-url');
+  const hostUrl = parseAbsoluteHttpUrl(options.hostUrl, '--host-url');
   const timeoutMs = options.timeoutMs ?? DEFAULT_NETWORK_TIMEOUT_MS;
+
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0)
     throw new Error('Verification timeout must be a positive finite number.');
 

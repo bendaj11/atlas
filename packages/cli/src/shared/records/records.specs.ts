@@ -24,12 +24,12 @@ describe('records', () => {
     });
   });
 
-  describe('asRecord', () => {
+  describe('optionalRecord', () => {
     it('should return the object when value is a plain object', () => {
       const value = { [faker.lorem.word()]: faker.lorem.word() };
       driver.given.value(value);
 
-      expect(driver.get.asRecord()).toBe(value);
+      expect(driver.get.optionalRecord()).toBe(value);
     });
 
     it.each(NON_RECORDS)(
@@ -37,16 +37,16 @@ describe('records', () => {
       (value) => {
         driver.given.value(value);
 
-        expect(driver.get.asRecord()).toBeUndefined();
+        expect(driver.get.optionalRecord()).toBeUndefined();
       },
     );
   });
 
-  describe('nonEmptyString', () => {
+  describe('isNonEmptyString', () => {
     it('should return true when value is a non-empty string', () => {
       driver.given.value(faker.lorem.word());
 
-      expect(driver.get.nonEmptyString()).toBe(true);
+      expect(driver.get.isNonEmptyString()).toBe(true);
     });
 
     it.each(['', 0, null, undefined])(
@@ -54,7 +54,7 @@ describe('records', () => {
       (value) => {
         driver.given.value(value);
 
-        expect(driver.get.nonEmptyString()).toBe(false);
+        expect(driver.get.isNonEmptyString()).toBe(false);
       },
     );
   });

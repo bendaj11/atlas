@@ -4,7 +4,7 @@ import { ui } from '../../shared/index.js';
 
 export const LOCAL_HOST = 'localhost';
 
-export function localOrigin(port: number): string {
+export function buildLocalOrigin(port: number): string {
   return `http://${LOCAL_HOST}:${port}`;
 }
 
@@ -20,7 +20,7 @@ export function listenOnLocalHost(
       const address = server.address();
       const actualPort =
         typeof address === 'object' && address ? address.port : port;
-      ui.info(`${label} listening at ${localOrigin(actualPort)}.`);
+      ui.info(`${label} listening at ${buildLocalOrigin(actualPort)}.`);
       resolve(server);
     });
   });
@@ -73,14 +73,20 @@ export function writeError(response: ServerResponse, error: unknown): void {
 }
 
 export async function postJson(url: string, value: unknown): Promise<void> {
-  await fetchControl(url, { method: 'POST', body: JSON.stringify(value) });
+  await fetchFromControlServer(url, {
+    method: 'POST',
+    body: JSON.stringify(value),
+  });
 }
 
 export async function deleteJson(url: string): Promise<void> {
-  await fetchControl(url, { method: 'DELETE' });
+  await fetchFromControlServer(url, { method: 'DELETE' });
 }
 
-async function fetchControl(url: string, init: RequestInit): Promise<void> {
+async function fetchFromControlServer(
+  url: string,
+  init: RequestInit,
+): Promise<void> {
   const response = await fetch(url, {
     ...init,
     headers: { 'content-type': 'application/json', ...init.headers },

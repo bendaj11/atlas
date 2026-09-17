@@ -22,10 +22,10 @@ import type {
 import type { AtlasPreviewHeadResolver } from '../registry-config/types.js';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import {
-  canonicalJson,
-  registryRevision,
+  stringifyCanonicalJson,
+  computeRegistryRevision,
 } from '../static-registry/revision/registry-revision.js';
-import { emptyStaticRegistry } from '../static-registry/static-registry.js';
+import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
 import type { AtlasProjectBuilder } from '../types.js';
 import { AtlasPublishService } from './publish.service.js';
 import type { AtlasBuildResult } from '../../build/index.js';
@@ -144,13 +144,15 @@ export class PublishServiceDriver {
       this.invalidationFailures = 1;
     },
     previewPruning: (): void => {
-      const registry = emptyStaticRegistry('2026-01-01T00:00:00.000Z');
+      const registry = createEmptyStaticRegistry('2026-01-01T00:00:00.000Z');
       registry.apps[this.id] = this.registryArtifact(this.id, [1, 2]);
       registry.apps[this.otherId] = this.registryArtifact(this.otherId, [2]);
-      registry.revision = registryRevision(registry) as `sha256:${string}`;
+      registry.revision = computeRegistryRevision(
+        registry,
+      ) as `sha256:${string}`;
       this.storage.seed(
         'registry.json',
-        new TextEncoder().encode(`${canonicalJson(registry)}\n`),
+        new TextEncoder().encode(`${stringifyCanonicalJson(registry)}\n`),
       );
       this.storage.seed(
         this.orphanPath(this.id),

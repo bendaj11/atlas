@@ -1,14 +1,17 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AtlasPayloadFileDescriptor } from '@atlas/schema';
+import type {
+  AtlasPayloadFileDescriptor,
+  AtlasPayloadFileRole,
+} from '@atlas/schema';
 import {
   IMMUTABLE_CACHE_CONTROL,
-  publicationContentType,
-  sha256Digest,
+  resolvePublicationContentType,
+  computeSha256Digest,
 } from '../../shared/index.js';
 
 export function normalizeArtifactPath(path: string): string {
-  const normalized = toPosixPath(path);
+  const normalized = convertToPosixPath(path);
 
   if (
     !normalized ||
@@ -24,14 +27,14 @@ export function normalizeArtifactPath(path: string): string {
   return normalized;
 }
 
-export function toPosixPath(path: string): string {
+export function convertToPosixPath(path: string): string {
   return path.split('\\').join('/');
 }
 
-export function payloadRole(
+export function classifyPayloadRole(
   path: string,
   entryPath: string,
-): AtlasPayloadFileDescriptor['role'] {
+): AtlasPayloadFileRole {
   if (path === entryPath) return 'remote-entry';
 
   if (path.endsWith('.map')) return 'source-map';
@@ -43,7 +46,7 @@ export function payloadRole(
   return 'asset';
 }
 
-export async function payloadDescriptors(options: {
+export async function describePayloadFiles(options: {
   root: string;
   paths: readonly string[];
   entryPath: string;
@@ -57,11 +60,11 @@ export async function payloadDescriptors(options: {
 
       return {
         path: normalized,
-        digest: sha256Digest(bytes),
+        digest: computeSha256Digest(bytes),
         size: bytes.byteLength,
-        mediaType: publicationContentType(normalized),
+        mediaType: resolvePublicationContentType(normalized),
         cacheControl: IMMUTABLE_CACHE_CONTROL,
-        role: payloadRole(normalized, normalizedEntry),
+        role: classifyPayloadRole(normalized, normalizedEntry),
       };
     }),
   );

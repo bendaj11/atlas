@@ -1,6 +1,6 @@
-import type { AtlasManifest } from '@atlas/schema';
+import type { AtlasVersionChannel } from '@atlas/schema';
 import type { VerificationChecks } from '../checks/checks.js';
-import { sha256Integrity } from '../../shared/index.js';
+import { computeSha256Integrity } from '../../shared/index.js';
 
 export type ExpectedContentType = 'json' | 'css' | 'javascript';
 
@@ -15,6 +15,7 @@ export function checkCors(options: {
 
   if (url.origin === hostOrigin) return;
   const allowed = response.headers.get('access-control-allow-origin');
+
   if (allowed === '*' || allowed === hostOrigin)
     checks.pass(`${subject} CORS`, `Allows ${hostOrigin}.`);
   else
@@ -31,6 +32,7 @@ export function checkMutableCache(options: {
 }): void {
   const { checks, response, subject } = options;
   const cacheControl = response.headers.get('cache-control') ?? '';
+
   if (/\bimmutable\b/i.test(cacheControl))
     checks.fail(`${subject} cache`, 'Mutable metadata must not be immutable.');
   else if (!cacheControl)
@@ -45,7 +47,7 @@ export function checkImmutableCache(options: {
   checks: VerificationChecks;
   response: Response;
   subject: string;
-  channel: AtlasManifest['channel'];
+  channel: AtlasVersionChannel;
 }): void {
   const { checks, response, subject, channel } = options;
 
@@ -75,6 +77,7 @@ export function checkContentType(options: {
   const { checks, response, subject, expected } = options;
   const actual = response.headers.get('content-type')?.toLowerCase() ?? '';
   const valid = actual.includes(CONTENT_TYPE_FRAGMENTS[expected]);
+
   if (valid) checks.pass(`${subject} MIME`, actual);
   else
     checks.fail(
@@ -88,7 +91,7 @@ export function checkIntegrity(options: {
   bytes: Uint8Array;
   subject: string;
   integrity: string | undefined;
-  channel: AtlasManifest['channel'];
+  channel: AtlasVersionChannel;
 }): void {
   const { checks, bytes, subject, integrity, channel } = options;
 
@@ -103,7 +106,7 @@ export function checkIntegrity(options: {
     return;
   }
 
-  if (sha256Integrity(bytes) === integrity)
+  if (computeSha256Integrity(bytes) === integrity)
     checks.pass(`${subject} integrity`, 'SHA-256 matches.');
   else
     checks.fail(`${subject} integrity`, 'SHA-256 does not match the manifest.');

@@ -10,6 +10,7 @@ export function watchHostBuildNotifications({
   metadata: RemoteMetadata;
 }): void {
   if (!metadata.buildNotificationsEndpoint) return;
+
   if (!dependencies.createEventSource) return;
 
   const source = dependencies.createEventSource(
@@ -17,11 +18,11 @@ export function watchHostBuildNotifications({
   );
 
   source.onmessage = ({ data }) => {
-    if (hasCompletedFederationBuild(data)) dependencies.reloadPage();
+    if (isFederationRebuildCompleteEvent(data)) dependencies.reloadPage();
   };
 }
 
-function hasCompletedFederationBuild(data: string): boolean {
+function isFederationRebuildCompleteEvent(data: string): boolean {
   try {
     return JSON.parse(data).type === REBUILD_COMPLETE_EVENT;
   } catch {

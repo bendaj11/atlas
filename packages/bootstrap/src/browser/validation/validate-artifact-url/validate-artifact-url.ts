@@ -4,7 +4,8 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { isLoopbackHostname } from '@atlas/schema';
-import { describeManifest, validationError } from '../validation-error.js';
+import { ArtifactUrlRejectedError } from '../../../shared/errors/index.js';
+import { describeManifest } from '../describe-manifest.js';
 
 export function validateArtifactUrl({
   url,
@@ -31,14 +32,15 @@ export function validateArtifactUrl({
     url.protocol === 'http:' &&
     isLoopbackHostname(url.hostname) &&
     isLoopbackHostname(artifactRegistryUrl.hostname);
+
   if (loopbackToLoopback) return;
 
   if (url.protocol !== 'https:') {
-    throw artifactUrlError(`Published ${subject} must use HTTPS.`);
+    throw new ArtifactUrlRejectedError(`Published ${subject} must use HTTPS.`);
   }
 
   if (url.origin !== artifactRegistryUrl.origin) {
-    throw artifactUrlError(
+    throw new ArtifactUrlRejectedError(
       `Published ${subject} uses origin "${url.origin}" outside artifactRegistryUrl origin "${artifactRegistryUrl.origin}".`,
     );
   }
@@ -52,14 +54,12 @@ function validateLocalArtifactUrl({
   subject: string;
 }): void {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw artifactUrlError(`Local ${subject} must use HTTP(S).`);
+    throw new ArtifactUrlRejectedError(`Local ${subject} must use HTTP(S).`);
   }
 
   if (!isLoopbackHostname(url.hostname)) {
-    throw artifactUrlError(`Local ${subject} must use a loopback hostname.`);
+    throw new ArtifactUrlRejectedError(
+      `Local ${subject} must use a loopback hostname.`,
+    );
   }
-}
-
-function artifactUrlError(message: string) {
-  return validationError({ code: 'ARTIFACT_URL_REJECTED', message });
 }
