@@ -37,6 +37,7 @@ export function requireSize(value: unknown): number {
 
 export function lastModified(value: unknown): { lastModified?: string } {
   if (value === undefined) return {};
+
   if (typeof value !== 'string' || !Number.isFinite(Date.parse(value)))
     throw new Error('Artifactory returned an invalid file timestamp.');
 
@@ -120,6 +121,7 @@ export async function downloadResponse({
   }
 
   await requireStatus({ response, accepted: [200] });
+
   if (!response.body) throw new Error('Artifactory download returned no body.');
 
   return readBody({ body: response.body, signal });

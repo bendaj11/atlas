@@ -53,6 +53,7 @@ export function spawnProcess(input: ProcessCommand): ChildProcess {
     child,
     new Promise((resolve) => child.once('close', resolve)),
   );
+
   return child;
 }
 
@@ -64,6 +65,7 @@ export async function completedProcessOutput(
   child: ChildProcess,
 ): Promise<string> {
   await processOutputClosed.get(child);
+
   return capturedProcessOutput(child);
 }
 

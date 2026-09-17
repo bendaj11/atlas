@@ -2,7 +2,7 @@ import type {
   AtlasPreviewHeadLookup,
   AtlasPreviewHeadStatus,
   AtlasRegistryConfig,
-} from '../registry-config/registry-config.js';
+} from '../registry-config/types.js';
 
 export async function resolvePullRequestStatus(
   pullRequest: {
@@ -20,6 +20,7 @@ export async function resolvePullRequestStatus(
     ...(pullRequest.gitBranch ? { gitBranch: pullRequest.gitBranch } : {}),
   };
   let status: AtlasPreviewHeadStatus;
+
   if (config?.resolvePreviewHead)
     status = await config.resolvePreviewHead(lookup);
   else if (process.env.GITHUB_REPOSITORY)
@@ -33,6 +34,7 @@ export async function resolvePullRequestStatus(
       'Atlas cannot verify the live preview head. Configure GitHub, GitLab, or Bitbucket repository credentials, or define resolvePreviewHead in atlas.registry.ts.',
     );
   }
+
   if (
     !(['open', 'closed', 'merged'] as const).includes(status.state) ||
     !status.headSha?.trim()
@@ -41,6 +43,7 @@ export async function resolvePullRequestStatus(
       'Atlas pull-request resolver returned an invalid state or empty head SHA.',
     );
   }
+
   return status;
 }
 
@@ -63,6 +66,7 @@ async function resolveGitHubPullRequest(
     merged_at?: string | null;
     head?: { sha?: string };
   };
+
   return {
     state: data.merged_at
       ? 'merged'
@@ -86,6 +90,7 @@ async function resolveGitLabMergeRequest(
     { [tokenHeader]: token },
   );
   const data = response as { state?: string; sha?: string };
+
   return {
     state:
       data.state === 'opened'
@@ -110,6 +115,7 @@ async function resolveBitbucketPullRequest(
     state?: string;
     source?: { commit?: { hash?: string } };
   };
+
   return {
     state:
       data.state === 'OPEN'
@@ -129,6 +135,7 @@ async function providerFetch(
   headers: Record<string, string>,
 ): Promise<unknown> {
   let response: Response;
+
   try {
     response = await fetch(url, { headers });
   } catch (error) {
@@ -137,11 +144,13 @@ async function providerFetch(
       { cause: error },
     );
   }
+
   if (!response.ok) {
     throw new Error(
       `Atlas could not query pull-request state from ${new URL(url).host}: HTTP ${response.status}.`,
     );
   }
+
   return response.json();
 }
 
@@ -152,6 +161,7 @@ function providerToken(providerVariable: string): string {
       `Atlas needs ATLAS_GIT_TOKEN or ${providerVariable} to verify the live pull-request head.`,
     );
   }
+
   return token;
 }
 

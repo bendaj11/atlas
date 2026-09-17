@@ -5,7 +5,7 @@ import type {
   AtlasPublicationLease,
   AtlasPublicationObjectMetadata,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 import { manifestBytes } from '../static-registry/descriptors/descriptors.js';
 import type { AtlasBuildResult } from '../../build/index.js';
 import { sha256Digest, IMMUTABLE_CACHE_CONTROL } from '../../shared/index.js';
@@ -85,6 +85,7 @@ export async function uploadAndVerify(options: {
   reportProgress(
     `Uploading ${files.length} immutable file(s) to publication storage...`,
   );
+
   for (const file of files) {
     await lease?.assertHeld();
     await createImmutable(storage, file);
@@ -92,6 +93,7 @@ export async function uploadAndVerify(options: {
   reportProgress(
     `Verifying ${files.length} uploaded immutable file(s) and metadata...`,
   );
+
   for (const file of files) {
     await lease?.assertHeld();
     const bytes = await storage.read(file.path);
@@ -114,6 +116,7 @@ function artifactPrefix(
   bytes: Uint8Array,
 ): string {
   const collection = manifest.kind === 'app-artifact' ? 'apps' : 'hosts';
+
   if (manifest.release)
     return `${collection}/${manifest.id}/${manifest.release.version}`;
   const digest = sha256Digest(bytes).slice('sha256:'.length);
@@ -131,6 +134,7 @@ async function createImmutable(
     if (isUnknownOutcome(error)) throw error;
     const existing = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
+
     if (
       existing &&
       metadata &&
@@ -140,6 +144,7 @@ async function createImmutable(
 
       return;
     }
+
     throw error;
   }
 }
@@ -160,6 +165,7 @@ function assertPayload(options: {
   expectedSize: number;
 }): void {
   const { path, bytes, expectedDigest, expectedSize } = options;
+
   if (
     bytes.byteLength !== expectedSize ||
     sha256Digest(bytes) !== expectedDigest

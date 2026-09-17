@@ -14,7 +14,7 @@ export type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
-} from './publication-storage/publication-storage.js';
+} from './publication-storage/types.js';
 export { S3PublicationStorage } from './s3-storage/s3-storage.js';
 export type { S3Options } from './s3-storage/s3-storage.js';
 export {
@@ -26,7 +26,7 @@ export type {
   AtlasPreviewHeadResolver,
   AtlasPreviewHeadStatus,
   AtlasRegistryConfig,
-} from './registry-config/registry-config.js';
+} from './registry-config/types.js';
 export { readRegistry, readRegistryState } from './registry-io/registry-io.js';
 export { AtlasPublishService } from './service/publish.service.js';
 export type {

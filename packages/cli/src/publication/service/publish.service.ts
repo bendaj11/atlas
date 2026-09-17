@@ -20,12 +20,12 @@ import {
   verifyDeliveryWhileHeld,
   withPublicationLease,
 } from '../publication-lease/publication-lease.js';
-import {
-  createPublicationStorage,
-  type AtlasPublicationLease,
-  type AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
-import type { AtlasRegistryConfig } from '../registry-config/registry-config.js';
+import { createPublicationStorage } from '../publication-storage/publication-storage.js';
+import type {
+  AtlasPublicationLease,
+  AtlasPublicationStorage,
+} from '../publication-storage/types.js';
+import type { AtlasRegistryConfig } from '../registry-config/types.js';
 import {
   assertExpectedRegistryRevision,
   assertPublicRegistryConfigured,

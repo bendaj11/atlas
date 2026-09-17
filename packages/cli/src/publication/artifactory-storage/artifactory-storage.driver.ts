@@ -4,7 +4,7 @@ import type { ArtifactoryClient } from '../artifactory-client/artifactory-client
 import type {
   AtlasPublicationLease,
   AtlasPublicationReplaceCondition,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 import {
   ArtifactoryPublicationStorage,
   type ArtifactoryOptions,

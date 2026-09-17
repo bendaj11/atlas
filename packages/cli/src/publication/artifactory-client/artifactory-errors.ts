@@ -62,12 +62,14 @@ function transportFailureCode(error: unknown): string | undefined {
     !visited.has(failure)
   ) {
     visited.add(failure);
+
     if ('name' in failure && failure.name === 'TimeoutError')
       return 'ETIMEDOUT';
 
     const code = 'code' in failure ? failure.code : undefined;
     if (typeof code === 'string') {
       if (TRANSIENT_NETWORK_CODES.has(code)) return code;
+
       if (TRANSPORT_TIMEOUT_CODES.has(code)) return 'ETIMEDOUT';
     }
 

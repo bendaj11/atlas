@@ -24,6 +24,7 @@ export async function resolveInnerRouting(
   type: AtlasProjectType,
 ): Promise<boolean> {
   if (type === 'host') return true;
+
   if (args.hasFlag('routing') || args.hasFlag('no-routing'))
     return args.routing();
   if (!prompts.interactive) return true;
@@ -41,7 +42,9 @@ export async function resolveStylesheetFormat(
   framework: SupportedFramework,
 ): Promise<AngularStylesheetFormat | undefined> {
   if (framework !== 'angular') return undefined;
+
   if (args.hasFlag('style')) return args.stylesheetFormat();
+
   if (!prompts.interactive) return 'css';
 
   return prompts.select<AngularStylesheetFormat>(
@@ -63,6 +66,7 @@ export async function resolveDevServerPort(
   if (args.hasFlag('port')) return args.port('port', defaultPort);
   const fallback = await suggestedDevServerPort(workspace, type);
   if (!prompts.interactive) return fallback;
+
   while (true) {
     const value = await prompts.input(
       'Which port would you like to use for the dev server?',

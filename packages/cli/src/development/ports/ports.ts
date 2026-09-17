@@ -25,11 +25,13 @@ export function resolveHostDevPorts(
       previewKind,
     }),
   );
+
   if (previewKind === 'local' && clientPort === bootstrapPort) {
     throw new Error(
       'Host bootstrap and host client ports must differ. Pass --host-client-port with another port.',
     );
   }
+
   return { bootstrapPort, clientPort };
 }
 

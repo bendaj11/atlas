@@ -64,6 +64,7 @@ export function ensureAngularNativeFederationTargets({
       target: targets['serve-original'],
       projectName,
     });
+
     if (type === 'host')
       setAngularDevServerPort({
         target: targets['serve-original'],
@@ -216,6 +217,7 @@ function retargetAngularBuildTarget({
   projectName: string;
 }): string {
   const [targetProject, targetName, ...rest] = value.split(':');
+
   if (targetProject !== projectName || targetName !== 'build') return value;
 
   return [targetProject, 'esbuild', ...rest].join(':');

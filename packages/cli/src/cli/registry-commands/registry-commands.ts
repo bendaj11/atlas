@@ -61,6 +61,7 @@ async function deploy({
   ui.success(
     `${result.artifactId}@${result.version} deployed to ${result.environment}.`,
   );
+
   if (result.dryRun) return;
 
   const hostUrls = config?.hostUrls ?? [];

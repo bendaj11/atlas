@@ -105,6 +105,7 @@ function nxPathOptions(options: Record<string, unknown>): string[] {
   return NX_PATH_OPTION_KEYS.flatMap((key) => {
     const value = options[key];
     if (typeof value === 'string') return [value];
+
     if (Array.isArray(value))
       return value.filter((item): item is string => typeof item === 'string');
 

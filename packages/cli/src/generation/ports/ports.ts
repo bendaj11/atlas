@@ -20,6 +20,7 @@ export async function suggestedDevServerPort(
   for (let port = startingPort; port <= MAX_TCP_PORT; port += 1) {
     if (!ports.has(port)) return port;
   }
+
   throw new Error(`No available dev-server ports remain from ${startingPort}.`);
 }
 
@@ -27,6 +28,7 @@ async function configuredDevServerPorts(
   projects: readonly AtlasProject[],
 ): Promise<Set<number>> {
   const portGroups = await Promise.all(projects.map(projectDevServerPorts));
+
   return new Set(portGroups.flat());
 }
 
@@ -36,6 +38,7 @@ async function projectDevServerPorts(project: AtlasProject): Promise<number[]> {
     jsonDevServerPorts(join(project.root, 'project.json'), 'targets'),
     viteDevServerPorts(join(project.root, 'vite.config.ts')),
   ]);
+
   return [...angularPorts, ...nxPorts, ...vitePorts];
 }
 
@@ -53,11 +56,13 @@ async function jsonDevServerPorts(
 async function viteDevServerPorts(path: string): Promise<number[]> {
   const source = await readTextFile(path);
   const match = source?.match(VITE_PORT);
+
   return match ? validPort(match[1]) : [];
 }
 
 function targetPorts(project: Record<string, unknown>): number[] {
   const targets = recordValues(project.architect ?? project.targets);
+
   return targets.flatMap((target) => validPort(asRecord(target.options).port));
 }
 
@@ -66,6 +71,7 @@ async function readJson(
 ): Promise<Record<string, unknown> | undefined> {
   const source = await readTextFile(path);
   if (!source) return undefined;
+
   try {
     return asRecord(JSON.parse(source));
   } catch {

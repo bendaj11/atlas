@@ -16,6 +16,7 @@ export async function discoverStylesheets(options: {
   channel: AtlasVersionChannel;
 }): Promise<AtlasStylesheet[]> {
   const { artifactRoot, artifactBaseUrl, framework, channel } = options;
+
   if (channel === 'local') {
     return framework === 'angular'
       ? [{ href: `${artifactBaseUrl}/styles.css` }]
@@ -31,6 +32,7 @@ export async function discoverStylesheets(options: {
         path.endsWith('.css'),
       );
   const stylesheets: AtlasStylesheet[] = [];
+
   for (const relativePath of paths) {
     const bytes = await readFile(join(artifactRoot, relativePath));
     stylesheets.push({
@@ -82,6 +84,7 @@ function htmlAttribute(tag: string, name: 'href' | 'rel'): string | undefined {
 
 function artifactPathFromHref(href: string): string | undefined {
   if (href.includes('?') || href.includes('#')) return undefined;
+
   try {
     return normalizeArtifactPath(href);
   } catch {

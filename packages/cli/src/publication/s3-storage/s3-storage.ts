@@ -15,7 +15,7 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 import {
   DEFAULT_LOCK_LEASE_MS,
   DEFAULT_LOCK_TIMEOUT_MS,
@@ -60,6 +60,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
     this.prefix = options.prefix?.replace(/^\/+|\/+$/g, '') ?? '';
     const lockTimeoutMs = options.lockTimeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
     const lockLeaseMs = options.lockLeaseMs ?? DEFAULT_LOCK_LEASE_MS;
+
     if (lockTimeoutMs < 0)
       throw new Error('S3 lock timeout must not be negative.');
     if (lockLeaseMs < MINIMUM_LOCK_LEASE_MS) {
@@ -117,6 +118,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
         throw storageError(`inspect ${path}`, error);
       });
     if (!response) return undefined;
+
     if (!response.CacheControl || !response.ContentType) {
       throw new Error(
         `Published object ${path} is missing Cache-Control or Content-Type metadata.`,
@@ -221,6 +223,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
           cause: error,
         });
       }
+
       throw storageError(`replace ${path}`, error);
     }
   }

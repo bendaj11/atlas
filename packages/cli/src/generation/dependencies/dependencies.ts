@@ -18,6 +18,7 @@ export async function existingFrameworkVersionInfo(
       await readFile(manifest, 'utf8'),
     ) as PackageJson;
     const dependency = framework === 'angular' ? '@angular/core' : 'react';
+
     for (const field of DEPENDENCY_FIELDS) {
       const version = asStringRecord(packageJson[field])[dependency];
       if (version) return { version, manifest };
@@ -25,6 +26,7 @@ export async function existingFrameworkVersionInfo(
   } catch {
     return undefined;
   }
+
   return undefined;
 }
 
@@ -34,6 +36,7 @@ export async function dependencyManifestPath(
 ): Promise<string> {
   let current = projectRoot;
   const boundary = resolve(workspaceRoot);
+
   while (true) {
     const manifest = join(current, 'package.json');
     if (await exists(manifest)) return manifest;
@@ -60,9 +63,11 @@ export async function mergePackageDependencies(
   const primaryDependency = frameworkPrimaryDependency(framework);
   const hasPrimaryDependency = dependencyDeclared(target, primaryDependency);
   let changed = false;
+
   for (const field of DEPENDENCY_FIELDS) {
     const incoming = asStringRecord(generated[field]);
     if (!Object.keys(incoming).length) continue;
+
     for (const [name, version] of Object.entries(incoming)) {
       const existingField = dependencyField(target, name);
       if (existingField) {
@@ -86,12 +91,14 @@ export async function mergePackageDependencies(
     }
     target[field] = sortObject(asStringRecord(target[field]));
   }
+
   if (!changed) return false;
   await writeFile(
     targetPackageJson,
     `${JSON.stringify(target, null, 2)}\n`,
     'utf8',
   );
+
   return true;
 }
 
@@ -132,6 +139,7 @@ function isFrameworkManagedDependency(
       name === 'zone.js'
     );
   }
+
   return (
     name === 'react' ||
     name === 'react-dom' ||

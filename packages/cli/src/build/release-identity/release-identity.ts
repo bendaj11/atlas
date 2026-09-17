@@ -42,6 +42,7 @@ export function publicationIdentity(options: {
     );
   }
   const source = gitIdentity(args, project.root);
+
   if (version !== undefined) {
     assertReleaseVersion(version);
 

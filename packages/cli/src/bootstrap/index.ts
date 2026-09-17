@@ -3,5 +3,5 @@ export type {
   AtlasBootstrapBuildResult,
   AtlasBootstrapDependencies,
   AtlasBootstrapServiceOptions,
-} from './service/bootstrap.service.js';
+} from './types.js';
 export { loadBootstrapTemplate } from './template/bootstrap-template.js';

@@ -118,6 +118,7 @@ function applyArtifactIdentity({
   manifest: AtlasPublishedArtifactManifest;
 }): boolean {
   artifact.name = manifest.name;
+
   if (manifest.packageName === undefined) return false;
 
   const changed = artifact.packageName !== manifest.packageName;
@@ -206,6 +207,7 @@ function assertUniqueName({
             artifact.packageName === packageName)) ||
         (artifact.packageName !== undefined && artifact.packageName === name)),
   );
+
   if (collision)
     throw new Error(
       `Atlas identifier "${packageName ?? name}" conflicts with ${collision.id}. Display and package names must be unique within registry.`,

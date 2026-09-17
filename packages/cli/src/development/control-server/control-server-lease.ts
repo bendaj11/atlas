@@ -43,6 +43,7 @@ export async function readActiveControlServerLeases(
       .filter((path) => path.startsWith(`${port}-`))
       .map(async (path) => readLease(join(LEASE_DIRECTORY, path))),
   );
+
   return leases.flatMap((lease) => (lease ? [lease] : []));
 }
 
@@ -68,6 +69,7 @@ function leaseId(document: AtlasDevOverrideDocument): string {
     .sort()
     .join('-');
   const artifactKey = document.hostOverride ? 'host' : `apps-${appIds}`;
+
   return encodeURIComponent(`${document.hostId}-${artifactKey}`);
 }
 
@@ -78,10 +80,13 @@ async function readLease(
     const lease = JSON.parse(
       await readFile(path, 'utf8'),
     ) as ControlServerLease;
+
     if (!isActiveLease(lease)) {
       await rm(path, { force: true });
+
       return undefined;
     }
+
     return lease;
   } catch {
     return undefined;
@@ -105,6 +110,7 @@ function isActiveLease(lease: ControlServerLease): boolean {
 function processExists(processId: number): boolean {
   try {
     process.kill(processId, 0);
+
     return true;
   } catch {
     return false;

@@ -66,6 +66,7 @@ export function createControlRequestHandler({
       prefix: `${OVERRIDES_PATH}/`,
       suffix: '/ready',
     });
+
     if (control.method === 'POST' && appReady) {
       session.markReady(appReady, control.hostId);
       writeJson(response, { status: 'ready' });
@@ -77,6 +78,7 @@ export function createControlRequestHandler({
       pathname: control.pathname,
       prefix: `${OVERRIDES_PATH}/`,
     });
+
     if (control.method === 'DELETE' && appRemoved) {
       session.unregister(appRemoved, control.hostId);
       writeJson(response, { status: 'removed' });
@@ -89,6 +91,7 @@ export function createControlRequestHandler({
       prefix: `${HOSTS_PATH}/`,
       suffix: '/ready',
     });
+
     if (control.method === 'POST' && hostReady) {
       session.markHostReady(hostReady);
       writeJson(response, { status: 'ready' });
@@ -100,6 +103,7 @@ export function createControlRequestHandler({
       pathname: control.pathname,
       prefix: `${HOSTS_PATH}/`,
     });
+
     if (control.method === 'DELETE' && hostRemoved) {
       session.unregisterHost(hostRemoved);
       writeJson(response, { status: 'removed' });

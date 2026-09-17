@@ -107,6 +107,7 @@ export function createDevSessionStore(
         if (requestedHostId && requestedHostId !== hostId) continue;
 
         host.entries.delete(appId);
+
         if (host.entries.size === 0 && !host.hostOverride) hosts.delete(hostId);
       }
     },
@@ -116,6 +117,7 @@ export function createDevSessionStore(
 
       delete host.hostOverride;
       host.hostReady = false;
+
       if (host.entries.size === 0) hosts.delete(hostId);
     },
     markReady,
@@ -208,6 +210,7 @@ function resolveHostId({
   requestedHostId?: string;
 }): string | undefined {
   if (requestedHostId) return requestedHostId;
+
   if (hosts.size !== 1) return undefined;
 
   return hosts.keys().next().value;

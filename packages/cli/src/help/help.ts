@@ -10,6 +10,7 @@ export function requestedHelpTopic(
   values: readonly string[],
 ): readonly string[] | undefined {
   if (values.length === 0) return [];
+
   if (values[0] === 'help')
     return normalizeTopic(withoutHelpFlags(values.slice(1)));
   if (!values.some((value) => HELP_FLAGS.has(value))) return undefined;
@@ -29,8 +30,10 @@ export function formatHelp(topic: readonly string[]): string {
 
 function normalizeTopic(values: readonly string[]): readonly string[] {
   const [command, subcommand] = values;
+
   if (!command) return [];
   const normalizedCommand = COMMAND_ALIASES[command] ?? command;
+
   if (
     normalizedCommand === 'generate' &&
     subcommand &&
@@ -38,6 +41,7 @@ function normalizeTopic(values: readonly string[]): readonly string[] {
   ) {
     return [normalizedCommand, subcommand];
   }
+
   return [normalizedCommand];
 }
 
@@ -82,6 +86,7 @@ function formatCommandHelp(command: CommandHelp): string {
   appendEntries(sections, 'Advanced options', command.advancedOptions);
   appendEntries(sections, 'Environment', command.environment);
   sections.push('', formatExamples(command.examples));
+
   return sections.join('\n');
 }
 
@@ -99,6 +104,7 @@ function formatEntries(title: string, entries: readonly HelpEntry[]): string {
   const rows = entries.map(
     ({ label, description }) => `  ${label.padEnd(labelWidth)}  ${description}`,
   );
+
   return `${title}:\n${rows.join('\n')}`;
 }
 

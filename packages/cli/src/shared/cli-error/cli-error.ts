@@ -20,6 +20,7 @@ export function createCliError(
   value: unknown,
 ): AtlasError {
   if (value instanceof AtlasError && value.surface === 'cli') return value;
+
   if (value instanceof AtlasError && value.surface === 'universal') {
     return new AtlasError(value.summary, {
       suggestedActions: value.suggestedActions,
@@ -33,6 +34,7 @@ export function createCliError(
     : undefined;
   const cause = value instanceof Error ? value : new Error(String(value));
   const sourceSummary = errorSummary(cause.message);
+
   return new AtlasError(cliSummary(normalizedCommand, sourceSummary), {
     suggestedActions: cliActions(normalizedCommand, sourceSummary),
     cause,
@@ -65,6 +67,7 @@ function errorCauses(error: Error): readonly string[] {
 function errorCauseMessage(cause: unknown): string {
   if (cause instanceof Error) {
     const status = httpStatusOf(cause);
+
     return `${cause.name}: ${cause.message}${status ? ` (HTTP ${status})` : ''}`;
   }
 
@@ -79,6 +82,7 @@ function cliSummary(command: string | undefined, summary: string): string {
   ) {
     return summary;
   }
+
   return command
     ? `Atlas ${command} failed: ${summary}`
     : `Atlas CLI failed: ${summary}`;
@@ -93,12 +97,14 @@ function cliActions(
       'Run `atlas --help` to choose a supported command, then retry with the documented arguments.',
     ];
   }
+
   if (/EACCES|EPERM|permission denied|not writable/i.test(message)) {
     return [
       'Give the current user read and write access to the named path.',
       rerunAction(command),
     ];
   }
+
   if (
     /ENOENT|not found|Could not find|missing required configuration file/i.test(
       message,
@@ -109,18 +115,21 @@ function cliActions(
       rerunAction(command),
     ];
   }
+
   if (/CORS|fetch|network|HTTP \d|timed out|could not query/i.test(message)) {
     return [
       'Verify the named URL is reachable with the required credentials and CORS policy.',
       rerunAction(command),
     ];
   }
+
   if (/storage|S3|bucket|registry|deployment lock|lease/i.test(message)) {
     return [
       'Correct the named storage, registry, credentials, or deployment-lock condition.',
       rerunAction(command),
     ];
   }
+
   if (
     /tsconfig|TypeScript|atlas\.config|compil|schema|manifest|configuration/i.test(
       message,
@@ -131,6 +140,7 @@ function cliActions(
       rerunAction(command),
     ];
   }
+
   if (
     /requires? --|Pass --|must be|is required|Unsupported|Unknown option/i.test(
       message,

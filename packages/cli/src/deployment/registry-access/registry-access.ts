@@ -74,6 +74,7 @@ export async function publishedManifest({
   descriptor: AtlasManifestDescriptor;
 }): Promise<AtlasPublishedArtifactManifest> {
   const bytes = await sourceBytes({ access, path: descriptor.path });
+
   if (
     !bytes ||
     bytes.byteLength !== descriptor.size ||
@@ -143,6 +144,7 @@ async function sourceBytes({
 
   const response = await fetch(new URL(path, `${locations.source}/`));
   if (response.status === 404) return undefined;
+
   if (!response.ok)
     throw Object.assign(
       new Error(`Atlas source returned HTTP ${response.status} for ${path}.`),

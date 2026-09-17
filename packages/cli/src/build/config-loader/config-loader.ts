@@ -17,6 +17,7 @@ export async function loadCompiledAtlasConfig(
     )) as { default?: unknown };
     const exported = module.default;
     if (isAtlasConfig(exported)) return exported;
+
     if (isRecord(exported) && isAtlasConfig(exported.default))
       return exported.default;
     throw cliError(
@@ -25,6 +26,7 @@ export async function loadCompiledAtlasConfig(
       { code: 'ATLAS_CONFIG_INVALID' },
     );
   }
+
   throw cliError(
     `Compiled atlas.config.js was not found for ${projectRoot}.`,
     [

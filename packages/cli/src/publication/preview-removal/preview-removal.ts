@@ -6,8 +6,8 @@ import {
   verifyDeliveryWhileHeld,
   withPublicationLease,
 } from '../publication-lease/publication-lease.js';
-import type { AtlasPublicationStorage } from '../publication-storage/publication-storage.js';
-import type { AtlasRegistryConfig } from '../registry-config/registry-config.js';
+import type { AtlasPublicationStorage } from '../publication-storage/types.js';
+import type { AtlasRegistryConfig } from '../registry-config/types.js';
 import {
   assertExpectedRegistryRevision,
   readRegistryState,
@@ -150,10 +150,12 @@ function removeClosedPreviews({
 
     for (const number of Object.keys(artifact.previews).map(Number)) {
       checked += 1;
+
       if (previewState.openPreviews.has(number)) continue;
 
       const mutation = removePreview(registry, artifact.id, number);
       registry = mutation.registry;
+
       if (mutation.changed) removed += 1;
     }
   }

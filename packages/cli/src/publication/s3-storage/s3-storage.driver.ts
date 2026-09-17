@@ -10,7 +10,7 @@ import { faker } from '@faker-js/faker';
 import type {
   AtlasPublicationListedObject,
   AtlasPublicationObjectMetadata,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 import { S3PublicationStorage, type S3Options } from './s3-storage.js';
 
 type Command =

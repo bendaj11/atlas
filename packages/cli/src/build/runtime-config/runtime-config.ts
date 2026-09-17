@@ -21,6 +21,7 @@ export function createHostRuntimeConfig(
     resolveRegistryUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
   const environment = resolveRuntimeEnvironment(args, artifactRegistryUrl);
   const environmentRegistryUrl = resolveEnvironmentRegistryUrl(args);
+
   return {
     schemaVersion: 'v1',
     hostId: config.id,
@@ -37,8 +38,10 @@ function resolveRuntimeEnvironment(
   const value = args.flag('environment') ?? process.env.ATLAS_ENVIRONMENT;
   if (value) {
     assertSafeEnvironment(value);
+
     return value;
   }
+
   if (isLocalHttpUrl(new URL(registryUrl))) return 'development';
   throw new Error(
     '--environment or ATLAS_ENVIRONMENT is required for a deployed host runtime.',
@@ -55,6 +58,7 @@ function assertSafeEnvironment(value: string): void {
 
 export function resolveRegistryUrl(args: CliArguments): string | undefined {
   const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
+
   return value ? trimTrailingSlash(value) : undefined;
 }
 

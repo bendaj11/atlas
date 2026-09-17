@@ -14,6 +14,7 @@ export function selectStorageFromEnvironment(
   if (provider === 'artifactory') return { provider };
   const bucket = args?.flag('bucket') ?? process.env.ATLAS_S3_BUCKET;
   if (!provider && !bucket) return undefined;
+
   if (provider && provider !== 's3')
     throw new Error(
       `Unsupported storage provider "${provider}". Use s3 or artifactory.`,
@@ -95,7 +96,9 @@ function s3OptionsFromEnvironment(
 function environmentBoolean(name: string): boolean | undefined {
   const value = process.env[name];
   if (value === undefined) return undefined;
+
   if (value === 'true') return true;
+
   if (value === 'false') return false;
   throw new Error(`${name} must be "true" or "false".`);
 }
@@ -103,6 +106,7 @@ function environmentBoolean(name: string): boolean | undefined {
 function environmentS3LockMode(): S3PublicationLockMode {
   const value = process.env.ATLAS_S3_LOCK_MODE;
   if (value === undefined || value === 's3') return 's3';
+
   if (value === 'external') return 'external';
   throw new Error('ATLAS_S3_LOCK_MODE must be "s3" or "external".');
 }

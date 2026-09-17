@@ -1,13 +1,14 @@
 import type {
   AtlasPublicationLease,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 
 export async function withPublicationLease<T>(
   storage: AtlasPublicationStorage,
   operation: (lease: AtlasPublicationLease) => Promise<T>,
 ): Promise<T> {
   const lease = await storage.acquireLock(`atlas:${process.pid}:${Date.now()}`);
+
   try {
     return await operation(lease);
   } finally {

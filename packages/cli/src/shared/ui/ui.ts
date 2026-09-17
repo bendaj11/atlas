@@ -82,7 +82,9 @@ export class TerminalPrompter implements AtlasPrompter {
           `${style('?', 'cyan', stdout)} ${message}${suffix}: `,
         )
       ).trim();
+
       if (answer) return answer;
+
       if (fallback) return fallback;
       ui.warning('Value required. Enter a value or press Ctrl+C to cancel.');
     }
@@ -106,6 +108,7 @@ export class TerminalPrompter implements AtlasPrompter {
 
   private reader(): Interface {
     this.interface ??= createInterface({ input: stdin, output: stdout });
+
     return this.interface;
   }
 }
@@ -183,10 +186,12 @@ function writeStatus(
 function writeError(message: string): void {
   const [summary, action] = message.split(/\s+Suggested actions?:\s+/, 2);
   writeStatus(stderr, 'error', summary ?? message);
+
   if (action) {
     const actions = [
       ...action.matchAll(/(?:^|\s)(\d+)\)\s+(.+?)(?=\s+\d+\)|$)/gu),
     ];
+
     if (actions.length > 1) {
       writeLine(stderr, `  ${style('Suggested actions:', 'bold', stderr)}`);
       actions.forEach((match) =>
@@ -223,5 +228,6 @@ function style(value: string, color: UiColor, stream: WriteStream): string {
     warningBadge: '30;43',
     red: 31,
   };
+
   return `\u001B[${codes[color]}m${value}\u001B[0m`;
 }

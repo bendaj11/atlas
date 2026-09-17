@@ -23,6 +23,7 @@ interface RootPackageJson {
 
 export async function findWorkspaceRoot(start: string): Promise<string> {
   let current = start;
+
   while (true) {
     if (await isWorkspaceRoot(current)) return current;
     const parent = dirname(current);
@@ -35,6 +36,7 @@ export async function detectWorkspaceKind(
   root: string,
 ): Promise<AtlasWorkspaceKind> {
   if (await exists(join(root, 'nx.json'))) return 'nx';
+
   if (await exists(join(root, 'turbo.json'))) return 'turbo';
   const packageJson = await rootPackageJson(root);
   const declaresWorkspaces =
@@ -51,6 +53,7 @@ export async function detectPackageManager(
   if (declared === 'yarn' || declared === 'pnpm' || declared === 'npm')
     return declared;
   if (await exists(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
+
   if (await exists(join(root, 'yarn.lock'))) return 'yarn';
 
   return 'npm';
@@ -100,6 +103,7 @@ async function isWorkspaceRoot(directory: string): Promise<boolean> {
   const markers = await Promise.all(
     WORKSPACE_ROOT_MARKERS.map((name) => exists(join(directory, name))),
   );
+
   if (markers.some(Boolean)) return true;
 
   return (await rootPackageJson(directory))?.workspaces !== undefined;

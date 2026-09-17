@@ -1,42 +1,15 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { AtlasStaticRegistry } from '@atlas/schema';
 import ts from 'typescript';
-import {
-  isPublicationStorage,
-  type AtlasPublicationStorageSource,
-} from '../publication-storage/publication-storage.js';
+import { isPublicationStorage } from '../publication-storage/publication-storage.js';
 import {
   CliArguments,
   cliError,
   exists,
   formatTypeScriptDiagnostics,
 } from '../../shared/index.js';
-
-export interface AtlasRegistryConfig {
-  storage?: AtlasPublicationStorageSource;
-  invalidate?: (paths: string[]) => void | Promise<void>;
-  hostUrls?: string[];
-  resolvePreviewHead?: AtlasPreviewHeadResolver;
-  verifyRegistry?: (registry: AtlasStaticRegistry) => void | Promise<void>;
-}
-
-export interface AtlasPreviewHeadLookup {
-  artifactId: string;
-  previewNumber: number;
-  gitSha: string;
-  gitBranch?: string;
-}
-
-export interface AtlasPreviewHeadStatus {
-  state: 'open' | 'closed' | 'merged';
-  headSha: string;
-}
-
-export type AtlasPreviewHeadResolver = (
-  preview: AtlasPreviewHeadLookup,
-) => AtlasPreviewHeadStatus | Promise<AtlasPreviewHeadStatus>;
+import type { AtlasRegistryConfig } from './types.js';
 
 export function defineAtlasRegistryConfig(
   config: AtlasRegistryConfig,
@@ -59,15 +32,18 @@ export async function loadAtlasRegistryConfig(
     );
   }
   const compiled = await compileConfig(path);
+
   try {
     const loaded = (await import(
       `${pathToFileURL(compiled.entryPath).href}?t=${Date.now()}`
     )) as { default?: unknown };
+
     if (!isRegistryConfig(loaded.default)) {
       throw new Error(
         `${path} must default-export an AtlasRegistryConfig object.`,
       );
     }
+
     return loaded.default;
   } finally {
     await rm(compiled.directory, { recursive: true, force: true });
@@ -98,11 +74,14 @@ async function compileConfig(path: string): Promise<{
     ...program.getSyntacticDiagnostics(),
     ...result.diagnostics,
   ].filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error);
+
   if (result.emitSkipped || diagnostics.length) {
     await rm(directory, { recursive: true, force: true });
+
     throw new Error(formatTypeScriptDiagnostics(diagnostics, dirname(path)));
   }
   await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');
+
   return {
     directory,
     entryPath: join(directory, `${basename(path, '.ts')}.js`),
@@ -112,6 +91,7 @@ async function compileConfig(path: string): Promise<{
 function isRegistryConfig(value: unknown): value is AtlasRegistryConfig {
   if (typeof value !== 'object' || value === null) return false;
   const config = value as AtlasRegistryConfig;
+
   return (
     (config.storage === undefined ||
       typeof config.storage === 'function' ||

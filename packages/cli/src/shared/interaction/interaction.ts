@@ -23,6 +23,7 @@ export async function resolveInvocation(
   const appId = args.flag('app-id');
   let framework = args.flag('framework') ? args.framework() : undefined;
   let version = args.flag('version');
+
   if (!prompts.interactive)
     return { command, subcommand, name, appId, framework, version };
 
@@ -35,6 +36,7 @@ export async function resolveInvocation(
     name ??= await prompts.input(
       subcommand === 'widget' ? 'Widget name' : `${title(subcommand)} name`,
     );
+
     if ((subcommand === 'host' || subcommand === 'app') && !framework) {
       framework = await prompts.select<SupportedFramework>('Framework', [
         { label: 'React', value: 'react' },
@@ -51,6 +53,7 @@ export async function resolveInvocation(
   ) {
     subcommand = await prompts.input('Atlas project name or directory');
   }
+
   return { command, subcommand, name, appId, framework, version };
 }
 

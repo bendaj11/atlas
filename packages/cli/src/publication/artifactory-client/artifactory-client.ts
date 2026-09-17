@@ -1,4 +1,4 @@
-import type { AtlasPublicationListedObject } from '../publication-storage/publication-storage.js';
+import type { AtlasPublicationListedObject } from '../publication-storage/types.js';
 import {
   transportError,
   unknownMutationOutcome,
@@ -47,6 +47,7 @@ export class ArtifactoryClient {
       throw new Error('Artifactory repository must be one path segment.');
 
     const prefix = encodePath(options.prefix);
+
     if (!options.accessToken || /\s/.test(options.accessToken))
       throw new Error(
         'Artifactory requires a nonempty access token without whitespace.',
@@ -97,6 +98,7 @@ export class ArtifactoryClient {
       `${this.storageUrl}/${encodePath(path)}`,
       { headers: this.authenticatedHeaders() },
     );
+
     if (response.status === 404) {
       await discardResponse(response);
 
@@ -106,6 +108,7 @@ export class ArtifactoryClient {
     await requireStatus({ response, accepted: [200] });
     const info = requireRecord(await readJson({ response, signal }));
     const checksums = requireRecord(info.checksums);
+
     if (
       'children' in info ||
       typeof checksums.sha256 !== 'string' ||
@@ -169,6 +172,7 @@ export class ArtifactoryClient {
       `${this.storageUrl}${suffix}?list&deep=1&listFolders=0`,
       { headers: this.authenticatedHeaders() },
     );
+
     if (response.status === 404) {
       await discardResponse(response);
 
@@ -184,6 +188,7 @@ export class ArtifactoryClient {
 
     return listing.files.map((file: unknown) => {
       const item = requireRecord(file);
+
       if (
         typeof item.uri !== 'string' ||
         !item.uri.startsWith('/') ||

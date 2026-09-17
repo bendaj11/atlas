@@ -9,6 +9,7 @@ export function resolveRegistryArtifact(
     registry,
     (artifact) => artifact.id === identifier,
   );
+
   if (byId.length === 1) return byId[0]!;
 
   const byName = artifactsMatching(
@@ -19,6 +20,7 @@ export function resolveRegistryArtifact(
   const matches = [
     ...new Map(byName.map((match) => [match.artifact.id, match])).values(),
   ];
+
   if (matches.length === 1) return matches[0]!;
 
   if (matches.length > 1)

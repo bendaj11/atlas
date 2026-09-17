@@ -65,6 +65,7 @@ async function verifyAsset({
       bytes = new Uint8Array(await loaded.arrayBuffer());
     },
   });
+
   if (!response) return;
 
   checkCors({
@@ -86,6 +87,7 @@ async function verifyAsset({
     subject: asset.subject,
     channel: manifest.channel,
   });
+
   if (!bytes) return;
 
   checkIntegrity({
@@ -95,6 +97,7 @@ async function verifyAsset({
     integrity: asset.integrity,
     channel: manifest.channel,
   });
+
   if (asset.inspectFederationReferences)
     await verifyFederationReferences({
       bytes,

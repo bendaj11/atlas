@@ -45,6 +45,7 @@ export class AtlasBuildService {
 
   async publication(name: string): Promise<AtlasBuildResult> {
     const project = await this.workspace.findProject(name);
+
     if (!this.args.hasFlag('skip-compile'))
       await compileAtlasConfig(this.workspace, project);
 
@@ -81,6 +82,7 @@ export class AtlasBuildService {
     options: BuildManifestOptions = {},
   ): Promise<AtlasManifest> {
     const project = await this.workspace.findProject(name);
+
     if (!options.skipCompile && !this.args.hasFlag('skip-compile'))
       await this.workspace.run(project, 'build');
 
@@ -167,6 +169,7 @@ export class AtlasBuildService {
     const explicit =
       this.args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
     if (explicit) return explicit;
+
     if (channel === 'local') return LOCAL_REGISTRY_URL;
 
     throw cliError(

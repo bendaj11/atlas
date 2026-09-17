@@ -42,6 +42,7 @@ export async function runAtlasCli(
 
     const workspace = await detectWorkspace();
     if (invocation.command !== 'dev') await loadEnvFiles(workspace.root);
+
     if (await runWorkspaceCommand({ workspace, args, prompts, invocation }))
       return;
 
@@ -64,6 +65,7 @@ function cliVersion(): string {
       'utf8',
     ),
   ) as { version?: string };
+
   if (!packageJson.version)
     throw new Error('Atlas CLI package version is missing.');
 

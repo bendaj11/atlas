@@ -25,6 +25,7 @@ export async function discoverExportedWidgets(options: {
     },
   );
   const widgets: AtlasExportedWidgetManifest[] = [];
+
   for (const entry of entries.sort((left, right) =>
     left.name.localeCompare(right.name),
   )) {
@@ -61,6 +62,7 @@ async function readWidget(options: {
       `Exported widget "${name}" must contain src/exported-widgets/${name}/index.${extension}.`,
     );
   }
+
   try {
     return await loadWidgetConfig(join(directory, 'atlas.config.ts'));
   } catch (error) {
@@ -69,6 +71,7 @@ async function readWidget(options: {
         `Exported widget "${name}" must contain src/exported-widgets/${name}/atlas.config.ts. Run atlas g widget ${name} --app-id=${config.id} or add a stable UUIDv4 id and name.`,
       );
     }
+
     throw error;
   }
 }

@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import type {
   AtlasPublicationLease,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 import {
   verifyDeliveryWhileHeld,
   withPublicationLease,

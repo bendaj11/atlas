@@ -28,6 +28,7 @@ export async function existingPackageName(
     const packageJson = JSON.parse(
       await readFile(join(root, 'package.json'), 'utf8'),
     ) as { name?: unknown };
+
     return typeof packageJson.name === 'string' && packageJson.name
       ? packageJson.name
       : undefined;
@@ -46,6 +47,7 @@ export async function writeGenerated(
     force,
     `Target directory "${root}" already exists. Use --force to update generated files.`,
   );
+
   for (const file of files) {
     const target = resolveContainedPath(root, file.path);
     await mkdir(join(target, '..'), { recursive: true });
@@ -78,6 +80,7 @@ export async function ensureAtlasGeneratedFilesIgnored(
 
 function isContainedBy(parent: string, child: string): boolean {
   const relativePath = relative(parent, child);
+
   return (
     relativePath === '' ||
     (relativePath !== '..' &&

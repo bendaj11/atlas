@@ -85,6 +85,7 @@ async function fetchControl(url: string, init: RequestInit): Promise<void> {
     ...init,
     headers: { 'content-type': 'application/json', ...init.headers },
   });
+
   if (response.ok) return;
   throw new Error(
     `Atlas dev control server rejected ${url}: ${response.status} ${await response.text()}`,

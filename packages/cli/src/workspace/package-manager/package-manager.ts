@@ -11,6 +11,7 @@ export function packageExecutor({
   args: string[];
 }): ProcessCommand {
   if (manager === 'yarn') return { command: 'yarn', args, cwd: root };
+
   if (manager === 'pnpm')
     return { command: 'pnpm', args: ['exec', ...args], cwd: root };
 

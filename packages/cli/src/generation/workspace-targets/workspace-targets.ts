@@ -76,6 +76,7 @@ function turboTasks(
   turbo: Record<string, unknown>,
 ): ['tasks' | 'pipeline', Record<string, unknown>] {
   if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];
+
   if (isRecord(turbo.pipeline)) return ['pipeline', turbo.pipeline];
 
   return ['tasks', {}];

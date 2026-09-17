@@ -52,6 +52,7 @@ export async function ensureDelegatedNxTargets({
   const targets = asObject(project.targets);
 
   preserveNativeDevTarget({ targets, projectName });
+
   if (framework === 'angular')
     ensureAngularNativeFederationTargets({
       targets,

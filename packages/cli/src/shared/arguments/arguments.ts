@@ -24,6 +24,7 @@ export class CliArguments {
     const exactIndex = this.values.indexOf(`--${name}`);
     if (exactIndex >= 0) return this.values[exactIndex + 1] ?? 'true';
     const prefix = `--${name}=`;
+
     return this.values
       .find((value) => value.startsWith(prefix))
       ?.slice(prefix.length);
@@ -37,12 +38,14 @@ export class CliArguments {
     if (this.hasFlag('no-routing')) return false;
     const value = this.flag('routing');
     if (value === undefined || value === 'true') return true;
+
     if (value === 'false') return false;
     throw new Error('--routing must be true or false.');
   }
 
   stylesheetFormat(): AngularStylesheetFormat {
     const value = this.flag('style') ?? 'css';
+
     if (
       value === 'css' ||
       value === 'scss' ||
@@ -73,6 +76,7 @@ export class CliArguments {
     if (!Number.isInteger(value) || value < 1 || value > 65535) {
       throw new Error(`--${name} must be an integer between 1 and 65535.`);
     }
+
     return value;
   }
 }

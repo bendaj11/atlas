@@ -34,6 +34,7 @@ export async function findAtlasProject(options: {
     resolve(workspaceRoot, name),
     resolve(currentDirectory, name),
   ];
+
   for (const candidate of [...requestedRoots, currentDirectory]) {
     const project = await readProject({
       root: candidate,
@@ -41,6 +42,7 @@ export async function findAtlasProject(options: {
       requestedRoots,
       workspaceRoot,
     });
+
     if (project) return project;
   }
   const matches = await walkProjects({
@@ -55,7 +57,9 @@ export async function findAtlasProject(options: {
         workspaceRoot,
       }),
   });
+
   if (matches.length === 1) return matches[0]!;
+
   if (matches.length > 1)
     throw cliError(
       `Atlas found multiple projects named "${name}".`,
@@ -100,9 +104,11 @@ async function walkProjects(options: {
   read: (root: string) => Promise<AtlasProject | undefined | null>;
 }): Promise<AtlasProject[]> {
   const { directory, workspaceRoot, depth, read } = options;
+
   if (depth > MAX_DISCOVERY_DEPTH) return [];
   const project = await read(directory);
   if (project === null) return [];
+
   if (project) return [project];
   const entries = await readdir(directory, { withFileTypes: true }).catch(
     () => [],
@@ -149,6 +155,7 @@ async function readProject(options: {
     nxProject?.name,
     basename(root),
   ];
+
   if (!identifiers.includes(requestedName) && !requestedRoots.includes(root))
     return undefined;
   const configPath = join(root, 'atlas.config.ts');

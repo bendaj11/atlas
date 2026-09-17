@@ -57,6 +57,7 @@ export async function ensureAngularBuildNotifications({
       targetsKey: 'architect',
       runnerKey: 'builder',
     });
+
     if (!changed) return;
 
     asObject(workspace.projects)[projectName] = project;
@@ -74,5 +75,6 @@ export async function ensureAngularBuildNotifications({
     targetsKey: 'targets',
     runnerKey: 'executor',
   });
+
   if (changed) await writeJsonFile(projectFile, project);
 }

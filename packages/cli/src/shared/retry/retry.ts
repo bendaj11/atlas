@@ -14,6 +14,7 @@ export async function withExponentialRetry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   let attempt = 1;
+
   while (true) {
     try {
       return await operation();
@@ -34,6 +35,7 @@ function isTransientError(error: unknown): boolean {
 
 function transientStatus(error: unknown): boolean {
   const status = statusCode(error);
+
   return status !== undefined && isRetryableHttpStatus(status);
 }
 
@@ -50,6 +52,7 @@ function statusCode(error: unknown): number | undefined {
 function transientNetworkCode(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
+
   if (
     code === 'ECONNABORTED' ||
     code === 'ECONNRESET' ||

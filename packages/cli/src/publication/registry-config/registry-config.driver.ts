@@ -1,8 +1,6 @@
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import {
-  loadAtlasRegistryConfig,
-  type AtlasRegistryConfig,
-} from './registry-config.js';
+import { loadAtlasRegistryConfig } from './registry-config.js';
+import type { AtlasRegistryConfig } from './types.js';
 import { CliArguments } from '../../shared/index.js';
 
 export class RegistryConfigDriver {

@@ -17,6 +17,7 @@ export async function compileAtlasConfig(
   project: AtlasProject,
 ): Promise<void> {
   await compileAtlasConfigFile(project.root);
+
   if (
     workspace.kind === 'nx' &&
     !(await compiledAtlasConfigExists(project.root))
@@ -62,6 +63,7 @@ async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   const errors = diagnostics.filter(
     (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
   );
+
   if (errors.length > 0 || emitResult.emitSkipped)
     throw new Error(
       formatTypeScriptDiagnostics(

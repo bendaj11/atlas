@@ -21,10 +21,12 @@ export async function startLocalBootstrapServer(
   server.on('upgrade', (request, socket, head) => {
     if (!matchesNativeProxyRoute(request.url, options.proxy)) {
       socket.end('HTTP/1.1 404 Not Found\r\n\r\n');
+
       return;
     }
     proxyNativeUpgrade(request, socket, head, options.proxy!.origin);
   });
+
   return await listenOnLocalHost(server, options.port, 'Atlas local bootstrap');
 }
 
@@ -52,6 +54,7 @@ function createBootstrapRequestHandler(
   ): void => {
     if (matchesNativeProxyRoute(request.url, proxy)) {
       proxyNativeRequest(request, response, proxy!.origin);
+
       return;
     }
     const path = new URL(request.url ?? '/', `http://${LOCAL_HOST}`).pathname;
@@ -59,16 +62,20 @@ function createBootstrapRequestHandler(
     if (!isBootstrapMethod(method)) {
       response.writeHead(405, { allow: 'GET, HEAD' });
       response.end();
+
       return;
     }
     const exactContents = files.get(path);
     if (exactContents !== undefined) {
       writeBootstrapResponse(response, path, exactContents, method);
+
       return;
     }
+
     if (hasFileExtension(path)) {
       response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
       response.end('Not found\n');
+
       return;
     }
     writeBootstrapResponse(
@@ -140,6 +147,7 @@ function proxyNativeUpgrade(
   });
   upstream.once('connect', () => {
     upstream.write(createUpgradeRequest(request, target));
+
     if (head.length > 0) upstream.write(head);
     socket.pipe(upstream).pipe(socket);
   });
@@ -151,6 +159,7 @@ function createUpgradeRequest(request: IncomingMessage, target: URL): string {
   const hostIndex = headers.findIndex(
     (header) => header.toLowerCase() === 'host',
   );
+
   if (hostIndex >= 0) headers[hostIndex + 1] = target.host;
   else headers.push('Host', target.host);
   const serializedHeaders = headers

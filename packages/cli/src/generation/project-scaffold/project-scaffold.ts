@@ -57,6 +57,7 @@ export async function takeOverScaffold({
   framework: SupportedFramework;
 }): Promise<void> {
   await takeOverAppSource(root);
+
   if (framework === 'react') await removeDelegatedReactViteConfigs(root);
 }
 
@@ -170,6 +171,7 @@ async function mergeDelegatedDependencies({
     packageFile.contents,
     framework,
   );
+
   if (changed)
     ui.info(
       `Added Atlas dependencies to ${displayTarget(workspace.root, target)}.`,

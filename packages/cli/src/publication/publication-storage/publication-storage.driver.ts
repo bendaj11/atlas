@@ -1,11 +1,11 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { ArtifactoryOptions } from '../artifactory-storage/artifactory-storage.js';
-import {
-  createPublicationStorage,
-  type AtlasPublicationStorage,
-  type AtlasPublicationStorageSource,
-} from './publication-storage.js';
+import { createPublicationStorage } from './publication-storage.js';
+import type {
+  AtlasPublicationStorage,
+  AtlasPublicationStorageSource,
+} from './types.js';
 import type { S3Options } from '../s3-storage/s3-storage.js';
 import { CliArguments } from '../../shared/index.js';
 

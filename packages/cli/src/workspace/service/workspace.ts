@@ -53,6 +53,7 @@ export async function detectWorkspace(
         workspaceRoot: root,
         projectRoot,
       });
+
       if (!command) return false;
       await runProcess(command);
 
@@ -89,6 +90,7 @@ export async function detectWorkspace(
           'Nx projects must be generated inside the workspace root.',
         );
       }
+
       try {
         await runProcess(
           createNxGenerationCommand({

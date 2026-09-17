@@ -67,6 +67,7 @@ export async function listArtifactFiles(
     entries.map(async (entry) => {
       const path = join(relative, entry.name);
       if (entry.isDirectory()) return listArtifactFiles(root, path);
+
       if (entry.isFile()) return [path];
       throw new Error(
         `Atlas cannot inventory unsupported artifact entry "${path}".`,
@@ -79,6 +80,7 @@ export async function listArtifactFiles(
 
 export async function hashArtifactDirectory(root: string): Promise<string> {
   const hash = createHash('sha256');
+
   for (const relativePath of await listArtifactFiles(root)) {
     hash.update(toPosixPath(relativePath));
     hash.update('\0');

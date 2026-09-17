@@ -145,6 +145,7 @@ export async function createFormatGeneratedCommand(options: {
 }): Promise<ProcessCommand | undefined> {
   const { kind, manager, workspaceRoot, projectRoot } = options;
   const target = relative(workspaceRoot, projectRoot) || '.';
+
   if (kind === 'nx') {
     if (!(await nxFormatterAvailable(workspaceRoot))) return undefined;
 
@@ -275,6 +276,7 @@ function turboTask(options: {
     `--filter=${project.packageName}`,
     ...(args.length ? ['--', ...args] : []),
   ];
+
   if (manager === 'yarn')
     return { command: 'yarn', args: ['exec', '--', ...turboArgs], cwd: root };
 

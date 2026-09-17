@@ -183,6 +183,7 @@ export class AtlasGenerateService {
       framework,
     );
     const devServerPort = await resolveDevServerPort(this.context(), type);
+
     if (this.delegatesScaffold() && this.prompts.interactive)
       this.prompts.close();
 
@@ -240,6 +241,7 @@ export class AtlasGenerateService {
       framework,
       devServerPort,
     });
+
     if (workspaceScaffolded)
       await alignDelegatedProject({
         workspace: this.workspace,

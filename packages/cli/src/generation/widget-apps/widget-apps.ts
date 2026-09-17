@@ -28,6 +28,7 @@ export async function resolveWidgetApp(options: {
       `Could not find Atlas app ID "${requestedAppId}". ${availableAppsMessage(apps)}`,
     );
   }
+
   if (!prompts.interactive) {
     throw new Error(
       `--app-id <app-id> is required to generate a widget in non-interactive mode. ${availableAppsMessage(apps)}`,

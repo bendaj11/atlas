@@ -13,6 +13,7 @@ export async function startOwnedControlServer(
 
   for (const lease of await readActiveControlServerLeases(port)) {
     session.register(lease.document);
+
     if (lease.ready) session.markDocumentReady(lease.document);
   }
 

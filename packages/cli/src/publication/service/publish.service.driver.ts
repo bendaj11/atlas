@@ -18,8 +18,8 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
-import type { AtlasPreviewHeadResolver } from '../registry-config/registry-config.js';
+} from '../publication-storage/types.js';
+import type { AtlasPreviewHeadResolver } from '../registry-config/types.js';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import {
   canonicalJson,

@@ -75,6 +75,7 @@ export class AtlasVerifyService {
         config = await parseJson({ response: loaded, subject, context });
       },
     });
+
     if (!response) return undefined;
 
     checkMutableCache({ checks: context.checks, response, subject });
@@ -112,6 +113,7 @@ export class AtlasVerifyService {
         value = await parseJson({ response: loaded, subject, context });
       },
     });
+
     if (!response) return undefined;
 
     checkCors({
@@ -167,6 +169,7 @@ export class AtlasVerifyService {
       context,
       limitConcurrency: false,
     });
+
     if (!response.ok)
       throw new Error(`${url.href} returned HTTP ${response.status}.`);
 
@@ -183,6 +186,7 @@ export class AtlasVerifyService {
       subject,
       expected: 'json',
     });
+
     if (url.href !== deploymentManifestUrl.href)
       checkImmutableCache({
         checks: context.checks,

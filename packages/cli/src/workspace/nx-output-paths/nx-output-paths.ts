@@ -64,6 +64,7 @@ function delegatedNxBuildTarget(
   const target = build.options?.target;
   if (!target) return undefined;
   const [projectName, targetName, configuration] = target.split(':');
+
   if (projectName !== project?.name || !targetName) return undefined;
   const delegatedTarget = project.targets?.[targetName];
 

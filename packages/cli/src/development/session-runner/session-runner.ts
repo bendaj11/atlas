@@ -63,6 +63,7 @@ export async function runDevSession(options: DevSessionOptions): Promise<void> {
     control,
   };
   let bootstrap: Server | undefined;
+
   try {
     await waitForRemoteEntry(options.remoteEntryUrl, frameworkServer);
     bootstrap = await options.beforeReady?.(context);
@@ -74,6 +75,7 @@ export async function runDevSession(options: DevSessionOptions): Promise<void> {
   } catch (error) {
     if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');
     await control.close();
+
     throw error;
   } finally {
     if (bootstrap) await closeServer(bootstrap);
