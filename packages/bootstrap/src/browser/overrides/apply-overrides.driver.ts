@@ -1,99 +1,93 @@
-import type {
-  AtlasHostCatalog,
-  AtlasHostManifest,
-  AtlasHostRuntimeConfig,
-  AtlasManifest,
-  AtlasStaticRegistry,
-} from '@atlas/schema';
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
-import {
-  applyOverrides,
-  type DevSession,
-  type OverridesDependencies,
-} from './index.js';
+import type { applyOverridesDocument as applyOverridesDocumentType } from './apply-overrides-document.js';
+import type {
+  discoverDevelopmentSession as discoverDevelopmentSessionType,
+  storeDevelopmentSession as storeDevelopmentSessionType,
+  storedOverridesDocument as storedOverridesDocumentType,
+} from './development-session-source.js';
+import type { mergeDevelopmentSession as mergeDevelopmentSessionType } from './merge-development-session.js';
+import type { DevSession, OverridesDependencies } from './overrides.types.js';
 
-const STORAGE_KEY = 'atlas.runtime-overrides';
+const applyOverridesDocument = jest.fn<typeof applyOverridesDocumentType>();
+const discoverDevelopmentSession =
+  jest.fn<typeof discoverDevelopmentSessionType>();
+const storeDevelopmentSession = jest.fn<typeof storeDevelopmentSessionType>();
+const storedOverridesDocument = jest.fn<typeof storedOverridesDocumentType>();
+const mergeDevelopmentSession = jest.fn<typeof mergeDevelopmentSessionType>();
+jest.unstable_mockModule('./apply-overrides-document.js', () => ({
+  applyOverridesDocument,
+}));
+jest.unstable_mockModule('./development-session-source.js', () => ({
+  discoverDevelopmentSession,
+  storeDevelopmentSession,
+  storedOverridesDocument,
+}));
+jest.unstable_mockModule('./merge-development-session.js', () => ({
+  mergeDevelopmentSession,
+}));
+const { applyOverrides } = await import('./apply-overrides.js');
 
-export class OverridesDriver {
+export class ApplyOverridesDriver {
   private runtime!: AtlasHostRuntimeConfig;
   private catalog!: AtlasHostCatalog;
-  private suppliedSession: DevSession | undefined;
-  private fetchedSession: DevSession | undefined;
-  private registry: AtlasStaticRegistry | undefined;
-  private registryFailure: Error | undefined;
-  private readonly sessionStore = new Map<string, string>();
-  private readonly localStore = new Map<string, string>();
-  private readonly fetchJson = jest.fn<
-    (options: { url: string }) => Promise<unknown>
-  >(async ({ url }) => {
-    if (url === this.runtime.developmentSessionUrl) return this.fetchedSession;
-    if (this.registryFailure) throw this.registryFailure;
-
-    return this.registry;
-  });
-  private readonly requestDevelopmentSession = jest.fn<
-    OverridesDependencies['requestDevelopmentSession']
-  >(async () => undefined);
-  private readonly loadPublishedArtifact =
-    jest.fn<OverridesDependencies['loadPublishedArtifact']>();
+  private developmentSession: DevSession | undefined;
+  private readonly dependencies = {} as OverridesDependencies;
   private result: AtlasHostCatalog | undefined;
   private error: unknown;
 
+  constructor() {
+    for (const mock of [
+      applyOverridesDocument,
+      discoverDevelopmentSession,
+      storeDevelopmentSession,
+      storedOverridesDocument,
+      mergeDevelopmentSession,
+    ]) {
+      mock.mockReset();
+    }
+    discoverDevelopmentSession.mockResolvedValue(undefined);
+    storedOverridesDocument.mockReturnValue(null);
+    storeDevelopmentSession.mockImplementation(({ session }) =>
+      JSON.stringify(session),
+    );
+  }
+
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): OverridesDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig): ApplyOverridesDriver => {
       this.runtime = runtime;
 
       return this;
     },
-    catalog: (catalog: AtlasHostCatalog): OverridesDriver => {
+    catalog: (catalog: AtlasHostCatalog): ApplyOverridesDriver => {
       this.catalog = catalog;
 
       return this;
     },
-    suppliedSession: (session: DevSession): OverridesDriver => {
-      this.suppliedSession = session;
+    suppliedSession: (session: DevSession): ApplyOverridesDriver => {
+      this.developmentSession = session;
 
       return this;
     },
-    fetchedSession: (session: DevSession): OverridesDriver => {
-      this.fetchedSession = session;
+    discoveredSession: (
+      session: DevSession | undefined,
+    ): ApplyOverridesDriver => {
+      discoverDevelopmentSession.mockResolvedValue(session);
 
       return this;
     },
-    bridgeSession: (session: DevSession): OverridesDriver => {
-      this.requestDevelopmentSession.mockResolvedValue(session);
+    mergedCatalog: (catalog: AtlasHostCatalog): ApplyOverridesDriver => {
+      mergeDevelopmentSession.mockReturnValue(catalog);
 
       return this;
     },
-    sessionStorageDocument: (document: unknown): OverridesDriver => {
-      this.sessionStore.set(STORAGE_KEY, JSON.stringify(document));
+    storedDocument: (document: unknown): ApplyOverridesDriver => {
+      storedOverridesDocument.mockReturnValue(JSON.stringify(document));
 
       return this;
     },
-    localStorageDocument: (document: unknown): OverridesDriver => {
-      this.localStore.set(STORAGE_KEY, JSON.stringify(document));
-
-      return this;
-    },
-    registry: (registry: AtlasStaticRegistry): OverridesDriver => {
-      this.registry = registry;
-
-      return this;
-    },
-    registryFailure: (error: Error): OverridesDriver => {
-      this.registryFailure = error;
-
-      return this;
-    },
-    publishedArtifactFailure: (error: Error): OverridesDriver => {
-      this.loadPublishedArtifact.mockRejectedValue(error);
-
-      return this;
-    },
-    publishedArtifact: (
-      manifest: AtlasManifest | AtlasHostManifest,
-    ): OverridesDriver => {
-      this.loadPublishedArtifact.mockResolvedValue(manifest);
+    overriddenCatalog: (catalog: AtlasHostCatalog): ApplyOverridesDriver => {
+      applyOverridesDocument.mockResolvedValue(catalog);
 
       return this;
     },
@@ -105,21 +99,10 @@ export class OverridesDriver {
         this.result = await applyOverrides({
           runtime: this.runtime,
           catalog: this.catalog,
-          ...(this.suppliedSession === undefined
+          ...(this.developmentSession === undefined
             ? {}
-            : { developmentSession: this.suppliedSession }),
-          dependencies: {
-            sessionStorage: {
-              getItem: (key) => this.sessionStore.get(key) ?? null,
-              setItem: (key, value) => void this.sessionStore.set(key, value),
-            },
-            localStorage: {
-              getItem: (key) => this.localStore.get(key) ?? null,
-            },
-            fetchJson: this.fetchJson as OverridesDependencies['fetchJson'],
-            requestDevelopmentSession: this.requestDevelopmentSession,
-            loadPublishedArtifact: this.loadPublishedArtifact,
-          },
+            : { developmentSession: this.developmentSession }),
+          dependencies: this.dependencies,
         });
       } catch (error) {
         this.error = error;
@@ -130,10 +113,9 @@ export class OverridesDriver {
   readonly get = {
     result: (): AtlasHostCatalog | undefined => this.result,
     error: (): unknown => this.error,
-    storedSessionDocument: (): unknown =>
-      JSON.parse(this.sessionStore.get(STORAGE_KEY) ?? 'null'),
-    fetchJsonMock: () => this.fetchJson,
-    requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
-    loadPublishedArtifactMock: () => this.loadPublishedArtifact,
+    discoverDevelopmentSessionMock: () => discoverDevelopmentSession,
+    storeDevelopmentSessionMock: () => storeDevelopmentSession,
+    mergeDevelopmentSessionMock: () => mergeDevelopmentSession,
+    applyOverridesDocumentMock: () => applyOverridesDocument,
   };
 }

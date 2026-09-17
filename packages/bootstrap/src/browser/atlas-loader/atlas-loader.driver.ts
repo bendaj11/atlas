@@ -1,35 +1,32 @@
-import type {
-  AtlasHostCatalog,
-  AtlasHostDeploymentManifest,
-  AtlasHostManifest,
-  AtlasHostRuntimeConfig,
-  AtlasManifest,
-  AtlasManifestDescriptor,
-} from '@atlas/schema';
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { HostModule, HostMountRequest } from '../host-module.js';
-import { startAtlasLoader, type AtlasLoaderDependencies } from './index.js';
+import type { AtlasLoaderDependencies } from './atlas-loader.types.js';
+import type { publishRuntimeSnapshot as publishRuntimeSnapshotType } from './runtime-snapshot.js';
+import type { loadStartupCatalog as loadStartupCatalogType } from './startup-catalog.js';
 
-interface SnapshotElement {
-  id: string;
-  type: string;
-  textContent: string;
-}
+const loadStartupCatalog = jest.fn<typeof loadStartupCatalogType>();
+const publishRuntimeSnapshot = jest.fn<typeof publishRuntimeSnapshotType>();
+jest.unstable_mockModule('./startup-catalog.js', () => ({
+  loadStartupCatalog,
+}));
+jest.unstable_mockModule('./runtime-snapshot.js', () => ({
+  publishRuntimeSnapshot,
+}));
+const { startAtlasLoader } = await import('./atlas-loader.js');
 
 export class AtlasLoaderDriver {
   private runtimeConfig!: AtlasHostRuntimeConfig;
-  private deployment: AtlasHostDeploymentManifest | undefined;
-  private developmentSession: unknown;
-  private readonly artifacts = new Map<
-    string,
-    AtlasManifest | AtlasHostManifest
-  >();
   private hostRootPresent = true;
-  private existingSnapshot: SnapshotElement | undefined;
-  private createdSnapshot: SnapshotElement | undefined;
-  private activeArtifactLoads = 0;
-  private maximumArtifactLoads = 0;
   private readonly root = { replaceChildren: jest.fn() };
+  private readonly document: AtlasLoaderDependencies['document'] = {
+    createElement: jest.fn() as unknown as Document['createElement'],
+    getElementById: (id: string) =>
+      id === 'atlas-host-root' && this.hostRootPresent
+        ? (this.root as unknown as HTMLElement)
+        : null,
+    head: {} as HTMLHeadElement,
+  };
   private readonly mount = jest.fn<
     (request: HostMountRequest) => Promise<void>
   >(async () => undefined);
@@ -37,29 +34,13 @@ export class AtlasLoaderDriver {
   private readonly installModuleShim = jest.fn<
     AtlasLoaderDependencies['installModuleShim']
   >(async () => undefined);
-  private readonly fetchBytes = jest.fn<AtlasLoaderDependencies['fetchBytes']>(
-    async () => new TextEncoder().encode(JSON.stringify(this.deployment)),
-  );
+  private readonly fetchBytes =
+    jest.fn<AtlasLoaderDependencies['fetchBytes']>();
   private readonly fetchJson = jest.fn<
     (options: { url: string }) => Promise<unknown>
-  >(async ({ url }) =>
-    url === '/atlas.runtime.json'
-      ? this.runtimeConfig
-      : this.developmentSession,
-  );
-  private readonly loadPublishedArtifact = jest.fn<
-    AtlasLoaderDependencies['loadPublishedArtifact']
-  >(async ({ reference }) => {
-    this.activeArtifactLoads += 1;
-    this.maximumArtifactLoads = Math.max(
-      this.maximumArtifactLoads,
-      this.activeArtifactLoads,
-    );
-    await Promise.resolve();
-    this.activeArtifactLoads -= 1;
-
-    return this.artifacts.get(reference.path)!;
-  });
+  >(async () => this.runtimeConfig);
+  private readonly loadPublishedArtifact =
+    jest.fn<AtlasLoaderDependencies['loadPublishedArtifact']>();
   private readonly applyOverrides = jest.fn<
     AtlasLoaderDependencies['applyOverrides']
   >(async ({ catalog }) => catalog);
@@ -70,6 +51,11 @@ export class AtlasLoaderDriver {
   >(async () => this.hostModule);
   private error: unknown;
 
+  constructor() {
+    loadStartupCatalog.mockReset();
+    publishRuntimeSnapshot.mockReset();
+  }
+
   readonly given = {
     runtimeConfig: (
       runtimeConfig: AtlasHostRuntimeConfig,
@@ -78,23 +64,10 @@ export class AtlasLoaderDriver {
 
       return this;
     },
-    deployment: (
-      deployment: AtlasHostDeploymentManifest,
+    startupCatalog: (
+      startup: Awaited<ReturnType<typeof loadStartupCatalogType>>,
     ): AtlasLoaderDriver => {
-      this.deployment = deployment;
-
-      return this;
-    },
-    publishedArtifact: (
-      reference: AtlasManifestDescriptor,
-      manifest: AtlasManifest | AtlasHostManifest,
-    ): AtlasLoaderDriver => {
-      this.artifacts.set(reference.path, manifest);
-
-      return this;
-    },
-    developmentSession: (session: unknown): AtlasLoaderDriver => {
-      this.developmentSession = session;
+      loadStartupCatalog.mockResolvedValue(startup);
 
       return this;
     },
@@ -113,33 +86,13 @@ export class AtlasLoaderDriver {
 
       return this;
     },
-    existingSnapshotElement: (element: SnapshotElement): AtlasLoaderDriver => {
-      this.existingSnapshot = element;
-
-      return this;
-    },
   };
 
   readonly when = {
     started: async (): Promise<void> => {
       try {
         await startAtlasLoader({
-          document: {
-            createElement: (() => {
-              this.createdSnapshot = { id: '', type: '', textContent: '' };
-
-              return this.createdSnapshot;
-            }) as unknown as Document['createElement'],
-            getElementById: (id: string) => {
-              if (id === 'atlas-host-root')
-                return this.hostRootPresent
-                  ? (this.root as unknown as HTMLElement)
-                  : null;
-
-              return (this.existingSnapshot as unknown as HTMLElement) ?? null;
-            },
-            head: { append: jest.fn() } as unknown as HTMLHeadElement,
-          },
+          document: this.document,
           location: { href: 'https://host.example/' },
           fetchBytes: this.fetchBytes,
           fetchJson: this.fetchJson as AtlasLoaderDependencies['fetchJson'],
@@ -157,23 +110,15 @@ export class AtlasLoaderDriver {
 
   readonly get = {
     error: (): unknown => this.error,
-    mountedCatalog: (): AtlasHostCatalog | undefined =>
-      this.mount.mock.calls[0]?.[0].catalog,
     mountRequest: (): HostMountRequest | undefined =>
       this.mount.mock.calls[0]?.[0],
-    createdSnapshot: (): unknown =>
-      this.createdSnapshot && {
-        ...this.createdSnapshot,
-        textContent: JSON.parse(this.createdSnapshot.textContent),
-      },
-    maximumArtifactLoads: (): number => this.maximumArtifactLoads,
     rootReplaceChildrenMock: () => this.root.replaceChildren,
     installModuleShimMock: () => this.installModuleShim,
-    fetchBytesMock: () => this.fetchBytes,
     fetchJsonMock: () => this.fetchJson,
-    loadPublishedArtifactMock: () => this.loadPublishedArtifact,
+    loadStartupCatalogMock: () => loadStartupCatalog,
     applyOverridesMock: () => this.applyOverrides,
     validateCatalogMock: () => this.validateCatalog,
+    publishRuntimeSnapshotMock: () => publishRuntimeSnapshot,
     loadHostModuleMock: () => this.loadHostModule,
     mountMock: () => this.mount,
   };

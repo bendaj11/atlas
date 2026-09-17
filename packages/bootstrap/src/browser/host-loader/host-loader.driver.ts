@@ -1,23 +1,31 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { HostModule } from '../host-module.js';
-import {
-  loadHostModule,
-  type HostLoaderDependencies,
-  type RemoteMetadata,
-} from './index.js';
+import type { watchHostBuildNotifications as watchHostBuildNotificationsType } from './build-notifications.js';
+import type {
+  HostLoaderDependencies,
+  RemoteMetadata,
+} from './host-loader.types.js';
+import type { loadHostStyles as loadHostStylesType } from './host-styles.js';
+import type { installHostSharedDependencies as installHostSharedDependenciesType } from './shared-dependencies.js';
 
-interface AppendedElement {
-  tagName: string;
-  [property: string]: unknown;
-}
+const watchHostBuildNotifications =
+  jest.fn<typeof watchHostBuildNotificationsType>();
+const loadHostStyles = jest.fn<typeof loadHostStylesType>();
+const installHostSharedDependencies =
+  jest.fn<typeof installHostSharedDependenciesType>();
+jest.unstable_mockModule('./build-notifications.js', () => ({
+  watchHostBuildNotifications,
+}));
+jest.unstable_mockModule('./host-styles.js', () => ({ loadHostStyles }));
+jest.unstable_mockModule('./shared-dependencies.js', () => ({
+  installHostSharedDependencies,
+}));
+const { loadHostModule } = await import('./host-loader.js');
 
 export class HostLoaderDriver {
   private manifest!: AtlasHostManifest;
   private runtime!: AtlasHostRuntimeConfig;
-  private eventSourceSupported = true;
-  private eventSource: Pick<EventSource, 'onmessage'> | undefined;
-  private readonly appended: AppendedElement[] = [];
   private readonly fetchJson =
     jest.fn<(options: unknown) => Promise<unknown>>();
   private readonly importModule =
@@ -26,9 +34,14 @@ export class HostLoaderDriver {
     jest.fn<HostLoaderDependencies['validateArtifactUrl']>();
   private readonly validateHostManifest =
     jest.fn<HostLoaderDependencies['validateHostManifest']>();
-  private readonly reloadPage = jest.fn();
   private module: HostModule | undefined;
   private error: unknown;
+
+  constructor() {
+    watchHostBuildNotifications.mockReset();
+    loadHostStyles.mockReset();
+    installHostSharedDependencies.mockReset();
+  }
 
   readonly given = {
     manifest: (manifest: AtlasHostManifest): HostLoaderDriver => {
@@ -51,11 +64,6 @@ export class HostLoaderDriver {
 
       return this;
     },
-    eventSourceSupported: (supported: boolean): HostLoaderDriver => {
-      this.eventSourceSupported = supported;
-
-      return this;
-    },
   };
 
   readonly when = {
@@ -65,52 +73,29 @@ export class HostLoaderDriver {
           manifest: this.manifest,
           runtime: this.runtime,
           dependencies: {
-            document: {
-              createElement: ((tagName: string) => ({
-                tagName,
-              })) as Document['createElement'],
-              head: {
-                append: (element: AppendedElement) =>
-                  this.appended.push(element),
-              } as unknown as HTMLHeadElement,
-            },
+            document: {} as HostLoaderDependencies['document'],
             fetchJson: this.fetchJson as HostLoaderDependencies['fetchJson'],
             importModule: this.importModule,
             validateArtifactUrl: this.validateArtifactUrl,
             validateHostManifest: this.validateHostManifest,
-            ...(this.eventSourceSupported
-              ? {
-                  createEventSource: () => {
-                    this.eventSource = { onmessage: null };
-
-                    return this.eventSource;
-                  },
-                }
-              : {}),
-            reloadPage: this.reloadPage,
+            reloadPage: () => undefined,
           },
         });
       } catch (error) {
         this.error = error;
       }
     },
-    buildNotified: (data: string): void => {
-      this.eventSource?.onmessage?.call(
-        this.eventSource as EventSource,
-        { data } as MessageEvent<string>,
-      );
-    },
   };
 
   readonly get = {
     module: (): HostModule | undefined => this.module,
     error: (): unknown => this.error,
-    appendedElements: (): readonly AppendedElement[] => this.appended,
-    eventSourceCreated: (): boolean => this.eventSource !== undefined,
     fetchJsonMock: () => this.fetchJson,
     importModuleMock: () => this.importModule,
     validateArtifactUrlMock: () => this.validateArtifactUrl,
     validateHostManifestMock: () => this.validateHostManifest,
-    reloadPageMock: () => this.reloadPage,
+    watchHostBuildNotificationsMock: () => watchHostBuildNotifications,
+    loadHostStylesMock: () => loadHostStyles,
+    installHostSharedDependenciesMock: () => installHostSharedDependencies,
   };
 }

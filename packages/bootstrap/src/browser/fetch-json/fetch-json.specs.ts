@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { FetchJsonDriver } from './fetch-json.driver.js';
 
@@ -115,42 +114,30 @@ describe('fetchJson', () => {
   });
 
   describe('when an integrity value is required', () => {
+    const integrity = `sha256-${faker.string.alphanumeric(43)}=`;
     const body = JSON.stringify({ name: faker.person.fullName() });
-    const digest = createHash('sha256').update(body).digest('base64');
 
-    it('should resolve the body when the integrity matches', async () => {
-      driver.given
-        .integrity(`sha256-${digest}`)
-        .given.response(body)
-        .when.jsonRequested();
-
-      await expect(driver.get.result()).resolves.toEqual(JSON.parse(body));
+    beforeEach(() => {
+      driver.given.integrity(integrity).given.response(body);
     });
 
-    it('should reject when the integrity does not match', async () => {
-      const other = createHash('sha256')
-        .update(faker.string.uuid())
-        .digest('base64');
-      driver.given
-        .integrity(`sha256-${other}`)
-        .given.response(body)
-        .when.jsonRequested();
+    it('should validate the fetched bytes against the integrity when requested', async () => {
+      driver.when.jsonRequested();
+      await driver.get.result();
 
-      await expect(driver.get.result()).rejects.toMatchObject({
-        code: 'ARTIFACT_VERIFICATION_FAILED',
-        summary: `Selected host remote entry integrity sha256-${digest} does not match manifest integrity sha256-${other}.`,
-      });
+      expect(driver.get.validateIntegrityMock()).toHaveBeenCalledWith(
+        new TextEncoder().encode(body),
+        integrity,
+      );
     });
 
-    it('should reject when the integrity is not a SHA-256 value', async () => {
-      driver.given
-        .integrity(`sha384-${digest}`)
-        .given.response(body)
-        .when.jsonRequested();
+    it('should reject with the integrity failure when validation fails', async () => {
+      const failure = new Error(faker.lorem.sentence());
+      driver.given.integrityFailure(failure).when.jsonRequested();
 
       await expect(driver.get.result()).rejects.toMatchObject({
-        code: 'ARTIFACT_VERIFICATION_FAILED',
-        summary: `Host integrity "sha384-${digest}" must be a SHA-256 SRI value starting with "sha256-".`,
+        code: 'RESOURCE_UNAVAILABLE',
+        cause: failure,
       });
     });
   });

@@ -15,30 +15,28 @@ describe('loadHostModule', () => {
       integrity: `sha256-${faker.string.alphanumeric(43)}=`,
     });
     const outFileName = `./${faker.system.commonFileName('js')}`;
+    const metadata = {
+      exposes: [{ key: manifest.exposes.entry, outFileName }],
+    };
     const module = { mount: async () => undefined };
 
-    beforeEach(() => {
+    beforeEach(async () => {
       driver.given
         .runtime(runtime)
         .given.manifest(manifest)
-        .given.remoteMetadata({
-          exposes: [{ key: manifest.exposes.entry, outFileName }],
-        })
+        .given.remoteMetadata(metadata)
         .given.importedModule(module);
+      await driver.when.loaded();
     });
 
-    it('should validate the host manifest against the runtime when loaded', async () => {
-      await driver.when.loaded();
-
+    it('should validate the host manifest against the runtime when loaded', () => {
       expect(driver.get.validateHostManifestMock()).toHaveBeenCalledWith({
         manifest,
         runtime,
       });
     });
 
-    it('should fetch the remote entry with the manifest integrity when loaded', async () => {
-      await driver.when.loaded();
-
+    it('should fetch the remote entry with the manifest integrity when loaded', () => {
       expect(driver.get.fetchJsonMock()).toHaveBeenCalledWith({
         url: manifest.remoteEntryUrl,
         runtime,
@@ -46,9 +44,25 @@ describe('loadHostModule', () => {
       });
     });
 
-    it('should validate the exposed module URL when loaded', async () => {
-      await driver.when.loaded();
+    it('should watch build notifications for the remote when loaded', () => {
+      expect(driver.get.watchHostBuildNotificationsMock()).toHaveBeenCalledWith(
+        expect.objectContaining({ metadata, manifest }),
+      );
+    });
 
+    it('should install the shared dependencies of the remote when loaded', () => {
+      expect(
+        driver.get.installHostSharedDependenciesMock(),
+      ).toHaveBeenCalledWith(expect.objectContaining({ metadata, manifest }));
+    });
+
+    it('should load the host styles when loaded', () => {
+      expect(driver.get.loadHostStylesMock()).toHaveBeenCalledWith(
+        expect.objectContaining({ manifest, runtime }),
+      );
+    });
+
+    it('should validate the exposed module URL when loaded', () => {
       expect(driver.get.validateArtifactUrlMock()).toHaveBeenCalledWith({
         url: new URL(outFileName, manifest.remoteEntryUrl),
         manifest,
@@ -56,175 +70,32 @@ describe('loadHostModule', () => {
       });
     });
 
-    it('should import the exposed module relative to the remote entry when loaded', async () => {
-      await driver.when.loaded();
-
+    it('should import the exposed module relative to the remote entry when loaded', () => {
       expect(driver.get.importModuleMock()).toHaveBeenCalledWith({
         url: new URL(outFileName, manifest.remoteEntryUrl).href,
       });
     });
 
-    it('should return the imported host module when loaded', async () => {
-      await driver.when.loaded();
-
+    it('should return the imported host module when loaded', () => {
       expect(driver.get.module()).toBe(module);
     });
-
-    it('should append nothing to the head when the remote declares no shared dependencies or styles', async () => {
-      await driver.when.loaded();
-
-      expect(driver.get.appendedElements()).toEqual([]);
-    });
-
-    it('should not watch build notifications when the remote declares no endpoint', async () => {
-      await driver.when.loaded();
-
-      expect(driver.get.eventSourceCreated()).toBe(false);
-    });
   });
 
-  describe('when the manifest declares styles', () => {
+  it('should fetch the remote entry without integrity when the manifest has none', async () => {
     const runtime = aHostRuntimeConfig();
-    const plain = { href: faker.internet.url() };
-    const verified = {
-      href: faker.internet.url(),
-      integrity: `sha256-${faker.string.alphanumeric(43)}=`,
-    };
-    const manifest = aHostManifest({ styles: [plain, verified] });
-
-    beforeEach(async () => {
-      driver.given
-        .runtime(runtime)
-        .given.manifest(manifest)
-        .given.remoteMetadata({
-          exposes: [{ key: manifest.exposes.entry, outFileName: './host.js' }],
-        })
-        .given.importedModule({});
-      await driver.when.loaded();
-    });
-
-    it('should validate each stylesheet URL against the manifest when loaded', () => {
-      expect(driver.get.validateArtifactUrlMock()).toHaveBeenCalledWith({
-        url: new URL(verified.href),
-        manifest,
-        runtime,
-      });
-    });
-
-    it('should append a stylesheet link without integrity when the stylesheet has none', () => {
-      expect(driver.get.appendedElements()).toContainEqual({
-        tagName: 'link',
-        rel: 'stylesheet',
-        href: plain.href,
-      });
-    });
-
-    it('should append an anonymous stylesheet link with integrity when the stylesheet has one', () => {
-      expect(driver.get.appendedElements()).toContainEqual({
-        tagName: 'link',
-        rel: 'stylesheet',
-        href: verified.href,
-        integrity: verified.integrity,
-        crossOrigin: 'anonymous',
-      });
-    });
-  });
-
-  describe('when the remote declares shared dependencies', () => {
     const manifest = aHostManifest();
-    const shared = {
-      packageName: faker.lorem.slug(),
-      outFileName: `./${faker.system.commonFileName('js')}`,
-    };
-
-    beforeEach(() => {
-      driver.given.runtime(aHostRuntimeConfig()).given.manifest(manifest);
-    });
-
-    it('should append a shim import map resolving each package next to the remote entry when loaded', async () => {
-      driver.given
-        .remoteMetadata({
-          exposes: [{ key: manifest.exposes.entry, outFileName: './host.js' }],
-          shared: [shared],
-        })
-        .given.importedModule({});
-      await driver.when.loaded();
-
-      expect(driver.get.appendedElements()).toContainEqual({
-        tagName: 'script',
-        type: 'importmap-shim',
-        textContent: JSON.stringify({
-          imports: {
-            [shared.packageName]: new URL(
-              shared.outFileName,
-              manifest.remoteEntryUrl,
-            ).href,
-          },
-        }),
-      });
-    });
-
-    it('should reject when a shared dependency lacks its file name', async () => {
-      const invalid = { packageName: shared.packageName };
-      driver.given.remoteMetadata({
+    driver.given
+      .runtime(runtime)
+      .given.manifest(manifest)
+      .given.remoteMetadata({
         exposes: [{ key: manifest.exposes.entry, outFileName: './host.js' }],
-        shared: [invalid],
-      });
-      await driver.when.loaded();
+      })
+      .given.importedModule({});
+    await driver.when.loaded();
 
-      expect(driver.get.error()).toMatchObject({
-        code: 'HOST_REMOTE_INVALID',
-        summary: `Selected host remote entry "${manifest.remoteEntryUrl}" declares shared dependency ${JSON.stringify(invalid)} without packageName and outFileName.`,
-      });
-    });
-  });
-
-  describe('when the remote declares a build notifications endpoint', () => {
-    const manifest = aHostManifest();
-
-    beforeEach(() => {
-      driver.given
-        .runtime(aHostRuntimeConfig())
-        .given.manifest(manifest)
-        .given.remoteMetadata({
-          exposes: [{ key: manifest.exposes.entry, outFileName: './host.js' }],
-          buildNotificationsEndpoint: faker.internet.url(),
-        })
-        .given.importedModule({});
-    });
-
-    it('should not watch build notifications when event sources are unsupported', async () => {
-      driver.given.eventSourceSupported(false);
-      await driver.when.loaded();
-
-      expect(driver.get.eventSourceCreated()).toBe(false);
-    });
-
-    describe('when event sources are supported', () => {
-      beforeEach(async () => {
-        driver.given.eventSourceSupported(true);
-        await driver.when.loaded();
-      });
-
-      it('should reload the page when a federation rebuild completes', () => {
-        driver.when.buildNotified(
-          JSON.stringify({ type: 'federation-rebuild-complete' }),
-        );
-
-        expect(driver.get.reloadPageMock()).toHaveBeenCalledTimes(1);
-      });
-
-      it('should keep the page when another notification arrives', () => {
-        driver.when.buildNotified(JSON.stringify({ type: faker.lorem.slug() }));
-
-        expect(driver.get.reloadPageMock()).not.toHaveBeenCalled();
-      });
-
-      it('should keep the page when the notification is not JSON', () => {
-        driver.when.buildNotified(faker.lorem.word());
-
-        expect(driver.get.reloadPageMock()).not.toHaveBeenCalled();
-      });
+    expect(driver.get.fetchJsonMock()).toHaveBeenCalledWith({
+      url: manifest.remoteEntryUrl,
+      runtime,
     });
   });
 

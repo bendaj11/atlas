@@ -1,5 +1,15 @@
 import { jest } from '@jest/globals';
-import { showFatalError, type FatalErrorDependencies } from './index.js';
+import type { describeFatalError as describeFatalErrorType } from './describe-fatal-error.js';
+import type {
+  BootstrapFailure,
+  FatalErrorDependencies,
+} from './fatal-error.types.js';
+
+const describeFatalError = jest.fn<typeof describeFatalErrorType>();
+jest.unstable_mockModule('./describe-fatal-error.js', () => ({
+  describeFatalError,
+}));
+const { showFatalError } = await import('./fatal-error.js');
 
 interface FakeElement {
   tagName: string;
@@ -40,7 +50,16 @@ export class FatalErrorDriver {
   private readonly reloadPage = jest.fn();
   private readonly logError = jest.fn<FatalErrorDependencies['logError']>();
 
+  constructor() {
+    describeFatalError.mockReset();
+  }
+
   readonly given = {
+    failure: (failure: BootstrapFailure): FatalErrorDriver => {
+      describeFatalError.mockReturnValue(failure);
+
+      return this;
+    },
     hostRootPresent: (present: boolean): FatalErrorDriver => {
       this.hostRootPresent = present;
 
@@ -89,6 +108,7 @@ export class FatalErrorDriver {
     localStorageMock: () => this.localStorage.removeItem,
     reloadPageMock: () => this.reloadPage,
     logErrorMock: () => this.logError,
+    describeFatalErrorMock: () => describeFatalError,
   };
 
   private panel(): FakeElement {
