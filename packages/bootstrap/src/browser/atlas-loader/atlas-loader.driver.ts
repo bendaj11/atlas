@@ -62,31 +62,29 @@ export class AtlasLoaderDriver {
   }
 
   readonly given = {
-    runtimeConfig: (
-      runtimeConfig: AtlasHostRuntimeConfig,
-    ): AtlasLoaderDriver => {
+    runtimeConfig: (runtimeConfig: AtlasHostRuntimeConfig) => {
       this.runtimeConfig = runtimeConfig;
 
       return this;
     },
     startupCatalog: (
       startup: Awaited<ReturnType<typeof loadStartupCatalogType>>,
-    ): AtlasLoaderDriver => {
+    ) => {
       loadStartupCatalog.mockResolvedValue(startup);
 
       return this;
     },
-    overriddenCatalog: (catalog: AtlasHostCatalog): AtlasLoaderDriver => {
+    overriddenCatalog: (catalog: AtlasHostCatalog) => {
       this.applyOverrides.mockResolvedValue(catalog);
 
       return this;
     },
-    hostModule: (module: HostModule): AtlasLoaderDriver => {
+    hostModule: (module: HostModule) => {
       this.hostModule = module;
 
       return this;
     },
-    hostRootPresent: (present: boolean): AtlasLoaderDriver => {
+    hostRootPresent: (present: boolean) => {
       this.hostRootPresent = present;
 
       return this;
@@ -94,7 +92,7 @@ export class AtlasLoaderDriver {
   };
 
   readonly when = {
-    started: async (): Promise<void> => {
+    started: async () => {
       try {
         await startAtlasLoader({
           document: this.document,
@@ -114,9 +112,8 @@ export class AtlasLoaderDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
-    mountRequest: (): HostMountRequest | undefined =>
-      this.mount.mock.calls[0]?.[0],
+    error: () => this.error,
+    mountRequest: () => this.mount.mock.calls[0]?.[0],
     rootReplaceChildrenMock: () => this.root.replaceChildren,
     installModuleShimMock: () => this.installModuleShim,
     fetchJsonMock: () => this.fetchJson,

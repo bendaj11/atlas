@@ -34,31 +34,27 @@ export class PublishedArtifactDriver {
   }
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): PublishedArtifactDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    reference: (
-      reference: AtlasManifestDescriptor,
-    ): PublishedArtifactDriver => {
+    reference: (reference: AtlasManifestDescriptor) => {
       this.reference = reference;
 
       return this;
     },
-    descriptorFailure: (error: Error): PublishedArtifactDriver => {
+    descriptorFailure: (error: Error) => {
       assertBytesMatchDescriptor.mockRejectedValue(error);
 
       return this;
     },
-    fetchedBytes: (bytes: Uint8Array): PublishedArtifactDriver => {
+    fetchedBytes: (bytes: Uint8Array) => {
       this.fetchBytes.mockResolvedValue(bytes);
 
       return this;
     },
-    hydratedManifest: (
-      manifest: AtlasManifest | AtlasHostManifest,
-    ): PublishedArtifactDriver => {
+    hydratedManifest: (manifest: AtlasManifest | AtlasHostManifest) => {
       this.hydratePublishedArtifactManifest.mockReturnValue(manifest);
 
       return this;
@@ -66,7 +62,7 @@ export class PublishedArtifactDriver {
   };
 
   readonly when = {
-    loaded: async (): Promise<void> => {
+    loaded: async () => {
       try {
         this.result = await loadPublishedArtifact({
           reference: this.reference,
@@ -84,8 +80,8 @@ export class PublishedArtifactDriver {
   };
 
   readonly get = {
-    result: (): AtlasManifest | AtlasHostManifest | undefined => this.result,
-    error: (): unknown => this.error,
+    result: () => this.result,
+    error: () => this.error,
     fetchBytesMock: () => this.fetchBytes,
     assertBytesMatchDescriptorMock: () => assertBytesMatchDescriptor,
     hydrateMock: () => this.hydratePublishedArtifactManifest,

@@ -11,7 +11,7 @@ export class BootstrapFilesDriver {
   private error: unknown;
 
   readonly given = {
-    options: (options: AtlasBootstrapOptions): BootstrapFilesDriver => {
+    options: (options: AtlasBootstrapOptions) => {
       this.options = options;
 
       return this;
@@ -19,7 +19,7 @@ export class BootstrapFilesDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       try {
         this.files = createAtlasBootstrapFiles(this.options);
       } catch (error) {
@@ -29,9 +29,9 @@ export class BootstrapFilesDriver {
   };
 
   readonly get = {
-    paths: (): string[] => this.files.map(({ path }) => path),
-    contents: (path: AtlasBootstrapFilePath): string | undefined =>
+    paths: () => this.files.map(({ path }) => path),
+    contents: (path: AtlasBootstrapFilePath) =>
       this.files.find((file) => file.path === path)?.contents,
-    error: (): unknown => this.error,
+    error: () => this.error,
   };
 }

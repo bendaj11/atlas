@@ -24,17 +24,17 @@ export class StartupCatalogDriver {
   }
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): StartupCatalogDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    deploymentCatalog: (catalog: AtlasHostCatalog): StartupCatalogDriver => {
+    deploymentCatalog: (catalog: AtlasHostCatalog) => {
       loadDeploymentCatalog.mockResolvedValue(catalog);
 
       return this;
     },
-    developmentSession: (session: unknown): StartupCatalogDriver => {
+    developmentSession: (session: unknown) => {
       this.session = session;
 
       return this;
@@ -42,7 +42,7 @@ export class StartupCatalogDriver {
   };
 
   readonly when = {
-    loaded: async (): Promise<void> => {
+    loaded: async () => {
       try {
         this.result = await loadStartupCatalog({
           runtime: this.runtime,
@@ -57,8 +57,8 @@ export class StartupCatalogDriver {
   };
 
   readonly get = {
-    result: (): StartupCatalog | undefined => this.result,
-    error: (): unknown => this.error,
+    result: () => this.result,
+    error: () => this.error,
     fetchJsonMock: () => this.fetchJson,
     loadDeploymentCatalogMock: () => loadDeploymentCatalog,
   };

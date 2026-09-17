@@ -20,7 +20,7 @@ export class DescribeFatalErrorDriver {
   }
 
   readonly given = {
-    fallbackActions: (actions: string[]): DescribeFatalErrorDriver => {
+    fallbackActions: (actions: string[]) => {
       inferSuggestedActionsFromMessage.mockReturnValue(actions);
 
       return this;
@@ -28,13 +28,13 @@ export class DescribeFatalErrorDriver {
   };
 
   readonly when = {
-    described: (error: unknown): void => {
+    described: (error: unknown) => {
       this.failure = describeFatalError(error);
     },
   };
 
   readonly get = {
-    failure: (): BootstrapFailure => this.failure,
+    failure: () => this.failure,
     suggestedActionsForMock: () => inferSuggestedActionsFromMessage,
   };
 }

@@ -14,9 +14,7 @@ export class RuntimeSnapshotDriver {
   private readonly append = jest.fn();
 
   readonly given = {
-    existingSnapshotElement: (
-      element: SnapshotElement,
-    ): RuntimeSnapshotDriver => {
+    existingSnapshotElement: (element: SnapshotElement) => {
       this.existing = element;
 
       return this;
@@ -27,7 +25,7 @@ export class RuntimeSnapshotDriver {
     published: (input: {
       runtime: AtlasHostRuntimeConfig;
       catalog: AtlasHostCatalog;
-    }): void => {
+    }) => {
       publishRuntimeSnapshot({
         ...input,
         document: {
@@ -45,7 +43,7 @@ export class RuntimeSnapshotDriver {
   };
 
   readonly get = {
-    createdElement: (): SnapshotElement | undefined => this.created,
+    createdElement: () => this.created,
     appendMock: () => this.append,
   };
 }

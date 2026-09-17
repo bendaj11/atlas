@@ -4,7 +4,7 @@ export class ValidateIntegrityDriver {
   private error: unknown;
 
   readonly when = {
-    validated: async (bytes: Uint8Array, integrity: string): Promise<void> => {
+    validated: async (bytes: Uint8Array, integrity: string) => {
       try {
         await validateIntegrity(bytes, integrity);
       } catch (error) {
@@ -14,6 +14,6 @@ export class ValidateIntegrityDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
+    error: () => this.error,
   };
 }

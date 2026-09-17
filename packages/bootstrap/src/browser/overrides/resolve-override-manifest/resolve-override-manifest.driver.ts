@@ -20,33 +20,27 @@ export class ResolveOverrideManifestDriver {
   private error: unknown;
 
   readonly given = {
-    runtime: (
-      runtime: AtlasHostRuntimeConfig,
-    ): ResolveOverrideManifestDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    registry: (
-      registry: AtlasStaticRegistry,
-    ): ResolveOverrideManifestDriver => {
+    registry: (registry: AtlasStaticRegistry) => {
       this.fetchJson.mockResolvedValue(registry);
 
       return this;
     },
-    registryFailure: (error: Error): ResolveOverrideManifestDriver => {
+    registryFailure: (error: Error) => {
       this.fetchJson.mockRejectedValue(error);
 
       return this;
     },
-    publishedArtifact: (
-      manifest: AtlasHostManifest | AtlasManifest,
-    ): ResolveOverrideManifestDriver => {
+    publishedArtifact: (manifest: AtlasHostManifest | AtlasManifest) => {
       this.loadPublishedArtifact.mockResolvedValue(manifest);
 
       return this;
     },
-    publishedArtifactFailure: (error: Error): ResolveOverrideManifestDriver => {
+    publishedArtifactFailure: (error: Error) => {
       this.loadPublishedArtifact.mockRejectedValue(error);
 
       return this;
@@ -54,9 +48,7 @@ export class ResolveOverrideManifestDriver {
   };
 
   readonly when = {
-    resolved: async (
-      manifest: AtlasHostManifest | AtlasManifest,
-    ): Promise<void> => {
+    resolved: async (manifest: AtlasHostManifest | AtlasManifest) => {
       try {
         this.result = await resolveOverrideManifest({
           manifest,
@@ -73,8 +65,8 @@ export class ResolveOverrideManifestDriver {
   };
 
   readonly get = {
-    result: (): AtlasHostManifest | AtlasManifest | undefined => this.result,
-    error: (): unknown => this.error,
+    result: () => this.result,
+    error: () => this.error,
     fetchJsonMock: () => this.fetchJson,
     loadPublishedArtifactMock: () => this.loadPublishedArtifact,
   };

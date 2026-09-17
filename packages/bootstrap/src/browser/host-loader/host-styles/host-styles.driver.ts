@@ -17,7 +17,7 @@ export class HostStylesDriver {
     loaded: (input: {
       manifest: AtlasHostManifest;
       runtime: AtlasHostRuntimeConfig;
-    }): void => {
+    }) => {
       loadHostStyles({
         ...input,
         dependencies: {
@@ -36,7 +36,7 @@ export class HostStylesDriver {
   };
 
   readonly get = {
-    appendedElements: (): readonly AppendedElement[] => this.appended,
+    appendedElements: () => this.appended,
     validateArtifactUrlMock: () => this.validateArtifactUrl,
   };
 }

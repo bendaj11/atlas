@@ -34,22 +34,22 @@ export class DevelopmentSessionSourceDriver {
   private stored: string | null | undefined;
 
   readonly given = {
-    fetchedSession: (session: unknown): DevelopmentSessionSourceDriver => {
+    fetchedSession: (session: unknown) => {
       this.fetchJson.mockResolvedValue(session);
 
       return this;
     },
-    bridgeSession: (session: unknown): DevelopmentSessionSourceDriver => {
+    bridgeSession: (session: unknown) => {
       this.requestDevelopmentSession.mockResolvedValue(session);
 
       return this;
     },
-    sessionStorageValue: (value: string): DevelopmentSessionSourceDriver => {
+    sessionStorageValue: (value: string) => {
       this.sessionStore.set('atlas.runtime-overrides', value);
 
       return this;
     },
-    localStorageValue: (value: string): DevelopmentSessionSourceDriver => {
+    localStorageValue: (value: string) => {
       this.localStore.set('atlas.runtime-overrides', value);
 
       return this;
@@ -57,28 +57,27 @@ export class DevelopmentSessionSourceDriver {
   };
 
   readonly when = {
-    discovered: async (runtime: AtlasHostRuntimeConfig): Promise<void> => {
+    discovered: async (runtime: AtlasHostRuntimeConfig) => {
       this.discovered = await discoverDevelopmentSession({
         runtime,
         dependencies: this.dependencies,
       });
     },
-    sessionStored: (session: DevSession): void => {
+    sessionStored: (session: DevSession) => {
       this.stored = storeDevelopmentSession({
         session,
         dependencies: this.dependencies,
       });
     },
-    documentRead: (): void => {
+    documentRead: () => {
       this.stored = readStoredOverridesDocument(this.dependencies);
     },
   };
 
   readonly get = {
-    discovered: (): unknown => this.discovered,
-    stored: (): string | null | undefined => this.stored,
-    sessionStorageValue: (): string | undefined =>
-      this.sessionStore.get('atlas.runtime-overrides'),
+    discovered: () => this.discovered,
+    stored: () => this.stored,
+    sessionStorageValue: () => this.sessionStore.get('atlas.runtime-overrides'),
     fetchJsonMock: () => this.fetchJson,
     requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
   };

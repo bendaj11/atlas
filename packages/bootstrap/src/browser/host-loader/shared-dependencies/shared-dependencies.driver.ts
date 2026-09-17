@@ -18,7 +18,7 @@ export class SharedDependenciesDriver {
     installed: (input: {
       metadata: RemoteMetadata;
       manifest: AtlasHostManifest;
-    }): void => {
+    }) => {
       try {
         installHostSharedDependencies({
           ...input,
@@ -41,7 +41,7 @@ export class SharedDependenciesDriver {
   };
 
   readonly get = {
-    appendedElements: (): readonly AppendedElement[] => this.appended,
-    error: (): unknown => this.error,
+    appendedElements: () => this.appended,
+    error: () => this.error,
   };
 }

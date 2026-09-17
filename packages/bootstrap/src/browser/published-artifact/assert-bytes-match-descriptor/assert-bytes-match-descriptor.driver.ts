@@ -8,7 +8,7 @@ export class AssertBytesMatchDescriptorDriver {
     asserted: async (
       bytes: Uint8Array,
       descriptor: AtlasManifestDescriptor,
-    ): Promise<void> => {
+    ) => {
       try {
         await assertBytesMatchDescriptor(bytes, descriptor);
       } catch (error) {
@@ -18,6 +18,6 @@ export class AssertBytesMatchDescriptorDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
+    error: () => this.error,
   };
 }

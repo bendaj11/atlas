@@ -7,12 +7,12 @@ export class ValidateHostManifestDriver {
   private error: unknown;
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): ValidateHostManifestDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    manifest: (manifest: AtlasHostManifest): ValidateHostManifestDriver => {
+    manifest: (manifest: AtlasHostManifest) => {
       this.manifest = manifest;
 
       return this;
@@ -20,7 +20,7 @@ export class ValidateHostManifestDriver {
   };
 
   readonly when = {
-    hostManifestValidated: (): void => {
+    hostManifestValidated: () => {
       try {
         validateHostManifest({
           manifest: this.manifest,
@@ -33,6 +33,6 @@ export class ValidateHostManifestDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
+    error: () => this.error,
   };
 }

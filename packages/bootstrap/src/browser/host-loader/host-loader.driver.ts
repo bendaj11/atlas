@@ -56,22 +56,22 @@ export class HostLoaderDriver {
   }
 
   readonly given = {
-    manifest: (manifest: AtlasHostManifest): HostLoaderDriver => {
+    manifest: (manifest: AtlasHostManifest) => {
       this.manifest = manifest;
 
       return this;
     },
-    runtime: (runtime: AtlasHostRuntimeConfig): HostLoaderDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    remoteMetadata: (metadata: RemoteMetadata): HostLoaderDriver => {
+    remoteMetadata: (metadata: RemoteMetadata) => {
       this.fetchJson.mockResolvedValue(metadata);
 
       return this;
     },
-    importedModule: (module: HostModule): HostLoaderDriver => {
+    importedModule: (module: HostModule) => {
       this.importModule.mockResolvedValue(module);
 
       return this;
@@ -79,7 +79,7 @@ export class HostLoaderDriver {
   };
 
   readonly when = {
-    loaded: async (): Promise<void> => {
+    loaded: async () => {
       try {
         this.module = await loadHostModule({
           manifest: this.manifest,
@@ -100,8 +100,8 @@ export class HostLoaderDriver {
   };
 
   readonly get = {
-    module: (): HostModule | undefined => this.module,
-    error: (): unknown => this.error,
+    module: () => this.module,
+    error: () => this.error,
     fetchJsonMock: () => this.fetchJson,
     importModuleMock: () => this.importModule,
     validateArtifactUrlMock: () => this.validateArtifactUrl,

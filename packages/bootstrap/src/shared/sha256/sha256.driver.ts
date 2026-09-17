@@ -8,13 +8,13 @@ export class Sha256Driver {
   private digest!: Uint8Array;
 
   readonly when = {
-    hashed: async (bytes: Uint8Array): Promise<void> => {
+    hashed: async (bytes: Uint8Array) => {
       this.digest = await computeSha256(bytes);
     },
   };
 
   readonly get = {
-    hex: (): string => convertBytesToHex(this.digest),
-    base64: (): string => convertBytesToBase64(this.digest),
+    hex: () => convertBytesToHex(this.digest),
+    base64: () => convertBytesToBase64(this.digest),
   };
 }

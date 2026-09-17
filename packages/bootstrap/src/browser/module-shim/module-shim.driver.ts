@@ -14,7 +14,7 @@ export class ModuleShimDriver {
   private error: unknown;
 
   readonly given = {
-    importShimInstalled: (module: HostModule): ModuleShimDriver => {
+    importShimInstalled: (module: HostModule) => {
       this.importShim.mockResolvedValue(module);
       this.moduleShim.importShim = this.importShim;
 
@@ -23,14 +23,14 @@ export class ModuleShimDriver {
   };
 
   readonly when = {
-    installed: async (): Promise<void> => {
+    installed: async () => {
       try {
         await installModuleShim(this.moduleShim);
       } catch (error) {
         this.error = error;
       }
     },
-    imported: async (url: string): Promise<void> => {
+    imported: async (url: string) => {
       try {
         this.module = await importModule({ url, moduleShim: this.moduleShim });
       } catch (error) {
@@ -40,10 +40,9 @@ export class ModuleShimDriver {
   };
 
   readonly get = {
-    module: (): HostModule | undefined => this.module,
-    error: (): unknown => this.error,
-    shimOptions: (): ModuleShimGlobal['esmsInitOptions'] =>
-      this.moduleShim.esmsInitOptions,
+    module: () => this.module,
+    error: () => this.error,
+    shimOptions: () => this.moduleShim.esmsInitOptions,
     importShimMock: () => this.importShim,
   };
 }

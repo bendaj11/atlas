@@ -21,30 +21,24 @@ export class DeploymentCatalogDriver {
   private error: unknown;
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): DeploymentCatalogDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    deployment: (
-      deployment: AtlasHostDeploymentManifest | null,
-    ): DeploymentCatalogDriver => {
+    deployment: (deployment: AtlasHostDeploymentManifest | null) => {
       this.fetchBytes.mockResolvedValue(
         new TextEncoder().encode(JSON.stringify(deployment)),
       );
 
       return this;
     },
-    publishedArtifact: (
-      manifest: PublishedManifest,
-    ): DeploymentCatalogDriver => {
+    publishedArtifact: (manifest: PublishedManifest) => {
       this.loadPublishedArtifact.mockResolvedValueOnce(manifest);
 
       return this;
     },
-    publishedArtifactLoad: (
-      load: Promise<PublishedManifest>,
-    ): DeploymentCatalogDriver => {
+    publishedArtifactLoad: (load: Promise<PublishedManifest>) => {
       this.loadPublishedArtifact.mockReturnValue(load);
 
       return this;
@@ -52,14 +46,14 @@ export class DeploymentCatalogDriver {
   };
 
   readonly when = {
-    loaded: async (): Promise<void> => {
+    loaded: async () => {
       try {
         this.catalog = await this.load();
       } catch (error) {
         this.error = error;
       }
     },
-    loadStarted: async (): Promise<void> => {
+    loadStarted: async () => {
       void this.load().catch(() => undefined);
 
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -67,8 +61,8 @@ export class DeploymentCatalogDriver {
   };
 
   readonly get = {
-    catalog: (): AtlasHostCatalog | undefined => this.catalog,
-    error: (): unknown => this.error,
+    catalog: () => this.catalog,
+    error: () => this.error,
     fetchBytesMock: () => this.fetchBytes,
     loadPublishedArtifactMock: () => this.loadPublishedArtifact,
   };

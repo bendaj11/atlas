@@ -6,15 +6,12 @@ export class MergeDevelopmentSessionDriver {
   private result!: AtlasHostCatalog;
 
   readonly when = {
-    merged: (input: {
-      catalog: AtlasHostCatalog;
-      session: DevSession;
-    }): void => {
+    merged: (input: { catalog: AtlasHostCatalog; session: DevSession }) => {
       this.result = mergeDevelopmentSession(input);
     },
   };
 
   readonly get = {
-    result: (): AtlasHostCatalog => this.result,
+    result: () => this.result,
   };
 }

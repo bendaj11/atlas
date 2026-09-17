@@ -28,32 +28,32 @@ export class FetchJsonDriver {
   }
 
   readonly given = {
-    url: (url: string): FetchJsonDriver => {
+    url: (url: string) => {
       this.url = url;
 
       return this;
     },
-    retryCount: (retryCount: number): FetchJsonDriver => {
+    retryCount: (retryCount: number) => {
       this.retryCount = retryCount;
 
       return this;
     },
-    integrity: (integrity: string): FetchJsonDriver => {
+    integrity: (integrity: string) => {
       this.integrity = integrity;
 
       return this;
     },
-    response: (body: string, status = 200): FetchJsonDriver => {
+    response: (body: string, status = 200) => {
       this.fetchMock.mockResolvedValueOnce(new Response(body, { status }));
 
       return this;
     },
-    integrityFailure: (error: Error): FetchJsonDriver => {
+    integrityFailure: (error: Error) => {
       validateIntegrity.mockRejectedValue(error);
 
       return this;
     },
-    failure: (error: Error): FetchJsonDriver => {
+    failure: (error: Error) => {
       this.fetchMock.mockRejectedValueOnce(error);
 
       return this;
@@ -61,14 +61,14 @@ export class FetchJsonDriver {
   };
 
   readonly when = {
-    jsonRequested: (): void => {
+    jsonRequested: () => {
       this.result = fetchJson({
         url: this.url,
         runtime: { resourcesRetryCount: this.retryCount },
         ...(this.integrity === undefined ? {} : { integrity: this.integrity }),
       }).finally(() => this.restore());
     },
-    bytesRequested: (): void => {
+    bytesRequested: () => {
       this.result = fetchBytes({
         url: this.url,
         runtime: { resourcesRetryCount: this.retryCount },
@@ -77,10 +77,10 @@ export class FetchJsonDriver {
   };
 
   readonly get = {
-    result: (): Promise<unknown> => this.result,
-    fetchMock: (): jest.Mock<typeof fetch> => this.fetchMock,
+    result: () => this.result,
+    fetchMock: () => this.fetchMock,
     validateIntegrityMock: () => validateIntegrity,
-    timeoutSignal: (): AbortSignal => this.timeoutSignal,
+    timeoutSignal: () => this.timeoutSignal,
   };
 
   private restore(): void {

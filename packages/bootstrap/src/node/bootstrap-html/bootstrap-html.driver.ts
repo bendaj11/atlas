@@ -11,17 +11,17 @@ export class BootstrapHtmlDriver {
   private error: unknown;
 
   readonly given = {
-    title: (title: string): BootstrapHtmlDriver => {
+    title: (title: string) => {
       this.options = { ...this.options, title };
 
       return this;
     },
-    loadingHtml: (loadingHtml: string): BootstrapHtmlDriver => {
+    loadingHtml: (loadingHtml: string) => {
       this.options = { ...this.options, loadingHtml };
 
       return this;
     },
-    html: (html: string): BootstrapHtmlDriver => {
+    html: (html: string) => {
       this.html = html;
 
       return this;
@@ -29,13 +29,13 @@ export class BootstrapHtmlDriver {
   };
 
   readonly when = {
-    htmlCreated: (): void => {
+    htmlCreated: () => {
       this.html = createBootstrapHtml(this.options);
     },
-    loaderSourceVersioned: (): void => {
+    loaderSourceVersioned: () => {
       this.html = applyVersionedLoaderSource(this.html);
     },
-    htmlValidated: (): void => {
+    htmlValidated: () => {
       try {
         validateBootstrapHtml(this.html);
       } catch (error) {
@@ -45,7 +45,7 @@ export class BootstrapHtmlDriver {
   };
 
   readonly get = {
-    html: (): string => this.html,
-    error: (): unknown => this.error,
+    html: () => this.html,
+    error: () => this.error,
   };
 }

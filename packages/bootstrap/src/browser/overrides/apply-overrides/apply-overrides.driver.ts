@@ -64,39 +64,37 @@ export class ApplyOverridesDriver {
   }
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): ApplyOverridesDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    catalog: (catalog: AtlasHostCatalog): ApplyOverridesDriver => {
+    catalog: (catalog: AtlasHostCatalog) => {
       this.catalog = catalog;
 
       return this;
     },
-    suppliedSession: (session: DevSession): ApplyOverridesDriver => {
+    suppliedSession: (session: DevSession) => {
       this.developmentSession = session;
 
       return this;
     },
-    discoveredSession: (
-      session: DevSession | undefined,
-    ): ApplyOverridesDriver => {
+    discoveredSession: (session: DevSession | undefined) => {
       discoverDevelopmentSession.mockResolvedValue(session);
 
       return this;
     },
-    mergedCatalog: (catalog: AtlasHostCatalog): ApplyOverridesDriver => {
+    mergedCatalog: (catalog: AtlasHostCatalog) => {
       mergeDevelopmentSession.mockReturnValue(catalog);
 
       return this;
     },
-    storedDocument: (document: unknown): ApplyOverridesDriver => {
+    storedDocument: (document: unknown) => {
       readStoredOverridesDocument.mockReturnValue(JSON.stringify(document));
 
       return this;
     },
-    overriddenCatalog: (catalog: AtlasHostCatalog): ApplyOverridesDriver => {
+    overriddenCatalog: (catalog: AtlasHostCatalog) => {
       applyOverridesDocument.mockResolvedValue(catalog);
 
       return this;
@@ -104,7 +102,7 @@ export class ApplyOverridesDriver {
   };
 
   readonly when = {
-    applied: async (): Promise<void> => {
+    applied: async () => {
       try {
         this.result = await applyOverrides({
           runtime: this.runtime,
@@ -121,8 +119,8 @@ export class ApplyOverridesDriver {
   };
 
   readonly get = {
-    result: (): AtlasHostCatalog | undefined => this.result,
-    error: (): unknown => this.error,
+    result: () => this.result,
+    error: () => this.error,
     discoverDevelopmentSessionMock: () => discoverDevelopmentSession,
     storeDevelopmentSessionMock: () => storeDevelopmentSession,
     mergeDevelopmentSessionMock: () => mergeDevelopmentSession,

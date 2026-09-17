@@ -20,22 +20,22 @@ export class DevelopmentSessionDriver {
   private readonly removeEventListener = jest.fn();
 
   readonly given = {
-    bridgeMarkerPresent: (present: boolean): DevelopmentSessionDriver => {
+    bridgeMarkerPresent: (present: boolean) => {
       this.bridgeMarkerPresent = present;
 
       return this;
     },
-    requestId: (requestId: string): DevelopmentSessionDriver => {
+    requestId: (requestId: string) => {
       this.requestId = requestId;
 
       return this;
     },
-    origin: (origin: string): DevelopmentSessionDriver => {
+    origin: (origin: string) => {
       this.origin = origin;
 
       return this;
     },
-    bridgeReply: (reply: unknown): DevelopmentSessionDriver => {
+    bridgeReply: (reply: unknown) => {
       this.reply = reply;
 
       return this;
@@ -43,7 +43,7 @@ export class DevelopmentSessionDriver {
   };
 
   readonly when = {
-    requested: (hostId: string): void => {
+    requested: (hostId: string) => {
       this.pending = requestDevelopmentSession({
         hostId,
         dependencies: {
@@ -77,17 +77,17 @@ export class DevelopmentSessionDriver {
         },
       });
     },
-    settled: async (): Promise<void> => {
+    settled: async () => {
       this.result = await this.pending;
     },
-    timedOut: async (): Promise<void> => {
+    timedOut: async () => {
       this.timeout?.();
       this.result = await this.pending;
     },
   };
 
   readonly get = {
-    result: (): unknown => this.result,
+    result: () => this.result,
     postMessageMock: () => this.postMessage,
     removeEventListenerMock: () => this.removeEventListener,
   };

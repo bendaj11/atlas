@@ -13,7 +13,7 @@ export class BuildNotificationsDriver {
   private readonly reloadPage = jest.fn();
 
   readonly given = {
-    eventSourceSupported: (supported: boolean): BuildNotificationsDriver => {
+    eventSourceSupported: (supported: boolean) => {
       this.eventSourceSupported = supported;
 
       return this;
@@ -24,7 +24,7 @@ export class BuildNotificationsDriver {
     watched: (input: {
       metadata: RemoteMetadata;
       manifest: AtlasHostManifest;
-    }): void => {
+    }) => {
       watchHostBuildNotifications({
         ...input,
         dependencies: {
@@ -42,7 +42,7 @@ export class BuildNotificationsDriver {
         } as unknown as HostLoaderDependencies,
       });
     },
-    notified: (data: string): void => {
+    notified: (data: string) => {
       this.eventSource?.onmessage?.call(
         this.eventSource as EventSource,
         { data } as MessageEvent<string>,
@@ -51,7 +51,7 @@ export class BuildNotificationsDriver {
   };
 
   readonly get = {
-    eventSourceUrl: (): URL | undefined => this.eventSourceUrl,
+    eventSourceUrl: () => this.eventSourceUrl,
     reloadPageMock: () => this.reloadPage,
   };
 }

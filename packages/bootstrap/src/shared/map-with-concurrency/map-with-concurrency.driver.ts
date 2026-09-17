@@ -8,7 +8,7 @@ export class MapWithConcurrencyDriver {
   private error: unknown;
 
   readonly given = {
-    concurrency: (concurrency: number): MapWithConcurrencyDriver => {
+    concurrency: (concurrency: number) => {
       this.concurrency = concurrency;
 
       return this;
@@ -16,7 +16,7 @@ export class MapWithConcurrencyDriver {
   };
 
   readonly when = {
-    mapped: async (values: readonly string[]): Promise<void> => {
+    mapped: async (values: readonly string[]) => {
       try {
         this.results = await mapWithConcurrency({
           values,
@@ -30,9 +30,9 @@ export class MapWithConcurrencyDriver {
   };
 
   readonly get = {
-    results: (): unknown[] => this.results,
-    maximumActiveOperations: (): number => this.maximumActiveOperations,
-    error: (): unknown => this.error,
+    results: () => this.results,
+    maximumActiveOperations: () => this.maximumActiveOperations,
+    error: () => this.error,
   };
 
   private async track(value: string): Promise<string> {

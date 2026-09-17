@@ -12,19 +12,17 @@ export class ValidateArtifactUrlDriver {
   private error: unknown;
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): ValidateArtifactUrlDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    manifest: (
-      manifest: AtlasHostManifest | AtlasManifest,
-    ): ValidateArtifactUrlDriver => {
+    manifest: (manifest: AtlasHostManifest | AtlasManifest) => {
       this.manifest = manifest;
 
       return this;
     },
-    url: (url: URL): ValidateArtifactUrlDriver => {
+    url: (url: URL) => {
       this.url = url;
 
       return this;
@@ -32,7 +30,7 @@ export class ValidateArtifactUrlDriver {
   };
 
   readonly when = {
-    artifactUrlValidated: (): void => {
+    artifactUrlValidated: () => {
       try {
         validateArtifactUrl({
           url: this.url,
@@ -46,6 +44,6 @@ export class ValidateArtifactUrlDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
+    error: () => this.error,
   };
 }

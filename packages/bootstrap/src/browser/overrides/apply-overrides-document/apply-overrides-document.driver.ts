@@ -30,19 +30,17 @@ export class ApplyOverridesDocumentDriver {
   }
 
   readonly given = {
-    runtime: (
-      runtime: AtlasHostRuntimeConfig,
-    ): ApplyOverridesDocumentDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    catalog: (catalog: AtlasHostCatalog): ApplyOverridesDocumentDriver => {
+    catalog: (catalog: AtlasHostCatalog) => {
       this.catalog = catalog;
 
       return this;
     },
-    unresolvableManifests: (): ApplyOverridesDocumentDriver => {
+    unresolvableManifests: () => {
       resolveOverrideManifest.mockResolvedValue(undefined);
 
       return this;
@@ -50,7 +48,7 @@ export class ApplyOverridesDocumentDriver {
   };
 
   readonly when = {
-    applied: async (overrides: RuntimeOverrides): Promise<void> => {
+    applied: async (overrides: RuntimeOverrides) => {
       try {
         this.result = await applyOverridesDocument({
           runtime: this.runtime,
@@ -65,8 +63,8 @@ export class ApplyOverridesDocumentDriver {
   };
 
   readonly get = {
-    result: (): AtlasHostCatalog | undefined => this.result,
-    error: (): unknown => this.error,
+    result: () => this.result,
+    error: () => this.error,
     resolveOverrideManifestMock: () => resolveOverrideManifest,
   };
 }

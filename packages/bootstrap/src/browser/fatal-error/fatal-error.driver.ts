@@ -58,12 +58,12 @@ export class FatalErrorDriver {
   }
 
   readonly given = {
-    failure: (failure: BootstrapFailure): FatalErrorDriver => {
+    failure: (failure: BootstrapFailure) => {
       describeFatalError.mockReturnValue(failure);
 
       return this;
     },
-    hostRootPresent: (present: boolean): FatalErrorDriver => {
+    hostRootPresent: (present: boolean) => {
       this.hostRootPresent = present;
 
       return this;
@@ -71,7 +71,7 @@ export class FatalErrorDriver {
   };
 
   readonly when = {
-    shown: (error: unknown): void => {
+    shown: (error: unknown) => {
       showFatalError({
         error,
         dependencies: {
@@ -91,7 +91,7 @@ export class FatalErrorDriver {
         },
       });
     },
-    overridesCleared: (): void => {
+    overridesCleared: () => {
       this.panel()
         .children.find((element) => element.tagName === 'button')
         ?.onclick?.();
@@ -99,11 +99,11 @@ export class FatalErrorDriver {
   };
 
   readonly get = {
-    hostRootChildCount: (): number => this.hostRoot.children.length,
-    bodyChildCount: (): number => this.body.children.length,
-    message: (): string | undefined => this.childText('p'),
-    actionHeading: (): string | undefined => this.childText('strong'),
-    actions: (): string[] =>
+    hostRootChildCount: () => this.hostRoot.children.length,
+    bodyChildCount: () => this.body.children.length,
+    message: () => this.childText('p'),
+    actionHeading: () => this.childText('strong'),
+    actions: () =>
       this.panel()
         .children.find((element) => element.tagName === 'ol')
         ?.children.map((item) => item.textContent) ?? [],

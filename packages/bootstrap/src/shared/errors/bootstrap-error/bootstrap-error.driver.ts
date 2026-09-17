@@ -16,7 +16,7 @@ export class BootstrapErrorDriver {
     }: BootstrapErrorCause & {
       ErrorClass: BootstrapErrorClass;
       message: string;
-    }): void => {
+    }) => {
       this.error = new ErrorClass(
         message,
         cause === undefined ? {} : { cause },
@@ -25,6 +25,6 @@ export class BootstrapErrorDriver {
   };
 
   readonly get = {
-    error: (): BootstrapError => this.error,
+    error: () => this.error,
   };
 }

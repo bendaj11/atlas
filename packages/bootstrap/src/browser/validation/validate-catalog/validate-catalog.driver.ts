@@ -7,12 +7,12 @@ export class ValidateCatalogDriver {
   private error: unknown;
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): ValidateCatalogDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
     },
-    catalog: (catalog: AtlasHostCatalog): ValidateCatalogDriver => {
+    catalog: (catalog: AtlasHostCatalog) => {
       this.catalog = catalog;
 
       return this;
@@ -20,7 +20,7 @@ export class ValidateCatalogDriver {
   };
 
   readonly when = {
-    catalogValidated: (): void => {
+    catalogValidated: () => {
       try {
         validateCatalog({ runtime: this.runtime, catalog: this.catalog });
       } catch (error) {
@@ -30,6 +30,6 @@ export class ValidateCatalogDriver {
   };
 
   readonly get = {
-    error: (): unknown => this.error,
+    error: () => this.error,
   };
 }
