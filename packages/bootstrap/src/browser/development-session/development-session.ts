@@ -17,11 +17,11 @@ export function requestDevelopmentSession({
   hostId: string;
   dependencies?: DevelopmentSessionBridgeDependencies;
 }): Promise<unknown | undefined> {
-  const bridge = dependencies ?? browserBridgeDependencies();
+  const bridge = dependencies ?? createBrowserBridgeDependencies();
 
   if (!bridge) return Promise.resolve(undefined);
 
-  if (!bridge.document.querySelector(developmentBridgeMarkerSelector())) {
+  if (!bridge.document.querySelector(buildDevelopmentBridgeMarkerSelector())) {
     return Promise.resolve(undefined);
   }
 
@@ -35,7 +35,7 @@ export function requestDevelopmentSession({
     };
 
     const receiveBridgeMessage = (event: Event): void => {
-      const response = developmentSessionResponseFor({
+      const response = matchDevelopmentSessionResponse({
         message: (event as MessageEvent).data,
         requestId,
         hostId,
@@ -56,11 +56,11 @@ export function requestDevelopmentSession({
   });
 }
 
-function developmentBridgeMarkerSelector(): string {
+function buildDevelopmentBridgeMarkerSelector(): string {
   return `meta[name="${ATLAS_DEV_BRIDGE_MARKER}"]`;
 }
 
-function developmentSessionResponseFor({
+function matchDevelopmentSessionResponse({
   message,
   requestId,
   hostId,
@@ -81,7 +81,7 @@ function developmentSessionResponseFor({
   return matches ? (response as AtlasDevelopmentSessionResponse) : undefined;
 }
 
-function browserBridgeDependencies():
+function createBrowserBridgeDependencies():
   DevelopmentSessionBridgeDependencies | undefined {
   const document = globalThis.document;
   const window = globalThis.window;

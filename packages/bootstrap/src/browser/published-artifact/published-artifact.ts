@@ -11,7 +11,7 @@ import type {
 export async function loadPublishedArtifact({
   reference,
   runtime,
-  dependencies = browserPublishedArtifactDependencies(),
+  dependencies = createBrowserPublishedArtifactDependencies(),
 }: LoadPublishedArtifactOptions): Promise<AtlasManifest | AtlasHostManifest> {
   const url = artifactUrl(runtime, reference.path);
   const bytes = await dependencies.fetchBytes({ url, runtime });
@@ -21,6 +21,6 @@ export async function loadPublishedArtifact({
   return dependencies.hydratePublishedArtifactManifest(decodeJson(bytes), url);
 }
 
-function browserPublishedArtifactDependencies(): PublishedArtifactDependencies {
+function createBrowserPublishedArtifactDependencies(): PublishedArtifactDependencies {
   return { fetchBytes, hydratePublishedArtifactManifest };
 }

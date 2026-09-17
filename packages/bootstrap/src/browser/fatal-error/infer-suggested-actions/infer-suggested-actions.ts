@@ -1,4 +1,4 @@
-export function suggestedActionsForMessage(message: string): string[] {
+export function inferSuggestedActionsFromMessage(message: string): string[] {
   if (/override/i.test(message))
     return [
       'Select Clear overrides and reload below.',

@@ -1,6 +1,6 @@
 import { AtlasError } from '@atlas/schema';
 import { decodeJson } from '../../shared/decode-json/decode-json.js';
-import { bootstrapError } from '../../shared/errors/index.js';
+import { ResourceUnavailableError } from '../../shared/errors/index.js';
 import type { FetchOptions } from './fetch-json.types.js';
 import { validateIntegrity } from './validate-integrity/validate-integrity.js';
 
@@ -50,14 +50,14 @@ export async function fetchBytes({
     }
   }
 
-  throw resourceUnavailableError({
+  throw wrapFetchFailure({
     url,
     attempts: retries + 1,
     cause: lastError,
   });
 }
 
-function resourceUnavailableError({
+function wrapFetchFailure({
   url,
   attempts,
   cause,
@@ -70,9 +70,8 @@ function resourceUnavailableError({
 
   const detail = cause instanceof Error ? cause.message : String(cause);
 
-  return bootstrapError({
-    code: 'RESOURCE_UNAVAILABLE',
-    message: `Atlas could not fetch "${url}" after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${detail}`,
-    cause,
-  });
+  return new ResourceUnavailableError(
+    `Atlas could not fetch "${url}" after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${detail}`,
+    { cause },
+  );
 }

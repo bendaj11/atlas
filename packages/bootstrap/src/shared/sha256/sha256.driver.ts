@@ -1,16 +1,20 @@
-import { sha256, bytesToBase64, bytesToHex } from './sha256.js';
+import {
+  computeSha256,
+  convertBytesToBase64,
+  convertBytesToHex,
+} from './sha256.js';
 
 export class Sha256Driver {
   private digest!: Uint8Array;
 
   readonly when = {
     hashed: async (bytes: Uint8Array): Promise<void> => {
-      this.digest = await sha256(bytes);
+      this.digest = await computeSha256(bytes);
     },
   };
 
   readonly get = {
-    hex: (): string => bytesToHex(this.digest),
-    base64: (): string => bytesToBase64(this.digest),
+    hex: (): string => convertBytesToHex(this.digest),
+    base64: (): string => convertBytesToBase64(this.digest),
   };
 }

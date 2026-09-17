@@ -19,7 +19,7 @@ export async function applyOverrides({
   runtime,
   catalog,
   developmentSession,
-  dependencies = browserOverridesDependencies(),
+  dependencies = createBrowserOverridesDependencies(),
 }: ApplyOverridesOptions): Promise<AtlasHostCatalog> {
   const context = { runtime, dependencies };
   const session =
@@ -44,7 +44,7 @@ export async function applyOverrides({
   });
 }
 
-function browserOverridesDependencies(): OverridesDependencies {
+function createBrowserOverridesDependencies(): OverridesDependencies {
   return {
     sessionStorage,
     localStorage,

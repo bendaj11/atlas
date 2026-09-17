@@ -17,7 +17,7 @@ export async function resolveOverrideManifest<
 }: OverridesContext & { manifest: TManifest }): Promise<TManifest | undefined> {
   if (manifest.channel === 'local') return manifest;
 
-  const registryRoot = registryRootFromRemoteEntryUrl(manifest);
+  const registryRoot = extractRegistryRootFromRemoteEntryUrl(manifest);
 
   if (!registryRoot) return manifest;
 
@@ -31,7 +31,10 @@ export async function resolveOverrideManifest<
   if (!descriptor) return manifest;
 
   const loaded = await dependencies.loadPublishedArtifact({
-    reference: manifestReferenceFromDescriptor({ registryRoot, descriptor }),
+    reference: createManifestReferenceFromDescriptor({
+      registryRoot,
+      descriptor,
+    }),
     runtime,
   });
 
@@ -68,7 +71,7 @@ async function fetchRegistryDescriptor({
     : artifact?.releases[manifest.version];
 }
 
-function registryRootFromRemoteEntryUrl(
+function extractRegistryRootFromRemoteEntryUrl(
   manifest: OverrideManifest,
 ): string | undefined {
   const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
@@ -85,7 +88,7 @@ function registryRootFromRemoteEntryUrl(
   return url.href.replace(/\/$/, '');
 }
 
-function manifestReferenceFromDescriptor({
+function createManifestReferenceFromDescriptor({
   registryRoot,
   descriptor,
 }: {

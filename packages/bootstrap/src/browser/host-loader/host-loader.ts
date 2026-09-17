@@ -1,3 +1,4 @@
+import { HostRemoteInvalidError } from '../../shared/errors/index.js';
 import { fetchJson } from '../fetch-json/index.js';
 import type { HostModule } from '../host-module.js';
 import { importModule } from '../module-shim/index.js';
@@ -11,14 +12,13 @@ import type {
   LoadHostModuleOptions,
   RemoteMetadata,
 } from './host-loader.types.js';
-import { hostRemoteError } from './host-remote-error.js';
 import { loadHostStyles } from './host-styles/host-styles.js';
 import { installHostSharedDependencies } from './shared-dependencies/shared-dependencies.js';
 
 export async function loadHostModule({
   manifest,
   runtime,
-  dependencies = browserHostLoaderDependencies(),
+  dependencies = createBrowserHostLoaderDependencies(),
 }: LoadHostModuleOptions): Promise<HostModule> {
   dependencies.validateHostManifest({ manifest, runtime });
 
@@ -34,7 +34,7 @@ export async function loadHostModule({
   );
 
   if (!expose?.outFileName) {
-    throw hostRemoteError(
+    throw new HostRemoteInvalidError(
       `Selected host remote entry "${manifest.remoteEntryUrl}" does not expose "${manifest.exposes.entry}".`,
     );
   }
@@ -50,7 +50,7 @@ export async function loadHostModule({
   return dependencies.importModule({ url: moduleUrl.href });
 }
 
-function browserHostLoaderDependencies(): HostLoaderDependencies {
+function createBrowserHostLoaderDependencies(): HostLoaderDependencies {
   return {
     document,
     fetchJson,

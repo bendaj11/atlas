@@ -4,7 +4,8 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { validateHostManifest } from '../validate-host-manifest/validate-host-manifest.js';
-import { describeManifest, validationError } from '../validation-error.js';
+import { CatalogInvalidError } from '../../../shared/errors/index.js';
+import { describeManifest } from '../describe-manifest.js';
 
 export function validateCatalog({
   runtime,
@@ -14,19 +15,19 @@ export function validateCatalog({
   catalog: AtlasHostCatalog;
 }): void {
   if (catalog.schemaVersion !== '1') {
-    throw catalogError(
+    throw new CatalogInvalidError(
       `Atlas catalog schemaVersion must be "1", got ${JSON.stringify(catalog.schemaVersion)}.`,
     );
   }
 
   if (catalog.hostId !== runtime.hostId) {
-    throw catalogError(
+    throw new CatalogInvalidError(
       `Atlas catalog belongs to host "${catalog.hostId}" but runtime selects host "${runtime.hostId}".`,
     );
   }
 
   if (catalog.host.kind !== 'host' || catalog.host.id !== runtime.hostId) {
-    throw catalogError(
+    throw new CatalogInvalidError(
       `Atlas catalog host entry must be a host manifest with id "${runtime.hostId}", got ${describeManifest(catalog.host)}.`,
     );
   }
@@ -51,18 +52,14 @@ function assertAppManifests({
   subject: string;
 }): void {
   if (!Array.isArray(manifests)) {
-    throw catalogError(`Atlas catalog ${subject} must be an array.`);
+    throw new CatalogInvalidError(`Atlas catalog ${subject} must be an array.`);
   }
 
   const stray = manifests.find((manifest) => manifest.kind !== 'app');
 
   if (stray) {
-    throw catalogError(
+    throw new CatalogInvalidError(
       `Atlas catalog ${subject} must contain app manifests only, got ${describeManifest(stray)}.`,
     );
   }
-}
-
-function catalogError(message: string) {
-  return validationError({ code: 'CATALOG_INVALID', message });
 }

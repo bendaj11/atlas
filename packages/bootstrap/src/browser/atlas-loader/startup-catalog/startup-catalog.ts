@@ -1,5 +1,5 @@
 import type { AtlasHostCatalog } from '@atlas/schema';
-import { bootstrapError } from '../../../shared/errors/index.js';
+import { CatalogInvalidError } from '../../../shared/errors/index.js';
 import type { DevSession } from '../../overrides/index.js';
 import type { LoaderContext } from '../atlas-loader.types.js';
 import { loadDeploymentCatalog } from '../deployment-catalog/deployment-catalog.js';
@@ -23,10 +23,9 @@ export async function loadStartupCatalog({
   });
 
   if (!developmentSession.catalog) {
-    throw bootstrapError({
-      code: 'CATALOG_INVALID',
-      message: `Atlas development session at "${runtime.developmentSessionUrl}" does not include a host catalog.`,
-    });
+    throw new CatalogInvalidError(
+      `Atlas development session at "${runtime.developmentSessionUrl}" does not include a host catalog.`,
+    );
   }
 
   return { catalog: developmentSession.catalog, developmentSession };

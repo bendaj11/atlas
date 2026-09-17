@@ -1,5 +1,5 @@
 import { VERSIONED_LOADER_SOURCE } from '../bootstrap-assets.js';
-import { bootstrapError } from '../../shared/errors/index.js';
+import { BootstrapTemplateInvalidError } from '../../shared/errors/index.js';
 import type { AtlasBootstrapOptions } from '../bootstrap-types.js';
 
 const DEFAULT_TITLE = 'Atlas';
@@ -31,11 +31,9 @@ export function applyVersionedLoaderSource(html: string): string {
 
 export function validateBootstrapHtml(html: string): void {
   if (!/\bid=["']atlas-host-root["']/.test(html)) {
-    throw bootstrapError({
-      code: 'BOOTSTRAP_TEMPLATE_INVALID',
-      message:
-        'Atlas bootstrap template must contain an element with id="atlas-host-root".',
-    });
+    throw new BootstrapTemplateInvalidError(
+      'Atlas bootstrap template must contain an element with id="atlas-host-root".',
+    );
   }
 
   if (
@@ -43,11 +41,9 @@ export function validateBootstrapHtml(html: string): void {
       html,
     )
   ) {
-    throw bootstrapError({
-      code: 'BOOTSTRAP_TEMPLATE_INVALID',
-      message:
-        'Atlas bootstrap template must load /atlas.loader.js with a script element.',
-    });
+    throw new BootstrapTemplateInvalidError(
+      'Atlas bootstrap template must load /atlas.loader.js with a script element.',
+    );
   }
 }
 

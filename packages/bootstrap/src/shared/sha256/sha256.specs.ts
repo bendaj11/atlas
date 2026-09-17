@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { Sha256Driver } from './sha256.driver.js';
 
-describe('sha256', () => {
+describe('computeSha256', () => {
   let driver: Sha256Driver;
 
   beforeEach(() => {

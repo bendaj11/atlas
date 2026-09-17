@@ -1,16 +1,30 @@
-import type { AtlasError } from '@atlas/schema';
-import { bootstrapError, type BootstrapErrorOptions } from '../index.js';
+import type { BootstrapError, BootstrapErrorCause } from '../index.js';
+
+export type BootstrapErrorClass = new (
+  message: string,
+  options?: BootstrapErrorCause,
+) => BootstrapError;
 
 export class BootstrapErrorDriver {
-  private error!: AtlasError;
+  private error!: BootstrapError;
 
   readonly when = {
-    created: (options: BootstrapErrorOptions): void => {
-      this.error = bootstrapError(options);
+    created: ({
+      ErrorClass,
+      message,
+      cause,
+    }: BootstrapErrorCause & {
+      ErrorClass: BootstrapErrorClass;
+      message: string;
+    }): void => {
+      this.error = new ErrorClass(
+        message,
+        cause === undefined ? {} : { cause },
+      );
     },
   };
 
   readonly get = {
-    error: (): AtlasError => this.error,
+    error: (): BootstrapError => this.error,
   };
 }

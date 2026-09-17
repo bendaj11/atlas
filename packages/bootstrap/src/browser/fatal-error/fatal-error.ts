@@ -5,7 +5,7 @@ import type { FatalErrorDependencies } from './fatal-error.types.js';
 
 export function showFatalError({
   error,
-  dependencies = browserFatalErrorDependencies(),
+  dependencies = createBrowserFatalErrorDependencies(),
 }: {
   error: unknown;
   dependencies?: FatalErrorDependencies;
@@ -57,7 +57,7 @@ export function showFatalError({
   );
 }
 
-function browserFatalErrorDependencies(): FatalErrorDependencies {
+function createBrowserFatalErrorDependencies(): FatalErrorDependencies {
   return {
     document,
     sessionStorage,
