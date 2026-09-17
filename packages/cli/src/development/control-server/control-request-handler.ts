@@ -62,7 +62,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const appReady = pathSegment({
+    const appReady = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${OVERRIDES_PATH}/`,
       suffix: '/ready',
@@ -75,7 +75,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const appRemoved = pathSegment({
+    const appRemoved = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${OVERRIDES_PATH}/`,
     });
@@ -87,7 +87,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const hostReady = pathSegment({
+    const hostReady = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${HOSTS_PATH}/`,
       suffix: '/ready',
@@ -100,7 +100,7 @@ export function createControlRequestHandler({
       return;
     }
 
-    const hostRemoved = pathSegment({
+    const hostRemoved = extractPathSegmentBetween({
       pathname: control.pathname,
       prefix: `${HOSTS_PATH}/`,
     });
@@ -260,7 +260,7 @@ function respondWithSession({
   response.end('{"status":"starting"}\n');
 }
 
-function pathSegment({
+function extractPathSegmentBetween({
   pathname,
   prefix,
   suffix = '',

@@ -5,14 +5,14 @@ export function resolveRegistryArtifact(
   registry: AtlasStaticRegistry,
   identifier: string,
 ): AtlasResolvedArtifact {
-  const byId = artifactsMatching(
+  const byId = findArtifactsMatching(
     registry,
     (artifact) => artifact.id === identifier,
   );
 
   if (byId.length === 1) return byId[0]!;
 
-  const byName = artifactsMatching(
+  const byName = findArtifactsMatching(
     registry,
     (artifact) =>
       artifact.packageName === identifier || artifact.name === identifier,
@@ -57,7 +57,7 @@ export function resolveRelease(
   );
 }
 
-function artifactsMatching(
+function findArtifactsMatching(
   registry: AtlasStaticRegistry,
   matches: (artifact: AtlasRegistryArtifact) => boolean,
 ): AtlasResolvedArtifact[] {

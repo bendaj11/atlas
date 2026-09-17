@@ -1,5 +1,5 @@
 import {
-  nxOutputPaths,
+  resolveNxOutputPaths,
   type NxProjectConfiguration,
 } from './nx-output-paths.js';
 
@@ -22,7 +22,7 @@ export class NxOutputPathsDriver {
 
   readonly get = {
     outputPaths: (): string[] =>
-      nxOutputPaths({
+      resolveNxOutputPaths({
         project: this.project,
         workspaceRoot: '/repo',
         projectRoot: this.projectRoot,

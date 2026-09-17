@@ -13,8 +13,8 @@ import {
   createNxGenerationCommand,
   createNxPluginInstallCommand,
   createTaskCommand,
-  installationRoot,
-  packageIsInstalled,
+  resolveInstallationRoot,
+  isPackageInstalled,
   type NxGenerationOptions,
 } from './commands.js';
 import type { ProcessCommand } from '../../shared/index.js';
@@ -95,13 +95,13 @@ export class CommandsDriver {
     installationRoot: async (projectRoot: string): Promise<string> =>
       relative(
         this.directory.root,
-        await installationRoot({
+        await resolveInstallationRoot({
           kind: this.kind,
           workspaceRoot: this.directory.root,
           projectRoot: this.directory.path(projectRoot),
         }),
       ) || '.',
     packageInstalled: (packageName: string): Promise<boolean> =>
-      packageIsInstalled(this.directory.root, packageName),
+      isPackageInstalled(this.directory.root, packageName),
   };
 }

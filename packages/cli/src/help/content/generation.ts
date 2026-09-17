@@ -20,11 +20,11 @@ export const GENERATION_HELP: Readonly<Record<string, CommandHelp>> = {
       'atlas g widget order-summary --app-id <app-id>',
     ],
   },
-  'generate host': generationProjectHelp({
+  'generate host': buildGenerationProjectHelp({
     type: 'host',
     resource: 'host client',
   }),
-  'generate app': generationProjectHelp({ type: 'app', resource: 'app' }),
+  'generate app': buildGenerationProjectHelp({ type: 'app', resource: 'app' }),
   'generate widget': {
     summary: 'Generate an exported widget inside an existing app.',
     usage: 'atlas generate widget <name> [--app-id <app-id>] [options]',
@@ -48,7 +48,7 @@ export const GENERATION_HELP: Readonly<Record<string, CommandHelp>> = {
   },
 };
 
-function generationProjectHelp({
+function buildGenerationProjectHelp({
   type,
   resource,
 }: {

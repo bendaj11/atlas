@@ -25,7 +25,10 @@ export function selectStorageFromEnvironment(
   if (!bucket)
     throw new Error('ATLAS_S3_BUCKET is required when ATLAS_STORAGE=s3.');
 
-  return { provider: 's3', s3Options: s3OptionsFromEnvironment(args, bucket) };
+  return {
+    provider: 's3',
+    s3Options: readS3OptionsFromEnvironment(args, bucket),
+  };
 }
 
 export function requiredStorageValue(options: {
@@ -45,7 +48,9 @@ export function requiredStorageValue(options: {
   return value;
 }
 
-export function positiveEnvironmentInteger(name: string): number | undefined {
+export function readPositiveEnvironmentInteger(
+  name: string,
+): number | undefined {
   const value = process.env[name];
 
   if (value === undefined) return undefined;
@@ -58,7 +63,7 @@ export function positiveEnvironmentInteger(name: string): number | undefined {
   return number;
 }
 
-function s3OptionsFromEnvironment(
+function readS3OptionsFromEnvironment(
   args: CliArguments | undefined,
   bucket: string,
 ): S3Options {
@@ -85,8 +90,8 @@ function s3OptionsFromEnvironment(
       process.env.AWS_REGION ??
       process.env.AWS_DEFAULT_REGION ??
       'us-east-1',
-    forcePathStyle: environmentBoolean('ATLAS_S3_FORCE_PATH_STYLE'),
-    lockMode: environmentS3LockMode(),
+    forcePathStyle: readEnvironmentBoolean('ATLAS_S3_FORCE_PATH_STYLE'),
+    lockMode: readEnvironmentS3LockMode(),
     ...(accessKeyId && secretAccessKey
       ? {
           accessKeyId,
@@ -99,7 +104,7 @@ function s3OptionsFromEnvironment(
   };
 }
 
-function environmentBoolean(name: string): boolean | undefined {
+function readEnvironmentBoolean(name: string): boolean | undefined {
   const value = process.env[name];
 
   if (value === undefined) return undefined;
@@ -110,7 +115,7 @@ function environmentBoolean(name: string): boolean | undefined {
   throw new Error(`${name} must be "true" or "false".`);
 }
 
-function environmentS3LockMode(): S3PublicationLockMode {
+function readEnvironmentS3LockMode(): S3PublicationLockMode {
   const value = process.env.ATLAS_S3_LOCK_MODE;
 
   if (value === undefined || value === 's3') return 's3';

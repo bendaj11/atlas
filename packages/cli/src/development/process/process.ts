@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { AtlasFramework } from '@atlas/schema';
-import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
+import { closeServer, buildLocalOrigin, LOCAL_HOST } from '../http/http.js';
 import {
   DEFAULT_CONTROL_PORT,
   REMOTE_POLL_INTERVAL_MS,
@@ -11,10 +11,10 @@ import {
   CliArguments,
   CliError,
   ui,
-  completedProcessOutput,
+  awaitProcessOutput,
 } from '../../shared/index.js';
 
-export function frameworkServerArguments(
+export function buildFrameworkServerArguments(
   framework: AtlasFramework,
   port: number,
 ): string[] {
@@ -34,14 +34,14 @@ export async function waitForRemoteEntry(
     if (child.exitCode !== null || child.signalCode !== null) {
       throw formatFrameworkServerError(
         `Framework dev server exited before ${remoteEntryUrl} became available.`,
-        await completedProcessOutput(child),
+        await awaitProcessOutput(child),
       );
     }
     const response = await fetch(remoteEntryUrl, { cache: 'no-store' }).catch(
       () => undefined,
     );
 
-    if (response && (await remoteEntryIsReady(response))) return;
+    if (response && (await isRemoteEntryReady(response))) return;
     await new Promise((resolve) =>
       setTimeout(resolve, REMOTE_POLL_INTERVAL_MS),
     );
@@ -57,7 +57,7 @@ export async function waitForRemoteEntry(
   );
 }
 
-export async function remoteEntryIsReady(response: Response): Promise<boolean> {
+export async function isRemoteEntryReady(response: Response): Promise<boolean> {
   if (!response.ok) return false;
   const contentType = response.headers.get('content-type') ?? '';
 
@@ -136,7 +136,7 @@ export function waitForShutdown(
       if (settled) return;
       settled = true;
       removeSignalListeners();
-      void completedProcessOutput(child).then((output) =>
+      void awaitProcessOutput(child).then((output) =>
         reject(
           formatFrameworkServerError(
             `Framework dev server exited with code ${code ?? 'unknown'}.`,
@@ -191,7 +191,7 @@ export function openBrowserWhenReady(
   url: string | undefined,
 ): void {
   if (!url || args.hasFlag('no-open')) return;
-  const command = browserOpenCommand(url);
+  const command = buildBrowserOpenCommand(url);
 
   try {
     const child = spawn(command.command, command.args, {
@@ -207,7 +207,7 @@ export function openBrowserWhenReady(
   }
 }
 
-export function browserOpenCommand(
+export function buildBrowserOpenCommand(
   url: string,
   platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] } {
@@ -219,4 +219,4 @@ export function browserOpenCommand(
   return { command: 'xdg-open', args: [url] };
 }
 
-export { closeServer, localOrigin };
+export { closeServer, buildLocalOrigin };

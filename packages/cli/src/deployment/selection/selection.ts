@@ -4,7 +4,7 @@ import {
   resolveRegistryArtifact,
 } from '../../publication/index.js';
 import { CliError } from '../../shared/index.js';
-import { sourceEnvironmentState } from '../registry-access/registry-access.js';
+import { readSourceEnvironmentState } from '../registry-access/registry-access.js';
 import type {
   ArtifactKind,
   RegistryAccess,
@@ -28,7 +28,7 @@ export async function selectArtifactVersion({
       ? artifact.latest
       : artifact.releases[selector]
         ? selector
-        : await sourceEnvironmentVersion({
+        : await readSourceEnvironmentVersion({
             access,
             environment: selector,
             kind,
@@ -49,7 +49,7 @@ export async function selectArtifactVersion({
   return { kind, id: artifact.id, version };
 }
 
-async function sourceEnvironmentVersion({
+async function readSourceEnvironmentVersion({
   access,
   environment,
   kind,
@@ -62,7 +62,7 @@ async function sourceEnvironmentVersion({
 }): Promise<string | undefined> {
   assertEnvironmentName(environment);
 
-  const deployment = await sourceEnvironmentState({ access, environment });
+  const deployment = await readSourceEnvironmentState({ access, environment });
 
   return deployment?.[kind === 'app' ? 'apps' : 'hosts'][id]?.version;
 }

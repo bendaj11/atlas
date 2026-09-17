@@ -15,7 +15,7 @@ export function createLocalDevCatalog(
 ): AtlasHostCatalog {
   const host =
     document.hostOverride ??
-    localHostPlaceholder({
+    createLocalHostPlaceholder({
       hostId: document.hostId,
       createdAt: document.generatedAt,
     });
@@ -26,7 +26,7 @@ export function createLocalDevCatalog(
     revision: `local:${document.generatedAt}`,
     generatedAt: document.generatedAt,
     host,
-    apps: uniqueManifests(document.overrides),
+    apps: dedupeManifests(document.overrides),
   };
 }
 
@@ -73,7 +73,7 @@ export function mergeLocalCatalog({
   };
 }
 
-function uniqueManifests(overrides: AtlasRuntimeOverride[]): AtlasManifest[] {
+function dedupeManifests(overrides: AtlasRuntimeOverride[]): AtlasManifest[] {
   const manifests = overrides.map((override) => override.manifest);
 
   return [
@@ -81,7 +81,7 @@ function uniqueManifests(overrides: AtlasRuntimeOverride[]): AtlasManifest[] {
   ];
 }
 
-function localHostPlaceholder({
+function createLocalHostPlaceholder({
   hostId,
   createdAt,
 }: {

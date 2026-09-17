@@ -146,18 +146,18 @@ export const ui = {
   linkedResult(label: string, value: string, target: string): void {
     writeLine(
       stdout,
-      `${colorize(label, 'bold', stdout)}: ${terminalLink(value, target, stdout)}`,
+      `${colorize(label, 'bold', stdout)}: ${formatTerminalLink(value, target, stdout)}`,
     );
   },
 };
 
 function formatLogo(stream: WriteStream): string {
   return ATLAS_LOGO.map(({ text, color }) =>
-    styleRgb(text, color, stream),
+    colorizeRgb(text, color, stream),
   ).join('\n');
 }
 
-function styleRgb(
+function colorizeRgb(
   value: string,
   [red, green, blue]: RgbColor,
   stream: WriteStream,
@@ -168,7 +168,7 @@ function styleRgb(
   return `\u001B[38;2;${red};${green};${blue}m${value}\u001B[0m`;
 }
 
-function terminalLink(
+function formatTerminalLink(
   value: string,
   target: string,
   stream: WriteStream,

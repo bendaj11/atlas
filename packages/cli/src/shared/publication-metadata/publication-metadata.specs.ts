@@ -1,4 +1,4 @@
-import { publicationContentType } from './publication-metadata.js';
+import { resolvePublicationContentType } from './publication-metadata.js';
 
 it.each([
   ['registry.json', 'application/json; charset=utf-8'],
@@ -10,6 +10,6 @@ it.each([
 ])(
   'should return expected content type when publication path is %s',
   (path, contentType) => {
-    expect(publicationContentType(path)).toBe(contentType);
+    expect(resolvePublicationContentType(path)).toBe(contentType);
   },
 );

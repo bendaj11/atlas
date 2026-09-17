@@ -1,6 +1,10 @@
 import { dirname, join, relative } from 'node:path';
 import type { AtlasPackageManager, AtlasWorkspaceKind } from '../types.js';
-import { pathExists, readJsonFile, readTextFile } from '../../shared/index.js';
+import {
+  doesPathExist,
+  readJsonFile,
+  readTextFile,
+} from '../../shared/index.js';
 
 export interface GenerationBaseDirectories {
   host: string;
@@ -36,13 +40,13 @@ export async function findWorkspaceRoot(start: string): Promise<string> {
 export async function detectWorkspaceKind(
   root: string,
 ): Promise<AtlasWorkspaceKind> {
-  if (await pathExists(join(root, 'nx.json'))) return 'nx';
+  if (await doesPathExist(join(root, 'nx.json'))) return 'nx';
 
-  if (await pathExists(join(root, 'turbo.json'))) return 'turbo';
-  const packageJson = await rootPackageJson(root);
+  if (await doesPathExist(join(root, 'turbo.json'))) return 'turbo';
+  const packageJson = await readRootPackageJson(root);
   const declaresWorkspaces =
     packageJson?.workspaces !== undefined ||
-    (await pathExists(join(root, 'pnpm-workspace.yaml')));
+    (await doesPathExist(join(root, 'pnpm-workspace.yaml')));
 
   return declaresWorkspaces ? 'workspace' : 'standalone';
 }
@@ -50,14 +54,16 @@ export async function detectWorkspaceKind(
 export async function detectPackageManager(
   root: string,
 ): Promise<AtlasPackageManager> {
-  const declared = (await rootPackageJson(root))?.packageManager?.split('@')[0];
+  const declared = (await readRootPackageJson(root))?.packageManager?.split(
+    '@',
+  )[0];
 
   if (declared === 'yarn' || declared === 'pnpm' || declared === 'npm')
     return declared;
 
-  if (await pathExists(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (await doesPathExist(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
 
-  if (await pathExists(join(root, 'yarn.lock'))) return 'yarn';
+  if (await doesPathExist(join(root, 'yarn.lock'))) return 'yarn';
 
   return 'npm';
 }
@@ -71,16 +77,16 @@ export async function detectGenerationBases(options: {
   if (startDirectory && dirname(startDirectory) === '.')
     return { host: startDirectory, app: startDirectory };
 
-  const patterns = await workspacePatterns(options.root);
+  const patterns = await readWorkspacePatterns(options.root);
   const app =
-    segmentBaseDirectory(patterns, 'apps') ??
-    commonWildcardBaseDirectory(patterns) ??
+    findSegmentBaseDirectory(patterns, 'apps') ??
+    findCommonWildcardBaseDirectory(patterns) ??
     'apps';
 
-  return { host: segmentBaseDirectory(patterns, 'hosts') ?? app, app };
+  return { host: findSegmentBaseDirectory(patterns, 'hosts') ?? app, app };
 }
 
-function segmentBaseDirectory(
+function findSegmentBaseDirectory(
   patterns: readonly string[],
   segment: string,
 ): string | undefined {
@@ -91,18 +97,18 @@ function segmentBaseDirectory(
       candidate.includes(`/${segment}/`),
   );
 
-  return pattern ? patternBaseDirectory(pattern) : undefined;
+  return pattern ? extractPatternBaseDirectory(pattern) : undefined;
 }
 
-function commonWildcardBaseDirectory(
+function findCommonWildcardBaseDirectory(
   patterns: readonly string[],
 ): string | undefined {
   const pattern = patterns.find((candidate) => candidate.includes('*'));
 
-  return pattern ? patternBaseDirectory(pattern) : undefined;
+  return pattern ? extractPatternBaseDirectory(pattern) : undefined;
 }
 
-function patternBaseDirectory(pattern: string): string {
+function extractPatternBaseDirectory(pattern: string): string {
   const wildcard = pattern.indexOf('*');
   const base = wildcard >= 0 ? pattern.slice(0, wildcard) : pattern;
 
@@ -111,22 +117,22 @@ function patternBaseDirectory(pattern: string): string {
 
 async function isWorkspaceRoot(directory: string): Promise<boolean> {
   const markers = await Promise.all(
-    WORKSPACE_ROOT_MARKERS.map((name) => pathExists(join(directory, name))),
+    WORKSPACE_ROOT_MARKERS.map((name) => doesPathExist(join(directory, name))),
   );
 
   if (markers.some(Boolean)) return true;
 
-  return (await rootPackageJson(directory))?.workspaces !== undefined;
+  return (await readRootPackageJson(directory))?.workspaces !== undefined;
 }
 
-async function rootPackageJson(
+async function readRootPackageJson(
   root: string,
 ): Promise<RootPackageJson | undefined> {
   return readJsonFile<RootPackageJson>(join(root, 'package.json'));
 }
 
-async function workspacePatterns(root: string): Promise<string[]> {
-  const workspaces = (await rootPackageJson(root))?.workspaces;
+async function readWorkspacePatterns(root: string): Promise<string[]> {
+  const workspaces = (await readRootPackageJson(root))?.workspaces;
   const declared = Array.isArray(workspaces)
     ? workspaces
     : (workspaces?.packages ?? []);

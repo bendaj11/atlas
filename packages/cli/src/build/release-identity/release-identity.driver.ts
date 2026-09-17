@@ -1,7 +1,7 @@
 import { aProject } from '../../workspace/workspace.testkit.js';
 import {
-  publicationIdentity,
-  releaseIdentity,
+  derivePublicationIdentity,
+  deriveReleaseIdentity,
   type PublicationIdentity,
   type ReleaseIdentity,
 } from './release-identity.js';
@@ -35,12 +35,12 @@ export class ReleaseIdentityDriver {
 
   readonly get = {
     publication: (): PublicationIdentity =>
-      publicationIdentity({
+      derivePublicationIdentity({
         args: new CliArguments(['publish', 'x', ...this.flags]),
         project: this.project,
       }),
     release: (): ReleaseIdentity =>
-      releaseIdentity({
+      deriveReleaseIdentity({
         args: new CliArguments(['build', 'x', ...this.flags]),
         project: this.project,
         environment: this.environment,

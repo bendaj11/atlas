@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { formatHelp, requestedHelpTopic } from '../help/index.js';
+import { formatHelp, resolveRequestedHelpTopic } from '../help/index.js';
 import {
   CliArguments,
   CliError,
@@ -25,12 +25,12 @@ export async function runAtlasCli(
 
   try {
     if (VERSION_ARGUMENTS.includes(values[0] ?? '') && values.length === 1) {
-      console.info(cliVersion());
+      console.info(readCliVersion());
 
       return;
     }
 
-    const helpTopic = requestedHelpTopic(values);
+    const helpTopic = resolveRequestedHelpTopic(values);
 
     if (helpTopic) {
       console.info(formatHelp(helpTopic));
@@ -61,7 +61,7 @@ export async function runAtlasCli(
   }
 }
 
-function cliVersion(): string {
+function readCliVersion(): string {
   const packageJson = JSON.parse(
     readFileSync(
       fileURLToPath(new URL('../../package.json', import.meta.url)),

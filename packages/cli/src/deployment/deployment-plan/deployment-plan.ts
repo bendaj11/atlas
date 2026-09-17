@@ -6,13 +6,13 @@ import {
   type AtlasManifestDescriptor,
   type AtlasStaticRegistry,
 } from '@atlas/schema';
-import { canonicalJson } from '../../publication/index.js';
-import { sha256Digest } from '../../shared/index.js';
+import { stringifyCanonicalJson } from '../../publication/index.js';
+import { computeSha256Digest } from '../../shared/index.js';
 import {
-  environmentStatePath,
-  hostManifestPath,
-  publishedManifest,
-  targetEnvironmentState,
+  buildEnvironmentStatePath,
+  buildHostManifestPath,
+  readPublishedManifest,
+  readTargetEnvironmentState,
 } from '../registry-access/registry-access.js';
 import type {
   ArtifactKind,
@@ -38,9 +38,9 @@ export async function planDeployment({
   environment: string;
   selected: ArtifactSelection;
 }): Promise<DeploymentWrite> {
-  const current = await targetEnvironmentState({ access, environment });
+  const current = await readTargetEnvironmentState({ access, environment });
   const state = applySelection({ current, environment, selected });
-  const manifests = await hostDeploymentManifests({
+  const manifests = await buildHostDeploymentManifests({
     access,
     registry,
     state,
@@ -50,7 +50,7 @@ export async function planDeployment({
   return { state, manifests };
 }
 
-export function deploymentPaths({
+export function listDeploymentPaths({
   environment,
   deployment,
 }: {
@@ -58,9 +58,9 @@ export function deploymentPaths({
   deployment: DeploymentWrite;
 }): string[] {
   return [
-    environmentStatePath(environment),
+    buildEnvironmentStatePath(environment),
     ...deployment.manifests.map(({ hostId }) =>
-      hostManifestPath({ environment, hostId }),
+      buildHostManifestPath({ environment, hostId }),
     ),
   ];
 }
@@ -87,11 +87,11 @@ function applySelection({
   return {
     ...content,
     updatedAt: new Date().toISOString(),
-    revision: revisionOf(content),
+    revision: computeRevisionOf(content),
   };
 }
 
-async function hostDeploymentManifests({
+async function buildHostDeploymentManifests({
   access,
   registry,
   state,
@@ -107,12 +107,14 @@ async function hostDeploymentManifests({
     selected.kind === 'host'
       ? [selected.id]
       : Object.keys(state.hosts).filter((hostId) =>
-          apps.some((app) => appTargetsHost({ app, hostId })),
+          apps.some((app) => doesAppTargetHost({ app, hostId })),
         );
 
   return hostIds
     .sort()
-    .map((hostId) => hostDeploymentManifest({ registry, state, apps, hostId }));
+    .map((hostId) =>
+      buildHostDeploymentManifest({ registry, state, apps, hostId }),
+    );
 }
 
 async function selectedApps({
@@ -126,13 +128,13 @@ async function selectedApps({
 }): Promise<SelectedAppRelease[]> {
   return Promise.all(
     Object.entries(state.apps).map(async ([id, entry]) => {
-      const descriptor = releaseDescriptor({
+      const descriptor = findReleaseDescriptor({
         registry,
         kind: 'app',
         id,
         version: entry.version,
       });
-      const manifest = (await publishedManifest({
+      const manifest = (await readPublishedManifest({
         access,
         descriptor,
       })) as AtlasAppArtifactManifest;
@@ -142,7 +144,7 @@ async function selectedApps({
   );
 }
 
-function hostDeploymentManifest({
+function buildHostDeploymentManifest({
   registry,
   state,
   apps,
@@ -163,14 +165,14 @@ function hostDeploymentManifest({
   const content = {
     hostId,
     environment: state.environment,
-    host: releaseDescriptor({
+    host: findReleaseDescriptor({
       registry,
       kind: 'host',
       id: hostId,
       version: host.version,
     }),
     apps: apps
-      .filter((app) => appTargetsHost({ app, hostId }))
+      .filter((app) => doesAppTargetHost({ app, hostId }))
       .sort((left, right) => left.id.localeCompare(right.id))
       .map((app) => app.descriptor),
   };
@@ -179,11 +181,11 @@ function hostDeploymentManifest({
     schemaVersion: 'v1' as const,
     kind: 'host-deployment' as const,
     ...content,
-    deploymentRevision: revisionOf(content),
+    deploymentRevision: computeRevisionOf(content),
   };
 }
 
-function appTargetsHost({
+function doesAppTargetHost({
   app,
   hostId,
 }: {
@@ -195,7 +197,7 @@ function appTargetsHost({
   );
 }
 
-function releaseDescriptor({
+function findReleaseDescriptor({
   registry,
   kind,
   id,
@@ -216,6 +218,6 @@ function releaseDescriptor({
   return descriptor;
 }
 
-function revisionOf(value: unknown): `sha256:${string}` {
-  return sha256Digest(canonicalJson(value));
+function computeRevisionOf(value: unknown): `sha256:${string}` {
+  return computeSha256Digest(stringifyCanonicalJson(value));
 }

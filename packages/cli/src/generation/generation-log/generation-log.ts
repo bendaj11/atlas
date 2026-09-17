@@ -5,10 +5,10 @@ import {
 } from '../../shared/index.js';
 import type { AtlasWorkspace } from '../../workspace/index.js';
 import type { FrameworkVersionInfo } from '../dependencies/dependencies.js';
-import { frameworkLabel } from '../labels/labels.js';
-import { displayTarget, workspaceLabel } from '../paths/paths.js';
+import { getFrameworkLabel } from '../labels/labels.js';
+import { formatDisplayTarget, getWorkspaceLabel } from '../paths/paths.js';
 
-export function delegatesScaffold({
+export function doesDelegateScaffold({
   workspace,
   args,
 }: {
@@ -29,16 +29,18 @@ export function logGenerationPlan({
   framework: SupportedFramework;
   root: string;
 }): void {
-  const target = displayTarget(workspace.root, root);
-  ui.info(`Detected ${workspaceLabel(workspace.kind)} at ${workspace.root}.`);
+  const target = formatDisplayTarget(workspace.root, root);
+  ui.info(
+    `Detected ${getWorkspaceLabel(workspace.kind)} at ${workspace.root}.`,
+  );
 
-  if (delegatesScaffold({ workspace, args })) {
+  if (doesDelegateScaffold({ workspace, args })) {
     const generator =
       framework === 'angular'
         ? '@nx/angular:application'
         : '@nx/react:application';
     ui.info(
-      `Delegating ${frameworkLabel(framework)} scaffolding to ${generator} at ${target}.`,
+      `Delegating ${getFrameworkLabel(framework)} scaffolding to ${generator} at ${target}.`,
     );
 
     return;
@@ -47,7 +49,7 @@ export function logGenerationPlan({
   const reason =
     workspace.kind === 'nx' ? 'Native Nx scaffolding was skipped; ' : '';
   ui.info(
-    `${reason}Atlas will generate the ${frameworkLabel(framework)} scaffold directly at ${target}.`,
+    `${reason}Atlas will generate the ${getFrameworkLabel(framework)} scaffold directly at ${target}.`,
   );
 }
 
@@ -63,8 +65,8 @@ export function logFrameworkVersionSelection({
   detected: FrameworkVersionInfo;
 }): void {
   const requested = args.flag('framework-version');
-  const label = frameworkLabel(framework);
-  const source = displayTarget(workspace.root, detected.manifest);
+  const label = getFrameworkLabel(framework);
+  const source = formatDisplayTarget(workspace.root, detected.manifest);
 
   if (requested && requested !== detected.version) {
     ui.warning(

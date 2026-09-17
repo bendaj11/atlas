@@ -1,6 +1,6 @@
 import type { AtlasVersionChannel } from '@atlas/schema';
 import type { VerificationChecks } from '../checks/checks.js';
-import { sha256Integrity } from '../../shared/index.js';
+import { computeSha256Integrity } from '../../shared/index.js';
 
 export type ExpectedContentType = 'json' | 'css' | 'javascript';
 
@@ -106,7 +106,7 @@ export function checkIntegrity(options: {
     return;
   }
 
-  if (sha256Integrity(bytes) === integrity)
+  if (computeSha256Integrity(bytes) === integrity)
     checks.pass(`${subject} integrity`, 'SHA-256 matches.');
   else
     checks.fail(`${subject} integrity`, 'SHA-256 does not match the manifest.');

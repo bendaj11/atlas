@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
-import { toPosixPath } from '../payload/payload.js';
+import { convertToPosixPath } from '../payload/payload.js';
 import {
   CliError,
   IMMUTABLE_CACHE_CONTROL,
-  publicationContentType,
+  resolvePublicationContentType,
 } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
 
@@ -53,7 +53,7 @@ export async function findArtifactRootIfPresent(
         ])
       : conventional;
   for (const candidate of candidates) {
-    if (await directoryContainsEntry(candidate, entryPath)) return candidate;
+    if (await doesDirectoryContainEntry(candidate, entryPath)) return candidate;
   }
 
   return undefined;
@@ -84,9 +84,9 @@ export async function hashArtifactDirectory(root: string): Promise<string> {
   const hash = createHash('sha256');
 
   for (const relativePath of await listArtifactFiles(root)) {
-    hash.update(toPosixPath(relativePath));
+    hash.update(convertToPosixPath(relativePath));
     hash.update('\0');
-    hash.update(publicationContentType(relativePath));
+    hash.update(resolvePublicationContentType(relativePath));
     hash.update(`\0${IMMUTABLE_CACHE_CONTROL}\0`);
     hash.update(await readFile(join(root, relativePath)));
     hash.update('\0');
@@ -95,7 +95,7 @@ export async function hashArtifactDirectory(root: string): Promise<string> {
   return hash.digest('hex');
 }
 
-async function directoryContainsEntry(
+async function doesDirectoryContainEntry(
   directory: string,
   entryPath: string,
 ): Promise<boolean> {

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { pathExists } from '../../shared/index.js';
-import { normalizedProjectRoot } from './nx-project.js';
+import { doesPathExist } from '../../shared/index.js';
+import { normalizeProjectRoot } from './nx-project.js';
 
 export async function alignDelegatedAngularFederationConfig({
   workspaceRoot,
@@ -10,13 +10,13 @@ export async function alignDelegatedAngularFederationConfig({
   workspaceRoot: string;
   root: string;
 }): Promise<void> {
-  const projectRoot = normalizedProjectRoot({ workspaceRoot, root });
+  const projectRoot = normalizeProjectRoot({ workspaceRoot, root });
 
   if (projectRoot === '.') return;
 
   const configPath = join(root, 'federation.config.js');
 
-  if (!(await pathExists(configPath))) return;
+  if (!(await doesPathExist(configPath))) return;
 
   const source = await readFile(configPath, 'utf8');
   const escapedProjectRoot = escapeRegExp(projectRoot);

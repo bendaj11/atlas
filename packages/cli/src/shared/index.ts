@@ -12,9 +12,9 @@ export {
   formatTypeScriptDiagnostics,
 } from './config-compiler/config-compiler.js';
 export {
-  integrityFromDigest,
-  sha256Digest,
-  sha256Integrity,
+  convertDigestToIntegrity,
+  computeSha256Digest,
+  computeSha256Integrity,
 } from './digest/digest.js';
 export type { Sha256Digest } from './digest/digest.js';
 export {
@@ -24,7 +24,7 @@ export {
   HttpStatusError,
 } from './errors/errors.js';
 export {
-  pathExists,
+  doesPathExist,
   isMissingPathError,
   isNodeError,
   readJsonFile,
@@ -34,9 +34,9 @@ export {
 export { resolveInvocation } from './interaction/interaction.js';
 export type { AtlasInvocation } from './interaction/interaction.js';
 export {
-  capturedProcessOutput,
+  readCapturedProcessOutput,
   captureProcessOutput,
-  completedProcessOutput,
+  awaitProcessOutput,
   runProcess,
   spawnProcess,
 } from './process/process.js';
@@ -47,7 +47,7 @@ export type {
 export {
   IMMUTABLE_CACHE_CONTROL,
   MUTABLE_CACHE_CONTROL,
-  publicationContentType,
+  resolvePublicationContentType,
 } from './publication-metadata/publication-metadata.js';
 export {
   isNonEmptyString,
@@ -61,7 +61,7 @@ export { delay } from './timers/timers.js';
 export { TerminalPrompter, ui } from './ui/ui.js';
 export type { AtlasPrompter } from './ui/ui.js';
 export {
-  absoluteHttpUrl,
+  parseAbsoluteHttpUrl,
   isLoopbackUrl,
   isSecureOrLoopbackUrl,
   trimTrailingSlash,

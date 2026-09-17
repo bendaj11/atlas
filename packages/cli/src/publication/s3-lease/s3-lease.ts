@@ -11,7 +11,11 @@ import {
   isPreconditionFailure,
   S3StorageError,
 } from '../s3-storage/s3-errors.js';
-import { CliError, delay, publicationContentType } from '../../shared/index.js';
+import {
+  CliError,
+  delay,
+  resolvePublicationContentType,
+} from '../../shared/index.js';
 
 export const DEPLOYMENT_LOCK_PATH = '.atlas/deployment.lock';
 export const DEFAULT_LOCK_TIMEOUT_MS = 120_000;
@@ -58,7 +62,7 @@ export class S3DeploymentLock {
         );
       }
 
-      await delay((this.options.backoffMs ?? randomBackoffMs)());
+      await delay((this.options.backoffMs ?? pickRandomBackoffMs)());
       stored = await this.tryAcquire(owner, token);
     }
 
@@ -223,7 +227,7 @@ export class S3DeploymentLock {
       ...this.objectInput(),
       Body: new TextEncoder().encode(`${JSON.stringify(lease)}\n`),
       CacheControl: 'no-store',
-      ContentType: publicationContentType('lock.json'),
+      ContentType: resolvePublicationContentType('lock.json'),
       ...condition,
     });
   }
@@ -244,7 +248,7 @@ export class S3DeploymentLock {
   }
 }
 
-export function externalPublicationLease(): AtlasPublicationLease {
+export function createExternalPublicationLease(): AtlasPublicationLease {
   return {
     assertHeld: async () => undefined,
     release: async () => undefined,
@@ -280,6 +284,6 @@ function requiredEtag(etag: string | undefined): string {
   return etag;
 }
 
-function randomBackoffMs(): number {
+function pickRandomBackoffMs(): number {
   return 200 + Math.floor(Math.random() * 300);
 }

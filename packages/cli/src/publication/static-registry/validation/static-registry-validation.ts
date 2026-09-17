@@ -1,6 +1,6 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import { assertManifestDescriptor, assertReleaseVersion } from '@atlas/schema';
-import { registryRevision } from '../revision/registry-revision.js';
+import { computeRegistryRevision } from '../revision/registry-revision.js';
 import { isRecord } from '../../../shared/index.js';
 
 export function assertStaticRegistry(
@@ -19,7 +19,7 @@ export function assertStaticRegistry(
   const registry = value as unknown as AtlasStaticRegistry;
   assertRegistryContents(registry);
 
-  if (registry.revision !== registryRevision(registry)) {
+  if (registry.revision !== computeRegistryRevision(registry)) {
     throw new Error('Atlas registry.json content revision is invalid.');
   }
 }

@@ -16,7 +16,7 @@ export async function resolveWidgetApp(options: {
   requestedAppId?: string;
 }): Promise<WidgetAppSelection> {
   const { workspace, prompts, requestedAppId } = options;
-  const apps = await configuredWidgetApps(workspace);
+  const apps = await listConfiguredWidgetApps(workspace);
 
   if (apps.length === 0)
     throw new Error(
@@ -28,13 +28,13 @@ export async function resolveWidgetApp(options: {
 
     if (requestedApp) return requestedApp;
     throw new Error(
-      `Could not find Atlas app ID "${requestedAppId}". ${availableAppsMessage(apps)}`,
+      `Could not find Atlas app ID "${requestedAppId}". ${formatAvailableAppsMessage(apps)}`,
     );
   }
 
   if (!prompts.interactive) {
     throw new Error(
-      `--app-id <app-id> is required to generate a widget in non-interactive mode. ${availableAppsMessage(apps)}`,
+      `--app-id <app-id> is required to generate a widget in non-interactive mode. ${formatAvailableAppsMessage(apps)}`,
     );
   }
   const selectedAppId = await prompts.select(
@@ -45,7 +45,7 @@ export async function resolveWidgetApp(options: {
   return apps.find(({ id }) => id === selectedAppId)!;
 }
 
-async function configuredWidgetApps(
+async function listConfiguredWidgetApps(
   workspace: AtlasWorkspace,
 ): Promise<WidgetAppSelection[]> {
   const projects = await workspace.listProjects();
@@ -62,15 +62,16 @@ async function readWidgetApp(
   const configPath = join(project.root, 'atlas.config.ts');
   const source = await readFile(configPath, 'utf8');
 
-  if (literalConfigFieldValue(source, 'type') === 'host') return undefined;
-  const id = literalConfigFieldValue(source, 'id');
+  if (extractLiteralConfigFieldValue(source, 'type') === 'host')
+    return undefined;
+  const id = extractLiteralConfigFieldValue(source, 'id');
 
   if (!id)
     throw new Error(
       `Could not determine the stable Atlas app ID from ${configPath}.`,
     );
 
-  const framework = literalConfigFieldValue(source, 'framework');
+  const framework = extractLiteralConfigFieldValue(source, 'framework');
 
   if (framework !== 'angular' && framework !== 'react') {
     throw new Error(
@@ -80,13 +81,13 @@ async function readWidgetApp(
 
   return {
     id,
-    name: literalConfigFieldValue(source, 'name') ?? id,
+    name: extractLiteralConfigFieldValue(source, 'name') ?? id,
     framework,
     project,
   };
 }
 
-function literalConfigFieldValue(
+function extractLiteralConfigFieldValue(
   source: string,
   field: 'type' | 'id' | 'name' | 'framework',
 ): string | undefined {
@@ -95,6 +96,8 @@ function literalConfigFieldValue(
   )?.[1];
 }
 
-function availableAppsMessage(apps: readonly WidgetAppSelection[]): string {
+function formatAvailableAppsMessage(
+  apps: readonly WidgetAppSelection[],
+): string {
   return `Available apps: ${apps.map(({ id, name }) => `${name} (${id})`).join(', ')}.`;
 }

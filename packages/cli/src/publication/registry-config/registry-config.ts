@@ -6,7 +6,7 @@ import { isPublicationStorage } from '../publication-storage/publication-storage
 import {
   CliArguments,
   CliError,
-  pathExists,
+  doesPathExist,
   formatTypeScriptDiagnostics,
 } from '../../shared/index.js';
 import type { AtlasRegistryConfig } from './types.js';
@@ -24,7 +24,7 @@ export async function loadAtlasRegistryConfig(
   const explicit = args.flag('registry-config');
   const path = resolve(workingDirectory, explicit ?? 'atlas.registry.ts');
 
-  if (!(await pathExists(path))) {
+  if (!(await doesPathExist(path))) {
     if (!explicit) return undefined;
     throw new CliError(
       `Registry config ${path} does not exist.`,

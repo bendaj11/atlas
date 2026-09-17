@@ -22,7 +22,7 @@ import {
   DEPLOYMENT_LOCK_PATH,
   MINIMUM_LOCK_LEASE_MS,
   S3DeploymentLock,
-  externalPublicationLease,
+  createExternalPublicationLease,
 } from '../s3-lease/s3-lease.js';
 import {
   isMissingObject,
@@ -70,7 +70,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
         `S3 lock lease must be at least ${MINIMUM_LOCK_LEASE_MS}ms.`,
       );
     }
-    this.client = client ?? new S3Client(s3ClientConfig(options));
+    this.client = client ?? new S3Client(buildS3ClientConfig(options));
     this.lock = new S3DeploymentLock({
       client: this.client,
       bucket: options.bucket,
@@ -242,7 +242,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
 
   acquireLock(owner: string): Promise<AtlasPublicationLease> {
     if (this.options.lockMode === 'external')
-      return Promise.resolve(externalPublicationLease());
+      return Promise.resolve(createExternalPublicationLease());
 
     return this.lock.acquire(owner);
   }
@@ -266,7 +266,7 @@ function uploadBodyOf(body: AtlasPublicationBody): Uint8Array | Readable {
   return body instanceof Uint8Array ? body : Readable.from(body);
 }
 
-function s3ClientConfig(options: S3Options): S3ClientConfig {
+function buildS3ClientConfig(options: S3Options): S3ClientConfig {
   const credentials =
     options.accessKeyId && options.secretAccessKey
       ? {

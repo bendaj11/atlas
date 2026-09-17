@@ -15,7 +15,7 @@ export function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/u, '');
 }
 
-export function absoluteHttpUrl(value: string, flag: string): URL {
+export function parseAbsoluteHttpUrl(value: string, flag: string): URL {
   let url: URL;
 
   try {

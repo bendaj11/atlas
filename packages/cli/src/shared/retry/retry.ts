@@ -30,10 +30,10 @@ export async function withExponentialRetry<T>(
 }
 
 function isTransientError(error: unknown): boolean {
-  return transientStatus(error) || transientNetworkCode(error);
+  return extractTransientStatus(error) || extractTransientNetworkCode(error);
 }
 
-function transientStatus(error: unknown): boolean {
+function extractTransientStatus(error: unknown): boolean {
   const status = httpStatusCodeOf(error);
 
   return status !== undefined && isRetryableHttpStatus(status);
@@ -49,7 +49,7 @@ function httpStatusCodeOf(error: unknown): number | undefined {
   return extractHttpStatus(error) ?? httpStatusCodeOf(extractErrorCause(error));
 }
 
-function transientNetworkCode(error: unknown): boolean {
+function extractTransientNetworkCode(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
 
@@ -65,5 +65,5 @@ function transientNetworkCode(error: unknown): boolean {
     return true;
   }
 
-  return transientNetworkCode(extractErrorCause(error));
+  return extractTransientNetworkCode(extractErrorCause(error));
 }

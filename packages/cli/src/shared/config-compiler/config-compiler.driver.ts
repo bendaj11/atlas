@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { pathExists } from '../fs/fs.js';
+import { doesPathExist } from '../fs/fs.js';
 import { TemporaryDirectory } from '../fs/fs.testkit.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import { compileAtlasConfig } from './config-compiler.js';
@@ -60,7 +60,7 @@ export class ConfigCompilerDriver {
 
   readonly get = {
     emitted: (): Promise<boolean> =>
-      pathExists(
+      doesPathExist(
         this.directory.path(`${this.projectName}/.atlas/atlas.config.js`),
       ),
   };

@@ -1,4 +1,4 @@
-import { buildTimestamp } from './timestamp.js';
+import { createBuildTimestamp } from './timestamp.js';
 
 export class TimestampDriver {
   private environment: NodeJS.ProcessEnv = {};
@@ -12,6 +12,6 @@ export class TimestampDriver {
   };
 
   readonly get = {
-    timestamp: (): string => buildTimestamp(this.environment),
+    timestamp: (): string => createBuildTimestamp(this.environment),
   };
 }

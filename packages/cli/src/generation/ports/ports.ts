@@ -11,11 +11,13 @@ type ProjectType = 'host' | 'app';
 const MAX_TCP_PORT = 65_535;
 const VITE_PORT = /server\s*:\s*\{[^}]*\bport\s*:\s*(\d+)/;
 
-export async function suggestedDevServerPort(
+export async function suggestDevServerPort(
   workspace: AtlasWorkspace,
   type: ProjectType,
 ): Promise<number> {
-  const ports = await configuredDevServerPorts(await workspace.listProjects());
+  const ports = await listConfiguredDevServerPorts(
+    await workspace.listProjects(),
+  );
   const startingPort = defaultDevServerPort(type);
   for (let port = startingPort; port <= MAX_TCP_PORT; port += 1) {
     if (!ports.has(port)) return port;
@@ -24,25 +26,27 @@ export async function suggestedDevServerPort(
   throw new Error(`No available dev-server ports remain from ${startingPort}.`);
 }
 
-async function configuredDevServerPorts(
+async function listConfiguredDevServerPorts(
   projects: readonly AtlasProject[],
 ): Promise<Set<number>> {
-  const portGroups = await Promise.all(projects.map(projectDevServerPorts));
+  const portGroups = await Promise.all(projects.map(listProjectDevServerPorts));
 
   return new Set(portGroups.flat());
 }
 
-async function projectDevServerPorts(project: AtlasProject): Promise<number[]> {
+async function listProjectDevServerPorts(
+  project: AtlasProject,
+): Promise<number[]> {
   const [angularPorts, nxPorts, vitePorts] = await Promise.all([
-    jsonDevServerPorts(join(project.root, 'angular.json'), 'projects'),
-    jsonDevServerPorts(join(project.root, 'project.json'), 'targets'),
-    viteDevServerPorts(join(project.root, 'vite.config.ts')),
+    listJsonDevServerPorts(join(project.root, 'angular.json'), 'projects'),
+    listJsonDevServerPorts(join(project.root, 'project.json'), 'targets'),
+    listViteDevServerPorts(join(project.root, 'vite.config.ts')),
   ]);
 
   return [...angularPorts, ...nxPorts, ...vitePorts];
 }
 
-async function jsonDevServerPorts(
+async function listJsonDevServerPorts(
   path: string,
   container: 'projects' | 'targets',
 ): Promise<number[]> {
@@ -50,22 +54,22 @@ async function jsonDevServerPorts(
 
   if (!config) return [];
   const projects =
-    container === 'projects' ? nestedRecordsOf(config.projects) : [config];
-  return projects.flatMap((project) => nxTargetPorts(project));
+    container === 'projects' ? listNestedRecords(config.projects) : [config];
+  return projects.flatMap((project) => listNxTargetPorts(project));
 }
 
-async function viteDevServerPorts(path: string): Promise<number[]> {
+async function listViteDevServerPorts(path: string): Promise<number[]> {
   const source = await readTextFile(path);
   const match = source?.match(VITE_PORT);
 
-  return match ? validPortsOf(match[1]) : [];
+  return match ? parseValidPorts(match[1]) : [];
 }
 
-function nxTargetPorts(project: Record<string, unknown>): number[] {
-  const targets = nestedRecordsOf(project.architect ?? project.targets);
+function listNxTargetPorts(project: Record<string, unknown>): number[] {
+  const targets = listNestedRecords(project.architect ?? project.targets);
 
   return targets.flatMap((target) =>
-    validPortsOf(recordOrEmpty(target.options).port),
+    parseValidPorts(recordOrEmpty(target.options).port),
   );
 }
 
@@ -83,11 +87,11 @@ async function readJsonRecord(
   }
 }
 
-function nestedRecordsOf(value: unknown): Record<string, unknown>[] {
+function listNestedRecords(value: unknown): Record<string, unknown>[] {
   return Object.values(recordOrEmpty(value)).map(recordOrEmpty);
 }
 
-function validPortsOf(value: unknown): number[] {
+function parseValidPorts(value: unknown): number[] {
   const port =
     typeof value === 'number'
       ? value

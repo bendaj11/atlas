@@ -1,12 +1,12 @@
 import {
-  canonicalJson,
+  stringifyCanonicalJson,
   type AtlasPublicationLease,
   type AtlasPublicationStorage,
 } from '../../publication/index.js';
 import { MUTABLE_CACHE_CONTROL } from '../../shared/index.js';
 import {
-  environmentStatePath,
-  hostManifestPath,
+  buildEnvironmentStatePath,
+  buildHostManifestPath,
 } from '../registry-access/registry-access.js';
 import type { DeploymentWrite } from '../types.js';
 
@@ -24,7 +24,7 @@ export async function writeDeployment({
   await writeJsonObject({
     storage,
     lease,
-    path: environmentStatePath(environment),
+    path: buildEnvironmentStatePath(environment),
     value: deployment.state,
   });
 
@@ -32,7 +32,7 @@ export async function writeDeployment({
     await writeJsonObject({
       storage,
       lease,
-      path: hostManifestPath({ environment, hostId: manifest.hostId }),
+      path: buildHostManifestPath({ environment, hostId: manifest.hostId }),
       value: manifest,
     });
 }
@@ -50,7 +50,7 @@ async function writeJsonObject({
 }): Promise<void> {
   await lease.assertHeld();
 
-  const bytes = new TextEncoder().encode(`${canonicalJson(value)}\n`);
+  const bytes = new TextEncoder().encode(`${stringifyCanonicalJson(value)}\n`);
   const previous = await storage.inspect(path);
 
   await storage.replace(

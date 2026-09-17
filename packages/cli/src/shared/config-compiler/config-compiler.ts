@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import ts from 'typescript';
-import { pathExists } from '../fs/fs.js';
+import { doesPathExist } from '../fs/fs.js';
 import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 
 export function compiledAtlasConfigCandidates(projectRoot: string): string[] {
@@ -101,7 +101,7 @@ async function compiledAtlasConfigExists(
   projectRoot: string,
 ): Promise<boolean> {
   for (const candidate of compiledAtlasConfigCandidates(projectRoot)) {
-    if (await pathExists(candidate)) return true;
+    if (await doesPathExist(candidate)) return true;
   }
 
   return false;

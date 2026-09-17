@@ -150,7 +150,7 @@ async function develop({
   prompts,
   invocation,
 }: WorkspaceCommandContext): Promise<void> {
-  const project = projectArgument(invocation);
+  const project = resolveProjectArgument(invocation);
 
   ui.logo();
   ui.heading(`Develop · ${project}`);
@@ -163,12 +163,14 @@ async function compileConfig({
   workspace,
   invocation,
 }: WorkspaceCommandContext): Promise<void> {
-  const project = await workspace.findProject(projectArgument(invocation));
+  const project = await workspace.findProject(
+    resolveProjectArgument(invocation),
+  );
   await compileAtlasConfig(workspace, project);
   ui.success(`Compiled ${project.id} atlas.config.ts.`);
 }
 
-function projectArgument(invocation: AtlasInvocation): string {
+function resolveProjectArgument(invocation: AtlasInvocation): string {
   return invocation.subcommand && !invocation.subcommand.startsWith('-')
     ? invocation.subcommand
     : '.';

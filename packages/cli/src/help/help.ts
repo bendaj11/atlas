@@ -6,16 +6,16 @@ import { COMMAND_ALIASES } from '../shared/index.js';
 const HELP_FLAGS = new Set(['--help', '-h']);
 const GENERATOR_TYPES = new Set(['host', 'app', 'widget']);
 
-export function requestedHelpTopic(
+export function resolveRequestedHelpTopic(
   values: readonly string[],
 ): readonly string[] | undefined {
   if (values.length === 0) return [];
 
   if (values[0] === 'help')
-    return normalizeTopic(withoutHelpFlags(values.slice(1)));
+    return normalizeTopic(stripHelpFlags(values.slice(1)));
 
   if (!values.some((value) => HELP_FLAGS.has(value))) return undefined;
-  return normalizeTopic(withoutHelpFlags(values));
+  return normalizeTopic(stripHelpFlags(values));
 }
 
 export function formatHelp(topic: readonly string[]): string {
@@ -48,7 +48,7 @@ function normalizeTopic(values: readonly string[]): readonly string[] {
   return [normalizedCommand];
 }
 
-function withoutHelpFlags(values: readonly string[]): readonly string[] {
+function stripHelpFlags(values: readonly string[]): readonly string[] {
   return values.filter((value) => !HELP_FLAGS.has(value));
 }
 

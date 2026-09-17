@@ -4,11 +4,14 @@ import {
   resolveRegistryArtifact,
   resolveRelease,
 } from './resolution/artifact-resolution.js';
-import { emptyStaticRegistry, publishArtifact } from './static-registry.js';
+import {
+  createEmptyStaticRegistry,
+  publishArtifact,
+} from './static-registry.js';
 
 describe('static registry v2', () => {
   it('should omit environment deployments when empty registry is created', () => {
-    expect(emptyStaticRegistry()).not.toHaveProperty('deployments');
+    expect(createEmptyStaticRegistry()).not.toHaveProperty('deployments');
   });
 
   it('should store descriptor when immutable release is published', () => {

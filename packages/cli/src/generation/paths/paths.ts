@@ -3,7 +3,7 @@ import { isAbsolute, relative, resolve, sep } from 'node:path';
 import type { AtlasWorkspaceKind } from '../../workspace/index.js';
 import { isMissingPathError } from '../../shared/index.js';
 
-export function workspaceLabel(kind: AtlasWorkspaceKind): string {
+export function getWorkspaceLabel(kind: AtlasWorkspaceKind): string {
   if (kind === 'nx') return 'an Nx workspace';
 
   if (kind === 'turbo') return 'a Turborepo workspace';
@@ -12,7 +12,10 @@ export function workspaceLabel(kind: AtlasWorkspaceKind): string {
   return 'a standalone project';
 }
 
-export function displayTarget(workspaceRoot: string, root: string): string {
+export function formatDisplayTarget(
+  workspaceRoot: string,
+  root: string,
+): string {
   const target = relative(workspaceRoot, root);
 
   return !target || target === '.'

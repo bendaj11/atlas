@@ -1,5 +1,5 @@
 import type { AngularStylesheetFormat } from '@atlas/generators';
-import { suggestedDevServerPort } from '../ports/ports.js';
+import { suggestDevServerPort } from '../ports/ports.js';
 import {
   type CliArguments,
   type SupportedFramework,
@@ -66,7 +66,7 @@ export async function resolveDevServerPort(
   const defaultPort = defaultDevServerPort(type);
 
   if (args.hasFlag('port')) return args.port('port', defaultPort);
-  const fallback = await suggestedDevServerPort(workspace, type);
+  const fallback = await suggestDevServerPort(workspace, type);
 
   if (!prompts.interactive) return fallback;
 

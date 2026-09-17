@@ -1,11 +1,11 @@
 import { resolveAtlasRuntimeConfig, type AtlasConfig } from '@atlas/schema';
 import {
-  configuredHostIds,
-  hostIdFromRoute,
+  listConfiguredHostIds,
+  resolveHostIdFromRoute,
   isBaseHostUrl,
-  routePaths,
-  supportsAnyHost,
-  urlWithPath,
+  listRoutePaths,
+  doesSupportAnyHost,
+  appendUrlPath,
 } from '../config/config.js';
 import { HOST_DISCOVERY_TIMEOUT_MS } from '../constants.js';
 import type {
@@ -92,17 +92,17 @@ async function resolveHostId(
   config: AtlasConfig,
   hostUrl: string,
 ): Promise<string> {
-  const hostIds = configuredHostIds(config);
+  const hostIds = listConfiguredHostIds(config);
 
   if (hostIds.length === 1) return hostIds[0]!;
-  const routeHostId = hostIdFromRoute(config, hostUrl);
+  const routeHostId = resolveHostIdFromRoute(config, hostUrl);
 
   if (routeHostId) return routeHostId;
   const hostId = await discoverHostId(hostUrl);
 
   if (
     hostIds.length > 0 &&
-    !supportsAnyHost(config) &&
+    !doesSupportAnyHost(config) &&
     !hostIds.includes(hostId)
   ) {
     throw new Error(
@@ -141,11 +141,11 @@ async function resolveHostUrl(
   const { hostId, hostUrl } = target;
 
   if (!isBaseHostUrl(hostUrl)) return hostUrl;
-  const paths = routePaths(config, hostId);
+  const paths = listRoutePaths(config, hostId);
 
   if (paths.length === 0) return hostUrl;
 
-  if (paths.length === 1) return urlWithPath(hostUrl, paths[0]!);
+  if (paths.length === 1) return appendUrlPath(hostUrl, paths[0]!);
 
   if (!prompts.interactive) {
     throw new Error(
@@ -157,5 +157,5 @@ async function resolveHostUrl(
     paths.map((value) => ({ label: value, value })),
   );
 
-  return urlWithPath(hostUrl, path);
+  return appendUrlPath(hostUrl, path);
 }

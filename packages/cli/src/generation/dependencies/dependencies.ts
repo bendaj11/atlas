@@ -1,26 +1,26 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { type SupportedFramework, pathExists } from '../../shared/index.js';
+import { type SupportedFramework, doesPathExist } from '../../shared/index.js';
 
 export interface FrameworkVersionInfo {
   version: string;
   manifest: string;
 }
 
-export async function existingFrameworkVersionInfo(
+export async function detectExistingFrameworkVersion(
   root: string,
   workspaceRoot: string,
   framework: SupportedFramework,
 ): Promise<FrameworkVersionInfo | undefined> {
   try {
-    const manifest = await dependencyManifestPath(root, workspaceRoot);
+    const manifest = await resolveDependencyManifestPath(root, workspaceRoot);
     const packageJson = JSON.parse(
       await readFile(manifest, 'utf8'),
     ) as PackageJson;
     const dependency = framework === 'angular' ? '@angular/core' : 'react';
 
     for (const field of DEPENDENCY_FIELDS) {
-      const version = asStringRecord(packageJson[field])[dependency];
+      const version = toStringRecord(packageJson[field])[dependency];
 
       if (version) return { version, manifest };
     }
@@ -31,7 +31,7 @@ export async function existingFrameworkVersionInfo(
   return undefined;
 }
 
-export async function dependencyManifestPath(
+export async function resolveDependencyManifestPath(
   projectRoot: string,
   workspaceRoot: string,
 ): Promise<string> {
@@ -41,7 +41,7 @@ export async function dependencyManifestPath(
   while (true) {
     const manifest = join(current, 'package.json');
 
-    if (await pathExists(manifest)) return manifest;
+    if (await doesPathExist(manifest)) return manifest;
     const parent = dirname(current);
 
     if (resolve(current) === boundary || parent === current) break;
@@ -49,7 +49,7 @@ export async function dependencyManifestPath(
   }
   const workspaceManifest = join(workspaceRoot, 'package.json');
 
-  if (await pathExists(workspaceManifest)) return workspaceManifest;
+  if (await doesPathExist(workspaceManifest)) return workspaceManifest;
   throw new Error(
     `Could not find package.json for generated project at ${projectRoot}.`,
   );
@@ -64,24 +64,24 @@ export async function mergePackageDependencies(
     await readFile(targetPackageJson, 'utf8'),
   ) as PackageJson;
   const generated = JSON.parse(generatedPackageJson) as PackageJson;
-  const primaryDependency = frameworkPrimaryDependency(framework);
-  const hasPrimaryDependency = dependencyDeclared(target, primaryDependency);
+  const primaryDependency = resolveFrameworkPrimaryDependency(framework);
+  const hasPrimaryDependency = isDependencyDeclared(target, primaryDependency);
   let changed = false;
 
   for (const field of DEPENDENCY_FIELDS) {
-    const incoming = asStringRecord(generated[field]);
+    const incoming = toStringRecord(generated[field]);
 
     if (!Object.keys(incoming).length) continue;
 
     for (const [name, version] of Object.entries(incoming)) {
-      const existingField = dependencyField(target, name);
+      const existingField = resolveDependencyField(target, name);
 
       if (existingField) {
         if (
           hasPrimaryDependency &&
           isFrameworkManagedDependency(framework, name)
         ) {
-          const existing = asStringRecord(target[existingField]);
+          const existing = toStringRecord(target[existingField]);
 
           if (existing[name] !== version) {
             existing[name] = version;
@@ -91,12 +91,12 @@ export async function mergePackageDependencies(
         }
         continue;
       }
-      const current = asStringRecord(target[field]);
+      const current = toStringRecord(target[field]);
       current[name] = version;
       target[field] = current;
       changed = true;
     }
-    target[field] = sortRecordKeys(asStringRecord(target[field]));
+    target[field] = sortRecordKeys(toStringRecord(target[field]));
   }
 
   if (!changed) return false;
@@ -115,20 +115,22 @@ type DependencyField = (typeof DEPENDENCY_FIELDS)[number];
 type PackageJson = Record<string, unknown> &
   Partial<Record<DependencyField, unknown>>;
 
-function dependencyDeclared(packageJson: PackageJson, name: string): boolean {
-  return dependencyField(packageJson, name) !== undefined;
+function isDependencyDeclared(packageJson: PackageJson, name: string): boolean {
+  return resolveDependencyField(packageJson, name) !== undefined;
 }
 
-function dependencyField(
+function resolveDependencyField(
   packageJson: PackageJson,
   name: string,
 ): DependencyField | undefined {
   return DEPENDENCY_FIELDS.find(
-    (field) => name in asStringRecord(packageJson[field]),
+    (field) => name in toStringRecord(packageJson[field]),
   );
 }
 
-function frameworkPrimaryDependency(framework: SupportedFramework): string {
+function resolveFrameworkPrimaryDependency(
+  framework: SupportedFramework,
+): string {
   return framework === 'angular' ? '@angular/core' : 'react';
 }
 
@@ -157,7 +159,7 @@ function isFrameworkManagedDependency(
   );
 }
 
-function asStringRecord(value: unknown): Record<string, string> {
+function toStringRecord(value: unknown): Record<string, string> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return Object.fromEntries(
     Object.entries(value).filter(

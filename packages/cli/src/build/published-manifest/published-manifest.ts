@@ -8,7 +8,7 @@ import {
   type AtlasPublishedArtifactManifest,
 } from '@atlas/schema';
 import {
-  integrityFromDigest,
+  convertDigestToIntegrity,
   isHostConfig,
   type CliArguments,
   type Sha256Digest,
@@ -17,9 +17,9 @@ import type { AtlasProject } from '../../workspace/index.js';
 import { discoverExportedWidgets } from '../exported-widgets/exported-widgets.js';
 import {
   normalizeArtifactPath,
-  payloadDescriptors,
+  describePayloadFiles,
 } from '../payload/payload.js';
-import { publicationIdentity } from '../release-identity/release-identity.js';
+import { derivePublicationIdentity } from '../release-identity/release-identity.js';
 
 const CANONICAL_MANIFEST_ORIGIN = 'https://atlas.invalid';
 
@@ -38,7 +38,7 @@ export async function buildPublishedManifest({
   files: string[];
   entryPath: string;
 }): Promise<AtlasPublishedArtifactManifest> {
-  const files = await payloadDescriptors({
+  const files = await describePayloadFiles({
     root: sourceDirectory,
     paths,
     entryPath,
@@ -47,22 +47,22 @@ export async function buildPublishedManifest({
     .filter(({ role }) => role === 'stylesheet')
     .map(({ path, digest }) => ({
       path,
-      integrity: integrityFromDigest(digest as Sha256Digest),
+      integrity: convertDigestToIntegrity(digest as Sha256Digest),
     }));
   const base = {
     schemaVersion: '2' as const,
     id: config.id,
     name: config.name ?? config.id,
     packageName: project.packageName,
-    ...publicationIdentity({ args, project }),
+    ...derivePublicationIdentity({ args, project }),
     framework: config.framework,
     entryPath: normalizeArtifactPath(entryPath),
     ...(styles.length ? { styles } : {}),
     files,
   };
   const manifest = isHostConfig(config)
-    ? hostArtifactManifest(base)
-    : await appArtifactManifest({ base, project, config, entryPath });
+    ? buildHostArtifactManifest(base)
+    : await buildAppArtifactManifest({ base, project, config, entryPath });
   assertPublishedArtifactManifest(manifest);
 
   return manifest;
@@ -73,7 +73,7 @@ type ArtifactManifestBase = Omit<
   'kind' | 'exposes' | 'requiredLoaderApiVersion'
 >;
 
-function hostArtifactManifest(
+function buildHostArtifactManifest(
   base: ArtifactManifestBase,
 ): AtlasHostArtifactManifest {
   return {
@@ -84,7 +84,7 @@ function hostArtifactManifest(
   };
 }
 
-async function appArtifactManifest({
+async function buildAppArtifactManifest({
   base,
   project,
   config,

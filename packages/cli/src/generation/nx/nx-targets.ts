@@ -4,7 +4,7 @@ import type {
   AtlasProjectType,
 } from '../../workspace/index.js';
 
-export function nxTarget({
+export function createNxTarget({
   packageManager,
   cwd,
   script,
@@ -19,7 +19,7 @@ export function nxTarget({
   };
 }
 
-export function atlasConfigNxTarget({
+export function createAtlasConfigNxTarget({
   packageManager,
   cwd,
 }: {
@@ -27,12 +27,12 @@ export function atlasConfigNxTarget({
   cwd: string;
 }): Record<string, unknown> {
   return {
-    ...nxTarget({ packageManager, cwd, script: 'atlas:config' }),
+    ...createNxTarget({ packageManager, cwd, script: 'atlas:config' }),
     outputs: ['{projectRoot}/.atlas'],
   };
 }
 
-export function atlasCommand({
+export function buildAtlasCommand({
   packageManager,
   command,
 }: {
@@ -44,7 +44,7 @@ export function atlasCommand({
   return `${executor} atlas ${command}`;
 }
 
-export function atlasPublicationTargets({
+export function createAtlasPublicationTargets({
   projectName,
   type,
   packageManager,
@@ -58,7 +58,7 @@ export function atlasPublicationTargets({
       cache: false,
       executor: 'nx:run-commands',
       options: {
-        command: atlasCommand({
+        command: buildAtlasCommand({
           packageManager,
           command: `publish ${projectName}`,
         }),
@@ -72,7 +72,7 @@ export function atlasPublicationTargets({
             outputs: ['{projectRoot}/dist/bootstrap'],
             executor: 'nx:run-commands',
             options: {
-              command: atlasCommand({
+              command: buildAtlasCommand({
                 packageManager,
                 command: `bootstrap ${projectName} --skip-compile`,
               }),
@@ -84,7 +84,7 @@ export function atlasPublicationTargets({
   };
 }
 
-export function atlasDevTarget({
+export function createAtlasDevTarget({
   projectName,
   packageManager,
 }: {
@@ -94,14 +94,17 @@ export function atlasDevTarget({
   return {
     executor: 'nx:run-commands',
     options: {
-      command: atlasCommand({ packageManager, command: `dev ${projectName}` }),
+      command: buildAtlasCommand({
+        packageManager,
+        command: `dev ${projectName}`,
+      }),
       forwardAllArgs: true,
       tty: true,
     },
   };
 }
 
-export function projectAliasTarget(
+export function createProjectAliasTarget(
   projectName: string,
 ): Record<string, unknown> {
   return {
@@ -146,7 +149,7 @@ export function ensureDevTarget({
   framework: string;
 }): void {
   if (!targets.dev || isOutdatedDevTarget({ value: targets.dev, projectName }))
-    targets.dev = atlasDevTarget({ projectName, packageManager });
+    targets.dev = createAtlasDevTarget({ projectName, packageManager });
 
   if (type === 'host' && !targets.serve && framework === 'react')
     targets.serve = {
@@ -156,7 +159,7 @@ export function ensureDevTarget({
     };
 
   if (targets.dev && !targets[projectName])
-    targets[projectName] = projectAliasTarget(projectName);
+    targets[projectName] = createProjectAliasTarget(projectName);
 }
 
 export function preserveNativeDevTarget({
@@ -170,12 +173,12 @@ export function preserveNativeDevTarget({
 
   if (
     !targets.serve ||
-    delegatesToDevTarget({ value: targets.serve, projectName })
+    doesDelegateToDevTarget({ value: targets.serve, projectName })
   )
     targets.serve = targets.dev;
 }
 
-function delegatesToDevTarget({
+function doesDelegateToDevTarget({
   value,
   projectName,
 }: {
@@ -183,9 +186,10 @@ function delegatesToDevTarget({
   projectName: string;
 }): boolean {
   const options = recordOrEmpty(recordOrEmpty(value).options);
-  const commands = [options.command, ...commandValues(options.commands)].filter(
-    (command): command is string => typeof command === 'string',
-  );
+  const commands = [
+    options.command,
+    ...extractCommandValues(options.commands),
+  ].filter((command): command is string => typeof command === 'string');
   const aliases = [`nx run ${projectName}:dev`, `nx dev ${projectName}`];
 
   return commands.some((command) =>
@@ -195,7 +199,7 @@ function delegatesToDevTarget({
   );
 }
 
-function commandValues(value: unknown): unknown[] {
+function extractCommandValues(value: unknown): unknown[] {
   if (!Array.isArray(value)) return [];
 
   return value.map((command) =>

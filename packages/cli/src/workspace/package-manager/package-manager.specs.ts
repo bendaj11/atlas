@@ -1,9 +1,9 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasPackageManager } from '../types.js';
 import {
-  packageExecutor,
-  packageScript,
-  quietCommand,
+  buildPackageExecutorCommand,
+  buildPackageScriptCommand,
+  silenceCommandOutput,
 } from './package-manager.js';
 
 const ALL_MANAGERS: readonly AtlasPackageManager[] = ['yarn', 'pnpm', 'npm'];
@@ -14,7 +14,9 @@ describe('package-manager', () => {
       const root = faker.system.directoryPath();
       const args = [faker.word.noun(), faker.word.noun()];
 
-      expect(packageExecutor({ manager: 'yarn', root, args })).toStrictEqual({
+      expect(
+        buildPackageExecutorCommand({ manager: 'yarn', root, args }),
+      ).toStrictEqual({
         command: 'yarn',
         args,
         cwd: root,
@@ -25,7 +27,9 @@ describe('package-manager', () => {
       const root = faker.system.directoryPath();
       const args = [faker.word.noun()];
 
-      expect(packageExecutor({ manager: 'pnpm', root, args })).toStrictEqual({
+      expect(
+        buildPackageExecutorCommand({ manager: 'pnpm', root, args }),
+      ).toStrictEqual({
         command: 'pnpm',
         args: ['exec', ...args],
         cwd: root,
@@ -36,7 +40,9 @@ describe('package-manager', () => {
       const root = faker.system.directoryPath();
       const args = [faker.word.noun()];
 
-      expect(packageExecutor({ manager: 'npm', root, args })).toStrictEqual({
+      expect(
+        buildPackageExecutorCommand({ manager: 'npm', root, args }),
+      ).toStrictEqual({
         command: 'npx',
         args,
         cwd: root,
@@ -51,7 +57,7 @@ describe('package-manager', () => {
       const args = [faker.word.noun()];
 
       expect(
-        packageScript({ manager: 'yarn', root, script, args }),
+        buildPackageScriptCommand({ manager: 'yarn', root, script, args }),
       ).toStrictEqual({
         command: 'yarn',
         args: ['run', script, ...args],
@@ -66,7 +72,9 @@ describe('package-manager', () => {
         const script = faker.word.noun();
         const args = [faker.word.noun()];
 
-        expect(packageScript({ manager, root, script, args })).toStrictEqual({
+        expect(
+          buildPackageScriptCommand({ manager, root, script, args }),
+        ).toStrictEqual({
           command: manager,
           args: ['run', script, '--', ...args],
           cwd: root,
@@ -81,7 +89,7 @@ describe('package-manager', () => {
         const script = faker.word.noun();
 
         expect(
-          packageScript({ manager, root, script, args: [] }).args,
+          buildPackageScriptCommand({ manager, root, script, args: [] }).args,
         ).toStrictEqual(['run', script]);
       },
     );
@@ -95,7 +103,7 @@ describe('package-manager', () => {
         cwd: faker.system.directoryPath(),
       };
 
-      expect(quietCommand(command)).toStrictEqual({
+      expect(silenceCommandOutput(command)).toStrictEqual({
         ...command,
         stdio: ['ignore', 'ignore', 'inherit'],
       });

@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { aRegistryWith } from '../publication.testkit.js';
-import { emptyStaticRegistry } from '../static-registry/static-registry.js';
+import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
 import { RegistryIoDriver } from './registry-io.driver.js';
 
 describe('registry-io', () => {
@@ -16,7 +16,7 @@ describe('registry-io', () => {
     });
 
     it('should return the parsed registry when registry.json is valid', async () => {
-      const registry = emptyStaticRegistry();
+      const registry = createEmptyStaticRegistry();
       driver.given.storedRegistry(registry);
 
       expect(await driver.get.registry()).toStrictEqual(registry);
@@ -34,13 +34,13 @@ describe('registry-io', () => {
 
   describe('readRegistryState', () => {
     it('should include the version token when registry.json exists', async () => {
-      driver.given.storedRegistry(emptyStaticRegistry());
+      driver.given.storedRegistry(createEmptyStaticRegistry());
 
       expect((await driver.get.state()).versionToken).toBe('v1');
     });
 
     it('should reject when registry.json changes between inspections', async () => {
-      driver.given.storedRegistry(emptyStaticRegistry());
+      driver.given.storedRegistry(createEmptyStaticRegistry());
       driver.given.registryChangingDuringRead();
 
       await expect(driver.get.state()).rejects.toThrow(
@@ -51,7 +51,7 @@ describe('registry-io', () => {
 
   describe('writeRegistry', () => {
     it('should write canonical JSON with a trailing newline when written', async () => {
-      const registry = emptyStaticRegistry();
+      const registry = createEmptyStaticRegistry();
 
       await driver.when.written(registry);
 
@@ -59,17 +59,19 @@ describe('registry-io', () => {
     });
 
     it('should create-only when no version token is given', async () => {
-      driver.given.storedRegistry(emptyStaticRegistry());
+      driver.given.storedRegistry(createEmptyStaticRegistry());
 
-      await expect(driver.when.written(emptyStaticRegistry())).rejects.toThrow(
+      await expect(
+        driver.when.written(createEmptyStaticRegistry()),
+      ).rejects.toThrow(
         'Conditional publication write conflicted: registry.json',
       );
     });
 
     it('should replace conditionally when the version token matches', async () => {
-      driver.given.storedRegistry(emptyStaticRegistry());
+      driver.given.storedRegistry(createEmptyStaticRegistry());
 
-      await driver.when.written(emptyStaticRegistry(), 'v1');
+      await driver.when.written(createEmptyStaticRegistry(), 'v1');
 
       expect(driver.get.storedVersionToken()).toBe('v2');
     });
@@ -77,14 +79,14 @@ describe('registry-io', () => {
 
   describe('assertExpectedRegistryRevision', () => {
     it('should pass when --expected-registry-revision matches the current revision', () => {
-      const registry = emptyStaticRegistry();
+      const registry = createEmptyStaticRegistry();
       driver.given.flags([`--expected-registry-revision=${registry.revision}`]);
 
       expect(driver.get.expectedRevisionAssertion(registry)).not.toThrow();
     });
 
     it('should throw when --expected-registry-revision differs', () => {
-      const registry = emptyStaticRegistry();
+      const registry = createEmptyStaticRegistry();
       driver.given.flags(['--expected-registry-revision=sha256:other']);
 
       expect(driver.get.expectedRevisionAssertion(registry)).toThrow(
@@ -121,7 +123,7 @@ describe('registry-io', () => {
 
   describe('verifyPublicRegistry', () => {
     it('should delegate to config.verifyRegistry when configured', async () => {
-      const registry = emptyStaticRegistry();
+      const registry = createEmptyStaticRegistry();
       const verifyRegistry = jest.fn<(registry: unknown) => void>();
       driver.given.config({ verifyRegistry });
 
@@ -131,7 +133,7 @@ describe('registry-io', () => {
     });
 
     it('should fetch registry.json from the public root when no verifier is configured', async () => {
-      const registry = emptyStaticRegistry();
+      const registry = createEmptyStaticRegistry();
       driver.given
         .flags(['--registry-url=https://cdn.example/atlas'])
         .given.publicResponse(Response.json(registry));
@@ -150,7 +152,7 @@ describe('registry-io', () => {
         .given.publicResponse(new Response(null, { status: 301 }));
 
       await expect(
-        driver.when.publicRegistryVerified(emptyStaticRegistry()),
+        driver.when.publicRegistryVerified(createEmptyStaticRegistry()),
       ).rejects.toThrow(
         'Atlas could not verify public registry.json: HTTP 301.',
       );
@@ -160,7 +162,7 @@ describe('registry-io', () => {
       const published = aRegistryWith();
       driver.given
         .flags(['--registry-url=https://cdn.example/atlas'])
-        .given.publicResponse(Response.json(emptyStaticRegistry()));
+        .given.publicResponse(Response.json(createEmptyStaticRegistry()));
 
       await expect(
         driver.when.publicRegistryVerified(published),

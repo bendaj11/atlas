@@ -52,8 +52,8 @@ async function resolveGitHubPullRequest(
 ): Promise<AtlasPreviewHeadStatus> {
   const repository = process.env.GITHUB_REPOSITORY!;
   const apiUrl = process.env.GITHUB_API_URL ?? 'https://api.github.com';
-  const token = providerToken('GITHUB_TOKEN');
-  const response = await providerFetch(
+  const token = readProviderToken('GITHUB_TOKEN');
+  const response = await createProviderFetch(
     `${apiUrl}/repos/${repository}/pulls/${prNumber}`,
     {
       Authorization: `Bearer ${token}`,
@@ -81,11 +81,11 @@ async function resolveGitLabMergeRequest(
   prNumber: number,
 ): Promise<AtlasPreviewHeadStatus> {
   const project = encodeURIComponent(process.env.CI_PROJECT_ID!);
-  const token = providerToken('CI_JOB_TOKEN');
+  const token = readProviderToken('CI_JOB_TOKEN');
   const tokenHeader = process.env.ATLAS_GIT_TOKEN
     ? 'PRIVATE-TOKEN'
     : 'JOB-TOKEN';
-  const response = await providerFetch(
+  const response = await createProviderFetch(
     `${process.env.CI_API_V4_URL}/projects/${project}/merge_requests/${prNumber}`,
     { [tokenHeader]: token },
   );
@@ -106,8 +106,8 @@ async function resolveBitbucketPullRequest(
   prNumber: number,
 ): Promise<AtlasPreviewHeadStatus> {
   const repository = process.env.BITBUCKET_REPO_FULL_NAME!;
-  const token = providerToken('BITBUCKET_ACCESS_TOKEN');
-  const response = await providerFetch(
+  const token = readProviderToken('BITBUCKET_ACCESS_TOKEN');
+  const response = await createProviderFetch(
     `https://api.bitbucket.org/2.0/repositories/${repository}/pullrequests/${prNumber}`,
     { Authorization: `Bearer ${token}` },
   );
@@ -130,7 +130,7 @@ async function resolveBitbucketPullRequest(
   };
 }
 
-async function providerFetch(
+async function createProviderFetch(
   url: string,
   headers: Record<string, string>,
 ): Promise<unknown> {
@@ -154,7 +154,7 @@ async function providerFetch(
   return response.json();
 }
 
-function providerToken(providerVariable: string): string {
+function readProviderToken(providerVariable: string): string {
   const token = process.env.ATLAS_GIT_TOKEN ?? process.env[providerVariable];
 
   if (!token) {

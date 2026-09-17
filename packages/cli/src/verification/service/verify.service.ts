@@ -5,7 +5,10 @@ import {
   type AtlasHostRuntimeConfig,
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
-import { absoluteHttpUrl, extractErrorMessage } from '../../shared/index.js';
+import {
+  parseAbsoluteHttpUrl,
+  extractErrorMessage,
+} from '../../shared/index.js';
 import { verifyManifestAssets } from '../asset-checks/asset-checks.js';
 import {
   isHostDeployment,
@@ -210,7 +213,7 @@ export class AtlasVerifyService {
 }
 
 function createContext(options: AtlasVerifyOptions): VerificationContext {
-  const hostUrl = absoluteHttpUrl(options.hostUrl, '--host-url');
+  const hostUrl = parseAbsoluteHttpUrl(options.hostUrl, '--host-url');
   const timeoutMs = options.timeoutMs ?? DEFAULT_NETWORK_TIMEOUT_MS;
 
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0)

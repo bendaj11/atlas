@@ -10,7 +10,7 @@ const NX_PATH_OPTION_KEYS = [
   'styles',
 ];
 
-export function normalizedProjectRoot({
+export function normalizeProjectRoot({
   workspaceRoot,
   root,
 }: {
@@ -29,7 +29,7 @@ export function assertNxProjectRootMatches({
   workspaceRoot: string;
   root: string;
 }): string {
-  const projectRoot = normalizedProjectRoot({ workspaceRoot, root });
+  const projectRoot = normalizeProjectRoot({ workspaceRoot, root });
   const configuredRoot =
     typeof project.root === 'string' && project.root
       ? project.root
@@ -37,7 +37,7 @@ export function assertNxProjectRootMatches({
 
   if (configuredRoot !== projectRoot)
     throw new Error(
-      staleNxProjectRootMessage({
+      formatStaleNxProjectRootMessage({
         project,
         configuredRoot,
         actualRoot: projectRoot,
@@ -47,7 +47,7 @@ export function assertNxProjectRootMatches({
   return projectRoot;
 }
 
-function staleNxProjectRootMessage({
+function formatStaleNxProjectRootMessage({
   project,
   configuredRoot,
   actualRoot,
@@ -56,7 +56,7 @@ function staleNxProjectRootMessage({
   configuredRoot: string;
   actualRoot: string;
 }): string {
-  const stalePaths = staleNxProjectPaths({ project, configuredRoot });
+  const stalePaths = collectStaleNxProjectPaths({ project, configuredRoot });
   const examples = stalePaths.length
     ? ` Stale paths: ${stalePaths.slice(0, 3).join(', ')}.`
     : '';
@@ -64,7 +64,7 @@ function staleNxProjectRootMessage({
   return `Nx project root mismatch. project.json points at "${configuredRoot}", but Atlas generated the project at "${actualRoot}".${examples} Update project.json root/sourceRoot/build options or regenerate the project.`;
 }
 
-function staleNxProjectPaths({
+function collectStaleNxProjectPaths({
   project,
   configuredRoot,
 }: {
@@ -86,18 +86,18 @@ function collectNxPathValues(project: Record<string, unknown>): string[] {
 
   for (const target of Object.values(recordOrEmpty(project.targets))) {
     const targetObject = recordOrEmpty(target);
-    values.push(...nxPathOptions(recordOrEmpty(targetObject.options)));
+    values.push(...collectNxPathOptions(recordOrEmpty(targetObject.options)));
 
     for (const configuration of Object.values(
       recordOrEmpty(targetObject.configurations),
     ))
-      values.push(...nxPathOptions(recordOrEmpty(configuration)));
+      values.push(...collectNxPathOptions(recordOrEmpty(configuration)));
   }
 
   return values.map((value) => value.split('\\').join('/'));
 }
 
-function nxPathOptions(options: Record<string, unknown>): string[] {
+function collectNxPathOptions(options: Record<string, unknown>): string[] {
   return NX_PATH_OPTION_KEYS.flatMap((key) => {
     const value = options[key];
 

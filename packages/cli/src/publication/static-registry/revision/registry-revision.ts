@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import { isRecord } from '../../../shared/index.js';
 
-export function registryRevision(
+export function computeRegistryRevision(
   registry: AtlasStaticRegistry | undefined,
 ): string {
   const value = registry
@@ -12,10 +12,10 @@ export function registryRevision(
         hosts: registry.hosts,
       }
     : { schemaVersion: '2', apps: {}, hosts: {} };
-  return `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
+  return `sha256:${createHash('sha256').update(stringifyCanonicalJson(value)).digest('hex')}`;
 }
 
-export function canonicalJson(value: unknown): string {
+export function stringifyCanonicalJson(value: unknown): string {
   return JSON.stringify(sortJsonKeys(value));
 }
 

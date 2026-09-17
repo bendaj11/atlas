@@ -1,8 +1,8 @@
 import { relative } from 'node:path';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  dependencyManifestPath,
-  existingFrameworkVersionInfo,
+  resolveDependencyManifestPath,
+  detectExistingFrameworkVersion,
   mergePackageDependencies,
   type FrameworkVersionInfo,
 } from './dependencies.js';
@@ -49,7 +49,7 @@ export class DependenciesDriver {
     manifestPath: async (relativeProjectRoot: string): Promise<string> =>
       relative(
         this.directory.root,
-        await dependencyManifestPath(
+        await resolveDependencyManifestPath(
           this.directory.path(relativeProjectRoot),
           this.directory.root,
         ),
@@ -58,7 +58,7 @@ export class DependenciesDriver {
       relativeProjectRoot: string,
       framework: SupportedFramework,
     ): Promise<FrameworkVersionInfo | undefined> => {
-      const info = await existingFrameworkVersionInfo(
+      const info = await detectExistingFrameworkVersion(
         this.directory.path(relativeProjectRoot),
         this.directory.root,
         framework,

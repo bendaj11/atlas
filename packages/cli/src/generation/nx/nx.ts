@@ -14,7 +14,7 @@ import { addUniqueString } from '../files/files.js';
 import { recordOrEmpty } from '../../shared/index.js';
 import { assertNxProjectRootMatches } from './nx-project.js';
 import {
-  atlasPublicationTargets,
+  createAtlasPublicationTargets,
   ensureAtlasConfigTarget,
   ensureDevTarget,
   preserveNativeDevTarget,
@@ -62,13 +62,14 @@ export async function ensureDelegatedNxTargets({
       type,
       runnerKey: 'executor',
       devServerPort,
-      nativeFederationBuilder: angularNativeFederationBuilder(frameworkVersion),
+      nativeFederationBuilder:
+        selectAngularNativeFederationBuilder(frameworkVersion),
     });
 
   ensureAtlasConfigTarget({ targets, projectName });
   Object.assign(
     targets,
-    atlasPublicationTargets({ projectName, type, packageManager }),
+    createAtlasPublicationTargets({ projectName, type, packageManager }),
   );
   ensureDevTarget({
     targets,
@@ -88,7 +89,7 @@ export async function ensureDelegatedNxTargets({
   await writeJsonFile(projectFile, project);
 }
 
-function angularNativeFederationBuilder(version?: string): string {
+function selectAngularNativeFederationBuilder(version?: string): string {
   const major = Number(version?.match(/\d+/u)?.[0]);
 
   return major >= 20

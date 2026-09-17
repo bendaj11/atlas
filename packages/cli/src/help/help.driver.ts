@@ -1,4 +1,4 @@
-import { formatHelp, requestedHelpTopic } from './help.js';
+import { formatHelp, resolveRequestedHelpTopic } from './help.js';
 
 export class HelpDriver {
   private values: string[] = [];
@@ -12,7 +12,8 @@ export class HelpDriver {
   };
 
   readonly get = {
-    topic: (): readonly string[] | undefined => requestedHelpTopic(this.values),
+    topic: (): readonly string[] | undefined =>
+      resolveRequestedHelpTopic(this.values),
     help: (topic: readonly string[]): string => formatHelp(topic),
   };
 }

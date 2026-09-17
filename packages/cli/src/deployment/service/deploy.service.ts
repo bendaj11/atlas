@@ -7,12 +7,12 @@ import {
 } from '../../publication/index.js';
 import { CliArguments, withExponentialRetry } from '../../shared/index.js';
 import {
-  deploymentPaths,
+  listDeploymentPaths,
   planDeployment,
 } from '../deployment-plan/deployment-plan.js';
 import { writeDeployment } from '../deployment-writer/deployment-writer.js';
-import { sourceRegistry } from '../registry-access/registry-access.js';
-import { registryLocations } from '../registry-locations/registry-locations.js';
+import { readSourceRegistry } from '../registry-access/registry-access.js';
+import { resolveRegistryLocations } from '../registry-locations/registry-locations.js';
 import { selectArtifactVersion } from '../selection/selection.js';
 import type { AtlasDeployResult, RegistryAccess } from '../types.js';
 
@@ -35,17 +35,17 @@ export class AtlasDeployService {
     artifactIdentifier: string;
     config?: AtlasRegistryConfig;
   }): Promise<AtlasDeployResult> {
-    const environment = requiredFlag(this.args, 'to');
-    const selector = requiredFlag(this.args, 'version');
+    const environment = requireFlag(this.args, 'to');
+    const selector = requireFlag(this.args, 'version');
 
     assertEnvironmentName(environment);
 
     const storage = await createPublicationStorage(config?.storage, this.args);
     const access: RegistryAccess = {
       storage,
-      locations: registryLocations(this.args),
+      locations: resolveRegistryLocations(this.args),
     };
-    const registry = await sourceRegistry(access);
+    const registry = await readSourceRegistry(access);
     const selected = await selectArtifactVersion({
       access,
       registry,
@@ -69,7 +69,10 @@ export class AtlasDeployService {
           });
 
           if (storage.verifyDelivery) {
-            const paths = deploymentPaths({ environment, deployment: planned });
+            const paths = listDeploymentPaths({
+              environment,
+              deployment: planned,
+            });
             await config?.invalidate?.(paths);
             await verifyDeliveryWhileHeld({ storage, lease, paths });
           }
@@ -78,7 +81,9 @@ export class AtlasDeployService {
         });
 
     if (!dryRun && !storage.verifyDelivery)
-      await config?.invalidate?.(deploymentPaths({ environment, deployment }));
+      await config?.invalidate?.(
+        listDeploymentPaths({ environment, deployment }),
+      );
 
     return {
       artifactId: selected.id,
@@ -90,7 +95,7 @@ export class AtlasDeployService {
   }
 }
 
-function requiredFlag(args: CliArguments, name: string): string {
+function requireFlag(args: CliArguments, name: string): string {
   const value = args.flag(name);
 
   if (!value || value === 'true') throw new Error(`--${name} is required.`);

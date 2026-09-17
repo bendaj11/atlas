@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-  pathExists,
+  doesPathExist,
   writeJsonFile,
   type SupportedFramework,
   recordOrEmpty,
@@ -17,7 +17,7 @@ export async function alignDelegatedTsconfig({
   root: string;
   framework: SupportedFramework;
 }): Promise<void> {
-  const target = await tsconfigPath(root);
+  const target = await findTsconfigPath(root);
 
   if (!target) return;
 
@@ -44,13 +44,13 @@ export async function alignDelegatedTsconfig({
   await writeJsonFile(target, tsconfig);
 }
 
-async function tsconfigPath(root: string): Promise<string | undefined> {
+async function findTsconfigPath(root: string): Promise<string | undefined> {
   const appTsconfig = join(root, 'tsconfig.app.json');
-  const target = (await pathExists(appTsconfig))
+  const target = (await doesPathExist(appTsconfig))
     ? appTsconfig
     : join(root, 'tsconfig.json');
 
-  return (await pathExists(target)) ? target : undefined;
+  return (await doesPathExist(target)) ? target : undefined;
 }
 
 function includeAtlasConfig(tsconfig: Record<string, unknown>): void {

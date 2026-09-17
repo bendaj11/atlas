@@ -1,5 +1,5 @@
 import {
-  positiveEnvironmentInteger,
+  readPositiveEnvironmentInteger,
   requiredStorageValue,
   selectStorageFromEnvironment,
   type StorageBackendSelection,
@@ -59,7 +59,7 @@ export class StorageEnvironmentDriver {
         }),
       ),
     positiveInteger: (name: string): number | undefined =>
-      this.withEnvironment(() => positiveEnvironmentInteger(name)),
+      this.withEnvironment(() => readPositiveEnvironmentInteger(name)),
   };
 
   private withEnvironment<T>(action: () => T): T {

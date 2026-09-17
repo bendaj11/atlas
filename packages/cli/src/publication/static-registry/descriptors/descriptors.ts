@@ -2,28 +2,28 @@ import type {
   AtlasManifestDescriptor,
   AtlasPublishedArtifactManifest,
 } from '@atlas/schema';
-import { sha256Digest } from '../../../shared/index.js';
-import { canonicalJson } from '../revision/registry-revision.js';
+import { computeSha256Digest } from '../../../shared/index.js';
+import { stringifyCanonicalJson } from '../revision/registry-revision.js';
 
-export function manifestBytes(
+export function encodeManifestBytes(
   manifest: AtlasPublishedArtifactManifest,
 ): Uint8Array {
-  return new TextEncoder().encode(`${canonicalJson(manifest)}\n`);
+  return new TextEncoder().encode(`${stringifyCanonicalJson(manifest)}\n`);
 }
 
-export function descriptorFor(
+export function createManifestDescriptor(
   path: string,
   bytes: Uint8Array,
 ): AtlasManifestDescriptor {
   return {
     path,
-    digest: sha256Digest(bytes),
+    digest: computeSha256Digest(bytes),
     size: bytes.byteLength,
     mediaType: 'application/json',
   };
 }
 
-export function sameDescriptor(
+export function isSameDescriptor(
   left: AtlasManifestDescriptor | undefined,
   right: AtlasManifestDescriptor,
 ): boolean {

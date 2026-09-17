@@ -1,4 +1,4 @@
-import { artifactoryOptionsFromEnvironment } from '../artifactory-options/artifactory-options.js';
+import { readArtifactoryOptionsFromEnvironment } from '../artifactory-options/artifactory-options.js';
 import { ArtifactoryPublicationStorage } from '../artifactory-storage/artifactory-storage.js';
 import { S3PublicationStorage } from '../s3-storage/s3-storage.js';
 import { selectStorageFromEnvironment } from '../storage-environment/storage-environment.js';
@@ -19,7 +19,7 @@ export async function createPublicationStorage(
   args?: CliArguments,
   factories: PublicationStorageFactories = DEFAULT_FACTORIES,
 ): Promise<AtlasPublicationStorage> {
-  const configured = storage ?? storageFromEnvironment(args, factories);
+  const configured = storage ?? createStorageFromEnvironment(args, factories);
 
   if (!configured) {
     throw new CliError(
@@ -62,7 +62,7 @@ export function isPublicationStorage(
   );
 }
 
-function storageFromEnvironment(
+function createStorageFromEnvironment(
   args: CliArguments | undefined,
   factories: PublicationStorageFactories,
 ): AtlasPublicationStorage | undefined {
@@ -71,7 +71,7 @@ function storageFromEnvironment(
   if (!selection) return undefined;
 
   if (selection.provider === 'artifactory')
-    return factories.artifactory(artifactoryOptionsFromEnvironment(args));
+    return factories.artifactory(readArtifactoryOptionsFromEnvironment(args));
 
   return factories.s3(selection.s3Options);
 }

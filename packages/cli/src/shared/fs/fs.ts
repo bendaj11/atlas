@@ -10,7 +10,7 @@ export function isMissingPathError(error: unknown): boolean {
   );
 }
 
-export async function pathExists(path: string): Promise<boolean> {
+export async function doesPathExist(path: string): Promise<boolean> {
   try {
     await access(path);
 

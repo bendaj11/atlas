@@ -2,15 +2,15 @@ import { defaultDevServerPort } from '@atlas/generators';
 import { join, relative } from 'node:path';
 import type { AngularStylesheetFormat } from '@atlas/generators';
 import {
-  pathExists,
+  doesPathExist,
   readJsonFile,
   type ProcessCommand,
 } from '../../shared/index.js';
 import { ATLAS_NX_TAG } from '../constants.js';
 import {
-  packageExecutor,
-  packageScript,
-  quietCommand,
+  buildPackageExecutorCommand,
+  buildPackageScriptCommand,
+  silenceCommandOutput,
 } from '../package-manager/package-manager.js';
 import type {
   AtlasNxProjectType,
@@ -45,7 +45,9 @@ export interface NxGenerationOptions {
   stylesheetFormat?: AngularStylesheetFormat;
 }
 
-export function nxProjectPlugin(projectType: AtlasNxProjectType): string {
+export function resolveNxProjectPlugin(
+  projectType: AtlasNxProjectType,
+): string {
   return projectType === 'angular' ? '@nx/angular' : '@nx/react';
 }
 
@@ -60,17 +62,17 @@ export function createTaskCommand(options: {
   const { kind, manager, root, project, task, args = [] } = options;
 
   if (kind === 'nx')
-    return packageExecutor({
+    return buildPackageExecutorCommand({
       manager,
       root,
       args: ['nx', 'run', `${project.id}:${task}`, ...args],
     });
 
   if (kind === 'turbo' && !TURBO_BYPASSED_TASKS.includes(task))
-    return turboTask({ manager, root, project, task, args });
+    return buildTurboTaskCommand({ manager, root, project, task, args });
 
   if (kind === 'workspace' || kind === 'turbo')
-    return workspaceTask({ manager, root, project, task, args });
+    return buildWorkspaceTaskCommand({ manager, root, project, task, args });
 
   return {
     command: manager,
@@ -109,7 +111,7 @@ export function createNxGenerationCommand(options: {
     generation.framework === 'react' ? '--bundler=vite' : '--bundler=esbuild',
   ];
 
-  return packageExecutor({ manager, root, args });
+  return buildPackageExecutorCommand({ manager, root, args });
 }
 
 export function createNxPluginInstallCommand(options: {
@@ -117,13 +119,13 @@ export function createNxPluginInstallCommand(options: {
   root: string;
   projectType: AtlasNxProjectType;
 }): ProcessCommand {
-  return packageExecutor({
+  return buildPackageExecutorCommand({
     manager: options.manager,
     root: options.root,
     args: [
       'nx',
       'add',
-      nxProjectPlugin(options.projectType),
+      resolveNxProjectPlugin(options.projectType),
       '--interactive=false',
     ],
   });
@@ -150,10 +152,10 @@ export async function createFormatGeneratedCommand(options: {
   const target = relative(workspaceRoot, projectRoot) || '.';
 
   if (kind === 'nx') {
-    if (!(await nxFormatterAvailable(workspaceRoot))) return undefined;
+    if (!(await isNxFormatterAvailable(workspaceRoot))) return undefined;
 
-    return quietCommand(
-      packageExecutor({
+    return silenceCommandOutput(
+      buildPackageExecutorCommand({
         manager,
         root: workspaceRoot,
         args: ['nx', 'format:write', target],
@@ -161,16 +163,21 @@ export async function createFormatGeneratedCommand(options: {
     );
   }
 
-  const projectScripts = await packageScripts(projectRoot);
+  const projectScripts = await readPackageScripts(projectRoot);
 
   if ('format' in projectScripts)
-    return quietCommand(
-      packageScript({ manager, root: projectRoot, script: 'format', args: [] }),
+    return silenceCommandOutput(
+      buildPackageScriptCommand({
+        manager,
+        root: projectRoot,
+        script: 'format',
+        args: [],
+      }),
     );
 
   if ('lint' in projectScripts)
-    return quietCommand(
-      packageScript({
+    return silenceCommandOutput(
+      buildPackageScriptCommand({
         manager,
         root: projectRoot,
         script: 'lint',
@@ -178,11 +185,11 @@ export async function createFormatGeneratedCommand(options: {
       }),
     );
 
-  const workspaceScripts = await packageScripts(workspaceRoot);
+  const workspaceScripts = await readPackageScripts(workspaceRoot);
 
   if ('format' in workspaceScripts)
-    return quietCommand(
-      packageScript({
+    return silenceCommandOutput(
+      buildPackageScriptCommand({
         manager,
         root: workspaceRoot,
         script: 'format',
@@ -191,8 +198,8 @@ export async function createFormatGeneratedCommand(options: {
     );
 
   if ('lint' in workspaceScripts)
-    return quietCommand(
-      packageScript({
+    return silenceCommandOutput(
+      buildPackageScriptCommand({
         manager,
         root: workspaceRoot,
         script: 'lint',
@@ -203,24 +210,24 @@ export async function createFormatGeneratedCommand(options: {
   return undefined;
 }
 
-export async function installationRoot(options: {
+export async function resolveInstallationRoot(options: {
   kind: AtlasWorkspaceKind;
   workspaceRoot: string;
   projectRoot: string;
 }): Promise<string> {
   if (options.kind !== 'nx') return options.projectRoot;
 
-  return (await pathExists(join(options.projectRoot, 'package.json')))
+  return (await doesPathExist(join(options.projectRoot, 'package.json')))
     ? options.projectRoot
     : options.workspaceRoot;
 }
 
-export async function packageIsInstalled(
+export async function isPackageInstalled(
   root: string,
   packageName: string,
 ): Promise<boolean> {
   if (
-    await pathExists(
+    await doesPathExist(
       join(root, 'node_modules', ...packageName.split('/'), 'package.json'),
     )
   )
@@ -230,11 +237,11 @@ export async function packageIsInstalled(
   );
 
   return ['dependencies', 'devDependencies', 'optionalDependencies'].some(
-    (field) => packageName in asDependencyMap(packageJson?.[field]),
+    (field) => packageName in toDependencyMap(packageJson?.[field]),
   );
 }
 
-function workspaceTask(options: {
+function buildWorkspaceTaskCommand(options: {
   manager: AtlasPackageManager;
   root: string;
   project: AtlasProject;
@@ -270,7 +277,7 @@ function workspaceTask(options: {
   };
 }
 
-function turboTask(options: {
+function buildTurboTaskCommand(options: {
   manager: AtlasPackageManager;
   root: string;
   project: AtlasProject;
@@ -289,10 +296,12 @@ function turboTask(options: {
   if (manager === 'yarn')
     return { command: 'yarn', args: ['exec', '--', ...turboArgs], cwd: root };
 
-  return packageExecutor({ manager, root, args: turboArgs });
+  return buildPackageExecutorCommand({ manager, root, args: turboArgs });
 }
 
-async function packageScripts(root: string): Promise<Record<string, unknown>> {
+async function readPackageScripts(
+  root: string,
+): Promise<Record<string, unknown>> {
   const packageJson = await readJsonFile<{ scripts?: Record<string, unknown> }>(
     join(root, 'package.json'),
   );
@@ -300,15 +309,15 @@ async function packageScripts(root: string): Promise<Record<string, unknown>> {
   return packageJson?.scripts ?? {};
 }
 
-async function nxFormatterAvailable(root: string): Promise<boolean> {
+async function isNxFormatterAvailable(root: string): Promise<boolean> {
   for (const packageName of NX_FORMATTER_PACKAGES) {
-    if (await packageIsInstalled(root, packageName)) return true;
+    if (await isPackageInstalled(root, packageName)) return true;
   }
 
   return false;
 }
 
-function asDependencyMap(value: unknown): Record<string, unknown> {
+function toDependencyMap(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object'
     ? (value as Record<string, unknown>)
     : {};

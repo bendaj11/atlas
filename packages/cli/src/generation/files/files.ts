@@ -21,7 +21,7 @@ const defaultIgnoreFileDependencies: IgnoreFileDependencies = {
   writeIgnore: async (path, contents) => writeFile(path, contents, 'utf8'),
 };
 
-export async function existingPackageName(
+export async function readExistingPackageName(
   root: string,
 ): Promise<string | undefined> {
   try {

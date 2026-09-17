@@ -10,7 +10,7 @@ import {
   type CliArguments,
 } from '../../shared/index.js';
 import {
-  configuredHostUrls,
+  collectConfiguredHostUrls,
   verifyHostUrls,
 } from '../host-verification/host-verification.js';
 
@@ -78,7 +78,7 @@ async function removePreview({
   args: CliArguments;
   artifact: string;
 }): Promise<void> {
-  const previewNumber = previewSelector(args);
+  const previewNumber = parsePreviewSelector(args);
   const config = await loadAtlasRegistryConfig(args);
   const result = await new AtlasPublishService(args).removePreview(
     artifact,
@@ -108,7 +108,7 @@ async function prunePreviews(args: CliArguments): Promise<void> {
 }
 
 async function verify(args: CliArguments): Promise<void> {
-  const hostUrls = configuredHostUrls({ args });
+  const hostUrls = collectConfiguredHostUrls({ args });
 
   if (!hostUrls.length)
     throw new Error('--host-url or ATLAS_HOST_URLS is required.');
@@ -118,7 +118,7 @@ async function verify(args: CliArguments): Promise<void> {
   ui.success(`Verified ${hostUrls.length} deployment(s).`);
 }
 
-function previewSelector(args: CliArguments): number {
+function parsePreviewSelector(args: CliArguments): number {
   const pr = args.flag('pr');
   const mr = args.flag('mr');
 

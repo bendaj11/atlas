@@ -31,7 +31,7 @@ export class ArtifactoryHttpStatusError extends Error {
 }
 
 export class ArtifactoryTransportError extends Error {
-  readonly code: string | undefined;
+  declare readonly code?: string;
 
   constructor({
     message,
@@ -44,12 +44,15 @@ export class ArtifactoryTransportError extends Error {
   }) {
     super(message);
     this.name = 'ArtifactoryTransportError';
-    this.code = isSyntaxError(error)
+
+    const code = isSyntaxError(error)
       ? undefined
       : (extractTransportFailureCode(error) ??
         (signal.aborted
           ? extractTransportFailureCode(signal.reason)
           : undefined));
+
+    if (code) this.code = code;
   }
 }
 

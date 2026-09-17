@@ -6,7 +6,7 @@ import type {
   AtlasWidgetConfig,
 } from '@atlas/schema';
 import ts from 'typescript';
-import { pathExists, isMissingPathError } from '../../shared/index.js';
+import { doesPathExist, isMissingPathError } from '../../shared/index.js';
 
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -58,7 +58,7 @@ async function readWidgetDirectory(options: {
   const { directory, name, config } = options;
   const extension = config.framework === 'react' ? 'tsx' : 'ts';
 
-  if (!(await pathExists(join(directory, `index.${extension}`)))) {
+  if (!(await doesPathExist(join(directory, `index.${extension}`)))) {
     throw new Error(
       `Exported widget "${name}" must contain src/exported-widgets/${name}/index.${extension}.`,
     );

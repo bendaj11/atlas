@@ -2,10 +2,10 @@ import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
 import type { AtlasConfig } from '@atlas/schema';
 import { startControlServer } from '../control-server/control-server.js';
-import { closeServer, localOrigin } from '../http/http.js';
+import { closeServer, buildLocalOrigin } from '../http/http.js';
 import { DEFAULT_CONTROL_PORT } from '../constants.js';
 import {
-  frameworkServerArguments,
+  buildFrameworkServerArguments,
   logHostViewUrl,
   openBrowserWhenReady,
   waitForRemoteEntry,
@@ -42,9 +42,9 @@ export async function runDevSession(
 ): Promise<void> {
   const { workspace, args, project, config, document } = options;
   const controlPort = args.port('control-port', DEFAULT_CONTROL_PORT);
-  const controlOrigin = localOrigin(controlPort);
+  const controlOrigin = buildLocalOrigin(controlPort);
   const registryUrl = resolveRegistryUrl(args);
-  const devTask = await frameworkDevTask(workspace, project);
+  const devTask = await resolveFrameworkDevTask(workspace, project);
   const control = await startControlServer({
     port: controlPort,
     document,
@@ -55,7 +55,7 @@ export async function runDevSession(
   const frameworkServer = workspace.spawn(
     project,
     devTask,
-    frameworkServerArguments(config.framework, options.frameworkPort),
+    buildFrameworkServerArguments(config.framework, options.frameworkPort),
   );
   const context: DevSessionRuntime = {
     controlPort,
@@ -85,7 +85,7 @@ export async function runDevSession(
   }
 }
 
-async function frameworkDevTask(
+async function resolveFrameworkDevTask(
   workspace: AtlasWorkspace,
   project: AtlasProject,
 ): Promise<'dev' | 'framework:dev' | 'serve'> {

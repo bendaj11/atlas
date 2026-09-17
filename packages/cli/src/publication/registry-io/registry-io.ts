@@ -5,13 +5,13 @@ import type {
 } from '../publication-storage/types.js';
 import type { AtlasRegistryConfig } from '../registry-config/types.js';
 import {
-  canonicalJson,
-  registryRevision,
+  stringifyCanonicalJson,
+  computeRegistryRevision,
 } from '../static-registry/revision/registry-revision.js';
 import { assertStaticRegistry } from '../static-registry/validation/static-registry-validation.js';
 import {
   type CliArguments,
-  sha256Digest,
+  computeSha256Digest,
   isSecureOrLoopbackUrl,
   trimTrailingSlash,
   MUTABLE_CACHE_CONTROL,
@@ -71,7 +71,9 @@ export async function writeRegistry(options: {
   const { storage, lease, registry, versionToken } = options;
   await lease.assertHeld();
 
-  const bytes = new TextEncoder().encode(`${canonicalJson(registry)}\n`);
+  const bytes = new TextEncoder().encode(
+    `${stringifyCanonicalJson(registry)}\n`,
+  );
 
   await storage.replace(
     REGISTRY_PATH,
@@ -81,7 +83,7 @@ export async function writeRegistry(options: {
   );
   const stored = await storage.read(REGISTRY_PATH);
 
-  if (!stored || sha256Digest(stored) !== sha256Digest(bytes)) {
+  if (!stored || computeSha256Digest(stored) !== computeSha256Digest(bytes)) {
     throw new Error('Atlas could not verify registry.json after write.');
   }
 }
@@ -92,9 +94,9 @@ export function assertExpectedRegistryRevision(
 ): void {
   const expected = args.flag('expected-registry-revision');
 
-  if (expected && expected !== registryRevision(current)) {
+  if (expected && expected !== computeRegistryRevision(current)) {
     throw new Error(
-      `Registry revision conflict: expected ${expected}, found ${registryRevision(current)}.`,
+      `Registry revision conflict: expected ${expected}, found ${computeRegistryRevision(current)}.`,
     );
   }
 }
@@ -112,7 +114,7 @@ export async function verifyPublicRegistry(options: {
 
     return;
   }
-  const root = publicRegistryRoot(args);
+  const root = resolvePublicRegistryRoot(args);
   const response = await fetchResource(new URL(REGISTRY_PATH, `${root}/`), {
     cache: 'no-store',
     redirect: 'manual',
@@ -137,10 +139,10 @@ export function assertPublicRegistryConfigured(
   args: CliArguments,
   config: AtlasRegistryConfig | undefined,
 ): void {
-  if (!config?.verifyRegistry) publicRegistryRoot(args);
+  if (!config?.verifyRegistry) resolvePublicRegistryRoot(args);
 }
 
-export function publicRegistryRoot(args: CliArguments): string {
+export function resolvePublicRegistryRoot(args: CliArguments): string {
   const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
 
   if (!value || value === 'true') {

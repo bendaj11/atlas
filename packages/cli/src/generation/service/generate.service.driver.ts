@@ -4,7 +4,11 @@ import { PromptTestDouble } from '../../shared/interaction/interaction.testkit.j
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import { AtlasGenerateService } from './generate.service.js';
-import { CliArguments, pathExists, readJsonFile } from '../../shared/index.js';
+import {
+  CliArguments,
+  doesPathExist,
+  readJsonFile,
+} from '../../shared/index.js';
 import type {
   AtlasProject,
   AtlasWorkspaceKind,
@@ -83,7 +87,7 @@ export class GenerateServiceDriver {
     file: (relativePath: string): Promise<string> =>
       readFile(this.directory.path(relativePath), 'utf8'),
     fileExists: (relativePath: string): Promise<boolean> =>
-      pathExists(this.directory.path(relativePath)),
+      doesPathExist(this.directory.path(relativePath)),
     json: (relativePath: string) =>
       readJsonFile<Record<string, unknown>>(this.directory.path(relativePath)),
   };

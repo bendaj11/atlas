@@ -27,7 +27,7 @@ interface GitIdentity {
   gitCommitTitle?: string;
 }
 
-export function publicationIdentity(options: {
+export function derivePublicationIdentity(options: {
   args: CliArguments;
   project: AtlasProject;
 }): PublicationIdentity {
@@ -42,7 +42,7 @@ export function publicationIdentity(options: {
       'Atlas publish requires exactly one of --version, --pr, or --mr.',
     );
   }
-  const source = gitIdentity(args, project.root);
+  const source = readGitIdentity(args, project.root);
 
   if (version !== undefined) {
     assertReleaseVersion(version);
@@ -68,7 +68,7 @@ export function publicationIdentity(options: {
   return { preview: { number: previewNumber, gitSha, ...rest } };
 }
 
-export function releaseIdentity(options: {
+export function deriveReleaseIdentity(options: {
   args: CliArguments;
   project: AtlasProject;
   environment?: NodeJS.ProcessEnv;
@@ -92,18 +92,20 @@ export function releaseIdentity(options: {
   return {
     channel,
     version,
-    ...gitIdentity(args, project.root),
+    ...readGitIdentity(args, project.root),
     ...(prNumber ? { prNumber } : {}),
   };
 }
 
-function gitIdentity(args: CliArguments, root: string): GitIdentity {
-  const gitSha = args.flag('git-sha') ?? gitOutput(root, ['rev-parse', 'HEAD']);
+function readGitIdentity(args: CliArguments, root: string): GitIdentity {
+  const gitSha =
+    args.flag('git-sha') ?? readGitOutput(root, ['rev-parse', 'HEAD']);
   const gitBranch =
-    args.flag('git-branch') ?? gitOutput(root, ['branch', '--show-current']);
+    args.flag('git-branch') ??
+    readGitOutput(root, ['branch', '--show-current']);
   const gitCommitTitle =
     args.flag('git-commit-title') ??
-    gitOutput(root, ['log', '-1', '--pretty=%s']);
+    readGitOutput(root, ['log', '-1', '--pretty=%s']);
 
   return {
     ...(gitSha ? { gitSha } : {}),
@@ -112,7 +114,10 @@ function gitIdentity(args: CliArguments, root: string): GitIdentity {
   };
 }
 
-function gitOutput(root: string, args: readonly string[]): string | undefined {
+function readGitOutput(
+  root: string,
+  args: readonly string[],
+): string | undefined {
   try {
     return (
       execFileSync('git', args, {

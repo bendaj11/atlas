@@ -57,16 +57,14 @@ export function spawnProcess(input: ProcessCommand): ChildProcess {
   return child;
 }
 
-export function capturedProcessOutput(child: ChildProcess): string {
+export function readCapturedProcessOutput(child: ChildProcess): string {
   return processOutput.get(child)?.() ?? '';
 }
 
-export async function completedProcessOutput(
-  child: ChildProcess,
-): Promise<string> {
+export async function awaitProcessOutput(child: ChildProcess): Promise<string> {
   await processOutputClosed.get(child);
 
-  return capturedProcessOutput(child);
+  return readCapturedProcessOutput(child);
 }
 
 export function captureProcessOutput(
@@ -75,8 +73,8 @@ export function captureProcessOutput(
 ): () => string {
   let output = '';
 
-  forwardAndCapture(child.stdout, destinations.stdout, append);
-  forwardAndCapture(child.stderr, destinations.stderr, append);
+  forwardAndCaptureOutput(child.stdout, destinations.stdout, append);
+  forwardAndCaptureOutput(child.stderr, destinations.stderr, append);
 
   return () => output;
 
@@ -85,7 +83,7 @@ export function captureProcessOutput(
   }
 }
 
-function forwardAndCapture(
+function forwardAndCaptureOutput(
   source: Readable | null,
   destination: Pick<NodeJS.WriteStream, 'write'>,
   append: (chunk: Buffer) => void,

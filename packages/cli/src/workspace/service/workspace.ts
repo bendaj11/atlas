@@ -5,9 +5,9 @@ import {
   createNxGenerationCommand,
   createNxPluginInstallCommand,
   createTaskCommand,
-  installationRoot,
-  nxProjectPlugin,
-  packageIsInstalled,
+  resolveInstallationRoot,
+  resolveNxProjectPlugin,
+  isPackageInstalled,
 } from '../commands/commands.js';
 import {
   detectGenerationBases,
@@ -63,7 +63,7 @@ export async function detectWorkspace(
       runProcess(
         createInstallCommand({
           manager,
-          projectRoot: await installationRoot({
+          projectRoot: await resolveInstallationRoot({
             kind,
             workspaceRoot: root,
             projectRoot,
@@ -72,9 +72,9 @@ export async function detectWorkspace(
       ),
     missingScaffoldDependency: async (projectType) => {
       if (kind !== 'nx') return undefined;
-      const plugin = nxProjectPlugin(projectType);
+      const plugin = resolveNxProjectPlugin(projectType);
 
-      return (await packageIsInstalled(root, plugin)) ? undefined : plugin;
+      return (await isPackageInstalled(root, plugin)) ? undefined : plugin;
     },
     installScaffoldDependency: async (projectType) => {
       if (kind !== 'nx') return;
@@ -110,7 +110,7 @@ export async function detectWorkspace(
         );
       } catch (error) {
         throw new Error(
-          `Nx could not scaffold "${options.name}". Install ${nxProjectPlugin(options.framework)} in the workspace and try again.`,
+          `Nx could not scaffold "${options.name}". Install ${resolveNxProjectPlugin(options.framework)} in the workspace and try again.`,
           { cause: error },
         );
       }

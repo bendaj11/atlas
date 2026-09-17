@@ -10,7 +10,7 @@ import {
 
 export { isHostConfig };
 
-export function configuredHostIds(config: AtlasConfig): string[] {
+export function listConfiguredHostIds(config: AtlasConfig): string[] {
   if (isHostConfig(config)) return [];
   return [
     ...new Set([
@@ -20,14 +20,14 @@ export function configuredHostIds(config: AtlasConfig): string[] {
   ].filter((hostId) => hostId !== '*');
 }
 
-export function supportsAnyHost(config: AtlasConfig): boolean {
+export function doesSupportAnyHost(config: AtlasConfig): boolean {
   if (isHostConfig(config)) return false;
   return [...(config.routes ?? []), ...(config.slots ?? [])].some(
     (placement) => placement.hostId === '*',
   );
 }
 
-export function routePaths(config: AtlasConfig, hostId: string): string[] {
+export function listRoutePaths(config: AtlasConfig, hostId: string): string[] {
   if (isHostConfig(config)) return [];
   return (
     config.routes
@@ -36,7 +36,7 @@ export function routePaths(config: AtlasConfig, hostId: string): string[] {
   );
 }
 
-export function hostIdFromRoute(
+export function resolveHostIdFromRoute(
   config: AtlasConfig,
   hostUrl: string,
 ): string | undefined {
@@ -46,7 +46,7 @@ export function hostIdFromRoute(
     config.routes
       ?.filter(
         (route) =>
-          route.hostId !== '*' && routeMatchesPath(route.path, pathname),
+          route.hostId !== '*' && doesRouteMatchPath(route.path, pathname),
       )
       .map((route) => route.hostId),
   );
@@ -62,7 +62,7 @@ export function isBaseHostUrl(value: string): boolean {
   return url.pathname === '/' && !url.search && !url.hash;
 }
 
-export function urlWithPath(hostUrl: string, path: string): string {
+export function appendUrlPath(hostUrl: string, path: string): string {
   return `${hostUrl.replace(/\/$/, '')}${path}`;
 }
 
@@ -96,7 +96,7 @@ export async function readAngularProxyConfigPath(
   );
   const projects = recordOrEmpty(workspace?.projects);
   const project =
-    optionalRecord(projects[projectName]) ?? firstRecordValue(projects);
+    optionalRecord(projects[projectName]) ?? pickFirstRecordValue(projects);
   const targets = recordOrEmpty(project?.architect ?? project?.targets);
 
   return (
@@ -105,7 +105,7 @@ export async function readAngularProxyConfigPath(
   );
 }
 
-function routeMatchesPath(path: string, pathname: string): boolean {
+function doesRouteMatchPath(path: string, pathname: string): boolean {
   const normalizedPath = path === '/' ? '/' : path.replace(/\/+$/, '');
 
   return (
@@ -121,7 +121,7 @@ function readAngularProjectPort(
 ): number | undefined {
   const projects = recordOrEmpty(workspace?.projects);
   const project =
-    optionalRecord(projects[projectName]) ?? firstRecordValue(projects);
+    optionalRecord(projects[projectName]) ?? pickFirstRecordValue(projects);
 
   return readPortFromTargets(
     recordOrEmpty(project?.architect ?? project?.targets),
@@ -169,7 +169,7 @@ function parsePort(value: string | number): number | undefined {
     : undefined;
 }
 
-function firstRecordValue(
+function pickFirstRecordValue(
   value: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   return Object.values(value).find(

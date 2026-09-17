@@ -1,4 +1,4 @@
-export function buildTimestamp(
+export function createBuildTimestamp(
   environment: NodeJS.ProcessEnv = process.env,
 ): string {
   const explicit = environment.ATLAS_CREATED_AT;

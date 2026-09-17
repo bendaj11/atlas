@@ -6,7 +6,7 @@ import type {
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   discoverStylesheets,
-  stylesheetPathsFromIndex,
+  extractStylesheetPathsFromIndex,
 } from './stylesheets.js';
 
 export class StylesheetsDriver {
@@ -45,6 +45,7 @@ export class StylesheetsDriver {
         framework: this.framework,
         channel: this.channel,
       }),
-    pathsFromIndex: (html: string): string[] => stylesheetPathsFromIndex(html),
+    pathsFromIndex: (html: string): string[] =>
+      extractStylesheetPathsFromIndex(html),
   };
 }

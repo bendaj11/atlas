@@ -3,7 +3,7 @@ import type { AtlasStaticRegistry } from '@atlas/schema';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
-import { emptyStaticRegistry } from '../static-registry/static-registry.js';
+import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
 import { pruneUnreferencedPreviewGenerations } from './preview-pruning.js';
 
 export class PreviewPruningDriver {
@@ -12,7 +12,7 @@ export class PreviewPruningDriver {
     assertHeld: jest.fn<AtlasPublicationLease['assertHeld']>(),
     release: jest.fn<AtlasPublicationLease['release']>(),
   };
-  private registry: AtlasStaticRegistry = emptyStaticRegistry();
+  private registry: AtlasStaticRegistry = createEmptyStaticRegistry();
   private readonly now = Date.now();
 
   readonly given = {

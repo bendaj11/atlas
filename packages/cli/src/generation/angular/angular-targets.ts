@@ -30,7 +30,7 @@ export function ensureAngularNativeFederationTargets({
   nativeFederationBuilder?: string;
 }): void {
   const builder =
-    nativeFederationBuilderOf({ value: targets.build, runnerKey }) ??
+    findNativeFederationBuilder({ value: targets.build, runnerKey }) ??
     nativeFederationBuilder;
 
   if (
@@ -238,10 +238,10 @@ function isNativeFederationTarget({
   value: unknown;
   runnerKey: AngularRunnerKey;
 }): boolean {
-  return nativeFederationBuilderOf({ value, runnerKey }) !== undefined;
+  return findNativeFederationBuilder({ value, runnerKey }) !== undefined;
 }
 
-function nativeFederationBuilderOf({
+function findNativeFederationBuilder({
   value,
   runnerKey,
 }: {

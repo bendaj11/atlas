@@ -96,7 +96,7 @@ export function createDevSessionStore(
   };
 
   const markReady = (appId: string, requestedHostId?: string): void => {
-    for (const host of matchingHosts({ hosts, appId, requestedHostId })) {
+    for (const host of findMatchingHosts({ hosts, appId, requestedHostId })) {
       const entry = host.entries.get(appId);
 
       if (entry) entry.ready = true;
@@ -183,7 +183,7 @@ function createHostDevSession(generatedAt: string): HostDevSession {
   };
 }
 
-function matchingHosts({
+function findMatchingHosts({
   hosts,
   appId,
   requestedHostId,

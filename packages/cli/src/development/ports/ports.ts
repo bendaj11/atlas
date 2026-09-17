@@ -18,7 +18,7 @@ export function resolveHostDevPorts(
   const bootstrapPort = args.port('bootstrap-port', configuredPort);
   const clientPort = args.port(
     'host-client-port',
-    hostClientPortFallback({
+    resolveHostClientPortFallback({
       args,
       bootstrapPort,
       configuredPort,
@@ -35,7 +35,7 @@ export function resolveHostDevPorts(
   return { bootstrapPort, clientPort };
 }
 
-function hostClientPortFallback(
+function resolveHostClientPortFallback(
   options: ResolveHostDevPortsOptions & { bootstrapPort: number },
 ): number {
   const { args, bootstrapPort, configuredPort, previewKind } = options;

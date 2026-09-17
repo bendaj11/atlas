@@ -3,8 +3,8 @@ import { extractHttpStatus } from '../../shared/index.js';
 export function isMissingObject(error: unknown): boolean {
   return (
     extractHttpStatus(error) === 404 ||
-    errorName(error) === 'NoSuchKey' ||
-    errorName(error) === 'NotFound'
+    extractErrorName(error) === 'NoSuchKey' ||
+    extractErrorName(error) === 'NotFound'
   );
 }
 
@@ -14,7 +14,7 @@ export function isPreconditionFailure(error: unknown): boolean {
   return (
     status === 409 ||
     status === 412 ||
-    errorName(error) === 'PreconditionFailed'
+    extractErrorName(error) === 'PreconditionFailed'
   );
 }
 
@@ -25,7 +25,7 @@ export class S3StorageError extends Error {
   }
 }
 
-function errorName(error: unknown): string | undefined {
+function extractErrorName(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'name' in error
     ? String((error as { name?: unknown }).name)
     : undefined;

@@ -23,7 +23,7 @@ interface NxOutputTarget {
 const NATIVE_FEDERATION_BUILD_EXECUTOR =
   '@angular-architects/native-federation:build';
 
-export function nxOutputPaths(options: {
+export function resolveNxOutputPaths(options: {
   project: NxProjectConfiguration | undefined;
   workspaceRoot: string;
   projectRoot: string;
@@ -32,12 +32,12 @@ export function nxOutputPaths(options: {
   const build = project?.targets?.build;
 
   if (!build) return [];
-  const targets = nxOutputTargets(project, build);
+  const targets = listNxOutputTargets(project, build);
   const configuredOutputPaths = targets.flatMap(({ target, configuration }) =>
-    configuredNxOutputPaths({ target, configuration, workspaceRoot }),
+    listConfiguredNxOutputPaths({ target, configuration, workspaceRoot }),
   );
   const declaredOutputs = targets.flatMap(({ target }) =>
-    declaredNxOutputPaths({
+    listDeclaredNxOutputPaths({
       target,
       projectName: project?.name,
       projectRoot,
@@ -48,16 +48,16 @@ export function nxOutputPaths(options: {
   return [...new Set([...configuredOutputPaths, ...declaredOutputs])];
 }
 
-function nxOutputTargets(
+function listNxOutputTargets(
   project: NxProjectConfiguration | undefined,
   build: NxTargetConfiguration,
 ): NxOutputTarget[] {
-  const delegated = delegatedNxBuildTarget(project, build);
+  const delegated = resolveDelegatedNxBuildTarget(project, build);
 
   return delegated ? [delegated, { target: build }] : [{ target: build }];
 }
 
-function delegatedNxBuildTarget(
+function resolveDelegatedNxBuildTarget(
   project: NxProjectConfiguration | undefined,
   build: NxTargetConfiguration,
 ): NxOutputTarget | undefined {
@@ -75,7 +75,7 @@ function delegatedNxBuildTarget(
     : undefined;
 }
 
-function configuredNxOutputPaths(options: {
+function listConfiguredNxOutputPaths(options: {
   target: NxTargetConfiguration;
   configuration: string | undefined;
   workspaceRoot: string;
@@ -99,7 +99,7 @@ function configuredNxOutputPaths(options: {
   ];
 }
 
-function declaredNxOutputPaths(options: {
+function listDeclaredNxOutputPaths(options: {
   target: NxTargetConfiguration;
   projectName: string | undefined;
   projectRoot: string;
