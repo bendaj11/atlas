@@ -1,5 +1,5 @@
 import { AngularGenerationDriver } from './angular.driver.js';
-import { ensureAngularNativeFederationTargets } from './angular.js';
+import { ensureAngularNativeFederationTargets } from './angular-targets.js';
 
 describe('ensureAngularNativeFederationTargets', () => {
   it('should configure an SSE endpoint when an Angular host serves locally', () => {
@@ -8,7 +8,12 @@ describe('ensureAngularNativeFederationTargets', () => {
       serve: { builder: '@angular-devkit/build-angular:dev-server' },
     };
 
-    ensureAngularNativeFederationTargets(targets, 'catalog', 'host', 'builder');
+    ensureAngularNativeFederationTargets({
+      targets,
+      projectName: 'catalog',
+      type: 'host',
+      runnerKey: 'builder',
+    });
 
     expect(targets.serve).toMatchObject({
       options: {
@@ -27,7 +32,12 @@ describe('ensureAngularNativeFederationTargets', () => {
       serve: { builder: '@angular-devkit/build-angular:dev-server' },
     };
 
-    ensureAngularNativeFederationTargets(targets, 'catalog', 'app', 'builder');
+    ensureAngularNativeFederationTargets({
+      targets,
+      projectName: 'catalog',
+      type: 'app',
+      runnerKey: 'builder',
+    });
 
     expect(targets.serve).toMatchObject({
       options: {

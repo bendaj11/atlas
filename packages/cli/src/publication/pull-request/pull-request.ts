@@ -2,7 +2,7 @@ import type {
   AtlasPreviewHeadLookup,
   AtlasPreviewHeadStatus,
   AtlasRegistryConfig,
-} from '../registry-config.js';
+} from '../registry-config/registry-config.js';
 
 export async function resolvePullRequestStatus(
   pullRequest: {

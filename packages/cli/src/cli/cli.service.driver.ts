@@ -89,8 +89,9 @@ jest.unstable_mockModule('../publication/service/publish.service.js', () => ({
     prunePreviews = prunePreviews;
   },
 }));
-const registryConfig = await import('../publication/registry-config.js');
-jest.unstable_mockModule('../publication/registry-config.js', () => ({
+const registryConfig =
+  await import('../publication/registry-config/registry-config.js');
+jest.unstable_mockModule('../publication/registry-config/registry-config.js', () => ({
   ...registryConfig,
   loadAtlasRegistryConfig,
 }));

@@ -1,5 +1,11 @@
 import { isAbsolute, join, relative, sep } from 'node:path';
-import { atlasCommand, atlasConfigNxTarget, nxTarget } from '../nx/nx.js';
+import {
+  atlasConfigNxTarget,
+  atlasDevTarget,
+  atlasPublicationTargets,
+  nxTarget,
+  projectAliasTarget,
+} from '../nx/nx-targets.js';
 import { readJsonFile, writeJsonFile, isRecord } from '../../shared/index.js';
 import {
   type AtlasPackageManager,
@@ -30,46 +36,14 @@ export async function writeNxProject(options: {
     throw new Error('Nx projects must be generated inside the workspace root.');
   }
   const targets: Record<string, unknown> = {
-    build: nxTarget(packageManager, cwd, 'build'),
-    serve: nxTarget(packageManager, cwd, 'dev'),
-    dev: {
-      executor: 'nx:run-commands',
-      options: {
-        command: atlasCommand(packageManager, `dev ${name}`),
-        forwardAllArgs: true,
-        tty: true,
-      },
-    },
-    'atlas:config': atlasConfigNxTarget(packageManager, cwd),
-    'atlas:publish': {
-      cache: false,
-      executor: 'nx:run-commands',
-      options: {
-        command: atlasCommand(packageManager, `publish ${name}`),
-        forwardAllArgs: true,
-      },
-    },
-    ...(type === 'host'
-      ? {
-          'atlas:bootstrap': {
-            dependsOn: ['atlas:config'],
-            outputs: ['{projectRoot}/dist/bootstrap'],
-            executor: 'nx:run-commands',
-            options: {
-              command: atlasCommand(
-                packageManager,
-                `bootstrap ${name} --skip-compile`,
-              ),
-              forwardAllArgs: true,
-            },
-          },
-        }
-      : {}),
-    [name]: {
-      executor: 'nx:run-commands',
-      options: { command: `nx run ${name}:dev`, forwardAllArgs: true },
-    },
+    build: nxTarget({ packageManager, cwd, script: 'build' }),
+    serve: nxTarget({ packageManager, cwd, script: 'dev' }),
+    dev: atlasDevTarget({ projectName: name, packageManager }),
+    'atlas:config': atlasConfigNxTarget({ packageManager, cwd }),
+    ...atlasPublicationTargets({ projectName: name, type, packageManager }),
+    [name]: projectAliasTarget(name),
   };
+
   await writeJsonFile(join(root, 'project.json'), {
     name,
     sourceRoot: `${cwd}/src`,

@@ -7,7 +7,7 @@ import {
   withPublicationLease,
 } from '../publication-lease/publication-lease.js';
 import type { AtlasPublicationStorage } from '../publication-storage/publication-storage.js';
-import type { AtlasRegistryConfig } from '../registry-config.js';
+import type { AtlasRegistryConfig } from '../registry-config/registry-config.js';
 import {
   assertExpectedRegistryRevision,
   readRegistryState,

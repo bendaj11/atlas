@@ -3,7 +3,7 @@ import type {
   AtlasPublicationLease,
   AtlasPublicationStorage,
 } from '../publication-storage/publication-storage.js';
-import type { AtlasRegistryConfig } from '../registry-config.js';
+import type { AtlasRegistryConfig } from '../registry-config/registry-config.js';
 import {
   canonicalJson,
   registryRevision,

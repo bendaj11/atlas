@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ensureAngularBuildNotifications } from './angular.js';
+import { ensureAngularBuildNotifications } from './angular-workspace.js';
 
 const NATIVE_FEDERATION_BUILDER = '@angular-architects/native-federation:build';
 
@@ -32,7 +32,10 @@ export class AngularGenerationDriver {
 
   readonly when = {
     enableBuildNotifications: async (): Promise<void> => {
-      await ensureAngularBuildNotifications(this.root, 'catalog');
+      await ensureAngularBuildNotifications({
+        root: this.root,
+        projectName: 'catalog',
+      });
     },
   };
 

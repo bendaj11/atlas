@@ -20,13 +20,13 @@ export type { S3Options } from './s3-storage/s3-storage.js';
 export {
   defineAtlasRegistryConfig,
   loadAtlasRegistryConfig,
-} from './registry-config.js';
+} from './registry-config/registry-config.js';
 export type {
   AtlasPreviewHeadLookup,
   AtlasPreviewHeadResolver,
   AtlasPreviewHeadStatus,
   AtlasRegistryConfig,
-} from './registry-config.js';
+} from './registry-config/registry-config.js';
 export { readRegistry, readRegistryState } from './registry-io/registry-io.js';
 export { AtlasPublishService } from './service/publish.service.js';
 export type {

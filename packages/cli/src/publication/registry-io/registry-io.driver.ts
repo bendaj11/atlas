@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import type { AtlasPublicationLease } from '../publication-storage/publication-storage.js';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
-import type { AtlasRegistryConfig } from '../registry-config.js';
+import type { AtlasRegistryConfig } from '../registry-config/registry-config.js';
 import {
   assertExpectedRegistryRevision,
   publicRegistryRoot,

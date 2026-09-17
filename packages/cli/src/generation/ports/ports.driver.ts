@@ -1,7 +1,7 @@
-import { TemporaryDirectory } from '../shared/fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../workspace/workspace.testkit.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import { suggestedDevServerPort } from './ports.js';
-import type { AtlasProject } from '../workspace/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 export class PortsDriver {
   private readonly directory = new TemporaryDirectory();

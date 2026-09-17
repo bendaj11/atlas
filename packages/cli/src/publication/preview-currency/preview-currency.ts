@@ -1,7 +1,7 @@
 import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
 import { cliError } from '../../shared/index.js';
 import { resolvePullRequestStatus } from '../pull-request/pull-request.js';
-import type { AtlasRegistryConfig } from '../registry-config.js';
+import type { AtlasRegistryConfig } from '../registry-config/registry-config.js';
 
 export async function assertPreviewIsCurrent({
   manifest,

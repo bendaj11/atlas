@@ -1,5 +1,5 @@
 import type { AngularStylesheetFormat } from '@atlas/generators';
-import { suggestedDevServerPort } from '../ports.js';
+import { suggestedDevServerPort } from '../ports/ports.js';
 import {
   type CliArguments,
   type SupportedFramework,

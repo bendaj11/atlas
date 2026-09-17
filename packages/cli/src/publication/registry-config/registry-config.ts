@@ -6,13 +6,13 @@ import ts from 'typescript';
 import {
   isPublicationStorage,
   type AtlasPublicationStorageSource,
-} from './publication-storage/publication-storage.js';
+} from '../publication-storage/publication-storage.js';
 import {
   CliArguments,
   cliError,
   exists,
   formatTypeScriptDiagnostics,
-} from '../shared/index.js';
+} from '../../shared/index.js';
 
 export interface AtlasRegistryConfig {
   storage?: AtlasPublicationStorageSource;

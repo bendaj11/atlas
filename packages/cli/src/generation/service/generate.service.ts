@@ -10,13 +10,13 @@ import {
   type AtlasGeneratedFile,
   type AtlasGeneratorOptions,
 } from '@atlas/generators';
-import { ensureAngularWorkspaceFederationConfig } from '../angular.js';
+import { ensureAngularWorkspaceFederationConfig } from '../angular/angular-workspace.js';
 import {
   dependencyManifestPath,
   existingFrameworkVersionInfo,
   mergePackageDependencies,
   type FrameworkVersionInfo,
-} from '../dependencies.js';
+} from '../dependencies/dependencies.js';
 import {
   ensureAtlasGeneratedFilesIgnored,
   existingPackageName,
@@ -24,13 +24,11 @@ import {
   takeOverAppSource,
   writeGenerated,
 } from '../files/files.js';
-import { frameworkLabel } from '../labels.js';
-import {
-  alignDelegatedAngularFederationConfig,
-  alignDelegatedTsconfig,
-  ensureDelegatedNxTargets,
-} from '../nx/nx.js';
-import { generatedOverlay } from '../overlay.js';
+import { frameworkLabel } from '../labels/labels.js';
+import { alignDelegatedAngularFederationConfig } from '../nx/delegated-federation-config.js';
+import { alignDelegatedTsconfig } from '../nx/delegated-tsconfig.js';
+import { ensureDelegatedNxTargets } from '../nx/nx.js';
+import { generatedOverlay } from '../overlay/overlay.js';
 import {
   assertWritable,
   displayTarget,
@@ -161,30 +159,30 @@ export class AtlasGenerateService {
         workspaceScaffolded || this.args.hasFlag('force'),
       );
       if (selectedFramework === 'angular')
-        await ensureAngularWorkspaceFederationConfig(
+        await ensureAngularWorkspaceFederationConfig({
           root,
-          name,
+          projectName: name,
           type,
           devServerPort,
-        );
+        });
       if (workspaceScaffolded) {
-        await alignDelegatedTsconfig(root, selectedFramework);
+        await alignDelegatedTsconfig({ root, framework: selectedFramework });
         if (selectedFramework === 'angular')
-          await alignDelegatedAngularFederationConfig(
-            this.workspace.root,
+          await alignDelegatedAngularFederationConfig({
+            workspaceRoot: this.workspace.root,
             root,
-          );
+          });
         if (this.workspace.kind === 'nx')
-          await ensureDelegatedNxTargets(
-            this.workspace.root,
+          await ensureDelegatedNxTargets({
+            workspaceRoot: this.workspace.root,
             root,
             name,
             type,
-            selectedFramework,
-            this.workspace.packageManager,
+            framework: selectedFramework,
+            packageManager: this.workspace.packageManager,
             devServerPort,
-            generatorOptions.frameworkVersion,
-          );
+            frameworkVersion: generatorOptions.frameworkVersion,
+          });
         await this.mergeDelegatedDependencies(root, files, selectedFramework);
       }
       if (this.workspace.kind === 'nx' && !workspaceScaffolded)

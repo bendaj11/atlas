@@ -63,7 +63,10 @@ export class AtlasDevService {
     }
     if (config.framework === 'angular' && !this.args.hasFlag('prepare-only')) {
       await assertUsableAngularBuildPackage(this.workspace.root, project.root);
-      await ensureAngularBuildNotifications(project.root, project.id);
+      await ensureAngularBuildNotifications({
+        root: project.root,
+        projectName: project.id,
+      });
     }
     if (isHostConfig(config)) {
       await this.runHost(project, config, prompts);

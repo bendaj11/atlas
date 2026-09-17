@@ -1,2 +1,2 @@
-export { ensureAngularBuildNotifications } from './angular.js';
+export { ensureAngularBuildNotifications } from './angular/angular-workspace.js';
 export { AtlasGenerateService } from './service/generate.service.js';

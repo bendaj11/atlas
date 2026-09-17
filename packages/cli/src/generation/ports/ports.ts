@@ -3,8 +3,8 @@ import {
   type AtlasProject,
   type AtlasWorkspace,
   defaultDevServerPort,
-} from '../workspace/index.js';
-import { readTextFile, isRecord } from '../shared/index.js';
+} from '../../workspace/index.js';
+import { readTextFile, isRecord } from '../../shared/index.js';
 
 type ProjectType = 'host' | 'app';
 

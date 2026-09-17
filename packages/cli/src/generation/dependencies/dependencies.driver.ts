@@ -1,12 +1,12 @@
 import { relative } from 'node:path';
-import { TemporaryDirectory } from '../shared/fs/fs.testkit.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   dependencyManifestPath,
   existingFrameworkVersionInfo,
   mergePackageDependencies,
   type FrameworkVersionInfo,
 } from './dependencies.js';
-import { type SupportedFramework, readJsonFile } from '../shared/index.js';
+import { type SupportedFramework, readJsonFile } from '../../shared/index.js';
 
 export class DependenciesDriver {
   private readonly directory = new TemporaryDirectory();
