@@ -58,7 +58,7 @@ describe('validateAtlasHostManifest', () => {
   });
 
   it('should report schemaVersion when it is not "1"', () => {
-    driver.when.validated(aHostManifest({ schemaVersion: '2' as '1' }));
+    driver.when.validated({ ...aHostManifest(), schemaVersion: '2' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'schemaVersion', message: 'Expected schemaVersion to be "1".' },
@@ -66,7 +66,7 @@ describe('validateAtlasHostManifest', () => {
   });
 
   it('should report kind when it is not host', () => {
-    driver.when.validated(aHostManifest({ kind: 'app' as 'host' }));
+    driver.when.validated({ ...aHostManifest(), kind: 'app' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'kind', message: 'Expected kind to be "host".' },
@@ -106,9 +106,7 @@ describe('validateAtlasHostManifest', () => {
   );
 
   it('should report channel when it is unknown', () => {
-    driver.when.validated(
-      aHostManifest({ channel: faker.lorem.word() as 'pr' }),
-    );
+    driver.when.validated({ ...aHostManifest(), channel: faker.lorem.word() });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -128,7 +126,7 @@ describe('validateAtlasHostManifest', () => {
   );
 
   it('should report framework when it is unknown', () => {
-    driver.when.validated(aHostManifest({ framework: 'svelte' as 'react' }));
+    driver.when.validated({ ...aHostManifest(), framework: 'svelte' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -193,7 +191,7 @@ describe('validateAtlasHostManifest', () => {
   });
 
   it('should report styles when it is not an array', () => {
-    driver.when.validated(aHostManifest({ styles: {} as unknown as [] }));
+    driver.when.validated({ ...aHostManifest(), styles: {} });
 
     expect(driver.get.issues()).toEqual([
       { path: 'styles', message: 'Expected styles to be an array.' },
@@ -201,9 +199,7 @@ describe('validateAtlasHostManifest', () => {
   });
 
   it('should report exposes when it is not an object', () => {
-    driver.when.validated(
-      aHostManifest({ exposes: 'entry' as unknown as { entry: string } }),
-    );
+    driver.when.validated({ ...aHostManifest(), exposes: 'entry' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'exposes', message: 'Expected exposes to be an object.' },
@@ -211,7 +207,7 @@ describe('validateAtlasHostManifest', () => {
   });
 
   it('should report the entry when exposes lacks one', () => {
-    driver.when.validated(aHostManifest({ exposes: {} as { entry: string } }));
+    driver.when.validated({ ...aHostManifest(), exposes: {} });
 
     expect(driver.get.issues()).toEqual([
       {

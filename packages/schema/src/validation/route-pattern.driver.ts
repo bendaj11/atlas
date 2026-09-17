@@ -5,16 +5,16 @@ export class RoutePatternDriver {
   private normalized = '';
 
   when = {
-    checked: (value: string): void => {
+    checked: (value: string) => {
       this.valid = isRoutePattern(value);
     },
-    normalized: (value: string): void => {
+    normalized: (value: string) => {
       this.normalized = normalizeRoutePath(value);
     },
   };
 
   get = {
-    valid: (): boolean => this.valid,
-    normalized: (): string => this.normalized,
+    valid: () => this.valid,
+    normalized: () => this.normalized,
   };
 }

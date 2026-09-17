@@ -1,4 +1,4 @@
-import { assertValid } from '../../validation/assert-valid.js';
+import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
 import { resolveRegistryRootUrl } from './registry-root-url.js';
@@ -15,7 +15,7 @@ export function resolveAtlasRuntimeConfig(
   const message = 'Invalid Atlas runtime config.';
 
   if (!record) {
-    assertValid({ issues, message });
+    assertNoIssues({ issues, message });
 
     throw new Error(message);
   }
@@ -39,7 +39,7 @@ export function resolveAtlasRuntimeConfig(
           issues,
         });
 
-  assertValid({ issues, message });
+  assertNoIssues({ issues, message });
 
   const runtime = record as unknown as AtlasHostRuntimeConfig;
 

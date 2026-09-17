@@ -9,10 +9,10 @@ export class ValidateHostRuntimeConfigDriver {
   private error: unknown;
 
   readonly when = {
-    validated: (value: unknown): void => {
+    validated: (value: unknown) => {
       this.issues = validateHostRuntimeConfig(value);
     },
-    asserted: (value: unknown): void => {
+    asserted: (value: unknown) => {
       try {
         assertAtlasRuntimeConfig(value);
       } catch (error) {
@@ -22,8 +22,8 @@ export class ValidateHostRuntimeConfigDriver {
   };
 
   readonly get = {
-    issues: (): AtlasValidationIssue[] => this.issues,
-    issuePaths: (): string[] => this.issues.map((issue) => issue.path),
-    error: (): unknown => this.error,
+    issues: () => this.issues,
+    issuePaths: () => this.issues.map((issue) => issue.path),
+    error: () => this.error,
   };
 }

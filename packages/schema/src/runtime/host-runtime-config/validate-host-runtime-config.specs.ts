@@ -188,12 +188,11 @@ describe('validateHostRuntimeConfig', () => {
     });
 
     it('should report the development session URL when it is not a string', () => {
-      driver.when.validated(
-        aHostRuntimeConfig({
-          environment,
-          developmentSessionUrl: 4400 as never,
-        }),
-      );
+      driver.when.validated({
+        ...aHostRuntimeConfig(),
+        environment,
+        developmentSessionUrl: 4400,
+      });
 
       expect(driver.get.issuePaths()).toEqual(['developmentSessionUrl']);
     });

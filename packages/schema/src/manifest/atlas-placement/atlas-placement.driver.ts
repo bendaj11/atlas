@@ -4,10 +4,7 @@ export class AtlasPlacementDriver {
   private result = false;
 
   when = {
-    targetChecked: (input: {
-      placementHostId: string;
-      hostId: string;
-    }): void => {
+    targetChecked: (input: { placementHostId: string; hostId: string }) => {
       this.result = placementTargetsHost(
         { hostId: input.placementHostId },
         input.hostId,
@@ -16,6 +13,6 @@ export class AtlasPlacementDriver {
   };
 
   get = {
-    result: (): boolean => this.result,
+    result: () => this.result,
   };
 }

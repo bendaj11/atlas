@@ -14,12 +14,12 @@ export class AtlasErrorDriver {
   private text = '';
 
   given = {
-    value: (value: unknown): this => {
+    value: (value: unknown) => {
       this.value = value;
 
       return this;
     },
-    options: (options: string | AtlasErrorOptions | undefined): this => {
+    options: (options: string | AtlasErrorOptions | undefined) => {
       this.options = options;
 
       return this;
@@ -27,28 +27,28 @@ export class AtlasErrorDriver {
   };
 
   when = {
-    ensured: (): void => {
+    ensured: () => {
       this.result = ensureActionableError(this.value, this.options);
     },
-    constructed: (summary: string, options: AtlasErrorOptions): void => {
+    constructed: (summary: string, options: AtlasErrorOptions) => {
       this.result = new AtlasError(summary, options);
     },
     messageFormatted: (
       message: string,
       actions: string | readonly string[],
-    ): void => {
+    ) => {
       this.text = actionableMessage(message, actions);
     },
-    summarized: (message: string): void => {
+    summarized: (message: string) => {
       this.text = errorSummary(message);
     },
-    actionSuggested: (message: string): void => {
+    actionSuggested: (message: string) => {
       this.text = suggestedActionFor(message);
     },
   };
 
   get = {
-    error: (): AtlasError => this.result,
-    text: (): string => this.text,
+    error: () => this.result,
+    text: () => this.text,
   };
 }

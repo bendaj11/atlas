@@ -1,4 +1,4 @@
-import { formatList } from './format-list.js';
+import { formatAlternatives } from './format-list.js';
 import type { ValidationIssues } from './validation-issues.js';
 
 export type UnknownRecord = Record<string, unknown>;
@@ -12,26 +12,31 @@ const SHA_256_DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const SAFE_IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9_-]|\.(?=[A-Za-z0-9_-]))*$/;
 const URL_SAFE_PATH_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._~-]*$/u;
 const UNSAFE_PATH_CHARACTERS = /[%?#\\\p{Cc}]/u;
+const SHA_256_DIGEST_MESSAGE =
+  'Expected a lowercase SHA-256 digest such as sha256:<64 hex>.';
 const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]'];
 
-export function asRecord(value: unknown): UnknownRecord | undefined {
-  if (typeof value !== 'object' || value === null || Array.isArray(value))
-    return undefined;
+export function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
-  return value as UnknownRecord;
+export function toRecord(value: unknown): UnknownRecord | undefined {
+  return isRecord(value) ? value : undefined;
 }
 
 export function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-export function requiredString(input: {
+export function readRequiredString(input: {
   record: UnknownRecord | undefined;
   key: string;
   issues: ValidationIssues;
 }): string | undefined {
   const value = input.record?.[input.key];
+
   if (isNonEmptyString(value)) return value;
+
   input.issues.add({
     path: input.key,
     message: `Expected ${input.key} to be a non-empty string.`,
@@ -40,23 +45,24 @@ export function requiredString(input: {
   return undefined;
 }
 
-export function optionalString(input: {
+export function readOptionalString(input: {
   record: UnknownRecord | undefined;
   key: string;
   issues: ValidationIssues;
 }): string | undefined {
   if (input.record?.[input.key] === undefined) return undefined;
 
-  return requiredString(input);
+  return readRequiredString(input);
 }
 
-export function requiredLiteral(input: {
+export function requireLiteral(input: {
   record: UnknownRecord | undefined;
   key: string;
   expected: string;
   issues: ValidationIssues;
 }): boolean {
   if (input.record?.[input.key] === input.expected) return true;
+
   input.issues.add({
     path: input.key,
     message: `Expected ${input.key} to be "${input.expected}".`,
@@ -65,24 +71,26 @@ export function requiredLiteral(input: {
   return false;
 }
 
-export function requiredOneOf<T extends string>(input: {
+export function readRequiredOneOf<T extends string>(input: {
   record: UnknownRecord | undefined;
   key: string;
   allowed: readonly T[];
   issues: ValidationIssues;
 }): T | undefined {
   const value = input.record?.[input.key];
-  if (typeof value === 'string' && input.allowed.includes(value as T))
-    return value as T;
+  const member = input.allowed.find((candidate) => candidate === value);
+
+  if (member !== undefined) return member;
+
   input.issues.add({
     path: input.key,
-    message: `Expected ${input.key} to be ${formatList(input.allowed)}.`,
+    message: `Expected ${input.key} to be ${formatAlternatives(input.allowed)}.`,
   });
 
   return undefined;
 }
 
-export function optionalOneOf<T extends string>(input: {
+export function readOptionalOneOf<T extends string>(input: {
   record: UnknownRecord | undefined;
   key: string;
   allowed: readonly T[];
@@ -90,17 +98,19 @@ export function optionalOneOf<T extends string>(input: {
 }): T | undefined {
   if (input.record?.[input.key] === undefined) return undefined;
 
-  return requiredOneOf(input);
+  return readRequiredOneOf(input);
 }
 
-export function requiredIdentifier(input: {
+export function readRequiredIdentifier(input: {
   record: UnknownRecord | undefined;
   key: string;
   label: string;
   issues: ValidationIssues;
 }): string | undefined {
-  const value = requiredString(input);
+  const value = readRequiredString(input);
+
   if (value === undefined) return undefined;
+
   const valid = validateIdentifier({
     value,
     path: input.key,
@@ -118,6 +128,7 @@ export function validateIdentifier(input: {
   issues: ValidationIssues;
 }): boolean {
   if (SAFE_IDENTIFIER.test(input.value)) return true;
+
   input.issues.add({
     path: input.path,
     message: `Expected ${input.label} to contain only letters, numbers, dots, dashes, and underscores, without traversal.`,
@@ -126,14 +137,16 @@ export function validateIdentifier(input: {
   return false;
 }
 
-export function requiredUrlSafePathSegment(input: {
+export function readRequiredUrlSafePathSegment(input: {
   record: UnknownRecord | undefined;
   key: string;
   label: string;
   issues: ValidationIssues;
 }): string | undefined {
-  const value = requiredString(input);
+  const value = readRequiredString(input);
+
   if (value === undefined) return undefined;
+
   const valid = validateUrlSafePathSegment({
     value,
     path: input.key,
@@ -151,6 +164,7 @@ export function validateUrlSafePathSegment(input: {
   issues: ValidationIssues;
 }): boolean {
   if (URL_SAFE_PATH_SEGMENT.test(input.value)) return true;
+
   input.issues.add({
     path: input.path,
     message: `Expected ${input.label} "${input.value}" to be a URL-safe path segment.`,
@@ -159,13 +173,15 @@ export function validateUrlSafePathSegment(input: {
   return false;
 }
 
-export function requiredSafeRelativePath(input: {
+export function readRequiredSafeRelativePath(input: {
   record: UnknownRecord | undefined;
   key: string;
   issues: ValidationIssues;
 }): string | undefined {
-  const value = requiredString(input);
+  const value = readRequiredString(input);
+
   if (value === undefined) return undefined;
+
   const valid = validateSafeRelativePath({
     value,
     path: input.key,
@@ -181,6 +197,7 @@ export function validateSafeRelativePath(input: {
   issues: ValidationIssues;
 }): boolean {
   if (isSafeRelativePath(input.value)) return true;
+
   input.issues.add({
     path: input.path,
     message: `Expected "${input.value}" to be a safe relative path.`,
@@ -195,6 +212,7 @@ export function validateHttpUrl(input: {
   issues: ValidationIssues;
 }): boolean {
   if (isHttpUrl(input.value)) return true;
+
   input.issues.add({
     path: input.path,
     message: 'Expected an absolute HTTP(S) URL.',
@@ -209,6 +227,7 @@ export function validateSemanticVersion(input: {
   issues: ValidationIssues;
 }): void {
   if (SEMANTIC_VERSION.test(input.value)) return;
+
   input.issues.add({
     path: input.path,
     message: 'Expected a semantic version such as 1.2.3.',
@@ -221,6 +240,7 @@ export function validateSemanticVersionRange(input: {
   issues: ValidationIssues;
 }): void {
   if (SEMANTIC_VERSION_RANGE.test(input.value)) return;
+
   input.issues.add({
     path: input.path,
     message: 'Expected a semantic version range such as ^1.2.3.',
@@ -233,6 +253,7 @@ export function validateOptionalSha256Integrity(input: {
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
+
   validateSha256Integrity(input);
 }
 
@@ -251,6 +272,22 @@ export function validateSha256Integrity(input: {
   return false;
 }
 
+export function readSha256Digest(input: {
+  value: unknown;
+  path: string;
+  issues: ValidationIssues;
+}): string | undefined {
+  if (typeof input.value === 'string' && SHA_256_DIGEST.test(input.value))
+    return input.value;
+
+  input.issues.add({
+    path: input.path,
+    message: SHA_256_DIGEST_MESSAGE,
+  });
+
+  return undefined;
+}
+
 export function validateSha256Digest(input: {
   value: unknown;
   path: string;
@@ -260,7 +297,7 @@ export function validateSha256Digest(input: {
     return true;
   input.issues.add({
     path: input.path,
-    message: 'Expected a lowercase SHA-256 digest such as sha256:<64 hex>.',
+    message: SHA_256_DIGEST_MESSAGE,
   });
 
   return false;
@@ -272,7 +309,9 @@ export function validateMetadata(input: {
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
-  const metadata = asRecord(input.value);
+
+  const metadata = toRecord(input.value);
+
   if (!metadata) {
     input.issues.add({
       path: input.path,
@@ -290,13 +329,14 @@ export function validateMetadata(input: {
   }
 }
 
-export function validateOptionalText(input: {
+export function validateOptionalBoundedText(input: {
   value: unknown;
   path: string;
   maximumLength: number;
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
+
   if (
     isNonEmptyString(input.value) &&
     input.value.length <= input.maximumLength
@@ -308,7 +348,7 @@ export function validateOptionalText(input: {
   });
 }
 
-export function validateInteger(input: {
+export function validateIntegerAtLeast(input: {
   value: unknown;
   path: string;
   label: string;
@@ -334,7 +374,9 @@ export function validateUniqueValue(input: {
 }): boolean {
   const duplicate = input.seen.has(input.value);
   input.seen.add(input.value);
+
   if (!duplicate) return true;
+
   input.issues.add({
     path: input.path,
     message: `Duplicate ${input.label} "${input.value}".`,

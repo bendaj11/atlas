@@ -1,4 +1,3 @@
-import type { AtlasValidationIssue } from '../errors/atlas-validation-issue.js';
 import { ValidationIssues } from './validation-issues.js';
 
 export class ValidationIssuesDriver {
@@ -6,7 +5,7 @@ export class ValidationIssuesDriver {
   private issues!: ValidationIssues;
 
   given = {
-    prefix: (prefix: string | undefined): this => {
+    prefix: (prefix: string | undefined) => {
       this.prefix = prefix;
 
       return this;
@@ -14,21 +13,18 @@ export class ValidationIssuesDriver {
   };
 
   when = {
-    created: (): void => {
+    created: () => {
       this.issues = ValidationIssues.create(this.prefix);
     },
-    added: (input: { path: string; message: string }): void => {
+    added: (input: { path: string; message: string }) => {
       this.issues.add(input);
     },
-    addedAt: (
-      scope: string,
-      input: { path: string; message: string },
-    ): void => {
-      this.issues.at(scope).add(input);
+    addedInScope: (scope: string, input: { path: string; message: string }) => {
+      this.issues.scopedTo(scope).add(input);
     },
   };
 
   get = {
-    list: (): AtlasValidationIssue[] => this.issues.list(),
+    issues: () => this.issues.toArray(),
   };
 }

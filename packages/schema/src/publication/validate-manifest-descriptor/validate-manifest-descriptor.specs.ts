@@ -40,13 +40,12 @@ describe('assertManifestDescriptor', () => {
 
   it('should report path, digest and mediaType when they are invalid', () => {
     expect(() =>
-      driver.when.asserted(
-        aManifestDescriptor({
-          path: '../m.json',
-          digest: 'sha256:x' as never,
-          mediaType: 'text/plain' as never,
-        }),
-      ),
+      driver.when.asserted({
+        ...aManifestDescriptor(),
+        path: '../m.json',
+        digest: 'sha256:x',
+        mediaType: 'text/plain',
+      }),
     ).toThrow(
       expect.objectContaining<Partial<AtlasValidationError>>({
         issues: [

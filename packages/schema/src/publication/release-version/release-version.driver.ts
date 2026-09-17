@@ -2,7 +2,7 @@ import { assertReleaseVersion } from './release-version.js';
 
 export class ReleaseVersionDriver {
   when = {
-    asserted: (value: unknown): void => {
+    asserted: (value: unknown) => {
       assertReleaseVersion(value);
     },
   };

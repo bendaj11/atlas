@@ -6,6 +6,9 @@ import type { AtlasPlacement } from '../manifest/atlas-placement/atlas-placement
 
 export type AtlasArtifactKind = 'app' | 'host';
 
+export const ATLAS_ARTIFACT_MANIFEST_SCHEMA_VERSION = '2';
+export const ATLAS_DEPLOYMENT_SCHEMA_VERSION = 'v1';
+
 export const ATLAS_PAYLOAD_FILE_ROLES = [
   'remote-entry',
   'script',
@@ -69,7 +72,7 @@ export interface AtlasPublishedWidgetManifest {
 }
 
 export interface AtlasArtifactManifestBaseV2 {
-  schemaVersion: '2';
+  schemaVersion: typeof ATLAS_ARTIFACT_MANIFEST_SCHEMA_VERSION;
   kind: 'app-artifact' | 'host-artifact';
   id: string;
   name: string;
@@ -119,7 +122,7 @@ export interface AtlasDeploymentSelection {
 export type AtlasHostDeploymentSelection = AtlasDeploymentSelection;
 
 export interface AtlasEnvironmentDeployment {
-  schemaVersion: 'v1';
+  schemaVersion: typeof ATLAS_DEPLOYMENT_SCHEMA_VERSION;
   environment: string;
   revision: `sha256:${string}`;
   updatedAt: string;
@@ -132,7 +135,7 @@ export interface AtlasDeploymentManifestReference extends AtlasManifestDescripto
 }
 
 export interface AtlasHostDeploymentManifest {
-  schemaVersion: 'v1';
+  schemaVersion: typeof ATLAS_DEPLOYMENT_SCHEMA_VERSION;
   kind: 'host-deployment';
   hostId: string;
   environment: string;

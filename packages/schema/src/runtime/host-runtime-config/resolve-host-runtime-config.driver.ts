@@ -7,7 +7,7 @@ export class ResolveHostRuntimeConfigDriver {
   private error: unknown;
 
   readonly given = {
-    hostUrl: (hostUrl: string | undefined): ResolveHostRuntimeConfigDriver => {
+    hostUrl: (hostUrl: string | undefined) => {
       this.hostUrl = hostUrl;
 
       return this;
@@ -15,7 +15,7 @@ export class ResolveHostRuntimeConfigDriver {
   };
 
   readonly when = {
-    resolved: (value: unknown): void => {
+    resolved: (value: unknown) => {
       try {
         this.runtime = resolveAtlasRuntimeConfig(value, this.hostUrl);
       } catch (error) {
@@ -25,7 +25,7 @@ export class ResolveHostRuntimeConfigDriver {
   };
 
   readonly get = {
-    runtime: (): AtlasHostRuntimeConfig | undefined => this.runtime,
-    error: (): unknown => this.error,
+    runtime: () => this.runtime,
+    error: () => this.error,
   };
 }

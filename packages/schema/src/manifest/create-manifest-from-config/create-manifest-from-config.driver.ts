@@ -18,7 +18,7 @@ export class CreateManifestFromConfigDriver {
   private manifest!: AtlasManifest;
 
   given = {
-    config: (config: Partial<AtlasAppConfig>): this => {
+    config: (config: Partial<AtlasAppConfig>) => {
       this.input = {
         ...this.input,
         config: { ...this.input.config, ...config },
@@ -26,9 +26,7 @@ export class CreateManifestFromConfigDriver {
 
       return this;
     },
-    input: (
-      input: Partial<Omit<CreateManifestFromConfigInput, 'config'>>,
-    ): this => {
+    input: (input: Partial<Omit<CreateManifestFromConfigInput, 'config'>>) => {
       this.input = { ...this.input, ...input };
 
       return this;
@@ -36,12 +34,12 @@ export class CreateManifestFromConfigDriver {
   };
 
   when = {
-    created: (): void => {
+    created: () => {
       this.manifest = createManifestFromConfig(this.input);
     },
   };
 
   get = {
-    manifest: (): AtlasManifest => this.manifest,
+    manifest: () => this.manifest,
   };
 }

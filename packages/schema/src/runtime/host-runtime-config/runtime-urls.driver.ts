@@ -10,7 +10,7 @@ export class RuntimeUrlsDriver {
   private url!: string;
 
   readonly given = {
-    runtime: (runtime: AtlasHostRuntimeConfig): RuntimeUrlsDriver => {
+    runtime: (runtime: AtlasHostRuntimeConfig) => {
       this.runtime = runtime;
 
       return this;
@@ -18,18 +18,18 @@ export class RuntimeUrlsDriver {
   };
 
   readonly when = {
-    environmentRegistryUrlBuilt: (): void => {
+    environmentRegistryUrlBuilt: () => {
       this.url = environmentRegistryUrl(this.runtime);
     },
-    environmentManifestUrlBuilt: (): void => {
+    environmentManifestUrlBuilt: () => {
       this.url = environmentManifestUrl(this.runtime);
     },
-    artifactUrlBuilt: (path: string): void => {
+    artifactUrlBuilt: (path: string) => {
       this.url = artifactUrl(this.runtime, path);
     },
   };
 
   readonly get = {
-    url: (): string => this.url,
+    url: () => this.url,
   };
 }

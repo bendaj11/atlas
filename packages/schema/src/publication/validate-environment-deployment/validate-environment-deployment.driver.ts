@@ -8,16 +8,16 @@ export class ValidateEnvironmentDeploymentDriver {
   private issues: AtlasValidationIssue[] = [];
 
   when = {
-    validated: (value: unknown): void => {
+    validated: (value: unknown) => {
       this.issues = validateEnvironmentDeployment(value);
     },
-    asserted: (value: unknown): void => {
+    asserted: (value: unknown) => {
       assertEnvironmentDeployment(value);
     },
   };
 
   get = {
-    issues: (): AtlasValidationIssue[] => this.issues,
-    issuePaths: (): string[] => this.issues.map((issue) => issue.path),
+    issues: () => this.issues,
+    issuePaths: () => this.issues.map((issue) => issue.path),
   };
 }

@@ -58,7 +58,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report schemaVersion when it is not "1"', () => {
-    driver.when.validated(anAppManifest({ schemaVersion: '2' as '1' }));
+    driver.when.validated({ ...anAppManifest(), schemaVersion: '2' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'schemaVersion', message: 'Expected schemaVersion to be "1".' },
@@ -66,7 +66,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report kind when it is not app', () => {
-    driver.when.validated(anAppManifest({ kind: 'host' as 'app' }));
+    driver.when.validated({ ...anAppManifest(), kind: 'host' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'kind', message: 'Expected kind to be "app".' },
@@ -109,9 +109,7 @@ describe('validateAtlasManifest', () => {
   );
 
   it('should report channel when it is unknown', () => {
-    driver.when.validated(
-      anAppManifest({ channel: faker.lorem.word() as 'pr' }),
-    );
+    driver.when.validated({ ...anAppManifest(), channel: faker.lorem.word() });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -131,7 +129,7 @@ describe('validateAtlasManifest', () => {
   );
 
   it('should report framework when it is unknown', () => {
-    driver.when.validated(anAppManifest({ framework: 'svelte' as 'react' }));
+    driver.when.validated({ ...anAppManifest(), framework: 'svelte' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -158,7 +156,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report isolation listing all members when it is unknown', () => {
-    driver.when.validated(anAppManifest({ isolation: 'iframe' as 'scoped' }));
+    driver.when.validated({ ...anAppManifest(), isolation: 'iframe' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -234,9 +232,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report a metadata entry when it is not a primitive', () => {
-    driver.when.validated(
-      anAppManifest({ metadata: { bad: null as unknown as string } }),
-    );
+    driver.when.validated({ ...anAppManifest(), metadata: { bad: null } });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -259,9 +255,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report exposes when it is not an object', () => {
-    driver.when.validated(
-      anAppManifest({ exposes: [] as unknown as { entry: string } }),
-    );
+    driver.when.validated({ ...anAppManifest(), exposes: [] });
 
     expect(driver.get.issues()).toEqual([
       { path: 'exposes', message: 'Expected exposes to be an object.' },
@@ -312,11 +306,10 @@ describe('validateAtlasManifest', () => {
 
   it('should report each bad entry when hosts are empty, duplicated or not strings', () => {
     const hostId = anIdentifier();
-    driver.when.validated(
-      anAppManifest({
-        supportedHosts: [hostId, '', hostId, 4 as unknown as string],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest(),
+      supportedHosts: [hostId, '', hostId, 4],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -360,7 +353,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report placements when it is not an array', () => {
-    driver.when.validated(anAppManifest({ placements: {} as unknown as [] }));
+    driver.when.validated({ ...anAppManifest(), placements: {} });
 
     expect(driver.get.issues()).toEqual([
       { path: 'placements', message: 'Expected placements to be an array.' },
@@ -368,12 +361,11 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report id, hostId and kind when a placement is not an object', () => {
-    driver.when.validated(
-      anAppManifest({
-        supportedHosts: ['*'],
-        placements: ['x' as unknown as never],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest(),
+      supportedHosts: ['*'],
+      placements: ['x'],
+    });
 
     expect(driver.get.issuePaths()).toEqual([
       'placements.0.id',
@@ -384,12 +376,11 @@ describe('validateAtlasManifest', () => {
 
   it('should report only the missing hostId when a placement omits it', () => {
     const { hostId: _hostId, ...placement } = aSlotPlacement();
-    driver.when.validated(
-      anAppManifest({
-        supportedHosts: ['*'],
-        placements: [placement as unknown as never],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest(),
+      supportedHosts: ['*'],
+      placements: [placement],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -461,11 +452,10 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report kind when it is unknown', () => {
-    driver.when.validated(
-      anAppManifest({
-        placements: [aSlotPlacement({ kind: 'overlay' as 'slot' })],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest({ supportedHosts: ['*'] }),
+      placements: [{ ...aSlotPlacement(), kind: 'overlay' }],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -581,22 +571,19 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report title, nav label, order and visible when they have wrong types', () => {
-    driver.when.validated(
-      anAppManifest({
-        placements: [
-          aRoutePlacement({
-            route: aRouteContribution({
-              title: '',
-              nav: {
-                label: '',
-                order: 'first' as unknown as number,
-                visible: 'yes' as unknown as boolean,
-              },
-            }),
-          }),
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest({ supportedHosts: ['*'] }),
+      placements: [
+        {
+          ...aRoutePlacement(),
+          route: {
+            ...aRouteContribution(),
+            title: '',
+            nav: { label: '', order: 'first', visible: 'yes' },
+          },
+        },
+      ],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -619,17 +606,15 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report nav when it is not an object', () => {
-    driver.when.validated(
-      anAppManifest({
-        placements: [
-          aRoutePlacement({
-            route: aRouteContribution({
-              nav: 'menu' as unknown as { label: string },
-            }),
-          }),
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest({ supportedHosts: ['*'] }),
+      placements: [
+        {
+          ...aRoutePlacement(),
+          route: { ...aRouteContribution(), nav: 'menu' },
+        },
+      ],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -660,15 +645,15 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report match when it is unknown', () => {
-    driver.when.validated(
-      anAppManifest({
-        placements: [
-          aRoutePlacement({
-            route: aRouteContribution({ match: 'exact' as 'full' }),
-          }),
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest({ supportedHosts: ['*'] }),
+      placements: [
+        {
+          ...aRoutePlacement(),
+          route: { ...aRouteContribution(), match: 'exact' },
+        },
+      ],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -759,9 +744,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report exportedWidgets when it is not an array', () => {
-    driver.when.validated(
-      anAppManifest({ exportedWidgets: {} as unknown as [] }),
-    );
+    driver.when.validated({ ...anAppManifest(), exportedWidgets: {} });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -823,15 +806,16 @@ describe('validateAtlasManifest', () => {
     driver.when.validated({
       ...manifest,
       exportedWidgets: [
-        anExportedWidget({
+        {
+          ...anExportedWidget(),
           ownerAppId: manifest.id,
           framework: manifest.framework,
-          schemaVersion: '2' as '1',
-          contractVersion: '2' as '1',
+          schemaVersion: '2',
+          contractVersion: '2',
           id: '../summary',
           remoteEntryUrl: 'javascript:alert(1)',
-          metadata: { invalid: null as unknown as string },
-        }),
+          metadata: { invalid: null },
+        },
       ],
     });
 
@@ -861,9 +845,10 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report externalAppsDependencies when it is not an array', () => {
-    driver.when.validated(
-      anAppManifest({ externalAppsDependencies: 'maps' as unknown as [] }),
-    );
+    driver.when.validated({
+      ...anAppManifest(),
+      externalAppsDependencies: 'maps',
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -885,16 +870,10 @@ describe('validateAtlasManifest', () => {
 
   it('should report non-string, unsafe and duplicate entries when present', () => {
     const appId = anIdentifier();
-    driver.when.validated(
-      anAppManifest({
-        externalAppsDependencies: [
-          4 as unknown as string,
-          'maps app',
-          appId,
-          appId,
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppManifest(),
+      externalAppsDependencies: [4, 'maps app', appId, appId],
+    });
 
     expect(driver.get.issues()).toEqual([
       {

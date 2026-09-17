@@ -20,7 +20,7 @@ export class AtlasError extends Error {
   readonly surface: AtlasErrorSurface;
 
   constructor(summary: string, options: AtlasErrorOptions) {
-    const actions = normalizeActions(options.suggestedActions);
+    const actions = normalizeSuggestedActions(options.suggestedActions);
     const normalizedSummary = errorSummary(summary);
     super(actionableMessage(normalizedSummary, actions), {
       cause: options.cause,
@@ -38,8 +38,10 @@ export function actionableMessage(
   suggestedActions: string | readonly string[],
 ): string {
   const summary = errorSummary(message);
-  const actions = normalizeActions(suggestedActions);
+  const actions = normalizeSuggestedActions(suggestedActions);
+
   if (actions.length === 1) return `${summary} ${ACTION_LABEL} ${actions[0]}`;
+
   const numbered = actions.map((action, index) => `${index + 1}) ${action}`);
 
   return `${summary} ${ACTIONS_LABEL} ${numbered.join(' ')}`;
@@ -50,6 +52,7 @@ export function ensureActionableError(
   options?: string | AtlasErrorOptions,
 ): AtlasError {
   if (value instanceof AtlasError && options === undefined) return value;
+
   const cause = value instanceof Error ? value : new Error(String(value));
   const normalizedOptions =
     typeof options === 'string' ? { suggestedActions: options } : options;
@@ -72,29 +75,35 @@ export function errorSummary(message: string): string {
 export function suggestedActionFor(message: string): string {
   const summary = errorSummary(message);
   const duplicateApp = /Duplicate app id "([^"]+)"/i.exec(summary)?.[1];
+
   if (duplicateApp)
     return `Remove duplicate manifest entries for "${duplicateApp}" from the host catalog, then retry.`;
+
   if (
     /missing required configuration file ".*atlas\.config\.ts"/i.test(summary)
   )
     return 'Restore or create atlas.config.ts in the named project, then retry the failed operation.';
+
   if (/catalog/i.test(summary))
     return 'Verify the catalog URL is reachable and its JSON matches the Atlas catalog schema, then retry.';
+
   if (/CORS|fetch|network|remote entry|asset|resource/i.test(summary))
     return 'Verify the named URL is reachable, permits the host origin through CORS, and serves the expected Atlas artifact, then retry.';
+
   if (
     /config|schema|manifest|invalid|expects|required|must|unsupported/i.test(
       summary,
     )
   )
     return 'Correct the named value in Atlas configuration or generated JSON, then retry the failed operation.';
+
   if (/widget|mount|overlay|popup/i.test(summary))
     return 'Verify the named capability is configured and exported by the selected app build, then retry.';
 
   return `${DEFAULT_ACTION} If it persists, inspect the preserved cause and stack trace.`;
 }
 
-function normalizeActions(
+function normalizeSuggestedActions(
   actions: string | readonly string[],
 ): readonly string[] {
   const normalized = (typeof actions === 'string' ? [actions] : actions)

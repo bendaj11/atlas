@@ -1,16 +1,16 @@
 import type { AtlasValidationIssue } from '../../errors/atlas-validation-issue.js';
 import { ATLAS_FRAMEWORKS } from '../../manifest/atlas-framework.js';
 import { ATLAS_VERSION_CHANNELS } from '../../manifest/atlas-version-channel.js';
-import { ATLAS_MANIFEST_SCHEMA_VERSION } from '../../manifest/validate-atlas-manifest/validate-atlas-manifest.js';
+import { ATLAS_MANIFEST_SCHEMA_VERSION } from '../../manifest/atlas-artifact-manifest-base.js';
 import { validateReleaseMetadata } from '../../validation/validate-release-metadata.js';
 import { validateStyles } from '../../validation/validate-styles.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
-  asRecord,
-  requiredIdentifier,
-  requiredLiteral,
-  requiredOneOf,
-  requiredString,
+  toRecord,
+  readRequiredIdentifier,
+  requireLiteral,
+  readRequiredOneOf,
+  readRequiredString,
   validateHttpUrl,
   validateOptionalSha256Integrity,
   validateSemanticVersion,
@@ -24,7 +24,7 @@ export function validateAtlasHostManifest(
   const issues = ValidationIssues.create();
   collectAtlasHostManifestIssues({ value, issues });
 
-  return issues.list();
+  return issues.toArray();
 }
 
 export function collectAtlasHostManifestIssues(input: {
@@ -32,34 +32,43 @@ export function collectAtlasHostManifestIssues(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const manifest = asRecord(input.value);
-  requiredLiteral({
+  const manifest = toRecord(input.value);
+  requireLiteral({
     record: manifest,
     key: 'schemaVersion',
     expected: ATLAS_MANIFEST_SCHEMA_VERSION,
     issues,
   });
-  requiredLiteral({ record: manifest, key: 'kind', expected: 'host', issues });
-  requiredIdentifier({ record: manifest, key: 'id', label: 'host id', issues });
-  requiredString({ record: manifest, key: 'name', issues });
-  requiredString({ record: manifest, key: 'buildId', issues });
-  requiredString({ record: manifest, key: 'createdAt', issues });
-  requiredOneOf({
+  requireLiteral({ record: manifest, key: 'kind', expected: 'host', issues });
+  readRequiredIdentifier({
+    record: manifest,
+    key: 'id',
+    label: 'host id',
+    issues,
+  });
+  readRequiredString({ record: manifest, key: 'name', issues });
+  readRequiredString({ record: manifest, key: 'buildId', issues });
+  readRequiredString({ record: manifest, key: 'createdAt', issues });
+  readRequiredOneOf({
     record: manifest,
     key: 'channel',
     allowed: ATLAS_VERSION_CHANNELS,
     issues,
   });
-  requiredOneOf({
+  readRequiredOneOf({
     record: manifest,
     key: 'framework',
     allowed: ATLAS_FRAMEWORKS,
     issues,
   });
-  const version = requiredString({ record: manifest, key: 'version', issues });
+  const version = readRequiredString({
+    record: manifest,
+    key: 'version',
+    issues,
+  });
   if (version)
     validateSemanticVersion({ value: version, path: 'version', issues });
-  const loaderRange = requiredString({
+  const loaderRange = readRequiredString({
     record: manifest,
     key: 'requiredLoaderApiVersion',
     issues,
@@ -70,7 +79,7 @@ export function collectAtlasHostManifestIssues(input: {
       path: 'requiredLoaderApiVersion',
       issues,
     });
-  const remoteEntryUrl = requiredString({
+  const remoteEntryUrl = readRequiredString({
     record: manifest,
     key: 'remoteEntryUrl',
     issues,
@@ -83,8 +92,12 @@ export function collectAtlasHostManifestIssues(input: {
     issues,
   });
   validateReleaseMetadata({ record: manifest, issues });
-  validateStyles({ value: manifest?.styles, issues: issues.at('styles') });
-  const exposes = asRecord(manifest?.exposes);
+  validateStyles({
+    value: manifest?.styles,
+    issues: issues.scopedTo('styles'),
+  });
+  const exposes = toRecord(manifest?.exposes);
+
   if (!exposes) {
     issues.add({
       path: 'exposes',
@@ -93,9 +106,9 @@ export function collectAtlasHostManifestIssues(input: {
 
     return;
   }
-  requiredString({
+  readRequiredString({
     record: exposes,
     key: 'entry',
-    issues: issues.at('exposes'),
+    issues: issues.scopedTo('exposes'),
   });
 }

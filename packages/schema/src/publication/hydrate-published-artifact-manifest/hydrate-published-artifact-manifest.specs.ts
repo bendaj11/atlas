@@ -105,9 +105,11 @@ describe('hydratePublishedArtifactManifest', () => {
     });
 
     it('should point exported widgets at the resolved remote entry when a release is hydrated', () => {
-      expect(
-        (driver.get.manifest() as { exportedWidgets: unknown }).exportedWidgets,
-      ).toEqual([{ ...widget, remoteEntryUrl: `${root}${entry.path}` }]);
+      expect(driver.get.manifest()).toMatchObject({
+        exportedWidgets: [
+          { ...widget, remoteEntryUrl: `${root}${entry.path}` },
+        ],
+      });
     });
   });
 

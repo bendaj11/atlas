@@ -1,11 +1,11 @@
 import type { AtlasManifestDescriptor } from '../atlas-publication.js';
-import { assertValid } from '../../validation/assert-valid.js';
+import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
-  asRecord,
-  requiredLiteral,
-  requiredSafeRelativePath,
-  validateInteger,
+  toRecord,
+  requireLiteral,
+  readRequiredSafeRelativePath,
+  validateIntegerAtLeast,
   validateSha256Digest,
 } from '../../validation/validators.js';
 
@@ -13,7 +13,8 @@ export function validateManifestDescriptor(input: {
   value: unknown;
   issues: ValidationIssues;
 }): void {
-  const descriptor = asRecord(input.value);
+  const descriptor = toRecord(input.value);
+
   if (!descriptor) {
     input.issues.add({
       path: '',
@@ -22,7 +23,7 @@ export function validateManifestDescriptor(input: {
 
     return;
   }
-  requiredSafeRelativePath({
+  readRequiredSafeRelativePath({
     record: descriptor,
     key: 'path',
     issues: input.issues,
@@ -32,14 +33,14 @@ export function validateManifestDescriptor(input: {
     path: 'digest',
     issues: input.issues,
   });
-  validateInteger({
+  validateIntegerAtLeast({
     value: descriptor.size,
     path: 'size',
     label: 'size',
     minimum: 1,
     issues: input.issues,
   });
-  requiredLiteral({
+  requireLiteral({
     record: descriptor,
     key: 'mediaType',
     expected: 'application/json',
@@ -54,5 +55,5 @@ export function assertManifestDescriptor(
 ): asserts value is AtlasManifestDescriptor {
   const issues = ValidationIssues.create(subject);
   validateManifestDescriptor({ value, issues });
-  assertValid({ issues, message: `Invalid Atlas ${subject}.` });
+  assertNoIssues({ issues, message: `Invalid Atlas ${subject}.` });
 }

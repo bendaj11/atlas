@@ -1,12 +1,12 @@
-import { formatList } from './format-list.js';
+import { formatAlternatives } from './format-list.js';
 
-describe('formatList', () => {
+describe('formatAlternatives', () => {
   it.each([
     [[], ''],
     [['a'], 'a'],
     [['a', 'b'], 'a or b'],
     [['a', 'b', 'c'], 'a, b, or c'],
   ])('should format %j as "%s" when listed', (values, expected) => {
-    expect(formatList(values)).toBe(expected);
+    expect(formatAlternatives(values)).toBe(expected);
   });
 });

@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import type { AtlasValidationError } from '../errors/atlas-validation-error/atlas-validation-error.js';
 import { AssertValidDriver } from './assert-valid.driver.js';
 
-describe('assertValid', () => {
+describe('assertNoIssues', () => {
   let driver: AssertValidDriver;
 
   beforeEach(() => {

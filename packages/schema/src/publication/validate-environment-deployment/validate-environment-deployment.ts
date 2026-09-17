@@ -1,16 +1,18 @@
 import type { AtlasValidationIssue } from '../../errors/atlas-validation-issue.js';
-import type { AtlasEnvironmentDeployment } from '../atlas-publication.js';
-import { assertValid } from '../../validation/assert-valid.js';
+import {
+  ATLAS_DEPLOYMENT_SCHEMA_VERSION,
+  type AtlasEnvironmentDeployment,
+} from '../atlas-publication.js';
+import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
-  asRecord,
-  requiredLiteral,
-  requiredString,
+  toRecord,
+  requireLiteral,
+  readRequiredString,
   validateSha256Digest,
   validateUrlSafePathSegment,
 } from '../../validation/validators.js';
 import { validateReleaseVersion } from '../release-version/release-version.js';
-import { ATLAS_DEPLOYMENT_SCHEMA_VERSION } from '../validate-host-deployment-manifest/validate-host-deployment-manifest.js';
 
 /** Checks unknown JSON and returns all environment deployment problems. */
 export function validateEnvironmentDeployment(
@@ -19,7 +21,7 @@ export function validateEnvironmentDeployment(
   const issues = ValidationIssues.create();
   collectEnvironmentDeploymentIssues({ value, issues });
 
-  return issues.list();
+  return issues.toArray();
 }
 
 /** Checks unknown JSON and throws unless it is a valid environment deployment. */
@@ -28,7 +30,7 @@ export function assertEnvironmentDeployment(
 ): asserts value is AtlasEnvironmentDeployment {
   const issues = ValidationIssues.create();
   collectEnvironmentDeploymentIssues({ value, issues });
-  assertValid({ issues, message: 'Invalid Atlas environment deployment.' });
+  assertNoIssues({ issues, message: 'Invalid Atlas environment deployment.' });
 }
 
 function collectEnvironmentDeploymentIssues(input: {
@@ -36,7 +38,8 @@ function collectEnvironmentDeploymentIssues(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const deployment = asRecord(input.value);
+  const deployment = toRecord(input.value);
+
   if (!deployment) {
     issues.add({
       path: '',
@@ -45,19 +48,19 @@ function collectEnvironmentDeploymentIssues(input: {
 
     return;
   }
-  requiredLiteral({
+  requireLiteral({
     record: deployment,
     key: 'schemaVersion',
     expected: ATLAS_DEPLOYMENT_SCHEMA_VERSION,
     issues,
   });
-  requiredString({ record: deployment, key: 'environment', issues });
+  readRequiredString({ record: deployment, key: 'environment', issues });
   validateSha256Digest({
     value: deployment.revision,
     path: 'revision',
     issues,
   });
-  const updatedAt = requiredString({
+  const updatedAt = readRequiredString({
     record: deployment,
     key: 'updatedAt',
     issues,
@@ -68,15 +71,22 @@ function collectEnvironmentDeploymentIssues(input: {
       message:
         'Expected updatedAt to be an ISO date-time such as 2026-01-01T00:00:00.000Z.',
     });
-  validateSelections({ value: deployment.hosts, issues: issues.at('hosts') });
-  validateSelections({ value: deployment.apps, issues: issues.at('apps') });
+  validateDeploymentSelections({
+    value: deployment.hosts,
+    issues: issues.scopedTo('hosts'),
+  });
+  validateDeploymentSelections({
+    value: deployment.apps,
+    issues: issues.scopedTo('apps'),
+  });
 }
 
-function validateSelections(input: {
+function validateDeploymentSelections(input: {
   value: unknown;
   issues: ValidationIssues;
 }): void {
-  const selections = asRecord(input.value);
+  const selections = toRecord(input.value);
+
   if (!selections) {
     input.issues.add({
       path: '',
@@ -92,7 +102,8 @@ function validateSelections(input: {
       label: 'artifact id',
       issues: input.issues,
     });
-    const selection = asRecord(selectionValue);
+    const selection = toRecord(selectionValue);
+
     if (!selection) {
       input.issues.add({
         path: id,

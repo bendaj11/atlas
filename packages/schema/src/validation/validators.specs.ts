@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { ValidatorsDriver } from './validators.driver.js';
-import { asRecord, isNonEmptyString } from './validators.js';
+import { isNonEmptyString, isRecord, toRecord } from './validators.js';
 
 const UNSAFE_PATHS = [
   '/absolute.js',
@@ -26,18 +26,34 @@ const UNSAFE_IDENTIFIERS = [
 const IDENTIFIER_MESSAGE =
   'Expected app id to contain only letters, numbers, dots, dashes, and underscores, without traversal.';
 
-describe('asRecord', () => {
+describe('toRecord', () => {
   it.each([[{}], [{ a: 1 }]])(
     'should return %j when value is a plain object',
     (value) => {
-      expect(asRecord(value)).toBe(value);
+      expect(toRecord(value)).toBe(value);
     },
   );
 
   it.each([[null], [[]], ['x'], [1], [undefined]])(
     'should return undefined when value is %j',
     (value) => {
-      expect(asRecord(value)).toBeUndefined();
+      expect(toRecord(value)).toBeUndefined();
+    },
+  );
+});
+
+describe('isRecord', () => {
+  it.each([[{}], [{ a: 1 }]])(
+    'should return true when value is %j',
+    (value) => {
+      expect(isRecord(value)).toBe(true);
+    },
+  );
+
+  it.each([[null], [[]], ['x'], [1], [undefined]])(
+    'should return false when value is %j',
+    (value) => {
+      expect(isRecord(value)).toBe(false);
     },
   );
 });
@@ -54,7 +70,7 @@ describe('isNonEmptyString', () => {
   });
 });
 
-describe('requiredString', () => {
+describe('readRequiredString', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -63,9 +79,7 @@ describe('requiredString', () => {
 
   it('should return the value without issues when key holds a non-empty string', () => {
     const value = faker.lorem.word();
-    driver.given
-      .record({ name: value })
-      .when.recordValidated('requiredString', { key: 'name' });
+    driver.given.record({ name: value }).when.requiredStringRead('name');
 
     expect(driver.get.result()).toBe(value);
   });
@@ -73,9 +87,7 @@ describe('requiredString', () => {
   it.each([[undefined], [''], ['  '], [1], [null]])(
     'should report a non-empty string issue at the key when value is %j',
     (value) => {
-      driver.given
-        .record({ name: value })
-        .when.recordValidated('requiredString', { key: 'name' });
+      driver.given.record({ name: value }).when.requiredStringRead('name');
 
       expect(driver.get.issues()).toEqual([
         { path: 'name', message: 'Expected name to be a non-empty string.' },
@@ -84,9 +96,7 @@ describe('requiredString', () => {
   );
 
   it('should report a non-empty string issue when the record is undefined', () => {
-    driver.given
-      .record(undefined)
-      .when.recordValidated('requiredString', { key: 'name' });
+    driver.given.record(undefined).when.requiredStringRead('name');
 
     expect(driver.get.issues()).toEqual([
       { path: 'name', message: 'Expected name to be a non-empty string.' },
@@ -94,7 +104,7 @@ describe('requiredString', () => {
   });
 });
 
-describe('optionalString', () => {
+describe('readOptionalString', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -102,17 +112,13 @@ describe('optionalString', () => {
   });
 
   it('should report nothing when key is absent', () => {
-    driver.given
-      .record({})
-      .when.recordValidated('optionalString', { key: 'title' });
+    driver.given.record({}).when.optionalStringRead('title');
 
     expect(driver.get.issues()).toEqual([]);
   });
 
   it('should report a non-empty string issue when key holds an empty string', () => {
-    driver.given
-      .record({ title: '' })
-      .when.recordValidated('optionalString', { key: 'title' });
+    driver.given.record({ title: '' }).when.optionalStringRead('title');
 
     expect(driver.get.issues()).toEqual([
       { path: 'title', message: 'Expected title to be a non-empty string.' },
@@ -120,7 +126,7 @@ describe('optionalString', () => {
   });
 });
 
-describe('requiredLiteral', () => {
+describe('requireLiteral', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -146,7 +152,7 @@ describe('requiredLiteral', () => {
   });
 });
 
-describe('requiredOneOf', () => {
+describe('readRequiredOneOf', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -154,12 +160,10 @@ describe('requiredOneOf', () => {
   });
 
   it('should return the member when key holds an allowed member', () => {
-    driver.given
-      .record({ channel: 'pr' })
-      .when.oneOfValidated('requiredOneOf', {
-        key: 'channel',
-        allowed: ['production', 'pr'],
-      });
+    driver.given.record({ channel: 'pr' }).when.requiredOneOfRead({
+      key: 'channel',
+      allowed: ['production', 'pr'],
+    });
 
     expect(driver.get.result()).toBe('pr');
   });
@@ -167,7 +171,7 @@ describe('requiredOneOf', () => {
   it('should list allowed members when key holds another value', () => {
     driver.given
       .record({ channel: faker.lorem.word() })
-      .when.oneOfValidated('requiredOneOf', {
+      .when.requiredOneOfRead({
         key: 'channel',
         allowed: ['production', 'pr', 'local'],
       });
@@ -181,7 +185,7 @@ describe('requiredOneOf', () => {
   });
 
   it('should list allowed members when key holds a non-string', () => {
-    driver.given.record({ channel: 1 }).when.oneOfValidated('requiredOneOf', {
+    driver.given.record({ channel: 1 }).when.requiredOneOfRead({
       key: 'channel',
       allowed: ['production', 'pr'],
     });
@@ -192,7 +196,7 @@ describe('requiredOneOf', () => {
   });
 });
 
-describe('optionalOneOf', () => {
+describe('readOptionalOneOf', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -200,7 +204,7 @@ describe('optionalOneOf', () => {
   });
 
   it('should report nothing when key is absent', () => {
-    driver.given.record({}).when.oneOfValidated('optionalOneOf', {
+    driver.given.record({}).when.optionalOneOfRead({
       key: 'match',
       allowed: ['prefix', 'full'],
     });
@@ -209,12 +213,10 @@ describe('optionalOneOf', () => {
   });
 
   it('should list allowed members when key holds another value', () => {
-    driver.given
-      .record({ match: faker.lorem.word() })
-      .when.oneOfValidated('optionalOneOf', {
-        key: 'match',
-        allowed: ['prefix', 'full'],
-      });
+    driver.given.record({ match: faker.lorem.word() }).when.optionalOneOfRead({
+      key: 'match',
+      allowed: ['prefix', 'full'],
+    });
 
     expect(driver.get.issues()).toEqual([
       { path: 'match', message: 'Expected match to be prefix or full.' },
@@ -222,7 +224,7 @@ describe('optionalOneOf', () => {
   });
 });
 
-describe('requiredIdentifier', () => {
+describe('readRequiredIdentifier', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -232,12 +234,10 @@ describe('requiredIdentifier', () => {
   it.each(SAFE_IDENTIFIERS)(
     'should return "%s" when key holds a safe identifier',
     (value) => {
-      driver.given
-        .record({ id: value })
-        .when.recordValidated('requiredIdentifier', {
-          key: 'id',
-          label: 'app id',
-        });
+      driver.given.record({ id: value }).when.requiredIdentifierRead({
+        key: 'id',
+        label: 'app id',
+      });
 
       expect(driver.get.result()).toBe(value);
     },
@@ -246,12 +246,10 @@ describe('requiredIdentifier', () => {
   it.each(UNSAFE_IDENTIFIERS)(
     'should report an identifier issue when key holds "%s"',
     (value) => {
-      driver.given
-        .record({ id: value })
-        .when.recordValidated('requiredIdentifier', {
-          key: 'id',
-          label: 'app id',
-        });
+      driver.given.record({ id: value }).when.requiredIdentifierRead({
+        key: 'id',
+        label: 'app id',
+      });
 
       expect(driver.get.issues()).toEqual([
         { path: 'id', message: IDENTIFIER_MESSAGE },
@@ -260,7 +258,7 @@ describe('requiredIdentifier', () => {
   );
 
   it('should report only the non-empty string issue when key is missing', () => {
-    driver.given.record({}).when.recordValidated('requiredIdentifier', {
+    driver.given.record({}).when.requiredIdentifierRead({
       key: 'id',
       label: 'app id',
     });
@@ -271,7 +269,7 @@ describe('requiredIdentifier', () => {
   });
 });
 
-describe('requiredUrlSafePathSegment', () => {
+describe('readRequiredUrlSafePathSegment', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -281,12 +279,10 @@ describe('requiredUrlSafePathSegment', () => {
   it.each(['orders', 'Release_1.2~candidate-3', '1'])(
     'should return "%s" when key holds a URL-safe segment',
     (value) => {
-      driver.given
-        .record({ id: value })
-        .when.recordValidated('requiredUrlSafePathSegment', {
-          key: 'id',
-          label: 'artifact id',
-        });
+      driver.given.record({ id: value }).when.requiredUrlSafePathSegmentRead({
+        key: 'id',
+        label: 'artifact id',
+      });
 
       expect(driver.get.result()).toBe(value);
     },
@@ -303,12 +299,10 @@ describe('requiredUrlSafePathSegment', () => {
     'rélease',
     '../orders',
   ])('should report a URL-safe segment issue when key holds "%s"', (value) => {
-    driver.given
-      .record({ id: value })
-      .when.recordValidated('requiredUrlSafePathSegment', {
-        key: 'id',
-        label: 'artifact id',
-      });
+    driver.given.record({ id: value }).when.requiredUrlSafePathSegmentRead({
+      key: 'id',
+      label: 'artifact id',
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -319,7 +313,7 @@ describe('requiredUrlSafePathSegment', () => {
   });
 });
 
-describe('requiredSafeRelativePath', () => {
+describe('readRequiredSafeRelativePath', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -331,7 +325,7 @@ describe('requiredSafeRelativePath', () => {
     (value) => {
       driver.given
         .record({ path: value })
-        .when.recordValidated('requiredSafeRelativePath', { key: 'path' });
+        .when.requiredSafeRelativePathRead('path');
 
       expect(driver.get.result()).toBe(value);
     },
@@ -342,7 +336,7 @@ describe('requiredSafeRelativePath', () => {
     (value) => {
       driver.given
         .record({ path: value })
-        .when.recordValidated('requiredSafeRelativePath', { key: 'path' });
+        .when.requiredSafeRelativePathRead('path');
 
       expect(driver.get.issues()).toEqual([
         {
@@ -364,7 +358,7 @@ describe('validateHttpUrl', () => {
   it.each(['https://cdn.example/entry.js', 'http://localhost:4400/entry.js'])(
     'should return true when value is %s',
     (value) => {
-      driver.when.valueValidated('validateHttpUrl', { value, path: 'url' });
+      driver.when.httpUrlValidated({ value, path: 'url' });
 
       expect(driver.get.result()).toBe(true);
     },
@@ -378,7 +372,7 @@ describe('validateHttpUrl', () => {
   ])(
     'should report an absolute HTTP(S) URL issue when value is %s',
     (value) => {
-      driver.when.valueValidated('validateHttpUrl', { value, path: 'url' });
+      driver.when.httpUrlValidated({ value, path: 'url' });
 
       expect(driver.get.issues()).toEqual([
         { path: 'url', message: 'Expected an absolute HTTP(S) URL.' },
@@ -397,7 +391,7 @@ describe('validateSemanticVersion', () => {
   it.each(['1.2.3', '1.2.3-beta.1', '1.2.3+build.5', '0.0.0-rc.1+sha.abc'])(
     'should report nothing when value is %s',
     (value) => {
-      driver.when.valueValidated('validateSemanticVersion', {
+      driver.when.semanticVersionValidated({
         value,
         path: 'version',
       });
@@ -409,7 +403,7 @@ describe('validateSemanticVersion', () => {
   it.each(['latest', '1.2', 'v1.2.3', '1.2.3.4'])(
     'should report a semantic version issue when value is %s',
     (value) => {
-      driver.when.valueValidated('validateSemanticVersion', {
+      driver.when.semanticVersionValidated({
         value,
         path: 'version',
       });
@@ -440,7 +434,7 @@ describe('validateSemanticVersionRange', () => {
     '1.2.3 - 2.0.0',
     '^1 || ^2',
   ])('should report nothing when value is %s', (value) => {
-    driver.when.valueValidated('validateSemanticVersionRange', {
+    driver.when.semanticVersionRangeValidated({
       value,
       path: 'range',
     });
@@ -451,7 +445,7 @@ describe('validateSemanticVersionRange', () => {
   it.each(['next release', 'not-a-range', '>=1 <2 ||'])(
     'should report a semantic version range issue when value is %s',
     (value) => {
-      driver.when.valueValidated('validateSemanticVersionRange', {
+      driver.when.semanticVersionRangeValidated({
         value,
         path: 'range',
       });
@@ -474,7 +468,7 @@ describe('validateSha256Integrity', () => {
   });
 
   it('should return true when value is a SHA-256 SRI string', () => {
-    driver.when.valueValidated('validateSha256Integrity', {
+    driver.when.sha256IntegrityValidated({
       value: `sha256-${'A'.repeat(43)}=`,
       path: 'integrity',
     });
@@ -485,7 +479,7 @@ describe('validateSha256Integrity', () => {
   it.each(['md5-invalid', 'sha256-short=', 42, undefined])(
     'should report an SRI issue when value is %j',
     (value) => {
-      driver.when.valueValidated('validateSha256Integrity', {
+      driver.when.sha256IntegrityValidated({
         value,
         path: 'integrity',
       });
@@ -508,7 +502,7 @@ describe('validateOptionalSha256Integrity', () => {
   });
 
   it('should report nothing when value is undefined', () => {
-    driver.when.valueValidated('validateOptionalSha256Integrity', {
+    driver.when.optionalSha256IntegrityValidated({
       value: undefined,
       path: 'integrity',
     });
@@ -517,7 +511,7 @@ describe('validateOptionalSha256Integrity', () => {
   });
 
   it('should report an SRI issue when value is malformed', () => {
-    driver.when.valueValidated('validateOptionalSha256Integrity', {
+    driver.when.optionalSha256IntegrityValidated({
       value: 'sha256-invalid',
       path: 'integrity',
     });
@@ -539,7 +533,7 @@ describe('validateSha256Digest', () => {
   });
 
   it('should return true when value is a lowercase sha256 digest', () => {
-    driver.when.valueValidated('validateSha256Digest', {
+    driver.when.sha256DigestValidated({
       value: `sha256:${'a'.repeat(64)}`,
       path: 'digest',
     });
@@ -553,10 +547,36 @@ describe('validateSha256Digest', () => {
     `sha1:${'a'.repeat(64)}`,
     undefined,
   ])('should report a digest issue when value is %j', (value) => {
-    driver.when.valueValidated('validateSha256Digest', {
+    driver.when.sha256DigestValidated({
       value,
       path: 'digest',
     });
+
+    expect(driver.get.issues()).toEqual([
+      {
+        path: 'digest',
+        message: 'Expected a lowercase SHA-256 digest such as sha256:<64 hex>.',
+      },
+    ]);
+  });
+});
+
+describe('readSha256Digest', () => {
+  let driver: ValidatorsDriver;
+
+  beforeEach(() => {
+    driver = new ValidatorsDriver();
+  });
+
+  it('should return the digest when value is a lowercase sha256 digest', () => {
+    const digest = `sha256:${'b'.repeat(64)}`;
+    driver.when.sha256DigestRead({ value: digest, path: 'digest' });
+
+    expect(driver.get.result()).toBe(digest);
+  });
+
+  it('should return undefined and report a digest issue when value is malformed', () => {
+    driver.when.sha256DigestRead({ value: 'sha256:abc', path: 'digest' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -575,7 +595,7 @@ describe('validateMetadata', () => {
   });
 
   it('should report nothing when value is undefined', () => {
-    driver.when.valueValidated('validateMetadata', {
+    driver.when.metadataValidated({
       value: undefined,
       path: 'metadata',
     });
@@ -584,7 +604,7 @@ describe('validateMetadata', () => {
   });
 
   it('should report nothing when every entry is a string, finite number or boolean', () => {
-    driver.when.valueValidated('validateMetadata', {
+    driver.when.metadataValidated({
       value: {
         a: faker.lorem.word(),
         b: faker.number.int(),
@@ -597,7 +617,7 @@ describe('validateMetadata', () => {
   });
 
   it('should report an object issue when value is not an object', () => {
-    driver.when.valueValidated('validateMetadata', {
+    driver.when.metadataValidated({
       value: faker.lorem.word(),
       path: 'metadata',
     });
@@ -610,7 +630,7 @@ describe('validateMetadata', () => {
   it.each([[null], [{ nested: true }], [Number.NaN], [[]]])(
     'should report the entry when its value is %j',
     (entry) => {
-      driver.when.valueValidated('validateMetadata', {
+      driver.when.metadataValidated({
         value: { bad: entry },
         path: 'metadata',
       });
@@ -625,7 +645,7 @@ describe('validateMetadata', () => {
   );
 });
 
-describe('validateOptionalText', () => {
+describe('validateOptionalBoundedText', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -633,7 +653,7 @@ describe('validateOptionalText', () => {
   });
 
   it('should report nothing when value is undefined', () => {
-    driver.when.valueValidated('validateOptionalText', {
+    driver.when.optionalBoundedTextValidated({
       value: undefined,
       path: 'gitSha',
       maximumLength: 10,
@@ -643,7 +663,7 @@ describe('validateOptionalText', () => {
   });
 
   it('should report nothing when value fits the maximum length', () => {
-    driver.when.valueValidated('validateOptionalText', {
+    driver.when.optionalBoundedTextValidated({
       value: 'a'.repeat(10),
       path: 'gitSha',
       maximumLength: 10,
@@ -655,7 +675,7 @@ describe('validateOptionalText', () => {
   it.each(['', '  ', 'a'.repeat(11), 5])(
     'should report a length issue when value is %j',
     (value) => {
-      driver.when.valueValidated('validateOptionalText', {
+      driver.when.optionalBoundedTextValidated({
         value,
         path: 'gitSha',
         maximumLength: 10,
@@ -671,7 +691,7 @@ describe('validateOptionalText', () => {
   );
 });
 
-describe('validateInteger', () => {
+describe('validateIntegerAtLeast', () => {
   let driver: ValidatorsDriver;
 
   beforeEach(() => {
@@ -679,7 +699,7 @@ describe('validateInteger', () => {
   });
 
   it('should return true when value is an integer at or above the minimum', () => {
-    driver.when.valueValidated('validateInteger', {
+    driver.when.integerAtLeastValidated({
       value: 1,
       path: 'size',
       label: 'size',
@@ -692,7 +712,7 @@ describe('validateInteger', () => {
   it.each([0, -1, 1.5, '1', Number.NaN, undefined])(
     'should report an integer issue when value is %j and minimum is 1',
     (value) => {
-      driver.when.valueValidated('validateInteger', {
+      driver.when.integerAtLeastValidated({
         value,
         path: 'size',
         label: 'size',
@@ -717,7 +737,7 @@ describe('validateUniqueValue', () => {
   });
 
   it('should return true when the value was not seen before', () => {
-    driver.when.valueValidated('validateUniqueValue', {
+    driver.when.uniqueValueValidated({
       value: faker.lorem.word(),
       path: '0',
       label: 'host id',
@@ -729,7 +749,7 @@ describe('validateUniqueValue', () => {
 
   it('should report a duplicate when the value was seen before', () => {
     const value = faker.lorem.word();
-    driver.when.valueValidated('validateUniqueValue', {
+    driver.when.uniqueValueValidated({
       value,
       path: '1',
       label: 'host id',
