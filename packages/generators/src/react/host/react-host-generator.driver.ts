@@ -1,17 +1,17 @@
-import type { ReactVersionProfile } from '../../shared/versions/generator-versions.js';
+import type { ReactVersionProfile } from '../../shared/versions/generator-versions.types.js';
 import { aReactVersionProfile } from '../../testkit/version-profiles.testkit.js';
 import {
-  reactHostBootstrap,
-  reactHostMain,
-  reactHostSdkConfig,
+  renderReactHostBootstrap,
+  renderReactHostMain,
+  renderReactHostSdkConfig,
 } from './react-host-generator.js';
 
 export class ReactHostGeneratorDriver {
-  private profile: ReactVersionProfile = aReactVersionProfile();
+  private profile = aReactVersionProfile();
   private contents!: string;
 
   readonly given = {
-    profile: (profile: ReactVersionProfile): this => {
+    profile: (profile: ReactVersionProfile) => {
       this.profile = profile;
 
       return this;
@@ -19,18 +19,18 @@ export class ReactHostGeneratorDriver {
   };
 
   readonly when = {
-    bootstrapGenerated: (): void => {
-      this.contents = reactHostBootstrap(this.profile);
+    bootstrapGenerated: () => {
+      this.contents = renderReactHostBootstrap(this.profile);
     },
-    sdkConfigGenerated: (): void => {
-      this.contents = reactHostSdkConfig();
+    sdkConfigGenerated: () => {
+      this.contents = renderReactHostSdkConfig();
     },
-    mainGenerated: (): void => {
-      this.contents = reactHostMain();
+    mainGenerated: () => {
+      this.contents = renderReactHostMain();
     },
   };
 
   readonly get = {
-    contents: (): string => this.contents,
+    contents: () => this.contents,
   };
 }

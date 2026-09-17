@@ -1,14 +1,14 @@
 import { aGeneratorOptions } from '../../testkit/generator-options.testkit.js';
 import { GeneratorVersionsDriver } from './generator-versions.driver.js';
 import {
-  atlasPackageRange,
+  getAtlasPackageRange,
   ATLAS_PACKAGE_VERSION,
 } from './generator-versions.js';
 
 const VERIFIED_REACT_MAJORS = [17, 18, 19];
 const VERIFIED_ANGULAR_MAJORS = [19, 20, 21, 22];
 
-describe('reactVersionProfile', () => {
+describe('resolveReactVersionProfileFromOptions', () => {
   let driver: GeneratorVersionsDriver;
 
   beforeEach(() => {
@@ -111,7 +111,7 @@ describe('reactVersionProfile', () => {
   );
 });
 
-describe('angularVersionProfile', () => {
+describe('resolveAngularVersionProfileFromOptions', () => {
   let driver: GeneratorVersionsDriver;
 
   beforeEach(() => {
@@ -282,7 +282,7 @@ describe('angularVersionProfile', () => {
   });
 });
 
-describe('exactSemver', () => {
+describe('extractExactSemver', () => {
   let driver: GeneratorVersionsDriver;
 
   beforeEach(() => {
@@ -308,9 +308,9 @@ describe('exactSemver', () => {
   );
 });
 
-describe('atlasPackageRange', () => {
+describe('getAtlasPackageRange', () => {
   it('should return a caret range of the atlas package version when called', () => {
-    expect(atlasPackageRange()).toBe(`^${ATLAS_PACKAGE_VERSION}`);
+    expect(getAtlasPackageRange()).toBe(`^${ATLAS_PACKAGE_VERSION}`);
   });
 });
 

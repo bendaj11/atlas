@@ -12,7 +12,7 @@ import type {
   AtlasGeneratorOptions,
 } from './shared/types/generator-types.js';
 import { validateGeneratorOptions } from './shared/validation/validation.js';
-import { generateWidgetFiles as generateWidgetTemplates } from './widget/widget-generator.js';
+import { generateWidgetFilesForFramework } from './widget/widget-generator.js';
 
 export type {
   AngularStylesheetFormat,
@@ -21,6 +21,12 @@ export type {
   AtlasProjectType,
 } from './shared/types/generator-types.js';
 export {
+  InvalidFrameworkVersionError,
+  InvalidGeneratorIdError,
+  UnsupportedGeneratorFrameworkError,
+  UnverifiedFrameworkVersionError,
+} from './shared/errors/generator-errors.js';
+export {
   assertValidGeneratorName,
   validateGeneratorOptions,
 } from './shared/validation/validation.js';
@@ -28,8 +34,8 @@ export {
   DEFAULT_APP_DEV_PORT,
   DEFAULT_HOST_BOOTSTRAP_PORT,
   DEFAULT_HOST_CLIENT_PORT,
-  defaultDevServerPort,
-  hostClientPort,
+  deriveHostClientPortFromBootstrapPort,
+  getDefaultDevServerPort,
 } from './shared/ports/ports.js';
 
 export function generateHostFiles(
@@ -58,5 +64,5 @@ export function generateWidgetFiles(
 ): AtlasGeneratedFile[] {
   validateGeneratorOptions(options);
 
-  return generateWidgetTemplates(options);
+  return generateWidgetFilesForFramework(options);
 }

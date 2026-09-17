@@ -1,5 +1,8 @@
 import { recordOrEmpty } from '../../shared/index.js';
-import { defaultDevServerPort, hostClientPort } from '@atlas/generators';
+import {
+  getDefaultDevServerPort,
+  deriveHostClientPortFromBootstrapPort,
+} from '@atlas/generators';
 import type { AtlasProjectType } from '../../workspace/index.js';
 
 export type AngularRunnerKey = 'builder' | 'executor';
@@ -19,7 +22,7 @@ export function ensureAngularNativeFederationTargets({
   projectName,
   type,
   runnerKey,
-  devServerPort = defaultDevServerPort(type),
+  devServerPort = getDefaultDevServerPort(type),
   nativeFederationBuilder = DEFAULT_NATIVE_FEDERATION_BUILDER,
 }: {
   targets: Record<string, unknown>;
@@ -68,7 +71,7 @@ export function ensureAngularNativeFederationTargets({
     if (type === 'host')
       setAngularDevServerPort({
         target: targets['serve-original'],
-        port: hostClientPort(devServerPort),
+        port: deriveHostClientPortFromBootstrapPort(devServerPort),
       });
 
     targets.serve = {

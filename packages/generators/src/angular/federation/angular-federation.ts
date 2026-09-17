@@ -1,6 +1,6 @@
-import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
+import type { AngularVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
-export function nativeFederationPackage(
+export function selectNativeFederationPackage(
   profile: AngularVersionProfile,
 ): string {
   return usesNativeFederationV4Package(profile)
@@ -8,10 +8,10 @@ export function nativeFederationPackage(
     : '@angular-architects/native-federation';
 }
 
-export function nativeFederationBuilder(
+export function selectNativeFederationBuilder(
   profile: AngularVersionProfile,
 ): string {
-  return `${nativeFederationPackage(profile)}:build`;
+  return `${selectNativeFederationPackage(profile)}:build`;
 }
 
 export function usesNativeFederationV4Package(

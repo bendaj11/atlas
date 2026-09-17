@@ -6,10 +6,10 @@ import {
 } from './validation.js';
 
 export class ValidationDriver {
-  private options: AtlasGeneratorOptions = aGeneratorOptions();
+  private options = aGeneratorOptions();
 
   readonly given = {
-    options: (options: AtlasGeneratorOptions): this => {
+    options: (options: AtlasGeneratorOptions) => {
       this.options = options;
 
       return this;
@@ -17,10 +17,10 @@ export class ValidationDriver {
   };
 
   readonly when = {
-    validated: (): void => {
+    validated: () => {
       validateGeneratorOptions(this.options);
     },
-    nameValidated: (): void => {
+    nameValidated: () => {
       assertValidGeneratorName(this.options.name);
     },
   };

@@ -1,6 +1,6 @@
 import { AngularAppGeneratorDriver } from './angular-app-generator.driver.js';
 
-describe('angularAppConfig', () => {
+describe('renderAngularAppConfig', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {
@@ -90,7 +90,7 @@ export function createAppConfig({ context, sdk, styleTarget }: AtlasAppConfigOpt
   });
 });
 
-describe('angularAppEntry', () => {
+describe('renderAngularAppEntry', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {
@@ -166,7 +166,7 @@ export default defineApp(async ({ container, styleTarget, sdk, context }) => {
   });
 });
 
-describe('angularAppComponent', () => {
+describe('renderAngularAppComponent', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {
@@ -226,7 +226,7 @@ export class AppComponent {}
   });
 });
 
-describe('angularAppMain', () => {
+describe('renderAngularAppMain', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {
@@ -246,7 +246,7 @@ export { default } from "./entry";
   });
 });
 
-describe('angularAppHomeComponent', () => {
+describe('renderAngularAppHomeComponent', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {
@@ -262,7 +262,7 @@ describe('angularAppHomeComponent', () => {
   });
 });
 
-describe('angularAppDetailsComponent', () => {
+describe('renderAngularAppDetailsComponent', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {
@@ -278,7 +278,7 @@ describe('angularAppDetailsComponent', () => {
   });
 });
 
-describe('angularAppRoutes', () => {
+describe('renderAngularAppRoutes', () => {
   let driver: AngularAppGeneratorDriver;
 
   beforeEach(() => {

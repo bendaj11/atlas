@@ -1,11 +1,11 @@
 import { faker } from '@faker-js/faker';
 import {
-  angularHostAppConfig,
-  angularHostBootstrap,
-  angularHostComponent,
-  angularHostMain,
-  angularHostRoutes,
-  angularHostSdkConfig,
+  renderAngularHostAppConfig,
+  renderAngularHostBootstrap,
+  renderAngularHostComponent,
+  renderAngularHostMain,
+  renderAngularHostRoutes,
+  renderAngularHostSdkConfig,
 } from './angular-host-generator.js';
 
 export class AngularHostGeneratorDriver {
@@ -13,7 +13,7 @@ export class AngularHostGeneratorDriver {
   private contents!: string;
 
   readonly given = {
-    requiresZonelessProvider: (requiresZonelessProvider: boolean): this => {
+    requiresZonelessProvider: (requiresZonelessProvider: boolean) => {
       this.requiresZonelessProvider = requiresZonelessProvider;
 
       return this;
@@ -21,29 +21,29 @@ export class AngularHostGeneratorDriver {
   };
 
   readonly when = {
-    appConfigGenerated: (): void => {
-      this.contents = angularHostAppConfig({
+    appConfigGenerated: () => {
+      this.contents = renderAngularHostAppConfig({
         requiresZonelessProvider: this.requiresZonelessProvider,
       });
     },
-    componentGenerated: (): void => {
-      this.contents = angularHostComponent();
+    componentGenerated: () => {
+      this.contents = renderAngularHostComponent();
     },
-    mainGenerated: (): void => {
-      this.contents = angularHostMain();
+    mainGenerated: () => {
+      this.contents = renderAngularHostMain();
     },
-    routesGenerated: (): void => {
-      this.contents = angularHostRoutes();
+    routesGenerated: () => {
+      this.contents = renderAngularHostRoutes();
     },
-    sdkConfigGenerated: (): void => {
-      this.contents = angularHostSdkConfig();
+    sdkConfigGenerated: () => {
+      this.contents = renderAngularHostSdkConfig();
     },
-    bootstrapGenerated: (): void => {
-      this.contents = angularHostBootstrap();
+    bootstrapGenerated: () => {
+      this.contents = renderAngularHostBootstrap();
     },
   };
 
   readonly get = {
-    contents: (): string => this.contents,
+    contents: () => this.contents,
   };
 }

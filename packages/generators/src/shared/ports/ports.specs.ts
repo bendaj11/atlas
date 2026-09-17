@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { PortsDriver } from './ports.driver.js';
 
-describe('defaultDevServerPort', () => {
+describe('getDefaultDevServerPort', () => {
   let driver: PortsDriver;
 
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('defaultDevServerPort', () => {
   });
 });
 
-describe('hostClientPort', () => {
+describe('deriveHostClientPortFromBootstrapPort', () => {
   let driver: PortsDriver;
 
   beforeEach(() => {

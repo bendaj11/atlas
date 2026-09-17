@@ -7,7 +7,7 @@ import {
   type AtlasPrompter,
 } from '../../shared/index.js';
 import {
-  defaultDevServerPort,
+  getDefaultDevServerPort,
   type AtlasNxProjectType,
   type AtlasProjectType,
   type AtlasWorkspace,
@@ -63,7 +63,7 @@ export async function resolveDevServerPort(
   { workspace, args, prompts }: ProjectOptionsContext,
   type: AtlasProjectType,
 ): Promise<number> {
-  const defaultPort = defaultDevServerPort(type);
+  const defaultPort = getDefaultDevServerPort(type);
 
   if (args.hasFlag('port')) return args.port('port', defaultPort);
   const fallback = await suggestDevServerPort(workspace, type);

@@ -1,6 +1,6 @@
 import { AngularNamesDriver } from './angular-names.driver.js';
 
-describe('angularRootSelector', () => {
+describe('convertNameToAngularRootSelector', () => {
   let driver: AngularNamesDriver;
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('angularRootSelector', () => {
   });
 });
 
-describe('angularRemoteName', () => {
+describe('convertNameToFederationRemoteName', () => {
   let driver: AngularNamesDriver;
 
   beforeEach(() => {

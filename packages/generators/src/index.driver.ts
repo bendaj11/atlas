@@ -10,11 +10,11 @@ import {
 import { aGeneratorOptions } from './testkit/generator-options.testkit.js';
 
 export class GeneratorsDriver {
-  private options: AtlasGeneratorOptions = aGeneratorOptions();
+  private options = aGeneratorOptions();
   private files: AtlasGeneratedFile[] = [];
 
   readonly given = {
-    options: (options: AtlasGeneratorOptions): this => {
+    options: (options: AtlasGeneratorOptions) => {
       this.options = options;
 
       return this;
@@ -22,20 +22,20 @@ export class GeneratorsDriver {
   };
 
   readonly when = {
-    hostGenerated: (): void => {
+    hostGenerated: () => {
       this.files = generateHostFiles(this.options);
     },
-    appGenerated: (): void => {
+    appGenerated: () => {
       this.files = generateAppFiles(this.options);
     },
-    widgetGenerated: (): void => {
+    widgetGenerated: () => {
       this.files = generateWidgetFiles(this.options);
     },
   };
 
   readonly get = {
-    paths: (): string[] => this.files.map((file) => file.path),
-    contents: (path: string): string | undefined =>
+    paths: () => this.files.map((file) => file.path),
+    contents: (path: string) =>
       this.files.find((file) => file.path === path)?.contents,
   };
 }

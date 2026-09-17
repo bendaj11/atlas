@@ -4,7 +4,7 @@ import { anAtlasId } from '../../testkit/generator-options.testkit.js';
 import { aReactVersionProfile } from '../../testkit/version-profiles.testkit.js';
 import { ReactPackageGeneratorDriver } from './react-package-generator.driver.js';
 
-describe('reactPackage', () => {
+describe('buildReactPackageManifest', () => {
   let driver: ReactPackageGeneratorDriver;
 
   beforeEach(() => {
@@ -158,7 +158,7 @@ describe('reactPackage', () => {
   });
 });
 
-describe('reactIndex', () => {
+describe('renderReactHostIndexHtml', () => {
   let driver: ReactPackageGeneratorDriver;
 
   beforeEach(() => {
@@ -186,7 +186,7 @@ describe('reactIndex', () => {
   });
 });
 
-describe('reactAppIndex', () => {
+describe('renderReactAppIndexHtml', () => {
   let driver: ReactPackageGeneratorDriver;
 
   beforeEach(() => {

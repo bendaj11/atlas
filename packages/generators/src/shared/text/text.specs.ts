@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { TextDriver } from './text.driver.js';
 
-describe('title', () => {
+describe('convertIdToTitle', () => {
   let driver: TextDriver;
 
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe('title', () => {
   });
 });
 
-describe('pascal', () => {
+describe('convertIdToPascalCase', () => {
   let driver: TextDriver;
 
   beforeEach(() => {
@@ -50,7 +50,7 @@ describe('pascal', () => {
   });
 });
 
-describe('json', () => {
+describe('formatJsonDocument', () => {
   let driver: TextDriver;
 
   beforeEach(() => {

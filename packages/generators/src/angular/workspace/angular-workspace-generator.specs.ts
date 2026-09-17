@@ -6,7 +6,7 @@ import {
 import { anAngularVersionProfile } from '../../testkit/version-profiles.testkit.js';
 import { AngularWorkspaceGeneratorDriver } from './angular-workspace-generator.driver.js';
 
-describe('angularWorkspace', () => {
+describe('buildAngularWorkspaceDocument', () => {
   let driver: AngularWorkspaceGeneratorDriver;
 
   beforeEach(() => {
@@ -207,7 +207,7 @@ describe('angularWorkspace', () => {
   });
 });
 
-describe('angularRootTsconfig', () => {
+describe('buildAngularRootTsconfig', () => {
   let driver: AngularWorkspaceGeneratorDriver;
 
   beforeEach(() => {
@@ -236,7 +236,7 @@ describe('angularRootTsconfig', () => {
   });
 });
 
-describe('angularAppTsconfig', () => {
+describe('buildAngularAppTsconfig', () => {
   let driver: AngularWorkspaceGeneratorDriver;
 
   beforeEach(() => {
@@ -255,7 +255,7 @@ describe('angularAppTsconfig', () => {
   });
 });
 
-describe('angularFederationConfig', () => {
+describe('renderAngularFederationConfig', () => {
   let driver: AngularWorkspaceGeneratorDriver;
 
   beforeEach(() => {

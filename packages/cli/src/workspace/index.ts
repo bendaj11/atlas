@@ -1,4 +1,4 @@
-export { defaultDevServerPort } from '@atlas/generators';
+export { getDefaultDevServerPort } from '@atlas/generators';
 export {
   compileAtlasConfig,
   compiledAtlasConfigCandidates,

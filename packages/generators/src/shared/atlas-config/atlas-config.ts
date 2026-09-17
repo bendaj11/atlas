@@ -1,30 +1,36 @@
 import { randomUUID } from 'node:crypto';
 import { createBootstrapHtml } from '@atlas/bootstrap';
-import { title } from '../text/text.js';
+import { convertIdToTitle } from '../text/text.js';
 import type { AtlasGeneratorOptions } from '../types/generator-types.js';
 
-export function atlasAppConfig(options: AtlasGeneratorOptions): string {
-  const { name, framework } = options;
-  const appFields = options.hostId
-    ? `,\n  ${appRoutes(name, options.hostId)}`
+export function renderAtlasAppConfig(options: AtlasGeneratorOptions): string {
+  const { name, framework, hostId } = options;
+  const routesField = hostId
+    ? `,\n  ${renderAtlasAppRoutes({ name, hostId })}`
     : '';
 
-  return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${randomUUID()}",\n  name: "${title(name)}",\n  framework: "${framework}"${appFields}\n} satisfies AtlasAppConfig;\n`;
+  return `import type { AtlasAppConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "app",\n  id: "${randomUUID()}",\n  name: "${convertIdToTitle(name)}",\n  framework: "${framework}"${routesField}\n} satisfies AtlasAppConfig;\n`;
 }
 
-export function atlasHostConfig(
-  options: AtlasGeneratorOptions,
-  hostId: string,
-): string {
-  const { name, framework } = options;
+export function renderAtlasHostConfig(options: {
+  generatorOptions: AtlasGeneratorOptions;
+  hostId: string;
+}): string {
+  const { name, framework } = options.generatorOptions;
 
-  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${hostId}",\n  name: "${title(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
+  return `import type { AtlasHostConfig } from "@atlas/schema" with { "resolution-mode": "import" };\n\nexport default {\n  type: "host",\n  id: "${options.hostId}",\n  name: "${convertIdToTitle(name)}",\n  framework: "${framework}"\n} satisfies AtlasHostConfig;\n`;
 }
 
-export function atlasBootstrapHtml(name: string): string {
-  return `${createBootstrapHtml({ title: title(name) })}\n`;
+export function renderAtlasBootstrapHtml(name: string): string {
+  return `${createBootstrapHtml({ title: convertIdToTitle(name) })}\n`;
 }
 
-function appRoutes(name: string, hostId: string): string {
-  return `routes: [{ hostId: "${hostId}", path: "/${name}", title: "${title(name)}", nav: { label: "${title(name)}", visible: true } }]`;
+function renderAtlasAppRoutes(options: {
+  name: string;
+  hostId: string;
+}): string {
+  const { name, hostId } = options;
+  const title = convertIdToTitle(name);
+
+  return `routes: [{ hostId: "${hostId}", path: "/${name}", title: "${title}", nav: { label: "${title}", visible: true } }]`;
 }

@@ -1,12 +1,12 @@
 import {
-  nativeFederationBuilder,
-  nativeFederationPackage,
+  selectNativeFederationBuilder,
+  selectNativeFederationPackage,
   usesNativeFederationV4ConfigApi,
 } from '../federation/angular-federation.js';
-import { angularRemoteName } from '../names/angular-names.js';
+import { convertNameToFederationRemoteName } from '../names/angular-names.js';
 import {
-  defaultDevServerPort,
-  hostClientPort,
+  deriveHostClientPortFromBootstrapPort,
+  getDefaultDevServerPort,
 } from '../../shared/ports/ports.js';
 import type {
   AngularWorkspaceDocument,
@@ -16,12 +16,12 @@ import type {
   AngularStylesheetFormat,
   AtlasProjectType,
 } from '../../shared/types/generator-types.js';
-import type { AngularVersionProfile } from '../../shared/versions/generator-versions.js';
+import type { AngularVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
 const ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT =
   '/@angular-architects/native-federation:build-notifications';
 
-interface AngularWorkspaceOptions {
+interface AngularWorkspaceDocumentOptions {
   name: string;
   type: AtlasProjectType;
   profile: AngularVersionProfile;
@@ -29,15 +29,15 @@ interface AngularWorkspaceOptions {
   stylesheetFormat?: AngularStylesheetFormat;
 }
 
-export function angularWorkspace(
-  options: AngularWorkspaceOptions,
+export function buildAngularWorkspaceDocument(
+  options: AngularWorkspaceDocumentOptions,
 ): AngularWorkspaceDocument {
   const { name, type, profile } = options;
   const host = type === 'host';
-  const devServerPort = options.devServerPort ?? defaultDevServerPort(type);
+  const devServerPort = options.devServerPort ?? getDefaultDevServerPort(type);
   const stylesheetFormat = options.stylesheetFormat ?? 'css';
   const originalDevServerPort = host
-    ? hostClientPort(devServerPort)
+    ? deriveHostClientPortFromBootstrapPort(devServerPort)
     : devServerPort;
 
   return {
@@ -49,14 +49,14 @@ export function angularWorkspace(
         sourceRoot: 'src',
         architect: {
           build: {
-            builder: nativeFederationBuilder(profile),
+            builder: selectNativeFederationBuilder(profile),
             options: { target: `${name}:esbuild:production` },
             configurations: {
               development: { target: `${name}:esbuild:development`, dev: true },
             },
           },
           serve: {
-            builder: nativeFederationBuilder(profile),
+            builder: selectNativeFederationBuilder(profile),
             options: {
               target: `${name}:serve-original:development`,
               dev: true,
@@ -106,7 +106,7 @@ export function angularWorkspace(
   };
 }
 
-export function angularAppTsconfig(): TsconfigDocument {
+export function buildAngularAppTsconfig(): TsconfigDocument {
   return {
     extends: './tsconfig.json',
     compilerOptions: { outDir: './out-tsc/app' },
@@ -115,7 +115,7 @@ export function angularAppTsconfig(): TsconfigDocument {
   };
 }
 
-export function angularRootTsconfig(): TsconfigDocument {
+export function buildAngularRootTsconfig(): TsconfigDocument {
   return {
     compilerOptions: {
       target: 'ES2022',
@@ -140,18 +140,19 @@ interface AngularFederationConfigOptions {
   profile: AngularVersionProfile;
 }
 
-export function angularFederationConfig(
+export function renderAngularFederationConfig(
   options: AngularFederationConfigOptions,
 ): string {
   const { name, type, profile } = options;
+
   if (usesNativeFederationV4ConfigApi(profile)) {
     return `import { createAngularV4FederationConfig } from "@atlas/sdk/federation-config";
 
 export default await createAngularV4FederationConfig({
   projectRoot: import.meta.dirname,
-  name: "${angularRemoteName(name)}",
+  name: "${convertNameToFederationRemoteName(name)}",
   expose: "${type}",
-  nativeFederationPackage: "${nativeFederationPackage(profile)}",
+  nativeFederationPackage: "${selectNativeFederationPackage(profile)}",
   // Add skip, exposes, shared, or other Native Federation options here.
   skip: []
 });
@@ -162,7 +163,7 @@ export default await createAngularV4FederationConfig({
 
 module.exports = createAngularFederationConfig({
   projectRoot: __dirname,
-  name: "${angularRemoteName(name)}",
+  name: "${convertNameToFederationRemoteName(name)}",
   expose: "${type}",
   // Add skip, exposes, shared, or other Native Federation options here.
   skip: []
@@ -170,7 +171,7 @@ module.exports = createAngularFederationConfig({
 `;
 }
 
-export function angularFederationConfigFile(
+export function selectAngularFederationConfigFileName(
   profile: AngularVersionProfile,
 ): string {
   return usesNativeFederationV4ConfigApi(profile)

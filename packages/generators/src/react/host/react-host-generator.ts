@@ -1,6 +1,6 @@
-import type { ReactVersionProfile } from '../../shared/versions/generator-versions.js';
+import type { ReactVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
-export function reactHostBootstrap(profile: ReactVersionProfile): string {
+export function renderReactHostBootstrap(profile: ReactVersionProfile): string {
   const imports =
     profile.major <= 17
       ? 'import { render, unmountComponentAtNode } from "react-dom";'
@@ -78,7 +78,7 @@ export const mount: AtlasHostClientEntry["mount"] = mountHost;
 `;
 }
 
-export function reactHostSdkConfig(): string {
+export function renderReactHostSdkConfig(): string {
   return `import type { HostSdkOptions } from "@atlas/runtime/react";
 
 /** Add product-specific host SDK capabilities here. Hooks are supported. */
@@ -90,7 +90,7 @@ export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
 `;
 }
 
-export function reactHostMain(): string {
+export function renderReactHostMain(): string {
   return `const root = document.getElementById("root");
 if (!root) throw new Error("React root is missing.");
 

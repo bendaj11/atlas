@@ -1,18 +1,21 @@
-import { angularRemoteName, angularRootSelector } from './angular-names.js';
+import {
+  convertNameToFederationRemoteName,
+  convertNameToAngularRootSelector,
+} from './angular-names.js';
 
 export class AngularNamesDriver {
   private result!: string;
 
   readonly when = {
-    rootSelectorBuilt: (name: string): void => {
-      this.result = angularRootSelector(name);
+    rootSelectorBuilt: (name: string) => {
+      this.result = convertNameToAngularRootSelector(name);
     },
-    remoteNameBuilt: (name: string): void => {
-      this.result = angularRemoteName(name);
+    remoteNameBuilt: (name: string) => {
+      this.result = convertNameToFederationRemoteName(name);
     },
   };
 
   readonly get = {
-    result: (): string => this.result,
+    result: () => this.result,
   };
 }

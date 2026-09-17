@@ -1,6 +1,6 @@
 import { AngularHostGeneratorDriver } from './angular-host-generator.driver.js';
 
-describe('angularHostAppConfig', () => {
+describe('renderAngularHostAppConfig', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ export const appConfig: ApplicationConfig = {
   });
 });
 
-describe('angularHostComponent', () => {
+describe('renderAngularHostComponent', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {
@@ -65,7 +65,7 @@ describe('angularHostComponent', () => {
   });
 });
 
-describe('angularHostMain', () => {
+describe('renderAngularHostMain', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {
@@ -84,7 +84,7 @@ root.textContent = "Start this Atlas host with atlas dev.";
   });
 });
 
-describe('angularHostRoutes', () => {
+describe('renderAngularHostRoutes', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {
@@ -100,7 +100,7 @@ describe('angularHostRoutes', () => {
   });
 });
 
-describe('angularHostSdkConfig', () => {
+describe('renderAngularHostSdkConfig', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {
@@ -119,7 +119,7 @@ describe('angularHostSdkConfig', () => {
   });
 });
 
-describe('angularHostBootstrap', () => {
+describe('renderAngularHostBootstrap', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {

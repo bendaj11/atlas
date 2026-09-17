@@ -16,7 +16,7 @@ function createRoot(container: Element) {
 }`;
 const MODERN_ROOT_IMPORT = 'import { createRoot } from "react-dom/client";';
 
-describe('reactAppBootstrap', () => {
+describe('renderReactAppBootstrap', () => {
   let driver: ReactAppGeneratorDriver;
 
   beforeEach(() => {
@@ -87,7 +87,7 @@ export default defineApp({
   );
 });
 
-describe('reactAppComponent', () => {
+describe('renderReactAppComponent', () => {
   let driver: ReactAppGeneratorDriver;
 
   beforeEach(() => {
@@ -139,7 +139,7 @@ export function App({ name = "Orders App" }: AppProps) {
   });
 });
 
-describe('reactAppHome', () => {
+describe('renderReactAppHome', () => {
   let driver: ReactAppGeneratorDriver;
 
   beforeEach(() => {
@@ -156,7 +156,7 @@ describe('reactAppHome', () => {
   });
 });
 
-describe('reactAppDetails', () => {
+describe('renderReactAppDetails', () => {
   let driver: ReactAppGeneratorDriver;
 
   beforeEach(() => {
@@ -173,7 +173,7 @@ describe('reactAppDetails', () => {
   });
 });
 
-describe('reactAppRoutes', () => {
+describe('renderReactAppRoutes', () => {
   let driver: ReactAppGeneratorDriver;
 
   beforeEach(() => {

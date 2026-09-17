@@ -3,6 +3,7 @@ import type {
   AngularStylesheetFormat,
   AtlasGeneratorOptions,
 } from '../shared/types/generator-types.js';
+import type { SupportedGeneratorOptions } from '../shared/validation/validation.js';
 
 export const ALL_GENERATOR_FRAMEWORKS = ['angular', 'react'] as const;
 export const ALL_STYLESHEET_FORMATS: readonly AngularStylesheetFormat[] = [
@@ -28,12 +29,12 @@ export function aGeneratorOptions(
 
 export function anAngularGeneratorOptions(
   overrides: Partial<AtlasGeneratorOptions> = {},
-): AtlasGeneratorOptions {
-  return aGeneratorOptions({ framework: 'angular', ...overrides });
+): SupportedGeneratorOptions {
+  return { ...aGeneratorOptions(overrides), framework: 'angular' };
 }
 
 export function aReactGeneratorOptions(
   overrides: Partial<AtlasGeneratorOptions> = {},
-): AtlasGeneratorOptions {
-  return aGeneratorOptions({ framework: 'react', ...overrides });
+): SupportedGeneratorOptions {
+  return { ...aGeneratorOptions(overrides), framework: 'react' };
 }

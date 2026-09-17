@@ -1,35 +1,38 @@
 import {
-  reactAppBootstrap,
-  reactAppComponent,
-  reactAppDetails,
-  reactAppHome,
-  reactAppRoutes,
+  renderReactAppBootstrap,
+  renderReactAppComponent,
+  renderReactAppDetails,
+  renderReactAppHome,
+  renderReactAppRoutes,
 } from '../app/react-app-generator.js';
 import {
-  reactHostBootstrap,
-  reactHostMain,
-  reactHostSdkConfig,
+  renderReactHostBootstrap,
+  renderReactHostMain,
+  renderReactHostSdkConfig,
 } from '../host/react-host-generator.js';
 import {
-  reactAppIndex,
-  reactIndex,
-  reactPackage,
+  buildReactPackageManifest,
+  renderReactAppIndexHtml,
+  renderReactHostIndexHtml,
 } from '../package/react-package-generator.js';
-import { reactTsconfig } from '../tsconfig/react-tsconfig-generator.js';
-import { reactViteConfig } from '../vite/react-vite-generator.js';
+import { buildReactTsconfig } from '../tsconfig/react-tsconfig-generator.js';
+import { renderReactViteConfig } from '../vite/react-vite-generator.js';
 import {
-  atlasAppConfig,
-  atlasBootstrapHtml,
-  atlasHostConfig,
+  renderAtlasAppConfig,
+  renderAtlasBootstrapHtml,
+  renderAtlasHostConfig,
 } from '../../shared/atlas-config/atlas-config.js';
-import { atlasHostStyles } from '../../shared/host-styles/host-styles.js';
-import { json, title } from '../../shared/text/text.js';
+import { renderAtlasHostStyles } from '../../shared/host-styles/host-styles.js';
+import {
+  convertIdToTitle,
+  formatJsonDocument,
+} from '../../shared/text/text.js';
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
 } from '../../shared/types/generator-types.js';
-import { reactVersionProfile } from '../../shared/versions/generator-versions.js';
-import { exportedWidgetsReadme } from '../../shared/widgets-readme/widgets-readme.js';
+import { resolveReactVersionProfileFromOptions } from '../../shared/versions/generator-versions.js';
+import { renderExportedWidgetsReadme } from '../../shared/widgets-readme/widgets-readme.js';
 
 interface ReactHostFilesOptions {
   options: AtlasGeneratorOptions;
@@ -41,13 +44,13 @@ export function generateReactHostFiles({
   hostId,
 }: ReactHostFilesOptions): AtlasGeneratedFile[] {
   const { name, devServerPort } = options;
-  const profile = reactVersionProfile(options);
+  const profile = resolveReactVersionProfileFromOptions(options);
 
   return [
     {
       path: 'package.json',
-      contents: json(
-        reactPackage({
+      contents: formatJsonDocument(
+        buildReactPackageManifest({
           packageName: options.packageName ?? name,
           projectName: name,
           type: 'host',
@@ -55,18 +58,27 @@ export function generateReactHostFiles({
         }),
       ),
     },
-    { path: 'tsconfig.json', contents: json(reactTsconfig()) },
+    {
+      path: 'tsconfig.json',
+      contents: formatJsonDocument(buildReactTsconfig()),
+    },
     {
       path: 'vite.config.ts',
-      contents: reactViteConfig({ name, type: 'host', devServerPort }),
+      contents: renderReactViteConfig({ name, type: 'host', devServerPort }),
     },
-    { path: 'atlas.config.ts', contents: atlasHostConfig(options, hostId) },
-    { path: 'atlas.bootstrap.html', contents: atlasBootstrapHtml(name) },
-    { path: 'index.html', contents: reactIndex('Atlas React Host') },
-    { path: 'src/styles.css', contents: atlasHostStyles() },
-    { path: 'src/main.tsx', contents: reactHostMain() },
-    { path: 'src/bootstrap.tsx', contents: reactHostBootstrap(profile) },
-    { path: 'src/host.config.tsx', contents: reactHostSdkConfig() },
+    {
+      path: 'atlas.config.ts',
+      contents: renderAtlasHostConfig({ generatorOptions: options, hostId }),
+    },
+    { path: 'atlas.bootstrap.html', contents: renderAtlasBootstrapHtml(name) },
+    {
+      path: 'index.html',
+      contents: renderReactHostIndexHtml('Atlas React Host'),
+    },
+    { path: 'src/styles.css', contents: renderAtlasHostStyles() },
+    { path: 'src/main.tsx', contents: renderReactHostMain() },
+    { path: 'src/bootstrap.tsx', contents: renderReactHostBootstrap(profile) },
+    { path: 'src/host.config.tsx', contents: renderReactHostSdkConfig() },
   ];
 }
 
@@ -74,14 +86,14 @@ export function generateReactAppFiles(
   options: AtlasGeneratorOptions,
 ): AtlasGeneratedFile[] {
   const { name, devServerPort } = options;
-  const profile = reactVersionProfile(options);
+  const profile = resolveReactVersionProfileFromOptions(options);
   const routed = options.routing ?? true;
 
   return [
     {
       path: 'package.json',
-      contents: json(
-        reactPackage({
+      contents: formatJsonDocument(
+        buildReactPackageManifest({
           packageName: options.packageName ?? name,
           projectName: name,
           type: 'app',
@@ -90,34 +102,46 @@ export function generateReactAppFiles(
         }),
       ),
     },
-    { path: 'tsconfig.json', contents: json(reactTsconfig()) },
+    {
+      path: 'tsconfig.json',
+      contents: formatJsonDocument(buildReactTsconfig()),
+    },
     {
       path: 'vite.config.ts',
-      contents: reactViteConfig({
+      contents: renderReactViteConfig({
         name,
         type: 'app',
         reactMajor: profile.major,
         devServerPort,
       }),
     },
-    { path: 'atlas.config.ts', contents: atlasAppConfig(options) },
-    { path: 'index.html', contents: reactAppIndex(title(name)) },
+    { path: 'atlas.config.ts', contents: renderAtlasAppConfig(options) },
+    {
+      path: 'index.html',
+      contents: renderReactAppIndexHtml(convertIdToTitle(name)),
+    },
     { path: 'src/index.css', contents: '' },
-    { path: 'src/App.tsx', contents: reactAppComponent({ name, routed }) },
+    {
+      path: 'src/App.tsx',
+      contents: renderReactAppComponent({ name, routed }),
+    },
     ...(routed
       ? [
-          { path: 'src/home/Home.tsx', contents: reactAppHome(name) },
-          { path: 'src/details/Details.tsx', contents: reactAppDetails() },
-          { path: 'src/routes.tsx', contents: reactAppRoutes() },
+          { path: 'src/home/Home.tsx', contents: renderReactAppHome(name) },
+          {
+            path: 'src/details/Details.tsx',
+            contents: renderReactAppDetails(),
+          },
+          { path: 'src/routes.tsx', contents: renderReactAppRoutes() },
         ]
       : []),
     {
       path: 'src/bootstrap.tsx',
-      contents: reactAppBootstrap({ name, routed, profile }),
+      contents: renderReactAppBootstrap({ name, routed, profile }),
     },
     {
       path: 'src/exported-widgets/README.md',
-      contents: exportedWidgetsReadme(),
+      contents: renderExportedWidgetsReadme(),
     },
   ];
 }
