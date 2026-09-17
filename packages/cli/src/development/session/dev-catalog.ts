@@ -1,5 +1,9 @@
-import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
-import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
+import type { AtlasRuntimeOverride } from '@atlas/runtime';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasManifest,
+} from '@atlas/schema';
 import { LOCAL_HOST_PLACEHOLDER_PORT } from '../constants.js';
 import type {
   AtlasDevOverrideDocument,
@@ -69,9 +73,7 @@ export function mergeLocalCatalog({
   };
 }
 
-function uniqueManifests(
-  overrides: AtlasRuntimeOverrideDocument['overrides'],
-): AtlasHostCatalog['apps'] {
+function uniqueManifests(overrides: AtlasRuntimeOverride[]): AtlasManifest[] {
   const manifests = overrides.map((override) => override.manifest);
 
   return [

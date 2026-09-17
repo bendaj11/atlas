@@ -5,7 +5,7 @@ import {
   type NxProjectConfiguration,
 } from '../nx-output-paths/nx-output-paths.js';
 import type { AtlasProject } from '../types.js';
-import { cliError, exists, readJsonFile } from '../../shared/index.js';
+import { cliError, pathExists, readJsonFile } from '../../shared/index.js';
 
 const MAX_DISCOVERY_DEPTH = 5;
 const IGNORED_DIRECTORIES = new Set([
@@ -84,7 +84,7 @@ export async function listAtlasProjects(
     workspaceRoot,
     depth: 0,
     read: async (root) =>
-      (await exists(join(root, 'atlas.config.ts')))
+      (await pathExists(join(root, 'atlas.config.ts')))
         ? ((await readProject({
             root,
             requestedName: basename(root),
@@ -159,7 +159,7 @@ async function readProject(options: {
   if (!identifiers.includes(requestedName) && !requestedRoots.includes(root))
     return undefined;
   const configPath = join(root, 'atlas.config.ts');
-  if (!(await exists(configPath))) {
+  if (!(await pathExists(configPath))) {
     throw new Error(
       `Atlas project "${requestedName}" is missing required configuration file "${relative(workspaceRoot, configPath)}".`,
     );

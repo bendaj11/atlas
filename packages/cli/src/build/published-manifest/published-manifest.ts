@@ -68,12 +68,14 @@ export async function buildPublishedManifest({
   return manifest;
 }
 
-type ArtifactBase = Omit<
+type ArtifactManifestBase = Omit<
   AtlasHostArtifactManifest,
   'kind' | 'exposes' | 'requiredLoaderApiVersion'
 >;
 
-function hostArtifactManifest(base: ArtifactBase): AtlasHostArtifactManifest {
+function hostArtifactManifest(
+  base: ArtifactManifestBase,
+): AtlasHostArtifactManifest {
   return {
     ...base,
     kind: 'host-artifact',
@@ -88,7 +90,7 @@ async function appArtifactManifest({
   config,
   entryPath,
 }: {
-  base: ArtifactBase;
+  base: ArtifactManifestBase;
   project: AtlasProject;
   config: AtlasAppConfig;
   entryPath: string;

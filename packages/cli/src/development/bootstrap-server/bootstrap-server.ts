@@ -8,7 +8,10 @@ import {
 } from 'node:http';
 import { connect } from 'node:net';
 import type { Duplex } from 'node:stream';
-import type { LocalBootstrapServerOptions } from '../types.js';
+import type {
+  LocalBootstrapServerOptions,
+  LocalNativeProxy,
+} from '../types.js';
 import { listenOnLocalHost, LOCAL_HOST } from '../http/http.js';
 
 export async function startLocalBootstrapServer(
@@ -46,7 +49,7 @@ function createBootstrapFileMap(
 
 function createBootstrapRequestHandler(
   files: ReadonlyMap<string, string>,
-  proxy: LocalBootstrapServerOptions['proxy'],
+  proxy: LocalNativeProxy | undefined,
 ) {
   return (
     request: import('node:http').IncomingMessage,
@@ -89,7 +92,7 @@ function createBootstrapRequestHandler(
 
 function matchesNativeProxyRoute(
   requestUrl: string | undefined,
-  proxy: LocalBootstrapServerOptions['proxy'],
+  proxy: LocalNativeProxy | undefined,
 ): boolean {
   if (!proxy || !requestUrl) return false;
   return Object.entries(proxy.routes).some(

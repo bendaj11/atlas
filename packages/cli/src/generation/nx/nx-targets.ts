@@ -1,8 +1,8 @@
+import { recordOrEmpty } from '../../shared/index.js';
 import type {
   AtlasPackageManager,
   AtlasProjectType,
 } from '../../workspace/index.js';
-import { asObject } from './nx-project.js';
 
 export function nxTarget({
   packageManager,
@@ -182,7 +182,7 @@ function delegatesToDevTarget({
   value: unknown;
   projectName: string;
 }): boolean {
-  const options = asObject(asObject(value).options);
+  const options = recordOrEmpty(recordOrEmpty(value).options);
   const commands = [options.command, ...commandValues(options.commands)].filter(
     (command): command is string => typeof command === 'string',
   );
@@ -199,7 +199,7 @@ function commandValues(value: unknown): unknown[] {
   if (!Array.isArray(value)) return [];
 
   return value.map((command) =>
-    typeof command === 'string' ? command : asObject(command).command,
+    typeof command === 'string' ? command : recordOrEmpty(command).command,
   );
 }
 
@@ -210,7 +210,7 @@ function isOutdatedDevTarget({
   value: unknown;
   projectName: string;
 }): boolean {
-  const options = asObject(asObject(value).options);
+  const options = recordOrEmpty(recordOrEmpty(value).options);
 
   return (
     !isAtlasCommand({
@@ -234,8 +234,8 @@ function isAtlasCommand({
 }
 
 function isOutdatedAtlasConfigTarget(value: unknown): boolean {
-  const target = asObject(value);
-  const options = asObject(target.options);
+  const target = recordOrEmpty(value);
+  const options = recordOrEmpty(target.options);
 
   return (
     typeof options.command !== 'string' ||

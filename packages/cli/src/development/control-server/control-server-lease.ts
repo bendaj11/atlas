@@ -22,7 +22,7 @@ export async function writeControlServerLease(options: {
   if (options.port === 0) return;
   await ensureLeaseDirectory();
   await writeFile(
-    leasePath(options.port, options.document),
+    leaseFilePath(options.port, options.document),
     JSON.stringify({
       document: options.document,
       processId: process.pid,
@@ -52,18 +52,21 @@ export async function removeControlServerLease(options: {
   document: AtlasDevOverrideDocument;
 }): Promise<void> {
   if (options.port === 0) return;
-  await rm(leasePath(options.port, options.document), { force: true });
+  await rm(leaseFilePath(options.port, options.document), { force: true });
 }
 
-function leasePath(port: number, document: AtlasDevOverrideDocument): string {
-  return join(LEASE_DIRECTORY, `${port}-${leaseId(document)}.json`);
+function leaseFilePath(
+  port: number,
+  document: AtlasDevOverrideDocument,
+): string {
+  return join(LEASE_DIRECTORY, `${port}-${leaseFileId(document)}.json`);
 }
 
 async function ensureLeaseDirectory(): Promise<void> {
   await mkdir(LEASE_DIRECTORY, { recursive: true, mode: 0o700 });
 }
 
-function leaseId(document: AtlasDevOverrideDocument): string {
+function leaseFileId(document: AtlasDevOverrideDocument): string {
   const appIds = document.overrides
     .map((override) => override.appId)
     .sort()

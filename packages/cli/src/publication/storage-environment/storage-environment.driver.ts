@@ -2,7 +2,7 @@ import {
   positiveEnvironmentInteger,
   requiredStorageValue,
   selectStorageFromEnvironment,
-  type StorageSelection,
+  type StorageBackendSelection,
 } from './storage-environment.js';
 import { CliArguments } from '../../shared/index.js';
 
@@ -41,7 +41,7 @@ export class StorageEnvironmentDriver {
   };
 
   readonly get = {
-    selection: (): StorageSelection | undefined =>
+    selection: (): StorageBackendSelection | undefined =>
       this.withEnvironment(() =>
         selectStorageFromEnvironment(
           new CliArguments(['publish', 'x', ...this.flags]),

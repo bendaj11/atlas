@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { AtlasConfig } from '@atlas/schema';
+import type { AtlasFramework } from '@atlas/schema';
 import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
 import {
   DEFAULT_CONTROL_PORT,
@@ -15,7 +15,7 @@ import {
 } from '../../shared/index.js';
 
 export function frameworkServerArguments(
-  framework: AtlasConfig['framework'],
+  framework: AtlasFramework,
   port: number,
 ): string[] {
   const portArguments = ['--port', String(port)];

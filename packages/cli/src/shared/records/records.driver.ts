@@ -1,4 +1,4 @@
-import { asRecord, isRecord, nonEmptyString } from './records.js';
+import { optionalRecord, isRecord, isNonEmptyString } from './records.js';
 
 export class RecordsDriver {
   private value: unknown;
@@ -13,7 +13,8 @@ export class RecordsDriver {
 
   readonly get = {
     isRecord: (): boolean => isRecord(this.value),
-    asRecord: (): Record<string, unknown> | undefined => asRecord(this.value),
-    nonEmptyString: (): boolean => nonEmptyString(this.value),
+    optionalRecord: (): Record<string, unknown> | undefined =>
+      optionalRecord(this.value),
+    isNonEmptyString: (): boolean => isNonEmptyString(this.value),
   };
 }

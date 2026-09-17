@@ -11,7 +11,7 @@ import {
   isPreconditionFailure,
   storageError,
 } from '../s3-storage/s3-errors.js';
-import { cliError, wait, publicationContentType } from '../../shared/index.js';
+import { cliError, delay, publicationContentType } from '../../shared/index.js';
 
 export const DEPLOYMENT_LOCK_PATH = '.atlas/deployment.lock';
 export const DEFAULT_LOCK_TIMEOUT_MS = 120_000;
@@ -57,7 +57,7 @@ export class S3DeploymentLock {
           { code: 'ATLAS_LOCK_TIMEOUT' },
         );
       }
-      await wait((this.options.backoffMs ?? randomBackoffMs)());
+      await delay((this.options.backoffMs ?? randomBackoffMs)());
       stored = await this.tryAcquire(owner, token);
     }
 

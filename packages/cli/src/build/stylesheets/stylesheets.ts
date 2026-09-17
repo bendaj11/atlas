@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
-  AtlasConfig,
   AtlasStylesheet,
   AtlasVersionChannel,
+  AtlasFramework,
 } from '@atlas/schema';
 import { listArtifactFiles } from '../artifact-root/artifact-root.js';
 import { normalizeArtifactPath, toPosixPath } from '../payload/payload.js';
@@ -12,7 +12,7 @@ import { sha256Integrity, readTextFile } from '../../shared/index.js';
 export async function discoverStylesheets(options: {
   artifactRoot: string;
   artifactBaseUrl: string;
-  framework: AtlasConfig['framework'];
+  framework: AtlasFramework;
   channel: AtlasVersionChannel;
 }): Promise<AtlasStylesheet[]> {
   const { artifactRoot, artifactBaseUrl, framework, channel } = options;

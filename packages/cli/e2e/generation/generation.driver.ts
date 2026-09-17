@@ -135,7 +135,7 @@ export class GenerationDriver {
     );
   }
 
-  private async exists(path: string): Promise<boolean> {
+  private async pathExists(path: string): Promise<boolean> {
     try {
       await access(join(this.projectRoot, path));
 

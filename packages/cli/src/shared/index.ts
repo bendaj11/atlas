@@ -19,7 +19,7 @@ export {
 export type { Sha256Digest } from './digest/digest.js';
 export { errorCauseOf, errorMessage, httpStatusOf } from './errors/errors.js';
 export {
-  exists,
+  pathExists,
   isMissingPathError,
   isNodeError,
   readJsonFile,
@@ -44,9 +44,15 @@ export {
   MUTABLE_CACHE_CONTROL,
   publicationContentType,
 } from './publication-metadata/publication-metadata.js';
-export { asRecord, isRecord, nonEmptyString } from './records/records.js';
+export {
+  isNonEmptyString,
+  isRecord,
+  optionalRecord,
+  recordOrEmpty,
+} from './records/records.js';
+export type { UnknownRecord } from './records/records.js';
 export { isRetryableHttpStatus, withExponentialRetry } from './retry/retry.js';
-export { wait } from './timers/timers.js';
+export { delay } from './timers/timers.js';
 export { TerminalPrompter, ui } from './ui/ui.js';
 export type { AtlasPrompter } from './ui/ui.js';
 export {

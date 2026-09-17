@@ -1,4 +1,4 @@
-import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
+import type { AtlasRuntimeOverride } from '@atlas/runtime';
 import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
 import type { AtlasDevOverrideDocument, DevSessionStore } from '../types.js';
 import {
@@ -8,7 +8,7 @@ import {
 } from './dev-catalog.js';
 
 interface DevSessionEntry {
-  override: AtlasRuntimeOverrideDocument['overrides'][number];
+  override: AtlasRuntimeOverride;
   ready: boolean;
 }
 

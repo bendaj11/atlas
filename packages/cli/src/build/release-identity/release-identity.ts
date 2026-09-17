@@ -51,7 +51,7 @@ export function publicationIdentity(options: {
       ...(Object.keys(source).length ? { source } : {}),
     };
   }
-  const previewNumber = optionalNumber(pr ?? mr);
+  const previewNumber = parseOptionalNumber(pr ?? mr);
   if (!previewNumber || previewNumber < 1) {
     throw new Error('--pr and --mr must be positive integers.');
   }
@@ -71,7 +71,7 @@ export function releaseIdentity(options: {
   environment?: NodeJS.ProcessEnv;
 }): ReleaseIdentity {
   const { args, project, environment = process.env } = options;
-  const prNumber = optionalNumber(
+  const prNumber = parseOptionalNumber(
     args.flag('pr') ?? args.flag('mr') ?? args.flag('pr-number'),
   );
   const explicitChannel = args.flag('channel') ?? environment.ATLAS_CHANNEL;
@@ -123,7 +123,7 @@ function gitOutput(root: string, args: readonly string[]): string | undefined {
   }
 }
 
-function optionalNumber(value: string | undefined): number | undefined {
+function parseOptionalNumber(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
   if (!Number.isInteger(parsed))

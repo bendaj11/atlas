@@ -4,7 +4,7 @@ import {
   type AtlasWorkspace,
   defaultDevServerPort,
 } from '../../workspace/index.js';
-import { readTextFile, isRecord } from '../../shared/index.js';
+import { readTextFile, recordOrEmpty } from '../../shared/index.js';
 
 type ProjectType = 'host' | 'app';
 
@@ -49,7 +49,7 @@ async function jsonDevServerPorts(
   const config = await readJson(path);
   if (!config) return [];
   const projects =
-    container === 'projects' ? recordValues(config.projects) : [config];
+    container === 'projects' ? nestedRecordsOf(config.projects) : [config];
   return projects.flatMap((project) => targetPorts(project));
 }
 
@@ -57,13 +57,15 @@ async function viteDevServerPorts(path: string): Promise<number[]> {
   const source = await readTextFile(path);
   const match = source?.match(VITE_PORT);
 
-  return match ? validPort(match[1]) : [];
+  return match ? validPortsOf(match[1]) : [];
 }
 
 function targetPorts(project: Record<string, unknown>): number[] {
-  const targets = recordValues(project.architect ?? project.targets);
+  const targets = nestedRecordsOf(project.architect ?? project.targets);
 
-  return targets.flatMap((target) => validPort(asRecord(target.options).port));
+  return targets.flatMap((target) =>
+    validPortsOf(recordOrEmpty(target.options).port),
+  );
 }
 
 async function readJson(
@@ -73,21 +75,17 @@ async function readJson(
   if (!source) return undefined;
 
   try {
-    return asRecord(JSON.parse(source));
+    return recordOrEmpty(JSON.parse(source));
   } catch {
     return undefined;
   }
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
+function nestedRecordsOf(value: unknown): Record<string, unknown>[] {
+  return Object.values(recordOrEmpty(value)).map(recordOrEmpty);
 }
 
-function recordValues(value: unknown): Record<string, unknown>[] {
-  return Object.values(asRecord(value)).map(asRecord);
-}
-
-function validPort(value: unknown): number[] {
+function validPortsOf(value: unknown): number[] {
   const port =
     typeof value === 'number'
       ? value

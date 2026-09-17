@@ -1,12 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-  exists,
+  pathExists,
   writeJsonFile,
   type SupportedFramework,
+  recordOrEmpty,
 } from '../../shared/index.js';
 import { addUniqueString } from '../files/files.js';
-import { asObject } from './nx-project.js';
 
 const ATLAS_CONFIG_FILE = 'atlas.config.ts';
 
@@ -24,7 +24,7 @@ export async function alignDelegatedTsconfig({
     string,
     unknown
   >;
-  const compilerOptions = asObject(tsconfig.compilerOptions);
+  const compilerOptions = recordOrEmpty(tsconfig.compilerOptions);
 
   if (framework === 'angular') {
     compilerOptions.emitDeclarationOnly = false;
@@ -45,11 +45,11 @@ export async function alignDelegatedTsconfig({
 
 async function tsconfigPath(root: string): Promise<string | undefined> {
   const appTsconfig = join(root, 'tsconfig.app.json');
-  const target = (await exists(appTsconfig))
+  const target = (await pathExists(appTsconfig))
     ? appTsconfig
     : join(root, 'tsconfig.json');
 
-  return (await exists(target)) ? target : undefined;
+  return (await pathExists(target)) ? target : undefined;
 }
 
 function includeAtlasConfig(tsconfig: Record<string, unknown>): void {

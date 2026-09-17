@@ -1,8 +1,8 @@
 import { dirname, join, relative } from 'node:path';
 import type { AtlasPackageManager, AtlasWorkspaceKind } from '../types.js';
-import { exists, readJsonFile, readTextFile } from '../../shared/index.js';
+import { pathExists, readJsonFile, readTextFile } from '../../shared/index.js';
 
-export interface GenerationBases {
+export interface GenerationBaseDirectories {
   host: string;
   app: string;
 }
@@ -35,13 +35,13 @@ export async function findWorkspaceRoot(start: string): Promise<string> {
 export async function detectWorkspaceKind(
   root: string,
 ): Promise<AtlasWorkspaceKind> {
-  if (await exists(join(root, 'nx.json'))) return 'nx';
+  if (await pathExists(join(root, 'nx.json'))) return 'nx';
 
-  if (await exists(join(root, 'turbo.json'))) return 'turbo';
+  if (await pathExists(join(root, 'turbo.json'))) return 'turbo';
   const packageJson = await rootPackageJson(root);
   const declaresWorkspaces =
     packageJson?.workspaces !== undefined ||
-    (await exists(join(root, 'pnpm-workspace.yaml')));
+    (await pathExists(join(root, 'pnpm-workspace.yaml')));
 
   return declaresWorkspaces ? 'workspace' : 'standalone';
 }
@@ -52,9 +52,9 @@ export async function detectPackageManager(
   const declared = (await rootPackageJson(root))?.packageManager?.split('@')[0];
   if (declared === 'yarn' || declared === 'pnpm' || declared === 'npm')
     return declared;
-  if (await exists(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (await pathExists(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
 
-  if (await exists(join(root, 'yarn.lock'))) return 'yarn';
+  if (await pathExists(join(root, 'yarn.lock'))) return 'yarn';
 
   return 'npm';
 }
@@ -62,7 +62,7 @@ export async function detectPackageManager(
 export async function detectGenerationBases(options: {
   root: string;
   start: string;
-}): Promise<GenerationBases> {
+}): Promise<GenerationBaseDirectories> {
   const startDirectory = relative(options.root, options.start);
   if (startDirectory && dirname(startDirectory) === '.')
     return { host: startDirectory, app: startDirectory };
@@ -83,16 +83,16 @@ function patternBase(
       candidate.includes(`/${segment}/`),
   );
 
-  return pattern ? baseOf(pattern) : undefined;
+  return pattern ? patternBaseDirectory(pattern) : undefined;
 }
 
 function wildcardBase(patterns: readonly string[]): string | undefined {
   const pattern = patterns.find((candidate) => candidate.includes('*'));
 
-  return pattern ? baseOf(pattern) : undefined;
+  return pattern ? patternBaseDirectory(pattern) : undefined;
 }
 
-function baseOf(pattern: string): string {
+function patternBaseDirectory(pattern: string): string {
   const wildcard = pattern.indexOf('*');
   const base = wildcard >= 0 ? pattern.slice(0, wildcard) : pattern;
 
@@ -101,7 +101,7 @@ function baseOf(pattern: string): string {
 
 async function isWorkspaceRoot(directory: string): Promise<boolean> {
   const markers = await Promise.all(
-    WORKSPACE_ROOT_MARKERS.map((name) => exists(join(directory, name))),
+    WORKSPACE_ROOT_MARKERS.map((name) => pathExists(join(directory, name))),
   );
 
   if (markers.some(Boolean)) return true;

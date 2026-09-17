@@ -4,12 +4,12 @@ import type {
 } from '../s3-storage/s3-storage.js';
 import type { CliArguments } from '../../shared/index.js';
 
-export type StorageSelection =
+export type StorageBackendSelection =
   { provider: 'artifactory' } | { provider: 's3'; s3Options: S3Options };
 
 export function selectStorageFromEnvironment(
   args: CliArguments | undefined,
-): StorageSelection | undefined {
+): StorageBackendSelection | undefined {
   const provider = args?.flag('storage') ?? process.env.ATLAS_STORAGE;
   if (provider === 'artifactory') return { provider };
   const bucket = args?.flag('bucket') ?? process.env.ATLAS_S3_BUCKET;

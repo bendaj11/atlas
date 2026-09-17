@@ -2,7 +2,7 @@ import { defaultDevServerPort } from '@atlas/generators';
 import { join, relative } from 'node:path';
 import type { AngularStylesheetFormat } from '@atlas/generators';
 import {
-  exists,
+  pathExists,
   readJsonFile,
   type ProcessCommand,
 } from '../../shared/index.js';
@@ -203,7 +203,7 @@ export async function installationRoot(options: {
 }): Promise<string> {
   if (options.kind !== 'nx') return options.projectRoot;
 
-  return (await exists(join(options.projectRoot, 'package.json')))
+  return (await pathExists(join(options.projectRoot, 'package.json')))
     ? options.projectRoot
     : options.workspaceRoot;
 }
@@ -213,7 +213,7 @@ export async function packageIsInstalled(
   packageName: string,
 ): Promise<boolean> {
   if (
-    await exists(
+    await pathExists(
       join(root, 'node_modules', ...packageName.split('/'), 'package.json'),
     )
   )

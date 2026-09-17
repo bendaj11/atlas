@@ -5,8 +5,13 @@ import {
   type AtlasHostCatalog,
   type AtlasHostDeploymentManifest,
   type AtlasHostRuntimeConfig,
+  type AtlasDeploymentManifestReference,
 } from '@atlas/schema';
-import { asRecord, errorMessage, nonEmptyString } from '../../shared/index.js';
+import {
+  optionalRecord,
+  errorMessage,
+  isNonEmptyString,
+} from '../../shared/index.js';
 import type { VerificationContext } from '../types.js';
 
 export function verifyCatalog({
@@ -135,15 +140,15 @@ function verifyRouteOwnership({
 export function isHostDeployment(
   value: unknown,
 ): value is AtlasHostDeploymentManifest {
-  const record = asRecord(value);
+  const record = optionalRecord(value);
 
   return (
     record?.schemaVersion === 'v1' &&
     record.kind === 'host-deployment' &&
-    nonEmptyString(record.hostId) &&
-    nonEmptyString(record.environment) &&
-    nonEmptyString(record.deploymentRevision) &&
-    asRecord(record.host) !== undefined &&
+    isNonEmptyString(record.hostId) &&
+    isNonEmptyString(record.environment) &&
+    isNonEmptyString(record.deploymentRevision) &&
+    optionalRecord(record.host) !== undefined &&
     Array.isArray(record.apps)
   );
 }
@@ -155,7 +160,7 @@ export function withArtifactUrls({
   deployment: AtlasHostDeploymentManifest;
   runtime: AtlasHostRuntimeConfig;
 }): AtlasHostDeploymentManifest {
-  const reference = (descriptor: AtlasHostDeploymentManifest['host']) => ({
+  const reference = (descriptor: AtlasDeploymentManifestReference) => ({
     ...descriptor,
     url: new URL(descriptor.path, `${runtime.artifactRegistryUrl}/`).href,
   });

@@ -1,9 +1,9 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
-import type { AtlasWorkspace } from '../../workspace/index.js';
+import type { AtlasWorkspaceKind } from '../../workspace/index.js';
 import { isMissingPathError } from '../../shared/index.js';
 
-export function workspaceLabel(kind: AtlasWorkspace['kind']): string {
+export function workspaceLabel(kind: AtlasWorkspaceKind): string {
   if (kind === 'nx') return 'an Nx workspace';
 
   if (kind === 'turbo') return 'a Turborepo workspace';

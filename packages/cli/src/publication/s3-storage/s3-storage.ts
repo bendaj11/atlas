@@ -182,7 +182,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       await this.client.send(
         new PutObjectCommand({
           ...this.objectInput(path),
-          Body: requestBody(bytes),
+          Body: uploadBodyOf(bytes),
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
           IfNoneMatch: '*',
@@ -208,7 +208,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
       await this.client.send(
         new PutObjectCommand({
           ...this.objectInput(path),
-          Body: requestBody(bytes),
+          Body: uploadBodyOf(bytes),
           CacheControl: metadata.cacheControl,
           ContentType: metadata.contentType,
           ...(condition.createOnly ? { IfNoneMatch: '*' } : {}),
@@ -258,7 +258,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   }
 }
 
-function requestBody(body: AtlasPublicationBody): Uint8Array | Readable {
+function uploadBodyOf(body: AtlasPublicationBody): Uint8Array | Readable {
   return body instanceof Uint8Array ? body : Readable.from(body);
 }
 

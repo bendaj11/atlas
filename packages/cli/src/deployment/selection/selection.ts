@@ -5,7 +5,11 @@ import {
 } from '../../publication/index.js';
 import { cliError } from '../../shared/index.js';
 import { sourceEnvironmentState } from '../registry-access/registry-access.js';
-import type { ArtifactKind, RegistryAccess, Selection } from '../types.js';
+import type {
+  ArtifactKind,
+  RegistryAccess,
+  ArtifactSelection,
+} from '../types.js';
 
 export async function selectArtifactVersion({
   access,
@@ -17,7 +21,7 @@ export async function selectArtifactVersion({
   registry: AtlasStaticRegistry;
   identifier: string;
   selector: string;
-}): Promise<Selection> {
+}): Promise<ArtifactSelection> {
   const { artifact, kind } = resolveRegistryArtifact(registry, identifier);
   const version =
     selector === 'latest'

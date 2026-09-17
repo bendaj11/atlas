@@ -34,7 +34,7 @@ export async function resolveInvocation(
       { label: 'Exported widget', value: 'widget' },
     ]);
     name ??= await prompts.input(
-      subcommand === 'widget' ? 'Widget name' : `${title(subcommand)} name`,
+      subcommand === 'widget' ? 'Widget name' : `${capitalize(subcommand)} name`,
     );
 
     if ((subcommand === 'host' || subcommand === 'app') && !framework) {
@@ -57,6 +57,6 @@ export async function resolveInvocation(
   return { command, subcommand, name, appId, framework, version };
 }
 
-function title(value: string): string {
+function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }

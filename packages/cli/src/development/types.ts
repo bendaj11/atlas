@@ -1,4 +1,7 @@
-import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
+import type {
+  AtlasRuntimeOverrideDocument,
+  AtlasRuntimeOverride,
+} from '@atlas/runtime';
 import type {
   AtlasConfig,
   AtlasHostConfig,
@@ -70,7 +73,7 @@ export interface AtlasDevSessionDocument {
   schemaVersion: '1';
   hostId: string;
   catalog: AtlasHostCatalog;
-  overrides: AtlasRuntimeOverrideDocument['overrides'];
+  overrides: AtlasRuntimeOverride[];
   hostOverride?: AtlasHostManifest;
   overrideUrl: string;
   generatedAt: string;

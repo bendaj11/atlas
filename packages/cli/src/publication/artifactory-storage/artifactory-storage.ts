@@ -17,7 +17,7 @@ export interface ArtifactoryOptions extends ArtifactoryConnectionOptions {
   readonly maxBufferedBytes?: number;
 }
 
-type StorageClient = Pick<
+type ArtifactoryStorageClient = Pick<
   ArtifactoryClient,
   | 'readStream'
   | 'readPublicStream'
@@ -33,14 +33,14 @@ const DEFAULT_MAX_BUFFERED_BYTES = 256 * 1024 * 1024;
 
 /** Artifactory-backed publication under an organization-owned, whole-command writer lock. */
 export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
-  private readonly client: StorageClient;
+  private readonly client: ArtifactoryStorageClient;
   private readonly maxBufferedBytes: number;
   private pendingMutation: Promise<void> = Promise.resolve();
   private unknownMutationFailure: unknown;
 
   constructor(
     private readonly options: ArtifactoryOptions,
-    client?: StorageClient,
+    client?: ArtifactoryStorageClient,
   ) {
     if (typeof options.assertExclusivePublishing !== 'function') {
       throw new Error(
@@ -125,9 +125,10 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
   }
 
   replace(
-    ...[path, bytes, metadata, condition]: Parameters<
-      AtlasPublicationStorage['replace']
-    >
+    path: string,
+    bytes: AtlasPublicationBody,
+    metadata: AtlasPublicationObjectMetadata,
+    condition: AtlasPublicationReplaceCondition,
   ): Promise<void> {
     return this.serializeMutation(async () => {
       const existing = await this.client.fileInfo(path);

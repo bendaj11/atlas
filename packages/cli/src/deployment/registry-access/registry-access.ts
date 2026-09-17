@@ -60,7 +60,7 @@ export async function targetEnvironmentState({
   const path = environmentStatePath(environment);
   const bytes = await access.storage.read(path);
   const value = bytes
-    ? parseJson({ bytes, subject: `target ${path}` })
+    ? parseJsonBytes({ bytes, subject: `target ${path}` })
     : undefined;
 
   return parseEnvironmentState({ value, environment, registry: 'target' });
@@ -84,7 +84,7 @@ export async function publishedManifest({
       `Atlas artifact descriptor ${descriptor.path} failed integrity verification.`,
     );
 
-  const manifest = parseJson({
+  const manifest = parseJsonBytes({
     bytes,
     subject: `artifact descriptor ${descriptor.path}`,
   });
@@ -130,7 +130,9 @@ async function sourceJson({
 }): Promise<unknown> {
   const bytes = await sourceBytes({ access, path });
 
-  return bytes ? parseJson({ bytes, subject: `source ${path}` }) : undefined;
+  return bytes
+    ? parseJsonBytes({ bytes, subject: `source ${path}` })
+    : undefined;
 }
 
 async function sourceBytes({
@@ -154,7 +156,7 @@ async function sourceBytes({
   return new Uint8Array(await response.arrayBuffer());
 }
 
-function parseJson({
+function parseJsonBytes({
   bytes,
   subject,
 }: {

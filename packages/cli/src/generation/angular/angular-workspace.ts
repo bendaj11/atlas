@@ -1,8 +1,11 @@
 import { defaultDevServerPort } from '@atlas/generators';
 import { join } from 'node:path';
-import { readJsonFile, writeJsonFile } from '../../shared/index.js';
+import {
+  readJsonFile,
+  writeJsonFile,
+  recordOrEmpty,
+} from '../../shared/index.js';
 import type { AtlasProjectType } from '../../workspace/index.js';
-import { asObject } from '../nx/nx-project.js';
 import {
   configureAngularDevelopmentTargets,
   ensureAngularNativeFederationTargets,
@@ -23,8 +26,8 @@ export async function ensureAngularWorkspaceFederationConfig({
   const workspace = await readJsonFile<Record<string, unknown>>(workspaceFile);
   if (!workspace) return;
 
-  const project = asObject(asObject(workspace.projects)[projectName]);
-  const targets = asObject(project.architect);
+  const project = recordOrEmpty(recordOrEmpty(workspace.projects)[projectName]);
+  const targets = recordOrEmpty(project.architect);
   if (!Object.keys(targets).length) return;
 
   ensureAngularNativeFederationTargets({
@@ -35,7 +38,7 @@ export async function ensureAngularWorkspaceFederationConfig({
     devServerPort,
   });
   project.architect = targets;
-  asObject(workspace.projects)[projectName] = project;
+  recordOrEmpty(workspace.projects)[projectName] = project;
 
   await writeJsonFile(workspaceFile, workspace);
 }
@@ -51,7 +54,9 @@ export async function ensureAngularBuildNotifications({
   const workspace = await readJsonFile<Record<string, unknown>>(workspaceFile);
 
   if (workspace) {
-    const project = asObject(asObject(workspace.projects)[projectName]);
+    const project = recordOrEmpty(
+      recordOrEmpty(workspace.projects)[projectName],
+    );
     const changed = configureAngularDevelopmentTargets({
       project,
       targetsKey: 'architect',
@@ -60,7 +65,7 @@ export async function ensureAngularBuildNotifications({
 
     if (!changed) return;
 
-    asObject(workspace.projects)[projectName] = project;
+    recordOrEmpty(workspace.projects)[projectName] = project;
     await writeJsonFile(workspaceFile, workspace);
 
     return;

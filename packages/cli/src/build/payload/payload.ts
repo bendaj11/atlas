@@ -1,6 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AtlasPayloadFileDescriptor } from '@atlas/schema';
+import type {
+  AtlasPayloadFileDescriptor,
+  AtlasPayloadFileRole,
+} from '@atlas/schema';
 import {
   IMMUTABLE_CACHE_CONTROL,
   publicationContentType,
@@ -31,7 +34,7 @@ export function toPosixPath(path: string): string {
 export function payloadRole(
   path: string,
   entryPath: string,
-): AtlasPayloadFileDescriptor['role'] {
+): AtlasPayloadFileRole {
   if (path === entryPath) return 'remote-entry';
 
   if (path.endsWith('.map')) return 'source-map';

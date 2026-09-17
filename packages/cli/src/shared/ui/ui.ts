@@ -12,17 +12,17 @@ type UiColor =
   | 'red'
   | 'dim'
   | 'warningBadge';
-type Status = 'info' | 'success' | 'warning' | 'error';
+type MessageStatus = 'info' | 'success' | 'warning' | 'error';
 type RgbColor = readonly [red: number, green: number, blue: number];
 
-const STATUS_SYMBOLS: Readonly<Record<Status, string>> = {
+const STATUS_SYMBOLS: Readonly<Record<MessageStatus, string>> = {
   info: 'i',
   success: '✓',
   warning: ' WARN ',
   error: '✖',
 };
 
-const STATUS_COLORS: Readonly<Record<Status, UiColor>> = {
+const STATUS_COLORS: Readonly<Record<MessageStatus, UiColor>> = {
   info: 'cyan',
   success: 'green',
   warning: 'warningBadge',
@@ -79,7 +79,7 @@ export class TerminalPrompter implements AtlasPrompter {
       const suffix = fallback ? ` [${fallback}]` : '';
       const answer = (
         await this.reader().question(
-          `${style('?', 'cyan', stdout)} ${message}${suffix}: `,
+          `${colorize('?', 'cyan', stdout)} ${message}${suffix}: `,
         )
       ).trim();
 
@@ -120,14 +120,14 @@ export const ui = {
   heading(message: string): void {
     writeLine(
       stdout,
-      `\n${style('Atlas', 'cyan', stdout)} ${style('·', 'dim', stdout)} ${style(message, 'bold', stdout)}`,
+      `\n${colorize('Atlas', 'cyan', stdout)} ${colorize('·', 'dim', stdout)} ${colorize(message, 'bold', stdout)}`,
     );
   },
   info(message: string): void {
     writeStatus(stdout, 'info', message);
   },
   warning(message: string): void {
-    writeStatus(stderr, 'warning', style(message, 'yellow', stderr));
+    writeStatus(stderr, 'warning', colorize(message, 'yellow', stderr));
   },
   success(message: string): void {
     writeStatus(stdout, 'success', message);
@@ -136,15 +136,15 @@ export const ui = {
     writeError(message);
   },
   item(message: string): void {
-    writeLine(stdout, `  ${style('•', 'dim', stdout)} ${message}`);
+    writeLine(stdout, `  ${colorize('•', 'dim', stdout)} ${message}`);
   },
   result(label: string, value: string): void {
-    writeLine(stdout, `${style(label, 'bold', stdout)}: ${value}`);
+    writeLine(stdout, `${colorize(label, 'bold', stdout)}: ${value}`);
   },
   linkedResult(label: string, value: string, target: string): void {
     writeLine(
       stdout,
-      `${style(label, 'bold', stdout)}: ${terminalLink(value, target, stdout)}`,
+      `${colorize(label, 'bold', stdout)}: ${terminalLink(value, target, stdout)}`,
     );
   },
 };
@@ -176,10 +176,14 @@ function terminalLink(
 
 function writeStatus(
   stream: WriteStream,
-  status: Status,
+  status: MessageStatus,
   message: string,
 ): void {
-  const symbol = style(STATUS_SYMBOLS[status], STATUS_COLORS[status], stream);
+  const symbol = colorize(
+    STATUS_SYMBOLS[status],
+    STATUS_COLORS[status],
+    stream,
+  );
   writeLine(stream, `${symbol} ${indentContinuationLines(message)}`);
 }
 
@@ -193,14 +197,14 @@ function writeError(message: string): void {
     ];
 
     if (actions.length > 1) {
-      writeLine(stderr, `  ${style('Suggested actions:', 'bold', stderr)}`);
+      writeLine(stderr, `  ${colorize('Suggested actions:', 'bold', stderr)}`);
       actions.forEach((match) =>
         writeLine(stderr, `    ${match[1]}. ${match[2]}`),
       );
     } else {
       writeLine(
         stderr,
-        `  ${style('Suggested action:', 'bold', stderr)} ${action}`,
+        `  ${colorize('Suggested action:', 'bold', stderr)} ${action}`,
       );
     }
   }
@@ -215,7 +219,7 @@ function writeLine(stream: WriteStream, message: string): void {
   else console.info(message);
 }
 
-function style(value: string, color: UiColor, stream: WriteStream): string {
+function colorize(value: string, color: UiColor, stream: WriteStream): string {
   if (!stream.isTTY || process.env.NO_COLOR || process.env.TERM === 'dumb')
     return value;
   const codes: Readonly<Record<UiColor, number | string>> = {

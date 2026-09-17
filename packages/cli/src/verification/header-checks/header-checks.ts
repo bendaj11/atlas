@@ -1,4 +1,4 @@
-import type { AtlasManifest } from '@atlas/schema';
+import type { AtlasVersionChannel } from '@atlas/schema';
 import type { VerificationChecks } from '../checks/checks.js';
 import { sha256Integrity } from '../../shared/index.js';
 
@@ -45,7 +45,7 @@ export function checkImmutableCache(options: {
   checks: VerificationChecks;
   response: Response;
   subject: string;
-  channel: AtlasManifest['channel'];
+  channel: AtlasVersionChannel;
 }): void {
   const { checks, response, subject, channel } = options;
 
@@ -88,7 +88,7 @@ export function checkIntegrity(options: {
   bytes: Uint8Array;
   subject: string;
   integrity: string | undefined;
-  channel: AtlasManifest['channel'];
+  channel: AtlasVersionChannel;
 }): void {
   const { checks, bytes, subject, integrity, channel } = options;
 

@@ -11,7 +11,7 @@ import {
 } from '@atlas/generators';
 import {
   CliArguments,
-  exists,
+  pathExists,
   ui,
   type AtlasPrompter,
   type SupportedFramework,
@@ -98,7 +98,7 @@ export class AtlasGenerateService {
       name,
       segments,
     });
-    const targetExisted = await exists(root);
+    const targetExisted = await pathExists(root);
 
     try {
       await this.generateProject({

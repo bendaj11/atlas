@@ -16,7 +16,7 @@ import { type CliArguments, readJsonFile } from '../../shared/index.js';
 import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 import { resolveRegistryUrl } from '../../build/index.js';
 
-export interface DevSessionContext {
+export interface DevSessionRuntime {
   controlPort: number;
   controlOrigin: string;
   registryUrl: string | undefined;
@@ -24,7 +24,7 @@ export interface DevSessionContext {
   control: DevControlServer;
 }
 
-export interface DevSessionOptions {
+export interface RunDevSessionOptions {
   workspace: AtlasWorkspace;
   args: CliArguments;
   project: AtlasProject;
@@ -33,11 +33,13 @@ export interface DevSessionOptions {
   remoteEntryUrl: string;
   frameworkPort: number;
   hostUrl: string;
-  beforeReady?: (context: DevSessionContext) => Promise<Server | undefined>;
-  browserUrl: (context: DevSessionContext) => string;
+  beforeReady?: (context: DevSessionRuntime) => Promise<Server | undefined>;
+  browserUrl: (context: DevSessionRuntime) => string;
 }
 
-export async function runDevSession(options: DevSessionOptions): Promise<void> {
+export async function runDevSession(
+  options: RunDevSessionOptions,
+): Promise<void> {
   const { workspace, args, project, config, document } = options;
   const controlPort = args.port('control-port', DEFAULT_CONTROL_PORT);
   const controlOrigin = localOrigin(controlPort);
@@ -55,7 +57,7 @@ export async function runDevSession(options: DevSessionOptions): Promise<void> {
     devTask,
     frameworkServerArguments(config.framework, options.frameworkPort),
   );
-  const context: DevSessionContext = {
+  const context: DevSessionRuntime = {
     controlPort,
     controlOrigin,
     registryUrl,

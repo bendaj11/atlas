@@ -3,7 +3,8 @@ import type { AtlasConfig } from '@atlas/schema';
 import {
   readJsonFile,
   readTextFile,
-  asRecord,
+  optionalRecord,
+  recordOrEmpty,
   isHostConfig,
 } from '../../shared/index.js';
 
@@ -78,7 +79,7 @@ export async function readConfiguredDevServerPort(
   const nxProject = await readJsonFile<Record<string, unknown>>(
     join(projectRoot, 'project.json'),
   );
-  const nxPort = readPortFromTargets(asObject(nxProject?.targets));
+  const nxPort = readPortFromTargets(recordOrEmpty(nxProject?.targets));
   if (nxPort !== undefined) return nxPort;
 
   return await readViteDevServerPort(projectRoot);
@@ -91,9 +92,10 @@ export async function readAngularProxyConfigPath(
   const workspace = await readJsonFile<Record<string, unknown>>(
     join(projectRoot, 'angular.json'),
   );
-  const projects = asObject(workspace?.projects);
-  const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
-  const targets = asObject(project?.architect ?? project?.targets);
+  const projects = recordOrEmpty(workspace?.projects);
+  const project =
+    optionalRecord(projects[projectName]) ?? firstObjectValue(projects);
+  const targets = recordOrEmpty(project?.architect ?? project?.targets);
 
   return (
     readTargetProxyConfig(targets['serve-original']) ??
@@ -115,10 +117,13 @@ function readAngularProjectPort(
   workspace: Record<string, unknown> | undefined,
   projectName: string,
 ): number | undefined {
-  const projects = asObject(workspace?.projects);
-  const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
+  const projects = recordOrEmpty(workspace?.projects);
+  const project =
+    optionalRecord(projects[projectName]) ?? firstObjectValue(projects);
 
-  return readPortFromTargets(asObject(project?.architect ?? project?.targets));
+  return readPortFromTargets(
+    recordOrEmpty(project?.architect ?? project?.targets),
+  );
 }
 
 function readPortFromTargets(
@@ -130,13 +135,13 @@ function readPortFromTargets(
 }
 
 function readTargetPort(target: unknown): number | undefined {
-  const port = asObject(asObject(target).options).port;
+  const port = recordOrEmpty(recordOrEmpty(target).options).port;
 
   return typeof port === 'number' ? parsePort(port) : undefined;
 }
 
 function readTargetProxyConfig(target: unknown): string | undefined {
-  const proxyConfig = asObject(asObject(target).options).proxyConfig;
+  const proxyConfig = recordOrEmpty(recordOrEmpty(target).options).proxyConfig;
 
   return typeof proxyConfig === 'string' && proxyConfig
     ? proxyConfig
@@ -165,10 +170,7 @@ function firstObjectValue(
   value: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   return Object.values(value).find(
-    (entry): entry is Record<string, unknown> => asRecord(entry) !== undefined,
+    (entry): entry is Record<string, unknown> =>
+      optionalRecord(entry) !== undefined,
   );
-}
-
-function asObject(value: unknown): Record<string, unknown> {
-  return asRecord(value) ?? {};
 }

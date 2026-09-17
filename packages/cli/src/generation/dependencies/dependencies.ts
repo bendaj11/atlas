@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { type SupportedFramework, exists } from '../../shared/index.js';
+import { type SupportedFramework, pathExists } from '../../shared/index.js';
 
 export interface FrameworkVersionInfo {
   version: string;
@@ -39,13 +39,13 @@ export async function dependencyManifestPath(
 
   while (true) {
     const manifest = join(current, 'package.json');
-    if (await exists(manifest)) return manifest;
+    if (await pathExists(manifest)) return manifest;
     const parent = dirname(current);
     if (resolve(current) === boundary || parent === current) break;
     current = parent;
   }
   const workspaceManifest = join(workspaceRoot, 'package.json');
-  if (await exists(workspaceManifest)) return workspaceManifest;
+  if (await pathExists(workspaceManifest)) return workspaceManifest;
   throw new Error(
     `Could not find package.json for generated project at ${projectRoot}.`,
   );

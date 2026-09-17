@@ -11,7 +11,8 @@ import {
 } from '../../workspace/index.js';
 import { ensureAngularNativeFederationTargets } from '../angular/angular-targets.js';
 import { addUniqueString } from '../files/files.js';
-import { asObject, assertNxProjectRootMatches } from './nx-project.js';
+import { recordOrEmpty } from '../../shared/index.js';
+import { assertNxProjectRootMatches } from './nx-project.js';
 import {
   atlasPublicationTargets,
   ensureAtlasConfigTarget,
@@ -49,7 +50,7 @@ export async function ensureDelegatedNxTargets({
     workspaceRoot,
     root,
   });
-  const targets = asObject(project.targets);
+  const targets = recordOrEmpty(project.targets);
 
   preserveNativeDevTarget({ targets, projectName });
 

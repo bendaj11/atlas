@@ -18,10 +18,10 @@ import type {
   ArtifactKind,
   DeploymentWrite,
   RegistryAccess,
-  Selection,
+  ArtifactSelection,
 } from '../types.js';
 
-interface SelectedApp {
+interface SelectedAppRelease {
   id: string;
   descriptor: AtlasManifestDescriptor;
   manifest: AtlasAppArtifactManifest;
@@ -36,7 +36,7 @@ export async function planDeployment({
   access: RegistryAccess;
   registry: AtlasStaticRegistry;
   environment: string;
-  selected: Selection;
+  selected: ArtifactSelection;
 }): Promise<DeploymentWrite> {
   const current = await targetEnvironmentState({ access, environment });
   const state = applySelection({ current, environment, selected });
@@ -72,7 +72,7 @@ function applySelection({
 }: {
   current: AtlasEnvironmentDeployment | undefined;
   environment: string;
-  selected: Selection;
+  selected: ArtifactSelection;
 }): AtlasEnvironmentDeployment {
   const content = {
     schemaVersion: 'v1' as const,
@@ -100,7 +100,7 @@ async function hostDeploymentManifests({
   access: RegistryAccess;
   registry: AtlasStaticRegistry;
   state: AtlasEnvironmentDeployment;
-  selected: Selection;
+  selected: ArtifactSelection;
 }): Promise<AtlasHostDeploymentManifest[]> {
   const apps = await selectedApps({ access, registry, state });
   const hostIds =
@@ -123,7 +123,7 @@ async function selectedApps({
   access: RegistryAccess;
   registry: AtlasStaticRegistry;
   state: AtlasEnvironmentDeployment;
-}): Promise<SelectedApp[]> {
+}): Promise<SelectedAppRelease[]> {
   return Promise.all(
     Object.entries(state.apps).map(async ([id, entry]) => {
       const descriptor = releaseDescriptor({
@@ -150,7 +150,7 @@ function hostDeploymentManifest({
 }: {
   registry: AtlasStaticRegistry;
   state: AtlasEnvironmentDeployment;
-  apps: SelectedApp[];
+  apps: SelectedAppRelease[];
   hostId: string;
 }): AtlasHostDeploymentManifest {
   const host = state.hosts[hostId];
@@ -186,7 +186,7 @@ function appTargetsHost({
   app,
   hostId,
 }: {
-  app: SelectedApp;
+  app: SelectedAppRelease;
   hostId: string;
 }): boolean {
   return app.manifest.placements.some((placement) =>

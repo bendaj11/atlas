@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 import type { AtlasConfig } from '@atlas/schema';
 import {
   cliError,
-  exists,
+  pathExists,
   isRecord,
   compiledAtlasConfigCandidates,
 } from '../../shared/index.js';
@@ -11,7 +11,7 @@ export async function loadCompiledAtlasConfig(
   projectRoot: string,
 ): Promise<AtlasConfig> {
   for (const path of compiledAtlasConfigCandidates(projectRoot)) {
-    if (!(await exists(path))) continue;
+    if (!(await pathExists(path))) continue;
     const module = (await import(
       `${pathToFileURL(path).href}?t=${Date.now()}`
     )) as { default?: unknown };

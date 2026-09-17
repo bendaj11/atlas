@@ -1,4 +1,5 @@
 import { relative } from 'node:path';
+import { recordOrEmpty } from '../../shared/index.js';
 
 const NX_PATH_OPTION_KEYS = [
   'index',
@@ -8,12 +9,6 @@ const NX_PATH_OPTION_KEYS = [
   'tsConfig',
   'styles',
 ];
-
-export function asObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 export function normalizedProjectRoot({
   workspaceRoot,
@@ -88,14 +83,14 @@ function collectNxPathValues(project: Record<string, unknown>): string[] {
   const values =
     typeof project.sourceRoot === 'string' ? [project.sourceRoot] : [];
 
-  for (const target of Object.values(asObject(project.targets))) {
-    const targetObject = asObject(target);
-    values.push(...nxPathOptions(asObject(targetObject.options)));
+  for (const target of Object.values(recordOrEmpty(project.targets))) {
+    const targetObject = recordOrEmpty(target);
+    values.push(...nxPathOptions(recordOrEmpty(targetObject.options)));
 
     for (const configuration of Object.values(
-      asObject(targetObject.configurations),
+      recordOrEmpty(targetObject.configurations),
     ))
-      values.push(...nxPathOptions(asObject(configuration)));
+      values.push(...nxPathOptions(recordOrEmpty(configuration)));
   }
 
   return values.map((value) => value.split('\\').join('/'));

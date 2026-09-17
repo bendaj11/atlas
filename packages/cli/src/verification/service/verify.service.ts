@@ -23,7 +23,10 @@ import {
   checkMutableCache,
 } from '../header-checks/header-checks.js';
 import type { AtlasVerifyOptions, VerificationContext } from '../types.js';
-import { parseJson, VerifiedFetch } from '../verified-fetch/verified-fetch.js';
+import {
+  parseJsonResponse,
+  VerifiedFetch,
+} from '../verified-fetch/verified-fetch.js';
 
 const DEFAULT_NETWORK_CONCURRENCY = 8;
 const DEFAULT_NETWORK_TIMEOUT_MS = 10_000;
@@ -72,7 +75,11 @@ export class AtlasVerifyService {
       subject,
       context,
       consume: async (loaded) => {
-        config = await parseJson({ response: loaded, subject, context });
+        config = await parseJsonResponse({
+          response: loaded,
+          subject,
+          context,
+        });
       },
     });
 
@@ -110,7 +117,7 @@ export class AtlasVerifyService {
       subject,
       context,
       consume: async (loaded) => {
-        value = await parseJson({ response: loaded, subject, context });
+        value = await parseJsonResponse({ response: loaded, subject, context });
       },
     });
 

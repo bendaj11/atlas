@@ -88,7 +88,7 @@ export class VerifiedFetch {
   }
 }
 
-export async function parseJson({
+export async function parseJsonResponse({
   response,
   subject,
   context,

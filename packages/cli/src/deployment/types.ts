@@ -24,7 +24,7 @@ export interface RegistryAccess {
 
 export type ArtifactKind = 'app' | 'host';
 
-export interface Selection {
+export interface ArtifactSelection {
   kind: ArtifactKind;
   id: string;
   version: string;
