@@ -50,6 +50,7 @@ export { wait } from './timers/timers.js';
 export { TerminalPrompter, ui } from './ui/ui.js';
 export type { AtlasPrompter } from './ui/ui.js';
 export {
+  absoluteHttpUrl,
   isLoopbackUrl,
   isSecureOrLoopbackUrl,
   trimTrailingSlash,

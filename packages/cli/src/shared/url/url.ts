@@ -14,3 +14,18 @@ export function isSecureOrLoopbackUrl(url: URL): boolean {
 export function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/u, '');
 }
+
+export function absoluteHttpUrl(value: string, flag: string): URL {
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${flag} must be an absolute HTTP(S) URL.`);
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    throw new Error(`${flag} must be an absolute HTTP(S) URL.`);
+
+  return url;
+}
