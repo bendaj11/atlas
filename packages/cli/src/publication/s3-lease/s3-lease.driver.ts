@@ -5,7 +5,7 @@ import {
   type S3Client,
 } from '@aws-sdk/client-s3';
 import { faker } from '@faker-js/faker';
-import type { AtlasPublicationLease } from '../publication-storage/publication-storage.js';
+import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import { S3DeploymentLock } from './s3-lease.js';
 
 interface StoredObject {

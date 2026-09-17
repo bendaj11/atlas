@@ -1,9 +1,9 @@
-import { CliArguments } from '../../cli/arguments.js';
 import {
   DEFAULT_HOST_BOOTSTRAP_PORT,
   DEFAULT_HOST_CLIENT_PORT,
 } from '../constants.js';
 import type { HostDevPorts } from '../types.js';
+import { CliArguments } from '../../shared/index.js';
 
 interface ResolveHostDevPortsOptions {
   args: CliArguments;
@@ -25,11 +25,13 @@ export function resolveHostDevPorts(
       previewKind,
     }),
   );
+
   if (previewKind === 'local' && clientPort === bootstrapPort) {
     throw new Error(
       'Host bootstrap and host client ports must differ. Pass --host-client-port with another port.',
     );
   }
+
   return { bootstrapPort, clientPort };
 }
 

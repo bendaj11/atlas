@@ -6,18 +6,15 @@ import type {
   AtlasManifest,
   AtlasVersionChannel,
 } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import type { AtlasBuildResult, BuildManifestOptions } from '../types.js';
+import { AtlasBuildService } from './build.service.js';
+import { CliArguments } from '../../shared/index.js';
 import type {
   AtlasProject,
   AtlasWorkspaceKind,
-} from '../../workspace/types.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
-import {
-  AtlasBuildService,
-  type AtlasBuildResult,
-  type BuildManifestOptions,
-} from './build.service.js';
+} from '../../workspace/index.js';
 
 export class BuildServiceDriver {
   private readonly directory = new TemporaryDirectory();

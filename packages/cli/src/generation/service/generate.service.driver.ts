@@ -1,15 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { faker } from '@faker-js/faker';
-import { CliArguments } from '../../cli/arguments.js';
-import { PromptTestDouble } from '../../cli/interaction/interaction.testkit.js';
-import { exists, readJsonFile } from '../../shared/fs/fs.js';
+import { PromptTestDouble } from '../../shared/interaction/interaction.testkit.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import { AtlasGenerateService } from './generate.service.js';
+import { CliArguments, exists, readJsonFile } from '../../shared/index.js';
 import type {
   AtlasProject,
   AtlasWorkspaceKind,
-} from '../../workspace/types.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
-import { AtlasGenerateService } from './generate.service.js';
+} from '../../workspace/index.js';
 
 export class GenerateServiceDriver {
   private readonly directory = new TemporaryDirectory();

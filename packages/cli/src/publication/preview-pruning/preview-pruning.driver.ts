@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
-import type { AtlasPublicationLease } from '../publication-storage/publication-storage.js';
+import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
 import { emptyStaticRegistry } from '../static-registry/static-registry.js';
 import { pruneUnreferencedPreviewGenerations } from './preview-pruning.js';

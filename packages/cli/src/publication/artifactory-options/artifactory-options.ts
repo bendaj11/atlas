@@ -1,9 +1,9 @@
-import type { CliArguments } from '../../cli/arguments.js';
 import type { ArtifactoryOptions } from '../artifactory-storage/artifactory-storage.js';
 import {
   positiveEnvironmentInteger,
   requiredStorageValue,
 } from '../storage-environment/storage-environment.js';
+import type { CliArguments } from '../../shared/index.js';
 
 export function artifactoryOptionsFromEnvironment(
   args?: CliArguments,

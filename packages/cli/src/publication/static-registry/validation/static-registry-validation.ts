@@ -1,7 +1,7 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import { assertManifestDescriptor, assertReleaseVersion } from '@atlas/schema';
 import { registryRevision } from '../revision/registry-revision.js';
-import { isRecord } from '../../../shared/records/records.js';
+import { isRecord } from '../../../shared/index.js';
 
 export function assertStaticRegistry(
   value: unknown,
@@ -18,6 +18,7 @@ export function assertStaticRegistry(
   }
   const registry = value as unknown as AtlasStaticRegistry;
   assertRegistryContents(registry);
+
   if (registry.revision !== registryRevision(registry)) {
     throw new Error('Atlas registry.json content revision is invalid.');
   }
@@ -40,6 +41,7 @@ function assertRegistryContents(registry: AtlasStaticRegistry): void {
 
 function assertArtifactCollections(registry: AtlasStaticRegistry): void {
   const identifiers = new Map<string, string>();
+
   for (const [kind, collection] of [
     ['apps', registry.apps],
     ['hosts', registry.hosts],
@@ -60,6 +62,7 @@ function assertArtifactCollections(registry: AtlasStaticRegistry): void {
       assertUniqueArtifactIdentifiers(artifact, identifiers);
       assertReleaseDescriptors(artifact.releases, `${kind}.${key}.releases`);
       assertPreviewDescriptors(artifact.previews, `${kind}.${key}.previews`);
+
       if (
         artifact.latest !== undefined &&
         !artifact.releases[artifact.latest]
@@ -105,6 +108,7 @@ function assertDescriptorMap(
   if (!isRecord(value)) {
     throw new Error(`Atlas registry ${subject} must be an object.`);
   }
+
   for (const [key, descriptor] of Object.entries(value)) {
     assertKey(key, subject);
     assertManifestDescriptor(descriptor, `${subject}.${key}`);

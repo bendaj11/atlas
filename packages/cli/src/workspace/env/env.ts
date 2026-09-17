@@ -8,11 +8,13 @@ export async function loadEnvFiles(root: string): Promise<void> {
 
 async function loadEnvFile(path: string): Promise<void> {
   let source: string;
+
   try {
     source = await readFile(path, 'utf8');
   } catch {
     return;
   }
+
   for (const line of source.split(/\r?\n/)) {
     const entry = parseEnvLine(line);
     if (!entry || process.env[entry.name] !== undefined) continue;

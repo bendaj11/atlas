@@ -1,8 +1,11 @@
 import { join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
-import { readJsonFile, readTextFile } from '../../shared/fs/fs.js';
-import { asRecord } from '../../shared/records/records.js';
-import { isHostConfig } from '../../shared/atlas-config/atlas-config.js';
+import {
+  readJsonFile,
+  readTextFile,
+  asRecord,
+  isHostConfig,
+} from '../../shared/index.js';
 
 export { isHostConfig };
 
@@ -46,6 +49,7 @@ export function hostIdFromRoute(
       )
       .map((route) => route.hostId),
   );
+
   return matchingHostIds.size === 1
     ? matchingHostIds.values().next().value
     : undefined;
@@ -53,6 +57,7 @@ export function hostIdFromRoute(
 
 export function isBaseHostUrl(value: string): boolean {
   const url = new URL(value);
+
   return url.pathname === '/' && !url.search && !url.hash;
 }
 
@@ -89,6 +94,7 @@ export async function readAngularProxyConfigPath(
   const projects = asObject(workspace?.projects);
   const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
   const targets = asObject(project?.architect ?? project?.targets);
+
   return (
     readTargetProxyConfig(targets['serve-original']) ??
     readTargetProxyConfig(targets.serve)
@@ -97,6 +103,7 @@ export async function readAngularProxyConfigPath(
 
 function routeMatchesPath(path: string, pathname: string): boolean {
   const normalizedPath = path === '/' ? '/' : path.replace(/\/+$/, '');
+
   return (
     normalizedPath === '/' ||
     pathname === normalizedPath ||
@@ -110,6 +117,7 @@ function readAngularProjectPort(
 ): number | undefined {
   const projects = asObject(workspace?.projects);
   const project = asRecord(projects[projectName]) ?? firstObjectValue(projects);
+
   return readPortFromTargets(asObject(project?.architect ?? project?.targets));
 }
 
@@ -123,11 +131,13 @@ function readPortFromTargets(
 
 function readTargetPort(target: unknown): number | undefined {
   const port = asObject(asObject(target).options).port;
+
   return typeof port === 'number' ? parsePort(port) : undefined;
 }
 
 function readTargetProxyConfig(target: unknown): string | undefined {
   const proxyConfig = asObject(asObject(target).options).proxyConfig;
+
   return typeof proxyConfig === 'string' && proxyConfig
     ? proxyConfig
     : undefined;
@@ -145,6 +155,7 @@ async function readViteDevServerPort(
 
 function parsePort(value: string | number): number | undefined {
   const port = Number(value);
+
   return Number.isInteger(port) && port >= 1 && port <= 65535
     ? port
     : undefined;

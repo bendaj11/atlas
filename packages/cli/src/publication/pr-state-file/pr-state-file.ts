@@ -57,6 +57,7 @@ export async function readOpenPreviews(
 function isPreviewStateFile(value: unknown): value is AtlasPreviewStateFile {
   if (typeof value !== 'object' || value === null) return false;
   const state = value as Partial<AtlasPreviewStateFile>;
+
   if (
     state.schemaVersion !== '1' ||
     state.complete !== true ||
@@ -67,6 +68,7 @@ function isPreviewStateFile(value: unknown): value is AtlasPreviewStateFile {
   }
 
   const keys = state.artifacts.map(({ kind, id }) => `${kind}:${id}`);
+
   return new Set(keys).size === keys.length;
 }
 
@@ -75,6 +77,7 @@ function isArtifactPreviewStateEntry(
 ): value is AtlasArtifactPreviewStateEntry {
   if (typeof value !== 'object' || value === null) return false;
   const artifact = value as Partial<AtlasArtifactPreviewStateEntry>;
+
   return (
     (artifact.kind === 'app' || artifact.kind === 'host') &&
     typeof artifact.id === 'string' &&

@@ -1,7 +1,5 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
-import type { AtlasBuildResult } from '../../build/service/build.service.js';
-import { sha256Digest } from '../../shared/digest/digest.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject } from '../../workspace/workspace.testkit.js';
 import { anAppArtifactManifest } from '@atlas/testkit';
@@ -13,6 +11,8 @@ import {
   type PublicationFile,
   type PublicationFiles,
 } from './publication-files.js';
+import type { AtlasBuildResult } from '../../build/index.js';
+import { sha256Digest } from '../../shared/index.js';
 
 export class PublicationFilesDriver {
   private readonly directory = new TemporaryDirectory();

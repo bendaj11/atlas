@@ -1,21 +1,21 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
-import type { CliArguments } from '../../cli/arguments.js';
-import { sha256Digest } from '../../shared/digest/digest.js';
-import {
-  isSecureOrLoopbackUrl,
-  trimTrailingSlash,
-} from '../../shared/url/url.js';
-import { MUTABLE_CACHE_CONTROL } from '../publication-metadata/publication-metadata.js';
 import type {
   AtlasPublicationLease,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
-import type { AtlasRegistryConfig } from '../registry-config.js';
+} from '../publication-storage/types.js';
+import type { AtlasRegistryConfig } from '../registry-config/types.js';
 import {
-  assertStaticRegistry,
   canonicalJson,
   registryRevision,
-} from '../static-registry/static-registry.js';
+} from '../static-registry/revision/registry-revision.js';
+import { assertStaticRegistry } from '../static-registry/validation/static-registry-validation.js';
+import {
+  type CliArguments,
+  sha256Digest,
+  isSecureOrLoopbackUrl,
+  trimTrailingSlash,
+  MUTABLE_CACHE_CONTROL,
+} from '../../shared/index.js';
 
 export const REGISTRY_PATH = 'registry.json';
 
@@ -30,6 +30,7 @@ export async function readRegistry(
   const bytes = await storage.read(REGISTRY_PATH);
   if (!bytes) return undefined;
   let value: unknown;
+
   try {
     value = JSON.parse(new TextDecoder().decode(bytes));
   } catch (error) {
@@ -98,6 +99,7 @@ export async function verifyPublicRegistry(options: {
   fetchResource?: typeof fetch;
 }): Promise<void> {
   const { args, config, expected, fetchResource = fetch } = options;
+
   if (config?.verifyRegistry) {
     await config.verifyRegistry(expected);
 
@@ -108,6 +110,7 @@ export async function verifyPublicRegistry(options: {
     cache: 'no-store',
     redirect: 'manual',
   });
+
   if (!response.ok || (response.status >= 300 && response.status < 400)) {
     throw new Error(
       `Atlas could not verify public registry.json: HTTP ${response.status}.`,
@@ -115,6 +118,7 @@ export async function verifyPublicRegistry(options: {
   }
   const value: unknown = await response.json();
   assertStaticRegistry(value);
+
   if (value.revision !== expected.revision) {
     throw new Error(
       `Public registry revision ${value.revision} does not match published revision ${expected.revision}.`,
@@ -140,6 +144,7 @@ export function publicRegistryRoot(args: CliArguments): string {
       'Atlas public registry URL must use HTTPS outside loopback.',
     );
   }
+
   if (url.pathname.endsWith(`/${REGISTRY_PATH}`)) {
     url.pathname = url.pathname.slice(0, -REGISTRY_PATH.length);
   }

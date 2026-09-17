@@ -5,15 +5,13 @@ import {
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3';
-import { cliError } from '../../cli/cli-error/cli-error.js';
-import { wait } from '../../shared/timers/timers.js';
-import { publicationContentType } from '../publication-metadata/publication-metadata.js';
-import type { AtlasPublicationLease } from '../publication-storage/publication-storage.js';
+import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import {
   isMissingObject,
   isPreconditionFailure,
   storageError,
 } from '../s3-storage/s3-errors.js';
+import { cliError, wait, publicationContentType } from '../../shared/index.js';
 
 export const DEPLOYMENT_LOCK_PATH = '.atlas/deployment.lock';
 export const DEFAULT_LOCK_TIMEOUT_MS = 120_000;
@@ -82,6 +80,7 @@ export class S3DeploymentLock {
           renewalPromise = this.renew(owner, token, currentEtag)
             .then((etag) => {
               currentEtag = etag;
+
               if (active) scheduleRenewal();
             })
             .catch((error: unknown) => {
@@ -103,12 +102,14 @@ export class S3DeploymentLock {
             { cause: leaseError },
           );
         const current = await this.read();
+
         if (
           !current ||
           current.lease.token !== token ||
           Date.parse(current.lease.expiresAt) <= Date.now()
         ) {
           active = false;
+
           throw new Error(
             'Atlas deployment lease is no longer owned by this publisher.',
           );
@@ -118,6 +119,7 @@ export class S3DeploymentLock {
         if (renewalTimer) clearTimeout(renewalTimer);
         active = false;
         await renewalPromise;
+
         if (leaseError)
           throw new Error(
             'Atlas deployment lease was lost during publication.',
@@ -133,6 +135,7 @@ export class S3DeploymentLock {
     token: string,
   ): Promise<StoredLease | undefined> {
     const lease = this.newLease(owner, token);
+
     try {
       const response = await this.options.client.send(
         this.putCommand(lease, { IfNoneMatch: '*' }),
@@ -174,6 +177,7 @@ export class S3DeploymentLock {
   private async release(token: string): Promise<void> {
     const current = await this.read();
     if (!current || current.lease.token !== token) return;
+
     try {
       await this.options.client.send(
         new DeleteObjectCommand({
@@ -192,6 +196,7 @@ export class S3DeploymentLock {
       const response = await this.options.client.send(
         new GetObjectCommand(this.objectInput()),
       );
+
       if (!response.Body || !response.ETag) return undefined;
       const value = JSON.parse(
         await response.Body.transformToString(),
@@ -244,6 +249,7 @@ function assertLease(value: unknown): DeploymentLease {
   if (typeof value !== 'object' || value === null)
     throw new Error('Atlas deployment lock is malformed.');
   const lease = value as Partial<DeploymentLease>;
+
   if (
     ![lease.owner, lease.token, lease.acquiredAt, lease.expiresAt].every(
       (entry) => typeof entry === 'string' && entry,
@@ -251,6 +257,7 @@ function assertLease(value: unknown): DeploymentLease {
   ) {
     throw new Error('Atlas deployment lock is malformed.');
   }
+
   if (Number.isNaN(Date.parse(lease.expiresAt!)))
     throw new Error('Atlas deployment lock expiry is invalid.');
 

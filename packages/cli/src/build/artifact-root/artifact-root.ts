@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
-import { cliError } from '../../cli/cli-error/cli-error.js';
+import { toPosixPath } from '../payload/payload.js';
 import {
+  cliError,
   IMMUTABLE_CACHE_CONTROL,
   publicationContentType,
-} from '../../publication/publication-metadata/publication-metadata.js';
-import type { AtlasProject } from '../../workspace/types.js';
-import { toPosixPath } from '../payload/payload.js';
+} from '../../shared/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 export interface ArtifactRootLookup {
   workspaceRoot: string;
@@ -67,6 +67,7 @@ export async function listArtifactFiles(
     entries.map(async (entry) => {
       const path = join(relative, entry.name);
       if (entry.isDirectory()) return listArtifactFiles(root, path);
+
       if (entry.isFile()) return [path];
       throw new Error(
         `Atlas cannot inventory unsupported artifact entry "${path}".`,
@@ -79,6 +80,7 @@ export async function listArtifactFiles(
 
 export async function hashArtifactDirectory(root: string): Promise<string> {
   const hash = createHash('sha256');
+
   for (const relativePath of await listArtifactFiles(root)) {
     hash.update(toPosixPath(relativePath));
     hash.update('\0');

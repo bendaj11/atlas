@@ -1,9 +1,8 @@
 import { jest } from '@jest/globals';
 import type { AtlasStaticRegistry } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
-import type { AtlasPublicationLease } from '../publication-storage/publication-storage.js';
+import type { AtlasPublicationLease } from '../publication-storage/types.js';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
-import type { AtlasRegistryConfig } from '../registry-config.js';
+import type { AtlasRegistryConfig } from '../registry-config/types.js';
 import {
   assertExpectedRegistryRevision,
   publicRegistryRoot,
@@ -13,6 +12,7 @@ import {
   writeRegistry,
   type RegistryState,
 } from './registry-io.js';
+import { CliArguments } from '../../shared/index.js';
 
 export class RegistryIoDriver {
   private readonly storage = new InMemoryPublicationStorage();

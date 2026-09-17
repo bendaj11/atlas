@@ -33,6 +33,7 @@ export async function readTextFile(path: string): Promise<string | undefined> {
 export async function readJsonFile<T>(path: string): Promise<T | undefined> {
   const source = await readTextFile(path);
   if (source === undefined) return undefined;
+
   try {
     return JSON.parse(source) as T;
   } catch (error) {

@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
-import {
-  ArtifactoryClient,
-  type ArtifactoryConnectionOptions,
-} from '../artifactory-client/artifactory-client.js';
+import { ArtifactoryClient } from '../artifactory-client/artifactory-client.js';
+import type { ArtifactoryConnectionOptions } from '../artifactory-client/types.js';
 import type {
   AtlasPublicationBody,
   AtlasPublicationLease,
@@ -10,7 +8,7 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 
 export interface ArtifactoryOptions extends ArtifactoryConnectionOptions {
   /** Reject unless all writers to this repository/prefix are externally serialized for the entire command. */
@@ -66,6 +64,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
 
   async read(path: string): Promise<Uint8Array | undefined> {
     const stream = await this.readStream(path);
+
     return stream ? collectBody(stream, this.maxBufferedBytes) : undefined;
   }
 
@@ -80,6 +79,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     if (!info) return undefined;
 
     const headers = await this.client.metadata(path);
+
     return { ...info, ...headers };
   }
 
@@ -90,6 +90,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
         throw new Error(`Artifactory object is missing from storage: ${path}`);
 
       const delivered = await this.client.deliveryMetadata(path);
+
       if (
         delivered.contentType !== stored.contentType ||
         delivered.cacheControl !== stored.cacheControl
@@ -181,6 +182,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
       )
         this.unknownMutationFailure = error;
     });
+
     return mutation;
   }
 
@@ -212,6 +214,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     await this.options.assertExclusivePublishing();
 
     const published = await this.inspect(path);
+
     if (
       published?.versionToken !== sha256 ||
       published.size !== bytes.byteLength ||
@@ -235,8 +238,10 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
 
     const digest = createHash('sha256');
     let size = 0;
+
     for await (const chunk of stream) {
       size += chunk.byteLength;
+
       if (size > expected.size)
         throw new Error(
           'Artifactory public delivery size does not match stored object.',
@@ -284,6 +289,7 @@ async function collectBody(
 
   for await (const chunk of stream) {
     size += chunk.byteLength;
+
     if (size > maximumBytes)
       throw new Error('Artifactory object exceeds maxBufferedBytes.');
     chunks.push(chunk);

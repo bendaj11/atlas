@@ -3,7 +3,7 @@ import type {
   AtlasPublicationListedObject,
   AtlasPublicationObjectMetadata,
   AtlasPublicationStorage,
-} from './publication-storage.js';
+} from './types.js';
 
 interface StoredObject {
   bytes: Uint8Array;

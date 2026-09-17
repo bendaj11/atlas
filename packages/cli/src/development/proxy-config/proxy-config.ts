@@ -24,6 +24,7 @@ export async function loadAngularHostProxy(
     projectRoot,
     configPath,
   );
+
   if (!routes) return undefined;
   return { origin, routes };
 }

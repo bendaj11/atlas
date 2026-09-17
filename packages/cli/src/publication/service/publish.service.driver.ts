@@ -11,8 +11,6 @@ import type {
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { anAppArtifactManifest, aPayloadFileDescriptor } from '@atlas/testkit';
-import type { AtlasBuildResult } from '../../build/service/build.service.js';
-import { CliArguments } from '../../cli/arguments.js';
 import type {
   AtlasPublicationBody,
   AtlasPublicationLease,
@@ -20,18 +18,18 @@ import type {
   AtlasPublicationObjectMetadata,
   AtlasPublicationReplaceCondition,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
-import type { AtlasPreviewHeadResolver } from '../registry-config.js';
+} from '../publication-storage/types.js';
+import type { AtlasPreviewHeadResolver } from '../registry-config/types.js';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import {
   canonicalJson,
-  emptyStaticRegistry,
   registryRevision,
-} from '../static-registry/static-registry.js';
-import {
-  AtlasPublishService,
-  type AtlasProjectBuilder,
-} from './publish.service.js';
+} from '../static-registry/revision/registry-revision.js';
+import { emptyStaticRegistry } from '../static-registry/static-registry.js';
+import type { AtlasProjectBuilder } from '../types.js';
+import { AtlasPublishService } from './publish.service.js';
+import type { AtlasBuildResult } from '../../build/index.js';
+import { CliArguments } from '../../shared/index.js';
 
 export class PublishServiceDriver {
   private readonly id = faker.string.uuid();

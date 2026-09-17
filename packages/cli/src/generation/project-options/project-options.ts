@@ -1,13 +1,17 @@
 import type { AngularStylesheetFormat } from '@atlas/generators';
-import type { CliArguments, SupportedFramework } from '../../cli/arguments.js';
-import { ui, type AtlasPrompter } from '../../cli/ui/ui.js';
-import { defaultDevServerPort } from '../../workspace/commands/commands.js';
-import type {
-  AtlasNxProjectType,
-  AtlasProjectType,
-  AtlasWorkspace,
-} from '../../workspace/types.js';
-import { suggestedDevServerPort } from '../ports.js';
+import { suggestedDevServerPort } from '../ports/ports.js';
+import {
+  type CliArguments,
+  type SupportedFramework,
+  ui,
+  type AtlasPrompter,
+} from '../../shared/index.js';
+import {
+  defaultDevServerPort,
+  type AtlasNxProjectType,
+  type AtlasProjectType,
+  type AtlasWorkspace,
+} from '../../workspace/index.js';
 
 export interface ProjectOptionsContext {
   workspace: AtlasWorkspace;
@@ -20,6 +24,7 @@ export async function resolveInnerRouting(
   type: AtlasProjectType,
 ): Promise<boolean> {
   if (type === 'host') return true;
+
   if (args.hasFlag('routing') || args.hasFlag('no-routing'))
     return args.routing();
   if (!prompts.interactive) return true;
@@ -37,7 +42,9 @@ export async function resolveStylesheetFormat(
   framework: SupportedFramework,
 ): Promise<AngularStylesheetFormat | undefined> {
   if (framework !== 'angular') return undefined;
+
   if (args.hasFlag('style')) return args.stylesheetFormat();
+
   if (!prompts.interactive) return 'css';
 
   return prompts.select<AngularStylesheetFormat>(
@@ -59,6 +66,7 @@ export async function resolveDevServerPort(
   if (args.hasFlag('port')) return args.port('port', defaultPort);
   const fallback = await suggestedDevServerPort(workspace, type);
   if (!prompts.interactive) return fallback;
+
   while (true) {
     const value = await prompts.input(
       'Which port would you like to use for the dev server?',

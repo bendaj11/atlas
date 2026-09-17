@@ -8,11 +8,8 @@ import {
 } from '@atlas/testkit';
 import { anOverrideDocument } from '../development.testkit.js';
 import type { AtlasDevOverrideDocument } from '../types.js';
-import {
-  createDevSession,
-  createDevSessionStore,
-  createLocalDevCatalog,
-} from './session.js';
+import { createDevSession, createLocalDevCatalog } from './dev-catalog.js';
+import { createDevSessionStore } from './session.js';
 
 type SessionScenario =
   'catalog' | 'merged-catalog' | 'registration' | 'session';

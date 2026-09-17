@@ -1,12 +1,4 @@
 import type { AtlasHostConfig } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
-import { ui } from '../../cli/ui/ui.js';
-import { loadBootstrapTemplate } from '../../bootstrap/template/bootstrap-template.js';
-import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
-import { ensureAngularBuildNotifications } from '../../generation/angular.js';
-import { isHostConfig } from '../../shared/atlas-config/atlas-config.js';
-import { loadEnvFiles } from '../../workspace/env/env.js';
-import type { AtlasProject, AtlasWorkspace } from '../../workspace/types.js';
 import { startLocalBootstrapServer } from '../bootstrap-server/bootstrap-server.js';
 import {
   readAngularProxyConfigPath,
@@ -33,6 +25,19 @@ import type {
   DevPrompts,
   HostDevTarget,
 } from '../types.js';
+import {
+  CliArguments,
+  ui,
+  compileAtlasConfig,
+  isHostConfig,
+} from '../../shared/index.js';
+import { loadBootstrapTemplate } from '../../bootstrap/index.js';
+import { ensureAngularBuildNotifications } from '../../generation/index.js';
+import {
+  loadEnvFiles,
+  type AtlasProject,
+  type AtlasWorkspace,
+} from '../../workspace/index.js';
 
 export class AtlasDevService {
   constructor(
@@ -47,19 +52,26 @@ export class AtlasDevService {
   ): Promise<void> {
     const project = await this.workspace.findProject(name);
     await loadEnvFiles(project.root);
+
     if (project.root !== this.workspace.root)
       await loadEnvFiles(this.workspace.root);
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
+
     if (this.args.hasFlag('host-url')) {
       throw new Error(
         '--host-url is not supported by atlas dev. Define package.json atlas.previews instead.',
       );
     }
+
     if (config.framework === 'angular' && !this.args.hasFlag('prepare-only')) {
       await assertUsableAngularBuildPackage(this.workspace.root, project.root);
-      await ensureAngularBuildNotifications(project.root, project.id);
+      await ensureAngularBuildNotifications({
+        root: project.root,
+        projectName: project.id,
+      });
     }
+
     if (isHostConfig(config)) {
       await this.runHost(project, config, prompts);
 
@@ -107,6 +119,7 @@ export class AtlasDevService {
       previewUrl: hostUrl,
     };
     await writeDevOverrideDocument(project.root, document);
+
     if (this.args.hasFlag('prepare-only')) {
       ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
       ui.info('Run without --prepare-only to start development servers.');
@@ -184,6 +197,7 @@ export class AtlasDevService {
       previewUrl: target.hostUrl,
     };
     await writeDevOverrideDocument(project.root, document);
+
     if (this.args.hasFlag('prepare-only')) {
       logHostViewUrl(target.hostUrl);
 
@@ -224,6 +238,7 @@ function assertLocalPreviewPort(
   const previewPort = Number(
     preview.port || (preview.protocol === 'https:' ? 443 : 80),
   );
+
   if (preview.protocol === 'http:' && previewPort === bootstrapPort) return;
   throw new Error(
     `Local host preview "${target.hostUrl}" must use http and configured bootstrap port ${bootstrapPort}. Update atlas.previews or pass --port=${previewPort}.`,

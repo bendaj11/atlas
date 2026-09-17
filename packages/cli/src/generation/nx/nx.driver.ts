@@ -2,14 +2,11 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import type { SupportedFramework } from '../../cli/arguments.js';
-import {
-  alignDelegatedAngularFederationConfig,
-  alignDelegatedTsconfig,
-  atlasConfigNxTarget,
-  ensureDelegatedNxTargets,
-  nxTarget,
-} from './nx.js';
+import { alignDelegatedAngularFederationConfig } from './delegated-federation-config.js';
+import { alignDelegatedTsconfig } from './delegated-tsconfig.js';
+import { atlasConfigNxTarget, nxTarget } from './nx-targets.js';
+import { ensureDelegatedNxTargets } from './nx.js';
+import type { SupportedFramework } from '../../shared/index.js';
 
 type ProjectType = 'host' | 'app';
 
@@ -104,10 +101,10 @@ module.exports = {
 
   when = {
     alignFederation: async (): Promise<void> => {
-      await alignDelegatedAngularFederationConfig(
-        this.workspaceRoot,
-        this.projectRoot,
-      );
+      await alignDelegatedAngularFederationConfig({
+        workspaceRoot: this.workspaceRoot,
+        root: this.projectRoot,
+      });
       const source = await readFile(
         join(this.projectRoot, 'federation.config.js'),
         'utf8',
@@ -130,7 +127,7 @@ module.exports = {
     alignTsconfig: async (): Promise<void> => {
       const framework = this.value as SupportedFramework;
 
-      await alignDelegatedTsconfig(this.projectRoot, framework);
+      await alignDelegatedTsconfig({ root: this.projectRoot, framework });
 
       const tsconfig = JSON.parse(
         await readFile(join(this.projectRoot, 'tsconfig.app.json'), 'utf8'),
@@ -145,10 +142,17 @@ module.exports = {
       };
     },
     createConfigTarget: (): void => {
-      this.value = atlasConfigNxTarget(this.packageManager, this.projectRoot);
+      this.value = atlasConfigNxTarget({
+        packageManager: this.packageManager,
+        cwd: this.projectRoot,
+      });
     },
     createTarget: (): void => {
-      this.value = nxTarget(this.packageManager, this.projectRoot, this.script);
+      this.value = nxTarget({
+        packageManager: this.packageManager,
+        cwd: this.projectRoot,
+        script: this.script,
+      });
     },
     ensureTargets: async ({
       frameworkVersion,
@@ -160,16 +164,16 @@ module.exports = {
         type: ProjectType;
       };
 
-      await ensureDelegatedNxTargets(
-        this.workspaceRoot,
-        this.projectRoot,
-        this.name,
+      await ensureDelegatedNxTargets({
+        workspaceRoot: this.workspaceRoot,
+        root: this.projectRoot,
+        name: this.name,
         type,
         framework,
-        this.packageManager,
-        this.port,
+        packageManager: this.packageManager,
+        devServerPort: this.port,
         frameworkVersion,
-      );
+      });
 
       const project = JSON.parse(
         await readFile(join(this.projectRoot, 'project.json'), 'utf8'),

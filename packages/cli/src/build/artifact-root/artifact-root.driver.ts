@@ -2,7 +2,6 @@ import { relative } from 'node:path';
 import { faker } from '@faker-js/faker';
 import type { AtlasConfig } from '@atlas/schema';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import type { AtlasProject } from '../../workspace/types.js';
 import { aProject } from '../../workspace/workspace.testkit.js';
 import {
   findArtifactRoot,
@@ -10,6 +9,7 @@ import {
   hashArtifactDirectory,
   listArtifactFiles,
 } from './artifact-root.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 export class ArtifactRootDriver {
   private readonly directory = new TemporaryDirectory();

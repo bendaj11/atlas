@@ -6,9 +6,9 @@ import type {
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
 } from '@atlas/schema';
-import type { AtlasBuildService } from '../build/service/build.service.js';
-import type { AtlasPrompter } from '../cli/ui/ui.js';
-import type { AtlasProject } from '../workspace/types.js';
+import type { AtlasBuildService } from '../build/index.js';
+import type { AtlasPrompter } from '../shared/index.js';
+import type { AtlasProject } from '../workspace/index.js';
 
 export type DevPrompts = Pick<AtlasPrompter, 'interactive' | 'select'>;
 
@@ -17,6 +17,21 @@ export interface DevControlServer {
   markReady(): Promise<void>;
   reconcile(): Promise<void>;
   close(): Promise<void>;
+}
+
+export type PublishedCatalogLoader = (options: {
+  registryUrl: string;
+  hostId: string;
+  environment: string;
+}) => Promise<AtlasHostCatalog>;
+
+export interface StartControlServerOptions {
+  port: number;
+  document: AtlasDevOverrideDocument;
+  overrideUrl: string;
+  registryUrl?: string;
+  environment?: string;
+  loadPublishedCatalog?: PublishedCatalogLoader;
 }
 
 export interface HostDevPorts {

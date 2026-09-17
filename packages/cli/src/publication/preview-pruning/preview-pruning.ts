@@ -4,7 +4,7 @@ import type {
   AtlasPublicationLease,
   AtlasPublicationListedObject,
   AtlasPublicationStorage,
-} from '../publication-storage/publication-storage.js';
+} from '../publication-storage/types.js';
 
 const GENERATION_GRACE_MS = 24 * 60 * 60 * 1000;
 
@@ -22,12 +22,15 @@ export async function pruneUnreferencedPreviewGenerations(options: {
       .map(({ path }) => path.slice(0, -'/manifest.json'.length)),
   );
   let removed = 0;
+
   for (const { kind, id } of previewStates) {
     const prefix = `${kind === 'app' ? 'apps' : 'hosts'}/${id}/previews/`;
     const generations = groupByGeneration(await storage.list(prefix), prefix);
     for (const [generation, entries] of generations) {
       if (referenced.has(generation)) continue;
+
       if (!isExpired(entries, now)) continue;
+
       for (const { path } of entries) {
         await lease.assertHeld();
         await storage.remove(path);
@@ -44,6 +47,7 @@ function groupByGeneration(
   prefix: string,
 ): Map<string, AtlasPublicationListedObject[]> {
   const generations = new Map<string, AtlasPublicationListedObject[]>();
+
   for (const object of objects) {
     const suffix = object.path.slice(prefix.length).split('/');
     if (suffix.length < 3) continue;

@@ -1,10 +1,10 @@
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { ensureTurboTasks, writeNxProject } from './workspace-targets.js';
 import type {
   AtlasPackageManager,
   AtlasProjectType,
-} from '../../workspace/types.js';
-import { readJsonFile } from '../../shared/fs/fs.js';
-import { ensureTurboTasks, writeNxProject } from './workspace-targets.js';
+} from '../../workspace/index.js';
+import { readJsonFile } from '../../shared/index.js';
 
 export class WorkspaceTargetsDriver {
   private readonly directory = new TemporaryDirectory();

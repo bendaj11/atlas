@@ -4,11 +4,12 @@ import type { AtlasPayloadFileDescriptor } from '@atlas/schema';
 import {
   IMMUTABLE_CACHE_CONTROL,
   publicationContentType,
-} from '../../publication/publication-metadata/publication-metadata.js';
-import { sha256Digest } from '../../shared/digest/digest.js';
+  sha256Digest,
+} from '../../shared/index.js';
 
 export function normalizeArtifactPath(path: string): string {
   const normalized = toPosixPath(path);
+
   if (
     !normalized ||
     normalized.startsWith('/') ||
@@ -32,8 +33,11 @@ export function payloadRole(
   entryPath: string,
 ): AtlasPayloadFileDescriptor['role'] {
   if (path === entryPath) return 'remote-entry';
+
   if (path.endsWith('.map')) return 'source-map';
+
   if (path.endsWith('.css')) return 'stylesheet';
+
   if (/\.(?:m?js|cjs)$/i.test(path)) return 'script';
 
   return 'asset';

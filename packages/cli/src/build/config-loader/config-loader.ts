@@ -1,9 +1,11 @@
 import { pathToFileURL } from 'node:url';
 import type { AtlasConfig } from '@atlas/schema';
-import { cliError } from '../../cli/cli-error/cli-error.js';
-import { exists } from '../../shared/fs/fs.js';
-import { isRecord } from '../../shared/records/records.js';
-import { compiledAtlasConfigCandidates } from '../config-compiler/config-compiler.js';
+import {
+  cliError,
+  exists,
+  isRecord,
+  compiledAtlasConfigCandidates,
+} from '../../shared/index.js';
 
 export async function loadCompiledAtlasConfig(
   projectRoot: string,
@@ -15,6 +17,7 @@ export async function loadCompiledAtlasConfig(
     )) as { default?: unknown };
     const exported = module.default;
     if (isAtlasConfig(exported)) return exported;
+
     if (isRecord(exported) && isAtlasConfig(exported.default))
       return exported.default;
     throw cliError(
@@ -23,6 +26,7 @@ export async function loadCompiledAtlasConfig(
       { code: 'ATLAS_CONFIG_INVALID' },
     );
   }
+
   throw cliError(
     `Compiled atlas.config.js was not found for ${projectRoot}.`,
     [

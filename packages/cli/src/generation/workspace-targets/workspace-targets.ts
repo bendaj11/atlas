@@ -1,16 +1,17 @@
 import { isAbsolute, join, relative, sep } from 'node:path';
-import { readJsonFile, writeJsonFile } from '../../shared/fs/fs.js';
-import { isRecord } from '../../shared/records/records.js';
-import type {
-  AtlasPackageManager,
-  AtlasProjectType,
-} from '../../workspace/types.js';
 import {
-  ATLAS_NX_TAG,
-  atlasCommand,
   atlasConfigNxTarget,
+  atlasDevTarget,
+  atlasPublicationTargets,
   nxTarget,
-} from '../nx/nx.js';
+  projectAliasTarget,
+} from '../nx/nx-targets.js';
+import { readJsonFile, writeJsonFile, isRecord } from '../../shared/index.js';
+import {
+  type AtlasPackageManager,
+  type AtlasProjectType,
+  ATLAS_NX_TAG,
+} from '../../workspace/index.js';
 
 const TURBO_PUBLISH_ENV = [
   'ATLAS_*',
@@ -35,46 +36,14 @@ export async function writeNxProject(options: {
     throw new Error('Nx projects must be generated inside the workspace root.');
   }
   const targets: Record<string, unknown> = {
-    build: nxTarget(packageManager, cwd, 'build'),
-    serve: nxTarget(packageManager, cwd, 'dev'),
-    dev: {
-      executor: 'nx:run-commands',
-      options: {
-        command: atlasCommand(packageManager, `dev ${name}`),
-        forwardAllArgs: true,
-        tty: true,
-      },
-    },
-    'atlas:config': atlasConfigNxTarget(packageManager, cwd),
-    'atlas:publish': {
-      cache: false,
-      executor: 'nx:run-commands',
-      options: {
-        command: atlasCommand(packageManager, `publish ${name}`),
-        forwardAllArgs: true,
-      },
-    },
-    ...(type === 'host'
-      ? {
-          'atlas:bootstrap': {
-            dependsOn: ['atlas:config'],
-            outputs: ['{projectRoot}/dist/bootstrap'],
-            executor: 'nx:run-commands',
-            options: {
-              command: atlasCommand(
-                packageManager,
-                `bootstrap ${name} --skip-compile`,
-              ),
-              forwardAllArgs: true,
-            },
-          },
-        }
-      : {}),
-    [name]: {
-      executor: 'nx:run-commands',
-      options: { command: `nx run ${name}:dev`, forwardAllArgs: true },
-    },
+    build: nxTarget({ packageManager, cwd, script: 'build' }),
+    serve: nxTarget({ packageManager, cwd, script: 'dev' }),
+    dev: atlasDevTarget({ projectName: name, packageManager }),
+    'atlas:config': atlasConfigNxTarget({ packageManager, cwd }),
+    ...atlasPublicationTargets({ projectName: name, type, packageManager }),
+    [name]: projectAliasTarget(name),
   };
+
   await writeJsonFile(join(root, 'project.json'), {
     name,
     sourceRoot: `${cwd}/src`,
@@ -107,6 +76,7 @@ function turboTasks(
   turbo: Record<string, unknown>,
 ): ['tasks' | 'pipeline', Record<string, unknown>] {
   if (isRecord(turbo.tasks)) return ['tasks', turbo.tasks];
+
   if (isRecord(turbo.pipeline)) return ['pipeline', turbo.pipeline];
 
   return ['tasks', {}];

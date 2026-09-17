@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { SupportedFramework } from '../../cli/arguments.js';
-import type { AtlasPrompter } from '../../cli/ui/ui.js';
-import type { AtlasProject, AtlasWorkspace } from '../../workspace/types.js';
+import type { SupportedFramework, AtlasPrompter } from '../../shared/index.js';
+import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 
 export interface WidgetAppSelection {
   id: string;
@@ -29,6 +28,7 @@ export async function resolveWidgetApp(options: {
       `Could not find Atlas app ID "${requestedAppId}". ${availableAppsMessage(apps)}`,
     );
   }
+
   if (!prompts.interactive) {
     throw new Error(
       `--app-id <app-id> is required to generate a widget in non-interactive mode. ${availableAppsMessage(apps)}`,

@@ -4,11 +4,13 @@ export function errorMessage(error: unknown): string {
 
 export function httpStatusOf(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
+
   if ('$metadata' in error) {
     const status = (error as { $metadata?: { httpStatusCode?: unknown } })
       .$metadata?.httpStatusCode;
     if (typeof status === 'number') return status;
   }
+
   if ('status' in error) {
     const status = (error as { status?: unknown }).status;
     if (typeof status === 'number') return status;

@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasConfig, AtlasHostRuntimeConfig } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
 import { createHostRuntimeConfig } from './runtime-config.js';
+import { CliArguments } from '../../shared/index.js';
 
 export class RuntimeConfigDriver {
   private readonly hostId = faker.string.uuid();

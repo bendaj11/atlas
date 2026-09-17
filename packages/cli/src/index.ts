@@ -1,17 +1,17 @@
-export { runAtlasCli } from './cli/cli.service.js';
-export { ArtifactoryPublicationStorage } from './publication/artifactory-storage/artifactory-storage.js';
-export type { ArtifactoryOptions } from './publication/artifactory-storage/artifactory-storage.js';
+export { runAtlasCli } from './cli/index.js';
 export {
+  ArtifactoryPublicationStorage,
   defineAtlasRegistryConfig,
   S3PublicationStorage,
-} from './publication/service/publish.service.js';
+} from './publication/index.js';
 export type {
-  AtlasPublicationLease,
-  AtlasPublicationObjectMetadata,
-  AtlasPublicationStorage,
+  ArtifactoryOptions,
   AtlasPreviewHeadLookup,
   AtlasPreviewHeadResolver,
   AtlasPreviewHeadStatus,
+  AtlasPublicationLease,
+  AtlasPublicationObjectMetadata,
+  AtlasPublicationStorage,
   AtlasRegistryConfig,
   S3Options,
-} from './publication/service/publish.service.js';
+} from './publication/index.js';

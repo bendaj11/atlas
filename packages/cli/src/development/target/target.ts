@@ -28,6 +28,7 @@ export async function resolveDevTarget({
     { hostId, hostUrl: baseHostUrl },
     prompts,
   );
+
   return {
     hostId,
     hostUrl,
@@ -53,6 +54,7 @@ export async function resolveHostDevTarget({
       );
     }
   }
+
   return { hostId: config.id, hostUrl, previewKind };
 }
 
@@ -65,12 +67,15 @@ async function selectPreviewUrl(
       'package.json atlas.previews is required for atlas dev apps.',
     );
   }
+
   if (previewUrls.length === 1) return previewUrls[0];
+
   if (!prompts.interactive) {
     throw new Error(
       'Multiple Atlas previews configured. Run atlas dev interactively.',
     );
   }
+
   return await prompts.select(
     'Preview URL for local development',
     previewUrls.map((url) => ({ label: url, value: url })),
@@ -90,6 +95,7 @@ async function resolveHostId(
   const routeHostId = hostIdFromRoute(config, hostUrl);
   if (routeHostId) return routeHostId;
   const hostId = await discoverHostId(hostUrl);
+
   if (
     hostIds.length > 0 &&
     !supportsAnyHost(config) &&
@@ -99,6 +105,7 @@ async function resolveHostId(
       `Host URL identifies "${hostId}", but app "${config.id}" has no route or slot for that host.`,
     );
   }
+
   return hostId;
 }
 
@@ -109,8 +116,10 @@ async function discoverHostId(hostUrl: string): Promise<string> {
       cache: 'no-store',
       signal: AbortSignal.timeout(HOST_DISCOVERY_TIMEOUT_MS),
     });
+
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const runtime = resolveAtlasRuntimeConfig(await response.json(), hostUrl);
+
     return runtime.hostId;
   } catch (cause) {
     throw new Error(
@@ -126,10 +135,13 @@ async function resolveHostUrl(
   prompts: DevPrompts,
 ): Promise<string> {
   const { hostId, hostUrl } = target;
+
   if (!isBaseHostUrl(hostUrl)) return hostUrl;
   const paths = routePaths(config, hostId);
   if (paths.length === 0) return hostUrl;
+
   if (paths.length === 1) return urlWithPath(hostUrl, paths[0]!);
+
   if (!prompts.interactive) {
     throw new Error(
       `Multiple routes found for host "${hostId}". Define a full URL in atlas.previews.`,
@@ -139,5 +151,6 @@ async function resolveHostUrl(
     'Route opened for local development',
     paths.map((value) => ({ label: value, value })),
   );
+
   return urlWithPath(hostUrl, path);
 }

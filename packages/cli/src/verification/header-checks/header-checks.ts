@@ -1,6 +1,6 @@
 import type { AtlasManifest } from '@atlas/schema';
-import { sha256Integrity } from '../../shared/digest/digest.js';
 import type { VerificationChecks } from '../checks/checks.js';
+import { sha256Integrity } from '../../shared/index.js';
 
 export type ExpectedContentType = 'json' | 'css' | 'javascript';
 
@@ -12,6 +12,7 @@ export function checkCors(options: {
   hostOrigin: string;
 }): void {
   const { checks, response, url, subject, hostOrigin } = options;
+
   if (url.origin === hostOrigin) return;
   const allowed = response.headers.get('access-control-allow-origin');
   if (allowed === '*' || allowed === hostOrigin)
@@ -47,9 +48,11 @@ export function checkImmutableCache(options: {
   channel: AtlasManifest['channel'];
 }): void {
   const { checks, response, subject, channel } = options;
+
   if (channel === 'local') return;
   const cacheControl = response.headers.get('cache-control') ?? '';
   const maxAge = cacheControl.match(/(?:^|,)\s*max-age\s*=\s*(\d+)\b/i)?.[1];
+
   if (
     /\bimmutable\b/i.test(cacheControl) &&
     maxAge !== undefined &&
@@ -88,6 +91,7 @@ export function checkIntegrity(options: {
   channel: AtlasManifest['channel'];
 }): void {
   const { checks, bytes, subject, integrity, channel } = options;
+
   if (!integrity) {
     checks.warn(
       `${subject} integrity`,
@@ -98,6 +102,7 @@ export function checkIntegrity(options: {
 
     return;
   }
+
   if (sha256Integrity(bytes) === integrity)
     checks.pass(`${subject} integrity`, 'SHA-256 matches.');
   else

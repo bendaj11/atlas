@@ -4,14 +4,14 @@ import type { Server } from 'node:http';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import { anAppConfig } from '@atlas/testkit';
-import { CliArguments } from '../../cli/arguments.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import type { AtlasWorkspaceKind } from '../../workspace/types.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import type { startControlServer as startControlServerType } from '../control-server/control-server.js';
 import type * as ProcessModule from '../process/process.js';
 import { anOverrideDocument } from '../development.testkit.js';
 import type { DevControlServer } from '../types.js';
+import { CliArguments } from '../../shared/index.js';
+import type { AtlasWorkspaceKind } from '../../workspace/index.js';
 
 const startControlServer = jest.fn<typeof startControlServerType>();
 const waitForRemoteEntry = jest.fn<typeof ProcessModule.waitForRemoteEntry>();

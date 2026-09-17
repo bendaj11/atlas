@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
-import type { AtlasPrompter } from '../../cli/ui/ui.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import type { AtlasProject } from '../../workspace/types.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import { resolveWidgetApp, type WidgetAppSelection } from './widget-apps.js';
+import type { AtlasPrompter } from '../../shared/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 export class WidgetAppsDriver {
   private readonly directory = new TemporaryDirectory();

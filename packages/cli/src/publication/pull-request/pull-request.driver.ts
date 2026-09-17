@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import type {
   AtlasPreviewHeadStatus,
   AtlasRegistryConfig,
-} from '../registry-config.js';
+} from '../registry-config/types.js';
 import { resolvePullRequestStatus } from './pull-request.js';
 
 export class PullRequestDriver {

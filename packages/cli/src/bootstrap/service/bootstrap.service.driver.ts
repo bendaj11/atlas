@@ -2,14 +2,14 @@ import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasBootstrapFile } from '@atlas/bootstrap';
 import type { AtlasConfig } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
 import { aWorkspace } from '../../workspace/workspace.testkit.js';
-import type { AtlasProject } from '../../workspace/service/workspace.js';
-import {
-  type AtlasBootstrapBuildResult,
-  type AtlasBootstrapDependencies,
-  AtlasBootstrapService,
-} from './bootstrap.service.js';
+import { AtlasBootstrapService } from './bootstrap.service.js';
+import type {
+  AtlasBootstrapBuildResult,
+  AtlasBootstrapDependencies,
+} from '../types.js';
+import { CliArguments } from '../../shared/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 interface BuildSetup {
   flags: readonly string[];

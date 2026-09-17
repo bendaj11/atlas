@@ -1,17 +1,20 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
-import type { AtlasWorkspace } from '../../workspace/service/workspace.js';
-import { isMissingPathError } from '../../shared/fs/fs.js';
+import type { AtlasWorkspace } from '../../workspace/index.js';
+import { isMissingPathError } from '../../shared/index.js';
 
 export function workspaceLabel(kind: AtlasWorkspace['kind']): string {
   if (kind === 'nx') return 'an Nx workspace';
+
   if (kind === 'turbo') return 'a Turborepo workspace';
+
   if (kind === 'workspace') return 'a package-manager workspace';
   return 'a standalone project';
 }
 
 export function displayTarget(workspaceRoot: string, root: string): string {
   const target = relative(workspaceRoot, root);
+
   return !target || target === '.'
     ? '.'
     : target.startsWith(`..${sep}`) || isAbsolute(target)
@@ -24,6 +27,7 @@ export function parseProjectPath(value: string): {
   segments: string[];
 } {
   const segments = value.split(/[\\/]/);
+
   if (
     segments.length === 0 ||
     segments.some((segment) => !segment || segment === '.' || segment === '..')
@@ -35,6 +39,7 @@ export function parseProjectPath(value: string): {
   segments.forEach((segment) =>
     assertSafeId(segment, 'project name or path segment'),
   );
+
   return { name: segments.at(-1)!, segments };
 }
 
@@ -44,8 +49,10 @@ export async function assertWritable(
   message: string,
 ): Promise<void> {
   if (force) return;
+
   try {
     await access(path);
+
     throw new Error(message);
   } catch (error) {
     if (!isMissingPathError(error)) throw error;
@@ -67,6 +74,7 @@ export function assertSafeId(value: string, subject: string): void {
 export function resolveContainedPath(root: string, path: string): string {
   const target = resolve(root, path);
   const relativePath = relative(resolve(root), target);
+
   if (
     relativePath === '..' ||
     relativePath.startsWith(`..${sep}`) ||
@@ -74,5 +82,6 @@ export function resolveContainedPath(root: string, path: string): string {
   ) {
     throw new Error(`Generated path "${path}" escapes its target directory.`);
   }
+
   return target;
 }

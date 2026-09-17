@@ -1,48 +1,17 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import {
-  createAtlasBootstrapFiles,
-  type AtlasBootstrapFile,
-  type AtlasBootstrapOptions,
-} from '@atlas/bootstrap';
-import { CliArguments } from '../../cli/arguments.js';
+import { createAtlasBootstrapFiles } from '@atlas/bootstrap';
 import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
-import type { AtlasBuildService } from '../../build/service/build.service.js';
-import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
-import type {
-  AtlasProject,
-  AtlasWorkspace,
-} from '../../workspace/service/workspace.js';
 import { loadBootstrapTemplate } from '../template/bootstrap-template.js';
-
-export interface AtlasBootstrapBuildResult {
-  directory: string;
-  files: string[];
-  digest: string;
-}
-
-export interface AtlasBootstrapDependencies {
-  compileConfig(
-    workspace: AtlasWorkspace,
-    project: AtlasProject,
-  ): Promise<void>;
-  loadTemplate(
-    projectRoot: string,
-    templatePath?: string,
-  ): Promise<string | undefined>;
-  createFiles(options: AtlasBootstrapOptions): AtlasBootstrapFile[];
-  removeDirectory(directory: string): Promise<void>;
-  createDirectory(directory: string): Promise<void>;
-  writeOutput(path: string, contents: string): Promise<void>;
-}
-
-export interface AtlasBootstrapServiceOptions {
-  workspace: AtlasWorkspace;
-  args: CliArguments;
-  builds: Pick<AtlasBuildService, 'loadConfig'>;
-  dependencies?: AtlasBootstrapDependencies;
-}
+import { CliArguments, compileAtlasConfig } from '../../shared/index.js';
+import type { AtlasBuildService } from '../../build/index.js';
+import type { AtlasWorkspace } from '../../workspace/index.js';
+import type {
+  AtlasBootstrapBuildResult,
+  AtlasBootstrapDependencies,
+  AtlasBootstrapServiceOptions,
+} from '../types.js';
 
 const defaultDependencies: AtlasBootstrapDependencies = {
   compileConfig: compileAtlasConfig,

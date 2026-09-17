@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { ensureActionableError } from '@atlas/schema';
 import { runAtlasCli } from '../cli.service.js';
-import { formatErrorWithCauses } from '../cli-error/cli-error.js';
-import { ui } from '../ui/ui.js';
+import { formatErrorWithCauses, ui } from '../../shared/index.js';
 
 runAtlasCli().catch((error: unknown) => {
   ui.error(formatErrorWithCauses(ensureActionableError(error)));

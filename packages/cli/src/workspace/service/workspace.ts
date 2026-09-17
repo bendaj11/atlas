@@ -1,5 +1,4 @@
 import { join, relative, resolve } from 'node:path';
-import { runProcess, spawnProcess } from '../../cli/process/process.js';
 import {
   createFormatGeneratedCommand,
   createInstallCommand,
@@ -18,18 +17,7 @@ import {
 } from '../detection/detection.js';
 import { findAtlasProject, listAtlasProjects } from '../discovery/discovery.js';
 import type { AtlasWorkspace } from '../types.js';
-
-export { defaultDevServerPort } from '../commands/commands.js';
-export type {
-  AtlasNxProjectType,
-  AtlasPackageManager,
-  AtlasProject,
-  AtlasProjectType,
-  AtlasScaffoldOptions,
-  AtlasTask,
-  AtlasWorkspace,
-  AtlasWorkspaceKind,
-} from '../types.js';
+import { runProcess, spawnProcess } from '../../shared/index.js';
 
 export async function detectWorkspace(
   start = process.cwd(),
@@ -65,6 +53,7 @@ export async function detectWorkspace(
         workspaceRoot: root,
         projectRoot,
       });
+
       if (!command) return false;
       await runProcess(command);
 
@@ -101,6 +90,7 @@ export async function detectWorkspace(
           'Nx projects must be generated inside the workspace root.',
         );
       }
+
       try {
         await runProcess(
           createNxGenerationCommand({

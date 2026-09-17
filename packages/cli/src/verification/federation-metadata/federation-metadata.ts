@@ -1,4 +1,4 @@
-import { asRecord, nonEmptyString } from '../../shared/records/records.js';
+import { asRecord, nonEmptyString } from '../../shared/index.js';
 
 export interface FederationMetadata {
   exposes: Array<{ key: string; outFileName: string }>;
@@ -22,6 +22,7 @@ export function parseFederationMetadata(bytes: Uint8Array): FederationMetadata {
   });
   const shared = record.shared.map((candidate) => {
     const dependency = asRecord(candidate);
+
     if (
       !nonEmptyString(dependency?.packageName) ||
       !nonEmptyString(dependency.outFileName) ||

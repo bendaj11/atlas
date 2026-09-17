@@ -11,6 +11,7 @@ export class NetworkLimiter {
     if (this.active >= this.limit)
       await new Promise<void>((resolve) => this.waiting.push(resolve));
     this.active += 1;
+
     try {
       return await operation();
     } finally {

@@ -7,11 +7,9 @@ import {
   aRoutePlacement,
 } from '@atlas/testkit';
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
-import {
-  AtlasVerifyService,
-  type AtlasVerificationReport,
-  type AtlasVerifyOptions,
-} from './verify.service.js';
+import type { AtlasVerificationReport } from '../checks/checks.js';
+import type { AtlasVerifyOptions } from '../types.js';
+import { AtlasVerifyService } from './verify.service.js';
 
 type VerificationScenario =
   | 'healthy'
@@ -510,7 +508,7 @@ export class VerifyServiceDriver {
 function canonicalArtifact(manifest: AtlasManifest | AtlasHostManifest) {
   const entryPath = 'remoteEntry.json';
   const entryBytes = manifest.kind === 'host' ? hostRemoteBytes : remoteBytes;
-  const entryDigest =
+  const entryDigest: `sha256:${string}` =
     manifest.integrity === 'sha256-invalid'
       ? `sha256:${'0'.repeat(64)}`
       : sha256Digest(entryBytes);
