@@ -20,22 +20,27 @@ export function createHostNavigation(
     navigate(to, options) {
       void router.navigateByUrl(to, navigateOptions(options));
     },
+
     replace(to, options) {
       void router.navigateByUrl(
         to,
         navigateOptions({ ...options, replace: true }),
       );
     },
+
     back() {
       location.back();
     },
+
     go(delta) {
       if (location.historyGo) location.historyGo(delta);
       else if (delta === -1) location.back();
     },
+
     createHref(to) {
       return new URL(to, origin).toString();
     },
+
     subscribe(listener) {
       let previous = read();
       listener(previous);
@@ -48,6 +53,7 @@ export function createHostNavigation(
 
       return () => subscription.unsubscribe();
     },
+
     getCurrentLocation: read,
   };
 }

@@ -18,12 +18,12 @@ let lexerReady = false;
  */
 export function commonJsNamedExports(entryPoint: string): readonly string[] {
   ensureLexer();
+
   const resolvedEntry = resolve(entryPoint);
-  const names = new Set<string>();
-  const visited = new Set<string>();
   const parsed = parseEntry(resolvedEntry);
-  visited.add(resolvedEntry);
-  for (const name of parsed.exports) names.add(name);
+
+  const names = new Set<string>(parsed.exports);
+  const visited = new Set<string>([resolvedEntry]);
   collectReexports(resolvedEntry, parsed.reexports, names, visited);
 
   return [...names]
@@ -57,9 +57,11 @@ function collectReexports(
   visited: Set<string>,
 ): void {
   const requireFromEntry = createRequire(entryPoint);
+
   for (const specifier of specifiers) {
     const parsed = tryParseReexport(requireFromEntry, specifier, visited);
     if (!parsed) continue;
+
     for (const name of parsed.exports) names.add(name);
     collectReexports(parsed.entryPoint, parsed.reexports, names, visited);
   }
@@ -74,6 +76,7 @@ function tryParseReexport(
     const entryPoint = requireFromEntry.resolve(specifier);
     if (visited.has(entryPoint)) return undefined;
     visited.add(entryPoint);
+
     const parsed = parseCommonJs(readFileSync(entryPoint, 'utf8'));
 
     return { entryPoint, exports: parsed.exports, reexports: parsed.reexports };
@@ -84,6 +87,7 @@ function tryParseReexport(
 
 function ensureLexer(): void {
   if (lexerReady) return;
+
   initializeCommonJsLexer();
   lexerReady = true;
 }

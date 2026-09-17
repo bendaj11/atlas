@@ -6,7 +6,7 @@ import {
   goThroughHistory,
   normalizePath,
   scopePath,
-} from '../navigation-paths/navigation-paths.js';
+} from '../navigation-paths/index.js';
 
 /** Restricts an app's relative and absolute-path navigation to its assigned path. */
 export function createScopedNavigation(
@@ -20,24 +20,31 @@ export function createScopedNavigation(
     navigate(to, options) {
       navigation.navigate(scopePath(normalizedPath, to), options);
     },
+
     replace(to, options) {
       navigation.replace(scopePath(normalizedPath, to), options);
     },
+
     back() {
       navigation.back();
     },
+
     go(delta) {
       goThroughHistory(navigation, delta);
     },
+
     createHref(to) {
       return navigation.createHref(scopePath(normalizedPath, to));
     },
+
     subscribe(listener) {
       return navigation.subscribe(listener);
     },
+
     getCurrentLocation() {
       return navigation.getCurrentLocation();
     },
+
     toHostPath(to) {
       return scopePath(normalizedPath, to);
     },

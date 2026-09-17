@@ -20,26 +20,32 @@ export function createHostNavigation(
     navigate(to, options) {
       void router.navigate(to, navigationOptions(options));
     },
+
     replace(to, options) {
       void router.navigate(
         to,
         navigationOptions({ ...options, replace: true }),
       );
     },
+
     back() {
       void router.navigate(-1);
     },
+
     go(delta) {
       void router.navigate(delta);
     },
+
     createHref(to) {
       return new URL(to, origin).toString();
     },
+
     subscribe(listener) {
       listener(read());
 
       return router.subscribe(() => listener(read()));
     },
+
     getCurrentLocation: read,
   };
 }

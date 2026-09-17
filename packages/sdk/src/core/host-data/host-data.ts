@@ -2,7 +2,7 @@ import type {
   AtlasHostDataOf,
   AtlasHostDataValue,
   AtlasSdk,
-} from '../sdk-types/sdk-types.js';
+} from '../sdk-types/index.js';
 
 type HostDataListener = () => void;
 
@@ -21,8 +21,10 @@ export function updateAtlasHostData<THostSdk extends object>(
     hostData: AtlasHostDataValue<THostSdk>;
   };
   updatedSdk.hostData = { ...sdk.hostData, ...updates };
-  for (const listener of readHostDataListeners(sdk)?.listeners ?? [])
+
+  for (const listener of readHostDataListeners(sdk)?.listeners ?? []) {
     listener();
+  }
 }
 
 /** Subscribes to host-data updates. Framework adapters use this to refresh mounted apps. */
@@ -33,6 +35,7 @@ export function subscribeAtlasHostData(
   const { listeners } =
     readHostDataListeners(sdk) ?? createHostDataListeners(sdk);
   listeners.add(listener);
+
   return () => listeners.delete(listener);
 }
 
@@ -47,5 +50,6 @@ function readHostDataListeners(
 function createHostDataListeners(sdk: object): HostDataListenerRegistry {
   const registry: HostDataListenerRegistry = { listeners: new Set() };
   Object.defineProperty(sdk, HOST_DATA_LISTENERS, { value: registry });
+
   return registry;
 }

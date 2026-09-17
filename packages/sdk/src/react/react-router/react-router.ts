@@ -66,9 +66,13 @@ function syncAtlasFromRouter(
   const next = readRouterUrl(router);
   if (next === readAtlasInnerUrl(context)) return;
 
-  if (router.state.historyAction === 'REPLACE')
+  if (router.state.historyAction === 'REPLACE') {
     context.navigation.replace(next);
-  else context.navigation.navigate(next);
+
+    return;
+  }
+
+  context.navigation.navigate(next);
 }
 
 function readRouterUrl(router: RouterLike): string {

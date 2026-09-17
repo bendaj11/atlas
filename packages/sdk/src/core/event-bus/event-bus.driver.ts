@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { createAtlasEventBus } from './event-bus.js';
+import { createAtlasEventBus } from './index.js';
 
 interface OrderEvents {
   'orders.updated': { orderId: string };

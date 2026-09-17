@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { createAtlasSdk } from '../sdk-factory/sdk-factory.js';
-import type { AtlasSdk } from '../sdk-types/sdk-types.js';
+import { createAtlasSdk } from '../sdk-factory/index.js';
+import type { AtlasSdk } from '../sdk-types/index.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { subscribeAtlasHostData, updateAtlasHostData } from './host-data.js';
 

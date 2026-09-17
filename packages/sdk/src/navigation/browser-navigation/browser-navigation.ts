@@ -32,12 +32,14 @@ export function createBrowserNavigation(
 
   const attachPopstate = (): void => {
     if (isListeningToPopstate) return;
+
     windowLike.addEventListener('popstate', popstate);
     isListeningToPopstate = true;
   };
 
   const detachPopstate = (): void => {
     if (!isListeningToPopstate) return;
+
     windowLike.removeEventListener('popstate', popstate);
     isListeningToPopstate = false;
   };
@@ -48,19 +50,24 @@ export function createBrowserNavigation(
       windowLike.history[method](options?.state ?? null, '', to);
       notify();
     },
+
     replace(to, options) {
       windowLike.history.replaceState(options?.state ?? null, '', to);
       notify();
     },
+
     back() {
       windowLike.history.back();
     },
+
     go(delta) {
       windowLike.history.go(delta);
     },
+
     createHref(to) {
       return new URL(to, windowLike.location.href).toString();
     },
+
     subscribe(listener) {
       attachPopstate();
       listeners.add(listener);
@@ -71,6 +78,7 @@ export function createBrowserNavigation(
         if (listeners.size === 0) detachPopstate();
       };
     },
+
     getCurrentLocation: readLocation,
     dispose() {
       listeners.clear();

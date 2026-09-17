@@ -1,6 +1,6 @@
 import type { AtlasAppContext } from '../../lifecycle.js';
 import { readInnerUrl } from '../../navigation/inner-url/inner-url.js';
-import { goThroughHistory } from '../../navigation/navigation-paths/navigation-paths.js';
+import { goThroughHistory } from '../../navigation/navigation-paths/index.js';
 import type { LocationStrategyAdapter } from '../angular-types/angular-types.js';
 
 type PopStateListener = (event: { type: 'popstate'; state: unknown }) => void;
@@ -19,6 +19,7 @@ export function createLocationStrategy(
 
       return;
     }
+
     notifyPopState(listeners);
   });
 
@@ -26,35 +27,45 @@ export function createLocationStrategy(
     path(includeHash = true) {
       return readInnerUrl(context, { includeHash });
     },
+
     prepareExternalUrl(internal) {
       return context.navigation.toHostPath(internal);
     },
+
     getState() {
       return undefined;
     },
+
     pushState(state, _title, url, query) {
       ignoredUrl = targetUrl(url, query);
       context.navigation.navigate(ignoredUrl, { state });
     },
+
     replaceState(state, _title, url, query) {
       ignoredUrl = targetUrl(url, query);
       context.navigation.replace(ignoredUrl, { state });
     },
+
     forward() {
       context.navigation.go?.(1);
     },
+
     back() {
       context.navigation.back();
     },
+
     historyGo(delta) {
       goThroughHistory(context.navigation, delta);
     },
+
     onPopState(listener) {
       listeners.add(listener);
     },
+
     getBaseHref() {
       return '/';
     },
+
     ngOnDestroy() {
       stop();
       listeners.clear();

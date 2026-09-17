@@ -31,16 +31,19 @@ export function createSharedModuleProxy(
 
   return {
     name: 'atlas-react-shared-fallbacks',
+
     async configResolved(config) {
       const vite = await dependencies.loadVite();
       resolveEntry = vite.createIdResolver(config);
     },
+
     resolveId(source) {
-      if (source.startsWith(SHARED_PROXY_PREFIX)) return `\0${source}`;
-      return undefined;
+      return source.startsWith(SHARED_PROXY_PREFIX) ? `\0${source}` : undefined;
     },
+
     async load(id) {
       if (!id.startsWith(`\0${SHARED_PROXY_PREFIX}`)) return undefined;
+
       const specifier = decodeURIComponent(
         id.slice(SHARED_PROXY_PREFIX.length + 1),
       );
@@ -56,6 +59,7 @@ export function createSharedModuleProxy(
           `Atlas could not resolve shared dependency entry "${specifier}".`,
         );
       }
+
       const resolved = await this.resolve(entryPoint, importer);
       if (!resolved || resolved.external) {
         return this.error(

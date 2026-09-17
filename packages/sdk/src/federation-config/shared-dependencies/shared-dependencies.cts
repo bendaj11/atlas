@@ -1,16 +1,19 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join, resolve } from 'node:path';
-import type { FederationSharedMetadata } from '../development-plugins/development-plugins.cjs';
-import { federationConfigError } from '../federation-config-error/federation-config-error.cjs';
+import { join } from 'node:path';
+import type { FederationSharedMetadata } from '../development-plugins/index.cjs';
 import {
   discoverRuntimePackageImports,
   isSourceFile,
   loadProjectTypescript,
   rootPackageName,
-} from '../runtime-imports/runtime-imports.cjs';
-
-export type SkipEntry = string | RegExp | ((specifier: string) => boolean);
+} from '../runtime-imports/index.cjs';
+import {
+  declaredPackages,
+  readPackageInfo,
+  resolveSharedEntry,
+  validateSharedSubpath,
+} from './package-info.cjs';
+import { isSkippedDependency, type SkipEntry } from './skip-entries.cjs';
 
 export interface ReactSharedDependenciesOptions {
   readonly projectRoot: string;
@@ -24,17 +27,6 @@ export interface SharedDependency {
   readonly packageDirectory: string;
   readonly metadata: FederationSharedMetadata;
   readonly devMetadata: FederationSharedMetadata;
-}
-
-interface PackageInfo {
-  readonly version: string;
-  readonly exports?: unknown;
-  readonly directory: string;
-}
-
-interface ProjectPackageJson {
-  readonly dependencies?: Readonly<Record<string, string>>;
-  readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
 const REACT_FRAMEWORK_SHARED_SPECIFIERS: Readonly<
@@ -60,6 +52,7 @@ export function reactSharedDependencies(
   const packagePath = join(options.projectRoot, 'package.json');
   const declared = declaredPackages(packagePath);
   const requireFromProject = createRequire(packagePath);
+
   const importedSpecifiers = discoverRuntimePackageImports({
     projectRoot: options.projectRoot,
     entryPoints: exposedEntryPoints,
@@ -71,150 +64,54 @@ export function reactSharedDependencies(
   ).flatMap(([packageName, specifiers]) =>
     declared[packageName] ? specifiers : [],
   );
+
   const specifiers = [
     ...new Set([...frameworkSpecifiers, ...importedSpecifiers]),
   ]
     .filter((specifier) => !isSkippedDependency(specifier, options.skip))
     .sort();
 
-  return specifiers.flatMap((specifier) => {
-    const packageName = rootPackageName(specifier);
-    const entryPoint = resolveSharedEntry(requireFromProject, specifier);
-    if (entryPoint && !isSourceFile(entryPoint)) return [];
-    const packageInfo = readPackageInfo(
-      requireFromProject,
-      packageName,
-      specifier,
-    );
-    if (!entryPoint) validateSharedSubpath(packageInfo, specifier);
-    const entryName = `shared/${sharedFileName(specifier)}`;
-    const metadata = {
-      packageName: specifier,
-      requiredVersion: declared[packageName] || packageInfo.version,
-      singleton: true,
-      strictVersion: true,
-      version: packageInfo.version,
-    };
-
-    return [
-      {
-        specifier,
-        entryName,
-        packageDirectory: packageInfo.directory,
-        metadata: { ...metadata, outFileName: `${entryName}.js` },
-        devMetadata: { ...metadata, outFileName: `@id/${specifier}` },
-      },
-    ];
-  });
-}
-
-export function isSkippedDependency(
-  specifier: string,
-  skip: readonly SkipEntry[] = [],
-): boolean {
-  return skip.some((entry) => {
-    if (typeof entry === 'string') return entry === specifier;
-    if (typeof entry === 'function') return entry(specifier);
-    entry.lastIndex = 0;
-
-    return entry.test(specifier);
-  });
-}
-
-function declaredPackages(packagePath: string): Record<string, string> {
-  const packageJson: ProjectPackageJson = existsSync(packagePath)
-    ? (JSON.parse(readFileSync(packagePath, 'utf8')) as ProjectPackageJson)
-    : {};
-
-  return { ...packageJson.dependencies, ...packageJson.peerDependencies };
-}
-
-function resolveSharedEntry(
-  requireFromProject: NodeJS.Require,
-  specifier: string,
-): string | undefined {
-  try {
-    return requireFromProject.resolve(specifier);
-  } catch {
-    return undefined;
-  }
-}
-
-function validateSharedSubpath(
-  packageInfo: PackageInfo,
-  specifier: string,
-): void {
-  const exportMap = packageInfo.exports;
-  if (!exportMap) return;
-  const subpath = `.${specifier.slice(rootPackageName(specifier).length)}`;
-  const keys =
-    typeof exportMap === 'object' && !Array.isArray(exportMap)
-      ? Object.keys(exportMap).filter((key) => key.startsWith('.'))
-      : [];
-  const exportedSubpaths = keys.length > 0 ? keys : ['.'];
-  const matches = exportedSubpaths.some((key) =>
-    matchesExportKey(key, subpath),
-  );
-  if (!matches) {
-    throw federationConfigError(
-      `Atlas could not resolve shared dependency entry "${specifier}".`,
-      {
-        suggestedActions: [
-          `Import a subpath that "${rootPackageName(specifier)}" lists in its package.json "exports".`,
-          'Or skip the specifier in the Atlas federation config so Vite bundles it instead of sharing it.',
-        ],
-        code: 'ATLAS_SHARED_ENTRY_NOT_EXPORTED',
-      },
-    );
-  }
-}
-
-function matchesExportKey(key: string, subpath: string): boolean {
-  const wildcard = key.indexOf('*');
-  if (wildcard < 0) return key === subpath;
-
-  return (
-    subpath.startsWith(key.slice(0, wildcard)) &&
-    subpath.endsWith(key.slice(wildcard + 1)) &&
-    subpath.length >= key.length - 1
+  return specifiers.flatMap((specifier) =>
+    sharedDependencyOf({ specifier, declared, requireFromProject }),
   );
 }
 
-function readPackageInfo(
-  requireFromProject: NodeJS.Require,
-  packageName: string,
-  specifier: string,
-): PackageInfo {
-  const candidates = (requireFromProject.resolve.paths(packageName) ?? []).map(
-    (directory) => join(directory, packageName, 'package.json'),
-  );
-  const exported = resolveSharedEntry(
+function sharedDependencyOf(request: {
+  readonly specifier: string;
+  readonly declared: Readonly<Record<string, string>>;
+  readonly requireFromProject: NodeJS.Require;
+}): SharedDependency[] {
+  const { specifier, declared, requireFromProject } = request;
+  const packageName = rootPackageName(specifier);
+
+  const entryPoint = resolveSharedEntry(requireFromProject, specifier);
+  if (entryPoint && !isSourceFile(entryPoint)) return [];
+
+  const packageInfo = readPackageInfo(
     requireFromProject,
-    `${packageName}/package.json`,
+    packageName,
+    specifier,
   );
-  if (exported) candidates.unshift(exported);
-  const packagePath = candidates.find((candidate) => existsSync(candidate));
-  if (!packagePath) {
-    throw federationConfigError(
-      `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
-      {
-        suggestedActions: `Install "${packageName}" in the project (it is declared but not resolvable from its package.json), then rebuild.`,
-        code: 'ATLAS_SHARED_PACKAGE_NOT_INSTALLED',
-      },
-    );
-  }
-  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8')) as {
-    version: string;
-    exports?: unknown;
+  if (!entryPoint) validateSharedSubpath(packageInfo, specifier);
+
+  const entryName = `shared/${sharedFileName(specifier)}`;
+  const metadata = {
+    packageName: specifier,
+    requiredVersion: declared[packageName] || packageInfo.version,
+    singleton: true,
+    strictVersion: true,
+    version: packageInfo.version,
   };
 
-  return {
-    version: packageJson.version,
-    ...(packageJson.exports !== undefined
-      ? { exports: packageJson.exports }
-      : {}),
-    directory: realpathSync(resolve(packagePath, '..')),
-  };
+  return [
+    {
+      specifier,
+      entryName,
+      packageDirectory: packageInfo.directory,
+      metadata: { ...metadata, outFileName: `${entryName}.js` },
+      devMetadata: { ...metadata, outFileName: `@id/${specifier}` },
+    },
+  ];
 }
 
 function sharedFileName(specifier: string): string {

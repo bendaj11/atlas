@@ -7,7 +7,7 @@ import {
   AtlasRuntimeContext,
   AtlasSdkProvider,
   useAtlasSdk,
-} from '../../src/react/react-context/react-context.js';
+} from '../../src/react/react-context/index.js';
 import { createAtlasSdk, updateAtlasHostData } from '../../src/index.js';
 import {
   anAppContext,

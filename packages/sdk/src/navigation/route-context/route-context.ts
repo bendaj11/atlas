@@ -8,7 +8,7 @@ import {
   normalizePath,
   parseQuery,
   toInnerPath,
-} from '../navigation-paths/navigation-paths.js';
+} from '../navigation-paths/index.js';
 
 export interface AtlasRouteContextOptions {
   setTabTitle?: (title: string) => void;
@@ -35,9 +35,11 @@ export function createRouteContext(
     setTabTitle(title) {
       options.setTabTitle?.(title);
     },
+
     subscribe(listener) {
       return navigation.subscribe((location) => listener(read(location)));
     },
+
     match(pattern) {
       return matchRoutePattern(pattern, read().pathname);
     },

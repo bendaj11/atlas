@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { createAtlasEventBus } from '../event-bus/event-bus.js';
+import { createAtlasEventBus } from '../event-bus/index.js';
 import { SdkFactoryDriver } from './sdk-factory.driver.js';
 
 describe('createAtlasSdk', () => {

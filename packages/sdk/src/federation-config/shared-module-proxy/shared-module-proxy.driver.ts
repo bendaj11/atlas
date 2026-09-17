@@ -62,26 +62,31 @@ export class SharedModuleProxyDriver {
   readonly given = {
     defaultExport: (value: boolean | null): this => {
       this.moduleInfo.hasDefaultExport = value;
+
       return this;
     },
     commonJsExports: (names: readonly string[]): this => {
       this.moduleInfo.hasDefaultExport = true;
       this.moduleInfo.syntheticNamedExports = '__moduleExports';
       this.readCommonJsExports.mockReturnValue(names);
+
       return this;
     },
     unresolvedEntry: (value: undefined): this => {
       this.resolveEntry.mockResolvedValue(value);
+
       return this;
     },
     externalEntry: (id: string): this => {
       this.resolve.mockImplementation(async () => ({ id, external: true }));
+
       return this;
     },
     failedTransform: (message: string): this => {
       this.load.mockImplementation(async () => {
         throw new Error(message);
       });
+
       return this;
     },
   };

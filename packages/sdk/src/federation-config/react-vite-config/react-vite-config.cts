@@ -1,53 +1,30 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
-import type { Plugin, UserConfig } from 'vite';
+import { relative, resolve } from 'node:path';
+import type { UserConfig } from 'vite';
 import {
   federationBuildNotificationsPlugin,
   federationMetadataPlugin,
   reactSourceReloadPlugin,
   type FederationExposeMetadata,
-} from '../development-plugins/development-plugins.cjs';
-import { toPosixPath } from '../project-paths/project-paths.cjs';
-import { commonJsNamedExports } from '../commonjs-exports/commonjs-exports.cjs';
-import {
-  createSharedModuleProxy,
-  sharedProxyId,
-} from '../shared-module-proxy/shared-module-proxy.cjs';
-import {
-  reactSharedDependencies,
-  type SharedDependency,
-  type SkipEntry,
-} from '../shared-dependencies/shared-dependencies.cjs';
+} from '../development-plugins/index.cjs';
 import { createReactWidgetEntries } from '../widget-entries/widget-entries.cjs';
+import {
+  reactBootstrapPath,
+  writeReactDevelopmentFacade,
+} from './development-facade.cjs';
+import { reactFederationBuild } from './react-federation-build.cjs';
+import type {
+  ReactFederationBuild,
+  ReactFederationConfigOptions,
+} from './react-vite-config.types.cjs';
 
-export interface ReactFederationConfigOptions {
-  readonly projectRoot: string;
-  /** Project name; becomes the Native Federation remote name `atlas_<name>`. */
-  readonly projectName: string;
-  /** React major of the app; 17 selects the legacy `react-dom` root API in generated widget entries. */
-  readonly reactMajor?: number;
-  /** Packages that Vite bundles into the remote instead of sharing with the host. */
-  readonly skip?: readonly SkipEntry[];
+interface ReactViteConfigRequest {
+  readonly options: ReactFederationConfigOptions;
+  readonly federation: ReactFederationBuild;
+  readonly pluginName: string;
+  readonly exposes: readonly FederationExposeMetadata[];
+  readonly devExposes: readonly FederationExposeMetadata[];
+  readonly entryFileNames: string | ((chunk: { name: string }) => string);
 }
-
-interface ReactFederationBuild {
-  readonly shared: readonly SharedDependency[];
-  readonly sharedFallbackPlugin: Plugin;
-  readonly commonJsOptions: {
-    readonly include: ReadonlyArray<string | RegExp>;
-  };
-  readonly input: Readonly<Record<string, string>>;
-  readonly external: (source: string) => boolean;
-}
-
-interface DevelopmentFacadeOptions {
-  readonly projectRoot: string;
-  readonly name: string;
-  readonly sourcePath: string;
-  readonly defaultExport: boolean;
-}
-
-const DEVELOPMENT_FACADE_DIRECTORY = join('.atlas', 'react-development');
 
 /** Vite config for a React Atlas host: exposes `./host` and shares framework packages. */
 export function createReactHostViteConfig(
@@ -55,6 +32,7 @@ export function createReactHostViteConfig(
 ): UserConfig {
   const hostEntry = reactBootstrapPath(options.projectRoot, 'main.tsx');
   const federation = reactFederationBuild(options, { host: hostEntry });
+
   const developmentHost = writeReactDevelopmentFacade({
     projectRoot: options.projectRoot,
     name: 'host',
@@ -81,38 +59,42 @@ export function createReactHostViteConfig(
 export function createReactAppViteConfig(
   options: ReactFederationConfigOptions,
 ): UserConfig {
-  const widgetEntries = createReactWidgetEntries(options);
   const appEntry = reactBootstrapPath(options.projectRoot, 'entry.tsx');
+  const widgetEntries = createReactWidgetEntries(options).map((entry) => ({
+    name: entry.name,
+    entryPoint: resolve(options.projectRoot, entry.entryPoint),
+  }));
+
   const federation = reactFederationBuild(
     options,
     Object.fromEntries([
       ['entry', appEntry],
       ...widgetEntries.map(({ name, entryPoint }) => [
         `widgets/${name}`,
-        resolve(options.projectRoot, entryPoint),
+        entryPoint,
       ]),
     ]),
   );
-  const developmentExposes = [
-    {
-      key: './entry',
-      path: writeReactDevelopmentFacade({
-        projectRoot: options.projectRoot,
-        name: 'entry',
-        sourcePath: appEntry,
-        defaultExport: true,
-      }),
-    },
+
+  const developmentFacades = [
+    { key: './entry', name: 'entry', sourcePath: appEntry },
     ...widgetEntries.map(({ name, entryPoint }) => ({
       key: `./widgets/${name}`,
-      path: writeReactDevelopmentFacade({
+      name: `widget-${name}`,
+      sourcePath: entryPoint,
+    })),
+  ].map(({ key, name, sourcePath }) => ({
+    key,
+    outFileName: relative(
+      options.projectRoot,
+      writeReactDevelopmentFacade({
         projectRoot: options.projectRoot,
-        name: `widget-${name}`,
-        sourcePath: resolve(options.projectRoot, entryPoint),
+        name,
+        sourcePath,
         defaultExport: true,
       }),
-    })),
-  ];
+    ),
+  }));
 
   return reactViteConfig({
     options,
@@ -125,10 +107,7 @@ export function createReactAppViteConfig(
         outFileName: `widgets/${name}.js`,
       })),
     ],
-    devExposes: developmentExposes.map(({ key, path }) => ({
-      key,
-      outFileName: relative(options.projectRoot, path),
-    })),
+    devExposes: developmentFacades,
     entryFileNames: '[name].js',
   });
 }
@@ -137,32 +116,27 @@ export function reactRemoteName(name: string): string {
   return `atlas_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
 
-function reactViteConfig(request: {
-  readonly options: ReactFederationConfigOptions;
-  readonly federation: ReactFederationBuild;
-  readonly pluginName: string;
-  readonly exposes: readonly FederationExposeMetadata[];
-  readonly devExposes: readonly FederationExposeMetadata[];
-  readonly entryFileNames: string | ((chunk: { name: string }) => string);
-}): UserConfig {
+function reactViteConfig(request: ReactViteConfigRequest): UserConfig {
   const { options, federation } = request;
+
+  const metadataPlugin = federationMetadataPlugin({
+    projectRoot: options.projectRoot,
+    pluginName: request.pluginName,
+    metadata: {
+      name: reactRemoteName(options.projectName),
+      exposes: request.exposes,
+      shared: federation.shared.map(({ metadata }) => metadata),
+    },
+    devExposes: request.devExposes,
+    devShared: federation.shared.map(({ devMetadata }) => devMetadata),
+  });
 
   return {
     plugins: [
       federation.sharedFallbackPlugin,
       reactSourceReloadPlugin(options.projectRoot),
       federationBuildNotificationsPlugin(options.projectRoot),
-      federationMetadataPlugin({
-        projectRoot: options.projectRoot,
-        pluginName: request.pluginName,
-        metadata: {
-          name: reactRemoteName(options.projectName),
-          exposes: request.exposes,
-          shared: federation.shared.map(({ metadata }) => metadata),
-        },
-        devExposes: request.devExposes,
-        devShared: federation.shared.map(({ devMetadata }) => devMetadata),
-      }),
+      metadataPlugin,
     ],
     build: {
       target: 'esnext',
@@ -179,70 +153,4 @@ function reactViteConfig(request: {
       },
     },
   };
-}
-
-function reactFederationBuild(
-  options: ReactFederationConfigOptions,
-  exposedInputs: Readonly<Record<string, string>>,
-): ReactFederationBuild {
-  const shared = reactSharedDependencies(options, Object.values(exposedInputs));
-  const sharedSpecifiers = new Set(shared.map(({ specifier }) => specifier));
-
-  return {
-    shared,
-    sharedFallbackPlugin: createSharedModuleProxy(
-      { projectRoot: options.projectRoot, specifiers: [...sharedSpecifiers] },
-      {
-        loadVite: () => import('vite'),
-        readCommonJsExports: commonJsNamedExports,
-      },
-    ),
-    commonJsOptions: {
-      include: [
-        /node_modules/,
-        ...new Set(
-          shared.map(
-            ({ packageDirectory }) => `${toPosixPath(packageDirectory)}/**`,
-          ),
-        ),
-      ],
-    },
-    input: Object.fromEntries([
-      ...Object.entries(exposedInputs),
-      ...shared.map(({ entryName, specifier }) => [
-        entryName,
-        sharedProxyId(specifier),
-      ]),
-    ]),
-    external: (source) => sharedSpecifiers.has(source),
-  };
-}
-
-function reactBootstrapPath(projectRoot: string, legacyEntry: string): string {
-  const bootstrap = resolve(projectRoot, 'src/bootstrap.tsx');
-
-  return existsSync(bootstrap)
-    ? bootstrap
-    : resolve(projectRoot, 'src', legacyEntry);
-}
-
-function writeReactDevelopmentFacade(
-  options: DevelopmentFacadeOptions,
-): string {
-  const directory = join(options.projectRoot, DEVELOPMENT_FACADE_DIRECTORY);
-  const facadePath = join(directory, `${options.name}.ts`);
-  const source = toPosixPath(relative(directory, options.sourcePath));
-  const sourceSpecifier = JSON.stringify(
-    source.startsWith('.') ? source : `./${source}`,
-  );
-  const exports = options.defaultExport
-    ? `export { default } from ${sourceSpecifier};`
-    : `export * from ${sourceSpecifier};`;
-  mkdirSync(directory, { recursive: true });
-  writeFileSync(
-    facadePath,
-    `import "@vitejs/plugin-react/preamble";\n${exports}\n`,
-  );
-
-  return facadePath;
 }

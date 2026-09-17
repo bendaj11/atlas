@@ -1,7 +1,5 @@
-import {
-  ReactSharedPackagesDriver,
-  type PackageFormat,
-} from './react-shared-packages.driver.js';
+import { ReactSharedPackagesDriver } from './react-shared-packages.driver.js';
+import type { PackageFormat } from './react-shared-packages.testkit.js';
 
 describe('React shared package production builds', () => {
   let driver: ReactSharedPackagesDriver;

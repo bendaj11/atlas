@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasEventBus } from '../event-bus/event-bus.js';
+import type { AtlasEventBus } from '../event-bus/index.js';
 import type {
   AtlasGetWidget,
   AtlasGetWidgetOptions,
@@ -8,7 +8,7 @@ import type {
   AtlasSdk,
   AtlasSdkOptions,
   AtlasWidgetHandle,
-} from '../sdk-types/sdk-types.js';
+} from '../sdk-types/index.js';
 import type { AtlasNavigation } from '../../navigation/navigation-types/navigation-types.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import {
@@ -16,7 +16,7 @@ import {
   connectAtlasWidgetResolver,
   createAtlasSdk,
   getAtlasNavigation,
-} from './sdk-factory.js';
+} from './index.js';
 
 interface CommerceHostSdk {
   hostData: { storeId: string };

@@ -1,42 +1,11 @@
 import type { AtlasNavigation } from '../../navigation.js';
-import type { AtlasEventBus, AtlasEventMap } from '../event-bus/event-bus.js';
-
-export interface AtlasMountedWidgetHandle<
-  TInputs extends object = Record<string, unknown>,
-> {
-  setInputs?(inputs: TInputs): void;
-  unmount(): Promise<void>;
-}
-
-export type AtlasWidgetLoadingRenderer = (
-  container: HTMLElement,
-) => void | (() => void);
-
-export interface AtlasGetWidgetOptions {
-  renderLoading?: AtlasWidgetLoadingRenderer;
-}
-
-/** Widget selected by UUID and mounted into a caller-owned card/container. */
-export interface AtlasWidgetHandle<
-  TInputs extends object = Record<string, unknown>,
-> {
-  readonly id: string;
-  readonly name: string;
-  mount(
-    container: HTMLElement,
-    inputs: TInputs,
-  ): Promise<AtlasMountedWidgetHandle<TInputs>>;
-}
-
-export type AtlasGetWidget = <TInputs extends object = Record<string, unknown>>(
-  widgetId: string,
-  options?: AtlasGetWidgetOptions,
-) => AtlasWidgetHandle<TInputs>;
-
-export interface AtlasHostData {
-  readonly hostId: string;
-  readonly name: string;
-}
+import type { AtlasEventBus, AtlasEventMap } from '../event-bus/index.js';
+import type {
+  AtlasHostData,
+  AtlasHostDataOf,
+  HostDataOption,
+} from './host-data-types.js';
+import type { AtlasGetWidget } from './widget-types.js';
 
 /** Values Atlas can safely carry between apps in the destination URL. */
 export type AtlasNavigationState = Readonly<
@@ -50,32 +19,22 @@ export interface AtlasCoreSdk<
 > {
   readonly hostId: string;
   readonly hostData: AtlasHostData & Readonly<THostData>;
+
   /** Navigate to a selected app or host headless app by its stable id. */
   navigateTo(appId: string, state?: AtlasNavigationState): void;
+
   /**
    * Typed, in-memory events shared by mounted apps in this host.
    * Use `emit()` to dispatch and `addEventListener()` / `removeEventListener()` for lifecycle-managed listeners.
    */
   readonly events: AtlasEventBus<TEvents>;
+
   /** Resolve one exported widget by globally unique widget id. */
   readonly getWidget: AtlasGetWidget;
 }
 
-export type AtlasHostDataOf<THostSdk extends object> = THostSdk extends {
-  readonly hostData: infer THostData extends object;
-}
-  ? Omit<THostData, keyof AtlasHostData>
-  : {};
-
-export type AtlasHostDataValue<THostSdk extends object> = AtlasHostData &
-  Readonly<AtlasHostDataOf<THostSdk>>;
-
-type HostDataOption<THostSdk extends object> =
-  keyof AtlasHostDataOf<THostSdk> extends never
-    ? { hostData?: Partial<AtlasHostData> }
-    : { hostData: AtlasHostDataOf<THostSdk> & Partial<AtlasHostData> };
-
-type HostSdkProperties<THostSdk extends object> = Omit<
+/** Host-defined members of the SDK: everything except the core Atlas configuration keys. */
+export type HostSdkProperties<THostSdk extends object> = Omit<
   THostSdk,
   'hostId' | 'hostData' | 'navigation' | 'eventBus' | 'events' | 'getWidget'
 >;
