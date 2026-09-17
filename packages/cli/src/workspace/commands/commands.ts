@@ -58,14 +58,17 @@ export function createTaskCommand(options: {
   args?: string[];
 }): ProcessCommand {
   const { kind, manager, root, project, task, args = [] } = options;
+
   if (kind === 'nx')
     return packageExecutor({
       manager,
       root,
       args: ['nx', 'run', `${project.id}:${task}`, ...args],
     });
+
   if (kind === 'turbo' && !TURBO_BYPASSED_TASKS.includes(task))
     return turboTask({ manager, root, project, task, args });
+
   if (kind === 'workspace' || kind === 'turbo')
     return workspaceTask({ manager, root, project, task, args });
 
@@ -159,10 +162,12 @@ export async function createFormatGeneratedCommand(options: {
   }
 
   const projectScripts = await packageScripts(projectRoot);
+
   if ('format' in projectScripts)
     return quietCommand(
       packageScript({ manager, root: projectRoot, script: 'format', args: [] }),
     );
+
   if ('lint' in projectScripts)
     return quietCommand(
       packageScript({
@@ -174,6 +179,7 @@ export async function createFormatGeneratedCommand(options: {
     );
 
   const workspaceScripts = await packageScripts(workspaceRoot);
+
   if ('format' in workspaceScripts)
     return quietCommand(
       packageScript({
@@ -183,6 +189,7 @@ export async function createFormatGeneratedCommand(options: {
         args: [target],
       }),
     );
+
   if ('lint' in workspaceScripts)
     return quietCommand(
       packageScript({
@@ -235,12 +242,14 @@ function workspaceTask(options: {
   args: string[];
 }): ProcessCommand {
   const { manager, root, project, task, args } = options;
+
   if (manager === 'yarn')
     return {
       command: 'yarn',
       args: ['workspace', project.packageName, 'run', task, ...args],
       cwd: root,
     };
+
   if (manager === 'pnpm')
     return {
       command: 'pnpm',

@@ -31,6 +31,7 @@ export async function runAtlasCli(
     }
 
     const helpTopic = requestedHelpTopic(values);
+
     if (helpTopic) {
       console.info(formatHelp(helpTopic));
 
@@ -38,9 +39,11 @@ export async function runAtlasCli(
     }
 
     const invocation = await resolveInvocation(args, prompts);
+
     if (await runRegistryCommand({ args, invocation })) return;
 
     const workspace = await detectWorkspace();
+
     if (invocation.command !== 'dev') await loadEnvFiles(workspace.root);
 
     if (await runWorkspaceCommand({ workspace, args, prompts, invocation }))

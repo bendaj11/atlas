@@ -49,6 +49,7 @@ export function resolveRelease(
   }
 
   const exact = artifact.releases[selector];
+
   if (exact) return { kind, artifact, version: selector, manifest: exact };
 
   throw new Error(

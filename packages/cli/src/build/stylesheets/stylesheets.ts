@@ -35,6 +35,7 @@ export async function discoverStylesheets(options: {
 
   for (const relativePath of paths) {
     const bytes = await readFile(join(artifactRoot, relativePath));
+
     stylesheets.push({
       href: `${artifactBaseUrl}/${toPosixPath(relativePath)}`,
       integrity: sha256Integrity(bytes),
@@ -46,8 +47,9 @@ export async function discoverStylesheets(options: {
 
 export function stylesheetPathsFromIndex(indexHtml: string): string[] {
   const paths = [...indexHtml.matchAll(/<link\b[^>]*>/giu)].flatMap((link) => {
-    const rel = htmlAttribute(link[0], 'rel');
-    const href = htmlAttribute(link[0], 'href');
+    const rel = htmlAttributeValue(link[0], 'rel');
+    const href = htmlAttributeValue(link[0], 'href');
+
     if (!isStylesheetLink(rel) || !href) return [];
     const path = artifactPathFromHref(href);
 
@@ -72,7 +74,10 @@ function isStylesheetLink(rel: string | undefined): boolean {
   );
 }
 
-function htmlAttribute(tag: string, name: 'href' | 'rel'): string | undefined {
+function htmlAttributeValue(
+  tag: string,
+  name: 'href' | 'rel',
+): string | undefined {
   const expression =
     name === 'href'
       ? /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/iu

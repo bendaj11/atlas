@@ -21,6 +21,7 @@ export async function existingFrameworkVersionInfo(
 
     for (const field of DEPENDENCY_FIELDS) {
       const version = asStringRecord(packageJson[field])[dependency];
+
       if (version) return { version, manifest };
     }
   } catch {
@@ -39,12 +40,15 @@ export async function dependencyManifestPath(
 
   while (true) {
     const manifest = join(current, 'package.json');
+
     if (await pathExists(manifest)) return manifest;
     const parent = dirname(current);
+
     if (resolve(current) === boundary || parent === current) break;
     current = parent;
   }
   const workspaceManifest = join(workspaceRoot, 'package.json');
+
   if (await pathExists(workspaceManifest)) return workspaceManifest;
   throw new Error(
     `Could not find package.json for generated project at ${projectRoot}.`,
@@ -66,19 +70,22 @@ export async function mergePackageDependencies(
 
   for (const field of DEPENDENCY_FIELDS) {
     const incoming = asStringRecord(generated[field]);
+
     if (!Object.keys(incoming).length) continue;
 
     for (const [name, version] of Object.entries(incoming)) {
       const existingField = dependencyField(target, name);
+
       if (existingField) {
         if (
           hasPrimaryDependency &&
           isFrameworkManagedDependency(framework, name)
         ) {
           const existing = asStringRecord(target[existingField]);
+
           if (existing[name] !== version) {
             existing[name] = version;
-            target[existingField] = sortObject(existing);
+            target[existingField] = sortRecordKeys(existing);
             changed = true;
           }
         }
@@ -89,7 +96,7 @@ export async function mergePackageDependencies(
       target[field] = current;
       changed = true;
     }
-    target[field] = sortObject(asStringRecord(target[field]));
+    target[field] = sortRecordKeys(asStringRecord(target[field]));
   }
 
   if (!changed) return false;
@@ -159,7 +166,7 @@ function asStringRecord(value: unknown): Record<string, string> {
   );
 }
 
-function sortObject(value: Record<string, string>): Record<string, string> {
+function sortRecordKeys(value: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(value).sort(([left], [right]) => left.localeCompare(right)),
   );

@@ -154,6 +154,7 @@ function hostDeploymentManifest({
   hostId: string;
 }): AtlasHostDeploymentManifest {
   const host = state.hosts[hostId];
+
   if (!host)
     throw new Error(
       `Atlas host "${hostId}" is not selected in environment "${state.environment}".`,

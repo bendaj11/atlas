@@ -56,8 +56,10 @@ async function deploy({
   artifact: string;
 }): Promise<void> {
   ui.heading(`Deploy · ${artifact}`);
+
   const config = await loadAtlasRegistryConfig(args);
   const result = await new AtlasDeployService(args).run(artifact, config);
+
   ui.success(
     `${result.artifactId}@${result.version} deployed to ${result.environment}.`,
   );
@@ -65,6 +67,7 @@ async function deploy({
   if (result.dryRun) return;
 
   const hostUrls = config?.hostUrls ?? [];
+
   if (hostUrls.length) await verifyHostUrls(hostUrls);
 }
 
@@ -89,6 +92,7 @@ async function removePreview({
 
 async function prunePreviews(args: CliArguments): Promise<void> {
   const stateFile = args.flag('state-file');
+
   if (!stateFile || stateFile === 'true')
     throw new Error('atlas prune-previews requires --state-file.');
 
@@ -105,6 +109,7 @@ async function prunePreviews(args: CliArguments): Promise<void> {
 
 async function verify(args: CliArguments): Promise<void> {
   const hostUrls = configuredHostUrls({ args });
+
   if (!hostUrls.length)
     throw new Error('--host-url or ATLAS_HOST_URLS is required.');
 
@@ -116,10 +121,12 @@ async function verify(args: CliArguments): Promise<void> {
 function previewSelector(args: CliArguments): number {
   const pr = args.flag('pr');
   const mr = args.flag('mr');
+
   if ((pr === undefined) === (mr === undefined))
     throw new Error('Pass exactly one of --pr or --mr.');
 
   const value = Number(pr ?? mr);
+
   if (!Number.isSafeInteger(value) || value < 1)
     throw new Error('--pr and --mr must be positive integers.');
 

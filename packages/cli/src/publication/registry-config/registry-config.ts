@@ -23,6 +23,7 @@ export async function loadAtlasRegistryConfig(
 ): Promise<AtlasRegistryConfig | undefined> {
   const explicit = args.flag('registry-config');
   const path = resolve(workingDirectory, explicit ?? 'atlas.registry.ts');
+
   if (!(await pathExists(path))) {
     if (!explicit) return undefined;
     throw cliError(
@@ -80,6 +81,7 @@ async function compileConfig(path: string): Promise<{
 
     throw new Error(formatTypeScriptDiagnostics(diagnostics, dirname(path)));
   }
+
   await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');
 
   return {

@@ -22,6 +22,7 @@ export async function verifyDeliveryWhileHeld(options: {
   paths: readonly string[];
 }): Promise<void> {
   const { storage, lease, paths } = options;
+
   if (!storage.verifyDelivery) return;
   await lease.assertHeld();
   await storage.verifyDelivery(paths);

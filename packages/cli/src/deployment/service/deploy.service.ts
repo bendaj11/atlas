@@ -37,6 +37,7 @@ export class AtlasDeployService {
   }): Promise<AtlasDeployResult> {
     const environment = requiredFlag(this.args, 'to');
     const selector = requiredFlag(this.args, 'version');
+
     assertEnvironmentName(environment);
 
     const storage = await createPublicationStorage(config?.storage, this.args);
@@ -59,6 +60,7 @@ export class AtlasDeployService {
       ? await plan()
       : await withPublicationLease(storage, async (lease) => {
           const planned = await plan();
+
           await writeDeployment({
             storage,
             lease,
@@ -90,6 +92,7 @@ export class AtlasDeployService {
 
 function requiredFlag(args: CliArguments, name: string): string {
   const value = args.flag(name);
+
   if (!value || value === 'true') throw new Error(`--${name} is required.`);
 
   return value;

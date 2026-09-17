@@ -16,16 +16,16 @@ export function registryRevision(
 }
 
 export function canonicalJson(value: unknown): string {
-  return JSON.stringify(sortJson(value));
+  return JSON.stringify(sortJsonKeys(value));
 }
 
-function sortJson(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortJson);
+function sortJsonKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortJsonKeys);
 
   if (!isRecord(value)) return value;
   return Object.fromEntries(
     Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, entry]) => [key, sortJson(entry)]),
+      .map(([key, entry]) => [key, sortJsonKeys(entry)]),
   );
 }

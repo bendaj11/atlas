@@ -57,12 +57,14 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
   ) {
     if (!options.bucket)
       throw new Error('S3 publication storage requires a bucket.');
+
     this.prefix = options.prefix?.replace(/^\/+|\/+$/g, '') ?? '';
     const lockTimeoutMs = options.lockTimeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
     const lockLeaseMs = options.lockLeaseMs ?? DEFAULT_LOCK_LEASE_MS;
 
     if (lockTimeoutMs < 0)
       throw new Error('S3 lock timeout must not be negative.');
+
     if (lockLeaseMs < MINIMUM_LOCK_LEASE_MS) {
       throw new Error(
         `S3 lock lease must be at least ${MINIMUM_LOCK_LEASE_MS}ms.`,
@@ -194,6 +196,7 @@ export class S3PublicationStorage implements AtlasPublicationStorage {
           `Immutable publication object already exists: ${path}`,
           { cause: error },
         );
+
       throw storageError(`create ${path}`, error);
     }
   }

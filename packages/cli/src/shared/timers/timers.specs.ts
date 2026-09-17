@@ -1,6 +1,6 @@
 import { delay } from './timers.js';
 
-describe('wait', () => {
+describe('delay', () => {
   it('should resolve after the delay when called', async () => {
     const started = Date.now();
 

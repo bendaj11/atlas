@@ -17,6 +17,7 @@ export function createHostRuntimeConfig(
   _hostVersion?: string,
 ): AtlasHostRuntimeConfig {
   assertHostConfig(config);
+
   const artifactRegistryUrl =
     resolveRegistryUrl(args) ?? DEFAULT_LOCAL_REGISTRY_URL;
   const environment = resolveRuntimeEnvironment(args, artifactRegistryUrl);
@@ -36,6 +37,7 @@ function resolveRuntimeEnvironment(
   registryUrl: string,
 ): string {
   const value = args.flag('environment') ?? process.env.ATLAS_ENVIRONMENT;
+
   if (value) {
     assertSafeEnvironment(value);
 

@@ -86,6 +86,7 @@ export class AtlasGenerateService {
     const { name, segments } = parseProjectPath(projectPath);
     const selectedFramework = framework ?? this.args.framework();
     const hostId = type === 'app' ? this.args.flag('host-id') : undefined;
+
     validateGeneratorOptions({
       ...this.options({ name, framework: selectedFramework, hostId }),
       ...(this.delegatesScaffold() ? { frameworkVersion: undefined } : {}),
@@ -144,6 +145,7 @@ export class AtlasGenerateService {
 
     for (const file of files) {
       const target = resolveContainedPath(app.project.root, file.path);
+
       await assertWritable(
         target,
         this.args.hasFlag('force'),
@@ -253,6 +255,7 @@ export class AtlasGenerateService {
         frameworkVersion: generatorOptions.frameworkVersion,
         files,
       });
+
     await registerWorkspaceProject({
       workspace: this.workspace,
       root,

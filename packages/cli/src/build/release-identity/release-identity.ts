@@ -36,6 +36,7 @@ export function publicationIdentity(options: {
   const pr = args.flag('pr');
   const mr = args.flag('mr');
   const selected = [version, pr, mr].filter((value) => value !== undefined);
+
   if (selected.length !== 1) {
     throw new Error(
       'Atlas publish requires exactly one of --version, --pr, or --mr.',
@@ -52,10 +53,12 @@ export function publicationIdentity(options: {
     };
   }
   const previewNumber = parseOptionalNumber(pr ?? mr);
+
   if (!previewNumber || previewNumber < 1) {
     throw new Error('--pr and --mr must be positive integers.');
   }
   const { gitSha, ...rest } = source;
+
   if (!gitSha) {
     throw new Error(
       'Preview publication requires the checked-out Git SHA or --git-sha.',
@@ -126,6 +129,7 @@ function gitOutput(root: string, args: readonly string[]): string | undefined {
 function parseOptionalNumber(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
+
   if (!Number.isInteger(parsed))
     throw new Error(`Expected an integer, received "${value}".`);
 

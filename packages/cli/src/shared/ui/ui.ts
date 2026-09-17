@@ -75,6 +75,7 @@ export class TerminalPrompter implements AtlasPrompter {
   async input(message: string, fallback?: string): Promise<string> {
     if (!this.interactive)
       throw new Error(`${message} must be provided in non-interactive mode.`);
+
     while (true) {
       const suffix = fallback ? ` [${fallback}]` : '';
       const answer = (
@@ -96,6 +97,7 @@ export class TerminalPrompter implements AtlasPrompter {
   ): Promise<T> {
     if (!this.interactive)
       throw new Error(`${message} must be provided in non-interactive mode.`);
+
     return selectPrompt({
       message,
       choices: choices.map(({ label, value }) => ({ name: label, value })),
@@ -162,6 +164,7 @@ function styleRgb(
 ): string {
   if (!stream.isTTY || process.env.NO_COLOR || process.env.TERM === 'dumb')
     return value;
+
   return `\u001B[38;2;${red};${green};${blue}m${value}\u001B[0m`;
 }
 
@@ -222,6 +225,7 @@ function writeLine(stream: WriteStream, message: string): void {
 function colorize(value: string, color: UiColor, stream: WriteStream): string {
   if (!stream.isTTY || process.env.NO_COLOR || process.env.TERM === 'dumb')
     return value;
+
   const codes: Readonly<Record<UiColor, number | string>> = {
     bold: 1,
     blue: 34,

@@ -13,6 +13,7 @@ export function httpStatusOf(error: unknown): number | undefined {
 
   if ('status' in error) {
     const status = (error as { status?: unknown }).status;
+
     if (typeof status === 'number') return status;
   }
 

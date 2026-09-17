@@ -41,6 +41,7 @@ export function resolveGenerationRoot({
   segments: string[];
 }): string {
   const explicit = args.flag('directory');
+
   if (explicit && explicit !== 'true') return resolve(explicit);
 
   if (workspace.kind === 'nx' || segments.length > 1)
@@ -163,6 +164,7 @@ async function mergeDelegatedDependencies({
   framework: SupportedFramework;
 }): Promise<void> {
   const packageFile = files.find((file) => file.path === 'package.json');
+
   if (!packageFile) return;
 
   const target = await dependencyManifestPath(root, workspace.root);

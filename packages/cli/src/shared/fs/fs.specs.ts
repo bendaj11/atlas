@@ -10,23 +10,23 @@ describe('fs', () => {
     await driver.given.directory();
   });
 
-  describe('exists', () => {
+  describe('pathExists', () => {
     it('should return true when path is a file', async () => {
       const name = driver.get.missingName();
       await driver.given.file(name, faker.lorem.word());
 
-      expect(await driver.get.exists(name)).toBe(true);
+      expect(await driver.get.pathExists(name)).toBe(true);
     });
 
     it('should return false when path is missing', async () => {
-      expect(await driver.get.exists(driver.get.missingName())).toBe(false);
+      expect(await driver.get.pathExists(driver.get.missingName())).toBe(false);
     });
 
     it('should return false when a path segment is a file', async () => {
       const name = driver.get.missingName();
       await driver.given.file(name, faker.lorem.word());
 
-      expect(await driver.get.exists(join(name, 'child'))).toBe(false);
+      expect(await driver.get.pathExists(join(name, 'child'))).toBe(false);
     });
   });
 

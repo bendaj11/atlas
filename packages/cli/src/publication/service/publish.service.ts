@@ -80,6 +80,7 @@ export class AtlasPublishService {
     await assertPreviewIsCurrent({ manifest: build.manifest, config });
 
     const immutable = await publicationFiles(build);
+
     this.reportProgress(
       `Prepared ${publicationIdentity(build.manifest)}; ${immutable.payloads.length + 1} immutable file(s) ready.`,
     );
@@ -165,6 +166,7 @@ export class AtlasPublishService {
 
     if (this.args.hasFlag('dry-run')) {
       this.reportProgress('Reading registry.json for dry-run validation...');
+
       const current = await readRegistry(storage);
       assertExpectedRegistryRevision(this.args, current);
       const mutation = publishArtifact(current, build.manifest, descriptor);
@@ -230,6 +232,7 @@ export class AtlasPublishService {
   }: CommitOptions): Promise<AtlasPublishResult> {
     await lease.assertHeld();
     this.reportProgress('Reading latest registry.json...');
+
     const state = await readRegistryState(storage);
     assertExpectedRegistryRevision(this.args, state.registry);
     const mutation = publishArtifact(state.registry, manifest, descriptor);

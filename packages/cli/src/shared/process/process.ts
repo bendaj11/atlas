@@ -74,6 +74,7 @@ export function captureProcessOutput(
   destinations: ProcessOutputDestinations = process,
 ): () => string {
   let output = '';
+
   forwardAndCapture(child.stdout, destinations.stdout, append);
   forwardAndCapture(child.stderr, destinations.stderr, append);
 

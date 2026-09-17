@@ -41,7 +41,7 @@ export async function readActiveControlServerLeases(
   const leases = await Promise.all(
     paths
       .filter((path) => path.startsWith(`${port}-`))
-      .map(async (path) => readLease(join(LEASE_DIRECTORY, path))),
+      .map(async (path) => readLeaseFile(join(LEASE_DIRECTORY, path))),
   );
 
   return leases.flatMap((lease) => (lease ? [lease] : []));
@@ -76,7 +76,7 @@ function leaseFileId(document: AtlasDevOverrideDocument): string {
   return encodeURIComponent(`${document.hostId}-${artifactKey}`);
 }
 
-async function readLease(
+async function readLeaseFile(
   path: string,
 ): Promise<ControlServerLease | undefined> {
   try {
@@ -103,14 +103,14 @@ function isActiveLease(lease: ControlServerLease): boolean {
     typeof lease.renewedAt === 'number' &&
     Date.now() - lease.renewedAt < LEASE_LIFETIME_MS &&
     typeof lease.processId === 'number' &&
-    processExists(lease.processId) &&
+    isProcessRunning(lease.processId) &&
     typeof lease.ready === 'boolean' &&
     typeof lease.document === 'object' &&
     lease.document !== null
   );
 }
 
-function processExists(processId: number): boolean {
+function isProcessRunning(processId: number): boolean {
   try {
     process.kill(processId, 0);
 

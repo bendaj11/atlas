@@ -67,6 +67,7 @@ function transportFailureCode(error: unknown): string | undefined {
       return 'ETIMEDOUT';
 
     const code = 'code' in failure ? failure.code : undefined;
+
     if (typeof code === 'string') {
       if (TRANSIENT_NETWORK_CODES.has(code)) return code;
 

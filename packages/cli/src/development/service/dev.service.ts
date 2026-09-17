@@ -55,6 +55,7 @@ export class AtlasDevService {
 
     if (project.root !== this.workspace.root)
       await loadEnvFiles(this.workspace.root);
+
     await compileAtlasConfig(this.workspace, project);
     const config = await this.builds.loadConfig(project.root);
 
@@ -77,6 +78,7 @@ export class AtlasDevService {
 
       return;
     }
+
     await this.runApp({ project, name, config, prompts });
   }
 
@@ -105,6 +107,7 @@ export class AtlasDevService {
       previewKind: target.previewKind,
     });
     assertLocalPreviewPort(target, bootstrapPort);
+
     const manifest = await this.builds.buildLocalHostManifest(
       project.id,
       localOrigin(clientPort),
@@ -203,6 +206,7 @@ export class AtlasDevService {
 
       return;
     }
+
     await runDevSession({
       workspace: this.workspace,
       args: this.args,

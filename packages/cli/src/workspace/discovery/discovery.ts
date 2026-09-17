@@ -36,7 +36,7 @@ export async function findAtlasProject(options: {
   ];
 
   for (const candidate of [...requestedRoots, currentDirectory]) {
-    const project = await readProject({
+    const project = await readProjectAt({
       root: candidate,
       requestedName,
       requestedRoots,
@@ -45,12 +45,12 @@ export async function findAtlasProject(options: {
 
     if (project) return project;
   }
-  const matches = await walkProjects({
+  const matches = await walkProjectDirectories({
     directory: workspaceRoot,
     workspaceRoot,
     depth: 0,
     read: (root) =>
-      readProject({
+      readProjectAt({
         root,
         requestedName: name,
         requestedRoots: [],
@@ -66,6 +66,7 @@ export async function findAtlasProject(options: {
       'Pass the project directory instead of its name.',
       { code: 'ATLAS_PROJECT_AMBIGUOUS' },
     );
+
   throw cliError(
     `Could not find Atlas project "${name}" from workspace ${workspaceRoot}.`,
     [
@@ -79,13 +80,13 @@ export async function findAtlasProject(options: {
 export async function listAtlasProjects(
   workspaceRoot: string,
 ): Promise<AtlasProject[]> {
-  const projects = await walkProjects({
+  const projects = await walkProjectDirectories({
     directory: workspaceRoot,
     workspaceRoot,
     depth: 0,
     read: async (root) =>
       (await pathExists(join(root, 'atlas.config.ts')))
-        ? ((await readProject({
+        ? ((await readProjectAt({
             root,
             requestedName: basename(root),
             requestedRoots: [],
@@ -97,7 +98,7 @@ export async function listAtlasProjects(
   return projects.sort((left, right) => left.root.localeCompare(right.root));
 }
 
-async function walkProjects(options: {
+async function walkProjectDirectories(options: {
   directory: string;
   workspaceRoot: string;
   depth: number;
@@ -107,6 +108,7 @@ async function walkProjects(options: {
 
   if (depth > MAX_DISCOVERY_DEPTH) return [];
   const project = await read(directory);
+
   if (project === null) return [];
 
   if (project) return [project];
@@ -122,7 +124,7 @@ async function walkProjects(options: {
           !entry.name.startsWith('.'),
       )
       .map((entry) =>
-        walkProjects({
+        walkProjectDirectories({
           directory: join(directory, entry.name),
           workspaceRoot,
           depth: depth + 1,
@@ -134,7 +136,7 @@ async function walkProjects(options: {
   return nested.flat();
 }
 
-async function readProject(options: {
+async function readProjectAt(options: {
   root: string;
   requestedName: string;
   requestedRoots: readonly string[];
@@ -148,6 +150,7 @@ async function readProject(options: {
     join(root, 'project.json'),
   );
   const packageName = packageJson?.name ?? nxProject?.name;
+
   if (!packageName || (!packageJson?.version && !nxProject)) return undefined;
   const identifiers = [
     packageName,
@@ -158,7 +161,9 @@ async function readProject(options: {
 
   if (!identifiers.includes(requestedName) && !requestedRoots.includes(root))
     return undefined;
+
   const configPath = join(root, 'atlas.config.ts');
+
   if (!(await pathExists(configPath))) {
     throw new Error(
       `Atlas project "${requestedName}" is missing required configuration file "${relative(workspaceRoot, configPath)}".`,

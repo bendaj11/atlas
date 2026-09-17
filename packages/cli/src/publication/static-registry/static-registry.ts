@@ -40,6 +40,7 @@ export function publishArtifact(
   const kind = artifactKind(manifest);
   const collection = kind === 'app' ? registry.apps : registry.hosts;
   const otherCollection = kind === 'app' ? registry.hosts : registry.apps;
+
   if (otherCollection[manifest.id])
     throw new Error(
       `Atlas stable ID "${manifest.id}" is already registered to another artifact kind.`,
@@ -94,6 +95,7 @@ export function removePreview(
   const baseRevision = registryRevision(current);
   const artifact = registry.apps[artifactId] ?? registry.hosts[artifactId];
   const removed = artifact?.previews[String(previewNumber)];
+
   if (!artifact || !removed)
     return unchangedMutation({ registry, baseRevision });
 
@@ -139,10 +141,12 @@ function applyArtifactVersion({
   if (manifest.release) {
     const version = manifest.release.version;
     const existing = artifact.releases[version];
+
     if (existing && existing.digest !== descriptor.digest)
       throw new Error(
         `Immutable release ${manifest.id}@${version} already exists with a different digest.`,
       );
+
     if (existing) return { changed: false };
 
     artifact.releases[version] = descriptor;
@@ -154,6 +158,7 @@ function applyArtifactVersion({
   if (manifest.preview) {
     const number = String(manifest.preview.number);
     const existing = artifact.previews[number];
+
     if (sameDescriptor(existing, descriptor)) return { changed: false };
 
     artifact.previews[number] = descriptor;

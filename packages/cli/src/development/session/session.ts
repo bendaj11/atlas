@@ -46,6 +46,7 @@ export function createDevSessionStore(
 
     if (document.previewUrl)
       host.previewUrls.add(normalizePreviewUrl(document.previewUrl));
+
     hosts.set(document.hostId, host);
   };
 
@@ -54,12 +55,14 @@ export function createDevSessionStore(
   ): AtlasDevOverrideDocument | undefined => {
     const hostId = resolveHostId({ hosts, requestedHostId });
     const host = hostId ? hosts.get(hostId) : undefined;
+
     if (!hostId || !host) return undefined;
 
     const overrides = [...host.entries.values()]
       .filter((entry) => entry.ready)
       .map((entry) => entry.override);
     const hostOverride = host.hostReady ? host.hostOverride : undefined;
+
     if (overrides.length === 0 && !hostOverride) return undefined;
 
     return {
@@ -78,6 +81,7 @@ export function createDevSessionStore(
     | { document: AtlasDevOverrideDocument; catalog: AtlasHostCatalog }
     | undefined => {
     const document = currentDocument(hostId);
+
     if (!document) return undefined;
 
     const local = createLocalDevCatalog(document);
@@ -94,6 +98,7 @@ export function createDevSessionStore(
   const markReady = (appId: string, requestedHostId?: string): void => {
     for (const host of matchingHosts({ hosts, appId, requestedHostId })) {
       const entry = host.entries.get(appId);
+
       if (entry) entry.ready = true;
     }
   };
@@ -113,6 +118,7 @@ export function createDevSessionStore(
     },
     unregisterHost(hostId) {
       const host = hosts.get(hostId);
+
       if (!host) return;
 
       delete host.hostOverride;
@@ -123,11 +129,13 @@ export function createDevSessionStore(
     markReady,
     markHostReady(hostId) {
       const host = hosts.get(hostId);
+
       if (host?.hostOverride) host.hostReady = true;
     },
     markDocumentReady(document) {
       if (document.hostOverride) {
         const host = hosts.get(document.hostId);
+
         if (host) host.hostReady = true;
       }
 
@@ -152,6 +160,7 @@ export function createDevSessionStore(
     },
     previewAllowed(hostId, previewUrl) {
       const resolvedHostId = resolveHostId({ hosts, requestedHostId: hostId });
+
       if (!resolvedHostId) return false;
 
       try {
@@ -194,6 +203,7 @@ function matchingHosts({
 
 function normalizePreviewUrl(value: string): string {
   const url = new URL(value);
+
   if (url.protocol !== 'http:' && url.protocol !== 'https:')
     throw new Error('Atlas preview URL must use HTTP or HTTPS.');
 

@@ -30,6 +30,7 @@ export function warnPublishedCatalogOnce({
   error: unknown;
 }): void {
   const key = `${registryUrl}|${hostId}`;
+
   if (warnedCatalogs.has(key)) return;
 
   warnedCatalogs.add(key);

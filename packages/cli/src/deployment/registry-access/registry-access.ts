@@ -28,6 +28,7 @@ export async function sourceRegistry(
   access: RegistryAccess,
 ): Promise<AtlasStaticRegistry> {
   const registry = await sourceJson({ access, path: 'registry.json' });
+
   if (!registry) throw new Error('Source registry.json is missing.');
 
   assertStaticRegistry(registry);
@@ -145,6 +146,7 @@ async function sourceBytes({
   if (locations.source === locations.target) return storage.read(path);
 
   const response = await fetch(new URL(path, `${locations.source}/`));
+
   if (response.status === 404) return undefined;
 
   if (!response.ok)

@@ -18,6 +18,7 @@ export async function alignDelegatedTsconfig({
   framework: SupportedFramework;
 }): Promise<void> {
   const target = await tsconfigPath(root);
+
   if (!target) return;
 
   const tsconfig = JSON.parse(await readFile(target, 'utf8')) as Record<

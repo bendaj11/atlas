@@ -39,8 +39,10 @@ function hostClientPortFallback(
   options: ResolveHostDevPortsOptions & { bootstrapPort: number },
 ): number {
   const { args, bootstrapPort, configuredPort, previewKind } = options;
+
   if (previewKind === 'deployed' || args.hasFlag('bootstrap-port'))
     return configuredPort;
+
   return bootstrapPort === DEFAULT_HOST_CLIENT_PORT
     ? DEFAULT_HOST_BOOTSTRAP_PORT
     : DEFAULT_HOST_CLIENT_PORT;

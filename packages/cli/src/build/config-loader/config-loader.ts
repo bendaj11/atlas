@@ -16,10 +16,12 @@ export async function loadCompiledAtlasConfig(
       `${pathToFileURL(path).href}?t=${Date.now()}`
     )) as { default?: unknown };
     const exported = module.default;
+
     if (isAtlasConfig(exported)) return exported;
 
     if (isRecord(exported) && isAtlasConfig(exported.default))
       return exported.default;
+
     throw cliError(
       `${path} does not default-export an Atlas config.`,
       'Export the atlas.config.ts object as the default export, then recompile.',

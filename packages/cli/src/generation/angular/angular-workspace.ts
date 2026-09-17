@@ -24,10 +24,12 @@ export async function ensureAngularWorkspaceFederationConfig({
 }): Promise<void> {
   const workspaceFile = join(root, 'angular.json');
   const workspace = await readJsonFile<Record<string, unknown>>(workspaceFile);
+
   if (!workspace) return;
 
   const project = recordOrEmpty(recordOrEmpty(workspace.projects)[projectName]);
   const targets = recordOrEmpty(project.architect);
+
   if (!Object.keys(targets).length) return;
 
   ensureAngularNativeFederationTargets({
@@ -73,6 +75,7 @@ export async function ensureAngularBuildNotifications({
 
   const projectFile = join(root, 'project.json');
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
+
   if (!project) return;
 
   const changed = configureAngularDevelopmentTargets({

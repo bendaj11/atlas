@@ -8,12 +8,16 @@ export interface FederationMetadata {
 export function parseFederationMetadata(bytes: Uint8Array): FederationMetadata {
   const value = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
   const record = optionalRecord(value);
+
   if (!Array.isArray(record?.exposes))
     throw new Error('Expected an exposes array.');
+
   if (!Array.isArray(record.shared))
     throw new Error('Expected a shared array.');
+
   const exposes = record.exposes.map((candidate) => {
     const expose = optionalRecord(candidate);
+
     if (
       !isNonEmptyString(expose?.key) ||
       !isNonEmptyString(expose.outFileName)

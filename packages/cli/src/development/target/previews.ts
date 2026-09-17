@@ -14,6 +14,7 @@ export async function readAtlasPreviewUrls(
     await readFile(join(projectRoot, 'package.json'), 'utf8'),
   ) as AtlasPackageMetadata;
   const previews = packageJson.atlas?.previews;
+
   if (previews === undefined) return [];
 
   if (!Array.isArray(previews)) {
@@ -30,6 +31,7 @@ function assertPreviewUrl(value: unknown, index: number): string {
 
   try {
     const url = new URL(value);
+
     if (url.protocol === 'http:' || url.protocol === 'https:') return value;
   } catch {
     return invalidPreviewUrl(index);

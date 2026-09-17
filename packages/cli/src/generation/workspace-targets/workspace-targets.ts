@@ -32,6 +32,7 @@ export async function writeNxProject(options: {
 }): Promise<void> {
   const { workspaceRoot, packageManager, root, name, type } = options;
   const cwd = relative(workspaceRoot, root) || '.';
+
   if (cwd === '..' || cwd.startsWith(`..${sep}`) || isAbsolute(cwd)) {
     throw new Error('Nx projects must be generated inside the workspace root.');
   }
@@ -56,6 +57,7 @@ export async function writeNxProject(options: {
 export async function ensureTurboTasks(workspaceRoot: string): Promise<void> {
   const turboPath = join(workspaceRoot, 'turbo.json');
   const turbo = await readJsonFile<Record<string, unknown>>(turboPath);
+
   if (!turbo) return;
   const [taskKey, tasks] = turboTasks(turbo);
   tasks.dev = isRecord(tasks.dev)

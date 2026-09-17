@@ -16,6 +16,7 @@ export function registryLocations(args: CliArguments): RegistryLocations {
     throw new Error(
       '--registry-url cannot be combined with --source-registry-url or --target-registry-url.',
     );
+
   if (Boolean(source) !== Boolean(target))
     throw new Error(
       '--source-registry-url and --target-registry-url must be supplied together.',
@@ -51,8 +52,10 @@ function registryRoot({
   if (value === 'true') throw new Error(`${flag} requires a URL.`);
 
   const url = new URL(value);
+
   if (!isSecureOrLoopbackUrl(url))
     throw new Error(`${flag} must use HTTPS except for loopback development.`);
+
   if (url.search || url.hash || url.username || url.password)
     throw new Error(`${flag} must be a registry root URL.`);
 

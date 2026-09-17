@@ -34,7 +34,9 @@ export async function resolveInvocation(
       { label: 'Exported widget', value: 'widget' },
     ]);
     name ??= await prompts.input(
-      subcommand === 'widget' ? 'Widget name' : `${capitalize(subcommand)} name`,
+      subcommand === 'widget'
+        ? 'Widget name'
+        : `${capitalize(subcommand)} name`,
     );
 
     if ((subcommand === 'host' || subcommand === 'app') && !framework) {

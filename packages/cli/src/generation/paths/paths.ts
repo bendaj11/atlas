@@ -36,6 +36,7 @@ export function parseProjectPath(value: string): {
       `Invalid project name or path "${value}". Use a relative path with safe directory names.`,
     );
   }
+
   segments.forEach((segment) =>
     assertSafeId(segment, 'project name or path segment'),
   );

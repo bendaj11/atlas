@@ -31,6 +31,7 @@ export async function compileAtlasConfig(
 async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
   const configPath = findCompilerConfig(projectRoot);
   const raw = ts.readConfigFile(configPath, ts.sys.readFile);
+
   if (raw.error)
     throw new Error(formatTypeScriptDiagnostics([raw.error], projectRoot));
 
@@ -81,6 +82,7 @@ function findCompilerConfig(projectRoot: string): string {
     throw new Error(
       `Could not find tsconfig.app.json or tsconfig.json in ${projectRoot}.`,
     );
+
   return config;
 }
 

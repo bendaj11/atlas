@@ -30,6 +30,7 @@ export function nxOutputPaths(options: {
 }): string[] {
   const { project, workspaceRoot, projectRoot } = options;
   const build = project?.targets?.build;
+
   if (!build) return [];
   const targets = nxOutputTargets(project, build);
   const configuredOutputPaths = targets.flatMap(({ target, configuration }) =>
@@ -62,6 +63,7 @@ function delegatedNxBuildTarget(
 ): NxOutputTarget | undefined {
   if (build.executor !== NATIVE_FEDERATION_BUILD_EXECUTOR) return undefined;
   const target = build.options?.target;
+
   if (!target) return undefined;
   const [projectName, targetName, configuration] = target.split(':');
 
@@ -90,9 +92,9 @@ function configuredNxOutputPaths(options: {
     : configurations;
 
   return [
-    ...expandOutputPath(target.options?.outputPath, workspaceRoot),
+    ...expandNxOutputPath(target.options?.outputPath, workspaceRoot),
     ...orderedConfigurations.flatMap(([, targetConfiguration]) =>
-      expandOutputPath(targetConfiguration.outputPath, workspaceRoot),
+      expandNxOutputPath(targetConfiguration.outputPath, workspaceRoot),
     ),
   ];
 }
@@ -105,18 +107,23 @@ function declaredNxOutputPaths(options: {
 }): string[] {
   return (options.target.outputs ?? [])
     .map((output) =>
-      interpolateNxOutput(output, options.projectName, options.projectRoot),
+      interpolateNxOutputTokens(
+        output,
+        options.projectName,
+        options.projectRoot,
+      ),
     )
     .filter((output): output is string => Boolean(output))
     .map((output) => resolve(options.workspaceRoot, output));
 }
 
-function expandOutputPath(
+function expandNxOutputPath(
   outputPath: NxOutputPath | undefined,
   workspaceRoot: string,
 ): string[] {
   if (typeof outputPath === 'string')
     return [resolve(workspaceRoot, outputPath)];
+
   if (!outputPath?.base) return [];
   const base = resolve(workspaceRoot, outputPath.base);
 
@@ -125,7 +132,7 @@ function expandOutputPath(
     : [base];
 }
 
-function interpolateNxOutput(
+function interpolateNxOutputTokens(
   output: string,
   projectName: string | undefined,
   projectRoot: string,

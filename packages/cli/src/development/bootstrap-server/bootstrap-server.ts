@@ -27,6 +27,7 @@ export async function startLocalBootstrapServer(
 
       return;
     }
+
     proxyNativeUpgrade(request, socket, head, options.proxy!.origin);
   });
 
@@ -62,6 +63,7 @@ function createBootstrapRequestHandler(
     }
     const path = new URL(request.url ?? '/', `http://${LOCAL_HOST}`).pathname;
     const method = request.method ?? 'GET';
+
     if (!isBootstrapMethod(method)) {
       response.writeHead(405, { allow: 'GET, HEAD' });
       response.end();
@@ -69,6 +71,7 @@ function createBootstrapRequestHandler(
       return;
     }
     const exactContents = files.get(path);
+
     if (exactContents !== undefined) {
       writeBootstrapResponse(response, path, exactContents, method);
 
@@ -81,6 +84,7 @@ function createBootstrapRequestHandler(
 
       return;
     }
+
     writeBootstrapResponse(
       response,
       '/index.html',
@@ -132,6 +136,7 @@ function proxyNativeRequest(
   proxy.on('error', () => {
     if (!response.headersSent)
       response.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
+
     response.end('Proxy request failed\n');
   });
   request.pipe(proxy);

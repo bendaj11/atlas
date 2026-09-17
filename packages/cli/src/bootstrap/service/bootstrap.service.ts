@@ -50,6 +50,7 @@ export class AtlasBootstrapService {
     );
     const config = await this.builds.loadConfig(project.root);
     assertHostConfig(config, name);
+
     const files = this.dependencies.createFiles({
       ...(template !== undefined ? { html: template } : {}),
       ...(this.args.flag('title') ? { title: this.args.flag('title') } : {}),

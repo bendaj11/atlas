@@ -15,6 +15,7 @@ export function checkCors(options: {
 
   if (url.origin === hostOrigin) return;
   const allowed = response.headers.get('access-control-allow-origin');
+
   if (allowed === '*' || allowed === hostOrigin)
     checks.pass(`${subject} CORS`, `Allows ${hostOrigin}.`);
   else
@@ -31,6 +32,7 @@ export function checkMutableCache(options: {
 }): void {
   const { checks, response, subject } = options;
   const cacheControl = response.headers.get('cache-control') ?? '';
+
   if (/\bimmutable\b/i.test(cacheControl))
     checks.fail(`${subject} cache`, 'Mutable metadata must not be immutable.');
   else if (!cacheControl)
@@ -75,6 +77,7 @@ export function checkContentType(options: {
   const { checks, response, subject, expected } = options;
   const actual = response.headers.get('content-type')?.toLowerCase() ?? '';
   const valid = actual.includes(CONTENT_TYPE_FRAGMENTS[expected]);
+
   if (valid) checks.pass(`${subject} MIME`, actual);
   else
     checks.fail(

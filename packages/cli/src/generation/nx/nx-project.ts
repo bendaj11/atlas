@@ -72,6 +72,7 @@ function staleNxProjectPaths({
   configuredRoot: string;
 }): string[] {
   const prefix = configuredRoot === '.' ? '' : `${configuredRoot}/`;
+
   if (!prefix) return [];
 
   const values = collectNxPathValues(project);
@@ -99,6 +100,7 @@ function collectNxPathValues(project: Record<string, unknown>): string[] {
 function nxPathOptions(options: Record<string, unknown>): string[] {
   return NX_PATH_OPTION_KEYS.flatMap((key) => {
     const value = options[key];
+
     if (typeof value === 'string') return [value];
 
     if (Array.isArray(value))

@@ -44,9 +44,11 @@ export class AtlasVerifyService {
   async run(options: AtlasVerifyOptions): Promise<AtlasVerificationReport> {
     const context = createContext(options);
     const runtime = await this.resolveRuntime(context);
+
     if (!runtime) return context.checks.report(context.hostUrl.href);
 
     const catalog = await this.fetchCatalog({ runtime, context });
+
     if (!catalog)
       return context.checks.report(context.hostUrl.href, runtime.hostId);
 
@@ -89,6 +91,7 @@ export class AtlasVerifyService {
 
     try {
       const runtime = resolveAtlasRuntimeConfig(config, context.hostUrl.href);
+
       context.checks.pass(
         subject,
         `Selected environment "${runtime.environment}" for host "${runtime.hostId}".`,
@@ -209,6 +212,7 @@ export class AtlasVerifyService {
 function createContext(options: AtlasVerifyOptions): VerificationContext {
   const hostUrl = absoluteHttpUrl(options.hostUrl, '--host-url');
   const timeoutMs = options.timeoutMs ?? DEFAULT_NETWORK_TIMEOUT_MS;
+
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0)
     throw new Error('Verification timeout must be a positive finite number.');
 

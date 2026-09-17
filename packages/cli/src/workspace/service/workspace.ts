@@ -85,6 +85,7 @@ export async function detectWorkspace(
     scaffoldProject: async (options) => {
       if (kind !== 'nx') return false;
       const directory = relative(root, options.projectRoot);
+
       if (!directory || directory === '..' || directory.startsWith('../')) {
         throw new Error(
           'Nx projects must be generated inside the workspace root.',

@@ -27,6 +27,7 @@ export async function findWorkspaceRoot(start: string): Promise<string> {
   while (true) {
     if (await isWorkspaceRoot(current)) return current;
     const parent = dirname(current);
+
     if (parent === current) return start;
     current = parent;
   }
@@ -50,8 +51,10 @@ export async function detectPackageManager(
   root: string,
 ): Promise<AtlasPackageManager> {
   const declared = (await rootPackageJson(root))?.packageManager?.split('@')[0];
+
   if (declared === 'yarn' || declared === 'pnpm' || declared === 'npm')
     return declared;
+
   if (await pathExists(join(root, 'pnpm-lock.yaml'))) return 'pnpm';
 
   if (await pathExists(join(root, 'yarn.lock'))) return 'yarn';
@@ -64,15 +67,20 @@ export async function detectGenerationBases(options: {
   start: string;
 }): Promise<GenerationBaseDirectories> {
   const startDirectory = relative(options.root, options.start);
+
   if (startDirectory && dirname(startDirectory) === '.')
     return { host: startDirectory, app: startDirectory };
-  const patterns = await workspacePatterns(options.root);
-  const app = patternBase(patterns, 'apps') ?? wildcardBase(patterns) ?? 'apps';
 
-  return { host: patternBase(patterns, 'hosts') ?? app, app };
+  const patterns = await workspacePatterns(options.root);
+  const app =
+    segmentBaseDirectory(patterns, 'apps') ??
+    commonWildcardBaseDirectory(patterns) ??
+    'apps';
+
+  return { host: segmentBaseDirectory(patterns, 'hosts') ?? app, app };
 }
 
-function patternBase(
+function segmentBaseDirectory(
   patterns: readonly string[],
   segment: string,
 ): string | undefined {
@@ -86,7 +94,9 @@ function patternBase(
   return pattern ? patternBaseDirectory(pattern) : undefined;
 }
 
-function wildcardBase(patterns: readonly string[]): string | undefined {
+function commonWildcardBaseDirectory(
+  patterns: readonly string[],
+): string | undefined {
   const pattern = patterns.find((candidate) => candidate.includes('*'));
 
   return pattern ? patternBaseDirectory(pattern) : undefined;
@@ -122,6 +132,7 @@ async function workspacePatterns(root: string): Promise<string[]> {
     : (workspaces?.packages ?? []);
   if (declared.length) return declared;
   const source = await readTextFile(join(root, 'pnpm-workspace.yaml'));
+
   if (source === undefined) return [];
 
   return [...source.matchAll(/^\s*-\s*['"]?([^'"#\n]+?)['"]?\s*$/gm)].map(

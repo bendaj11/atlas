@@ -90,6 +90,7 @@ export async function uploadAndVerify(options: {
     await lease?.assertHeld();
     await createImmutable(storage, file);
   }
+
   reportProgress(
     `Verifying ${files.length} uploaded immutable file(s) and metadata...`,
   );
@@ -98,9 +99,11 @@ export async function uploadAndVerify(options: {
     await lease?.assertHeld();
     const bytes = await storage.read(file.path);
     const metadata = await storage.inspect(file.path);
+
     if (!bytes || !metadata) {
       throw new Error(`Published object ${file.path} is missing.`);
     }
+
     assertPayload({
       path: file.path,
       bytes,
@@ -119,6 +122,7 @@ function artifactPrefix(
 
   if (manifest.release)
     return `${collection}/${manifest.id}/${manifest.release.version}`;
+
   const digest = sha256Digest(bytes).slice('sha256:'.length);
 
   return `${collection}/${manifest.id}/previews/${manifest.preview!.number}/${digest}`;

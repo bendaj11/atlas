@@ -30,7 +30,7 @@ export async function discoverExportedWidgets(options: {
     left.name.localeCompare(right.name),
   )) {
     if (!entry.isDirectory()) continue;
-    const widgetConfig = await readWidget({
+    const widgetConfig = await readWidgetDirectory({
       directory: join(directory, entry.name),
       name: entry.name,
       config,
@@ -50,13 +50,14 @@ export async function discoverExportedWidgets(options: {
   return widgets;
 }
 
-async function readWidget(options: {
+async function readWidgetDirectory(options: {
   directory: string;
   name: string;
   config: AtlasConfig;
 }): Promise<AtlasWidgetConfig> {
   const { directory, name, config } = options;
   const extension = config.framework === 'react' ? 'tsx' : 'ts';
+
   if (!(await pathExists(join(directory, `index.${extension}`)))) {
     throw new Error(
       `Exported widget "${name}" must contain src/exported-widgets/${name}/index.${extension}.`,
@@ -86,6 +87,7 @@ async function loadWidgetConfig(path: string): Promise<AtlasWidgetConfig> {
   }).outputText;
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(transpiled).toString('base64')}`;
   const loaded = (await import(moduleUrl)) as { default?: unknown };
+
   if (!isWidgetConfig(loaded.default)) {
     throw new Error(
       `Widget config ${path} must export { id: UUIDv4, name: string } as default.`,

@@ -60,6 +60,7 @@ export async function waitForRemoteEntry(
 export async function remoteEntryIsReady(response: Response): Promise<boolean> {
   if (!response.ok) return false;
   const contentType = response.headers.get('content-type') ?? '';
+
   if (!contentType.includes('application/json')) return false;
 
   try {
@@ -169,6 +170,7 @@ export function logHostViewUrl(
 
     return;
   }
+
   ui.warning('App preview unresolved. Define atlas.previews in package.json.');
 }
 
@@ -180,6 +182,7 @@ export function developmentPreviewUrl(options: {
 
   if (options.controlPort !== DEFAULT_CONTROL_PORT)
     url.searchParams.set('atlas-dev-port', String(options.controlPort));
+
   return url.href;
 }
 
@@ -212,6 +215,7 @@ export function browserOpenCommand(
 
   if (platform === 'win32')
     return { command: 'cmd', args: ['/c', 'start', '', url] };
+
   return { command: 'xdg-open', args: [url] };
 }
 

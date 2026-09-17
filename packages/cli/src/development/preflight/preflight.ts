@@ -39,6 +39,7 @@ async function findCorruptAngularBuildPackage(
       'src/tools/angular/compilation/angular-compilation.js',
     );
     const source = await readFile(sourcePath, 'utf8');
+
     if (!source.includes('creadConfiguration(')) return undefined;
     return {
       version:

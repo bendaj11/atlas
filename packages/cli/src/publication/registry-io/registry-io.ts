@@ -28,6 +28,7 @@ export async function readRegistry(
   storage: AtlasPublicationStorage,
 ): Promise<AtlasStaticRegistry | undefined> {
   const bytes = await storage.read(REGISTRY_PATH);
+
   if (!bytes) return undefined;
   let value: unknown;
 
@@ -36,6 +37,7 @@ export async function readRegistry(
   } catch (error) {
     throw new Error('Atlas registry.json is not valid JSON.', { cause: error });
   }
+
   assertStaticRegistry(value);
 
   return value;
@@ -47,6 +49,7 @@ export async function readRegistryState(
   const before = await storage.inspect(REGISTRY_PATH);
   const registry = await readRegistry(storage);
   const after = await storage.inspect(REGISTRY_PATH);
+
   if (before?.versionToken !== after?.versionToken) {
     throw new Error(
       'Atlas registry.json changed while it was being read. Retry the operation.',
@@ -67,7 +70,9 @@ export async function writeRegistry(options: {
 }): Promise<void> {
   const { storage, lease, registry, versionToken } = options;
   await lease.assertHeld();
+
   const bytes = new TextEncoder().encode(`${canonicalJson(registry)}\n`);
+
   await storage.replace(
     REGISTRY_PATH,
     bytes,
@@ -75,6 +80,7 @@ export async function writeRegistry(options: {
     versionToken ? { versionToken } : { createOnly: true },
   );
   const stored = await storage.read(REGISTRY_PATH);
+
   if (!stored || sha256Digest(stored) !== sha256Digest(bytes)) {
     throw new Error('Atlas could not verify registry.json after write.');
   }
@@ -85,6 +91,7 @@ export function assertExpectedRegistryRevision(
   current: AtlasStaticRegistry | undefined,
 ): void {
   const expected = args.flag('expected-registry-revision');
+
   if (expected && expected !== registryRevision(current)) {
     throw new Error(
       `Registry revision conflict: expected ${expected}, found ${registryRevision(current)}.`,
@@ -135,10 +142,12 @@ export function assertPublicRegistryConfigured(
 
 export function publicRegistryRoot(args: CliArguments): string {
   const value = args.flag('registry-url') ?? process.env.ATLAS_REGISTRY_URL;
+
   if (!value || value === 'true') {
     throw new Error('--registry-url or ATLAS_REGISTRY_URL is required.');
   }
   const url = new URL(value);
+
   if (!isSecureOrLoopbackUrl(url)) {
     throw new Error(
       'Atlas public registry URL must use HTTPS outside loopback.',

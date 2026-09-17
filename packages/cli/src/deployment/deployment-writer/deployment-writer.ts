@@ -21,7 +21,7 @@ export async function writeDeployment({
   environment: string;
   deployment: DeploymentWrite;
 }): Promise<void> {
-  await writeJson({
+  await writeJsonObject({
     storage,
     lease,
     path: environmentStatePath(environment),
@@ -29,7 +29,7 @@ export async function writeDeployment({
   });
 
   for (const manifest of deployment.manifests)
-    await writeJson({
+    await writeJsonObject({
       storage,
       lease,
       path: hostManifestPath({ environment, hostId: manifest.hostId }),
@@ -37,7 +37,7 @@ export async function writeDeployment({
     });
 }
 
-async function writeJson({
+async function writeJsonObject({
   storage,
   lease,
   path,

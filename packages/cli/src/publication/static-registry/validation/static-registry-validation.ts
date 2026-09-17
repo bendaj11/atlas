@@ -59,6 +59,7 @@ function assertArtifactCollections(registry: AtlasStaticRegistry): void {
           `Atlas registry ${kind}.${key} has an invalid identity.`,
         );
       }
+
       assertUniqueArtifactIdentifiers(artifact, identifiers);
       assertReleaseDescriptors(artifact.releases, `${kind}.${key}.releases`);
       assertPreviewDescriptors(artifact.previews, `${kind}.${key}.previews`);
@@ -83,11 +84,13 @@ function assertUniqueArtifactIdentifiers(
     (value): value is string => Boolean(value),
   )) {
     const existingId = identifiers.get(identifier);
+
     if (existingId && existingId !== artifact.id) {
       throw new Error(
         `Atlas registry identifier "${identifier}" is ambiguous.`,
       );
     }
+
     identifiers.set(identifier, artifact.id);
   }
 }

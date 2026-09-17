@@ -13,6 +13,7 @@ export function requestedHelpTopic(
 
   if (values[0] === 'help')
     return normalizeTopic(withoutHelpFlags(values.slice(1)));
+
   if (!values.some((value) => HELP_FLAGS.has(value))) return undefined;
   return normalizeTopic(withoutHelpFlags(values));
 }
@@ -21,10 +22,12 @@ export function formatHelp(topic: readonly string[]): string {
   if (topic.length === 0) return formatRootHelp();
   const key = topic.join(' ');
   const command = COMMAND_HELP[key];
+
   if (!command)
     throw new Error(
       `Unknown help topic "${key}". Run atlas --help to list commands.`,
     );
+
   return formatCommandHelp(command);
 }
 
@@ -81,16 +84,16 @@ function formatRootHelp(): string {
 
 function formatCommandHelp(command: CommandHelp): string {
   const sections = [command.summary, '', 'Usage:', `  ${command.usage}`];
-  appendEntries(sections, 'Arguments', command.arguments);
-  appendEntries(sections, 'Options', command.options);
-  appendEntries(sections, 'Advanced options', command.advancedOptions);
-  appendEntries(sections, 'Environment', command.environment);
+  appendHelpSection(sections, 'Arguments', command.arguments);
+  appendHelpSection(sections, 'Options', command.options);
+  appendHelpSection(sections, 'Advanced options', command.advancedOptions);
+  appendHelpSection(sections, 'Environment', command.environment);
   sections.push('', formatExamples(command.examples));
 
   return sections.join('\n');
 }
 
-function appendEntries(
+function appendHelpSection(
   output: string[],
   title: string,
   entries?: readonly HelpEntry[],

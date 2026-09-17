@@ -46,11 +46,12 @@ async function jsonDevServerPorts(
   path: string,
   container: 'projects' | 'targets',
 ): Promise<number[]> {
-  const config = await readJson(path);
+  const config = await readJsonRecord(path);
+
   if (!config) return [];
   const projects =
     container === 'projects' ? nestedRecordsOf(config.projects) : [config];
-  return projects.flatMap((project) => targetPorts(project));
+  return projects.flatMap((project) => nxTargetPorts(project));
 }
 
 async function viteDevServerPorts(path: string): Promise<number[]> {
@@ -60,7 +61,7 @@ async function viteDevServerPorts(path: string): Promise<number[]> {
   return match ? validPortsOf(match[1]) : [];
 }
 
-function targetPorts(project: Record<string, unknown>): number[] {
+function nxTargetPorts(project: Record<string, unknown>): number[] {
   const targets = nestedRecordsOf(project.architect ?? project.targets);
 
   return targets.flatMap((target) =>
@@ -68,10 +69,11 @@ function targetPorts(project: Record<string, unknown>): number[] {
   );
 }
 
-async function readJson(
+async function readJsonRecord(
   path: string,
 ): Promise<Record<string, unknown> | undefined> {
   const source = await readTextFile(path);
+
   if (!source) return undefined;
 
   try {

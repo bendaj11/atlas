@@ -20,6 +20,7 @@ export async function createPublicationStorage(
   factories: PublicationStorageFactories = DEFAULT_FACTORIES,
 ): Promise<AtlasPublicationStorage> {
   const configured = storage ?? storageFromEnvironment(args, factories);
+
   if (!configured) {
     throw cliError(
       'Publication storage is not configured.',
@@ -66,6 +67,7 @@ function storageFromEnvironment(
   factories: PublicationStorageFactories,
 ): AtlasPublicationStorage | undefined {
   const selection = selectStorageFromEnvironment(args);
+
   if (!selection) return undefined;
 
   if (selection.provider === 'artifactory')

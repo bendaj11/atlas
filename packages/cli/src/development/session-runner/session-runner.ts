@@ -70,6 +70,7 @@ export async function runDevSession(
     await waitForRemoteEntry(options.remoteEntryUrl, frameworkServer);
     bootstrap = await options.beforeReady?.(context);
     await control.markReady();
+
     const browserUrl = options.browserUrl(context);
     logHostViewUrl(options.hostUrl, browserUrl);
     openBrowserWhenReady(args, browserUrl);

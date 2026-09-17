@@ -46,8 +46,10 @@ export async function resolveHostDevTarget({
       ? localPreviewUrl
       : await selectPreviewUrl(previewUrls, prompts);
   const previewKind = isLoopbackPreview(hostUrl) ? 'local' : 'deployed';
+
   if (previewKind === 'deployed') {
     const discoveredHostId = await discoverHostId(hostUrl);
+
     if (discoveredHostId !== config.id) {
       throw new Error(
         `Host preview identifies "${discoveredHostId}", but local host is "${config.id}".`,
@@ -91,8 +93,10 @@ async function resolveHostId(
   hostUrl: string,
 ): Promise<string> {
   const hostIds = configuredHostIds(config);
+
   if (hostIds.length === 1) return hostIds[0]!;
   const routeHostId = hostIdFromRoute(config, hostUrl);
+
   if (routeHostId) return routeHostId;
   const hostId = await discoverHostId(hostUrl);
 
@@ -138,6 +142,7 @@ async function resolveHostUrl(
 
   if (!isBaseHostUrl(hostUrl)) return hostUrl;
   const paths = routePaths(config, hostId);
+
   if (paths.length === 0) return hostUrl;
 
   if (paths.length === 1) return urlWithPath(hostUrl, paths[0]!);

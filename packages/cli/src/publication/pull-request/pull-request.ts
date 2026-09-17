@@ -156,6 +156,7 @@ async function providerFetch(
 
 function providerToken(providerVariable: string): string {
   const token = process.env.ATLAS_GIT_TOKEN ?? process.env[providerVariable];
+
   if (!token) {
     throw new Error(
       `Atlas needs ATLAS_GIT_TOKEN or ${providerVariable} to verify the live pull-request head.`,
@@ -168,5 +169,6 @@ function providerToken(providerVariable: string): string {
 function requiredString(value: string | undefined, subject: string): string {
   if (!value)
     throw new Error(`Atlas received no ${subject} from the Git provider.`);
+
   return value;
 }

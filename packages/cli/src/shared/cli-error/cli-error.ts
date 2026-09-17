@@ -45,6 +45,7 @@ export function createCliError(
 
 export function formatErrorWithCauses(error: Error): string {
   const causes = errorCauses(error);
+
   if (causes.length === 0) return error.message;
 
   return `${error.message}\nCaused by: ${causes.join('\nCaused by: ')}`;
@@ -101,7 +102,7 @@ function cliActions(
   if (/EACCES|EPERM|permission denied|not writable/i.test(message)) {
     return [
       'Give the current user read and write access to the named path.',
-      rerunAction(command),
+      rerunCommandAction(command),
     ];
   }
 
@@ -112,21 +113,21 @@ function cliActions(
   ) {
     return [
       'Restore the named file or pass an existing Atlas project or path.',
-      rerunAction(command),
+      rerunCommandAction(command),
     ];
   }
 
   if (/CORS|fetch|network|HTTP \d|timed out|could not query/i.test(message)) {
     return [
       'Verify the named URL is reachable with the required credentials and CORS policy.',
-      rerunAction(command),
+      rerunCommandAction(command),
     ];
   }
 
   if (/storage|S3|bucket|registry|deployment lock|lease/i.test(message)) {
     return [
       'Correct the named storage, registry, credentials, or deployment-lock condition.',
-      rerunAction(command),
+      rerunCommandAction(command),
     ];
   }
 
@@ -137,7 +138,7 @@ function cliActions(
   ) {
     return [
       'Correct the named configuration or TypeScript diagnostic.',
-      rerunAction(command),
+      rerunCommandAction(command),
     ];
   }
 
@@ -186,7 +187,7 @@ function cliActions(
   }
 }
 
-function rerunAction(command: string | undefined): string {
+function rerunCommandAction(command: string | undefined): string {
   return command
     ? `Rerun \`atlas ${command}\` after correcting the condition.`
     : 'Rerun the Atlas command after correcting the condition.';

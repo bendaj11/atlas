@@ -151,6 +151,7 @@ async function verifyFederationReferences({
     references.map(async ({ subject, outFileName }) => {
       const url = new URL(outFileName, remoteEntryUrl);
       const response = await fetch.checked({ url, subject, context });
+
       if (!response) return;
 
       checkCors({

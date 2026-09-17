@@ -88,6 +88,7 @@ function verifySelectedVersions({
         'catalog versions',
         `app "${manifest.id}" is selected more than once.`,
       );
+
     ids.add(manifest.id);
   }
 
@@ -124,6 +125,7 @@ function verifyRouteOwnership({
         conflicts.push(
           `hostId "${catalog.hostId}" path "${path}" is declared by "${owner}" and "${manifest.id}"`,
         );
+
       owners.set(path, manifest.id);
     }
   }

@@ -39,6 +39,7 @@ export function createControlRequestHandler({
 }): ControlRequestHandler {
   return (request, response) => {
     const control = parseControlRequest(request);
+
     setControlHeaders(response);
 
     if (control.method === 'OPTIONS') {
@@ -136,6 +137,7 @@ export function createControlRequestHandler({
 
     if (control.method === 'GET' && control.pathname === '/health') {
       const ready = session.hasReadySession();
+
       writeJson(
         response,
         ready ? { status: 'ok' } : { status: 'starting' },
@@ -224,6 +226,7 @@ async function loadPublishedCatalog({
   options: StartControlServerOptions;
 }) {
   const { registryUrl, environment = 'production' } = options;
+
   if (!registryUrl || !hostId) return undefined;
 
   const load = options.loadPublishedCatalog ?? readPublishedCatalog;

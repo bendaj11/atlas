@@ -21,6 +21,7 @@ export async function findArtifactRoot(
   lookup: ArtifactRootLookup,
 ): Promise<string> {
   const artifactRoot = await findArtifactRootIfPresent(lookup);
+
   if (artifactRoot) return artifactRoot;
   throw cliError(
     `Atlas could not find build artifacts containing ${lookup.entryPath} for "${lookup.config.id}".`,
@@ -52,7 +53,7 @@ export async function findArtifactRootIfPresent(
         ])
       : conventional;
   for (const candidate of candidates) {
-    if (await containsEntry(candidate, entryPath)) return candidate;
+    if (await directoryContainsEntry(candidate, entryPath)) return candidate;
   }
 
   return undefined;
@@ -66,6 +67,7 @@ export async function listArtifactFiles(
   const files = await Promise.all(
     entries.map(async (entry) => {
       const path = join(relative, entry.name);
+
       if (entry.isDirectory()) return listArtifactFiles(root, path);
 
       if (entry.isFile()) return [path];
@@ -93,7 +95,7 @@ export async function hashArtifactDirectory(root: string): Promise<string> {
   return hash.digest('hex');
 }
 
-async function containsEntry(
+async function directoryContainsEntry(
   directory: string,
   entryPath: string,
 ): Promise<boolean> {

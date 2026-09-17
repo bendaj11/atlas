@@ -11,9 +11,11 @@ export async function alignDelegatedAngularFederationConfig({
   root: string;
 }): Promise<void> {
   const projectRoot = normalizedProjectRoot({ workspaceRoot, root });
+
   if (projectRoot === '.') return;
 
   const configPath = join(root, 'federation.config.js');
+
   if (!(await pathExists(configPath))) return;
 
   const source = await readFile(configPath, 'utf8');

@@ -17,12 +17,15 @@ export async function resolveWidgetApp(options: {
 }): Promise<WidgetAppSelection> {
   const { workspace, prompts, requestedAppId } = options;
   const apps = await configuredWidgetApps(workspace);
+
   if (apps.length === 0)
     throw new Error(
       `Atlas found no configured apps in workspace ${workspace.root}.`,
     );
+
   if (requestedAppId) {
     const requestedApp = apps.find(({ id }) => id === requestedAppId);
+
     if (requestedApp) return requestedApp;
     throw new Error(
       `Could not find Atlas app ID "${requestedAppId}". ${availableAppsMessage(apps)}`,
@@ -58,13 +61,17 @@ async function readWidgetApp(
 ): Promise<WidgetAppSelection | undefined> {
   const configPath = join(project.root, 'atlas.config.ts');
   const source = await readFile(configPath, 'utf8');
-  if (literalConfigValue(source, 'type') === 'host') return undefined;
-  const id = literalConfigValue(source, 'id');
+
+  if (literalConfigFieldValue(source, 'type') === 'host') return undefined;
+  const id = literalConfigFieldValue(source, 'id');
+
   if (!id)
     throw new Error(
       `Could not determine the stable Atlas app ID from ${configPath}.`,
     );
-  const framework = literalConfigValue(source, 'framework');
+
+  const framework = literalConfigFieldValue(source, 'framework');
+
   if (framework !== 'angular' && framework !== 'react') {
     throw new Error(
       `Could not determine a supported app framework from ${configPath}.`,
@@ -73,13 +80,13 @@ async function readWidgetApp(
 
   return {
     id,
-    name: literalConfigValue(source, 'name') ?? id,
+    name: literalConfigFieldValue(source, 'name') ?? id,
     framework,
     project,
   };
 }
 
-function literalConfigValue(
+function literalConfigFieldValue(
   source: string,
   field: 'type' | 'id' | 'name' | 'framework',
 ): string | undefined {

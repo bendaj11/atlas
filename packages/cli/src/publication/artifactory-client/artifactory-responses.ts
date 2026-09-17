@@ -44,7 +44,7 @@ export function lastModified(value: unknown): { lastModified?: string } {
   return { lastModified: value };
 }
 
-export async function readJson({
+export async function readJsonBody({
   response,
   signal,
 }: {
@@ -140,6 +140,7 @@ async function* readBody({
   try {
     while (true) {
       const chunk = await reader.read();
+
       if (chunk.done) {
         completed = true;
 
@@ -160,6 +161,7 @@ async function* readBody({
     } catch {
       completed = true;
     }
+
     reader.releaseLock();
   }
 }

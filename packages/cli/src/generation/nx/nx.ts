@@ -41,6 +41,7 @@ export async function ensureDelegatedNxTargets({
 }): Promise<void> {
   const projectFile = join(root, 'project.json');
   const project = await readJsonFile<Record<string, unknown>>(projectFile);
+
   if (!project) return;
 
   const projectName =
@@ -63,6 +64,7 @@ export async function ensureDelegatedNxTargets({
       devServerPort,
       nativeFederationBuilder: angularNativeFederationBuilder(frameworkVersion),
     });
+
   ensureAtlasConfigTarget({ targets, projectName });
   Object.assign(
     targets,

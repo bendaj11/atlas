@@ -70,6 +70,7 @@ export function ensureAngularNativeFederationTargets({
         target: targets['serve-original'],
         port: hostClientPort(devServerPort),
       });
+
     targets.serve = {
       [runnerKey]: builder,
       options: {
@@ -93,9 +94,11 @@ export function configureAngularDevelopmentTargets({
 }): boolean {
   const targets = recordOrEmpty(project[targetsKey]);
   const serve = recordOrEmpty(targets.serve);
+
   if (!isNativeFederationTarget({ value: serve, runnerKey })) return false;
 
   const options = recordOrEmpty(serve.options);
+
   configureAngularBuildNotifications(options);
   serve.options = options;
   targets.serve = serve;
@@ -120,6 +123,7 @@ function setAngularDevServerPort({
 function enableAngularBuildNotifications(target: unknown): void {
   const targetObject = recordOrEmpty(target);
   const options = recordOrEmpty(targetObject.options);
+
   configureAngularBuildNotifications(options);
   targetObject.options = options;
 }
@@ -137,8 +141,10 @@ function configureAngularBuildNotifications(
   }
 
   const notifications = recordOrEmpty(options.buildNotifications);
+
   if (notifications.enable === true && notifications.endpoint === undefined)
     notifications.endpoint = ANGULAR_BUILD_NOTIFICATIONS_ENDPOINT;
+
   options.buildNotifications = notifications;
 }
 
@@ -181,6 +187,7 @@ function retargetAngularServeBuild({
   projectName: string;
 }): void {
   const serveTarget = recordOrEmpty(target);
+
   retargetAngularBuildReference({
     options: recordOrEmpty(serveTarget.options),
     projectName,
@@ -204,6 +211,7 @@ function retargetAngularBuildReference({
 }): void {
   for (const key of ['buildTarget', 'browserTarget']) {
     const value = options[key];
+
     if (typeof value === 'string')
       options[key] = retargetAngularBuildTarget({ value, projectName });
   }

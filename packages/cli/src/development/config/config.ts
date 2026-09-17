@@ -74,12 +74,14 @@ export async function readConfiguredDevServerPort(
     join(projectRoot, 'angular.json'),
   );
   const angularPort = readAngularProjectPort(angularWorkspace, projectName);
+
   if (angularPort !== undefined) return angularPort;
 
   const nxProject = await readJsonFile<Record<string, unknown>>(
     join(projectRoot, 'project.json'),
   );
   const nxPort = readPortFromTargets(recordOrEmpty(nxProject?.targets));
+
   if (nxPort !== undefined) return nxPort;
 
   return await readViteDevServerPort(projectRoot);
@@ -94,7 +96,7 @@ export async function readAngularProxyConfigPath(
   );
   const projects = recordOrEmpty(workspace?.projects);
   const project =
-    optionalRecord(projects[projectName]) ?? firstObjectValue(projects);
+    optionalRecord(projects[projectName]) ?? firstRecordValue(projects);
   const targets = recordOrEmpty(project?.architect ?? project?.targets);
 
   return (
@@ -119,7 +121,7 @@ function readAngularProjectPort(
 ): number | undefined {
   const projects = recordOrEmpty(workspace?.projects);
   const project =
-    optionalRecord(projects[projectName]) ?? firstObjectValue(projects);
+    optionalRecord(projects[projectName]) ?? firstRecordValue(projects);
 
   return readPortFromTargets(
     recordOrEmpty(project?.architect ?? project?.targets),
@@ -152,6 +154,7 @@ async function readViteDevServerPort(
   projectRoot: string,
 ): Promise<number | undefined> {
   const source = await readTextFile(join(projectRoot, 'vite.config.ts'));
+
   if (source === undefined) return undefined;
   const match = /\bserver\s*:\s*\{[^}]*\bport\s*:\s*(\d{1,5})\b/s.exec(source);
 
@@ -166,7 +169,7 @@ function parsePort(value: string | number): number | undefined {
     : undefined;
 }
 
-function firstObjectValue(
+function firstRecordValue(
   value: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   return Object.values(value).find(

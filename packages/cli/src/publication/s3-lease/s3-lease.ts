@@ -57,6 +57,7 @@ export class S3DeploymentLock {
           { code: 'ATLAS_LOCK_TIMEOUT' },
         );
       }
+
       await delay((this.options.backoffMs ?? randomBackoffMs)());
       stored = await this.tryAcquire(owner, token);
     }
@@ -101,6 +102,7 @@ export class S3DeploymentLock {
             'Atlas deployment lease renewal failed; publication stopped before further mutation.',
             { cause: leaseError },
           );
+
         const current = await this.read();
 
         if (
@@ -125,6 +127,7 @@ export class S3DeploymentLock {
             'Atlas deployment lease was lost during publication.',
             { cause: leaseError },
           );
+
         await this.release(token);
       },
     };
@@ -148,8 +151,10 @@ export class S3DeploymentLock {
     }
 
     const existing = await this.read();
+
     if (!existing || Date.parse(existing.lease.expiresAt) > Date.now())
       return undefined;
+
     try {
       const response = await this.options.client.send(
         this.putCommand(lease, { IfMatch: existing.etag }),
@@ -176,6 +181,7 @@ export class S3DeploymentLock {
 
   private async release(token: string): Promise<void> {
     const current = await this.read();
+
     if (!current || current.lease.token !== token) return;
 
     try {
@@ -248,6 +254,7 @@ export function externalPublicationLease(): AtlasPublicationLease {
 function assertLease(value: unknown): DeploymentLease {
   if (typeof value !== 'object' || value === null)
     throw new Error('Atlas deployment lock is malformed.');
+
   const lease = value as Partial<DeploymentLease>;
 
   if (
