@@ -50,28 +50,14 @@ export async function fetchBytes({
     }
   }
 
-  throw wrapFetchFailure({
-    url,
-    attempts: retries + 1,
-    cause: lastError,
-  });
-}
+  if (lastError instanceof AtlasError) throw lastError;
 
-function wrapFetchFailure({
-  url,
-  attempts,
-  cause,
-}: {
-  url: string;
-  attempts: number;
-  cause: unknown;
-}): AtlasError {
-  if (cause instanceof AtlasError) return cause;
+  const attempts = retries + 1;
+  const detail =
+    lastError instanceof Error ? lastError.message : String(lastError);
 
-  const detail = cause instanceof Error ? cause.message : String(cause);
-
-  return new ResourceUnavailableError(
+  throw new ResourceUnavailableError(
     `Atlas could not fetch "${url}" after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${detail}`,
-    { cause },
+    { cause: lastError },
   );
 }
