@@ -1,5 +1,5 @@
-import { errorCauseOf, httpStatusOf } from '../../shared/errors/errors.js';
-import { wait } from '../../shared/timers/timers.js';
+import { errorCauseOf, httpStatusOf } from '../errors/errors.js';
+import { wait } from '../timers/timers.js';
 
 const MAX_ATTEMPTS = 4;
 const INITIAL_DELAY_MS = 250;

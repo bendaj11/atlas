@@ -2,9 +2,8 @@ import { defaultDevServerPort } from '@atlas/generators';
 export { defaultDevServerPort };
 import { join, relative } from 'node:path';
 import type { AngularStylesheetFormat } from '@atlas/generators';
-import type { ProcessCommand } from '../../cli/process/process.js';
-import { ATLAS_NX_TAG } from '../../generation/nx/nx.js';
-import { exists, readJsonFile } from '../../shared/fs/fs.js';
+export const ATLAS_NX_TAG = 'atlas';
+
 import type {
   AtlasNxProjectType,
   AtlasPackageManager,
@@ -13,6 +12,11 @@ import type {
   AtlasTask,
   AtlasWorkspaceKind,
 } from '../types.js';
+import {
+  type ProcessCommand,
+  exists,
+  readJsonFile,
+} from '../../shared/index.js';
 
 const NX_FORMATTER_PACKAGES = [
   'nx',

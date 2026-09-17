@@ -1,7 +1,4 @@
 import { jest } from '@jest/globals';
-import { CliArguments } from '../../cli/arguments.js';
-import type { AtlasPrompter } from '../../cli/ui/ui.js';
-import type { AtlasWorkspace } from '../../workspace/types.js';
 import { aWorkspace } from '../../workspace/workspace.testkit.js';
 import {
   ensureWorkspaceGenerator,
@@ -9,6 +6,8 @@ import {
   resolveInnerRouting,
   resolveStylesheetFormat,
 } from './project-options.js';
+import { CliArguments, type AtlasPrompter } from '../../shared/index.js';
+import type { AtlasWorkspace } from '../../workspace/index.js';
 
 export class ProjectOptionsDriver {
   private flags: string[] = [];

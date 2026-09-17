@@ -1,8 +1,11 @@
 import { join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
-import { readJsonFile, readTextFile } from '../../shared/fs/fs.js';
-import { asRecord } from '../../shared/records/records.js';
-import { isHostConfig } from '../../shared/atlas-config/atlas-config.js';
+import {
+  readJsonFile,
+  readTextFile,
+  asRecord,
+  isHostConfig,
+} from '../../shared/index.js';
 
 export { isHostConfig };
 

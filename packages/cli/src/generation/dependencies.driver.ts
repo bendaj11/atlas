@@ -1,6 +1,4 @@
 import { relative } from 'node:path';
-import type { SupportedFramework } from '../cli/arguments.js';
-import { readJsonFile } from '../shared/fs/fs.js';
 import { TemporaryDirectory } from '../shared/fs/fs.testkit.js';
 import {
   dependencyManifestPath,
@@ -8,6 +6,7 @@ import {
   mergePackageDependencies,
   type FrameworkVersionInfo,
 } from './dependencies.js';
+import { type SupportedFramework, readJsonFile } from '../shared/index.js';
 
 export class DependenciesDriver {
   private readonly directory = new TemporaryDirectory();

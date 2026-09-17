@@ -1,4 +1,7 @@
-import { CliArguments, type SupportedFramework } from '../arguments.js';
+import {
+  CliArguments,
+  type SupportedFramework,
+} from '../arguments/arguments.js';
 import type { AtlasPrompter } from '../ui/ui.js';
 
 export interface AtlasInvocation {

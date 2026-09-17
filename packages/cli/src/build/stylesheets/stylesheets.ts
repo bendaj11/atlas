@@ -5,10 +5,9 @@ import type {
   AtlasStylesheet,
   AtlasVersionChannel,
 } from '@atlas/schema';
-import { sha256Integrity } from '../../shared/digest/digest.js';
-import { readTextFile } from '../../shared/fs/fs.js';
 import { listArtifactFiles } from '../artifact-root/artifact-root.js';
 import { normalizeArtifactPath, toPosixPath } from '../payload/payload.js';
+import { sha256Integrity, readTextFile } from '../../shared/index.js';
 
 export async function discoverStylesheets(options: {
   artifactRoot: string;

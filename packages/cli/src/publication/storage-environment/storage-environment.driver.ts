@@ -1,10 +1,10 @@
-import { CliArguments } from '../../cli/arguments.js';
 import {
   positiveEnvironmentInteger,
   requiredStorageValue,
   selectStorageFromEnvironment,
   type StorageSelection,
 } from './storage-environment.js';
+import { CliArguments } from '../../shared/index.js';
 
 const ENVIRONMENT_KEYS = [
   'ATLAS_STORAGE',

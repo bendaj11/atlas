@@ -1,5 +1,5 @@
 import type { AtlasGeneratedFile } from '@atlas/generators';
-import type { SupportedFramework } from '../cli/arguments.js';
+import type { SupportedFramework } from '../shared/index.js';
 
 const ATLAS_INTEGRATION_FILES = new Set([
   'atlas.config.ts',

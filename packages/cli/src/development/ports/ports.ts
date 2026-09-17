@@ -1,9 +1,9 @@
-import { CliArguments } from '../../cli/arguments.js';
 import {
   DEFAULT_HOST_BOOTSTRAP_PORT,
   DEFAULT_HOST_CLIENT_PORT,
 } from '../constants.js';
 import type { HostDevPorts } from '../types.js';
+import { CliArguments } from '../../shared/index.js';
 
 interface ResolveHostDevPortsOptions {
   args: CliArguments;

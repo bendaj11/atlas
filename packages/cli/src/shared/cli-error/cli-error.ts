@@ -1,6 +1,6 @@
 import { AtlasError, errorSummary } from '@atlas/schema';
-import { COMMAND_ALIASES } from '../arguments.js';
-import { httpStatusOf } from '../../shared/errors/errors.js';
+import { COMMAND_ALIASES } from '../arguments/arguments.js';
+import { httpStatusOf } from '../errors/errors.js';
 
 export function cliError(
   summary: string,

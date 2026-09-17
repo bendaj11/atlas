@@ -1,4 +1,4 @@
-import { asRecord, nonEmptyString } from '../../shared/records/records.js';
+import { asRecord, nonEmptyString } from '../../shared/index.js';
 
 export interface FederationMetadata {
   exposes: Array<{ key: string; outFileName: string }>;

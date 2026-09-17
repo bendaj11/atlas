@@ -1,15 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
-import type { AtlasBuildResult } from '../../build/service/build.service.js';
-import { sha256Digest } from '../../shared/digest/digest.js';
-import { IMMUTABLE_CACHE_CONTROL } from '../publication-metadata/publication-metadata.js';
 import type {
   AtlasPublicationLease,
   AtlasPublicationObjectMetadata,
   AtlasPublicationStorage,
 } from '../publication-storage/publication-storage.js';
 import { manifestBytes } from '../static-registry/static-registry.js';
+import type { AtlasBuildResult } from '../../build/index.js';
+import { sha256Digest, IMMUTABLE_CACHE_CONTROL } from '../../shared/index.js';
 
 export interface PublicationFile {
   path: string;

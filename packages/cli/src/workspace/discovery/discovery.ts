@@ -1,12 +1,11 @@
 import { readdir } from 'node:fs/promises';
 import { basename, join, relative, resolve } from 'node:path';
-import { cliError } from '../../cli/cli-error/cli-error.js';
-import { exists, readJsonFile } from '../../shared/fs/fs.js';
 import {
   nxOutputPaths,
   type NxProjectConfiguration,
 } from '../nx-output-paths/nx-output-paths.js';
 import type { AtlasProject } from '../types.js';
+import { cliError, exists, readJsonFile } from '../../shared/index.js';
 
 const MAX_DISCOVERY_DEPTH = 5;
 const IGNORED_DIRECTORIES = new Set([

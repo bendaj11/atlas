@@ -1,5 +1,4 @@
 import { relative } from 'node:path';
-import type { ProcessCommand } from '../../cli/process/process.js';
 import type {
   AtlasNxProjectType,
   AtlasPackageManager,
@@ -18,6 +17,7 @@ import {
   packageIsInstalled,
   type NxGenerationOptions,
 } from './commands.js';
+import type { ProcessCommand } from '../../shared/index.js';
 
 export class CommandsDriver {
   private readonly directory = new TemporaryDirectory();

@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
-import type { AtlasWorkspace } from '../../workspace/service/workspace.js';
-import { isMissingPathError } from '../../shared/fs/fs.js';
+import type { AtlasWorkspace } from '../../workspace/index.js';
+import { isMissingPathError } from '../../shared/index.js';
 
 export function workspaceLabel(kind: AtlasWorkspace['kind']): string {
   if (kind === 'nx') return 'an Nx workspace';

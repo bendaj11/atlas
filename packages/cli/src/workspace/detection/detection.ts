@@ -1,6 +1,6 @@
 import { dirname, join, relative } from 'node:path';
-import { exists, readJsonFile, readTextFile } from '../../shared/fs/fs.js';
 import type { AtlasPackageManager, AtlasWorkspaceKind } from '../types.js';
+import { exists, readJsonFile, readTextFile } from '../../shared/index.js';
 
 export interface GenerationBases {
   host: string;

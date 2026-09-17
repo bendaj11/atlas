@@ -1,21 +1,21 @@
 import type { AtlasStaticRegistry } from '@atlas/schema';
-import type { CliArguments } from '../../cli/arguments.js';
-import { sha256Digest } from '../../shared/digest/digest.js';
-import {
-  isSecureOrLoopbackUrl,
-  trimTrailingSlash,
-} from '../../shared/url/url.js';
-import { MUTABLE_CACHE_CONTROL } from '../publication-metadata/publication-metadata.js';
 import type {
   AtlasPublicationLease,
   AtlasPublicationStorage,
 } from '../publication-storage/publication-storage.js';
 import type { AtlasRegistryConfig } from '../registry-config.js';
 import {
-  assertStaticRegistry,
   canonicalJson,
   registryRevision,
-} from '../static-registry/static-registry.js';
+} from '../static-registry/revision/registry-revision.js';
+import { assertStaticRegistry } from '../static-registry/validation/static-registry-validation.js';
+import {
+  type CliArguments,
+  sha256Digest,
+  isSecureOrLoopbackUrl,
+  trimTrailingSlash,
+  MUTABLE_CACHE_CONTROL,
+} from '../../shared/index.js';
 
 export const REGISTRY_PATH = 'registry.json';
 

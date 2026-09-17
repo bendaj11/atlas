@@ -1,8 +1,8 @@
-import type { CliArguments } from '../../cli/arguments.js';
 import type {
   S3Options,
   S3PublicationLockMode,
 } from '../s3-storage/s3-storage.js';
+import type { CliArguments } from '../../shared/index.js';
 
 export type StorageSelection =
   { provider: 'artifactory' } | { provider: 's3'; s3Options: S3Options };

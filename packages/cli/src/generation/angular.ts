@@ -1,6 +1,6 @@
 import { defaultDevServerPort, hostClientPort } from '@atlas/generators';
 import { join } from 'node:path';
-import { readJsonFile, writeJsonFile } from '../shared/fs/fs.js';
+import { readJsonFile, writeJsonFile } from '../shared/index.js';
 
 type ProjectType = 'host' | 'app';
 type RunnerKey = 'builder' | 'executor';

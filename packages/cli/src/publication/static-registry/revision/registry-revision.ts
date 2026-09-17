@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { AtlasStaticRegistry } from '@atlas/schema';
-import { isRecord } from '../../../shared/records/records.js';
+import { isRecord } from '../../../shared/index.js';
 
 export function registryRevision(
   registry: AtlasStaticRegistry | undefined,

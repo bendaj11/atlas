@@ -16,15 +16,6 @@ import {
 } from './revision/registry-revision.js';
 import { assertStaticRegistry } from './validation/static-registry-validation.js';
 
-export {
-  canonicalJson,
-  registryRevision,
-} from './revision/registry-revision.js';
-export {
-  assertEnvironmentName,
-  assertStaticRegistry,
-} from './validation/static-registry-validation.js';
-
 export interface AtlasRegistryMutation {
   registry: AtlasStaticRegistry;
   baseRevision: string;

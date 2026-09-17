@@ -1,4 +1,4 @@
-import type { SupportedFramework } from '../cli/arguments.js';
+import type { SupportedFramework } from '../shared/index.js';
 
 export function frameworkLabel(framework: SupportedFramework): string {
   return framework === 'angular' ? 'Angular' : 'React';

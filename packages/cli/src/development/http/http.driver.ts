@@ -1,10 +1,12 @@
 import { createServer, type Server } from 'node:http';
 import { jest } from '@jest/globals';
-import type { ui as uiType } from '../../cli/ui/ui.js';
+import type { ui as uiType } from '../../shared/index.js';
 
 const info = jest.fn<typeof uiType.info>();
 
-jest.unstable_mockModule('../../cli/ui/ui.js', () => ({
+const uiModule = await import('../../shared/ui/ui.js');
+jest.unstable_mockModule('../../shared/ui/ui.js', () => ({
+  ...uiModule,
   ui: { info, warning: jest.fn(), success: jest.fn(), error: jest.fn() },
 }));
 

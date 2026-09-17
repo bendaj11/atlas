@@ -5,7 +5,7 @@ import {
   type CommandHelp,
   type HelpEntry,
 } from './content.js';
-import { COMMAND_ALIASES } from '../cli/arguments.js';
+import { COMMAND_ALIASES } from '../shared/index.js';
 
 const HELP_FLAGS = new Set(['--help', '-h']);
 const GENERATOR_TYPES = new Set(['host', 'app', 'widget']);

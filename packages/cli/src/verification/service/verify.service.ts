@@ -12,12 +12,6 @@ import {
 } from '@atlas/schema';
 import { loadHostDeployment } from '@atlas/runtime';
 import {
-  isRetryableHttpStatus,
-  withExponentialRetry,
-} from '../../cli/retry/retry.js';
-import { errorMessage } from '../../shared/errors/errors.js';
-import { asRecord, nonEmptyString } from '../../shared/records/records.js';
-import {
   VerificationChecks,
   type AtlasVerificationReport,
 } from '../checks/checks.js';
@@ -31,11 +25,13 @@ import {
   type ExpectedContentType,
 } from '../header-checks/header-checks.js';
 import { NetworkLimiter } from '../network-limiter/network-limiter.js';
-
-export type {
-  AtlasVerificationCheck,
-  AtlasVerificationReport,
-} from '../checks/checks.js';
+import {
+  isRetryableHttpStatus,
+  withExponentialRetry,
+  errorMessage,
+  asRecord,
+  nonEmptyString,
+} from '../../shared/index.js';
 
 export interface AtlasVerifyOptions {
   hostUrl: string;

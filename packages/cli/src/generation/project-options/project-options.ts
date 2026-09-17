@@ -1,13 +1,17 @@
 import type { AngularStylesheetFormat } from '@atlas/generators';
-import type { CliArguments, SupportedFramework } from '../../cli/arguments.js';
-import { ui, type AtlasPrompter } from '../../cli/ui/ui.js';
-import { defaultDevServerPort } from '../../workspace/commands/commands.js';
-import type {
-  AtlasNxProjectType,
-  AtlasProjectType,
-  AtlasWorkspace,
-} from '../../workspace/types.js';
 import { suggestedDevServerPort } from '../ports.js';
+import {
+  type CliArguments,
+  type SupportedFramework,
+  ui,
+  type AtlasPrompter,
+} from '../../shared/index.js';
+import {
+  defaultDevServerPort,
+  type AtlasNxProjectType,
+  type AtlasProjectType,
+  type AtlasWorkspace,
+} from '../../workspace/index.js';
 
 export interface ProjectOptionsContext {
   workspace: AtlasWorkspace;

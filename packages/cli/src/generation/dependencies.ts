@@ -1,7 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import type { SupportedFramework } from '../cli/arguments.js';
-import { exists } from '../shared/fs/fs.js';
+import { type SupportedFramework, exists } from '../shared/index.js';
 
 export interface FrameworkVersionInfo {
   version: string;

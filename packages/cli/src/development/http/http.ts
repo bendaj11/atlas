@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http';
 import type { Server, ServerResponse } from 'node:http';
-import { ui } from '../../cli/ui/ui.js';
+import { ui } from '../../shared/index.js';
 
 export const LOCAL_HOST = 'localhost';
 

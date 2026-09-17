@@ -10,10 +10,6 @@ import {
   type AtlasGeneratedFile,
   type AtlasGeneratorOptions,
 } from '@atlas/generators';
-import { CliArguments, type SupportedFramework } from '../../cli/arguments.js';
-import { ui, type AtlasPrompter } from '../../cli/ui/ui.js';
-import { exists } from '../../shared/fs/fs.js';
-import type { AtlasWorkspace } from '../../workspace/types.js';
 import { ensureAngularWorkspaceFederationConfig } from '../angular.js';
 import {
   dependencyManifestPath,
@@ -54,6 +50,14 @@ import {
   ensureTurboTasks,
   writeNxProject,
 } from '../workspace-targets/workspace-targets.js';
+import {
+  CliArguments,
+  type SupportedFramework,
+  ui,
+  type AtlasPrompter,
+  exists,
+} from '../../shared/index.js';
+import type { AtlasWorkspace } from '../../workspace/index.js';
 
 export class AtlasGenerateService {
   constructor(

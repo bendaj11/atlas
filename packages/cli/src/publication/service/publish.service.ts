@@ -3,10 +3,6 @@ import type {
   AtlasPublishedArtifactManifest,
   AtlasStaticRegistry,
 } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
-import { cliError } from '../../cli/cli-error/cli-error.js';
-import { withExponentialRetry } from '../../cli/retry/retry.js';
-import type { AtlasBuildResult } from '../../build/service/build.service.js';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
 import { pruneUnreferencedPreviewGenerations } from '../preview-pruning/preview-pruning.js';
 import {
@@ -42,25 +38,12 @@ import {
   removePreview,
   resolveRegistryArtifact,
 } from '../static-registry/static-registry.js';
-
-export {
-  defineAtlasRegistryConfig,
-  loadAtlasRegistryConfig,
-} from '../registry-config.js';
-export type {
-  AtlasPreviewHeadLookup,
-  AtlasPreviewHeadResolver,
-  AtlasPreviewHeadStatus,
-  AtlasRegistryConfig,
-} from '../registry-config.js';
-export { S3PublicationStorage } from '../publication-storage/publication-storage.js';
-export type {
-  AtlasPublicationLease,
-  AtlasPublicationObjectMetadata,
-  AtlasPublicationStorage,
-  S3Options,
-} from '../publication-storage/publication-storage.js';
-export { readRegistry, readRegistryState } from '../registry-io/registry-io.js';
+import {
+  CliArguments,
+  cliError,
+  withExponentialRetry,
+} from '../../shared/index.js';
+import type { AtlasBuildResult } from '../../build/index.js';
 
 export interface AtlasPublishResult {
   uploaded: string[];

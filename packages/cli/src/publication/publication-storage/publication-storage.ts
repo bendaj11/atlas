@@ -1,5 +1,3 @@
-import type { CliArguments } from '../../cli/arguments.js';
-import { cliError } from '../../cli/cli-error/cli-error.js';
 import { artifactoryOptionsFromEnvironment } from '../artifactory-options/artifactory-options.js';
 import {
   ArtifactoryPublicationStorage,
@@ -10,12 +8,7 @@ import {
   type S3Options,
 } from '../s3-storage/s3-storage.js';
 import { selectStorageFromEnvironment } from '../storage-environment/storage-environment.js';
-
-export type {
-  S3Options,
-  S3PublicationLockMode,
-} from '../s3-storage/s3-storage.js';
-export { S3PublicationStorage } from '../s3-storage/s3-storage.js';
+import { type CliArguments, cliError } from '../../shared/index.js';
 
 export interface AtlasPublicationStorage {
   read(path: string): Promise<Uint8Array | undefined>;

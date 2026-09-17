@@ -13,24 +13,22 @@ import {
   anEnvironmentDeployment,
   aRoutePlacement,
 } from '@atlas/testkit';
-import { CliArguments } from '../cli/arguments.js';
-import type {
-  AtlasPublicationBody,
-  AtlasPublicationLease,
-  AtlasPublicationListedObject,
-  AtlasPublicationObjectMetadata,
-  AtlasPublicationReplaceCondition,
-  AtlasPublicationStorage,
-} from '../publication/publication-storage/publication-storage.js';
-import {
-  descriptorFor,
-  manifestBytes,
-  publishArtifact,
-} from '../publication/static-registry/static-registry.js';
 import {
   AtlasDeployService,
   type AtlasDeployResult,
 } from './deploy.service.js';
+import { CliArguments } from '../shared/index.js';
+import {
+  type AtlasPublicationBody,
+  type AtlasPublicationLease,
+  type AtlasPublicationListedObject,
+  type AtlasPublicationObjectMetadata,
+  type AtlasPublicationReplaceCondition,
+  type AtlasPublicationStorage,
+  descriptorFor,
+  manifestBytes,
+  publishArtifact,
+} from '../publication/index.js';
 
 const MUTABLE = 'no-cache, max-age=0, must-revalidate';
 

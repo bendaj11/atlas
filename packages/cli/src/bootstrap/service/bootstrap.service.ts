@@ -6,15 +6,11 @@ import {
   type AtlasBootstrapFile,
   type AtlasBootstrapOptions,
 } from '@atlas/bootstrap';
-import { CliArguments } from '../../cli/arguments.js';
 import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
-import type { AtlasBuildService } from '../../build/service/build.service.js';
-import { compileAtlasConfig } from '../../build/config-compiler/config-compiler.js';
-import type {
-  AtlasProject,
-  AtlasWorkspace,
-} from '../../workspace/service/workspace.js';
 import { loadBootstrapTemplate } from '../template/bootstrap-template.js';
+import { CliArguments, compileAtlasConfig } from '../../shared/index.js';
+import type { AtlasBuildService } from '../../build/index.js';
+import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 
 export interface AtlasBootstrapBuildResult {
   directory: string;

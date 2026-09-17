@@ -1,5 +1,3 @@
-import { CliArguments } from '../../cli/arguments.js';
-import type { AtlasProject } from '../../workspace/types.js';
 import { aProject } from '../../workspace/workspace.testkit.js';
 import {
   publicationIdentity,
@@ -7,6 +5,8 @@ import {
   type PublicationIdentity,
   type ReleaseIdentity,
 } from './release-identity.js';
+import { CliArguments } from '../../shared/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 const NO_GIT_ROOT = '/nonexistent/project';
 

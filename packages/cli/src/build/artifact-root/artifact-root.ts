@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import type { AtlasConfig } from '@atlas/schema';
-import { cliError } from '../../cli/cli-error/cli-error.js';
+import { toPosixPath } from '../payload/payload.js';
 import {
+  cliError,
   IMMUTABLE_CACHE_CONTROL,
   publicationContentType,
-} from '../../publication/publication-metadata/publication-metadata.js';
-import type { AtlasProject } from '../../workspace/types.js';
-import { toPosixPath } from '../payload/payload.js';
+} from '../../shared/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 export interface ArtifactRootLookup {
   workspaceRoot: string;

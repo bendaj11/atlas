@@ -2,7 +2,6 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import type { SupportedFramework } from '../../cli/arguments.js';
 import {
   alignDelegatedAngularFederationConfig,
   alignDelegatedTsconfig,
@@ -10,6 +9,7 @@ import {
   ensureDelegatedNxTargets,
   nxTarget,
 } from './nx.js';
+import type { SupportedFramework } from '../../shared/index.js';
 
 type ProjectType = 'host' | 'app';
 

@@ -11,28 +11,27 @@ import {
   assertPublishedArtifactManifest,
   placementTargetsHost,
 } from '@atlas/schema';
-import { CliArguments } from '../cli/arguments.js';
-import { cliError } from '../cli/cli-error/cli-error.js';
-import { sha256Digest } from '../shared/digest/digest.js';
-import { isSecureOrLoopbackUrl, trimTrailingSlash } from '../shared/url/url.js';
-import { MUTABLE_CACHE_CONTROL } from '../publication/publication-metadata/publication-metadata.js';
+import {
+  CliArguments,
+  cliError,
+  sha256Digest,
+  isSecureOrLoopbackUrl,
+  trimTrailingSlash,
+  MUTABLE_CACHE_CONTROL,
+  withExponentialRetry,
+} from '../shared/index.js';
 import {
   verifyDeliveryWhileHeld,
   withPublicationLease,
-} from '../publication/publication-lease/publication-lease.js';
-import { withExponentialRetry } from '../cli/retry/retry.js';
-import {
   createPublicationStorage,
   type AtlasPublicationLease,
   type AtlasPublicationStorage,
-} from '../publication/publication-storage/publication-storage.js';
-import type { AtlasRegistryConfig } from '../publication/registry-config.js';
-import {
+  type AtlasRegistryConfig,
   assertEnvironmentName,
   assertStaticRegistry,
   canonicalJson,
   resolveRegistryArtifact,
-} from '../publication/static-registry/static-registry.js';
+} from '../publication/index.js';
 
 export interface AtlasDeployResult {
   artifactId: string;

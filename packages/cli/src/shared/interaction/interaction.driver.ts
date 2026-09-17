@@ -1,4 +1,4 @@
-import { CliArguments } from '../arguments.js';
+import { CliArguments } from '../arguments/arguments.js';
 import type { AtlasInvocation } from './interaction.js';
 import { resolveInvocation } from './interaction.js';
 import { PromptTestDouble } from './interaction.testkit.js';

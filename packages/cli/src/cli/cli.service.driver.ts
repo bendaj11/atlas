@@ -1,23 +1,25 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasBootstrapService as BootstrapType } from '../bootstrap/service/bootstrap.service.js';
-import type { compileAtlasConfig as compileAtlasConfigType } from '../build/config-compiler/config-compiler.js';
-import type { AtlasDeployService as DeployType } from '../deployment/deploy.service.js';
 import type { AtlasDevService as DevType } from '../development/index.js';
-import type { AtlasGenerateService as GenerateType } from '../generation/service/generate.service.js';
-import type { readOpenPreviews as readOpenPreviewsType } from '../publication/pr-state-file/pr-state-file.js';
+import { aProject, aWorkspace } from '../workspace/workspace.testkit.js';
+import { PromptTestDouble } from '../shared/interaction/interaction.testkit.js';
+import type { AtlasBootstrapService as BootstrapType } from '../bootstrap/index.js';
+import type { compileAtlasConfig as compileAtlasConfigType } from '../shared/index.js';
+import type { AtlasDeployService as DeployType } from '../deployment/index.js';
+import type { AtlasGenerateService as GenerateType } from '../generation/index.js';
 import type {
+  readOpenPreviews as readOpenPreviewsType,
   AtlasPublishService as PublishType,
   loadAtlasRegistryConfig as loadAtlasRegistryConfigType,
-} from '../publication/service/publish.service.js';
+} from '../publication/index.js';
 import type {
   AtlasVerificationReport,
   AtlasVerifyService as VerifyType,
-} from '../verification/service/verify.service.js';
-import type { loadEnvFiles as loadEnvFilesType } from '../workspace/env/env.js';
-import type { detectWorkspace as detectWorkspaceType } from '../workspace/service/workspace.js';
-import { aProject, aWorkspace } from '../workspace/workspace.testkit.js';
-import { PromptTestDouble } from './interaction/interaction.testkit.js';
+} from '../verification/index.js';
+import type {
+  loadEnvFiles as loadEnvFilesType,
+  detectWorkspace as detectWorkspaceType,
+} from '../workspace/index.js';
 
 const bootstrapBuild = jest.fn<BootstrapType['build']>();
 const compileAtlasConfig = jest.fn<typeof compileAtlasConfigType>();
@@ -41,7 +43,11 @@ jest.unstable_mockModule('../bootstrap/service/bootstrap.service.js', () => ({
     build = bootstrapBuild;
   },
 }));
-jest.unstable_mockModule('../build/config-compiler/config-compiler.js', () => ({
+const configCompiler = await import(
+  '../shared/config-compiler/config-compiler.js'
+);
+jest.unstable_mockModule('../shared/config-compiler/config-compiler.js', () => ({
+  ...configCompiler,
   compileAtlasConfig,
 }));
 jest.unstable_mockModule('../build/service/build.service.js', () => ({
@@ -80,6 +86,10 @@ jest.unstable_mockModule('../publication/service/publish.service.js', () => ({
     removePreview = removePreview;
     prunePreviews = prunePreviews;
   },
+}));
+const registryConfig = await import('../publication/registry-config.js');
+jest.unstable_mockModule('../publication/registry-config.js', () => ({
+  ...registryConfig,
   loadAtlasRegistryConfig,
 }));
 jest.unstable_mockModule('../verification/service/verify.service.js', () => ({

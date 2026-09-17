@@ -3,8 +3,11 @@ import type {
   AtlasHostConfig,
   AtlasHostRuntimeConfig,
 } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
-import { isLoopbackUrl, trimTrailingSlash } from '../../shared/url/url.js';
+import {
+  CliArguments,
+  isLoopbackUrl,
+  trimTrailingSlash,
+} from '../../shared/index.js';
 
 const DEFAULT_LOCAL_REGISTRY_URL = 'http://localhost:4400';
 

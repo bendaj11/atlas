@@ -4,8 +4,8 @@ import {
   type AtlasPublishedArtifactManifest,
   type AtlasVersionChannel,
 } from '@atlas/schema';
-import type { CliArguments } from '../../cli/arguments.js';
-import type { AtlasProject } from '../../workspace/types.js';
+import type { CliArguments } from '../../shared/index.js';
+import type { AtlasProject } from '../../workspace/index.js';
 
 export interface ReleaseIdentity {
   channel: AtlasVersionChannel;

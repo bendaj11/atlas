@@ -1,14 +1,17 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import type { SupportedFramework } from '../../cli/arguments.js';
 import { ensureAngularNativeFederationTargets } from '../angular.js';
 import { addUniqueString } from '../files/files.js';
-import { exists, readJsonFile, writeJsonFile } from '../../shared/fs/fs.js';
+import {
+  type SupportedFramework,
+  exists,
+  readJsonFile,
+  writeJsonFile,
+} from '../../shared/index.js';
+import { ATLAS_NX_TAG } from '../../workspace/index.js';
 
 type ProjectType = 'host' | 'app';
 type PackageManager = 'yarn' | 'pnpm' | 'npm';
-
-export const ATLAS_NX_TAG = 'atlas';
 
 interface NxDevTargetOptions {
   targets: Record<string, unknown>;

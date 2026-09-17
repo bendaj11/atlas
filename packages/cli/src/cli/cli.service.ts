@@ -1,30 +1,32 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { AtlasBootstrapService } from '../bootstrap/service/bootstrap.service.js';
-import { compileAtlasConfig } from '../build/config-compiler/config-compiler.js';
-import { AtlasBuildService } from '../build/service/build.service.js';
-import { AtlasDeployService } from '../deployment/deploy.service.js';
 import { AtlasDevService } from '../development/index.js';
-import { AtlasGenerateService } from '../generation/service/generate.service.js';
-import { formatHelp, requestedHelpTopic } from '../help/help.js';
-import { readOpenPreviews } from '../publication/pr-state-file/pr-state-file.js';
+import { AtlasBootstrapService } from '../bootstrap/index.js';
 import {
+  compileAtlasConfig,
+  CliArguments,
+  cliError,
+  createCliError,
+  resolveInvocation,
+  type AtlasInvocation,
+  TerminalPrompter,
+  ui,
+  type AtlasPrompter,
+} from '../shared/index.js';
+import { AtlasBuildService } from '../build/index.js';
+import { AtlasDeployService } from '../deployment/index.js';
+import { AtlasGenerateService } from '../generation/index.js';
+import { formatHelp, requestedHelpTopic } from '../help/index.js';
+import {
+  readOpenPreviews,
   AtlasPublishService,
   loadAtlasRegistryConfig,
-} from '../publication/service/publish.service.js';
+} from '../publication/index.js';
 import {
   AtlasVerifyService,
   type AtlasVerificationCheck,
-} from '../verification/service/verify.service.js';
-import { loadEnvFiles } from '../workspace/env/env.js';
-import { detectWorkspace } from '../workspace/service/workspace.js';
-import { CliArguments } from './arguments.js';
-import { cliError, createCliError } from './cli-error/cli-error.js';
-import {
-  resolveInvocation,
-  type AtlasInvocation,
-} from './interaction/interaction.js';
-import { TerminalPrompter, ui, type AtlasPrompter } from './ui/ui.js';
+} from '../verification/index.js';
+import { loadEnvFiles, detectWorkspace } from '../workspace/index.js';
 
 export async function runAtlasCli(
   values = process.argv.slice(2),

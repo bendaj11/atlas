@@ -1,9 +1,9 @@
-import { CliArguments } from '../cli/arguments.js';
 import { TemporaryDirectory } from '../shared/fs/fs.testkit.js';
 import {
   loadAtlasRegistryConfig,
   type AtlasRegistryConfig,
 } from './registry-config.js';
+import { CliArguments } from '../shared/index.js';
 
 export class RegistryConfigDriver {
   private readonly directory = new TemporaryDirectory();

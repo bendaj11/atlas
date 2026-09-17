@@ -1,6 +1,6 @@
 import type { AtlasManifest } from '@atlas/schema';
-import { sha256Integrity } from '../../shared/digest/digest.js';
 import type { VerificationChecks } from '../checks/checks.js';
+import { sha256Integrity } from '../../shared/index.js';
 
 export type ExpectedContentType = 'json' | 'css' | 'javascript';
 

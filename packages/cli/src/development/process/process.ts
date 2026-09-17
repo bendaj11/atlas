@@ -1,7 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { AtlasConfig } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
-import { cliError } from '../../cli/cli-error/cli-error.js';
 import { closeServer, localOrigin, LOCAL_HOST } from '../http/http.js';
 import {
   DEFAULT_CONTROL_PORT,
@@ -9,8 +7,12 @@ import {
   REMOTE_START_TIMEOUT_MS,
 } from '../constants.js';
 import type { DevControlServer } from '../types.js';
-import { ui } from '../../cli/ui/ui.js';
-import { completedProcessOutput } from '../../cli/process/process.js';
+import {
+  CliArguments,
+  cliError,
+  ui,
+  completedProcessOutput,
+} from '../../shared/index.js';
 
 export function frameworkServerArguments(
   framework: AtlasConfig['framework'],

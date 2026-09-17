@@ -1,11 +1,10 @@
 import { join } from 'node:path';
-import type {
-  AtlasProject,
-  AtlasWorkspace,
-} from '../workspace/service/workspace.js';
-import { defaultDevServerPort } from '../workspace/service/workspace.js';
-import { readTextFile } from '../shared/fs/fs.js';
-import { isRecord } from '../shared/records/records.js';
+import {
+  type AtlasProject,
+  type AtlasWorkspace,
+  defaultDevServerPort,
+} from '../workspace/index.js';
+import { readTextFile, isRecord } from '../shared/index.js';
 
 type ProjectType = 'host' | 'app';
 

@@ -1,6 +1,6 @@
-import { CliArguments } from '../../cli/arguments.js';
 import type { HostDevPorts } from '../types.js';
 import { resolveHostDevPorts } from './ports.js';
+import { CliArguments } from '../../shared/index.js';
 
 export class DevelopmentPortsDriver {
   private flags: string[] = [];

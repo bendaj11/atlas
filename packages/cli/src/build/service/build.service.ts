@@ -11,27 +11,12 @@ import {
   type AtlasPublishedArtifactManifest,
   type AtlasVersionChannel,
 } from '@atlas/schema';
-import { CliArguments } from '../../cli/arguments.js';
-import { cliError } from '../../cli/cli-error/cli-error.js';
-import {
-  assertAppConfig,
-  isHostConfig,
-} from '../../shared/atlas-config/atlas-config.js';
-import {
-  integrityFromDigest,
-  sha256Integrity,
-  type Sha256Digest,
-} from '../../shared/digest/digest.js';
-import { writeJsonFile } from '../../shared/fs/fs.js';
-import { trimTrailingSlash } from '../../shared/url/url.js';
-import type { AtlasProject, AtlasWorkspace } from '../../workspace/types.js';
 import {
   findArtifactRoot,
   findArtifactRootIfPresent,
   hashArtifactDirectory,
   listArtifactFiles,
 } from '../artifact-root/artifact-root.js';
-import { compileAtlasConfig } from '../config-compiler/config-compiler.js';
 import { loadCompiledAtlasConfig } from '../config-loader/config-loader.js';
 import { discoverExportedWidgets } from '../exported-widgets/exported-widgets.js';
 import {
@@ -44,6 +29,19 @@ import {
 } from '../release-identity/release-identity.js';
 import { discoverStylesheets } from '../stylesheets/stylesheets.js';
 import { buildTimestamp } from '../timestamp/timestamp.js';
+import {
+  CliArguments,
+  cliError,
+  assertAppConfig,
+  isHostConfig,
+  integrityFromDigest,
+  sha256Integrity,
+  type Sha256Digest,
+  writeJsonFile,
+  trimTrailingSlash,
+  compileAtlasConfig,
+} from '../../shared/index.js';
+import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 
 const DEFAULT_ENTRY_PATH = 'remoteEntry.json';
 const LOCAL_REGISTRY_URL = 'http://localhost:4400';

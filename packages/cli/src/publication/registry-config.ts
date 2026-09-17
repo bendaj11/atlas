@@ -3,14 +3,16 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { AtlasStaticRegistry } from '@atlas/schema';
 import ts from 'typescript';
-import { CliArguments } from '../cli/arguments.js';
-import { cliError } from '../cli/cli-error/cli-error.js';
-import { exists } from '../shared/fs/fs.js';
-import { formatTypeScriptDiagnostics } from '../build/config-compiler/config-compiler.js';
 import {
   isPublicationStorage,
   type AtlasPublicationStorageSource,
 } from './publication-storage/publication-storage.js';
+import {
+  CliArguments,
+  cliError,
+  exists,
+  formatTypeScriptDiagnostics,
+} from '../shared/index.js';
 
 export interface AtlasRegistryConfig {
   storage?: AtlasPublicationStorageSource;

@@ -1,6 +1,6 @@
 import type { AtlasGeneratedFile } from '@atlas/generators';
-import type { SupportedFramework } from '../cli/arguments.js';
 import { generatedOverlay } from './overlay.js';
+import type { SupportedFramework } from '../shared/index.js';
 
 export class OverlayDriver {
   private files: AtlasGeneratedFile[] = [];

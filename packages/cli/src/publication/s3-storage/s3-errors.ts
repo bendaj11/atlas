@@ -1,4 +1,4 @@
-import { httpStatusOf } from '../../shared/errors/errors.js';
+import { httpStatusOf } from '../../shared/index.js';
 
 export function isMissingObject(error: unknown): boolean {
   return (

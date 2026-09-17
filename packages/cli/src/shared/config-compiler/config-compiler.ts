@@ -1,11 +1,8 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import ts from 'typescript';
-import type {
-  AtlasProject,
-  AtlasWorkspace,
-} from '../../workspace/service/workspace.js';
-import { exists } from '../../shared/fs/fs.js';
+import { exists } from '../fs/fs.js';
+import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 
 export function compiledAtlasConfigCandidates(projectRoot: string): string[] {
   return [

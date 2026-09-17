@@ -8,15 +8,15 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { aHostRuntimeConfig } from '@atlas/testkit';
-import { CliArguments } from '../../cli/arguments.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import type { AtlasWorkspace } from '../../workspace/types.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import type {
   AtlasDevBuildService,
   AtlasDevOverrideDocument,
 } from '../types.js';
 import { AtlasDevService } from './dev.service.js';
+import { CliArguments } from '../../shared/index.js';
+import type { AtlasWorkspace } from '../../workspace/index.js';
 
 export class DevServiceDriver {
   private readonly directory = new TemporaryDirectory();

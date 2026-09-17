@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasAppConfig, AtlasHostConfig } from '@atlas/schema';
 import { aHostConfig, aHostRuntimeConfig, anAppConfig } from '@atlas/testkit';
-import { createPromptDriver } from '../../cli/interaction/interaction.testkit.js';
+import { createPromptDriver } from '../../shared/interaction/interaction.testkit.js';
 import type { DevTarget } from '../types.js';
 import { resolveDevTarget, resolveHostDevTarget } from './target.js';
 

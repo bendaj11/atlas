@@ -19,13 +19,12 @@ import {
   LOCAL_HOST,
 } from '../http/http.js';
 import { CONTROL_RECONCILIATION_INTERVAL_MS } from '../constants.js';
-import { ui } from '../../cli/ui/ui.js';
-import { errorMessage } from '../../shared/errors/errors.js';
 import type {
   AtlasDevOverrideDocument,
   DevControlServer,
   DevSessionStore,
 } from '../types.js';
+import { ui, errorMessage } from '../../shared/index.js';
 
 interface StartControlServerOptions {
   port: number;

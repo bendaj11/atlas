@@ -1,16 +1,11 @@
 import { isAbsolute, join, relative, sep } from 'node:path';
-import { readJsonFile, writeJsonFile } from '../../shared/fs/fs.js';
-import { isRecord } from '../../shared/records/records.js';
-import type {
-  AtlasPackageManager,
-  AtlasProjectType,
-} from '../../workspace/types.js';
+import { atlasCommand, atlasConfigNxTarget, nxTarget } from '../nx/nx.js';
+import { readJsonFile, writeJsonFile, isRecord } from '../../shared/index.js';
 import {
+  type AtlasPackageManager,
+  type AtlasProjectType,
   ATLAS_NX_TAG,
-  atlasCommand,
-  atlasConfigNxTarget,
-  nxTarget,
-} from '../nx/nx.js';
+} from '../../workspace/index.js';
 
 const TURBO_PUBLISH_ENV = [
   'ATLAS_*',

@@ -1,10 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
 import type { AtlasConfig } from '@atlas/schema';
-import type { CliArguments } from '../../cli/arguments.js';
-import type { AtlasProject, AtlasWorkspace } from '../../workspace/types.js';
-import { readJsonFile } from '../../shared/fs/fs.js';
-import { resolveRegistryUrl } from '../../build/runtime-config/runtime-config.js';
 import { startControlServer } from '../control-server/control-server.js';
 import { closeServer, localOrigin } from '../http/http.js';
 import { DEFAULT_CONTROL_PORT } from '../constants.js';
@@ -16,6 +12,9 @@ import {
   waitForShutdown,
 } from '../process/process.js';
 import type { AtlasDevOverrideDocument, DevControlServer } from '../types.js';
+import { type CliArguments, readJsonFile } from '../../shared/index.js';
+import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
+import { resolveRegistryUrl } from '../../build/index.js';
 
 export interface DevSessionContext {
   controlPort: number;
