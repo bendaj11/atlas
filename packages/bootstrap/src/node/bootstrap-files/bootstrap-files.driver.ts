@@ -1,6 +1,7 @@
 import { createAtlasBootstrapFiles } from './bootstrap-files.js';
 import type {
   AtlasBootstrapFile,
+  AtlasBootstrapFilePath,
   AtlasBootstrapOptions,
 } from '../bootstrap-types.js';
 
@@ -29,7 +30,7 @@ export class BootstrapFilesDriver {
 
   readonly get = {
     paths: (): string[] => this.files.map(({ path }) => path),
-    contents: (path: AtlasBootstrapFile['path']): string | undefined =>
+    contents: (path: AtlasBootstrapFilePath): string | undefined =>
       this.files.find((file) => file.path === path)?.contents,
     error: (): unknown => this.error,
   };

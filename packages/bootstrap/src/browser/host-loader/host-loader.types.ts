@@ -12,8 +12,10 @@ export interface RemoteMetadata {
   shared?: Array<{ packageName?: string; outFileName?: string }>;
 }
 
+export type HostLoaderDocument = Pick<Document, 'createElement' | 'head'>;
+
 export interface HostLoaderDependencies {
-  readonly document: Pick<Document, 'createElement' | 'head'>;
+  readonly document: HostLoaderDocument;
   readonly fetchJson: typeof fetchJson;
   readonly importModule: typeof importModule;
   readonly validateArtifactUrl: typeof validateArtifactUrl;

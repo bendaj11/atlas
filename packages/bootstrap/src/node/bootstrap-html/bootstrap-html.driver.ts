@@ -1,7 +1,7 @@
 import {
   createBootstrapHtml,
   validateBootstrapHtml,
-  versionLoaderSource,
+  applyVersionedLoaderSource,
 } from './bootstrap-html.js';
 import type { AtlasBootstrapOptions } from '../bootstrap-types.js';
 
@@ -33,7 +33,7 @@ export class BootstrapHtmlDriver {
       this.html = createBootstrapHtml(this.options);
     },
     loaderSourceVersioned: (): void => {
-      this.html = versionLoaderSource(this.html);
+      this.html = applyVersionedLoaderSource(this.html);
     },
     htmlValidated: (): void => {
       try {

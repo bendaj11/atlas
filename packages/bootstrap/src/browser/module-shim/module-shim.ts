@@ -5,12 +5,8 @@ import type { ModuleShimGlobal } from './module-shim.types.js';
 
 const MODULE_SHIM_URL = '/es-module-shims.js';
 
-function moduleShimGlobal(): ModuleShimGlobal {
-  return globalThis as typeof globalThis & ModuleShimGlobal;
-}
-
 export async function installModuleShim(
-  moduleShim: ModuleShimGlobal = moduleShimGlobal(),
+  moduleShim: ModuleShimGlobal = moduleShimFromGlobalThis(),
 ): Promise<void> {
   moduleShim.esmsInitOptions = { shimMode: true };
 
@@ -34,19 +30,24 @@ export async function installModuleShim(
 
 export function importModule({
   url,
-  moduleShim = moduleShimGlobal(),
+  moduleShim = moduleShimFromGlobalThis(),
 }: {
   url: string;
   moduleShim?: ModuleShimGlobal;
 }): Promise<HostModule> {
   const importShim = moduleShim.importShim;
 
-  if (!importShim)
+  if (!importShim) {
     throw moduleLoaderError({
       message: `Atlas ES module loader is not installed; cannot import "${url}".`,
     });
+  }
 
   return importShim(url);
+}
+
+function moduleShimFromGlobalThis(): ModuleShimGlobal {
+  return globalThis as typeof globalThis & ModuleShimGlobal;
 }
 
 function moduleLoaderError({

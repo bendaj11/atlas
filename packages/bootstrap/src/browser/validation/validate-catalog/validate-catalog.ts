@@ -32,6 +32,7 @@ export function validateCatalog({
   }
 
   assertAppManifests({ manifests: catalog.apps, subject: 'apps' });
+
   if (catalog.widgetProviders) {
     assertAppManifests({
       manifests: catalog.widgetProviders,
@@ -54,6 +55,7 @@ function assertAppManifests({
   }
 
   const stray = manifests.find((manifest) => manifest.kind !== 'app');
+
   if (stray) {
     throw catalogError(
       `Atlas catalog ${subject} must contain app manifests only, got ${describeManifest(stray)}.`,

@@ -18,7 +18,7 @@ import { installHostSharedDependencies } from './shared-dependencies/shared-depe
 export async function loadHostModule({
   manifest,
   runtime,
-  dependencies = defaultDependencies(),
+  dependencies = browserHostLoaderDependencies(),
 }: LoadHostModuleOptions): Promise<HostModule> {
   dependencies.validateHostManifest({ manifest, runtime });
 
@@ -29,10 +29,10 @@ export async function loadHostModule({
       ? {}
       : { integrity: manifest.integrity }),
   });
-
   const expose = metadata.exposes?.find(
     (candidate) => candidate.key === manifest.exposes.entry,
   );
+
   if (!expose?.outFileName) {
     throw hostRemoteError(
       `Selected host remote entry "${manifest.remoteEntryUrl}" does not expose "${manifest.exposes.entry}".`,
@@ -44,12 +44,13 @@ export async function loadHostModule({
   loadHostStyles({ manifest, runtime, dependencies });
 
   const moduleUrl = new URL(expose.outFileName, manifest.remoteEntryUrl);
+
   dependencies.validateArtifactUrl({ url: moduleUrl, manifest, runtime });
 
   return dependencies.importModule({ url: moduleUrl.href });
 }
 
-function defaultDependencies(): HostLoaderDependencies {
+function browserHostLoaderDependencies(): HostLoaderDependencies {
   return {
     document,
     fetchJson,

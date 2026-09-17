@@ -16,7 +16,7 @@ import { publishRuntimeSnapshot } from './runtime-snapshot/runtime-snapshot.js';
 import { loadStartupCatalog } from './startup-catalog/startup-catalog.js';
 
 export async function startAtlasLoader(
-  dependencies: AtlasLoaderDependencies = defaultDependencies(),
+  dependencies: AtlasLoaderDependencies = browserAtlasLoaderDependencies(),
 ): Promise<void> {
   await dependencies.installModuleShim();
 
@@ -26,6 +26,7 @@ export async function startAtlasLoader(
   );
 
   const startup = await loadStartupCatalog({ runtime, dependencies });
+
   const catalog = await dependencies.applyOverrides({
     runtime,
     catalog: startup.catalog,
@@ -35,11 +36,13 @@ export async function startAtlasLoader(
   });
 
   dependencies.validateCatalog({ runtime, catalog });
+
   publishRuntimeSnapshot({ document: dependencies.document, runtime, catalog });
 
   const root = dependencies.document.getElementById(HOST_ROOT_ELEMENT_ID);
+
   if (!root) {
-    throw mountError(
+    throw hostMountError(
       `Atlas bootstrap page has no element with id="${HOST_ROOT_ELEMENT_ID}".`,
     );
   }
@@ -49,17 +52,19 @@ export async function startAtlasLoader(
     runtime,
   });
   const entry: HostEntry = module.default?.mount ? module.default : module;
+
   if (typeof entry.mount !== 'function') {
-    throw mountError(
+    throw hostMountError(
       `Selected host client "${catalog.host.id}" does not export mount(request).`,
     );
   }
 
   root.replaceChildren();
+
   await entry.mount({ container: root, runtimeConfig: runtime, catalog });
 }
 
-function defaultDependencies(): AtlasLoaderDependencies {
+function browserAtlasLoaderDependencies(): AtlasLoaderDependencies {
   return {
     document,
     location,
@@ -73,6 +78,6 @@ function defaultDependencies(): AtlasLoaderDependencies {
   };
 }
 
-function mountError(message: string) {
+function hostMountError(message: string) {
   return bootstrapError({ code: 'HOST_MOUNT_FAILED', message });
 }

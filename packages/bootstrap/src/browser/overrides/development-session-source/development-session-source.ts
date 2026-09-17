@@ -37,7 +37,7 @@ export function storeDevelopmentSession({
   return stored;
 }
 
-export function storedOverridesDocument(
+export function readStoredOverridesDocument(
   dependencies: OverridesDependencies,
 ): string | null {
   return (

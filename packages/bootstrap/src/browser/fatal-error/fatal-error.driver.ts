@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import type { describeFatalError as describeFatalErrorType } from './describe-fatal-error/describe-fatal-error.js';
 import type {
   BootstrapFailure,
-  FatalErrorDependencies,
+  FatalErrorLogger,
 } from './fatal-error.types.js';
 
 const describeFatalError = jest.fn<typeof describeFatalErrorType>();
@@ -51,7 +51,7 @@ export class FatalErrorDriver {
   private readonly sessionStorage = { removeItem: jest.fn() };
   private readonly localStorage = { removeItem: jest.fn() };
   private readonly reloadPage = jest.fn();
-  private readonly logError = jest.fn<FatalErrorDependencies['logError']>();
+  private readonly logError = jest.fn<FatalErrorLogger>();
 
   constructor() {
     describeFatalError.mockReset();

@@ -1,13 +1,13 @@
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { RUNTIME_SNAPSHOT_ELEMENT_ID } from '../atlas-loader.constants.js';
-import type { AtlasLoaderDependencies } from '../atlas-loader.types.js';
+import type { LoaderDocument } from '../atlas-loader.types.js';
 
 export function publishRuntimeSnapshot({
   document,
   runtime,
   catalog,
 }: {
-  document: AtlasLoaderDependencies['document'];
+  document: LoaderDocument;
   runtime: AtlasHostRuntimeConfig;
   catalog: AtlasHostCatalog;
 }): void {

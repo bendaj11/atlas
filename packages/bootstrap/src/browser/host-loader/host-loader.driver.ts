@@ -1,9 +1,15 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
+import type { fetchJson } from '../fetch-json/index.js';
 import type { HostModule } from '../host-module.js';
+import type { importModule } from '../module-shim/index.js';
+import type {
+  validateArtifactUrl,
+  validateHostManifest,
+} from '../validation/index.js';
 import type { watchHostBuildNotifications as watchHostBuildNotificationsType } from './build-notifications/build-notifications.js';
 import type {
-  HostLoaderDependencies,
+  HostLoaderDocument,
   RemoteMetadata,
 } from './host-loader.types.js';
 import type { loadHostStyles as loadHostStylesType } from './host-styles/host-styles.js';
@@ -36,12 +42,10 @@ export class HostLoaderDriver {
   private runtime!: AtlasHostRuntimeConfig;
   private readonly fetchJson =
     jest.fn<(options: unknown) => Promise<unknown>>();
-  private readonly importModule =
-    jest.fn<HostLoaderDependencies['importModule']>();
-  private readonly validateArtifactUrl =
-    jest.fn<HostLoaderDependencies['validateArtifactUrl']>();
+  private readonly importModule = jest.fn<typeof importModule>();
+  private readonly validateArtifactUrl = jest.fn<typeof validateArtifactUrl>();
   private readonly validateHostManifest =
-    jest.fn<HostLoaderDependencies['validateHostManifest']>();
+    jest.fn<typeof validateHostManifest>();
   private module: HostModule | undefined;
   private error: unknown;
 
@@ -81,8 +85,8 @@ export class HostLoaderDriver {
           manifest: this.manifest,
           runtime: this.runtime,
           dependencies: {
-            document: {} as HostLoaderDependencies['document'],
-            fetchJson: this.fetchJson as HostLoaderDependencies['fetchJson'],
+            document: {} as HostLoaderDocument,
+            fetchJson: this.fetchJson as typeof fetchJson,
             importModule: this.importModule,
             validateArtifactUrl: this.validateArtifactUrl,
             validateHostManifest: this.validateHostManifest,

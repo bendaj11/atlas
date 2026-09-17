@@ -1,17 +1,18 @@
+import { HOST_ROOT_ELEMENT_ID } from '../atlas-loader/atlas-loader.constants.js';
 import { OVERRIDES_STORAGE_KEY } from '../overrides/index.js';
 import { describeFatalError } from './describe-fatal-error/describe-fatal-error.js';
 import type { FatalErrorDependencies } from './fatal-error.types.js';
 
 export function showFatalError({
   error,
-  dependencies = defaultDependencies(),
+  dependencies = browserFatalErrorDependencies(),
 }: {
   error: unknown;
   dependencies?: FatalErrorDependencies;
 }): void {
   const { document } = dependencies;
   const failure = describeFatalError(error);
-  const root = document.getElementById('atlas-host-root') || document.body;
+  const root = document.getElementById(HOST_ROOT_ELEMENT_ID) || document.body;
 
   root.replaceChildren();
 
@@ -31,9 +32,11 @@ export function showFatalError({
       : 'Suggested actions';
 
   const actions = document.createElement('ol');
+
   for (const action of failure.suggestedActions) {
     const item = document.createElement('li');
     item.textContent = action;
+
     actions.append(item);
   }
 
@@ -54,7 +57,7 @@ export function showFatalError({
   );
 }
 
-function defaultDependencies(): FatalErrorDependencies {
+function browserFatalErrorDependencies(): FatalErrorDependencies {
   return {
     document,
     sessionStorage,

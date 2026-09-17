@@ -26,6 +26,7 @@ export function validateHostManifest({
     manifest.requiredLoaderApiVersion.match(/\d+/)?.[0],
   );
   const providedMajor = Number(LOADER_API_VERSION.split('.')[0]);
+
   if (requiredMajor !== providedMajor) {
     throw hostManifestError(
       `Selected host manifest "${manifest.id}" requires Atlas loader API ${manifest.requiredLoaderApiVersion} but this loader provides ${LOADER_API_VERSION}.`,

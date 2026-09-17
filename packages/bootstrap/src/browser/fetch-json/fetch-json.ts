@@ -29,15 +29,19 @@ export async function fetchBytes({
         cache: 'no-cache',
         signal: AbortSignal.timeout(timeout),
       });
-      if (!response.ok)
+
+      if (!response.ok) {
         throw new Error(`${url} returned HTTP ${response.status}.`);
+      }
 
       const bytes = new Uint8Array(await response.arrayBuffer());
+
       if (integrity) await validateIntegrity(bytes, integrity);
 
       return bytes;
     } catch (error) {
       lastError = error;
+
       if (attempt < retries) {
         await new Promise((resolve) =>
           setTimeout(resolve, RETRY_BACKOFF_MS * (attempt + 1)),
@@ -46,10 +50,14 @@ export async function fetchBytes({
     }
   }
 
-  throw resourceUnavailable({ url, attempts: retries + 1, cause: lastError });
+  throw resourceUnavailableError({
+    url,
+    attempts: retries + 1,
+    cause: lastError,
+  });
 }
 
-function resourceUnavailable({
+function resourceUnavailableError({
   url,
   attempts,
   cause,
@@ -59,6 +67,7 @@ function resourceUnavailable({
   cause: unknown;
 }): AtlasError {
   if (cause instanceof AtlasError) return cause;
+
   const detail = cause instanceof Error ? cause.message : String(cause);
 
   return bootstrapError({

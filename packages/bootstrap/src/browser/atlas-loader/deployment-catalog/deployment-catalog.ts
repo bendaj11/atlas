@@ -1,13 +1,17 @@
 import type {
+  AtlasDeploymentManifestReference,
   AtlasHostCatalog,
   AtlasHostDeploymentManifest,
   AtlasManifest,
 } from '@atlas/schema';
-import { assertHostDeploymentManifest, errorSummary } from '@atlas/schema';
+import {
+  assertHostDeploymentManifest,
+  environmentManifestUrl,
+  errorSummary,
+} from '@atlas/schema';
 import { decodeJson } from '../../../shared/decode-json/decode-json.js';
 import { bootstrapError } from '../../../shared/errors/index.js';
 import { mapWithConcurrency } from '../../../shared/map-with-concurrency/map-with-concurrency.js';
-import { environmentManifestUrl } from '@atlas/schema';
 import {
   ARTIFACT_LOAD_CONCURRENCY,
   DEPLOYMENT_CATALOG_GENERATED_AT,
@@ -18,16 +22,17 @@ export async function loadDeploymentCatalog({
   runtime,
   dependencies,
 }: LoaderContext): Promise<AtlasHostCatalog> {
-  const deployment = await fetchDeployment({ runtime, dependencies });
+  const deployment = await fetchDeploymentManifest({ runtime, dependencies });
 
   const manifests = await mapWithConcurrency({
-    values: deploymentReferences(deployment),
+    values: deploymentManifestReferences(deployment),
     operation: (reference) =>
       dependencies.loadPublishedArtifact({ reference, runtime }),
     concurrency: ARTIFACT_LOAD_CONCURRENCY,
   });
 
   const host = manifests[0];
+
   if (!host || host.kind !== 'host') {
     throw deploymentError(
       `Atlas deployment manifest host reference "${deployment.host.path}" does not resolve to a host manifest.`,
@@ -49,7 +54,7 @@ export async function loadDeploymentCatalog({
   };
 }
 
-async function fetchDeployment({
+async function fetchDeploymentManifest({
   runtime,
   dependencies,
 }: LoaderContext): Promise<AtlasHostDeploymentManifest> {
@@ -81,9 +86,9 @@ async function fetchDeployment({
   return deployment;
 }
 
-function deploymentReferences(
+function deploymentManifestReferences(
   deployment: AtlasHostDeploymentManifest,
-): AtlasHostDeploymentManifest['apps'] {
+): AtlasDeploymentManifestReference[] {
   return [
     deployment.host,
     ...deployment.apps,

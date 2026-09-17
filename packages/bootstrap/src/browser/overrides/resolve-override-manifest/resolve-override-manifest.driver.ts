@@ -5,7 +5,9 @@ import type {
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
+import type { fetchJson } from '../../fetch-json/index.js';
 import type { OverridesDependencies } from '../overrides.types.js';
+import type { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { resolveOverrideManifest } from './resolve-override-manifest.js';
 
 export class ResolveOverrideManifestDriver {
@@ -13,7 +15,7 @@ export class ResolveOverrideManifestDriver {
   private readonly fetchJson =
     jest.fn<(options: unknown) => Promise<unknown>>();
   private readonly loadPublishedArtifact =
-    jest.fn<OverridesDependencies['loadPublishedArtifact']>();
+    jest.fn<typeof loadPublishedArtifact>();
   private result: AtlasHostManifest | AtlasManifest | undefined;
   private error: unknown;
 
@@ -60,7 +62,7 @@ export class ResolveOverrideManifestDriver {
           manifest,
           runtime: this.runtime,
           dependencies: {
-            fetchJson: this.fetchJson as OverridesDependencies['fetchJson'],
+            fetchJson: this.fetchJson as typeof fetchJson,
             loadPublishedArtifact: this.loadPublishedArtifact,
           } as unknown as OverridesDependencies,
         });

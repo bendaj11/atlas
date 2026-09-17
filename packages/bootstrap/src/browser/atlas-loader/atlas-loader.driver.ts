@@ -1,7 +1,14 @@
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { HostModule, HostMountRequest } from '../host-module.js';
-import type { AtlasLoaderDependencies } from './atlas-loader.types.js';
+import type { fetchBytes, fetchJson } from '../fetch-json/index.js';
+import type { loadHostModule } from '../host-loader/index.js';
+import type { installModuleShim } from '../module-shim/index.js';
+import type { applyOverrides } from '../overrides/index.js';
+import type { loadPublishedArtifact } from '../published-artifact/index.js';
+import type { validateCatalog } from '../validation/index.js';
+import { HOST_ROOT_ELEMENT_ID } from './atlas-loader.constants.js';
+import type { LoaderDocument } from './atlas-loader.types.js';
 import type { publishRuntimeSnapshot as publishRuntimeSnapshotType } from './runtime-snapshot/runtime-snapshot.js';
 import type { loadStartupCatalog as loadStartupCatalogType } from './startup-catalog/startup-catalog.js';
 
@@ -19,10 +26,10 @@ export class AtlasLoaderDriver {
   private runtimeConfig!: AtlasHostRuntimeConfig;
   private hostRootPresent = true;
   private readonly root = { replaceChildren: jest.fn() };
-  private readonly document: AtlasLoaderDependencies['document'] = {
+  private readonly document: LoaderDocument = {
     createElement: jest.fn() as unknown as Document['createElement'],
     getElementById: (id: string) =>
-      id === 'atlas-host-root' && this.hostRootPresent
+      id === HOST_ROOT_ELEMENT_ID && this.hostRootPresent
         ? (this.root as unknown as HTMLElement)
         : null,
     head: {} as HTMLHeadElement,
@@ -31,24 +38,22 @@ export class AtlasLoaderDriver {
     (request: HostMountRequest) => Promise<void>
   >(async () => undefined);
   private hostModule: HostModule = { mount: this.mount };
-  private readonly installModuleShim = jest.fn<
-    AtlasLoaderDependencies['installModuleShim']
-  >(async () => undefined);
-  private readonly fetchBytes =
-    jest.fn<AtlasLoaderDependencies['fetchBytes']>();
+  private readonly installModuleShim = jest.fn<typeof installModuleShim>(
+    async () => undefined,
+  );
+  private readonly fetchBytes = jest.fn<typeof fetchBytes>();
   private readonly fetchJson = jest.fn<
     (options: { url: string }) => Promise<unknown>
   >(async () => this.runtimeConfig);
   private readonly loadPublishedArtifact =
-    jest.fn<AtlasLoaderDependencies['loadPublishedArtifact']>();
-  private readonly applyOverrides = jest.fn<
-    AtlasLoaderDependencies['applyOverrides']
-  >(async ({ catalog }) => catalog);
-  private readonly validateCatalog =
-    jest.fn<AtlasLoaderDependencies['validateCatalog']>();
-  private readonly loadHostModule = jest.fn<
-    AtlasLoaderDependencies['loadHostModule']
-  >(async () => this.hostModule);
+    jest.fn<typeof loadPublishedArtifact>();
+  private readonly applyOverrides = jest.fn<typeof applyOverrides>(
+    async ({ catalog }) => catalog,
+  );
+  private readonly validateCatalog = jest.fn<typeof validateCatalog>();
+  private readonly loadHostModule = jest.fn<typeof loadHostModule>(
+    async () => this.hostModule,
+  );
   private error: unknown;
 
   constructor() {
@@ -95,7 +100,7 @@ export class AtlasLoaderDriver {
           document: this.document,
           location: { href: 'https://host.example/' },
           fetchBytes: this.fetchBytes,
-          fetchJson: this.fetchJson as AtlasLoaderDependencies['fetchJson'],
+          fetchJson: this.fetchJson as typeof fetchJson,
           installModuleShim: this.installModuleShim,
           loadHostModule: this.loadHostModule,
           loadPublishedArtifact: this.loadPublishedArtifact,

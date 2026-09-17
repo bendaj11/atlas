@@ -1,12 +1,12 @@
 import { jest } from '@jest/globals';
 import type { BootstrapFailure } from '../fatal-error.types.js';
-import type { suggestedActionsFor as suggestedActionsForType } from '../suggested-actions-for/suggested-actions-for.js';
+import type { suggestedActionsForMessage as suggestedActionsForType } from '../suggested-actions-for-message/suggested-actions-for-message.js';
 
-const suggestedActionsFor = jest.fn<typeof suggestedActionsForType>();
+const suggestedActionsForMessage = jest.fn<typeof suggestedActionsForType>();
 jest.unstable_mockModule(
-  '../suggested-actions-for/suggested-actions-for.js',
+  '../suggested-actions-for-message/suggested-actions-for-message.js',
   () => ({
-    suggestedActionsFor,
+    suggestedActionsForMessage,
   }),
 );
 const { describeFatalError } = await import('./describe-fatal-error.js');
@@ -15,12 +15,12 @@ export class DescribeFatalErrorDriver {
   private failure!: BootstrapFailure;
 
   constructor() {
-    suggestedActionsFor.mockReset();
+    suggestedActionsForMessage.mockReset();
   }
 
   readonly given = {
     fallbackActions: (actions: string[]): DescribeFatalErrorDriver => {
-      suggestedActionsFor.mockReturnValue(actions);
+      suggestedActionsForMessage.mockReturnValue(actions);
 
       return this;
     },
@@ -34,6 +34,6 @@ export class DescribeFatalErrorDriver {
 
   readonly get = {
     failure: (): BootstrapFailure => this.failure,
-    suggestedActionsForMock: () => suggestedActionsFor,
+    suggestedActionsForMock: () => suggestedActionsForMessage,
   };
 }

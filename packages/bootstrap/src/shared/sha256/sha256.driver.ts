@@ -1,4 +1,4 @@
-import { sha256, toBase64, toHex } from './sha256.js';
+import { sha256, bytesToBase64, bytesToHex } from './sha256.js';
 
 export class Sha256Driver {
   private digest!: Uint8Array;
@@ -10,7 +10,7 @@ export class Sha256Driver {
   };
 
   readonly get = {
-    hex: (): string => toHex(this.digest),
-    base64: (): string => toBase64(this.digest),
+    hex: (): string => bytesToHex(this.digest),
+    base64: (): string => bytesToBase64(this.digest),
   };
 }

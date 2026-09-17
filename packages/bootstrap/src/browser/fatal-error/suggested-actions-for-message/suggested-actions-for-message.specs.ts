@@ -1,4 +1,4 @@
-import { suggestedActionsFor } from './suggested-actions-for.js';
+import { suggestedActionsForMessage } from './suggested-actions-for-message.js';
 
 const CASES = [
   ['invalid override', 'Select Clear overrides and reload below.'],
@@ -24,11 +24,11 @@ const CASES = [
   ],
 ];
 
-describe('suggestedActionsFor', () => {
+describe('suggestedActionsForMessage', () => {
   it.each(CASES)(
     'should suggest actions matching the message when the message is "%s"',
     (message, firstAction) => {
-      expect(suggestedActionsFor(message)[0]).toBe(firstAction);
+      expect(suggestedActionsForMessage(message)[0]).toBe(firstAction);
     },
   );
 });

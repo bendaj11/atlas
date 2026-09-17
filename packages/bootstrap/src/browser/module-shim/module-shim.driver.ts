@@ -3,13 +3,13 @@ import type { HostModule } from '../host-module.js';
 import {
   importModule,
   installModuleShim,
+  type ImportShim,
   type ModuleShimGlobal,
 } from './index.js';
 
 export class ModuleShimDriver {
   private readonly moduleShim: ModuleShimGlobal = {};
-  private readonly importShim =
-    jest.fn<NonNullable<ModuleShimGlobal['importShim']>>();
+  private readonly importShim = jest.fn<ImportShim>();
   private module: HostModule | undefined;
   private error: unknown;
 

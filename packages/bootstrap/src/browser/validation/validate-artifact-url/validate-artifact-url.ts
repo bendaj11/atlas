@@ -31,6 +31,7 @@ export function validateArtifactUrl({
     url.protocol === 'http:' &&
     isLoopbackHostname(url.hostname) &&
     isLoopbackHostname(artifactRegistryUrl.hostname);
+
   if (loopbackToLoopback) return;
 
   if (url.protocol !== 'https:') {

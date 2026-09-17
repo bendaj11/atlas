@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import type { AtlasBootstrapFile } from './bootstrap-types.js';
 
 const MODULE_SHIM_OPTIONS = 'globalThis.esmsInitOptions={shimMode:true};\n';
 
@@ -19,10 +20,7 @@ export const VERSIONED_LOADER_SOURCE = `/atlas.loader.js?v=${createHash(
   .digest('hex')
   .slice(0, 12)}`;
 
-export function createBrowserAssetFiles(): readonly {
-  readonly path: 'atlas.loader.js' | 'es-module-shims.js';
-  readonly contents: string;
-}[] {
+export function createBrowserAssetFiles(): readonly AtlasBootstrapFile[] {
   return [
     {
       path: 'atlas.loader.js',

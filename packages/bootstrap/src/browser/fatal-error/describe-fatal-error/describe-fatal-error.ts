@@ -1,6 +1,6 @@
 import { AtlasError, errorSummary } from '@atlas/schema';
 import type { BootstrapFailure } from '../fatal-error.types.js';
-import { suggestedActionsFor } from '../suggested-actions-for/suggested-actions-for.js';
+import { suggestedActionsForMessage } from '../suggested-actions-for-message/suggested-actions-for-message.js';
 
 const MESSAGE_PREFIX = 'Atlas could not start this page: ';
 const FALLBACK_CODE = 'ATLAS_BOOTSTRAP_FAILED';
@@ -20,7 +20,7 @@ export function describeFatalError(error: unknown): BootstrapFailure {
 
   return {
     message: MESSAGE_PREFIX + detail,
-    suggestedActions: suggestedActionsFor(detail),
+    suggestedActions: suggestedActionsForMessage(detail),
     code: FALLBACK_CODE,
     cause,
   };

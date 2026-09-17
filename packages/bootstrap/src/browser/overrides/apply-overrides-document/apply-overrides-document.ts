@@ -36,8 +36,9 @@ export async function applyOverridesDocument({
   for (const override of overrides.apps || overrides.overrides || []) {
     const manifest = await resolveOverrideManifest({
       ...context,
-      manifest: assertAppOverride(override),
+      manifest: appManifestFromOverride(override),
     });
+
     if (!manifest) continue;
 
     if (appsById.has(manifest.id)) {
@@ -61,7 +62,7 @@ export async function applyOverridesDocument({
   };
 }
 
-function assertAppOverride(override: RuntimeAppOverride): AtlasManifest {
+function appManifestFromOverride(override: RuntimeAppOverride): AtlasManifest {
   const { appId, manifest } = override;
 
   if (!manifest) {

@@ -22,7 +22,7 @@ export function createBootstrapHtml(
 </html>`;
 }
 
-export function versionLoaderSource(html: string): string {
+export function applyVersionedLoaderSource(html: string): string {
   return html.replace(
     /(\bsrc\s*=\s*)(["'])\/atlas\.loader\.js(?:\?[^"']*)?\2/i,
     `$1$2${VERSIONED_LOADER_SOURCE}$2`,

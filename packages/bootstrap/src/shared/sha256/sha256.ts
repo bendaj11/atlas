@@ -4,12 +4,13 @@ export async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
   );
 }
 
-export function toHex(bytes: Uint8Array): string {
+export function bytesToHex(bytes: Uint8Array): string {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-export function toBase64(bytes: Uint8Array): string {
+export function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
+
   for (const byte of bytes) binary += String.fromCharCode(byte);
 
   return btoa(binary);

@@ -17,26 +17,28 @@ export async function resolveOverrideManifest<
 }: OverridesContext & { manifest: TManifest }): Promise<TManifest | undefined> {
   if (manifest.channel === 'local') return manifest;
 
-  const registryRoot = artifactRegistryRoot(manifest);
+  const registryRoot = registryRootFromRemoteEntryUrl(manifest);
+
   if (!registryRoot) return manifest;
 
-  const descriptor = await registryDescriptor({
+  const descriptor = await fetchRegistryDescriptor({
     manifest,
     registryRoot,
     runtime,
     dependencies,
   });
+
   if (!descriptor) return manifest;
 
   const loaded = await dependencies.loadPublishedArtifact({
-    reference: descriptorReference({ registryRoot, descriptor }),
+    reference: manifestReferenceFromDescriptor({ registryRoot, descriptor }),
     runtime,
   });
 
   return loaded.kind === manifest.kind ? (loaded as TManifest) : manifest;
 }
 
-async function registryDescriptor({
+async function fetchRegistryDescriptor({
   manifest,
   registryRoot,
   runtime,
@@ -66,7 +68,9 @@ async function registryDescriptor({
     : artifact?.releases[manifest.version];
 }
 
-function artifactRegistryRoot(manifest: OverrideManifest): string | undefined {
+function registryRootFromRemoteEntryUrl(
+  manifest: OverrideManifest,
+): string | undefined {
   const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
   const marker = `/${collection}/${manifest.id}/`;
   const url = new URL(manifest.remoteEntryUrl);
@@ -81,7 +85,7 @@ function artifactRegistryRoot(manifest: OverrideManifest): string | undefined {
   return url.href.replace(/\/$/, '');
 }
 
-function descriptorReference({
+function manifestReferenceFromDescriptor({
   registryRoot,
   descriptor,
 }: {

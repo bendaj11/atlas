@@ -49,7 +49,7 @@ describe('createBootstrapHtml', () => {
   });
 });
 
-describe('versionLoaderSource', () => {
+describe('applyVersionedLoaderSource', () => {
   let driver: BootstrapHtmlDriver;
 
   beforeEach(() => {
