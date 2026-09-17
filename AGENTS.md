@@ -28,3 +28,6 @@ Rules:
 - Cover primary important success and failure/error branches, including async rejection when relevant. Do not over-test incidental details such as printed logs, unless producing logs is behavior owned by the unit. Test missing/empty input, permissions, and boundaries only when they affect primary logic. Await observable async outcomes with Testing Library queries or `waitFor`; never use arbitrary sleeps.
 - E2E tests cover crucial workflows only, use stable user-visible locators and deterministic readiness checks, and isolate/clean up test data.
 - After broad test migrations, run a package-wide structural audit. Passing Jest alone does not override these rules.
+- A dependency mock is a bare `jest.fn<typeof fn>()` with no implementation; `given`s queue its values (`mockResolvedValueOnce`, `mockResolvedValue`, `mockReturnValue`). Never a fake implementation (lookup map, counters, branching) inside a mock.
+- `given` parameters are typed from the source; a non-conforming input widens with a concrete member (`Manifest | null`) and passes `null`, never `unknown`.
+- Driver `given`/`when`/`get` members carry no return annotation; the type is inferred from the body. Parameters stay typed.
