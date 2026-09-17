@@ -9,7 +9,7 @@ import {
   aStaticRegistry,
   anAppManifest,
 } from '@atlas/testkit';
-import { OverridesDriver } from './overrides.driver.js';
+import { OverridesDriver } from './apply-overrides.driver.js';
 
 describe('applyOverrides', () => {
   let driver: OverridesDriver;

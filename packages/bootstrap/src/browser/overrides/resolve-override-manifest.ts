@@ -1,0 +1,95 @@
+import type {
+  AtlasHostManifest,
+  AtlasManifest,
+  AtlasManifestDescriptor,
+  AtlasStaticRegistry,
+} from '@atlas/schema';
+import type { OverridesContext } from './overrides.types.js';
+
+type OverrideManifest = AtlasHostManifest | AtlasManifest;
+
+export async function resolveOverrideManifest<
+  TManifest extends OverrideManifest,
+>({
+  manifest,
+  runtime,
+  dependencies,
+}: OverridesContext & { manifest: TManifest }): Promise<TManifest | undefined> {
+  if (manifest.channel === 'local') return manifest;
+
+  const registryRoot = artifactRegistryRoot(manifest);
+  if (!registryRoot) return manifest;
+
+  const descriptor = await registryDescriptor({
+    manifest,
+    registryRoot,
+    runtime,
+    dependencies,
+  });
+  if (!descriptor) return manifest;
+
+  const loaded = await dependencies.loadPublishedArtifact({
+    reference: descriptorReference({ registryRoot, descriptor }),
+    runtime,
+  });
+
+  return loaded.kind === manifest.kind ? (loaded as TManifest) : manifest;
+}
+
+async function registryDescriptor({
+  manifest,
+  registryRoot,
+  runtime,
+  dependencies,
+}: OverridesContext & {
+  manifest: OverrideManifest;
+  registryRoot: string;
+}): Promise<AtlasManifestDescriptor | undefined> {
+  let registry: AtlasStaticRegistry;
+
+  try {
+    registry = await dependencies.fetchJson<AtlasStaticRegistry>({
+      url: `${registryRoot}/registry.json`,
+      runtime,
+    });
+  } catch {
+    return undefined;
+  }
+
+  const artifact =
+    manifest.kind === 'host'
+      ? registry.hosts[manifest.id]
+      : registry.apps[manifest.id];
+
+  return manifest.prNumber
+    ? artifact?.previews[String(manifest.prNumber)]
+    : artifact?.releases[manifest.version];
+}
+
+function artifactRegistryRoot(manifest: OverrideManifest): string | undefined {
+  const collection = manifest.kind === 'host' ? 'hosts' : 'apps';
+  const marker = `/${collection}/${manifest.id}/`;
+  const url = new URL(manifest.remoteEntryUrl);
+  const markerIndex = url.pathname.indexOf(marker);
+
+  if (markerIndex < 0) return undefined;
+
+  url.pathname = url.pathname.slice(0, markerIndex);
+  url.search = '';
+  url.hash = '';
+
+  return url.href.replace(/\/$/, '');
+}
+
+function descriptorReference({
+  registryRoot,
+  descriptor,
+}: {
+  registryRoot: string;
+  descriptor: AtlasManifestDescriptor;
+}): AtlasManifestDescriptor & { url: string } {
+  return {
+    ...descriptor,
+    url: new URL(descriptor.path, `${registryRoot}/`).href,
+  };
+}

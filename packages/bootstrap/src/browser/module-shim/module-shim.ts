@@ -1,13 +1,9 @@
 import type { AtlasError } from '@atlas/schema';
-import { bootstrapError } from '../../shared/errors/bootstrap-error.js';
+import { bootstrapError } from '../../shared/errors/index.js';
 import type { HostModule } from '../host-module.js';
+import type { ModuleShimGlobal } from './module-shim.types.js';
 
 const MODULE_SHIM_URL = '/es-module-shims.js';
-
-export interface ModuleShimGlobal {
-  esmsInitOptions?: { shimMode: boolean };
-  importShim?: (url: string) => Promise<HostModule>;
-}
 
 function moduleShimGlobal(): ModuleShimGlobal {
   return globalThis as typeof globalThis & ModuleShimGlobal;

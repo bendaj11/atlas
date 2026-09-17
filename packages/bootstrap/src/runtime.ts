@@ -5,4 +5,4 @@ export {
   environmentManifestUrl,
   environmentRegistryUrl,
   resolveAtlasRuntimeConfig,
-} from './shared/runtime-config/runtime-config.js';
+} from './shared/runtime-config/index.js';

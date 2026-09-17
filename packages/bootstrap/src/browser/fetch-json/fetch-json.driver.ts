@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
-import { fetchBytes, fetchJson } from './fetch-json.js';
+import { fetchBytes, fetchJson } from './index.js';
 
 export class FetchJsonDriver {
   private url = faker.internet.url();

@@ -1,5 +1,5 @@
 import { VERSIONED_LOADER_SOURCE } from './bootstrap-assets.js';
-import { bootstrapError } from '../shared/errors/bootstrap-error.js';
+import { bootstrapError } from '../shared/errors/index.js';
 import type { AtlasBootstrapOptions } from './bootstrap-types.js';
 
 const DEFAULT_TITLE = 'Atlas';

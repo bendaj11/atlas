@@ -5,7 +5,7 @@ import {
   loadHostModule,
   type HostLoaderDependencies,
   type RemoteMetadata,
-} from './host-loader.js';
+} from './index.js';
 
 interface AppendedElement {
   tagName: string;

@@ -10,7 +10,7 @@ import {
   applyOverrides,
   type DevSession,
   type OverridesDependencies,
-} from './overrides.js';
+} from './index.js';
 
 const STORAGE_KEY = 'atlas.runtime-overrides';
 

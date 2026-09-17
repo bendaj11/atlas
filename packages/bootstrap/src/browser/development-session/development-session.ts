@@ -6,19 +6,9 @@ import {
   type AtlasDevelopmentSessionResponse,
 } from '@atlas/schema';
 
-const BRIDGE_TIMEOUT_MS = 2_000;
+import type { DevelopmentSessionBridgeDependencies } from './development-session.types.js';
 
-interface DevelopmentSessionBridgeDependencies {
-  document: Pick<Document, 'querySelector'>;
-  window: Pick<
-    Window,
-    'addEventListener' | 'removeEventListener' | 'postMessage'
-  >;
-  origin: string;
-  requestId(): string;
-  scheduleTimeout(operation: () => void, milliseconds: number): number;
-  clearScheduledTimeout(timeout: number): void;
-}
+const BRIDGE_TIMEOUT_MS = 2_000;
 
 export function requestDevelopmentSession({
   hostId,
