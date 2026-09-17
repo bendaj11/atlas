@@ -1,4 +1,7 @@
-import type { Artifact, OverrideType } from '../../../../types/artifact';
+import type {
+  ArtifactTableRow,
+  OverrideType,
+} from '../../../../types/artifact';
 import { versionBuildIdLabel } from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 import { Text, Tooltip } from '@wix/design-system';
 
@@ -11,12 +14,12 @@ const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {
 export const ArtifactOverrideVersion = ({
   artifact,
 }: {
-  artifact: Artifact;
+  artifact: ArtifactTableRow;
 }) => {
   const hasOverride = artifact.overrideEnabled;
   const displayedVersion = hasOverride
     ? artifact.sourceDescription
-    : versionBuildIdLabel(artifact.productionArtifactVersion);
+    : versionBuildIdLabel(artifact.deployedArtifactVersion);
 
   const getTextSkin = () => {
     if (artifact.loadError) return 'error';

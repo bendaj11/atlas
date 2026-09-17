@@ -1,4 +1,9 @@
-import { aDeferredCount, BadgeRefreshDriver } from './badge-refresh.driver';
+import { faker } from '@faker-js/faker';
+import {
+  countDevSessionOverrides,
+  createBadgeRefresher,
+} from './badge-refresh';
+import { BadgeRefreshDriver } from './badge-refresh.driver';
 
 describe('createBadgeRefresher', () => {
   let driver: BadgeRefreshDriver;
@@ -8,70 +13,114 @@ describe('createBadgeRefresher', () => {
   });
 
   it('should publish the count when refreshed', async () => {
-    await driver.given.counts(2).when.refreshed();
+    const count = faker.number.int();
+    const refresh = createBadgeRefresher({
+      readCount: driver.get.readCount(),
+      publishCount: driver.get.publishCount(),
+    });
 
-    expect(driver.get.publishedCounts()).toEqual([2]);
+    driver.given.count(count);
+
+    await refresh();
+
+    expect(driver.get.publishCount()).toHaveBeenCalledWith(count);
   });
 
-  it('should publish the newest count when a refresh is queued during another', async () => {
-    const firstRead = aDeferredCount();
+  it('should publish once when the count is unchanged between refreshes', async () => {
+    const count = faker.number.int();
+    const refresh = createBadgeRefresher({
+      readCount: driver.get.readCount(),
+      publishCount: driver.get.publishCount(),
+    });
 
-    await driver.given
-      .counts(firstRead, 2)
-      .when.refreshedTwiceWhileFirstReadPends(firstRead, 1);
+    driver.given.count(count).given.count(count);
 
-    expect(driver.get.publishedCounts()).toEqual([1, 2]);
+    await refresh();
+    await refresh();
+
+    expect(driver.get.publishCount()).toHaveBeenCalledTimes(1);
   });
 
-  it('should skip publishing when the count is unchanged', async () => {
-    driver.given.counts(2, 2);
+  it('should publish once when the second read fails', async () => {
+    const refresh = createBadgeRefresher({
+      readCount: driver.get.readCount(),
+      publishCount: driver.get.publishCount(),
+    });
 
-    await driver.when.refreshed();
-    await driver.when.refreshed();
+    driver.given
+      .count(faker.number.int())
+      .given.countFailure(new Error(faker.lorem.sentence()));
 
-    expect(driver.get.publishedCounts()).toEqual([2]);
+    await refresh();
+    await refresh();
+
+    expect(driver.get.publishCount()).toHaveBeenCalledTimes(1);
   });
 
-  it('should keep the last published count when a read fails', async () => {
-    driver.given.counts(2, new Error('temporary failure'));
+  it('should publish both counts in order when a refresh is queued while the first read pends', async () => {
+    const firstCount = faker.number.int();
+    const secondCount = faker.number.int();
+    let resolveFirstRead: (count: number) => void = () => undefined;
+    const refresh = createBadgeRefresher({
+      readCount: driver.get.readCount(),
+      publishCount: driver.get.publishCount(),
+    });
 
-    await driver.when.refreshed();
-    await driver.when.refreshed();
+    driver.given
+      .countRead(
+        new Promise((resolve) => {
+          resolveFirstRead = resolve;
+        }),
+      )
+      .given.count(secondCount);
 
-    expect(driver.get.publishedCounts()).toEqual([2]);
+    const first = refresh();
+    const second = refresh();
+    resolveFirstRead(firstCount);
+    await Promise.all([first, second]);
+
+    expect(driver.get.publishCount().mock.calls).toStrictEqual([
+      [firstCount],
+      [secondCount],
+    ]);
   });
 });
 
 describe('countDevSessionOverrides', () => {
-  let driver: BadgeRefreshDriver;
-
-  beforeEach(() => {
-    driver = new BadgeRefreshDriver();
+  it('should count the apps and the host override when all are enabled', () => {
+    expect(
+      countDevSessionOverrides({
+        session: {
+          overrides: [
+            { appId: faker.string.uuid() },
+            { appId: faker.string.uuid() },
+          ],
+          hostOverride: {},
+        },
+        disabledAppIds: new Set(),
+      }),
+    ).toBe(3);
   });
 
-  it('should count apps and the host override when all are enabled', () => {
-    driver.when.devSessionCounted({
-      overrides: [{ appId: 'orders' }, { appId: 'dashboard' }],
-      hostOverride: {},
-    });
+  it('should skip the disabled apps when some are disabled', () => {
+    const disabledAppId = faker.string.uuid();
 
-    expect(driver.get.count()).toBe(3);
+    expect(
+      countDevSessionOverrides({
+        session: {
+          overrides: [{ appId: disabledAppId }, { appId: faker.string.uuid() }],
+        },
+        disabledAppIds: new Set([disabledAppId]),
+      }),
+    ).toBe(1);
   });
 
-  it('should skip disabled apps when some are disabled', () => {
-    driver.when.devSessionCounted(
-      { overrides: [{ appId: 'orders' }, { appId: 'dashboard' }] },
-      ['orders'],
-    );
-
-    expect(driver.get.count()).toBe(1);
-  });
-
-  it('should skip malformed overrides when entries lack an app id', () => {
-    driver.when.devSessionCounted({
-      overrides: [{ appId: 'orders' }, {}, null],
-    });
-
-    expect(driver.get.count()).toBe(1);
+  it('should skip the malformed overrides when entries lack an app id', () => {
+    expect(
+      countDevSessionOverrides({
+        session: { overrides: [{ appId: faker.string.uuid() }, {}, null] },
+        disabledAppIds: new Set(),
+      }),
+    ).toBe(1);
   });
 });

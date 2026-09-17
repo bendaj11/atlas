@@ -1,3 +1,4 @@
+import { hasAtlasBootstrapSignature } from './atlas-bootstrap-signature';
 import { AtlasBootstrapSignatureDriver } from './atlas-bootstrap-signature.driver';
 
 const HOST_ROOT = '<div id="atlas-host-root"></div>';
@@ -12,28 +13,26 @@ describe('hasAtlasBootstrapSignature', () => {
   });
 
   it('should detect the signature when the host root and loader script exist', () => {
-    driver.given.pageBody(HOST_ROOT + LOADER_SCRIPT).when.signatureChecked();
+    driver.given.pageBody(HOST_ROOT + LOADER_SCRIPT);
 
-    expect(driver.get.hasSignature()).toBe(true);
+    expect(hasAtlasBootstrapSignature(driver.get.page())).toBe(true);
   });
 
   it('should miss the signature when the host root is absent', () => {
-    driver.given.pageBody(LOADER_SCRIPT).when.signatureChecked();
+    driver.given.pageBody(LOADER_SCRIPT);
 
-    expect(driver.get.hasSignature()).toBe(false);
+    expect(hasAtlasBootstrapSignature(driver.get.page())).toBe(false);
   });
 
   it('should miss the signature when the loader script is absent', () => {
-    driver.given.pageBody(HOST_ROOT).when.signatureChecked();
+    driver.given.pageBody(HOST_ROOT);
 
-    expect(driver.get.hasSignature()).toBe(false);
+    expect(hasAtlasBootstrapSignature(driver.get.page())).toBe(false);
   });
 
   it('should miss the signature when the script is not the Atlas loader', () => {
-    driver.given
-      .pageBody(HOST_ROOT + '<script src="/other.js"></script>')
-      .when.signatureChecked();
+    driver.given.pageBody(HOST_ROOT + '<script src="/other.js"></script>');
 
-    expect(driver.get.hasSignature()).toBe(false);
+    expect(hasAtlasBootstrapSignature(driver.get.page())).toBe(false);
   });
 });

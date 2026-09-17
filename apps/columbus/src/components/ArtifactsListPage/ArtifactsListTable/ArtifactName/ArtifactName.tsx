@@ -1,15 +1,23 @@
-import type { Artifact } from '../../../../types/artifact';
+import type { ArtifactTableRow } from '../../../../types/artifact';
 import { Badge, Box, InfoIcon, Text } from '@wix/design-system';
 
-export const ArtifactName = ({ artifact }: { artifact: Artifact }) => {
-  const isHost = artifact.productionArtifactVersion.kind === 'host';
+export const ArtifactName = ({ artifact }: { artifact: ArtifactTableRow }) => {
+  const isHost = artifact.deployedArtifactVersion.kind === 'host';
 
   return (
-    <Text size="small" weight="bold" skin={isHost ? 'primary' : 'standard'}>
-      {artifact.productionArtifactVersion.name}
+    <Box verticalAlign="middle">
+      <Text
+        dataHook="artifact-name"
+        size="small"
+        weight="bold"
+        skin={isHost ? 'primary' : 'standard'}
+      >
+        {artifact.deployedArtifactVersion.name}
+      </Text>
 
       <Box inline paddingLeft="SP1">
         <InfoIcon
+          dataHook="artifact-info"
           size="small"
           tooltipProps={{ size: 'small', maxWidth: 400 }}
           content={
@@ -25,12 +33,12 @@ export const ArtifactName = ({ artifact }: { artifact: Artifact }) => {
                 )}
               </Text>
               <Text size="tiny" secondary light>
-                {artifact.productionArtifactVersion.id}
+                {artifact.deployedArtifactVersion.id}
               </Text>
             </Box>
           }
         />
       </Box>
-    </Text>
+    </Box>
   );
 };

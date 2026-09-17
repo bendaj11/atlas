@@ -1,62 +1,79 @@
-import { ArtifactsOverridesPageDriver } from './ArtifactsOverridesPage.driver';
+import { faker } from '@faker-js/faker';
+import type { HostStatus } from '../../types/host-status';
+import { ArtifactsListPageDriver } from './ArtifactsListPage.driver';
 
-describe('ArtifactsOverridesPage', () => {
-  let driver: ArtifactsOverridesPageDriver;
+const NOT_LOADED_HOST_STATUSES: HostStatus[] = ['LOADING', 'ERROR'];
+
+describe('ArtifactsListPage', () => {
+  let driver: ArtifactsListPageDriver;
 
   beforeEach(() => {
-    driver = new ArtifactsOverridesPageDriver();
+    driver = new ArtifactsListPageDriver();
   });
 
-  it('should show the failure reason when host failed to load', () => {
-    driver.given.hostStatus('ERROR', 'No Atlas tab.').when.rendered();
+  it('should show loader when host status is LOADING', async () => {
+    driver.given.hostStatus('LOADING').when.rendered();
 
-    expect(driver.get.text('No Atlas tab.')).not.toBeNull();
+    expect(await driver.get.loader().exists()).toBe(true);
   });
 
-  it('should reload the host when refresh is clicked after a failure', async () => {
-    driver.given.hostStatus('ERROR', 'No Atlas tab.').when.rendered();
+  it('should render artifacts list table when host status is LOADED', () => {
+    driver.given.hostStatus('LOADED').when.rendered();
 
-    await driver.when.refreshClicked();
-
-    expect(driver.get.loadHostCount()).toBe(1);
+    expect(driver.get.artifactsListTableMock()).toHaveBeenCalled();
   });
 
-  it('should show the table when host is loaded', () => {
-    driver.when.rendered();
-
-    expect(driver.get.text('artifacts table')).not.toBeNull();
-  });
-
-  it.each(['LOADING', 'ERROR'] as const)(
-    'should hide the table when host status is %s',
+  it.each(NOT_LOADED_HOST_STATUSES)(
+    'should not render artifacts list table when host status is %s',
     (status) => {
       driver.given.hostStatus(status).when.rendered();
 
-      expect(driver.get.text('artifacts table')).toBeNull();
+      expect(driver.get.artifactsListTableMock()).not.toHaveBeenCalled();
     },
   );
 
-  it('should clear all overrides when clear is clicked and overrides exist', async () => {
-    driver.given.hasOverrides(true).when.rendered();
+  it('should disable clear button when there are no overrides', async () => {
+    driver.given.hasOverrides(false).when.rendered();
 
-    await driver.when.clearClicked();
-
-    expect(driver.get.clearCount()).toBe(1);
+    expect(await driver.get.clearButton().isButtonDisabled()).toBe(true);
   });
 
-  it('should not clear when there are no overrides', async () => {
-    driver.when.rendered();
+  it('should disable clear button when actions are disabled', async () => {
+    driver.given.actionsDisabled(true).when.rendered();
 
-    await driver.when.clearClicked();
-
-    expect(driver.get.clearCount()).toBe(0);
+    expect(await driver.get.clearButton().isButtonDisabled()).toBe(true);
   });
 
-  it('should not clear when actions are disabled', async () => {
-    driver.given.hasOverrides(true).given.actionsDisabled(true).when.rendered();
+  it('should call clearAllOverrides once when clear button is clicked and overrides exist and actions are enabled', async () => {
+    driver.given
+      .hasOverrides(true)
+      .given.actionsDisabled(false)
+      .when.rendered();
 
     await driver.when.clearClicked();
 
-    expect(driver.get.clearCount()).toBe(0);
+    expect(driver.get.clearAllOverrides()).toHaveBeenCalledTimes(1);
+  });
+
+  describe('when host status is ERROR', () => {
+    beforeEach(() => {
+      driver.given.hostStatus('ERROR');
+    });
+
+    it('should show host message as empty state subtitle when rendered', async () => {
+      const message = faker.lorem.sentence();
+
+      driver.given.hostMessage(message).when.rendered();
+
+      expect(await driver.get.emptyState().getSubtitleText()).toBe(message);
+    });
+
+    it('should call loadHost once when refresh button is clicked', async () => {
+      driver.when.rendered();
+
+      await driver.when.refreshClicked();
+
+      expect(driver.get.loadHost()).toHaveBeenCalledTimes(1);
+    });
   });
 });

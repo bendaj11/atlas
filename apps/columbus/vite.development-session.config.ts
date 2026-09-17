@@ -12,7 +12,7 @@ export default defineConfig({
     lib: {
       entry: resolve(
         directory,
-        'src/scripts/development-session/development-session-content.ts',
+        'src/scripts/development-session/development-session-content/development-session-content.ts',
       ),
       formats: ['iife'],
       name: 'AtlasDevelopmentSessionContent',

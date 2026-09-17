@@ -1,61 +1,52 @@
-import { ErrorsDriver } from './errors.driver';
+import { faker } from '@faker-js/faker';
+import { failureMessage, messageFromError } from './errors';
 
 describe('messageFromError', () => {
-  let driver: ErrorsDriver;
-
-  beforeEach(() => {
-    driver = new ErrorsDriver();
-  });
-
   it('should use the error message when given an Error', () => {
-    driver.when.messageExtracted(new Error('Boom'));
+    const message = faker.lorem.sentence();
 
-    expect(driver.get.message()).toBe('Boom');
+    expect(messageFromError(new Error(message))).toBe(message);
   });
 
   it('should stringify the value when given a non-Error', () => {
-    driver.when.messageExtracted(404);
+    const status = faker.number.int();
 
-    expect(driver.get.message()).toBe('404');
+    expect(messageFromError(status)).toBe(String(status));
   });
 });
 
 describe('failureMessage', () => {
-  let driver: ErrorsDriver;
+  it('should use generic wording when only the error is given', () => {
+    const detail = faker.lorem.sentence();
 
-  beforeEach(() => {
-    driver = new ErrorsDriver();
+    expect(failureMessage(new Error(detail))).toBe(
+      `Columbus could not complete the requested action: ${detail} Suggested action: Reload the Atlas host page, reopen Columbus, and retry.`,
+    );
   });
 
   it('should describe operation, detail, and action when all are given', () => {
-    driver.when.failureDescribed(
-      new Error('Tab gone.'),
-      'read the host',
-      'Retry.',
-    );
+    const detail = faker.lorem.sentence();
+    const operation = faker.lorem.words();
+    const suggestedAction = faker.lorem.sentence();
 
-    expect(driver.get.message()).toBe(
-      'Columbus could not read the host: Tab gone. Suggested action: Retry.',
+    expect(failureMessage(new Error(detail), operation, suggestedAction)).toBe(
+      `Columbus could not ${operation}: ${detail} Suggested action: ${suggestedAction}`,
     );
   });
 
-  it('should strip a nested suggested action when the detail already has one', () => {
-    driver.when.failureDescribed(
-      new Error('Tab gone. Suggested action: Old advice.'),
-      'read',
-      'New.',
-    );
+  it('should strip the nested suggested action when the detail already has one', () => {
+    const detail = faker.lorem.sentence();
+    const operation = faker.lorem.words();
+    const suggestedAction = faker.lorem.sentence();
 
-    expect(driver.get.message()).toBe(
-      'Columbus could not read: Tab gone. Suggested action: New.',
-    );
-  });
-
-  it('should use generic wording when only the error is given', () => {
-    driver.when.failureDescribed('oops');
-
-    expect(driver.get.message()).toBe(
-      'Columbus could not complete the requested action: oops Suggested action: Reload the Atlas host page, reopen Columbus, and retry.',
+    expect(
+      failureMessage(
+        new Error(`${detail} Suggested action: ${faker.lorem.sentence()}`),
+        operation,
+        suggestedAction,
+      ),
+    ).toBe(
+      `Columbus could not ${operation}: ${detail} Suggested action: ${suggestedAction}`,
     );
   });
 });

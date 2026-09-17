@@ -1,5 +1,4 @@
-import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
-import type { Artifact } from '../../../types/artifact';
+import type { ArtifactOverride } from '../../../types/artifact';
 import type { ColumbusState, Scope } from '../../../types/columbus-state';
 
 export function toggleArtifactVersionOverride({
@@ -42,11 +41,11 @@ export function saveArtifactVersionOverride({
 }: {
   columbusState: ColumbusState;
   selection: Pick<
-    Artifact,
-    'productionArtifactVersion' | 'selectedArtifactVersion'
+    ArtifactOverride,
+    'deployedArtifactVersion' | 'selectedOverrideArtifactVersion'
   >;
 }): ColumbusState {
-  const artifactKey = getArtifactKey(selection.productionArtifactVersion);
+  const artifactKey = selection.deployedArtifactVersion.id;
   const enabledArtifactVersionOverrides = new Map(
     columbusState.enabledArtifactVersionOverrides,
   );
@@ -57,12 +56,12 @@ export function saveArtifactVersionOverride({
     columbusState.clearedLocalArtifactIds,
   );
   disabledArtifactVersionOverrides.delete(artifactKey);
-  clearedLocalArtifactIds.delete(selection.productionArtifactVersion.id);
+  clearedLocalArtifactIds.delete(selection.deployedArtifactVersion.id);
 
-  if (selection.selectedArtifactVersion)
+  if (selection.selectedOverrideArtifactVersion)
     enabledArtifactVersionOverrides.set(
       artifactKey,
-      selection.selectedArtifactVersion,
+      selection.selectedOverrideArtifactVersion,
     );
   else enabledArtifactVersionOverrides.delete(artifactKey);
 
@@ -108,7 +107,7 @@ export function clearArtifactVersionOverride({
   const disabledArtifactVersionOverrides = new Map(
     columbusState.disabledArtifactVersionOverrides,
   );
-  const selectedArtifactVersion =
+  const selectedOverrideArtifactVersion =
     enabledArtifactVersionOverrides.get(artifactKey) ??
     disabledArtifactVersionOverrides.get(artifactKey);
   const clearedLocalArtifactIds = new Set(
@@ -116,8 +115,8 @@ export function clearArtifactVersionOverride({
   );
   enabledArtifactVersionOverrides.delete(artifactKey);
   disabledArtifactVersionOverrides.delete(artifactKey);
-  if (selectedArtifactVersion?.channel === 'local')
-    clearedLocalArtifactIds.add(selectedArtifactVersion.id);
+  if (selectedOverrideArtifactVersion?.channel === 'local')
+    clearedLocalArtifactIds.add(selectedOverrideArtifactVersion.id);
   return {
     ...columbusState,
     enabledArtifactVersionOverrides,

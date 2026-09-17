@@ -8,12 +8,12 @@ import {
   Text,
 } from '@wix/design-system';
 import { Delete } from '@wix/wix-ui-icons-common';
-import { useActionsDisabled, useHost, useOverrides } from '../../state';
+import { useActionsDisabled, useHost, useOverrides } from '../../hooks';
 import { EmptyHostDataState } from '../EmptyHostDataState/EmptyHostDataState';
-import { ArtifactsOverridesTable } from './ArtifactsOverridesTable/ArtifactsOverridesTable';
+import { ArtifactsListTable } from './ArtifactsListTable/ArtifactsListTable';
 import manifest from '../../../public/manifest.json';
 
-export function ArtifactsOverridesPage() {
+export function ArtifactsListPage() {
   const { loadHost, message, status } = useHost();
   const { clearAllOverrides, hasOverrides } = useOverrides();
   const actionsDisabled = useActionsDisabled();
@@ -47,6 +47,7 @@ export function ArtifactsOverridesPage() {
         actionsBar={
           <Box align="center">
             <Button
+              dataHook="clear-all-overrides"
               size="small"
               skin="destructive"
               priority="secondary"
@@ -62,7 +63,7 @@ export function ArtifactsOverridesPage() {
       <Page.Content>
         {status === 'LOADING' && (
           <Box align="center" verticalAlign="middle" paddingTop="80px">
-            <Loader status="loading" />
+            <Loader dataHook="host-loader" status="loading" />
           </Box>
         )}
         {status === 'ERROR' && (
@@ -71,7 +72,7 @@ export function ArtifactsOverridesPage() {
             onRefresh={() => void loadHost()}
           />
         )}
-        {status === 'LOADED' && <ArtifactsOverridesTable />}
+        {status === 'LOADED' && <ArtifactsListTable />}
       </Page.Content>
     </Page>
   );

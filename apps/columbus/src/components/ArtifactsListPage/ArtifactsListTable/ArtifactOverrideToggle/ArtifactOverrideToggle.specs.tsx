@@ -1,5 +1,6 @@
-import { anArtifact } from '../../../../types/artifact.testkit';
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
+import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
 import { ArtifactOverrideToggleDriver } from './ArtifactOverrideToggle.driver';
 
 describe('ArtifactOverrideToggle', () => {
@@ -9,73 +10,91 @@ describe('ArtifactOverrideToggle', () => {
     driver = new ArtifactOverrideToggleDriver();
   });
 
-  it('should be checked when override is enabled', () => {
+  it('should check toggle switch when override is enabled', async () => {
     driver.given
-      .artifact(anArtifact({ canToggle: true, overrideEnabled: true }))
+      .artifact(anArtifactTableRow({ overrideEnabled: true }))
       .when.rendered();
 
-    expect(driver.get.toggle().checked).toBe(true);
+    expect(await driver.get.toggleSwitch().isChecked()).toBe(true);
   });
 
-  it('should be unchecked when override is disabled', () => {
+  it('should uncheck toggle switch when override is disabled', async () => {
     driver.given
-      .artifact(anArtifact({ canToggle: true, overrideEnabled: false }))
+      .artifact(anArtifactTableRow({ overrideEnabled: false }))
       .when.rendered();
 
-    expect(driver.get.toggle().checked).toBe(false);
+    expect(await driver.get.toggleSwitch().isChecked()).toBe(false);
   });
 
-  it('should label the switch with the artifact name when override is disabled', () => {
+  it('should label toggle switch as enable of the artifact name when override is disabled', async () => {
+    const name = faker.commerce.productName();
+
     driver.given
       .artifact(
-        anArtifact({
-          canToggle: true,
+        anArtifactTableRow({
           overrideEnabled: false,
-          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
+          deployedArtifactVersion: anAppManifest({ name }),
         }),
       )
       .when.rendered();
 
-    expect(driver.get.toggleName()).toBe('Enable Orders override');
+    expect(
+      await driver.get.toggleSwitch().base.$('input').attr('aria-label'),
+    ).toBe(`Enable ${name} override`);
   });
 
-  it('should label the switch with disable when override is enabled', () => {
+  it('should label toggle switch as disable of the artifact name when override is enabled', async () => {
+    const name = faker.commerce.productName();
+
     driver.given
       .artifact(
-        anArtifact({
-          canToggle: true,
+        anArtifactTableRow({
           overrideEnabled: true,
-          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
+          deployedArtifactVersion: anAppManifest({ name }),
         }),
       )
       .when.rendered();
 
-    expect(driver.get.toggleName()).toBe('Disable Orders override');
+    expect(
+      await driver.get.toggleSwitch().base.$('input').attr('aria-label'),
+    ).toBe(`Disable ${name} override`);
   });
 
-  it('should toggle the artifact override when clicked', async () => {
-    driver.given
-      .artifact(anArtifact({ key: 'app:orders', canToggle: true }))
-      .when.rendered();
-
-    await driver.when.toggled();
-
-    expect(driver.get.toggledArtifactKey()).toBe('app:orders');
-  });
-
-  it('should not toggle when actions are disabled', async () => {
+  it('should disable toggle switch when actions are disabled', async () => {
     driver.given.actionsDisabled(true).when.rendered();
 
-    await driver.when.toggled();
-
-    expect(driver.get.toggledArtifactKey()).toBeUndefined();
+    expect(await driver.get.toggleSwitch().isDisabled()).toBe(true);
   });
 
-  it('should not toggle when artifact cannot toggle', async () => {
-    driver.given.artifact(anArtifact({ canToggle: false })).when.rendered();
+  it('should disable toggle switch when artifact cannot toggle', async () => {
+    driver.given
+      .artifact(anArtifactTableRow({ canToggle: false }))
+      .when.rendered();
 
-    await driver.when.toggled();
+    expect(await driver.get.toggleSwitch().isDisabled()).toBe(true);
+  });
 
-    expect(driver.get.toggledArtifactKey()).toBeUndefined();
+  describe('when actions are enabled and artifact can toggle', () => {
+    const artifact = anArtifactTableRow({ canToggle: true });
+
+    beforeEach(() => {
+      driver.given.artifact(artifact).given.actionsDisabled(false);
+    });
+
+    it('should enable toggle switch when rendered', async () => {
+      driver.when.rendered();
+
+      expect(await driver.get.toggleSwitch().isDisabled()).toBe(false);
+    });
+
+    it('should call toggleOverride with the deployed artifact version id when toggled', async () => {
+      driver.when.rendered();
+
+      await driver.when.toggled();
+
+      expect(driver.get.toggleOverride()).toHaveBeenCalledWith(
+        artifact.deployedArtifactVersion.id,
+      );
+    });
   });
 });

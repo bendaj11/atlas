@@ -1,257 +1,335 @@
 /** @jest-environment node */
 
-import { anAppManifest } from '@atlas/testkit';
-import { aPublishedArtifact } from '../registry.testkit';
+import { faker } from '@faker-js/faker';
+import {
+  aHostRuntimeConfig,
+  anAppManifest,
+  aRegistryUrl,
+} from '@atlas/testkit';
+import {
+  aRegistry,
+  aRegistryArtifact,
+  aPublishedArtifact,
+} from '../../../testkit/registry.testkit';
 import { ArtifactRegistryDriver } from './artifact-registry.driver';
 
-const ORDERS = anAppManifest({
-  id: 'orders',
-  channel: 'production',
-  version: '1.0.0',
-  buildId: 'canonical',
-});
-const RELEASE_1 = aPublishedArtifact(
-  anAppManifest({
-    id: 'orders',
-    channel: 'production',
-    version: '1.0.0',
-    buildId: 'canonical',
-  }),
-);
-const RELEASE_2 = aPublishedArtifact(
-  anAppManifest({
-    id: 'orders',
-    channel: 'production',
-    version: '2.0.0',
-    buildId: 'canonical',
-  }),
-);
-const PREVIEW_42 = aPublishedArtifact(
-  anAppManifest({
-    id: 'orders',
-    channel: 'pr',
-    prNumber: 42,
-    buildId: 'abcdef1',
-  }),
-);
+const { createArtifactRegistry, registryRootFor, uniqueManifests } =
+  await import('./artifact-registry');
 
-describe('readRegistry', () => {
+describe('createArtifactRegistry', () => {
   let driver: ArtifactRegistryDriver;
 
   beforeEach(() => {
     driver = new ArtifactRegistryDriver();
   });
 
-  it('should fail when the registry responds with an error status', async () => {
-    await driver.given.registryStatus(404).when.registryRead();
+  describe('readRegistry', () => {
+    it('should fetch the registry document under the root when read', async () => {
+      const root = aRegistryUrl();
 
-    expect(driver.get.errorMessage()).toBe('Atlas registry returned 404.');
+      driver.given.registryResponse(Response.json(aRegistry()));
+
+      await createArtifactRegistry().readRegistry(root);
+
+      expect(driver.get.fetchWithTimeout()).toHaveBeenCalledWith(
+        `${root}/registry.json`,
+      );
+    });
+
+    it('should return the registry when the document is valid', async () => {
+      const registry = aRegistry();
+
+      driver.given.registryResponse(Response.json(registry));
+
+      await expect(
+        createArtifactRegistry().readRegistry(aRegistryUrl()),
+      ).resolves.toEqual(registry);
+    });
+
+    it('should reject when the registry responds with an error status', async () => {
+      driver.given.registryResponse(new Response(null, { status: 404 }));
+
+      await expect(
+        createArtifactRegistry().readRegistry(aRegistryUrl()),
+      ).rejects.toThrow('Atlas registry returned 404.');
+    });
+
+    it('should reject when the registry document has the wrong shape', async () => {
+      driver.given.registryResponse(Response.json({ schemaVersion: '1' }));
+
+      await expect(
+        createArtifactRegistry().readRegistry(aRegistryUrl()),
+      ).rejects.toThrow('Atlas registry returned invalid data.');
+    });
   });
 
-  it('should fail when the registry document has the wrong shape', async () => {
-    await driver.given
-      .registryResponse({ schemaVersion: '1' })
-      .when.registryRead();
+  describe('readVersions', () => {
+    it('should reject when the artifact is not registered', async () => {
+      const deployed = anAppManifest();
 
-    expect(driver.get.errorMessage()).toBe(
-      'Atlas registry returned invalid data.',
-    );
-  });
+      await expect(
+        createArtifactRegistry().readVersions(
+          deployed,
+          aRegistry(),
+          aRegistryUrl(),
+        ),
+      ).rejects.toThrow(`Artifact ${deployed.id} is not registered.`);
+    });
 
-  it('should succeed when the registry document is valid', async () => {
-    await driver.when.registryRead();
-
-    expect(driver.get.errorMessage()).toBeUndefined();
-  });
-});
-
-describe('readVersions', () => {
-  let driver: ArtifactRegistryDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactRegistryDriver();
-  });
-
-  it('should fail when the artifact is not registered', async () => {
-    await driver.when.versionsRead(ORDERS);
-
-    expect(driver.get.errorMessage()).toBe(
-      'Artifact orders is not registered.',
-    );
-  });
-
-  it('should list releases newest first when the artifact has releases', async () => {
-    await driver.given
-      .registeredApp(ORDERS, [RELEASE_1, RELEASE_2])
-      .when.versionsRead(ORDERS);
-
-    expect(driver.get.versionKeys()).toEqual([
-      'production:2.0.0:canonical',
-      'production:1.0.0:canonical',
-    ]);
-  });
-
-  it('should not fetch release manifests when listing releases', async () => {
-    await driver.given
-      .registeredApp(ORDERS, [RELEASE_1, RELEASE_2])
-      .when.versionsRead(ORDERS);
-
-    expect(driver.get.manifestFetchCount()).toBe(0);
-  });
-
-  it('should append fetched previews when the artifact has previews', async () => {
-    await driver.given
-      .registeredApp(ORDERS, [RELEASE_1, PREVIEW_42])
-      .when.versionsRead(ORDERS);
-
-    expect(driver.get.versionKeys()).toEqual([
-      'production:1.0.0:canonical',
-      'pr:42:abcdef1',
-    ]);
-  });
-
-  it('should report the preview when its manifest cannot be fetched', async () => {
-    await driver.given
-      .unpublishedPreview(ORDERS, PREVIEW_42)
-      .when.versionsRead(ORDERS);
-
-    expect(driver.get.versionsError()).toBe(
-      'Preview 42 is unavailable: https://registry.example/apps/orders/previews/42/abcdef1/manifest.json returned 404.',
-    );
-  });
-
-  it('should keep available previews when another preview is unavailable', async () => {
-    await driver.given
-      .unpublishedPreview(ORDERS, PREVIEW_42)
-      .when.versionsRead(ORDERS);
-
-    expect(driver.get.versionKeys()).toEqual([]);
-  });
-});
-
-describe('loadVersion', () => {
-  let driver: ArtifactRegistryDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactRegistryDriver();
-  });
-
-  it('should fail when the version was never listed', async () => {
-    await driver.when.versionLoaded('app:orders', 'production:9.9.9:canonical');
-
-    expect(driver.get.errorMessage()).toBe(
-      'Selected artifact version is unavailable.',
-    );
-  });
-
-  it('should fetch the release manifest when the version was listed', async () => {
-    await driver.given
-      .registeredApp(ORDERS, [RELEASE_2])
-      .when.versionsRead(ORDERS);
-
-    await driver.when.versionLoaded('app:orders', 'production:2.0.0:canonical');
-
-    expect(driver.get.loadedVersion()).toBe('2.0.0');
-  });
-
-  it('should reuse the fetched preview manifest when the preview was listed', async () => {
-    await driver.given
-      .registeredApp(ORDERS, [PREVIEW_42])
-      .when.versionsRead(ORDERS);
-
-    await driver.when.versionLoaded('app:orders', 'pr:42:abcdef1');
-
-    expect(driver.get.manifestFetchCount()).toBe(1);
-  });
-
-  it('should fail when the fetched manifest does not match the listed version', async () => {
-    await driver.given
-      .registeredApp(ORDERS, [RELEASE_2])
-      .given.fetchedManifestAt(
-        RELEASE_2.path,
+    describe('when the app has two releases', () => {
+      const deployed = anAppManifest({ channel: 'production' });
+      const older = aPublishedArtifact(
         anAppManifest({
-          id: 'orders',
+          id: deployed.id,
           channel: 'production',
-          version: '3.0.0',
+          version: '1.0.0',
         }),
-      )
-      .when.versionsRead(ORDERS);
-    await driver.when.versionLoaded('app:orders', 'production:2.0.0:canonical');
+      );
+      const latest = aPublishedArtifact(
+        anAppManifest({
+          id: deployed.id,
+          channel: 'production',
+          version: '2.0.0',
+        }),
+      );
+      const registry = aRegistry({
+        apps: { [deployed.id]: aRegistryArtifact(deployed, [older, latest]) },
+      });
 
-    expect(driver.get.errorMessage()).toBe(
-      'Selected artifact manifest does not match its registry entry.',
-    );
+      it('should list the canonical production releases newest first when read', async () => {
+        await expect(
+          createArtifactRegistry().readVersions(
+            deployed,
+            registry,
+            aRegistryUrl(),
+          ),
+        ).resolves.toStrictEqual({
+          manifests: [
+            {
+              ...deployed,
+              version: '2.0.0',
+              buildId: 'canonical',
+              channel: 'production',
+            },
+            {
+              ...deployed,
+              version: '1.0.0',
+              buildId: 'canonical',
+              channel: 'production',
+            },
+          ],
+        });
+      });
+
+      it('should not fetch any manifest when read', async () => {
+        await createArtifactRegistry().readVersions(
+          deployed,
+          registry,
+          aRegistryUrl(),
+        );
+
+        expect(driver.get.fetchVerifiedManifest()).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the app has a preview', () => {
+      const deployed = anAppManifest({ channel: 'production' });
+      const preview = aPublishedArtifact(
+        anAppManifest({
+          id: deployed.id,
+          channel: 'pr',
+          prNumber: faker.number.int({ min: 1, max: 9999 }),
+        }),
+      );
+      const registry = aRegistry({
+        apps: { [deployed.id]: aRegistryArtifact(deployed, [preview]) },
+      });
+
+      it('should fetch the preview manifest at its registry reference when read', async () => {
+        const root = aRegistryUrl();
+
+        driver.given.manifest(preview.manifest);
+
+        await createArtifactRegistry().readVersions(deployed, registry, root);
+
+        expect(driver.get.fetchVerifiedManifest()).toHaveBeenCalledWith({
+          ...preview.descriptor,
+          url: `${root}/${preview.path}`,
+        });
+      });
+
+      it('should list the fetched preview manifest when read', async () => {
+        driver.given.manifest(preview.manifest);
+
+        await expect(
+          createArtifactRegistry().readVersions(
+            deployed,
+            registry,
+            aRegistryUrl(),
+          ),
+        ).resolves.toStrictEqual({ manifests: [preview.manifest] });
+      });
+
+      it('should report the preview as unavailable when its manifest cannot be fetched', async () => {
+        const reason = faker.lorem.sentence();
+
+        driver.given.manifestFailure(new Error(reason));
+
+        await expect(
+          createArtifactRegistry().readVersions(
+            deployed,
+            registry,
+            aRegistryUrl(),
+          ),
+        ).resolves.toStrictEqual({
+          manifests: [],
+          error: `Preview ${preview.manifest.prNumber} is unavailable: ${reason}`,
+        });
+      });
+    });
+  });
+
+  describe('loadVersion', () => {
+    it('should reject when the version was never listed', async () => {
+      await expect(
+        createArtifactRegistry().loadVersion(
+          faker.string.uuid(),
+          faker.string.uuid(),
+        ),
+      ).rejects.toThrow('Selected artifact version is unavailable.');
+    });
+
+    describe('when a release was listed', () => {
+      const deployed = anAppManifest({ channel: 'production' });
+      const release = aPublishedArtifact(
+        anAppManifest({
+          id: deployed.id,
+          channel: 'production',
+          version: '2.0.0',
+          buildId: 'canonical',
+        }),
+      );
+      const registry = aRegistry({
+        apps: { [deployed.id]: aRegistryArtifact(deployed, [release]) },
+      });
+
+      it('should return the fetched release manifest when loaded', async () => {
+        const artifactRegistry = createArtifactRegistry();
+
+        driver.given.manifest(release.manifest);
+
+        await artifactRegistry.readVersions(deployed, registry, aRegistryUrl());
+
+        await expect(
+          artifactRegistry.loadVersion(
+            deployed.id,
+            'production:2.0.0:canonical',
+          ),
+        ).resolves.toBe(release.manifest);
+      });
+
+      it('should reject when the fetched manifest does not match the listed version', async () => {
+        const artifactRegistry = createArtifactRegistry();
+
+        driver.given.manifest(
+          anAppManifest({
+            id: deployed.id,
+            channel: 'production',
+            version: '3.0.0',
+          }),
+        );
+
+        await artifactRegistry.readVersions(deployed, registry, aRegistryUrl());
+
+        await expect(
+          artifactRegistry.loadVersion(
+            deployed.id,
+            'production:2.0.0:canonical',
+          ),
+        ).rejects.toThrow(
+          'Selected artifact manifest does not match its registry entry.',
+        );
+      });
+    });
+
+    it('should fetch the preview manifest once when the preview was listed and is loaded', async () => {
+      const deployed = anAppManifest({ channel: 'production' });
+      const preview = aPublishedArtifact(
+        anAppManifest({
+          id: deployed.id,
+          channel: 'pr',
+          prNumber: faker.number.int({ min: 1, max: 9999 }),
+        }),
+      );
+      const registry = aRegistry({
+        apps: { [deployed.id]: aRegistryArtifact(deployed, [preview]) },
+      });
+      const artifactRegistry = createArtifactRegistry();
+
+      driver.given.manifest(preview.manifest);
+
+      await artifactRegistry.readVersions(deployed, registry, aRegistryUrl());
+      await artifactRegistry.loadVersion(
+        deployed.id,
+        `pr:${preview.manifest.prNumber}:${preview.manifest.buildId}`,
+      );
+
+      expect(driver.get.fetchVerifiedManifest()).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
 describe('registryRootFor', () => {
-  let driver: ArtifactRegistryDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactRegistryDriver();
-  });
-
-  it('should strip the trailing slash when the environment is production', () => {
-    driver.when.rootResolved({
-      artifactRegistryUrl: 'https://registry.example/',
-    });
-
-    expect(driver.get.root()).toBe('https://registry.example');
+  it('should strip the trailing slash when the environment is not development', () => {
+    expect(
+      registryRootFor(
+        aHostRuntimeConfig({
+          environment: 'production',
+          artifactRegistryUrl: 'https://registry.example/',
+        }),
+      ),
+    ).toBe('https://registry.example');
   });
 
   it('should return nothing when the registry url is empty', () => {
-    driver.when.rootResolved({ artifactRegistryUrl: '' });
-
-    expect(driver.get.root()).toBeUndefined();
+    expect(
+      registryRootFor(aHostRuntimeConfig({ artifactRegistryUrl: '' })),
+    ).toBeUndefined();
   });
 
   it('should return nothing when development serves the registry from the control server', () => {
-    driver.when.rootResolved({
-      environment: 'development',
-      artifactRegistryUrl: 'http://localhost:4400',
-      developmentSessionUrl: 'http://localhost:4400/atlas.dev-session.json',
-    });
-
-    expect(driver.get.root()).toBeUndefined();
+    expect(
+      registryRootFor(
+        aHostRuntimeConfig({
+          environment: 'development',
+          artifactRegistryUrl: 'http://localhost:4400',
+          developmentSessionUrl: 'http://localhost:4400/atlas.dev-session.json',
+        }),
+      ),
+    ).toBeUndefined();
   });
 
   it('should keep the registry url when development uses a separate registry', () => {
-    driver.when.rootResolved({
-      environment: 'development',
-      artifactRegistryUrl: 'https://registry.example',
-      developmentSessionUrl: 'http://localhost:4400/atlas.dev-session.json',
-    });
-
-    expect(driver.get.root()).toBe('https://registry.example');
+    expect(
+      registryRootFor(
+        aHostRuntimeConfig({
+          environment: 'development',
+          artifactRegistryUrl: 'https://registry.example',
+          developmentSessionUrl: 'http://localhost:4400/atlas.dev-session.json',
+        }),
+      ),
+    ).toBe('https://registry.example');
   });
 });
 
 describe('uniqueManifests', () => {
-  let driver: ArtifactRegistryDriver;
+  it('should keep one manifest per kind, id, channel, and version when duplicates exist', () => {
+    const repeated = anAppManifest();
+    const other = anAppManifest();
 
-  beforeEach(() => {
-    driver = new ArtifactRegistryDriver();
-  });
-
-  it('should keep one manifest per channel and version when duplicates exist', () => {
-    driver.when.deduplicated([
-      anAppManifest({
-        id: 'orders',
-        channel: 'production',
-        version: '1.0.0',
-      }),
-      anAppManifest({
-        id: 'orders',
-        channel: 'production',
-        version: '1.0.0',
-      }),
-      anAppManifest({
-        id: 'orders',
-        channel: 'production',
-        version: '2.0.0',
-      }),
+    expect(uniqueManifests([repeated, repeated, other])).toStrictEqual([
+      repeated,
+      other,
     ]);
-
-    expect(driver.get.uniqueVersions()).toEqual(['1.0.0', '2.0.0']);
   });
 });

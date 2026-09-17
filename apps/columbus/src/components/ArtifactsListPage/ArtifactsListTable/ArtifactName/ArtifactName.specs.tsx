@@ -1,5 +1,6 @@
+import { faker } from '@faker-js/faker';
 import { aHostManifest, anAppManifest } from '@atlas/testkit';
-import { anArtifact } from '../../../../types/artifact.testkit';
+import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
 import { ArtifactNameDriver } from './ArtifactName.driver';
 
 describe('ArtifactName', () => {
@@ -9,49 +10,75 @@ describe('ArtifactName', () => {
     driver = new ArtifactNameDriver();
   });
 
-  it('should show the artifact name when rendered', () => {
+  it('should show deployed artifact version name when rendered', async () => {
+    const name = faker.commerce.productName();
+
     driver.given
       .artifact(
-        anArtifact({
-          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
+        anArtifactTableRow({
+          deployedArtifactVersion: anAppManifest({ name }),
         }),
       )
       .when.rendered();
 
-    expect(driver.get.text('Orders')).not.toBeNull();
+    expect(await driver.get.name().getText()).toBe(name);
   });
 
-  it('should show the artifact id when info is hovered', async () => {
+  it('should show deployed artifact version id in info tooltip when info icon is hovered', async () => {
+    const id = faker.string.uuid();
+
     driver.given
       .artifact(
-        anArtifact({
-          productionArtifactVersion: anAppManifest({ id: 'orders-app' }),
-        }),
+        anArtifactTableRow({ deployedArtifactVersion: anAppManifest({ id }) }),
       )
       .when.rendered();
 
     await driver.when.infoHovered();
 
-    expect(await driver.get.tooltipText('orders-app')).not.toBeNull();
+    expect(await driver.get.infoIcon().getContent()).toContain(id);
   });
 
-  it('should mark the host when artifact is the host', async () => {
-    driver.given
-      .artifact(anArtifact({ productionArtifactVersion: aHostManifest() }))
-      .when.rendered();
+  describe('when deployed artifact version is a host', () => {
+    beforeEach(() => {
+      driver.given.artifact(
+        anArtifactTableRow({ deployedArtifactVersion: aHostManifest() }),
+      );
+    });
 
-    await driver.when.infoHovered();
+    it('should mark name skin primary when rendered', async () => {
+      driver.when.rendered();
 
-    expect(await driver.get.tooltipText('Host')).not.toBeNull();
+      expect(await driver.get.name().getSkin()).toBe('primary');
+    });
+
+    it('should show host badge in info tooltip when info icon is hovered', async () => {
+      driver.when.rendered();
+
+      await driver.when.infoHovered();
+
+      expect(await driver.get.infoIcon().getContent()).toContain('Host');
+    });
   });
 
-  it('should not mark the host when artifact is an app', async () => {
-    driver.given
-      .artifact(anArtifact({ productionArtifactVersion: anAppManifest() }))
-      .when.rendered();
+  describe('when deployed artifact version is an app', () => {
+    beforeEach(() => {
+      driver.given.artifact(
+        anArtifactTableRow({ deployedArtifactVersion: anAppManifest() }),
+      );
+    });
 
-    await driver.when.infoHovered();
+    it('should mark name skin standard when rendered', async () => {
+      driver.when.rendered();
 
-    expect(await driver.get.tooltipText('Host')).toBeNull();
+      expect(await driver.get.name().getSkin()).toBe('standard');
+    });
+
+    it('should not show host badge in info tooltip when info icon is hovered', async () => {
+      driver.when.rendered();
+
+      await driver.when.infoHovered();
+
+      expect(await driver.get.infoIcon().getContent()).not.toContain('Host');
+    });
   });
 });

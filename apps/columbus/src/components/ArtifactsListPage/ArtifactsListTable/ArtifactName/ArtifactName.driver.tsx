@@ -1,14 +1,18 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { Artifact } from '../../../../types/artifact';
-import { anArtifact } from '../../../../types/artifact.testkit';
+import { render } from '@testing-library/react';
+import {
+  InfoIconTestkit,
+  TextTestkit,
+} from '@wix/design-system/dist/testkit/testing-library';
+import type { ArtifactTableRow } from '../../../../types/artifact';
+import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
 import { ArtifactName } from './ArtifactName';
 
 export class ArtifactNameDriver {
-  private artifact: Artifact = anArtifact();
+  private artifact = anArtifactTableRow();
+  private baseElement!: Element;
 
   readonly given = {
-    artifact: (artifact: Artifact): this => {
+    artifact: (artifact: ArtifactTableRow) => {
       this.artifact = artifact;
 
       return this;
@@ -16,17 +20,18 @@ export class ArtifactNameDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
-      render(<ArtifactName artifact={this.artifact} />);
+    rendered: () => {
+      this.baseElement = render(
+        <ArtifactName artifact={this.artifact} />,
+      ).baseElement;
     },
-    infoHovered: async (): Promise<void> => {
-      await userEvent.hover(screen.getByRole('button'));
-    },
+    infoHovered: () => this.get.infoIcon().hover(),
   };
 
   readonly get = {
-    text: (name: string): HTMLElement | null => screen.queryByText(name),
-    tooltipText: async (text: string): Promise<HTMLElement | null> =>
-      screen.findByText(text).catch(() => null),
+    name: () =>
+      TextTestkit({ wrapper: this.baseElement, dataHook: 'artifact-name' }),
+    infoIcon: () =>
+      InfoIconTestkit({ wrapper: this.baseElement, dataHook: 'artifact-info' }),
   };
 }

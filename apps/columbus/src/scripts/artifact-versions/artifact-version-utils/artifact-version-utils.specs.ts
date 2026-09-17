@@ -1,254 +1,80 @@
 import { faker } from '@faker-js/faker';
-import { aHostManifest, anAppManifest, aVersionOf } from '@atlas/testkit';
-import { anArtifact } from '../../../types/artifact.testkit';
-import { ArtifactVersionUtilsDriver } from './artifact-version-utils.driver';
+import {
+  aHostManifest,
+  anAppManifest,
+  anExportedWidgetManifest,
+  aRoutePlacement,
+} from '@atlas/testkit';
+import {
+  baseUrlFromRemoteEntry,
+  createCustomArtifactVersion,
+  isArtifactVersionSupportedByHost,
+  normalizeStoredArtifactVersion,
+  versionBuildIdLabel,
+  versionLabel,
+} from './artifact-version-utils';
 
-const DEPLOYED = anAppManifest({
-  channel: 'production',
-  version: '1.0.0',
-  buildId: 'b1',
-});
-const NEWER = anAppManifest({
-  channel: 'production',
-  version: '2.0.0',
-  buildId: 'b2',
-});
-const PREVIEW = anAppManifest({
-  channel: 'pr',
-  prNumber: 42,
-  buildId: 'pr42',
-});
-const LOCAL = anAppManifest({
-  channel: 'local',
-  remoteEntryUrl: 'http://localhost:4201/app/remoteEntry.json',
-});
-
-describe('configurationOf', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
-  describe('when the artifact is deployed', () => {
-    const artifact = anArtifact({
-      key: 'app:orders',
-      productionArtifactVersion: DEPLOYED,
-    });
-
-    beforeEach(() => {
-      driver.given.artifact(artifact);
-    });
-
-    it('should use the artifact key when building the configuration', () => {
-      driver.when.configurationBuilt();
-
-      expect(driver.get.configuration().key).toBe('app:orders');
-    });
-
-    it('should keep the artifact fields when building the configuration', () => {
-      const sourceDescription = faker.lorem.words();
-
-      driver.given
-        .artifact(anArtifact({ ...artifact, sourceDescription }))
-        .when.configurationBuilt();
-
-      expect(driver.get.configuration().sourceDescription).toBe(
-        sourceDescription,
-      );
-    });
-
-    it('should use the session host id when building the configuration', () => {
-      driver.when.configurationBuilt();
-
-      expect(driver.get.configuration().hostId).toBe(driver.get.hostId());
-    });
-
-    it('should have no selected manifest when no override exists', () => {
-      driver.when.configurationBuilt();
-
-      expect(
-        driver.get.configuration().selectedArtifactVersion,
-      ).toBeUndefined();
-    });
-
-    it('should select the active override when one exists', () => {
-      driver.given.activeOverride(PREVIEW).when.configurationBuilt();
-
-      expect(driver.get.configuration().selectedArtifactVersion).toBe(PREVIEW);
-    });
-
-    it('should select the disabled override when no active override exists', () => {
-      driver.given.disabledOverride(LOCAL).when.configurationBuilt();
-
-      expect(driver.get.configuration().selectedArtifactVersion).toBe(LOCAL);
-    });
-
-    it('should prefer the active override when both overrides exist', () => {
-      driver.given
-        .activeOverride(PREVIEW)
-        .given.disabledOverride(LOCAL)
-        .when.configurationBuilt();
-
-      expect(driver.get.configuration().selectedArtifactVersion).toBe(PREVIEW);
-    });
-
-    it('should list host production versions plus the deployed manifest when building production options', () => {
-      const older = aVersionOf(DEPLOYED, { channel: 'production' });
-
-      driver.given
-        .hostVersion(older)
-        .given.hostVersion(aVersionOf(DEPLOYED, { channel: 'pr' }))
-        .when.configurationBuilt();
-
-      expect(driver.get.configuration().productionArtifactVersions).toEqual([
-        older,
-        DEPLOYED,
-      ]);
-    });
-
-    it('should not duplicate the deployed manifest when host versions already include it', () => {
-      driver.given.hostVersion(DEPLOYED).when.configurationBuilt();
-
-      expect(driver.get.configuration().productionArtifactVersions).toEqual([
-        DEPLOYED,
-      ]);
-    });
-
-    it('should list only pr versions when building pr options', () => {
-      const preview = aVersionOf(DEPLOYED, { channel: 'pr', prNumber: 42 });
-
-      driver.given
-        .hostVersion(aVersionOf(DEPLOYED, { channel: 'production' }))
-        .given.hostVersion(preview)
-        .when.configurationBuilt();
-
-      expect(driver.get.configuration().prArtifactVersions).toEqual([preview]);
-    });
-  });
-});
-
-describe('initialOverrideSelection', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
-  it('should select an empty custom url when no override exists', () => {
-    driver.given
-      .selectedArtifactVersion(undefined)
-      .when.initialSelectionBuilt();
-
-    expect(driver.get.initialSelection()).toEqual({
-      type: 'custom',
-      value: '',
-    });
-  });
-
-  it('should select the base url when a local override exists', () => {
-    driver.given.selectedArtifactVersion(LOCAL).when.initialSelectionBuilt();
-
-    expect(driver.get.initialSelection()).toEqual({
-      type: 'custom',
-      value: 'http://localhost:4201/app',
-    });
-  });
-
-  it('should select the production version key when a production override exists', () => {
-    driver.given.selectedArtifactVersion(NEWER).when.initialSelectionBuilt();
-
-    expect(driver.get.initialSelection()).toEqual({
-      type: 'production',
-      value: 'production:2.0.0:b2',
-    });
-  });
-
-  it('should select the pr version key when a pr override exists', () => {
-    driver.given.selectedArtifactVersion(PREVIEW).when.initialSelectionBuilt();
-
-    expect(driver.get.initialSelection()).toEqual({
-      type: 'pr',
-      value: 'pr:42:pr42',
-    });
-  });
-});
-
-describe('artifactVersionFromSelection', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
-  it('should build a local manifest when the selection is custom', () => {
-    driver.given
-      .productionArtifactVersion(anAppManifest({ framework: 'react' }))
-      .given.selection({ type: 'custom', value: 'http://localhost:4201/' })
-      .when.manifestResolved();
-
-    expect(driver.get.resolved()).toMatchObject({
+describe('createCustomArtifactVersion', () => {
+  it('should build a local manifest when the raw url is a base url', () => {
+    expect(
+      createCustomArtifactVersion({
+        deployedArtifactVersion: anAppManifest({ framework: 'react' }),
+        rawUrl: 'http://localhost:4201/',
+      }),
+    ).toMatchObject({
       channel: 'local',
+      version: '0.0.0-local',
+      buildId: 'custom-url',
       remoteEntryUrl: 'http://localhost:4201/remoteEntry.json',
       styles: [],
     });
   });
 
-  it('should add a local stylesheet when the custom app is angular', () => {
-    driver.given
-      .productionArtifactVersion(anAppManifest({ framework: 'angular' }))
-      .given.selection({ type: 'custom', value: 'http://localhost:4201' })
-      .when.manifestResolved();
-
-    expect(driver.get.resolved()?.styles).toEqual([
-      { href: 'http://localhost:4201/styles.css' },
-    ]);
+  it('should add a local stylesheet when the deployed app is angular', () => {
+    expect(
+      createCustomArtifactVersion({
+        deployedArtifactVersion: anAppManifest({ framework: 'angular' }),
+        rawUrl: 'http://localhost:4201',
+      }).styles,
+    ).toStrictEqual([{ href: 'http://localhost:4201/styles.css' }]);
   });
 
-  it('should drop the production integrity when the selection is custom', () => {
-    driver.given
-      .productionArtifactVersion(anAppManifest({ integrity: 'sha256-prod' }))
-      .given.selection({ type: 'custom', value: 'http://localhost:4201' })
-      .when.manifestResolved();
-
-    expect(driver.get.resolved()?.integrity).toBeUndefined();
-  });
-
-  it('should point exported widgets at the local entry when the selection is custom', () => {
-    driver.given
-      .productionArtifactVersion(
-        anAppManifest({
-          exportedWidgets: [
-            {
-              schemaVersion: '1',
-              id: 'summary',
-              name: 'Summary',
-              ownerAppId: 'app',
-              framework: 'react',
-              remoteEntryUrl: 'https://cdn.example/summary.js',
-              expose: './summary',
-              contractVersion: '1',
-            },
-          ],
+  it('should drop the integrity when the deployed version has one', () => {
+    expect(
+      createCustomArtifactVersion({
+        deployedArtifactVersion: anAppManifest({
+          integrity: faker.string.alphanumeric(16),
         }),
-      )
-      .given.selection({ type: 'custom', value: 'http://localhost:4201' })
-      .when.manifestResolved();
+        rawUrl: 'http://localhost:4201',
+      }).integrity,
+    ).toBeUndefined();
+  });
 
-    expect(driver.get.resolvedExportedWidgets()[0]?.remoteEntryUrl).toBe(
-      'http://localhost:4201/remoteEntry.json',
-    );
+  it('should point exported widgets at the local entry when the deployed app exports widgets', () => {
+    const widget = anExportedWidgetManifest();
+
+    expect(
+      createCustomArtifactVersion({
+        deployedArtifactVersion: anAppManifest({ exportedWidgets: [widget] }),
+        rawUrl: 'http://localhost:4201',
+      }),
+    ).toMatchObject({
+      exportedWidgets: [
+        { ...widget, remoteEntryUrl: 'http://localhost:4201/remoteEntry.json' },
+      ],
+    });
   });
 
   it.each([
     'http://127.0.0.1:4201/remoteEntry.json',
     'http://localhost:4201/remoteEntry.json',
-  ])('should keep the remote entry url when the custom url is %s', (url) => {
-    driver.given
-      .selection({ type: 'custom', value: url })
-      .when.manifestResolved();
-
-    expect(driver.get.resolved()?.remoteEntryUrl).toBe(url);
+  ])('should keep the remote entry url when the raw url is %s', (url) => {
+    expect(
+      createCustomArtifactVersion({
+        deployedArtifactVersion: anAppManifest(),
+        rawUrl: url,
+      }).remoteEntryUrl,
+    ).toBe(url);
   });
 
   it.each([
@@ -271,297 +97,202 @@ describe('artifactVersionFromSelection', () => {
       'http://localhost/app#debug',
       'Base URL must not include query parameters or a fragment.',
     ],
-  ])('should reject the custom url %s when it is unsafe', (url, message) => {
-    driver.given
-      .selection({ type: 'custom', value: url })
-      .when.manifestResolved();
+  ])('should throw when the raw url is %s', (url, message) => {
+    expect(() =>
+      createCustomArtifactVersion({
+        deployedArtifactVersion: anAppManifest(),
+        rawUrl: url,
+      }),
+    ).toThrow(message);
+  });
+});
 
-    expect(driver.get.errorMessage()).toBe(message);
+describe('baseUrlFromRemoteEntry', () => {
+  it('should strip the remote entry file name when the url ends with it', () => {
+    expect(
+      baseUrlFromRemoteEntry('http://localhost:4201/app/remoteEntry.json'),
+    ).toBe('http://localhost:4201/app');
   });
 
-  it('should pick the production option when its key matches the selection', () => {
-    driver.given
-      .productionArtifactVersions([DEPLOYED, NEWER])
-      .given.selection({ type: 'production', value: 'production:2.0.0:b2' })
-      .when.manifestResolved();
-
-    expect(driver.get.resolved()).toBe(NEWER);
-  });
-
-  it('should fail when the production key matches no option', () => {
-    driver.given
-      .productionArtifactVersions([DEPLOYED])
-      .given.selection({ type: 'production', value: 'missing' })
-      .when.manifestResolved();
-
-    expect(driver.get.errorMessage()).toBe('Choose a production version.');
-  });
-
-  it('should pick the pr option when its key matches the selection', () => {
-    driver.given
-      .prArtifactVersions([PREVIEW])
-      .given.selection({ type: 'pr', value: 'pr:42:pr42' })
-      .when.manifestResolved();
-
-    expect(driver.get.resolved()).toBe(PREVIEW);
-  });
-
-  it('should fail when the pr key matches no option', () => {
-    driver.given
-      .selection({ type: 'pr', value: 'missing' })
-      .when.manifestResolved();
-
-    expect(driver.get.errorMessage()).toBe('Choose a PR version.');
+  it('should strip the trailing slash when the url ends with one', () => {
+    expect(baseUrlFromRemoteEntry('http://localhost:4201/app/')).toBe(
+      'http://localhost:4201/app',
+    );
   });
 });
 
 describe('normalizeStoredArtifactVersion', () => {
-  let driver: ArtifactVersionUtilsDriver;
+  it('should restore the local version when a local manifest stored the custom build id as version', () => {
+    const manifest = anAppManifest({ channel: 'local', version: 'custom-url' });
 
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
+    expect(normalizeStoredArtifactVersion(manifest)).toStrictEqual({
+      ...manifest,
+      version: '0.0.0-local',
+    });
   });
 
-  it('should restore the local version when a legacy local manifest stored the build id as version', () => {
-    driver.when.storedManifestNormalized(
-      anAppManifest({ channel: 'local', version: 'custom-url' }),
-    );
+  it('should keep the manifest when it is not a local manifest', () => {
+    const manifest = anAppManifest({ channel: 'production' });
 
-    expect(driver.get.normalizedManifest()?.version).toBe('0.0.0-local');
+    expect(normalizeStoredArtifactVersion(manifest)).toBe(manifest);
   });
 
-  it('should keep the manifest when it is not a legacy local manifest', () => {
-    driver.when.storedManifestNormalized(DEPLOYED);
+  it('should keep the manifest when a local manifest has another version', () => {
+    const manifest = anAppManifest({ channel: 'local' });
 
-    expect(driver.get.normalizedManifest()).toBe(DEPLOYED);
+    expect(normalizeStoredArtifactVersion(manifest)).toBe(manifest);
   });
-});
-
-describe('overrideTypeFor', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
-  it.each([
-    [undefined, undefined],
-    [LOCAL, 'custom'],
-    [PREVIEW, 'pr'],
-    [NEWER, 'production'],
-    [DEPLOYED, undefined],
-  ])(
-    'should classify the selection as %p when the selected manifest is the given one',
-    (selected, type) => {
-      driver.given
-        .productionArtifactVersion(DEPLOYED)
-        .given.selectedArtifactVersion(selected)
-        .when.overrideTypeComputed();
-
-      expect(driver.get.overrideType()).toBe(type);
-    },
-  );
 });
 
 describe('versionLabel', () => {
-  let driver: ArtifactVersionUtilsDriver;
+  it('should join version, build id, and commit title when the channel is production', () => {
+    const manifest = anAppManifest({
+      channel: 'production',
+      gitCommitTitle: faker.git.commitMessage(),
+    });
 
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
-  it('should join version, build id, and commit title when the release is production', () => {
-    driver.when.versionLabelled(
-      anAppManifest({
-        channel: 'production',
-        version: '1.2.3',
-        buildId: 'abcdef123456',
-        gitCommitTitle: 'Simplify',
-      }),
-    );
-
-    expect(driver.get.label()).toBe('1.2.3-abcdef123456 · Simplify');
-  });
-
-  it('should show only the version when the build is canonical and the title is punctuation', () => {
-    driver.when.versionLabelled(
-      anAppManifest({
-        channel: 'production',
-        version: '0.1.2',
-        buildId: 'canonical',
-        gitCommitTitle: '.',
-      }),
-    );
-
-    expect(driver.get.label()).toBe('0.1.2');
-  });
-
-  it('should show pr number, branch, short sha, and title when the release is a pr', () => {
-    driver.when.versionLabelled(
-      anAppManifest({
-        channel: 'pr',
-        prNumber: 42,
-        gitBranch: 'feature/labels',
-        gitSha: 'abcdef123456',
-        gitCommitTitle: 'Simplify',
-      }),
-    );
-
-    expect(driver.get.label()).toBe(
-      'PR #42 · feature/labels · abcdef1 · Simplify',
+    expect(versionLabel(manifest)).toBe(
+      `${manifest.version}-${manifest.buildId} · ${manifest.gitCommitTitle}`,
     );
   });
 
-  it('should fall back to the pr number when the pr has no metadata', () => {
-    driver.when.versionLabelled(anAppManifest({ channel: 'pr', prNumber: 42 }));
+  it('should show only the version when the channel is production, the build is canonical, and the title is punctuation', () => {
+    const manifest = anAppManifest({
+      channel: 'production',
+      buildId: 'canonical',
+      gitCommitTitle: '.',
+    });
 
-    expect(driver.get.label()).toBe('PR #42');
+    expect(versionLabel(manifest)).toBe(manifest.version);
   });
 
-  it('should show version, short build id, and Local when the release is local', () => {
-    driver.when.versionLabelled(
-      anAppManifest({
-        channel: 'local',
-        version: '0.0.0-local',
-        buildId: 'custom-url',
-      }),
-    );
+  it('should show pr number, branch, short sha, and title when the channel is pr', () => {
+    const manifest = anAppManifest({
+      channel: 'pr',
+      prNumber: faker.number.int(),
+      gitBranch: faker.git.branch(),
+      gitSha: faker.git.commitSha(),
+      gitCommitTitle: faker.git.commitMessage(),
+    });
 
-    expect(driver.get.label()).toBe('0.0.0-local · custom- · Local');
+    expect(versionLabel(manifest)).toBe(
+      `PR #${manifest.prNumber} · ${manifest.gitBranch} · ${manifest.gitSha?.slice(0, 7)} · ${manifest.gitCommitTitle}`,
+    );
+  });
+
+  it('should fall back to the pr number when the channel is pr and no metadata exists', () => {
+    const manifest = anAppManifest({
+      channel: 'pr',
+      prNumber: faker.number.int(),
+      gitBranch: undefined,
+      gitSha: undefined,
+      gitCommitTitle: undefined,
+    });
+
+    expect(versionLabel(manifest)).toBe(`PR #${manifest.prNumber}`);
+  });
+
+  it('should fall back to the version when the channel is pr and no pr number exists', () => {
+    const manifest = anAppManifest({
+      channel: 'pr',
+      prNumber: undefined,
+      gitBranch: undefined,
+      gitSha: undefined,
+      gitCommitTitle: undefined,
+    });
+
+    expect(versionLabel(manifest)).toBe(`PR #${manifest.version}`);
+  });
+
+  it('should show version, short build id, and Local when the channel is local', () => {
+    const manifest = anAppManifest({ channel: 'local' });
+
+    expect(versionLabel(manifest)).toBe(
+      `${manifest.version} · ${manifest.buildId.slice(0, 7)} · Local`,
+    );
   });
 });
 
 describe('versionBuildIdLabel', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
   it('should append the build id when the build is not canonical', () => {
-    driver.when.versionBuildIdLabelled(
-      anAppManifest({ version: '1.0.0', buildId: 'b1' }),
-    );
+    const manifest = anAppManifest();
 
-    expect(driver.get.label()).toBe('1.0.0-b1');
+    expect(versionBuildIdLabel(manifest)).toBe(
+      `${manifest.version}-${manifest.buildId}`,
+    );
   });
 
   it('should show only the version when the build is canonical', () => {
-    driver.when.versionBuildIdLabelled(
-      anAppManifest({ version: '1.0.0', buildId: 'canonical' }),
-    );
+    const manifest = anAppManifest({ buildId: 'canonical' });
 
-    expect(driver.get.label()).toBe('1.0.0');
-  });
-});
-
-describe('artifactSourceDescription', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
-  it('should be empty when there is no override', () => {
-    driver.when.sourceDescribed(undefined);
-
-    expect(driver.get.label()).toBe('');
-  });
-
-  it('should show the base url when the override is local', () => {
-    driver.when.sourceDescribed(LOCAL);
-
-    expect(driver.get.label()).toBe('http://localhost:4201/app');
-  });
-
-  it('should show the version label when the override is not local', () => {
-    driver.when.sourceDescribed(anAppManifest({ channel: 'pr', prNumber: 7 }));
-
-    expect(driver.get.label()).toBe('PR #7');
+    expect(versionBuildIdLabel(manifest)).toBe(manifest.version);
   });
 });
 
 describe('isArtifactVersionSupportedByHost', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
-  });
-
   it('should support the host manifest when its id is the host id', () => {
-    driver.when.hostSupportChecked(aHostManifest({ id: 'shop' }), 'shop');
+    const host = aHostManifest();
 
-    expect(driver.get.supported()).toBe(true);
-  });
-
-  it('should support an app when it lists every host', () => {
-    driver.when.hostSupportChecked(
-      anAppManifest({ supportedHosts: ['*'] }),
-      'shop',
-    );
-
-    expect(driver.get.supported()).toBe(true);
-  });
-
-  it('should support an app when it lists the host id', () => {
-    driver.when.hostSupportChecked(
-      anAppManifest({ supportedHosts: ['shop'] }),
-      'shop',
-    );
-
-    expect(driver.get.supported()).toBe(true);
-  });
-
-  it('should support an app when a placement targets the host', () => {
-    driver.when.hostSupportChecked(
-      anAppManifest({
-        supportedHosts: [],
-        placements: [{ id: 'orders', kind: 'route', hostId: 'shop' }],
+    expect(
+      isArtifactVersionSupportedByHost({
+        artifactVersion: host,
+        hostId: host.id,
       }),
-      'shop',
-    );
-
-    expect(driver.get.supported()).toBe(true);
+    ).toBe(true);
   });
 
-  it('should not support an app when nothing targets the host', () => {
-    driver.when.hostSupportChecked(
-      anAppManifest({ supportedHosts: ['other'], placements: [] }),
-      'shop',
-    );
-
-    expect(driver.get.supported()).toBe(false);
-  });
-});
-
-describe('isDeployedProductionVersion', () => {
-  let driver: ArtifactVersionUtilsDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionUtilsDriver();
+  it('should not support the host manifest when its id is another host id', () => {
+    expect(
+      isArtifactVersionSupportedByHost({
+        artifactVersion: aHostManifest(),
+        hostId: faker.string.uuid(),
+      }),
+    ).toBe(false);
   });
 
-  it('should not mark a version as deployed when nothing is deployed', () => {
-    driver.when.deployedVersionChecked(DEPLOYED, undefined);
-
-    expect(driver.get.deployed()).toBe(false);
+  it('should support the app when it lists every host', () => {
+    expect(
+      isArtifactVersionSupportedByHost({
+        artifactVersion: anAppManifest({ supportedHosts: ['*'] }),
+        hostId: faker.string.uuid(),
+      }),
+    ).toBe(true);
   });
 
-  it('should mark a version as deployed when its key matches the deployed production manifest', () => {
-    driver.when.deployedVersionChecked(DEPLOYED, DEPLOYED);
+  it('should support the app when it lists the host id', () => {
+    const hostId = faker.string.uuid();
 
-    expect(driver.get.deployed()).toBe(true);
+    expect(
+      isArtifactVersionSupportedByHost({
+        artifactVersion: anAppManifest({ supportedHosts: [hostId] }),
+        hostId,
+      }),
+    ).toBe(true);
   });
 
-  it('should not mark a version as deployed when its key differs from the deployed manifest', () => {
-    driver.when.deployedVersionChecked(NEWER, DEPLOYED);
+  it('should support the app when a placement targets the host', () => {
+    const hostId = faker.string.uuid();
 
-    expect(driver.get.deployed()).toBe(false);
+    expect(
+      isArtifactVersionSupportedByHost({
+        artifactVersion: anAppManifest({
+          supportedHosts: [],
+          placements: [aRoutePlacement({ hostId })],
+        }),
+        hostId,
+      }),
+    ).toBe(true);
   });
 
-  it('should not mark a version as deployed when it is a preview build', () => {
-    driver.when.deployedVersionChecked(PREVIEW, PREVIEW);
-
-    expect(driver.get.deployed()).toBe(false);
+  it('should not support the app when nothing targets the host', () => {
+    expect(
+      isArtifactVersionSupportedByHost({
+        artifactVersion: anAppManifest({
+          supportedHosts: [faker.string.uuid()],
+          placements: [],
+        }),
+        hostId: faker.string.uuid(),
+      }),
+    ).toBe(false);
   });
 });

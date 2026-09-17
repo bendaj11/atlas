@@ -1,70 +1,86 @@
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { anArtifact } from '../../../types/artifact.testkit';
-import { ArtifactsOverridesTableDriver } from './ArtifactsOverridesTable.driver';
+import { anArtifactTableRow } from '../../../testkit/artifact.testkit';
+import { ArtifactsListTableDriver } from './ArtifactsListTable.driver';
 
-describe('ArtifactsOverridesTable', () => {
-  let driver: ArtifactsOverridesTableDriver;
+describe('ArtifactsListTable', () => {
+  let driver: ArtifactsListTableDriver;
 
   beforeEach(() => {
-    driver = new ArtifactsOverridesTableDriver();
+    driver = new ArtifactsListTableDriver();
   });
 
-  it('should render a row per artifact when artifacts exist', () => {
-    driver.given
-      .artifacts([
-        anArtifact({
-          productionArtifactVersion: anAppManifest({ name: 'Orders' }),
-        }),
-        anArtifact({
-          productionArtifactVersion: anAppManifest({ name: 'Cart' }),
-        }),
-      ])
-      .when.rendered();
+  it('should call setSearchValue with the entered text when search text is entered', async () => {
+    const text = faker.lorem.word();
 
-    expect(driver.get.rowNames()).toEqual([
-      expect.stringContaining('Orders'),
-      expect.stringContaining('Cart'),
-    ]);
-  });
-
-  it('should show a toggle only when the artifact can toggle', () => {
-    driver.given
-      .artifacts([
-        anArtifact({ canToggle: true }),
-        anArtifact({ canToggle: false }),
-      ])
-      .when.rendered();
-
-    expect(driver.get.toggles()).toHaveLength(1);
-  });
-
-  it('should show the filtered and total counts when they differ', () => {
-    driver.given.artifacts([anArtifact()]).given.totalCount(3).when.rendered();
-
-    expect(driver.get.countLabel()?.textContent).toBe('1/3 artifacts found');
-  });
-
-  it('should forward the search text when typed', async () => {
     driver.when.rendered();
 
-    await driver.when.searched('ord');
+    await driver.when.searchTextEntered(text);
 
-    expect(driver.get.searchValue()).toBe('ord');
+    expect(driver.get.setSearchValue()).toHaveBeenCalledWith(text);
   });
 
-  it('should turn the visible filter on when clicked while off', async () => {
-    driver.when.rendered();
+  it('should render a row per artifact when rendered', async () => {
+    const artifacts = [anArtifactTableRow(), anArtifactTableRow()];
+
+    driver.given.artifacts(artifacts).when.rendered();
+
+    expect(await driver.get.table().getRowsCount()).toBe(2);
+  });
+
+  it('should show the deployed artifact version name in the name column when rendered', async () => {
+    const name = faker.commerce.productName();
+    const artifact = anArtifactTableRow({
+      deployedArtifactVersion: anAppManifest({ name }),
+    });
+
+    driver.given.artifacts([artifact]).when.rendered();
+
+    expect(await driver.get.table().getCellTextValue(0, 1)).toBe(name);
+  });
+
+  it('should show a toggle switch when artifact can toggle', async () => {
+    driver.given
+      .artifacts([anArtifactTableRow({ canToggle: true })])
+      .when.rendered();
+
+    expect(await driver.get.toggleSwitch().exists()).toBe(true);
+  });
+
+  it('should not show a toggle switch when artifact cannot toggle', async () => {
+    driver.given
+      .artifacts([anArtifactTableRow({ canToggle: false })])
+      .when.rendered();
+
+    expect(await driver.get.toggleSwitch().exists()).toBe(false);
+  });
+
+  it('should show artifacts count over total count when artifacts count differs from total count', async () => {
+    const totalCount = faker.number.int({ min: 2, max: 100 });
+
+    driver.given
+      .artifacts([anArtifactTableRow()])
+      .given.totalCount(totalCount)
+      .when.rendered();
+
+    expect(await driver.get.countLabel().base.text()).toBe(
+      `1/${totalCount} artifacts found`,
+    );
+  });
+
+  it('should call setVisibleOnly with true when visible filter is clicked and visible only is off', async () => {
+    driver.given.visibleOnly(false).when.rendered();
 
     await driver.when.visibleFilterClicked();
 
-    expect(driver.get.visibleOnlyChange()).toBe(true);
+    expect(driver.get.setVisibleOnly()).toHaveBeenCalledWith(true);
   });
 
-  it('should turn the visible filter off when clicked while on', async () => {
+  it('should call setVisibleOnly with false when visible filter is clicked and visible only is on', async () => {
     driver.given.visibleOnly(true).when.rendered();
 
     await driver.when.visibleFilterClicked();
 
-    expect(driver.get.visibleOnlyChange()).toBe(false);
+    expect(driver.get.setVisibleOnly()).toHaveBeenCalledWith(false);
   });
 });

@@ -1,45 +1,63 @@
-import { StorageKeysDriver } from './storage-keys.driver';
+import { faker } from '@faker-js/faker';
+import {
+  disabledLocalAppsKey,
+  disabledOverridesKey,
+  persistedOverridesKey,
+  suppressedArtifactsKey,
+} from './storage-keys';
 
-describe('storage keys', () => {
-  let driver: StorageKeysDriver;
+describe('persistedOverridesKey', () => {
+  it('should scope the key by host when built', () => {
+    const hostId = faker.string.uuid();
 
-  beforeEach(() => {
-    driver = new StorageKeysDriver();
+    expect(persistedOverridesKey(hostId)).toBe(`atlas.overrides.${hostId}`);
+  });
+});
+
+describe('disabledLocalAppsKey', () => {
+  it('should scope the key by host when built', () => {
+    const hostId = faker.string.uuid();
+
+    expect(disabledLocalAppsKey(hostId)).toBe(
+      `atlas.disabled-local-apps.${hostId}`,
+    );
+  });
+});
+
+describe('disabledOverridesKey', () => {
+  it('should scope the key by host and tab when scope is tab', () => {
+    const hostId = faker.string.uuid();
+    const tabId = faker.number.int();
+
+    expect(disabledOverridesKey(hostId, tabId, 'tab')).toBe(
+      `atlas.disabled-overrides.${hostId}.tab.${tabId}`,
+    );
   });
 
-  it('should scope persisted overrides by host when built', () => {
-    driver.when.persistedOverridesKeyBuilt('shop');
+  it('should scope the key by host alone when scope is all', () => {
+    const hostId = faker.string.uuid();
 
-    expect(driver.get.key()).toBe('atlas.overrides.shop');
+    expect(disabledOverridesKey(hostId, faker.number.int(), 'all')).toBe(
+      `atlas.disabled-overrides.${hostId}.all`,
+    );
+  });
+});
+
+describe('suppressedArtifactsKey', () => {
+  it('should scope the key by host and tab when scope is tab', () => {
+    const hostId = faker.string.uuid();
+    const tabId = faker.number.int();
+
+    expect(suppressedArtifactsKey(hostId, tabId, 'tab')).toBe(
+      `atlas.suppressed-artifacts.${hostId}.tab.${tabId}`,
+    );
   });
 
-  it('should scope disabled local apps by host when built', () => {
-    driver.when.disabledLocalAppsKeyBuilt('shop');
+  it('should scope the key by host alone when scope is all', () => {
+    const hostId = faker.string.uuid();
 
-    expect(driver.get.key()).toBe('atlas.disabled-local-apps.shop');
-  });
-
-  it('should scope disabled overrides by tab when scope is tab', () => {
-    driver.when.disabledOverridesKeyBuilt('shop', 7, 'tab');
-
-    expect(driver.get.key()).toBe('atlas.disabled-overrides.shop.tab.7');
-  });
-
-  it('should scope disabled overrides to all tabs when scope is all', () => {
-    driver.when.disabledOverridesKeyBuilt('shop', 7, 'all');
-
-    expect(driver.get.key()).toBe('atlas.disabled-overrides.shop.all');
-  });
-
-  it('should scope suppressed artifacts by tab when scope is tab', () => {
-    driver.when.suppressedArtifactsKeyBuilt('shop', 7, 'tab');
-
-    expect(driver.get.key()).toBe('atlas.suppressed-artifacts.shop.tab.7');
-  });
-
-  it('should scope suppressed artifacts to all tabs when scope is all', () => {
-    driver.when.suppressedArtifactsKeyBuilt('shop', 7, 'all');
-
-    expect(driver.get.key()).toBe('atlas.suppressed-artifacts.shop.all');
+    expect(suppressedArtifactsKey(hostId, faker.number.int(), 'all')).toBe(
+      `atlas.suppressed-artifacts.${hostId}.all`,
+    );
   });
 });

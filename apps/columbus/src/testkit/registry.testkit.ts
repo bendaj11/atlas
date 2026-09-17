@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { ArtifactVersion } from '../../types/artifact-version';
-import type { ManifestDescriptor } from './manifest-fetch/manifest-fetch';
+import type { ArtifactVersion } from '../types/artifact-version';
+import type { ManifestDescriptor } from '../scripts/host/manifest-fetch/manifest-fetch';
 import type {
   Registry,
   RegistryArtifact,
-} from './artifact-registry/artifact-registry';
+} from '../scripts/host/artifact-registry/artifact-registry';
 
 export interface PublishedArtifact {
   manifest: ArtifactVersion;

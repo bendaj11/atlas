@@ -1,16 +1,6 @@
+import { faker } from '@faker-js/faker';
 import { DevelopmentSessionContentDriver } from './development-session-content.driver';
 
-const REQUEST = {
-  type: 'atlas.development-session.request',
-  requestId: 'request-1',
-  hostId: 'shop',
-};
-const SESSION = { schemaVersion: '1', hostId: 'shop', overrides: [] };
-const RELAYED_REQUEST = {
-  type: 'atlas.load-development-session',
-  hostId: 'shop',
-  previewUrl: 'http://localhost/',
-};
 const INVALID_PORT_SEARCHES = [
   '?atlas-dev-port=abc',
   '?atlas-dev-port=0',
@@ -34,32 +24,40 @@ describe('development-session-content', () => {
       );
     });
 
-    it('should remove the control port from the address bar when one is given', async () => {
-      await driver.given
-        .addressBarSearch('?tab=orders&atlas-dev-port=4512')
-        .when.started();
-
-      expect(driver.get.addressBarSearch()).toBe('?tab=orders');
-    });
-
     it('should keep the address bar when no control port is given', async () => {
-      await driver.given.addressBarSearch('?tab=orders').when.started();
+      driver.given.addressBarSearch('?tab=orders');
+
+      await driver.when.started();
 
       expect(driver.get.addressBarSearch()).toBe('?tab=orders');
     });
 
-    it('should remember the control port when the address bar has one', async () => {
-      await driver.given
-        .addressBarSearch('?atlas-dev-port=4512')
-        .when.started();
+    it('should remove the control port from the address bar when one is given', async () => {
+      driver.given.addressBarSearch(
+        `?tab=orders&atlas-dev-port=${faker.internet.port()}`,
+      );
+
+      await driver.when.started();
+
+      expect(driver.get.addressBarSearch()).toBe('?tab=orders');
+    });
+
+    it('should remember the control port when the address bar has a valid one', async () => {
+      const controlPort = faker.internet.port();
+
+      driver.given.addressBarSearch(`?atlas-dev-port=${controlPort}`);
+
+      await driver.when.started();
 
       expect(
         driver.get.sessionStorageItem('atlas.development-control-port'),
-      ).toBe('4512');
+      ).toBe(String(controlPort));
     });
 
     it('should not remember a control port when the address bar has an invalid one', async () => {
-      await driver.given.addressBarSearch('?atlas-dev-port=abc').when.started();
+      driver.given.addressBarSearch('?atlas-dev-port=abc');
+
+      await driver.when.started();
 
       expect(
         driver.get.sessionStorageItem('atlas.development-control-port'),
@@ -67,134 +65,191 @@ describe('development-session-content', () => {
     });
   });
 
-  describe('when a session request is posted', () => {
-    it('should relay the request to the extension when no control port is given', async () => {
-      await driver.when.messagePosted(REQUEST);
+  describe('when a session request is posted from the page window', () => {
+    const request = {
+      type: 'atlas.development-session.request',
+      requestId: faker.string.uuid(),
+      hostId: faker.string.uuid(),
+    };
 
-      expect(driver.get.runtimeMessages()).toEqual([RELAYED_REQUEST]);
+    it('should relay the request to the extension without a control port when none is given', async () => {
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+        type: 'atlas.load-development-session',
+        hostId: request.hostId,
+        previewUrl: driver.get.pageUrl(),
+      });
     });
 
     it('should relay the control port when the address bar has one', async () => {
-      await driver.given
-        .addressBarSearch('?atlas-dev-port=4512')
-        .when.messagePosted(REQUEST);
+      const controlPort = faker.internet.port();
 
-      expect(driver.get.runtimeMessages()).toEqual([
-        { ...RELAYED_REQUEST, controlPort: 4512 },
-      ]);
+      driver.given.addressBarSearch(`?atlas-dev-port=${controlPort}`);
+
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+        type: 'atlas.load-development-session',
+        hostId: request.hostId,
+        previewUrl: driver.get.pageUrl(),
+        controlPort,
+      });
     });
 
     it('should relay the remembered control port when the address bar has none', async () => {
-      await driver.given
-        .sessionStorageItem('atlas.development-control-port', '4512')
-        .when.messagePosted(REQUEST);
+      const controlPort = faker.internet.port();
 
-      expect(driver.get.runtimeMessages()).toEqual([
-        { ...RELAYED_REQUEST, controlPort: 4512 },
-      ]);
+      driver.given.sessionStorageItem(
+        'atlas.development-control-port',
+        String(controlPort),
+      );
+
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+        type: 'atlas.load-development-session',
+        hostId: request.hostId,
+        previewUrl: driver.get.pageUrl(),
+        controlPort,
+      });
     });
 
-    it('should prefer the address bar port when both are given', async () => {
-      await driver.given
-        .sessionStorageItem('atlas.development-control-port', '4512')
-        .given.addressBarSearch('?atlas-dev-port=4600')
-        .when.messagePosted(REQUEST);
+    it('should relay the address bar control port when both are given', async () => {
+      const addressBarPort = faker.internet.port();
 
-      expect(driver.get.runtimeMessages()).toEqual([
-        { ...RELAYED_REQUEST, controlPort: 4600 },
-      ]);
+      driver.given
+        .sessionStorageItem(
+          'atlas.development-control-port',
+          String(faker.internet.port()),
+        )
+        .given.addressBarSearch(`?atlas-dev-port=${addressBarPort}`);
+
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+        type: 'atlas.load-development-session',
+        hostId: request.hostId,
+        previewUrl: driver.get.pageUrl(),
+        controlPort: addressBarPort,
+      });
     });
 
     it.each(INVALID_PORT_SEARCHES)(
-      'should omit the control port when the address bar has %s',
+      'should relay the request without a control port when the address bar has %s',
       async (search) => {
-        await driver.given.addressBarSearch(search).when.messagePosted(REQUEST);
+        driver.given.addressBarSearch(search);
 
-        expect(driver.get.runtimeMessages()).toEqual([RELAYED_REQUEST]);
+        await driver.when.messagePosted(request);
+
+        expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+          type: 'atlas.load-development-session',
+          hostId: request.hostId,
+          previewUrl: driver.get.pageUrl(),
+        });
       },
     );
 
-    it('should publish the document when the extension responds with one', async () => {
-      await driver.given
-        .runtimeResponse({ document: SESSION })
-        .when.messagePosted(REQUEST);
+    it('should post the document to the page origin when the extension responds with one', async () => {
+      const session = {
+        schemaVersion: '1',
+        hostId: request.hostId,
+        overrides: [],
+      };
 
-      expect(driver.get.publishedMessages()).toEqual([
+      driver.given.runtimeResponse({ document: session });
+
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.postMessage()).toHaveBeenCalledWith(
         {
           type: 'atlas.development-session.response',
-          requestId: 'request-1',
-          hostId: 'shop',
-          document: SESSION,
+          requestId: request.requestId,
+          hostId: request.hostId,
+          document: session,
         },
-      ]);
+        'http://localhost',
+      );
     });
 
-    it('should publish the error when the extension responds with one', async () => {
-      await driver.given
-        .runtimeResponse({ error: 'Atlas development session is invalid.' })
-        .when.messagePosted(REQUEST);
+    it('should post the error when the extension responds with one', async () => {
+      const error = faker.lorem.sentence();
 
-      expect(driver.get.publishedMessages()).toEqual([
+      driver.given.runtimeResponse({ error });
+
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.postMessage()).toHaveBeenCalledWith(
         {
           type: 'atlas.development-session.response',
-          requestId: 'request-1',
-          hostId: 'shop',
-          error: 'Atlas development session is invalid.',
+          requestId: request.requestId,
+          hostId: request.hostId,
+          error,
         },
-      ]);
+        'http://localhost',
+      );
     });
 
-    it('should publish an empty response when the extension responds with nothing', async () => {
-      await driver.given.runtimeResponse(undefined).when.messagePosted(REQUEST);
+    it('should post an empty response when the extension responds with nothing', async () => {
+      driver.given.runtimeResponse(undefined);
 
-      expect(driver.get.publishedMessages()).toEqual([
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.postMessage()).toHaveBeenCalledWith(
         {
           type: 'atlas.development-session.response',
-          requestId: 'request-1',
-          hostId: 'shop',
+          requestId: request.requestId,
+          hostId: request.hostId,
         },
-      ]);
+        'http://localhost',
+      );
     });
 
-    it('should publish the failure when the extension is unreachable', async () => {
-      await driver.given
-        .runtimeFailure('Extension context invalidated.')
-        .when.messagePosted(REQUEST);
+    it('should post the failure message when the extension is unreachable', async () => {
+      const reason = faker.lorem.sentence();
 
-      expect(driver.get.publishedMessages()).toEqual([
+      driver.given.runtimeFailure(new Error(reason));
+
+      await driver.when.messagePosted(request);
+
+      expect(driver.get.postMessage()).toHaveBeenCalledWith(
         {
           type: 'atlas.development-session.response',
-          requestId: 'request-1',
-          hostId: 'shop',
-          error: 'Extension context invalidated.',
+          requestId: request.requestId,
+          hostId: request.hostId,
+          error: reason,
         },
-      ]);
-    });
-
-    it('should publish to the page origin when responding', async () => {
-      await driver.when.messagePosted(REQUEST);
-
-      expect(driver.get.publishedTargetOrigins()).toEqual(['http://localhost']);
+        'http://localhost',
+      );
     });
   });
 
   describe('when an unrelated message is posted', () => {
-    it('should ignore the message when it comes from another window', async () => {
-      await driver.when.messagePosted(REQUEST, null);
+    const request = {
+      type: 'atlas.development-session.request',
+      requestId: faker.string.uuid(),
+      hostId: faker.string.uuid(),
+    };
 
-      expect(driver.get.runtimeMessages()).toEqual([]);
+    it('should not relay the message when it comes from another window', async () => {
+      await driver.when.messagePosted(request, null);
+
+      expect(driver.get.runtimeMessage()).not.toHaveBeenCalled();
     });
 
-    it('should ignore the message when it has another type', async () => {
-      await driver.when.messagePosted({ ...REQUEST, type: 'other' });
+    it('should not relay the message when it has another type', async () => {
+      await driver.when.messagePosted({ ...request, type: faker.word.noun() });
 
-      expect(driver.get.runtimeMessages()).toEqual([]);
+      expect(driver.get.runtimeMessage()).not.toHaveBeenCalled();
     });
 
-    it('should ignore the message when it has no request id', async () => {
-      await driver.when.messagePosted({ type: REQUEST.type, hostId: 'shop' });
+    it('should not relay the message when it has no request id', async () => {
+      await driver.when.messagePosted({
+        type: request.type,
+        hostId: request.hostId,
+      });
 
-      expect(driver.get.runtimeMessages()).toEqual([]);
+      expect(driver.get.runtimeMessage()).not.toHaveBeenCalled();
     });
   });
 });

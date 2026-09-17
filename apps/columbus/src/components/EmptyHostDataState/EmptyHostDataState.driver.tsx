@@ -1,5 +1,7 @@
-import { render, type RenderResult } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { jest } from '@jest/globals';
+import { faker } from '@faker-js/faker';
+import type { ComponentProps } from 'react';
 import {
   EmptyStateTestkit,
   TextButtonTestkit,
@@ -7,12 +9,13 @@ import {
 import { EmptyHostDataState } from './EmptyHostDataState';
 
 export class EmptyHostDataStateDriver {
-  private message = 'No runtime found.';
-  private readonly onRefresh = jest.fn();
-  private view: RenderResult | undefined;
+  private message = faker.lorem.sentence();
+  private readonly onRefresh =
+    jest.fn<ComponentProps<typeof EmptyHostDataState>['onRefresh']>();
+  private baseElement!: Element;
 
   readonly given = {
-    message: (message: string): this => {
+    message: (message: string) => {
       this.message = message;
 
       return this;
@@ -20,35 +23,28 @@ export class EmptyHostDataStateDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
-      this.view = render(
+    rendered: () => {
+      this.baseElement = render(
         <EmptyHostDataState
           message={this.message}
           onRefresh={this.onRefresh}
         />,
-      );
+      ).baseElement;
     },
-    refreshClicked: async (): Promise<void> => {
-      await this.get.refreshButton().click();
-    },
+    refreshClicked: () => this.get.refreshButton().click(),
   };
 
   readonly get = {
     emptyState: () =>
       EmptyStateTestkit({
-        wrapper: this.get.container(),
+        wrapper: this.baseElement,
         dataHook: 'empty-host-data',
       }),
     refreshButton: () =>
       TextButtonTestkit({
-        wrapper: this.get.container(),
+        wrapper: this.baseElement,
         dataHook: 'refresh-host-data',
       }),
     refreshMock: () => this.onRefresh,
-    container: (): HTMLElement => {
-      if (!this.view) throw new Error('Empty state was not rendered.');
-
-      return this.view.container;
-    },
   };
 }

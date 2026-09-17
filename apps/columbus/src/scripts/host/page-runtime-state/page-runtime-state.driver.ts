@@ -1,20 +1,4 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import {
-  localOverridesOf,
-  readRuntimeErrors,
-  readStoredOverrides,
-  readVisibleAppIds,
-  type StoredOverrides,
-} from './page-runtime-state';
-
-const DOCUMENT_KEY = 'atlas.runtime-overrides';
-
 export class PageRuntimeStateDriver {
-  private stored: StoredOverrides | undefined;
-  private localOverrides: ReturnType<typeof localOverridesOf>;
-  private runtimeErrors: ReturnType<typeof readRuntimeErrors> = [];
-  private visibleAppIds: string[] = [];
-
   constructor() {
     localStorage.clear();
     sessionStorage.clear();
@@ -22,45 +6,20 @@ export class PageRuntimeStateDriver {
   }
 
   readonly given = {
-    pageLocalStorage: (value: string): this => {
-      localStorage.setItem(DOCUMENT_KEY, value);
+    pageLocalStorage: (key: string, value: string) => {
+      localStorage.setItem(key, value);
 
       return this;
     },
-    pageSessionStorage: (value: string): this => {
-      sessionStorage.setItem(DOCUMENT_KEY, value);
+    pageSessionStorage: (key: string, value: string) => {
+      sessionStorage.setItem(key, value);
 
       return this;
     },
-    pageBody: (html: string): this => {
+    pageBody: (html: string) => {
       document.body.innerHTML = html;
 
       return this;
     },
-  };
-
-  readonly when = {
-    storedOverridesRead: (hostId: string): void => {
-      this.stored = readStoredOverrides(DOCUMENT_KEY, hostId);
-    },
-    localOverridesBuilt: (
-      hostId: string,
-      manifests: ArtifactVersion[],
-    ): void => {
-      this.localOverrides = localOverridesOf(hostId, manifests);
-    },
-    runtimeErrorsRead: (): void => {
-      this.runtimeErrors = readRuntimeErrors();
-    },
-    visibleAppIdsRead: (): void => {
-      this.visibleAppIds = readVisibleAppIds();
-    },
-  };
-
-  readonly get = {
-    stored: () => this.stored,
-    localOverrides: () => this.localOverrides,
-    runtimeErrors: () => this.runtimeErrors,
-    visibleAppIds: (): string[] => this.visibleAppIds,
   };
 }

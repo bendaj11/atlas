@@ -1,8 +1,6 @@
 import { faker } from '@faker-js/faker';
-import type { ColumbusState, Scope } from './columbus-state';
+import { type ColumbusState, SCOPES } from '../types/columbus-state';
 import { aHostData } from './host-data.testkit';
-
-const SCOPES: Scope[] = ['all', 'tab'];
 
 export function aColumbusState(
   overrides: Partial<ColumbusState> = {},

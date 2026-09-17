@@ -1,12 +1,8 @@
-import { aHostData } from '../../../types/host-data.testkit';
+import { faker } from '@faker-js/faker';
+import { aHostData } from '../../../testkit/host-data.testkit';
 import { HostDataDriver } from './host-data.driver';
 
-const PERSISTED = {
-  schemaVersion: '1' as const,
-  hostId: 'shop',
-  overrides: [],
-  generatedAt: '2026-01-01T00:00:00.000Z',
-};
+const { readHostData } = await import('./host-data');
 
 describe('readHostData', () => {
   let driver: HostDataDriver;
@@ -15,47 +11,86 @@ describe('readHostData', () => {
     driver = new HostDataDriver();
   });
 
-  it('should return the inspected host tab id when a host tab is found', async () => {
-    await driver.when.hostDataRead();
+  it('should reject when no host tab is found', async () => {
+    const reason = faker.lorem.sentence();
 
-    expect(driver.get.result()?.tabId).toBe(7);
+    driver.given.hostTabFailure(new Error(reason));
+
+    await expect(readHostData()).rejects.toThrow(reason);
   });
 
-  it('should fill in persisted overrides when the page reports none', async () => {
-    await driver.given.persistedOverrides(PERSISTED).when.hostDataRead();
+  describe('when a host tab is found', () => {
+    const tab = { id: faker.number.int(), url: faker.internet.url() };
 
-    expect(driver.get.result()?.hostData.overrides).toBe(PERSISTED);
-  });
+    it('should return the host data and tab id when read', async () => {
+      const hostData = aHostData();
 
-  it('should keep the page overrides when the page reports them', async () => {
-    const pageOverrides = { ...PERSISTED, hostId: 'from-page' };
+      driver.given.hostTab({ tab, hostData });
 
-    await driver.given
-      .hostData(aHostData({ overrides: pageOverrides }))
-      .given.persistedOverrides(PERSISTED)
-      .when.hostDataRead();
-
-    expect(driver.get.result()?.hostData.overrides).toBe(pageOverrides);
-  });
-
-  it('should cache the host data for the tab when read', async () => {
-    await driver.when.hostDataRead();
-
-    expect(driver.get.cachedSnapshot()).toMatchObject({
-      tabId: 7,
-      tabUrl: 'https://shop.example/',
+      await expect(readHostData()).resolves.toStrictEqual({
+        hostData,
+        tabId: tab.id,
+      });
     });
-  });
 
-  it('should still return host data when caching fails', async () => {
-    await driver.given.cacheWriteFailure().when.hostDataRead();
+    it('should cache the host data for the tab when read', async () => {
+      const hostData = aHostData();
 
-    expect(driver.get.result()?.tabId).toBe(7);
-  });
+      driver.given.hostTab({ tab, hostData });
 
-  it('should fail when no host tab is found', async () => {
-    await driver.given.noHostTab('No tab.').when.hostDataRead();
+      await readHostData();
 
-    expect(driver.get.error()).toEqual(new Error('No tab.'));
+      expect(driver.get.writeHostDataCache()).toHaveBeenCalledWith({
+        hostData,
+        tabId: tab.id,
+        tabUrl: tab.url,
+      });
+    });
+
+    it('should return the host data and tab id when caching fails', async () => {
+      const hostData = aHostData();
+
+      driver.given
+        .hostTab({ tab, hostData })
+        .given.cacheWriteFailure(new Error(faker.lorem.sentence()));
+
+      await expect(readHostData()).resolves.toStrictEqual({
+        hostData,
+        tabId: tab.id,
+      });
+    });
+
+    it('should fill in the persisted overrides when the page reports none', async () => {
+      const persisted = {
+        schemaVersion: '1' as const,
+        hostId: faker.string.uuid(),
+        overrides: [],
+        generatedAt: faker.date.recent().toISOString(),
+      };
+
+      driver.given
+        .hostTab({ tab, hostData: aHostData({ overrides: undefined }) })
+        .given.persistedOverrideDocument(persisted);
+
+      expect((await readHostData()).hostData.overrides).toBe(persisted);
+    });
+
+    it('should keep the page overrides when the page reports them', async () => {
+      const pageOverrides = {
+        schemaVersion: '1' as const,
+        hostId: faker.string.uuid(),
+        overrides: [],
+        generatedAt: faker.date.recent().toISOString(),
+      };
+
+      driver.given
+        .hostTab({ tab, hostData: aHostData({ overrides: pageOverrides }) })
+        .given.persistedOverrideDocument({
+          ...pageOverrides,
+          hostId: faker.string.uuid(),
+        });
+
+      expect((await readHostData()).hostData.overrides).toBe(pageOverrides);
+    });
   });
 });

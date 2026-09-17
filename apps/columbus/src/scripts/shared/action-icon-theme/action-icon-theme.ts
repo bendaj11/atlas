@@ -1,4 +1,4 @@
-import type { ColorScheme } from './messages/messages';
+import type { ColorScheme } from '../messages/messages';
 
 const ACTION_ICON_PATHS: Record<
   ColorScheme,

@@ -1,5 +1,5 @@
 import type { HostData } from '../../../types/host-data';
-import { writeHostDataCache } from '../host-data-cache';
+import { writeHostDataCache } from '../host-data-cache/host-data-cache';
 import { findAtlasHostTab } from '../host-tabs/host-tabs';
 import { readPersistedOverrideDocument } from '../../overrides/override-storage/override-storage';
 

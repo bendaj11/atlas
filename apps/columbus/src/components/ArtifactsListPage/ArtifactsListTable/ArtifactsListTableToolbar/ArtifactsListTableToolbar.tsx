@@ -1,7 +1,7 @@
 import { IconButton, Search, TableToolbar, Tooltip } from '@wix/design-system';
 import { Sparkles, SparklesFilled } from '@wix/wix-ui-icons-common';
 
-interface OverridesTableToolbarProps {
+interface ArtifactsListTableToolbarProps {
   onSearch: (value: string) => void;
   totalCount: number;
   filteredCount: number;
@@ -9,13 +9,13 @@ interface OverridesTableToolbarProps {
   onVisibleOnlyChange: (visibleOnly: boolean) => void;
 }
 
-export const OverridesTableToolbar = ({
+export const ArtifactsListTableToolbar = ({
   onSearch,
   totalCount,
   filteredCount,
   visibleOnly,
   onVisibleOnlyChange,
-}: OverridesTableToolbarProps) => {
+}: ArtifactsListTableToolbarProps) => {
   const count =
     filteredCount !== totalCount
       ? `${filteredCount}/${totalCount}`
@@ -26,6 +26,7 @@ export const OverridesTableToolbar = ({
       <TableToolbar.ItemGroup position="start">
         <TableToolbar.Item>
           <Search
+            dataHook="artifacts-search"
             size="small"
             onChange={(event) => onSearch(event.target.value)}
           />
@@ -52,7 +53,9 @@ export const OverridesTableToolbar = ({
 
       <TableToolbar.ItemGroup position="end">
         <TableToolbar.Item>
-          <TableToolbar.Label>{count + ' artifacts found'}</TableToolbar.Label>
+          <TableToolbar.Label dataHook="artifacts-count">
+            {count + ' artifacts found'}
+          </TableToolbar.Label>
         </TableToolbar.Item>
       </TableToolbar.ItemGroup>
     </TableToolbar>

@@ -24,7 +24,6 @@ export interface InspectedHostTab {
 
 export interface LoadArtifactVersionFromHostTabOptions {
   tabId: number;
-  artifactKey: string;
   manifest: ArtifactVersion;
 }
 
@@ -50,13 +49,12 @@ export async function findAtlasHostTab(): Promise<InspectedHostTab> {
 
 export async function loadArtifactVersionFromHostTab({
   tabId,
-  artifactKey,
   manifest,
 }: LoadArtifactVersionFromHostTabOptions): Promise<ArtifactVersion> {
   const response = await chrome.tabs.sendMessage(
     tabId,
     loadArtifactVersionRequest({
-      artifactKey,
+      artifactKey: manifest.id,
       versionKey: versionKey(manifest),
     }),
   );

@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
-import type { HostData } from './host-data';
+import type { HostData } from '../types/host-data';
 
 export function aHostData(overrides: Partial<HostData> = {}): HostData {
   const hostId = faker.string.uuid();

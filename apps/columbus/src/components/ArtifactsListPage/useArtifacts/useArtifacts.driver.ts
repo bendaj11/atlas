@@ -1,58 +1,41 @@
 import { jest } from '@jest/globals';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
-import type { Artifact } from '../../../types/artifact';
-import type { ColumbusState } from '../../../types/columbus-state';
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
+import type { ColumbusState } from '../../../types/columbus-state';
 import type { ArtifactVersion } from '../../../types/artifact-version';
-import { aColumbusState } from '../../../types/columbus-state.testkit';
-import { getArtifactKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
-import type { useColumbusState as useColumbusStateType } from '../../../state/useColumbusState/useColumbusState';
-
-const useColumbusState = jest.fn<typeof useColumbusStateType>();
-
-jest.unstable_mockModule(
-  '../../../state/useColumbusState/useColumbusState',
-  () => ({
-    useColumbusState,
-  }),
-);
+import { aColumbusState } from '../../../testkit/columbus-state.testkit';
+import { useColumbusStateMock } from '../../../testkit/mocks/useColumbusState';
 
 const { useArtifacts } = await import('./useArtifacts');
 
-type ColumbusStateValue = ReturnType<typeof useColumbusStateType>;
-type HookResult = ReturnType<typeof useArtifacts>;
-
 export class UseArtifactsDriver {
   private columbusState: ColumbusState | undefined = aColumbusState();
-  private hook: RenderHookResult<HookResult, undefined> | undefined;
+  private hook!: RenderHookResult<ReturnType<typeof useArtifacts>, undefined>;
 
   readonly given = {
-    columbusState: (columbusState: ColumbusState | undefined): this => {
+    columbusState: (columbusState: ColumbusState | undefined) => {
       this.columbusState = columbusState;
 
       return this;
     },
-    catalogHost: (manifest: AtlasHostManifest): this => {
+    catalogHost: (manifest: AtlasHostManifest) => {
       this.columbusState!.hostData.catalog.host = manifest;
 
       return this;
     },
-    catalogApp: (manifest: AtlasManifest): this => {
+    catalogApp: (manifest: AtlasManifest) => {
       this.columbusState!.hostData.catalog.apps.push(manifest);
 
       return this;
     },
-    catalogWidgetProvider: (manifest: AtlasManifest): this => {
+    catalogWidgetProvider: (manifest: AtlasManifest) => {
       this.columbusState!.hostData.catalog.widgetProviders = [manifest];
 
       return this;
     },
-    activeOverride: (
-      manifest: ArtifactVersion,
-      override: ArtifactVersion,
-    ): this => {
+    enabledOverride: (manifest: ArtifactVersion, override: ArtifactVersion) => {
       this.columbusState!.enabledArtifactVersionOverrides.set(
-        getArtifactKey(manifest),
+        manifest.id,
         override,
       );
 
@@ -61,23 +44,23 @@ export class UseArtifactsDriver {
     disabledOverride: (
       manifest: ArtifactVersion,
       override: ArtifactVersion,
-    ): this => {
+    ) => {
       this.columbusState!.disabledArtifactVersionOverrides.set(
-        getArtifactKey(manifest),
+        manifest.id,
         override,
       );
 
       return this;
     },
-    runtimeError: (manifest: ArtifactVersion, message: string): this => {
+    runtimeError: (manifest: ArtifactVersion, message: string) => {
       this.columbusState!.hostData.runtimeErrors.push({
-        artifactId: getArtifactKey(manifest),
+        artifactId: manifest.id,
         message,
       });
 
       return this;
     },
-    visibleAppIds: (ids: string[]): this => {
+    visibleAppIds: (ids: string[] | undefined) => {
       this.columbusState!.hostData.visibleAppIds = ids;
 
       return this;
@@ -85,42 +68,34 @@ export class UseArtifactsDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
-      useColumbusState.mockReturnValue({
+    rendered: () => {
+      useColumbusStateMock.mockReturnValue({
         columbusState: this.columbusState,
-      } as ColumbusStateValue);
+        setColumbusState: jest.fn(),
+      });
       this.hook = renderHook(() => useArtifacts());
     },
-    searched: (value: string): void => {
+    searched: (value: string) => {
       act(() => this.get.result().setSearchValue(value));
     },
-    visibleOnlyToggled: (): void => {
-      act(() =>
-        this.get.result().setVisibleOnly(!this.get.result().visibleOnly),
-      );
+    visibleOnlyChanged: (visibleOnly: boolean) => {
+      act(() => this.get.result().setVisibleOnly(visibleOnly));
     },
   };
 
   readonly get = {
-    result: (): HookResult => {
-      if (!this.hook) throw new Error('Hook was not rendered.');
-
-      return this.hook.result.current;
-    },
-    artifacts: (): Artifact[] => this.get.result().artifacts,
-    deployedArtifactVersions: (): ArtifactVersion[] =>
+    result: () => this.hook.result.current,
+    deployedArtifactVersions: () =>
       this.get
-        .artifacts()
-        .map((artifact) => artifact.productionArtifactVersion),
-    artifactOf: (manifest: ArtifactVersion): Artifact => {
+        .result()
+        .artifacts.map((artifact) => artifact.deployedArtifactVersion),
+    artifactOf: (manifest: ArtifactVersion) => {
       const artifact = this.get
-        .artifacts()
-        .find((item) => item.productionArtifactVersion === manifest);
+        .result()
+        .artifacts.find((item) => item.deployedArtifactVersion === manifest);
       if (!artifact) throw new Error(`No artifact for ${manifest.name}.`);
 
       return artifact;
     },
-    totalCount: (): number => this.get.result().totalCount,
-    visibleOnly: (): boolean => this.get.result().visibleOnly,
   };
 }

@@ -1,5 +1,4 @@
-import { anArtifact } from '../../../../types/artifact.testkit';
-import { ARTIFACT_CONFIGURATION_ROUTE } from '../../../../scripts/routing/routes/routes';
+import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
 import { ArtifactOverrideActionsDriver } from './ArtifactOverrideActions.driver';
 
 describe('ArtifactOverrideActions', () => {
@@ -9,48 +8,64 @@ describe('ArtifactOverrideActions', () => {
     driver = new ArtifactOverrideActionsDriver();
   });
 
-  it('should clear the artifact override when clear is clicked', async () => {
+  it('should show only the edit action when artifact cannot toggle', async () => {
     driver.given
-      .artifact(anArtifact({ key: 'app:orders', canToggle: true }))
+      .artifact(anArtifactTableRow({ canToggle: false }))
       .when.rendered();
 
-    await driver.when.clearClicked();
-
-    expect(driver.get.clearedArtifactKey()).toBe('app:orders');
+    expect(await driver.get.actionCell().getVisibleActionsCount()).toBe(1);
   });
 
-  it('should hide clear when artifact has no override', () => {
-    driver.given.artifact(anArtifact({ canToggle: false })).when.rendered();
+  it('should show clear and edit actions when artifact can toggle', async () => {
+    driver.given
+      .artifact(anArtifactTableRow({ canToggle: true }))
+      .when.rendered();
 
-    expect(driver.get.clearButton()).toBeNull();
+    expect(await driver.get.actionCell().getVisibleActionsCount()).toBe(2);
   });
 
-  it('should not clear when actions are disabled', async () => {
+  it('should disable edit action when actions are disabled', async () => {
     driver.given.actionsDisabled(true).when.rendered();
 
-    await driver.when.clearClicked();
-
-    expect(driver.get.clearedArtifactKey()).toBeUndefined();
+    expect(await driver.get.editAction().isButtonDisabled()).toBe(true);
   });
 
-  it('should open the configuration page with the artifact when edit is clicked', async () => {
-    const artifact = anArtifact();
+  it('should disable clear action when actions are disabled and artifact can toggle', async () => {
+    driver.given
+      .artifact(anArtifactTableRow({ canToggle: true }))
+      .given.actionsDisabled(true)
+      .when.rendered();
 
-    driver.given.artifact(artifact).when.rendered();
-
-    await driver.when.editClicked();
-
-    expect(driver.get.navigation()).toEqual([
-      ARTIFACT_CONFIGURATION_ROUTE,
-      { state: { artifact } },
-    ]);
+    expect(await driver.get.clearAction().isButtonDisabled()).toBe(true);
   });
 
-  it('should not navigate when actions are disabled', async () => {
-    driver.given.actionsDisabled(true).when.rendered();
+  describe('when actions are enabled', () => {
+    beforeEach(() => {
+      driver.given.actionsDisabled(false);
+    });
 
-    await driver.when.editClicked();
+    it('should call navigate with the artifact override route and the artifact as state when edit action is clicked', async () => {
+      const artifact = anArtifactTableRow();
 
-    expect(driver.get.navigation()).toBeUndefined();
+      driver.given.artifact(artifact).when.rendered();
+
+      await driver.when.editClicked();
+
+      expect(driver.get.navigate()).toHaveBeenCalledWith('/artifact/edit', {
+        state: { artifact },
+      });
+    });
+
+    it('should call clearOverride with the deployed artifact version id when clear action is clicked and artifact can toggle', async () => {
+      const artifact = anArtifactTableRow({ canToggle: true });
+
+      driver.given.artifact(artifact).when.rendered();
+
+      await driver.when.clearClicked();
+
+      expect(driver.get.clearOverride()).toHaveBeenCalledWith(
+        artifact.deployedArtifactVersion.id,
+      );
+    });
   });
 });

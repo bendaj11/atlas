@@ -3,18 +3,8 @@ import {
   isAppArtifactVersion,
 } from '../../../types/artifact-version';
 import { placementTargetsHost } from '@atlas/schema';
-import {
-  uniqueVersions,
-  versionKey,
-} from '../artifact-version-keys/artifact-version-keys';
 import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants';
-import type {
-  Artifact,
-  ArtifactConfiguration,
-  OverrideSelection,
-  OverrideType,
-} from '../../../types/artifact';
-import type { ColumbusState } from '../../../types/columbus-state';
+import type { ArtifactOverride } from '../../../types/artifact';
 
 const SHORT_BUILD_ID_LENGTH = 7;
 
@@ -23,119 +13,38 @@ interface IsArtifactVersionSupportedByHostOptions {
   hostId: string;
 }
 
-interface ArtifactVersionFromSelectionOptions extends Pick<
-  ArtifactConfiguration,
-  | 'productionArtifactVersion'
-  | 'productionArtifactVersions'
-  | 'prArtifactVersions'
-> {
-  selection: OverrideSelection;
-}
-
-interface CreateCustomArtifactVersionOptions extends Pick<
-  Artifact,
-  'productionArtifactVersion'
+export interface CreateCustomArtifactVersionOptions extends Pick<
+  ArtifactOverride,
+  'deployedArtifactVersion'
 > {
   rawUrl: string;
 }
 
-export function configurationOf(
-  artifact: Artifact,
-  {
-    enabledArtifactVersionOverrides,
-    disabledArtifactVersionOverrides,
-    hostData,
-  }: ColumbusState,
-): ArtifactConfiguration {
-  const { key, productionArtifactVersion } = artifact;
-  const versions = uniqueVersions([
-    ...(hostData.versions[key] ?? []),
-    productionArtifactVersion,
-  ]);
-
-  return {
-    ...artifact,
-    hostId: hostData.config.hostId,
-    selectedArtifactVersion:
-      enabledArtifactVersionOverrides.get(key) ??
-      disabledArtifactVersionOverrides.get(key),
-    productionArtifactVersions: versions.filter(
-      (artifactVersion) => artifactVersion.channel === 'production',
-    ),
-    prArtifactVersions: versions.filter(
-      (artifactVersion) => artifactVersion.channel === 'pr',
-    ),
-  };
-}
-
-export function initialOverrideSelection(
-  selectedArtifactVersion: ArtifactVersion | undefined,
-): OverrideSelection {
-  if (!selectedArtifactVersion) return { type: 'custom', value: '' };
-  if (selectedArtifactVersion.channel === 'local')
-    return {
-      type: 'custom',
-      value: baseUrlFromRemoteEntry(selectedArtifactVersion.remoteEntryUrl),
-    };
-
-  return {
-    type: selectedArtifactVersion.channel,
-    value: versionKey(selectedArtifactVersion),
-  };
-}
-
-export function artifactVersionFromSelection({
-  productionArtifactVersion,
-  selection,
-  productionArtifactVersions,
-  prArtifactVersions,
-}: ArtifactVersionFromSelectionOptions): ArtifactVersion {
-  if (selection.type === 'custom')
-    return createCustomArtifactVersion({
-      productionArtifactVersion,
-      rawUrl: selection.value,
-    });
-  if (selection.type === 'production') {
-    const selectedArtifactVersion = productionArtifactVersions.find(
-      (artifactVersion) => versionKey(artifactVersion) === selection.value,
-    );
-    if (!selectedArtifactVersion)
-      throw new Error('Choose a production version.');
-    return selectedArtifactVersion;
-  }
-
-  const selectedArtifactVersion = prArtifactVersions.find(
-    (artifactVersion) => versionKey(artifactVersion) === selection.value,
-  );
-  if (!selectedArtifactVersion) throw new Error('Choose a PR version.');
-  return selectedArtifactVersion;
-}
-
-function createCustomArtifactVersion({
-  productionArtifactVersion,
+export function createCustomArtifactVersion({
+  deployedArtifactVersion,
   rawUrl,
 }: CreateCustomArtifactVersionOptions): ArtifactVersion {
   const baseUrl = validatedBaseUrl(rawUrl);
 
   const artifactVersion: ArtifactVersion = {
-    ...productionArtifactVersion,
+    ...deployedArtifactVersion,
     version: CUSTOM_VERSION,
     buildId: CUSTOM_BUILD_ID,
     channel: 'local',
     remoteEntryUrl: `${baseUrl}/remoteEntry.json`,
     styles:
-      productionArtifactVersion.framework === 'angular'
+      deployedArtifactVersion.framework === 'angular'
         ? [{ href: `${baseUrl}/styles.css` }]
         : [],
   };
   delete artifactVersion.integrity;
   if (
-    isAppArtifactVersion(productionArtifactVersion) &&
+    isAppArtifactVersion(deployedArtifactVersion) &&
     isAppArtifactVersion(artifactVersion) &&
-    productionArtifactVersion.exportedWidgets
+    deployedArtifactVersion.exportedWidgets
   ) {
     artifactVersion.exportedWidgets =
-      productionArtifactVersion.exportedWidgets.map((widget) => ({
+      deployedArtifactVersion.exportedWidgets.map((widget) => ({
         ...widget,
         remoteEntryUrl: artifactVersion.remoteEntryUrl,
       }));
@@ -152,22 +61,6 @@ export function normalizeStoredArtifactVersion(
   )
     return artifactVersion;
   return { ...artifactVersion, version: CUSTOM_VERSION };
-}
-
-export function overrideTypeFor({
-  productionArtifactVersion,
-  selectedArtifactVersion,
-}: Pick<Artifact, 'productionArtifactVersion' | 'selectedArtifactVersion'>):
-  OverrideType | undefined {
-  if (!selectedArtifactVersion) return undefined;
-  if (selectedArtifactVersion.channel === 'local') return 'custom';
-  if (selectedArtifactVersion.channel === 'pr') return 'pr';
-  if (
-    versionKey(selectedArtifactVersion) ===
-    versionKey(productionArtifactVersion)
-  )
-    return undefined;
-  return 'production';
 }
 
 export function versionLabel(artifactVersion: ArtifactVersion): string {
@@ -212,7 +105,7 @@ function isVisibleVersionLabelPart(part: string | undefined): part is string {
   return Boolean(part?.trim().replaceAll('.', ''));
 }
 
-function baseUrlFromRemoteEntry(remoteEntryUrl: string): string {
+export function baseUrlFromRemoteEntry(remoteEntryUrl: string): string {
   return normalizeBaseUrl(remoteEntryUrl);
 }
 
@@ -254,15 +147,6 @@ function isLoopbackHost(hostname: string): boolean {
   );
 }
 
-export function artifactSourceDescription(
-  selectedArtifactVersion: ArtifactVersion | undefined,
-): string {
-  if (!selectedArtifactVersion) return '';
-  return selectedArtifactVersion.channel === 'local'
-    ? baseUrlFromRemoteEntry(selectedArtifactVersion.remoteEntryUrl)
-    : versionLabel(selectedArtifactVersion);
-}
-
 export function isArtifactVersionSupportedByHost({
   artifactVersion,
   hostId,
@@ -276,16 +160,5 @@ export function isArtifactVersionSupportedByHost({
     artifactVersion.placements.some((placement) =>
       placementTargetsHost(placement, hostId),
     )
-  );
-}
-
-export function isDeployedProductionVersion(
-  artifactVersion: ArtifactVersion,
-  deployedArtifactVersion: ArtifactVersion | undefined,
-): boolean {
-  return (
-    artifactVersion.channel === 'production' &&
-    deployedArtifactVersion?.channel === 'production' &&
-    versionKey(artifactVersion) === versionKey(deployedArtifactVersion)
   );
 }

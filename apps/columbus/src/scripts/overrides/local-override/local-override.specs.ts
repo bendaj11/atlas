@@ -1,6 +1,8 @@
 /** @jest-environment node */
 
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
+import { validateLocalOverride } from './local-override';
 import { LocalOverrideDriver } from './local-override.driver';
 
 describe('validateLocalOverride', () => {
@@ -10,72 +12,92 @@ describe('validateLocalOverride', () => {
     driver = new LocalOverrideDriver();
   });
 
-  it('should skip validation when the manifest is not local', async () => {
-    await driver.given
-      .manifest(anAppManifest({ channel: 'pr' }))
-      .when.validated();
+  it('should not fetch when the manifest is not local', async () => {
+    await validateLocalOverride(anAppManifest({ channel: 'pr' }));
 
-    expect(driver.get.fetchCount()).toBe(0);
+    expect(driver.get.fetch()).not.toHaveBeenCalled();
   });
 
-  it('should fetch the remote entry when the manifest is local', async () => {
-    await driver.given
-      .remoteEntry({
-        name: 'orders',
-        exposes: [{ key: './entry', outFileName: 'entry.js' }],
-      })
-      .when.validated();
+  describe('when the manifest is local', () => {
+    const manifest = anAppManifest({ channel: 'local' });
 
-    expect(driver.get.fetchedUrl()).toBe(
-      'http://localhost:4513/remoteEntry.json',
-    );
-  });
+    it('should fetch the remote entry without cache when validated', async () => {
+      driver.given.fetchResponse(
+        Response.json({
+          name: faker.word.noun(),
+          exposes: [
+            {
+              key: manifest.exposes.entry,
+              outFileName: faker.system.fileName(),
+            },
+          ],
+        }),
+      );
 
-  it('should accept the override when the remote entry exposes the entry module', async () => {
-    await driver.given
-      .remoteEntry({
-        name: 'orders',
-        exposes: [{ key: './entry', outFileName: 'entry.js' }],
-      })
-      .when.validated();
+      await validateLocalOverride(manifest);
 
-    expect(driver.get.errorMessage()).toBeUndefined();
-  });
+      expect(driver.get.fetch()).toHaveBeenCalledWith(manifest.remoteEntryUrl, {
+        cache: 'no-store',
+        signal: expect.any(AbortSignal),
+      });
+    });
 
-  it('should reject the override when the remote entry lacks the entry module', async () => {
-    await driver.given
-      .remoteEntry({
-        name: 'orders',
-        exposes: [{ key: './other', outFileName: 'o.js' }],
-      })
-      .when.validated();
+    it('should resolve when the remote entry exposes the entry module', async () => {
+      driver.given.fetchResponse(
+        Response.json({
+          name: faker.word.noun(),
+          exposes: [
+            {
+              key: manifest.exposes.entry,
+              outFileName: faker.system.fileName(),
+            },
+          ],
+        }),
+      );
 
-    expect(driver.get.errorMessage()).toBe(
-      'Local override remote entry does not expose ./entry.',
-    );
-  });
+      await expect(validateLocalOverride(manifest)).resolves.toBeUndefined();
+    });
 
-  it('should reject the override when the remote entry is not federation metadata', async () => {
-    await driver.given.remoteEntry({ hello: 'world' }).when.validated();
+    it('should reject when the remote entry lacks the entry module', async () => {
+      driver.given.fetchResponse(
+        Response.json({
+          name: faker.word.noun(),
+          exposes: [
+            {
+              key: `./${faker.word.noun()}`,
+              outFileName: faker.system.fileName(),
+            },
+          ],
+        }),
+      );
 
-    expect(driver.get.errorMessage()).toBe(
-      'Local override remote entry is not valid federation metadata.',
-    );
-  });
+      await expect(validateLocalOverride(manifest)).rejects.toThrow(
+        `Local override remote entry does not expose ${manifest.exposes.entry}.`,
+      );
+    });
 
-  it('should reject the override when the remote entry responds with an error status', async () => {
-    await driver.given.remoteEntryStatus(404).when.validated();
+    it('should reject when the remote entry is not federation metadata', async () => {
+      driver.given.fetchResponse(Response.json({ hello: faker.word.noun() }));
 
-    expect(driver.get.errorMessage()).toBe(
-      'Local override remote entry returned HTTP 404.',
-    );
-  });
+      await expect(validateLocalOverride(manifest)).rejects.toThrow(
+        'Local override remote entry is not valid federation metadata.',
+      );
+    });
 
-  it('should reject the override when the remote entry is unreachable', async () => {
-    await driver.given.unreachableRemoteEntry().when.validated();
+    it('should reject when the remote entry responds with an error status', async () => {
+      driver.given.fetchResponse(new Response(null, { status: 404 }));
 
-    expect(driver.get.errorMessage()).toBe(
-      'Local override remote entry is unreachable. Start its development server, then retry.',
-    );
+      await expect(validateLocalOverride(manifest)).rejects.toThrow(
+        'Local override remote entry returned HTTP 404.',
+      );
+    });
+
+    it('should reject when the remote entry is unreachable', async () => {
+      driver.given.fetchFailure(new TypeError('Failed to fetch'));
+
+      await expect(validateLocalOverride(manifest)).rejects.toThrow(
+        'Local override remote entry is unreachable. Start its development server, then retry.',
+      );
+    });
   });
 });

@@ -1,23 +1,41 @@
 import { jest } from '@jest/globals';
-import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
-import { aHostData } from '../../types/host-data.testkit';
-import { anAppManifest } from '@atlas/testkit';
-import { type FakeChrome, installFakeChrome } from '../chrome.testkit';
-import type { ArtifactRegistry } from '../host/artifact-registry/artifact-registry';
-import type { inspectAtlasHost as inspectAtlasHostType } from '../host/inspect-atlas-host/inspect-atlas-host';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import {
+  type FakeChrome,
+  installFakeChrome,
+} from '../../../testkit/chrome.testkit';
+import type { ArtifactRegistry } from '../../host/artifact-registry/artifact-registry';
+import type { inspectAtlasHost as inspectAtlasHostType } from '../../host/inspect-atlas-host/inspect-atlas-host';
+import {
+  isActionThemeMessage,
+  isOverrideCountMessage,
+} from '../../shared/messages/messages';
 
 const inspectAtlasHost = jest.fn<typeof inspectAtlasHostType>();
-const loadVersion = jest.fn<ArtifactRegistry['loadVersion']>();
-const artifactRegistry = { loadVersion } as unknown as ArtifactRegistry;
-const fetch = jest.fn<typeof globalThis.fetch>();
+const artifactRegistry = {
+  readRegistry: jest.fn<ArtifactRegistry['readRegistry']>(),
+  readVersions: jest.fn<ArtifactRegistry['readVersions']>(),
+  loadManifest: jest.fn<ArtifactRegistry['loadManifest']>(),
+  loadVersion: jest.fn<ArtifactRegistry['loadVersion']>(),
+};
+const fetch =
+  jest.fn<
+    (
+      input: string | URL,
+      init?: RequestInit,
+    ) => Promise<Pick<Response, 'ok' | 'status' | 'json'>>
+  >();
 const setInterval = jest.fn<(callback: () => void, ms: number) => number>();
 
-jest.unstable_mockModule('../host/artifact-registry/artifact-registry', () => ({
-  createArtifactRegistry: () => artifactRegistry,
-}));
 jest.unstable_mockModule(
-  '../host/inspect-atlas-host/inspect-atlas-host',
+  '../../host/artifact-registry/artifact-registry',
+  () => ({
+    createArtifactRegistry: () => artifactRegistry,
+  }),
+);
+jest.unstable_mockModule(
+  '../../host/inspect-atlas-host/inspect-atlas-host',
   () => ({ inspectAtlasHost }),
 );
 
@@ -34,7 +52,6 @@ window.addEventListener = (
 
 export class BadgeScriptDriver {
   private readonly chrome: FakeChrome = installFakeChrome();
-  private readonly responses = new Map<string, () => Response>();
   private readonly colorSchemeListeners: Array<() => void> = [];
   private readonly colorSchemeQuery = {
     matches: false,
@@ -56,22 +73,16 @@ export class BadgeScriptDriver {
     document.body.innerHTML = '';
     sessionStorage.clear();
     localStorage.clear();
-    globalThis.fetch = fetch;
-    inspectAtlasHost.mockResolvedValue(aHostData());
-    loadVersion.mockResolvedValue(anAppManifest());
-    window.setInterval = setInterval as unknown as typeof window.setInterval;
-    window.matchMedia = () =>
-      this.colorSchemeQuery as unknown as MediaQueryList;
-    this.given.pageLocation('http://localhost/');
-    fetch.mockImplementation(async (input) => {
-      const respond = this.responses.get(String(input));
-
-      return respond ? respond() : aJsonResponse(undefined, 404);
+    fetch.mockResolvedValue({ ok: false, status: 404, json: async () => null });
+    Object.assign(globalThis, { fetch });
+    Object.assign(window, {
+      setInterval,
+      matchMedia: () => this.colorSchemeQuery,
     });
   }
 
   readonly given = {
-    pageLocation: (href: string): this => {
+    pageLocation: (href: string) => {
       Object.defineProperty(globalThis, 'location', {
         value: { href, hostname: new URL(href).hostname },
         configurable: true,
@@ -79,66 +90,77 @@ export class BadgeScriptDriver {
 
       return this;
     },
-    pageBody: (html: string): this => {
+    pageBody: (html: string) => {
       document.body.innerHTML = html;
 
       return this;
     },
-    darkColorScheme: (dark: boolean): this => {
+    darkColorScheme: (dark: boolean) => {
       this.colorSchemeQuery.matches = dark;
 
       return this;
     },
-    sessionStorageItem: (key: string, value: string): this => {
+    sessionStorageItem: (key: string, value: string) => {
       sessionStorage.setItem(key, value);
 
       return this;
     },
-    localStorageItem: (key: string, value: string): this => {
+    localStorageItem: (key: string, value: string) => {
       localStorage.setItem(key, value);
 
       return this;
     },
-    extensionStorageItem: (key: string, value: unknown): this => {
+    extensionStorageItem: (key: string, value: unknown) => {
       this.chrome.localStorage.set(key, value);
 
       return this;
     },
-    response: (url: string, body: unknown, status = 200): this => {
-      this.responses.set(url, () => aJsonResponse(body, status));
+    fetchJson: (body: unknown) => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => body,
+      });
 
       return this;
     },
-    hostData: (hostData: HostData): this => {
+    fetchStatus: (status: number) => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status,
+        json: async () => null,
+      });
+
+      return this;
+    },
+    hostData: (hostData: HostData) => {
       inspectAtlasHost.mockResolvedValue(hostData);
 
       return this;
     },
-    hostInspectionFailure: (reason: string): this => {
-      inspectAtlasHost.mockRejectedValue(new Error(reason));
+    hostInspectionFailure: (error: Error) => {
+      inspectAtlasHost.mockRejectedValue(error);
 
       return this;
     },
-    loadedVersion: (manifest: ArtifactVersion): this => {
-      loadVersion.mockResolvedValue(manifest);
+    loadedVersion: (manifest: ArtifactVersion) => {
+      artifactRegistry.loadVersion.mockResolvedValue(manifest);
 
       return this;
     },
-    versionLoadFailure: (reason: string): this => {
-      loadVersion.mockRejectedValue(new Error(reason));
+    versionLoadFailure: (error: Error) => {
+      artifactRegistry.loadVersion.mockRejectedValue(error);
 
       return this;
     },
   };
 
   readonly when = {
-    started: async (): Promise<void> => {
-      await this.start();
-    },
+    started: () => this.start(),
     overridesStoredAndEventFired: async (
       document: unknown,
       eventType: string,
-    ): Promise<void> => {
+    ) => {
       await this.start();
       sessionStorage.setItem(
         'atlas.runtime-overrides',
@@ -147,9 +169,7 @@ export class BadgeScriptDriver {
       window.dispatchEvent(new Event(eventType));
       await flushAsyncWork();
     },
-    overridesStoredAndIntervalElapsed: async (
-      document: unknown,
-    ): Promise<void> => {
+    overridesStoredAndIntervalElapsed: async (document: unknown) => {
       await this.start();
       sessionStorage.setItem(
         'atlas.runtime-overrides',
@@ -158,43 +178,35 @@ export class BadgeScriptDriver {
       setInterval.mock.calls.forEach(([callback]) => callback());
       await flushAsyncWork();
     },
-    colorSchemeChanged: async (dark: boolean): Promise<void> => {
+    colorSchemeChanged: async (dark: boolean) => {
       await this.start();
       this.colorSchemeQuery.matches = dark;
       this.colorSchemeListeners.forEach((listener) => listener());
       await flushAsyncWork();
     },
-    messageReceived: async (message: unknown): Promise<void> => {
+    messageReceived: async (message: unknown) => {
       await this.start();
       this.response = await this.chrome.emitRuntimeMessage(message);
     },
   };
 
   readonly get = {
-    response: (): unknown => this.response,
-    runtimeMessages: (): unknown[] => this.chrome.runtimeMessages,
-    publishedOverrideCounts: (): number[] =>
-      this.chrome.runtimeMessages.flatMap((message) =>
-        isOverrideCount(message) ? [message.overrideCount] : [],
-      ),
-    publishedColorSchemes: (): string[] =>
-      this.chrome.runtimeMessages.flatMap((message) =>
-        isActionTheme(message) ? [message.colorScheme] : [],
-      ),
-    refreshIntervalsMs: (): number[] =>
-      setInterval.mock.calls.map(([, ms]) => ms),
-    fetchedUrls: (): string[] =>
-      fetch.mock.calls.map(([input]) => String(input)),
-    inspectedDocumentKeys: (): string[] =>
-      inspectAtlasHost.mock.calls.map(([documentKey]) => documentKey),
-    loadedVersionKeys: (): Array<[string, string]> =>
-      loadVersion.mock.calls.map(([artifactKey, versionKey]) => [
-        artifactKey,
-        versionKey,
-      ]),
+    response: () => this.response,
+    publishedOverrideCounts: () =>
+      this.chrome.runtimeMessages
+        .filter(isOverrideCountMessage)
+        .map(({ overrideCount }) => overrideCount),
+    publishedColorSchemes: () =>
+      this.chrome.runtimeMessages
+        .filter(isActionThemeMessage)
+        .map(({ colorScheme }) => colorScheme),
+    setInterval: () => setInterval,
+    fetch: () => fetch,
+    inspectAtlasHost: () => inspectAtlasHost,
+    loadVersion: () => artifactRegistry.loadVersion,
   };
 
-  private async start(): Promise<void> {
+  private async start() {
     if (this.started) return;
     this.started = true;
     await import('./badge-script');
@@ -204,28 +216,4 @@ export class BadgeScriptDriver {
 
 function flushAsyncWork(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
-function isOverrideCount(
-  message: unknown,
-): message is { overrideCount: number } {
-  return (
-    typeof message === 'object' &&
-    message !== null &&
-    'overrideCount' in message
-  );
-}
-
-function isActionTheme(message: unknown): message is { colorScheme: string } {
-  return (
-    typeof message === 'object' && message !== null && 'colorScheme' in message
-  );
-}
-
-function aJsonResponse(body: unknown, status: number): Response {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => body,
-  } as Response;
 }

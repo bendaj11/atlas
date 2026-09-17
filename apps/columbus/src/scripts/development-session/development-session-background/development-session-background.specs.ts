@@ -1,6 +1,6 @@
+import { faker } from '@faker-js/faker';
+import { loadDevelopmentSession } from './development-session-background';
 import { DevelopmentSessionBackgroundDriver } from './development-session-background.driver';
-
-const SESSION = { schemaVersion: '1', hostId: 'shop', overrides: [] };
 
 describe('loadDevelopmentSession', () => {
   let driver: DevelopmentSessionBackgroundDriver;
@@ -10,62 +10,105 @@ describe('loadDevelopmentSession', () => {
   });
 
   it('should request the session from the default control port when none is given', async () => {
-    await driver.when.sessionLoaded();
+    const hostId = faker.string.uuid();
+    const previewUrl = faker.internet.url({ appendSlash: true });
 
-    expect(driver.get.requestedUrl()).toBe(
-      'http://localhost:4400/atlas.dev-session.json?hostId=shop&previewUrl=http%3A%2F%2Flocalhost%3A4300%2Fdashboard',
+    driver.given.session({ schemaVersion: '1', hostId, overrides: [] });
+
+    await loadDevelopmentSession(
+      { hostId, previewUrl },
+      { fetchJson: driver.get.fetchJson() },
+    );
+
+    expect(driver.get.fetchJson()).toHaveBeenCalledWith(
+      `http://localhost:4400/atlas.dev-session.json?hostId=${hostId}&previewUrl=${encodeURIComponent(previewUrl)}`,
     );
   });
 
   it('should request the session from the given control port when one is given', async () => {
-    await driver.given.request({ controlPort: 4512 }).when.sessionLoaded();
+    const hostId = faker.string.uuid();
+    const previewUrl = faker.internet.url({ appendSlash: true });
+    const controlPort = faker.internet.port();
 
-    expect(driver.get.requestedUrl()).toContain('http://localhost:4512/');
+    driver.given.session({ schemaVersion: '1', hostId, overrides: [] });
+
+    await loadDevelopmentSession(
+      { hostId, previewUrl, controlPort },
+      { fetchJson: driver.get.fetchJson() },
+    );
+
+    expect(driver.get.fetchJson()).toHaveBeenCalledWith(
+      `http://localhost:${controlPort}/atlas.dev-session.json?hostId=${hostId}&previewUrl=${encodeURIComponent(previewUrl)}`,
+    );
   });
 
   it('should return the session when it matches the host', async () => {
-    await driver.given.sessionResponse(SESSION).when.sessionLoaded();
+    const hostId = faker.string.uuid();
+    const session = { schemaVersion: '1', hostId, overrides: [] };
 
-    expect(driver.get.result()).toBe(SESSION);
+    driver.given.session(session);
+
+    await expect(
+      loadDevelopmentSession(
+        { hostId, previewUrl: faker.internet.url() },
+        { fetchJson: driver.get.fetchJson() },
+      ),
+    ).resolves.toBe(session);
   });
 
-  it('should fail when the session belongs to another host', async () => {
-    await driver.given
-      .sessionResponse({ ...SESSION, hostId: 'other' })
-      .when.sessionLoaded();
+  it('should reject when the session belongs to another host', async () => {
+    driver.given.session({
+      schemaVersion: '1',
+      hostId: faker.string.uuid(),
+      overrides: [],
+    });
 
-    expect(driver.get.errorMessage()).toBe(
-      'Atlas development session is invalid.',
-    );
+    await expect(
+      loadDevelopmentSession(
+        { hostId: faker.string.uuid(), previewUrl: faker.internet.url() },
+        { fetchJson: driver.get.fetchJson() },
+      ),
+    ).rejects.toThrow('Atlas development session is invalid.');
   });
 
-  it('should fail when the session has no overrides list', async () => {
-    await driver.given
-      .sessionResponse({ schemaVersion: '1', hostId: 'shop' })
-      .when.sessionLoaded();
+  it('should reject when the session has no overrides list', async () => {
+    const hostId = faker.string.uuid();
 
-    expect(driver.get.errorMessage()).toBe(
-      'Atlas development session is invalid.',
-    );
+    driver.given.session({ schemaVersion: '1', hostId });
+
+    await expect(
+      loadDevelopmentSession(
+        { hostId, previewUrl: faker.internet.url() },
+        { fetchJson: driver.get.fetchJson() },
+      ),
+    ).rejects.toThrow('Atlas development session is invalid.');
   });
 
   it.each(['ftp://localhost/app', 'http://user:pw@localhost/app'])(
-    'should fail when the preview url is %s',
+    'should reject when the preview url is %s',
     async (previewUrl) => {
-      await driver.given.request({ previewUrl }).when.sessionLoaded();
-
-      expect(driver.get.errorMessage()).toBe('Atlas preview URL is invalid.');
+      await expect(
+        loadDevelopmentSession(
+          { hostId: faker.string.uuid(), previewUrl },
+          { fetchJson: driver.get.fetchJson() },
+        ),
+      ).rejects.toThrow('Atlas preview URL is invalid.');
     },
   );
 
   it.each([0, 70000, 1.5])(
-    'should fail when the control port is %s',
+    'should reject when the control port is %s',
     async (controlPort) => {
-      await driver.given.request({ controlPort }).when.sessionLoaded();
-
-      expect(driver.get.errorMessage()).toBe(
-        'Atlas development control port is invalid.',
-      );
+      await expect(
+        loadDevelopmentSession(
+          {
+            hostId: faker.string.uuid(),
+            previewUrl: faker.internet.url(),
+            controlPort,
+          },
+          { fetchJson: driver.get.fetchJson() },
+        ),
+      ).rejects.toThrow('Atlas development control port is invalid.');
     },
   );
 });

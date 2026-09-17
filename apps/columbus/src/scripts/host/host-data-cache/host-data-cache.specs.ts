@@ -1,6 +1,13 @@
+import { faker } from '@faker-js/faker';
+import { aHostData } from '../../../testkit/host-data.testkit';
+import {
+  clearHostDataCache,
+  readHostDataCache,
+  writeHostDataCache,
+} from './host-data-cache';
 import { HostDataCacheDriver } from './host-data-cache.driver';
 
-const HOST_URL = 'https://shop.example/';
+const CACHE_KEY = 'atlas.host-data-cache';
 
 describe('readHostDataCache', () => {
   let driver: HostDataCacheDriver;
@@ -10,69 +17,95 @@ describe('readHostDataCache', () => {
   });
 
   it('should return nothing when no snapshot is stored', async () => {
-    await driver.when.cacheRead();
-
-    expect(driver.get.result()).toBeUndefined();
+    expect(await readHostDataCache()).toBeUndefined();
   });
 
   it('should return nothing when the stored value is not a snapshot', async () => {
-    await driver.given.storedValue({ tabId: 'x' }).when.cacheRead();
+    driver.given.sessionStorageItem(CACHE_KEY, { tabId: faker.word.noun() });
 
-    expect(driver.get.result()).toBeUndefined();
+    expect(await readHostDataCache()).toBeUndefined();
   });
 
-  it('should return the snapshot when the cached tab is active and unchanged', async () => {
-    await driver.given
-      .tabs([{ id: 7, active: true, url: HOST_URL }])
-      .given.cachedSnapshot(7, HOST_URL)
-      .when.cacheRead();
+  it('should return the host data and tab id when the cached tab is active and unchanged', async () => {
+    const snapshot = {
+      hostData: aHostData(),
+      tabId: faker.number.int(),
+      tabUrl: faker.internet.url(),
+    };
 
-    expect(driver.get.result()).toEqual({
-      hostData: driver.get.hostData(),
-      tabId: 7,
+    driver.given
+      .tabs([{ id: snapshot.tabId, active: true, url: snapshot.tabUrl }])
+      .given.sessionStorageItem(CACHE_KEY, snapshot);
+
+    expect(await readHostDataCache()).toStrictEqual({
+      hostData: snapshot.hostData,
+      tabId: snapshot.tabId,
     });
   });
 
-  it('should return the snapshot when the popup page is active and the cached tab is unchanged', async () => {
-    await driver.given
-      .tabs([
-        { id: 1, active: true, url: 'chrome-extension://abc/index.html' },
-        { id: 7, url: HOST_URL },
-      ])
-      .given.cachedSnapshot(7, HOST_URL)
-      .when.cacheRead();
+  it('should return the host data and tab id when an extension page is active and the cached tab is unchanged', async () => {
+    const snapshot = {
+      hostData: aHostData(),
+      tabId: faker.number.int(),
+      tabUrl: faker.internet.url(),
+    };
 
-    expect(driver.get.result()?.tabId).toBe(7);
+    driver.given
+      .tabs([
+        {
+          id: faker.number.int(),
+          active: true,
+          url: `chrome-extension://${faker.string.alphanumeric(8)}/index.html`,
+        },
+        { id: snapshot.tabId, url: snapshot.tabUrl },
+      ])
+      .given.sessionStorageItem(CACHE_KEY, snapshot);
+
+    expect(await readHostDataCache()).toStrictEqual({
+      hostData: snapshot.hostData,
+      tabId: snapshot.tabId,
+    });
   });
 
   it('should return nothing when the cached tab navigated elsewhere', async () => {
-    await driver.given
-      .tabs([{ id: 7, active: true, url: 'https://other.example/' }])
-      .given.cachedSnapshot(7, HOST_URL)
-      .when.cacheRead();
+    const snapshot = {
+      hostData: aHostData(),
+      tabId: faker.number.int(),
+      tabUrl: faker.internet.url(),
+    };
 
-    expect(driver.get.result()).toBeUndefined();
+    driver.given
+      .tabs([{ id: snapshot.tabId, active: true, url: faker.internet.url() }])
+      .given.sessionStorageItem(CACHE_KEY, snapshot);
+
+    expect(await readHostDataCache()).toBeUndefined();
   });
 
-  it('should return nothing when another web tab is active', async () => {
-    await driver.given
-      .tabs([
-        { id: 7, url: HOST_URL },
-        { id: 8, active: true, url: 'https://other.example/' },
-      ])
-      .given.cachedSnapshot(7, HOST_URL)
-      .when.cacheRead();
+  describe('when another web tab is active', () => {
+    const snapshot = {
+      hostData: aHostData(),
+      tabId: faker.number.int(),
+      tabUrl: faker.internet.url(),
+    };
 
-    expect(driver.get.result()).toBeUndefined();
-  });
+    beforeEach(() => {
+      driver.given
+        .tabs([
+          { id: snapshot.tabId, url: snapshot.tabUrl },
+          { id: faker.number.int(), active: true, url: faker.internet.url() },
+        ])
+        .given.sessionStorageItem(CACHE_KEY, snapshot);
+    });
 
-  it('should drop the snapshot when it no longer matches the active host', async () => {
-    await driver.given
-      .tabs([{ id: 8, active: true, url: 'https://other.example/' }])
-      .given.cachedSnapshot(7, HOST_URL)
-      .when.cacheRead();
+    it('should return nothing when read', async () => {
+      expect(await readHostDataCache()).toBeUndefined();
+    });
 
-    expect(driver.get.storedSnapshot()).toBeUndefined();
+    it('should drop the stored snapshot when read', async () => {
+      await readHostDataCache();
+
+      expect(driver.get.sessionStorageItem(CACHE_KEY)).toBeUndefined();
+    });
   });
 });
 
@@ -84,13 +117,15 @@ describe('writeHostDataCache', () => {
   });
 
   it('should store the snapshot when written', async () => {
-    await driver.when.cacheWritten(7, HOST_URL);
+    const snapshot = {
+      hostData: aHostData(),
+      tabId: faker.number.int(),
+      tabUrl: faker.internet.url(),
+    };
 
-    expect(driver.get.storedSnapshot()).toEqual({
-      hostData: driver.get.hostData(),
-      tabId: 7,
-      tabUrl: HOST_URL,
-    });
+    await writeHostDataCache(snapshot);
+
+    expect(driver.get.sessionStorageItem(CACHE_KEY)).toStrictEqual(snapshot);
   });
 });
 
@@ -101,21 +136,33 @@ describe('clearHostDataCache', () => {
     driver = new HostDataCacheDriver();
   });
 
-  it('should drop the snapshot when cleared without a tab', async () => {
-    await driver.given.cachedSnapshot(7, HOST_URL).when.cacheCleared();
+  describe('when a snapshot is stored', () => {
+    const snapshot = {
+      hostData: aHostData(),
+      tabId: faker.number.int(),
+      tabUrl: faker.internet.url(),
+    };
 
-    expect(driver.get.storedSnapshot()).toBeUndefined();
-  });
+    beforeEach(() => {
+      driver.given.sessionStorageItem(CACHE_KEY, snapshot);
+    });
 
-  it('should drop the snapshot when cleared for its tab', async () => {
-    await driver.given.cachedSnapshot(7, HOST_URL).when.cacheCleared(7);
+    it('should drop the snapshot when cleared without a tab', async () => {
+      await clearHostDataCache();
 
-    expect(driver.get.storedSnapshot()).toBeUndefined();
-  });
+      expect(driver.get.sessionStorageItem(CACHE_KEY)).toBeUndefined();
+    });
 
-  it('should keep the snapshot when cleared for another tab', async () => {
-    await driver.given.cachedSnapshot(7, HOST_URL).when.cacheCleared(8);
+    it('should drop the snapshot when cleared for its tab', async () => {
+      await clearHostDataCache(snapshot.tabId);
 
-    expect(driver.get.storedSnapshot()).toBeDefined();
+      expect(driver.get.sessionStorageItem(CACHE_KEY)).toBeUndefined();
+    });
+
+    it('should keep the snapshot when cleared for another tab', async () => {
+      await clearHostDataCache(faker.number.int());
+
+      expect(driver.get.sessionStorageItem(CACHE_KEY)).toStrictEqual(snapshot);
+    });
   });
 });

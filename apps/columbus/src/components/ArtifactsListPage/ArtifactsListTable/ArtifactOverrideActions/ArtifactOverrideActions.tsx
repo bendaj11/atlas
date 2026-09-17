@@ -1,14 +1,14 @@
-import type { Artifact } from '../../../../types/artifact';
+import type { ArtifactTableRow } from '../../../../types/artifact';
 import { Delete, Edit } from '@wix/wix-ui-icons-common';
 import { TableActionCell } from '@wix/design-system';
-import { useActionsDisabled, useOverrides } from '../../../../state';
+import { useActionsDisabled, useOverrides } from '../../../../hooks';
 import { useNavigate } from 'react-router-dom';
-import { ARTIFACT_CONFIGURATION_ROUTE } from '../../../../scripts/routing/routes/routes';
+import { ARTIFACT_OVERRIDE_ROUTE } from '../../../../scripts/routing/routes/routes';
 
 export const ArtifactOverrideActions = ({
   artifact,
 }: {
-  artifact: Artifact;
+  artifact: ArtifactTableRow;
 }) => {
   const navigate = useNavigate();
   const { clearOverride } = useOverrides();
@@ -16,6 +16,7 @@ export const ArtifactOverrideActions = ({
 
   return (
     <TableActionCell
+      dataHook="artifact-override-actions"
       size="small"
       alwaysShowSecondaryActions
       numOfVisibleSecondaryActions={2}
@@ -28,7 +29,8 @@ export const ArtifactOverrideActions = ({
                 skin: 'destructive' as const,
                 tooltipProps: { disabled: true },
                 disabled: actionsDisabled,
-                onClick: () => void clearOverride(artifact.key),
+                onClick: () =>
+                  void clearOverride(artifact.deployedArtifactVersion.id),
               },
             ]
           : []),
@@ -38,7 +40,7 @@ export const ArtifactOverrideActions = ({
           tooltipProps: { disabled: true },
           disabled: actionsDisabled,
           onClick: () =>
-            navigate(ARTIFACT_CONFIGURATION_ROUTE, {
+            navigate(ARTIFACT_OVERRIDE_ROUTE, {
               state: { artifact },
             }),
         },

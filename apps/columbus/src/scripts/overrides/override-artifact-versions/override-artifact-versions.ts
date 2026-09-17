@@ -1,7 +1,6 @@
-import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
-import { getArtifactKey } from '../artifact-versions/artifact-version-keys/artifact-version-keys';
-import { normalizeStoredArtifactVersion } from '../artifact-versions/artifact-version-utils/artifact-version-utils';
+import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { HostData } from '../../../types/host-data';
+import { normalizeStoredArtifactVersion } from '../../artifact-versions/artifact-version-utils/artifact-version-utils';
 
 interface IncludeOverrideAppsOptions {
   hostData: HostData;
@@ -19,7 +18,7 @@ export function extractEnabledArtifactVersionOverrides(
 
   return new Map(
     selectedArtifactVersions.map((artifactVersion) => [
-      getArtifactKey(artifactVersion),
+      artifactVersion.id,
       normalizeStoredArtifactVersion(artifactVersion),
     ]),
   );
@@ -32,7 +31,7 @@ export function includeOverrideAppsInCatalog({
   const apps = [...hostData.catalog.apps];
   const widgetProviders = [...(hostData.catalog.widgetProviders ?? [])];
   const knownArtifactKeys = new Set(
-    [...apps, ...widgetProviders].map(getArtifactKey),
+    [...apps, ...widgetProviders].map((artifactVersion) => artifactVersion.id),
   );
   const dependencyIds = new Set(
     apps.flatMap(
@@ -43,13 +42,13 @@ export function includeOverrideAppsInCatalog({
   for (const artifactVersion of overrideArtifactVersions) {
     if (
       artifactVersion.kind !== 'app' ||
-      knownArtifactKeys.has(getArtifactKey(artifactVersion))
+      knownArtifactKeys.has(artifactVersion.id)
     )
       continue;
     if (dependencyIds.has(artifactVersion.id))
       widgetProviders.push(artifactVersion);
     else apps.push(artifactVersion);
-    knownArtifactKeys.add(getArtifactKey(artifactVersion));
+    knownArtifactKeys.add(artifactVersion.id);
   }
 
   return {

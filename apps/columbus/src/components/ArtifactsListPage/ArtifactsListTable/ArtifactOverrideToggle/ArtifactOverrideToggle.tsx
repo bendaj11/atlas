@@ -1,11 +1,11 @@
 import { ToggleSwitch } from '@wix/design-system';
-import type { Artifact } from '../../../../types/artifact';
-import { useActionsDisabled, useOverrides } from '../../../../state';
+import type { ArtifactTableRow } from '../../../../types/artifact';
+import { useActionsDisabled, useOverrides } from '../../../../hooks';
 
 export const ArtifactOverrideToggle = ({
   artifact,
 }: {
-  artifact: Artifact;
+  artifact: ArtifactTableRow;
 }) => {
   const { toggleOverride } = useOverrides();
   const actionsDisabled = useActionsDisabled();
@@ -13,11 +13,12 @@ export const ArtifactOverrideToggle = ({
 
   return (
     <ToggleSwitch
+      dataHook="artifact-override-toggle"
       size="small"
       disabled={actionsDisabled || !artifact.canToggle}
       checked={artifact.overrideEnabled}
-      aria-label={`${action} ${artifact.productionArtifactVersion.name} override`}
-      onChange={() => void toggleOverride(artifact.key)}
+      aria-label={`${action} ${artifact.deployedArtifactVersion.name} override`}
+      onChange={() => void toggleOverride(artifact.deployedArtifactVersion.id)}
     />
   );
 };

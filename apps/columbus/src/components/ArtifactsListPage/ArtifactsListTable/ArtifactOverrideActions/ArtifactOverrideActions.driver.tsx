@@ -1,45 +1,32 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { Artifact } from '../../../../types/artifact';
-import { anArtifact } from '../../../../types/artifact.testkit';
-import type {
-  useActionsDisabled as useActionsDisabledType,
-  useOverrides as useOverridesType,
-} from '../../../../state';
-
-const navigate = jest.fn();
-const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
-const useOverrides = jest.fn<typeof useOverridesType>();
-
-jest.unstable_mockModule('react-router-dom', () => ({
-  useNavigate: () => navigate,
-}));
-jest.unstable_mockModule('../../../../state', () => ({
-  useActionsDisabled,
-  useOverrides,
-}));
+import { render } from '@testing-library/react';
+import { TableActionCellTestkit } from '@wix/design-system/dist/testkit/testing-library';
+import { OVERRIDE_STATUSES } from '../../../../types/override-status';
+import type { OverridesValue } from '../../../../hooks/useOverrides/useOverrides';
+import type { ArtifactTableRow } from '../../../../types/artifact';
+import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
+import { SCOPES } from '../../../../types/columbus-state';
+import { useActionsDisabledMock } from '../../../../testkit/mocks/useActionsDisabled';
+import { useOverridesMock } from '../../../../testkit/mocks/useOverrides';
+import { useNavigateMock } from '../../../../testkit/mocks/react-router-dom';
 
 const { ArtifactOverrideActions } = await import('./ArtifactOverrideActions');
 
-type OverridesValue = ReturnType<typeof useOverridesType>;
-
 export class ArtifactOverrideActionsDriver {
-  private artifact: Artifact = anArtifact({ canToggle: true });
-  private actionsDisabled = false;
+  private artifact = anArtifactTableRow();
+  private actionsDisabled = faker.datatype.boolean();
   private readonly clearOverride = jest.fn<OverridesValue['clearOverride']>();
-
-  constructor() {
-    navigate.mockClear();
-  }
+  private baseElement!: Element;
+  private readonly navigate = jest.fn<ReturnType<typeof useNavigateMock>>();
 
   readonly given = {
-    artifact: (artifact: Artifact): this => {
+    artifact: (artifact: ArtifactTableRow) => {
       this.artifact = artifact;
 
       return this;
     },
-    actionsDisabled: (disabled: boolean): this => {
+    actionsDisabled: (disabled: boolean) => {
       this.actionsDisabled = disabled;
 
       return this;
@@ -47,26 +34,40 @@ export class ArtifactOverrideActionsDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
-      useActionsDisabled.mockReturnValue(this.actionsDisabled);
-      useOverrides.mockReturnValue({
+    rendered: () => {
+      useActionsDisabledMock.mockReturnValue(this.actionsDisabled);
+      useOverridesMock.mockReturnValue({
+        hasOverrides: faker.datatype.boolean(),
+        scope: faker.helpers.arrayElement(SCOPES),
+        status: faker.helpers.arrayElement(OVERRIDE_STATUSES),
+        message: faker.lorem.sentence(),
+        clearAllOverrides: jest.fn<OverridesValue['clearAllOverrides']>(),
         clearOverride: this.clearOverride,
-      } as Partial<OverridesValue> as OverridesValue);
-      render(<ArtifactOverrideActions artifact={this.artifact} />);
+        saveOverride: jest.fn<OverridesValue['saveOverride']>(),
+        setScope: jest.fn<OverridesValue['setScope']>(),
+        toggleOverride: jest.fn<OverridesValue['toggleOverride']>(),
+      });
+      useNavigateMock.mockReturnValue(this.navigate);
+      this.baseElement = render(
+        <ArtifactOverrideActions artifact={this.artifact} />,
+      ).baseElement;
     },
-    clearClicked: async (): Promise<void> => {
-      await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    },
-    editClicked: async (): Promise<void> => {
-      await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    },
+    clearClicked: () => this.get.clearAction().click(),
+    editClicked: () => this.get.editAction().click(),
   };
 
   readonly get = {
-    clearButton: (): HTMLElement | null =>
-      screen.queryByRole('button', { name: 'Clear' }),
-    clearedArtifactKey: (): string | undefined =>
-      this.clearOverride.mock.calls[0]?.[0],
-    navigation: () => navigate.mock.calls[0],
+    actionCell: () =>
+      TableActionCellTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'artifact-override-actions',
+      }),
+    clearAction: () => this.get.actionCell().getVisibleActionButtonDriver(0),
+    editAction: () =>
+      this.get
+        .actionCell()
+        .getVisibleActionButtonDriver(this.artifact.canToggle ? 1 : 0),
+    clearOverride: () => this.clearOverride,
+    navigate: () => this.navigate,
   };
 }

@@ -1,63 +1,64 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { HostStatus } from '../../state/columbus-state/columbus-state';
-import type { OverrideStatus } from '../../state/overrides/overrides';
-import type {
-  useActionsDisabled as useActionsDisabledType,
-  useHost as useHostType,
-  useOverrides as useOverridesType,
-} from '../../state';
+import { render } from '@testing-library/react';
+import {
+  ButtonTestkit,
+  EmptyStateTestkit,
+  LoaderTestkit,
+  TextButtonTestkit,
+} from '@wix/design-system/dist/testkit/testing-library';
+import type { HostStatus } from '../../types/host-status';
+import { OVERRIDE_STATUSES } from '../../types/override-status';
+import type { useHost as useHostType } from '../../hooks/useHost/useHost';
+import type { OverridesValue } from '../../hooks/useOverrides/useOverrides';
+import { SCOPES } from '../../types/columbus-state';
+import { useActionsDisabledMock } from '../../testkit/mocks/useActionsDisabled';
+import { useHostMock } from '../../testkit/mocks/useHost';
+import { useOverridesMock } from '../../testkit/mocks/useOverrides';
 
-const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
-const useHost = jest.fn<typeof useHostType>();
-const useOverrides = jest.fn<typeof useOverridesType>();
-
-jest.unstable_mockModule('../../state', () => ({
-  useActionsDisabled,
-  useHost,
-  useOverrides,
+const ArtifactsListTable = jest.fn(() => null);
+jest.unstable_mockModule('./ArtifactsListTable/ArtifactsListTable', () => ({
+  ArtifactsListTable,
 }));
-jest.unstable_mockModule(
-  './ArtifactsOverridesTable/ArtifactsOverridesTable',
-  () => ({
-    ArtifactsOverridesTable: () => <div>artifacts table</div>,
-  }),
-);
 
-const { ArtifactsOverridesPage } = await import('./ArtifactsOverridesPage');
+const { ArtifactsListPage } = await import('./ArtifactsListPage');
 
-type HostValue = ReturnType<typeof useHostType>;
-type OverridesValue = ReturnType<typeof useOverridesType>;
-
-export class ArtifactsOverridesPageDriver {
-  private hostStatus: HostStatus = 'LOADED';
-  private hostMessage = '';
-  private overrideStatus: OverrideStatus = 'IDLE';
-  private hasOverrides = false;
-  private actionsDisabled = false;
-  private readonly loadHost = jest.fn<HostValue['loadHost']>();
+export class ArtifactsListPageDriver {
+  private hostStatus = faker.helpers.arrayElement<HostStatus>([
+    'LOADING',
+    'ERROR',
+    'LOADED',
+  ]);
+  private hostMessage = faker.lorem.sentence();
+  private hasOverrides = faker.datatype.boolean();
+  private actionsDisabled = faker.datatype.boolean();
+  private readonly loadHost =
+    jest.fn<ReturnType<typeof useHostType>['loadHost']>();
   private readonly clearAllOverrides =
     jest.fn<OverridesValue['clearAllOverrides']>();
+  private baseElement!: Element;
+
+  constructor() {
+    ArtifactsListTable.mockClear();
+  }
 
   readonly given = {
-    hostStatus: (status: HostStatus, message = ''): this => {
+    hostStatus: (status: HostStatus) => {
       this.hostStatus = status;
+
+      return this;
+    },
+    hostMessage: (message: string) => {
       this.hostMessage = message;
 
       return this;
     },
-    overrideStatus: (status: OverrideStatus): this => {
-      this.overrideStatus = status;
-
-      return this;
-    },
-    hasOverrides: (hasOverrides: boolean): this => {
+    hasOverrides: (hasOverrides: boolean) => {
       this.hasOverrides = hasOverrides;
 
       return this;
     },
-    actionsDisabled: (disabled: boolean): this => {
+    actionsDisabled: (disabled: boolean) => {
       this.actionsDisabled = disabled;
 
       return this;
@@ -65,31 +66,51 @@ export class ArtifactsOverridesPageDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
-      useHost.mockReturnValue({
+    rendered: () => {
+      useHostMock.mockReturnValue({
+        hostData: undefined,
         status: this.hostStatus,
         message: this.hostMessage,
         loadHost: this.loadHost,
-      } as Partial<HostValue> as HostValue);
-      useOverrides.mockReturnValue({
-        status: this.overrideStatus,
+      });
+      useOverridesMock.mockReturnValue({
         hasOverrides: this.hasOverrides,
+        scope: faker.helpers.arrayElement(SCOPES),
+        status: faker.helpers.arrayElement(OVERRIDE_STATUSES),
+        message: faker.lorem.sentence(),
         clearAllOverrides: this.clearAllOverrides,
-      } as Partial<OverridesValue> as OverridesValue);
-      useActionsDisabled.mockReturnValue(this.actionsDisabled);
-      render(<ArtifactsOverridesPage />);
+        clearOverride: jest.fn<OverridesValue['clearOverride']>(),
+        saveOverride: jest.fn<OverridesValue['saveOverride']>(),
+        setScope: jest.fn<OverridesValue['setScope']>(),
+        toggleOverride: jest.fn<OverridesValue['toggleOverride']>(),
+      });
+      useActionsDisabledMock.mockReturnValue(this.actionsDisabled);
+      this.baseElement = render(<ArtifactsListPage />).baseElement;
     },
-    clearClicked: async (): Promise<void> => {
-      await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    },
-    refreshClicked: async (): Promise<void> => {
-      await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    },
+    clearClicked: () => this.get.clearButton().click(),
+    refreshClicked: () => this.get.refreshButton().click(),
   };
 
   readonly get = {
-    text: (text: string): HTMLElement | null => screen.queryByText(text),
-    clearCount: (): number => this.clearAllOverrides.mock.calls.length,
-    loadHostCount: (): number => this.loadHost.mock.calls.length,
+    loader: () =>
+      LoaderTestkit({ wrapper: this.baseElement, dataHook: 'host-loader' }),
+    emptyState: () =>
+      EmptyStateTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'empty-host-data',
+      }),
+    clearButton: () =>
+      ButtonTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'clear-all-overrides',
+      }),
+    refreshButton: () =>
+      TextButtonTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'refresh-host-data',
+      }),
+    artifactsListTableMock: () => ArtifactsListTable,
+    loadHost: () => this.loadHost,
+    clearAllOverrides: () => this.clearAllOverrides,
   };
 }

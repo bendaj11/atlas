@@ -1,5 +1,8 @@
 import { jest } from '@jest/globals';
-import { type FakeChrome, installFakeChrome } from '../chrome.testkit';
+import {
+  type FakeChrome,
+  installFakeChrome,
+} from '../../../testkit/chrome.testkit';
 
 const windowListeners: Array<[string, EventListenerOrEventListenerObject]> = [];
 const addWindowListener = window.addEventListener.bind(window);
@@ -16,6 +19,7 @@ const postMessage = jest.fn<typeof window.postMessage>();
 
 export class DevelopmentSessionContentDriver {
   private readonly chrome: FakeChrome = installFakeChrome();
+  private readonly runtimeMessage = jest.fn<FakeChrome['onRuntimeMessage']>();
   private started = false;
 
   constructor() {
@@ -30,41 +34,36 @@ export class DevelopmentSessionContentDriver {
     sessionStorage.clear();
     history.replaceState(null, '', '/');
     window.postMessage = postMessage;
+    this.chrome.onRuntimeMessage = this.runtimeMessage;
+    this.runtimeMessage.mockResolvedValue(undefined);
   }
 
   readonly given = {
-    addressBarSearch: (search: string): this => {
+    addressBarSearch: (search: string) => {
       history.replaceState(null, '', `/${search}`);
 
       return this;
     },
-    sessionStorageItem: (key: string, value: string): this => {
+    sessionStorageItem: (key: string, value: string) => {
       sessionStorage.setItem(key, value);
 
       return this;
     },
-    runtimeResponse: (response: unknown): this => {
-      this.chrome.onRuntimeMessage = async () => response;
+    runtimeResponse: (response: unknown) => {
+      this.runtimeMessage.mockResolvedValue(response);
 
       return this;
     },
-    runtimeFailure: (reason: string): this => {
-      this.chrome.onRuntimeMessage = async () => {
-        throw new Error(reason);
-      };
+    runtimeFailure: (error: Error) => {
+      this.runtimeMessage.mockRejectedValue(error);
 
       return this;
     },
   };
 
   readonly when = {
-    started: async (): Promise<void> => {
-      await this.start();
-    },
-    messagePosted: async (
-      data: unknown,
-      source: Window | null = window,
-    ): Promise<void> => {
+    started: () => this.start(),
+    messagePosted: async (data: unknown, source: Window | null = window) => {
       await this.start();
       const event = new MessageEvent('message', { data });
       Object.defineProperty(event, 'source', { value: source });
@@ -74,19 +73,15 @@ export class DevelopmentSessionContentDriver {
   };
 
   readonly get = {
-    bridgeMarkerName: (): string | undefined =>
-      document.querySelector('meta')?.name,
-    addressBarSearch: (): string => location.search,
-    sessionStorageItem: (key: string): string | null =>
-      sessionStorage.getItem(key),
-    runtimeMessages: (): unknown[] => this.chrome.runtimeMessages,
-    publishedMessages: (): unknown[] =>
-      postMessage.mock.calls.map(([message]) => message),
-    publishedTargetOrigins: (): unknown[] =>
-      postMessage.mock.calls.map(([, targetOrigin]) => targetOrigin),
+    bridgeMarkerName: () => document.querySelector('meta')?.name,
+    addressBarSearch: () => location.search,
+    pageUrl: () => location.href,
+    sessionStorageItem: (key: string) => sessionStorage.getItem(key),
+    runtimeMessage: () => this.runtimeMessage,
+    postMessage: () => postMessage,
   };
 
-  private async start(): Promise<void> {
+  private async start() {
     if (this.started) return;
     this.started = true;
     await import('./development-session-content');

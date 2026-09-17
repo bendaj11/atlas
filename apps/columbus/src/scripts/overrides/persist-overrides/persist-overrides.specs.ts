@@ -1,6 +1,9 @@
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { aColumbusState } from '../../types/columbus-state.testkit';
+import { aColumbusState } from '../../../testkit/columbus-state.testkit';
 import { PersistOverridesDriver } from './persist-overrides.driver';
+
+const { persistColumbusState } = await import('./persist-overrides');
 
 describe('persistColumbusState', () => {
   let driver: PersistOverridesDriver;
@@ -9,147 +12,146 @@ describe('persistColumbusState', () => {
     driver = new PersistOverridesDriver();
   });
 
-  it('should validate every active override when persisting', async () => {
+  it('should validate every enabled override when persisting', async () => {
     const local = anAppManifest({ channel: 'local' });
     const preview = anAppManifest({ channel: 'pr' });
 
-    await driver.given
-      .columbusState(
-        aColumbusState({
-          enabledArtifactVersionOverrides: new Map([
-            ['app:a', local],
-            ['app:b', preview],
-          ]),
-        }),
-      )
-      .when.persisted();
+    await persistColumbusState(
+      aColumbusState({
+        enabledArtifactVersionOverrides: new Map([
+          [local.id, local],
+          [preview.id, preview],
+        ]),
+      }),
+    );
 
-    expect(driver.get.validatedManifests()).toEqual([local, preview]);
+    expect(
+      driver.get
+        .validateLocalOverride()
+        .mock.calls.map(([manifest]) => manifest),
+    ).toStrictEqual([local, preview]);
   });
 
-  it('should write nothing when validation fails', async () => {
-    await driver.given
-      .columbusState(
-        aColumbusState({
-          enabledArtifactVersionOverrides: new Map([
-            ['app:a', anAppManifest()],
-          ]),
-        }),
-      )
-      .given.validationFailure('Dev server down.')
-      .when.persisted();
-
-    expect(driver.get.callOrder()).toEqual([]);
-  });
-
-  it('should surface the validation error when validation fails', async () => {
-    await driver.given
-      .columbusState(
-        aColumbusState({
-          enabledArtifactVersionOverrides: new Map([
-            ['app:a', anAppManifest()],
-          ]),
-        }),
-      )
-      .given.validationFailure('Dev server down.')
-      .when.persisted();
-
-    expect(driver.get.error()).toEqual(new Error('Dev server down.'));
-  });
-
-  it('should write document, disabled, suppressed, then reload when persisting', async () => {
-    await driver.when.persisted();
-
-    expect(driver.get.callOrder()).toEqual([
-      'writeOverrideDocument',
-      'writeDisabledArtifactVersionOverrides',
-      'writeClearedLocalArtifactIds',
-      'reload',
-    ]);
-  });
-
-  it('should build the override document from the active overrides when persisting', async () => {
-    const override = anAppManifest({
-      id: 'orders',
-      channel: 'production',
-    });
-
-    await driver.given
-      .columbusState(
-        aColumbusState({
-          enabledArtifactVersionOverrides: new Map([['app:orders', override]]),
-        }),
-      )
-      .when.persisted();
-
-    expect(driver.get.overridesWrite()?.documentValue.overrides).toEqual([
-      { appId: 'orders', manifest: override, reason: 'historical' },
-    ]);
-  });
-
-  it('should pass the columbusState scope and tab when writing the override document', async () => {
-    await driver.given
-      .columbusState(aColumbusState({ tabId: 7, scope: 'tab' }))
-      .when.persisted();
-
-    expect(driver.get.overridesWrite()).toMatchObject({
-      tabId: 7,
-      scope: 'tab',
-    });
-  });
-
-  it('should list raw app ids when disabled and suppressed overrides exist', async () => {
-    await driver.given
-      .columbusState(
-        aColumbusState({
-          disabledArtifactVersionOverrides: new Map([
-            ['app:orders', anAppManifest({ id: 'orders' })],
-          ]),
-          clearedLocalArtifactIds: new Set(['cart', 'orders']),
-        }),
-      )
-      .when.persisted();
-
-    expect(driver.get.overridesWrite()?.disabledAppIds).toEqual([
-      'orders',
-      'cart',
-    ]);
-  });
-
-  it('should write disabled overrides when the columbusState has a host, tab, and scope', async () => {
-    const columbusState = aColumbusState({ tabId: 7, scope: 'tab' });
-
-    await driver.given.columbusState(columbusState).when.persisted();
-
-    expect(driver.get.disabledOverridesWrite()).toEqual([
-      { hostId: columbusState.hostData.config.hostId, tabId: 7, scope: 'tab' },
-      columbusState.disabledArtifactVersionOverrides,
-    ]);
-  });
-
-  it('should write suppressed artifact ids when the columbusState has a host, tab, and scope', async () => {
+  describe('when validation fails', () => {
+    const reason = faker.lorem.sentence();
     const columbusState = aColumbusState({
-      tabId: 7,
-      clearedLocalArtifactIds: new Set(['cart']),
+      enabledArtifactVersionOverrides: new Map([
+        [faker.string.uuid(), anAppManifest()],
+      ]),
     });
 
-    await driver.given.columbusState(columbusState).when.persisted();
+    beforeEach(() => {
+      driver.given.validationFailure(new Error(reason));
+    });
 
-    expect(driver.get.suppressedArtifactIdsWrite()).toEqual([
+    it('should reject with the validation error when persisting', async () => {
+      await expect(persistColumbusState(columbusState)).rejects.toThrow(reason);
+    });
+
+    it('should not write the override document when persisting', async () => {
+      await persistColumbusState(columbusState).catch(() => undefined);
+
+      expect(driver.get.writeOverrideDocument()).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should write document, disabled overrides, cleared ids, then reload when persisting', async () => {
+    await persistColumbusState(aColumbusState());
+
+    const order = [
+      driver.get.writeOverrideDocument(),
+      driver.get.writeDisabledArtifactVersionOverrides(),
+      driver.get.writeClearedLocalArtifactIds(),
+      driver.get.reloadHostTab(),
+    ].map((mock) => mock.mock.invocationCallOrder[0]);
+
+    expect(order).toStrictEqual([...order].sort((left, right) => left - right));
+  });
+
+  it('should write the override document built from the enabled overrides when persisting', async () => {
+    const override = anAppManifest({ channel: 'production' });
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
+
+    await persistColumbusState(columbusState);
+
+    expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith({
+      tabId: columbusState.tabId,
+      hostData: columbusState.hostData,
+      documentValue: {
+        schemaVersion: '1',
+        hostId: columbusState.hostData.config.hostId,
+        generatedAt: expect.any(String),
+        overrides: [
+          { appId: override.id, manifest: override, reason: 'historical' },
+        ],
+      },
+      scope: columbusState.scope,
+      disabledAppIds: [],
+    });
+  });
+
+  it('should list the disabled and cleared app ids once each when both exist', async () => {
+    const disabled = anAppManifest();
+    const cleared = faker.string.uuid();
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([[disabled.id, disabled]]),
+      clearedLocalArtifactIds: new Set([cleared, disabled.id]),
+    });
+
+    await persistColumbusState(columbusState);
+
+    expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+      expect.objectContaining({ disabledAppIds: [disabled.id, cleared] }),
+    );
+  });
+
+  it('should write the disabled overrides under the state location when persisting', async () => {
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([
+        [faker.string.uuid(), anAppManifest()],
+      ]),
+    });
+
+    await persistColumbusState(columbusState);
+
+    expect(
+      driver.get.writeDisabledArtifactVersionOverrides(),
+    ).toHaveBeenCalledWith(
       {
         hostId: columbusState.hostData.config.hostId,
-        tabId: 7,
+        tabId: columbusState.tabId,
+        scope: columbusState.scope,
+      },
+      columbusState.disabledArtifactVersionOverrides,
+    );
+  });
+
+  it('should write the cleared local artifact ids under the state location when persisting', async () => {
+    const columbusState = aColumbusState({
+      clearedLocalArtifactIds: new Set([faker.string.uuid()]),
+    });
+
+    await persistColumbusState(columbusState);
+
+    expect(driver.get.writeClearedLocalArtifactIds()).toHaveBeenCalledWith(
+      {
+        hostId: columbusState.hostData.config.hostId,
+        tabId: columbusState.tabId,
         scope: columbusState.scope,
       },
       columbusState.clearedLocalArtifactIds,
-    ]);
+    );
   });
 
-  it('should reload the columbusState tab when everything is written', async () => {
-    await driver.given
-      .columbusState(aColumbusState({ tabId: 7 }))
-      .when.persisted();
+  it('should reload the state tab when everything is written', async () => {
+    const columbusState = aColumbusState();
 
-    expect(driver.get.reloadedTabId()).toBe(7);
+    await persistColumbusState(columbusState);
+
+    expect(driver.get.reloadHostTab()).toHaveBeenCalledWith(
+      columbusState.tabId,
+    );
   });
 });

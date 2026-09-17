@@ -1,125 +1,119 @@
-import { aHostData } from '../../types/host-data.testkit';
-import { aHostManifest, anAppManifest } from '@atlas/testkit';
-import { OverrideArtifactVersionsDriver } from './override-artifact-versions.driver';
-
-const DOCUMENT = {
-  schemaVersion: '1' as const,
-  hostId: 'shop',
-  generatedAt: '2026-01-01T00:00:00.000Z',
-};
+import { faker } from '@faker-js/faker';
+import { aHostCatalog, aHostManifest, anAppManifest } from '@atlas/testkit';
+import { aHostData } from '../../../testkit/host-data.testkit';
+import {
+  extractEnabledArtifactVersionOverrides,
+  includeOverrideAppsInCatalog,
+} from './override-artifact-versions';
 
 describe('extractEnabledArtifactVersionOverrides', () => {
-  let driver: OverrideArtifactVersionsDriver;
-
-  beforeEach(() => {
-    driver = new OverrideArtifactVersionsDriver();
-  });
-
   it('should return no manifests when the host has no override document', () => {
-    driver.when.activeOverridesExtracted();
+    const hostData = aHostData({ overrides: undefined });
 
-    expect(driver.get.extractedKeys()).toEqual([]);
+    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
+      new Map(),
+    );
   });
 
-  it('should key app overrides by artifact when the document lists apps', () => {
-    const orders = anAppManifest({ id: 'orders' });
+  it('should key app overrides by artifact id when the document lists apps', () => {
+    const orders = anAppManifest({ channel: 'pr' });
+    const hostData = aHostData({
+      overrides: {
+        schemaVersion: '1',
+        hostId: faker.string.uuid(),
+        generatedAt: faker.date.recent().toISOString(),
+        overrides: [{ appId: orders.id, manifest: orders, reason: 'pr' }],
+      },
+    });
 
-    driver.given
-      .hostData(
-        aHostData({
-          overrides: {
-            ...DOCUMENT,
-            overrides: [{ appId: 'orders', manifest: orders, reason: 'pr' }],
-          },
-        }),
-      )
-      .when.activeOverridesExtracted();
-
-    expect(driver.get.extractedKeys()).toEqual(['app:orders']);
+    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
+      new Map([[orders.id, orders]]),
+    );
   });
 
   it('should include the host override when the document has one', () => {
-    driver.given
-      .hostData(
-        aHostData({
-          overrides: {
-            ...DOCUMENT,
-            overrides: [],
-            hostOverride: aHostManifest({ id: 'shop' }),
-          },
-        }),
-      )
-      .when.activeOverridesExtracted();
-
-    expect(driver.get.extractedKeys()).toEqual(['host:shop']);
-  });
-
-  it('should normalize legacy local manifests when extracting', () => {
-    const legacy = anAppManifest({
-      id: 'orders',
-      channel: 'local',
-      version: 'custom-url',
+    const host = aHostManifest();
+    const hostData = aHostData({
+      overrides: {
+        schemaVersion: '1',
+        hostId: faker.string.uuid(),
+        generatedAt: faker.date.recent().toISOString(),
+        overrides: [],
+        hostOverride: host,
+      },
     });
 
-    driver.given
-      .hostData(
-        aHostData({
-          overrides: {
-            ...DOCUMENT,
-            overrides: [{ appId: 'orders', manifest: legacy, reason: 'local' }],
-          },
-        }),
-      )
-      .when.activeOverridesExtracted();
+    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
+      new Map([[host.id, host]]),
+    );
+  });
 
-    expect(driver.get.extracted('app:orders')?.version).toBe('0.0.0-local');
+  it('should normalize the version when a local override has the legacy custom version', () => {
+    const legacy = anAppManifest({ channel: 'local', version: 'custom-url' });
+    const hostData = aHostData({
+      overrides: {
+        schemaVersion: '1',
+        hostId: faker.string.uuid(),
+        generatedAt: faker.date.recent().toISOString(),
+        overrides: [{ appId: legacy.id, manifest: legacy, reason: 'local' }],
+      },
+    });
+
+    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
+      new Map([[legacy.id, { ...legacy, version: '0.0.0-local' }]]),
+    );
   });
 });
 
 describe('includeOverrideAppsInCatalog', () => {
-  let driver: OverrideArtifactVersionsDriver;
+  it('should add the override app to the catalog apps when it is not deployed', () => {
+    const preview = anAppManifest();
+    const hostData = aHostData({ catalog: aHostCatalog({ apps: [] }) });
 
-  beforeEach(() => {
-    driver = new OverrideArtifactVersionsDriver();
+    expect(
+      includeOverrideAppsInCatalog({
+        hostData,
+        overrideArtifactVersions: [preview],
+      }).catalog.apps,
+    ).toStrictEqual([preview]);
   });
 
-  it('should add the override app to the catalog when it is not deployed', () => {
-    driver.when.overrideAppsIncluded([anAppManifest({ id: 'preview' })]);
+  it('should keep the catalog apps unchanged when the override app is already deployed', () => {
+    const orders = anAppManifest();
+    const hostData = aHostData({ catalog: aHostCatalog({ apps: [orders] }) });
 
-    expect(driver.get.catalogAppIds()).toEqual(['preview']);
+    expect(
+      includeOverrideAppsInCatalog({
+        hostData,
+        overrideArtifactVersions: [anAppManifest({ id: orders.id })],
+      }).catalog.apps,
+    ).toStrictEqual([orders]);
   });
 
-  it('should keep the catalog unchanged when the override app is already deployed', () => {
-    const orders = anAppManifest({ id: 'orders' });
-    const hostData = aHostData();
-    hostData.catalog.apps.push(orders);
-
-    driver.given
-      .hostData(hostData)
-      .when.overrideAppsIncluded([anAppManifest({ id: 'orders' })]);
-
-    expect(driver.get.catalogAppIds()).toEqual(['orders']);
-  });
-
-  it('should add the override as a widget provider when a catalog app depends on it', () => {
-    const hostData = aHostData();
-    hostData.catalog.apps.push(
-      anAppManifest({
-        id: 'orders',
-        externalAppsDependencies: ['widgets'],
+  it('should add the override app as a widget provider when a catalog app depends on it', () => {
+    const widgets = anAppManifest();
+    const hostData = aHostData({
+      catalog: aHostCatalog({
+        apps: [anAppManifest({ externalAppsDependencies: [widgets.id] })],
       }),
-    );
+    });
 
-    driver.given
-      .hostData(hostData)
-      .when.overrideAppsIncluded([anAppManifest({ id: 'widgets' })]);
-
-    expect(driver.get.catalogWidgetProviderIds()).toEqual(['widgets']);
+    expect(
+      includeOverrideAppsInCatalog({
+        hostData,
+        overrideArtifactVersions: [widgets],
+      }).catalog.widgetProviders,
+    ).toStrictEqual([widgets]);
   });
 
-  it('should ignore host overrides when including apps', () => {
-    driver.when.overrideAppsIncluded([aHostManifest({ id: 'shop' })]);
+  it('should leave the catalog apps empty when the override is a host', () => {
+    const hostData = aHostData({ catalog: aHostCatalog({ apps: [] }) });
 
-    expect(driver.get.catalogAppIds()).toEqual([]);
+    expect(
+      includeOverrideAppsInCatalog({
+        hostData,
+        overrideArtifactVersions: [aHostManifest()],
+      }).catalog.apps,
+    ).toStrictEqual([]);
   });
 });

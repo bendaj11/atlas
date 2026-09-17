@@ -1,111 +1,50 @@
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { ArtifactVersionKeysDriver } from './artifact-version-keys.driver';
+import { uniqueVersions, versionKey } from './artifact-version-keys';
 
 describe('uniqueVersions', () => {
-  let driver: ArtifactVersionKeysDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionKeysDriver();
-  });
-
   it('should keep input order when versions are distinct', () => {
-    driver.given
-      .version(
-        anAppManifest({
-          channel: 'production',
-          version: '3.0.0',
-          buildId: 'latest',
-        }),
-      )
-      .given.version(
-        anAppManifest({
-          channel: 'production',
-          version: '2.0.0',
-          buildId: 'previous',
-        }),
-      )
-      .given.version(
-        anAppManifest({
-          channel: 'production',
-          version: '1.0.0',
-          buildId: 'oldest',
-        }),
-      );
+    const versions = [anAppManifest(), anAppManifest(), anAppManifest()];
 
-    expect(driver.get.uniqueVersionKeys()).toStrictEqual([
-      'production:3.0.0:latest',
-      'production:2.0.0:previous',
-      'production:1.0.0:oldest',
-    ]);
+    expect(uniqueVersions(versions)).toStrictEqual(versions);
   });
 
-  it('should keep the last occurrence position when a version repeats', () => {
-    driver.given
-      .version(
-        anAppManifest({
-          channel: 'production',
-          version: '1.0.0',
-          buildId: 'a',
-        }),
-      )
-      .given.version(
-        anAppManifest({
-          channel: 'production',
-          version: '2.0.0',
-          buildId: 'b',
-        }),
-      )
-      .given.version(
-        anAppManifest({
-          channel: 'production',
-          version: '1.0.0',
-          buildId: 'a',
-        }),
-      );
+  it('should drop the later occurrence when a version repeats', () => {
+    const repeated = anAppManifest();
+    const other = anAppManifest();
 
-    expect(driver.get.uniqueVersionKeys()).toStrictEqual([
-      'production:1.0.0:a',
-      'production:2.0.0:b',
+    expect(uniqueVersions([repeated, other, repeated])).toStrictEqual([
+      repeated,
+      other,
     ]);
   });
 });
 
 describe('versionKey', () => {
-  let driver: ArtifactVersionKeysDriver;
+  it('should combine channel, version, and build id when channel is not pr', () => {
+    const version = anAppManifest({ channel: 'production' });
 
-  beforeEach(() => {
-    driver = new ArtifactVersionKeysDriver();
+    expect(versionKey(version)).toBe(
+      `production:${version.version}:${version.buildId}`,
+    );
   });
 
-  it('should combine channel, version, and build id when channel is production', () => {
-    expect(
-      driver.get.versionKey(
-        anAppManifest({
-          channel: 'production',
-          version: '1.2.3',
-          buildId: 'b1',
-        }),
-      ),
-    ).toBe('production:1.2.3:b1');
+  it('should use the pr number when channel is pr and a pr number exists', () => {
+    const version = anAppManifest({
+      channel: 'pr',
+      prNumber: faker.number.int(),
+    });
+
+    expect(versionKey(version)).toBe(
+      `pr:${version.prNumber}:${version.buildId}`,
+    );
   });
 
-  it('should use the PR number when channel is pr', () => {
-    expect(
-      driver.get.versionKey(
-        anAppManifest({ channel: 'pr', prNumber: 42, buildId: 'b1' }),
-      ),
-    ).toBe('pr:42:b1');
-  });
+  it('should fall back to the version when channel is pr and no pr number exists', () => {
+    const version = anAppManifest({ channel: 'pr', prNumber: undefined });
 
-  it('should fall back to the version when a pr has no number', () => {
-    expect(
-      driver.get.versionKey(
-        anAppManifest({
-          channel: 'pr',
-          version: '1.0.0-pr.9',
-          buildId: 'b1',
-        }),
-      ),
-    ).toBe('pr:1.0.0-pr.9:b1');
+    expect(versionKey(version)).toBe(
+      `pr:${version.version}:${version.buildId}`,
+    );
   });
 });

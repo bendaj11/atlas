@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import { UseArtifactsDriver } from './useArtifacts.driver';
 
@@ -8,13 +9,19 @@ describe('useArtifacts', () => {
     driver = new UseArtifactsDriver();
   });
 
-  it('should return no artifacts when columbusState is missing', () => {
-    driver.given.columbusState(undefined).when.rendered();
+  it('should return visible only off when rendered', () => {
+    driver.when.rendered();
 
-    expect(driver.get.artifacts()).toEqual([]);
+    expect(driver.get.result().visibleOnly).toBe(false);
   });
 
-  it('should list host, apps, and widget providers when columbusState is loaded', () => {
+  it('should return no artifacts when columbus state is missing', () => {
+    driver.given.columbusState(undefined).when.rendered();
+
+    expect(driver.get.result().artifacts).toEqual([]);
+  });
+
+  it('should list host, apps, and widget providers when columbus state is loaded', () => {
     const host = aHostManifest();
     const app = anAppManifest();
     const provider = anAppManifest();
@@ -32,74 +39,148 @@ describe('useArtifacts', () => {
     ]);
   });
 
-  describe('when artifact has no override', () => {
+  describe('when an app has no override', () => {
     const app = anAppManifest();
 
     beforeEach(() => {
-      driver.given.catalogApp(app);
+      driver.given.catalogApp(app).when.rendered();
     });
 
-    it('should mark artifact as not toggleable when no override exists', () => {
-      driver.when.rendered();
-
+    it('should mark the app as not toggleable when rendered', () => {
       expect(driver.get.artifactOf(app).canToggle).toBe(false);
     });
 
-    it('should report no override type when no override exists', () => {
-      driver.when.rendered();
-
+    it('should return no override type for the app when rendered', () => {
       expect(driver.get.artifactOf(app).overrideType).toBeUndefined();
+    });
+
+    it('should return an empty source description for the app when rendered', () => {
+      expect(driver.get.artifactOf(app).sourceDescription).toBe('');
     });
   });
 
-  describe('when artifact has an active override', () => {
+  describe('when an app has an enabled override', () => {
     const app = anAppManifest();
-    const override = anAppManifest({ channel: 'pr' });
+    const override = anAppManifest();
 
     beforeEach(() => {
-      driver.given.catalogApp(app).given.activeOverride(app, override);
+      driver.given.catalogApp(app).given.enabledOverride(app, override);
     });
 
-    it('should enable override when override is active', () => {
+    it('should mark the app override as enabled when rendered', () => {
       driver.when.rendered();
 
       expect(driver.get.artifactOf(app).overrideEnabled).toBe(true);
     });
 
-    it('should select active override manifest when override is active', () => {
+    it('should select the enabled override as the app override version when rendered', () => {
       driver.when.rendered();
 
-      expect(driver.get.artifactOf(app).selectedArtifactVersion).toBe(override);
+      expect(driver.get.artifactOf(app).selectedOverrideArtifactVersion).toBe(
+        override,
+      );
     });
 
-    it('should prefer active override when a disabled override also exists', () => {
-      driver.given
-        .disabledOverride(app, anAppManifest({ channel: 'local' }))
-        .when.rendered();
+    it('should select the enabled override as the app override version when a disabled override also exists', () => {
+      driver.given.disabledOverride(app, anAppManifest()).when.rendered();
 
-      expect(driver.get.artifactOf(app).selectedArtifactVersion).toBe(override);
+      expect(driver.get.artifactOf(app).selectedOverrideArtifactVersion).toBe(
+        override,
+      );
     });
   });
 
-  describe('when artifact has a disabled override', () => {
+  describe('when an app has only a disabled override', () => {
     const app = anAppManifest();
 
     beforeEach(() => {
       driver.given
         .catalogApp(app)
-        .given.disabledOverride(app, anAppManifest({ channel: 'local' }));
+        .given.disabledOverride(app, anAppManifest())
+        .when.rendered();
     });
 
-    it('should keep override disabled when override is only disabled', () => {
-      driver.when.rendered();
-
+    it('should mark the app override as disabled when rendered', () => {
       expect(driver.get.artifactOf(app).overrideEnabled).toBe(false);
     });
 
-    it('should allow toggling when override is disabled', () => {
-      driver.when.rendered();
-
+    it('should mark the app as toggleable when rendered', () => {
       expect(driver.get.artifactOf(app).canToggle).toBe(true);
+    });
+  });
+
+  describe('when a production app has an enabled override', () => {
+    const app = anAppManifest({ channel: 'production' });
+
+    beforeEach(() => {
+      driver.given.catalogApp(app);
+    });
+
+    it('should return custom override type when the override is local', () => {
+      driver.given
+        .enabledOverride(app, anAppManifest({ channel: 'local' }))
+        .when.rendered();
+
+      expect(driver.get.artifactOf(app).overrideType).toBe('custom');
+    });
+
+    it('should return pr override type when the override is a pr version', () => {
+      driver.given
+        .enabledOverride(app, anAppManifest({ channel: 'pr' }))
+        .when.rendered();
+
+      expect(driver.get.artifactOf(app).overrideType).toBe('pr');
+    });
+
+    it('should return production override type when the override is another production version', () => {
+      driver.given
+        .enabledOverride(app, anAppManifest({ channel: 'production' }))
+        .when.rendered();
+
+      expect(driver.get.artifactOf(app).overrideType).toBe('production');
+    });
+
+    it('should return no override type when the override is the deployed production version', () => {
+      driver.given.enabledOverride(app, { ...app }).when.rendered();
+
+      expect(driver.get.artifactOf(app).overrideType).toBeUndefined();
+    });
+
+    it('should return the base url as source description when the override is local', () => {
+      const baseUrl = `http://localhost:${faker.internet.port()}/${faker.lorem.slug()}`;
+
+      driver.given
+        .enabledOverride(
+          app,
+          anAppManifest({
+            channel: 'local',
+            remoteEntryUrl: `${baseUrl}/remoteEntry.json`,
+          }),
+        )
+        .when.rendered();
+
+      expect(driver.get.artifactOf(app).sourceDescription).toBe(baseUrl);
+    });
+
+    it('should return the pr number label as source description when the override is a pr version without git details', () => {
+      const prNumber = faker.number.int({ min: 1, max: 9999 });
+
+      driver.given
+        .enabledOverride(
+          app,
+          anAppManifest({
+            channel: 'pr',
+            prNumber,
+            gitBranch: undefined,
+            gitSha: undefined,
+            gitCommitTitle: undefined,
+          }),
+        )
+        .when.rendered();
+
+      expect(driver.get.artifactOf(app).sourceDescription).toBe(
+        `PR #${prNumber}`,
+      );
     });
   });
 
@@ -110,72 +191,39 @@ describe('useArtifacts', () => {
       driver.given.catalogApp(app);
     });
 
-    it('should attach load error with hint when runtime error targets the artifact', () => {
-      driver.given
-        .runtimeError(app, 'Failed to fetch remote entry.')
-        .when.rendered();
+    it('should return the runtime error with a hint as load error when the error targets the app', () => {
+      const message = faker.lorem.sentence();
+
+      driver.given.runtimeError(app, message).when.rendered();
 
       expect(driver.get.artifactOf(app).loadError).toBe(
-        'Failed to fetch remote entry. Check override URL and server.',
+        `${message} Check override URL and server.`,
       );
     });
 
-    it('should strip trailing retry prompt when runtime error ends with Retry', () => {
-      driver.given
-        .runtimeError(app, 'Failed to fetch remote entry. Retry.')
-        .when.rendered();
+    it('should strip the trailing retry prompt from the load error when the error ends with Retry', () => {
+      const message = faker.lorem.sentence();
+
+      driver.given.runtimeError(app, `${message} Retry.`).when.rendered();
 
       expect(driver.get.artifactOf(app).loadError).toBe(
-        'Failed to fetch remote entry. Check override URL and server.',
+        `${message} Check override URL and server.`,
       );
     });
 
-    it('should leave load error undefined when runtime error targets another artifact', () => {
+    it('should return no load error for the app when the error targets another app', () => {
       const other = anAppManifest();
 
       driver.given
         .catalogApp(other)
-        .given.runtimeError(other, 'Broken.')
+        .given.runtimeError(other, faker.lorem.sentence())
         .when.rendered();
 
       expect(driver.get.artifactOf(app).loadError).toBeUndefined();
     });
   });
 
-  describe('when host lists visible app ids', () => {
-    const host = aHostManifest();
-    const app = anAppManifest({ id: 'orders' });
-
-    beforeEach(() => {
-      driver.given.catalogHost(host).given.catalogApp(app);
-    });
-
-    it('should mark host visible when host is always visible', () => {
-      driver.given.visibleAppIds([]).when.rendered();
-
-      expect(driver.get.artifactOf(host).visible).toBe(true);
-    });
-
-    it('should mark app visible when its id is listed', () => {
-      driver.given.visibleAppIds(['orders']).when.rendered();
-
-      expect(driver.get.artifactOf(app).visible).toBe(true);
-    });
-
-    it('should mark app hidden when its id is not listed', () => {
-      driver.given.visibleAppIds([]).when.rendered();
-
-      expect(driver.get.artifactOf(app).visible).toBe(false);
-    });
-
-    it('should mark app hidden when visible app ids are absent', () => {
-      driver.when.rendered();
-
-      expect(driver.get.artifactOf(app).visible).toBe(false);
-    });
-  });
-
-  describe('when visibleOnly is toggled on', () => {
+  describe('when the catalog has a host and an app', () => {
     const host = aHostManifest();
     const app = anAppManifest();
 
@@ -183,83 +231,110 @@ describe('useArtifacts', () => {
       driver.given.catalogHost(host).given.catalogApp(app);
     });
 
-    it('should start with visibleOnly off when rendered', () => {
-      driver.when.rendered();
+    it('should mark the host visible when visible app ids are empty', () => {
+      driver.given.visibleAppIds([]).when.rendered();
 
-      expect(driver.get.visibleOnly()).toBe(false);
+      expect(driver.get.artifactOf(host).visible).toBe(true);
     });
 
-    it('should drop hidden apps when visibleOnly is on', () => {
-      driver.when.rendered();
+    it('should mark the app visible when its id is among the visible app ids', () => {
+      driver.given.visibleAppIds([app.id]).when.rendered();
 
-      driver.when.visibleOnlyToggled();
-
-      expect(driver.get.deployedArtifactVersions()).toEqual([host]);
+      expect(driver.get.artifactOf(app).visible).toBe(true);
     });
 
-    it('should count only visible artifacts as total when visibleOnly is on', () => {
-      driver.when.rendered();
-      driver.when.visibleOnlyToggled();
+    it('should mark the app hidden when its id is not among the visible app ids', () => {
+      driver.given.visibleAppIds([faker.string.uuid()]).when.rendered();
 
-      driver.when.searched('none');
-
-      expect(driver.get.totalCount()).toBe(1);
+      expect(driver.get.artifactOf(app).visible).toBe(false);
     });
 
-    it('should restore hidden apps when visibleOnly is toggled off again', () => {
-      driver.when.rendered();
+    it('should mark the app hidden when visible app ids are absent', () => {
+      driver.given.visibleAppIds(undefined).when.rendered();
 
-      driver.when.visibleOnlyToggled();
+      expect(driver.get.artifactOf(app).visible).toBe(false);
+    });
 
-      driver.when.visibleOnlyToggled();
+    describe('when the app is hidden and visible only is on', () => {
+      beforeEach(() => {
+        driver.given.visibleAppIds([]).when.rendered();
 
-      expect(driver.get.deployedArtifactVersions()).toEqual([host, app]);
+        driver.when.visibleOnlyChanged(true);
+      });
+
+      it('should return visible only on when changed', () => {
+        expect(driver.get.result().visibleOnly).toBe(true);
+      });
+
+      it('should drop the hidden app when changed', () => {
+        expect(driver.get.deployedArtifactVersions()).toEqual([host]);
+      });
+
+      it('should count only visible artifacts as total when changed', () => {
+        expect(driver.get.result().totalCount).toBe(1);
+      });
+
+      it('should restore the hidden app when visible only is changed back to off', () => {
+        driver.when.visibleOnlyChanged(false);
+
+        expect(driver.get.deployedArtifactVersions()).toEqual([host, app]);
+      });
     });
   });
 
   describe('when searching', () => {
-    it('should match name case-insensitively when search has padding', () => {
-      const orders = anAppManifest({ name: 'Orders' });
+    const host = aHostManifest();
 
-      driver.given
-        .catalogApp(anAppManifest({ name: 'Cart' }))
-        .given.catalogApp(orders)
-        .when.rendered();
-
-      driver.when.searched('  oRdErS ');
-
-      expect(driver.get.deployedArtifactVersions()).toEqual([orders]);
+    beforeEach(() => {
+      driver.given.catalogHost(host);
     });
 
-    it('should match override source when search hits it', () => {
-      const app = anAppManifest();
+    it('should keep only the app whose name matches when the search is padded and differs in case', () => {
+      const name = faker.string.alpha(10);
+      const app = anAppManifest({ name });
 
       driver.given
-        .catalogApp(anAppManifest())
+        .catalogApp(anAppManifest({ name: faker.string.alpha(10) }))
         .given.catalogApp(app)
-        .given.activeOverride(
-          app,
-          anAppManifest({
-            channel: 'local',
-            remoteEntryUrl: 'http://localhost:4200/remoteEntry.json',
-          }),
-        )
         .when.rendered();
 
-      driver.when.searched('localhost');
+      driver.when.searched(`  ${name.toUpperCase()} `);
 
       expect(driver.get.deployedArtifactVersions()).toEqual([app]);
     });
 
-    it('should keep total count unfiltered when search narrows results', () => {
+    it('should keep only the app whose override source description matches when the search hits it', () => {
+      const app = anAppManifest();
+      const baseUrl = `http://localhost:${faker.internet.port()}/${faker.string.alpha(10)}`;
+
       driver.given
-        .catalogApp(anAppManifest({ name: 'Alpha' }))
-        .given.catalogApp(anAppManifest({ name: 'Beta' }))
+        .catalogApp(anAppManifest())
+        .given.catalogApp(app)
+        .given.enabledOverride(
+          app,
+          anAppManifest({
+            channel: 'local',
+            remoteEntryUrl: `${baseUrl}/remoteEntry.json`,
+          }),
+        )
         .when.rendered();
 
-      driver.when.searched('alpha');
+      driver.when.searched(baseUrl);
 
-      expect(driver.get.totalCount()).toBe(3);
+      expect(driver.get.deployedArtifactVersions()).toEqual([app]);
+    });
+
+    it('should keep the total count unfiltered when the search narrows the artifacts', () => {
+      const app = anAppManifest();
+
+      driver.given
+        .catalogApp(app)
+        .given.catalogApp(anAppManifest())
+        .when.rendered();
+
+      driver.when.searched(app.name);
+
+      expect(driver.get.result().totalCount).toBe(3);
     });
   });
 
@@ -279,8 +354,8 @@ describe('useArtifacts', () => {
         .catalogApp(plain)
         .given.catalogApp(disabled)
         .given.catalogApp(enabled)
-        .given.disabledOverride(disabled, anAppManifest({ channel: 'pr' }))
-        .given.activeOverride(enabled, anAppManifest({ channel: 'pr' }))
+        .given.disabledOverride(disabled, anAppManifest())
+        .given.enabledOverride(enabled, anAppManifest())
         .when.rendered();
 
       expect(driver.get.deployedArtifactVersions()).toEqual([

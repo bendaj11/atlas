@@ -1,11 +1,11 @@
 import {
   DEFAULT_CONTROL_PORT,
   isControlPort,
-} from '../shared/control-port/control-port';
+} from '../../shared/control-port/control-port';
 import {
   isRecord,
   type LoadDevelopmentSessionRequest,
-} from '../shared/messages/messages';
+} from '../../shared/messages/messages';
 
 interface DevelopmentSessionDependencies {
   fetchJson(url: string): Promise<unknown>;

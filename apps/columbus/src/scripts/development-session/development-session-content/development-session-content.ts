@@ -10,12 +10,12 @@ import {
   parseControlPort,
   rememberControlPort,
   rememberedControlPort,
-} from '../shared/control-port/control-port';
-import { messageFromError } from '../shared/errors/errors';
+} from '../../shared/control-port/control-port';
+import { messageFromError } from '../../shared/errors/errors';
 import {
   isRecord,
   loadDevelopmentSessionRequest,
-} from '../shared/messages/messages';
+} from '../../shared/messages/messages';
 
 const controlPort = readControlPort();
 removeControlPortFromAddressBar();

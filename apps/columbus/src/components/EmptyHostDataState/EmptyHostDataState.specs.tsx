@@ -1,25 +1,36 @@
+import { faker } from '@faker-js/faker';
 import { EmptyHostDataStateDriver } from './EmptyHostDataState.driver';
 
-describe('empty host data state', () => {
+describe('EmptyHostDataState', () => {
   let driver: EmptyHostDataStateDriver;
 
   beforeEach(() => {
     driver = new EmptyHostDataStateDriver();
   });
 
-  it('should show failure reason when host data is unavailable', async () => {
-    driver.given.message('Active tab has no Atlas runtime.').when.rendered();
+  describe('when rendered', () => {
+    beforeEach(() => {
+      driver.when.rendered();
+    });
 
-    expect(await driver.get.emptyState().getSubtitleText()).toBe(
-      'Active tab has no Atlas runtime.',
-    );
+    it('should show correct title when rendered', async () => {
+      expect(await driver.get.emptyState().getTitleText()).toBe(
+        'No Atlas host found',
+      );
+    });
+
+    it('should call onRefresh once when refresh button is clicked', async () => {
+      await driver.when.refreshClicked();
+
+      expect(driver.get.refreshMock()).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should request another inspection when refresh is clicked', async () => {
-    driver.when.rendered();
+  it('should show message as subtitle when rendered', async () => {
+    const message = faker.lorem.sentence();
 
-    await driver.when.refreshClicked();
+    driver.given.message(message).when.rendered();
 
-    expect(driver.get.refreshMock()).toHaveBeenCalledTimes(1);
+    expect(await driver.get.emptyState().getSubtitleText()).toBe(message);
   });
 });

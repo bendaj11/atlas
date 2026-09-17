@@ -1,27 +1,34 @@
-import { ConcurrencyDriver } from './concurrency.driver';
+import { jest } from '@jest/globals';
+import { faker } from '@faker-js/faker';
+import { mapWithConcurrency } from './concurrency';
 
 describe('mapWithConcurrency', () => {
-  let driver: ConcurrencyDriver;
+  it('should return an empty list when there are no values', async () => {
+    const operation = jest.fn<(value: number) => Promise<number>>();
 
-  beforeEach(() => {
-    driver = new ConcurrencyDriver();
+    expect(await mapWithConcurrency([], operation, 2)).toStrictEqual([]);
   });
 
   it('should keep results in input order when operations run concurrently', async () => {
-    await driver.when.mapped([1, 2, 3, 4], 2);
+    const values = [1, 2, 3, 4];
+    const operation = jest.fn(async (value: number) => value * 2);
 
-    expect(driver.get.results()).toEqual([2, 4, 6, 8]);
+    expect(await mapWithConcurrency(values, operation, 2)).toStrictEqual([
+      2, 4, 6, 8,
+    ]);
   });
 
-  it('should never exceed the concurrency limit when there are more values than workers', async () => {
-    await driver.when.mapped([1, 2, 3, 4, 5], 2);
+  it('should start only as many operations as the concurrency limit when operations are pending', async () => {
+    const values = faker.helpers.multiple(() => faker.number.int(), {
+      count: 5,
+    });
+    const operation = jest
+      .fn<(value: number) => Promise<number>>()
+      .mockReturnValue(new Promise(() => undefined));
 
-    expect(driver.get.peakInFlight()).toBeLessThanOrEqual(2);
-  });
+    void mapWithConcurrency(values, operation, 2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-  it('should return an empty list when there are no values', async () => {
-    await driver.when.mapped([], 2);
-
-    expect(driver.get.results()).toEqual([]);
+    expect(operation).toHaveBeenCalledTimes(2);
   });
 });

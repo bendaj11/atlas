@@ -1,6 +1,5 @@
 import type { ArtifactVersion } from '../../../types/artifact-version';
 import type { HostData } from '../../../types/host-data';
-import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { messageFromError } from '../../shared/errors/errors';
 import { isRecord } from '../../shared/messages/messages';
@@ -93,7 +92,7 @@ export function createArtifactRegistry(): ArtifactRegistry {
     registry: Registry,
     root: string,
   ): Promise<ArtifactVersions> {
-    const artifactKey = getArtifactKey(deployed);
+    const artifactKey = deployed.id;
     const artifact =
       deployed.kind === 'host'
         ? registry.hosts[deployed.id]
@@ -150,7 +149,7 @@ export function createArtifactRegistry(): ArtifactRegistry {
 
     const manifest = await loadManifest(reference);
     if (
-      getArtifactKey(manifest) !== artifactKey ||
+      manifest.id !== artifactKey ||
       versionKey(manifest) !== selectedVersionKey
     )
       throw new Error(

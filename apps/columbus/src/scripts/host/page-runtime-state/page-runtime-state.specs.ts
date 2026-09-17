@@ -1,12 +1,12 @@
+import { faker } from '@faker-js/faker';
 import { aHostManifest, anAppManifest } from '@atlas/testkit';
+import {
+  localOverridesOf,
+  readRuntimeErrors,
+  readStoredOverrides,
+  readVisibleAppIds,
+} from './page-runtime-state';
 import { PageRuntimeStateDriver } from './page-runtime-state.driver';
-
-const DOCUMENT = JSON.stringify({
-  schemaVersion: '1',
-  hostId: 'shop',
-  overrides: [],
-  generatedAt: '2026-01-01T00:00:00.000Z',
-});
 
 describe('readStoredOverrides', () => {
   let driver: PageRuntimeStateDriver;
@@ -16,88 +16,131 @@ describe('readStoredOverrides', () => {
   });
 
   it('should return nothing when no document is stored', () => {
-    driver.when.storedOverridesRead('shop');
-
-    expect(driver.get.stored()).toEqual({
-      overrides: undefined,
-      overrideScope: undefined,
-    });
+    expect(
+      readStoredOverrides(faker.word.noun(), faker.string.uuid()),
+    ).toStrictEqual({ overrides: undefined, overrideScope: undefined });
   });
 
-  it('should read the document with scope all when it is in local storage', () => {
-    driver.given.pageLocalStorage(DOCUMENT).when.storedOverridesRead('shop');
+  it('should read the document with scope all when it is in local storage under the host id', () => {
+    const documentKey = faker.word.noun();
+    const document = {
+      schemaVersion: '1',
+      hostId: faker.string.uuid(),
+      overrides: [],
+      generatedAt: faker.date.recent().toISOString(),
+    };
 
-    expect(driver.get.stored()).toMatchObject({
-      overrides: { hostId: 'shop' },
+    driver.given.pageLocalStorage(documentKey, JSON.stringify(document));
+
+    expect(readStoredOverrides(documentKey, document.hostId)).toStrictEqual({
+      overrides: document,
       overrideScope: 'all',
     });
   });
 
-  it('should read the document with scope tab when it is in session storage', () => {
-    driver.given.pageSessionStorage(DOCUMENT).when.storedOverridesRead('shop');
+  it('should read the document with scope tab when it is in session storage under the host id', () => {
+    const documentKey = faker.word.noun();
+    const document = {
+      schemaVersion: '1',
+      hostId: faker.string.uuid(),
+      overrides: [],
+      generatedAt: faker.date.recent().toISOString(),
+    };
 
-    expect(driver.get.stored()?.overrideScope).toBe('tab');
+    driver.given.pageSessionStorage(documentKey, JSON.stringify(document));
+
+    expect(readStoredOverrides(documentKey, document.hostId)).toStrictEqual({
+      overrides: document,
+      overrideScope: 'tab',
+    });
   });
 
   it('should prefer session storage when both storages hold a document', () => {
-    driver.given
-      .pageLocalStorage(DOCUMENT)
-      .given.pageSessionStorage(DOCUMENT)
-      .when.storedOverridesRead('shop');
+    const documentKey = faker.word.noun();
+    const hostId = faker.string.uuid();
+    const tabDocument = {
+      schemaVersion: '1',
+      hostId,
+      overrides: [],
+      generatedAt: faker.date.recent().toISOString(),
+    };
 
-    expect(driver.get.stored()?.overrideScope).toBe('tab');
+    driver.given
+      .pageLocalStorage(
+        documentKey,
+        JSON.stringify({ ...tabDocument, generatedAt: faker.date.past() }),
+      )
+      .given.pageSessionStorage(documentKey, JSON.stringify(tabDocument));
+
+    expect(readStoredOverrides(documentKey, hostId)).toStrictEqual({
+      overrides: tabDocument,
+      overrideScope: 'tab',
+    });
   });
 
   it('should drop the document when it belongs to another host', () => {
-    driver.given.pageLocalStorage(DOCUMENT).when.storedOverridesRead('other');
+    const documentKey = faker.word.noun();
 
-    expect(driver.get.stored()?.overrides).toBeUndefined();
+    driver.given.pageLocalStorage(
+      documentKey,
+      JSON.stringify({
+        schemaVersion: '1',
+        hostId: faker.string.uuid(),
+        overrides: [],
+        generatedAt: faker.date.recent().toISOString(),
+      }),
+    );
+
+    expect(readStoredOverrides(documentKey, faker.string.uuid())).toStrictEqual(
+      { overrides: undefined, overrideScope: 'all' },
+    );
   });
 
   it('should keep the scope when the stored value is not json', () => {
-    driver.given.pageLocalStorage('{oops').when.storedOverridesRead('shop');
+    const documentKey = faker.word.noun();
 
-    expect(driver.get.stored()).toEqual({
-      overrides: undefined,
-      overrideScope: 'all',
-    });
+    driver.given.pageLocalStorage(documentKey, '{oops');
+
+    expect(readStoredOverrides(documentKey, faker.string.uuid())).toStrictEqual(
+      { overrides: undefined, overrideScope: 'all' },
+    );
   });
 });
 
 describe('localOverridesOf', () => {
-  let driver: PageRuntimeStateDriver;
-
-  beforeEach(() => {
-    driver = new PageRuntimeStateDriver();
-  });
-
   it('should return nothing when no manifest is local', () => {
-    driver.when.localOverridesBuilt('shop', [
-      anAppManifest({ channel: 'production' }),
-    ]);
-
-    expect(driver.get.localOverrides()).toBeUndefined();
+    expect(
+      localOverridesOf(faker.string.uuid(), [
+        anAppManifest({ channel: 'production' }),
+      ]),
+    ).toBeUndefined();
   });
 
-  it('should list local apps as overrides when apps are local', () => {
-    const local = anAppManifest({ id: 'orders', channel: 'local' });
+  it('should list the local apps as overrides when apps are local', () => {
+    const local = anAppManifest({ channel: 'local' });
 
-    driver.when.localOverridesBuilt('shop', [
-      anAppManifest({ channel: 'production' }),
-      local,
-    ]);
-
-    expect(driver.get.localOverrides()?.overrides).toEqual([
-      { appId: 'orders', manifest: local, reason: 'local' },
-    ]);
+    expect(
+      localOverridesOf(faker.string.uuid(), [
+        anAppManifest({ channel: 'production' }),
+        local,
+      ])?.overrides,
+    ).toStrictEqual([{ appId: local.id, manifest: local, reason: 'local' }]);
   });
 
   it('should set the host override when the host is local', () => {
     const host = aHostManifest({ channel: 'local' });
 
-    driver.when.localOverridesBuilt('shop', [host]);
+    expect(localOverridesOf(faker.string.uuid(), [host])?.hostOverride).toBe(
+      host,
+    );
+  });
 
-    expect(driver.get.localOverrides()?.hostOverride).toBe(host);
+  it('should use the given host id when local manifests exist', () => {
+    const hostId = faker.string.uuid();
+
+    expect(
+      localOverridesOf(hostId, [anAppManifest({ channel: 'local' })])?.hostId,
+    ).toBe(hostId);
   });
 });
 
@@ -109,31 +152,28 @@ describe('readRuntimeErrors', () => {
   });
 
   it('should attribute the error to the app when the element carries an app id', () => {
-    driver.given
-      .pageBody(
-        '<div data-atlas-state="error" data-atlas-app-id="orders">Unable to load Orders.</div>',
-      )
-      .when.runtimeErrorsRead();
+    const appId = faker.string.uuid();
+    const message = faker.lorem.sentence();
 
-    expect(driver.get.runtimeErrors()).toEqual([
-      { artifactId: 'app:orders', message: 'Unable to load Orders.' },
-    ]);
+    driver.given.pageBody(
+      `<div data-atlas-state="error" data-atlas-app-id="${appId}">${message}</div>`,
+    );
+
+    expect(readRuntimeErrors()).toStrictEqual([{ artifactId: appId, message }]);
   });
 
   it('should report an unattributed error when the element has no app id', () => {
-    driver.given
-      .pageBody('<div data-atlas-state="error">Boom</div>')
-      .when.runtimeErrorsRead();
+    const message = faker.lorem.sentence();
 
-    expect(driver.get.runtimeErrors()).toEqual([{ message: 'Boom' }]);
+    driver.given.pageBody(`<div data-atlas-state="error">${message}</div>`);
+
+    expect(readRuntimeErrors()).toStrictEqual([{ message }]);
   });
 
-  it('should use a fallback message when the element is empty', () => {
-    driver.given
-      .pageBody('<div data-atlas-state="error"></div>')
-      .when.runtimeErrorsRead();
+  it('should use the fallback message when the element is empty', () => {
+    driver.given.pageBody('<div data-atlas-state="error"></div>');
 
-    expect(driver.get.runtimeErrors()).toEqual([
+    expect(readRuntimeErrors()).toStrictEqual([
       { message: 'Unknown app error' },
     ]);
   });
@@ -146,19 +186,18 @@ describe('readVisibleAppIds', () => {
     driver = new PageRuntimeStateDriver();
   });
 
-  it('should list each app once when containers repeat', () => {
-    driver.given
-      .pageBody(
-        '<div data-atlas-app-id="orders"></div><div data-atlas-app-id="orders"></div><div data-atlas-app-id="billing"></div>',
-      )
-      .when.visibleAppIdsRead();
-
-    expect(driver.get.visibleAppIds()).toEqual(['orders', 'billing']);
+  it('should list nothing when no containers exist', () => {
+    expect(readVisibleAppIds()).toStrictEqual([]);
   });
 
-  it('should list nothing when no containers exist', () => {
-    driver.when.visibleAppIdsRead();
+  it('should list each app once when containers repeat', () => {
+    const repeated = faker.string.uuid();
+    const other = faker.string.uuid();
 
-    expect(driver.get.visibleAppIds()).toEqual([]);
+    driver.given.pageBody(
+      `<div data-atlas-app-id="${repeated}"></div><div data-atlas-app-id="${repeated}"></div><div data-atlas-app-id="${other}"></div>`,
+    );
+
+    expect(readVisibleAppIds()).toStrictEqual([repeated, other]);
   });
 });

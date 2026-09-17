@@ -10,7 +10,10 @@ export default defineConfig({
     emptyOutDir: false,
     outDir: 'dist',
     lib: {
-      entry: resolve(directory, 'src/scripts/badge/badge-script.ts'),
+      entry: resolve(
+        directory,
+        'src/scripts/badge/badge-script/badge-script.ts',
+      ),
       formats: ['iife'],
       name: 'AtlasColumbusContentScript',
       fileName: () => 'badge-script.js',

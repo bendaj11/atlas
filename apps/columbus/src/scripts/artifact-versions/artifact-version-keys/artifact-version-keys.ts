@@ -15,7 +15,3 @@ export function versionKey(artifactVersion: ArtifactVersion): string {
 
   return `${artifactVersion.channel}:${artifactVersion.version}:${artifactVersion.buildId}`;
 }
-
-export function getArtifactKey(artifactVersion: ArtifactVersion): string {
-  return `${artifactVersion.kind}:${artifactVersion.id}`;
-}

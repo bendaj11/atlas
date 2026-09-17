@@ -1,17 +1,17 @@
 import { Card, Table, type TableColumn } from '@wix/design-system';
-import type { Artifact } from '../../../types/artifact';
+import type { ArtifactTableRow } from '../../../types/artifact';
 import { ArtifactOverrideToggle } from './ArtifactOverrideToggle/ArtifactOverrideToggle';
 import { ArtifactOverrideVersion } from './ArtifactOverrideVersion/ArtifactOverrideVersion';
 import { ArtifactOverrideActions } from './ArtifactOverrideActions/ArtifactOverrideActions';
-import { OverridesTableToolbar } from './OverridesTableToolbar/OverridesTableToolbar';
+import { ArtifactsListTableToolbar } from './ArtifactsListTableToolbar/ArtifactsListTableToolbar';
 import { useArtifacts } from '../useArtifacts/useArtifacts';
 import { ArtifactName } from './ArtifactName/ArtifactName';
 
-export function ArtifactsOverridesTable() {
+export function ArtifactsListTable() {
   const { artifacts, totalCount, setSearchValue, visibleOnly, setVisibleOnly } =
     useArtifacts();
 
-  const columns: TableColumn<Artifact>[] = [
+  const columns: TableColumn<ArtifactTableRow>[] = [
     {
       title: '',
       align: 'start',
@@ -39,12 +39,13 @@ export function ArtifactsOverridesTable() {
   return (
     <Card hideOverflow>
       <Table
+        dataHook="artifacts-table"
         columns={columns}
         showHeaderWhenEmpty
         data={artifacts}
         rowVerticalPadding="large"
       >
-        <OverridesTableToolbar
+        <ArtifactsListTableToolbar
           onSearch={setSearchValue}
           totalCount={totalCount}
           filteredCount={artifacts.length}

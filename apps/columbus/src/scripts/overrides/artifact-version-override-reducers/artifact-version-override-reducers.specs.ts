@@ -1,194 +1,274 @@
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { ArtifactVersionOverrideReducersDriver } from './artifact-version-override-reducers.driver';
-
-const ORDERS = anAppManifest({ id: 'orders' });
-const PREVIEW = anAppManifest({ id: 'orders', channel: 'pr' });
-const LOCAL = anAppManifest({ id: 'orders', channel: 'local' });
+import { aColumbusState } from '../../../testkit/columbus-state.testkit';
+import {
+  clearAllArtifactVersionOverrides,
+  clearArtifactVersionOverride,
+  saveArtifactVersionOverride,
+  setArtifactVersionOverrideScope,
+  toggleArtifactVersionOverride,
+} from './artifact-version-override-reducers';
 
 describe('saveArtifactVersionOverride', () => {
-  let driver: ArtifactVersionOverrideReducersDriver;
+  it('should enable the selected version under the deployed artifact id when a selection is saved', () => {
+    const deployed = anAppManifest();
+    const selected = anAppManifest({ id: deployed.id });
 
-  beforeEach(() => {
-    driver = new ArtifactVersionOverrideReducersDriver();
+    expect(
+      saveArtifactVersionOverride({
+        columbusState: aColumbusState(),
+        selection: {
+          deployedArtifactVersion: deployed,
+          selectedOverrideArtifactVersion: selected,
+        },
+      }).enabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map([[deployed.id, selected]]));
   });
 
-  it('should activate the selected manifest when a selection is saved', () => {
-    driver.when.overrideSaved({
-      productionArtifactVersion: ORDERS,
-      selectedArtifactVersion: PREVIEW,
+  it('should drop the disabled override when a selection is saved', () => {
+    const deployed = anAppManifest();
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([
+        [deployed.id, anAppManifest({ id: deployed.id })],
+      ]),
     });
 
-    expect(driver.get.activeOverride('app:orders')).toBe(PREVIEW);
+    expect(
+      saveArtifactVersionOverride({
+        columbusState,
+        selection: {
+          deployedArtifactVersion: deployed,
+          selectedOverrideArtifactVersion: anAppManifest({ id: deployed.id }),
+        },
+      }).disabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map());
   });
 
-  it('should drop the disabled entry when a selection is saved', () => {
-    driver.given.disabledOverride('app:orders', PREVIEW).when.overrideSaved({
-      productionArtifactVersion: ORDERS,
-      selectedArtifactVersion: LOCAL,
+  it('should remove the enabled override when an empty selection is saved', () => {
+    const deployed = anAppManifest();
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([
+        [deployed.id, anAppManifest({ id: deployed.id })],
+      ]),
     });
 
-    expect(driver.get.disabledOverride('app:orders')).toBeUndefined();
+    expect(
+      saveArtifactVersionOverride({
+        columbusState,
+        selection: {
+          deployedArtifactVersion: deployed,
+          selectedOverrideArtifactVersion: undefined,
+        },
+      }).enabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map());
   });
 
-  it('should remove the active override when an empty selection is saved', () => {
-    driver.given.activeOverride('app:orders', PREVIEW).when.overrideSaved({
-      productionArtifactVersion: ORDERS,
-      selectedArtifactVersion: undefined,
+  it('should remove the deployed artifact id from the cleared local ids when a selection is saved', () => {
+    const deployed = anAppManifest();
+    const columbusState = aColumbusState({
+      clearedLocalArtifactIds: new Set([deployed.id]),
     });
 
-    expect(driver.get.activeOverride('app:orders')).toBeUndefined();
-  });
-
-  it('should unsuppress the app when a selection is saved', () => {
-    driver.given.clearedLocalArtifactIds(['orders']).when.overrideSaved({
-      productionArtifactVersion: ORDERS,
-      selectedArtifactVersion: LOCAL,
-    });
-
-    expect(driver.get.clearedLocalArtifactIds()).toEqual([]);
+    expect(
+      saveArtifactVersionOverride({
+        columbusState,
+        selection: {
+          deployedArtifactVersion: deployed,
+          selectedOverrideArtifactVersion: anAppManifest({ id: deployed.id }),
+        },
+      }).clearedLocalArtifactIds,
+    ).toStrictEqual(new Set());
   });
 });
 
 describe('toggleArtifactVersionOverride', () => {
-  let driver: ArtifactVersionOverrideReducersDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionOverrideReducersDriver();
-  });
-
-  it('should move an active override to disabled when toggled', () => {
-    driver.given
-      .activeOverride('app:orders', PREVIEW)
-      .when.overrideToggled('app:orders');
-
-    expect(driver.get.disabledOverride('app:orders')).toBe(PREVIEW);
-  });
-
-  it('should clear the active entry when an active override is toggled', () => {
-    driver.given
-      .activeOverride('app:orders', PREVIEW)
-      .when.overrideToggled('app:orders');
-
-    expect(driver.get.activeOverride('app:orders')).toBeUndefined();
-  });
-
-  it('should move a disabled override to active when toggled', () => {
-    driver.given
-      .disabledOverride('app:orders', PREVIEW)
-      .when.overrideToggled('app:orders');
-
-    expect(driver.get.activeOverride('app:orders')).toBe(PREVIEW);
-  });
-
   it('should return nothing when the artifact has no override', () => {
-    driver.when.overrideToggled('app:missing');
+    expect(
+      toggleArtifactVersionOverride({
+        columbusState: aColumbusState(),
+        artifactKey: faker.string.uuid(),
+      }),
+    ).toBeUndefined();
+  });
 
-    expect(driver.get.result()).toBeUndefined();
+  describe('when the artifact has an enabled override', () => {
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
+
+    it('should move the override to disabled when toggled', () => {
+      expect(
+        toggleArtifactVersionOverride({
+          columbusState,
+          artifactKey: override.id,
+        })?.disabledArtifactVersionOverrides,
+      ).toStrictEqual(new Map([[override.id, override]]));
+    });
+
+    it('should remove the enabled override when toggled', () => {
+      expect(
+        toggleArtifactVersionOverride({
+          columbusState,
+          artifactKey: override.id,
+        })?.enabledArtifactVersionOverrides,
+      ).toStrictEqual(new Map());
+    });
+  });
+
+  it('should move the override to enabled when the artifact has a disabled override and is toggled', () => {
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
+
+    expect(
+      toggleArtifactVersionOverride({
+        columbusState,
+        artifactKey: override.id,
+      })?.enabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map([[override.id, override]]));
   });
 });
 
 describe('clearArtifactVersionOverride', () => {
-  let driver: ArtifactVersionOverrideReducersDriver;
+  it('should remove the enabled override when cleared', () => {
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
 
-  beforeEach(() => {
-    driver = new ArtifactVersionOverrideReducersDriver();
-  });
-
-  it('should remove the active override when cleared', () => {
-    driver.given
-      .activeOverride('app:orders', PREVIEW)
-      .when.overrideCleared('app:orders');
-
-    expect(driver.get.activeOverride('app:orders')).toBeUndefined();
+    expect(
+      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
+        .enabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map());
   });
 
   it('should remove the disabled override when cleared', () => {
-    driver.given
-      .disabledOverride('app:orders', PREVIEW)
-      .when.overrideCleared('app:orders');
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
 
-    expect(driver.get.disabledOverride('app:orders')).toBeUndefined();
+    expect(
+      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
+        .disabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map());
   });
 
-  it('should suppress the app when an active local override is cleared', () => {
-    driver.given
-      .activeOverride('app:orders', LOCAL)
-      .when.overrideCleared('app:orders');
+  it('should add the artifact id to the cleared local ids when an enabled local override is cleared', () => {
+    const override = anAppManifest({ channel: 'local' });
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
 
-    expect(driver.get.clearedLocalArtifactIds()).toEqual(['orders']);
+    expect(
+      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
+        .clearedLocalArtifactIds,
+    ).toStrictEqual(new Set([override.id]));
   });
 
-  it('should suppress the app when a disabled local override is cleared', () => {
-    driver.given
-      .disabledOverride('app:orders', LOCAL)
-      .when.overrideCleared('app:orders');
+  it('should add the artifact id to the cleared local ids when a disabled local override is cleared', () => {
+    const override = anAppManifest({ channel: 'local' });
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
 
-    expect(driver.get.clearedLocalArtifactIds()).toEqual(['orders']);
+    expect(
+      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
+        .clearedLocalArtifactIds,
+    ).toStrictEqual(new Set([override.id]));
   });
 
-  it('should not suppress the app when a non-local override is cleared', () => {
-    driver.given
-      .activeOverride('app:orders', PREVIEW)
-      .when.overrideCleared('app:orders');
+  it('should keep the cleared local ids empty when an enabled pr override is cleared', () => {
+    const override = anAppManifest({ channel: 'pr' });
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
 
-    expect(driver.get.clearedLocalArtifactIds()).toEqual([]);
+    expect(
+      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
+        .clearedLocalArtifactIds,
+    ).toStrictEqual(new Set());
   });
 });
 
 describe('clearAllArtifactVersionOverrides', () => {
-  let driver: ArtifactVersionOverrideReducersDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionOverrideReducersDriver();
-  });
-
-  it('should remove every override when all are cleared', () => {
-    driver.given
-      .activeOverride('app:orders', PREVIEW)
-      .given.disabledOverride('app:cart', PREVIEW)
-      .when.allOverridesCleared();
-
-    expect([
-      driver.get.activeOverride('app:orders'),
-      driver.get.disabledOverride('app:cart'),
-    ]).toEqual([undefined, undefined]);
-  });
-
-  it('should suppress local apps when all are cleared', () => {
-    driver.given
-      .activeOverride('app:orders', LOCAL)
-      .given.disabledOverride(
-        'app:cart',
-        anAppManifest({ id: 'cart', channel: 'local' }),
-      )
-      .when.allOverridesCleared();
-
-    expect(driver.get.clearedLocalArtifactIds()).toEqual(['orders', 'cart']);
-  });
-
   it('should keep the scope when all are cleared', () => {
-    driver.given.scope('tab').when.allOverridesCleared();
+    const columbusState = aColumbusState();
 
-    expect(driver.get.scope()).toBe('tab');
+    expect(clearAllArtifactVersionOverrides(columbusState).scope).toBe(
+      columbusState.scope,
+    );
+  });
+
+  it('should remove every enabled override when all are cleared', () => {
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
+
+    expect(
+      clearAllArtifactVersionOverrides(columbusState)
+        .enabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map());
+  });
+
+  it('should remove every disabled override when all are cleared', () => {
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      disabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
+
+    expect(
+      clearAllArtifactVersionOverrides(columbusState)
+        .disabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map());
+  });
+
+  it('should add the local override ids to the cleared local ids when all are cleared', () => {
+    const enabled = anAppManifest({ channel: 'local' });
+    const disabled = anAppManifest({ channel: 'local' });
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[enabled.id, enabled]]),
+      disabledArtifactVersionOverrides: new Map([[disabled.id, disabled]]),
+    });
+
+    expect(
+      clearAllArtifactVersionOverrides(columbusState).clearedLocalArtifactIds,
+    ).toStrictEqual(new Set([enabled.id, disabled.id]));
+  });
+
+  it('should keep the cleared local ids empty when only pr overrides are cleared', () => {
+    const enabled = anAppManifest({ channel: 'pr' });
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[enabled.id, enabled]]),
+    });
+
+    expect(
+      clearAllArtifactVersionOverrides(columbusState).clearedLocalArtifactIds,
+    ).toStrictEqual(new Set());
   });
 });
 
 describe('setArtifactVersionOverrideScope', () => {
-  let driver: ArtifactVersionOverrideReducersDriver;
-
-  beforeEach(() => {
-    driver = new ArtifactVersionOverrideReducersDriver();
-  });
-
   it('should change the scope when set', () => {
-    driver.when.scopeSet('tab');
+    const columbusState = aColumbusState({ scope: 'all' });
 
-    expect(driver.get.scope()).toBe('tab');
+    expect(
+      setArtifactVersionOverrideScope({ columbusState, scope: 'tab' }).scope,
+    ).toBe('tab');
   });
 
-  it('should keep active overrides when the scope changes', () => {
-    driver.given.activeOverride('app:orders', PREVIEW).when.scopeSet('tab');
+  it('should keep the enabled overrides when the scope changes', () => {
+    const override = anAppManifest();
+    const columbusState = aColumbusState({
+      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
+    });
 
-    expect(driver.get.activeOverride('app:orders')).toBe(PREVIEW);
+    expect(
+      setArtifactVersionOverrideScope({ columbusState, scope: 'tab' })
+        .enabledArtifactVersionOverrides,
+    ).toStrictEqual(new Map([[override.id, override]]));
   });
 });

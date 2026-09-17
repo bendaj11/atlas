@@ -65,7 +65,7 @@ export function readRuntimeErrors(): HostData['runtimeErrors'] {
       element.getAttribute('data-atlas-app');
     const message = element.textContent?.trim() || 'Unknown app error';
 
-    return { ...(appId ? { artifactId: `app:${appId}` } : {}), message };
+    return { ...(appId ? { artifactId: appId } : {}), message };
   });
 }
 

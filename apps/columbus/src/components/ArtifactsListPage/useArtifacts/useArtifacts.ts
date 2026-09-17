@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { getArtifactKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
-import { useColumbusState } from '../../../state';
+import { useColumbusState } from '../../../hooks';
 import {
-  artifactSourceDescription,
-  overrideTypeFor,
+  baseUrlFromRemoteEntry,
+  versionLabel,
 } from '../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
-import type { Artifact } from '../../../types/artifact';
+import { versionKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+import type {
+  ArtifactOverride,
+  ArtifactTableRow,
+  OverrideType,
+} from '../../../types/artifact';
 import type { ColumbusState } from '../../../types/columbus-state';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 
 interface Artifacts {
-  artifacts: Artifact[];
+  artifacts: ArtifactTableRow[];
   totalCount: number;
   searchValue: string;
   setSearchValue: (value: string) => void;
@@ -42,7 +46,7 @@ export function useArtifacts(): Artifacts {
   };
 }
 
-function createArtifacts(columbusState: ColumbusState): Artifact[] {
+function createArtifacts(columbusState: ColumbusState): ArtifactTableRow[] {
   const { catalog } = columbusState.hostData;
   const artifactVersions = [
     catalog.host,
@@ -56,31 +60,32 @@ function createArtifacts(columbusState: ColumbusState): Artifact[] {
 }
 
 function createArtifact(
-  productionArtifactVersion: ArtifactVersion,
+  deployedArtifactVersion: ArtifactVersion,
   {
     enabledArtifactVersionOverrides,
     disabledArtifactVersionOverrides,
     hostData,
   }: ColumbusState,
-): Artifact {
-  const key = getArtifactKey(productionArtifactVersion);
-  const selectedArtifactVersion =
+): ArtifactTableRow {
+  const key = deployedArtifactVersion.id;
+  const selectedOverrideArtifactVersion =
     enabledArtifactVersionOverrides.get(key) ??
     disabledArtifactVersionOverrides.get(key);
 
   return {
-    key,
-    productionArtifactVersion,
-    selectedArtifactVersion,
+    deployedArtifactVersion,
+    selectedOverrideArtifactVersion,
     overrideType: overrideTypeFor({
-      productionArtifactVersion,
-      selectedArtifactVersion,
+      deployedArtifactVersion,
+      selectedOverrideArtifactVersion,
     }),
-    sourceDescription: artifactSourceDescription(selectedArtifactVersion),
+    sourceDescription: artifactSourceDescription(
+      selectedOverrideArtifactVersion,
+    ),
     loadError: loadErrorOf(key, hostData.runtimeErrors),
     overrideEnabled: enabledArtifactVersionOverrides.has(key),
-    canToggle: Boolean(selectedArtifactVersion),
-    visible: isVisible(productionArtifactVersion, hostData.visibleAppIds),
+    canToggle: Boolean(selectedOverrideArtifactVersion),
+    visible: isVisible(deployedArtifactVersion, hostData.visibleAppIds),
   };
 }
 
@@ -109,19 +114,54 @@ function isVisible(
   );
 }
 
-function matchesSearch(artifact: Artifact, searchValue: string): boolean {
+function matchesSearch(
+  artifact: ArtifactTableRow,
+  searchValue: string,
+): boolean {
   const query = searchValue.trim().toLocaleLowerCase();
   if (!query) return true;
 
   return [
-    artifact.productionArtifactVersion.name,
+    artifact.deployedArtifactVersion.name,
     artifact.sourceDescription,
   ].some((value) => value.toLocaleLowerCase().includes(query));
 }
 
-function overriddenArtifactsFirst(left: Artifact, right: Artifact): number {
+function overriddenArtifactsFirst(
+  left: ArtifactTableRow,
+  right: ArtifactTableRow,
+): number {
   return (
     Number(right.overrideEnabled) - Number(left.overrideEnabled) ||
     Number(right.canToggle) - Number(left.canToggle)
   );
+}
+
+function overrideTypeFor({
+  deployedArtifactVersion,
+  selectedOverrideArtifactVersion,
+}: Pick<
+  ArtifactOverride,
+  'deployedArtifactVersion' | 'selectedOverrideArtifactVersion'
+>): OverrideType | undefined {
+  if (!selectedOverrideArtifactVersion) return undefined;
+  if (selectedOverrideArtifactVersion.channel === 'local') return 'custom';
+  if (selectedOverrideArtifactVersion.channel === 'pr') return 'pr';
+  if (
+    versionKey(selectedOverrideArtifactVersion) ===
+    versionKey(deployedArtifactVersion)
+  )
+    return undefined;
+
+  return 'production';
+}
+
+function artifactSourceDescription(
+  selectedOverrideArtifactVersion: ArtifactVersion | undefined,
+): string {
+  if (!selectedOverrideArtifactVersion) return '';
+
+  return selectedOverrideArtifactVersion.channel === 'local'
+    ? baseUrlFromRemoteEntry(selectedOverrideArtifactVersion.remoteEntryUrl)
+    : versionLabel(selectedOverrideArtifactVersion);
 }

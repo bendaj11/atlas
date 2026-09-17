@@ -1,27 +1,14 @@
-import { aHostData } from '../../types/host-data.testkit';
+import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
+import { aHostData } from '../../../testkit/host-data.testkit';
 import {
   inspectHostRequest,
   loadArtifactVersionRequest,
-} from '../shared/messages/messages';
+} from '../../shared/messages/messages';
 import { BadgeScriptDriver } from './badge-script.driver';
 
 const ATLAS_PAGE_BODY =
   '<div id="atlas-host-root"></div><script src="/atlas.loader.js"></script>';
-const RUNTIME_CONFIG = { schemaVersion: 'v1', hostId: 'shop' };
-const DEV_SESSION_URL =
-  'http://localhost:4400/atlas.dev-session.json?hostId=shop';
-const TWO_OVERRIDES = JSON.stringify({ overrides: [{}, {}] });
-const THREE_OVERRIDES = JSON.stringify({
-  overrides: [{}, {}],
-  hostOverride: {},
-});
-const DEV_SESSION = {
-  schemaVersion: '1',
-  hostId: 'shop',
-  overrides: [{ appId: 'orders' }, { appId: 'cart' }],
-  hostOverride: {},
-};
 const WINDOW_EVENTS = ['focus', 'pageshow', 'storage'];
 
 describe('badge-script', () => {
@@ -31,145 +18,216 @@ describe('badge-script', () => {
     driver = new BadgeScriptDriver();
   });
 
-  describe('when started', () => {
-    it('should publish the dark theme when the page prefers a dark color scheme', async () => {
-      await driver.given.darkColorScheme(true).when.started();
+  describe('when the page is not an atlas host', () => {
+    it('should publish zero overrides when started', async () => {
+      await driver.when.started();
 
-      expect(driver.get.publishedColorSchemes()).toEqual(['dark']);
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([0]);
+    });
+
+    it('should not poll when started', async () => {
+      await driver.when.started();
+
+      expect(driver.get.setInterval()).not.toHaveBeenCalled();
+    });
+
+    it('should publish the dark theme when the page prefers a dark color scheme', async () => {
+      driver.given.darkColorScheme(true);
+
+      await driver.when.started();
+
+      expect(driver.get.publishedColorSchemes()).toStrictEqual(['dark']);
     });
 
     it('should publish the light theme when the page prefers a light color scheme', async () => {
-      await driver.given.darkColorScheme(false).when.started();
+      driver.given.darkColorScheme(false);
 
-      expect(driver.get.publishedColorSchemes()).toEqual(['light']);
-    });
-
-    it('should publish zero overrides when the page is not an atlas host', async () => {
       await driver.when.started();
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([0]);
+      expect(driver.get.publishedColorSchemes()).toStrictEqual(['light']);
     });
 
-    it('should count the session overrides when the page stores a document', async () => {
-      await driver.given
-        .sessionStorageItem('atlas.runtime-overrides', THREE_OVERRIDES)
-        .when.started();
+    it('should count the session overrides when session storage holds a document', async () => {
+      driver.given.sessionStorageItem(
+        'atlas.runtime-overrides',
+        JSON.stringify({ overrides: [{}, {}], hostOverride: {} }),
+      );
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([3]);
-    });
-
-    it('should count the local overrides when only local storage has a document', async () => {
-      await driver.given
-        .localStorageItem('atlas.runtime-overrides', TWO_OVERRIDES)
-        .when.started();
-
-      expect(driver.get.publishedOverrideCounts()).toEqual([2]);
-    });
-
-    it('should not poll when the page is not an atlas host', async () => {
       await driver.when.started();
 
-      expect(driver.get.refreshIntervalsMs()).toEqual([]);
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([3]);
+    });
+
+    it('should count the local overrides when only local storage holds a document', async () => {
+      driver.given.localStorageItem(
+        'atlas.runtime-overrides',
+        JSON.stringify({ overrides: [{}, {}] }),
+      );
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
     });
   });
 
   describe('when the page is an atlas host', () => {
+    const hostId = faker.string.uuid();
+
     beforeEach(() => {
       driver.given
         .pageBody(ATLAS_PAGE_BODY)
-        .given.response('/atlas.runtime.json', RUNTIME_CONFIG);
+        .given.fetchJson({ schemaVersion: 'v1', hostId });
     });
 
     it('should poll every two seconds when started', async () => {
       await driver.when.started();
 
-      expect(driver.get.refreshIntervalsMs()).toEqual([2000]);
+      expect(driver.get.setInterval()).toHaveBeenCalledWith(
+        expect.any(Function),
+        2000,
+      );
     });
 
-    it('should publish zero overrides when nothing is stored', async () => {
-      await driver.given.pageLocation('https://shop.example/').when.started();
+    describe('when the page is remote', () => {
+      beforeEach(() => {
+        driver.given.pageLocation(faker.internet.url());
+      });
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([0]);
-    });
+      it('should fetch only the runtime config when started', async () => {
+        await driver.when.started();
 
-    it('should count the persisted overrides when the extension stores a document', async () => {
-      await driver.given
-        .pageLocation('https://shop.example/')
-        .given.extensionStorageItem('atlas.overrides.shop', {
+        expect(
+          driver.get.fetch().mock.calls.map(([input]) => String(input)),
+        ).toStrictEqual(['/atlas.runtime.json']);
+      });
+
+      it('should publish zero overrides when nothing is stored', async () => {
+        await driver.when.started();
+
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([0]);
+      });
+
+      it('should count the persisted overrides when the extension stores a document for the host', async () => {
+        driver.given.extensionStorageItem(`atlas.overrides.${hostId}`, {
           overrides: [{}, {}],
-        })
-        .when.started();
+        });
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([2]);
+        await driver.when.started();
+
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+      });
     });
 
-    it('should not fetch the development session when the page is not local', async () => {
-      await driver.given.pageLocation('https://shop.example/').when.started();
+    describe('when the page is local', () => {
+      beforeEach(() => {
+        driver.given.pageLocation(`http://localhost:${faker.internet.port()}/`);
+      });
 
-      expect(driver.get.fetchedUrls()).toEqual(['/atlas.runtime.json']);
-    });
+      it('should fetch the development session from the default control port when none is remembered', async () => {
+        await driver.when.started();
 
-    it('should fetch the development session from the remembered control port when one is stored', async () => {
-      await driver.given
-        .sessionStorageItem('atlas.development-control-port', '4512')
-        .when.started();
+        expect(
+          driver.get.fetch().mock.calls.map(([input]) => String(input)),
+        ).toStrictEqual([
+          '/atlas.runtime.json',
+          `http://localhost:4400/atlas.dev-session.json?hostId=${hostId}`,
+        ]);
+      });
 
-      expect(driver.get.fetchedUrls()).toEqual([
-        '/atlas.runtime.json',
-        'http://localhost:4512/atlas.dev-session.json?hostId=shop',
-      ]);
-    });
+      it('should fetch the development session from the remembered control port when one is stored', async () => {
+        const controlPort = faker.internet.port();
 
-    it('should fetch the development session from the default control port when none is stored', async () => {
-      await driver.when.started();
+        driver.given.sessionStorageItem(
+          'atlas.development-control-port',
+          String(controlPort),
+        );
 
-      expect(driver.get.fetchedUrls()).toEqual([
-        '/atlas.runtime.json',
-        DEV_SESSION_URL,
-      ]);
-    });
+        await driver.when.started();
 
-    it('should count the development session overrides when the page is local', async () => {
-      await driver.given.response(DEV_SESSION_URL, DEV_SESSION).when.started();
+        expect(
+          driver.get.fetch().mock.calls.map(([input]) => String(input)),
+        ).toStrictEqual([
+          '/atlas.runtime.json',
+          `http://localhost:${controlPort}/atlas.dev-session.json?hostId=${hostId}`,
+        ]);
+      });
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([3]);
-    });
+      it('should count the development session overrides when the session belongs to the host', async () => {
+        driver.given.fetchJson({
+          schemaVersion: '1',
+          hostId,
+          overrides: [
+            { appId: faker.string.uuid() },
+            { appId: faker.string.uuid() },
+          ],
+          hostOverride: {},
+        });
 
-    it('should skip disabled local apps when counting the development session', async () => {
-      await driver.given
-        .response(DEV_SESSION_URL, DEV_SESSION)
-        .given.localStorageItem(
-          'atlas.disabled-local-apps.shop',
-          JSON.stringify(['orders']),
-        )
-        .when.started();
+        await driver.when.started();
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([2]);
-    });
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([3]);
+      });
 
-    it('should fall back to persisted overrides when the development session is missing', async () => {
-      await driver.given
-        .extensionStorageItem('atlas.overrides.shop', { overrides: [{}] })
-        .when.started();
+      it('should skip the disabled local apps when counting the development session', async () => {
+        const disabledAppId = faker.string.uuid();
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([1]);
-    });
+        driver.given
+          .fetchJson({
+            schemaVersion: '1',
+            hostId,
+            overrides: [
+              { appId: disabledAppId },
+              { appId: faker.string.uuid() },
+            ],
+            hostOverride: {},
+          })
+          .given.localStorageItem(
+            `atlas.disabled-local-apps.${hostId}`,
+            JSON.stringify([disabledAppId]),
+          );
 
-    it('should fall back to persisted overrides when the development session belongs to another host', async () => {
-      await driver.given
-        .response(DEV_SESSION_URL, { ...DEV_SESSION, hostId: 'other' })
-        .given.extensionStorageItem('atlas.overrides.shop', { overrides: [{}] })
-        .when.started();
+        await driver.when.started();
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([1]);
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+      });
+
+      it('should fall back to the persisted overrides when the development session is missing', async () => {
+        driver.given
+          .fetchStatus(404)
+          .given.extensionStorageItem(`atlas.overrides.${hostId}`, {
+            overrides: [{}],
+          });
+
+        await driver.when.started();
+
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
+      });
+
+      it('should fall back to the persisted overrides when the development session belongs to another host', async () => {
+        driver.given
+          .fetchJson({
+            schemaVersion: '1',
+            hostId: faker.string.uuid(),
+            overrides: [{}, {}],
+          })
+          .given.extensionStorageItem(`atlas.overrides.${hostId}`, {
+            overrides: [{}],
+          });
+
+        await driver.when.started();
+
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
+      });
     });
 
     it('should publish the new count when the poll finds a change', async () => {
+      driver.given.pageLocation(faker.internet.url());
+
       await driver.when.overridesStoredAndIntervalElapsed({
         overrides: [{}, {}],
       });
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([0, 2]);
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([0, 2]);
     });
   });
 
@@ -182,7 +240,7 @@ describe('badge-script', () => {
           eventType,
         );
 
-        expect(driver.get.publishedOverrideCounts()).toEqual([0, 2]);
+        expect(driver.get.publishedOverrideCounts()).toStrictEqual([0, 2]);
       },
     );
 
@@ -192,87 +250,96 @@ describe('badge-script', () => {
         'focus',
       );
 
-      expect(driver.get.publishedOverrideCounts()).toEqual([0]);
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([0]);
     });
 
     it('should publish the new theme when the color scheme changes', async () => {
+      driver.given.darkColorScheme(false);
+
       await driver.when.colorSchemeChanged(true);
 
-      expect(driver.get.publishedColorSchemes()).toEqual(['light', 'dark']);
+      expect(driver.get.publishedColorSchemes()).toStrictEqual([
+        'light',
+        'dark',
+      ]);
     });
   });
 
   describe('when an inspect host request arrives', () => {
-    it('should inspect the given document key when requested', async () => {
-      await driver.when.messageReceived(inspectHostRequest('atlas.overrides'));
+    const documentKey = faker.word.noun();
 
-      expect(driver.get.inspectedDocumentKeys()).toEqual(['atlas.overrides']);
+    it('should inspect the host with the given document key when received', async () => {
+      driver.given.hostData(aHostData());
+
+      await driver.when.messageReceived(inspectHostRequest(documentKey));
+
+      expect(driver.get.inspectAtlasHost()).toHaveBeenCalledWith(
+        documentKey,
+        expect.objectContaining({ loadVersion: driver.get.loadVersion() }),
+      );
     });
 
     it('should respond with the host data when inspection succeeds', async () => {
       const hostData = aHostData();
-      await driver.given
-        .hostData(hostData)
-        .when.messageReceived(inspectHostRequest('atlas.overrides'));
 
-      expect(driver.get.response()).toEqual({ ok: true, hostData });
+      driver.given.hostData(hostData);
+
+      await driver.when.messageReceived(inspectHostRequest(documentKey));
+
+      expect(driver.get.response()).toStrictEqual({ ok: true, hostData });
     });
 
-    it('should respond with the failure when inspection fails', async () => {
-      await driver.given
-        .hostInspectionFailure('Atlas runtime configuration is missing.')
-        .when.messageReceived(inspectHostRequest('atlas.overrides'));
+    it('should respond with the failure message when inspection fails', async () => {
+      const reason = faker.lorem.sentence();
 
-      expect(driver.get.response()).toEqual({
-        ok: false,
-        error: 'Atlas runtime configuration is missing.',
-      });
+      driver.given.hostInspectionFailure(new Error(reason));
+
+      await driver.when.messageReceived(inspectHostRequest(documentKey));
+
+      expect(driver.get.response()).toStrictEqual({ ok: false, error: reason });
     });
   });
 
-  describe('when a load version request arrives', () => {
-    it('should load the given version when requested', async () => {
-      await driver.when.messageReceived(
-        loadArtifactVersionRequest({
-          artifactKey: 'app:orders',
-          versionKey: '1.2.0',
-        }),
-      );
+  describe('when a load artifact version request arrives', () => {
+    const request = loadArtifactVersionRequest({
+      artifactKey: faker.string.uuid(),
+      versionKey: faker.string.uuid(),
+    });
 
-      expect(driver.get.loadedVersionKeys()).toEqual([['app:orders', '1.2.0']]);
+    it('should load the requested version from the registry when received', async () => {
+      driver.given.loadedVersion(anAppManifest());
+
+      await driver.when.messageReceived(request);
+
+      expect(driver.get.loadVersion()).toHaveBeenCalledWith(
+        request.artifactKey,
+        request.versionKey,
+      );
     });
 
     it('should respond with the manifest when the version loads', async () => {
       const manifest = anAppManifest();
-      await driver.given.loadedVersion(manifest).when.messageReceived(
-        loadArtifactVersionRequest({
-          artifactKey: 'app:orders',
-          versionKey: '1.2.0',
-        }),
-      );
 
-      expect(driver.get.response()).toEqual({ ok: true, manifest });
+      driver.given.loadedVersion(manifest);
+
+      await driver.when.messageReceived(request);
+
+      expect(driver.get.response()).toStrictEqual({ ok: true, manifest });
     });
 
-    it('should respond with the failure when the version cannot load', async () => {
-      await driver.given
-        .versionLoadFailure('Version 1.2.0 is not published.')
-        .when.messageReceived(
-          loadArtifactVersionRequest({
-            artifactKey: 'app:orders',
-            versionKey: '1.2.0',
-          }),
-        );
+    it('should respond with the failure message when the version cannot load', async () => {
+      const reason = faker.lorem.sentence();
 
-      expect(driver.get.response()).toEqual({
-        ok: false,
-        error: 'Version 1.2.0 is not published.',
-      });
+      driver.given.versionLoadFailure(new Error(reason));
+
+      await driver.when.messageReceived(request);
+
+      expect(driver.get.response()).toStrictEqual({ ok: false, error: reason });
     });
   });
 
   it('should respond with nothing when an unknown message arrives', async () => {
-    await driver.when.messageReceived({ type: 'other' });
+    await driver.when.messageReceived({ type: faker.word.noun() });
 
     expect(driver.get.response()).toBeUndefined();
   });

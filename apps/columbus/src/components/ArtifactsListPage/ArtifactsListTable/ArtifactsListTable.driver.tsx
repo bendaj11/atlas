@@ -1,52 +1,51 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { Artifact } from '../../../types/artifact';
-import type {
-  useActionsDisabled as useActionsDisabledType,
-  useOverrides as useOverridesType,
-} from '../../../state';
+import { render } from '@testing-library/react';
+import {
+  IconButtonTestkit,
+  SearchTestkit,
+  TableTestkit,
+  TextTestkit,
+  ToggleSwitchTestkit,
+} from '@wix/design-system/dist/testkit/testing-library';
+import { OVERRIDE_STATUSES } from '../../../types/override-status';
+import type { OverridesValue } from '../../../hooks/useOverrides/useOverrides';
+import type { ArtifactTableRow } from '../../../types/artifact';
+import { SCOPES } from '../../../types/columbus-state';
 import type { useArtifacts as useArtifactsType } from '../useArtifacts/useArtifacts';
+import { useActionsDisabledMock } from '../../../testkit/mocks/useActionsDisabled';
+import { useOverridesMock } from '../../../testkit/mocks/useOverrides';
+import { useNavigateMock } from '../../../testkit/mocks/react-router-dom';
 
 const useArtifacts = jest.fn<typeof useArtifactsType>();
-const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
-const useOverrides = jest.fn<typeof useOverridesType>();
-
-jest.unstable_mockModule('react-router-dom', () => ({
-  useNavigate: () => jest.fn(),
-}));
 jest.unstable_mockModule('../useArtifacts/useArtifacts', () => ({
   useArtifacts,
 }));
-jest.unstable_mockModule('../../../state', () => ({
-  useActionsDisabled,
-  useOverrides,
-}));
 
-const { ArtifactsOverridesTable } = await import('./ArtifactsOverridesTable');
+const { ArtifactsListTable } = await import('./ArtifactsListTable');
 
 type ArtifactsValue = ReturnType<typeof useArtifactsType>;
-type OverridesValue = ReturnType<typeof useOverridesType>;
 
-export class ArtifactsOverridesTableDriver {
-  private artifacts: Artifact[] = [];
-  private totalCount = 0;
-  private visibleOnly = false;
+export class ArtifactsListTableDriver {
+  private artifacts: ArtifactTableRow[] = [];
+  private totalCount = faker.number.int({ min: 0, max: 100 });
+  private visibleOnly = faker.datatype.boolean();
   private readonly setSearchValue = jest.fn<ArtifactsValue['setSearchValue']>();
   private readonly setVisibleOnly = jest.fn<ArtifactsValue['setVisibleOnly']>();
+  private baseElement!: Element;
 
   readonly given = {
-    artifacts: (artifacts: Artifact[]): this => {
+    artifacts: (artifacts: ArtifactTableRow[]) => {
       this.artifacts = artifacts;
 
       return this;
     },
-    totalCount: (totalCount: number): this => {
+    totalCount: (totalCount: number) => {
       this.totalCount = totalCount;
 
       return this;
     },
-    visibleOnly: (visibleOnly: boolean): this => {
+    visibleOnly: (visibleOnly: boolean) => {
       this.visibleOnly = visibleOnly;
 
       return this;
@@ -54,40 +53,56 @@ export class ArtifactsOverridesTableDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
+    rendered: () => {
       useArtifacts.mockReturnValue({
         artifacts: this.artifacts,
         totalCount: this.totalCount,
-        searchValue: '',
+        searchValue: faker.lorem.word(),
         setSearchValue: this.setSearchValue,
         visibleOnly: this.visibleOnly,
         setVisibleOnly: this.setVisibleOnly,
       });
-      useActionsDisabled.mockReturnValue(false);
-      useOverrides.mockReturnValue({} as OverridesValue);
-      render(<ArtifactsOverridesTable />);
+      useActionsDisabledMock.mockReturnValue(faker.datatype.boolean());
+      useOverridesMock.mockReturnValue({
+        hasOverrides: faker.datatype.boolean(),
+        scope: faker.helpers.arrayElement(SCOPES),
+        status: faker.helpers.arrayElement(OVERRIDE_STATUSES),
+        message: faker.lorem.sentence(),
+        clearAllOverrides: jest.fn<OverridesValue['clearAllOverrides']>(),
+        clearOverride: jest.fn<OverridesValue['clearOverride']>(),
+        saveOverride: jest.fn<OverridesValue['saveOverride']>(),
+        setScope: jest.fn<OverridesValue['setScope']>(),
+        toggleOverride: jest.fn<OverridesValue['toggleOverride']>(),
+      });
+      useNavigateMock.mockReturnValue(jest.fn());
+      this.baseElement = render(<ArtifactsListTable />).baseElement;
     },
-    searched: async (value: string): Promise<void> => {
-      await userEvent.type(screen.getByRole('textbox'), value);
-    },
-    visibleFilterClicked: async (): Promise<void> => {
-      await userEvent.click(
-        screen.getByRole('button', { name: 'Show visible artifacts only' }),
-      );
-    },
+    searchTextEntered: (text: string) =>
+      this.get.search().inputDriver.enterText(text),
+    visibleFilterClicked: () => this.get.visibleFilterButton().click(),
   };
 
   readonly get = {
-    rowNames: (): string[] =>
-      screen
-        .getAllByRole('row')
-        .filter((row) => within(row).queryAllByRole('cell').length > 0)
-        .map((row) => row.textContent ?? ''),
-    toggles: (): HTMLElement[] => screen.queryAllByRole('checkbox'),
-    countLabel: (): HTMLElement | null => screen.queryByText(/artifacts found/),
-    searchValue: (): string | undefined =>
-      this.setSearchValue.mock.calls.at(-1)?.[0],
-    visibleOnlyChange: (): boolean | undefined =>
-      this.setVisibleOnly.mock.calls[0]?.[0],
+    table: () =>
+      TableTestkit({ wrapper: this.baseElement, dataHook: 'artifacts-table' }),
+    toggleSwitch: () =>
+      ToggleSwitchTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'artifact-override-toggle',
+      }),
+    search: () =>
+      SearchTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'artifacts-search',
+      }),
+    visibleFilterButton: () =>
+      IconButtonTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'visible-artifacts-filter',
+      }),
+    countLabel: () =>
+      TextTestkit({ wrapper: this.baseElement, dataHook: 'artifacts-count' }),
+    setSearchValue: () => this.setSearchValue,
+    setVisibleOnly: () => this.setVisibleOnly,
   };
 }

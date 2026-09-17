@@ -1,7 +1,14 @@
-import { anAppManifest } from '@atlas/testkit';
+import { faker } from '@faker-js/faker';
+import {
+  aHostCatalog,
+  aHostManifest,
+  aHostRuntimeConfig,
+  anAppManifest,
+} from '@atlas/testkit';
+import { aRegistry } from '../../../testkit/registry.testkit';
 import { InspectAtlasHostDriver } from './inspect-atlas-host.driver';
 
-const ORDERS = anAppManifest({ id: 'orders', version: '1.0.0' });
+const { inspectAtlasHost } = await import('./inspect-atlas-host');
 
 describe('inspectAtlasHost', () => {
   let driver: InspectAtlasHostDriver;
@@ -10,158 +17,274 @@ describe('inspectAtlasHost', () => {
     driver = new InspectAtlasHostDriver();
   });
 
-  it('should fail when the catalog targets another host', async () => {
-    await driver.given.catalogHostId('other').when.hostInspected();
+  it('should reject when the catalog targets another host', async () => {
+    const config = aHostRuntimeConfig();
+    const catalog = aHostCatalog({ hostId: faker.string.uuid() });
 
-    expect(driver.get.errorMessage()).toBe(
-      'Atlas deployment targets host other, but runtime configuration targets shop.',
+    driver.given.runtimeConfig(config).given.catalog(catalog);
+
+    await expect(
+      inspectAtlasHost(faker.word.noun(), driver.get.registry()),
+    ).rejects.toThrow(
+      `Atlas deployment targets host ${catalog.hostId}, but runtime overrideOptions targets ${config.hostId}.`,
     );
   });
 
-  it('should report the page url when inspected', async () => {
-    await driver.when.hostInspected();
+  describe('when the catalog targets the runtime host', () => {
+    const config = aHostRuntimeConfig();
+    const host = aHostManifest({ id: config.hostId, channel: 'production' });
+    const app = anAppManifest({ channel: 'production' });
+    const catalog = aHostCatalog({ hostId: config.hostId, host, apps: [app] });
+    const stored = { overrides: undefined, overrideScope: undefined };
 
-    expect(driver.get.result()?.pageUrl).toBe('https://shop.example/dashboard');
-  });
-
-  describe('when no registry root is configured', () => {
-    it('should list only the deployed manifest when no registry root is configured', async () => {
-      await driver.given.catalogApp(ORDERS).when.hostInspected();
-
-      expect(driver.get.result()?.versions).toEqual({
-        'host:shop': [expect.objectContaining({ id: 'shop' })],
-        'app:orders': [ORDERS],
-      });
-    });
-
-    it('should not read the registry when no root is configured', async () => {
-      await driver.when.hostInspected();
-
-      expect(driver.get.registryReadCount()).toBe(0);
-    });
-  });
-
-  describe('when a registry root is configured', () => {
     beforeEach(() => {
       driver.given
-        .registryRoot('https://registry.example')
-        .given.catalogApp(ORDERS);
+        .runtimeConfig(config)
+        .given.catalog(catalog)
+        .given.storedOverrides(stored)
+        .given.runtimeErrors([])
+        .given.visibleAppIds([]);
     });
 
-    it('should list the registry versions when the registry lists them', async () => {
-      const newer = anAppManifest({ id: 'orders', version: '2.0.0' });
+    it('should report the page url when inspected', async () => {
+      const href = faker.internet.url();
 
-      await driver.given.versions([ORDERS, newer]).when.hostInspected();
+      driver.given.pageLocation(href).given.registryRoot(undefined);
 
-      expect(driver.get.result()?.versions['app:orders']).toEqual([
-        ORDERS,
-        newer,
-      ]);
+      expect(
+        (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+          .pageUrl,
+      ).toBe(href);
     });
 
-    it('should collect version errors when a preview is unavailable', async () => {
-      await driver.given
-        .versions([ORDERS], 'Preview 43 is unavailable.')
-        .when.hostInspected();
+    it('should read the stored overrides under the document key and host id when inspected', async () => {
+      const documentKey = faker.word.noun();
 
-      expect(driver.get.result()?.versionErrors).toEqual([
-        'Preview 43 is unavailable.',
-        'Preview 43 is unavailable.',
-      ]);
-    });
+      driver.given.registryRoot(undefined);
 
-    it('should fall back to the deployed manifest when versions cannot be read', async () => {
-      await driver.given
-        .versionsFailure('Artifact orders is not registered.')
-        .when.hostInspected();
+      await inspectAtlasHost(documentKey, driver.get.registry());
 
-      expect(driver.get.result()?.versions['app:orders']).toEqual([ORDERS]);
-    });
-
-    it('should report the failure when versions cannot be read', async () => {
-      await driver.given
-        .versionsFailure('Artifact orders is not registered.')
-        .when.hostInspected();
-
-      expect(driver.get.result()?.versionErrors).toContain(
-        'Artifact orders is not registered.',
+      expect(driver.get.readStoredOverrides()).toHaveBeenCalledWith(
+        documentKey,
+        config.hostId,
       );
     });
 
-    it('should keep the deployed manifests when the registry is unavailable', async () => {
-      await driver.given
-        .registryFailure('Atlas registry returned 404.')
-        .when.hostInspected();
+    describe('when no registry root is configured', () => {
+      beforeEach(() => {
+        driver.given.registryRoot(undefined);
+      });
 
-      expect(driver.get.result()?.versions['app:orders']).toEqual([ORDERS]);
-    });
+      it('should list only the deployed manifest per artifact when inspected', async () => {
+        expect(
+          (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+            .versions,
+        ).toStrictEqual({ [host.id]: [host], [app.id]: [app] });
+      });
 
-    it('should report the registry failure when the registry is unavailable', async () => {
-      await driver.given
-        .registryFailure('Atlas registry returned 404.')
-        .when.hostInspected();
+      it('should not read the registry when inspected', async () => {
+        await inspectAtlasHost(faker.word.noun(), driver.get.registry());
 
-      expect(driver.get.result()?.versionErrors).toEqual([
-        'Atlas registry returned 404.',
-      ]);
-    });
-
-    it('should not read versions when the registry is unavailable', async () => {
-      await driver.given
-        .registryFailure('Atlas registry returned 404.')
-        .when.hostInspected();
-
-      expect(driver.get.versionsRead()).toBe(0);
-    });
-  });
-
-  describe('when overrides are stored in the page', () => {
-    it('should expose the stored document and scope when the page stores one', async () => {
-      const document = {
-        schemaVersion: '1' as const,
-        hostId: 'shop',
-        overrides: [],
-        generatedAt: '',
-      };
-
-      await driver.given
-        .storedOverrides({ overrides: document, overrideScope: 'tab' })
-        .when.hostInspected();
-
-      expect(driver.get.result()).toMatchObject({
-        overrides: document,
-        overrideScope: 'tab',
+        expect(driver.get.readRegistry()).not.toHaveBeenCalled();
       });
     });
 
-    it('should derive overrides from local manifests when nothing is stored', async () => {
-      await driver.given
-        .catalogApp(anAppManifest({ id: 'orders', channel: 'local' }))
-        .when.hostInspected();
+    describe('when a registry root is configured', () => {
+      const registryRoot = faker.internet.url();
+      const registry = aRegistry();
 
-      expect(driver.get.result()?.overrides).toMatchObject({ hostId: 'shop' });
+      beforeEach(() => {
+        driver.given.registryRoot(registryRoot).given.registry(registry);
+      });
+
+      it('should read the registry at the root when inspected', async () => {
+        driver.given
+          .versions({ manifests: [host] })
+          .given.versions({ manifests: [app] });
+
+        await inspectAtlasHost(faker.word.noun(), driver.get.registry());
+
+        expect(driver.get.readRegistry()).toHaveBeenCalledWith(registryRoot);
+      });
+
+      it('should read the versions of each deployed manifest from the registry when inspected', async () => {
+        driver.given
+          .versions({ manifests: [host] })
+          .given.versions({ manifests: [app] });
+
+        await inspectAtlasHost(faker.word.noun(), driver.get.registry());
+
+        expect(driver.get.readVersions().mock.calls).toStrictEqual([
+          [host, registry, registryRoot],
+          [app, registry, registryRoot],
+        ]);
+      });
+
+      it('should list the registry versions per artifact when the registry lists them', async () => {
+        const newer = anAppManifest({ id: app.id, channel: 'production' });
+
+        driver.given
+          .versions({ manifests: [host] })
+          .given.versions({ manifests: [app, newer] });
+
+        expect(
+          (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+            .versions,
+        ).toStrictEqual({ [host.id]: [host], [app.id]: [app, newer] });
+      });
+
+      it('should collect the version errors when a version read reports one', async () => {
+        const error = faker.lorem.sentence();
+
+        driver.given
+          .versions({ manifests: [host] })
+          .given.versions({ manifests: [app], error });
+
+        expect(
+          (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+            .versionErrors,
+        ).toStrictEqual([error]);
+      });
+
+      describe('when a version read fails', () => {
+        const reason = faker.lorem.sentence();
+
+        beforeEach(() => {
+          driver.given
+            .versions({ manifests: [host] })
+            .given.versionsFailure(new Error(reason));
+        });
+
+        it('should fall back to the deployed manifest when inspected', async () => {
+          expect(
+            (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+              .versions,
+          ).toStrictEqual({ [host.id]: [host], [app.id]: [app] });
+        });
+
+        it('should report the failure as a version error when inspected', async () => {
+          expect(
+            (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+              .versionErrors,
+          ).toStrictEqual([reason]);
+        });
+      });
+
+      describe('when the registry is unavailable', () => {
+        const reason = faker.lorem.sentence();
+
+        beforeEach(() => {
+          driver.given.registryFailure(new Error(reason));
+        });
+
+        it('should keep the deployed manifests when inspected', async () => {
+          expect(
+            (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+              .versions,
+          ).toStrictEqual({ [host.id]: [host], [app.id]: [app] });
+        });
+
+        it('should report the registry failure as a version error when inspected', async () => {
+          expect(
+            (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+              .versionErrors,
+          ).toStrictEqual([reason]);
+        });
+
+        it('should not read versions when inspected', async () => {
+          await inspectAtlasHost(faker.word.noun(), driver.get.registry());
+
+          expect(driver.get.readVersions()).not.toHaveBeenCalled();
+        });
+      });
     });
 
-    it('should have no overrides when nothing is stored and nothing is local', async () => {
-      await driver.when.hostInspected();
+    describe('when no registry root is configured and the page stores an override document', () => {
+      const document = {
+        schemaVersion: '1' as const,
+        hostId: config.hostId,
+        overrides: [],
+        generatedAt: faker.date.recent().toISOString(),
+      };
 
-      expect(driver.get.result()?.overrides).toBeUndefined();
+      beforeEach(() => {
+        driver.given
+          .registryRoot(undefined)
+          .given.storedOverrides({ overrides: document, overrideScope: 'tab' });
+      });
+
+      it('should expose the stored document when inspected', async () => {
+        expect(
+          (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+            .overrides,
+        ).toBe(document);
+      });
+
+      it('should expose the stored scope when inspected', async () => {
+        expect(
+          (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+            .overrideScope,
+        ).toBe('tab');
+      });
+    });
+
+    it('should have no overrides when nothing is stored and no manifest is local', async () => {
+      driver.given.registryRoot(undefined);
+
+      expect(
+        (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+          .overrides,
+      ).toBeUndefined();
+    });
+
+    it('should expose the runtime errors when the page reports them', async () => {
+      const errors = [
+        { artifactId: faker.string.uuid(), message: faker.lorem.sentence() },
+      ];
+
+      driver.given.registryRoot(undefined).given.runtimeErrors(errors);
+
+      expect(
+        (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+          .runtimeErrors,
+      ).toBe(errors);
+    });
+
+    it('should expose the visible app ids when the page renders app containers', async () => {
+      const ids = [faker.string.uuid()];
+
+      driver.given.registryRoot(undefined).given.visibleAppIds(ids);
+
+      expect(
+        (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+          .visibleAppIds,
+      ).toBe(ids);
     });
   });
 
-  it('should expose runtime errors when the page reports them', async () => {
-    await driver.given
-      .runtimeErrors([{ artifactId: 'app:orders', message: 'Boom' }])
-      .when.hostInspected();
+  it('should derive the overrides from the local manifests when nothing is stored and an app is local', async () => {
+    const config = aHostRuntimeConfig();
+    const local = anAppManifest({ channel: 'local' });
+    const catalog = aHostCatalog({
+      hostId: config.hostId,
+      host: aHostManifest({ id: config.hostId, channel: 'production' }),
+      apps: [local],
+    });
 
-    expect(driver.get.result()?.runtimeErrors).toEqual([
-      { artifactId: 'app:orders', message: 'Boom' },
-    ]);
-  });
+    driver.given
+      .runtimeConfig(config)
+      .given.catalog(catalog)
+      .given.registryRoot(undefined)
+      .given.storedOverrides({ overrides: undefined, overrideScope: undefined })
+      .given.runtimeErrors([])
+      .given.visibleAppIds([]);
 
-  it('should expose visible app ids when the page renders app containers', async () => {
-    await driver.given.visibleAppIds(['orders']).when.hostInspected();
-
-    expect(driver.get.result()?.visibleAppIds).toEqual(['orders']);
+    expect(
+      (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+        .overrides,
+    ).toMatchObject({
+      hostId: config.hostId,
+      overrides: [{ appId: local.id, manifest: local, reason: 'local' }],
+    });
   });
 });

@@ -1,93 +1,49 @@
 import { jest } from '@jest/globals';
-import type { ColumbusState } from '../../types/columbus-state';
-import { aColumbusState } from '../../types/columbus-state.testkit';
-import type { reloadHostTab as reloadHostTabType } from '../host/host-tabs/host-tabs';
-import type { validateLocalOverride as validateLocalOverrideType } from './local-override/local-override';
-import type * as OverrideStorageModule from './override-storage/override-storage';
-
-type OverrideStorage = typeof OverrideStorageModule;
+import type { validateLocalOverride as validateLocalOverrideType } from '../local-override/local-override';
+import type * as OverrideStorageModule from '../override-storage/override-storage';
+import { reloadHostTabMock } from '../../../testkit/mocks/host-tabs';
 
 const validateLocalOverride = jest.fn<typeof validateLocalOverrideType>();
 const writeOverrideDocument =
-  jest.fn<OverrideStorage['writeOverrideDocument']>();
+  jest.fn<typeof OverrideStorageModule.writeOverrideDocument>();
 const writeDisabledArtifactVersionOverrides =
-  jest.fn<OverrideStorage['writeDisabledArtifactVersionOverrides']>();
+  jest.fn<typeof OverrideStorageModule.writeDisabledArtifactVersionOverrides>();
 const writeClearedLocalArtifactIds =
-  jest.fn<OverrideStorage['writeClearedLocalArtifactIds']>();
-const reloadHostTab = jest.fn<typeof reloadHostTabType>();
-const calls: string[] = [];
+  jest.fn<typeof OverrideStorageModule.writeClearedLocalArtifactIds>();
 
-jest.unstable_mockModule('../host/host-tabs/host-tabs', () => ({
-  reloadHostTab,
-}));
-jest.unstable_mockModule('./local-override/local-override', () => ({
+jest.unstable_mockModule('../local-override/local-override', () => ({
   validateLocalOverride,
 }));
-jest.unstable_mockModule('./override-storage/override-storage', () => ({
+jest.unstable_mockModule('../override-storage/override-storage', () => ({
   writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
   writeClearedLocalArtifactIds,
 }));
 
-const { persistColumbusState } = await import('./persist-overrides');
-
 export class PersistOverridesDriver {
-  private columbusState: ColumbusState = aColumbusState();
-  private error: unknown;
-
   constructor() {
     jest.clearAllMocks();
-    calls.length = 0;
-    validateLocalOverride.mockImplementation(async () => {
-      calls.push('validate');
-    });
-    writeOverrideDocument.mockImplementation(async () => {
-      calls.push('writeOverrideDocument');
-    });
-    writeDisabledArtifactVersionOverrides.mockImplementation(async () => {
-      calls.push('writeDisabledArtifactVersionOverrides');
-    });
-    writeClearedLocalArtifactIds.mockImplementation(async () => {
-      calls.push('writeClearedLocalArtifactIds');
-    });
-    reloadHostTab.mockImplementation(async () => {
-      calls.push('reload');
-    });
+    validateLocalOverride.mockResolvedValue(undefined);
+    writeOverrideDocument.mockResolvedValue(undefined);
+    writeDisabledArtifactVersionOverrides.mockResolvedValue(undefined);
+    writeClearedLocalArtifactIds.mockResolvedValue(undefined);
+    reloadHostTabMock.mockResolvedValue(undefined);
   }
 
   readonly given = {
-    columbusState: (columbusState: ColumbusState): this => {
-      this.columbusState = columbusState;
+    validationFailure: (error: Error) => {
+      validateLocalOverride.mockRejectedValue(error);
 
       return this;
-    },
-    validationFailure: (reason: string): this => {
-      validateLocalOverride.mockRejectedValue(new Error(reason));
-
-      return this;
-    },
-  };
-
-  readonly when = {
-    persisted: async (): Promise<void> => {
-      try {
-        await persistColumbusState(this.columbusState);
-      } catch (error) {
-        this.error = error;
-      }
     },
   };
 
   readonly get = {
-    error: (): unknown => this.error,
-    callOrder: (): string[] => calls,
-    validatedManifests: () =>
-      validateLocalOverride.mock.calls.map(([manifest]) => manifest),
-    overridesWrite: () => writeOverrideDocument.mock.calls[0]?.[0],
-    disabledOverridesWrite: () =>
-      writeDisabledArtifactVersionOverrides.mock.calls[0],
-    suppressedArtifactIdsWrite: () =>
-      writeClearedLocalArtifactIds.mock.calls[0],
-    reloadedTabId: (): number | undefined => reloadHostTab.mock.calls[0]?.[0],
+    validateLocalOverride: () => validateLocalOverride,
+    writeOverrideDocument: () => writeOverrideDocument,
+    writeDisabledArtifactVersionOverrides: () =>
+      writeDisabledArtifactVersionOverrides,
+    writeClearedLocalArtifactIds: () => writeClearedLocalArtifactIds,
+    reloadHostTab: () => reloadHostTabMock,
   };
 }

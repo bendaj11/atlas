@@ -1,15 +1,18 @@
 import type { ArtifactVersion } from './artifact-version';
 
-export type OverrideType = 'custom' | 'production' | 'pr';
+export const OVERRIDE_TYPES = ['custom', 'production', 'pr'] as const;
+export type OverrideType = (typeof OVERRIDE_TYPES)[number];
 
-export interface Artifact {
-  key: string;
-  productionArtifactVersion: ArtifactVersion;
-  selectedArtifactVersion: ArtifactVersion | undefined;
+export interface ArtifactOverride {
+  deployedArtifactVersion: ArtifactVersion;
+  selectedOverrideArtifactVersion: ArtifactVersion | undefined;
+  overrideEnabled: boolean;
+}
+
+export interface ArtifactTableRow extends ArtifactOverride {
   overrideType: OverrideType | undefined;
   sourceDescription: string;
   loadError: string | undefined;
-  overrideEnabled: boolean;
   canToggle: boolean;
   visible: boolean;
 }
@@ -19,8 +22,7 @@ export interface OverrideSelection {
   value: string;
 }
 
-export interface ArtifactConfiguration extends Artifact {
-  hostId: string;
+export interface ArtifactOverrideOptions extends ArtifactOverride {
   productionArtifactVersions: ArtifactVersion[];
   prArtifactVersions: ArtifactVersion[];
 }

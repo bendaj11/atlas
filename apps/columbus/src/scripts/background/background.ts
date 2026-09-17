@@ -1,7 +1,7 @@
 import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR } from '../shared/constants';
 import { CONTROL_PORT_PARAMETER } from '../shared/control-port/control-port';
-import { clearHostDataCache } from '../host/host-data-cache';
-import { actionIconPathsFor } from '../shared/action-icon-theme';
+import { clearHostDataCache } from '../host/host-data-cache/host-data-cache';
+import { actionIconPathsFor } from '../shared/action-icon-theme/action-icon-theme';
 import { messageFromError } from '../shared/errors/errors';
 import {
   isActionThemeMessage,
@@ -9,7 +9,7 @@ import {
   isOverrideCountMessage,
   type LoadDevelopmentSessionRequest,
 } from '../shared/messages/messages';
-import { loadDevelopmentSession } from '../development-session/development-session-background';
+import { loadDevelopmentSession } from '../development-session/development-session-background/development-session-background';
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'loading') void clearHostDataCache(tabId);

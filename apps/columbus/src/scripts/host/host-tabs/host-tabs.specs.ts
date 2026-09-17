@@ -1,12 +1,16 @@
 /** @jest-environment node */
 
 import { faker } from '@faker-js/faker';
-import { aHostData } from '../../../types/host-data.testkit';
 import { anAppManifest } from '@atlas/testkit';
+import { aHostData } from '../../../testkit/host-data.testkit';
+import {
+  findAtlasHostTab,
+  loadArtifactVersionFromHostTab,
+  reloadHostTab,
+} from './host-tabs';
 import { HostTabsDriver } from './host-tabs.driver';
 
-const HOST_URL = 'http://127.0.0.1:4300/orders';
-const POPUP_URL = 'chrome-extension://atlas/index.html';
+const NO_HOST_TAB = 'Open an Atlas host in the active tab first.';
 
 describe('findAtlasHostTab', () => {
   let driver: HostTabsDriver;
@@ -15,128 +19,196 @@ describe('findAtlasHostTab', () => {
     driver = new HostTabsDriver();
   });
 
-  it('should select the active tab when it hosts Atlas', async () => {
-    await driver.given
-      .tabs([{ id: 7, active: true, url: HOST_URL }])
-      .given.atlasHost(7)
-      .when.hostTabSearched();
+  it('should reject when no tab is active', async () => {
+    driver.given.tabs([{ id: faker.number.int(), url: faker.internet.url() }]);
 
-    expect(driver.get.foundTabId()).toBe(7);
+    await expect(findAtlasHostTab()).rejects.toThrow(NO_HOST_TAB);
   });
 
-  it('should fail when no tab is active', async () => {
-    await driver.given.tabs([{ id: 7, url: HOST_URL }]).when.hostTabSearched();
+  it('should reject when the active tab is not a web page', async () => {
+    driver.given.tabs([
+      { id: faker.number.int(), active: true, url: 'chrome://extensions' },
+    ]);
 
-    expect(driver.get.errorMessage()).toBe(
-      'Open an Atlas host in the active tab first.',
-    );
+    await expect(findAtlasHostTab()).rejects.toThrow(NO_HOST_TAB);
   });
 
-  it('should fail when the active tab is not a web page', async () => {
-    await driver.given
-      .tabs([{ id: 7, active: true, url: 'chrome://extensions' }])
-      .when.hostTabSearched();
+  it('should return the active tab and its host data when the active tab hosts Atlas', async () => {
+    const tab = {
+      id: faker.number.int(),
+      active: true,
+      url: faker.internet.url(),
+    };
+    const hostData = aHostData();
 
-    expect(driver.get.errorMessage()).toBe(
-      'Open an Atlas host in the active tab first.',
-    );
+    driver.given.tabs([tab]).given.tabMessageResponse({ ok: true, hostData });
+
+    await expect(findAtlasHostTab()).resolves.toStrictEqual({ tab, hostData });
   });
 
-  describe('when the popup itself is the active tab', () => {
-    it('should select the most recent web tab when it hosts Atlas', async () => {
-      await driver.given
-        .tabs([
-          { id: 9, active: true, lastAccessed: 30, url: POPUP_URL },
-          { id: 8, lastAccessed: 10, url: 'https://other.example/' },
-          { id: 7, lastAccessed: 20, url: HOST_URL },
-        ])
-        .given.atlasHost(7)
-        .given.atlasHost(8)
-        .when.hostTabSearched();
+  it('should inspect only the active tab when it is a remote page that does not host Atlas', async () => {
+    const tab = {
+      id: faker.number.int(),
+      active: true,
+      url: faker.internet.url(),
+    };
 
-      expect(driver.get.foundTabId()).toBe(7);
-    });
+    driver.given
+      .tabs([tab, { id: faker.number.int(), url: faker.internet.url() }])
+      .given.tabMessageResponse({ ok: false, error: faker.lorem.sentence() });
 
-    it('should skip tabs when they do not host Atlas', async () => {
-      await driver.given
-        .tabs([
-          { id: 9, active: true, lastAccessed: 30, url: POPUP_URL },
-          { id: 8, lastAccessed: 20, url: 'https://other.example/' },
-          { id: 7, lastAccessed: 10, url: HOST_URL },
-        ])
-        .given.atlasHost(7)
-        .when.hostTabSearched();
+    await findAtlasHostTab().catch(() => undefined);
 
-      expect(driver.get.foundTabId()).toBe(7);
-    });
-
-    it('should fail when no web tab hosts Atlas', async () => {
-      await driver.given
-        .tabs([
-          { id: 9, active: true, url: POPUP_URL },
-          { id: 8, url: 'https://other.example/' },
-        ])
-        .when.hostTabSearched();
-
-      expect(driver.get.errorMessage()).toBe(
-        'Open an Atlas host in the active tab first.',
-      );
-    });
+    expect(driver.get.tabMessage()).toHaveBeenCalledTimes(1);
   });
 
-  describe('when the active tab is a local page without Atlas', () => {
-    it('should select the local preview when exactly one is open', async () => {
-      await driver.given
-        .tabs([
-          { id: 8, active: true, url: 'http://localhost:4201/' },
-          { id: 7, url: 'http://localhost:4300/orders' },
-        ])
-        .given.atlasHost(7)
-        .when.hostTabSearched();
+  it('should reject with the page error when the active tab is a remote page that does not host Atlas', async () => {
+    const error = faker.lorem.sentence();
 
-      expect(driver.get.foundTabId()).toBe(7);
-    });
-
-    it('should report ambiguity when several local previews are open', async () => {
-      await driver.given
-        .tabs([
-          { id: 9, active: true, url: 'http://localhost:4201/' },
-          { id: 8, url: 'http://localhost:4301/orders' },
-          { id: 7, url: 'http://localhost:4300/orders' },
-        ])
-        .given.atlasHost(8, aHostData())
-        .given.atlasHost(7, aHostData())
-        .when.hostTabSearched();
-
-      expect(driver.get.errorMessage()).toContain(
-        'Multiple local Atlas previews',
-      );
-    });
-
-    it('should explain the failure when no local preview hosts Atlas', async () => {
-      await driver.given
-        .tabs([
-          { id: 9, active: true, url: 'http://localhost:4201/' },
-          { id: 8, url: 'http://localhost:4301/orders' },
-        ])
-        .when.hostTabSearched();
-
-      expect(driver.get.errorMessage()).toContain(
-        'Columbus could not inspect the active host page: No Atlas runtime on this page.',
-      );
-    });
-  });
-
-  it('should not scan other tabs when the active page is remote and lacks Atlas', async () => {
-    await driver.given
+    driver.given
       .tabs([
-        { id: 8, active: true, url: 'https://example.com/' },
-        { id: 7, url: HOST_URL },
+        { id: faker.number.int(), active: true, url: faker.internet.url() },
       ])
-      .given.atlasHost(7)
-      .when.hostTabSearched();
+      .given.tabMessageResponse({ ok: false, error });
 
-    expect(driver.get.inspectedTabIds()).toEqual([8]);
+    await expect(findAtlasHostTab()).rejects.toThrow(error);
+  });
+
+  describe('when an extension page is the active tab', () => {
+    const popup = {
+      id: faker.number.int(),
+      active: true,
+      lastAccessed: 30,
+      url: `chrome-extension://${faker.string.alphanumeric(32)}/index.html`,
+    };
+
+    it('should return the most recent web tab when it hosts Atlas', async () => {
+      const recent = {
+        id: faker.number.int(),
+        lastAccessed: 20,
+        url: faker.internet.url(),
+      };
+      const hostData = aHostData();
+
+      driver.given
+        .tabs([
+          popup,
+          {
+            id: faker.number.int(),
+            lastAccessed: 10,
+            url: faker.internet.url(),
+          },
+          recent,
+        ])
+        .given.tabMessageResponse({ ok: true, hostData });
+
+      await expect(findAtlasHostTab()).resolves.toStrictEqual({
+        tab: recent,
+        hostData,
+      });
+    });
+
+    it('should return the older web tab when the most recent one does not host Atlas', async () => {
+      const older = {
+        id: faker.number.int(),
+        lastAccessed: 10,
+        url: faker.internet.url(),
+      };
+      const hostData = aHostData();
+
+      driver.given
+        .tabs([
+          popup,
+          {
+            id: faker.number.int(),
+            lastAccessed: 20,
+            url: faker.internet.url(),
+          },
+          older,
+        ])
+        .given.tabMessageResponse({ ok: false, error: faker.lorem.sentence() })
+        .given.tabMessageResponse({ ok: true, hostData });
+
+      await expect(findAtlasHostTab()).resolves.toStrictEqual({
+        tab: older,
+        hostData,
+      });
+    });
+
+    it('should reject when no web tab hosts Atlas', async () => {
+      driver.given
+        .tabs([popup, { id: faker.number.int(), url: faker.internet.url() }])
+        .given.tabMessageResponse({ ok: false, error: faker.lorem.sentence() });
+
+      await expect(findAtlasHostTab()).rejects.toThrow(NO_HOST_TAB);
+    });
+  });
+
+  describe('when the active tab is a local page that does not host Atlas', () => {
+    const activeTab = {
+      id: faker.number.int(),
+      active: true,
+      url: `http://localhost:${faker.internet.port()}/`,
+    };
+    const activeTabError = faker.lorem.sentence();
+
+    beforeEach(() => {
+      driver.given.tabMessageResponse({ ok: false, error: activeTabError });
+    });
+
+    it('should return the local preview when exactly one is open', async () => {
+      const preview = {
+        id: faker.number.int(),
+        url: `http://localhost:${faker.internet.port()}/`,
+      };
+      const hostData = aHostData();
+
+      driver.given
+        .tabs([activeTab, preview])
+        .given.tabMessageResponse({ ok: true, hostData });
+
+      await expect(findAtlasHostTab()).resolves.toStrictEqual({
+        tab: preview,
+        hostData,
+      });
+    });
+
+    it('should reject when several local previews are open', async () => {
+      driver.given
+        .tabs([
+          activeTab,
+          {
+            id: faker.number.int(),
+            url: `http://localhost:${faker.internet.port()}/`,
+          },
+          {
+            id: faker.number.int(),
+            url: `http://localhost:${faker.internet.port()}/`,
+          },
+        ])
+        .given.tabMessageResponse({ ok: true, hostData: aHostData() })
+        .given.tabMessageResponse({ ok: true, hostData: aHostData() });
+
+      await expect(findAtlasHostTab()).rejects.toThrow(
+        'Multiple local Atlas previews are open. Activate the intended App Preview tab, then open Columbus again.',
+      );
+    });
+
+    it('should reject with the active tab error when no local preview hosts Atlas', async () => {
+      driver.given
+        .tabs([
+          activeTab,
+          {
+            id: faker.number.int(),
+            url: `http://localhost:${faker.internet.port()}/`,
+          },
+        ])
+        .given.tabMessageResponse({ ok: false, error: faker.lorem.sentence() });
+
+      await expect(findAtlasHostTab()).rejects.toThrow(
+        `Columbus could not inspect the active host page: ${activeTabError} Suggested action: Open the Atlas App Preview URL printed by atlas dev, activate that browser tab, then reopen Columbus.`,
+      );
+    });
   });
 });
 
@@ -147,42 +219,56 @@ describe('loadArtifactVersionFromHostTab', () => {
     driver = new HostTabsDriver();
   });
 
-  it('should send a load artifact version request with the manifest version key when the manifest is a production version', async () => {
-    const artifactKey = faker.string.uuid();
+  it('should send a load artifact version request to the tab when the manifest channel is production', async () => {
+    const tabId = faker.number.int();
     const manifest = anAppManifest({ channel: 'production' });
-    await driver.when.manifestLoaded({
-      tabId: faker.number.int(),
-      artifactKey,
-      manifest,
-    });
 
-    expect(driver.get.lastTabMessage()).toEqual({
+    driver.given.tabMessageResponse({ ok: true, manifest });
+
+    await loadArtifactVersionFromHostTab({ tabId, manifest });
+
+    expect(driver.get.tabMessage()).toHaveBeenCalledWith(tabId, {
       type: 'atlas.load-artifact-version',
-      artifactKey,
+      artifactKey: manifest.id,
       versionKey: `production:${manifest.version}:${manifest.buildId}`,
     });
   });
 
-  it('should fail with the page error when the page reports one', async () => {
-    await driver.given
-      .artifactVersionResponse({ ok: false, error: 'Version missing.' })
-      .when.manifestLoaded({
-        tabId: faker.number.int(),
-        artifactKey: faker.string.uuid(),
-        manifest: anAppManifest(),
-      });
+  it('should return the manifest the page responds with when the page succeeds', async () => {
+    const manifest = anAppManifest();
 
-    expect(driver.get.errorMessage()).toBe('Version missing.');
+    driver.given.tabMessageResponse({ ok: true, manifest });
+
+    await expect(
+      loadArtifactVersionFromHostTab({
+        tabId: faker.number.int(),
+        manifest: anAppManifest(),
+      }),
+    ).resolves.toBe(manifest);
   });
 
-  it('should fail when the page returns an unexpected shape', async () => {
-    await driver.given.artifactVersionResponse(undefined).when.manifestLoaded({
-      tabId: faker.number.int(),
-      artifactKey: faker.string.uuid(),
-      manifest: anAppManifest(),
-    });
+  it('should reject with the page error when the page reports one', async () => {
+    const error = faker.lorem.sentence();
 
-    expect(driver.get.errorMessage()).toBe(
+    driver.given.tabMessageResponse({ ok: false, error });
+
+    await expect(
+      loadArtifactVersionFromHostTab({
+        tabId: faker.number.int(),
+        manifest: anAppManifest(),
+      }),
+    ).rejects.toThrow(error);
+  });
+
+  it('should reject when the page returns an unexpected shape', async () => {
+    driver.given.tabMessageResponse(null);
+
+    await expect(
+      loadArtifactVersionFromHostTab({
+        tabId: faker.number.int(),
+        manifest: anAppManifest(),
+      }),
+    ).rejects.toThrow(
       'Active page did not return the selected artifact version.',
     );
   });
@@ -196,8 +282,10 @@ describe('reloadHostTab', () => {
   });
 
   it('should reload the given tab when called', async () => {
-    await driver.when.tabReloaded(7);
+    const tabId = faker.number.int();
 
-    expect(driver.get.reloadedTabIds()).toEqual([7]);
+    await reloadHostTab(tabId);
+
+    expect(driver.get.reloadedTabIds()).toStrictEqual([tabId]);
   });
 });

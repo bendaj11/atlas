@@ -1,37 +1,30 @@
+import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import type { Artifact } from '../../../../types/artifact';
-import { anArtifact } from '../../../../types/artifact.testkit';
-import type {
-  useActionsDisabled as useActionsDisabledType,
-  useOverrides as useOverridesType,
-} from '../../../../state';
-
-const useActionsDisabled = jest.fn<typeof useActionsDisabledType>();
-const useOverrides = jest.fn<typeof useOverridesType>();
-
-jest.unstable_mockModule('../../../../state', () => ({
-  useActionsDisabled,
-  useOverrides,
-}));
+import { render } from '@testing-library/react';
+import { ToggleSwitchTestkit } from '@wix/design-system/dist/testkit/testing-library';
+import { OVERRIDE_STATUSES } from '../../../../types/override-status';
+import type { OverridesValue } from '../../../../hooks/useOverrides/useOverrides';
+import type { ArtifactTableRow } from '../../../../types/artifact';
+import { anArtifactTableRow } from '../../../../testkit/artifact.testkit';
+import { SCOPES } from '../../../../types/columbus-state';
+import { useActionsDisabledMock } from '../../../../testkit/mocks/useActionsDisabled';
+import { useOverridesMock } from '../../../../testkit/mocks/useOverrides';
 
 const { ArtifactOverrideToggle } = await import('./ArtifactOverrideToggle');
 
-type OverridesValue = ReturnType<typeof useOverridesType>;
-
 export class ArtifactOverrideToggleDriver {
-  private artifact: Artifact = anArtifact({ canToggle: true });
-  private actionsDisabled = false;
+  private artifact = anArtifactTableRow();
+  private actionsDisabled = faker.datatype.boolean();
   private readonly toggleOverride = jest.fn<OverridesValue['toggleOverride']>();
+  private baseElement!: Element;
 
   readonly given = {
-    artifact: (artifact: Artifact): this => {
+    artifact: (artifact: ArtifactTableRow) => {
       this.artifact = artifact;
 
       return this;
     },
-    actionsDisabled: (disabled: boolean): this => {
+    actionsDisabled: (disabled: boolean) => {
       this.actionsDisabled = disabled;
 
       return this;
@@ -39,23 +32,32 @@ export class ArtifactOverrideToggleDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
-      useActionsDisabled.mockReturnValue(this.actionsDisabled);
-      useOverrides.mockReturnValue({
+    rendered: () => {
+      useActionsDisabledMock.mockReturnValue(this.actionsDisabled);
+      useOverridesMock.mockReturnValue({
+        hasOverrides: faker.datatype.boolean(),
+        scope: faker.helpers.arrayElement(SCOPES),
+        status: faker.helpers.arrayElement(OVERRIDE_STATUSES),
+        message: faker.lorem.sentence(),
+        clearAllOverrides: jest.fn<OverridesValue['clearAllOverrides']>(),
+        clearOverride: jest.fn<OverridesValue['clearOverride']>(),
+        saveOverride: jest.fn<OverridesValue['saveOverride']>(),
+        setScope: jest.fn<OverridesValue['setScope']>(),
         toggleOverride: this.toggleOverride,
-      } as Partial<OverridesValue> as OverridesValue);
-      render(<ArtifactOverrideToggle artifact={this.artifact} />);
+      });
+      this.baseElement = render(
+        <ArtifactOverrideToggle artifact={this.artifact} />,
+      ).baseElement;
     },
-    toggled: async (): Promise<void> => {
-      await userEvent.click(this.get.toggle());
-    },
+    toggled: () => this.get.toggleSwitch().click(),
   };
 
   readonly get = {
-    toggle: (): HTMLInputElement => screen.getByRole('checkbox'),
-    toggleName: (): string | null =>
-      screen.getByRole('checkbox').getAttribute('aria-label'),
-    toggledArtifactKey: (): string | undefined =>
-      this.toggleOverride.mock.calls[0]?.[0],
+    toggleSwitch: () =>
+      ToggleSwitchTestkit({
+        wrapper: this.baseElement,
+        dataHook: 'artifact-override-toggle',
+      }),
+    toggleOverride: () => this.toggleOverride,
   };
 }

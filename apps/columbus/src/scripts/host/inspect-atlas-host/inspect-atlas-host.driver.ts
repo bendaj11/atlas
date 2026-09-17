@@ -1,15 +1,18 @@
 import { jest } from '@jest/globals';
-import type { AtlasManifest } from '@atlas/schema';
-import type { ArtifactVersion } from '../../../types/artifact-version';
 import type { HostData } from '../../../types/host-data';
-import { aHostData } from '../../../types/host-data.testkit';
-import { aHostManifest } from '@atlas/testkit';
-import type { ArtifactRegistry } from '../artifact-registry/artifact-registry';
+import type {
+  ArtifactRegistry,
+  ArtifactVersions,
+  Registry,
+} from '../artifact-registry/artifact-registry';
 import type * as ArtifactRegistryModule from '../artifact-registry/artifact-registry';
 import type * as HostCatalogModule from '../host-catalog/host-catalog';
 import type * as PageRuntimeStateModule from '../page-runtime-state/page-runtime-state';
-import { aRegistry } from '../registry.testkit';
 
+const artifactRegistry = await import('../artifact-registry/artifact-registry');
+const hostCatalog = await import('../host-catalog/host-catalog');
+const pageRuntimeState =
+  await import('../page-runtime-state/page-runtime-state');
 const registryRootFor =
   jest.fn<typeof ArtifactRegistryModule.registryRootFor>();
 const readRuntimeConfig = jest.fn<typeof HostCatalogModule.readRuntimeConfig>();
@@ -22,149 +25,101 @@ const readVisibleAppIds =
   jest.fn<typeof PageRuntimeStateModule.readVisibleAppIds>();
 
 jest.unstable_mockModule('../artifact-registry/artifact-registry', () => ({
+  ...artifactRegistry,
   registryRootFor,
-  uniqueManifests: (manifests: ArtifactVersion[]) => manifests,
 }));
 jest.unstable_mockModule('../host-catalog/host-catalog', () => ({
+  ...hostCatalog,
   readRuntimeConfig,
   readCatalog,
 }));
 jest.unstable_mockModule('../page-runtime-state/page-runtime-state', () => ({
-  localOverridesOf: (hostId: string, manifests: ArtifactVersion[]) =>
-    manifests.some(({ channel }) => channel === 'local')
-      ? { schemaVersion: '1', hostId, overrides: [], generatedAt: '' }
-      : undefined,
+  ...pageRuntimeState,
   readRuntimeErrors,
   readStoredOverrides,
   readVisibleAppIds,
 }));
 
-const { inspectAtlasHost } = await import('./inspect-atlas-host');
-
 export class InspectAtlasHostDriver {
-  private readonly config: HostData['config'] = {
-    ...aHostData().config,
-    hostId: 'shop',
-  };
-  private readonly host = aHostManifest({
-    id: 'shop',
-    channel: 'production',
-  });
-  private catalog: HostData['catalog'] = {
-    schemaVersion: '1',
-    hostId: 'shop',
-    revision: 'rev',
-    generatedAt: '2024-01-01T00:00:00.000Z',
-    host: this.host,
-    apps: [],
-  };
-  private readonly registry: ArtifactRegistry = {
-    readRegistry: jest.fn<ArtifactRegistry['readRegistry']>(),
-    readVersions: jest.fn<ArtifactRegistry['readVersions']>(),
-    loadManifest: jest.fn<ArtifactRegistry['loadManifest']>(),
-    loadVersion: jest.fn<ArtifactRegistry['loadVersion']>(),
-  };
-  private result: HostData | undefined;
-  private error: unknown;
+  private readonly readRegistry = jest.fn<ArtifactRegistry['readRegistry']>();
+  private readonly readVersions = jest.fn<ArtifactRegistry['readVersions']>();
+  private readonly loadManifest = jest.fn<ArtifactRegistry['loadManifest']>();
+  private readonly loadVersion = jest.fn<ArtifactRegistry['loadVersion']>();
 
   constructor() {
     jest.clearAllMocks();
-    Object.defineProperty(globalThis, 'location', {
-      value: { href: 'https://shop.example/dashboard' },
-      configurable: true,
-    });
-    readRuntimeConfig.mockImplementation(async () => this.config);
-    readCatalog.mockImplementation(async () => this.catalog);
-    registryRootFor.mockReturnValue(undefined);
-    readStoredOverrides.mockReturnValue({
-      overrides: undefined,
-      overrideScope: undefined,
-    });
-    readRuntimeErrors.mockReturnValue([]);
-    readVisibleAppIds.mockReturnValue([]);
-    jest.mocked(this.registry.readRegistry).mockResolvedValue(aRegistry());
-    jest
-      .mocked(this.registry.readVersions)
-      .mockImplementation(async (deployed) => ({
-        manifests: [deployed],
-      }));
   }
 
   readonly given = {
-    catalogApp: (manifest: AtlasManifest): this => {
-      this.catalog.apps.push(manifest);
-
-      return this;
-    },
-    catalogHostId: (hostId: string): this => {
-      this.catalog = { ...this.catalog, hostId };
-
-      return this;
-    },
-    registryRoot: (root: string): this => {
-      registryRootFor.mockReturnValue(root);
-
-      return this;
-    },
-    registryFailure: (reason: string): this => {
-      jest
-        .mocked(this.registry.readRegistry)
-        .mockRejectedValue(new Error(reason));
-
-      return this;
-    },
-    versions: (manifests: ArtifactVersion[], error?: string): this => {
-      jest.mocked(this.registry.readVersions).mockResolvedValue({
-        manifests,
-        ...(error ? { error } : {}),
+    pageLocation: (href: string) => {
+      Object.defineProperty(globalThis, 'location', {
+        value: { href },
+        configurable: true,
       });
 
       return this;
     },
-    versionsFailure: (reason: string): this => {
-      jest
-        .mocked(this.registry.readVersions)
-        .mockRejectedValue(new Error(reason));
+    runtimeConfig: (config: HostData['config']) => {
+      readRuntimeConfig.mockResolvedValue(config);
 
       return this;
     },
-    storedOverrides: (stored: ReturnType<typeof readStoredOverrides>): this => {
+    catalog: (catalog: HostData['catalog']) => {
+      readCatalog.mockResolvedValue(catalog);
+
+      return this;
+    },
+    registryRoot: (root: string | undefined) => {
+      registryRootFor.mockReturnValue(root);
+
+      return this;
+    },
+    registry: (registry: Registry) => {
+      this.readRegistry.mockResolvedValue(registry);
+
+      return this;
+    },
+    registryFailure: (error: Error) => {
+      this.readRegistry.mockRejectedValue(error);
+
+      return this;
+    },
+    versions: (versions: ArtifactVersions) => {
+      this.readVersions.mockResolvedValueOnce(versions);
+
+      return this;
+    },
+    versionsFailure: (error: Error) => {
+      this.readVersions.mockRejectedValueOnce(error);
+
+      return this;
+    },
+    storedOverrides: (stored: PageRuntimeStateModule.StoredOverrides) => {
       readStoredOverrides.mockReturnValue(stored);
 
       return this;
     },
-    runtimeErrors: (errors: HostData['runtimeErrors']): this => {
+    runtimeErrors: (errors: HostData['runtimeErrors']) => {
       readRuntimeErrors.mockReturnValue(errors);
 
       return this;
     },
-    visibleAppIds: (ids: string[]): this => {
+    visibleAppIds: (ids: string[]) => {
       readVisibleAppIds.mockReturnValue(ids);
 
       return this;
     },
   };
 
-  readonly when = {
-    hostInspected: async (): Promise<void> => {
-      try {
-        this.result = await inspectAtlasHost(
-          'atlas.runtime-overrides',
-          this.registry,
-        );
-      } catch (error) {
-        this.error = error;
-      }
-    },
-  };
-
   readonly get = {
-    result: (): HostData | undefined => this.result,
-    errorMessage: (): string | undefined =>
-      this.error instanceof Error ? this.error.message : undefined,
-    versionsRead: (): number =>
-      jest.mocked(this.registry.readVersions).mock.calls.length,
-    registryReadCount: (): number =>
-      jest.mocked(this.registry.readRegistry).mock.calls.length,
+    registry: () => ({
+      readRegistry: this.readRegistry,
+      readVersions: this.readVersions,
+      loadManifest: this.loadManifest,
+      loadVersion: this.loadVersion,
+    }),
+    readRegistry: () => this.readRegistry,
+    readVersions: () => this.readVersions,
+    readStoredOverrides: () => readStoredOverrides,
   };
 }

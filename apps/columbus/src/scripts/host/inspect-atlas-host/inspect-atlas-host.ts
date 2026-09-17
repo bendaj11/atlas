@@ -1,5 +1,4 @@
 import type { HostData } from '../../../types/host-data';
-import { getArtifactKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
 import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
 import { messageFromError } from '../../shared/errors/errors';
 import {
@@ -26,7 +25,7 @@ export async function inspectAtlasHost(
   const catalog = await readCatalog(config, registry.loadManifest);
   if (catalog.hostId !== config.hostId)
     throw new Error(
-      `Atlas deployment targets host ${catalog.hostId}, but runtime configuration targets ${config.hostId}.`,
+      `Atlas deployment targets host ${catalog.hostId}, but runtime overrideOptions targets ${config.hostId}.`,
     );
 
   const registryRoot = registryRootFor(config);
@@ -41,7 +40,7 @@ export async function inspectAtlasHost(
   const versionReads = await mapWithConcurrency(
     deployed,
     async (manifest) => {
-      const key = getArtifactKey(manifest);
+      const key = manifest.id;
       if (!registryRead.registry || !registryRoot)
         return { key, manifests: [manifest] };
 
