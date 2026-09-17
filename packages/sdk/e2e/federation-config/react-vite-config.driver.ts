@@ -118,7 +118,7 @@ export class ReactViteConfigDriver {
       });
     },
     hotUpdateHandled: (file: string): void => {
-      const plugin = this.plugin('atlas-react-source-reload');
+      const plugin = this.findPlugin('atlas-react-source-reload');
       const handleHotUpdate = plugin.handleHotUpdate as (
         context: unknown,
       ) => unknown;
@@ -162,9 +162,9 @@ export class ReactViteConfigDriver {
         ) => boolean
       )(source),
     servedMetadata: (pluginName: string): FederationMetadata =>
-      this.servedMetadata(pluginName),
+      this.readServedMetadata(pluginName),
     sharedPackageNames: (): string[] =>
-      this.servedMetadata('atlas-native-federation-metadata').shared.map(
+      this.readServedMetadata('atlas-native-federation-metadata').shared.map(
         ({ packageName }) => packageName,
       ),
     sendMock: (): jest.Mock<(event: unknown) => void> => this.send,
@@ -177,7 +177,7 @@ export class ReactViteConfigDriver {
       missingFiles(join(this.projectRoot, 'dist'), paths),
   };
 
-  private plugin(name: string): Plugin {
+  private findPlugin(name: string): Plugin {
     const plugin = (this.config?.plugins as Plugin[]).find(
       (entry) => entry.name === name,
     );
@@ -187,8 +187,8 @@ export class ReactViteConfigDriver {
     return plugin;
   }
 
-  private servedMetadata(pluginName: string): FederationMetadata {
-    const plugin = this.plugin(pluginName);
+  private readServedMetadata(pluginName: string): FederationMetadata {
+    const plugin = this.findPlugin(pluginName);
     let middleware: Middleware | undefined;
     (plugin.configureServer as (server: unknown) => void)({
       middlewares: {

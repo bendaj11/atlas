@@ -76,7 +76,7 @@ export class SharedModuleProxyDriver {
 
   readonly when = {
     load: async (): Promise<void> => {
-      this.environment = await this.buildEnvironment();
+      this.environment = await this.createBuildEnvironment();
       this.code = await loadSharedProxy({
         context: {
           environment: this.environment,
@@ -104,7 +104,7 @@ export class SharedModuleProxyDriver {
     importer: (): string => this.importer,
   };
 
-  private async buildEnvironment(): Promise<Environment> {
+  private async createBuildEnvironment(): Promise<Environment> {
     const config = await resolveConfig(
       { configFile: false, logLevel: 'silent', root: this.projectRoot },
       'build',

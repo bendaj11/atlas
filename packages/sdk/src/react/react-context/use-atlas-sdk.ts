@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import type { AtlasEventMap, AtlasSdk as AtlasSdkValue } from '../../host.js';
-import { sdkError } from '../../core/sdk-error/sdk-error.js';
+import { AtlasSdkError } from '../../core/sdk-error/sdk-error.js';
 import {
   createReactAtlasSdk,
   type ReactAtlasSdk,
@@ -26,7 +26,7 @@ export function useAtlasSdk<
   const context = useContext(AtlasRuntimeContext);
 
   if (!sdk) {
-    throw sdkError(
+    throw new AtlasSdkError(
       'Atlas SDK is unavailable because useAtlasSdk was called outside AtlasSdkProvider.',
       {
         suggestedActions:

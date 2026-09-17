@@ -15,12 +15,12 @@ export function matchRoutePattern(
   pattern: string,
   pathname: string,
 ): AtlasRouteParams | undefined {
-  const patternParts = splitRoutePath(pattern);
-  const pathParts = splitRoutePath(pathname);
+  const patternParts = splitRoutePathIntoParts(pattern);
+  const pathParts = splitRoutePathIntoParts(pathname);
   const params: Record<string, string> = {};
 
   for (let index = 0; index < patternParts.length; index += 1) {
-    const matched = matchRoutePart({
+    const matched = matchRoutePatternPart({
       expected: patternParts[index]!,
       actual: pathParts[index],
       index,
@@ -36,14 +36,14 @@ export function matchRoutePattern(
   return patternParts.length === pathParts.length ? params : undefined;
 }
 
-function splitRoutePath(path: string): string[] {
+function splitRoutePathIntoParts(path: string): string[] {
   return path
     .replace(/^\/+|\/+$/g, '')
     .split('/')
     .filter(Boolean);
 }
 
-function matchRoutePart(request: RoutePartRequest): PartMatch {
+function matchRoutePatternPart(request: RoutePartRequest): PartMatch {
   const { expected, actual, index, pathParts, params } = request;
 
   if (expected === '*') {

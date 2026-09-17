@@ -3,7 +3,7 @@ import type {
   AtlasNavigateOptions,
   AtlasNavigation,
 } from '../../navigation.js';
-import { defaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
+import { resolveDefaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
 import type {
   RouterLike,
   RouterNavigateOptions,
@@ -11,7 +11,7 @@ import type {
 
 export function createHostNavigation(
   router: RouterLike,
-  origin = defaultHostOrigin(),
+  origin = resolveDefaultHostOrigin(),
 ): AtlasNavigation {
   const read = (): AtlasLocation => ({
     pathname: router.state.location.pathname,
@@ -21,13 +21,13 @@ export function createHostNavigation(
 
   return {
     navigate(to, options) {
-      void router.navigate(to, toRouterNavigateOptions(options));
+      void router.navigate(to, convertToRouterNavigateOptions(options));
     },
 
     replace(to, options) {
       void router.navigate(
         to,
-        toRouterNavigateOptions({ ...options, replace: true }),
+        convertToRouterNavigateOptions({ ...options, replace: true }),
       );
     },
 
@@ -53,7 +53,7 @@ export function createHostNavigation(
   };
 }
 
-function toRouterNavigateOptions(
+function convertToRouterNavigateOptions(
   options: AtlasNavigateOptions | undefined,
 ): RouterNavigateOptions {
   return {

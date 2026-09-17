@@ -12,7 +12,7 @@ import type {
   AtlasSdk as AtlasSdkValue,
 } from '../../host.js';
 import { forwardChangedInputs } from './widget-inputs.js';
-import { widgetMountError } from './widget-mount-error.js';
+import { AtlasWidgetMountError } from '../../core/sdk-error/sdk-error.js';
 
 export interface CreateWidgetComponentInput {
   readonly sdk: Pick<AtlasSdkValue, 'getWidget'>;
@@ -71,7 +71,8 @@ export function createWidgetComponent<TInputs extends object>(
           forwardChangedInputs(mounted, appliedInputs, latestInputs.current);
         },
         (error: unknown) => {
-          if (!disposed) setMountError(widgetMountError(widgetId, error));
+          if (!disposed)
+            setMountError(new AtlasWidgetMountError(widgetId, error));
         },
       );
 

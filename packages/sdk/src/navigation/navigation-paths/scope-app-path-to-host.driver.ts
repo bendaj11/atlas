@@ -1,6 +1,6 @@
-import { scopePath } from './scope-path.js';
+import { scopeAppPathToHost } from './scope-app-path-to-host.js';
 
-export class ScopePathDriver {
+export class ScopeAppPathToHostDriver {
   private path = '/';
   private result: string | undefined;
 
@@ -14,7 +14,7 @@ export class ScopePathDriver {
 
   readonly when = {
     pathScoped: (to: string): void => {
-      this.result = scopePath(this.path, to);
+      this.result = scopeAppPathToHost(this.path, to);
     },
   };
 

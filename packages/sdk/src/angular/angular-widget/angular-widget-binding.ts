@@ -1,6 +1,6 @@
 import type { ApplicationRef, EnvironmentInjector } from '@angular/core';
 import type { AtlasSdk as AtlasSdkValue } from '../../host.js';
-import { sdkError } from '../../core/sdk-error/sdk-error.js';
+import { AtlasSdkError } from '../../core/sdk-error/sdk-error.js';
 import { createAngularLoadingRenderer } from './angular-loading-renderer.js';
 import type {
   AngularGetWidgetOptions,
@@ -52,14 +52,14 @@ export function createWidgetBinding<TInputs extends object>(
   return binding;
 }
 
-export function widgetRuntimeOf(
+export function getWidgetRuntimeOf(
   binding: AngularWidgetBinding<object>,
 ): WidgetBindingRuntime {
   const runtime = widgetRuntimes.get(binding);
 
   if (runtime) return runtime;
 
-  throw sdkError(
+  throw new AtlasSdkError(
     `Atlas cannot render widget "${binding.widgetId}" because its Angular binding was not created by sdk.getWidget().`,
     {
       suggestedActions:

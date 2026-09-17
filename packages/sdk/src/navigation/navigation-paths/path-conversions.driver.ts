@@ -1,6 +1,6 @@
-import { normalizePath, toInnerPath } from './normalize-path.js';
+import { normalizePath, convertHostPathToInnerPath } from './path-conversions.js';
 
-export class NormalizePathDriver {
+export class PathConversionsDriver {
   private path = '/';
   private result: string | undefined;
 
@@ -17,7 +17,7 @@ export class NormalizePathDriver {
       this.result = normalizePath(this.path);
     },
     innerPathRead: (pathname: string): void => {
-      this.result = toInnerPath(this.path, pathname);
+      this.result = convertHostPathToInnerPath(this.path, pathname);
     },
   };
 

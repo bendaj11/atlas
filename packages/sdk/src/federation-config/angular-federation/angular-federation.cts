@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { workspaceRelativePath } from '../project-paths/project-paths.cjs';
+import { resolveWorkspaceRelativePath } from '../project-paths/project-paths.cjs';
 import { createAngularWidgetEntries } from '../widget-entries/widget-entries.cjs';
 import type {
   AngularFederationConfigOptions,
@@ -73,19 +73,26 @@ export function createAngularFederationOptions(
   return {
     ...nativeFederationOptions,
     name,
-    exposes: { ...additionalExposes, ...atlasExposesFor(projectRoot, expose) },
+    exposes: {
+      ...additionalExposes,
+      ...buildAtlasExposes(projectRoot, expose),
+    },
     shared: { ...sharedAngularPackages, ...additionalShared },
     skip: [...new Set([...ANGULAR_FEDERATION_SKIP, ...additionalSkip])],
   };
 }
 
-function atlasExposesFor(
+function buildAtlasExposes(
   projectRoot: string,
   expose: AngularProjectExpose | undefined,
 ): Record<string, string> {
   if (expose === 'host') {
     return {
-      './host': workspaceRelativePath(projectRoot, 'src', 'bootstrap.ts'),
+      './host': resolveWorkspaceRelativePath(
+        projectRoot,
+        'src',
+        'bootstrap.ts',
+      ),
     };
   }
 
@@ -93,12 +100,12 @@ function atlasExposesFor(
     const widgetExposes = createAngularWidgetEntries(projectRoot).map(
       (entry) => [
         `./widgets/${entry.name}`,
-        workspaceRelativePath(projectRoot, entry.entryPoint),
+        resolveWorkspaceRelativePath(projectRoot, entry.entryPoint),
       ],
     );
 
     return {
-      './entry': workspaceRelativePath(projectRoot, 'src', 'entry.ts'),
+      './entry': resolveWorkspaceRelativePath(projectRoot, 'src', 'entry.ts'),
       ...Object.fromEntries(widgetExposes),
     };
   }

@@ -1,7 +1,7 @@
 import type { AtlasHostData, AtlasSdkOptions } from '../sdk-types/index.js';
-import { sdkError } from '../sdk-error/sdk-error.js';
+import { AtlasSdkError } from '../sdk-error/sdk-error.js';
 
-export function createHostData<THostSdk extends object, TEvents extends object>(
+export function buildHostData<THostSdk extends object, TEvents extends object>(
   options: AtlasSdkOptions<THostSdk, TEvents>,
 ): AtlasHostData & object {
   return {
@@ -35,7 +35,7 @@ export function assertPropertiesDoNotReplaceCore(
 
   if (!reservedName) return;
 
-  throw sdkError(
+  throw new AtlasSdkError(
     `Atlas host SDK property "${reservedName}" conflicts with a core SDK capability.`,
     {
       suggestedActions: `Rename the custom "${reservedName}" property in the host SDK configuration, then restart the host.`,

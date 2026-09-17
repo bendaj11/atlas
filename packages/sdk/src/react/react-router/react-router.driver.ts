@@ -2,8 +2,8 @@ import { faker } from '@faker-js/faker';
 import type { AtlasAppContext } from '../../lifecycle.js';
 import { anAppContext } from '../../testkit/app-context.testkit.js';
 import {
-  parseLocation,
-  locationToUrl,
+  parseUrlIntoLocation,
+  formatLocationAsUrl,
 } from '../../testkit/navigation.testkit.js';
 import {
   connectRouter,
@@ -23,7 +23,7 @@ export class ReactRouterDriver {
     hostUrl: (innerUrl: string): this => {
       this.context = anAppContext({ path: this.path });
       this.context.navigation.navigate(innerUrl);
-      this.router = this.createRouter(innerUrl);
+      this.router = this.createFakeRouter(innerUrl);
 
       return this;
     },
@@ -49,19 +49,19 @@ export class ReactRouterDriver {
     routerOptions: (): { initialEntries: string[] } =>
       createRouterOptions(this.context),
     hostUrl: (): string =>
-      locationToUrl(this.context.navigation.getCurrentLocation()),
+      formatLocationAsUrl(this.context.navigation.getCurrentLocation()),
     hostPath: (): string => this.path,
     routerLocation: (): RouterLocation => this.router.state.location,
   };
 
-  private createRouter(innerUrl: string): AppRouterLike {
+  private createFakeRouter(innerUrl: string): AppRouterLike {
     const listeners = this.routerListeners;
 
     return {
-      state: { location: parseLocation(innerUrl), historyAction: 'POP' },
+      state: { location: parseUrlIntoLocation(innerUrl), historyAction: 'POP' },
       navigate(to, options) {
         if (typeof to !== 'string') return;
-        this.state.location = parseLocation(to);
+        this.state.location = parseUrlIntoLocation(to);
         this.state.historyAction = options?.replace ? 'REPLACE' : 'PUSH';
 
         for (const listener of listeners) listener();

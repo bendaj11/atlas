@@ -16,7 +16,7 @@ export class FederationConfigError extends Error {
       typeof options.suggestedActions === 'string'
         ? [options.suggestedActions]
         : [...options.suggestedActions];
-    super(actionableMessage(summary, actions), { cause: options.cause });
+    super(formatActionableMessage(summary, actions), { cause: options.cause });
     this.name = 'AtlasError';
     this.summary = summary;
     this.suggestedActions = actions;
@@ -24,14 +24,7 @@ export class FederationConfigError extends Error {
   }
 }
 
-export function federationConfigError(
-  summary: string,
-  options: FederationConfigErrorOptions,
-): FederationConfigError {
-  return new FederationConfigError(summary, options);
-}
-
-function actionableMessage(
+function formatActionableMessage(
   summary: string,
   actions: readonly string[],
 ): string {

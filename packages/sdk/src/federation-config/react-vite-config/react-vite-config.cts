@@ -1,14 +1,14 @@
 import { relative, resolve } from 'node:path';
 import type { UserConfig } from 'vite';
 import {
-  federationBuildNotificationsPlugin,
-  federationMetadataPlugin,
-  reactSourceReloadPlugin,
+  createFederationBuildNotificationsPlugin,
+  createFederationMetadataPlugin,
+  createReactSourceReloadPlugin,
   type FederationExposeMetadata,
 } from '../development-plugins/index.cjs';
 import { createReactWidgetEntries } from '../widget-entries/widget-entries.cjs';
 import {
-  reactBootstrapEntryPath,
+  resolveReactBootstrapEntryPath,
   writeReactDevelopmentFacade,
 } from './development-facade.cjs';
 import { planReactFederationBuild } from './react-federation-build.cjs';
@@ -30,7 +30,10 @@ interface ReactViteConfigRequest {
 export function createReactHostViteConfig(
   options: ReactFederationConfigOptions,
 ): UserConfig {
-  const hostEntry = reactBootstrapEntryPath(options.projectRoot, 'main.tsx');
+  const hostEntry = resolveReactBootstrapEntryPath(
+    options.projectRoot,
+    'main.tsx',
+  );
   const federation = planReactFederationBuild(options, { host: hostEntry });
 
   const developmentHost = writeReactDevelopmentFacade({
@@ -59,7 +62,10 @@ export function createReactHostViteConfig(
 export function createReactAppViteConfig(
   options: ReactFederationConfigOptions,
 ): UserConfig {
-  const appEntry = reactBootstrapEntryPath(options.projectRoot, 'entry.tsx');
+  const appEntry = resolveReactBootstrapEntryPath(
+    options.projectRoot,
+    'entry.tsx',
+  );
   const widgetEntries = createReactWidgetEntries(options).map((entry) => ({
     name: entry.name,
     entryPoint: resolve(options.projectRoot, entry.entryPoint),
@@ -112,18 +118,18 @@ export function createReactAppViteConfig(
   });
 }
 
-export function reactRemoteName(name: string): string {
+export function deriveReactRemoteName(name: string): string {
   return `atlas_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
 
 function composeReactViteConfig(request: ReactViteConfigRequest): UserConfig {
   const { options, federation } = request;
 
-  const metadataPlugin = federationMetadataPlugin({
+  const metadataPlugin = createFederationMetadataPlugin({
     projectRoot: options.projectRoot,
     pluginName: request.pluginName,
     metadata: {
-      name: reactRemoteName(options.projectName),
+      name: deriveReactRemoteName(options.projectName),
       exposes: request.exposes,
       shared: federation.shared.map(({ metadata }) => metadata),
     },
@@ -134,8 +140,8 @@ function composeReactViteConfig(request: ReactViteConfigRequest): UserConfig {
   return {
     plugins: [
       federation.sharedFallbackPlugin,
-      reactSourceReloadPlugin(options.projectRoot),
-      federationBuildNotificationsPlugin(options.projectRoot),
+      createReactSourceReloadPlugin(options.projectRoot),
+      createFederationBuildNotificationsPlugin(options.projectRoot),
       metadataPlugin,
     ],
     build: {

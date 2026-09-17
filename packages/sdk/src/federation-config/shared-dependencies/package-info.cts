@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { federationConfigError } from '../federation-config-error/federation-config-error.cjs';
-import { rootPackageName } from '../runtime-imports/index.cjs';
+import { FederationConfigError } from '../federation-config-error/federation-config-error.cjs';
+import { extractRootPackageName } from '../runtime-imports/index.cjs';
 
 export interface InstalledPackageInfo {
   readonly version: string;
@@ -15,7 +15,7 @@ interface ProjectPackageJson {
 }
 
 /** `dependencies` merged with `peerDependencies` of the project package.json; empty when the file is absent. */
-export function declaredPackageRanges(
+export function readDeclaredPackageRanges(
   packagePath: string,
 ): Record<string, string> {
   const packageJson: ProjectPackageJson = existsSync(packagePath)
@@ -56,7 +56,7 @@ export function readInstalledPackageInfo(
   const packagePath = candidates.find((candidate) => existsSync(candidate));
 
   if (!packagePath) {
-    throw federationConfigError(
+    throw new FederationConfigError(
       `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
       {
         suggestedActions: `Install "${packageName}" in the project (it is declared but not resolvable from its package.json), then rebuild.`,
@@ -80,7 +80,7 @@ export function readInstalledPackageInfo(
 }
 
 /** Throws when the package has an export map and the requested subpath is not part of it. */
-export function validateSharedSubpath(
+export function assertSharedSubpathExported(
   packageInfo: InstalledPackageInfo,
   specifier: string,
 ): void {
@@ -88,13 +88,14 @@ export function validateSharedSubpath(
 
   if (!exportMap) return;
 
-  const packageName = rootPackageName(specifier);
+  const packageName = extractRootPackageName(specifier);
   const subpath = `.${specifier.slice(packageName.length)}`;
-  const exportedSubpaths = exportMapSubpaths(exportMap);
+  const exportedSubpaths = listExportMapSubpaths(exportMap);
 
-  if (exportedSubpaths.some((key) => matchesExportKey(key, subpath))) return;
+  if (exportedSubpaths.some((key) => doesExportKeyMatchSubpath(key, subpath)))
+    return;
 
-  throw federationConfigError(
+  throw new FederationConfigError(
     `Atlas could not resolve shared dependency entry "${specifier}".`,
     {
       suggestedActions: [
@@ -106,7 +107,7 @@ export function validateSharedSubpath(
   );
 }
 
-function exportMapSubpaths(exportMap: unknown): string[] {
+function listExportMapSubpaths(exportMap: unknown): string[] {
   const keys =
     typeof exportMap === 'object' &&
     exportMap !== null &&
@@ -117,7 +118,7 @@ function exportMapSubpaths(exportMap: unknown): string[] {
   return keys.length > 0 ? keys : ['.'];
 }
 
-function matchesExportKey(key: string, subpath: string): boolean {
+function doesExportKeyMatchSubpath(key: string, subpath: string): boolean {
   const wildcard = key.indexOf('*');
 
   if (wildcard < 0) return key === subpath;

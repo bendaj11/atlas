@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  angularWidgetEntry,
+  buildAngularWidgetEntrySource,
   EXPORTED_WIDGETS_DIRECTORY,
-  reactWidgetEntry,
+  buildReactWidgetEntrySource,
 } from './widget-entry-templates.cjs';
 
 export interface GeneratedWidgetEntry {
@@ -30,13 +30,13 @@ const GENERATED_WIDGETS_DIRECTORY = '.atlas/widgets';
 export function createAngularWidgetEntries(
   projectRoot: string,
 ): GeneratedWidgetEntry[] {
-  return exportedWidgetNames(projectRoot).map((name) => ({
+  return listExportedWidgetNames(projectRoot).map((name) => ({
     name,
-    entryPoint: writeWidgetEntry({
+    entryPoint: writeGeneratedWidgetEntry({
       projectRoot,
       name,
       extension: 'ts',
-      contents: angularWidgetEntry(projectRoot, name),
+      contents: buildAngularWidgetEntrySource(projectRoot, name),
     }),
   }));
 }
@@ -44,18 +44,18 @@ export function createAngularWidgetEntries(
 export function createReactWidgetEntries(
   options: ReactWidgetEntriesOptions,
 ): GeneratedWidgetEntry[] {
-  return exportedWidgetNames(options.projectRoot).map((name) => ({
+  return listExportedWidgetNames(options.projectRoot).map((name) => ({
     name,
-    entryPoint: writeWidgetEntry({
+    entryPoint: writeGeneratedWidgetEntry({
       projectRoot: options.projectRoot,
       name,
       extension: 'tsx',
-      contents: reactWidgetEntry(name, options.reactMajor),
+      contents: buildReactWidgetEntrySource(name, options.reactMajor),
     }),
   }));
 }
 
-function exportedWidgetNames(projectRoot: string): string[] {
+function listExportedWidgetNames(projectRoot: string): string[] {
   const widgetsRoot = join(projectRoot, EXPORTED_WIDGETS_DIRECTORY);
 
   if (!existsSync(widgetsRoot)) return [];
@@ -66,7 +66,7 @@ function exportedWidgetNames(projectRoot: string): string[] {
     .sort();
 }
 
-function writeWidgetEntry(request: WriteWidgetEntryRequest): string {
+function writeGeneratedWidgetEntry(request: WriteWidgetEntryRequest): string {
   const { projectRoot, name, extension, contents } = request;
   const relativeEntryPoint = `${GENERATED_WIDGETS_DIRECTORY}/${name}.${extension}`;
 

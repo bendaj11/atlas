@@ -1,10 +1,10 @@
-import { sdkError } from '../../core/sdk-error/sdk-error.js';
-import { normalizePath } from './normalize-path.js';
+import { AtlasSdkError } from '../../core/sdk-error/sdk-error.js';
+import { normalizePath } from './path-conversions.js';
 
 const ABSOLUTE_URL = /^https?:\/\//;
 
 /** Maps an app-relative or app-absolute target onto the host path assigned to the app. */
-export function scopePath(path: string, to: string): string {
+export function scopeAppPathToHost(path: string, to: string): string {
   const normalizedPath = normalizePath(path);
   assertSameOrigin(to);
 
@@ -24,7 +24,7 @@ export function scopePath(path: string, to: string): string {
 function assertSameOrigin(to: string): void {
   if (!ABSOLUTE_URL.test(to)) return;
 
-  throw sdkError(
+  throw new AtlasSdkError(
     `Atlas cannot navigate to absolute URL "${to}" through scoped app navigation.`,
     {
       suggestedActions:

@@ -7,7 +7,7 @@ import {
   matchRoutePattern,
   normalizePath,
   parseQuery,
-  toInnerPath,
+  convertHostPathToInnerPath,
 } from '../navigation-paths/index.js';
 
 export interface AtlasRouteContextOptions {
@@ -24,7 +24,7 @@ export function createRouteContext(
   const read = (
     location = navigation.getCurrentLocation(),
   ): AtlasInnerLocation => ({
-    pathname: toInnerPath(normalizedPath, location.pathname),
+    pathname: convertHostPathToInnerPath(normalizedPath, location.pathname),
     query: parseQuery(location.search),
     hash: location.hash,
   });

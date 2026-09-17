@@ -1,4 +1,4 @@
-export { reactSharedDependencies } from './shared-dependencies.cjs';
+export { resolveReactSharedDependencies } from './shared-dependencies.cjs';
 export type {
   ReactSharedDependenciesOptions,
   SharedDependency,

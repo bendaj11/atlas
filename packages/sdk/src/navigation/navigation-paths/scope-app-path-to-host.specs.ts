@@ -1,13 +1,13 @@
-import { ScopePathDriver } from './scope-path.driver.js';
+import { ScopeAppPathToHostDriver } from './scope-app-path-to-host.driver.js';
 
 const RELATIVE_TARGETS = ['details/42', '/details/42'];
 const EXTERNAL_URLS = ['https://example.com', 'http://example.com/x'];
 
-describe('scopePath', () => {
-  let driver: ScopePathDriver;
+describe('scopeAppPathToHost', () => {
+  let driver: ScopeAppPathToHostDriver;
 
   beforeEach(() => {
-    driver = new ScopePathDriver();
+    driver = new ScopeAppPathToHostDriver();
   });
 
   describe('when the app path is /catalog', () => {

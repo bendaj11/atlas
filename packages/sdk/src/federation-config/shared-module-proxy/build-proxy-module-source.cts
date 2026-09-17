@@ -1,7 +1,7 @@
 import type { ProxySourceOptions } from './shared-module-proxy.types.cjs';
 
 /** ESM source that re-exports everything from `entryPoint`, naming CommonJS exports explicitly. */
-export function proxyModuleSource(options: ProxySourceOptions): string {
+export function buildProxyModuleSource(options: ProxySourceOptions): string {
   const entry = JSON.stringify(options.entryPoint);
   const imports = options.namedExports.map(
     (name, index) =>

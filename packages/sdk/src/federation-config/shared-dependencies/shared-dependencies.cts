@@ -5,13 +5,13 @@ import {
   discoverRuntimePackageImports,
   isSourceFile,
   loadProjectTypescript,
-  rootPackageName,
+  extractRootPackageName,
 } from '../runtime-imports/index.cjs';
 import {
-  declaredPackageRanges,
+  readDeclaredPackageRanges,
   readInstalledPackageInfo,
   resolveSharedEntry,
-  validateSharedSubpath,
+  assertSharedSubpathExported,
 } from './package-info.cjs';
 import { isSkippedDependency, type SkipEntry } from './skip-entries.cjs';
 
@@ -45,12 +45,12 @@ const REACT_FRAMEWORK_SHARED_SPECIFIERS: Readonly<
 };
 
 /** Resolves the packages a React remote shares with its host: framework packages plus every declared package the exposed entries import. */
-export function reactSharedDependencies(
+export function resolveReactSharedDependencies(
   options: ReactSharedDependenciesOptions,
   exposedEntryPoints: readonly string[],
 ): SharedDependency[] {
   const packagePath = join(options.projectRoot, 'package.json');
-  const declared = declaredPackageRanges(packagePath);
+  const declared = readDeclaredPackageRanges(packagePath);
   const requireFromProject = createRequire(packagePath);
 
   const importedSpecifiers = discoverRuntimePackageImports({
@@ -72,17 +72,17 @@ export function reactSharedDependencies(
     .sort();
 
   return specifiers.flatMap((specifier) =>
-    sharedDependencyOf({ specifier, declared, requireFromProject }),
+    describeSharedDependency({ specifier, declared, requireFromProject }),
   );
 }
 
-function sharedDependencyOf(request: {
+function describeSharedDependency(request: {
   readonly specifier: string;
   readonly declared: Readonly<Record<string, string>>;
   readonly requireFromProject: NodeJS.Require;
 }): SharedDependency[] {
   const { specifier, declared, requireFromProject } = request;
-  const packageName = rootPackageName(specifier);
+  const packageName = extractRootPackageName(specifier);
 
   const entryPoint = resolveSharedEntry(requireFromProject, specifier);
 
@@ -94,9 +94,9 @@ function sharedDependencyOf(request: {
     specifier,
   );
 
-  if (!entryPoint) validateSharedSubpath(packageInfo, specifier);
+  if (!entryPoint) assertSharedSubpathExported(packageInfo, specifier);
 
-  const entryName = `shared/${sharedFileName(specifier)}`;
+  const entryName = `shared/${deriveSharedFileName(specifier)}`;
   const metadata = {
     packageName: specifier,
     requiredVersion: declared[packageName] || packageInfo.version,
@@ -116,7 +116,7 @@ function sharedDependencyOf(request: {
   ];
 }
 
-function sharedFileName(specifier: string): string {
+function deriveSharedFileName(specifier: string): string {
   return specifier
     .replace(/^@/, '')
     .replaceAll('/', '__')

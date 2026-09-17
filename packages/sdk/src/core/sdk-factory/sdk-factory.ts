@@ -6,7 +6,7 @@ import type {
 } from '../sdk-types/index.js';
 import {
   assertPropertiesDoNotReplaceCore,
-  createHostData,
+  buildHostData,
   pickHostDefinedProperties,
 } from './sdk-properties.js';
 import {
@@ -34,7 +34,7 @@ function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
 ): AtlasCoreSdk<object, TEvents> {
   const core: AtlasCoreSdk<object, TEvents> = {
     hostId: options.hostId,
-    hostData: createHostData(options),
+    hostData: buildHostData(options),
     navigateTo: (appId, state) => navigateThroughHost(core, appId, state),
     events: options.eventBus ?? createAtlasEventBus<TEvents>(),
     getWidget: (widgetId, widgetOptions) =>

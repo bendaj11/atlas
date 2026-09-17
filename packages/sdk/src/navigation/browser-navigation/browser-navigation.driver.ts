@@ -69,7 +69,7 @@ export class BrowserNavigationDriver {
       this.location.href = `${this.origin}${pathname}`;
 
       for (const [, popstate] of this.addEventListener.mock.calls) {
-        if (this.isAttached(popstate)) popstate();
+        if (this.isPopstateAttached(popstate)) popstate();
       }
     },
   };
@@ -88,7 +88,7 @@ export class BrowserNavigationDriver {
     origin: (): string => this.origin,
   };
 
-  private isAttached(popstate: BrowserPopstateListener): boolean {
+  private isPopstateAttached(popstate: BrowserPopstateListener): boolean {
     const added = this.addEventListener.mock.calls.filter(
       ([, listener]) => listener === popstate,
     ).length;

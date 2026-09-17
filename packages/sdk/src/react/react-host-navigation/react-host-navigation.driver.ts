@@ -4,7 +4,7 @@ import type {
   AtlasLocation,
   AtlasNavigation,
 } from '../../navigation/navigation-types/navigation-types.js';
-import { parseLocation } from '../../testkit/navigation.testkit.js';
+import { parseUrlIntoLocation } from '../../testkit/navigation.testkit.js';
 import type { RouterLike, RouterNavigate } from '../react-router/index.js';
 import { createHostNavigation } from './react-host-navigation.js';
 
@@ -13,12 +13,13 @@ export class ReactHostNavigationDriver {
   private readonly subscribers = new Set<() => void>();
   private readonly listener = jest.fn<(location: AtlasLocation) => void>();
   private readonly navigate = jest.fn<RouterNavigate>((to) => {
-    if (typeof to === 'string') this.router.state.location = parseLocation(to);
+    if (typeof to === 'string')
+      this.router.state.location = parseUrlIntoLocation(to);
 
     for (const subscriber of this.subscribers) subscriber();
   });
   private readonly router: RouterLike = {
-    state: { location: parseLocation('/') },
+    state: { location: parseUrlIntoLocation('/') },
     navigate: this.navigate,
     subscribe: (subscriber) => {
       this.subscribers.add(subscriber);
@@ -30,7 +31,7 @@ export class ReactHostNavigationDriver {
 
   readonly given = {
     routerUrl: (url: string): this => {
-      this.router.state.location = parseLocation(url);
+      this.router.state.location = parseUrlIntoLocation(url);
 
       return this;
     },

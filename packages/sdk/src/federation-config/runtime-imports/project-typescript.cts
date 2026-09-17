@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import type ts from 'typescript';
-import { federationConfigError } from '../federation-config-error/federation-config-error.cjs';
+import { FederationConfigError } from '../federation-config-error/federation-config-error.cjs';
 
 export type TypeScriptModule = typeof ts;
 
@@ -41,7 +41,7 @@ export function readProjectCompilerOptions(
       '\n',
     );
 
-    throw federationConfigError(
+    throw new FederationConfigError(
       `Atlas could not read ${configPath}: ${detail}`,
       {
         suggestedActions:
@@ -62,7 +62,7 @@ function loadBundledTypescript(): TypeScriptModule {
   try {
     return require('typescript') as TypeScriptModule;
   } catch (cause) {
-    throw federationConfigError(
+    throw new FederationConfigError(
       'Atlas React federation requires TypeScript to discover shared runtime dependencies.',
       {
         suggestedActions:

@@ -5,7 +5,7 @@ import {
   initSync as initializeCommonJsLexer,
   parse as parseCommonJs,
 } from 'cjs-module-lexer';
-import { federationConfigError } from '../federation-config-error/federation-config-error.cjs';
+import { FederationConfigError } from '../federation-config-error/federation-config-error.cjs';
 
 const IDENTIFIER_PATTERN = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 const RESERVED_EXPORT_NAMES = new Set(['default', '__esModule']);
@@ -16,7 +16,9 @@ let lexerReady = false;
  * Lists the named exports of a CommonJS entry, following `module.exports = require(...)` re-exports.
  * The entry itself must lex; unreadable re-export targets are skipped.
  */
-export function commonJsNamedExports(entryPoint: string): readonly string[] {
+export function listCommonJsNamedExports(
+  entryPoint: string,
+): readonly string[] {
   initializeLexerOnce();
 
   const resolvedEntry = resolve(entryPoint);
@@ -40,7 +42,7 @@ function parseCommonJsEntry(
   try {
     return parseCommonJs(readFileSync(entryPoint, 'utf8'));
   } catch (cause) {
-    throw federationConfigError(
+    throw new FederationConfigError(
       `Atlas could not read the CommonJS exports of shared dependency entry "${entryPoint}".`,
       {
         suggestedActions:

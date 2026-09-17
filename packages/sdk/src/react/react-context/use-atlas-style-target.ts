@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { sdkError } from '../../core/sdk-error/sdk-error.js';
+import { AtlasSdkError } from '../../core/sdk-error/sdk-error.js';
 import { AtlasStyleTargetContext } from './contexts.js';
 
 /** Returns the Atlas boundary for CSS-in-JS libraries that support a custom insertion target. */
@@ -8,7 +8,7 @@ export function useAtlasStyleTarget(): Node & ParentNode {
 
   if (styleTarget) return styleTarget;
 
-  throw sdkError(
+  throw new AtlasSdkError(
     'Atlas style target is unavailable because useAtlasStyleTarget was called outside an Atlas-mounted app.',
     {
       suggestedActions:

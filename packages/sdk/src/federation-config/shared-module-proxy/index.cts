@@ -1,7 +1,7 @@
 export {
   createSharedModuleProxy,
   loadSharedProxy,
-  sharedProxyId,
+  buildSharedProxyId,
 } from './shared-module-proxy.cjs';
 export type { LoadSharedProxyRequest } from './shared-module-proxy.cjs';
 export type {

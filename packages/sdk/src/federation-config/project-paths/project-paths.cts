@@ -1,11 +1,11 @@
 import { join, relative } from 'node:path';
 
 /** Path from the current working directory to a project file, in the `./relative` form Native Federation expects. */
-export function workspaceRelativePath(
+export function resolveWorkspaceRelativePath(
   projectRoot: string,
   ...segments: readonly string[]
 ): string {
-  const pathFromWorkspace = toPosixPath(
+  const pathFromWorkspace = convertToPosixPath(
     relative(process.cwd(), join(projectRoot, ...segments)),
   );
 
@@ -14,6 +14,6 @@ export function workspaceRelativePath(
     : `./${pathFromWorkspace}`;
 }
 
-export function toPosixPath(path: string): string {
+export function convertToPosixPath(path: string): string {
   return path.replaceAll('\\', '/');
 }

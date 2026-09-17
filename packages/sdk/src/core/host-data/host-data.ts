@@ -22,7 +22,7 @@ export function updateAtlasHostData<THostSdk extends object>(
   };
   updatedSdk.hostData = { ...sdk.hostData, ...updates };
 
-  for (const listener of readHostDataListeners(sdk)?.listeners ?? []) {
+  for (const listener of getHostDataListeners(sdk)?.listeners ?? []) {
     listener();
   }
 }
@@ -33,13 +33,13 @@ export function subscribeAtlasHostData(
   listener: HostDataListener,
 ): () => void {
   const { listeners } =
-    readHostDataListeners(sdk) ?? createHostDataListeners(sdk);
+    getHostDataListeners(sdk) ?? registerHostDataListeners(sdk);
   listeners.add(listener);
 
   return () => listeners.delete(listener);
 }
 
-function readHostDataListeners(
+function getHostDataListeners(
   sdk: object,
 ): HostDataListenerRegistry | undefined {
   return (sdk as Record<symbol, HostDataListenerRegistry | undefined>)[
@@ -47,7 +47,7 @@ function readHostDataListeners(
   ];
 }
 
-function createHostDataListeners(sdk: object): HostDataListenerRegistry {
+function registerHostDataListeners(sdk: object): HostDataListenerRegistry {
   const registry: HostDataListenerRegistry = { listeners: new Set() };
   Object.defineProperty(sdk, HOST_DATA_LISTENERS, { value: registry });
 

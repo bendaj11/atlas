@@ -5,13 +5,13 @@ export function parseQuery(search: string): AtlasQueryValues {
   const result: Record<string, string | string[]> = {};
 
   for (const [key, value] of new URLSearchParams(search)) {
-    result[key] = appendQueryValue(result[key], value);
+    result[key] = appendQueryValueToEntry(result[key], value);
   }
 
   return result;
 }
 
-function appendQueryValue(
+function appendQueryValueToEntry(
   current: string | string[] | undefined,
   value: string,
 ): string | string[] {

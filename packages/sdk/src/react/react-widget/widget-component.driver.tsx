@@ -88,14 +88,14 @@ export class WidgetComponentDriver {
       widgetId: string,
       inputs: WidgetInputs,
     ): Promise<void> => {
-      this.rendered = render(this.element(widgetId, inputs));
+      this.rendered = render(this.createWidgetElement(widgetId, inputs));
       await Promise.resolve();
     },
     widgetRerendered: async (
       widgetId: string,
       inputs: WidgetInputs,
     ): Promise<void> => {
-      this.rendered?.rerender(this.element(widgetId, inputs));
+      this.rendered?.rerender(this.createWidgetElement(widgetId, inputs));
       await Promise.resolve();
     },
     widgetUnmounted: (): void => {
@@ -126,7 +126,10 @@ export class WidgetComponentDriver {
       screen.getByRole('status', { name: ERROR_LABEL }).textContent,
   };
 
-  private element(widgetId: string, inputs: WidgetInputs): ReactNode {
+  private createWidgetElement(
+    widgetId: string,
+    inputs: WidgetInputs,
+  ): ReactNode {
     const Widget =
       this.widgets.get(widgetId) ??
       createWidgetComponent<WidgetInputs>({

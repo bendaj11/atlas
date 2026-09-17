@@ -54,7 +54,7 @@ export class InjectAtlasSdkDriver {
 
   readonly when = {
     injected: (): void => {
-      this.injector = createEnvironmentInjector(this.providers(), null!);
+      this.injector = createEnvironmentInjector(this.createProviders(), null!);
       this.atlas = runInInjectionContext(this.injector, () =>
         injectAtlasSdk<CustomerHostSdk>(),
       );
@@ -73,7 +73,7 @@ export class InjectAtlasSdkDriver {
     context: (): AtlasAppContext | undefined => this.context,
   };
 
-  private providers(): Provider[] {
+  private createProviders(): Provider[] {
     return [
       provideAtlasSdk(() => this.sdk),
       ...(this.context ? provideAtlasAppContext(this.context) : []),

@@ -37,7 +37,7 @@ export class AngularWidgetOutletControllerDriver {
   private readonly setInputs = jest.fn<(inputs: WidgetInputs) => void>();
   private readonly handleError = jest.fn<(error: unknown) => void>();
   private readonly mount = jest.fn<MountWidget<WidgetInputs>>(async () =>
-    this.mountedWidget(),
+    this.createMountedWidget(),
   );
   private readonly resolver = jest.fn<AtlasGetWidget>(
     (widgetId) =>
@@ -88,7 +88,7 @@ export class AngularWidgetOutletControllerDriver {
         notifyStarted();
         await released;
 
-        return this.mountedWidget();
+        return this.createMountedWidget();
       });
 
       return this;
@@ -97,10 +97,10 @@ export class AngularWidgetOutletControllerDriver {
 
   readonly when = {
     rendered: async (widgetId: string, inputs: WidgetInputs): Promise<void> => {
-      await this.controller.render(this.binding(widgetId, inputs));
+      await this.controller.render(this.createBinding(widgetId, inputs));
     },
     renderStarted: (widgetId: string, inputs: WidgetInputs): Promise<void> => {
-      return this.controller.render(this.binding(widgetId, inputs));
+      return this.controller.render(this.createBinding(widgetId, inputs));
     },
     mountStarted: (): Promise<void> => this.mountStarted,
     mountReleased: (): void => {
@@ -123,14 +123,14 @@ export class AngularWidgetOutletControllerDriver {
     lifecycle: (): readonly string[] => this.lifecycle,
   };
 
-  private binding(
+  private createBinding(
     widgetId: string,
     inputs: WidgetInputs,
   ): AngularWidgetBinding<WidgetInputs> {
     return this.angularSdk.getWidget<WidgetInputs>(widgetId, { inputs });
   }
 
-  private mountedWidget(): AtlasMountedWidgetHandle<WidgetInputs> {
+  private createMountedWidget(): AtlasMountedWidgetHandle<WidgetInputs> {
     const widgetId = this.lifecycle.at(-1)?.slice('mount:'.length);
 
     return {

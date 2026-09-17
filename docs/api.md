@@ -106,7 +106,7 @@ Import from `@atlas/sdk/navigation`:
 | `createBrowserNavigation()` | Browser History API implementation for simple hosts                                     |
 | `createScopedNavigation()`  | Scope navigation to one app path                                                        |
 | `createRouteContext()`      | Read inner paths, query values, hashes, route matches, and update the browser tab title |
-| `scopePath()`               | Convert an app path to its host path                                                    |
+| `scopeAppPathToHost()`      | Convert an app path to its host path                                                    |
 
 Most apps should use their native Angular or React router. These low-level APIs
 exist for framework adapters and router-free apps.

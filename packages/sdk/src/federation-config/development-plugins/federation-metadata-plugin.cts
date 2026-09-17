@@ -22,7 +22,7 @@ export interface FederationMetadataPluginOptions {
 const REMOTE_ENTRY_ROUTE = '/remoteEntry.json';
 
 /** Serves Native Federation metadata in development and writes it next to the production bundle. */
-export function federationMetadataPlugin(
+export function createFederationMetadataPlugin(
   options: FederationMetadataPluginOptions,
 ): Plugin {
   const developmentMetadata = JSON.stringify({

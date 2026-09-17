@@ -5,7 +5,7 @@ import type {
   AtlasNavigationState,
   AtlasWidgetHandle,
 } from '../sdk-types/index.js';
-import { sdkError } from '../sdk-error/sdk-error.js';
+import { AtlasSdkError } from '../sdk-error/sdk-error.js';
 
 export type NavigationResolver = (
   appId: string,
@@ -45,7 +45,7 @@ export function getAtlasNavigation(sdk: object): AtlasNavigation {
 
   if (navigation) return navigation;
 
-  throw sdkError('Atlas host navigation is unavailable.', {
+  throw new AtlasSdkError('Atlas host navigation is unavailable.', {
     suggestedActions:
       'Create the Atlas SDK with host navigation before starting the runtime.',
     code: 'ATLAS_HOST_NAVIGATION_NOT_READY',
@@ -61,7 +61,7 @@ export function resolveWidgetThroughHost<TInputs extends object>(
 
   if (resolver) return resolver<TInputs>(widgetId, options);
 
-  throw sdkError(
+  throw new AtlasSdkError(
     `Atlas cannot resolve widget "${widgetId}" because the host widget runtime is not ready.`,
     {
       suggestedActions:
@@ -84,7 +84,7 @@ export function navigateThroughHost(
     return;
   }
 
-  throw sdkError(
+  throw new AtlasSdkError(
     `Atlas cannot navigate to app "${appId}" because the host route catalog is not ready.`,
     {
       suggestedActions:

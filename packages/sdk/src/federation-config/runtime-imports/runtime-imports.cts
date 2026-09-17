@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import type ts from 'typescript';
-import { runtimeModuleSpecifiers } from './module-specifiers.cjs';
+import { collectRuntimeModuleSpecifiers } from './module-specifiers.cjs';
 import {
   readProjectCompilerOptions,
   type TypeScriptModule,
 } from './project-typescript.cjs';
-import { isSourceFile, rootPackageName } from './package-specifiers.cjs';
+import { isSourceFile, extractRootPackageName } from './package-specifiers.cjs';
 
 export interface DiscoverRuntimeImportsOptions {
   readonly projectRoot: string;
@@ -50,8 +50,11 @@ export function discoverRuntimePackageImports(
       true,
     );
 
-    for (const specifier of runtimeModuleSpecifiers(typescript, sourceFile)) {
-      if (declared[rootPackageName(specifier)]) {
+    for (const specifier of collectRuntimeModuleSpecifiers(
+      typescript,
+      sourceFile,
+    )) {
+      if (declared[extractRootPackageName(specifier)]) {
         imported.add(specifier);
         continue;
       }

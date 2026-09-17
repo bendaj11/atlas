@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { toPosixPath } from '../project-paths/project-paths.cjs';
+import { convertToPosixPath } from '../project-paths/project-paths.cjs';
 
 export interface DevelopmentFacadeOptions {
   readonly projectRoot: string;
@@ -13,7 +13,7 @@ const DEVELOPMENT_FACADE_DIRECTORY = join('.atlas', 'react-development');
 const REACT_PREAMBLE_IMPORT = 'import "@vitejs/plugin-react/preamble";';
 
 /** Prefers `src/bootstrap.tsx`; falls back to the legacy entry file name. */
-export function reactBootstrapEntryPath(
+export function resolveReactBootstrapEntryPath(
   projectRoot: string,
   legacyEntry: string,
 ): string {
@@ -31,7 +31,7 @@ export function writeReactDevelopmentFacade(
   const directory = join(options.projectRoot, DEVELOPMENT_FACADE_DIRECTORY);
   const facadePath = join(directory, `${options.name}.ts`);
 
-  const source = toPosixPath(relative(directory, options.sourcePath));
+  const source = convertToPosixPath(relative(directory, options.sourcePath));
   const sourceSpecifier = JSON.stringify(
     source.startsWith('.') ? source : `./${source}`,
   );

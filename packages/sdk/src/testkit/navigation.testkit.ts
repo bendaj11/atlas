@@ -17,13 +17,13 @@ export interface MemoryNavigation extends AtlasNavigation {
 }
 
 export function aMemoryNavigation(initialUrl = '/'): MemoryNavigation {
-  let location = parseLocation(initialUrl);
+  let location = parseUrlIntoLocation(initialUrl);
   const listeners = new Set<AtlasNavigationListener>();
   const notify = (): void => {
     for (const listener of listeners) listener(location);
   };
   const move = (to: string): void => {
-    location = parseLocation(to);
+    location = parseUrlIntoLocation(to);
     notify();
   };
 
@@ -43,12 +43,12 @@ export function aMemoryNavigation(initialUrl = '/'): MemoryNavigation {
   };
 }
 
-export function parseLocation(value: string): AtlasLocation {
+export function parseUrlIntoLocation(value: string): AtlasLocation {
   const url = new URL(value, 'http://atlas.local');
 
   return { pathname: url.pathname, search: url.search, hash: url.hash };
 }
 
-export function locationToUrl(location: AtlasLocation): string {
+export function formatLocationAsUrl(location: AtlasLocation): string {
   return `${location.pathname}${location.search}${location.hash}`;
 }

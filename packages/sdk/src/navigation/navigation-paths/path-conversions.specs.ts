@@ -1,10 +1,10 @@
-import { NormalizePathDriver } from './normalize-path.driver.js';
+import { PathConversionsDriver } from './path-conversions.driver.js';
 
 describe('normalizePath', () => {
-  let driver: NormalizePathDriver;
+  let driver: PathConversionsDriver;
 
   beforeEach(() => {
-    driver = new NormalizePathDriver();
+    driver = new PathConversionsDriver();
   });
 
   it('should add a leading slash when the path has none', () => {
@@ -26,11 +26,11 @@ describe('normalizePath', () => {
   });
 });
 
-describe('toInnerPath', () => {
-  let driver: NormalizePathDriver;
+describe('convertHostPathToInnerPath', () => {
+  let driver: PathConversionsDriver;
 
   beforeEach(() => {
-    driver = new NormalizePathDriver();
+    driver = new PathConversionsDriver();
   });
 
   it('should return the pathname unchanged when the app path is the root', () => {

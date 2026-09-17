@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { projectSourceRoot } from './source-root.cjs';
+import { resolveProjectSourceRoot } from './source-root.cjs';
 
 interface EventStreamClient {
   write(chunk: string): void;
@@ -9,11 +9,11 @@ export const BUILD_NOTIFICATIONS_ENDPOINT =
   '/@atlas/federation-build-notifications';
 
 /** Streams a server-sent event to connected Atlas hosts whenever a source file under `src/` changes. */
-export function federationBuildNotificationsPlugin(
+export function createFederationBuildNotificationsPlugin(
   projectRoot: string,
 ): Plugin {
   const clients = new Set<EventStreamClient>();
-  const sourceRoot = projectSourceRoot(projectRoot);
+  const sourceRoot = resolveProjectSourceRoot(projectRoot);
 
   return {
     name: 'atlas-federation-build-notifications',
@@ -29,7 +29,7 @@ export function federationBuildNotificationsPlugin(
             connection: 'keep-alive',
             'content-type': 'text/event-stream',
           });
-          response.write(eventStreamMessage('connected'));
+          response.write(formatEventStreamMessage('connected'));
 
           clients.add(response);
           response.once('close', () => clients.delete(response));
@@ -40,13 +40,13 @@ export function federationBuildNotificationsPlugin(
     handleHotUpdate({ file }) {
       if (!file.replaceAll('\\', '/').startsWith(sourceRoot)) return;
 
-      const event = eventStreamMessage('federation-rebuild-complete');
+      const event = formatEventStreamMessage('federation-rebuild-complete');
 
       for (const client of clients) client.write(event);
     },
   };
 }
 
-function eventStreamMessage(type: string): string {
+function formatEventStreamMessage(type: string): string {
   return `data: ${JSON.stringify({ type })}\n\n`;
 }

@@ -7,12 +7,12 @@ import type {
   SharedProxyLoadContext,
   ViteIdResolver,
 } from './shared-module-proxy.types.cjs';
-import { proxyModuleSource } from './proxy-module-source.cjs';
+import { buildProxyModuleSource } from './build-proxy-module-source.cjs';
 
 const SHARED_PROXY_PREFIX = 'atlas:shared-proxy:';
 const RESOLVED_PREFIX = `\0${SHARED_PROXY_PREFIX}`;
 
-export function sharedProxyId(specifier: string): string {
+export function buildSharedProxyId(specifier: string): string {
   return `${SHARED_PROXY_PREFIX}${encodeURIComponent(specifier)}`;
 }
 
@@ -94,7 +94,7 @@ export async function loadSharedProxy(
     ? request.readCommonJsExports(entryPoint)
     : [];
 
-  return proxyModuleSource({
+  return buildProxyModuleSource({
     entryPoint: resolved.id,
     namedExports,
     hasDefaultExport: moduleInfo.hasDefaultExport === true,

@@ -16,7 +16,7 @@ export function isSourceFile(fileName: string): boolean {
 }
 
 /** `@scope/name/sub/path` → `@scope/name`; `name/sub` → `name`. */
-export function rootPackageName(specifier: string): string {
+export function extractRootPackageName(specifier: string): string {
   const parts = specifier.split('/');
 
   return specifier.startsWith('@')

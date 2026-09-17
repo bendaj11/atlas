@@ -3,7 +3,7 @@ import type {
   AtlasNavigateOptions,
   AtlasNavigation,
 } from '../../navigation.js';
-import { defaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
+import { resolveDefaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
 import type {
   AngularNavigateByUrlOptions,
   LocationLike,
@@ -13,7 +13,7 @@ import type {
 export function createHostNavigation(
   router: RouterLike,
   location: LocationLike,
-  origin = defaultHostOrigin(),
+  origin = resolveDefaultHostOrigin(),
 ): AtlasNavigation {
   const read = (): AtlasLocation => {
     const url = new URL(router.url, origin);
@@ -23,13 +23,13 @@ export function createHostNavigation(
 
   return {
     navigate(to, options) {
-      void router.navigateByUrl(to, toNavigateByUrlOptions(options));
+      void router.navigateByUrl(to, convertToNavigateByUrlOptions(options));
     },
 
     replace(to, options) {
       void router.navigateByUrl(
         to,
-        toNavigateByUrlOptions({ ...options, replace: true }),
+        convertToNavigateByUrlOptions({ ...options, replace: true }),
       );
     },
 
@@ -52,7 +52,7 @@ export function createHostNavigation(
       const subscription = router.events.subscribe(() => {
         const next = read();
 
-        if (sameLocation(previous, next)) return;
+        if (isSameLocation(previous, next)) return;
         previous = next;
         listener(next);
       });
@@ -64,7 +64,7 @@ export function createHostNavigation(
   };
 }
 
-function sameLocation(left: AtlasLocation, right: AtlasLocation): boolean {
+function isSameLocation(left: AtlasLocation, right: AtlasLocation): boolean {
   return (
     left.pathname === right.pathname &&
     left.search === right.search &&
@@ -72,7 +72,7 @@ function sameLocation(left: AtlasLocation, right: AtlasLocation): boolean {
   );
 }
 
-function toNavigateByUrlOptions(
+function convertToNavigateByUrlOptions(
   options: AtlasNavigateOptions | undefined,
 ): AngularNavigateByUrlOptions {
   return {

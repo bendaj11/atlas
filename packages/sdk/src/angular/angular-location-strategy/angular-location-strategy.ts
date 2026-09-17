@@ -22,7 +22,7 @@ export function createLocationStrategy(
       return;
     }
 
-    notifyPopState(listeners);
+    notifyPopStateListeners(listeners);
   });
 
   return {
@@ -39,12 +39,12 @@ export function createLocationStrategy(
     },
 
     pushState(state, _title, url, query) {
-      ignoredUrl = targetUrl(url, query);
+      ignoredUrl = buildTargetUrl(url, query);
       context.navigation.navigate(ignoredUrl, { state });
     },
 
     replaceState(state, _title, url, query) {
-      ignoredUrl = targetUrl(url, query);
+      ignoredUrl = buildTargetUrl(url, query);
       context.navigation.replace(ignoredUrl, { state });
     },
 
@@ -75,11 +75,11 @@ export function createLocationStrategy(
   };
 }
 
-function targetUrl(url: string, query: string): string {
+function buildTargetUrl(url: string, query: string): string {
   return `${url.startsWith('/') ? url : `/${url}`}${query || ''}`;
 }
 
-function notifyPopState(listeners: Set<PopStateListener>): void {
+function notifyPopStateListeners(listeners: Set<PopStateListener>): void {
   for (const listener of listeners) {
     listener({ type: 'popstate', state: undefined });
   }

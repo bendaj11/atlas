@@ -2,14 +2,14 @@ import type ts from 'typescript';
 import type { TypeScriptModule } from './project-typescript.cjs';
 
 /** Every module specifier a file loads at runtime: value imports, re-exports, `import()` and `require()` literals. */
-export function runtimeModuleSpecifiers(
+export function collectRuntimeModuleSpecifiers(
   typescript: TypeScriptModule,
   sourceFile: ts.SourceFile,
 ): string[] {
   const specifiers: string[] = [];
 
   const visit = (node: ts.Node): void => {
-    const specifier = runtimeModuleSpecifier(typescript, node);
+    const specifier = extractRuntimeModuleSpecifier(typescript, node);
 
     if (specifier !== undefined) specifiers.push(specifier);
 
@@ -20,12 +20,12 @@ export function runtimeModuleSpecifiers(
   return specifiers;
 }
 
-function runtimeModuleSpecifier(
+function extractRuntimeModuleSpecifier(
   typescript: TypeScriptModule,
   node: ts.Node,
 ): string | undefined {
   if (typescript.isImportDeclaration(node)) {
-    return isRuntimeImport(typescript, node) &&
+    return isRuntimeValueImport(typescript, node) &&
       typescript.isStringLiteral(node.moduleSpecifier)
       ? node.moduleSpecifier.text
       : undefined;
@@ -45,7 +45,7 @@ function runtimeModuleSpecifier(
     return node.arguments.length === 1 &&
       argument !== undefined &&
       typescript.isStringLiteral(argument) &&
-      isModuleCallee(typescript, node.expression)
+      isDynamicImportOrRequireCallee(typescript, node.expression)
       ? argument.text
       : undefined;
   }
@@ -53,7 +53,7 @@ function runtimeModuleSpecifier(
   return undefined;
 }
 
-function isRuntimeImport(
+function isRuntimeValueImport(
   typescript: TypeScriptModule,
   node: ts.ImportDeclaration,
 ): boolean {
@@ -70,7 +70,7 @@ function isRuntimeImport(
   return bindings.elements.some((element) => !element.isTypeOnly);
 }
 
-function isModuleCallee(
+function isDynamicImportOrRequireCallee(
   typescript: TypeScriptModule,
   expression: ts.Expression,
 ): boolean {

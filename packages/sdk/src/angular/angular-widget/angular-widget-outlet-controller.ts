@@ -1,5 +1,5 @@
 import type { AtlasMountedWidgetHandle } from '../../host.js';
-import { widgetRuntimeOf } from './angular-widget-binding.js';
+import { getWidgetRuntimeOf } from './angular-widget-binding.js';
 import type {
   MountedWidgetRecord,
   AngularWidgetBinding,
@@ -40,8 +40,8 @@ export class AngularWidgetOutletController<TInputs extends object> {
   ): Promise<void> {
     if (this.destroyed) return;
 
-    const runtime = widgetRuntimeOf(binding);
-    const updatableWidget = this.mountedWidgetReusableFor(runtime);
+    const runtime = getWidgetRuntimeOf(binding);
+    const updatableWidget = this.findReusableMountedWidget(runtime);
 
     if (updatableWidget?.setInputs) {
       updatableWidget.setInputs(binding.inputs);
@@ -70,7 +70,7 @@ export class AngularWidgetOutletController<TInputs extends object> {
     };
   }
 
-  private mountedWidgetReusableFor(
+  private findReusableMountedWidget(
     runtime: WidgetBindingRuntime,
   ): AtlasMountedWidgetHandle<object> | undefined {
     if (this.activeWidget?.widgetId !== runtime.widgetId) return undefined;

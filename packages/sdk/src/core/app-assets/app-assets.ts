@@ -1,5 +1,5 @@
 import type { AtlasAppContext } from '../../lifecycle.js';
-import { sdkError } from '../sdk-error/sdk-error.js';
+import { AtlasSdkError } from '../sdk-error/sdk-error.js';
 
 export interface AtlasAppAssets {
   /** Returns published app artifact directory URL. */
@@ -21,7 +21,10 @@ export function createAtlasAppAssetFacade<TSdk extends object>(
   const facade = Object.create(sdk) as TSdk & AtlasAppAssets;
   Object.defineProperties(facade, {
     assetBaseUrl: { value: () => assetBaseUrl },
-    assetUrl: { value: (path: string) => resolveAssetUrl(path, assetBaseUrl) },
+    assetUrl: {
+      value: (path: string) =>
+        resolveAssetUrlInsideArtifact(path, assetBaseUrl),
+    },
   });
 
   return facade;
@@ -30,24 +33,27 @@ export function createAtlasAppAssetFacade<TSdk extends object>(
 /** Makes `assetBaseUrl()`/`assetUrl()` explain that no app context is present (host-side SDK facades). */
 export function defineUnavailableAppAssets(facade: object): void {
   Object.defineProperties(facade, {
-    assetBaseUrl: { value: unavailableAppAssetUrl },
-    assetUrl: { value: unavailableAppAssetUrl },
+    assetBaseUrl: { value: throwAppContextMissing },
+    assetUrl: { value: throwAppContextMissing },
   });
 }
 
-function unavailableAppAssetUrl(): never {
-  throw sdkError('App asset URLs require an Atlas app context.', {
+function throwAppContextMissing(): never {
+  throw new AtlasSdkError('App asset URLs require an Atlas app context.', {
     suggestedActions:
       'Call assetBaseUrl() or assetUrl() inside a mounted app. Hosts should use their own asset URLs.',
     code: 'ATLAS_APP_CONTEXT_MISSING',
   });
 }
 
-function resolveAssetUrl(path: string, assetBaseUrl: string): string {
+function resolveAssetUrlInsideArtifact(
+  path: string,
+  assetBaseUrl: string,
+): string {
   const assetUrl = new URL(path, assetBaseUrl);
 
   if (!assetUrl.href.startsWith(assetBaseUrl)) {
-    throw sdkError(
+    throw new AtlasSdkError(
       `Atlas asset path "${path}" must stay within the app artifact directory.`,
       {
         suggestedActions:
