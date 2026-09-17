@@ -1,4 +1,4 @@
-export { applyOverrides } from './apply-overrides.js';
+export { applyOverrides } from './apply-overrides/apply-overrides.js';
 export { OVERRIDES_STORAGE_KEY } from './overrides.constants.js';
 export type {
   ApplyOverridesOptions,

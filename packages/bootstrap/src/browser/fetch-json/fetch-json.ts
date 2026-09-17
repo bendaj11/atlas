@@ -1,8 +1,8 @@
 import { AtlasError } from '@atlas/schema';
-import { decodeJson } from '../../shared/decode-json.js';
+import { decodeJson } from '../../shared/decode-json/decode-json.js';
 import { bootstrapError } from '../../shared/errors/index.js';
 import type { FetchOptions } from './fetch-json.types.js';
-import { validateIntegrity } from './validate-integrity.js';
+import { validateIntegrity } from './validate-integrity/validate-integrity.js';
 
 const DEFAULT_RETRY_COUNT = 3;
 const DEFAULT_TIMEOUT_MS = 15000;

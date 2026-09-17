@@ -5,15 +5,15 @@ import {
   validateArtifactUrl,
   validateHostManifest,
 } from '../validation/index.js';
-import { watchHostBuildNotifications } from './build-notifications.js';
+import { watchHostBuildNotifications } from './build-notifications/build-notifications.js';
 import type {
   HostLoaderDependencies,
   LoadHostModuleOptions,
   RemoteMetadata,
 } from './host-loader.types.js';
 import { hostRemoteError } from './host-remote-error.js';
-import { loadHostStyles } from './host-styles.js';
-import { installHostSharedDependencies } from './shared-dependencies.js';
+import { loadHostStyles } from './host-styles/host-styles.js';
+import { installHostSharedDependencies } from './shared-dependencies/shared-dependencies.js';
 
 export async function loadHostModule({
   manifest,

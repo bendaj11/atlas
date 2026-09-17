@@ -12,8 +12,8 @@ import { loadPublishedArtifact } from '../published-artifact/index.js';
 import { validateCatalog } from '../validation/index.js';
 import { HOST_ROOT_ELEMENT_ID } from './atlas-loader.constants.js';
 import type { AtlasLoaderDependencies } from './atlas-loader.types.js';
-import { publishRuntimeSnapshot } from './runtime-snapshot.js';
-import { loadStartupCatalog } from './startup-catalog.js';
+import { publishRuntimeSnapshot } from './runtime-snapshot/runtime-snapshot.js';
+import { loadStartupCatalog } from './startup-catalog/startup-catalog.js';
 
 export async function startAtlasLoader(
   dependencies: AtlasLoaderDependencies = defaultDependencies(),

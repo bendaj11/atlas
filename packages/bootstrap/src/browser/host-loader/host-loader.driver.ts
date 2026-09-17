@@ -1,26 +1,34 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { HostModule } from '../host-module.js';
-import type { watchHostBuildNotifications as watchHostBuildNotificationsType } from './build-notifications.js';
+import type { watchHostBuildNotifications as watchHostBuildNotificationsType } from './build-notifications/build-notifications.js';
 import type {
   HostLoaderDependencies,
   RemoteMetadata,
 } from './host-loader.types.js';
-import type { loadHostStyles as loadHostStylesType } from './host-styles.js';
-import type { installHostSharedDependencies as installHostSharedDependenciesType } from './shared-dependencies.js';
+import type { loadHostStyles as loadHostStylesType } from './host-styles/host-styles.js';
+import type { installHostSharedDependencies as installHostSharedDependenciesType } from './shared-dependencies/shared-dependencies.js';
 
 const watchHostBuildNotifications =
   jest.fn<typeof watchHostBuildNotificationsType>();
 const loadHostStyles = jest.fn<typeof loadHostStylesType>();
 const installHostSharedDependencies =
   jest.fn<typeof installHostSharedDependenciesType>();
-jest.unstable_mockModule('./build-notifications.js', () => ({
-  watchHostBuildNotifications,
+jest.unstable_mockModule(
+  './build-notifications/build-notifications.js',
+  () => ({
+    watchHostBuildNotifications,
+  }),
+);
+jest.unstable_mockModule('./host-styles/host-styles.js', () => ({
+  loadHostStyles,
 }));
-jest.unstable_mockModule('./host-styles.js', () => ({ loadHostStyles }));
-jest.unstable_mockModule('./shared-dependencies.js', () => ({
-  installHostSharedDependencies,
-}));
+jest.unstable_mockModule(
+  './shared-dependencies/shared-dependencies.js',
+  () => ({
+    installHostSharedDependencies,
+  }),
+);
 const { loadHostModule } = await import('./host-loader.js');
 
 export class HostLoaderDriver {

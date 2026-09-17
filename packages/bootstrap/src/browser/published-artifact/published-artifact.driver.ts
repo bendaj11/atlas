@@ -5,14 +5,17 @@ import type {
   AtlasManifestDescriptor,
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
-import type { assertBytesMatchDescriptor as assertBytesMatchDescriptorType } from './assert-bytes-match-descriptor.js';
+import type { assertBytesMatchDescriptor as assertBytesMatchDescriptorType } from './assert-bytes-match-descriptor/assert-bytes-match-descriptor.js';
 import type { PublishedArtifactDependencies } from './published-artifact.types.js';
 
 const assertBytesMatchDescriptor =
   jest.fn<typeof assertBytesMatchDescriptorType>();
-jest.unstable_mockModule('./assert-bytes-match-descriptor.js', () => ({
-  assertBytesMatchDescriptor,
-}));
+jest.unstable_mockModule(
+  './assert-bytes-match-descriptor/assert-bytes-match-descriptor.js',
+  () => ({
+    assertBytesMatchDescriptor,
+  }),
+);
 const { loadPublishedArtifact } = await import('./index.js');
 
 export class PublishedArtifactDriver {

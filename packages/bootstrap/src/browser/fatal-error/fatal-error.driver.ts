@@ -1,14 +1,17 @@
 import { jest } from '@jest/globals';
-import type { describeFatalError as describeFatalErrorType } from './describe-fatal-error.js';
+import type { describeFatalError as describeFatalErrorType } from './describe-fatal-error/describe-fatal-error.js';
 import type {
   BootstrapFailure,
   FatalErrorDependencies,
 } from './fatal-error.types.js';
 
 const describeFatalError = jest.fn<typeof describeFatalErrorType>();
-jest.unstable_mockModule('./describe-fatal-error.js', () => ({
-  describeFatalError,
-}));
+jest.unstable_mockModule(
+  './describe-fatal-error/describe-fatal-error.js',
+  () => ({
+    describeFatalError,
+  }),
+);
 const { showFatalError } = await import('./fatal-error.js');
 
 interface FakeElement {

@@ -2,15 +2,15 @@ import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import type { HostModule, HostMountRequest } from '../host-module.js';
 import type { AtlasLoaderDependencies } from './atlas-loader.types.js';
-import type { publishRuntimeSnapshot as publishRuntimeSnapshotType } from './runtime-snapshot.js';
-import type { loadStartupCatalog as loadStartupCatalogType } from './startup-catalog.js';
+import type { publishRuntimeSnapshot as publishRuntimeSnapshotType } from './runtime-snapshot/runtime-snapshot.js';
+import type { loadStartupCatalog as loadStartupCatalogType } from './startup-catalog/startup-catalog.js';
 
 const loadStartupCatalog = jest.fn<typeof loadStartupCatalogType>();
 const publishRuntimeSnapshot = jest.fn<typeof publishRuntimeSnapshotType>();
-jest.unstable_mockModule('./startup-catalog.js', () => ({
+jest.unstable_mockModule('./startup-catalog/startup-catalog.js', () => ({
   loadStartupCatalog,
 }));
-jest.unstable_mockModule('./runtime-snapshot.js', () => ({
+jest.unstable_mockModule('./runtime-snapshot/runtime-snapshot.js', () => ({
   publishRuntimeSnapshot,
 }));
 const { startAtlasLoader } = await import('./atlas-loader.js');

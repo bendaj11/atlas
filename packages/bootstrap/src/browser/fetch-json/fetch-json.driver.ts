@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
-import type { validateIntegrity as validateIntegrityType } from './validate-integrity.js';
+import type { validateIntegrity as validateIntegrityType } from './validate-integrity/validate-integrity.js';
 
 const validateIntegrity = jest.fn<typeof validateIntegrityType>();
-jest.unstable_mockModule('./validate-integrity.js', () => ({
+jest.unstable_mockModule('./validate-integrity/validate-integrity.js', () => ({
   validateIntegrity,
 }));
 const { fetchBytes, fetchJson } = await import('./index.js');

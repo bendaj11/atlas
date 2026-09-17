@@ -1,5 +1,5 @@
 import { OVERRIDES_STORAGE_KEY } from '../overrides/index.js';
-import { describeFatalError } from './describe-fatal-error.js';
+import { describeFatalError } from './describe-fatal-error/describe-fatal-error.js';
 import type { FatalErrorDependencies } from './fatal-error.types.js';
 
 export function showFatalError({
