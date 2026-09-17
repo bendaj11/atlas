@@ -5,6 +5,7 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { assertHostDeploymentManifest } from '@atlas/schema';
+import { replaceNodeChildren } from '../browser-compat/browser-compat.js';
 import { fetchBytes, fetchJson } from '../fetch-json/fetch-json.js';
 import { loadHostModule } from '../host-loader/host-loader.js';
 import {
@@ -65,7 +66,7 @@ export async function startAtlasLoader(
   if (typeof entry.mount !== 'function')
     throw new Error('Selected host client does not export mount(request).');
 
-  root.replaceChildren();
+  replaceNodeChildren(root);
   await entry.mount({
     container: root,
     runtimeConfig: runtime,

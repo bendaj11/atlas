@@ -1,3 +1,4 @@
+import { replaceNodeChildren } from '../browser-compat/browser-compat.js';
 import { DOCUMENT_KEY } from '../constants.js';
 import type { BootstrapFailure } from '../types.js';
 
@@ -5,7 +6,7 @@ export function showFatalError(error: unknown): void {
   const failure = describeFatalError(error);
   const root = document.getElementById('atlas-host-root') || document.body;
 
-  root.replaceChildren();
+  replaceNodeChildren(root);
 
   const panel = document.createElement('main');
   panel.setAttribute('role', 'alert');

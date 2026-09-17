@@ -1,4 +1,5 @@
 import type { AtlasHostRuntimeConfig } from '@atlas/schema';
+import { timeoutSignal } from '../browser-compat/browser-compat.js';
 
 export async function fetchJson<T>(
   url: string,
@@ -29,7 +30,7 @@ export async function fetchBytes(
     try {
       const response = await fetch(url, {
         cache: 'no-cache',
-        signal: AbortSignal.timeout(timeout),
+        signal: timeoutSignal(timeout),
       });
       if (!response.ok)
         throw new Error(`${url} returned HTTP ${response.status}.`);
@@ -66,7 +67,7 @@ async function fetchJsonRequest<T>({
     try {
       const response = await fetch(url, {
         cache: 'no-cache',
-        signal: AbortSignal.timeout(timeout),
+        signal: timeoutSignal(timeout),
       });
 
       if (!response.ok)
