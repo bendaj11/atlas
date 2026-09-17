@@ -10,7 +10,7 @@ const DEVELOPMENT_ONLY_FIELDS = [
   'resourcesRetryCount',
 ];
 
-describe('validateHostRuntimeConfig', () => {
+describe('validateAtlasHostRuntimeConfig', () => {
   let driver: ValidateHostRuntimeConfigDriver;
 
   beforeEach(() => {
@@ -227,7 +227,7 @@ describe('validateHostRuntimeConfig', () => {
   });
 });
 
-describe('assertAtlasRuntimeConfig', () => {
+describe('assertAtlasHostRuntimeConfig', () => {
   let driver: ValidateHostRuntimeConfigDriver;
 
   beforeEach(() => {

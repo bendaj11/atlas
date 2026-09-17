@@ -1,4 +1,4 @@
-import { resolveAtlasRuntimeConfig, type AtlasConfig } from '@atlas/schema';
+import { resolveAtlasHostRuntimeConfig, type AtlasConfig } from '@atlas/schema';
 import {
   listConfiguredHostIds,
   resolveHostIdFromRoute,
@@ -122,7 +122,10 @@ async function discoverHostId(hostUrl: string): Promise<string> {
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const runtime = resolveAtlasRuntimeConfig(await response.json(), hostUrl);
+    const runtime = resolveAtlasHostRuntimeConfig(
+      await response.json(),
+      hostUrl,
+    );
 
     return runtime.hostId;
   } catch (cause) {

@@ -1,8 +1,8 @@
 import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
 import {
-  artifactUrl,
-  environmentManifestUrl,
-  environmentRegistryUrl,
+  buildArtifactUrl,
+  buildEnvironmentManifestUrl,
+  resolveEnvironmentRegistryUrl,
 } from './runtime-urls.js';
 
 export class RuntimeUrlsDriver {
@@ -19,13 +19,13 @@ export class RuntimeUrlsDriver {
 
   readonly when = {
     environmentRegistryUrlBuilt: () => {
-      this.url = environmentRegistryUrl(this.runtime);
+      this.url = resolveEnvironmentRegistryUrl(this.runtime);
     },
     environmentManifestUrlBuilt: () => {
-      this.url = environmentManifestUrl(this.runtime);
+      this.url = buildEnvironmentManifestUrl(this.runtime);
     },
     artifactUrlBuilt: (path: string) => {
-      this.url = artifactUrl(this.runtime, path);
+      this.url = buildArtifactUrl(this.runtime, path);
     },
   };
 

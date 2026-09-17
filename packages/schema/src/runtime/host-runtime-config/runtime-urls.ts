@@ -2,22 +2,22 @@ import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
 
 export const ATLAS_RUNTIME_CONFIG_PATH = '/atlas.runtime.json';
 
-export function environmentRegistryUrl(
+export function resolveEnvironmentRegistryUrl(
   runtime: AtlasHostRuntimeConfig,
 ): string {
   return runtime.environmentRegistryUrl ?? runtime.artifactRegistryUrl;
 }
 
-export function environmentManifestUrl(
+export function buildEnvironmentManifestUrl(
   runtime: AtlasHostRuntimeConfig,
 ): string {
   return new URL(
     `environments/${runtime.environment}/hosts/${runtime.hostId}/manifest.json`,
-    `${environmentRegistryUrl(runtime)}/`,
+    `${resolveEnvironmentRegistryUrl(runtime)}/`,
   ).href;
 }
 
-export function artifactUrl(
+export function buildArtifactUrl(
   runtime: AtlasHostRuntimeConfig,
   path: string,
 ): string {

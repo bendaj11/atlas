@@ -1,6 +1,6 @@
 import {
-  environmentManifestUrl,
-  resolveAtlasRuntimeConfig,
+  buildEnvironmentManifestUrl,
+  resolveAtlasHostRuntimeConfig,
 } from '@atlas/schema';
 import {
   type ArtifactVersion,
@@ -38,7 +38,7 @@ export async function readRuntimeConfig(): Promise<RuntimeConfig> {
 
   const value: unknown = await response.json();
 
-  return resolveAtlasRuntimeConfig(value, globalThis.location.href);
+  return resolveAtlasHostRuntimeConfig(value, globalThis.location.href);
 }
 
 export async function readCatalog(
@@ -101,7 +101,7 @@ async function readDeployedCatalog(
   config: RuntimeConfig,
   loadManifest: (reference: ManifestReference) => Promise<ArtifactVersion>,
 ): Promise<Catalog> {
-  const response = await fetchWithTimeout(environmentManifestUrl(config));
+  const response = await fetchWithTimeout(buildEnvironmentManifestUrl(config));
   if (!response.ok)
     throw new Error(`Atlas host manifest returned ${response.status}.`);
 

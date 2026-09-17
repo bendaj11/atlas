@@ -1,5 +1,5 @@
 import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
-import { resolveAtlasRuntimeConfig } from './resolve-host-runtime-config.js';
+import { resolveAtlasHostRuntimeConfig } from './resolve-host-runtime-config.js';
 
 export class ResolveHostRuntimeConfigDriver {
   private hostUrl: string | undefined;
@@ -17,7 +17,7 @@ export class ResolveHostRuntimeConfigDriver {
   readonly when = {
     resolved: (value: unknown) => {
       try {
-        this.runtime = resolveAtlasRuntimeConfig(value, this.hostUrl);
+        this.runtime = resolveAtlasHostRuntimeConfig(value, this.hostUrl);
       } catch (error) {
         this.error = error;
       }

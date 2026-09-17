@@ -98,14 +98,20 @@ export {
 export { hydratePublishedArtifactManifest } from './publication/hydrate-published-artifact-manifest/hydrate-published-artifact-manifest.js';
 export type { AtlasHostRuntimeConfig } from './runtime/atlas-host-runtime-config.js';
 export {
+  ATLAS_DEVELOPMENT_ENVIRONMENT,
+  ATLAS_RUNTIME_CONFIG_SCHEMA_VERSION,
+} from './runtime/atlas-host-runtime-config.js';
+export { resolveAtlasHostRuntimeConfig } from './runtime/host-runtime-config/resolve-host-runtime-config.js';
+export {
   ATLAS_RUNTIME_CONFIG_PATH,
-  artifactUrl,
-  assertAtlasRuntimeConfig,
-  environmentManifestUrl,
-  environmentRegistryUrl,
-  resolveAtlasRuntimeConfig,
-  validateHostRuntimeConfig,
-} from './runtime/host-runtime-config/index.js';
+  buildArtifactUrl,
+  buildEnvironmentManifestUrl,
+  resolveEnvironmentRegistryUrl,
+} from './runtime/host-runtime-config/runtime-urls.js';
+export {
+  assertAtlasHostRuntimeConfig,
+  validateAtlasHostRuntimeConfig,
+} from './runtime/host-runtime-config/validate-host-runtime-config.js';
 export type { AtlasStaticRegistry } from './runtime/atlas-static-registry.js';
 export {
   ATLAS_DEV_BRIDGE_MARKER,

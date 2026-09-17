@@ -9,11 +9,12 @@ import {
   validateIntegerAtLeast,
   type UnknownRecord,
 } from '../../validation/validators.js';
-import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
+import {
+  ATLAS_DEVELOPMENT_ENVIRONMENT,
+  ATLAS_RUNTIME_CONFIG_SCHEMA_VERSION,
+  type AtlasHostRuntimeConfig,
+} from '../atlas-host-runtime-config.js';
 import { validateRegistryRootUrl } from './registry-root-url.js';
-
-export const ATLAS_RUNTIME_CONFIG_SCHEMA_VERSION = 'v1';
-export const ATLAS_DEVELOPMENT_ENVIRONMENT = 'development';
 
 const BASE_FIELDS = [
   'schemaVersion',
@@ -31,7 +32,7 @@ const DEVELOPMENT_FIELDS = [
 ];
 
 /** Checks unknown JSON and returns all host runtime config problems. */
-export function validateHostRuntimeConfig(
+export function validateAtlasHostRuntimeConfig(
   value: unknown,
 ): AtlasValidationIssue[] {
   const issues = ValidationIssues.create();
@@ -43,7 +44,7 @@ export function validateHostRuntimeConfig(
 }
 
 /** Checks unknown JSON and throws unless it is a valid host runtime config with absolute registries. */
-export function assertAtlasRuntimeConfig(
+export function assertAtlasHostRuntimeConfig(
   value: unknown,
 ): asserts value is AtlasHostRuntimeConfig {
   const issues = ValidationIssues.create();
@@ -185,22 +186,21 @@ function validateDevelopmentSessionUrl(input: {
   issues: ValidationIssues;
 }): void {
   const { value, issues } = input;
-  const message = `Expected developmentSessionUrl ${JSON.stringify(value)} to be an absolute http loopback URL.`;
 
-  let url: URL;
+  if (typeof value === 'string' && isLoopbackHttpUrl(value)) return;
+
+  issues.add({
+    path: 'developmentSessionUrl',
+    message: `Expected developmentSessionUrl ${JSON.stringify(value)} to be an absolute http loopback URL.`,
+  });
+}
+
+function isLoopbackHttpUrl(value: string): boolean {
   try {
-    url = new URL(String(value));
+    const url = new URL(value);
+
+    return url.protocol === 'http:' && isLoopbackHostname(url.hostname);
   } catch {
-    issues.add({ path: 'developmentSessionUrl', message });
-
-    return;
-  }
-
-  if (
-    typeof value !== 'string' ||
-    url.protocol !== 'http:' ||
-    !isLoopbackHostname(url.hostname)
-  ) {
-    issues.add({ path: 'developmentSessionUrl', message });
+    return false;
   }
 }

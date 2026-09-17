@@ -1,24 +1,27 @@
+import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
 import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
-import type { AtlasHostRuntimeConfig } from '../atlas-host-runtime-config.js';
+import type { UnknownRecord } from '../../validation/validators.js';
+import {
+  ATLAS_RUNTIME_CONFIG_SCHEMA_VERSION,
+  type AtlasHostRuntimeConfig,
+} from '../atlas-host-runtime-config.js';
 import { resolveRegistryRootUrl } from './registry-root-url.js';
 import { ATLAS_RUNTIME_CONFIG_PATH } from './runtime-urls.js';
 import { collectRuntimeConfigFieldIssues } from './validate-host-runtime-config.js';
 
+const INVALID_RUNTIME_CONFIG = 'Invalid Atlas runtime config.';
+
 /** Validates a runtime config and resolves relative registry roots against the host page URL. */
-export function resolveAtlasRuntimeConfig(
+export function resolveAtlasHostRuntimeConfig(
   value: unknown,
   hostUrl?: string,
 ): AtlasHostRuntimeConfig {
   const issues = ValidationIssues.create();
   const record = collectRuntimeConfigFieldIssues({ value, issues });
-  const message = 'Invalid Atlas runtime config.';
 
-  if (!record) {
-    assertNoIssues({ issues, message });
-
-    throw new Error(message);
-  }
+  if (!record)
+    throw new AtlasValidationError(INVALID_RUNTIME_CONFIG, issues.toArray());
 
   const runtimeConfigUrl = hostUrl
     ? new URL(ATLAS_RUNTIME_CONFIG_PATH, hostUrl)
@@ -39,13 +42,25 @@ export function resolveAtlasRuntimeConfig(
           issues,
         });
 
-  assertNoIssues({ issues, message });
+  assertNoIssues({ issues, message: INVALID_RUNTIME_CONFIG });
 
-  const runtime = record as unknown as AtlasHostRuntimeConfig;
+  if (artifactRegistryUrl === undefined || !isHostRuntimeConfig(record))
+    throw new AtlasValidationError(INVALID_RUNTIME_CONFIG, issues.toArray());
 
   return {
-    ...runtime,
-    artifactRegistryUrl: artifactRegistryUrl as string,
+    ...record,
+    artifactRegistryUrl,
     ...(environmentRegistryUrl === undefined ? {} : { environmentRegistryUrl }),
   };
+}
+
+function isHostRuntimeConfig(
+  record: UnknownRecord,
+): record is UnknownRecord & AtlasHostRuntimeConfig {
+  return (
+    record.schemaVersion === ATLAS_RUNTIME_CONFIG_SCHEMA_VERSION &&
+    typeof record.hostId === 'string' &&
+    typeof record.environment === 'string' &&
+    typeof record.artifactRegistryUrl === 'string'
+  );
 }
