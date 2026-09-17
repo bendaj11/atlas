@@ -4,7 +4,7 @@ export class ArgumentsDriver {
   private values: string[] = [];
 
   readonly given = {
-    values: (values: string[]): this => {
+    values: (values: string[]) => {
       this.values = values;
 
       return this;
@@ -12,6 +12,6 @@ export class ArgumentsDriver {
   };
 
   readonly get = {
-    arguments: (): CliArguments => new CliArguments(this.values),
+    arguments: () => new CliArguments(this.values),
   };
 }

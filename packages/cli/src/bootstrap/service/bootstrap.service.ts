@@ -4,9 +4,12 @@ import { join, resolve } from 'node:path';
 import { createAtlasBootstrapFiles } from '@atlas/bootstrap';
 import type { AtlasConfig, AtlasHostConfig } from '@atlas/schema';
 import { loadBootstrapTemplate } from '../template/bootstrap-template.js';
-import { CliArguments, compileAtlasConfig } from '../../shared/index.js';
+import { CliArguments } from '../../shared/index.js';
 import type { AtlasBuildService } from '../../build/index.js';
-import type { AtlasWorkspace } from '../../workspace/index.js';
+import {
+  compileAtlasConfig,
+  type AtlasWorkspace,
+} from '../../workspace/index.js';
 import type {
   AtlasBootstrapBuildResult,
   AtlasBootstrapDependencies,

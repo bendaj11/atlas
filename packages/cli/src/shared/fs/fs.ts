@@ -1,6 +1,6 @@
 import { access, readFile, writeFile } from 'node:fs/promises';
 
-export function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
   return typeof error === 'object' && error !== null && 'code' in error;
 }
 

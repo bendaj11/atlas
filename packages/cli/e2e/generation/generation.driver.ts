@@ -49,7 +49,7 @@ export class GenerationDriver {
   private output = '';
 
   readonly given = {
-    workspace: async (kind: WorkspaceKind): Promise<this> => {
+    workspace: async (kind: WorkspaceKind) => {
       this.root = await mkdtemp(join(tmpdir(), `atlas-generate-${kind}-`));
       this.projectRoot = join(
         this.root,
@@ -73,7 +73,7 @@ export class GenerationDriver {
       type: GeneratedProjectType;
       framework: GeneratedFramework;
       flags?: string[];
-    }): Promise<void> => {
+    }) => {
       const result = await runCli({
         cwd: this.root,
         args: [
@@ -91,21 +91,18 @@ export class GenerationDriver {
   };
 
   readonly get = {
-    projectName: (): string => this.projectName,
-    projectRoot: (): string => this.projectRoot,
-    hostId: (): string => this.hostId,
-    output: (): string => this.output,
-    fileExists: (path: string): Promise<boolean> => this.exists(path),
-    file: (path: string): Promise<string> =>
-      readFile(join(this.projectRoot, path), 'utf8'),
+    projectName: () => this.projectName,
+    projectRoot: () => this.projectRoot,
+    hostId: () => this.hostId,
+    output: () => this.output,
+    fileExists: (path: string) => this.doesPathExist(path),
+    file: (path: string) => readFile(join(this.projectRoot, path), 'utf8'),
     angularProject: async () =>
       (await this.readJson<AngularWorkspaceDocument>('angular.json')).projects[
         this.projectName
       ],
-    packageJson: (): Promise<PackageDocument> =>
-      this.readJson<PackageDocument>('package.json'),
-    nxProject: (): Promise<NxProjectDocument> =>
-      this.readJson<NxProjectDocument>('project.json'),
+    packageJson: () => this.readJson<PackageDocument>('package.json'),
+    nxProject: () => this.readJson<NxProjectDocument>('project.json'),
   };
 
   private async writeNxWorkspace(): Promise<void> {

@@ -42,7 +42,7 @@ export class UiDriver {
       colors?: boolean;
       inputIsTTY: boolean;
       outputIsTTY: boolean;
-    }): void => {
+    }) => {
       Object.defineProperty(stdin, 'isTTY', {
         configurable: true,
         value: inputIsTTY,
@@ -58,7 +58,7 @@ export class UiDriver {
   };
 
   when = {
-    show: (scenario: UiScenario): void => {
+    show: (scenario: UiScenario) => {
       Object.assign(console, { error: this.error, info: this.info });
       try {
         if (scenario === 'logo') ui.logo();
@@ -87,7 +87,7 @@ export class UiDriver {
         this.restoreTerminalDescriptors();
       }
     },
-    createPrompter: (): void => {
+    createPrompter: () => {
       try {
         this.prompter = new TerminalPrompter();
       } finally {
@@ -97,9 +97,9 @@ export class UiDriver {
   };
 
   get = {
-    errorCalls: (): readonly unknown[][] => this.error.mock.calls,
-    infoCalls: (): readonly unknown[][] => this.info.mock.calls,
-    logo: (): readonly unknown[][] => [
+    errorCalls: () => this.error.mock.calls,
+    infoCalls: () => this.info.mock.calls,
+    logo: () => [
       [
         `
  ┌──────  ┌──────── ┌──      ┌──────   ┌──────        ┌──────  ┌──     ┌────
@@ -109,7 +109,7 @@ export class UiDriver {
 ┌──   ┌──    ┌──    ┌────── ┌──   ┌──  ┌──────        ┌──────  ┌────── ┌────`,
       ],
     ],
-    logoUsesColors: (): boolean => {
+    logoUsesColors: () => {
       const logo = this.info.mock.calls[0]?.[0];
       return (
         typeof logo === 'string' &&
@@ -117,30 +117,26 @@ export class UiDriver {
         logo.includes('\u001B[38;2;255;255;255m')
       );
     },
-    heading: (): readonly unknown[][] => [
-      [`\nAtlas · Publish · ${this.subject}`],
-    ],
-    success: (): readonly unknown[][] => [[`✓ Built ${this.subject}.`]],
-    warning: (): readonly unknown[][] => [
-      [` WARN  ${this.subject} has no header.`],
-    ],
-    singleActionError: (): readonly unknown[][] => [
+    heading: () => [[`\nAtlas · Publish · ${this.subject}`]],
+    success: () => [[`✓ Built ${this.subject}.`]],
+    warning: () => [[` WARN  ${this.subject} has no header.`]],
+    singleActionError: () => [
       [`✖ Could not build ${this.subject}.`],
       [`  Suggested action: ${this.action}, then retry.`],
     ],
-    multipleActionError: (): readonly unknown[][] => [
+    multipleActionError: () => [
       ['✖ Publish failed.'],
       ['  Suggested actions:'],
       [`    1. ${this.action}.`],
       ['    2. Rerun atlas publish.'],
     ],
-    result: (): readonly unknown[][] => [[`${this.subject}: ${this.url}`]],
-    linkedResult: (): readonly unknown[][] => [
+    result: () => [[`${this.subject}: ${this.url}`]],
+    linkedResult: () => [
       [
         `${this.subject}: \u001B]8;;${this.url}?activate=true\u0007${this.url}\u001B]8;;\u0007`,
       ],
     ],
-    isPromptInteractive: (): boolean => this.prompter?.interactive ?? false,
+    isPromptInteractive: () => this.prompter?.interactive ?? false,
   };
 
   private restoreTerminalDescriptors(): void {

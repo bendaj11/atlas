@@ -9,12 +9,12 @@ export class InteractionDriver {
   private invocation!: AtlasInvocation;
 
   readonly given = {
-    values: (values: string[]): this => {
+    values: (values: string[]) => {
       this.values = values;
 
       return this;
     },
-    prompts: (answers: string[], interactive: boolean): this => {
+    prompts: (answers: string[], interactive: boolean) => {
       this.prompts = new PromptTestDouble(answers, interactive);
 
       return this;
@@ -22,7 +22,7 @@ export class InteractionDriver {
   };
 
   readonly when = {
-    resolved: async (): Promise<void> => {
+    resolved: async () => {
       this.invocation = await resolveInvocation(
         new CliArguments(this.values),
         this.prompts,
@@ -31,9 +31,8 @@ export class InteractionDriver {
   };
 
   readonly get = {
-    invocation: (): AtlasInvocation => this.invocation,
-    questions: (): readonly string[] => this.prompts.questions,
-    choiceLabels: (index: number): readonly string[] | undefined =>
-      this.prompts.choiceLabels[index],
+    invocation: () => this.invocation,
+    questions: () => this.prompts.questions,
+    choiceLabels: (index: number) => this.prompts.choiceLabels[index],
   };
 }

@@ -1,22 +1,24 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasPackageManager } from '../types.js';
-import {
-  buildPackageExecutorCommand,
-  buildPackageScriptCommand,
-  silenceCommandOutput,
-} from './package-manager.js';
+import { PackageManagerDriver } from './package-manager.driver.js';
 
 const ALL_MANAGERS: readonly AtlasPackageManager[] = ['yarn', 'pnpm', 'npm'];
+const SEPARATING_MANAGERS: readonly AtlasPackageManager[] = ['pnpm', 'npm'];
 
 describe('package-manager', () => {
-  describe('packageExecutor', () => {
+  let driver: PackageManagerDriver;
+
+  beforeEach(() => {
+    driver = new PackageManagerDriver();
+  });
+
+  describe('buildPackageExecutorCommand', () => {
     it('should run the binary directly when the manager is yarn', () => {
       const root = faker.system.directoryPath();
       const args = [faker.word.noun(), faker.word.noun()];
+      driver.given.manager('yarn').given.root(root).given.args(args);
 
-      expect(
-        buildPackageExecutorCommand({ manager: 'yarn', root, args }),
-      ).toStrictEqual({
+      expect(driver.get.executorCommand()).toStrictEqual({
         command: 'yarn',
         args,
         cwd: root,
@@ -26,10 +28,9 @@ describe('package-manager', () => {
     it('should prefix exec when the manager is pnpm', () => {
       const root = faker.system.directoryPath();
       const args = [faker.word.noun()];
+      driver.given.manager('pnpm').given.root(root).given.args(args);
 
-      expect(
-        buildPackageExecutorCommand({ manager: 'pnpm', root, args }),
-      ).toStrictEqual({
+      expect(driver.get.executorCommand()).toStrictEqual({
         command: 'pnpm',
         args: ['exec', ...args],
         cwd: root,
@@ -39,10 +40,9 @@ describe('package-manager', () => {
     it('should use npx when the manager is npm', () => {
       const root = faker.system.directoryPath();
       const args = [faker.word.noun()];
+      driver.given.manager('npm').given.root(root).given.args(args);
 
-      expect(
-        buildPackageExecutorCommand({ manager: 'npm', root, args }),
-      ).toStrictEqual({
+      expect(driver.get.executorCommand()).toStrictEqual({
         command: 'npx',
         args,
         cwd: root,
@@ -50,31 +50,37 @@ describe('package-manager', () => {
     });
   });
 
-  describe('packageScript', () => {
+  describe('buildPackageScriptCommand', () => {
     it('should pass script arguments directly when the manager is yarn', () => {
       const root = faker.system.directoryPath();
       const script = faker.word.noun();
       const args = [faker.word.noun()];
+      driver.given
+        .manager('yarn')
+        .given.root(root)
+        .given.script(script)
+        .given.args(args);
 
-      expect(
-        buildPackageScriptCommand({ manager: 'yarn', root, script, args }),
-      ).toStrictEqual({
+      expect(driver.get.scriptCommand()).toStrictEqual({
         command: 'yarn',
         args: ['run', script, ...args],
         cwd: root,
       });
     });
 
-    it.each(['pnpm', 'npm'] as const)(
+    it.each(SEPARATING_MANAGERS)(
       'should separate script arguments with -- when the manager is %s',
       (manager) => {
         const root = faker.system.directoryPath();
         const script = faker.word.noun();
         const args = [faker.word.noun()];
+        driver.given
+          .manager(manager)
+          .given.root(root)
+          .given.script(script)
+          .given.args(args);
 
-        expect(
-          buildPackageScriptCommand({ manager, root, script, args }),
-        ).toStrictEqual({
+        expect(driver.get.scriptCommand()).toStrictEqual({
           command: manager,
           args: ['run', script, '--', ...args],
           cwd: root,
@@ -82,20 +88,18 @@ describe('package-manager', () => {
       },
     );
 
-    it.each(['pnpm', 'npm'] as const)(
+    it.each(SEPARATING_MANAGERS)(
       'should omit the -- separator when there are no arguments and the manager is %s',
       (manager) => {
-        const root = faker.system.directoryPath();
         const script = faker.word.noun();
+        driver.given.manager(manager).given.script(script).given.args([]);
 
-        expect(
-          buildPackageScriptCommand({ manager, root, script, args: [] }).args,
-        ).toStrictEqual(['run', script]);
+        expect(driver.get.scriptCommand().args).toStrictEqual(['run', script]);
       },
     );
   });
 
-  describe('quietCommand', () => {
+  describe('silenceCommandOutput', () => {
     it('should silence stdout and stdin while inheriting stderr when applied', () => {
       const command = {
         command: faker.helpers.arrayElement(ALL_MANAGERS),
@@ -103,7 +107,7 @@ describe('package-manager', () => {
         cwd: faker.system.directoryPath(),
       };
 
-      expect(silenceCommandOutput(command)).toStrictEqual({
+      expect(driver.get.silenced(command)).toStrictEqual({
         ...command,
         stdio: ['ignore', 'ignore', 'inherit'],
       });

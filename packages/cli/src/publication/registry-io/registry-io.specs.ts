@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { aRegistryWith } from '../publication.testkit.js';
 import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
 import { RegistryIoDriver } from './registry-io.driver.js';
@@ -124,12 +123,11 @@ describe('registry-io', () => {
   describe('verifyPublicRegistry', () => {
     it('should delegate to config.verifyRegistry when configured', async () => {
       const registry = createEmptyStaticRegistry();
-      const verifyRegistry = jest.fn<(registry: unknown) => void>();
-      driver.given.config({ verifyRegistry });
+      driver.given.registryVerifier();
 
       await driver.when.publicRegistryVerified(registry);
 
-      expect(verifyRegistry).toHaveBeenCalledWith(registry);
+      expect(driver.get.verifyRegistryMock()).toHaveBeenCalledWith(registry);
     });
 
     it('should fetch registry.json from the public root when no verifier is configured', async () => {

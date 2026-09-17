@@ -9,7 +9,7 @@ export class DigestDriver {
   private bytes: Uint8Array = new Uint8Array();
 
   readonly given = {
-    bytes: (bytes: Uint8Array | string): this => {
+    bytes: (bytes: Uint8Array | string) => {
       this.bytes =
         typeof bytes === 'string' ? new TextEncoder().encode(bytes) : bytes;
 
@@ -18,9 +18,9 @@ export class DigestDriver {
   };
 
   readonly get = {
-    digest: (): Sha256Digest => computeSha256Digest(this.bytes),
-    integrity: (): string => computeSha256Integrity(this.bytes),
-    integrityFromDigest: (digest: Sha256Digest): string =>
+    digest: () => computeSha256Digest(this.bytes),
+    integrity: () => computeSha256Integrity(this.bytes),
+    integrityFromDigest: (digest: Sha256Digest) =>
       convertDigestToIntegrity(digest),
   };
 }

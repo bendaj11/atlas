@@ -5,7 +5,7 @@ export class AtlasConfigDriver {
   private config!: AtlasConfig;
 
   readonly given = {
-    config: (config: AtlasConfig): this => {
+    config: (config: AtlasConfig) => {
       this.config = config;
 
       return this;
@@ -13,7 +13,7 @@ export class AtlasConfigDriver {
   };
 
   readonly get = {
-    isHost: (): boolean => isHostConfig(this.config),
-    appConfig: (): AtlasConfig => assertAppConfig(this.config),
+    isHost: () => isHostConfig(this.config),
+    appConfig: () => assertAppConfig(this.config),
   };
 }

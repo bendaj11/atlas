@@ -11,12 +11,14 @@ import {
   assertAppConfig,
   CliArguments,
   CliError,
-  compileAtlasConfig,
   isHostConfig,
   computeSha256Integrity,
   trimTrailingSlash,
 } from '../../shared/index.js';
-import type { AtlasWorkspace } from '../../workspace/index.js';
+import {
+  compileAtlasConfig,
+  type AtlasWorkspace,
+} from '../../workspace/index.js';
 import {
   findArtifactRoot,
   findArtifactRootIfPresent,

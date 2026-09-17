@@ -6,9 +6,9 @@ import {
   optionalRecord,
   recordOrEmpty,
   isHostConfig,
+  normalizeRoutePath,
+  trimTrailingSlash,
 } from '../../shared/index.js';
-
-export { isHostConfig };
 
 export function listConfiguredHostIds(config: AtlasConfig): string[] {
   if (isHostConfig(config)) return [];
@@ -63,7 +63,7 @@ export function isBaseHostUrl(value: string): boolean {
 }
 
 export function appendUrlPath(hostUrl: string, path: string): string {
-  return `${hostUrl.replace(/\/$/, '')}${path}`;
+  return `${trimTrailingSlash(hostUrl)}${path}`;
 }
 
 export async function readConfiguredDevServerPort(
@@ -106,7 +106,7 @@ export async function readAngularProxyConfigPath(
 }
 
 function doesRouteMatchPath(path: string, pathname: string): boolean {
-  const normalizedPath = path === '/' ? '/' : path.replace(/\/+$/, '');
+  const normalizedPath = normalizeRoutePath(path);
 
   return (
     normalizedPath === '/' ||

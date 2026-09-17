@@ -7,6 +7,7 @@ import type {
   AtlasHostDeploymentManifest,
   AtlasManifestDescriptor,
   AtlasPayloadFileDescriptor,
+  AtlasRegistryArtifact,
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { ALL_FRAMEWORKS } from './manifests.js';
@@ -46,6 +47,19 @@ export function aDeploymentManifest(
     deploymentRevision: aSha256Digest(),
     host: aManifestDescriptor(),
     apps: [aManifestDescriptor()],
+    ...overrides,
+  };
+}
+
+export function aRegistryArtifact(
+  overrides: Partial<AtlasRegistryArtifact> = {},
+): AtlasRegistryArtifact {
+  return {
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    packageName: faker.word.noun().toLowerCase(),
+    releases: {},
+    previews: {},
     ...overrides,
   };
 }

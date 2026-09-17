@@ -8,7 +8,7 @@ export class RetryDriver {
   private error?: unknown;
 
   given = {
-    transientFailures: (count: number): void => {
+    transientFailures: (count: number) => {
       let failures = count;
       this.operation.mockImplementation(async () => {
         if (failures-- > 0) {
@@ -17,13 +17,13 @@ export class RetryDriver {
         return 'completed';
       });
     },
-    permanentFailure: (): void => {
+    permanentFailure: () => {
       this.operation.mockRejectedValue({ $metadata: { httpStatusCode: 400 } });
     },
   };
 
   when = {
-    run: async (): Promise<void> => {
+    run: async () => {
       try {
         this.result = await withExponentialRetry(this.operation, {
           delay: async (milliseconds) => {
@@ -37,12 +37,12 @@ export class RetryDriver {
   };
 
   get = {
-    execution: (): { result?: string; attempts: number; delays: number[] } => ({
+    execution: () => ({
       result: this.result,
       attempts: this.operation.mock.calls.length,
       delays: this.delays,
     }),
-    failure: (): { error: unknown; attempts: number; delays: number[] } => ({
+    failure: () => ({
       error: this.error,
       attempts: this.operation.mock.calls.length,
       delays: this.delays,

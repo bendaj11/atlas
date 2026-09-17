@@ -13,17 +13,17 @@ export class FsDriver {
   private root = '';
 
   readonly given = {
-    directory: async (): Promise<this> => {
+    directory: async () => {
       this.root = await mkdtemp(join(tmpdir(), 'atlas-fs-'));
 
       return this;
     },
-    file: async (name: string, contents: string): Promise<this> => {
+    file: async (name: string, contents: string) => {
       await writeFile(this.path(name), contents, 'utf8');
 
       return this;
     },
-    subdirectory: async (name: string): Promise<this> => {
+    subdirectory: async (name: string) => {
       await mkdir(this.path(name), { recursive: true });
 
       return this;
@@ -31,19 +31,15 @@ export class FsDriver {
   };
 
   readonly when = {
-    jsonWritten: async (name: string, value: unknown): Promise<void> => {
-      await writeJsonFile(this.path(name), value);
-    },
+    jsonWritten: (name: string, value: unknown) =>
+      writeJsonFile(this.path(name), value),
   };
 
   readonly get = {
-    pathExists: (name: string): Promise<boolean> =>
-      doesPathExist(this.path(name)),
-    text: (name: string): Promise<string | undefined> =>
-      readTextFile(this.path(name)),
-    json: <T>(name: string): Promise<T | undefined> =>
-      readJsonFile<T>(this.path(name)),
-    missingName: (): string => `${faker.string.alphanumeric(12)}.json`,
+    pathExists: (name: string) => doesPathExist(this.path(name)),
+    text: (name: string) => readTextFile(this.path(name)),
+    json: <T>(name: string) => readJsonFile<T>(this.path(name)),
+    missingName: () => `${faker.string.alphanumeric(12)}.json`,
   };
 
   private path(name: string): string {

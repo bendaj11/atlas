@@ -15,6 +15,10 @@ export function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/u, '');
 }
 
+export function normalizeRoutePath(path: string): string {
+  return path === '/' ? path : trimTrailingSlash(path);
+}
+
 export function parseAbsoluteHttpUrl(value: string, flag: string): URL {
   let url: URL;
 

@@ -8,12 +8,12 @@ export class WorkspaceDriver {
   private workspace!: AtlasWorkspace;
 
   readonly given = {
-    directory: async (): Promise<this> => {
+    directory: async () => {
       await this.directory.create('atlas-workspace-');
 
       return this;
     },
-    file: async (relativePath: string, value: unknown): Promise<this> => {
+    file: async (relativePath: string, value: unknown) => {
       await this.directory.writeJson(relativePath, value);
 
       return this;
@@ -21,7 +21,7 @@ export class WorkspaceDriver {
   };
 
   readonly when = {
-    detected: async (start = '.'): Promise<void> => {
+    detected: async (start = '.') => {
       this.workspace = await detectWorkspace(this.directory.path(start));
     },
   };
@@ -29,9 +29,8 @@ export class WorkspaceDriver {
   readonly get = {
     kind: () => this.workspace.kind,
     packageManager: () => this.workspace.packageManager,
-    root: (): string =>
-      relative(this.directory.root, this.workspace.root) || '.',
-    generationRoot: (type: 'host' | 'app', name: string): string =>
+    root: () => relative(this.directory.root, this.workspace.root) || '.',
+    generationRoot: (type: 'host' | 'app', name: string) =>
       relative(this.directory.root, this.workspace.generationRoot(type, name)),
     missingScaffoldDependency: (type: 'angular' | 'react') =>
       this.workspace.missingScaffoldDependency(type),

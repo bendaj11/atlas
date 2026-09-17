@@ -6,95 +6,96 @@ import type {
 } from '../registry-config/types.js';
 import { resolvePullRequestStatus } from './pull-request.js';
 
+const PROVIDER_ENVIRONMENT_VARIABLES = [
+  'ATLAS_GIT_TOKEN',
+  'GITHUB_REPOSITORY',
+  'GITHUB_TOKEN',
+  'GITHUB_API_URL',
+  'CI_PROJECT_ID',
+  'CI_API_V4_URL',
+  'CI_JOB_TOKEN',
+  'BITBUCKET_REPO_FULL_NAME',
+  'BITBUCKET_ACCESS_TOKEN',
+] as const;
+
 export class PullRequestDriver {
-  private readonly artifactId = faker.string.uuid();
-  private readonly headSha = faker.git.commitSha();
-  private readonly owner = faker.internet.username().toLowerCase();
-  private readonly repositoryName = faker.word.noun().toLowerCase();
-  private readonly token = faker.string.alphanumeric();
-  private readonly prNumber = faker.number.int({ min: 1 });
   private readonly fetch = jest.fn<typeof globalThis.fetch>();
   private readonly originalFetch = globalThis.fetch;
-  private readonly originalRepository = process.env.GITHUB_REPOSITORY;
-  private readonly originalToken = process.env.GITHUB_TOKEN;
+  private readonly originalEnvironment = new Map(
+    PROVIDER_ENVIRONMENT_VARIABLES.map((name) => [name, process.env[name]]),
+  );
+  private prNumber = faker.number.int({ min: 1 });
   private config?: AtlasRegistryConfig;
   private status?: AtlasPreviewHeadStatus;
 
   constructor() {
     Object.assign(globalThis, { fetch: this.fetch });
 
-    delete process.env.GITHUB_REPOSITORY;
-    delete process.env.GITHUB_TOKEN;
+    for (const name of PROVIDER_ENVIRONMENT_VARIABLES) delete process.env[name];
   }
 
-  given = {
-    github: ({ state }: { state: 'open' }): void => {
-      Object.assign(process.env, {
-        GITHUB_REPOSITORY: `${this.owner}/${this.repositoryName}`,
-        GITHUB_TOKEN: this.token,
-      });
+  readonly given = {
+    prNumber: (prNumber: number) => {
+      this.prNumber = prNumber;
 
-      this.fetch.mockResolvedValue(
-        Response.json({
-          head: { sha: this.headSha },
-          merged_at: null,
-          state,
-        }),
-      );
+      return this;
     },
-    resolver: ({ headSha }: { headSha: 'empty' }): void => {
-      this.status = undefined;
-      this.fetch.mockReset();
-      this.config = {
-        resolvePreviewHead: async () => ({
-          headSha: headSha === 'empty' ? '' : this.headSha,
-          state: 'open',
-        }),
-      };
+    environment: (variables: Record<string, string>) => {
+      Object.assign(process.env, variables);
+
+      return this;
+    },
+    config: (config: AtlasRegistryConfig) => {
+      this.config = config;
+
+      return this;
+    },
+    providerResponse: (body: unknown) => {
+      this.fetch.mockResolvedValue(Response.json(body));
+
+      return this;
+    },
+    providerResponseStatus: (status: number) => {
+      this.fetch.mockResolvedValue(new Response(null, { status }));
+
+      return this;
+    },
+    providerFailure: (error: Error) => {
+      this.fetch.mockRejectedValue(error);
+
+      return this;
     },
   };
 
-  when = {
-    resolve: async (): Promise<void> => {
+  readonly when = {
+    resolve: async () => {
       try {
-        this.status = await resolvePullRequestStatus(this.lookup, this.config);
+        this.status = await resolvePullRequestStatus(
+          {
+            artifactId: faker.string.uuid(),
+            gitSha: faker.git.commitSha(),
+            prNumber: this.prNumber,
+          },
+          this.config,
+        );
       } finally {
         globalThis.fetch = this.originalFetch;
-        this.restoreEnvironment('GITHUB_REPOSITORY', this.originalRepository);
-        this.restoreEnvironment('GITHUB_TOKEN', this.originalToken);
+
+        for (const [name, value] of this.originalEnvironment) {
+          if (value === undefined) delete process.env[name];
+          else process.env[name] = value;
+        }
       }
     },
   };
 
-  get = {
-    request: (): { authorization: string | null; url: unknown } => {
+  readonly get = {
+    request: () => {
       const [url, options] = this.fetch.mock.calls[0] ?? [];
       const headers = new Headers(options?.headers);
 
-      return {
-        authorization: headers.get('Authorization'),
-        url,
-      };
+      return { url, headers: Object.fromEntries(headers.entries()) };
     },
-    status: (): AtlasPreviewHeadStatus | undefined => this.status,
-    expectedOpenStatus: (): AtlasPreviewHeadStatus => ({
-      headSha: this.headSha,
-      state: 'open',
-    }),
-    expectedRequest: (): { authorization: string; url: string } => ({
-      authorization: `Bearer ${this.token}`,
-      url: `https://api.github.com/repos/${this.owner}/${this.repositoryName}/pulls/${this.prNumber}`,
-    }),
+    status: () => this.status,
   };
-
-  private readonly lookup = {
-    artifactId: this.artifactId,
-    gitSha: this.headSha,
-    prNumber: this.prNumber,
-  };
-
-  private restoreEnvironment(name: string, value: string | undefined): void {
-    if (value === undefined) delete process.env[name];
-    else process.env[name] = value;
-  }
 }

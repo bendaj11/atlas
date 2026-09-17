@@ -1,6 +1,7 @@
 import {
   isLoopbackUrl,
   isSecureOrLoopbackUrl,
+  normalizeRoutePath,
   trimTrailingSlash,
 } from './url.js';
 
@@ -8,7 +9,7 @@ export class UrlDriver {
   private value = '';
 
   readonly given = {
-    value: (value: string): this => {
+    value: (value: string) => {
       this.value = value;
 
       return this;
@@ -16,8 +17,9 @@ export class UrlDriver {
   };
 
   readonly get = {
-    loopback: (): boolean => isLoopbackUrl(new URL(this.value)),
-    secureOrLoopback: (): boolean => isSecureOrLoopbackUrl(new URL(this.value)),
-    trimmed: (): string => trimTrailingSlash(this.value),
+    loopback: () => isLoopbackUrl(new URL(this.value)),
+    secureOrLoopback: () => isSecureOrLoopbackUrl(new URL(this.value)),
+    trimmed: () => trimTrailingSlash(this.value),
+    routePath: () => normalizeRoutePath(this.value),
   };
 }

@@ -11,22 +11,22 @@ export class DetectionDriver {
   private readonly directory = new TemporaryDirectory();
 
   readonly given = {
-    workspace: async (): Promise<this> => {
+    workspace: async () => {
       await this.directory.create('atlas-detection-');
 
       return this;
     },
-    file: async (relativePath: string, contents = ''): Promise<this> => {
+    file: async (relativePath: string, contents = '') => {
       await this.directory.writeFile(relativePath, contents);
 
       return this;
     },
-    rootPackageJson: async (value: unknown): Promise<this> => {
+    rootPackageJson: async (value: unknown) => {
       await this.directory.writeJson('package.json', value);
 
       return this;
     },
-    subdirectory: async (relativePath: string): Promise<this> => {
+    subdirectory: async (relativePath: string) => {
       await this.directory.mkdir(relativePath);
 
       return this;
@@ -34,7 +34,7 @@ export class DetectionDriver {
   };
 
   readonly get = {
-    rootFrom: async (relativePath: string): Promise<string> =>
+    rootFrom: async (relativePath: string) =>
       relative(
         this.directory.root,
         await findWorkspaceRoot(this.directory.path(relativePath)),

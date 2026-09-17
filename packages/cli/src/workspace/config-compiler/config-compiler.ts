@@ -1,8 +1,11 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import ts from 'typescript';
-import { doesPathExist } from '../fs/fs.js';
-import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
+import {
+  doesPathExist,
+  formatTypeScriptDiagnostics,
+} from '../../shared/index.js';
+import type { AtlasProject, AtlasWorkspace } from '../types.js';
 
 export function compiledAtlasConfigCandidates(projectRoot: string): string[] {
   return [
@@ -84,17 +87,6 @@ function findCompilerConfig(projectRoot: string): string {
     );
 
   return config;
-}
-
-export function formatTypeScriptDiagnostics(
-  diagnostics: readonly ts.Diagnostic[],
-  projectRoot: string,
-): string {
-  return ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-    getCanonicalFileName: (fileName) => fileName,
-    getCurrentDirectory: () => projectRoot,
-    getNewLine: () => '\n',
-  });
 }
 
 async function compiledAtlasConfigExists(

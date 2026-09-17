@@ -1,12 +1,9 @@
 import { faker } from '@faker-js/faker';
-import { doesPathExist } from '../fs/fs.js';
-import { TemporaryDirectory } from '../fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import { doesPathExist } from '../../shared/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject, aWorkspace } from '../workspace.testkit.js';
 import { compileAtlasConfig } from './config-compiler.js';
-import type {
-  AtlasProject,
-  AtlasWorkspaceKind,
-} from '../../workspace/index.js';
+import type { AtlasProject, AtlasWorkspaceKind } from '../types.js';
 
 export class ConfigCompilerDriver {
   private readonly directory = new TemporaryDirectory();
@@ -15,7 +12,7 @@ export class ConfigCompilerDriver {
   private kind: AtlasWorkspaceKind = 'standalone';
 
   readonly given = {
-    project: async (): Promise<this> => {
+    project: async () => {
       await this.directory.create('atlas-config-compiler-');
       await this.directory.writeJson(`${this.projectName}/package.json`, {
         name: this.projectName,
@@ -28,15 +25,12 @@ export class ConfigCompilerDriver {
 
       return this;
     },
-    workspaceKind: (kind: AtlasWorkspaceKind): this => {
+    workspaceKind: (kind: AtlasWorkspaceKind) => {
       this.kind = kind;
 
       return this;
     },
-    projectFile: async (
-      relativePath: string,
-      contents: string,
-    ): Promise<this> => {
+    projectFile: async (relativePath: string, contents: string) => {
       await this.directory.writeFile(
         `${this.projectName}/${relativePath}`,
         contents,
@@ -47,7 +41,7 @@ export class ConfigCompilerDriver {
   };
 
   readonly when = {
-    compiled: (): Promise<void> =>
+    compiled: () =>
       compileAtlasConfig(
         aWorkspace({
           kind: this.kind,
@@ -59,7 +53,7 @@ export class ConfigCompilerDriver {
   };
 
   readonly get = {
-    emitted: (): Promise<boolean> =>
+    emitted: () =>
       doesPathExist(
         this.directory.path(`${this.projectName}/.atlas/atlas.config.js`),
       ),

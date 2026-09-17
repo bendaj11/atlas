@@ -10,7 +10,6 @@ import {
   readRegistryState,
   verifyPublicRegistry,
   writeRegistry,
-  type RegistryState,
 } from './registry-io.js';
 import { CliArguments } from '../../shared/index.js';
 
@@ -23,10 +22,12 @@ export class RegistryIoDriver {
   private flags: string[] = [];
   private config: AtlasRegistryConfig | undefined;
   private readonly fetchResource = jest.fn<typeof fetch>();
+  private readonly verifyRegistry =
+    jest.fn<NonNullable<AtlasRegistryConfig['verifyRegistry']>>();
   private inspectDrift = false;
 
   readonly given = {
-    storedRegistry: (registry: AtlasStaticRegistry | string): this => {
+    storedRegistry: (registry: AtlasStaticRegistry | string) => {
       this.storage.seed(
         'registry.json',
         typeof registry === 'string' ? registry : JSON.stringify(registry),
@@ -34,22 +35,22 @@ export class RegistryIoDriver {
 
       return this;
     },
-    registryChangingDuringRead: (): this => {
+    registryChangingDuringRead: () => {
       this.inspectDrift = true;
 
       return this;
     },
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = flags;
 
       return this;
     },
-    config: (config: AtlasRegistryConfig | undefined): this => {
-      this.config = config;
+    registryVerifier: () => {
+      this.config = { verifyRegistry: this.verifyRegistry };
 
       return this;
     },
-    publicResponse: (response: Response): this => {
+    publicResponse: (response: Response) => {
       this.fetchResource.mockResolvedValue(response);
 
       return this;
@@ -74,8 +75,9 @@ export class RegistryIoDriver {
   };
 
   readonly get = {
+    verifyRegistryMock: () => this.verifyRegistry,
     registry: () => readRegistry(this.storage),
-    state: (): Promise<RegistryState> => {
+    state: () => {
       if (!this.inspectDrift) return readRegistryState(this.storage);
       const inspect = this.storage.inspect.bind(this.storage);
       let calls = 0;
@@ -93,16 +95,16 @@ export class RegistryIoDriver {
 
       return readRegistryState(this.storage);
     },
-    storedText: (): string =>
+    storedText: () =>
       new TextDecoder().decode(
         this.storage.objects.get('registry.json')!.bytes,
       ),
-    storedVersionToken: (): string | undefined =>
+    storedVersionToken: () =>
       this.storage.objects.get('registry.json')?.metadata.versionToken,
     expectedRevisionAssertion:
       (current: AtlasStaticRegistry | undefined) => () =>
         assertExpectedRegistryRevision(this.args(), current),
-    publicRegistryRoot: (): string => resolvePublicRegistryRoot(this.args()),
+    publicRegistryRoot: () => resolvePublicRegistryRoot(this.args()),
     fetchMock: () => this.fetchResource,
   };
 
