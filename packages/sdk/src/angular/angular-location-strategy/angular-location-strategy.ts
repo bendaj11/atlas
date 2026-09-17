@@ -1,9 +1,10 @@
 import type { AtlasAppContext } from '../../lifecycle.js';
-import { readInnerUrl } from '../../navigation/inner-url/inner-url.js';
+import { readAppInnerUrl } from '../../navigation/app-inner-url/app-inner-url.js';
 import { goThroughHistory } from '../../navigation/navigation-paths/index.js';
-import type { LocationStrategyAdapter } from '../angular-types/angular-types.js';
-
-type PopStateListener = (event: { type: 'popstate'; state: unknown }) => void;
+import type {
+  LocationStrategyAdapter,
+  PopStateListener,
+} from '../angular-types/angular-types.js';
 
 /** Creates the LocationStrategy used by an Angular Router mounted inside an Atlas app. */
 export function createLocationStrategy(
@@ -13,7 +14,8 @@ export function createLocationStrategy(
   let ignoredUrl: string | undefined;
 
   const stop = context.route.subscribe(() => {
-    const current = readInnerUrl(context);
+    const current = readAppInnerUrl(context);
+
     if (ignoredUrl === current) {
       ignoredUrl = undefined;
 
@@ -25,7 +27,7 @@ export function createLocationStrategy(
 
   return {
     path(includeHash = true) {
-      return readInnerUrl(context, { includeHash });
+      return readAppInnerUrl(context, { includeHash });
     },
 
     prepareExternalUrl(internal) {

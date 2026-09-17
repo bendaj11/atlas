@@ -25,7 +25,7 @@ export function exampleProjectRoot(project: ExampleProject): string {
 }
 
 /** Runs a CommonJS snippet against the packaged factory in a child process and parses its stdout as JSON. */
-export async function runFactoryScript<T>(
+export async function runFederationFactoryScript<T>(
   lines: readonly string[],
 ): Promise<T> {
   const script = [
@@ -171,6 +171,7 @@ export async function aReactFederationFixture(): Promise<string> {
     { packageName: 'unused-lib', version: '1.0.0', exports: ['.'] },
     { packageName: 'comment-only', version: '1.0.0', exports: ['.'] },
   ];
+
   for (const fixture of packages)
     await createFixturePackage(projectRoot, fixture);
   await createCommonJsFixturePackage(projectRoot);

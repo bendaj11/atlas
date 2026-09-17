@@ -1,7 +1,8 @@
-import { matchRoutePattern, type RouteParams } from './match-route-pattern.js';
+import type { AtlasRouteParams } from '../navigation-types/navigation-types.js';
+import { matchRoutePattern } from './match-route-pattern.js';
 
 export class MatchRoutePatternDriver {
-  private result: RouteParams | undefined;
+  private result: AtlasRouteParams | undefined;
 
   readonly when = {
     patternMatched: (pattern: string, pathname: string): void => {
@@ -10,6 +11,6 @@ export class MatchRoutePatternDriver {
   };
 
   readonly get = {
-    result: (): RouteParams | undefined => this.result,
+    result: (): AtlasRouteParams | undefined => this.result,
   };
 }

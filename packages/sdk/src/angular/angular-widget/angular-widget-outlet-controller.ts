@@ -1,16 +1,16 @@
 import type { AtlasMountedWidgetHandle } from '../../host.js';
-import { readWidgetRuntime } from './angular-widget-binding.js';
+import { widgetRuntimeOf } from './angular-widget-binding.js';
 import type {
-  ActiveWidget,
+  MountedWidgetRecord,
   AngularWidgetBinding,
-  AngularWidgetRuntime,
+  WidgetBindingRuntime,
   WidgetErrorHandler,
 } from './angular-widget.types.js';
 
 /** Serializes mount, input updates, and unmount of one widget inside a container. */
 export class AngularWidgetOutletController<TInputs extends object> {
   private updateQueue = Promise.resolve();
-  private activeWidget: ActiveWidget | undefined;
+  private activeWidget: MountedWidgetRecord | undefined;
   private destroyed = false;
 
   constructor(
@@ -40,8 +40,9 @@ export class AngularWidgetOutletController<TInputs extends object> {
   ): Promise<void> {
     if (this.destroyed) return;
 
-    const runtime = readWidgetRuntime(binding);
-    const updatableWidget = this.getUpdatableWidget(runtime);
+    const runtime = widgetRuntimeOf(binding);
+    const updatableWidget = this.mountedWidgetReusableFor(runtime);
+
     if (updatableWidget?.setInputs) {
       updatableWidget.setInputs(binding.inputs);
 
@@ -49,9 +50,11 @@ export class AngularWidgetOutletController<TInputs extends object> {
     }
 
     await this.unmountActiveWidget();
+
     if (this.destroyed) return;
 
     const mounted = await runtime.handle.mount(this.container, binding.inputs);
+
     if (this.destroyed) {
       await mounted.unmount();
 
@@ -67,10 +70,11 @@ export class AngularWidgetOutletController<TInputs extends object> {
     };
   }
 
-  private getUpdatableWidget(
-    runtime: AngularWidgetRuntime,
+  private mountedWidgetReusableFor(
+    runtime: WidgetBindingRuntime,
   ): AtlasMountedWidgetHandle<object> | undefined {
     if (this.activeWidget?.widgetId !== runtime.widgetId) return undefined;
+
     if (this.activeWidget.loadingComponent !== runtime.loadingComponent) {
       return undefined;
     }

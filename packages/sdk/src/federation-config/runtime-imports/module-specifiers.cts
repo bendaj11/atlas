@@ -10,6 +10,7 @@ export function runtimeModuleSpecifiers(
 
   const visit = (node: ts.Node): void => {
     const specifier = runtimeModuleSpecifier(typescript, node);
+
     if (specifier !== undefined) specifiers.push(specifier);
 
     typescript.forEachChild(node, visit);
@@ -57,10 +58,13 @@ function isRuntimeImport(
   node: ts.ImportDeclaration,
 ): boolean {
   const clause = node.importClause;
+
   if (!clause || clause.isTypeOnly) return false;
+
   if (clause.name) return true;
 
   const bindings = clause.namedBindings;
+
   if (!bindings || typescript.isNamespaceImport(bindings)) return true;
 
   return bindings.elements.some((element) => !element.isTypeOnly);

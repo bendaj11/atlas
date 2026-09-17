@@ -1,13 +1,13 @@
 import type { AtlasAppContext } from '../../lifecycle.js';
 
-export interface ReadInnerUrlOptions {
+export interface AppInnerUrlOptions {
   readonly includeHash?: boolean;
 }
 
 /** Builds the app-relative URL (inner pathname + host search + host hash) for a mounted app. */
-export function readInnerUrl(
+export function readAppInnerUrl(
   context: Pick<AtlasAppContext, 'route' | 'navigation'>,
-  options: ReadInnerUrlOptions = {},
+  options: AppInnerUrlOptions = {},
 ): string {
   const inner = context.route.getCurrent();
   const host = context.navigation.getCurrentLocation();

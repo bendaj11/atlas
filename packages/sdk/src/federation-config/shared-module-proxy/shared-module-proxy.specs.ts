@@ -1,6 +1,6 @@
 import { SharedModuleProxyDriver } from './shared-module-proxy.driver.js';
 
-describe('shared module proxy', () => {
+describe('loadSharedProxy', () => {
   let driver: SharedModuleProxyDriver;
 
   beforeEach(() => {
@@ -42,14 +42,16 @@ describe('shared module proxy', () => {
   it('should avoid CommonJS guessing when Vite builds an ES module', async () => {
     await driver.when.load();
 
-    expect(driver.get.commonJsReader()).not.toHaveBeenCalled();
+    expect(driver.get.commonJsReaderMock()).not.toHaveBeenCalled();
   });
 
   it('should resolve from the app with Vite conditions when loading a shared package', async () => {
     await driver.when.load();
 
-    expect(driver.get.resolutionRequest()).toEqual(
-      driver.get.expectedResolutionRequest(),
+    expect(driver.get.resolveEntryMock()).toHaveBeenCalledWith(
+      driver.get.environment(),
+      driver.get.specifier(),
+      driver.get.importer(),
     );
   });
 

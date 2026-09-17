@@ -3,10 +3,10 @@ import { resolve, sep } from 'node:path';
 import type ts from 'typescript';
 import { runtimeModuleSpecifiers } from './module-specifiers.cjs';
 import {
-  readCompilerOptions,
+  readProjectCompilerOptions,
   type TypeScriptModule,
 } from './project-typescript.cjs';
-import { isSourceFile, rootPackageName } from './specifiers.cjs';
+import { isSourceFile, rootPackageName } from './package-specifiers.cjs';
 
 export interface DiscoverRuntimeImportsOptions {
   readonly projectRoot: string;
@@ -29,7 +29,7 @@ export function discoverRuntimePackageImports(
   options: DiscoverRuntimeImportsOptions,
 ): string[] {
   const { typescript, projectRoot, declared } = options;
-  const compilerOptions = readCompilerOptions(typescript, projectRoot);
+  const compilerOptions = readProjectCompilerOptions(typescript, projectRoot);
 
   const pending = [...options.entryPoints];
   const visited = new Set<string>();
@@ -37,8 +37,10 @@ export function discoverRuntimePackageImports(
 
   while (pending.length > 0) {
     const fileName = resolve(pending.pop()!);
+
     if (visited.has(fileName) || !isSourceFile(fileName)) continue;
     visited.add(fileName);
+
     if (!existsSync(fileName)) continue;
 
     const sourceFile = typescript.createSourceFile(
@@ -78,6 +80,7 @@ function resolveLocalModule(request: LocalModuleRequest): string | undefined {
     request.compilerOptions,
     typescript.sys,
   ).resolvedModule;
+
   if (!resolution) return undefined;
 
   const resolvedFile = resolve(resolution.resolvedFileName);

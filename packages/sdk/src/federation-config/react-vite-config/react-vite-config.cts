@@ -8,18 +8,18 @@ import {
 } from '../development-plugins/index.cjs';
 import { createReactWidgetEntries } from '../widget-entries/widget-entries.cjs';
 import {
-  reactBootstrapPath,
+  reactBootstrapEntryPath,
   writeReactDevelopmentFacade,
 } from './development-facade.cjs';
-import { reactFederationBuild } from './react-federation-build.cjs';
+import { planReactFederationBuild } from './react-federation-build.cjs';
 import type {
-  ReactFederationBuild,
+  ReactFederationBuildPlan,
   ReactFederationConfigOptions,
 } from './react-vite-config.types.cjs';
 
 interface ReactViteConfigRequest {
   readonly options: ReactFederationConfigOptions;
-  readonly federation: ReactFederationBuild;
+  readonly federation: ReactFederationBuildPlan;
   readonly pluginName: string;
   readonly exposes: readonly FederationExposeMetadata[];
   readonly devExposes: readonly FederationExposeMetadata[];
@@ -30,8 +30,8 @@ interface ReactViteConfigRequest {
 export function createReactHostViteConfig(
   options: ReactFederationConfigOptions,
 ): UserConfig {
-  const hostEntry = reactBootstrapPath(options.projectRoot, 'main.tsx');
-  const federation = reactFederationBuild(options, { host: hostEntry });
+  const hostEntry = reactBootstrapEntryPath(options.projectRoot, 'main.tsx');
+  const federation = planReactFederationBuild(options, { host: hostEntry });
 
   const developmentHost = writeReactDevelopmentFacade({
     projectRoot: options.projectRoot,
@@ -40,7 +40,7 @@ export function createReactHostViteConfig(
     defaultExport: false,
   });
 
-  return reactViteConfig({
+  return composeReactViteConfig({
     options,
     federation,
     pluginName: 'atlas-host-metadata',
@@ -59,13 +59,13 @@ export function createReactHostViteConfig(
 export function createReactAppViteConfig(
   options: ReactFederationConfigOptions,
 ): UserConfig {
-  const appEntry = reactBootstrapPath(options.projectRoot, 'entry.tsx');
+  const appEntry = reactBootstrapEntryPath(options.projectRoot, 'entry.tsx');
   const widgetEntries = createReactWidgetEntries(options).map((entry) => ({
     name: entry.name,
     entryPoint: resolve(options.projectRoot, entry.entryPoint),
   }));
 
-  const federation = reactFederationBuild(
+  const federation = planReactFederationBuild(
     options,
     Object.fromEntries([
       ['entry', appEntry],
@@ -96,7 +96,7 @@ export function createReactAppViteConfig(
     ),
   }));
 
-  return reactViteConfig({
+  return composeReactViteConfig({
     options,
     federation,
     pluginName: 'atlas-native-federation-metadata',
@@ -116,7 +116,7 @@ export function reactRemoteName(name: string): string {
   return `atlas_${name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
 }
 
-function reactViteConfig(request: ReactViteConfigRequest): UserConfig {
+function composeReactViteConfig(request: ReactViteConfigRequest): UserConfig {
   const { options, federation } = request;
 
   const metadataPlugin = federationMetadataPlugin({

@@ -3,7 +3,7 @@ import type { AtlasEventBus, AtlasEventMap } from '../event-bus/index.js';
 import type {
   AtlasHostData,
   AtlasHostDataOf,
-  HostDataOption,
+  HostDataOptionOf,
 } from './host-data-types.js';
 import type { AtlasGetWidget } from './widget-types.js';
 
@@ -53,5 +53,5 @@ export type AtlasSdkOptions<
   hostId: string;
   navigation: AtlasNavigation;
   eventBus?: AtlasEventBus<TEvents>;
-} & HostDataOption<THostSdk> &
+} & HostDataOptionOf<THostSdk> &
   HostSdkProperties<THostSdk>;

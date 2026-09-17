@@ -15,4 +15,7 @@ export type {
   AtlasMountedWidgetHandle,
   AtlasWidgetHandle,
   AtlasWidgetLoadingRenderer,
+  MountWidget,
+  SetWidgetInputs,
+  UnmountWidget,
 } from './widget-types.js';

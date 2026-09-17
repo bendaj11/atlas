@@ -81,6 +81,7 @@ export class ReactSharedPackagesDriver {
         : installedPackage;
       await mkdir(join(projectRoot, 'src'), { recursive: true });
       await mkdir(packageRoot, { recursive: true });
+
       if (this.fixture.linked) {
         await mkdir(dirname(installedPackage), { recursive: true });
         await symlink(packageRoot, installedPackage, 'junction');
@@ -102,6 +103,7 @@ export class ReactSharedPackagesDriver {
           ...this.fixture.manifest,
         }),
       );
+
       for (const [path, source] of Object.entries(this.fixture.files)) {
         await writeFile(join(packageRoot, path), source);
       }
@@ -137,6 +139,7 @@ export class ReactSharedPackagesDriver {
       const shared = this.metadata?.shared.find(
         ({ packageName }) => packageName === specifier,
       );
+
       if (!shared)
         throw new Error('Built package is missing from shared metadata.');
       this.exports = (await import(

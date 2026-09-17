@@ -4,7 +4,10 @@ import type {
   AtlasNavigation,
 } from '../../navigation.js';
 import { defaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
-import type { RouterLike } from '../react-router/react-router.js';
+import type {
+  RouterLike,
+  RouterNavigateOptions,
+} from '../react-router/index.js';
 
 export function createHostNavigation(
   router: RouterLike,
@@ -18,13 +21,13 @@ export function createHostNavigation(
 
   return {
     navigate(to, options) {
-      void router.navigate(to, navigationOptions(options));
+      void router.navigate(to, toRouterNavigateOptions(options));
     },
 
     replace(to, options) {
       void router.navigate(
         to,
-        navigationOptions({ ...options, replace: true }),
+        toRouterNavigateOptions({ ...options, replace: true }),
       );
     },
 
@@ -50,9 +53,9 @@ export function createHostNavigation(
   };
 }
 
-function navigationOptions(
+function toRouterNavigateOptions(
   options: AtlasNavigateOptions | undefined,
-): AtlasNavigateOptions {
+): RouterNavigateOptions {
   return {
     ...(options?.replace !== undefined ? { replace: options.replace } : {}),
     ...(options?.state !== undefined ? { state: options.state } : {}),

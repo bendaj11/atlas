@@ -5,6 +5,7 @@ import { AtlasStyleTargetContext } from './contexts.js';
 /** Returns the Atlas boundary for CSS-in-JS libraries that support a custom insertion target. */
 export function useAtlasStyleTarget(): Node & ParentNode {
   const styleTarget = useContext(AtlasStyleTargetContext);
+
   if (styleTarget) return styleTarget;
 
   throw sdkError(

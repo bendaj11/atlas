@@ -7,6 +7,7 @@ export function isSkippedDependency(
 ): boolean {
   return skip.some((entry) => {
     if (typeof entry === 'string') return entry === specifier;
+
     if (typeof entry === 'function') return entry(specifier);
 
     entry.lastIndex = 0;

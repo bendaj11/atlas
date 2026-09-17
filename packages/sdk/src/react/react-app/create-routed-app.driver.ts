@@ -1,10 +1,10 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasAppMountResult } from '../../lifecycle.js';
-import type { AppRouterLike } from '../react-router/react-router.js';
+import type { AppRouterLike } from '../react-router/index.js';
 import { createRoutedApp } from './create-routed-app.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
-import type { RootAdapter } from './react-app.types.js';
+import type { UnmountRoot } from './react-app.types.js';
 
 export class CreateRoutedAppDriver {
   private readonly root = aRootAdapter();
@@ -40,6 +40,6 @@ export class CreateRoutedAppDriver {
     router: (): AppRouterLike => this.router,
     routerUnsubscribeMock: (): jest.Mock<() => void> => this.routerUnsubscribe,
     routerDisposeMock: (): jest.Mock<() => void> => this.routerDispose,
-    unmountRootMock: (): jest.Mock<RootAdapter['unmount']> => this.root.unmount,
+    unmountRootMock: (): jest.Mock<UnmountRoot> => this.root.unmount,
   };
 }

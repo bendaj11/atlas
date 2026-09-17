@@ -8,6 +8,7 @@ export function normalizePath(path: string): string {
 /** Strips the app path from a host pathname; anything outside the app resolves to `'/'`. */
 export function toInnerPath(path: string, pathname: string): string {
   if (path === '/') return pathname || '/';
+
   if (pathname === path) return '/';
 
   return pathname.startsWith(`${path}/`) ? pathname.slice(path.length) : '/';

@@ -8,8 +8,8 @@ import {
   rootPackageName,
 } from '../runtime-imports/index.cjs';
 import {
-  declaredPackages,
-  readPackageInfo,
+  declaredPackageRanges,
+  readInstalledPackageInfo,
   resolveSharedEntry,
   validateSharedSubpath,
 } from './package-info.cjs';
@@ -50,7 +50,7 @@ export function reactSharedDependencies(
   exposedEntryPoints: readonly string[],
 ): SharedDependency[] {
   const packagePath = join(options.projectRoot, 'package.json');
-  const declared = declaredPackages(packagePath);
+  const declared = declaredPackageRanges(packagePath);
   const requireFromProject = createRequire(packagePath);
 
   const importedSpecifiers = discoverRuntimePackageImports({
@@ -85,13 +85,15 @@ function sharedDependencyOf(request: {
   const packageName = rootPackageName(specifier);
 
   const entryPoint = resolveSharedEntry(requireFromProject, specifier);
+
   if (entryPoint && !isSourceFile(entryPoint)) return [];
 
-  const packageInfo = readPackageInfo(
+  const packageInfo = readInstalledPackageInfo(
     requireFromProject,
     packageName,
     specifier,
   );
+
   if (!entryPoint) validateSharedSubpath(packageInfo, specifier);
 
   const entryName = `shared/${sharedFileName(specifier)}`;

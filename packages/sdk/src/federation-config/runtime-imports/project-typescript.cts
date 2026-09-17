@@ -16,7 +16,7 @@ export function loadProjectTypescript(
 }
 
 /** Compiler options of the project tsconfig; a bundler-style default when the project has none. */
-export function readCompilerOptions(
+export function readProjectCompilerOptions(
   typescript: TypeScriptModule,
   projectRoot: string,
 ): ts.CompilerOptions {
@@ -24,6 +24,7 @@ export function readCompilerOptions(
     projectRoot,
     typescript.sys.fileExists,
   );
+
   if (!configPath) {
     return {
       allowJs: true,
@@ -33,6 +34,7 @@ export function readCompilerOptions(
   }
 
   const loaded = typescript.readConfigFile(configPath, typescript.sys.readFile);
+
   if (loaded.error) {
     const detail = typescript.flattenDiagnosticMessageText(
       loaded.error.messageText,

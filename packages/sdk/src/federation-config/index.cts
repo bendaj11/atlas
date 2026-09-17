@@ -19,5 +19,5 @@ export type { SkipEntry } from './shared-dependencies/index.cjs';
 export {
   createReactWidgetEntries,
   type ReactWidgetEntriesOptions,
-  type WidgetEntry,
+  type GeneratedWidgetEntry,
 } from './widget-entries/widget-entries.cjs';

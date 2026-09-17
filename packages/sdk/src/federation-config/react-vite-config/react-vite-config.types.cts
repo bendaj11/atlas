@@ -15,7 +15,7 @@ export interface ReactFederationConfigOptions {
 }
 
 /** Rollup-facing pieces derived from the shared dependencies of one React remote. */
-export interface ReactFederationBuild {
+export interface ReactFederationBuildPlan {
   readonly shared: readonly SharedDependency[];
   readonly sharedFallbackPlugin: Plugin;
   readonly commonJsOptions: {

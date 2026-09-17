@@ -73,13 +73,13 @@ export function createAngularFederationOptions(
   return {
     ...nativeFederationOptions,
     name,
-    exposes: { ...additionalExposes, ...atlasExposes(projectRoot, expose) },
+    exposes: { ...additionalExposes, ...atlasExposesFor(projectRoot, expose) },
     shared: { ...sharedAngularPackages, ...additionalShared },
     skip: [...new Set([...ANGULAR_FEDERATION_SKIP, ...additionalSkip])],
   };
 }
 
-function atlasExposes(
+function atlasExposesFor(
   projectRoot: string,
   expose: AngularProjectExpose | undefined,
 ): Record<string, string> {

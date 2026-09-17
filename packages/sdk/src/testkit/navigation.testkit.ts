@@ -3,31 +3,35 @@ import type {
   AtlasLocation,
   AtlasNavigation,
   AtlasNavigationListener,
+  GoBack,
+  GoThroughHistory,
+  NavigateToPath,
+  ReplacePath,
 } from '../navigation/navigation-types/navigation-types.js';
 
 export interface MemoryNavigation extends AtlasNavigation {
-  readonly back: jest.Mock<AtlasNavigation['back']>;
-  readonly go: jest.Mock<NonNullable<AtlasNavigation['go']>>;
-  readonly navigate: jest.Mock<AtlasNavigation['navigate']>;
-  readonly replace: jest.Mock<AtlasNavigation['replace']>;
+  readonly back: jest.Mock<GoBack>;
+  readonly go: jest.Mock<GoThroughHistory>;
+  readonly navigate: jest.Mock<NavigateToPath>;
+  readonly replace: jest.Mock<ReplacePath>;
 }
 
 export function aMemoryNavigation(initialUrl = '/'): MemoryNavigation {
-  let location = splitUrl(initialUrl);
+  let location = parseLocation(initialUrl);
   const listeners = new Set<AtlasNavigationListener>();
   const notify = (): void => {
     for (const listener of listeners) listener(location);
   };
   const move = (to: string): void => {
-    location = splitUrl(to);
+    location = parseLocation(to);
     notify();
   };
 
   return {
-    navigate: jest.fn<AtlasNavigation['navigate']>((to) => move(to)),
-    replace: jest.fn<AtlasNavigation['replace']>((to) => move(to)),
-    back: jest.fn<AtlasNavigation['back']>(),
-    go: jest.fn<NonNullable<AtlasNavigation['go']>>(),
+    navigate: jest.fn<NavigateToPath>((to) => move(to)),
+    replace: jest.fn<ReplacePath>((to) => move(to)),
+    back: jest.fn<GoBack>(),
+    go: jest.fn<GoThroughHistory>(),
     createHref: (to) => to,
     subscribe(listener) {
       listeners.add(listener);
@@ -39,12 +43,12 @@ export function aMemoryNavigation(initialUrl = '/'): MemoryNavigation {
   };
 }
 
-export function splitUrl(value: string): AtlasLocation {
+export function parseLocation(value: string): AtlasLocation {
   const url = new URL(value, 'http://atlas.local');
 
   return { pathname: url.pathname, search: url.search, hash: url.hash };
 }
 
-export function urlOf(location: AtlasLocation): string {
+export function locationToUrl(location: AtlasLocation): string {
   return `${location.pathname}${location.search}${location.hash}`;
 }

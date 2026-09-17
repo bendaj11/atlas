@@ -42,6 +42,7 @@ export function registerHostNavigation(
 /** Returns host navigation for Atlas runtime internals. Apps should use their router or `navigateTo`. */
 export function getAtlasNavigation(sdk: object): AtlasNavigation {
   const navigation = hostNavigations.get(sdk);
+
   if (navigation) return navigation;
 
   throw sdkError('Atlas host navigation is unavailable.', {
@@ -51,12 +52,13 @@ export function getAtlasNavigation(sdk: object): AtlasNavigation {
   });
 }
 
-export function resolveWidget<TInputs extends object>(
+export function resolveWidgetThroughHost<TInputs extends object>(
   sdk: object,
   widgetId: string,
   options?: AtlasGetWidgetOptions,
 ): AtlasWidgetHandle<TInputs> {
   const resolver = widgetResolvers.get(sdk);
+
   if (resolver) return resolver<TInputs>(widgetId, options);
 
   throw sdkError(
@@ -69,12 +71,13 @@ export function resolveWidget<TInputs extends object>(
   );
 }
 
-export function resolveNavigation(
+export function navigateThroughHost(
   sdk: object,
   appId: string,
   state?: AtlasNavigationState,
 ): void {
   const resolver = navigationResolvers.get(sdk);
+
   if (resolver) {
     resolver(appId, state);
 

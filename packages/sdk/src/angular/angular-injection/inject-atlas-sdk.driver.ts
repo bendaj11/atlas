@@ -20,13 +20,19 @@ import {
 } from './inject-atlas-sdk.js';
 import { provideAtlasAppContext, provideAtlasSdk } from './providers.js';
 
+interface CustomerHostData {
+  readonly userName: string;
+}
+
+type Greet = () => string;
+
 interface CustomerHostSdk {
-  readonly hostData: { readonly userName: string };
-  readonly greet: () => string;
+  readonly hostData: CustomerHostData;
+  readonly greet: Greet;
 }
 
 export class InjectAtlasSdkDriver {
-  private readonly greet = jest.fn<CustomerHostSdk['greet']>();
+  private readonly greet = jest.fn<Greet>();
   private readonly sdk: AtlasSdkValue<CustomerHostSdk> =
     createAtlasSdk<CustomerHostSdk>({
       hostId: faker.string.uuid(),
@@ -63,7 +69,7 @@ export class InjectAtlasSdkDriver {
 
   readonly get = {
     atlas: (): AngularAtlasSdk<CustomerHostSdk> => this.atlas,
-    greetMock: (): jest.Mock<CustomerHostSdk['greet']> => this.greet,
+    greetMock: (): jest.Mock<Greet> => this.greet,
     context: (): AtlasAppContext | undefined => this.context,
   };
 

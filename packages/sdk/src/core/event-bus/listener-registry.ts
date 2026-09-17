@@ -3,7 +3,7 @@ import { sdkError } from '../sdk-error/sdk-error.js';
 import type { EventKey, StoredEventListener } from './event-bus.types.js';
 
 /** Listeners keyed by event type; a type disappears when its last listener leaves. */
-export class ListenerRegistry<TEvents extends object> {
+export class EventListenerRegistry<TEvents extends object> {
   private readonly listeners = new Map<
     EventKey<TEvents>,
     Set<StoredEventListener<TEvents>>
@@ -22,6 +22,7 @@ export class ListenerRegistry<TEvents extends object> {
   ): void {
     const subscribers = this.listeners.get(type);
     subscribers?.delete(listener);
+
     if (subscribers?.size === 0) this.listeners.delete(type);
   }
 
@@ -41,12 +42,12 @@ function notifyListener<TEvents extends object>(
     listener(payload);
   } catch (error) {
     queueMicrotask(() => {
-      throw listenerFailure(error);
+      throw listenerFailedError(error);
     });
   }
 }
 
-function listenerFailure(error: unknown): Error {
+function listenerFailedError(error: unknown): Error {
   const cause = error instanceof Error ? error : new Error(String(error));
 
   return sdkError(

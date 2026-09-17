@@ -5,7 +5,10 @@ import type {
   AtlasNavigation,
 } from '../../navigation/navigation-types/navigation-types.js';
 import type {
+  LocationBack,
+  LocationHistoryGo,
   LocationLike,
+  NavigateByUrl,
   RouterLike,
 } from '../angular-types/angular-types.js';
 import { createHostNavigation } from './angular-host-navigation.js';
@@ -13,17 +16,14 @@ import { createHostNavigation } from './angular-host-navigation.js';
 export class AngularHostNavigationDriver {
   private readonly origin = faker.internet.url({ appendSlash: false });
   private readonly listener = jest.fn<(location: AtlasLocation) => void>();
-  private readonly back = jest.fn<LocationLike['back']>();
-  private readonly historyGo =
-    jest.fn<NonNullable<LocationLike['historyGo']>>();
-  private readonly navigateByUrl = jest.fn<RouterLike['navigateByUrl']>(
-    async (url) => {
-      this.currentUrl = url;
-      this.routerListener?.();
+  private readonly back = jest.fn<LocationBack>();
+  private readonly historyGo = jest.fn<LocationHistoryGo>();
+  private readonly navigateByUrl = jest.fn<NavigateByUrl>(async (url) => {
+    this.currentUrl = url;
+    this.routerListener?.();
 
-      return true;
-    },
-  );
+    return true;
+  });
   private readonly router: RouterLike = {
     url: '/',
     navigateByUrl: this.navigateByUrl,
@@ -97,11 +97,9 @@ export class AngularHostNavigationDriver {
   readonly get = {
     navigation: (): AtlasNavigation => this.navigation,
     origin: (): string => this.origin,
-    navigateByUrlMock: (): jest.Mock<RouterLike['navigateByUrl']> =>
-      this.navigateByUrl,
-    backMock: (): jest.Mock<LocationLike['back']> => this.back,
-    historyGoMock: (): jest.Mock<NonNullable<LocationLike['historyGo']>> =>
-      this.historyGo,
+    navigateByUrlMock: (): jest.Mock<NavigateByUrl> => this.navigateByUrl,
+    backMock: (): jest.Mock<LocationBack> => this.back,
+    historyGoMock: (): jest.Mock<LocationHistoryGo> => this.historyGo,
     listenerMock: (): jest.Mock<(location: AtlasLocation) => void> =>
       this.listener,
   };

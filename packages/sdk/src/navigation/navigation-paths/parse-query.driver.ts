@@ -1,7 +1,8 @@
-import { parseQuery, type QueryValues } from './parse-query.js';
+import type { AtlasQueryValues } from '../navigation-types/navigation-types.js';
+import { parseQuery } from './parse-query.js';
 
 export class ParseQueryDriver {
-  private result: QueryValues | undefined;
+  private result: AtlasQueryValues | undefined;
 
   readonly when = {
     queryParsed: (search: string): void => {
@@ -10,6 +11,6 @@ export class ParseQueryDriver {
   };
 
   readonly get = {
-    result: (): QueryValues | undefined => this.result,
+    result: (): AtlasQueryValues | undefined => this.result,
   };
 }

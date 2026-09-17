@@ -23,7 +23,7 @@ export type {
   ReactWidgetEntriesOptions,
   ShareAll,
   SkipEntry,
-  WidgetEntry,
+  GeneratedWidgetEntry,
 } from './federation-config.cjs';
 
 export interface AngularV4FederationConfigOptions extends AngularFederationConfigOptions {

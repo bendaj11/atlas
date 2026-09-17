@@ -17,14 +17,14 @@ let lexerReady = false;
  * The entry itself must lex; unreadable re-export targets are skipped.
  */
 export function commonJsNamedExports(entryPoint: string): readonly string[] {
-  ensureLexer();
+  initializeLexerOnce();
 
   const resolvedEntry = resolve(entryPoint);
-  const parsed = parseEntry(resolvedEntry);
+  const parsed = parseCommonJsEntry(resolvedEntry);
 
   const names = new Set<string>(parsed.exports);
   const visited = new Set<string>([resolvedEntry]);
-  collectReexports(resolvedEntry, parsed.reexports, names, visited);
+  collectReexportedNames(resolvedEntry, parsed.reexports, names, visited);
 
   return [...names]
     .filter(
@@ -34,7 +34,9 @@ export function commonJsNamedExports(entryPoint: string): readonly string[] {
     .sort();
 }
 
-function parseEntry(entryPoint: string): ReturnType<typeof parseCommonJs> {
+function parseCommonJsEntry(
+  entryPoint: string,
+): ReturnType<typeof parseCommonJs> {
   try {
     return parseCommonJs(readFileSync(entryPoint, 'utf8'));
   } catch (cause) {
@@ -50,7 +52,7 @@ function parseEntry(entryPoint: string): ReturnType<typeof parseCommonJs> {
   }
 }
 
-function collectReexports(
+function collectReexportedNames(
   entryPoint: string,
   specifiers: readonly string[],
   names: Set<string>,
@@ -59,21 +61,23 @@ function collectReexports(
   const requireFromEntry = createRequire(entryPoint);
 
   for (const specifier of specifiers) {
-    const parsed = tryParseReexport(requireFromEntry, specifier, visited);
+    const parsed = parseReexportedModule(requireFromEntry, specifier, visited);
+
     if (!parsed) continue;
 
     for (const name of parsed.exports) names.add(name);
-    collectReexports(parsed.entryPoint, parsed.reexports, names, visited);
+    collectReexportedNames(parsed.entryPoint, parsed.reexports, names, visited);
   }
 }
 
-function tryParseReexport(
+function parseReexportedModule(
   requireFromEntry: NodeJS.Require,
   specifier: string,
   visited: Set<string>,
 ): { entryPoint: string; exports: string[]; reexports: string[] } | undefined {
   try {
     const entryPoint = requireFromEntry.resolve(specifier);
+
     if (visited.has(entryPoint)) return undefined;
     visited.add(entryPoint);
 
@@ -85,7 +89,7 @@ function tryParseReexport(
   }
 }
 
-function ensureLexer(): void {
+function initializeLexerOnce(): void {
   if (lexerReady) return;
 
   initializeCommonJsLexer();

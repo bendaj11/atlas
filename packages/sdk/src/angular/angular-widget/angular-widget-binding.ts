@@ -5,7 +5,7 @@ import { createAngularLoadingRenderer } from './angular-loading-renderer.js';
 import type {
   AngularGetWidgetOptions,
   AngularWidgetBinding,
-  AngularWidgetRuntime,
+  WidgetBindingRuntime,
 } from './angular-widget.types.js';
 
 export interface CreateWidgetBindingRequest<TInputs extends object> {
@@ -16,7 +16,7 @@ export interface CreateWidgetBindingRequest<TInputs extends object> {
   readonly options: AngularGetWidgetOptions<TInputs>;
 }
 
-const widgetRuntimes = new WeakMap<object, AngularWidgetRuntime>();
+const widgetRuntimes = new WeakMap<object, WidgetBindingRuntime>();
 
 /** Creates the frozen binding a template passes to `[atlasWidget]` and records its runtime handle. */
 export function createWidgetBinding<TInputs extends object>(
@@ -52,10 +52,11 @@ export function createWidgetBinding<TInputs extends object>(
   return binding;
 }
 
-export function readWidgetRuntime(
+export function widgetRuntimeOf(
   binding: AngularWidgetBinding<object>,
-): AngularWidgetRuntime {
+): WidgetBindingRuntime {
   const runtime = widgetRuntimes.get(binding);
+
   if (runtime) return runtime;
 
   throw sdkError(

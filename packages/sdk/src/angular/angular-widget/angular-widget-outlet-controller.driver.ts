@@ -10,6 +10,7 @@ import type {
   AtlasGetWidget,
   AtlasMountedWidgetHandle,
   AtlasWidgetHandle,
+  MountWidget,
 } from '../../core/sdk-types/index.js';
 import {
   connectAtlasWidgetResolver,
@@ -27,8 +28,6 @@ interface WidgetInputs {
   readonly count: number;
 }
 
-type MountFn = AtlasWidgetHandle<WidgetInputs>['mount'];
-
 export class AngularWidgetOutletControllerDriver {
   private readonly sdk = createAtlasSdk({
     hostId: faker.string.uuid(),
@@ -37,7 +36,9 @@ export class AngularWidgetOutletControllerDriver {
   private readonly lifecycle: string[] = [];
   private readonly setInputs = jest.fn<(inputs: WidgetInputs) => void>();
   private readonly handleError = jest.fn<(error: unknown) => void>();
-  private readonly mount = jest.fn<MountFn>(async () => this.mountedWidget());
+  private readonly mount = jest.fn<MountWidget<WidgetInputs>>(async () =>
+    this.mountedWidget(),
+  );
   private readonly resolver = jest.fn<AtlasGetWidget>(
     (widgetId) =>
       ({
@@ -114,7 +115,7 @@ export class AngularWidgetOutletControllerDriver {
   };
 
   readonly get = {
-    mountMock: (): jest.Mock<MountFn> => this.mount,
+    mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
     setInputsMock: (): jest.Mock<(inputs: WidgetInputs) => void> =>
       this.setInputs,
     handleErrorMock: (): jest.Mock<(error: unknown) => void> =>

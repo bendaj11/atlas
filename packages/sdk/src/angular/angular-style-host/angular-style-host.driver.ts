@@ -1,15 +1,14 @@
 import { jest } from '@jest/globals';
 import {
   attachAngularComponentStyles,
-  type AngularComponentStyleHost,
+  type StyleHostMutation,
 } from './angular-style-host.js';
 
 export class AngularStyleHostDriver {
   private readonly documentHead = {} as HTMLHeadElement;
   private readonly shadowRoot = {} as ShadowRoot;
-  private readonly addHost = jest.fn<AngularComponentStyleHost['addHost']>();
-  private readonly removeHost =
-    jest.fn<AngularComponentStyleHost['removeHost']>();
+  private readonly addHost = jest.fn<StyleHostMutation>();
+  private readonly removeHost = jest.fn<StyleHostMutation>();
   private styleTarget: Node = this.documentHead;
   private head: HTMLHeadElement | undefined = this.documentHead;
 
@@ -38,10 +37,8 @@ export class AngularStyleHostDriver {
   };
 
   readonly get = {
-    addHostMock: (): jest.Mock<AngularComponentStyleHost['addHost']> =>
-      this.addHost,
-    removeHostMock: (): jest.Mock<AngularComponentStyleHost['removeHost']> =>
-      this.removeHost,
+    addHostMock: (): jest.Mock<StyleHostMutation> => this.addHost,
+    removeHostMock: (): jest.Mock<StyleHostMutation> => this.removeHost,
     documentHead: (): HTMLHeadElement => this.documentHead,
     shadowRoot: (): ShadowRoot => this.shadowRoot,
   };

@@ -31,13 +31,13 @@ export type AngularAtlasSdk<
     ): AngularWidgetBinding<TInputs>;
   };
 
-export interface AngularWidgetRuntime {
+export interface WidgetBindingRuntime {
   readonly widgetId: string;
   readonly handle: AtlasWidgetHandle<object>;
   readonly loadingComponent?: Type<unknown>;
 }
 
-export interface ActiveWidget {
+export interface MountedWidgetRecord {
   readonly widgetId: string;
   readonly loadingComponent?: Type<unknown>;
   readonly mounted: AtlasMountedWidgetHandle<object>;

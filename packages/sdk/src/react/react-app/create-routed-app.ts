@@ -1,8 +1,5 @@
 import type { AtlasAppEntry, AtlasAppMountResult } from '../../lifecycle.js';
-import {
-  connectRouter,
-  type AppRouterLike,
-} from '../react-router/react-router.js';
+import { connectRouter, type AppRouterLike } from '../react-router/index.js';
 import { withAtlasProviders } from './atlas-providers.js';
 import type { RoutedAppOptions } from './react-app.types.js';
 

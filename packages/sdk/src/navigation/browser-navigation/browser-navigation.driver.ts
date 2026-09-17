@@ -2,38 +2,43 @@ import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type {
   AtlasBrowserNavigation,
-  AtlasLocation,
+  AtlasNavigateOptions,
+  AtlasNavigationListener,
 } from '../navigation-types/navigation-types.js';
-import {
-  createBrowserNavigation,
-  type BrowserWindowLike,
-} from './browser-navigation.js';
-
-type PopstateListener = () => void;
+import { createBrowserNavigation } from './browser-navigation.js';
+import type {
+  BrowserLocationLike,
+  HistoryBack,
+  HistoryGo,
+  BrowserPopstateListener,
+  BrowserPopstateRegistrar,
+  WriteHistoryEntry,
+} from './browser-window.types.js';
 
 export class BrowserNavigationDriver {
   private readonly origin = faker.internet.url({ appendSlash: false });
-  private readonly location = {
+  private readonly location: BrowserLocationLike = {
     pathname: '/',
     search: '',
     hash: '',
     href: `${this.origin}/`,
   };
-  private readonly history = {
-    pushState: jest.fn<History['pushState']>(),
-    replaceState: jest.fn<History['replaceState']>(),
-    back: jest.fn<History['back']>(),
-    go: jest.fn<History['go']>(),
-  };
-  private readonly addEventListener =
-    jest.fn<BrowserWindowLike['addEventListener']>();
-  private readonly removeEventListener =
-    jest.fn<BrowserWindowLike['removeEventListener']>();
-  private readonly listener = jest.fn<(location: AtlasLocation) => void>();
+  private readonly pushState = jest.fn<WriteHistoryEntry>();
+  private readonly replaceState = jest.fn<WriteHistoryEntry>();
+  private readonly back = jest.fn<HistoryBack>();
+  private readonly go = jest.fn<HistoryGo>();
+  private readonly addEventListener = jest.fn<BrowserPopstateRegistrar>();
+  private readonly removeEventListener = jest.fn<BrowserPopstateRegistrar>();
+  private readonly listener = jest.fn<AtlasNavigationListener>();
   private readonly navigation: AtlasBrowserNavigation = createBrowserNavigation(
     {
       location: this.location,
-      history: this.history,
+      history: {
+        pushState: this.pushState,
+        replaceState: this.replaceState,
+        back: this.back,
+        go: this.go,
+      },
       addEventListener: this.addEventListener,
       removeEventListener: this.removeEventListener,
     },
@@ -50,10 +55,7 @@ export class BrowserNavigationDriver {
     disposed: (): void => {
       this.navigation.dispose();
     },
-    navigated: (
-      to: string,
-      options?: { replace?: boolean; state?: unknown },
-    ): void => {
+    navigated: (to: string, options?: AtlasNavigateOptions): void => {
       this.navigation.navigate(to, options);
     },
     replaced: (to: string): void => {
@@ -65,6 +67,7 @@ export class BrowserNavigationDriver {
     browserMovedTo: (pathname: string): void => {
       this.location.pathname = pathname;
       this.location.href = `${this.origin}${pathname}`;
+
       for (const [, popstate] of this.addEventListener.mock.calls) {
         if (this.isAttached(popstate)) popstate();
       }
@@ -73,24 +76,19 @@ export class BrowserNavigationDriver {
 
   readonly get = {
     navigation: (): AtlasBrowserNavigation => this.navigation,
-    listenerMock: (): jest.Mock<(location: AtlasLocation) => void> =>
-      this.listener,
-    pushStateMock: (): jest.Mock<History['pushState']> =>
-      this.history.pushState,
-    replaceStateMock: (): jest.Mock<History['replaceState']> =>
-      this.history.replaceState,
-    goMock: (): jest.Mock<History['go']> => this.history.go,
-    backMock: (): jest.Mock<History['back']> => this.history.back,
-    addEventListenerMock: (): jest.Mock<
-      BrowserWindowLike['addEventListener']
-    > => this.addEventListener,
-    removeEventListenerMock: (): jest.Mock<
-      BrowserWindowLike['removeEventListener']
-    > => this.removeEventListener,
+    listenerMock: (): jest.Mock<AtlasNavigationListener> => this.listener,
+    pushStateMock: (): jest.Mock<WriteHistoryEntry> => this.pushState,
+    replaceStateMock: (): jest.Mock<WriteHistoryEntry> => this.replaceState,
+    goMock: (): jest.Mock<HistoryGo> => this.go,
+    backMock: (): jest.Mock<HistoryBack> => this.back,
+    addEventListenerMock: (): jest.Mock<BrowserPopstateRegistrar> =>
+      this.addEventListener,
+    removeEventListenerMock: (): jest.Mock<BrowserPopstateRegistrar> =>
+      this.removeEventListener,
     origin: (): string => this.origin,
   };
 
-  private isAttached(popstate: PopstateListener): boolean {
+  private isAttached(popstate: BrowserPopstateListener): boolean {
     const added = this.addEventListener.mock.calls.filter(
       ([, listener]) => listener === popstate,
     ).length;

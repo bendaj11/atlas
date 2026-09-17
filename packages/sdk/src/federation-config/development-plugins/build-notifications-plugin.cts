@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { sourceRootOf } from './source-root.cjs';
+import { projectSourceRoot } from './source-root.cjs';
 
 interface EventStreamClient {
   write(chunk: string): void;
@@ -13,7 +13,7 @@ export function federationBuildNotificationsPlugin(
   projectRoot: string,
 ): Plugin {
   const clients = new Set<EventStreamClient>();
-  const sourceRoot = sourceRootOf(projectRoot);
+  const sourceRoot = projectSourceRoot(projectRoot);
 
   return {
     name: 'atlas-federation-build-notifications',
@@ -41,6 +41,7 @@ export function federationBuildNotificationsPlugin(
       if (!file.replaceAll('\\', '/').startsWith(sourceRoot)) return;
 
       const event = eventStreamMessage('federation-rebuild-complete');
+
       for (const client of clients) client.write(event);
     },
   };

@@ -1,10 +1,13 @@
 import { jest } from '@jest/globals';
-import type { AtlasNavigation } from '../navigation-types/navigation-types.js';
+import type {
+  GoBack,
+  GoThroughHistory,
+} from '../navigation-types/navigation-types.js';
 import { goThroughHistory } from './go-through-history.js';
 
 export class GoThroughHistoryDriver {
-  private readonly back = jest.fn<AtlasNavigation['back']>();
-  private readonly go = jest.fn<NonNullable<AtlasNavigation['go']>>();
+  private readonly back = jest.fn<GoBack>();
+  private readonly go = jest.fn<GoThroughHistory>();
 
   readonly when = {
     historyMovedWithGo: (delta: number): void => {
@@ -16,7 +19,7 @@ export class GoThroughHistoryDriver {
   };
 
   readonly get = {
-    backMock: (): jest.Mock<AtlasNavigation['back']> => this.back,
-    goMock: (): jest.Mock<NonNullable<AtlasNavigation['go']>> => this.go,
+    backMock: (): jest.Mock<GoBack> => this.back,
+    goMock: (): jest.Mock<GoThroughHistory> => this.go,
   };
 }

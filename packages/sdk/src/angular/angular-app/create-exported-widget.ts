@@ -29,11 +29,11 @@ export function createExportedWidget<TProps extends object>(
         hostElement: container,
       });
       application.attachView(component.hostView);
-      applyInputs(component, props);
+      forwardChangedInputs(component, props);
 
       return {
         setInputs(inputs: TProps) {
-          applyInputs(component, inputs);
+          forwardChangedInputs(component, inputs);
         },
         unmount() {
           application.detachView(component.hostView);
@@ -45,7 +45,10 @@ export function createExportedWidget<TProps extends object>(
   );
 }
 
-function applyInputs(component: ComponentRef<unknown>, inputs: object): void {
+function forwardChangedInputs(
+  component: ComponentRef<unknown>,
+  inputs: object,
+): void {
   for (const [name, value] of Object.entries(inputs)) {
     component.setInput(name, value);
   }

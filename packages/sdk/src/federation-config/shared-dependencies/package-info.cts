@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { federationConfigError } from '../federation-config-error/federation-config-error.cjs';
 import { rootPackageName } from '../runtime-imports/index.cjs';
 
-export interface PackageInfo {
+export interface InstalledPackageInfo {
   readonly version: string;
   readonly exports?: unknown;
   readonly directory: string;
@@ -15,7 +15,9 @@ interface ProjectPackageJson {
 }
 
 /** `dependencies` merged with `peerDependencies` of the project package.json; empty when the file is absent. */
-export function declaredPackages(packagePath: string): Record<string, string> {
+export function declaredPackageRanges(
+  packagePath: string,
+): Record<string, string> {
   const packageJson: ProjectPackageJson = existsSync(packagePath)
     ? (JSON.parse(readFileSync(packagePath, 'utf8')) as ProjectPackageJson)
     : {};
@@ -36,11 +38,11 @@ export function resolveSharedEntry(
 }
 
 /** Reads version, exports, and real directory of an installed package, even when its export map hides package.json. */
-export function readPackageInfo(
+export function readInstalledPackageInfo(
   requireFromProject: NodeJS.Require,
   packageName: string,
   specifier: string,
-): PackageInfo {
+): InstalledPackageInfo {
   const candidates = (requireFromProject.resolve.paths(packageName) ?? []).map(
     (directory) => join(directory, packageName, 'package.json'),
   );
@@ -48,9 +50,11 @@ export function readPackageInfo(
     requireFromProject,
     `${packageName}/package.json`,
   );
+
   if (exported) candidates.unshift(exported);
 
   const packagePath = candidates.find((candidate) => existsSync(candidate));
+
   if (!packagePath) {
     throw federationConfigError(
       `Atlas could not resolve package metadata for shared dependency "${specifier}".`,
@@ -77,15 +81,17 @@ export function readPackageInfo(
 
 /** Throws when the package has an export map and the requested subpath is not part of it. */
 export function validateSharedSubpath(
-  packageInfo: PackageInfo,
+  packageInfo: InstalledPackageInfo,
   specifier: string,
 ): void {
   const exportMap = packageInfo.exports;
+
   if (!exportMap) return;
 
   const packageName = rootPackageName(specifier);
   const subpath = `.${specifier.slice(packageName.length)}`;
   const exportedSubpaths = exportMapSubpaths(exportMap);
+
   if (exportedSubpaths.some((key) => matchesExportKey(key, subpath))) return;
 
   throw federationConfigError(
@@ -113,6 +119,7 @@ function exportMapSubpaths(exportMap: unknown): string[] {
 
 function matchesExportKey(key: string, subpath: string): boolean {
   const wildcard = key.indexOf('*');
+
   if (wildcard < 0) return key === subpath;
 
   return (

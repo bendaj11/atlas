@@ -2,11 +2,12 @@ import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasAppContext } from '../../lifecycle.js';
 import { anAppContext } from '../../testkit/app-context.testkit.js';
-import { urlOf } from '../../testkit/navigation.testkit.js';
-import type { LocationStrategyAdapter } from '../angular-types/angular-types.js';
+import { locationToUrl } from '../../testkit/navigation.testkit.js';
+import type {
+  LocationStrategyAdapter,
+  PopStateListener,
+} from '../angular-types/angular-types.js';
 import { createLocationStrategy } from './angular-location-strategy.js';
-
-type PopStateListener = Parameters<LocationStrategyAdapter['onPopState']>[0];
 
 export class AngularLocationStrategyDriver {
   private readonly path = `/${faker.lorem.slug()}`;
@@ -45,7 +46,8 @@ export class AngularLocationStrategyDriver {
   readonly get = {
     strategy: (): LocationStrategyAdapter => this.strategy,
     hostPath: (): string => this.path,
-    hostUrl: (): string => urlOf(this.context.navigation.getCurrentLocation()),
+    hostUrl: (): string =>
+      locationToUrl(this.context.navigation.getCurrentLocation()),
     popStateMock: (): jest.Mock<PopStateListener> => this.popState,
     hostGoMock: () => this.context.navigation.go,
     hostBackMock: () => this.context.navigation.back,

@@ -11,7 +11,7 @@ import {
   exampleProjectRoot,
   FACTORY_PATH,
   missingFiles,
-  runFactoryScript,
+  runFederationFactoryScript,
   type ExampleProject,
 } from './federation-config.testkit.js';
 
@@ -30,7 +30,7 @@ interface FederationMetadata {
   }>;
 }
 
-interface WidgetEntry {
+interface GeneratedWidgetEntry {
   readonly name: string;
   readonly entryPoint: string;
 }
@@ -54,7 +54,7 @@ export class ReactViteConfigDriver {
   private reactMajor = 19;
   private skip: readonly SkipEntry[] = [];
   private config: UserConfig | undefined;
-  private widgetEntries: WidgetEntry[] = [];
+  private widgetEntries: GeneratedWidgetEntry[] = [];
   private hotUpdateResult: unknown;
 
   readonly given = {
@@ -97,7 +97,9 @@ export class ReactViteConfigDriver {
         projectRoot: this.projectRoot,
         reactMajor: this.reactMajor,
       };
-      this.widgetEntries = await runFactoryScript<WidgetEntry[]>([
+      this.widgetEntries = await runFederationFactoryScript<
+        GeneratedWidgetEntry[]
+      >([
         `process.stdout.write(JSON.stringify(factory.createReactWidgetEntries(${JSON.stringify(options)})));`,
       ]);
     },
@@ -142,6 +144,7 @@ export class ReactViteConfigDriver {
       const entry = this.widgetEntries.find(
         (candidate) => candidate.name === name,
       );
+
       if (!entry) throw new Error(`Widget entry "${name}" was not generated.`);
 
       return readFile(resolve(this.projectRoot, entry.entryPoint), 'utf8');
@@ -178,6 +181,7 @@ export class ReactViteConfigDriver {
     const plugin = (this.config?.plugins as Plugin[]).find(
       (entry) => entry.name === name,
     );
+
     if (!plugin) throw new Error(`Vite plugin "${name}" was not configured.`);
 
     return plugin;
@@ -204,6 +208,7 @@ export class ReactViteConfigDriver {
         },
       },
     );
+
     if (!body) {
       throw new Error('Federation metadata middleware was not installed.');
     }

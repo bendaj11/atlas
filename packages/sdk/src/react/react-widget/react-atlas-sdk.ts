@@ -8,6 +8,7 @@ import type { AtlasAppContext } from '../../lifecycle.js';
 import { createWidgetComponent } from './widget-component.js';
 import type {
   ReactAtlasSdk,
+  ReactGetWidget,
   ReactGetWidgetOptions,
 } from './react-widget.types.js';
 
@@ -31,24 +32,26 @@ export function createReactAtlasSdk<
 
   const facadeContext = context ?? sdk;
   const cached = appFacades.get(facadeContext);
+
   if (cached) return cached as ReactAtlasSdk<THostSdk, TEvents>;
 
   const facade = Object.create(
     context ? createAtlasAppAssetFacade(sdk, context) : sdk,
   ) as ReactAtlasSdk<THostSdk, TEvents>;
+
   if (!context) defineUnavailableAppAssets(facade);
   Object.defineProperty(facade, 'getWidget', {
-    value: createGetWidget(sdk, new Map()),
+    value: createWidgetComponentGetter(sdk, new Map()),
   });
   appFacades.set(facadeContext, facade);
 
   return facade;
 }
 
-function createGetWidget(
+function createWidgetComponentGetter(
   sdk: Pick<AtlasSdkValue, 'getWidget'>,
   widgets: WidgetCache,
-): ReactAtlasSdk['getWidget'] {
+): ReactGetWidget {
   return <TInputs extends object>(
     widgetId: string,
     options?: ReactGetWidgetOptions,
@@ -58,6 +61,7 @@ function createGetWidget(
     widgets.set(widgetId, widgetsByLoadingComponent);
 
     const cachedWidget = widgetsByLoadingComponent.get(loadingComponent);
+
     if (cachedWidget) return cachedWidget as ComponentType<TInputs>;
 
     const widget = createWidgetComponent<TInputs>({

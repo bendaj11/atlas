@@ -6,7 +6,7 @@ import type {
 } from '../../lifecycle.js';
 import { defineApp } from './define-app.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
-import type { RootAdapter } from './react-app.types.js';
+import type { CreateRoot, RenderRoot, UnmountRoot } from './react-app.types.js';
 
 export class DefineAppDriver {
   private readonly root = aRootAdapter();
@@ -29,10 +29,9 @@ export class DefineAppDriver {
   };
 
   readonly get = {
-    createRootMock: (): jest.Mock<(container: HTMLElement) => RootAdapter> =>
-      this.root.createRoot,
-    renderMock: (): jest.Mock<RootAdapter['render']> => this.root.render,
-    unmountRootMock: (): jest.Mock<RootAdapter['unmount']> => this.root.unmount,
+    createRootMock: (): jest.Mock<CreateRoot> => this.root.createRoot,
+    renderMock: (): jest.Mock<RenderRoot> => this.root.render,
+    unmountRootMock: (): jest.Mock<UnmountRoot> => this.root.unmount,
     createElementMock: (): jest.Mock<
       (request: AtlasAppMountRequest) => unknown
     > => this.createElement,

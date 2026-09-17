@@ -1,6 +1,11 @@
-import type { AtlasLocation, AtlasNavigation } from '../../navigation.js';
+import type {
+  AtlasLocation,
+  AtlasNavigateOptions,
+  AtlasNavigation,
+} from '../../navigation.js';
 import { defaultHostOrigin } from '../../navigation/host-origin/host-origin.js';
 import type {
+  AngularNavigateByUrlOptions,
   LocationLike,
   RouterLike,
 } from '../angular-types/angular-types.js';
@@ -18,13 +23,13 @@ export function createHostNavigation(
 
   return {
     navigate(to, options) {
-      void router.navigateByUrl(to, navigateOptions(options));
+      void router.navigateByUrl(to, toNavigateByUrlOptions(options));
     },
 
     replace(to, options) {
       void router.navigateByUrl(
         to,
-        navigateOptions({ ...options, replace: true }),
+        toNavigateByUrlOptions({ ...options, replace: true }),
       );
     },
 
@@ -46,6 +51,7 @@ export function createHostNavigation(
       listener(previous);
       const subscription = router.events.subscribe(() => {
         const next = read();
+
         if (sameLocation(previous, next)) return;
         previous = next;
         listener(next);
@@ -66,9 +72,9 @@ function sameLocation(left: AtlasLocation, right: AtlasLocation): boolean {
   );
 }
 
-function navigateOptions(
-  options: { replace?: boolean; state?: unknown } | undefined,
-): { replaceUrl?: boolean; state?: unknown } {
+function toNavigateByUrlOptions(
+  options: AtlasNavigateOptions | undefined,
+): AngularNavigateByUrlOptions {
   return {
     ...(options?.replace ? { replaceUrl: true } : {}),
     ...(options?.state !== undefined ? { state: options.state } : {}),

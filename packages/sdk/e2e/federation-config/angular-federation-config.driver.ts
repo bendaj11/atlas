@@ -4,7 +4,7 @@ import type { AngularProjectExpose } from '../../federation-config.cjs';
 import {
   exampleProjectRoot,
   missingFiles,
-  runFactoryScript,
+  runFederationFactoryScript,
   WORKSPACE_ROOT,
   type ExampleProject,
 } from './federation-config.testkit.js';
@@ -30,7 +30,7 @@ export class AngularFederationConfigDriver {
   readonly when = {
     configCreated: async (expose: AngularProjectExpose): Promise<void> => {
       const options = { projectRoot: this.projectRoot, name: 'test', expose };
-      this.config = await runFactoryScript<AngularConfigResult>([
+      this.config = await runFederationFactoryScript<AngularConfigResult>([
         `const config = factory.createAngularFederationConfig(${JSON.stringify(options)});`,
         'process.stdout.write(JSON.stringify({ exposes: config.exposes, skip: [...config.skip.strings], shared: config.shared }));',
       ]);

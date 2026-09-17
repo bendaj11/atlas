@@ -1,4 +1,4 @@
-export type RouteParams = Readonly<Record<string, string>>;
+import type { AtlasRouteParams } from '../navigation-types/navigation-types.js';
 
 type PartMatch = 'match' | 'miss' | 'wildcard';
 
@@ -14,7 +14,7 @@ interface RoutePartRequest {
 export function matchRoutePattern(
   pattern: string,
   pathname: string,
-): RouteParams | undefined {
+): AtlasRouteParams | undefined {
   const patternParts = splitRoutePath(pattern);
   const pathParts = splitRoutePath(pathname);
   const params: Record<string, string> = {};
@@ -29,6 +29,7 @@ export function matchRoutePattern(
     });
 
     if (matched === 'wildcard') return params;
+
     if (matched === 'miss') return undefined;
   }
 

@@ -3,18 +3,18 @@ import { toPosixPath } from '../project-paths/project-paths.cjs';
 import {
   createSharedModuleProxy,
   sharedProxyId,
-} from '../shared-module-proxy/shared-module-proxy.cjs';
+} from '../shared-module-proxy/index.cjs';
 import { reactSharedDependencies } from '../shared-dependencies/index.cjs';
 import type {
-  ReactFederationBuild,
+  ReactFederationBuildPlan,
   ReactFederationConfigOptions,
 } from './react-vite-config.types.cjs';
 
 /** Resolves shared dependencies and turns them into rollup inputs, externals, and the fallback plugin. */
-export function reactFederationBuild(
+export function planReactFederationBuild(
   options: ReactFederationConfigOptions,
   exposedInputs: Readonly<Record<string, string>>,
-): ReactFederationBuild {
+): ReactFederationBuildPlan {
   const shared = reactSharedDependencies(options, Object.values(exposedInputs));
   const sharedSpecifiers = new Set(shared.map(({ specifier }) => specifier));
 

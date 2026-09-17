@@ -3,13 +3,7 @@ import type {
   AtlasLocation,
   AtlasNavigationListener,
 } from '../navigation-types/navigation-types.js';
-
-export interface BrowserWindowLike {
-  location: Pick<Location, 'pathname' | 'search' | 'hash' | 'href'>;
-  history: Pick<History, 'pushState' | 'replaceState' | 'back' | 'go'>;
-  addEventListener(type: 'popstate', listener: () => void): void;
-  removeEventListener(type: 'popstate', listener: () => void): void;
-}
+import type { BrowserWindowLike } from './browser-window.types.js';
 
 export function createBrowserNavigation(
   windowLike: BrowserWindowLike = window,
@@ -25,6 +19,7 @@ export function createBrowserNavigation(
 
   const notify = (): void => {
     const location = readLocation();
+
     for (const listener of listeners) listener(location);
   };
 
@@ -75,6 +70,7 @@ export function createBrowserNavigation(
 
       return () => {
         listeners.delete(listener);
+
         if (listeners.size === 0) detachPopstate();
       };
     },

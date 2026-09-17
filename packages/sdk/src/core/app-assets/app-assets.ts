@@ -45,6 +45,7 @@ function unavailableAppAssetUrl(): never {
 
 function resolveAssetUrl(path: string, assetBaseUrl: string): string {
   const assetUrl = new URL(path, assetBaseUrl);
+
   if (!assetUrl.href.startsWith(assetBaseUrl)) {
     throw sdkError(
       `Atlas asset path "${path}" must stay within the app artifact directory.`,

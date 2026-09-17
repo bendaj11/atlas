@@ -14,7 +14,7 @@ export type AtlasHostDataValue<THostSdk extends object> = AtlasHostData &
   Readonly<AtlasHostDataOf<THostSdk>>;
 
 /** `hostData` is optional when the host declares no custom fields, required otherwise. */
-export type HostDataOption<THostSdk extends object> =
+export type HostDataOptionOf<THostSdk extends object> =
   keyof AtlasHostDataOf<THostSdk> extends never
     ? { hostData?: Partial<AtlasHostData> }
     : { hostData: AtlasHostDataOf<THostSdk> & Partial<AtlasHostData> };

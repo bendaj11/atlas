@@ -1,33 +1,29 @@
 import { join } from 'node:path';
 import type { Plugin } from 'vite';
-
-type ViteResolver = ReturnType<typeof import('vite').createIdResolver>;
-
-interface SharedModuleProxyOptions {
-  readonly projectRoot: string;
-  readonly specifiers: readonly string[];
-}
-
-export interface SharedModuleProxyDependencies {
-  readonly loadVite: () => Promise<
-    Pick<typeof import('vite'), 'createIdResolver'>
-  >;
-  readonly readCommonJsExports: (entryPoint: string) => readonly string[];
-}
+import type {
+  ReadCommonJsExports,
+  SharedModuleProxyDependencies,
+  SharedModuleProxyOptions,
+  SharedProxyLoadContext,
+  ViteIdResolver,
+} from './shared-module-proxy.types.cjs';
+import { proxyModuleSource } from './proxy-module-source.cjs';
 
 const SHARED_PROXY_PREFIX = 'atlas:shared-proxy:';
+const RESOLVED_PREFIX = `\0${SHARED_PROXY_PREFIX}`;
 
 export function sharedProxyId(specifier: string): string {
   return `${SHARED_PROXY_PREFIX}${encodeURIComponent(specifier)}`;
 }
 
+/** Vite plugin that turns `atlas:shared-proxy:<specifier>` inputs into re-export modules of the real package entry. */
 export function createSharedModuleProxy(
   options: SharedModuleProxyOptions,
   dependencies: SharedModuleProxyDependencies,
 ): Plugin {
   const specifiers = new Set(options.specifiers);
   const importer = join(options.projectRoot, 'package.json');
-  let resolveEntry: ViteResolver | undefined;
+  let resolveEntry: ViteIdResolver | undefined;
 
   return {
     name: 'atlas-react-shared-fallbacks',
@@ -42,65 +38,65 @@ export function createSharedModuleProxy(
     },
 
     async load(id) {
-      if (!id.startsWith(`\0${SHARED_PROXY_PREFIX}`)) return undefined;
+      if (!id.startsWith(RESOLVED_PREFIX)) return undefined;
 
-      const specifier = decodeURIComponent(
-        id.slice(SHARED_PROXY_PREFIX.length + 1),
-      );
+      const specifier = decodeURIComponent(id.slice(RESOLVED_PREFIX.length));
+
       if (!specifiers.has(specifier)) return undefined;
 
-      const entryPoint = await resolveEntry?.(
-        this.environment,
+      return loadSharedProxy({
+        context: this,
         specifier,
         importer,
-      );
-      if (!entryPoint) {
-        return this.error(
-          `Atlas could not resolve shared dependency entry "${specifier}".`,
-        );
-      }
-
-      const resolved = await this.resolve(entryPoint, importer);
-      if (!resolved || resolved.external) {
-        return this.error(
-          `Atlas could not bundle shared dependency entry "${specifier}".`,
-        );
-      }
-
-      const moduleInfo = await this.load(resolved);
-      const namedExports = moduleInfo.syntheticNamedExports
-        ? dependencies.readCommonJsExports(entryPoint)
-        : [];
-
-      return proxySource({
-        entryPoint: resolved.id,
-        namedExports,
-        hasDefaultExport: moduleInfo.hasDefaultExport === true,
+        resolveEntry,
+        readCommonJsExports: dependencies.readCommonJsExports,
       });
     },
   };
 }
 
-function proxySource(options: {
-  readonly entryPoint: string;
-  readonly namedExports: readonly string[];
-  readonly hasDefaultExport: boolean;
-}): string {
-  const entry = JSON.stringify(options.entryPoint);
-  const imports = options.namedExports.map(
-    (name, index) =>
-      `import { ${name} as sharedExport${index} } from ${entry};`,
-  );
-  const exports = options.namedExports.map(
-    (name, index) => `sharedExport${index} as ${name}`,
+export interface LoadSharedProxyRequest {
+  readonly context: SharedProxyLoadContext;
+  readonly specifier: string;
+  readonly importer: string;
+  readonly resolveEntry: ViteIdResolver | undefined;
+  readonly readCommonJsExports: ReadCommonJsExports;
+}
+
+/** Resolves one shared specifier through Vite and emits the proxy module source. */
+export async function loadSharedProxy(
+  request: LoadSharedProxyRequest,
+): Promise<string> {
+  const { context, specifier, importer } = request;
+
+  const entryPoint = await request.resolveEntry?.(
+    context.environment,
+    specifier,
+    importer,
   );
 
-  return [
-    ...imports,
-    `export * from ${entry};`,
-    exports.length > 0 ? `export { ${exports.join(', ')} };` : '',
-    options.hasDefaultExport ? `export { default } from ${entry};` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
+  if (!entryPoint) {
+    return context.error(
+      `Atlas could not resolve shared dependency entry "${specifier}".`,
+    );
+  }
+
+  const resolved = await context.resolve(entryPoint, importer);
+
+  if (!resolved || resolved.external) {
+    return context.error(
+      `Atlas could not bundle shared dependency entry "${specifier}".`,
+    );
+  }
+
+  const moduleInfo = await context.load(resolved);
+  const namedExports = moduleInfo.syntheticNamedExports
+    ? request.readCommonJsExports(entryPoint)
+    : [];
+
+  return proxyModuleSource({
+    entryPoint: resolved.id,
+    namedExports,
+    hasDefaultExport: moduleInfo.hasDefaultExport === true,
+  });
 }

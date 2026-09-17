@@ -12,7 +12,7 @@ export function createHostData<THostSdk extends object, TEvents extends object>(
 }
 
 /** Host-defined SDK members: everything in the options that is not core Atlas configuration. */
-export function readSdkProperties<
+export function pickHostDefinedProperties<
   THostSdk extends object,
   TEvents extends object,
 >(options: AtlasSdkOptions<THostSdk, TEvents>): object {
@@ -32,6 +32,7 @@ export function assertPropertiesDoNotReplaceCore(
   core: object,
 ): void {
   const reservedName = Object.keys(properties).find((name) => name in core);
+
   if (!reservedName) return;
 
   throw sdkError(

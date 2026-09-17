@@ -12,6 +12,7 @@ import type {
   AtlasMountedWidgetHandle,
   AtlasWidgetHandle,
   AtlasWidgetLoadingRenderer,
+  MountWidget,
 } from '../../core/sdk-types/index.js';
 import { createWidgetComponent } from './widget-component.js';
 
@@ -53,7 +54,7 @@ export class WidgetComponentDriver {
     setInputs: this.setInputs,
     unmount: this.unmount,
   };
-  private readonly mount = jest.fn<AtlasWidgetHandle<WidgetInputs>['mount']>(
+  private readonly mount = jest.fn<MountWidget<WidgetInputs>>(
     async () => this.mounted,
   );
   private readonly getWidget = jest.fn<AtlasGetWidget>(
@@ -113,8 +114,7 @@ export class WidgetComponentDriver {
   };
 
   readonly get = {
-    mountMock: (): jest.Mock<AtlasWidgetHandle<WidgetInputs>['mount']> =>
-      this.mount,
+    mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
     setInputsMock: (): jest.Mock<(inputs: WidgetInputs) => void> =>
       this.setInputs,
     unmountMock: (): jest.Mock<() => Promise<void>> => this.unmount,

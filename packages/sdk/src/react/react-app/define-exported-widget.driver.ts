@@ -6,7 +6,7 @@ import type {
 import { anExportedWidgetManifest } from '../../testkit/app-context.testkit.js';
 import { defineExportedWidget } from './define-exported-widget.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
-import type { RootAdapter } from './react-app.types.js';
+import type { RenderRoot, UnmountRoot } from './react-app.types.js';
 
 interface WidgetProps {
   readonly count: number;
@@ -47,7 +47,7 @@ export class DefineExportedWidgetDriver {
     createElementMock: (): jest.Mock<
       (request: AtlasExportedWidgetMountRequest<WidgetProps>) => unknown
     > => this.createElement,
-    renderMock: (): jest.Mock<RootAdapter['render']> => this.root.render,
-    unmountRootMock: (): jest.Mock<RootAdapter['unmount']> => this.root.unmount,
+    renderMock: (): jest.Mock<RenderRoot> => this.root.render,
+    unmountRootMock: (): jest.Mock<UnmountRoot> => this.root.unmount,
   };
 }

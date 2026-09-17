@@ -7,13 +7,13 @@ import type {
   PayloadlessEventKey,
   StoredEventListener,
 } from './event-bus.types.js';
-import { ListenerRegistry } from './listener-registry.js';
+import { EventListenerRegistry } from './listener-registry.js';
 
 /** Creates an in-memory host-scoped event target. Listener failures do not block other listeners. */
 export function createAtlasEventBus<
   TEvents extends object = AtlasEventMap,
 >(): AtlasEventBus<TEvents> {
-  const registry = new ListenerRegistry<TEvents>();
+  const registry = new EventListenerRegistry<TEvents>();
 
   function emit<TKey extends PayloadlessEventKey<TEvents>>(type: TKey): void;
   function emit<TKey extends PayloadEventKey<TEvents>>(

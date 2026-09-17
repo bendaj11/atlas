@@ -13,5 +13,5 @@ export {
   type ReactWidgetEntriesOptions,
   type ShareAll,
   type SkipEntry,
-  type WidgetEntry,
+  type GeneratedWidgetEntry,
 } from './dist/federation-config/index.cjs';

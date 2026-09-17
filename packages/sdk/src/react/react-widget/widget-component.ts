@@ -11,7 +11,7 @@ import type {
   AtlasMountedWidgetHandle,
   AtlasSdk as AtlasSdkValue,
 } from '../../host.js';
-import { applyInputs } from './widget-inputs.js';
+import { forwardChangedInputs } from './widget-inputs.js';
 import { widgetMountError } from './widget-mount-error.js';
 
 export interface CreateWidgetComponentInput {
@@ -39,6 +39,7 @@ export function createWidgetComponent<TInputs extends object>(
 
     useEffect(() => {
       const element = container.current;
+
       if (!element) return;
 
       let disposed = false;
@@ -67,7 +68,7 @@ export function createWidgetComponent<TInputs extends object>(
 
           mountedWidget.current = mounted;
           appliedInputs.current = initialInputs;
-          applyInputs(mounted, appliedInputs, latestInputs.current);
+          forwardChangedInputs(mounted, appliedInputs, latestInputs.current);
         },
         (error: unknown) => {
           if (!disposed) setMountError(widgetMountError(widgetId, error));
@@ -78,13 +79,15 @@ export function createWidgetComponent<TInputs extends object>(
         disposed = true;
         const mounted = mountedWidget.current;
         mountedWidget.current = undefined;
+
         if (mounted) void mounted.unmount();
       };
     }, []);
 
     useEffect(() => {
       const mounted = mountedWidget.current;
-      if (mounted) applyInputs(mounted, appliedInputs, inputs);
+
+      if (mounted) forwardChangedInputs(mounted, appliedInputs, inputs);
     }, [inputs]);
 
     if (mountError !== undefined) throw mountError;

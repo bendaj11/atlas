@@ -1,20 +1,14 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasExportedWidgetManifest, AtlasManifest } from '@atlas/schema';
+import {
+  ATLAS_FRAMEWORKS,
+  ATLAS_VERSION_CHANNELS,
+  type AtlasExportedWidgetManifest,
+  type AtlasManifest,
+} from '@atlas/schema';
 import type { AtlasAppContext } from '../lifecycle.js';
 import { createRouteContext } from '../navigation/route-context/route-context.js';
 import { createScopedNavigation } from '../navigation/scoped-navigation/scoped-navigation.js';
 import { aMemoryNavigation } from './navigation.testkit.js';
-
-export const ALL_FRAMEWORKS: readonly AtlasManifest['framework'][] = [
-  'angular',
-  'react',
-  'vue',
-];
-export const ALL_CHANNELS: readonly AtlasManifest['channel'][] = [
-  'production',
-  'pr',
-  'local',
-];
 
 export function anAppManifest(
   overrides: Partial<AtlasManifest> = {},
@@ -26,8 +20,8 @@ export function anAppManifest(
     name: faker.commerce.productName(),
     version: faker.system.semver(),
     buildId: faker.string.alphanumeric(8),
-    channel: faker.helpers.arrayElement(ALL_CHANNELS),
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    channel: faker.helpers.arrayElement(ATLAS_VERSION_CHANNELS),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
     remoteEntryUrl: `${faker.internet.url()}/${faker.system.semver()}/remoteEntry.json`,
     exposes: { entry: `./${faker.word.noun()}` },
     requiredHostSdkVersion: `^${faker.system.semver()}`,
@@ -46,7 +40,7 @@ export function anExportedWidgetManifest(
     id: faker.string.uuid(),
     name: faker.commerce.productName(),
     ownerAppId: faker.string.uuid(),
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
     remoteEntryUrl: `${faker.internet.url()}/remoteEntry.json`,
     expose: `./widgets/${faker.lorem.slug()}`,
     contractVersion: '1',

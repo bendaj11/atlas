@@ -9,18 +9,41 @@ export interface AtlasNavigateOptions {
   state?: unknown;
 }
 
+export type AtlasReplaceOptions = Omit<AtlasNavigateOptions, 'replace'>;
+
 export type AtlasNavigationListener = (location: AtlasLocation) => void;
+
+export type AtlasUnsubscribe = () => void;
+
+export type NavigateToPath = (
+  to: string,
+  options?: AtlasNavigateOptions,
+) => void;
+
+export type ReplacePath = (to: string, options?: AtlasReplaceOptions) => void;
+
+export type GoBack = () => void;
+
+export type GoThroughHistory = (delta: number) => void;
+
+export type CreateHref = (to: string) => string;
+
+export type SubscribeToLocation = (
+  listener: AtlasNavigationListener,
+) => AtlasUnsubscribe;
+
+export type ReadLocation = () => AtlasLocation;
 
 /** Host-owned browser navigation exposed through framework adapters. */
 export interface AtlasNavigation {
-  navigate(to: string, options?: AtlasNavigateOptions): void;
-  replace(to: string, options?: Omit<AtlasNavigateOptions, 'replace'>): void;
-  back(): void;
+  navigate: NavigateToPath;
+  replace: ReplacePath;
+  back: GoBack;
   /** Moves through host history when the host adapter supports an arbitrary delta. */
-  go?(delta: number): void;
-  createHref(to: string): string;
-  subscribe(listener: AtlasNavigationListener): () => void;
-  getCurrentLocation(): AtlasLocation;
+  go?: GoThroughHistory;
+  createHref: CreateHref;
+  subscribe: SubscribeToLocation;
+  getCurrentLocation: ReadLocation;
 }
 
 /** Browser navigation whose global event listener can be explicitly released. */
@@ -35,16 +58,22 @@ export interface AtlasScopedNavigation extends AtlasNavigation {
   toHostPath(to: string): string;
 }
 
+export type AtlasQueryValues = Readonly<Record<string, string | string[]>>;
+
+export type AtlasRouteParams = Readonly<Record<string, string>>;
+
 export interface AtlasInnerLocation {
   pathname: string;
-  query: Readonly<Record<string, string | string[]>>;
+  query: AtlasQueryValues;
   hash: string;
 }
+
+export type AtlasInnerLocationListener = (location: AtlasInnerLocation) => void;
 
 export interface AtlasRouteContext {
   readonly path: string;
   getCurrent(): AtlasInnerLocation;
   setTabTitle(title: string): void;
-  subscribe(listener: (location: AtlasInnerLocation) => void): () => void;
-  match(pattern: string): Readonly<Record<string, string>> | undefined;
+  subscribe(listener: AtlasInnerLocationListener): AtlasUnsubscribe;
+  match(pattern: string): AtlasRouteParams | undefined;
 }

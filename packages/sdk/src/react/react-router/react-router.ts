@@ -1,26 +1,15 @@
 import type { AtlasAppContext } from '../../lifecycle.js';
-import { readInnerUrl } from '../../navigation/inner-url/inner-url.js';
+import { readAppInnerUrl } from '../../navigation/app-inner-url/app-inner-url.js';
+import type { AppRouterLike, RouterLike } from './react-router.types.js';
 
-export interface RouterLike {
-  readonly state: {
-    location: { pathname: string; search?: string; hash?: string };
-    historyAction?: string;
-  };
-  navigate(
-    to: string | number,
-    options?: { replace?: boolean; state?: unknown },
-  ): Promise<void> | void;
-  subscribe(listener: () => void): () => void;
-}
-
-export interface AppRouterLike extends RouterLike {
-  dispose?(): void;
+export interface MemoryRouterOptions {
+  initialEntries: string[];
 }
 
 /** Options passed to React Router's createMemoryRouter for an Atlas app. */
-export function createRouterOptions(context: AtlasAppContext): {
-  initialEntries: string[];
-} {
+export function createRouterOptions(
+  context: AtlasAppContext,
+): MemoryRouterOptions {
   return { initialEntries: [readAtlasInnerUrl(context)] };
 }
 
@@ -36,11 +25,13 @@ export function connectRouter(
 
   const stopRouter = router.subscribe(() => {
     if (synchronizing) return;
-    syncAtlasFromRouter(router, context);
+
+    pushRouterUrlToHost(router, context);
   });
 
   const stopAtlas = context.route.subscribe(() => {
     const next = readAtlasInnerUrl(context);
+
     if (next === readRouterUrl(router)) return;
 
     synchronizing = true;
@@ -56,14 +47,15 @@ export function connectRouter(
 }
 
 export function readAtlasInnerUrl(context: AtlasAppContext): string {
-  return readInnerUrl(context);
+  return readAppInnerUrl(context);
 }
 
-function syncAtlasFromRouter(
+function pushRouterUrlToHost(
   router: AppRouterLike,
   context: AtlasAppContext,
 ): void {
   const next = readRouterUrl(router);
+
   if (next === readAtlasInnerUrl(context)) return;
 
   if (router.state.historyAction === 'REPLACE') {

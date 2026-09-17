@@ -4,6 +4,7 @@ import type { AtlasEventBus } from '../event-bus/index.js';
 import type {
   AtlasGetWidget,
   AtlasGetWidgetOptions,
+  AtlasHostData,
   AtlasNavigationState,
   AtlasSdk,
   AtlasSdkOptions,
@@ -16,14 +17,21 @@ import {
   connectAtlasWidgetResolver,
   createAtlasSdk,
   getAtlasNavigation,
+  type NavigationResolver,
 } from './index.js';
 
-interface CommerceHostSdk {
-  hostData: { storeId: string };
-  showToast(message: string): void;
+interface CommerceHostData {
+  storeId: string;
 }
 
-type NavigationResolver = (appId: string, state?: AtlasNavigationState) => void;
+type ShowToast = (message: string) => void;
+
+interface CommerceHostSdk {
+  hostData: CommerceHostData;
+  showToast: ShowToast;
+}
+
+type CommerceHostDataOption = CommerceHostData & Partial<AtlasHostData>;
 
 export class SdkFactoryDriver {
   private readonly navigation = aMemoryNavigation();
@@ -33,7 +41,7 @@ export class SdkFactoryDriver {
     hostId: faker.string.uuid(),
     navigation: this.navigation,
     hostData: { storeId: faker.string.uuid() },
-    showToast: jest.fn<CommerceHostSdk['showToast']>(),
+    showToast: jest.fn<ShowToast>(),
   };
   private sdk!: AtlasSdk<CommerceHostSdk>;
 
@@ -43,14 +51,12 @@ export class SdkFactoryDriver {
 
       return this;
     },
-    hostData: (
-      hostData: AtlasSdkOptions<CommerceHostSdk>['hostData'],
-    ): this => {
+    hostData: (hostData: CommerceHostDataOption): this => {
       this.options = { ...this.options, hostData };
 
       return this;
     },
-    showToast: (showToast: CommerceHostSdk['showToast']): this => {
+    showToast: (showToast: ShowToast): this => {
       this.options = { ...this.options, showToast };
 
       return this;
@@ -65,7 +71,7 @@ export class SdkFactoryDriver {
 
       return this;
     },
-    widgetHandle: (handle: AtlasWidgetHandle): this => {
+    widgetHandle: (handle: AtlasWidgetHandle<object>): this => {
       this.widgetResolver.mockReturnValue(handle);
 
       return this;
@@ -92,7 +98,8 @@ export class SdkFactoryDriver {
     widget: (
       widgetId: string,
       options?: AtlasGetWidgetOptions,
-    ): AtlasWidgetHandle => this.sdk.getWidget(widgetId, options),
+    ): AtlasWidgetHandle<object> =>
+      this.sdk.getWidget<object>(widgetId, options),
     widgetResolverMock: (): jest.Mock<AtlasGetWidget> => this.widgetResolver,
     navigationResolverMock: (): jest.Mock<NavigationResolver> =>
       this.navigationResolver,

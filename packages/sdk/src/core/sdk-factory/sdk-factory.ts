@@ -7,12 +7,12 @@ import type {
 import {
   assertPropertiesDoNotReplaceCore,
   createHostData,
-  readSdkProperties,
+  pickHostDefinedProperties,
 } from './sdk-properties.js';
 import {
   registerHostNavigation,
-  resolveNavigation,
-  resolveWidget,
+  navigateThroughHost,
+  resolveWidgetThroughHost,
 } from './sdk-resolvers.js';
 
 /** Creates the single host-owned SDK instance shared with mounted apps and widgets. */
@@ -23,7 +23,7 @@ export function createAtlasSdk<
   const core = createAtlasCoreSdk(options);
   registerHostNavigation(core, options.navigation);
 
-  const sdkProperties = readSdkProperties(options);
+  const sdkProperties = pickHostDefinedProperties(options);
   assertPropertiesDoNotReplaceCore(sdkProperties, core);
 
   return Object.assign(core, sdkProperties) as AtlasSdk<THostSdk, TEvents>;
@@ -35,10 +35,10 @@ function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
   const core: AtlasCoreSdk<object, TEvents> = {
     hostId: options.hostId,
     hostData: createHostData(options),
-    navigateTo: (appId, state) => resolveNavigation(core, appId, state),
+    navigateTo: (appId, state) => navigateThroughHost(core, appId, state),
     events: options.eventBus ?? createAtlasEventBus<TEvents>(),
     getWidget: (widgetId, widgetOptions) =>
-      resolveWidget(core, widgetId, widgetOptions),
+      resolveWidgetThroughHost(core, widgetId, widgetOptions),
   };
 
   return core;

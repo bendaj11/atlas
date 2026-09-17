@@ -13,7 +13,7 @@ const DEVELOPMENT_FACADE_DIRECTORY = join('.atlas', 'react-development');
 const REACT_PREAMBLE_IMPORT = 'import "@vitejs/plugin-react/preamble";';
 
 /** Prefers `src/bootstrap.tsx`; falls back to the legacy entry file name. */
-export function reactBootstrapPath(
+export function reactBootstrapEntryPath(
   projectRoot: string,
   legacyEntry: string,
 ): string {

@@ -6,7 +6,7 @@ import {
   reactWidgetEntry,
 } from './widget-entry-templates.cjs';
 
-export interface WidgetEntry {
+export interface GeneratedWidgetEntry {
   readonly name: string;
   /** Entry file path relative to the project root. */
   readonly entryPoint: string;
@@ -27,8 +27,10 @@ interface WriteWidgetEntryRequest {
 const GENERATED_WIDGETS_DIRECTORY = '.atlas/widgets';
 
 /** Writes one generated entry per `src/exported-widgets/<name>/` directory. */
-export function createAngularWidgetEntries(projectRoot: string): WidgetEntry[] {
-  return widgetNames(projectRoot).map((name) => ({
+export function createAngularWidgetEntries(
+  projectRoot: string,
+): GeneratedWidgetEntry[] {
+  return exportedWidgetNames(projectRoot).map((name) => ({
     name,
     entryPoint: writeWidgetEntry({
       projectRoot,
@@ -41,8 +43,8 @@ export function createAngularWidgetEntries(projectRoot: string): WidgetEntry[] {
 
 export function createReactWidgetEntries(
   options: ReactWidgetEntriesOptions,
-): WidgetEntry[] {
-  return widgetNames(options.projectRoot).map((name) => ({
+): GeneratedWidgetEntry[] {
+  return exportedWidgetNames(options.projectRoot).map((name) => ({
     name,
     entryPoint: writeWidgetEntry({
       projectRoot: options.projectRoot,
@@ -53,8 +55,9 @@ export function createReactWidgetEntries(
   }));
 }
 
-function widgetNames(projectRoot: string): string[] {
+function exportedWidgetNames(projectRoot: string): string[] {
   const widgetsRoot = join(projectRoot, EXPORTED_WIDGETS_DIRECTORY);
+
   if (!existsSync(widgetsRoot)) return [];
 
   return readdirSync(widgetsRoot, { withFileTypes: true })

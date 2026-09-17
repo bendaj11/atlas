@@ -8,10 +8,12 @@ export function scopePath(path: string, to: string): string {
   const normalizedPath = normalizePath(path);
   assertSameOrigin(to);
 
-  if (isWithinPath(to, normalizedPath)) return to;
+  if (isInsideAppPath(to, normalizedPath)) return to;
 
   const child = to.startsWith('/') ? to.slice(1) : to;
+
   if (child.length === 0) return normalizedPath;
+
   if (child.startsWith('?') || child.startsWith('#')) {
     return `${normalizedPath}${child}`;
   }
@@ -32,7 +34,7 @@ function assertSameOrigin(to: string): void {
   );
 }
 
-function isWithinPath(to: string, path: string): boolean {
+function isInsideAppPath(to: string, path: string): boolean {
   if (path === '/') return to.startsWith('/');
 
   return (

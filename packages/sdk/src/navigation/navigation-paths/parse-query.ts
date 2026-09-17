@@ -1,7 +1,7 @@
-export type QueryValues = Readonly<Record<string, string | string[]>>;
+import type { AtlasQueryValues } from '../navigation-types/navigation-types.js';
 
 /** Parses a search string; a key repeated in the search collects its values into an array. */
-export function parseQuery(search: string): QueryValues {
+export function parseQuery(search: string): AtlasQueryValues {
   const result: Record<string, string | string[]> = {};
 
   for (const [key, value] of new URLSearchParams(search)) {

@@ -4,20 +4,21 @@ import type {
   AtlasLocation,
   AtlasNavigation,
 } from '../../navigation/navigation-types/navigation-types.js';
-import { splitUrl } from '../../testkit/navigation.testkit.js';
-import type { RouterLike } from '../react-router/react-router.js';
+import { parseLocation } from '../../testkit/navigation.testkit.js';
+import type { RouterLike, RouterNavigate } from '../react-router/index.js';
 import { createHostNavigation } from './react-host-navigation.js';
 
 export class ReactHostNavigationDriver {
   private readonly origin = faker.internet.url({ appendSlash: false });
   private readonly subscribers = new Set<() => void>();
   private readonly listener = jest.fn<(location: AtlasLocation) => void>();
-  private readonly navigate = jest.fn<RouterLike['navigate']>((to) => {
-    if (typeof to === 'string') this.router.state.location = splitUrl(to);
+  private readonly navigate = jest.fn<RouterNavigate>((to) => {
+    if (typeof to === 'string') this.router.state.location = parseLocation(to);
+
     for (const subscriber of this.subscribers) subscriber();
   });
   private readonly router: RouterLike = {
-    state: { location: splitUrl('/') },
+    state: { location: parseLocation('/') },
     navigate: this.navigate,
     subscribe: (subscriber) => {
       this.subscribers.add(subscriber);
@@ -29,7 +30,7 @@ export class ReactHostNavigationDriver {
 
   readonly given = {
     routerUrl: (url: string): this => {
-      this.router.state.location = splitUrl(url);
+      this.router.state.location = parseLocation(url);
 
       return this;
     },
@@ -55,7 +56,7 @@ export class ReactHostNavigationDriver {
 
   readonly get = {
     navigation: (): AtlasNavigation => this.navigation,
-    navigateMock: (): jest.Mock<RouterLike['navigate']> => this.navigate,
+    navigateMock: (): jest.Mock<RouterNavigate> => this.navigate,
     listenerMock: (): jest.Mock<(location: AtlasLocation) => void> =>
       this.listener,
     origin: (): string => this.origin,
