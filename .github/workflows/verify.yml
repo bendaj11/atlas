@@ -132,22 +132,39 @@ jobs:
             package-manager: pnpm
           - os: windows-latest
             package-manager: pnpm
+          - os: ubuntu-latest
+            package-manager: pnpm
+            angular-version: '19.2.0'
+            react-version: '17.0.2'
+          - os: ubuntu-latest
+            package-manager: pnpm
+            angular-version: '21.0.0'
+            react-version: '18.3.1'
+          - os: ubuntu-latest
+            package-manager: pnpm
+            angular-version: '22.0.0'
+            react-version: '19.2.8'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - if: matrix.package-manager == 'pnpm'
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
           name: atlas-package-verification-${{ github.run_id }}
           path: dist/package-verification
-      - run: node scripts/verify-generated-projects.js --package-manager=${{ matrix.package-manager }}
+      - run: >-
+          pnpm exec tsx scripts/verify-generated-projects.ts
+          --package-manager=${{ matrix.package-manager }}
+          ${{ matrix.angular-version && format('--angular-version={0}', matrix.angular-version) || '' }}
+          ${{ matrix.react-version && format('--react-version={0}', matrix.react-version) || '' }}
 
   e2e:
     needs: changes
