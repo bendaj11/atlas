@@ -35,7 +35,7 @@ export type {
   AtlasProjectBuilder,
   AtlasPublishProgressReporter,
   AtlasPublishResult,
-} from './service/publish.service.js';
+} from './types.js';
 export { canonicalJson } from './static-registry/revision/registry-revision.js';
 export {
   descriptorFor,

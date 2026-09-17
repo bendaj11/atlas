@@ -26,10 +26,8 @@ import {
   registryRevision,
 } from '../static-registry/revision/registry-revision.js';
 import { emptyStaticRegistry } from '../static-registry/static-registry.js';
-import {
-  AtlasPublishService,
-  type AtlasProjectBuilder,
-} from './publish.service.js';
+import type { AtlasProjectBuilder } from '../types.js';
+import { AtlasPublishService } from './publish.service.js';
 import type { AtlasBuildResult } from '../../build/index.js';
 import { CliArguments } from '../../shared/index.js';
 
