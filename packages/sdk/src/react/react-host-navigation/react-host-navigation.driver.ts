@@ -29,7 +29,7 @@ export class ReactHostNavigationDriver {
   private navigation!: AtlasNavigation;
 
   readonly given = {
-    routerUrl: (url: string): this => {
+    routerUrl: (url: string) => {
       this.router.state.location = parseLocation(url);
 
       return this;
@@ -37,28 +37,27 @@ export class ReactHostNavigationDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       this.navigation = createHostNavigation(this.router, this.origin);
     },
-    subscribed: (): void => {
+    subscribed: () => {
       this.navigation.subscribe(this.listener);
     },
-    navigated: (to: string): void => {
+    navigated: (to: string) => {
       this.navigation.navigate(to);
     },
-    replaced: (to: string): void => {
+    replaced: (to: string) => {
       this.navigation.replace(to);
     },
-    wentBack: (): void => {
+    wentBack: () => {
       this.navigation.back();
     },
   };
 
   readonly get = {
-    navigation: (): AtlasNavigation => this.navigation,
-    navigateMock: (): jest.Mock<RouterNavigate> => this.navigate,
-    listenerMock: (): jest.Mock<(location: AtlasLocation) => void> =>
-      this.listener,
-    origin: (): string => this.origin,
+    navigation: () => this.navigation,
+    navigateMock: () => this.navigate,
+    listenerMock: () => this.listener,
+    origin: () => this.origin,
   };
 }

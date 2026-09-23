@@ -45,7 +45,7 @@ export class InjectAtlasSdkDriver {
   private atlas!: AngularAtlasSdk<CustomerHostSdk>;
 
   readonly given = {
-    appContext: (context: AtlasAppContext | undefined): this => {
+    appContext: (context: AtlasAppContext | undefined) => {
       this.context = context;
 
       return this;
@@ -53,24 +53,24 @@ export class InjectAtlasSdkDriver {
   };
 
   readonly when = {
-    injected: (): void => {
+    injected: () => {
       this.injector = createEnvironmentInjector(this.providers(), null!);
       this.atlas = runInInjectionContext(this.injector, () =>
         injectAtlasSdk<CustomerHostSdk>(),
       );
     },
-    userRenamed: (userName: string): void => {
+    userRenamed: (userName: string) => {
       updateAtlasHostData(this.sdk, { userName });
     },
-    injectorDestroyed: (): void => {
+    injectorDestroyed: () => {
       this.injector.destroy();
     },
   };
 
   readonly get = {
-    atlas: (): AngularAtlasSdk<CustomerHostSdk> => this.atlas,
-    greetMock: (): jest.Mock<Greet> => this.greet,
-    context: (): AtlasAppContext | undefined => this.context,
+    atlas: () => this.atlas,
+    greetMock: () => this.greet,
+    context: () => this.context,
   };
 
   private providers(): Provider[] {

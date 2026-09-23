@@ -5,7 +5,7 @@ export class NormalizePathDriver {
   private result: string | undefined;
 
   readonly given = {
-    path: (path: string): this => {
+    path: (path: string) => {
       this.path = path;
 
       return this;
@@ -13,15 +13,15 @@ export class NormalizePathDriver {
   };
 
   readonly when = {
-    pathNormalized: (): void => {
+    pathNormalized: () => {
       this.result = normalizePath(this.path);
     },
-    innerPathRead: (pathname: string): void => {
+    innerPathRead: (pathname: string) => {
       this.result = toInnerPath(this.path, pathname);
     },
   };
 
   readonly get = {
-    result: (): string | undefined => this.result,
+    result: () => this.result,
   };
 }

@@ -16,7 +16,7 @@ export class AngularLocationStrategyDriver {
   private strategy!: LocationStrategyAdapter;
 
   readonly given = {
-    innerUrl: (innerUrl: string): this => {
+    innerUrl: (innerUrl: string) => {
       this.context = anAppContext({ path: this.path });
       this.context.navigation.navigate(innerUrl);
 
@@ -25,30 +25,29 @@ export class AngularLocationStrategyDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       this.strategy = createLocationStrategy(this.context);
       this.strategy.onPopState(this.popState);
     },
-    routerPushed: (url: string, query: string): void => {
+    routerPushed: (url: string, query: string) => {
       this.strategy.pushState(undefined, '', url, query);
     },
-    routerReplaced: (url: string, query: string): void => {
+    routerReplaced: (url: string, query: string) => {
       this.strategy.replaceState(undefined, '', url, query);
     },
-    hostNavigated: (innerUrl: string): void => {
+    hostNavigated: (innerUrl: string) => {
       this.context.navigation.navigate(innerUrl);
     },
-    destroyed: (): void => {
+    destroyed: () => {
       this.strategy.ngOnDestroy();
     },
   };
 
   readonly get = {
-    strategy: (): LocationStrategyAdapter => this.strategy,
-    hostPath: (): string => this.path,
-    hostUrl: (): string =>
-      locationToUrl(this.context.navigation.getCurrentLocation()),
-    popStateMock: (): jest.Mock<PopStateListener> => this.popState,
+    strategy: () => this.strategy,
+    hostPath: () => this.path,
+    hostUrl: () => locationToUrl(this.context.navigation.getCurrentLocation()),
+    popStateMock: () => this.popState,
     hostGoMock: () => this.context.navigation.go,
     hostBackMock: () => this.context.navigation.back,
   };

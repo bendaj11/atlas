@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import { createAtlasSdk } from '../sdk-factory/index.js';
-import type { AtlasHostDataValue, AtlasSdk } from '../sdk-types/index.js';
+import type { AtlasSdk } from '../sdk-types/index.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { subscribeAtlasHostData, updateAtlasHostData } from './host-data.js';
 
@@ -20,7 +20,7 @@ export class HostDataDriver {
   private unsubscribe: (() => void) | undefined;
 
   readonly given = {
-    hostData: (hostData: ProjectHostData): this => {
+    hostData: (hostData: ProjectHostData) => {
       this.sdk = createAtlasSdk<ProjectHostSdk>({
         hostId: faker.string.uuid(),
         navigation: aMemoryNavigation(),
@@ -32,19 +32,19 @@ export class HostDataDriver {
   };
 
   readonly when = {
-    subscribed: (): void => {
+    subscribed: () => {
       this.unsubscribe = subscribeAtlasHostData(this.sdk, this.listener);
     },
-    unsubscribed: (): void => {
+    unsubscribed: () => {
       this.unsubscribe?.();
     },
-    hostDataUpdated: (updates: Partial<ProjectHostData>): void => {
+    hostDataUpdated: (updates: Partial<ProjectHostData>) => {
       updateAtlasHostData(this.sdk, updates);
     },
   };
 
   readonly get = {
-    hostData: (): AtlasHostDataValue<ProjectHostSdk> => this.sdk.hostData,
-    listenerMock: (): jest.Mock<() => void> => this.listener,
+    hostData: () => this.sdk.hostData,
+    listenerMock: () => this.listener,
   };
 }

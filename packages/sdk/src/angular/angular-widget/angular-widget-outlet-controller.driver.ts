@@ -69,14 +69,14 @@ export class AngularWidgetOutletControllerDriver {
   }
 
   readonly given = {
-    setInputsUnsupported: (): this => {
+    setInputsUnsupported: () => {
       this.mount.mockImplementation(async () => ({
         unmount: async () => undefined,
       }));
 
       return this;
     },
-    pendingMount: (): this => {
+    pendingMount: () => {
       let notifyStarted: () => void = () => undefined;
       this.mountStarted = new Promise<void>((resolve) => {
         notifyStarted = resolve;
@@ -96,31 +96,26 @@ export class AngularWidgetOutletControllerDriver {
   };
 
   readonly when = {
-    rendered: async (widgetId: string, inputs: WidgetInputs): Promise<void> => {
-      await this.controller.render(this.binding(widgetId, inputs));
-    },
-    renderStarted: (widgetId: string, inputs: WidgetInputs): Promise<void> => {
+    rendered: (widgetId: string, inputs: WidgetInputs) =>
+      this.controller.render(this.binding(widgetId, inputs)),
+    renderStarted: (widgetId: string, inputs: WidgetInputs) => {
       return this.controller.render(this.binding(widgetId, inputs));
     },
-    mountStarted: (): Promise<void> => this.mountStarted,
-    mountReleased: (): void => {
+    mountStarted: () => this.mountStarted,
+    mountReleased: () => {
       this.releaseMount?.();
     },
-    destroyed: async (): Promise<void> => {
-      await this.controller.destroy();
-    },
-    destroyStarted: (): Promise<void> => this.controller.destroy(),
-    foreignBindingRendered: (widgetId: string): Promise<void> =>
+    destroyed: () => this.controller.destroy(),
+    destroyStarted: () => this.controller.destroy(),
+    foreignBindingRendered: (widgetId: string) =>
       this.controller.render({ widgetId, inputs: { count: 0 } }),
   };
 
   readonly get = {
-    mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
-    setInputsMock: (): jest.Mock<(inputs: WidgetInputs) => void> =>
-      this.setInputs,
-    handleErrorMock: (): jest.Mock<(error: unknown) => void> =>
-      this.handleError,
-    lifecycle: (): readonly string[] => this.lifecycle,
+    mountMock: () => this.mount,
+    setInputsMock: () => this.setInputs,
+    handleErrorMock: () => this.handleError,
+    lifecycle: () => this.lifecycle,
   };
 
   private binding(

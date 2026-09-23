@@ -5,7 +5,7 @@ export class ScopePathDriver {
   private result: string | undefined;
 
   readonly given = {
-    path: (path: string): this => {
+    path: (path: string) => {
       this.path = path;
 
       return this;
@@ -13,12 +13,12 @@ export class ScopePathDriver {
   };
 
   readonly when = {
-    pathScoped: (to: string): void => {
+    pathScoped: (to: string) => {
       this.result = scopePath(this.path, to);
     },
   };
 
   readonly get = {
-    result: (): string | undefined => this.result,
+    result: () => this.result,
   };
 }

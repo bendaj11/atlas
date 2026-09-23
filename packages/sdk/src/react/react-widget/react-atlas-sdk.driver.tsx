@@ -1,5 +1,4 @@
 import { faker } from '@faker-js/faker';
-import type { ComponentType } from 'react';
 import {
   connectAtlasWidgetResolver,
   createAtlasSdk,
@@ -28,7 +27,7 @@ export class ReactAtlasSdkDriver {
   }
 
   readonly given = {
-    remoteEntryUrl: (remoteEntryUrl: string): this => {
+    remoteEntryUrl: (remoteEntryUrl: string) => {
       this.reactSdk = createReactAtlasSdk(
         this.sdk,
         anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
@@ -39,8 +38,7 @@ export class ReactAtlasSdkDriver {
   };
 
   readonly get = {
-    widget: (widgetId: string): ComponentType<object> =>
-      this.reactSdk.getWidget<object>(widgetId),
-    reactSdk: (): ReactAtlasSdk => this.reactSdk,
+    widget: (widgetId: string) => this.reactSdk.getWidget<object>(widgetId),
+    reactSdk: () => this.reactSdk,
   };
 }

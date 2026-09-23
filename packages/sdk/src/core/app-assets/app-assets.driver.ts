@@ -11,7 +11,7 @@ export class AppAssetsDriver {
   private facade!: AtlasAppAssets;
 
   readonly given = {
-    remoteEntryUrl: (remoteEntryUrl: string): this => {
+    remoteEntryUrl: (remoteEntryUrl: string) => {
       this.facade = createAtlasAppAssetFacade(
         {},
         anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
@@ -22,6 +22,6 @@ export class AppAssetsDriver {
   };
 
   readonly get = {
-    assets: (): AtlasAppAssets => this.facade,
+    assets: () => this.facade,
   };
 }

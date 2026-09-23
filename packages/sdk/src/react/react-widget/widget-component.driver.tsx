@@ -71,12 +71,12 @@ export class WidgetComponentDriver {
   private rendered: RenderResult | undefined;
 
   readonly given = {
-    loadingComponent: (component: ComponentType | undefined): this => {
+    loadingComponent: (component: ComponentType | undefined) => {
       this.loadingComponent = component ?? Loading;
 
       return this;
     },
-    mountRejection: (error: Error): this => {
+    mountRejection: (error: Error) => {
       this.mount.mockRejectedValue(error);
 
       return this;
@@ -84,24 +84,18 @@ export class WidgetComponentDriver {
   };
 
   readonly when = {
-    widgetRendered: async (
-      widgetId: string,
-      inputs: WidgetInputs,
-    ): Promise<void> => {
+    widgetRendered: async (widgetId: string, inputs: WidgetInputs) => {
       this.rendered = render(this.element(widgetId, inputs));
       await Promise.resolve();
     },
-    widgetRerendered: async (
-      widgetId: string,
-      inputs: WidgetInputs,
-    ): Promise<void> => {
+    widgetRerendered: async (widgetId: string, inputs: WidgetInputs) => {
       this.rendered?.rerender(this.element(widgetId, inputs));
       await Promise.resolve();
     },
-    widgetUnmounted: (): void => {
+    widgetUnmounted: () => {
       this.rendered?.unmount();
     },
-    loadingShown: async (): Promise<() => void> => {
+    loadingShown: async () => {
       const options = this.getWidget.mock.calls[0]?.[1];
       const renderLoading =
         options?.renderLoading as AtlasWidgetLoadingRenderer;
@@ -114,15 +108,14 @@ export class WidgetComponentDriver {
   };
 
   readonly get = {
-    mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
-    setInputsMock: (): jest.Mock<(inputs: WidgetInputs) => void> =>
-      this.setInputs,
-    unmountMock: (): jest.Mock<() => Promise<void>> => this.unmount,
-    container: (widgetId: string): HTMLElement | null =>
+    mountMock: () => this.mount,
+    setInputsMock: () => this.setInputs,
+    unmountMock: () => this.unmount,
+    container: (widgetId: string) =>
       document.querySelector(`[data-atlas-widget-container="${widgetId}"]`),
-    loadingIndicator: (): HTMLElement | null =>
+    loadingIndicator: () =>
       screen.queryByRole('status', { name: LOADING_LABEL }),
-    errorCode: (): string | null =>
+    errorCode: () =>
       screen.getByRole('status', { name: ERROR_LABEL }).textContent,
   };
 

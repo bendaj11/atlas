@@ -9,7 +9,6 @@ import {
   connectRouter,
   createRouterOptions,
   type AppRouterLike,
-  type RouterLocation,
 } from './index.js';
 
 export class ReactRouterDriver {
@@ -20,7 +19,7 @@ export class ReactRouterDriver {
   private disconnect: (() => void) | undefined;
 
   readonly given = {
-    hostUrl: (innerUrl: string): this => {
+    hostUrl: (innerUrl: string) => {
       this.context = anAppContext({ path: this.path });
       this.context.navigation.navigate(innerUrl);
       this.router = this.createRouter(innerUrl);
@@ -30,28 +29,26 @@ export class ReactRouterDriver {
   };
 
   readonly when = {
-    connected: (): void => {
+    connected: () => {
       this.disconnect = connectRouter(this.router, this.context);
     },
-    disconnected: (): void => {
+    disconnected: () => {
       this.disconnect?.();
     },
-    routerNavigated: (to: string, options?: { replace?: boolean }): void => {
+    routerNavigated: (to: string, options?: { replace?: boolean }) => {
       void this.router.navigate(to, options);
     },
-    hostNavigated: async (innerUrl: string): Promise<void> => {
+    hostNavigated: async (innerUrl: string) => {
       this.context.navigation.navigate(innerUrl);
       await Promise.resolve();
     },
   };
 
   readonly get = {
-    routerOptions: (): { initialEntries: string[] } =>
-      createRouterOptions(this.context),
-    hostUrl: (): string =>
-      locationToUrl(this.context.navigation.getCurrentLocation()),
-    hostPath: (): string => this.path,
-    routerLocation: (): RouterLocation => this.router.state.location,
+    routerOptions: () => createRouterOptions(this.context),
+    hostUrl: () => locationToUrl(this.context.navigation.getCurrentLocation()),
+    hostPath: () => this.path,
+    routerLocation: () => this.router.state.location,
   };
 
   private createRouter(innerUrl: string): AppRouterLike {

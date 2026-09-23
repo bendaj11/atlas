@@ -5,12 +5,12 @@ export class MatchRoutePatternDriver {
   private result: AtlasRouteParams | undefined;
 
   readonly when = {
-    patternMatched: (pattern: string, pathname: string): void => {
+    patternMatched: (pattern: string, pathname: string) => {
       this.result = matchRoutePattern(pattern, pathname);
     },
   };
 
   readonly get = {
-    result: (): AtlasRouteParams | undefined => this.result,
+    result: () => this.result,
   };
 }

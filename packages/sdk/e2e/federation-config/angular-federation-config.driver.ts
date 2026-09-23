@@ -20,7 +20,7 @@ export class AngularFederationConfigDriver {
   private config: AngularConfigResult | undefined;
 
   readonly given = {
-    exampleProject: (project: ExampleProject): this => {
+    exampleProject: (project: ExampleProject) => {
       this.projectRoot = exampleProjectRoot(project);
 
       return this;
@@ -28,7 +28,7 @@ export class AngularFederationConfigDriver {
   };
 
   readonly when = {
-    configCreated: async (expose: AngularProjectExpose): Promise<void> => {
+    configCreated: async (expose: AngularProjectExpose) => {
       const options = { projectRoot: this.projectRoot, name: 'test', expose };
       this.config = await runFederationFactoryScript<AngularConfigResult>([
         `const config = factory.createAngularFederationConfig(${JSON.stringify(options)});`,
@@ -38,13 +38,12 @@ export class AngularFederationConfigDriver {
   };
 
   readonly get = {
-    exposes: (): Record<string, string> => this.config?.exposes ?? {},
-    skip: (): string[] => this.config?.skip ?? [],
-    shared: (packageName: string): Record<string, unknown> | undefined =>
-      this.config?.shared[packageName],
-    workspaceFile: (path: string): Promise<string> =>
+    exposes: () => this.config?.exposes ?? {},
+    skip: () => this.config?.skip ?? [],
+    shared: (packageName: string) => this.config?.shared[packageName],
+    workspaceFile: (path: string) =>
       readFile(resolve(WORKSPACE_ROOT, path), 'utf8'),
-    missingWorkspaceFiles: (paths: readonly string[]): Promise<string[]> =>
+    missingWorkspaceFiles: (paths: readonly string[]) =>
       missingFiles(WORKSPACE_ROOT, paths),
   };
 }

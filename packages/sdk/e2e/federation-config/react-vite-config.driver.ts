@@ -58,33 +58,33 @@ export class ReactViteConfigDriver {
   private hotUpdateResult: unknown;
 
   readonly given = {
-    exampleProject: (project: ExampleProject): this => {
+    exampleProject: (project: ExampleProject) => {
       this.projectRoot = exampleProjectRoot(project);
       this.projectName = project.split('/')[1] ?? project;
 
       return this;
     },
-    fixtureProject: async (): Promise<this> => {
+    fixtureProject: async () => {
       this.projectRoot = await aReactFederationFixture();
 
       return this;
     },
-    emptyProject: async (): Promise<this> => {
+    emptyProject: async () => {
       this.projectRoot = await anEmptyReactProject();
 
       return this;
     },
-    entrySource: async (source: string): Promise<this> => {
+    entrySource: async (source: string) => {
       await writeFile(join(this.projectRoot, 'src/entry.tsx'), source);
 
       return this;
     },
-    reactMajor: (reactMajor: number): this => {
+    reactMajor: (reactMajor: number) => {
       this.reactMajor = reactMajor;
 
       return this;
     },
-    skip: (skip: readonly SkipEntry[]): this => {
+    skip: (skip: readonly SkipEntry[]) => {
       this.skip = skip;
 
       return this;
@@ -92,7 +92,7 @@ export class ReactViteConfigDriver {
   };
 
   readonly when = {
-    widgetEntriesCreated: async (): Promise<void> => {
+    widgetEntriesCreated: async () => {
       const options = {
         projectRoot: this.projectRoot,
         reactMajor: this.reactMajor,
@@ -103,7 +103,7 @@ export class ReactViteConfigDriver {
         `process.stdout.write(JSON.stringify(factory.createReactWidgetEntries(${JSON.stringify(options)})));`,
       ]);
     },
-    appConfigCreated: (): void => {
+    appConfigCreated: () => {
       this.config = createReactAppViteConfig({
         projectRoot: this.projectRoot,
         projectName: this.projectName,
@@ -111,13 +111,13 @@ export class ReactViteConfigDriver {
         skip: this.skip,
       });
     },
-    hostConfigCreated: (): void => {
+    hostConfigCreated: () => {
       this.config = createReactHostViteConfig({
         projectRoot: this.projectRoot,
         projectName: this.projectName,
       });
     },
-    hotUpdateHandled: (file: string): void => {
+    hotUpdateHandled: (file: string) => {
       const plugin = this.plugin('atlas-react-source-reload');
       const handleHotUpdate = plugin.handleHotUpdate as (
         context: unknown,
@@ -128,19 +128,18 @@ export class ReactViteConfigDriver {
         server: { ws: { send: this.send } },
       });
     },
-    productionBuilt: async (): Promise<void> => {
-      await buildVite({
+    productionBuilt: () =>
+      buildVite({
         ...this.config,
         configFile: false,
         root: this.projectRoot,
         logLevel: 'silent',
         resolve: { alias: { '@app': join(this.projectRoot, 'src') } },
-      });
-    },
+      }),
   };
 
   readonly get = {
-    widgetEntrySource: (name: string): Promise<string> => {
+    widgetEntrySource: (name: string) => {
       const entry = this.widgetEntries.find(
         (candidate) => candidate.name === name,
       );
@@ -149,31 +148,30 @@ export class ReactViteConfigDriver {
 
       return readFile(resolve(this.projectRoot, entry.entryPoint), 'utf8');
     },
-    pluginNames: (): string[] =>
+    pluginNames: () =>
       (this.config?.plugins as Plugin[]).map(({ name }) => name),
-    rollupInputNames: (): string[] =>
+    rollupInputNames: () =>
       Object.keys(
         this.config?.build?.rollupOptions?.input as Record<string, string>,
       ),
-    external: (source: string): boolean =>
+    external: (source: string) =>
       (
         this.config?.build?.rollupOptions?.external as (
           source: string,
         ) => boolean
       )(source),
-    servedMetadata: (pluginName: string): FederationMetadata =>
-      this.servedMetadata(pluginName),
-    sharedPackageNames: (): string[] =>
+    servedMetadata: (pluginName: string) => this.servedMetadata(pluginName),
+    sharedPackageNames: () =>
       this.servedMetadata('atlas-native-federation-metadata').shared.map(
         ({ packageName }) => packageName,
       ),
-    sendMock: (): jest.Mock<(event: unknown) => void> => this.send,
-    hotUpdateResult: (): unknown => this.hotUpdateResult,
-    projectFile: (path: string): Promise<string> =>
+    sendMock: () => this.send,
+    hotUpdateResult: () => this.hotUpdateResult,
+    projectFile: (path: string) =>
       readFile(join(this.projectRoot, path), 'utf8'),
-    distModule: (path: string): Promise<Record<string, unknown>> =>
+    distModule: (path: string) =>
       import(pathToFileURL(join(this.projectRoot, 'dist', path)).href),
-    missingDistFiles: (paths: readonly string[]): Promise<string[]> =>
+    missingDistFiles: (paths: readonly string[]) =>
       missingFiles(join(this.projectRoot, 'dist'), paths),
   };
 

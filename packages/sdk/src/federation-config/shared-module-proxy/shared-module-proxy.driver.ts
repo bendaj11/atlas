@@ -45,29 +45,29 @@ export class SharedModuleProxyDriver {
   private code: string | undefined;
 
   readonly given = {
-    defaultExport: (value: boolean | null): this => {
+    defaultExport: (value: boolean | null) => {
       this.moduleInfo.hasDefaultExport = value;
 
       return this;
     },
-    commonJsExports: (names: readonly string[]): this => {
+    commonJsExports: (names: readonly string[]) => {
       this.moduleInfo.hasDefaultExport = true;
       this.moduleInfo.syntheticNamedExports = '__moduleExports';
       this.readCommonJsExports.mockReturnValue(names);
 
       return this;
     },
-    unresolvedEntry: (value: undefined): this => {
+    unresolvedEntry: (value: undefined) => {
       this.resolveEntry.mockResolvedValue(value);
 
       return this;
     },
-    externalEntry: (id: string): this => {
+    externalEntry: (id: string) => {
       this.resolve.mockResolvedValue({ id, external: true });
 
       return this;
     },
-    failedTransform: (message: string): this => {
+    failedTransform: (message: string) => {
       this.load.mockRejectedValue(new Error(message));
 
       return this;
@@ -75,14 +75,14 @@ export class SharedModuleProxyDriver {
   };
 
   readonly when = {
-    load: async (): Promise<void> => {
+    load: async () => {
       this.environment = await this.buildEnvironment();
       this.code = await loadSharedProxy({
         context: {
           environment: this.environment,
           resolve: this.resolve,
           load: this.load,
-          error: (message: string): never => {
+          error: (message: string) => {
             throw new Error(message);
           },
         },
@@ -95,13 +95,12 @@ export class SharedModuleProxyDriver {
   };
 
   readonly get = {
-    code: (): string | undefined => this.code,
-    commonJsReaderMock: (): jest.Mock<ReadCommonJsExports> =>
-      this.readCommonJsExports,
-    resolveEntryMock: (): jest.Mock<ViteIdResolver> => this.resolveEntry,
-    environment: (): Environment | undefined => this.environment,
-    specifier: (): string => this.specifier,
-    importer: (): string => this.importer,
+    code: () => this.code,
+    commonJsReaderMock: () => this.readCommonJsExports,
+    resolveEntryMock: () => this.resolveEntry,
+    environment: () => this.environment,
+    specifier: () => this.specifier,
+    importer: () => this.importer,
   };
 
   private async buildEnvironment(): Promise<Environment> {

@@ -17,7 +17,7 @@ export class UseAtlasStyleTargetDriver {
   private readonly styleTarget = document.createElement('div');
 
   readonly when = {
-    rendered: (): void => {
+    rendered: () => {
       render(
         createElement(
           AtlasStyleTargetContext.Provider,
@@ -28,7 +28,7 @@ export class UseAtlasStyleTargetDriver {
         ),
       );
     },
-    renderedWithoutProvider: (): void => {
+    renderedWithoutProvider: () => {
       render(
         createElement(StyleTargetConsumer, {
           expectedTarget: this.styleTarget,
@@ -38,7 +38,7 @@ export class UseAtlasStyleTargetDriver {
   };
 
   readonly get = {
-    status: (): string | null =>
+    status: () =>
       screen.getByRole('status', { name: STATUS_LABEL }).textContent,
   };
 }

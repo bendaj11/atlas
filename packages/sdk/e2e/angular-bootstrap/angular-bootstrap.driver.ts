@@ -73,14 +73,14 @@ export class AngularBootstrapDriver {
   private bootstrapFailure?: Error;
 
   readonly given = {
-    bootstrapFailure: (message: string): this => {
+    bootstrapFailure: (message: string) => {
       this.bootstrapFailure = new Error(message);
       return this;
     },
   };
 
   readonly when = {
-    injectInHost: (): void => {
+    injectInHost: () => {
       const injector = createEnvironmentInjector(
         [
           provideAtlasSdk(() => this.hostSdk),
@@ -93,10 +93,10 @@ export class AngularBootstrapDriver {
         runInInjectionContext(injector, () => injectAtlasSdk<CustomerSdk>()),
       );
     },
-    sendMessage: (): void => {
+    sendMessage: () => {
       this.injectedSdks[0].showMessage(this.message);
     },
-    mount: async (remoteEntryUrl: string): Promise<void> => {
+    mount: async (remoteEntryUrl: string) => {
       const app = defineApp(async (request) => {
         if (this.bootstrapFailure) throw this.bootstrapFailure;
 
@@ -119,29 +119,28 @@ export class AngularBootstrapDriver {
         context: anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
       });
     },
-    updateHostData: (userName: string): void => {
+    updateHostData: (userName: string) => {
       updateAtlasHostData(this.hostSdk, { userName });
     },
-    cleanup: (): void => {
+    cleanup: () => {
       for (const injector of this.injectors) injector.destroy();
     },
   };
 
   readonly get = {
-    injectedHostId: (): string => this.injectedSdks[0].hostId,
-    hostId: (): string => this.hostSdk.hostId,
+    injectedHostId: () => this.injectedSdks[0].hostId,
+    hostId: () => this.hostSdk.hostId,
     messageHandler: () => this.showMessage,
-    message: (): string => this.message,
-    assetBaseUrl: (): string => this.injectedSdks[0].assetBaseUrl(),
-    assetUrl: (path: string): string => this.injectedSdks[0].assetUrl(path),
-    hostSdk: (): AtlasSdk<CustomerSdk> => this.hostSdk,
-    bootstrapSdk: (): AtlasSdk | undefined => this.bootstrapSdk,
-    copiedSdk: (): object => ({ ...this.bootstrapSdk }),
-    configuredBaseUrls: (): string[] =>
+    message: () => this.message,
+    assetBaseUrl: () => this.injectedSdks[0].assetBaseUrl(),
+    assetUrl: (path: string) => this.injectedSdks[0].assetUrl(path),
+    hostSdk: () => this.hostSdk,
+    bootstrapSdk: () => this.bootstrapSdk,
+    copiedSdk: () => ({ ...this.bootstrapSdk }),
+    configuredBaseUrls: () =>
       this.injectors.map((injector) => injector.get(ASSET_BASE_URL)),
-    configuredLogoUrls: (): string[] =>
+    configuredLogoUrls: () =>
       this.injectors.map((injector) => injector.get(LOGO_URL)),
-    userNames: (): string[] =>
-      this.injectedSdks.map((sdk) => sdk.hostData().userName),
+    userNames: () => this.injectedSdks.map((sdk) => sdk.hostData().userName),
   };
 }

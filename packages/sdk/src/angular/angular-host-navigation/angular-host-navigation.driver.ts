@@ -49,12 +49,12 @@ export class AngularHostNavigationDriver {
   }
 
   readonly given = {
-    routerUrl: (url: string): this => {
+    routerUrl: (url: string) => {
       this.currentUrl = url;
 
       return this;
     },
-    historyGoSupported: (supported: boolean): this => {
+    historyGoSupported: (supported: boolean) => {
       this.location = supported
         ? { back: this.back, historyGo: this.historyGo }
         : { back: this.back };
@@ -64,43 +64,42 @@ export class AngularHostNavigationDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       this.navigation = createHostNavigation(
         this.router,
         this.location,
         this.origin,
       );
     },
-    subscribed: (): void => {
+    subscribed: () => {
       this.navigation.subscribe(this.listener);
     },
-    navigated: (to: string): void => {
+    navigated: (to: string) => {
       this.navigation.navigate(to);
     },
-    replaced: (to: string): void => {
+    replaced: (to: string) => {
       this.navigation.replace(to);
     },
-    wentBack: (): void => {
+    wentBack: () => {
       this.navigation.back();
     },
-    historyMoved: (delta: number): void => {
+    historyMoved: (delta: number) => {
       this.navigation.go?.(delta);
     },
-    routerEventEmitted: (): void => {
+    routerEventEmitted: () => {
       this.routerListener?.();
     },
-    routerUrlChanged: (url: string): void => {
+    routerUrlChanged: (url: string) => {
       this.currentUrl = url;
     },
   };
 
   readonly get = {
-    navigation: (): AtlasNavigation => this.navigation,
-    origin: (): string => this.origin,
-    navigateByUrlMock: (): jest.Mock<NavigateByUrl> => this.navigateByUrl,
-    backMock: (): jest.Mock<LocationBack> => this.back,
-    historyGoMock: (): jest.Mock<LocationHistoryGo> => this.historyGo,
-    listenerMock: (): jest.Mock<(location: AtlasLocation) => void> =>
-      this.listener,
+    navigation: () => this.navigation,
+    origin: () => this.origin,
+    navigateByUrlMock: () => this.navigateByUrl,
+    backMock: () => this.back,
+    historyGoMock: () => this.historyGo,
+    listenerMock: () => this.listener,
   };
 }

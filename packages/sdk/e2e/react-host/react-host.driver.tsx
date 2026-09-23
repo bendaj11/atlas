@@ -64,14 +64,14 @@ export class ReactHostDriver {
   });
 
   readonly when = {
-    renderHost: (): void => {
+    renderHost: () => {
       render(
         <AtlasSdkProvider sdk={this.sdk}>
           <HostFixture message={this.message} />
         </AtlasSdkProvider>,
       );
     },
-    renderApp: (remoteEntryUrl: string): void => {
+    renderApp: (remoteEntryUrl: string) => {
       render(
         <AtlasSdkProvider sdk={this.sdk}>
           <AtlasRuntimeContext.Provider
@@ -84,38 +84,27 @@ export class ReactHostDriver {
         </AtlasSdkProvider>,
       );
     },
-    updateHostData: async (): Promise<void> => {
-      await act(async () =>
+    updateHostData: () =>
+      act(async () =>
         updateAtlasHostData(this.sdk, { userName: this.updatedName }),
-      );
-    },
-    sendMessage: async (): Promise<void> => {
-      await this.user.click(
-        screen.getByRole('button', { name: 'Send message' }),
-      );
-    },
-    readAssetBase: async (): Promise<void> => {
-      await this.user.click(
-        screen.getByRole('button', { name: 'Read asset base' }),
-      );
-    },
-    readAssetUrl: async (): Promise<void> => {
-      await this.user.click(
-        screen.getByRole('button', { name: 'Read asset URL' }),
-      );
-    },
-    cleanup: (): void => cleanup(),
+      ),
+    sendMessage: () =>
+      this.user.click(screen.getByRole('button', { name: 'Send message' })),
+    readAssetBase: () =>
+      this.user.click(screen.getByRole('button', { name: 'Read asset base' })),
+    readAssetUrl: () =>
+      this.user.click(screen.getByRole('button', { name: 'Read asset URL' })),
+    cleanup: () => cleanup(),
   };
 
   readonly get = {
-    renderedHostId: (): string | null =>
+    renderedHostId: () =>
       screen.getByRole('status', { name: 'Host ID' }).textContent,
-    hostId: (): string => this.sdk.hostId,
+    hostId: () => this.sdk.hostId,
     messageHandler: () => this.showMessage,
-    message: (): string => this.message,
-    assetResult: (): string | null =>
-      screen.getByLabelText('Asset result').textContent,
-    updatedHostName: async (): Promise<string | null> =>
+    message: () => this.message,
+    assetResult: () => screen.getByLabelText('Asset result').textContent,
+    updatedHostName: async () =>
       waitFor(() => {
         const name = screen.getByRole('status', {
           name: 'Host user',
@@ -124,6 +113,6 @@ export class ReactHostDriver {
           throw new Error('Host data has not updated');
         return name;
       }),
-    updatedName: (): string => this.updatedName,
+    updatedName: () => this.updatedName,
   };
 }
