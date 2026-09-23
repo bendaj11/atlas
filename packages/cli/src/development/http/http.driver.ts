@@ -1,11 +1,11 @@
 import { createServer, type Server } from 'node:http';
 import { jest } from '@jest/globals';
-import type { ui as uiType } from '../../src/shared/index.js';
+import type { ui as uiType } from '../../shared/index.js';
 
 const info = jest.fn<typeof uiType.info>();
 
-const uiModule = await import('../../src/shared/ui/ui.js');
-jest.unstable_mockModule('../../src/shared/ui/ui.js', () => ({
+const uiModule = await import('../../shared/ui/ui.js');
+jest.unstable_mockModule('../../shared/ui/ui.js', () => ({
   ...uiModule,
   ui: { info, warning: jest.fn(), success: jest.fn(), error: jest.fn() },
 }));
@@ -20,7 +20,7 @@ const {
   readJsonRequest,
   writeError,
   writeJson,
-} = await import('../../src/development/http/http.js');
+} = await import('./http.js');
 
 export class HttpDriver {
   private server?: Server;

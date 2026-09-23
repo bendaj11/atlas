@@ -1,23 +1,14 @@
 import type { AtlasConfig, AtlasVersionChannel } from '@atlas/schema';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { discoverStylesheets, extractStylesheetPathsFromIndex } =
-  await import('./stylesheets.js');
+  discoverStylesheets,
+  extractStylesheetPathsFromIndex,
+} from './stylesheets.js';
 
 export class StylesheetsDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private framework: AtlasConfig['framework'] = 'react';
   private channel: AtlasVersionChannel = 'production';
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     artifactRoot: async () => {

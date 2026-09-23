@@ -3,23 +3,18 @@ import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
 import { anAppArtifactManifest } from '@atlas/testkit';
 import type { PublicationFile } from './publication-files.js';
 import type { AtlasBuildResult } from '../../build/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject } from '../../workspace/workspace.testkit.js';
+import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { aProject } = await import('../../workspace/workspace.testkit.js');
-const { InMemoryPublicationStorage } =
-  await import('../publication-storage/publication-storage.testkit.js');
-const { preparePublicationFiles, derivePublicationIdentity, uploadAndVerify } =
-  await import('./publication-files.js');
-const { computeSha256Digest } = await import('../../shared/index.js');
+  preparePublicationFiles,
+  derivePublicationIdentity,
+  uploadAndVerify,
+} from './publication-files.js';
+import { computeSha256Digest } from '../../shared/index.js';
 
 export class PublicationFilesDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly storage = new InMemoryPublicationStorage();
   private readonly files: AtlasPublishedArtifactManifest['files'] = [];
   private readonly id = faker.string.uuid();
@@ -28,10 +23,6 @@ export class PublicationFilesDriver {
     AtlasPublishedArtifactManifest,
     'release' | 'preview'
   > = { release: { version: faker.system.semver() } };
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     sourceDirectory: async () => {

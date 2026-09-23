@@ -1,31 +1,18 @@
 import type { AtlasProjectType } from '../../workspace/index.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { readFile } = await import('node:fs/promises');
-const { ensureAngularNativeFederationTargets } =
-  await import('./angular-targets.js');
-const { ensureAngularBuildNotifications } =
-  await import('./angular-workspace.js');
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { readFile } from 'node:fs/promises';
+import { ensureAngularNativeFederationTargets } from './angular-targets.js';
+import { ensureAngularBuildNotifications } from './angular-workspace.js';
 
 const NATIVE_FEDERATION_BUILDER = '@angular-architects/native-federation:build';
 const PROJECT_NAME = 'catalog';
 
 export class AngularGenerationDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly targets: Record<string, unknown> = {
     build: { builder: '@angular-devkit/build-angular:application' },
     serve: { builder: '@angular-devkit/build-angular:dev-server' },
   };
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     nxProject: async () => {

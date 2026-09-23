@@ -1,12 +1,9 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasHostCatalog } from '@atlas/schema';
 import { aHostCatalog, aHostManifest, anAppManifest } from '@atlas/testkit';
-import { anOverrideDocument } from '../../src/development/development.testkit.js';
-import type {
-  AtlasDevOverrideDocument,
-  DevControlServer,
-} from '../../src/development/types.js';
-import { startControlServer } from '../../src/development/control-server/control-server.js';
+import { anOverrideDocument } from '../development.testkit.js';
+import type { AtlasDevOverrideDocument, DevControlServer } from '../types.js';
+import { startControlServer } from './control-server.js';
 
 export class ControlServerDriver {
   private readonly appId = faker.string.uuid();

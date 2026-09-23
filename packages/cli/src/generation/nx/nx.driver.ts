@@ -1,26 +1,17 @@
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import type { SupportedFramework } from '../../shared/index.js';
-import {
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { alignDelegatedAngularFederationConfig } from './delegated-federation-config.js';
+import { alignDelegatedTsconfig } from './delegated-tsconfig.js';
+import { createAtlasConfigNxTarget, createNxTarget } from './nx-targets.js';
+import { ensureDelegatedNxTargets } from './nx.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 type ProjectType = 'host' | 'app';
 
-const { mkdir, mkdtemp, readFile, writeFile } =
-  await import('node:fs/promises');
-const { alignDelegatedAngularFederationConfig } =
-  await import('./delegated-federation-config.js');
-const { alignDelegatedTsconfig } = await import('./delegated-tsconfig.js');
-const { createAtlasConfigNxTarget, createNxTarget } =
-  await import('./nx-targets.js');
-const { ensureDelegatedNxTargets } = await import('./nx.js');
-
 export class NxDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly name = faker.word.noun().toLowerCase();
   private readonly packageManager = faker.helpers.arrayElement([
     'npm',
@@ -32,10 +23,6 @@ export class NxDriver {
   private workspaceRoot = '';
   private projectRoot = '';
   private value?: unknown;
-
-  constructor() {
-    resetFileSystem();
-  }
 
   given = {
     federationConfig: async () => {
@@ -233,7 +220,7 @@ module.exports = {
   };
 
   private async createRoots(): Promise<void> {
-    this.workspaceRoot = await mkdtemp(join(tmpdir(), 'atlas-nx-'));
+    this.workspaceRoot = await this.temporaryDirectory.create('atlas-nx-');
     this.projectRoot = join(this.workspaceRoot, 'apps', this.name);
 
     await mkdir(this.projectRoot, { recursive: true });

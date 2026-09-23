@@ -1,25 +1,14 @@
 import { relative } from 'node:path';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const {
   detectGenerationBases,
   detectPackageManager,
   detectWorkspaceKind,
   findWorkspaceRoot,
-} = await import('./detection.js');
+} from './detection.js';
 
 export class DetectionDriver {
-  private readonly directory = new InMemoryDirectory();
-
-  constructor() {
-    resetFileSystem();
-  }
+  private readonly directory = new TemporaryDirectory();
 
   readonly given = {
     workspace: async () => {

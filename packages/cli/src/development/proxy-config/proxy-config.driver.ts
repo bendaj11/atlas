@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
-import { TemporaryDirectory } from '../temporary-directory.testkit.js';
-import type { LocalNativeProxy } from '../../src/development/types.js';
-import { loadAngularHostProxy } from '../../src/development/proxy-config/proxy-config.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import type { LocalNativeProxy } from '../types.js';
+import { loadAngularHostProxy } from './proxy-config.js';
 
 export class ProxyConfigDriver {
   private readonly directory = new TemporaryDirectory();

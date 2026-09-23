@@ -1,20 +1,12 @@
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { normalizeArtifactPath, describePayloadFiles, classifyPayloadRole } =
-  await import('./payload.js');
+  normalizeArtifactPath,
+  describePayloadFiles,
+  classifyPayloadRole,
+} from './payload.js';
 
 export class PayloadDriver {
-  private readonly directory = new InMemoryDirectory();
-
-  constructor() {
-    resetFileSystem();
-  }
+  private readonly directory = new TemporaryDirectory();
 
   readonly given = {
     artifactRoot: async () => {

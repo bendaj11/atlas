@@ -7,13 +7,7 @@ import type {
   AtlasTask,
   AtlasWorkspace,
 } from '../types.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 const processModule = await import('../../shared/process/process.js');
 const runProcess = jest.fn<typeof ProcessModule.runProcess>();
@@ -27,12 +21,11 @@ jest.unstable_mockModule('../../shared/process/process.js', () => ({
 const { detectWorkspace } = await import('./workspace.js');
 
 export class WorkspaceDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly child = {} as ChildProcess;
   private workspace!: AtlasWorkspace;
 
   constructor() {
-    resetFileSystem();
     runProcess.mockReset();
     spawnProcess.mockReset();
     runProcess.mockResolvedValue(undefined);

@@ -1,5 +1,5 @@
-import { TemporaryDirectory } from '../temporary-directory.testkit.js';
-import { loadCompiledAtlasConfig } from '../../src/build/config-loader/config-loader.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { loadCompiledAtlasConfig } from './config-loader.js';
 
 export class ConfigLoaderDriver {
   private readonly directory = new TemporaryDirectory();

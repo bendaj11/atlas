@@ -1,27 +1,15 @@
 import { jest } from '@jest/globals';
 import type { AtlasPrompter } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { aProject, aWorkspace } =
-  await import('../../workspace/workspace.testkit.js');
-const { resolveWidgetApp } = await import('./widget-apps.js');
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import { resolveWidgetApp } from './widget-apps.js';
 
 export class WidgetAppsDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly projects: AtlasProject[] = [];
   private interactive = false;
   private readonly select = jest.fn<AtlasPrompter['select']>();
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     workspace: async () => {

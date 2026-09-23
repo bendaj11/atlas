@@ -1,18 +1,14 @@
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import { writeFile } from 'node:fs/promises';
 import {
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { mkdtemp, writeFile } = await import('node:fs/promises');
-const { readAngularProxyConfigPath, readConfiguredDevServerPort } =
-  await import('./config.js');
+  readAngularProxyConfigPath,
+  readConfiguredDevServerPort,
+} from './config.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 export class DevelopmentConfigDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly projectName = faker.word.noun().toLowerCase();
   private readonly proxyPath = faker.system.filePath();
   private readonly port = faker.number.int({ min: 4500, max: 5999 });
@@ -20,17 +16,13 @@ export class DevelopmentConfigDriver {
   private resolvedPort?: number;
   private resolvedPath?: string;
 
-  constructor() {
-    resetFileSystem();
-  }
-
   given = {
     angularProject: async ({
       originalTarget,
     }: {
       originalTarget: 'configured';
     }) => {
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-angular-config-'));
+      this.root = await this.temporaryDirectory.create('atlas-angular-config-');
 
       await writeFile(
         join(this.root, 'angular.json'),
@@ -54,7 +46,9 @@ export class DevelopmentConfigDriver {
       );
     },
     devServer: async (framework: 'angular' | 'react') => {
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-dev-server-config-'));
+      this.root = await this.temporaryDirectory.create(
+        'atlas-dev-server-config-',
+      );
 
       if (framework === 'react') {
         await writeFile(

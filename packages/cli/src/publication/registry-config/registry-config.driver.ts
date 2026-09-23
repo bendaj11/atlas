@@ -1,6 +1,6 @@
-import { TemporaryDirectory } from '../temporary-directory.testkit.js';
-import { loadAtlasRegistryConfig } from '../../src/publication/registry-config/registry-config.js';
-import { CliArguments } from '../../src/shared/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { loadAtlasRegistryConfig } from './registry-config.js';
+import { CliArguments } from '../../shared/index.js';
 
 export class RegistryConfigDriver {
   private readonly directory = new TemporaryDirectory();

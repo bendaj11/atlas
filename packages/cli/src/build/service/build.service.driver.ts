@@ -12,27 +12,21 @@ import type {
   AtlasProject,
   AtlasWorkspaceKind,
 } from '../../workspace/index.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { readFile } from 'node:fs/promises';
 
 const loadCompiledAtlasConfig = jest.fn<typeof loadCompiledAtlasConfigType>();
 jest.unstable_mockModule('../config-loader/config-loader.js', () => ({
   loadCompiledAtlasConfig,
 }));
 
-const { readFile } = await import('node:fs/promises');
 const { aProject, aWorkspace } =
   await import('../../workspace/workspace.testkit.js');
 const { AtlasBuildService } = await import('./build.service.js');
 const { CliArguments } = await import('../../shared/index.js');
 
 export class BuildServiceDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly projectName = faker.word.noun().toLowerCase();
   private project!: AtlasProject;
   private kind: AtlasWorkspaceKind = 'standalone';
@@ -43,7 +37,6 @@ export class BuildServiceDriver {
   private hostManifest?: AtlasHostManifest;
 
   constructor() {
-    resetFileSystem();
     loadCompiledAtlasConfig.mockReset();
   }
 

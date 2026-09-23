@@ -7,10 +7,6 @@ describe('AtlasPublishService', () => {
     driver = new PublishServiceDriver();
   });
 
-  afterEach(async () => {
-    await driver.when.cleanup();
-  });
-
   it('should publish manifest and payload when build output exists', async () => {
     await driver.when.publish();
 

@@ -7,15 +7,8 @@ import type {
   AtlasWorkspaceKind,
 } from '../types.js';
 import type { NxGenerationOptions } from './commands.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const {
   createFormatGeneratedCommand,
   createInstallCommand,
   createNxGenerationCommand,
@@ -23,16 +16,12 @@ const {
   createTaskCommand,
   resolveInstallationRoot,
   isPackageInstalled,
-} = await import('./commands.js');
+} from './commands.js';
 
 export class CommandsDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private kind: AtlasWorkspaceKind = 'standalone';
   private manager: AtlasPackageManager = 'npm';
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     kind: (kind: AtlasWorkspaceKind) => {

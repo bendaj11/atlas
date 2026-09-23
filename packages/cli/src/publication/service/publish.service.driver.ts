@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
@@ -27,22 +26,18 @@ import type {
   AtlasPublishResult,
 } from '../types.js';
 import type { AtlasBuildResult } from '../../build/index.js';
+import { writeFile } from 'node:fs/promises';
 import {
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { mkdtemp, rm, writeFile } = await import('node:fs/promises');
-const { stringifyCanonicalJson, computeRegistryRevision } =
-  await import('../static-registry/revision/registry-revision.js');
-const { createEmptyStaticRegistry } =
-  await import('../static-registry/static-registry.js');
-const { AtlasPublishService } = await import('./publish.service.js');
-const { CliArguments } = await import('../../shared/index.js');
+  stringifyCanonicalJson,
+  computeRegistryRevision,
+} from '../static-registry/revision/registry-revision.js';
+import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
+import { AtlasPublishService } from './publish.service.js';
+import { CliArguments } from '../../shared/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 export class PublishServiceDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly id = faker.string.uuid();
   private readonly otherId = faker.string.uuid();
   private readonly name = faker.word.noun();
@@ -71,10 +66,6 @@ export class PublishServiceDriver {
   private selector: { version?: string; preview?: number } = {
     version: '1.4.0',
   };
-
-  constructor() {
-    resetFileSystem();
-  }
 
   given = {
     unknownWriteOutcome: (operation: 'create' | 'replace') => {
@@ -180,7 +171,9 @@ export class PublishServiceDriver {
 
   when = {
     publish: async () => {
-      this.directory ??= await mkdtemp(join(tmpdir(), 'atlas-publish-test-'));
+      this.directory ??= await this.temporaryDirectory.create(
+        'atlas-publish-test-',
+      );
       await writeFile(join(this.directory, 'remoteEntry.json'), this.bytes);
       this.publication.mockImplementation(async () => this.buildResult());
       const values = this.selector.version
@@ -201,10 +194,6 @@ export class PublishServiceDriver {
           }
         },
       });
-    },
-    cleanup: async () => {
-      if (this.directory)
-        await rm(this.directory, { recursive: true, force: true });
     },
     prune: async () => {
       const states: readonly AtlasArtifactPreviewState[] = [

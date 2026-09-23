@@ -2,34 +2,23 @@ import { relative } from 'node:path';
 import { faker } from '@faker-js/faker';
 import type { AtlasConfig } from '@atlas/schema';
 import type { AtlasProject } from '../../workspace/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { aProject } from '../../workspace/workspace.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { aProject } = await import('../../workspace/workspace.testkit.js');
-const {
   findArtifactRoot,
   findArtifactRootIfPresent,
   hashArtifactDirectory,
   listArtifactFiles,
-} = await import('./artifact-root.js');
+} from './artifact-root.js';
 
 export class ArtifactRootDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private project!: AtlasProject;
   private config: AtlasConfig = {
     id: faker.string.uuid(),
     framework: 'react',
   } as AtlasConfig;
   private entryPath = 'remoteEntry.json';
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     workspace: async () => {

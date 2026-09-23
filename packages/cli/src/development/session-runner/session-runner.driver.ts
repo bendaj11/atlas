@@ -8,13 +8,7 @@ import type { startControlServer as startControlServerType } from '../control-se
 import type * as ProcessModule from '../process/process.js';
 import type { DevControlServer } from '../types.js';
 import type { AtlasWorkspaceKind } from '../../workspace/index.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 const startControlServer = jest.fn<typeof startControlServerType>();
 const waitForRemoteEntry = jest.fn<typeof ProcessModule.waitForRemoteEntry>();
@@ -55,7 +49,7 @@ class FakeChildProcess extends EventEmitter {
 }
 
 export class SessionRunnerDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly child = new FakeChildProcess();
   private readonly spawn = jest.fn(() => this.child as unknown as ChildProcess);
   private readonly control: DevControlServer = {
@@ -73,7 +67,6 @@ export class SessionRunnerDriver {
   private beforeReady?: () => Promise<Server | undefined>;
 
   constructor() {
-    resetFileSystem();
     startControlServer.mockReset().mockResolvedValue(this.control);
     waitForRemoteEntry.mockReset().mockResolvedValue(undefined);
     waitForShutdown.mockReset().mockResolvedValue(undefined);

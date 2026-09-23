@@ -1,26 +1,15 @@
 import { relative } from 'node:path';
 import type { SupportedFramework } from '../../shared/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const {
   resolveDependencyManifestPath,
   detectExistingFrameworkVersion,
   mergePackageDependencies,
-} = await import('./dependencies.js');
-const { readJsonFile } = await import('../../shared/index.js');
+} from './dependencies.js';
+import { readJsonFile } from '../../shared/index.js';
 
 export class DependenciesDriver {
-  private readonly directory = new InMemoryDirectory();
-
-  constructor() {
-    resetFileSystem();
-  }
+  private readonly directory = new TemporaryDirectory();
 
   readonly given = {
     workspace: async () => {

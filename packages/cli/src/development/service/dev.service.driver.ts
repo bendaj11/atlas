@@ -15,13 +15,8 @@ import type {
   AtlasWorkspace,
   compileAtlasConfig as compileAtlasConfigType,
 } from '../../workspace/index.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { readFile } from 'node:fs/promises';
 
 const configCompiler =
   await import('../../workspace/config-compiler/config-compiler.js');
@@ -31,14 +26,13 @@ jest.unstable_mockModule(
   () => ({ ...configCompiler, compileAtlasConfig }),
 );
 
-const { readFile } = await import('node:fs/promises');
 const { aProject, aWorkspace } =
   await import('../../workspace/workspace.testkit.js');
 const { AtlasDevService } = await import('./dev.service.js');
 const { CliArguments } = await import('../../shared/index.js');
 
 export class DevServiceDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly projectName = faker.word.noun().toLowerCase();
   private readonly spawn = jest.fn<AtlasWorkspace['spawn']>(() => {
     throw new Error('Prepare-only development must not spawn.');
@@ -48,10 +42,6 @@ export class DevServiceDriver {
   private flags: string[] = ['--prepare-only'];
   private hostManifest?: AtlasHostManifest;
   private appManifest?: AtlasManifest;
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     project: async () => {

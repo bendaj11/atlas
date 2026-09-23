@@ -2,25 +2,13 @@ import type {
   AtlasPackageManager,
   AtlasProjectType,
 } from '../../workspace/index.js';
-import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { ensureTurboTasks, writeNxProject } =
-  await import('./workspace-targets.js');
-const { readJsonFile } = await import('../../shared/index.js');
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { ensureTurboTasks, writeNxProject } from './workspace-targets.js';
+import { readJsonFile } from '../../shared/index.js';
 
 export class WorkspaceTargetsDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private packageManager: AtlasPackageManager = 'npm';
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     workspace: async () => {

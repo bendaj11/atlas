@@ -1,48 +1,24 @@
-import { basename, dirname } from 'node:path';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasDevOverrideDocument } from '../types.js';
-
-const files = new Map<string, string>();
-
-jest.unstable_mockModule('node:fs/promises', () => ({
-  mkdir: async () => undefined,
-  writeFile: async (path: string, contents: string) => {
-    files.set(path, contents);
-  },
-  readFile: async (path: string) => {
-    const contents = files.get(path);
-
-    if (contents === undefined) throw new Error(`ENOENT: ${path}`);
-
-    return contents;
-  },
-  readdir: async (directory: string) =>
-    [...files.keys()]
-      .filter((path) => dirname(path) === directory)
-      .map((path) => basename(path)),
-  rm: async (path: string) => {
-    files.delete(path);
-  },
-}));
-
-const {
+import {
   readActiveControlServerLeases,
   removeControlServerLease,
   writeControlServerLease,
-} = await import('./control-server-lease.js');
+} from './control-server-lease.js';
 
 export class ControlServerLeaseDriver {
-  private readonly port = faker.number.int({ min: 1, max: 65_535 });
+  private readonly port = faker.number.int({ min: 40_000, max: 49_999 });
+  private readonly documents: AtlasDevOverrideDocument[] = [];
 
   constructor() {
-    files.clear();
     jest.useFakeTimers({ now: faker.date.recent() });
   }
 
   readonly given = {
     lease: async (document: AtlasDevOverrideDocument, ready: boolean) => {
       await writeControlServerLease({ port: this.port, document, ready });
+      this.documents.push(document);
 
       return this;
     },
@@ -54,8 +30,14 @@ export class ControlServerLeaseDriver {
     timeElapsed: (milliseconds: number) => {
       jest.setSystemTime(Date.now() + milliseconds);
     },
-    clockRestored: () => {
+    cleanedUp: async () => {
       jest.useRealTimers();
+
+      await Promise.all(
+        this.documents.map((document) =>
+          removeControlServerLease({ port: this.port, document }),
+        ),
+      );
     },
   };
 

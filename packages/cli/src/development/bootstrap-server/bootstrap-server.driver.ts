@@ -1,8 +1,8 @@
 import { createServer, type Server } from 'node:http';
 import { aHostRuntimeConfig } from '@atlas/testkit';
-import { closeServer } from '../../src/development/http/http.js';
-import type { LocalNativeProxy } from '../../src/development/types.js';
-import { startLocalBootstrapServer } from '../../src/development/bootstrap-server/bootstrap-server.js';
+import { closeServer } from '../http/http.js';
+import type { LocalNativeProxy } from '../types.js';
+import { startLocalBootstrapServer } from './bootstrap-server.js';
 
 export class BootstrapServerDriver {
   private server?: Server;

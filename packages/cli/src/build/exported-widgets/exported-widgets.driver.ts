@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasConfig } from '@atlas/schema';
-import { TemporaryDirectory } from '../temporary-directory.testkit.js';
-import { discoverExportedWidgets } from '../../src/build/exported-widgets/exported-widgets.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { discoverExportedWidgets } from './exported-widgets.js';
 
 export class ExportedWidgetsDriver {
   private readonly directory = new TemporaryDirectory();

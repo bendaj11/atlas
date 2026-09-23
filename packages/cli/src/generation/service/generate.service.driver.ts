@@ -3,33 +3,23 @@ import type {
   AtlasProject,
   AtlasWorkspaceKind,
 } from '../../workspace/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { readFile } from 'node:fs/promises';
+import { PromptTestDouble } from '../../shared/interaction/interaction.testkit.js';
+import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
+import { AtlasGenerateService } from './generate.service.js';
 import {
-  InMemoryDirectory,
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { readFile } = await import('node:fs/promises');
-const { PromptTestDouble } =
-  await import('../../shared/interaction/interaction.testkit.js');
-const { aProject, aWorkspace } =
-  await import('../../workspace/workspace.testkit.js');
-const { AtlasGenerateService } = await import('./generate.service.js');
-const { CliArguments, doesPathExist, readJsonFile } =
-  await import('../../shared/index.js');
+  CliArguments,
+  doesPathExist,
+  readJsonFile,
+} from '../../shared/index.js';
 
 export class GenerateServiceDriver {
-  private readonly directory = new InMemoryDirectory();
+  private readonly directory = new TemporaryDirectory();
   private readonly projects: AtlasProject[] = [];
   private kind: AtlasWorkspaceKind = 'standalone';
   private flags: string[] = ['--skip-format'];
   private prompts = new PromptTestDouble([], false);
-
-  constructor() {
-    resetFileSystem();
-  }
 
   readonly given = {
     workspace: async () => {

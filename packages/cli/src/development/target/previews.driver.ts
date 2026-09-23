@@ -1,27 +1,18 @@
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  mockFileSystem,
-  resetFileSystem,
-} from '../../shared/fs/in-memory-fs.testkit.js';
-
-mockFileSystem();
-
-const { mkdtemp, writeFile } = await import('node:fs/promises');
-const { readAtlasPreviewUrls } = await import('./previews.js');
+import { writeFile } from 'node:fs/promises';
+import { readAtlasPreviewUrls } from './previews.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 export class AtlasPreviewUrlsDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private projectRoot = '';
   private result?: readonly string[];
   private error?: Error;
 
-  constructor() {
-    resetFileSystem();
-  }
-
   given = {
     packageJson: async (value: unknown) => {
-      this.projectRoot = await mkdtemp(join(tmpdir(), 'atlas-previews-'));
+      this.projectRoot =
+        await this.temporaryDirectory.create('atlas-previews-');
       await writeFile(
         join(this.projectRoot, 'package.json'),
         JSON.stringify(value),
