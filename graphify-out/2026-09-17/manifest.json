@@ -535,8 +535,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/verify.yml": {
-    "mtime": 1789658166.9208713,
-    "ast_hash": "354157fc2989eaa37e3e710de7de4ab4",
+    "mtime": 1788431656.1964874,
+    "ast_hash": "470f134fad7fc0f25170f9288fa30611",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -895,7 +895,7 @@
     "semantic_hash": "747b95eae748659eb837897d73e21614"
   },
   "packages/sdk/federation-config.d.cts": {
-    "mtime": 1790149902.1752565,
+    "mtime": 1789650984.3834527,
     "ast_hash": "0fc4fce30e634daf8a3915f320a7a41d",
     "semantic_hash": ""
   },
@@ -925,7 +925,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.mjs": {
-    "mtime": 1790149902.1772637,
+    "mtime": 1789650984.3859682,
     "ast_hash": "fdf4e4f87a294d0c8af2737a90d6afd2",
     "semantic_hash": ""
   },
@@ -1150,8 +1150,8 @@
     "semantic_hash": ""
   },
   "scripts/verify-generated-projects.ts": {
-    "mtime": 1789658166.9200985,
-    "ast_hash": "fc5c2d42c0ad6bece4eec99e841c1237",
+    "mtime": 1789561511.4012148,
+    "ast_hash": "147f0294bf78781d2ca3c482763460dd",
     "semantic_hash": ""
   },
   "scripts/verify-packages.ts": {
@@ -1270,7 +1270,7 @@
     "semantic_hash": ""
   },
   "packages/sdk/federation-config.d.mts": {
-    "mtime": 1790149902.1783109,
+    "mtime": 1789650984.38738,
     "ast_hash": "bae1a36ecaa73838a764cfb00709a31d",
     "semantic_hash": ""
   },
@@ -1800,8 +1800,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/shadow-imports/shadow-imports.ts": {
-    "mtime": 1789658281.1744716,
-    "ast_hash": "2358feccf8f7e09ce4325a8f4b59621c",
+    "mtime": 1789656024.4263127,
+    "ast_hash": "b4798bff131761d9723ca3f07fd8c8c4",
     "semantic_hash": ""
   },
   "packages/runtime/src/shadow-styles/shadow-styles.driver.ts": {
@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/shadow-styles/shadow-styles.ts": {
-    "mtime": 1789658281.1416237,
-    "ast_hash": "3b2d7bd12b9c96e0bdcef55730a0b89c",
+    "mtime": 1789656026.8291495,
+    "ast_hash": "8eb2b5531871e2767829e4e426ec553b",
     "semantic_hash": ""
   },
   ".claude/settings.json": {
@@ -3540,8 +3540,8 @@
     "semantic_hash": ""
   },
   "packages/runtime/src/widget-loader/widget-loader.ts": {
-    "mtime": 1789659059.1575568,
-    "ast_hash": "203394425fcd705f884f7a1ed1e068a0",
+    "mtime": 1789656024.4165304,
+    "ast_hash": "9307837e76ed1fd6ed46d910fc101d26",
     "semantic_hash": ""
   },
   "packages/cli/src/development/development.testkit.ts": {
@@ -4830,8 +4830,8 @@
     "semantic_hash": ""
   },
   "packages/sdk/src/lifecycle/widget-entry.ts": {
-    "mtime": 1790149891.7214205,
-    "ast_hash": "ee33c2202b1258a726817419c31ffda4",
+    "mtime": 1789632695.2413065,
+    "ast_hash": "fad0ffa09d436d10fe242099141a025a",
     "semantic_hash": ""
   },
   "packages/sdk/src/lifecycle/widget-loader.ts": {
