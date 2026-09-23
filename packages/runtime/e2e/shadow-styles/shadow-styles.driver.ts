@@ -20,13 +20,13 @@ export class ShadowStylesBrowserDriver {
   private error = '';
 
   readonly given = {
-    scenario: (scenario: Scenario): void => {
+    scenario: (scenario: Scenario) => {
       this.scenario = scenario;
     },
   };
 
   readonly when = {
-    open: async (): Promise<void> => {
+    open: async () => {
       const require = createRequire(
         resolve(workspace, 'packages/bootstrap/package.json'),
       );
@@ -35,7 +35,7 @@ export class ShadowStylesBrowserDriver {
       };
       const bundle = await build({
         entryPoints: [
-          resolve(workspace, 'packages/runtime/src/stylesheets.ts'),
+          resolve(workspace, 'packages/runtime/src/stylesheets/stylesheets.ts'),
         ],
         bundle: true,
         write: false,
@@ -134,7 +134,7 @@ export class ShadowStylesBrowserDriver {
         { origin, scenario: this.scenario },
       );
     },
-    cleanup: async (): Promise<void> => {
+    cleanup: async () => {
       await this.browser?.close();
       await new Promise<void>((done, reject) => {
         if (!this.server?.listening) return done();
@@ -144,7 +144,7 @@ export class ShadowStylesBrowserDriver {
   };
 
   readonly get = {
-    colors: async (): Promise<string[]> => {
+    colors: async () => {
       if (!this.page) throw new Error('Open the page first');
       if (this.error) throw new Error(this.error);
       return Promise.all(
@@ -155,7 +155,7 @@ export class ShadowStylesBrowserDriver {
         ),
       );
     },
-    assetPaths: async (): Promise<string[]> => {
+    assetPaths: async () => {
       if (!this.page) throw new Error('Open the page first');
       if (this.error) throw new Error(this.error);
       return Promise.all(
@@ -169,6 +169,6 @@ export class ShadowStylesBrowserDriver {
         ),
       );
     },
-    error: (): string => this.error,
+    error: () => this.error,
   };
 }
