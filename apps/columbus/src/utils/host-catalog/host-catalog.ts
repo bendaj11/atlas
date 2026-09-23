@@ -5,10 +5,10 @@ import {
 import {
   type ArtifactVersion,
   isAppArtifactVersion,
-} from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
-import { isRecord } from '../../shared/messages/messages';
+} from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import { mapWithConcurrency } from '../concurrency/concurrency';
+import { isRecord } from '../messages/messages';
 import {
   fetchWithTimeout,
   type ManifestReference,

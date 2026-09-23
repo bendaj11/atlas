@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
-import type { AtlasOverrideDocument } from '../../../types/override-document';
+import type { AtlasOverrideDocument } from '../../types/override-document';
 import type { writeHostDataCache as writeHostDataCacheType } from '../host-data-cache/host-data-cache';
-import type { readPersistedOverrideDocument as readPersistedOverrideDocumentType } from '../../overrides/override-storage/override-storage';
+import type { readPersistedOverrideDocument as readPersistedOverrideDocumentType } from '../override-storage/override-storage';
 import type { InspectedHostTab } from '../host-tabs/host-tabs';
-import { findAtlasHostTabMock } from '../../../testkit/mocks/host-tabs';
+import { findAtlasHostTabMock } from '../../testkit/mocks/host-tabs';
 
 const writeHostDataCache = jest.fn<typeof writeHostDataCacheType>();
 const readPersistedOverrideDocument =
@@ -13,7 +13,7 @@ jest.unstable_mockModule('../host-data-cache/host-data-cache', () => ({
   writeHostDataCache,
 }));
 jest.unstable_mockModule(
-  '../../overrides/override-storage/override-storage',
+  '../override-storage/override-storage',
   () => ({ readPersistedOverrideDocument }),
 );
 

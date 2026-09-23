@@ -1,7 +1,7 @@
 import {
   type FakeChrome,
   installFakeChrome,
-} from '../../../testkit/chrome.testkit';
+} from '../../testkit/chrome.testkit';
 
 export class OverrideStorageDriver {
   private readonly chrome: FakeChrome = installFakeChrome();

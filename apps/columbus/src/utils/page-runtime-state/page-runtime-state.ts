@@ -1,8 +1,8 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import type { AtlasOverrideDocument as OverrideDocument } from '../../../types/override-document';
-import type { Scope } from '../../../types/columbus-state';
-import { isRecord } from '../../shared/messages/messages';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import type { AtlasOverrideDocument as OverrideDocument } from '../../types/override-document';
+import type { Scope } from '../../types/columbus-state';
+import { isRecord } from '../messages/messages';
 
 export interface StoredOverrides {
   overrides: OverrideDocument | undefined;

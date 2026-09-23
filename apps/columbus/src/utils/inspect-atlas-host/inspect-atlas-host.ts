@@ -1,6 +1,6 @@
-import type { HostData } from '../../../types/host-data';
-import { mapWithConcurrency } from '../../shared/concurrency/concurrency';
-import { messageFromError } from '../../shared/errors/errors';
+import type { HostData } from '../../types/host-data';
+import { mapWithConcurrency } from '../concurrency/concurrency';
+import { messageFromError } from '../errors/errors';
 import {
   type ArtifactRegistry,
   type Registry,

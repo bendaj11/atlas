@@ -1,19 +1,19 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
-import { failureMessage } from '../../shared/errors/errors';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import { versionKey } from '../artifact-version-keys/artifact-version-keys';
+import { failureMessage } from '../errors/errors';
 import {
   inspectHostRequest,
   isHostDataResponse,
   isManifestResponse,
   loadArtifactVersionRequest,
-} from '../../shared/messages/messages';
-import { OVERRIDE_DOCUMENT_KEY } from '../../shared/storage-keys/storage-keys';
+} from '../messages/messages';
+import { OVERRIDE_DOCUMENT_KEY } from '../storage-keys/storage-keys';
 import {
   isExtensionPageUrl,
   isLoopbackUrl,
   isWebPageUrl,
-} from '../../shared/urls/urls';
+} from '../urls/urls';
 
 export type HostTab = chrome.tabs.Tab & { id: number; url: string };
 

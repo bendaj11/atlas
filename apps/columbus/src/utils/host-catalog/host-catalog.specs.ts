@@ -5,7 +5,7 @@ import {
   aHostRuntimeConfig,
   anAppManifest,
 } from '@atlas/testkit';
-import { aPublishedArtifact } from '../../../testkit/registry.testkit';
+import { aPublishedArtifact } from '../../testkit/registry.testkit';
 import { HostCatalogDriver } from './host-catalog.driver';
 
 const { readCatalog, readRuntimeConfig } = await import('./host-catalog');

@@ -5,12 +5,12 @@ import {
   type FakeChrome,
   installFakeChrome,
 } from '../../../testkit/chrome.testkit';
-import type { ArtifactRegistry } from '../../host/artifact-registry/artifact-registry';
-import type { inspectAtlasHost as inspectAtlasHostType } from '../../host/inspect-atlas-host/inspect-atlas-host';
+import type { ArtifactRegistry } from '../../../utils/artifact-registry/artifact-registry';
+import type { inspectAtlasHost as inspectAtlasHostType } from '../../../utils/inspect-atlas-host/inspect-atlas-host';
 import {
   isActionThemeMessage,
   isOverrideCountMessage,
-} from '../../shared/messages/messages';
+} from '../../../utils/messages/messages';
 
 const inspectAtlasHost = jest.fn<typeof inspectAtlasHostType>();
 const artifactRegistry = {
@@ -29,13 +29,13 @@ const fetch =
 const setInterval = jest.fn<(callback: () => void, ms: number) => number>();
 
 jest.unstable_mockModule(
-  '../../host/artifact-registry/artifact-registry',
+  '../../../utils/artifact-registry/artifact-registry',
   () => ({
     createArtifactRegistry: () => artifactRegistry,
   }),
 );
 jest.unstable_mockModule(
-  '../../host/inspect-atlas-host/inspect-atlas-host',
+  '../../../utils/inspect-atlas-host/inspect-atlas-host',
   () => ({ inspectAtlasHost }),
 );
 

@@ -10,7 +10,7 @@ import {
   aRegistry,
   aRegistryArtifact,
   aPublishedArtifact,
-} from '../../../testkit/registry.testkit';
+} from '../../testkit/registry.testkit';
 import { ArtifactRegistryDriver } from './artifact-registry.driver';
 
 const { createArtifactRegistry, registryRootFor, uniqueManifests } =

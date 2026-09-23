@@ -1,12 +1,12 @@
 import { jest } from '@jest/globals';
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import type { ContentResponse } from '../../shared/messages/messages';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import type { ContentResponse } from '../messages/messages';
 import {
   type FakeChrome,
   type FakeTab,
   installFakeChrome,
-} from '../../../testkit/chrome.testkit';
+} from '../../testkit/chrome.testkit';
 
 type TabMessageResponse =
   | ContentResponse<{ hostData: HostData }>

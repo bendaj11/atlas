@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import type { validateLocalOverride as validateLocalOverrideType } from '../../scripts/overrides/local-override/local-override';
-import type * as OverrideStorageModule from '../../scripts/overrides/override-storage/override-storage';
+import type { validateLocalOverride as validateLocalOverrideType } from '../local-override/local-override';
+import type * as OverrideStorageModule from '../override-storage/override-storage';
 import { reloadHostTabMock } from '../../testkit/mocks/host-tabs';
 
 const validateLocalOverride = jest.fn<typeof validateLocalOverrideType>();
@@ -12,13 +12,13 @@ const writeClearedLocalArtifactIds =
   jest.fn<typeof OverrideStorageModule.writeClearedLocalArtifactIds>();
 
 jest.unstable_mockModule(
-  '../../scripts/overrides/local-override/local-override',
+  '../local-override/local-override',
   () => ({
     validateLocalOverride,
   }),
 );
 jest.unstable_mockModule(
-  '../../scripts/overrides/override-storage/override-storage',
+  '../override-storage/override-storage',
   () => ({
     writeDisabledArtifactVersionOverrides,
     writeOverrideDocument,

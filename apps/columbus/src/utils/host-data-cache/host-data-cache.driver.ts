@@ -2,7 +2,7 @@ import {
   type FakeChrome,
   type FakeTab,
   installFakeChrome,
-} from '../../../testkit/chrome.testkit';
+} from '../../testkit/chrome.testkit';
 
 export class HostDataCacheDriver {
   private readonly chrome: FakeChrome = installFakeChrome();

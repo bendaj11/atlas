@@ -1,5 +1,5 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
 
 export type ColorScheme = 'dark' | 'light';
 

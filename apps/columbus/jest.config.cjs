@@ -5,11 +5,11 @@ module.exports = {
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleNameMapper: {
     ...baseConfig.moduleNameMapper,
-    '\\.css$': '<rootDir>/apps/columbus/src/scripts/build/css-stub.ts',
+    '\\.css$': '<rootDir>/apps/columbus/src/testkit/environment/css-stub.ts',
   },
   rootDir: '../..',
   setupFiles: [
-    '<rootDir>/apps/columbus/src/scripts/build/ColumbusTestEnvironment.ts',
+    '<rootDir>/apps/columbus/src/testkit/environment/ColumbusTestEnvironment.ts',
   ],
   testEnvironment: 'jsdom',
   testMatch: ['**/*.specs.ts', '**/*.specs.tsx'],

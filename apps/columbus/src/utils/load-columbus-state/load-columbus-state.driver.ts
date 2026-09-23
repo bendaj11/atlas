@@ -1,12 +1,12 @@
 import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../types/artifact-version';
 import type { HostData } from '../../types/host-data';
-import type { readHostData as readHostDataType } from '../../scripts/host/host-data/host-data';
+import type { readHostData as readHostDataType } from '../host-data/host-data';
 import type {
   readDisabledArtifactVersionOverrides as readDisabledArtifactVersionOverridesType,
   readClearedLocalArtifactIds as readClearedLocalArtifactIdsType,
-} from '../../scripts/overrides/override-storage/override-storage';
-import type { readHostDataCache as readHostDataCacheType } from '../../scripts/host/host-data-cache/host-data-cache';
+} from '../override-storage/override-storage';
+import type { readHostDataCache as readHostDataCacheType } from '../host-data-cache/host-data-cache';
 
 const readHostData = jest.fn<typeof readHostDataType>();
 const readDisabledArtifactVersionOverrides =
@@ -15,14 +15,14 @@ const readClearedLocalArtifactIds =
   jest.fn<typeof readClearedLocalArtifactIdsType>();
 const readHostDataCache = jest.fn<typeof readHostDataCacheType>();
 
-jest.unstable_mockModule('../../scripts/host/host-data/host-data', () => ({
+jest.unstable_mockModule('../host-data/host-data', () => ({
   readHostData,
 }));
 jest.unstable_mockModule(
-  '../../scripts/overrides/override-storage/override-storage',
+  '../override-storage/override-storage',
   () => ({ readDisabledArtifactVersionOverrides, readClearedLocalArtifactIds }),
 );
-jest.unstable_mockModule('../../scripts/host/host-data-cache/host-data-cache', () => ({
+jest.unstable_mockModule('../host-data-cache/host-data-cache', () => ({
   readHostDataCache,
 }));
 

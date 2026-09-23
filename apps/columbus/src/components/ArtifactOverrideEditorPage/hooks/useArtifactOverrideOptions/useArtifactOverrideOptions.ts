@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { useColumbusState } from '../../../../hooks';
-import { uniqueVersions } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+import { uniqueVersions } from '../../../../utils/artifact-version-keys/artifact-version-keys';
 import type {
   ArtifactOverrideOptions,
   ArtifactTableRow,

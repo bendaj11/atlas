@@ -5,7 +5,7 @@ import {
   aHostRuntimeConfig,
   anAppManifest,
 } from '@atlas/testkit';
-import { aRegistry } from '../../../testkit/registry.testkit';
+import { aRegistry } from '../../testkit/registry.testkit';
 import { InspectAtlasHostDriver } from './inspect-atlas-host.driver';
 
 const { inspectAtlasHost } = await import('./inspect-atlas-host');

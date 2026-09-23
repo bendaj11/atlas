@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { ArtifactVersion } from '../../types/artifact-version';
 import type * as ManifestFetchModule from '../manifest-fetch/manifest-fetch';
 
 const manifestFetch = await import('../manifest-fetch/manifest-fetch');

@@ -1,10 +1,10 @@
 import {
   type ArtifactVersion,
   isAppArtifactVersion,
-} from '../../../types/artifact-version';
+} from '../../types/artifact-version';
 import { placementTargetsHost } from '@atlas/schema';
-import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../../shared/constants';
-import type { ArtifactOverride } from '../../../types/artifact';
+import { CUSTOM_BUILD_ID, CUSTOM_VERSION } from '../constants/constants';
+import type { ArtifactOverride } from '../../types/artifact';
 
 const SHORT_BUILD_ID_LENGTH = 7;
 

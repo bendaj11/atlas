@@ -2,8 +2,8 @@ import { Box, Heading, Page, Text } from '@wix/design-system';
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ARTIFACTS_ROUTE } from '../../routing/routes/routes';
-import { baseUrlFromRemoteEntry } from '../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
-import { versionKey } from '../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+import { baseUrlFromRemoteEntry } from '../../utils/artifact-version-utils/artifact-version-utils';
+import { versionKey } from '../../utils/artifact-version-keys/artifact-version-keys';
 import type { OverrideSelection } from '../../types/artifact';
 import type { ArtifactVersion } from '../../types/artifact-version';
 import { BrowserOverrideScopePicker } from './BrowserOverrideScopePicker/BrowserOverrideScopePicker';
@@ -15,7 +15,7 @@ import {
 import { useArtifactOverrideOptions } from './hooks/useArtifactOverrideOptions/useArtifactOverrideOptions';
 import { useSaveArtifactOverrideMutation } from './hooks/useSaveArtifactOverrideMutation/useSaveArtifactOverrideMutation';
 import { useHostArtifactVersionQuery } from './hooks/useHostArtifactVersionQuery/useHostArtifactVersionQuery';
-import { failureMessage } from '../../scripts/shared/errors/errors';
+import { failureMessage } from '../../utils/errors/errors';
 import { OverridesSelectionForm } from './OverridesForm/OverridesSelectionForm';
 import { ArtifactOverrideEditorPageActions } from './ArtifactOverrideEditorPageActions/ArtifactOverrideEditorPageActions';
 

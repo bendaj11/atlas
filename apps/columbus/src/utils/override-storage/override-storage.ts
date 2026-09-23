@@ -1,15 +1,15 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import type { AtlasOverrideDocument as OverrideDocument } from '../../../types/override-document';
-import type { Scope } from '../../../types/columbus-state';
-import { normalizeStoredArtifactVersion } from '../../artifact-versions/artifact-version-utils/artifact-version-utils';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import type { AtlasOverrideDocument as OverrideDocument } from '../../types/override-document';
+import type { Scope } from '../../types/columbus-state';
+import { normalizeStoredArtifactVersion } from '../artifact-version-utils/artifact-version-utils';
 import {
   OVERRIDE_DOCUMENT_KEY,
   disabledLocalAppsKey,
   disabledOverridesKey,
   persistedOverridesKey,
   suppressedArtifactsKey,
-} from '../../shared/storage-keys/storage-keys';
+} from '../storage-keys/storage-keys';
 import {
   countOverrides,
   isStoredManifest,

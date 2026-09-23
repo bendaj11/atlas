@@ -3,7 +3,7 @@ import { useOverrides } from '../../../../hooks';
 import {
   createCustomArtifactVersion,
   isArtifactVersionSupportedByHost,
-} from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
+} from '../../../../utils/artifact-version-utils/artifact-version-utils';
 import type {
   ArtifactOverrideOptions,
   OverrideSelection,

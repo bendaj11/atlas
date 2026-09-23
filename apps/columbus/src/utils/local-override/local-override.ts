@@ -1,5 +1,5 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import { isRecord } from '../../shared/messages/messages';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import { isRecord } from '../messages/messages';
 
 interface FederationMetadata {
   name: string;

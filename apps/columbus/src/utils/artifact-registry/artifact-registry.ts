@@ -1,8 +1,8 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import { versionKey } from '../../artifact-versions/artifact-version-keys/artifact-version-keys';
-import { messageFromError } from '../../shared/errors/errors';
-import { isRecord } from '../../shared/messages/messages';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import { versionKey } from '../artifact-version-keys/artifact-version-keys';
+import { messageFromError } from '../errors/errors';
+import { isRecord } from '../messages/messages';
 import {
   fetchVerifiedManifest,
   fetchWithTimeout,

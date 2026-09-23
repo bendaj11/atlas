@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { aHostData } from '../../../testkit/host-data.testkit';
+import { aHostData } from '../../testkit/host-data.testkit';
 import {
   clearHostDataCache,
   readHostDataCache,

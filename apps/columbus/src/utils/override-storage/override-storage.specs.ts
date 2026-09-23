@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { aHostData } from '../../../testkit/host-data.testkit';
+import { aHostData } from '../../testkit/host-data.testkit';
 import {
   readClearedLocalArtifactIds,
   readDisabledArtifactVersionOverrides,

@@ -6,24 +6,24 @@ import { hasAtlasBootstrapSignature } from '../atlas-bootstrap-signature/atlas-b
 import {
   DEFAULT_CONTROL_PORT,
   rememberedControlPort,
-} from '../../shared/control-port/control-port';
-import { messageFromError } from '../../shared/errors/errors';
+} from '../../../utils/control-port/control-port';
+import { messageFromError } from '../../../utils/errors/errors';
 import {
   actionThemeMessage,
   isInspectHostRequest,
   isLoadArtifactVersionRequest,
   isRecord,
   overrideCountMessage,
-} from '../../shared/messages/messages';
+} from '../../../utils/messages/messages';
 import {
   OVERRIDE_DOCUMENT_KEY,
   disabledLocalAppsKey,
   persistedOverridesKey,
-} from '../../shared/storage-keys/storage-keys';
-import { isLoopbackHostname } from '../../shared/urls/urls';
-import { countOverrides } from '../../overrides/override-document/override-document';
-import { createArtifactRegistry } from '../../host/artifact-registry/artifact-registry';
-import { inspectAtlasHost } from '../../host/inspect-atlas-host/inspect-atlas-host';
+} from '../../../utils/storage-keys/storage-keys';
+import { isLoopbackHostname } from '../../../utils/urls/urls';
+import { countOverrides } from '../../../utils/override-document/override-document';
+import { createArtifactRegistry } from '../../../utils/artifact-registry/artifact-registry';
+import { inspectAtlasHost } from '../../../utils/inspect-atlas-host/inspect-atlas-host';
 
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');

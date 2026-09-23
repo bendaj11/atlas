@@ -2,7 +2,7 @@
 
 import { faker } from '@faker-js/faker';
 import { anAppManifest, aRegistryUrl } from '@atlas/testkit';
-import { aPublishedArtifact } from '../../../testkit/registry.testkit';
+import { aPublishedArtifact } from '../../testkit/registry.testkit';
 import {
   fetchVerifiedManifest,
   fetchWithTimeout,

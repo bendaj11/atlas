@@ -1,4 +1,4 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
+import type { ArtifactVersion } from '../../types/artifact-version';
 
 export function uniqueVersions(versions: ArtifactVersion[]): ArtifactVersion[] {
   return [

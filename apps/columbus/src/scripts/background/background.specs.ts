@@ -5,7 +5,7 @@ import {
   actionThemeMessage,
   loadDevelopmentSessionRequest,
   overrideCountMessage,
-} from '../shared/messages/messages';
+} from '../../utils/messages/messages';
 import { BackgroundDriver } from './background.driver';
 
 describe('background', () => {

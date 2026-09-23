@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { HostData } from '../../../types/host-data';
+import type { HostData } from '../../types/host-data';
 import type {
   ArtifactRegistry,
   ArtifactVersions,

@@ -7,8 +7,8 @@ import {
 import {
   isArtifactVersionSupportedByHost,
   versionLabel,
-} from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
-import { versionKey } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+} from '../../../../utils/artifact-version-utils/artifact-version-utils';
+import { versionKey } from '../../../../utils/artifact-version-keys/artifact-version-keys';
 import type { ArtifactVersion } from '../../../../types/artifact-version';
 
 interface OverrideVersionDropdownProps {

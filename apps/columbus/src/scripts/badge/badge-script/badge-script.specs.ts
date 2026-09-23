@@ -4,7 +4,7 @@ import { aHostData } from '../../../testkit/host-data.testkit';
 import {
   inspectHostRequest,
   loadArtifactVersionRequest,
-} from '../../shared/messages/messages';
+} from '../../../utils/messages/messages';
 import { BadgeScriptDriver } from './badge-script.driver';
 
 const ATLAS_PAGE_BODY =

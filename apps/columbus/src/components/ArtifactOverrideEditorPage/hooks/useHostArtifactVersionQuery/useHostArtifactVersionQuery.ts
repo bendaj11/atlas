@@ -1,7 +1,7 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useColumbusState } from '../../../../hooks';
-import { versionKey } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
-import { loadArtifactVersionFromHostTab } from '../../../../scripts/host/host-tabs/host-tabs';
+import { versionKey } from '../../../../utils/artifact-version-keys/artifact-version-keys';
+import { loadArtifactVersionFromHostTab } from '../../../../utils/host-tabs/host-tabs';
 import type {
   ArtifactOverrideOptions,
   OverrideSelection,

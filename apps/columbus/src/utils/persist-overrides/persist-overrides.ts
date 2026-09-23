@@ -1,12 +1,12 @@
 import type { ColumbusState } from '../../types/columbus-state';
-import { reloadHostTab } from '../../scripts/host/host-tabs/host-tabs';
-import { validateLocalOverride } from '../../scripts/overrides/local-override/local-override';
-import { createOverrideDocument } from '../../scripts/overrides/override-document/override-document';
+import { reloadHostTab } from '../host-tabs/host-tabs';
+import { validateLocalOverride } from '../local-override/local-override';
+import { createOverrideDocument } from '../override-document/override-document';
 import {
   writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
   writeClearedLocalArtifactIds,
-} from '../../scripts/overrides/override-storage/override-storage';
+} from '../override-storage/override-storage';
 
 export async function persistColumbusState(
   columbusState: ColumbusState,

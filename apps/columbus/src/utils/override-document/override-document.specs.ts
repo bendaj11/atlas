@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { aHostManifest, anAppManifest } from '@atlas/testkit';
-import { loadBrowserRuntimeOverrides } from '../../../../../../packages/runtime/src/loader/overrides/overrides';
-import { aHostData } from '../../../testkit/host-data.testkit';
+import { loadBrowserRuntimeOverrides } from '../../../../../packages/runtime/src/loader/overrides/overrides';
+import { aHostData } from '../../testkit/host-data.testkit';
 import {
   countOverrides,
   createOverrideDocument,

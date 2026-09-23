@@ -4,7 +4,7 @@ import type {
   findAtlasHostTab as findAtlasHostTabType,
   loadArtifactVersionFromHostTab as loadArtifactVersionFromHostTabType,
   reloadHostTab as reloadHostTabType,
-} from '../../scripts/host/host-tabs/host-tabs';
+} from '../../utils/host-tabs/host-tabs';
 
 export const findAtlasHostTabMock: jest.Mock<typeof findAtlasHostTabType> =
   jest.fn();
@@ -15,7 +15,7 @@ export const reloadHostTabMock: jest.Mock<typeof reloadHostTabType> = jest.fn();
 
 jest.unstable_mockModule(
   fileURLToPath(
-    new URL('../../scripts/host/host-tabs/host-tabs', import.meta.url),
+    new URL('../../utils/host-tabs/host-tabs', import.meta.url),
   ),
   () => ({
     findAtlasHostTab: findAtlasHostTabMock,
