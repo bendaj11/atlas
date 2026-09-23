@@ -26,19 +26,6 @@ describe('createNativeFederationImporters', () => {
         { deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/' },
       );
     });
-
-    it('should initialize the remote with the host artifact directory as deployUrl when the legacy positional arguments are used', async () => {
-      driver.given
-        .hostRemoteEntryUrl(hostRemoteEntryUrl)
-        .given.legacyImporters();
-
-      await driver.when.remoteImported(manifest);
-
-      expect(driver.get.initFederationMock()).toHaveBeenCalledWith(
-        { atlas_first: manifest.remoteEntryUrl },
-        { deployUrl: 'https://cdn.example/hosts/customer-host/1.0.0/build-1/' },
-      );
-    });
   });
 
   describe('when importers are created without a host remote entry url', () => {

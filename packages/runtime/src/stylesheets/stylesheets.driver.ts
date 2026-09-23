@@ -72,15 +72,6 @@ export class StylesheetsDriver {
         this.error = error;
       }
     },
-    loadedWithLegacyPolicyArgument: async (manifest: AtlasManifest) => {
-      try {
-        this.releases.push(
-          await loadManifestStyles(manifest, this.document, this.policy!),
-        );
-      } catch (error) {
-        this.error = error;
-      }
-    },
     released: (index: number) => this.releases[index]!(),
   };
 

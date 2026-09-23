@@ -1,5 +1,4 @@
 import { placementTargetsHost, type AtlasManifest } from '@atlas/schema';
-import type { AtlasNavigation } from '@atlas/sdk/navigation';
 import type { HostPlacement } from '../host-runtime/host-runtime.types.js';
 import { createRoutePlacementPlan } from '../host-runtime/route-plan.js';
 import { doesRouteMatchPathname } from '../shared/route-path.js';
@@ -19,25 +18,7 @@ const navigationItemsByDocument = new WeakMap<
 
 export function createHostNavigationItems(
   input: HostNavigationItemsInput,
-): readonly AtlasHostNavigationItem[];
-/** @deprecated Pass `{ manifests, hostId, navigation }`. */
-export function createHostNavigationItems(
-  manifests: readonly AtlasManifest[],
-  hostId: string,
-  navigation: AtlasNavigation,
-): readonly AtlasHostNavigationItem[];
-export function createHostNavigationItems(
-  inputOrManifests: HostNavigationItemsInput | readonly AtlasManifest[],
-  legacyHostId?: string,
-  legacyNavigation?: AtlasNavigation,
 ): readonly AtlasHostNavigationItem[] {
-  const input = isManifestList(inputOrManifests)
-    ? {
-        manifests: inputOrManifests,
-        hostId: legacyHostId!,
-        navigation: legacyNavigation!,
-      }
-    : inputOrManifests;
   const { manifests, hostId, navigation } = input;
   const pathname = navigation.getCurrentLocation().pathname;
 
@@ -106,12 +87,6 @@ function isNavigationItemsEvent(
   event: Event,
 ): event is CustomEvent<{ items: readonly AtlasHostNavigationItem[] }> {
   return event instanceof CustomEvent && Array.isArray(event.detail?.items);
-}
-
-function isManifestList(
-  value: HostNavigationItemsInput | readonly AtlasManifest[],
-): value is readonly AtlasManifest[] {
-  return Array.isArray(value);
 }
 
 function collectVisibleRoutePlacementsForHost(

@@ -73,15 +73,6 @@ export class NativeFederationDriver {
 
       return this;
     },
-    legacyImporters: () => {
-      this.importers = createNativeFederationImporters(
-        this.adapter(),
-        { ...REQUEST_POLICY, retryCount: this.retryCount },
-        this.hostRemoteEntryUrl,
-      );
-
-      return this;
-    },
     trustedImporters: async (
       manifests: AtlasManifest[],
       policy: AtlasRemoteTrustPolicy = {},

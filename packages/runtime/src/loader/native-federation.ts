@@ -4,7 +4,6 @@ import type {
   AtlasExportedWidgetEntry,
 } from '@atlas/sdk/lifecycle';
 import { runResiliently } from '../resilience/resilience.js';
-import type { AtlasRetryPolicy } from '../resilience/resilience.types.js';
 import { mapWithConcurrency } from '../shared/concurrency.js';
 import { convertToError } from '../shared/errors.js';
 import {
@@ -20,7 +19,6 @@ import {
   AtlasWidgetOwnerUntrustedError,
 } from './loader.errors.js';
 import type {
-  AtlasFederationAdapter,
   AtlasNativeFederationImporters,
   FederationRemote,
   NativeFederationImportersOptions,
@@ -35,30 +33,7 @@ import type { AtlasRemoteTrustPolicy } from './trust/trust-policy.types.js';
 
 export function createNativeFederationImporters(
   options: NativeFederationImportersOptions,
-): AtlasNativeFederationImporters;
-/** @deprecated Pass `{ runtime, requestPolicy, hostRemoteEntryUrl }`. */
-export function createNativeFederationImporters(
-  runtime: AtlasFederationAdapter,
-  requestPolicy?: AtlasRetryPolicy,
-  hostRemoteEntryUrl?: string,
-): AtlasNativeFederationImporters;
-export function createNativeFederationImporters(
-  optionsOrRuntime: NativeFederationImportersOptions | AtlasFederationAdapter,
-  legacyRequestPolicy?: AtlasRetryPolicy,
-  legacyHostRemoteEntryUrl?: string,
 ): AtlasNativeFederationImporters {
-  const options: NativeFederationImportersOptions =
-    'runtime' in optionsOrRuntime
-      ? optionsOrRuntime
-      : {
-          runtime: optionsOrRuntime,
-          ...(legacyRequestPolicy
-            ? { requestPolicy: legacyRequestPolicy }
-            : {}),
-          ...(legacyHostRemoteEntryUrl
-            ? { hostRemoteEntryUrl: legacyHostRemoteEntryUrl }
-            : {}),
-        };
   const { runtime, requestPolicy, hostRemoteEntryUrl } = options;
   const initializations = new Map<string, Promise<string>>();
 
@@ -146,39 +121,9 @@ export function createNativeFederationImporters(
 }
 
 /** Initializes only trusted remotes and reports rejected manifests through normal app fallback UI. */
-export function createTrustedNativeFederationImporters(
-  options: TrustedNativeFederationImportersOptions,
-): Promise<AtlasNativeFederationImporters>;
-/** @deprecated Pass `{ runtime, manifests, policy, requestPolicy, hostRemoteEntryUrl }`. */
-export function createTrustedNativeFederationImporters(
-  runtime: AtlasFederationAdapter,
-  manifests: AtlasManifest[],
-  policy: AtlasRemoteTrustPolicy,
-  requestPolicy?: AtlasRetryPolicy,
-  hostRemoteEntryUrl?: string,
-): Promise<AtlasNativeFederationImporters>;
 export async function createTrustedNativeFederationImporters(
-  optionsOrRuntime:
-    TrustedNativeFederationImportersOptions | AtlasFederationAdapter,
-  legacyManifests?: AtlasManifest[],
-  legacyPolicy?: AtlasRemoteTrustPolicy,
-  legacyRequestPolicy?: AtlasRetryPolicy,
-  legacyHostRemoteEntryUrl?: string,
+  options: TrustedNativeFederationImportersOptions,
 ): Promise<AtlasNativeFederationImporters> {
-  const options: TrustedNativeFederationImportersOptions =
-    'runtime' in optionsOrRuntime
-      ? optionsOrRuntime
-      : {
-          runtime: optionsOrRuntime,
-          manifests: legacyManifests ?? [],
-          policy: legacyPolicy ?? PERMISSIVE_TRUST_POLICY,
-          ...(legacyRequestPolicy
-            ? { requestPolicy: legacyRequestPolicy }
-            : {}),
-          ...(legacyHostRemoteEntryUrl
-            ? { hostRemoteEntryUrl: legacyHostRemoteEntryUrl }
-            : {}),
-        };
   const { manifests, policy, requestPolicy } = options;
   const manifestsById = new Map(
     manifests.map((manifest) => [manifest.id, manifest]),
@@ -191,7 +136,8 @@ export async function createTrustedNativeFederationImporters(
 
     if (existing) return existing;
 
-    const checking = verifyManifestIntegrity([manifest], {
+    const checking = verifyManifestIntegrity({
+      manifests: [manifest],
       fetchBytes: createFetchBytesWithRetry({
         manifest,
         ...(requestPolicy ? { requestPolicy } : {}),
@@ -256,7 +202,7 @@ export async function importNativeFederationRemote(
   manifest: AtlasManifest,
   policy: AtlasRemoteTrustPolicy = PERMISSIVE_TRUST_POLICY,
 ): Promise<AtlasAppEntry> {
-  await verifyManifestIntegrity([manifest], { policy });
+  await verifyManifestIntegrity({ manifests: [manifest], policy });
 
   const remote = await import(/* @vite-ignore */ manifest.remoteEntryUrl);
 

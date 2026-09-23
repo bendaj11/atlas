@@ -7,10 +7,9 @@ import {
   type AtlasManifestDescriptor,
 } from '@atlas/schema';
 import { runResiliently } from '../../resilience/resilience.js';
-import type { AtlasRetryPolicy } from '../../resilience/resilience.types.js';
 import { mapWithConcurrency } from '../../shared/concurrency.js';
 import { extractErrorMessage } from '../../shared/errors.js';
-import { fetchBytesFromNetwork, type FetchBytes } from '../fetch-bytes.js';
+import { fetchBytesFromNetwork } from '../fetch-bytes.js';
 import { AtlasRuntimeConfigurationError } from '../loader.errors.js';
 import type {
   DeploymentManifestReference,
@@ -96,30 +95,9 @@ function requireAppManifests(
   return apps;
 }
 
-export function loadPublishedManifest(
-  options: LoadPublishedManifestOptions,
-): Promise<PublishedManifest>;
-/** @deprecated Pass `{ reference, fetchBytes, requestPolicy }`. */
-export function loadPublishedManifest(
-  reference: ResolvedManifestReference,
-  fetchBytes?: FetchBytes,
-  requestPolicy?: AtlasRetryPolicy,
-): Promise<PublishedManifest>;
 export async function loadPublishedManifest(
-  optionsOrReference: LoadPublishedManifestOptions | ResolvedManifestReference,
-  legacyFetchBytes?: FetchBytes,
-  legacyRequestPolicy?: AtlasRetryPolicy,
+  options: LoadPublishedManifestOptions,
 ): Promise<PublishedManifest> {
-  const options: LoadPublishedManifestOptions =
-    'reference' in optionsOrReference
-      ? optionsOrReference
-      : {
-          reference: optionsOrReference,
-          ...(legacyFetchBytes ? { fetchBytes: legacyFetchBytes } : {}),
-          ...(legacyRequestPolicy
-            ? { requestPolicy: legacyRequestPolicy }
-            : {}),
-        };
   const fetchBytes = options.fetchBytes ?? fetchBytesFromNetwork;
   const { reference } = options;
   const bytes = await runResiliently({

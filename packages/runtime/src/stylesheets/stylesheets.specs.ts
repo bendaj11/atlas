@@ -143,18 +143,4 @@ describe('loadManifestStyles', () => {
       code: 'ATLAS_REMOTE_TRUST_REJECTED',
     });
   });
-
-  it('should reject with ATLAS_REMOTE_TRUST_REJECTED when the legacy policy argument does not allow the stylesheet origin', async () => {
-    await driver.given
-      .policy({
-        allowedOrigins: new Set([new URL(faker.internet.url()).origin]),
-      })
-      .when.loadedWithLegacyPolicyArgument(
-        anAppManifest({ channel: 'production', styles: [aStylesheet()] }),
-      );
-
-    expect(driver.get.error()).toMatchObject({
-      code: 'ATLAS_REMOTE_TRUST_REJECTED',
-    });
-  });
 });

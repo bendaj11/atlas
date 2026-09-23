@@ -118,11 +118,6 @@ export class WidgetLoaderDriver {
         },
       });
     },
-    createdWithLegacyArguments: () => {
-      this.loader = createWidgetLoader(this.manifests, this.sdk, {
-        importWidget: this.importWidget,
-      });
-    },
     mounted: async (widgetId: string, props: WidgetProps = {}) => {
       this.container = document.body.appendChild(document.createElement('div'));
       this.mounted = await this.loader!.mount(widgetId, this.container, props);

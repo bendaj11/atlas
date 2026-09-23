@@ -1,6 +1,5 @@
 import type { AtlasManifest } from '@atlas/schema';
 import { runResiliently } from '../../resilience/resilience.js';
-import type { AtlasRetryPolicy } from '../../resilience/resilience.types.js';
 import { mapWithConcurrency } from '../../shared/concurrency.js';
 import { convertToError } from '../../shared/errors.js';
 import { fetchBytesFromNetwork, type FetchBytes } from '../fetch-bytes.js';
@@ -14,35 +13,14 @@ import {
   assertManifestAssetTrust,
   PERMISSIVE_TRUST_POLICY,
 } from './trust-policy.js';
-import type { AtlasRemoteTrustPolicy } from './trust-policy.types.js';
 
 const networkIntegrityChecks = new Map<string, Promise<void>>();
 const MAX_CACHED_INTEGRITY_CHECKS = 256;
 
-export function verifyManifestIntegrity(
-  manifests: AtlasManifest[],
-  options?: VerifyManifestIntegrityOptions,
-): Promise<void>;
-/** @deprecated Pass `{ fetchBytes, policy }` as the second argument. */
-export function verifyManifestIntegrity(
-  manifests: AtlasManifest[],
-  fetchBytes: FetchBytes | undefined,
-  policy?: AtlasRemoteTrustPolicy,
-): Promise<void>;
 export async function verifyManifestIntegrity(
-  manifests: AtlasManifest[],
-  optionsOrFetchBytes: VerifyManifestIntegrityOptions | FetchBytes = {},
-  legacyPolicy?: AtlasRemoteTrustPolicy,
+  options: VerifyManifestIntegrityOptions,
 ): Promise<void> {
-  const options: VerifyManifestIntegrityOptions =
-    typeof optionsOrFetchBytes === 'function'
-      ? {
-          fetchBytes: optionsOrFetchBytes,
-          ...(legacyPolicy ? { policy: legacyPolicy } : {}),
-        }
-      : legacyPolicy
-        ? { ...optionsOrFetchBytes, policy: legacyPolicy }
-        : optionsOrFetchBytes;
+  const { manifests } = options;
   const fetchBytes = options.fetchBytes ?? fetchBytesFromNetwork;
   const policy = options.policy ?? PERMISSIVE_TRUST_POLICY;
 
@@ -112,37 +90,15 @@ async function verifyRemoteEntryIntegrity(
 }
 
 /** Verifies manifests independently so one rejected remote cannot prevent the host from starting. */
-export function findManifestTrustErrors(
-  options: FindManifestTrustErrorsOptions,
-): Promise<ReadonlyMap<string, Error>>;
-/** @deprecated Pass `{ manifests, policy, fetchBytes, requestPolicy }`. */
-export function findManifestTrustErrors(
-  manifests: AtlasManifest[],
-  policy: AtlasRemoteTrustPolicy,
-  fetchBytes?: FetchBytes,
-  requestPolicy?: AtlasRetryPolicy,
-): Promise<ReadonlyMap<string, Error>>;
 export async function findManifestTrustErrors(
-  optionsOrManifests: FindManifestTrustErrorsOptions | AtlasManifest[],
-  legacyPolicy?: AtlasRemoteTrustPolicy,
-  legacyFetchBytes?: FetchBytes,
-  legacyRequestPolicy?: AtlasRetryPolicy,
+  options: FindManifestTrustErrorsOptions,
 ): Promise<ReadonlyMap<string, Error>> {
-  const options: FindManifestTrustErrorsOptions = Array.isArray(
-    optionsOrManifests,
-  )
-    ? {
-        manifests: optionsOrManifests,
-        policy: legacyPolicy ?? PERMISSIVE_TRUST_POLICY,
-        ...(legacyFetchBytes ? { fetchBytes: legacyFetchBytes } : {}),
-        ...(legacyRequestPolicy ? { requestPolicy: legacyRequestPolicy } : {}),
-      }
-    : optionsOrManifests;
   const errors = new Map<string, Error>();
 
   await mapWithConcurrency(options.manifests, async (manifest) => {
     try {
-      await verifyManifestIntegrity([manifest], {
+      await verifyManifestIntegrity({
+        manifests: [manifest],
         fetchBytes: createFetchBytesWithRetry({
           manifest,
           ...(options.fetchBytes ? { fetchBytes: options.fetchBytes } : {}),

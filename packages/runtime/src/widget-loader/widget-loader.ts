@@ -43,7 +43,6 @@ import {
 } from './widget-loader.errors.js';
 import type {
   AtlasResolvedWidget,
-  AtlasWidgetLoaderOptions,
   CreateWidgetLoaderInput,
   MountedWidgetState,
   MountResolvedWidgetInput,
@@ -52,25 +51,7 @@ import type {
 
 export function createWidgetLoader(
   input: CreateWidgetLoaderInput,
-): AtlasWidgetLoader;
-/** @deprecated Pass `{ manifests, sdk, options }`. */
-export function createWidgetLoader(
-  manifests: AtlasManifest[],
-  sdk: AtlasSdk,
-  options?: AtlasWidgetLoaderOptions,
-): AtlasWidgetLoader;
-export function createWidgetLoader(
-  inputOrManifests: CreateWidgetLoaderInput | AtlasManifest[],
-  legacySdk?: AtlasSdk,
-  legacyOptions?: AtlasWidgetLoaderOptions,
 ): AtlasWidgetLoader {
-  const input: CreateWidgetLoaderInput = Array.isArray(inputOrManifests)
-    ? {
-        manifests: inputOrManifests,
-        sdk: legacySdk!,
-        ...(legacyOptions ? { options: legacyOptions } : {}),
-      }
-    : inputOrManifests;
   const { manifests, sdk } = input;
   const options = input.options ?? {};
   const knownWidgets = indexWidgetsByQualifiedAndBareId(manifests);
@@ -110,7 +91,8 @@ export function createWidgetLoader(
 
     if (existing) return existing;
 
-    const checking = verifyManifestIntegrity([resolved.ownerManifest], {
+    const checking = verifyManifestIntegrity({
+      manifests: [resolved.ownerManifest],
       policy: options.trustPolicy ?? PERMISSIVE_TRUST_POLICY,
     }).catch((error) => {
       ownerIntegrityChecks.delete(key);
@@ -425,7 +407,7 @@ export async function importExportedWidget(
       throw new AtlasWidgetRemoteMismatchError(widgetReference);
     }
 
-    await verifyManifestIntegrity([ownerManifest]);
+    await verifyManifestIntegrity({ manifests: [ownerManifest] });
   }
 
   const entry = unwrapDefaultExport(

@@ -4,6 +4,7 @@ import type { FetchBytes } from '../fetch-bytes.js';
 import type { AtlasRemoteTrustPolicy } from './trust-policy.types.js';
 
 export interface VerifyManifestIntegrityOptions {
+  manifests: AtlasManifest[];
   fetchBytes?: FetchBytes;
   policy?: AtlasRemoteTrustPolicy;
 }

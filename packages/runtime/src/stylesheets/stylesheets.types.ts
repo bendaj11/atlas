@@ -8,9 +8,6 @@ export interface AtlasStylesheetLoadOptions {
   readonly target?: ParentNode;
 }
 
-export type AtlasStylesheetLoadInput =
-  AtlasRemoteTrustPolicy | AtlasStylesheetLoadOptions;
-
 export interface LoadedStylesheet {
   element: HTMLLinkElement;
   ready: Promise<void>;

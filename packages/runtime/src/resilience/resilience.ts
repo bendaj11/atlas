@@ -40,26 +40,9 @@ export function createRetryPolicy(
   };
 }
 
-export function runResiliently<T>(input: ResilientOperation<T>): Promise<T>;
-/** @deprecated Pass `{ operation, context, policy }`. */
-export function runResiliently<T>(
-  operation: ResilientOperationRunner<T>,
-  context: AtlasOperationContext,
-  policy?: AtlasRetryPolicy,
-): Promise<T>;
 export async function runResiliently<T>(
-  inputOrOperation: ResilientOperation<T> | ResilientOperationRunner<T>,
-  legacyContext?: AtlasOperationContext,
-  legacyPolicy?: AtlasRetryPolicy,
+  input: ResilientOperation<T>,
 ): Promise<T> {
-  const input =
-    typeof inputOrOperation === 'function'
-      ? {
-          operation: inputOrOperation,
-          context: legacyContext!,
-          ...(legacyPolicy ? { policy: legacyPolicy } : {}),
-        }
-      : inputOrOperation;
   const { operation, context } = input;
   const policy = input.policy ?? {};
   const timeoutMs = policy.timeoutMs ?? DEFAULT_TIMEOUT_MS;

@@ -48,12 +48,6 @@ export class HostNavigationDriver {
         navigation: { ...this.navigation, navigate: this.navigate },
       });
     },
-    createdWithLegacyArguments: () => {
-      this.items = createHostNavigationItems(this.manifests, this.hostId, {
-        ...this.navigation,
-        navigate: this.navigate,
-      });
-    },
     itemNavigated: (index: number) => this.items[index]!.navigate(),
     subscribed: () => {
       subscribeAtlasNavigationItems(this.listener, document);

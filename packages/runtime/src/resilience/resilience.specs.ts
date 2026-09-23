@@ -17,13 +17,6 @@ describe('runResiliently', () => {
     expect(driver.get.result()).toBe(value);
   });
 
-  it('should return the operation result when the legacy positional arguments are used', async () => {
-    const value = faker.word.noun();
-    await driver.given.operationResults([value]).when.runWithLegacyArguments();
-
-    expect(driver.get.result()).toBe(value);
-  });
-
   it('should return the operation result when the observer throws', async () => {
     const value = faker.word.noun();
     await driver.given

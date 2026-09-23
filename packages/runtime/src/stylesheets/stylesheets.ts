@@ -3,7 +3,6 @@ import {
   assertManifestStylesTrust,
   PERMISSIVE_TRUST_POLICY,
 } from '../loader/trust/trust-policy.js';
-import type { AtlasRemoteTrustPolicy } from '../loader/trust/trust-policy.types.js';
 import { prepareShadowImports } from '../shadow-imports/shadow-imports.js';
 import { adaptShadowStyleSheet } from '../shadow-styles/shadow-styles.js';
 import {
@@ -12,7 +11,6 @@ import {
 } from './stylesheets.errors.js';
 import type {
   AtlasStyleRelease,
-  AtlasStylesheetLoadInput,
   AtlasStylesheetLoadOptions,
   LoadedStylesheet,
 } from './stylesheets.types.js';
@@ -26,11 +24,12 @@ const loadedStylesByTarget = new WeakMap<
 export async function loadManifestStyles(
   manifest: AtlasManifest,
   document: Document | undefined,
-  input: AtlasStylesheetLoadInput = {},
+  options: AtlasStylesheetLoadOptions = {},
 ): Promise<AtlasStyleRelease> {
   if (!document || !manifest.styles?.length) return () => undefined;
 
-  const { policy, target } = normalizeStylesheetLoadInput(input, document);
+  const policy = options.policy ?? PERMISSIVE_TRUST_POLICY;
+  const target = options.target ?? document.head;
 
   assertManifestStylesTrust(manifest, policy);
 
@@ -53,26 +52,6 @@ export async function loadManifestStyles(
   }
 
   return () => releases.forEach((release) => release());
-}
-
-function normalizeStylesheetLoadInput(
-  input: AtlasStylesheetLoadInput,
-  document: Document,
-): { policy: AtlasRemoteTrustPolicy; target: ParentNode } {
-  if (isStylesheetLoadOptions(input)) {
-    return {
-      policy: input.policy ?? PERMISSIVE_TRUST_POLICY,
-      target: input.target ?? document.head,
-    };
-  }
-
-  return { policy: input, target: document.head };
-}
-
-function isStylesheetLoadOptions(
-  input: AtlasStylesheetLoadInput,
-): input is AtlasStylesheetLoadOptions {
-  return 'target' in input || 'policy' in input;
 }
 
 async function acquireStylesheet(input: {

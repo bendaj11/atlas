@@ -51,15 +51,6 @@ describe('createHostNavigationItems', () => {
       ]);
     });
 
-    it('should order visible items by nav order when the legacy positional arguments are used', () => {
-      driver.when.createdWithLegacyArguments();
-
-      expect(driver.get.items().map((item) => item.label)).toEqual([
-        'Orders',
-        'Catalog',
-      ]);
-    });
-
     it('should mark the item active when the current path is under its route', () => {
       driver.given.currentPath('/orders/42').when.created();
 

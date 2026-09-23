@@ -104,14 +104,6 @@ describe('createWidgetLoader', () => {
       });
     });
 
-    it('should mount with the legacy positional arguments when created that way', async () => {
-      driver.when.createdWithLegacyArguments();
-
-      await driver.when.mounted(widget.id);
-
-      expect(driver.get.lastRequest().ownerManifest).toEqual(manifest);
-    });
-
     it('should import the widget module once when two mounts run concurrently', async () => {
       driver.given.importDelayed().when.created();
 

@@ -65,16 +65,6 @@ export class ResilienceDriver {
         this.error = error;
       }
     },
-    runWithLegacyArguments: async () => {
-      try {
-        this.result = await runResiliently(this.operation, this.context, {
-          ...this.policy,
-          observer: this.observer,
-        });
-      } catch (error) {
-        this.error = error;
-      }
-    },
   };
 
   readonly get = {

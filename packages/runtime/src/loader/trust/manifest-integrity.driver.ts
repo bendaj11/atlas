@@ -37,17 +37,11 @@ export class ManifestIntegrityDriver {
   readonly when = {
     verified: async (manifests: AtlasManifest[]) => {
       try {
-        await verifyManifestIntegrity(manifests, {
+        await verifyManifestIntegrity({
+          manifests,
           fetchBytes: this.fetchBytes,
           policy: this.policy,
         });
-      } catch (error) {
-        this.error = error;
-      }
-    },
-    verifiedWithLegacyArguments: async (manifests: AtlasManifest[]) => {
-      try {
-        await verifyManifestIntegrity(manifests, this.fetchBytes, this.policy);
       } catch (error) {
         this.error = error;
       }

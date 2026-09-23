@@ -23,14 +23,6 @@ describe('verifyManifestIntegrity', () => {
       expect(driver.get.error()).toBeUndefined();
     });
 
-    it('should accept the manifest when the legacy positional arguments are used and the bytes match', async () => {
-      await driver.given
-        .remoteBytes('hello')
-        .when.verifiedWithLegacyArguments([manifest]);
-
-      expect(driver.get.error()).toBeUndefined();
-    });
-
     it('should fetch the remote entry url when verified', async () => {
       await driver.given.remoteBytes('hello').when.verified([manifest]);
 
