@@ -1,6 +1,6 @@
-import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
-import { normalizeStoredArtifactVersion } from '../../artifact-versions/artifact-version-utils/artifact-version-utils';
+import type { ArtifactVersion } from '../../types/artifact-version';
+import type { HostData } from '../../types/host-data';
+import { normalizeStoredArtifactVersion } from '../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 
 interface IncludeOverrideAppsOptions {
   hostData: HostData;

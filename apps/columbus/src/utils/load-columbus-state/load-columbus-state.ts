@@ -9,7 +9,7 @@ import { failureMessage } from '../../scripts/shared/errors/errors';
 import {
   extractEnabledArtifactVersionOverrides,
   includeOverrideAppsInCatalog,
-} from '../../scripts/overrides/override-artifact-versions/override-artifact-versions';
+} from '../override-artifact-versions/override-artifact-versions';
 import type { ColumbusState, Scope } from '../../types/columbus-state';
 
 interface HostReadResult {

@@ -1,7 +1,7 @@
 import { Box, Heading, Page, Text } from '@wix/design-system';
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ARTIFACTS_ROUTE } from '../../scripts/routing/routes/routes';
+import { ARTIFACTS_ROUTE } from '../../routing/routes/routes';
 import { baseUrlFromRemoteEntry } from '../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
 import { versionKey } from '../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
 import type { OverrideSelection } from '../../types/artifact';

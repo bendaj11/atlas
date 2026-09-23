@@ -1,5 +1,5 @@
-import type { ArtifactOverride } from '../../../types/artifact';
-import type { ColumbusState, Scope } from '../../../types/columbus-state';
+import type { ArtifactOverride } from '../../types/artifact';
+import type { ColumbusState, Scope } from '../../types/columbus-state';
 
 export function toggleArtifactVersionOverride({
   columbusState,

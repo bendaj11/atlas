@@ -3,7 +3,7 @@ import { notifyManager, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, type RenderHookResult } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type { ColumbusState } from '../../types/columbus-state';
-import type { persistColumbusState as persistColumbusStateType } from '../../scripts/overrides/persist-overrides/persist-overrides';
+import type { persistColumbusState as persistColumbusStateType } from '../../utils/persist-overrides/persist-overrides';
 import { createQueryClient } from '../../utils/query-client/query-client';
 import { useColumbusStateMock } from '../../testkit/mocks/useColumbusState';
 
@@ -11,9 +11,12 @@ type ColumbusStateValue = ReturnType<typeof useColumbusStateMock>;
 
 const persistColumbusState = jest.fn<typeof persistColumbusStateType>();
 
-jest.unstable_mockModule('../../scripts/overrides/persist-overrides/persist-overrides', () => ({
-  persistColumbusState,
-}));
+jest.unstable_mockModule(
+  '../../utils/persist-overrides/persist-overrides',
+  () => ({
+    persistColumbusState,
+  }),
+);
 
 const { usePersistOverridesMutation } =
   await import('./usePersistOverridesMutation');
