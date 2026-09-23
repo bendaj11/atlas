@@ -12,6 +12,10 @@
       "dependsOn": ["^typecheck"],
       "outputs": ["dist/**", "*.tsbuildinfo"]
     },
+    "lint": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["build", "^build"],
       "env": ["CODEX_SANDBOX_NETWORK_DISABLED"],

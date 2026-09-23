@@ -16,12 +16,12 @@ export class PreviewPruningDriver {
   private readonly now = Date.now();
 
   readonly given = {
-    registry: (registry: AtlasStaticRegistry): this => {
+    registry: (registry: AtlasStaticRegistry) => {
       this.registry = registry;
 
       return this;
     },
-    object: (path: string, ageMs: number): this => {
+    object: (path: string, ageMs: number) => {
       this.storage.seed(path, '{}', {
         lastModified: new Date(this.now - ageMs).toISOString(),
       });
@@ -42,6 +42,6 @@ export class PreviewPruningDriver {
   };
 
   readonly get = {
-    removedPaths: (): readonly string[] => this.storage.removed,
+    removedPaths: () => this.storage.removed,
   };
 }

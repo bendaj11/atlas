@@ -37,12 +37,12 @@ declare global {
       interface InjectionResult<T> {
         result?: T;
       }
-      function executeScript<T>(options: {
+      function executeScript<Args extends unknown[], Result>(options: {
         target: { tabId: number };
         world?: 'MAIN';
-        func: (...args: any[]) => T | Promise<T>;
-        args?: unknown[];
-      }): Promise<Array<InjectionResult<Awaited<T>>>>;
+        func: (...args: Args) => Result | Promise<Result>;
+        args: Args;
+      }): Promise<Array<InjectionResult<Awaited<Result>>>>;
     }
     namespace storage.local {
       function get(key: string): Promise<Record<string, unknown>>;

@@ -14,7 +14,7 @@ export class ControlServerDriver {
   private host?: DevControlServer;
 
   given = {
-    runningApps: async (): Promise<void> => {
+    runningApps: async () => {
       this.host = await startControlServer({
         port: 0,
         document: this.ownerAppDocument(),
@@ -29,7 +29,7 @@ export class ControlServerDriver {
       });
       await this.app.markReady();
     },
-    runningHostAndApp: async (): Promise<void> => {
+    runningHostAndApp: async () => {
       this.host = await startControlServer({
         port: 0,
         document: this.hostDocument(),
@@ -44,7 +44,7 @@ export class ControlServerDriver {
       });
       await this.app.markReady();
     },
-    runningHostAndAppWithPublishedRegistry: async (): Promise<void> => {
+    runningHostAndAppWithPublishedRegistry: async () => {
       this.host = await startControlServer({
         port: 0,
         document: this.hostDocument(),
@@ -64,7 +64,7 @@ export class ControlServerDriver {
   };
 
   when = {
-    localHostRestartedBeforeAppRecovers: async (): Promise<void> => {
+    localHostRestartedBeforeAppRecovers: async () => {
       if (!this.host || !this.app)
         throw new Error('Running host and app are required.');
 
@@ -77,7 +77,7 @@ export class ControlServerDriver {
       });
       await this.host.markReady();
     },
-    localHostRestartedAfterAppRecovered: async (): Promise<void> => {
+    localHostRestartedAfterAppRecovered: async () => {
       if (!this.host || !this.app)
         throw new Error('Running host and app are required.');
 
@@ -91,7 +91,7 @@ export class ControlServerDriver {
       });
       await this.host.markReady();
     },
-    ownerAppRestartedAfterAppRecovered: async (): Promise<void> => {
+    ownerAppRestartedAfterAppRecovered: async () => {
       if (!this.host || !this.app)
         throw new Error('Running apps are required.');
 
@@ -105,7 +105,7 @@ export class ControlServerDriver {
       });
       await this.host.markReady();
     },
-    ownerAppRestartedBeforeAppRecovers: async (): Promise<void> => {
+    ownerAppRestartedBeforeAppRecovers: async () => {
       if (!this.host || !this.app)
         throw new Error('Running apps are required.');
 
@@ -118,20 +118,20 @@ export class ControlServerDriver {
       });
       await this.host.markReady();
     },
-    appStopped: async (): Promise<void> => {
+    appStopped: async () => {
       if (!this.app) throw new Error('Running app is required.');
 
       await this.app.close();
       this.app = undefined;
     },
-    ownerStoppedAndAppReconciled: async (): Promise<void> => {
+    ownerStoppedAndAppReconciled: async () => {
       if (!this.host || !this.app)
         throw new Error('Running host and app are required.');
 
       await this.host.close();
       await this.app.reconcile();
     },
-    restartHostAndReconcileApp: async (): Promise<void> => {
+    restartHostAndReconcileApp: async () => {
       if (!this.host || !this.app)
         throw new Error('Running host and app are required.');
 
@@ -145,17 +145,17 @@ export class ControlServerDriver {
       await this.host.markReady();
       await this.app.reconcile();
     },
-    close: async (): Promise<void> => {
+    close: async () => {
       await this.app?.close();
       await this.host?.close();
     },
   };
 
   get = {
-    allAppIds: (): string[] => [this.appId, this.ownerAppId].sort(),
-    appIds: (): string[] => [this.appId],
-    ownerAppIds: (): string[] => [this.ownerAppId],
-    catalogAppIds: async (): Promise<string[]> => {
+    allAppIds: () => [this.appId, this.ownerAppId].sort(),
+    appIds: () => [this.appId],
+    ownerAppIds: () => [this.ownerAppId],
+    catalogAppIds: async () => {
       if (!this.host) throw new Error('Host is required.');
 
       const response = await fetch(
@@ -167,7 +167,7 @@ export class ControlServerDriver {
       };
       return session.catalog.apps.map(({ id }) => id).sort();
     },
-    localHostAndAppState: async (): Promise<unknown> => {
+    localHostAndAppState: async () => {
       if (!this.host) throw new Error('Host is required.');
 
       const response = await fetch(
@@ -182,8 +182,8 @@ export class ControlServerDriver {
         hostChannel: session.catalog.host.channel,
       };
     },
-    publishedCatalogAppIds: (): string[] => [this.appId, 'published-app'],
-    registryStatus: async (): Promise<number> => {
+    publishedCatalogAppIds: () => [this.appId, 'published-app'],
+    registryStatus: async () => {
       if (!this.host) throw new Error('Host is required.');
       return (
         await fetch(`http://localhost:${this.host.port}/registry.json`, {

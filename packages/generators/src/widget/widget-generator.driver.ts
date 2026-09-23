@@ -1,17 +1,23 @@
+import { faker } from '@faker-js/faker';
 import type {
   AtlasGeneratedFile,
-  AtlasGeneratorOptions,
+  SupportedGeneratorOptions,
 } from '../shared/types/generator-types.js';
-import { aGeneratorOptions } from '../testkit/generator-options.testkit.js';
-import type { SupportedGeneratorOptions } from '../shared/validation/validation.js';
-import { generateWidgetFiles } from './widget-generator.js';
+import {
+  anAngularGeneratorOptions,
+  aReactGeneratorOptions,
+} from '../testkit/generator-options.testkit.js';
+import { generateWidgetFilesForFramework } from './widget-generator.js';
 
 export class WidgetGeneratorDriver {
-  private options: AtlasGeneratorOptions = aGeneratorOptions();
+  private options = faker.helpers.arrayElement([
+    anAngularGeneratorOptions(),
+    aReactGeneratorOptions(),
+  ]);
   private files: AtlasGeneratedFile[] = [];
 
   readonly given = {
-    options: (options: AtlasGeneratorOptions): this => {
+    options: (options: SupportedGeneratorOptions) => {
       this.options = options;
 
       return this;
@@ -19,16 +25,14 @@ export class WidgetGeneratorDriver {
   };
 
   readonly when = {
-    generated: (): void => {
-      this.files = generateWidgetFiles(
-        this.options as SupportedGeneratorOptions,
-      );
+    generated: () => {
+      this.files = generateWidgetFilesForFramework(this.options);
     },
   };
 
   readonly get = {
-    paths: (): string[] => this.files.map((file) => file.path),
-    contents: (path: string): string | undefined =>
+    paths: () => this.files.map((file) => file.path),
+    contents: (path: string) =>
       this.files.find((file) => file.path === path)?.contents,
   };
 }

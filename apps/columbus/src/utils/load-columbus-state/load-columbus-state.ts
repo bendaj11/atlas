@@ -1,15 +1,16 @@
 import type { HostData } from '../../types/host-data';
-import { readHostData } from '../../scripts/host/host-data/host-data';
+import { readHostData } from '../host-data/host-data';
 import {
   readDisabledArtifactVersionOverrides,
   readClearedLocalArtifactIds,
-} from '../../scripts/overrides/override-storage/override-storage';
-import { readHostDataCache } from '../../scripts/host/host-data-cache/host-data-cache';
-import { failureMessage } from '../../scripts/shared/errors/errors';
+} from '../override-storage/override-storage';
+import { readHostDataCache } from '../host-data-cache/host-data-cache';
+import { readPageStateFromHostTab } from '../host-tabs/host-tabs';
+import { failureMessage } from '../errors/errors';
 import {
   extractEnabledArtifactVersionOverrides,
   includeOverrideAppsInCatalog,
-} from '../../scripts/overrides/override-artifact-versions/override-artifact-versions';
+} from '../override-artifact-versions/override-artifact-versions';
 import type { ColumbusState, Scope } from '../../types/columbus-state';
 
 interface HostReadResult {
@@ -17,10 +18,14 @@ interface HostReadResult {
   tabId: number;
 }
 
-export async function loadColumbusState(
-  hasColumbusState: boolean,
-): Promise<ColumbusState> {
-  const cached = hasColumbusState ? undefined : await readCachedColumbusState();
+interface LoadColumbusStateOptions {
+  bypassCache: boolean;
+}
+
+export async function loadColumbusState({
+  bypassCache,
+}: LoadColumbusStateOptions): Promise<ColumbusState> {
+  const cached = bypassCache ? undefined : await readCachedColumbusState();
 
   return cached ?? readActiveColumbusState();
 }
@@ -42,8 +47,14 @@ async function readActiveColumbusState(): Promise<ColumbusState> {
 async function readCachedColumbusState(): Promise<ColumbusState | undefined> {
   try {
     const cached = await readHostDataCache();
+    if (!cached) return undefined;
 
-    return cached ? createColumbusState(cached) : undefined;
+    const pageState = await readPageStateFromHostTab(cached.tabId);
+
+    return await createColumbusState({
+      hostData: { ...cached.hostData, ...pageState },
+      tabId: cached.tabId,
+    });
   } catch {
     return undefined;
   }

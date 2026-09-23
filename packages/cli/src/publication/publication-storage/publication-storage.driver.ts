@@ -78,7 +78,7 @@ export class PublicationStorageDriver {
     }: {
       lockMode?: string;
       secretAccessKey?: 'missing';
-    }): void => {
+    }) => {
       this.environment = {
         ATLAS_S3_BUCKET: this.bucket,
         ATLAS_STORAGE: 's3',
@@ -87,18 +87,18 @@ export class PublicationStorageDriver {
       if (secretAccessKey === 'missing')
         this.environment.ATLAS_STORAGE_ACCESS_KEY_ID = this.accessKeyId;
     },
-    nativeEnvironment: (overrides: NodeJS.ProcessEnv): void => {
+    nativeEnvironment: (overrides: NodeJS.ProcessEnv) => {
       this.environment = { ...this.nativeEnvironment, ...overrides };
     },
-    variables: (values: NodeJS.ProcessEnv): void => {
+    variables: (values: NodeJS.ProcessEnv) => {
       this.environment = values;
     },
-    arguments: (values: string[]): void => {
+    arguments: (values: string[]) => {
       this.arguments = values;
     },
     customStorage: (
       kind: 'object' | 'factory' | 'invalid' | 'invalid-delivery' | 'rejecting',
-    ): void => {
+    ) => {
       if (kind === 'object') this.configuredStorage = this.storage;
       if (kind === 'factory')
         this.configuredStorage = jest
@@ -119,42 +119,38 @@ export class PublicationStorageDriver {
   };
 
   when = {
-    create: async (): Promise<void> => {
-      await this.withEnvironment(async () => {
+    create: () =>
+      this.withEnvironment(async () => {
         this.resolvedStorage = await createPublicationStorage(
           this.configuredStorage,
           new CliArguments(this.arguments),
           this.factories,
         );
-      });
-    },
-    assertExternalLock: async (): Promise<void> => {
-      await this.withEnvironment(async () => {
+      }),
+    assertExternalLock: () =>
+      this.withEnvironment(async () => {
         await this.artifactoryOptions().assertExclusivePublishing();
-      });
-    },
-    loseExternalLock: async (): Promise<void> => {
-      await this.withEnvironment(async () => {
+      }),
+    loseExternalLock: () =>
+      this.withEnvironment(async () => {
         process.env.ATLAS_PUBLICATION_LOCK =
           this.nativeEnvironment.ATLAS_ARTIFACTORY_LOCK_RESOURCE;
         await this.artifactoryOptions().assertExclusivePublishing();
         delete process.env.ATLAS_PUBLICATION_LOCK;
         await this.artifactoryOptions().assertExclusivePublishing();
-      });
-    },
-    acquireExternalLock: async (): Promise<void> => {
-      await this.withEnvironment(async () => {
+      }),
+    acquireExternalLock: () =>
+      this.withEnvironment(async () => {
         const storage = await createPublicationStorage();
         const lease = await storage.acquireLock(faker.string.uuid());
         await lease.assertHeld();
         await lease.release();
         this.externalLeaseAcquired = true;
-      });
-    },
+      }),
   };
 
   get = {
-    artifactoryOptions: (): ArtifactoryOptions => this.artifactoryOptions(),
+    artifactoryOptions: () => this.artifactoryOptions(),
     expectedArtifactoryConfiguration: () => ({
       url: this.nativeEnvironment.ATLAS_STORAGE_API_URL,
       repository: this.nativeEnvironment.ATLAS_ARTIFACTORY_REPOSITORY,
@@ -162,15 +158,13 @@ export class PublicationStorageDriver {
       accessToken: this.nativeEnvironment.ATLAS_ARTIFACTORY_ACCESS_TOKEN,
       publicUrl: this.nativeEnvironment.ATLAS_REGISTRY_URL,
     }),
-    lockResource: (): string =>
-      this.nativeEnvironment.ATLAS_ARTIFACTORY_LOCK_RESOURCE,
-    s3Options: (): S3Options | undefined =>
-      this.factories.s3.mock.calls.at(-1)?.[0],
-    configuredStorageUsed: (): boolean =>
+    lockResource: () => this.nativeEnvironment.ATLAS_ARTIFACTORY_LOCK_RESOURCE,
+    s3Options: () => this.factories.s3.mock.calls.at(-1)?.[0],
+    configuredStorageUsed: () =>
       this.resolvedStorage === this.storage &&
       this.factories.s3.mock.calls.length === 0 &&
       this.factories.artifactory.mock.calls.length === 0,
-    externalLockIsUsable: (): boolean => this.externalLeaseAcquired,
+    externalLockIsUsable: () => this.externalLeaseAcquired,
   };
 
   private artifactoryOptions(): ArtifactoryOptions {

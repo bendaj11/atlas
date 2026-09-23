@@ -23,7 +23,7 @@ export class DevelopmentSessionDriver {
   private value?: unknown;
 
   given = {
-    document: (scenario: SessionScenario): void => {
+    document: (scenario: SessionScenario) => {
       const manifest = anAppManifest({
         channel: scenario === 'merged-catalog' ? 'local' : 'production',
         id: this.appId,
@@ -52,7 +52,7 @@ export class DevelopmentSessionDriver {
   };
 
   when = {
-    createCatalog: (): void => {
+    createCatalog: () => {
       if (!this.document) throw new Error('Session document is required.');
 
       const catalog = createLocalDevCatalog(this.document);
@@ -64,7 +64,7 @@ export class DevelopmentSessionDriver {
         schemaVersion: catalog.schemaVersion,
       };
     },
-    createSession: (): void => {
+    createSession: () => {
       if (!this.document) throw new Error('Session document is required.');
 
       const catalog = createLocalDevCatalog(this.document);
@@ -80,7 +80,7 @@ export class DevelopmentSessionDriver {
         overrideUrl: session.overrideUrl,
       };
     },
-    refreshRegistration: (): void => {
+    refreshRegistration: () => {
       if (!this.document) throw new Error('Session document is required.');
 
       const session = createDevSessionStore(this.document, this.overrideUrl);
@@ -95,7 +95,7 @@ export class DevelopmentSessionDriver {
         schemaVersion: catalog?.schemaVersion,
       };
     },
-    createMergedCatalog: (): void => {
+    createMergedCatalog: () => {
       if (!this.document) throw new Error('Session document is required.');
 
       const session = createDevSessionStore(this.document, this.overrideUrl);
@@ -126,7 +126,7 @@ export class DevelopmentSessionDriver {
       hostId: this.hostId,
       overrideUrl: this.overrideUrl,
     }),
-    value: (): unknown => this.value,
+    value: () => this.value,
   };
 
   private productionCatalog(): AtlasHostCatalog {

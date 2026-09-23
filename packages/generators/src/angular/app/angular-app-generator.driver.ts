@@ -1,13 +1,13 @@
 import { faker } from '@faker-js/faker';
 import { anAtlasId } from '../../testkit/generator-options.testkit.js';
 import {
-  angularAppComponent,
-  angularAppConfig,
-  angularAppDetailsComponent,
-  angularAppEntry,
-  angularAppHomeComponent,
-  angularAppMain,
-  angularAppRoutes,
+  renderAngularAppComponent,
+  renderAngularAppConfig,
+  renderAngularAppDetailsComponent,
+  renderAngularAppEntry,
+  renderAngularAppHomeComponent,
+  renderAngularAppMain,
+  renderAngularAppRoutes,
 } from './angular-app-generator.js';
 
 export class AngularAppGeneratorDriver {
@@ -18,22 +18,22 @@ export class AngularAppGeneratorDriver {
   private contents!: string;
 
   readonly given = {
-    name: (name: string): this => {
+    name: (name: string) => {
       this.name = name;
 
       return this;
     },
-    routed: (routed: boolean): this => {
+    routed: (routed: boolean) => {
       this.routed = routed;
 
       return this;
     },
-    zoneless: (zoneless: boolean): this => {
+    zoneless: (zoneless: boolean) => {
       this.zoneless = zoneless;
 
       return this;
     },
-    requiresZonelessProvider: (requiresZonelessProvider: boolean): this => {
+    requiresZonelessProvider: (requiresZonelessProvider: boolean) => {
       this.requiresZonelessProvider = requiresZonelessProvider;
 
       return this;
@@ -41,40 +41,40 @@ export class AngularAppGeneratorDriver {
   };
 
   readonly when = {
-    configGenerated: (): void => {
-      this.contents = angularAppConfig({
+    configGenerated: () => {
+      this.contents = renderAngularAppConfig({
         routed: this.routed,
         requiresZonelessProvider: this.requiresZonelessProvider,
       });
     },
-    entryGenerated: (): void => {
-      this.contents = angularAppEntry({
+    entryGenerated: () => {
+      this.contents = renderAngularAppEntry({
         name: this.name,
         routed: this.routed,
         zoneless: this.zoneless,
       });
     },
-    componentGenerated: (): void => {
-      this.contents = angularAppComponent({
+    componentGenerated: () => {
+      this.contents = renderAngularAppComponent({
         name: this.name,
         routed: this.routed,
       });
     },
-    mainGenerated: (): void => {
-      this.contents = angularAppMain();
+    mainGenerated: () => {
+      this.contents = renderAngularAppMain();
     },
-    homeComponentGenerated: (): void => {
-      this.contents = angularAppHomeComponent(this.name);
+    homeComponentGenerated: () => {
+      this.contents = renderAngularAppHomeComponent(this.name);
     },
-    detailsComponentGenerated: (): void => {
-      this.contents = angularAppDetailsComponent();
+    detailsComponentGenerated: () => {
+      this.contents = renderAngularAppDetailsComponent();
     },
-    routesGenerated: (): void => {
-      this.contents = angularAppRoutes();
+    routesGenerated: () => {
+      this.contents = renderAngularAppRoutes();
     },
   };
 
   readonly get = {
-    contents: (): string => this.contents,
+    contents: () => this.contents,
   };
 }

@@ -8,11 +8,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false && vite build && vite build --config vite.badge.config.ts && vite build --config vite.development-session.config.ts",
+    "lint": "eslint .",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config jest.config.cjs --testPathPattern=apps/columbus/src/",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "devDependencies": {
     "@atlas/testkit": "workspace:*",
+    "@eslint/js": "^9.39.5",
     "@faker-js/faker": "^10.5.0",
     "@file-services/node": "^9.4.1",
     "@stylable/core": "^6.1.1",
@@ -29,10 +31,14 @@
     "@wix/design-system": "^1.297.0",
     "@wix/wix-ui-icons-common": "^3.184.0",
     "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
     "jest-environment-jsdom": "29.7.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.0",
+    "typescript-eslint": "^8.70.1",
     "vite": "^7.3.6"
   }
 }

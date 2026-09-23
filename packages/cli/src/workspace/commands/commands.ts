@@ -1,4 +1,4 @@
-import { defaultDevServerPort } from '@atlas/generators';
+import { getDefaultDevServerPort } from '@atlas/generators';
 import { join, relative } from 'node:path';
 import type { AngularStylesheetFormat } from '@atlas/generators';
 import {
@@ -92,7 +92,7 @@ export function createNxGenerationCommand(options: {
       ? '@nx/angular:application'
       : '@nx/react:application';
   const port =
-    generation.devServerPort ?? defaultDevServerPort(generation.type);
+    generation.devServerPort ?? getDefaultDevServerPort(generation.type);
   const args = [
     'nx',
     'generate',

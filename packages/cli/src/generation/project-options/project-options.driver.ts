@@ -21,27 +21,27 @@ export class ProjectOptionsDriver {
     jest.fn<AtlasWorkspace['installScaffoldDependency']>();
 
   readonly given = {
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = flags;
 
       return this;
     },
-    interactive: (interactive: boolean): this => {
+    interactive: (interactive: boolean) => {
       this.interactive = interactive;
 
       return this;
     },
-    selection: (value: string): this => {
+    selection: (value: string) => {
       this.select.mockResolvedValue(value);
 
       return this;
     },
-    inputs: (values: string[]): this => {
+    inputs: (values: string[]) => {
       for (const value of values) this.input.mockResolvedValueOnce(value);
 
       return this;
     },
-    missingScaffoldDependency: (dependency: string): this => {
+    missingScaffoldDependency: (dependency: string) => {
       this.missingScaffoldDependency.mockResolvedValue(dependency);
 
       return this;

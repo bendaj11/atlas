@@ -1,7 +1,8 @@
 import type { AtlasHostManifest } from '../../host-manifest/atlas-host-manifest.js';
 import type { AtlasManifest } from '../../manifest/atlas-manifest.js';
 import type { AtlasAppArtifactManifest } from '../atlas-publication.js';
-import { digestToIntegrity } from '../../validation/digest-to-integrity.js';
+import { AtlasError } from '../../errors/atlas-error/atlas-error.js';
+import { convertDigestToIntegrity } from '../../validation/digest-to-integrity.js';
 import { assertPublishedArtifactManifest } from '../validate-published-artifact-manifest/validate-published-artifact-manifest.js';
 
 const CANONICAL_RELEASE_VERSION = '0.0.0';
@@ -15,7 +16,18 @@ export function hydratePublishedArtifactManifest(
 ): AtlasManifest | AtlasHostManifest {
   assertPublishedArtifactManifest(value);
   const root = new URL('.', manifestUrl).href;
-  const entry = value.files.find(({ path }) => path === value.entryPath)!;
+  const entry = value.files.find(({ path }) => path === value.entryPath);
+
+  if (!entry)
+    throw new AtlasError(
+      `Atlas manifest "${manifestUrl}" lists no payload file for its entryPath.`,
+      {
+        suggestedActions:
+          'Republish the artifact so its files include the entryPath, then retry.',
+        code: 'ATLAS_ARTIFACT_ENTRY_MISSING',
+      },
+    );
+
   const source = value.preview ?? value.source;
   const base = {
     schemaVersion: '1' as const,
@@ -27,7 +39,7 @@ export function hydratePublishedArtifactManifest(
     framework: value.framework,
     remoteEntryUrl: new URL(value.entryPath, root).href,
     exposes: value.exposes,
-    integrity: digestToIntegrity(entry.digest),
+    integrity: convertDigestToIntegrity(entry.digest),
     createdAt: CANONICAL_CREATED_AT,
     ...(source?.gitSha ? { gitSha: source.gitSha } : {}),
     ...(source?.gitBranch ? { gitBranch: source.gitBranch } : {}),
@@ -51,10 +63,10 @@ export function hydratePublishedArtifactManifest(
       requiredLoaderApiVersion: value.requiredLoaderApiVersion,
     };
 
-  return hydrateApp({ artifact: value, root, base });
+  return hydrateAppManifest({ artifact: value, root, base });
 }
 
-function hydrateApp(input: {
+function hydrateAppManifest(input: {
   artifact: AtlasAppArtifactManifest;
   root: string;
   base: Omit<

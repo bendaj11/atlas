@@ -1,6 +1,6 @@
 import { useMutation, useMutationState } from '@tanstack/react-query';
-import { persistColumbusState } from '../../scripts/overrides/persist-overrides/persist-overrides';
-import { failureMessage } from '../../scripts/shared/errors/errors';
+import { persistColumbusState } from '../../utils/persist-overrides/persist-overrides';
+import { failureMessage } from '../../utils/errors/errors';
 import type { ColumbusState } from '../../types/columbus-state';
 import { useColumbusState } from '../useColumbusState/useColumbusState';
 
@@ -27,7 +27,7 @@ export function usePersistOverridesMutation(): PersistOverridesMutation {
   }).at(-1);
 
   return {
-    error: (latest?.error as Error | null | undefined) ?? null,
+    error: latest?.error ?? null,
     isError: latest?.status === 'error',
     isPending: latest?.status === 'pending',
     mutateAsync,

@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker';
 import type {
   AngularStylesheetFormat,
   AtlasGeneratorOptions,
+  SupportedGeneratorOptions,
 } from '../shared/types/generator-types.js';
 
 export const ALL_GENERATOR_FRAMEWORKS = ['angular', 'react'] as const;
@@ -28,12 +29,12 @@ export function aGeneratorOptions(
 
 export function anAngularGeneratorOptions(
   overrides: Partial<AtlasGeneratorOptions> = {},
-): AtlasGeneratorOptions {
-  return aGeneratorOptions({ framework: 'angular', ...overrides });
+): SupportedGeneratorOptions {
+  return { ...aGeneratorOptions(overrides), framework: 'angular' };
 }
 
 export function aReactGeneratorOptions(
   overrides: Partial<AtlasGeneratorOptions> = {},
-): AtlasGeneratorOptions {
-  return aGeneratorOptions({ framework: 'react', ...overrides });
+): SupportedGeneratorOptions {
+  return { ...aGeneratorOptions(overrides), framework: 'react' };
 }

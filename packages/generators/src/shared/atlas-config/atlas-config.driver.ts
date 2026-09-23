@@ -1,17 +1,17 @@
 import type { AtlasGeneratorOptions } from '../types/generator-types.js';
 import { aGeneratorOptions } from '../../testkit/generator-options.testkit.js';
 import {
-  atlasAppConfig,
-  atlasBootstrapHtml,
-  atlasHostConfig,
+  renderAtlasAppConfig,
+  renderAtlasBootstrapHtml,
+  renderAtlasHostConfig,
 } from './atlas-config.js';
 
 export class AtlasConfigDriver {
-  private options: AtlasGeneratorOptions = aGeneratorOptions();
+  private options = aGeneratorOptions();
   private contents!: string;
 
   readonly given = {
-    options: (options: AtlasGeneratorOptions): this => {
+    options: (options: AtlasGeneratorOptions) => {
       this.options = options;
 
       return this;
@@ -19,18 +19,21 @@ export class AtlasConfigDriver {
   };
 
   readonly when = {
-    appConfigGenerated: (): void => {
-      this.contents = atlasAppConfig(this.options);
+    appConfigGenerated: () => {
+      this.contents = renderAtlasAppConfig(this.options);
     },
-    hostConfigGenerated: (hostId: string): void => {
-      this.contents = atlasHostConfig(this.options, hostId);
+    hostConfigGenerated: (hostId: string) => {
+      this.contents = renderAtlasHostConfig({
+        generatorOptions: this.options,
+        hostId,
+      });
     },
-    bootstrapHtmlGenerated: (): void => {
-      this.contents = atlasBootstrapHtml(this.options.name);
+    bootstrapHtmlGenerated: () => {
+      this.contents = renderAtlasBootstrapHtml(this.options.name);
     },
   };
 
   readonly get = {
-    contents: (): string => this.contents,
+    contents: () => this.contents,
   };
 }

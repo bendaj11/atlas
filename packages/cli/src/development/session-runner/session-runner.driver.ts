@@ -4,14 +4,11 @@ import type { Server } from 'node:http';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import { anAppConfig } from '@atlas/testkit';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import type { startControlServer as startControlServerType } from '../control-server/control-server.js';
 import type * as ProcessModule from '../process/process.js';
-import { anOverrideDocument } from '../development.testkit.js';
 import type { DevControlServer } from '../types.js';
-import { CliArguments } from '../../shared/index.js';
 import type { AtlasWorkspaceKind } from '../../workspace/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 const startControlServer = jest.fn<typeof startControlServerType>();
 const waitForRemoteEntry = jest.fn<typeof ProcessModule.waitForRemoteEntry>();
@@ -36,6 +33,11 @@ jest.unstable_mockModule('../process/process.js', () => ({
 }));
 
 const { runDevSession } = await import('./session-runner.js');
+
+const { aProject, aWorkspace } =
+  await import('../../workspace/workspace.testkit.js');
+const { anOverrideDocument } = await import('../development.testkit.js');
+const { CliArguments } = await import('../../shared/index.js');
 
 class FakeChildProcess extends EventEmitter {
   killed = false;
@@ -73,33 +75,33 @@ export class SessionRunnerDriver {
   }
 
   readonly given = {
-    project: async (): Promise<this> => {
+    project: async () => {
       await this.directory.create('atlas-session-runner-');
       await this.directory.writeJson('package.json', {});
 
       return this;
     },
-    projectScripts: async (scripts: Record<string, string>): Promise<this> => {
+    projectScripts: async (scripts: Record<string, string>) => {
       await this.directory.writeJson('package.json', { scripts });
 
       return this;
     },
-    workspaceKind: (kind: AtlasWorkspaceKind): this => {
+    workspaceKind: (kind: AtlasWorkspaceKind) => {
       this.kind = kind;
 
       return this;
     },
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = flags;
 
       return this;
     },
-    remoteEntryFailing: (error: Error): this => {
+    remoteEntryFailing: (error: Error) => {
       waitForRemoteEntry.mockRejectedValue(error);
 
       return this;
     },
-    bootstrapServer: (): this => {
+    bootstrapServer: () => {
       this.beforeReady = async () => this.bootstrap as unknown as Server;
 
       return this;
@@ -107,7 +109,7 @@ export class SessionRunnerDriver {
   };
 
   readonly when = {
-    run: (): Promise<void> =>
+    run: () =>
       runDevSession({
         workspace: aWorkspace({
           kind: this.kind,

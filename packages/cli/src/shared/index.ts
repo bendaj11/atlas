@@ -49,7 +49,10 @@ export {
 export type { UnknownRecord } from './records/records.js';
 export { isRetryableHttpStatus, withExponentialRetry } from './retry/retry.js';
 export { delay } from './timers/timers.js';
-export { formatTypeScriptDiagnostics } from './typescript/typescript.js';
+export {
+  formatTypeScriptDiagnostics,
+  loadTypeScript,
+} from './typescript/typescript.js';
 export { TerminalPrompter, ui } from './ui/ui.js';
 export type { AtlasPrompter } from './ui/ui.js';
 export {

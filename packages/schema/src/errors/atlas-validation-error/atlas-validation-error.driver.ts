@@ -6,7 +6,7 @@ export class AtlasValidationErrorDriver {
   private error!: AtlasValidationError;
 
   given = {
-    issues: (issues: AtlasValidationIssue[]): this => {
+    issues: (issues: AtlasValidationIssue[]) => {
       this.issues = issues;
 
       return this;
@@ -14,12 +14,12 @@ export class AtlasValidationErrorDriver {
   };
 
   when = {
-    constructed: (summary: string): void => {
+    constructed: (summary: string) => {
       this.error = new AtlasValidationError(summary, this.issues);
     },
   };
 
   get = {
-    error: (): AtlasValidationError => this.error,
+    error: () => this.error,
   };
 }

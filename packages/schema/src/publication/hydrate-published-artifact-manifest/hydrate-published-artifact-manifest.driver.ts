@@ -6,7 +6,7 @@ export class HydratePublishedArtifactManifestDriver {
   private manifest!: AtlasManifest | AtlasHostManifest;
 
   when = {
-    hydrated: (input: { value: unknown; manifestUrl: string }): void => {
+    hydrated: (input: { value: unknown; manifestUrl: string }) => {
       this.manifest = hydratePublishedArtifactManifest(
         input.value,
         input.manifestUrl,
@@ -15,6 +15,6 @@ export class HydratePublishedArtifactManifestDriver {
   };
 
   get = {
-    manifest: (): AtlasManifest | AtlasHostManifest => this.manifest,
+    manifest: () => this.manifest,
   };
 }

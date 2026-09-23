@@ -1,16 +1,16 @@
 import {
-  nativeFederationPackage,
+  selectNativeFederationPackage,
   usesNativeFederationV4Package,
 } from '../federation/angular-federation.js';
 import type { PackageManifest } from '../../shared/types/generated-documents.js';
 import type { AtlasProjectType } from '../../shared/types/generator-types.js';
 import {
-  atlasPackageRange,
-  exactSemver,
-  type AngularVersionProfile,
+  extractExactSemver,
+  getAtlasPackageRange,
 } from '../../shared/versions/generator-versions.js';
+import type { AngularVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
-interface AngularPackageOptions {
+interface AngularPackageManifestOptions {
   packageName: string;
   projectName: string;
   type: AtlasProjectType;
@@ -18,12 +18,12 @@ interface AngularPackageOptions {
   routed?: boolean;
 }
 
-export function angularPackage(
-  options: AngularPackageOptions,
+export function buildAngularPackageManifest(
+  options: AngularPackageManifestOptions,
 ): PackageManifest {
   const { packageName, projectName, profile } = options;
   const host = options.type === 'host';
-  const angular = angularDependencyRange(profile.version);
+  const angularRange = convertAngularVersionToRange(profile.version);
   const routed = host || (options.routed ?? true);
 
   return {
@@ -46,21 +46,21 @@ export function angularPackage(
         : {}),
     },
     dependencies: {
-      '@angular/animations': angular,
-      '@angular/common': angular,
-      '@angular/compiler': angular,
-      '@angular/core': angular,
-      '@angular/platform-browser': angular,
-      ...(routed ? { '@angular/router': angular } : {}),
-      [nativeFederationPackage(profile)]: `^${profile.major}.0.0`,
+      '@angular/animations': angularRange,
+      '@angular/common': angularRange,
+      '@angular/compiler': angularRange,
+      '@angular/core': angularRange,
+      '@angular/platform-browser': angularRange,
+      ...(routed ? { '@angular/router': angularRange } : {}),
+      [selectNativeFederationPackage(profile)]: `^${profile.major}.0.0`,
       ...(usesNativeFederationV4Package(profile)
         ? { '@softarc/native-federation': '^4.3.2' }
         : {}),
-      '@atlas/schema': atlasPackageRange(),
-      '@atlas/sdk': atlasPackageRange(),
+      '@atlas/schema': getAtlasPackageRange(),
+      '@atlas/sdk': getAtlasPackageRange(),
       ...(host
         ? {
-            '@atlas/runtime': atlasPackageRange(),
+            '@atlas/runtime': getAtlasPackageRange(),
           }
         : {}),
       'es-module-shims': '^2.3.0',
@@ -69,27 +69,27 @@ export function angularPackage(
       ...(!profile.zoneless ? { 'zone.js': profile.zone } : {}),
     },
     devDependencies: {
-      '@atlas/cli': atlasPackageRange(),
-      '@angular-devkit/build-angular': angular,
-      '@angular/cli': angular,
-      '@angular/compiler-cli': angular,
+      '@atlas/cli': getAtlasPackageRange(),
+      '@angular-devkit/build-angular': angularRange,
+      '@angular/cli': angularRange,
+      '@angular/compiler-cli': angularRange,
       ...(host ? { '@types/node': '^22.0.0' } : {}),
       typescript: profile.typescript,
     },
   };
 }
 
-function angularDependencyRange(version: string): string {
-  const exact = exactSemver(version);
-
-  return exact ? `^${exact}` : version;
-}
-
-export function angularIndex(options: {
+export function renderAngularIndexHtml(options: {
   pageTitle: string;
   body: string;
 }): string {
   const { pageTitle, body } = options;
 
   return `<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8">\n  <title>${pageTitle}</title>\n  <base href="/">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n  ${body}\n</body>\n</html>\n`;
+}
+
+function convertAngularVersionToRange(version: string): string {
+  const exactVersion = extractExactSemver(version);
+
+  return exactVersion ? `^${exactVersion}` : version;
 }

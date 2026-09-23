@@ -20,7 +20,7 @@ const ANGULAR_DEV_DEPENDENCIES = [
   '@angular/compiler-cli',
 ];
 
-describe('angularPackage', () => {
+describe('buildAngularPackageManifest', () => {
   let driver: AngularPackageGeneratorDriver;
 
   beforeEach(() => {
@@ -234,7 +234,7 @@ describe('angularPackage', () => {
   });
 });
 
-describe('angularIndex', () => {
+describe('renderAngularIndexHtml', () => {
   let driver: AngularPackageGeneratorDriver;
 
   beforeEach(() => {

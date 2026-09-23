@@ -1,10 +1,11 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import { writeFile } from 'node:fs/promises';
 import { loadEnvFiles } from './env.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 export class WorkspaceEnvDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly registryUrl = faker.internet.url();
   private readonly fileRegistryUrl = faker.internet.url();
   private readonly originalRegistryUrl = process.env.ATLAS_REGISTRY_URL;
@@ -13,7 +14,7 @@ export class WorkspaceEnvDriver {
 
   given = {
     layeredFiles: async () => {
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-env-'));
+      this.root = await this.temporaryDirectory.create('atlas-env-');
       process.env.ATLAS_REGISTRY_URL = this.registryUrl;
 
       await writeFile(

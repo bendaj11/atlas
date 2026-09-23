@@ -1,44 +1,47 @@
 import {
-  angularAppComponent,
-  angularAppConfig,
-  angularAppDetailsComponent,
-  angularAppEntry,
-  angularAppHomeComponent,
-  angularAppMain,
-  angularAppRoutes,
+  renderAngularAppComponent,
+  renderAngularAppConfig,
+  renderAngularAppDetailsComponent,
+  renderAngularAppEntry,
+  renderAngularAppHomeComponent,
+  renderAngularAppMain,
+  renderAngularAppRoutes,
 } from '../app/angular-app-generator.js';
 import {
-  angularHostAppConfig,
-  angularHostBootstrap,
-  angularHostComponent,
-  angularHostMain,
-  angularHostRoutes,
-  angularHostSdkConfig,
+  renderAngularHostAppConfig,
+  renderAngularHostBootstrap,
+  renderAngularHostComponent,
+  renderAngularHostMain,
+  renderAngularHostRoutes,
+  renderAngularHostSdkConfig,
 } from '../host/angular-host-generator.js';
 import {
-  angularIndex,
-  angularPackage,
+  buildAngularPackageManifest,
+  renderAngularIndexHtml,
 } from '../package/angular-package-generator.js';
 import {
-  angularAppTsconfig,
-  angularFederationConfig,
-  angularFederationConfigFile,
-  angularRootTsconfig,
-  angularWorkspace,
+  buildAngularAppTsconfig,
+  buildAngularRootTsconfig,
+  buildAngularWorkspaceDocument,
+  renderAngularFederationConfig,
+  selectAngularFederationConfigFileName,
 } from '../workspace/angular-workspace-generator.js';
 import {
-  atlasAppConfig,
-  atlasBootstrapHtml,
-  atlasHostConfig,
+  renderAtlasAppConfig,
+  renderAtlasBootstrapHtml,
+  renderAtlasHostConfig,
 } from '../../shared/atlas-config/atlas-config.js';
-import { atlasHostStyles } from '../../shared/host-styles/host-styles.js';
-import { json, title } from '../../shared/text/text.js';
+import { renderAtlasHostStyles } from '../../shared/host-styles/host-styles.js';
+import {
+  convertIdToTitle,
+  formatJsonDocument,
+} from '../../shared/text/text.js';
 import type {
   AtlasGeneratedFile,
   AtlasGeneratorOptions,
 } from '../../shared/types/generator-types.js';
-import { angularVersionProfile } from '../../shared/versions/generator-versions.js';
-import { exportedWidgetsReadme } from '../../shared/widgets-readme/widgets-readme.js';
+import { resolveAngularVersionProfileFromOptions } from '../../shared/versions/generator-versions.js';
+import { renderExportedWidgetsReadme } from '../../shared/widgets-readme/widgets-readme.js';
 
 interface AngularHostFilesOptions {
   options: AtlasGeneratorOptions;
@@ -50,14 +53,14 @@ export function generateAngularHostFiles({
   hostId,
 }: AngularHostFilesOptions): AtlasGeneratedFile[] {
   const { name, devServerPort, stylesheetFormat } = options;
-  const profile = angularVersionProfile(options);
+  const profile = resolveAngularVersionProfileFromOptions(options);
   const stylesheetPath = `src/styles.${stylesheetFormat ?? 'css'}`;
 
   return [
     {
       path: 'package.json',
-      contents: json(
-        angularPackage({
+      contents: formatJsonDocument(
+        buildAngularPackageManifest({
           packageName: options.packageName ?? name,
           projectName: name,
           type: 'host',
@@ -67,8 +70,8 @@ export function generateAngularHostFiles({
     },
     {
       path: 'angular.json',
-      contents: json(
-        angularWorkspace({
+      contents: formatJsonDocument(
+        buildAngularWorkspaceDocument({
           name,
           type: 'host',
           devServerPort,
@@ -77,35 +80,47 @@ export function generateAngularHostFiles({
         }),
       ),
     },
-    { path: 'tsconfig.json', contents: json(angularRootTsconfig()) },
-    { path: 'tsconfig.app.json', contents: json(angularAppTsconfig()) },
     {
-      path: angularFederationConfigFile(profile),
-      contents: angularFederationConfig({ name, type: 'host', profile }),
+      path: 'tsconfig.json',
+      contents: formatJsonDocument(buildAngularRootTsconfig()),
     },
-    { path: 'atlas.config.ts', contents: atlasHostConfig(options, hostId) },
-    { path: 'atlas.bootstrap.html', contents: atlasBootstrapHtml(name) },
+    {
+      path: 'tsconfig.app.json',
+      contents: formatJsonDocument(buildAngularAppTsconfig()),
+    },
+    {
+      path: selectAngularFederationConfigFileName(profile),
+      contents: renderAngularFederationConfig({ name, type: 'host', profile }),
+    },
+    {
+      path: 'atlas.config.ts',
+      contents: renderAtlasHostConfig({ generatorOptions: options, hostId }),
+    },
+    { path: 'atlas.bootstrap.html', contents: renderAtlasBootstrapHtml(name) },
     { path: 'public/.gitkeep', contents: '' },
     {
       path: 'src/index.html',
-      contents: angularIndex({
+      contents: renderAngularIndexHtml({
         pageTitle: 'Atlas Host',
         body: '<atlas-host-root></atlas-host-root>',
       }),
     },
-    { path: stylesheetPath, contents: atlasHostStyles() },
+    { path: stylesheetPath, contents: renderAtlasHostStyles() },
     { path: 'src/assets/.gitkeep', contents: '' },
-    { path: 'src/app/app.component.ts', contents: angularHostComponent() },
+    {
+      path: 'src/app/app.component.ts',
+      contents: renderAngularHostComponent(),
+    },
     {
       path: 'src/app/app.config.ts',
-      contents: angularHostAppConfig({
+      contents: renderAngularHostAppConfig({
         requiresZonelessProvider: profile.requiresZonelessProvider,
       }),
     },
-    { path: 'src/app/app.routes.ts', contents: angularHostRoutes() },
-    { path: 'src/app/host.config.ts', contents: angularHostSdkConfig() },
-    { path: 'src/main.ts', contents: angularHostMain() },
-    { path: 'src/bootstrap.ts', contents: angularHostBootstrap() },
+    { path: 'src/app/app.routes.ts', contents: renderAngularHostRoutes() },
+    { path: 'src/app/host.config.ts', contents: renderAngularHostSdkConfig() },
+    { path: 'src/main.ts', contents: renderAngularHostMain() },
+    { path: 'src/bootstrap.ts', contents: renderAngularHostBootstrap() },
   ];
 }
 
@@ -113,15 +128,15 @@ export function generateAngularAppFiles(
   options: AtlasGeneratorOptions,
 ): AtlasGeneratedFile[] {
   const { name, devServerPort, stylesheetFormat } = options;
-  const profile = angularVersionProfile(options);
+  const profile = resolveAngularVersionProfileFromOptions(options);
   const routed = options.routing ?? true;
   const stylesheetPath = `src/styles.${stylesheetFormat ?? 'css'}`;
 
   return [
     {
       path: 'package.json',
-      contents: json(
-        angularPackage({
+      contents: formatJsonDocument(
+        buildAngularPackageManifest({
           packageName: options.packageName ?? name,
           projectName: name,
           type: 'app',
@@ -132,8 +147,8 @@ export function generateAngularAppFiles(
     },
     {
       path: 'angular.json',
-      contents: json(
-        angularWorkspace({
+      contents: formatJsonDocument(
+        buildAngularWorkspaceDocument({
           name,
           type: 'app',
           devServerPort,
@@ -142,53 +157,66 @@ export function generateAngularAppFiles(
         }),
       ),
     },
-    { path: 'tsconfig.json', contents: json(angularRootTsconfig()) },
-    { path: 'tsconfig.app.json', contents: json(angularAppTsconfig()) },
     {
-      path: angularFederationConfigFile(profile),
-      contents: angularFederationConfig({ name, type: 'app', profile }),
+      path: 'tsconfig.json',
+      contents: formatJsonDocument(buildAngularRootTsconfig()),
     },
-    { path: 'atlas.config.ts', contents: atlasAppConfig(options) },
+    {
+      path: 'tsconfig.app.json',
+      contents: formatJsonDocument(buildAngularAppTsconfig()),
+    },
+    {
+      path: selectAngularFederationConfigFileName(profile),
+      contents: renderAngularFederationConfig({ name, type: 'app', profile }),
+    },
+    { path: 'atlas.config.ts', contents: renderAtlasAppConfig(options) },
     { path: 'public/.gitkeep', contents: '' },
     {
       path: 'src/index.html',
-      contents: angularIndex({ pageTitle: title(name), body: '' }),
+      contents: renderAngularIndexHtml({
+        pageTitle: convertIdToTitle(name),
+        body: '',
+      }),
     },
     { path: stylesheetPath, contents: '' },
-    { path: 'src/main.ts', contents: angularAppMain() },
+    { path: 'src/main.ts', contents: renderAngularAppMain() },
     {
       path: 'src/entry.ts',
-      contents: angularAppEntry({ name, routed, zoneless: profile.zoneless }),
+      contents: renderAngularAppEntry({
+        name,
+        routed,
+        zoneless: profile.zoneless,
+      }),
     },
     {
       path: 'src/app/app.component.ts',
-      contents: angularAppComponent({ name, routed }),
+      contents: renderAngularAppComponent({ name, routed }),
     },
     ...(routed
       ? [
           {
             path: 'src/app/home/home.component.ts',
-            contents: angularAppHomeComponent(name),
+            contents: renderAngularAppHomeComponent(name),
           },
           {
             path: 'src/app/details/details.component.ts',
-            contents: angularAppDetailsComponent(),
+            contents: renderAngularAppDetailsComponent(),
           },
         ]
       : []),
     {
       path: 'src/app/app.config.ts',
-      contents: angularAppConfig({
+      contents: renderAngularAppConfig({
         routed,
         requiresZonelessProvider: profile.requiresZonelessProvider,
       }),
     },
     ...(routed
-      ? [{ path: 'src/app/app.routes.ts', contents: angularAppRoutes() }]
+      ? [{ path: 'src/app/app.routes.ts', contents: renderAngularAppRoutes() }]
       : []),
     {
       path: 'src/exported-widgets/README.md',
-      contents: exportedWidgetsReadme(),
+      contents: renderExportedWidgetsReadme(),
     },
   ];
 }

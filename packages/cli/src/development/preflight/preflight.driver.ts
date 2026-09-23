@@ -1,17 +1,20 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import { assertUsableAngularBuildPackage } from './preflight.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 export class DevelopmentPreflightDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly version = faker.system.semver();
   private root = '';
   private projectRoot = '';
 
   given = {
-    angularBuild: async ({ source }: { source: 'corrupt' }): Promise<void> => {
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-angular-preflight-'));
+    angularBuild: async ({ source }: { source: 'corrupt' }) => {
+      this.root = await this.temporaryDirectory.create(
+        'atlas-angular-preflight-',
+      );
       this.projectRoot = join(this.root, faker.word.noun());
       const packageRoot = join(this.root, 'node_modules', '@angular', 'build');
       const compilationRoot = join(
@@ -38,7 +41,7 @@ export class DevelopmentPreflightDriver {
   };
 
   when = {
-    validate: async (): Promise<void> =>
+    validate: async () =>
       assertUsableAngularBuildPackage(this.root, this.projectRoot),
   };
 }

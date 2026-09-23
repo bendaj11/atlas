@@ -25,7 +25,7 @@ export class UseAppLoadedDriver {
   });
 
   readonly given = {
-    appContext: (context: AtlasAppContext | undefined): this => {
+    appContext: (context: AtlasAppContext | undefined) => {
       this.context = context;
 
       return this;
@@ -33,7 +33,7 @@ export class UseAppLoadedDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
+    rendered: () => {
       const consumer = createElement(AppLoadedConsumer);
       render(
         this.context
@@ -48,6 +48,6 @@ export class UseAppLoadedDriver {
   };
 
   readonly get = {
-    waitUntilReadyMock: (): jest.Mock<() => () => void> => this.waitUntilReady,
+    waitUntilReadyMock: () => this.waitUntilReady,
   };
 }

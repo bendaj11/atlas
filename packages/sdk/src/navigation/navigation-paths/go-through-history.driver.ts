@@ -10,16 +10,16 @@ export class GoThroughHistoryDriver {
   private readonly go = jest.fn<GoThroughHistory>();
 
   readonly when = {
-    historyMovedWithGo: (delta: number): void => {
+    historyMovedWithGo: (delta: number) => {
       goThroughHistory({ back: this.back, go: this.go }, delta);
     },
-    historyMovedWithoutGo: (delta: number): void => {
+    historyMovedWithoutGo: (delta: number) => {
       goThroughHistory({ back: this.back }, delta);
     },
   };
 
   readonly get = {
-    backMock: (): jest.Mock<GoBack> => this.back,
-    goMock: (): jest.Mock<GoThroughHistory> => this.go,
+    backMock: () => this.back,
+    goMock: () => this.go,
   };
 }

@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import {
   ARTIFACT_OVERRIDE_ROUTE,
   ARTIFACTS_ROUTE,
-} from '../../scripts/routing/routes/routes';
+} from '../../routing/routes/routes';
 import { AppDriver } from './App.driver';
 
 describe('App', () => {

@@ -58,8 +58,7 @@ export class ReactHostNavigationDriver {
   readonly get = {
     navigation: (): AtlasNavigation => this.navigation,
     navigateMock: (): jest.Mock<RouterNavigate> => this.navigate,
-    listenerMock: (): jest.Mock<(location: AtlasLocation) => void> =>
-      this.listener,
+    listenerMock: () => this.listener,
     origin: (): string => this.origin,
   };
 }

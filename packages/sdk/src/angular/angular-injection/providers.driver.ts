@@ -28,22 +28,22 @@ export class ProvidersDriver {
   private injector!: EnvironmentInjector;
 
   readonly when = {
-    appContextProvided: (): void => {
+    appContextProvided: () => {
       this.injector = createEnvironmentInjector(
         provideAtlasAppContext(this.context),
         null!,
       );
     },
-    appLoadedInjected: (): void => {
+    appLoadedInjected: () => {
       runInInjectionContext(this.injector, injectAppLoaded);
     },
   };
 
   readonly get = {
-    context: (): AtlasAppContext => this.context,
-    appId: (): string => this.injector.get(APP_ID),
-    injectedAppContext: (): AtlasAppContext =>
+    context: () => this.context,
+    appId: () => this.injector.get(APP_ID),
+    injectedAppContext: () =>
       runInInjectionContext(this.injector, injectAtlasAppContext),
-    waitUntilReadyMock: (): jest.Mock<() => () => void> => this.waitUntilReady,
+    waitUntilReadyMock: () => this.waitUntilReady,
   };
 }

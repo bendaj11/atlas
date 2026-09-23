@@ -1,4 +1,3 @@
-import type { AtlasConfig } from '@atlas/schema';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { loadCompiledAtlasConfig } from './config-loader.js';
 
@@ -6,16 +5,13 @@ export class ConfigLoaderDriver {
   private readonly directory = new TemporaryDirectory();
 
   readonly given = {
-    projectRoot: async (): Promise<this> => {
+    projectRoot: async () => {
       await this.directory.create('atlas-config-loader-');
       await this.directory.writeJson('package.json', { type: 'module' });
 
       return this;
     },
-    compiledConfig: async (
-      relativePath: string,
-      source: string,
-    ): Promise<this> => {
+    compiledConfig: async (relativePath: string, source: string) => {
       await this.directory.writeFile(relativePath, source);
 
       return this;
@@ -23,7 +19,6 @@ export class ConfigLoaderDriver {
   };
 
   readonly get = {
-    config: (): Promise<AtlasConfig> =>
-      loadCompiledAtlasConfig(this.directory.root),
+    config: () => loadCompiledAtlasConfig(this.directory.root),
   };
 }

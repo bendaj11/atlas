@@ -1,13 +1,14 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import ts from 'typescript';
+import type TypeScript from 'typescript';
 import { isPublicationStorage } from '../publication-storage/publication-storage.js';
 import {
   CliArguments,
   CliError,
   doesPathExist,
   formatTypeScriptDiagnostics,
+  loadTypeScript,
 } from '../../shared/index.js';
 import type { AtlasRegistryConfig } from './types.js';
 
@@ -58,7 +59,8 @@ async function compileConfig(path: string): Promise<{
   const directory = await mkdtemp(
     join(dirname(path), '.atlas-registry-config-'),
   );
-  const compilerOptions: ts.CompilerOptions = {
+  const ts = await loadTypeScript();
+  const compilerOptions: TypeScript.CompilerOptions = {
     declaration: false,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
@@ -79,7 +81,9 @@ async function compileConfig(path: string): Promise<{
   if (result.emitSkipped || diagnostics.length) {
     await rm(directory, { recursive: true, force: true });
 
-    throw new Error(formatTypeScriptDiagnostics(diagnostics, dirname(path)));
+    throw new Error(
+      await formatTypeScriptDiagnostics(diagnostics, dirname(path)),
+    );
   }
 
   await writeFile(join(directory, 'package.json'), '{"type":"module"}\n');

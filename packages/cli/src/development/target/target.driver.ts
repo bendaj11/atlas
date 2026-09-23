@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import type { AtlasAppConfig, AtlasHostConfig } from '@atlas/schema';
+import type { AtlasHostConfig } from '@atlas/schema';
 import { aHostConfig, aHostRuntimeConfig, anAppConfig } from '@atlas/testkit';
 import { createPromptDriver } from '../../shared/interaction/interaction.testkit.js';
 import type { DevTarget } from '../types.js';
@@ -16,7 +16,7 @@ export class DevelopmentTargetDriver {
   private readonly secondPath = `/${faker.word.noun()}`;
   private readonly originalFetch = globalThis.fetch;
 
-  private config: AtlasAppConfig = anAppConfig({ id: this.appId });
+  private config = anAppConfig({ id: this.appId });
   private hostConfig?: AtlasHostConfig;
   private prompts = createPromptDriver([], false);
   private previewUrls: string[] = [];
@@ -24,12 +24,12 @@ export class DevelopmentTargetDriver {
   private error?: Error;
 
   given = {
-    oneRoute: (): void => {
+    oneRoute: () => {
       this.config.routes = [{ hostId: this.firstHostId, path: this.firstPath }];
       this.previewUrls = [this.origin];
     },
 
-    multipleRoutes: (interactive: boolean): void => {
+    multipleRoutes: (interactive: boolean) => {
       this.config.routes = [
         { hostId: this.firstHostId, path: this.firstPath },
         { hostId: this.firstHostId, path: this.secondPath },
@@ -38,7 +38,7 @@ export class DevelopmentTargetDriver {
       this.prompts = createPromptDriver([this.secondPath], interactive);
     },
 
-    fullUrl: (): void => {
+    fullUrl: () => {
       this.config.routes = [
         { hostId: this.firstHostId, path: this.firstPath },
         { hostId: this.firstHostId, path: this.secondPath },
@@ -46,7 +46,7 @@ export class DevelopmentTargetDriver {
       this.previewUrls = [`${this.origin}${this.secondPath}?mode=dev`];
     },
 
-    previews: (interactive: boolean): void => {
+    previews: (interactive: boolean) => {
       this.previewUrls = [
         `${this.origin}${this.firstPath}`,
         `${this.origin}${this.secondPath}`,
@@ -57,7 +57,7 @@ export class DevelopmentTargetDriver {
       );
     },
 
-    discoverableHost: (supported: boolean): void => {
+    discoverableHost: (supported: boolean) => {
       this.config.routes = [
         { hostId: this.firstHostId, path: this.firstPath },
         { hostId: this.secondHostId, path: this.secondPath },
@@ -76,7 +76,7 @@ export class DevelopmentTargetDriver {
     hostPreview: (
       previewKind: 'default' | 'deployed' | 'local',
       matching = true,
-    ): void => {
+    ) => {
       this.hostConfig = aHostConfig({ id: this.appId });
       this.previewUrls =
         previewKind === 'default'
@@ -93,7 +93,7 @@ export class DevelopmentTargetDriver {
   };
 
   when = {
-    resolve: async (): Promise<void> => {
+    resolve: async () => {
       try {
         this.result = await resolveDevTarget({
           config: this.config,
@@ -106,7 +106,7 @@ export class DevelopmentTargetDriver {
         this.restoreGlobals();
       }
     },
-    resolveHost: async (): Promise<void> => {
+    resolveHost: async () => {
       try {
         if (!this.hostConfig) throw new Error('Host setup is required.');
         this.result = await resolveHostDevTarget({
@@ -124,34 +124,34 @@ export class DevelopmentTargetDriver {
   };
 
   get = {
-    result: (): DevTarget | undefined => this.result,
-    extractErrorMessage: (): string | undefined => this.error?.message,
-    routeQuestion: (): string | undefined => this.prompts.questions[0],
-    firstTarget: (): Pick<DevTarget, 'hostId' | 'hostUrl'> => ({
+    result: () => this.result,
+    extractErrorMessage: () => this.error?.message,
+    routeQuestion: () => this.prompts.questions[0],
+    firstTarget: () => ({
       hostId: this.firstHostId,
       hostUrl: `${this.origin}${this.firstPath}`,
     }),
-    secondTarget: (): Pick<DevTarget, 'hostId' | 'hostUrl'> => ({
+    secondTarget: () => ({
       hostId: this.firstHostId,
       hostUrl: `${this.origin}${this.secondPath}`,
     }),
-    fullTarget: (): Pick<DevTarget, 'hostId' | 'hostUrl'> => ({
+    fullTarget: () => ({
       hostId: this.firstHostId,
       hostUrl: `${this.origin}${this.secondPath}?mode=dev`,
     }),
-    discoveredHostId: (): string => this.secondHostId,
-    missingPreviewsError: (): string =>
+    discoveredHostId: () => this.secondHostId,
+    missingPreviewsError: () =>
       'package.json atlas.previews is required for atlas dev apps.',
-    unsupportedHostError: (): string => `Host URL identifies`,
-    selectedPreviewTarget: (): Pick<DevTarget, 'hostId' | 'hostUrl'> => ({
+    unsupportedHostError: () => `Host URL identifies`,
+    selectedPreviewTarget: () => ({
       hostId: this.firstHostId,
       hostUrl: this.previewUrls[1]!,
     }),
-    previewQuestion: (): string | undefined => this.prompts.questions[0],
-    multiplePreviewsError: (): string =>
+    previewQuestion: () => this.prompts.questions[0],
+    multiplePreviewsError: () =>
       'Multiple Atlas previews configured. Run atlas dev interactively.',
     hostPreview: () => this.result,
-    localPreviewUrl: (): string => this.localPreviewUrl,
+    localPreviewUrl: () => this.localPreviewUrl,
   };
 
   private restoreGlobals(): void {

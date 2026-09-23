@@ -115,14 +115,13 @@ export class WidgetComponentDriver {
 
   readonly get = {
     mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
-    setInputsMock: (): jest.Mock<(inputs: WidgetInputs) => void> =>
-      this.setInputs,
+    setInputsMock: () => this.setInputs,
     unmountMock: (): jest.Mock<() => Promise<void>> => this.unmount,
-    container: (widgetId: string): HTMLElement | null =>
+    container: (widgetId: string) =>
       document.querySelector(`[data-atlas-widget-container="${widgetId}"]`),
-    loadingIndicator: (): HTMLElement | null =>
+    loadingIndicator: () =>
       screen.queryByRole('status', { name: LOADING_LABEL }),
-    errorCode: (): string | null =>
+    errorCode: () =>
       screen.getByRole('status', { name: ERROR_LABEL }).textContent,
   };
 

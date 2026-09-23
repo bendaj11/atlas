@@ -1,4 +1,4 @@
-import { defaultDevServerPort } from '@atlas/generators';
+import { getDefaultDevServerPort } from '@atlas/generators';
 import { join } from 'node:path';
 import {
   readJsonFile,
@@ -15,7 +15,7 @@ export async function ensureAngularWorkspaceFederationConfig({
   root,
   projectName,
   type,
-  devServerPort = defaultDevServerPort(type),
+  devServerPort = getDefaultDevServerPort(type),
 }: {
   root: string;
   projectName: string;

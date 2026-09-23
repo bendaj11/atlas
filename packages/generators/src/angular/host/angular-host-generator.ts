@@ -1,4 +1,4 @@
-export function angularHostComponent(): string {
+export function renderAngularHostComponent(): string {
   return `import { Component } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
 import { AtlasHostLayout, AtlasHostStatus, AtlasNavigation, AtlasRouteOutlet, AtlasSlot } from "@atlas/runtime/angular";
@@ -24,7 +24,7 @@ export class AppComponent {}
 `;
 }
 
-export function angularHostMain(): string {
+export function renderAngularHostMain(): string {
   return `const root = document.querySelector("atlas-host-root");
 if (!root) throw new Error("Atlas host root is missing.");
 
@@ -32,7 +32,7 @@ root.textContent = "Start this Atlas host with atlas dev.";
 `;
 }
 
-export function angularHostRoutes(): string {
+export function renderAngularHostRoutes(): string {
   return `import { Routes } from "@angular/router";
 import { AtlasDefaultHostRouteComponent } from "@atlas/runtime/angular";
 
@@ -42,7 +42,7 @@ export const routes: Routes = [
 `;
 }
 
-export function angularHostAppConfig(options: {
+export function renderAngularHostAppConfig(options: {
   requiresZonelessProvider: boolean;
 }): string {
   const { requiresZonelessProvider } = options;
@@ -64,7 +64,7 @@ export const appConfig: ApplicationConfig = {
 `;
 }
 
-export function angularHostSdkConfig(): string {
+export function renderAngularHostSdkConfig(): string {
   return `import type { Injector } from "@angular/core";
 import type { HostSdkOptions } from "@atlas/runtime/angular";
 
@@ -79,20 +79,18 @@ export function createCustomHostSdkOptions(
 `;
 }
 
-export function angularHostBootstrap(): string {
+export function renderAngularHostBootstrap(): string {
   return `import { Location } from "@angular/common";
 import { Router } from "@angular/router";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
+import type { AtlasHostClientEntry, AtlasHostMountRequest } from "@atlas/sdk/lifecycle";
 import { AtlasAngularHostAnchors, bootstrapAngularHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { appConfig } from "./app/app.config";
 import { AppComponent } from "./app/app.component";
 import { createCustomHostSdkOptions } from "./app/host.config";
 
-type HostMountRequest = Parameters<AtlasHostClientEntry["mount"]>[0];
-
-export async function bootstrap(request: HostMountRequest) {
+export async function bootstrap(request: AtlasHostMountRequest) {
   return bootstrapAngularHost({
     component: AppComponent,
     appConfig,

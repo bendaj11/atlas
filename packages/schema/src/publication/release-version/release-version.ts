@@ -1,4 +1,4 @@
-import { assertValid } from '../../validation/assert-valid.js';
+import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
   isNonEmptyString,
@@ -41,5 +41,5 @@ export function validateReleaseVersion(input: {
 export function assertReleaseVersion(value: unknown): asserts value is string {
   const issues = ValidationIssues.create();
   validateReleaseVersion({ value, path: 'release.version', issues });
-  assertValid({ issues, message: 'Invalid Atlas release version.' });
+  assertNoIssues({ issues, message: 'Invalid Atlas release version.' });
 }

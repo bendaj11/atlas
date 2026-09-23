@@ -1,18 +1,24 @@
 import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { HostData } from '../../../types/host-data';
+import type { AtlasRuntimeError, HostData } from '../../../types/host-data';
 import {
   type FakeChrome,
   installFakeChrome,
 } from '../../../testkit/chrome.testkit';
-import type { ArtifactRegistry } from '../../host/artifact-registry/artifact-registry';
-import type { inspectAtlasHost as inspectAtlasHostType } from '../../host/inspect-atlas-host/inspect-atlas-host';
+import type { ArtifactRegistry } from '../../../utils/artifact-registry/artifact-registry';
+import type { inspectAtlasHost as inspectAtlasHostType } from '../../../utils/inspect-atlas-host/inspect-atlas-host';
+import type {
+  readRuntimeErrors as readRuntimeErrorsType,
+  readVisibleAppIds as readVisibleAppIdsType,
+} from '../../../utils/page-runtime-state/page-runtime-state';
 import {
   isActionThemeMessage,
   isOverrideCountMessage,
-} from '../../shared/messages/messages';
+} from '../../../utils/messages/messages';
 
 const inspectAtlasHost = jest.fn<typeof inspectAtlasHostType>();
+const readVisibleAppIds = jest.fn<typeof readVisibleAppIdsType>();
+const readRuntimeErrors = jest.fn<typeof readRuntimeErrorsType>();
 const artifactRegistry = {
   readRegistry: jest.fn<ArtifactRegistry['readRegistry']>(),
   readVersions: jest.fn<ArtifactRegistry['readVersions']>(),
@@ -29,14 +35,18 @@ const fetch =
 const setInterval = jest.fn<(callback: () => void, ms: number) => number>();
 
 jest.unstable_mockModule(
-  '../../host/artifact-registry/artifact-registry',
+  '../../../utils/artifact-registry/artifact-registry',
   () => ({
     createArtifactRegistry: () => artifactRegistry,
   }),
 );
 jest.unstable_mockModule(
-  '../../host/inspect-atlas-host/inspect-atlas-host',
+  '../../../utils/inspect-atlas-host/inspect-atlas-host',
   () => ({ inspectAtlasHost }),
+);
+jest.unstable_mockModule(
+  '../../../utils/page-runtime-state/page-runtime-state',
+  () => ({ readVisibleAppIds, readRuntimeErrors }),
 );
 
 const windowListeners: Array<[string, EventListenerOrEventListenerObject]> = [];
@@ -150,6 +160,16 @@ export class BadgeScriptDriver {
     },
     versionLoadFailure: (error: Error) => {
       artifactRegistry.loadVersion.mockRejectedValue(error);
+
+      return this;
+    },
+    visibleAppIds: (visibleAppIds: string[]) => {
+      readVisibleAppIds.mockReturnValue(visibleAppIds);
+
+      return this;
+    },
+    runtimeErrors: (runtimeErrors: AtlasRuntimeError[]) => {
+      readRuntimeErrors.mockReturnValue(runtimeErrors);
 
       return this;
     },

@@ -1,16 +1,17 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import type { SupportedFramework } from '../../shared/index.js';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { alignDelegatedAngularFederationConfig } from './delegated-federation-config.js';
 import { alignDelegatedTsconfig } from './delegated-tsconfig.js';
 import { createAtlasConfigNxTarget, createNxTarget } from './nx-targets.js';
 import { ensureDelegatedNxTargets } from './nx.js';
-import type { SupportedFramework } from '../../shared/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 type ProjectType = 'host' | 'app';
 
 export class NxDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly name = faker.word.noun().toLowerCase();
   private readonly packageManager = faker.helpers.arrayElement([
     'npm',
@@ -24,7 +25,7 @@ export class NxDriver {
   private value?: unknown;
 
   given = {
-    federationConfig: async (): Promise<void> => {
+    federationConfig: async () => {
       await this.createRoots();
 
       await writeFile(
@@ -49,7 +50,7 @@ module.exports = {
       framework: SupportedFramework;
       root: 'current' | 'stale';
       type: ProjectType;
-    }): Promise<void> => {
+    }) => {
       await this.createRoots();
       const relativeRoot = `apps/${this.name}`;
       const configuredRoot =
@@ -81,7 +82,7 @@ module.exports = {
 
       this.value = { framework, type };
     },
-    tsconfig: async (framework: SupportedFramework): Promise<void> => {
+    tsconfig: async (framework: SupportedFramework) => {
       await this.createRoots();
 
       await writeFile(
@@ -100,7 +101,7 @@ module.exports = {
   };
 
   when = {
-    alignFederation: async (): Promise<void> => {
+    alignFederation: async () => {
       await alignDelegatedAngularFederationConfig({
         workspaceRoot: this.workspaceRoot,
         root: this.projectRoot,
@@ -124,7 +125,7 @@ module.exports = {
         ].length,
       };
     },
-    alignTsconfig: async (): Promise<void> => {
+    alignTsconfig: async () => {
       const framework = this.value as SupportedFramework;
 
       await alignDelegatedTsconfig({ root: this.projectRoot, framework });
@@ -141,13 +142,13 @@ module.exports = {
         moduleResolution: tsconfig.compilerOptions.moduleResolution,
       };
     },
-    createConfigTarget: (): void => {
+    createConfigTarget: () => {
       this.value = createAtlasConfigNxTarget({
         packageManager: this.packageManager,
         cwd: this.projectRoot,
       });
     },
-    createTarget: (): void => {
+    createTarget: () => {
       this.value = createNxTarget({
         packageManager: this.packageManager,
         cwd: this.projectRoot,
@@ -158,7 +159,7 @@ module.exports = {
       frameworkVersion,
     }: {
       frameworkVersion?: string;
-    } = {}): Promise<void> => {
+    } = {}) => {
       const { framework, type } = this.value as {
         framework: SupportedFramework;
         type: ProjectType;
@@ -215,11 +216,11 @@ module.exports = {
         cwd: this.projectRoot,
       },
     }),
-    value: <T>(): T => this.value as T,
+    value: <T>() => this.value as T,
   };
 
   private async createRoots(): Promise<void> {
-    this.workspaceRoot = await mkdtemp(join(tmpdir(), 'atlas-nx-'));
+    this.workspaceRoot = await this.temporaryDirectory.create('atlas-nx-');
     this.projectRoot = join(this.workspaceRoot, 'apps', this.name);
 
     await mkdir(this.projectRoot, { recursive: true });

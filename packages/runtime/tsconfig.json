@@ -25,5 +25,5 @@
   },
   "references": [{ "path": "../schema" }, { "path": "../sdk" }],
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.driver.ts", "src/**/*.specs.ts"]
+  "exclude": ["src/**/*.driver.ts", "src/**/*.specs.ts", "src/**/*.testkit.ts"]
 }

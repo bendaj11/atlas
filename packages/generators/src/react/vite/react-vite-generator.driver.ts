@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasProjectType } from '../../shared/types/generator-types.js';
 import { anAtlasId } from '../../testkit/generator-options.testkit.js';
-import { reactViteConfig } from './react-vite-generator.js';
+import { renderReactViteConfig } from './react-vite-generator.js';
 
 export class ReactViteGeneratorDriver {
   private name = anAtlasId();
@@ -13,22 +13,22 @@ export class ReactViteGeneratorDriver {
   private contents!: string;
 
   readonly given = {
-    name: (name: string): this => {
+    name: (name: string) => {
       this.name = name;
 
       return this;
     },
-    type: (type: AtlasProjectType): this => {
+    type: (type: AtlasProjectType) => {
       this.type = type;
 
       return this;
     },
-    reactMajor: (reactMajor: number | undefined): this => {
+    reactMajor: (reactMajor: number | undefined) => {
       this.reactMajor = reactMajor;
 
       return this;
     },
-    devServerPort: (devServerPort: number | undefined): this => {
+    devServerPort: (devServerPort: number | undefined) => {
       this.devServerPort = devServerPort;
 
       return this;
@@ -36,8 +36,8 @@ export class ReactViteGeneratorDriver {
   };
 
   readonly when = {
-    generated: (): void => {
-      this.contents = reactViteConfig({
+    generated: () => {
+      this.contents = renderReactViteConfig({
         name: this.name,
         type: this.type,
         reactMajor: this.reactMajor,
@@ -47,6 +47,6 @@ export class ReactViteGeneratorDriver {
   };
 
   readonly get = {
-    contents: (): string => this.contents,
+    contents: () => this.contents,
   };
 }

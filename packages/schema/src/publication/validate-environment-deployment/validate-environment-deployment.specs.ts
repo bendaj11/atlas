@@ -50,9 +50,10 @@ describe('validateEnvironmentDeployment', () => {
   });
 
   it('should report schemaVersion when it is not "v1"', () => {
-    driver.when.validated(
-      anEnvironmentDeployment({ schemaVersion: 'v2' as 'v1' }),
-    );
+    driver.when.validated({
+      ...anEnvironmentDeployment(),
+      schemaVersion: 'v2',
+    });
 
     expect(driver.get.issues()).toEqual([
       { path: 'schemaVersion', message: 'Expected schemaVersion to be "v1".' },
@@ -60,9 +61,10 @@ describe('validateEnvironmentDeployment', () => {
   });
 
   it('should report revision when it is not a digest', () => {
-    driver.when.validated(
-      anEnvironmentDeployment({ revision: 'sha256:x' as never }),
-    );
+    driver.when.validated({
+      ...anEnvironmentDeployment(),
+      revision: 'sha256:x',
+    });
 
     expect(driver.get.issuePaths()).toEqual(['revision']);
   });
@@ -100,9 +102,10 @@ describe('validateEnvironmentDeployment', () => {
 
   it('should report the selection when it is not an object', () => {
     const id = anIdentifier();
-    driver.when.validated(
-      anEnvironmentDeployment({ apps: { [id]: 'latest' as never } }),
-    );
+    driver.when.validated({
+      ...anEnvironmentDeployment(),
+      apps: { [id]: 'latest' },
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -141,7 +144,7 @@ describe('assertEnvironmentDeployment', () => {
 
   it('should throw AtlasValidationError naming the deployment when invalid', () => {
     expect(() =>
-      driver.when.asserted(anEnvironmentDeployment({ hosts: [] as never })),
+      driver.when.asserted({ ...anEnvironmentDeployment(), hosts: [] }),
     ).toThrow(
       expect.objectContaining<Partial<AtlasValidationError>>({
         summary:

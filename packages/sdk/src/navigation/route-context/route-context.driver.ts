@@ -16,12 +16,12 @@ export class RouteContextDriver {
   private route!: AtlasRouteContext;
 
   readonly given = {
-    path: (path: string): this => {
+    path: (path: string) => {
       this.path = path;
 
       return this;
     },
-    hostUrl: (hostUrl: string): this => {
+    hostUrl: (hostUrl: string) => {
       this.hostUrl = hostUrl;
 
       return this;
@@ -29,27 +29,26 @@ export class RouteContextDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       this.hostNavigation = aMemoryNavigation(this.hostUrl);
       this.route = createRouteContext(this.path, this.hostNavigation, {
         setTabTitle: this.setTabTitle,
       });
     },
-    subscribed: (): void => {
+    subscribed: () => {
       this.route.subscribe(this.listener);
     },
-    hostNavigated: (to: string): void => {
+    hostNavigated: (to: string) => {
       this.hostNavigation.navigate(to);
     },
-    tabTitleSet: (title: string): void => {
+    tabTitleSet: (title: string) => {
       this.route.setTabTitle(title);
     },
   };
 
   readonly get = {
-    route: (): AtlasRouteContext => this.route,
-    setTabTitleMock: (): jest.Mock<(title: string) => void> => this.setTabTitle,
-    listenerMock: (): jest.Mock<(location: AtlasInnerLocation) => void> =>
-      this.listener,
+    route: () => this.route,
+    setTabTitleMock: () => this.setTabTitle,
+    listenerMock: () => this.listener,
   };
 }

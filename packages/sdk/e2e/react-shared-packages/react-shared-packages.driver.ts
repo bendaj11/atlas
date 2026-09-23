@@ -50,12 +50,12 @@ export class ReactSharedPackagesDriver {
     createReactAppViteConfig;
 
   readonly given = {
-    packageFormat: (format: PackageFormat): this => {
+    packageFormat: (format: PackageFormat) => {
       this.fixture = PACKAGE_FIXTURES[format];
 
       return this;
     },
-    consumer: (consumer: 'app' | 'host'): this => {
+    consumer: (consumer: 'app' | 'host') => {
       this.factory =
         consumer === 'app'
           ? createReactAppViteConfig
@@ -66,7 +66,7 @@ export class ReactSharedPackagesDriver {
   };
 
   readonly when = {
-    build: async (): Promise<void> => {
+    build: async () => {
       this.workspace = await realpath(
         await mkdtemp(join(tmpdir(), 'atlas-shared-packages-')),
       );
@@ -146,7 +146,7 @@ export class ReactSharedPackagesDriver {
         pathToFileURL(join(projectRoot, 'dist', shared.outFileName)).href
       )) as Record<string, unknown>;
     },
-    cleanup: async (): Promise<void> => {
+    cleanup: async () => {
       if (this.workspace)
         await rm(this.workspace, { recursive: true, force: true });
     },

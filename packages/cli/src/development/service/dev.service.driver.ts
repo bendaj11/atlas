@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
@@ -8,15 +7,29 @@ import type {
   AtlasManifest,
 } from '@atlas/schema';
 import { aHostRuntimeConfig } from '@atlas/testkit';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import type {
   AtlasDevBuildService,
   AtlasDevOverrideDocument,
 } from '../types.js';
-import { AtlasDevService } from './dev.service.js';
-import { CliArguments } from '../../shared/index.js';
-import type { AtlasWorkspace } from '../../workspace/index.js';
+import type {
+  AtlasWorkspace,
+  compileAtlasConfig as compileAtlasConfigType,
+} from '../../workspace/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { readFile } from 'node:fs/promises';
+
+const configCompiler =
+  await import('../../workspace/config-compiler/config-compiler.js');
+const compileAtlasConfig = jest.fn<typeof compileAtlasConfigType>();
+jest.unstable_mockModule(
+  '../../workspace/config-compiler/config-compiler.js',
+  () => ({ ...configCompiler, compileAtlasConfig }),
+);
+
+const { aProject, aWorkspace } =
+  await import('../../workspace/workspace.testkit.js');
+const { AtlasDevService } = await import('./dev.service.js');
+const { CliArguments } = await import('../../shared/index.js');
 
 export class DevServiceDriver {
   private readonly directory = new TemporaryDirectory();
@@ -31,42 +44,38 @@ export class DevServiceDriver {
   private appManifest?: AtlasManifest;
 
   readonly given = {
-    project: async (): Promise<this> => {
+    project: async () => {
       await this.directory.create('atlas-dev-service-');
-      await this.directory.writeJson('tsconfig.json', {
-        compilerOptions: { module: 'ESNext', target: 'ES2022', types: [] },
-      });
-      await this.directory.writeFile('atlas.config.ts', 'export default {};\n');
       await this.previews([]);
 
       return this;
     },
-    config: (config: AtlasConfig): this => {
+    config: (config: AtlasConfig) => {
       this.config = config;
 
       return this;
     },
-    previews: async (previews: string[]): Promise<this> => {
+    previews: async (previews: string[]) => {
       await this.previews(previews);
 
       return this;
     },
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = ['--prepare-only', ...flags];
 
       return this;
     },
-    hostManifest: (manifest: AtlasHostManifest): this => {
+    hostManifest: (manifest: AtlasHostManifest) => {
       this.hostManifest = manifest;
 
       return this;
     },
-    appManifest: (manifest: AtlasManifest): this => {
+    appManifest: (manifest: AtlasManifest) => {
       this.appManifest = manifest;
 
       return this;
     },
-    deployedHost: (hostId: string): this => {
+    deployedHost: (hostId: string) => {
       globalThis.fetch = jest
         .fn<typeof fetch>()
         .mockImplementation(async () =>
@@ -78,7 +87,7 @@ export class DevServiceDriver {
   };
 
   readonly when = {
-    run: async (): Promise<void> => {
+    run: async () => {
       try {
         await new AtlasDevService(
           aWorkspace({
@@ -101,7 +110,7 @@ export class DevServiceDriver {
   };
 
   readonly get = {
-    overrideDocument: async (): Promise<AtlasDevOverrideDocument> =>
+    overrideDocument: async () =>
       JSON.parse(
         await readFile(
           join(this.directory.root, '.atlas', 'local-overrides.json'),

@@ -1,4 +1,4 @@
-import { isRecord } from '../../shared/messages/messages';
+import { isRecord } from '../../../utils/messages/messages';
 
 interface BadgeRefreshDependencies {
   readCount: () => Promise<number>;

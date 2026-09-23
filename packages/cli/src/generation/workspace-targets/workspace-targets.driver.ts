@@ -1,9 +1,9 @@
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { ensureTurboTasks, writeNxProject } from './workspace-targets.js';
 import type {
   AtlasPackageManager,
   AtlasProjectType,
 } from '../../workspace/index.js';
+import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { ensureTurboTasks, writeNxProject } from './workspace-targets.js';
 import { readJsonFile } from '../../shared/index.js';
 
 export class WorkspaceTargetsDriver {
@@ -11,17 +11,17 @@ export class WorkspaceTargetsDriver {
   private packageManager: AtlasPackageManager = 'npm';
 
   readonly given = {
-    workspace: async (): Promise<this> => {
+    workspace: async () => {
       await this.directory.create('atlas-workspace-targets-');
 
       return this;
     },
-    packageManager: (packageManager: AtlasPackageManager): this => {
+    packageManager: (packageManager: AtlasPackageManager) => {
       this.packageManager = packageManager;
 
       return this;
     },
-    turboJson: async (value: unknown): Promise<this> => {
+    turboJson: async (value: unknown) => {
       await this.directory.writeJson('turbo.json', value);
 
       return this;
@@ -33,7 +33,7 @@ export class WorkspaceTargetsDriver {
       relativeRoot: string,
       name: string,
       type: AtlasProjectType,
-    ): Promise<void> => {
+    ) => {
       await this.directory.mkdir(relativeRoot);
       await writeNxProject({
         workspaceRoot: this.directory.root,
@@ -43,8 +43,7 @@ export class WorkspaceTargetsDriver {
         type,
       });
     },
-    turboTasksEnsured: (): Promise<void> =>
-      ensureTurboTasks(this.directory.root),
+    turboTasksEnsured: () => ensureTurboTasks(this.directory.root),
   };
 
   readonly get = {
@@ -54,6 +53,6 @@ export class WorkspaceTargetsDriver {
       ),
     turboJson: () =>
       readJsonFile<Record<string, unknown>>(this.directory.path('turbo.json')),
-    outsidePath: (): string => `${this.directory.root}-outside`,
+    outsidePath: () => `${this.directory.root}-outside`,
   };
 }

@@ -1,12 +1,14 @@
-import { angularRootSelector } from '../names/angular-names.js';
-import { title } from '../../shared/text/text.js';
+import { convertNameToAngularRootSelector } from '../names/angular-names.js';
+import { convertIdToTitle } from '../../shared/text/text.js';
 
 interface AngularAppConfigOptions {
   routed: boolean;
   requiresZonelessProvider: boolean;
 }
 
-export function angularAppConfig(options: AngularAppConfigOptions): string {
+export function renderAngularAppConfig(
+  options: AngularAppConfigOptions,
+): string {
   const { routed, requiresZonelessProvider } = options;
   const coreImport = requiresZonelessProvider
     ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
@@ -49,7 +51,7 @@ export function createAppConfig({ ${configFields} }: AtlasAppConfigOptions): App
 `;
 }
 
-export function angularAppMain(): string {
+export function renderAngularAppMain(): string {
   return `import { initFederation } from "@atlas/sdk/federation";
 
 void initFederation();
@@ -64,9 +66,9 @@ interface AngularAppEntryOptions {
   zoneless: boolean;
 }
 
-export function angularAppEntry(options: AngularAppEntryOptions): string {
+export function renderAngularAppEntry(options: AngularAppEntryOptions): string {
   const { name, routed, zoneless } = options;
-  const selector = angularRootSelector(name);
+  const selector = convertNameToAngularRootSelector(name);
   const zoneImport = zoneless ? '' : 'import "zone.js";\n';
   const atlasImport = routed
     ? 'import { createLocationStrategy, defineApp } from "@atlas/sdk/angular";'
@@ -108,11 +110,12 @@ interface AngularAppComponentOptions {
   routed: boolean;
 }
 
-export function angularAppComponent(
+export function renderAngularAppComponent(
   options: AngularAppComponentOptions,
 ): string {
   const { name, routed } = options;
-  const selector = angularRootSelector(name);
+  const selector = convertNameToAngularRootSelector(name);
+
   if (routed) {
     return `import { Component } from "@angular/core";
 import { RouterLink, RouterOutlet } from "@angular/router";
@@ -123,7 +126,7 @@ import { RouterLink, RouterOutlet } from "@angular/router";
   imports: [RouterLink, RouterOutlet],
   template: \`
     <section>
-      <h1>${title(name)}</h1>
+      <h1>${convertIdToTitle(name)}</h1>
       <nav>
         <a routerLink="/">Home</a>
         <a routerLink="details/42">Details</a>
@@ -143,7 +146,7 @@ export class AppComponent {}
   standalone: true,
   template: \`
     <section>
-      <h1>${title(name)}</h1>
+      <h1>${convertIdToTitle(name)}</h1>
       <p>Single-page Atlas app</p>
     </section>
   \`
@@ -152,19 +155,19 @@ export class AppComponent {}
 `;
 }
 
-export function angularAppHomeComponent(name: string): string {
+export function renderAngularAppHomeComponent(name: string): string {
   return `import { Component } from "@angular/core";
 
 @Component({
   selector: "atlas-app-home",
   standalone: true,
-  template: \`<p>${title(name)} home</p>\`
+  template: \`<p>${convertIdToTitle(name)} home</p>\`
 })
 export class HomeComponent {}
 `;
 }
 
-export function angularAppDetailsComponent(): string {
+export function renderAngularAppDetailsComponent(): string {
   return `import { Component } from "@angular/core";
 
 @Component({
@@ -176,7 +179,7 @@ export class DetailsComponent {}
 `;
 }
 
-export function angularAppRoutes(): string {
+export function renderAngularAppRoutes(): string {
   return `import type { Routes } from "@angular/router";
 import { DetailsComponent } from "./details/details.component";
 import { HomeComponent } from "./home/home.component";

@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import {
   type AtlasProject,
   type AtlasWorkspace,
-  defaultDevServerPort,
+  getDefaultDevServerPort,
 } from '../../workspace/index.js';
 import { readTextFile, recordOrEmpty } from '../../shared/index.js';
 
@@ -18,7 +18,7 @@ export async function suggestDevServerPort(
   const ports = await listConfiguredDevServerPorts(
     await workspace.listProjects(),
   );
-  const startingPort = defaultDevServerPort(type);
+  const startingPort = getDefaultDevServerPort(type);
   for (let port = startingPort; port <= MAX_TCP_PORT; port += 1) {
     if (!ports.has(port)) return port;
   }

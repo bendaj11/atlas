@@ -46,9 +46,8 @@ export class ReactRouterDriver {
   };
 
   readonly get = {
-    routerOptions: (): { initialEntries: string[] } =>
-      createRouterOptions(this.context),
-    hostUrl: (): string =>
+    routerOptions: () => createRouterOptions(this.context),
+    hostUrl: () =>
       formatLocationAsUrl(this.context.navigation.getCurrentLocation()),
     hostPath: (): string => this.path,
     routerLocation: (): RouterLocation => this.router.state.location,

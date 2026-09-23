@@ -3,14 +3,15 @@ import { useColumbusState } from '../../../hooks';
 import {
   baseUrlFromRemoteEntry,
   versionLabel,
-} from '../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
-import { versionKey } from '../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+} from '../../../utils/artifact-version-utils/artifact-version-utils';
+import { versionKey } from '../../../utils/artifact-version-keys/artifact-version-keys';
 import type {
   ArtifactOverride,
   ArtifactTableRow,
   OverrideType,
 } from '../../../types/artifact';
 import type { ColumbusState } from '../../../types/columbus-state';
+import type { AtlasRuntimeError } from '../../../types/host-data';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 
 interface Artifacts {
@@ -91,7 +92,7 @@ function createArtifact(
 
 function loadErrorOf(
   artifactKey: string,
-  runtimeErrors: ColumbusState['hostData']['runtimeErrors'],
+  runtimeErrors: AtlasRuntimeError[],
 ): string | undefined {
   const runtimeError = runtimeErrors.find(
     (error) => error.artifactId === artifactKey,
@@ -105,7 +106,7 @@ function loadErrorOf(
 
 function isVisible(
   artifactVersion: ArtifactVersion,
-  visibleAppIds: string[] = [],
+  visibleAppIds: string[],
 ): boolean {
   return (
     artifactVersion.kind === 'host' ||

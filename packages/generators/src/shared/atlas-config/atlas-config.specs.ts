@@ -8,7 +8,7 @@ import { AtlasConfigDriver } from './atlas-config.driver.js';
 const UUID_V4 =
   /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/;
 
-describe('atlasAppConfig', () => {
+describe('renderAtlasAppConfig', () => {
   let driver: AtlasConfigDriver;
 
   beforeEach(() => {
@@ -51,7 +51,7 @@ describe('atlasAppConfig', () => {
   });
 });
 
-describe('atlasHostConfig', () => {
+describe('renderAtlasHostConfig', () => {
   let driver: AtlasConfigDriver;
 
   beforeEach(() => {
@@ -70,7 +70,7 @@ describe('atlasHostConfig', () => {
   });
 });
 
-describe('atlasBootstrapHtml', () => {
+describe('renderAtlasBootstrapHtml', () => {
   let driver: AtlasConfigDriver;
 
   beforeEach(() => {

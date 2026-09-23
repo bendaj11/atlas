@@ -1,5 +1,7 @@
 import type { AtlasValidationIssue } from '../../errors/atlas-validation-issue.js';
+import { ATLAS_MANIFEST_SCHEMA_VERSION } from '../atlas-artifact-manifest-base.js';
 import { ATLAS_DOM_ISOLATIONS } from '../atlas-dom-isolation.js';
+import { ATLAS_WIDGET_CONTRACT_VERSION } from '../atlas-exported-widget-manifest.js';
 import { ATLAS_FRAMEWORKS } from '../atlas-framework.js';
 import { ATLAS_ALL_HOSTS } from '../atlas-placement/atlas-placement.js';
 import { ATLAS_PLACEMENT_KINDS } from '../atlas-placement-kind.js';
@@ -13,13 +15,13 @@ import { validateReleaseMetadata } from '../../validation/validate-release-metad
 import { validateStyles } from '../../validation/validate-styles.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
-  asRecord,
-  optionalOneOf,
-  optionalString,
-  requiredIdentifier,
-  requiredLiteral,
-  requiredOneOf,
-  requiredString,
+  toRecord,
+  readOptionalOneOf,
+  readOptionalString,
+  readRequiredIdentifier,
+  requireLiteral,
+  readRequiredOneOf,
+  readRequiredString,
   validateHttpUrl,
   validateIdentifier,
   validateMetadata,
@@ -29,9 +31,6 @@ import {
   validateUniqueValue,
   type UnknownRecord,
 } from '../../validation/validators.js';
-
-export const ATLAS_MANIFEST_SCHEMA_VERSION = '1';
-export const ATLAS_WIDGET_CONTRACT_VERSION = '1';
 
 interface PlacementUniqueness {
   placementIds: Set<string>;
@@ -43,7 +42,7 @@ export function validateAtlasManifest(value: unknown): AtlasValidationIssue[] {
   const issues = ValidationIssues.create();
   collectAtlasManifestIssues({ value, issues });
 
-  return issues.list();
+  return issues.toArray();
 }
 
 export function collectAtlasManifestIssues(input: {
@@ -51,45 +50,49 @@ export function collectAtlasManifestIssues(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const manifest = asRecord(input.value);
-  requiredLiteral({
+  const manifest = toRecord(input.value);
+  requireLiteral({
     record: manifest,
     key: 'schemaVersion',
     expected: ATLAS_MANIFEST_SCHEMA_VERSION,
     issues,
   });
-  requiredLiteral({ record: manifest, key: 'kind', expected: 'app', issues });
-  const id = requiredIdentifier({
+  requireLiteral({ record: manifest, key: 'kind', expected: 'app', issues });
+  const id = readRequiredIdentifier({
     record: manifest,
     key: 'id',
     label: 'app id',
     issues,
   });
-  requiredString({ record: manifest, key: 'name', issues });
-  requiredString({ record: manifest, key: 'buildId', issues });
-  requiredString({ record: manifest, key: 'createdAt', issues });
-  requiredOneOf({
+  readRequiredString({ record: manifest, key: 'name', issues });
+  readRequiredString({ record: manifest, key: 'buildId', issues });
+  readRequiredString({ record: manifest, key: 'createdAt', issues });
+  readRequiredOneOf({
     record: manifest,
     key: 'channel',
     allowed: ATLAS_VERSION_CHANNELS,
     issues,
   });
-  const framework = requiredOneOf({
+  const framework = readRequiredOneOf({
     record: manifest,
     key: 'framework',
     allowed: ATLAS_FRAMEWORKS,
     issues,
   });
-  optionalOneOf({
+  readOptionalOneOf({
     record: manifest,
     key: 'isolation',
     allowed: ATLAS_DOM_ISOLATIONS,
     issues,
   });
-  const version = requiredString({ record: manifest, key: 'version', issues });
+  const version = readRequiredString({
+    record: manifest,
+    key: 'version',
+    issues,
+  });
   if (version)
     validateSemanticVersion({ value: version, path: 'version', issues });
-  const sdkRange = requiredString({
+  const sdkRange = readRequiredString({
     record: manifest,
     key: 'requiredHostSdkVersion',
     issues,
@@ -100,7 +103,7 @@ export function collectAtlasManifestIssues(input: {
       path: 'requiredHostSdkVersion',
       issues,
     });
-  const remoteEntryUrl = requiredString({
+  const remoteEntryUrl = readRequiredString({
     record: manifest,
     key: 'remoteEntryUrl',
     issues,
@@ -116,24 +119,30 @@ export function collectAtlasManifestIssues(input: {
   validateMetadata({ value: manifest?.metadata, path: 'metadata', issues });
   const supportedHosts = validateSupportedHosts({
     value: manifest?.supportedHosts,
-    issues: issues.at('supportedHosts'),
+    issues: issues.scopedTo('supportedHosts'),
   });
   validatePlacements({
     value: manifest?.placements,
     supportedHosts,
-    issues: issues.at('placements'),
+    issues: issues.scopedTo('placements'),
   });
-  validateExposes({ value: manifest?.exposes, issues: issues.at('exposes') });
-  validateStyles({ value: manifest?.styles, issues: issues.at('styles') });
+  validateExposes({
+    value: manifest?.exposes,
+    issues: issues.scopedTo('exposes'),
+  });
+  validateStyles({
+    value: manifest?.styles,
+    issues: issues.scopedTo('styles'),
+  });
   validateExportedWidgets({
     value: manifest?.exportedWidgets,
     ownerAppId: id,
     ownerFramework: framework,
-    issues: issues.at('exportedWidgets'),
+    issues: issues.scopedTo('exportedWidgets'),
   });
   validateExternalAppDependencies({
     value: manifest?.externalAppsDependencies,
-    issues: issues.at('externalAppsDependencies'),
+    issues: issues.scopedTo('externalAppsDependencies'),
   });
 }
 
@@ -152,6 +161,7 @@ function validateSupportedHosts(input: {
   const seen = new Set<string>();
   input.value.forEach((hostId, index) => {
     const path = String(index);
+
     if (typeof hostId !== 'string' || hostId.trim() === '') {
       input.issues.add({
         path,
@@ -206,7 +216,7 @@ function validatePlacements(input: {
       value: placement,
       supportedHosts: input.supportedHosts,
       uniqueness,
-      issues: input.issues.at(String(index)),
+      issues: input.issues.scopedTo(String(index)),
     }),
   );
 }
@@ -218,8 +228,8 @@ function validatePlacement(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const placement = asRecord(input.value);
-  const id = requiredIdentifier({
+  const placement = toRecord(input.value);
+  const id = readRequiredIdentifier({
     record: placement,
     key: 'id',
     label: 'mount id',
@@ -237,13 +247,14 @@ function validatePlacement(input: {
       placementIds: input.uniqueness.placementIds,
       issues,
     });
-  const kind = requiredOneOf({
+  const kind = readRequiredOneOf({
     record: placement,
     key: 'kind',
     allowed: ATLAS_PLACEMENT_KINDS,
     issues,
   });
   if (!placement) return;
+
   if (kind === 'route')
     validateRoutePlacement({
       placement,
@@ -259,12 +270,13 @@ function validatePlacementHostId(input: {
   supportedHosts: Set<string> | undefined;
   issues: ValidationIssues;
 }): string | undefined {
-  const hostId = requiredString({
+  const hostId = readRequiredString({
     record: input.record,
     key: 'hostId',
     issues: input.issues,
   });
   if (!hostId) return undefined;
+
   if (
     hostId !== ATLAS_ALL_HOSTS &&
     !validateIdentifier({
@@ -275,6 +287,7 @@ function validatePlacementHostId(input: {
     })
   )
     return hostId;
+
   if (
     input.supportedHosts &&
     !input.supportedHosts.has(ATLAS_ALL_HOSTS) &&
@@ -299,8 +312,9 @@ function validateRoutePlacement(input: {
       path: 'slot',
       message: 'Route placements must not define a slot.',
     });
-  const route = asRecord(input.placement.route);
-  const issues = input.issues.at('route');
+  const route = toRecord(input.placement.route);
+  const issues = input.issues.scopedTo('route');
+
   if (!route) {
     issues.add({
       path: '',
@@ -309,9 +323,13 @@ function validateRoutePlacement(input: {
 
     return;
   }
-  const path = requiredString({ record: route, key: 'path', issues });
-  optionalString({ record: route, key: 'title', issues });
-  const layoutId = optionalString({ record: route, key: 'layoutId', issues });
+  const path = readRequiredString({ record: route, key: 'path', issues });
+  readOptionalString({ record: route, key: 'title', issues });
+  const layoutId = readOptionalString({
+    record: route,
+    key: 'layoutId',
+    issues,
+  });
   if (layoutId)
     validateIdentifier({
       value: layoutId,
@@ -319,7 +337,7 @@ function validateRoutePlacement(input: {
       label: 'layout id',
       issues,
     });
-  optionalOneOf({
+  readOptionalOneOf({
     record: route,
     key: 'match',
     allowed: ATLAS_ROUTE_MATCHES,
@@ -353,21 +371,24 @@ function validateRoutePlacement(input: {
       routePaths: input.routePaths,
       issues,
     });
-  validateNavigation({ value: route.nav, issues: issues.at('nav') });
+  validateRouteNavigation({ value: route.nav, issues: issues.scopedTo('nav') });
 }
 
-function validateNavigation(input: {
+function validateRouteNavigation(input: {
   value: unknown;
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
-  const nav = asRecord(input.value);
+
+  const nav = toRecord(input.value);
+
   if (!nav) {
     input.issues.add({ path: '', message: 'Expected nav to be an object.' });
 
     return;
   }
-  requiredString({ record: nav, key: 'label', issues: input.issues });
+  readRequiredString({ record: nav, key: 'label', issues: input.issues });
+
   if (
     nav.order !== undefined &&
     (typeof nav.order !== 'number' || !Number.isFinite(nav.order))
@@ -387,7 +408,7 @@ function validateSlotPlacement(input: {
   placement: UnknownRecord;
   issues: ValidationIssues;
 }): void {
-  requiredString({
+  readRequiredString({
     record: input.placement,
     key: 'slot',
     issues: input.issues,
@@ -403,7 +424,8 @@ function validateExposes(input: {
   value: unknown;
   issues: ValidationIssues;
 }): void {
-  const exposes = asRecord(input.value);
+  const exposes = toRecord(input.value);
+
   if (!exposes) {
     input.issues.add({
       path: '',
@@ -412,9 +434,10 @@ function validateExposes(input: {
 
     return;
   }
-  requiredString({ record: exposes, key: 'entry', issues: input.issues });
+  readRequiredString({ record: exposes, key: 'entry', issues: input.issues });
   for (const [name, expose] of Object.entries(exposes)) {
     if (name === 'entry') continue;
+
     if (typeof expose !== 'string' || expose.trim() === '')
       input.issues.add({
         path: name,
@@ -430,6 +453,7 @@ function validateExportedWidgets(input: {
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
+
   if (!Array.isArray(input.value)) {
     input.issues.add({
       path: '',
@@ -445,7 +469,7 @@ function validateExportedWidgets(input: {
       ownerAppId: input.ownerAppId,
       ownerFramework: input.ownerFramework,
       ids,
-      issues: input.issues.at(String(index)),
+      issues: input.issues.scopedTo(String(index)),
     }),
   );
 }
@@ -458,28 +482,28 @@ function validateExportedWidget(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const widget = asRecord(input.value);
-  requiredLiteral({
+  const widget = toRecord(input.value);
+  requireLiteral({
     record: widget,
     key: 'schemaVersion',
     expected: ATLAS_MANIFEST_SCHEMA_VERSION,
     issues,
   });
-  requiredLiteral({
+  requireLiteral({
     record: widget,
     key: 'contractVersion',
     expected: ATLAS_WIDGET_CONTRACT_VERSION,
     issues,
   });
-  const id = requiredIdentifier({
+  const id = readRequiredIdentifier({
     record: widget,
     key: 'id',
     label: 'widget id',
     issues,
   });
-  requiredString({ record: widget, key: 'name', issues });
-  requiredString({ record: widget, key: 'expose', issues });
-  const ownerAppId = requiredIdentifier({
+  readRequiredString({ record: widget, key: 'name', issues });
+  readRequiredString({ record: widget, key: 'expose', issues });
+  const ownerAppId = readRequiredIdentifier({
     record: widget,
     key: 'ownerAppId',
     label: 'owner app id',
@@ -490,7 +514,7 @@ function validateExportedWidget(input: {
       path: 'ownerAppId',
       message: 'Expected ownerAppId to match the app id.',
     });
-  const framework = requiredOneOf({
+  const framework = readRequiredOneOf({
     record: widget,
     key: 'framework',
     allowed: ATLAS_FRAMEWORKS,
@@ -501,7 +525,7 @@ function validateExportedWidget(input: {
       path: 'framework',
       message: 'Expected framework to match the app framework.',
     });
-  const remoteEntryUrl = requiredString({
+  const remoteEntryUrl = readRequiredString({
     record: widget,
     key: 'remoteEntryUrl',
     issues,
@@ -509,6 +533,7 @@ function validateExportedWidget(input: {
   if (remoteEntryUrl)
     validateHttpUrl({ value: remoteEntryUrl, path: 'remoteEntryUrl', issues });
   validateMetadata({ value: widget?.metadata, path: 'metadata', issues });
+
   if (id)
     validateUniqueValue({
       value: id,
@@ -524,6 +549,7 @@ function validateExternalAppDependencies(input: {
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
+
   if (!Array.isArray(input.value)) {
     input.issues.add({
       path: '',
@@ -535,6 +561,7 @@ function validateExternalAppDependencies(input: {
   const appIds = new Set<string>();
   input.value.forEach((appId, index) => {
     const path = String(index);
+
     if (typeof appId !== 'string' || appId.trim() === '') {
       input.issues.add({ path, message: 'Expected an external app id.' });
 
@@ -564,6 +591,7 @@ function validateUniquePlacementId(input: {
   issues: ValidationIssues;
 }): void {
   const placementKey = `${input.hostId}\0${input.id}`;
+
   if (input.placementIds.has(placementKey))
     input.issues.add({
       path: 'id',
@@ -580,6 +608,7 @@ function validateUniqueRoutePath(input: {
 }): void {
   const normalizedPath = normalizeRoutePath(input.path);
   const routeKey = `${input.hostId}\0${normalizedPath}`;
+
   if (input.routePaths.has(routeKey))
     input.issues.add({
       path: 'path',

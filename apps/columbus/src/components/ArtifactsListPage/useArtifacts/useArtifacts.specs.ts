@@ -249,12 +249,6 @@ describe('useArtifacts', () => {
       expect(driver.get.artifactOf(app).visible).toBe(false);
     });
 
-    it('should mark the app hidden when visible app ids are absent', () => {
-      driver.given.visibleAppIds(undefined).when.rendered();
-
-      expect(driver.get.artifactOf(app).visible).toBe(false);
-    });
-
     describe('when the app is hidden and visible only is on', () => {
       beforeEach(() => {
         driver.given.visibleAppIds([]).when.rendered();

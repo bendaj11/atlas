@@ -6,24 +6,29 @@ import { hasAtlasBootstrapSignature } from '../atlas-bootstrap-signature/atlas-b
 import {
   DEFAULT_CONTROL_PORT,
   rememberedControlPort,
-} from '../../shared/control-port/control-port';
-import { messageFromError } from '../../shared/errors/errors';
+} from '../../../utils/control-port/control-port';
+import { messageFromError } from '../../../utils/errors/errors';
 import {
   actionThemeMessage,
   isInspectHostRequest,
   isLoadArtifactVersionRequest,
+  isReadPageStateRequest,
   isRecord,
   overrideCountMessage,
-} from '../../shared/messages/messages';
+} from '../../../utils/messages/messages';
 import {
   OVERRIDE_DOCUMENT_KEY,
   disabledLocalAppsKey,
   persistedOverridesKey,
-} from '../../shared/storage-keys/storage-keys';
-import { isLoopbackHostname } from '../../shared/urls/urls';
-import { countOverrides } from '../../overrides/override-document/override-document';
-import { createArtifactRegistry } from '../../host/artifact-registry/artifact-registry';
-import { inspectAtlasHost } from '../../host/inspect-atlas-host/inspect-atlas-host';
+} from '../../../utils/storage-keys/storage-keys';
+import { isLoopbackHostname } from '../../../utils/urls/urls';
+import { countOverrides } from '../../../utils/override-document/override-document';
+import { createArtifactRegistry } from '../../../utils/artifact-registry/artifact-registry';
+import { inspectAtlasHost } from '../../../utils/inspect-atlas-host/inspect-atlas-host';
+import {
+  readRuntimeErrors,
+  readVisibleAppIds,
+} from '../../../utils/page-runtime-state/page-runtime-state';
 
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
@@ -51,6 +56,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     );
 
     return true;
+  }
+  if (isReadPageStateRequest(message)) {
+    sendResponse({
+      ok: true,
+      pageState: {
+        visibleAppIds: readVisibleAppIds(),
+        runtimeErrors: readRuntimeErrors(),
+      },
+    });
+
+    return false;
   }
   if (isLoadArtifactVersionRequest(message)) {
     void artifactRegistry
@@ -113,13 +129,9 @@ async function readDevelopmentSessionOverrideCount(
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) return undefined;
 
-    const session = (await response.json()) as {
-      schemaVersion?: string;
-      hostId?: string;
-      overrides?: unknown[];
-      hostOverride?: unknown;
-    };
+    const session: unknown = await response.json();
     if (
+      !isRecord(session) ||
       session.schemaVersion !== '1' ||
       session.hostId !== hostId ||
       !Array.isArray(session.overrides)
@@ -166,12 +178,10 @@ async function fetchRuntimeConfig(): Promise<{ hostId?: string } | undefined> {
     });
     if (!response.ok) return undefined;
 
-    const value = (await response.json()) as {
-      schemaVersion?: string;
-      hostId?: string;
-    };
+    const value: unknown = await response.json();
+    if (!isRecord(value) || value.schemaVersion !== 'v1') return undefined;
 
-    return value.schemaVersion === 'v1' ? value : undefined;
+    return typeof value.hostId === 'string' ? { hostId: value.hostId } : {};
   } catch {
     return undefined;
   }

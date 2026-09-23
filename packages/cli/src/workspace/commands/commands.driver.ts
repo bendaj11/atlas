@@ -6,6 +6,7 @@ import type {
   AtlasTask,
   AtlasWorkspaceKind,
 } from '../types.js';
+import type { NxGenerationOptions } from './commands.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   createFormatGeneratedCommand,
@@ -15,7 +16,6 @@ import {
   createTaskCommand,
   resolveInstallationRoot,
   isPackageInstalled,
-  type NxGenerationOptions,
 } from './commands.js';
 
 export class CommandsDriver {

@@ -1,18 +1,19 @@
 import type { AtlasValidationIssue } from '../../errors/atlas-validation-issue.js';
-import type { AtlasHostDeploymentManifest } from '../atlas-publication.js';
-import { assertValid } from '../../validation/assert-valid.js';
+import {
+  ATLAS_DEPLOYMENT_SCHEMA_VERSION,
+  type AtlasHostDeploymentManifest,
+} from '../atlas-publication.js';
+import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
-  asRecord,
-  requiredLiteral,
-  requiredString,
-  requiredUrlSafePathSegment,
+  toRecord,
+  requireLiteral,
+  readRequiredString,
+  readRequiredUrlSafePathSegment,
   validateHttpUrl,
   validateSha256Digest,
 } from '../../validation/validators.js';
 import { validateManifestDescriptor } from '../validate-manifest-descriptor/validate-manifest-descriptor.js';
-
-export const ATLAS_DEPLOYMENT_SCHEMA_VERSION = 'v1';
 
 /** Checks unknown JSON and returns all host deployment manifest problems. */
 export function validateHostDeploymentManifest(
@@ -21,7 +22,7 @@ export function validateHostDeploymentManifest(
   const issues = ValidationIssues.create();
   collectHostDeploymentManifestIssues({ value, issues });
 
-  return issues.list();
+  return issues.toArray();
 }
 
 /** Checks unknown JSON and throws unless it is a valid host deployment manifest. */
@@ -30,7 +31,10 @@ export function assertHostDeploymentManifest(
 ): asserts value is AtlasHostDeploymentManifest {
   const issues = ValidationIssues.create();
   collectHostDeploymentManifestIssues({ value, issues });
-  assertValid({ issues, message: 'Invalid Atlas host deployment manifest.' });
+  assertNoIssues({
+    issues,
+    message: 'Invalid Atlas host deployment manifest.',
+  });
 }
 
 function collectHostDeploymentManifestIssues(input: {
@@ -38,7 +42,8 @@ function collectHostDeploymentManifestIssues(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const manifest = asRecord(input.value);
+  const manifest = toRecord(input.value);
+
   if (!manifest) {
     issues.add({
       path: '',
@@ -47,25 +52,25 @@ function collectHostDeploymentManifestIssues(input: {
 
     return;
   }
-  requiredLiteral({
+  requireLiteral({
     record: manifest,
     key: 'schemaVersion',
     expected: ATLAS_DEPLOYMENT_SCHEMA_VERSION,
     issues,
   });
-  requiredLiteral({
+  requireLiteral({
     record: manifest,
     key: 'kind',
     expected: 'host-deployment',
     issues,
   });
-  requiredUrlSafePathSegment({
+  readRequiredUrlSafePathSegment({
     record: manifest,
     key: 'hostId',
     label: 'host id',
     issues,
   });
-  requiredString({ record: manifest, key: 'environment', issues });
+  readRequiredString({ record: manifest, key: 'environment', issues });
   validateSha256Digest({
     value: manifest.deploymentRevision,
     path: 'deploymentRevision',
@@ -73,16 +78,16 @@ function collectHostDeploymentManifestIssues(input: {
   });
   validateManifestReference({
     value: manifest.host,
-    issues: issues.at('host'),
+    issues: issues.scopedTo('host'),
   });
   validateManifestReferences({
     value: manifest.apps,
-    issues: issues.at('apps'),
+    issues: issues.scopedTo('apps'),
   });
   if (manifest.widgetProviders !== undefined)
     validateManifestReferences({
       value: manifest.widgetProviders,
-      issues: issues.at('widgetProviders'),
+      issues: issues.scopedTo('widgetProviders'),
     });
 }
 
@@ -101,7 +106,7 @@ function validateManifestReferences(input: {
   input.value.forEach((reference, index) =>
     validateManifestReference({
       value: reference,
-      issues: input.issues.at(String(index)),
+      issues: input.issues.scopedTo(String(index)),
     }),
   );
 }
@@ -111,9 +116,11 @@ function validateManifestReference(input: {
   issues: ValidationIssues;
 }): void {
   validateManifestDescriptor(input);
-  const reference = asRecord(input.value);
+  const reference = toRecord(input.value);
+
   if (reference?.url === undefined) return;
-  const url = requiredString({
+
+  const url = readRequiredString({
     record: reference,
     key: 'url',
     issues: input.issues,

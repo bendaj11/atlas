@@ -1,4 +1,4 @@
-export function atlasHostStyles(): string {
+export function renderAtlasHostStyles(): string {
   return `body {
   margin: 0;
   font-family: system-ui, sans-serif;

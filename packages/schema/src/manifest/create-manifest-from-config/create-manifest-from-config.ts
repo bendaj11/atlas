@@ -9,7 +9,7 @@ import { assertAtlasManifest } from '../assert-atlas-manifest/assert-atlas-manif
 export function createManifestFromConfig(
   input: CreateManifestFromConfigInput,
 ): AtlasManifest {
-  const placements = placementsFromConfig(input.config);
+  const placements = createPlacementsFromConfig(input.config);
   const manifest: AtlasManifest = {
     schemaVersion: '1',
     kind: 'app',
@@ -23,7 +23,7 @@ export function createManifestFromConfig(
     remoteEntryUrl: input.remoteEntryUrl,
     exposes: { entry: './entry' },
     requiredHostSdkVersion: input.config.requiredHostSdkVersion ?? '^0.1.0',
-    supportedHosts: supportedHostsOf(placements),
+    supportedHosts: collectSupportedHostIds(placements),
     placements,
     createdAt: input.createdAt ?? new Date().toISOString(),
     ...(input.exportedWidgets?.length
@@ -48,10 +48,10 @@ export function createManifestFromConfig(
   return manifest;
 }
 
-function placementsFromConfig(config: AtlasAppConfig): AtlasPlacement[] {
+function createPlacementsFromConfig(config: AtlasAppConfig): AtlasPlacement[] {
   const ids = new Map<string, number>();
   const uniqueId = (hostId: string, name: string, suffix: string): string => {
-    const baseId = identifierFrom({ hostId, name, suffix });
+    const baseId = buildPlacementId({ hostId, name, suffix });
     const count = (ids.get(baseId) ?? 0) + 1;
     ids.set(baseId, count);
 
@@ -83,13 +83,15 @@ function placementsFromConfig(config: AtlasAppConfig): AtlasPlacement[] {
   ];
 }
 
-function supportedHostsOf(placements: readonly AtlasPlacement[]): string[] {
+function collectSupportedHostIds(
+  placements: readonly AtlasPlacement[],
+): string[] {
   const hosts = [...new Set(placements.map((placement) => placement.hostId))];
 
   return hosts.length ? hosts : [ATLAS_ALL_HOSTS];
 }
 
-function identifierFrom(input: {
+function buildPlacementId(input: {
   hostId: string;
   name: string;
   suffix: string;

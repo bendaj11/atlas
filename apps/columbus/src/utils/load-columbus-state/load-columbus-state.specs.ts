@@ -12,24 +12,51 @@ describe('loadColumbusState', () => {
     driver = new LoadColumbusStateDriver();
   });
 
-  describe('when a cached host exists', () => {
+  describe('when a cached host exists and its page state is read', () => {
     const cache = { hostData: aHostData(), tabId: faker.number.int() };
+    const pageState = {
+      visibleAppIds: [faker.string.uuid()],
+      runtimeErrors: [{ message: faker.lorem.sentence() }],
+    };
 
     beforeEach(() => {
-      driver.given.hostDataCache(cache);
+      driver.given.hostDataCache(cache).given.pageState(pageState);
     });
 
     it('should resolve with the cached tab id when no columbusState exists', async () => {
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'tabId',
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('tabId', cache.tabId);
+    });
+
+    it('should not read the active tab when no columbusState exists', async () => {
+      await loadColumbusState({ bypassCache: false });
+
+      expect(driver.get.readHostData()).not.toHaveBeenCalled();
+    });
+
+    it('should read the page state of the cached tab when the cache is not bypassed', async () => {
+      await loadColumbusState({ bypassCache: false });
+
+      expect(driver.get.readPageStateFromHostTab()).toHaveBeenCalledWith(
         cache.tabId,
       );
     });
 
-    it('should not read the active tab when no columbusState exists', async () => {
-      await loadColumbusState(false);
+    it('should resolve with the live visible app ids when the cache is not bypassed', async () => {
+      const columbusState = await loadColumbusState({ bypassCache: false });
 
-      expect(driver.get.readHostData()).not.toHaveBeenCalled();
+      expect(columbusState.hostData.visibleAppIds).toStrictEqual(
+        pageState.visibleAppIds,
+      );
+    });
+
+    it('should resolve with the live runtime errors when the cache is not bypassed', async () => {
+      const columbusState = await loadColumbusState({ bypassCache: false });
+
+      expect(columbusState.hostData.runtimeErrors).toStrictEqual(
+        pageState.runtimeErrors,
+      );
     });
 
     it('should not read the cache when a columbusState exists', async () => {
@@ -38,7 +65,7 @@ describe('loadColumbusState', () => {
         tabId: faker.number.int(),
       });
 
-      await loadColumbusState(true);
+      await loadColumbusState({ bypassCache: true });
 
       expect(driver.get.readHostDataCache()).not.toHaveBeenCalled();
     });
@@ -54,39 +81,58 @@ describe('loadColumbusState', () => {
     it('should resolve with the active tab id when no cached host exists', async () => {
       driver.given.hostDataCache(undefined);
 
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'tabId',
-        read.tabId,
-      );
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('tabId', read.tabId);
     });
 
     it('should resolve with the active tab id when the cache read fails', async () => {
       driver.given.hostDataCacheFailure(new Error(faker.lorem.sentence()));
 
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'tabId',
-        read.tabId,
-      );
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('tabId', read.tabId);
+    });
+
+    it('should resolve with the active tab id when the page state of the cached tab cannot be read', async () => {
+      driver.given
+        .hostDataCache({ hostData: aHostData(), tabId: faker.number.int() })
+        .given.pageStateFailure(new Error(faker.lorem.sentence()));
+
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('tabId', read.tabId);
+    });
+
+    it('should resolve with the active tab id when the cached host overrides cannot be read', async () => {
+      driver.given
+        .hostDataCache({ hostData: aHostData(), tabId: faker.number.int() })
+        .given.pageState({ visibleAppIds: [], runtimeErrors: [] })
+        .given.disabledArtifactVersionOverridesFailure(
+          new Error(faker.lorem.sentence()),
+        );
+
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('tabId', read.tabId);
     });
 
     it('should resolve with the disabled overrides when loaded', async () => {
       const disabled = new Map([[faker.string.uuid(), anAppManifest()]]);
       driver.given.disabledArtifactVersionOverrides(disabled);
 
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'disabledArtifactVersionOverrides',
-        disabled,
-      );
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('disabledArtifactVersionOverrides', disabled);
     });
 
     it('should resolve with the cleared local artifact ids when loaded', async () => {
       const cleared = new Set([faker.string.uuid()]);
       driver.given.clearedLocalArtifactIds(cleared);
 
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'clearedLocalArtifactIds',
-        cleared,
-      );
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('clearedLocalArtifactIds', cleared);
     });
 
     it('should resolve with the disabled override apps added to the catalog when they are not deployed', async () => {
@@ -95,10 +141,9 @@ describe('loadColumbusState', () => {
         new Map([[overrideApp.id, overrideApp]]),
       );
 
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'hostData.catalog.apps',
-        [overrideApp],
-      );
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('hostData.catalog.apps', [overrideApp]);
     });
   });
 
@@ -115,10 +160,9 @@ describe('loadColumbusState', () => {
       };
       driver.given.hostData(read);
 
-      await expect(loadColumbusState(false)).resolves.toHaveProperty(
-        'scope',
-        scope,
-      );
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('scope', scope);
     },
   );
 
@@ -129,7 +173,7 @@ describe('loadColumbusState', () => {
     };
     driver.given.hostData(read);
 
-    await loadColumbusState(false);
+    await loadColumbusState({ bypassCache: false });
 
     expect(
       driver.get.readDisabledArtifactVersionOverrides(),
@@ -147,7 +191,7 @@ describe('loadColumbusState', () => {
     };
     driver.given.hostData(read);
 
-    await loadColumbusState(false);
+    await loadColumbusState({ bypassCache: false });
 
     expect(driver.get.readClearedLocalArtifactIds()).toHaveBeenCalledWith({
       hostId: read.hostData.config.hostId,
@@ -173,7 +217,9 @@ describe('loadColumbusState', () => {
     };
     driver.given.hostData(read);
 
-    await expect(loadColumbusState(false)).resolves.toHaveProperty(
+    await expect(
+      loadColumbusState({ bypassCache: false }),
+    ).resolves.toHaveProperty(
       'enabledArtifactVersionOverrides',
       new Map([[override.id, override]]),
     );
@@ -187,11 +233,15 @@ describe('loadColumbusState', () => {
     });
 
     it('should reject with the failure reason when loaded', async () => {
-      await expect(loadColumbusState(false)).rejects.toThrow(reason);
+      await expect(loadColumbusState({ bypassCache: false })).rejects.toThrow(
+        reason,
+      );
     });
 
     it('should reject with a retry hint when loaded', async () => {
-      await expect(loadColumbusState(false)).rejects.toThrow('then retry.');
+      await expect(loadColumbusState({ bypassCache: false })).rejects.toThrow(
+        'then retry.',
+      );
     });
   });
 });

@@ -1,6 +1,6 @@
 import {
-  asRecord,
-  requiredString,
+  toRecord,
+  readRequiredString,
   validateHttpUrl,
   validateOptionalSha256Integrity,
   validateUniqueValue,
@@ -12,6 +12,7 @@ export function validateStyles(input: {
   issues: ValidationIssues;
 }): void {
   if (input.value === undefined) return;
+
   if (!Array.isArray(input.value)) {
     input.issues.add({ path: '', message: 'Expected styles to be an array.' });
 
@@ -19,9 +20,10 @@ export function validateStyles(input: {
   }
   const hrefs = new Set<string>();
   input.value.forEach((stylesheet, index) => {
-    const issues = input.issues.at(String(index));
-    const style = asRecord(stylesheet);
-    const href = requiredString({ record: style, key: 'href', issues });
+    const issues = input.issues.scopedTo(String(index));
+    const style = toRecord(stylesheet);
+    const href = readRequiredString({ record: style, key: 'href', issues });
+
     if (href) {
       validateHttpUrl({ value: href, path: 'href', issues });
       validateUniqueValue({

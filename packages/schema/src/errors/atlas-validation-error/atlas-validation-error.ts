@@ -22,6 +22,7 @@ function formatAtlasValidationMessage(
   issues: readonly AtlasValidationIssue[],
 ): string {
   if (issues.length === 0) return message;
+
   const details = issues
     .map((issue) =>
       issue.path ? `${issue.path}: ${issue.message}` : issue.message,

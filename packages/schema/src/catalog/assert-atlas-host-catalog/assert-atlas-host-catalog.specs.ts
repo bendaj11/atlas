@@ -15,7 +15,7 @@ describe('assertAtlasHostCatalog', () => {
 
   it('should throw AtlasValidationError with the issue when the catalog is invalid', () => {
     expect(() =>
-      driver.when.asserted(aHostCatalog({ apps: 'invalid' as unknown as [] })),
+      driver.when.asserted({ ...aHostCatalog(), apps: 'invalid' }),
     ).toThrow(
       expect.objectContaining<Partial<AtlasValidationError>>({
         name: 'AtlasValidationError',

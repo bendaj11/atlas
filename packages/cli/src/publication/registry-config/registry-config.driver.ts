@@ -1,6 +1,5 @@
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { loadAtlasRegistryConfig } from './registry-config.js';
-import type { AtlasRegistryConfig } from './types.js';
 import { CliArguments } from '../../shared/index.js';
 
 export class RegistryConfigDriver {
@@ -8,18 +7,18 @@ export class RegistryConfigDriver {
   private flags: string[] = [];
 
   readonly given = {
-    workingDirectory: async (): Promise<this> => {
+    workingDirectory: async () => {
       await this.directory.create('atlas-registry-config-');
       await this.directory.writeJson('package.json', { type: 'module' });
 
       return this;
     },
-    configFile: async (relativePath: string, source: string): Promise<this> => {
+    configFile: async (relativePath: string, source: string) => {
       await this.directory.writeFile(relativePath, source);
 
       return this;
     },
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = flags;
 
       return this;
@@ -27,12 +26,12 @@ export class RegistryConfigDriver {
   };
 
   readonly get = {
-    config: (): Promise<AtlasRegistryConfig | undefined> =>
+    config: () =>
       loadAtlasRegistryConfig(
         new CliArguments(['publish', 'x', ...this.flags]),
         this.directory.root,
       ),
-    leftoverDirectories: async (): Promise<string[]> => {
+    leftoverDirectories: async () => {
       const { readdir } = await import('node:fs/promises');
 
       return (await readdir(this.directory.root)).filter((name) =>

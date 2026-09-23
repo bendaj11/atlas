@@ -29,6 +29,7 @@ export function validateRegistryRootUrl(input: {
   const secure =
     url.protocol === 'https:' ||
     (url.protocol === 'http:' && isLoopbackHostname(url.hostname));
+
   if (!secure) {
     issues.add({
       path,
@@ -44,6 +45,7 @@ export function validateRegistryRootUrl(input: {
     !url.search &&
     !url.hash &&
     !value.endsWith('/');
+
   if (!normalized) {
     issues.add({
       path,

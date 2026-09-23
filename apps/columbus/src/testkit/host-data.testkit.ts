@@ -12,6 +12,7 @@ export function aHostData(overrides: Partial<HostData> = {}): HostData {
     overrides: undefined,
     overrideScope: undefined,
     versions: {},
+    visibleAppIds: [],
     runtimeErrors: [],
     versionErrors: [],
     ...overrides,

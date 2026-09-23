@@ -149,31 +149,30 @@ export class ReactViteConfigDriver {
 
       return readFile(resolve(this.projectRoot, entry.entryPoint), 'utf8');
     },
-    pluginNames: (): string[] =>
+    pluginNames: () =>
       (this.config?.plugins as Plugin[]).map(({ name }) => name),
-    rollupInputNames: (): string[] =>
+    rollupInputNames: () =>
       Object.keys(
         this.config?.build?.rollupOptions?.input as Record<string, string>,
       ),
-    external: (source: string): boolean =>
+    external: (source: string) =>
       (
         this.config?.build?.rollupOptions?.external as (
           source: string,
         ) => boolean
       )(source),
-    servedMetadata: (pluginName: string): FederationMetadata =>
-      this.readServedMetadata(pluginName),
-    sharedPackageNames: (): string[] =>
+    servedMetadata: (pluginName: string) => this.readServedMetadata(pluginName),
+    sharedPackageNames: () =>
       this.readServedMetadata('atlas-native-federation-metadata').shared.map(
         ({ packageName }) => packageName,
       ),
     sendMock: (): jest.Mock<(event: unknown) => void> => this.send,
     hotUpdateResult: (): unknown => this.hotUpdateResult,
-    projectFile: (path: string): Promise<string> =>
+    projectFile: (path: string) =>
       readFile(join(this.projectRoot, path), 'utf8'),
-    distModule: (path: string): Promise<Record<string, unknown>> =>
+    distModule: (path: string) =>
       import(pathToFileURL(join(this.projectRoot, 'dist', path)).href),
-    missingDistFiles: (paths: readonly string[]): Promise<string[]> =>
+    missingDistFiles: (paths: readonly string[]) =>
       missingFiles(join(this.projectRoot, 'dist'), paths),
   };
 

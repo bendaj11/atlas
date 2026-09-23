@@ -1,8 +1,4 @@
-import type {
-  AtlasConfig,
-  AtlasStylesheet,
-  AtlasVersionChannel,
-} from '@atlas/schema';
+import type { AtlasConfig, AtlasVersionChannel } from '@atlas/schema';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import {
   discoverStylesheets,
@@ -15,22 +11,22 @@ export class StylesheetsDriver {
   private channel: AtlasVersionChannel = 'production';
 
   readonly given = {
-    artifactRoot: async (): Promise<this> => {
+    artifactRoot: async () => {
       await this.directory.create('atlas-stylesheets-');
 
       return this;
     },
-    framework: (framework: AtlasConfig['framework']): this => {
+    framework: (framework: AtlasConfig['framework']) => {
       this.framework = framework;
 
       return this;
     },
-    channel: (channel: AtlasVersionChannel): this => {
+    channel: (channel: AtlasVersionChannel) => {
       this.channel = channel;
 
       return this;
     },
-    file: async (relativePath: string, contents = ''): Promise<this> => {
+    file: async (relativePath: string, contents = '') => {
       await this.directory.writeFile(relativePath, contents);
 
       return this;
@@ -38,14 +34,13 @@ export class StylesheetsDriver {
   };
 
   readonly get = {
-    stylesheets: (baseUrl: string): Promise<AtlasStylesheet[]> =>
+    stylesheets: (baseUrl: string) =>
       discoverStylesheets({
         artifactRoot: this.directory.root,
         artifactBaseUrl: baseUrl,
         framework: this.framework,
         channel: this.channel,
       }),
-    pathsFromIndex: (html: string): string[] =>
-      extractStylesheetPathsFromIndex(html),
+    pathsFromIndex: (html: string) => extractStylesheetPathsFromIndex(html),
   };
 }

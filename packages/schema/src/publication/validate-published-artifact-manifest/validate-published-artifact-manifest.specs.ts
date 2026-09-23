@@ -67,7 +67,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report schemaVersion when it is not "2"', () => {
-    driver.when.validated(anAppArtifactManifest({ schemaVersion: '1' as '2' }));
+    driver.when.validated({ ...anAppArtifactManifest(), schemaVersion: '1' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'schemaVersion', message: 'Expected schemaVersion to be "2".' },
@@ -75,9 +75,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report kind when it is unknown', () => {
-    driver.when.validated(
-      aHostArtifactManifest({ kind: 'host' as 'host-artifact' }),
-    );
+    driver.when.validated({ ...aHostArtifactManifest(), kind: 'host' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -114,9 +112,7 @@ describe('validatePublishedArtifactManifest', () => {
   );
 
   it('should report framework when it is unsupported', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ framework: 'svelte' as 'react' }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), framework: 'svelte' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -127,9 +123,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report the entry expose when it is missing', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ exposes: {} as { entry: string } }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), exposes: {} });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -237,9 +231,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report source when it is not an object', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ source: 'main' as unknown as {} }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), source: 'main' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'source', message: 'Expected source to be an object.' },
@@ -261,21 +253,18 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report files when it is not an array', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ files: {} as unknown as [] }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), files: {} });
 
     expect(driver.get.issuePaths()).toEqual(['files']);
   });
 
   it('should report the file when it is not an object', () => {
     const entry = aRemoteEntryFile();
-    driver.when.validated(
-      anAppArtifactManifest({
-        entryPath: entry.path,
-        files: [entry, 'x' as unknown as typeof entry],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest(),
+      entryPath: entry.path,
+      files: [entry, 'x'],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -302,22 +291,21 @@ describe('validatePublishedArtifactManifest', () => {
 
   it('should report path, digest, size, mediaType, cacheControl and role when a file is malformed', () => {
     const entry = aRemoteEntryFile();
-    driver.when.validated(
-      anAppArtifactManifest({
-        entryPath: entry.path,
-        files: [
-          entry,
-          {
-            path: '../escape.js',
-            digest: 'sha256:short',
-            size: -1,
-            mediaType: 'css',
-            cacheControl: 'no-cache',
-            role: 'document',
-          } as unknown as typeof entry,
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest(),
+      entryPath: entry.path,
+      files: [
+        entry,
+        {
+          path: '../escape.js',
+          digest: 'sha256:short',
+          size: -1,
+          mediaType: 'css',
+          cacheControl: 'no-cache',
+          role: 'document',
+        },
+      ],
+    });
 
     expect(driver.get.issuePaths()).toEqual([
       'files.1.path',
@@ -439,9 +427,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report styles when it is not an array', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ styles: {} as unknown as [] }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), styles: {} });
 
     expect(driver.get.issues()).toEqual([
       { path: 'styles', message: 'Expected styles to be an array.' },
@@ -449,11 +435,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report the descriptor when it is not an object', () => {
-    driver.when.validated(
-      anAppArtifactManifest({
-        styles: ['x' as unknown as { path: string; integrity: string }],
-      }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), styles: ['x'] });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -556,9 +538,7 @@ describe('validatePublishedArtifactManifest', () => {
   );
 
   it('should report isolation when it is unknown', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ isolation: 'iframe' as 'scoped' }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), isolation: 'iframe' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -593,9 +573,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report supportedHosts when it is not an array', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ supportedHosts: '*' as unknown as [] }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), supportedHosts: '*' });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -620,11 +598,10 @@ describe('validatePublishedArtifactManifest', () => {
 
   it('should report unsafe, non-string and duplicate hosts when present', () => {
     const hostId = anIdentifier();
-    driver.when.validated(
-      anAppArtifactManifest({
-        supportedHosts: ['../h', 1 as unknown as string, hostId, hostId],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest(),
+      supportedHosts: ['../h', 1, hostId, hostId],
+    });
 
     expect(driver.get.issuePaths()).toEqual([
       'supportedHosts.0',
@@ -681,9 +658,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report placements when it is not an array', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ placements: {} as unknown as [] }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), placements: {} });
 
     expect(driver.get.issues()).toEqual([
       { path: 'placements', message: 'Expected placements to be an array.' },
@@ -691,12 +666,11 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report the placement when it is not an object', () => {
-    driver.when.validated(
-      anAppArtifactManifest({
-        supportedHosts: ['*'],
-        placements: ['x' as unknown as never],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest(),
+      supportedHosts: ['*'],
+      placements: ['x'],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -721,11 +695,10 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report kind when it is unknown', () => {
-    driver.when.validated(
-      anAppArtifactManifest({
-        placements: [aSlotPlacement({ kind: 'overlay' as 'slot' })],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest({ supportedHosts: ['*'] }),
+      placements: [{ ...aSlotPlacement(), kind: 'overlay' }],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -796,22 +769,22 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report match, redirectTo, layoutId, title and nav when route fields are invalid', () => {
-    driver.when.validated(
-      anAppArtifactManifest({
-        placements: [
-          aRoutePlacement({
-            route: {
-              path: '/legacy',
-              match: 'exact' as 'full',
-              redirectTo: 'orders',
-              layoutId: 'store',
-              title: '',
-              nav: 'menu' as unknown as { label: string },
-            },
-          }),
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest({ supportedHosts: ['*'] }),
+      placements: [
+        {
+          ...aRoutePlacement(),
+          route: {
+            path: '/legacy',
+            match: 'exact',
+            redirectTo: 'orders',
+            layoutId: 'store',
+            title: '',
+            nav: 'menu',
+          },
+        },
+      ],
+    });
 
     expect(driver.get.issuePaths()).toEqual([
       'placements.0.route.match',
@@ -823,21 +796,18 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report nav label, order and visible when they have wrong types', () => {
-    driver.when.validated(
-      anAppArtifactManifest({
-        placements: [
-          aRoutePlacement({
-            route: aRouteContribution({
-              nav: {
-                label: '',
-                order: 'first' as unknown as number,
-                visible: 'yes' as unknown as boolean,
-              },
-            }),
-          }),
-        ],
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest({ supportedHosts: ['*'] }),
+      placements: [
+        {
+          ...aRoutePlacement(),
+          route: {
+            ...aRouteContribution(),
+            nav: { label: '', order: 'first', visible: 'yes' },
+          },
+        },
+      ],
+    });
 
     expect(driver.get.issuePaths()).toEqual([
       'placements.0.route.nav.label',
@@ -862,9 +832,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report exportedWidgets when it is not an array', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ exportedWidgets: {} as unknown as [] }),
-    );
+    driver.when.validated({ ...anAppArtifactManifest(), exportedWidgets: {} });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -875,9 +843,10 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report the widget when it is not an object', () => {
-    driver.when.validated(
-      anAppArtifactManifest({ exportedWidgets: ['x' as unknown as never] }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest(),
+      exportedWidgets: ['x'],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -911,16 +880,18 @@ describe('validatePublishedArtifactManifest', () => {
     driver.when.validated({
       ...manifest,
       exportedWidgets: [
-        aPublishedWidget({
-          ownerAppId: manifest.id,
-          framework: manifest.framework,
-          schemaVersion: '2' as '1',
-          contractVersion: '2' as '1',
+        {
+          ...aPublishedWidget({
+            ownerAppId: manifest.id,
+            framework: manifest.framework,
+          }),
+          schemaVersion: '2',
+          contractVersion: '2',
           id: '../w',
           name: '',
           expose: '',
-          metadata: { nested: { value: true } as unknown as string },
-        }),
+          metadata: { nested: { value: true } },
+        },
       ],
     });
 
@@ -975,11 +946,10 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report a metadata entry when it is nested', () => {
-    driver.when.validated(
-      anAppArtifactManifest({
-        metadata: { nested: { value: true } as unknown as string },
-      }),
-    );
+    driver.when.validated({
+      ...anAppArtifactManifest(),
+      metadata: { nested: { value: true } },
+    });
 
     expect(driver.get.issues()).toEqual([
       {

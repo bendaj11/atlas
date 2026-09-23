@@ -5,13 +5,13 @@ export class ValidateAtlasHostManifestDriver {
   private issues: AtlasValidationIssue[] = [];
 
   when = {
-    validated: (value: unknown): void => {
+    validated: (value: unknown) => {
       this.issues = validateAtlasHostManifest(value);
     },
   };
 
   get = {
-    issues: (): AtlasValidationIssue[] => this.issues,
-    issuePaths: (): string[] => this.issues.map((issue) => issue.path),
+    issues: () => this.issues,
+    issuePaths: () => this.issues.map((issue) => issue.path),
   };
 }

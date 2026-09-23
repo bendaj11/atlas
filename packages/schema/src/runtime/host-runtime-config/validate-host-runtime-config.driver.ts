@@ -1,7 +1,7 @@
 import type { AtlasValidationIssue } from '../../errors/atlas-validation-issue.js';
 import {
-  assertAtlasRuntimeConfig,
-  validateHostRuntimeConfig,
+  assertAtlasHostRuntimeConfig,
+  validateAtlasHostRuntimeConfig,
 } from './validate-host-runtime-config.js';
 
 export class ValidateHostRuntimeConfigDriver {
@@ -9,12 +9,12 @@ export class ValidateHostRuntimeConfigDriver {
   private error: unknown;
 
   readonly when = {
-    validated: (value: unknown): void => {
-      this.issues = validateHostRuntimeConfig(value);
+    validated: (value: unknown) => {
+      this.issues = validateAtlasHostRuntimeConfig(value);
     },
-    asserted: (value: unknown): void => {
+    asserted: (value: unknown) => {
       try {
-        assertAtlasRuntimeConfig(value);
+        assertAtlasHostRuntimeConfig(value);
       } catch (error) {
         this.error = error;
       }
@@ -22,8 +22,8 @@ export class ValidateHostRuntimeConfigDriver {
   };
 
   readonly get = {
-    issues: (): AtlasValidationIssue[] => this.issues,
-    issuePaths: (): string[] => this.issues.map((issue) => issue.path),
-    error: (): unknown => this.error,
+    issues: () => this.issues,
+    issuePaths: () => this.issues.map((issue) => issue.path),
+    error: () => this.error,
   };
 }

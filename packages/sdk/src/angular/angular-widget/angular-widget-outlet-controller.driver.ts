@@ -110,16 +110,14 @@ export class AngularWidgetOutletControllerDriver {
       await this.controller.destroy();
     },
     destroyStarted: (): Promise<void> => this.controller.destroy(),
-    foreignBindingRendered: (widgetId: string): Promise<void> =>
+    foreignBindingRendered: (widgetId: string) =>
       this.controller.render({ widgetId, inputs: { count: 0 } }),
   };
 
   readonly get = {
     mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
-    setInputsMock: (): jest.Mock<(inputs: WidgetInputs) => void> =>
-      this.setInputs,
-    handleErrorMock: (): jest.Mock<(error: unknown) => void> =>
-      this.handleError,
+    setInputsMock: () => this.setInputs,
+    handleErrorMock: () => this.handleError,
     lifecycle: (): readonly string[] => this.lifecycle,
   };
 

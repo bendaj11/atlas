@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import { aHostRuntimeConfig, aRegistryRootUrl } from '../runtime.testkit.js';
 import { RuntimeUrlsDriver } from './runtime-urls.driver.js';
 
-describe('environmentRegistryUrl', () => {
+describe('resolveEnvironmentRegistryUrl', () => {
   let driver: RuntimeUrlsDriver;
 
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe('environmentRegistryUrl', () => {
   });
 });
 
-describe('environmentManifestUrl', () => {
+describe('buildEnvironmentManifestUrl', () => {
   let driver: RuntimeUrlsDriver;
 
   beforeEach(() => {
@@ -45,7 +45,7 @@ describe('environmentManifestUrl', () => {
   });
 });
 
-describe('artifactUrl', () => {
+describe('buildArtifactUrl', () => {
   let driver: RuntimeUrlsDriver;
 
   beforeEach(() => {

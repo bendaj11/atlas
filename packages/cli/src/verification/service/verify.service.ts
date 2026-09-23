@@ -1,6 +1,6 @@
 import {
-  environmentManifestUrl,
-  resolveAtlasRuntimeConfig,
+  buildEnvironmentManifestUrl,
+  resolveAtlasHostRuntimeConfig,
   type AtlasHostCatalog,
   type AtlasHostRuntimeConfig,
 } from '@atlas/schema';
@@ -93,7 +93,10 @@ export class AtlasVerifyService {
     checkMutableCache({ checks: context.checks, response, subject });
 
     try {
-      const runtime = resolveAtlasRuntimeConfig(config, context.hostUrl.href);
+      const runtime = resolveAtlasHostRuntimeConfig(
+        config,
+        context.hostUrl.href,
+      );
 
       context.checks.pass(
         subject,
@@ -116,7 +119,7 @@ export class AtlasVerifyService {
     context: VerificationContext;
   }): Promise<AtlasHostCatalog | undefined> {
     const subject = 'active host manifest';
-    const url = new URL(environmentManifestUrl(runtime));
+    const url = new URL(buildEnvironmentManifestUrl(runtime));
     let value: unknown;
     const response = await this.fetch.checked({
       url,

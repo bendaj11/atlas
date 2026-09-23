@@ -58,12 +58,10 @@ describe('resolvePullRequestStatus', () => {
     const prNumber = faker.number.int({ min: 1 });
 
     beforeEach(() => {
-      driver.given
-        .prNumber(prNumber)
-        .given.environment({
-          GITHUB_REPOSITORY: repository,
-          GITHUB_TOKEN: token,
-        });
+      driver.given.prNumber(prNumber).given.environment({
+        GITHUB_REPOSITORY: repository,
+        GITHUB_TOKEN: token,
+      });
     });
 
     it.each(GITHUB_STATES)(

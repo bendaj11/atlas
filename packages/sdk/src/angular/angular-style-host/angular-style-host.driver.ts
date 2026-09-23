@@ -13,13 +13,13 @@ export class AngularStyleHostDriver {
   private head: HTMLHeadElement | undefined = this.documentHead;
 
   readonly given = {
-    styleTarget: (target: 'document-head' | 'shadow-root'): this => {
+    styleTarget: (target: 'document-head' | 'shadow-root') => {
       this.styleTarget =
         target === 'shadow-root' ? this.shadowRoot : this.documentHead;
 
       return this;
     },
-    documentHead: (head: 'present' | 'missing'): this => {
+    documentHead: (head: 'present' | 'missing') => {
       this.head = head === 'present' ? this.documentHead : undefined;
 
       return this;
@@ -27,7 +27,7 @@ export class AngularStyleHostDriver {
   };
 
   readonly when = {
-    componentStylesAttached: (): void => {
+    componentStylesAttached: () => {
       attachAngularComponentStyles({
         styleHost: { addHost: this.addHost, removeHost: this.removeHost },
         styleTarget: this.styleTarget,
@@ -37,9 +37,9 @@ export class AngularStyleHostDriver {
   };
 
   readonly get = {
-    addHostMock: (): jest.Mock<StyleHostMutation> => this.addHost,
-    removeHostMock: (): jest.Mock<StyleHostMutation> => this.removeHost,
-    documentHead: (): HTMLHeadElement => this.documentHead,
-    shadowRoot: (): ShadowRoot => this.shadowRoot,
+    addHostMock: () => this.addHost,
+    removeHostMock: () => this.removeHost,
+    documentHead: () => this.documentHead,
+    shadowRoot: () => this.shadowRoot,
   };
 }

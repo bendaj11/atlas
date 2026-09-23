@@ -5,7 +5,7 @@ import {
   actionThemeMessage,
   loadDevelopmentSessionRequest,
   overrideCountMessage,
-} from '../shared/messages/messages';
+} from '../../utils/messages/messages';
 import { BackgroundDriver } from './background.driver';
 
 describe('background', () => {
@@ -218,7 +218,7 @@ describe('background', () => {
     it('should fetch the given url without http cache when called', async () => {
       const url = faker.internet.url();
       const [, dependencies] =
-        driver.get.loadDevelopmentSession().mock.calls[0]!;
+        driver.get.loadDevelopmentSession().mock.calls[0];
 
       driver.given.fetchResponse(Response.json({}));
 
@@ -237,7 +237,7 @@ describe('background', () => {
         overrides: [],
       };
       const [, dependencies] =
-        driver.get.loadDevelopmentSession().mock.calls[0]!;
+        driver.get.loadDevelopmentSession().mock.calls[0];
 
       driver.given.fetchResponse(Response.json(body));
 
@@ -249,7 +249,7 @@ describe('background', () => {
     it('should reject with the server error when the fetch fails with a message', async () => {
       const error = faker.lorem.sentence();
       const [, dependencies] =
-        driver.get.loadDevelopmentSession().mock.calls[0]!;
+        driver.get.loadDevelopmentSession().mock.calls[0];
 
       driver.given.fetchResponse(Response.json({ error }, { status: 404 }));
 
@@ -260,7 +260,7 @@ describe('background', () => {
 
     it('should reject with the status when the fetch fails without a message', async () => {
       const [, dependencies] =
-        driver.get.loadDevelopmentSession().mock.calls[0]!;
+        driver.get.loadDevelopmentSession().mock.calls[0];
 
       driver.given.fetchResponse(new Response(null, { status: 500 }));
 

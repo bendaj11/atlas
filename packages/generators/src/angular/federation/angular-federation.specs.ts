@@ -6,7 +6,7 @@ const MAIN_PACKAGE_MAJORS = [18, 19, 22, 23];
 const V4_CONFIG_API_MAJORS = [20, 21, 22, 23];
 const LEGACY_CONFIG_API_MAJORS = [18, 19];
 
-describe('nativeFederationPackage', () => {
+describe('selectNativeFederationPackage', () => {
   let driver: AngularFederationDriver;
 
   beforeEach(() => {
@@ -36,7 +36,7 @@ describe('nativeFederationPackage', () => {
   );
 });
 
-describe('nativeFederationBuilder', () => {
+describe('selectNativeFederationBuilder', () => {
   let driver: AngularFederationDriver;
 
   beforeEach(() => {

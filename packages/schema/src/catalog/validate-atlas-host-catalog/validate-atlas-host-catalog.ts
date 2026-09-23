@@ -1,15 +1,13 @@
 import type { AtlasValidationIssue } from '../../errors/atlas-validation-issue.js';
 import { collectAtlasHostManifestIssues } from '../../host-manifest/validate-atlas-host-manifest/validate-atlas-host-manifest.js';
-import {
-  ATLAS_MANIFEST_SCHEMA_VERSION,
-  collectAtlasManifestIssues,
-} from '../../manifest/validate-atlas-manifest/validate-atlas-manifest.js';
+import { ATLAS_MANIFEST_SCHEMA_VERSION } from '../../manifest/atlas-artifact-manifest-base.js';
+import { collectAtlasManifestIssues } from '../../manifest/validate-atlas-manifest/validate-atlas-manifest.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import {
-  asRecord,
-  requiredIdentifier,
-  requiredLiteral,
-  requiredString,
+  toRecord,
+  readRequiredIdentifier,
+  requireLiteral,
+  readRequiredString,
   validateUniqueValue,
 } from '../../validation/validators.js';
 
@@ -20,7 +18,7 @@ export function validateAtlasHostCatalog(
   const issues = ValidationIssues.create();
   collectAtlasHostCatalogIssues({ value, issues });
 
-  return issues.list();
+  return issues.toArray();
 }
 
 export function collectAtlasHostCatalogIssues(input: {
@@ -28,40 +26,44 @@ export function collectAtlasHostCatalogIssues(input: {
   issues: ValidationIssues;
 }): void {
   const { issues } = input;
-  const catalog = asRecord(input.value);
-  requiredLiteral({
+  const catalog = toRecord(input.value);
+  requireLiteral({
     record: catalog,
     key: 'schemaVersion',
     expected: ATLAS_MANIFEST_SCHEMA_VERSION,
     issues,
   });
-  const hostId = requiredIdentifier({
+  const hostId = readRequiredIdentifier({
     record: catalog,
     key: 'hostId',
     label: 'host id',
     issues,
   });
-  requiredString({ record: catalog, key: 'generatedAt', issues });
-  requiredString({ record: catalog, key: 'revision', issues });
+  readRequiredString({ record: catalog, key: 'generatedAt', issues });
+  readRequiredString({ record: catalog, key: 'revision', issues });
   collectAtlasHostManifestIssues({
     value: catalog?.host,
-    issues: issues.at('host'),
+    issues: issues.scopedTo('host'),
   });
-  const host = asRecord(catalog?.host);
+  const host = toRecord(catalog?.host);
+
   if (hostId && typeof host?.id === 'string' && host.id !== hostId)
     issues.add({
       path: 'host.id',
       message: 'Expected selected host id to match catalog hostId.',
     });
-  validateManifestList({ value: catalog?.apps, issues: issues.at('apps') });
+  validateAppManifestList({
+    value: catalog?.apps,
+    issues: issues.scopedTo('apps'),
+  });
   if (catalog?.widgetProviders !== undefined)
-    validateManifestList({
+    validateAppManifestList({
       value: catalog.widgetProviders,
-      issues: issues.at('widgetProviders'),
+      issues: issues.scopedTo('widgetProviders'),
     });
 }
 
-function validateManifestList(input: {
+function validateAppManifestList(input: {
   value: unknown;
   issues: ValidationIssues;
 }): void {
@@ -75,9 +77,10 @@ function validateManifestList(input: {
   }
   const ids = new Set<string>();
   input.value.forEach((manifest, index) => {
-    const issues = input.issues.at(String(index));
+    const issues = input.issues.scopedTo(String(index));
     collectAtlasManifestIssues({ value: manifest, issues });
-    const id = asRecord(manifest)?.id;
+    const id = toRecord(manifest)?.id;
+
     if (typeof id === 'string')
       validateUniqueValue({
         value: id,

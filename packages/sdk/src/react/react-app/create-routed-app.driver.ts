@@ -4,7 +4,6 @@ import type { AtlasAppMountResult } from '../../lifecycle.js';
 import type { AppRouterLike } from '../react-router/index.js';
 import { createRoutedApp } from './create-routed-app.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
-import type { UnmountRoot } from './react-app.types.js';
 
 export class CreateRoutedAppDriver {
   private readonly root = aRootAdapter();
@@ -22,24 +21,21 @@ export class CreateRoutedAppDriver {
   private mounted: AtlasAppMountResult | void = undefined;
 
   readonly when = {
-    mounted: async (): Promise<void> => {
+    mounted: async () => {
       this.mounted = await createRoutedApp({
         createRoot: this.root.createRoot,
         createRouter: () => this.router,
         createElement: (router) => this.createElement(router),
       }).mount(aMountRequest());
     },
-    unmounted: async (): Promise<void> => {
-      await this.mounted?.unmount?.();
-    },
+    unmounted: () => this.mounted?.unmount?.(),
   };
 
   readonly get = {
-    createElementMock: (): jest.Mock<(router: AppRouterLike) => unknown> =>
-      this.createElement,
-    router: (): AppRouterLike => this.router,
-    routerUnsubscribeMock: (): jest.Mock<() => void> => this.routerUnsubscribe,
-    routerDisposeMock: (): jest.Mock<() => void> => this.routerDispose,
-    unmountRootMock: (): jest.Mock<UnmountRoot> => this.root.unmount,
+    createElementMock: () => this.createElement,
+    router: () => this.router,
+    routerUnsubscribeMock: () => this.routerUnsubscribe,
+    routerDisposeMock: () => this.routerDispose,
+    unmountRootMock: () => this.root.unmount,
   };
 }

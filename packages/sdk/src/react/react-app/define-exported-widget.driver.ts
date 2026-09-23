@@ -6,7 +6,6 @@ import type {
 import { anExportedWidgetManifest } from '../../testkit/app-context.testkit.js';
 import { defineExportedWidget } from './define-exported-widget.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
-import type { RenderRoot, UnmountRoot } from './react-app.types.js';
 
 interface WidgetProps {
   readonly count: number;
@@ -21,7 +20,7 @@ export class DefineExportedWidgetDriver {
     undefined;
 
   readonly when = {
-    mounted: async (props: WidgetProps): Promise<void> => {
+    mounted: async (props: WidgetProps) => {
       const request = aMountRequest();
       this.mounted = await defineExportedWidget<WidgetProps>({
         createRoot: this.root.createRoot,
@@ -35,19 +34,17 @@ export class DefineExportedWidgetDriver {
         ownerManifest: request.context.manifest,
       });
     },
-    inputsSet: (props: WidgetProps): void => {
+    inputsSet: (props: WidgetProps) => {
       this.mounted?.setInputs?.(props);
     },
-    unmounted: async (): Promise<void> => {
-      await this.mounted?.unmount?.();
-    },
+    unmounted: () => this.mounted?.unmount?.(),
   };
 
   readonly get = {
     createElementMock: (): jest.Mock<
       (request: AtlasExportedWidgetMountRequest<WidgetProps>) => unknown
     > => this.createElement,
-    renderMock: (): jest.Mock<RenderRoot> => this.root.render,
-    unmountRootMock: (): jest.Mock<UnmountRoot> => this.root.unmount,
+    renderMock: () => this.root.render,
+    unmountRootMock: () => this.root.unmount,
   };
 }

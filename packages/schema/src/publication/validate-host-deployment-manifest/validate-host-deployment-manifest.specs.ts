@@ -56,12 +56,11 @@ describe('validateHostDeploymentManifest', () => {
   });
 
   it('should report schemaVersion and kind when they are unknown', () => {
-    driver.when.validated(
-      aHostDeploymentManifest({
-        schemaVersion: 'v2' as 'v1',
-        kind: 'deployment' as 'host-deployment',
-      }),
-    );
+    driver.when.validated({
+      ...aHostDeploymentManifest(),
+      schemaVersion: 'v2',
+      kind: 'deployment',
+    });
 
     expect(driver.get.issues()).toEqual([
       { path: 'schemaVersion', message: 'Expected schemaVersion to be "v1".' },
@@ -90,16 +89,15 @@ describe('validateHostDeploymentManifest', () => {
   });
 
   it('should report the host reference fields when the host descriptor is malformed', () => {
-    driver.when.validated(
-      aHostDeploymentManifest({
-        host: {
-          path: '/abs.json',
-          digest: 'x',
-          size: 0,
-          mediaType: 'text/plain',
-        } as never,
-      }),
-    );
+    driver.when.validated({
+      ...aHostDeploymentManifest(),
+      host: {
+        path: '/abs.json',
+        digest: 'x',
+        size: 0,
+        mediaType: 'text/plain',
+      },
+    });
 
     expect(driver.get.issuePaths()).toEqual([
       'host.path',
@@ -122,9 +120,7 @@ describe('validateHostDeploymentManifest', () => {
   });
 
   it('should report apps when it is not an array', () => {
-    driver.when.validated(
-      aHostDeploymentManifest({ apps: 'x' as unknown as [] }),
-    );
+    driver.when.validated({ ...aHostDeploymentManifest(), apps: 'x' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'apps', message: 'Expected an array of manifest references.' },
@@ -132,11 +128,10 @@ describe('validateHostDeploymentManifest', () => {
   });
 
   it('should report the indexed app reference when it is not an object', () => {
-    driver.when.validated(
-      aHostDeploymentManifest({
-        apps: [aManifestDescriptor(), 'x' as unknown as never],
-      }),
-    );
+    driver.when.validated({
+      ...aHostDeploymentManifest(),
+      apps: [aManifestDescriptor(), 'x'],
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -147,9 +142,10 @@ describe('validateHostDeploymentManifest', () => {
   });
 
   it('should report widgetProviders when it is not an array', () => {
-    driver.when.validated(
-      aHostDeploymentManifest({ widgetProviders: {} as unknown as [] }),
-    );
+    driver.when.validated({
+      ...aHostDeploymentManifest(),
+      widgetProviders: {},
+    });
 
     expect(driver.get.issues()).toEqual([
       {
@@ -173,9 +169,7 @@ describe('assertHostDeploymentManifest', () => {
 
   it('should throw AtlasValidationError naming the deployment manifest when invalid', () => {
     expect(() =>
-      driver.when.asserted(
-        aHostDeploymentManifest({ apps: 'x' as unknown as [] }),
-      ),
+      driver.when.asserted({ ...aHostDeploymentManifest(), apps: 'x' }),
     ).toThrow(
       expect.objectContaining<Partial<AtlasValidationError>>({
         summary:

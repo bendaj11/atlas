@@ -8,6 +8,7 @@ import { execute } from "./process.js";
 const root = resolve(import.meta.dirname, "..");
 const artifacts = join(root, "dist/package-verification");
 const packageManager = readPackageManager(process.argv.slice(2));
+const frameworkVersions = readFrameworkVersions(process.argv.slice(2));
 const frameworks = readFrameworks(process.argv.slice(2));
 const cleanRoom = await mkdtemp(join(tmpdir(), `atlas-generated-project-verification-${packageManager}-`));
 const atlasPackages = ["schema", "sdk", "runtime", "bootstrap", "generators", "testkit", "cli"];
@@ -28,7 +29,15 @@ await writePackageManagerConfig(cleanRoom, localPackages);
 await installDependencies(cleanRoom);
 
 for (const project of projects) {
-  await runAtlas(["g", project.type, project.name, `--framework=${project.framework}`, "--skip-install", `--directory=${join(cleanRoom, "projects", project.name)}`]);
+  await runAtlas([
+    "g",
+    project.type,
+    project.name,
+    `--framework=${project.framework}`,
+    ...frameworkVersionArguments(project.framework),
+    "--skip-install",
+    `--directory=${join(cleanRoom, "projects", project.name)}`
+  ]);
 }
 
 await assertGeneratedAtlasRanges();
@@ -40,12 +49,30 @@ for (const framework of frameworks) {
   for (const project of frameworkProjects) await buildProject(project);
 }
 
-console.info(`Built ${generatedProjects.length} clean-room projects with ${packageManager}.`);
+console.info(`Built ${generatedProjects.length} clean-room projects with ${packageManager} (${describeFrameworkVersions()}).`);
 
 function readPackageManager(args) {
   const value = args.find((argument) => argument.startsWith("--package-manager="))?.split("=")[1] ?? "pnpm";
   if (value === "yarn" || value === "pnpm") return value;
   throw new Error(`Unsupported package manager "${value}". Use yarn or pnpm.`);
+}
+
+function readFrameworkVersions(args) {
+  return {
+    angular: args.find((argument) => argument.startsWith("--angular-version="))?.split("=")[1],
+    react: args.find((argument) => argument.startsWith("--react-version="))?.split("=")[1]
+  };
+}
+
+function frameworkVersionArguments(framework) {
+  const version = frameworkVersions[framework];
+  return version ? [`--framework-version=${version}`] : [];
+}
+
+function describeFrameworkVersions() {
+  return ["angular", "react"]
+    .map((framework) => `${framework} ${frameworkVersions[framework] ?? "default"}`)
+    .join(", ");
 }
 
 async function stagePackageArchives() {

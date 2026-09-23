@@ -82,7 +82,7 @@ export class AtlasBootstrapServiceDriver {
   }
 
   readonly given = {
-    build: (setup: BuildSetup): void => {
+    build: (setup: BuildSetup) => {
       this.loadTemplate.mockResolvedValue(
         setup.customized ? this.template : undefined,
       );
@@ -110,39 +110,39 @@ export class AtlasBootstrapServiceDriver {
   };
 
   readonly when = {
-    build: async (): Promise<void> => {
+    build: async () => {
       if (!this.service) throw new Error('Service setup was not available.');
       this.result = await this.service.build(this.project.id);
     },
   };
 
   readonly get = {
-    buildSummary: (): Record<string, unknown> => ({
+    buildSummary: () => ({
       directory: this.result?.directory,
       files: this.result?.files,
       hasValidDigest: /^sha256:[a-f0-9]{64}$/.test(this.result?.digest ?? ''),
     }),
-    result: (): AtlasBootstrapBuildResult => {
+    result: () => {
       if (!this.result) throw new Error('Build result was not available.');
       return this.result;
     },
-    outputDirectory: (): string => `${this.project.root}/dist/bootstrap`,
-    metadata: (): string => {
+    outputDirectory: () => `${this.project.root}/dist/bootstrap`,
+    metadata: () => {
       if (!this.metadata) throw new Error('Metadata write was not available.');
       return this.metadata;
     },
-    hasCompiledConfig: (): boolean => this.compileConfig.mock.calls.length > 0,
-    generatedOptions: (): NonNullable<typeof this.generatedOptions> => {
+    hasCompiledConfig: () => this.compileConfig.mock.calls.length > 0,
+    generatedOptions: () => {
       if (!this.generatedOptions)
         throw new Error('Generated options were not available.');
       return this.generatedOptions;
     },
-    expectedCustomOptions: (): NonNullable<typeof this.generatedOptions> => ({
+    expectedCustomOptions: () => ({
       html: this.template,
       title: this.title,
       loadingHtml: this.loadingHtml,
     }),
-    registryUrl: (): string => this.registryUrl,
-    hostId: (): string => this.config.id,
+    registryUrl: () => this.registryUrl,
+    hostId: () => this.config.id,
   };
 }

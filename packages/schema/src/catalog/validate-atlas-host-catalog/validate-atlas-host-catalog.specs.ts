@@ -55,7 +55,7 @@ describe('validateAtlasHostCatalog', () => {
   });
 
   it('should report schemaVersion when it is not "1"', () => {
-    driver.when.validated(aHostCatalog({ schemaVersion: '2' as '1' }));
+    driver.when.validated({ ...aHostCatalog(), schemaVersion: '2' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'schemaVersion', message: 'Expected schemaVersion to be "1".' },
@@ -81,7 +81,7 @@ describe('validateAtlasHostCatalog', () => {
   });
 
   it('should report apps when it is not an array', () => {
-    driver.when.validated(aHostCatalog({ apps: 'invalid' as unknown as [] }));
+    driver.when.validated({ ...aHostCatalog(), apps: 'invalid' });
 
     expect(driver.get.issues()).toEqual([
       { path: 'apps', message: 'Expected an array of app manifests.' },
@@ -89,9 +89,7 @@ describe('validateAtlasHostCatalog', () => {
   });
 
   it('should report widgetProviders when it is not an array', () => {
-    driver.when.validated(
-      aHostCatalog({ widgetProviders: {} as unknown as [] }),
-    );
+    driver.when.validated({ ...aHostCatalog(), widgetProviders: {} });
 
     expect(driver.get.issues()).toEqual([
       {

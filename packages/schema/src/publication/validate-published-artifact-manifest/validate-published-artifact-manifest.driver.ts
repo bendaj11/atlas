@@ -8,16 +8,16 @@ export class ValidatePublishedArtifactManifestDriver {
   private issues: AtlasValidationIssue[] = [];
 
   when = {
-    validated: (value: unknown): void => {
+    validated: (value: unknown) => {
       this.issues = validatePublishedArtifactManifest(value);
     },
-    asserted: (value: unknown): void => {
+    asserted: (value: unknown) => {
       assertPublishedArtifactManifest(value);
     },
   };
 
   get = {
-    issues: (): AtlasValidationIssue[] => this.issues,
-    issuePaths: (): string[] => this.issues.map((issue) => issue.path),
+    issues: () => this.issues,
+    issuePaths: () => this.issues.map((issue) => issue.path),
   };
 }

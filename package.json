@@ -15,8 +15,8 @@
   "scripts": {
     "build": "turbo run build --filter=\"@atlas/*\"",
     "build:examples": "turbo run build --concurrency=1 --filter=\"@atlas-example/*\" --filter=\"@atlas-app/*\"",
-    "ci:affected": "pnpm run typecheck:affected && pnpm run test:affected",
-    "ci:full": "pnpm run typecheck && pnpm run test",
+    "ci:affected": "pnpm run typecheck:affected && pnpm run lint:affected && pnpm run test:affected",
+    "ci:full": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "pack:verify": "tsx scripts/verify-packages.ts",
     "release": "tsx scripts/release.ts",
     "release:publish": "tsx scripts/publish-release.ts",
@@ -28,7 +28,9 @@
     "test:e2e:prepare": "tsx tests/e2e/prepare.ts",
     "typecheck": "turbo run typecheck --filter=\"@atlas/*\" && tsc -p tsconfig.tests.json && tsc -p tsconfig.tooling.json",
     "typecheck:affected": "turbo run typecheck --affected --filter=\"@atlas/*\"",
-    "atlas": "node packages/cli/dist/cli/entrypoint.js"
+    "lint": "turbo run lint --filter=\"@atlas/*\"",
+    "lint:affected": "turbo run lint --affected --filter=\"@atlas/*\"",
+    "atlas": "node packages/cli/dist/cli/entrypoint/entrypoint.js"
   },
   "devDependencies": {
     "@jest/globals": "29.7.0",

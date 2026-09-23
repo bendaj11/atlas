@@ -1,6 +1,8 @@
 import type { AtlasFramework } from './atlas-framework.js';
 import type { AtlasMetadata } from './atlas-metadata.js';
 
+export const ATLAS_WIDGET_CONTRACT_VERSION = '1';
+
 /** Widget this app makes available for other apps to use. */
 export interface AtlasExportedWidgetManifest {
   /** Leave as "1". Atlas uses this to know how to read this widget record. */
@@ -18,7 +20,7 @@ export interface AtlasExportedWidgetManifest {
   /** Public module name for this widget, such as "./widgets/product-count". */
   expose: string;
   /** Leave as "1". Atlas uses this to know how apps should consume this widget. */
-  contractVersion: '1';
+  contractVersion: typeof ATLAS_WIDGET_CONTRACT_VERSION;
   /** Extra simple values your tools can read. Keep values string, number, or boolean. */
   metadata?: AtlasMetadata;
 }

@@ -1,71 +1,41 @@
 import { AngularGenerationDriver } from './angular.driver.js';
-import { ensureAngularNativeFederationTargets } from './angular-targets.js';
 
-describe('ensureAngularNativeFederationTargets', () => {
-  it('should configure an SSE endpoint when an Angular host serves locally', () => {
-    const targets: Record<string, unknown> = {
-      build: { builder: '@angular-devkit/build-angular:application' },
-      serve: { builder: '@angular-devkit/build-angular:dev-server' },
-    };
+const BUILD_NOTIFICATIONS = {
+  options: {
+    buildNotifications: {
+      enable: true,
+      endpoint: '/@angular-architects/native-federation:build-notifications',
+    },
+  },
+};
 
-    ensureAngularNativeFederationTargets({
-      targets,
-      projectName: 'catalog',
-      type: 'host',
-      runnerKey: 'builder',
-    });
+describe('angular generation', () => {
+  let driver: AngularGenerationDriver;
 
-    expect(targets.serve).toMatchObject({
-      options: {
-        buildNotifications: {
-          enable: true,
-          endpoint:
-            '/@angular-architects/native-federation:build-notifications',
-        },
-      },
-    });
+  beforeEach(() => {
+    driver = new AngularGenerationDriver();
   });
 
-  it('should configure an SSE endpoint when an Angular app serves locally', () => {
-    const targets: Record<string, unknown> = {
-      build: { builder: '@angular-devkit/build-angular:application' },
-      serve: { builder: '@angular-devkit/build-angular:dev-server' },
-    };
+  describe('ensureAngularNativeFederationTargets', () => {
+    it.each(['host', 'app'] as const)(
+      'should configure an SSE endpoint on serve when an Angular %s serves locally',
+      (type) => {
+        driver.when.federationTargetsEnsured(type);
 
-    ensureAngularNativeFederationTargets({
-      targets,
-      projectName: 'catalog',
-      type: 'app',
-      runnerKey: 'builder',
-    });
-
-    expect(targets.serve).toMatchObject({
-      options: {
-        buildNotifications: {
-          enable: true,
-          endpoint:
-            '/@angular-architects/native-federation:build-notifications',
-        },
+        expect(driver.get.serveTarget()).toMatchObject(BUILD_NOTIFICATIONS);
       },
-    });
+    );
   });
 
-  it('should configure local development when existing Angular project uses Nx', async () => {
-    const driver = new AngularGenerationDriver();
-    await driver.given.nxProject();
+  describe('ensureAngularBuildNotifications', () => {
+    it('should configure an SSE endpoint on serve when an existing Angular project uses Nx', async () => {
+      await driver.given.nxProject();
 
-    await driver.when.enableBuildNotifications();
+      await driver.when.buildNotificationsEnabled();
 
-    await expect(driver.get.nxTargets()).resolves.toMatchObject({
-      serve: {
-        options: {
-          buildNotifications: {
-            enable: true,
-            endpoint:
-              '/@angular-architects/native-federation:build-notifications',
-          },
-        },
-      },
+      expect(await driver.get.nxServeTarget()).toMatchObject(
+        BUILD_NOTIFICATIONS,
+      );
     });
   });
 });

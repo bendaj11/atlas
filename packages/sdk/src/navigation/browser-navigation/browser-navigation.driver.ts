@@ -46,25 +46,25 @@ export class BrowserNavigationDriver {
   private unsubscribe: (() => void) | undefined;
 
   readonly when = {
-    subscribed: (): void => {
+    subscribed: () => {
       this.unsubscribe = this.navigation.subscribe(this.listener);
     },
-    unsubscribed: (): void => {
+    unsubscribed: () => {
       this.unsubscribe?.();
     },
-    disposed: (): void => {
+    disposed: () => {
       this.navigation.dispose();
     },
-    navigated: (to: string, options?: AtlasNavigateOptions): void => {
+    navigated: (to: string, options?: AtlasNavigateOptions) => {
       this.navigation.navigate(to, options);
     },
-    replaced: (to: string): void => {
+    replaced: (to: string) => {
       this.navigation.replace(to);
     },
-    historyMoved: (delta: number): void => {
+    historyMoved: (delta: number) => {
       this.navigation.go?.(delta);
     },
-    browserMovedTo: (pathname: string): void => {
+    browserMovedTo: (pathname: string) => {
       this.location.pathname = pathname;
       this.location.href = `${this.origin}${pathname}`;
 
@@ -75,17 +75,15 @@ export class BrowserNavigationDriver {
   };
 
   readonly get = {
-    navigation: (): AtlasBrowserNavigation => this.navigation,
-    listenerMock: (): jest.Mock<AtlasNavigationListener> => this.listener,
-    pushStateMock: (): jest.Mock<WriteHistoryEntry> => this.pushState,
-    replaceStateMock: (): jest.Mock<WriteHistoryEntry> => this.replaceState,
-    goMock: (): jest.Mock<HistoryGo> => this.go,
-    backMock: (): jest.Mock<HistoryBack> => this.back,
-    addEventListenerMock: (): jest.Mock<BrowserPopstateRegistrar> =>
-      this.addEventListener,
-    removeEventListenerMock: (): jest.Mock<BrowserPopstateRegistrar> =>
-      this.removeEventListener,
-    origin: (): string => this.origin,
+    navigation: () => this.navigation,
+    listenerMock: () => this.listener,
+    pushStateMock: () => this.pushState,
+    replaceStateMock: () => this.replaceState,
+    goMock: () => this.go,
+    backMock: () => this.back,
+    addEventListenerMock: () => this.addEventListener,
+    removeEventListenerMock: () => this.removeEventListener,
+    origin: () => this.origin,
   };
 
   private isPopstateAttached(popstate: BrowserPopstateListener): boolean {

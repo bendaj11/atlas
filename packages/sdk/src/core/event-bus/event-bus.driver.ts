@@ -21,7 +21,7 @@ export class EventBusDriver {
   }
 
   readonly given = {
-    failingListener: (error: Error): this => {
+    failingListener: (error: Error) => {
       this.bus.addEventListener('orders.updated', () => {
         throw error;
       });
@@ -31,26 +31,26 @@ export class EventBusDriver {
   };
 
   readonly when = {
-    listenerAdded: (): void => {
+    listenerAdded: () => {
       this.bus.addEventListener('orders.updated', this.listener);
     },
-    listenerRemoved: (): void => {
+    listenerRemoved: () => {
       this.bus.removeEventListener('orders.updated', this.listener);
     },
-    onceListenerAdded: (): void => {
+    onceListenerAdded: () => {
       this.cancelOnce = this.bus.once('orders.updated', this.listener);
     },
-    onceListenerCancelled: (): void => {
+    onceListenerCancelled: () => {
       this.cancelOnce?.();
     },
-    orderUpdated: (orderId: string): void => {
+    orderUpdated: (orderId: string) => {
       this.bus.emit('orders.updated', { orderId });
     },
   };
 
   readonly get = {
-    listenerMock: (): jest.Mock<OrderListener> => this.listener,
-    deferredFailure: (): unknown => {
+    listenerMock: () => this.listener,
+    deferredFailure: () => {
       for (const task of this.deferredTasks) {
         try {
           task();

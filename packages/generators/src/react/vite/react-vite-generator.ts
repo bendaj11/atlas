@@ -1,4 +1,4 @@
-import { defaultDevServerPort } from '../../shared/ports/ports.js';
+import { getDefaultDevServerPort } from '../../shared/ports/ports.js';
 import type { AtlasProjectType } from '../../shared/types/generator-types.js';
 
 interface ReactViteConfigOptions {
@@ -8,10 +8,10 @@ interface ReactViteConfigOptions {
   devServerPort?: number;
 }
 
-export function reactViteConfig(options: ReactViteConfigOptions): string {
+export function renderReactViteConfig(options: ReactViteConfigOptions): string {
   const { name, type, reactMajor } = options;
-  const devServerPort = options.devServerPort ?? defaultDevServerPort(type);
-  const factory =
+  const devServerPort = options.devServerPort ?? getDefaultDevServerPort(type);
+  const factoryName =
     type === 'host' ? 'createReactHostViteConfig' : 'createReactAppViteConfig';
   const reactMajorField =
     type === 'app'
@@ -19,12 +19,12 @@ export function reactViteConfig(options: ReactViteConfigOptions): string {
     reactMajor: ${reactMajor},`
       : '';
 
-  return `import { ${factory} } from "@atlas/sdk/federation-config";
+  return `import { ${factoryName} } from "@atlas/sdk/federation-config";
 import { defineConfig, mergeConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(mergeConfig(
-  ${factory}({
+  ${factoryName}({
     projectRoot: __dirname,
     projectName: "${name}",${reactMajorField}
     // Add app-local workspace packages here so Vite bundles and serves them locally.

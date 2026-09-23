@@ -1,4 +1,4 @@
-export function digestToIntegrity(digest: string): string {
+export function convertDigestToIntegrity(digest: string): string {
   const bytes =
     digest
       .slice('sha256:'.length)

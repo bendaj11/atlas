@@ -18,14 +18,18 @@ describe('useColumbusStateQuery', () => {
       expect(driver.get.result().data).toBe(columbusState);
     });
 
-    it('should call loadColumbusState without an existing columbusState when rendered', () => {
-      expect(driver.get.loadColumbusState()).toHaveBeenCalledWith(false);
+    it('should call loadColumbusState without bypassing the cache when rendered', () => {
+      expect(driver.get.loadColumbusState()).toHaveBeenCalledWith({
+        bypassCache: false,
+      });
     });
 
-    it('should call loadColumbusState with an existing columbusState when refetched', async () => {
+    it('should call loadColumbusState bypassing the cache when refetched', async () => {
       await driver.when.refetched();
 
-      expect(driver.get.loadColumbusState()).toHaveBeenLastCalledWith(true);
+      expect(driver.get.loadColumbusState()).toHaveBeenLastCalledWith({
+        bypassCache: true,
+      });
     });
   });
 

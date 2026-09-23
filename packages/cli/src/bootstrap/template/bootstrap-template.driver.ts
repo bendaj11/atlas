@@ -25,7 +25,7 @@ export class BootstrapTemplateDriver {
   private result?: string;
 
   readonly given = {
-    template: (setup: TemplateSetup): void => {
+    template: (setup: TemplateSetup) => {
       this.configuredPath = this.pathFor(setup.location);
 
       this.error = setup.failure
@@ -40,7 +40,7 @@ export class BootstrapTemplateDriver {
   };
 
   readonly when = {
-    load: async (): Promise<void> => {
+    load: async () => {
       this.result = await loadBootstrapTemplate(
         this.projectRoot,
         this.configuredPath,
@@ -50,13 +50,13 @@ export class BootstrapTemplateDriver {
   };
 
   readonly get = {
-    result: (): string | undefined => this.result,
-    contents: (): string => this.contents,
-    requestedPath: (): string => this.readTemplate.mock.calls[0]?.[0] ?? '',
-    defaultPath: (): string => join(this.projectRoot, 'atlas.bootstrap.html'),
-    relativePath: (): string => join(this.projectRoot, this.relativePath),
-    absolutePath: (): string => this.absolutePath,
-    error: (): Error => {
+    result: () => this.result,
+    contents: () => this.contents,
+    requestedPath: () => this.readTemplate.mock.calls[0]?.[0] ?? '',
+    defaultPath: () => join(this.projectRoot, 'atlas.bootstrap.html'),
+    relativePath: () => join(this.projectRoot, this.relativePath),
+    absolutePath: () => this.absolutePath,
+    error: () => {
       if (!this.error) throw new Error('Template error was not available.');
 
       return this.error;

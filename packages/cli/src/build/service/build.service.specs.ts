@@ -1,12 +1,6 @@
 import { faker } from '@faker-js/faker';
+import { aHostConfig, anAppConfig } from '@atlas/testkit';
 import { BuildServiceDriver } from './build.service.driver.js';
-
-function appConfig(
-  id: string,
-  framework: 'react' | 'angular' = 'react',
-): string {
-  return `export default { id: "${id}", name: "${faker.company.name()}", framework: "${framework}" };\n`;
-}
 
 describe('AtlasBuildService', () => {
   let driver: BuildServiceDriver;
@@ -27,7 +21,7 @@ describe('AtlasBuildService', () => {
       const version = faker.system.semver();
 
       beforeEach(async () => {
-        await driver.given.config(appConfig(id));
+        driver.given.config(anAppConfig({ id, framework: 'react' }));
         await driver.given.artifactFile('remoteEntry.json', '{}');
         await driver.given.artifactFile('main.js.map', faker.lorem.sentence());
         driver.given.flags([`--version=${version}`]);
@@ -63,9 +57,7 @@ describe('AtlasBuildService', () => {
     });
 
     it('should build a host artifact manifest when the config is a host', async () => {
-      await driver.given.config(
-        `export default { id: "${faker.string.uuid()}", framework: "react", type: "host" };\n`,
-      );
+      driver.given.config(aHostConfig({ framework: 'react' }));
       await driver.given.artifactFile('remoteEntry.json', '{}');
       driver.given.flags([`--version=${faker.system.semver()}`]);
 
@@ -78,7 +70,7 @@ describe('AtlasBuildService', () => {
     });
 
     it('should reject when the release version is not a safe segment', async () => {
-      await driver.given.config(appConfig(faker.string.uuid()));
+      driver.given.config(anAppConfig({ framework: 'react' }));
       await driver.given.artifactFile('remoteEntry.json', '{}');
       driver.given.flags(['--version=release candidate']);
 
@@ -88,7 +80,7 @@ describe('AtlasBuildService', () => {
     });
 
     it('should reject with artifacts-missing code when no build output exists', async () => {
-      await driver.given.config(appConfig(faker.string.uuid()));
+      driver.given.config(anAppConfig({ framework: 'react' }));
       driver.given.flags([`--version=${faker.system.semver()}`]);
 
       await expect(driver.when.publicationBuilt()).rejects.toMatchObject({
@@ -103,7 +95,7 @@ describe('AtlasBuildService', () => {
       const registryUrl = faker.internet.url({ appendSlash: false });
 
       beforeEach(async () => {
-        await driver.given.config(appConfig(id));
+        driver.given.config(anAppConfig({ id, framework: 'react' }));
         await driver.given.artifactFile('remoteEntry.json', '{}');
         driver.given.flags([`--registry-url=${registryUrl}`]);
         driver.given.environment('ATLAS_CREATED_AT', undefined);
@@ -156,7 +148,7 @@ describe('AtlasBuildService', () => {
 
     it('should serve the remote entry from the local base URL when built for local', async () => {
       const baseUrl = faker.internet.url({ appendSlash: false });
-      await driver.given.config(appConfig(faker.string.uuid()));
+      driver.given.config(anAppConfig({ framework: 'react' }));
 
       await driver.when.manifestBuilt('local', { skipCompile: true, baseUrl });
 
@@ -168,7 +160,7 @@ describe('AtlasBuildService', () => {
     });
 
     it('should reject with registry-url-missing code when no registry URL is configured for production', async () => {
-      await driver.given.config(appConfig(faker.string.uuid()));
+      driver.given.config(anAppConfig({ framework: 'react' }));
       await driver.given.artifactFile('remoteEntry.json', '{}');
       driver.given.environment('ATLAS_REGISTRY_URL', undefined);
 
@@ -180,9 +172,7 @@ describe('AtlasBuildService', () => {
     });
 
     it('should reject when the config is a host', async () => {
-      await driver.given.config(
-        `export default { id: "${faker.string.uuid()}", framework: "react", type: "host" };\n`,
-      );
+      driver.given.config(aHostConfig({ framework: 'react' }));
 
       await expect(driver.when.manifestBuilt('local')).rejects.toThrow(
         /expects an app config/,
@@ -196,9 +186,7 @@ describe('AtlasBuildService', () => {
       const baseUrl = faker.internet.url({ appendSlash: false });
 
       beforeEach(async () => {
-        await driver.given.config(
-          `export default { id: "${id}", framework: "angular", type: "host" };\n`,
-        );
+        driver.given.config(aHostConfig({ id, framework: 'angular' }));
 
         await driver.when.localHostManifestBuilt(baseUrl);
       });
@@ -227,7 +215,7 @@ describe('AtlasBuildService', () => {
     });
 
     it('should reject when the config is an app', async () => {
-      await driver.given.config(appConfig(faker.string.uuid()));
+      driver.given.config(anAppConfig({ framework: 'react' }));
 
       await expect(
         driver.when.localHostManifestBuilt(faker.internet.url()),

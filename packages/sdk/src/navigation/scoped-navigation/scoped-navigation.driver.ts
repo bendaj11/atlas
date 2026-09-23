@@ -1,9 +1,6 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasScopedNavigation } from '../navigation-types/navigation-types.js';
-import {
-  aMemoryNavigation,
-  type MemoryNavigation,
-} from '../../testkit/navigation.testkit.js';
+import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { createScopedNavigation } from './scoped-navigation.js';
 
 export class ScopedNavigationDriver {
@@ -12,7 +9,7 @@ export class ScopedNavigationDriver {
   private scoped!: AtlasScopedNavigation;
 
   readonly given = {
-    path: (path: string): this => {
+    path: (path: string) => {
       this.path = path;
 
       return this;
@@ -20,25 +17,25 @@ export class ScopedNavigationDriver {
   };
 
   readonly when = {
-    created: (): void => {
+    created: () => {
       this.scoped = createScopedNavigation(this.path, this.hostNavigation);
     },
-    navigated: (to: string): void => {
+    navigated: (to: string) => {
       this.scoped.navigate(to);
     },
-    replaced: (to: string): void => {
+    replaced: (to: string) => {
       this.scoped.replace(to);
     },
-    historyMoved: (delta: number): void => {
+    historyMoved: (delta: number) => {
       this.scoped.go?.(delta);
     },
-    wentBack: (): void => {
+    wentBack: () => {
       this.scoped.back();
     },
   };
 
   readonly get = {
-    scoped: (): AtlasScopedNavigation => this.scoped,
-    hostNavigation: (): MemoryNavigation => this.hostNavigation,
+    scoped: () => this.scoped,
+    hostNavigation: () => this.hostNavigation,
   };
 }

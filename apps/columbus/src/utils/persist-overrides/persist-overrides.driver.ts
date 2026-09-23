@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import type { validateLocalOverride as validateLocalOverrideType } from '../local-override/local-override';
 import type * as OverrideStorageModule from '../override-storage/override-storage';
-import { reloadHostTabMock } from '../../../testkit/mocks/host-tabs';
+import { reloadHostTabMock } from '../../testkit/mocks/host-tabs';
 
 const validateLocalOverride = jest.fn<typeof validateLocalOverrideType>();
 const writeOverrideDocument =

@@ -1,9 +1,10 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import ts from 'typescript';
+import type TypeScript from 'typescript';
 import {
   doesPathExist,
   formatTypeScriptDiagnostics,
+  loadTypeScript,
 } from '../../shared/index.js';
 import type { AtlasProject, AtlasWorkspace } from '../types.js';
 
@@ -32,15 +33,18 @@ export async function compileAtlasConfig(
 }
 
 async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
-  const configPath = findCompilerConfig(projectRoot);
+  const ts = await loadTypeScript();
+  const configPath = findCompilerConfig({ ts, projectRoot });
   const raw = ts.readConfigFile(configPath, ts.sys.readFile);
 
   if (raw.error)
-    throw new Error(formatTypeScriptDiagnostics([raw.error], projectRoot));
+    throw new Error(
+      await formatTypeScriptDiagnostics([raw.error], projectRoot),
+    );
 
   const parsed = ts.parseJsonConfigFileContent(raw.config, ts.sys, projectRoot);
   const atlasConfigPath = join(projectRoot, 'atlas.config.ts');
-  const options: ts.CompilerOptions = {
+  const options: TypeScript.CompilerOptions = {
     ...parsed.options,
     noEmit: false,
     declaration: false,
@@ -70,14 +74,20 @@ async function compileAtlasConfigFile(projectRoot: string): Promise<void> {
 
   if (errors.length > 0 || emitResult.emitSkipped)
     throw new Error(
-      formatTypeScriptDiagnostics(
+      await formatTypeScriptDiagnostics(
         errors.length > 0 ? errors : diagnostics,
         projectRoot,
       ),
     );
 }
 
-function findCompilerConfig(projectRoot: string): string {
+function findCompilerConfig({
+  ts,
+  projectRoot,
+}: {
+  ts: typeof TypeScript;
+  projectRoot: string;
+}): string {
   const config =
     ts.findConfigFile(projectRoot, ts.sys.fileExists, 'tsconfig.app.json') ??
     ts.findConfigFile(projectRoot, ts.sys.fileExists, 'tsconfig.json');

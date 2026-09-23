@@ -11,7 +11,7 @@ export class GeneratedFilesDriver {
     .mockResolvedValue(undefined);
 
   readonly given = {
-    ignoreFile: (contents: string | undefined): this => {
+    ignoreFile: (contents: string | undefined) => {
       if (contents === undefined)
         this.readIgnore.mockRejectedValue(
           Object.assign(new Error('missing'), { code: 'ENOENT' }),
@@ -23,7 +23,7 @@ export class GeneratedFilesDriver {
   };
 
   readonly when = {
-    ignored: (workspaceRoot: string, projectRoot: string): Promise<void> =>
+    ignored: (workspaceRoot: string, projectRoot: string) =>
       ensureAtlasGeneratedFilesIgnored(workspaceRoot, projectRoot, {
         readIgnore: this.readIgnore,
         writeIgnore: this.writeIgnore,

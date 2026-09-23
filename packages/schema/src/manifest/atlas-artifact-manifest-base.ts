@@ -2,9 +2,11 @@ import type { AtlasFramework } from './atlas-framework.js';
 import type { AtlasStylesheet } from './atlas-stylesheet.js';
 import type { AtlasVersionChannel } from './atlas-version-channel.js';
 
+export const ATLAS_MANIFEST_SCHEMA_VERSION = '1';
+
 /** Identity and immutable build metadata shared by host clients and apps. */
 export interface AtlasArtifactManifestBase {
-  schemaVersion: '1';
+  schemaVersion: typeof ATLAS_MANIFEST_SCHEMA_VERSION;
   kind: 'host' | 'app';
   id: string;
   name: string;

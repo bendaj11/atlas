@@ -3,7 +3,7 @@ import { Delete, Edit } from '@wix/wix-ui-icons-common';
 import { TableActionCell } from '@wix/design-system';
 import { useActionsDisabled, useOverrides } from '../../../../hooks';
 import { useNavigate } from 'react-router-dom';
-import { ARTIFACT_OVERRIDE_ROUTE } from '../../../../scripts/routing/routes/routes';
+import { ARTIFACT_OVERRIDE_ROUTE } from '../../../../routing/routes/routes';
 
 export const ArtifactOverrideActions = ({
   artifact,
@@ -40,7 +40,7 @@ export const ArtifactOverrideActions = ({
           tooltipProps: { disabled: true },
           disabled: actionsDisabled,
           onClick: () =>
-            navigate(ARTIFACT_OVERRIDE_ROUTE, {
+            void navigate(ARTIFACT_OVERRIDE_ROUTE, {
               state: { artifact },
             }),
         },

@@ -4,7 +4,8 @@ import { aHostData } from '../../../testkit/host-data.testkit';
 import {
   inspectHostRequest,
   loadArtifactVersionRequest,
-} from '../../shared/messages/messages';
+  readPageStateRequest,
+} from '../../../utils/messages/messages';
 import { BadgeScriptDriver } from './badge-script.driver';
 
 const ATLAS_PAGE_BODY =
@@ -335,6 +336,22 @@ describe('badge-script', () => {
       await driver.when.messageReceived(request);
 
       expect(driver.get.response()).toStrictEqual({ ok: false, error: reason });
+    });
+  });
+
+  it('should respond with the visible app ids and runtime errors of the page when a read page state request arrives', async () => {
+    const visibleAppIds = [faker.string.uuid()];
+    const runtimeErrors = [{ message: faker.lorem.sentence() }];
+
+    driver.given
+      .visibleAppIds(visibleAppIds)
+      .given.runtimeErrors(runtimeErrors);
+
+    await driver.when.messageReceived(readPageStateRequest());
+
+    expect(driver.get.response()).toStrictEqual({
+      ok: true,
+      pageState: { visibleAppIds, runtimeErrors },
     });
   });
 

@@ -1,4 +1,3 @@
-import type { HostDevPorts } from '../types.js';
 import { resolveHostDevPorts } from './ports.js';
 import { CliArguments } from '../../shared/index.js';
 
@@ -8,17 +7,17 @@ export class DevelopmentPortsDriver {
   private previewKind: 'deployed' | 'local' = 'local';
 
   readonly given = {
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = flags;
 
       return this;
     },
-    configuredPort: (configuredPort: number): this => {
+    configuredPort: (configuredPort: number) => {
       this.configuredPort = configuredPort;
 
       return this;
     },
-    previewKind: (previewKind: 'deployed' | 'local'): this => {
+    previewKind: (previewKind: 'deployed' | 'local') => {
       this.previewKind = previewKind;
 
       return this;
@@ -26,7 +25,7 @@ export class DevelopmentPortsDriver {
   };
 
   readonly get = {
-    ports: (): HostDevPorts =>
+    ports: () =>
       resolveHostDevPorts({
         args: new CliArguments(['dev', 'shell', ...this.flags]),
         configuredPort: this.configuredPort,

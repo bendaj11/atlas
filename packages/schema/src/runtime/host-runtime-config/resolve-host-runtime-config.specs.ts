@@ -3,7 +3,7 @@ import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-
 import { aHostRuntimeConfig, aRegistryRootUrl } from '../runtime.testkit.js';
 import { ResolveHostRuntimeConfigDriver } from './resolve-host-runtime-config.driver.js';
 
-describe('resolveAtlasRuntimeConfig', () => {
+describe('resolveAtlasHostRuntimeConfig', () => {
   let driver: ResolveHostRuntimeConfigDriver;
 
   beforeEach(() => {

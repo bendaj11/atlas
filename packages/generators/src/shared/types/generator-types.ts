@@ -22,6 +22,10 @@ export interface AtlasGeneratorOptions {
   allowUnsupportedVersion?: boolean;
 }
 
+export type SupportedGeneratorOptions = AtlasGeneratorOptions & {
+  framework: 'angular' | 'react';
+};
+
 export interface AtlasGeneratedFile {
   path: string;
   contents: string;

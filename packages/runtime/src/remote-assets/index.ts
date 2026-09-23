@@ -2,5 +2,5 @@ export {
   rewriteAssetUrl,
   rewriteCssAssetUrls,
   startRemoteAssetRewrite,
-  type AtlasAssetRewriteRelease,
 } from './remote-assets/remote-assets.js';
+export type { AtlasAssetRewriteRelease } from './remote-assets.types.js';

@@ -1,7 +1,7 @@
-import { access, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { access, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import { TemporaryDirectory } from '../../src/shared/fs/fs.testkit.js';
 import { runCli } from '../cli-process.testkit.js';
 
 type GeneratedProjectType = 'app' | 'host';
@@ -39,6 +39,7 @@ interface NxProjectDocument {
 }
 
 export class GenerationDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private readonly projectName = faker.string.alpha({
     length: 10,
     casing: 'lower',
@@ -50,7 +51,9 @@ export class GenerationDriver {
 
   readonly given = {
     workspace: async (kind: WorkspaceKind) => {
-      this.root = await mkdtemp(join(tmpdir(), `atlas-generate-${kind}-`));
+      this.root = await this.temporaryDirectory.create(
+        `atlas-generate-${kind}-`,
+      );
       this.projectRoot = join(
         this.root,
         ...(kind === 'pnpm' ? ['packages'] : []),

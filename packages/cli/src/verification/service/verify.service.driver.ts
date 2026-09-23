@@ -43,7 +43,7 @@ export class VerifyServiceDriver {
   private service?: AtlasVerifyService;
 
   given = {
-    deployment: (scenario: VerificationScenario): void => {
+    deployment: (scenario: VerificationScenario) => {
       const manifests = this.manifestsFor(scenario);
       const includeCors = scenario !== 'missing-cors';
       const cacheControl =
@@ -141,7 +141,7 @@ export class VerifyServiceDriver {
   };
 
   when = {
-    run: async (): Promise<void> => {
+    run: async () => {
       if (!this.service || !this.options) {
         throw new Error('Deployment setup is required.');
       }
@@ -167,17 +167,17 @@ export class VerifyServiceDriver {
   };
 
   get = {
-    duplicateRouteMessage: (): string | undefined =>
+    duplicateRouteMessage: () =>
       this.report?.checks.find(
         (check) =>
           check.status === 'failure' && check.subject === 'route ownership',
       )?.message,
-    hasFailure: (subject: string): boolean =>
+    hasFailure: (subject: string) =>
       this.report?.checks.some(
         (check) =>
           check.status === 'failure' && check.subject.includes(subject),
       ) ?? false,
-    hasWarning: (subject: string): boolean =>
+    hasWarning: (subject: string) =>
       this.report?.checks.some(
         (check) =>
           check.status === 'warning' && check.subject.includes(subject),
@@ -187,12 +187,9 @@ export class VerifyServiceDriver {
       hostId: this.report?.hostId,
     }),
     healthyExpectation: () => ({ failures: 0, hostId: this.hostId }),
-    maximumConcurrency: (): number => this.maximumConcurrency,
-    requestAborted: (): boolean => this.receivedSignal?.aborted ?? false,
-    transientVerification: (): {
-      failures: number | undefined;
-      attempts: number;
-    } => ({
+    maximumConcurrency: () => this.maximumConcurrency,
+    requestAborted: () => this.receivedSignal?.aborted ?? false,
+    transientVerification: () => ({
       failures: this.report?.failures,
       attempts: this.transientRequestAttempts,
     }),
@@ -255,11 +252,15 @@ export class VerifyServiceDriver {
     }
 
     if (scenario === 'request-concurrency') {
-      return Array.from({ length: 12 }, () => this.deploymentManifest());
+      return faker.helpers
+        .uniqueArray(faker.system.semver, 12)
+        .map((version) => this.deploymentManifest({ version }));
     }
 
     if (scenario === 'body-concurrency') {
-      return Array.from({ length: 8 }, () => this.deploymentManifest());
+      return faker.helpers
+        .uniqueArray(faker.system.semver, 8)
+        .map((version) => this.deploymentManifest({ version }));
     }
 
     return [this.deploymentManifest()];
@@ -430,7 +431,7 @@ export class VerifyServiceDriver {
     limit: number,
   ): typeof fetch {
     let active = 0;
-    let release = (): void => undefined;
+    let release: () => void = () => undefined;
     const barrier = new Promise<void>((resolve) => {
       release = resolve;
     });
@@ -466,7 +467,7 @@ export class VerifyServiceDriver {
     limit: number,
   ): typeof fetch {
     let active = 0;
-    let release = (): void => undefined;
+    let release: () => void = () => undefined;
     const barrier = new Promise<void>((resolve) => {
       release = resolve;
     });

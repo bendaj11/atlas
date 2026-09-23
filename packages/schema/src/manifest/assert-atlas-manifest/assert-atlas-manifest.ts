@@ -1,5 +1,5 @@
 import type { AtlasManifest } from '../atlas-manifest.js';
-import { assertValid } from '../../validation/assert-valid.js';
+import { assertNoIssues } from '../../validation/assert-valid.js';
 import { ValidationIssues } from '../../validation/validation-issues.js';
 import { collectAtlasManifestIssues } from '../validate-atlas-manifest/validate-atlas-manifest.js';
 
@@ -9,5 +9,5 @@ export function assertAtlasManifest(
 ): asserts value is AtlasManifest {
   const issues = ValidationIssues.create();
   collectAtlasManifestIssues({ value, issues });
-  assertValid({ issues, message: 'Invalid Atlas manifest.' });
+  assertNoIssues({ issues, message: 'Invalid Atlas manifest.' });
 }

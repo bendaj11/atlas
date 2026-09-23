@@ -3,7 +3,7 @@ import ts from 'typescript';
 import { formatTypeScriptDiagnostics } from './typescript.js';
 
 describe('formatTypeScriptDiagnostics', () => {
-  it('should include the diagnostic message when formatted', () => {
+  it('should include the diagnostic message when formatted', async () => {
     const messageText = faker.lorem.sentence();
     const diagnostic: ts.Diagnostic = {
       category: ts.DiagnosticCategory.Error,
@@ -15,7 +15,10 @@ describe('formatTypeScriptDiagnostics', () => {
     };
 
     expect(
-      formatTypeScriptDiagnostics([diagnostic], faker.system.directoryPath()),
+      await formatTypeScriptDiagnostics(
+        [diagnostic],
+        faker.system.directoryPath(),
+      ),
     ).toContain(messageText);
   });
 });

@@ -1,17 +1,16 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
+import { anAppArtifactManifest } from '@atlas/testkit';
+import type { PublicationFile } from './publication-files.js';
+import type { AtlasBuildResult } from '../../build/index.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject } from '../../workspace/workspace.testkit.js';
-import { anAppArtifactManifest } from '@atlas/testkit';
 import { InMemoryPublicationStorage } from '../publication-storage/publication-storage.testkit.js';
 import {
   preparePublicationFiles,
   derivePublicationIdentity,
   uploadAndVerify,
-  type PublicationFile,
-  type PublicationFiles,
 } from './publication-files.js';
-import type { AtlasBuildResult } from '../../build/index.js';
 import { computeSha256Digest } from '../../shared/index.js';
 
 export class PublicationFilesDriver {
@@ -26,16 +25,12 @@ export class PublicationFilesDriver {
   > = { release: { version: faker.system.semver() } };
 
   readonly given = {
-    sourceDirectory: async (): Promise<this> => {
+    sourceDirectory: async () => {
       await this.directory.create('atlas-publication-files-');
 
       return this;
     },
-    payload: async (
-      path: string,
-      contents: string,
-      declared = contents,
-    ): Promise<this> => {
+    payload: async (path: string, contents: string, declared = contents) => {
       await this.directory.writeFile(path, contents);
       const bytes = new TextEncoder().encode(declared);
       this.files.push({
@@ -49,14 +44,14 @@ export class PublicationFilesDriver {
 
       return this;
     },
-    preview: (number: number): this => {
+    preview: (number: number) => {
       this.identity = {
         preview: { number, gitSha: faker.git.commitSha() },
       };
 
       return this;
     },
-    storedObject: (file: PublicationFile): this => {
+    storedObject: (file: PublicationFile) => {
       this.storage.seed(file.path, file.bytes, file.metadata);
 
       return this;
@@ -69,11 +64,10 @@ export class PublicationFilesDriver {
   };
 
   readonly get = {
-    files: (): Promise<PublicationFiles> =>
-      preparePublicationFiles(this.build()),
-    identity: (): string => derivePublicationIdentity(this.manifest()),
-    manifest: (): AtlasPublishedArtifactManifest => this.manifest(),
-    storedPaths: (): string[] => [...this.storage.objects.keys()],
+    files: () => preparePublicationFiles(this.build()),
+    identity: () => derivePublicationIdentity(this.manifest()),
+    manifest: () => this.manifest(),
+    storedPaths: () => [...this.storage.objects.keys()],
   };
 
   private build(): AtlasBuildResult {

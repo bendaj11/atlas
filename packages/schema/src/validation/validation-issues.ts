@@ -14,16 +14,17 @@ export class ValidationIssues {
     this.items.push({ path: this.pathOf(input.path), message: input.message });
   }
 
-  at(path: string): ValidationIssues {
+  scopedTo(path: string): ValidationIssues {
     return new ValidationIssues(this.pathOf(path), this.items);
   }
 
-  list(): AtlasValidationIssue[] {
+  toArray(): AtlasValidationIssue[] {
     return [...this.items];
   }
 
   private pathOf(path: string): string {
     if (!this.prefix) return path;
+
     if (!path) return this.prefix;
 
     return `${this.prefix}.${path}`;

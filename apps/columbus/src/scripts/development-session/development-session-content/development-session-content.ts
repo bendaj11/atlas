@@ -10,12 +10,12 @@ import {
   parseControlPort,
   rememberControlPort,
   rememberedControlPort,
-} from '../../shared/control-port/control-port';
-import { messageFromError } from '../../shared/errors/errors';
+} from '../../../utils/control-port/control-port';
+import { messageFromError } from '../../../utils/errors/errors';
 import {
   isRecord,
   loadDevelopmentSessionRequest,
-} from '../../shared/messages/messages';
+} from '../../../utils/messages/messages';
 
 const controlPort = readControlPort();
 removeControlPortFromAddressBar();
@@ -108,12 +108,10 @@ function removeControlPortFromAddressBar(): void {
 function isDevelopmentSessionRequest(
   value: unknown,
 ): value is AtlasDevelopmentSessionRequest {
-  if (!isRecord(value)) return false;
-  const request = value as Partial<AtlasDevelopmentSessionRequest>;
-
   return (
-    request.type === ATLAS_DEV_SESSION_REQUEST &&
-    typeof request.requestId === 'string' &&
-    typeof request.hostId === 'string'
+    isRecord(value) &&
+    value.type === ATLAS_DEV_SESSION_REQUEST &&
+    typeof value.requestId === 'string' &&
+    typeof value.hostId === 'string'
   );
 }

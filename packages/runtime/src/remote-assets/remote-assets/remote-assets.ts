@@ -1,8 +1,10 @@
 import type { AtlasManifest } from '@atlas/schema';
+import { isElement } from '../../shared/dom.js';
 import {
   createRemoteAssetResolver,
   rewriteCssUrls,
 } from '../asset-url/asset-url.js';
+import type { AtlasAssetRewriteRelease } from '../remote-assets.types.js';
 import {
   createDocumentStyleRewriteSession,
   registerDocumentStyleRewrite,
@@ -13,8 +15,6 @@ import {
   rewriteAssetUrls,
 } from '../element-assets.js';
 
-export type AtlasAssetRewriteRelease = () => void;
-
 export function startRemoteAssetRewrite(
   manifest: AtlasManifest,
   boundary: HTMLElement,
@@ -24,11 +24,17 @@ export function startRemoteAssetRewrite(
   if (!isElement(boundary)) return () => undefined;
 
   const resolver = createRemoteAssetResolver(manifest);
+
   rewriteAssetUrls(boundary, resolver);
+
   const releaseInsertionRewrite = patchBoundaryInsertion(boundary, resolver);
   const releaseDocumentStyleRewrite = registerDocumentStyleRewrite(
     document,
-    createDocumentStyleRewriteSession(manifest.id, boundary, resolver),
+    createDocumentStyleRewriteSession({
+      appId: manifest.id,
+      boundary,
+      resolver,
+    }),
   );
   const observer = observeBoundaryAssets(boundary, resolver);
 
@@ -51,10 +57,4 @@ export function rewriteCssAssetUrls(
   manifest: AtlasManifest,
 ): string {
   return rewriteCssUrls(cssText, createRemoteAssetResolver(manifest));
-}
-
-function isElement(node: Node | EventTarget): node is Element {
-  return typeof Element === 'undefined'
-    ? 'getAttribute' in node && 'setAttribute' in node
-    : node instanceof Element;
 }

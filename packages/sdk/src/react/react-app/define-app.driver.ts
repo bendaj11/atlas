@@ -6,7 +6,6 @@ import type {
 } from '../../lifecycle.js';
 import { defineApp } from './define-app.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
-import type { CreateRoot, RenderRoot, UnmountRoot } from './react-app.types.js';
 
 export class DefineAppDriver {
   private readonly root = aRootAdapter();
@@ -17,24 +16,22 @@ export class DefineAppDriver {
   private mounted: AtlasAppMountResult | void = undefined;
 
   readonly when = {
-    mounted: async (): Promise<void> => {
+    mounted: async () => {
       this.mounted = await defineApp({
         createRoot: this.root.createRoot,
         createElement: this.createElement,
       }).mount(this.request);
     },
-    unmounted: async (): Promise<void> => {
-      await this.mounted?.unmount?.();
-    },
+    unmounted: () => this.mounted?.unmount?.(),
   };
 
   readonly get = {
-    createRootMock: (): jest.Mock<CreateRoot> => this.root.createRoot,
-    renderMock: (): jest.Mock<RenderRoot> => this.root.render,
-    unmountRootMock: (): jest.Mock<UnmountRoot> => this.root.unmount,
+    createRootMock: () => this.root.createRoot,
+    renderMock: () => this.root.render,
+    unmountRootMock: () => this.root.unmount,
     createElementMock: (): jest.Mock<
       (request: AtlasAppMountRequest) => unknown
     > => this.createElement,
-    request: (): AtlasAppMountRequest => this.request,
+    request: () => this.request,
   };
 }

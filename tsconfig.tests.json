@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "experimentalDecorators": true
   },
   "include": [
     "apps/**/*.specs.ts",
@@ -23,6 +24,7 @@
     "packages/**/*.specs.tsx",
     "packages/**/*.driver.ts",
     "packages/**/*.driver.tsx",
+    "packages/runtime/src/css-tree.d.ts",
     "scripts/**/*.specs.ts",
     "scripts/**/*.driver.ts",
     "tests/**/*.specs.ts",

@@ -33,17 +33,17 @@ export class S3LeaseDriver {
   private failRenewals = false;
 
   readonly given = {
-    timeoutMs: (timeoutMs: number): this => {
+    timeoutMs: (timeoutMs: number) => {
       this.timeoutMs = timeoutMs;
 
       return this;
     },
-    leaseMs: (leaseMs: number): this => {
+    leaseMs: (leaseMs: number) => {
       this.leaseMs = leaseMs;
 
       return this;
     },
-    existingLease: (expiresAt: Date, token = faker.string.uuid()): this => {
+    existingLease: (expiresAt: Date, token = faker.string.uuid()) => {
       this.stored = {
         body: JSON.stringify({
           owner: faker.string.uuid(),
@@ -56,12 +56,12 @@ export class S3LeaseDriver {
 
       return this;
     },
-    malformedLease: (): this => {
+    malformedLease: () => {
       this.stored = { body: '{"owner":1}', etag: this.nextEtag() };
 
       return this;
     },
-    renewalsFailing: (): this => {
+    renewalsFailing: () => {
       this.failRenewals = true;
 
       return this;
@@ -69,13 +69,11 @@ export class S3LeaseDriver {
   };
 
   readonly when = {
-    acquired: async (owner = faker.string.uuid()): Promise<void> => {
+    acquired: async (owner = faker.string.uuid()) => {
       this.lease = await this.lock().acquire(owner);
     },
-    released: async (): Promise<void> => {
-      await this.lease!.release();
-    },
-    lockTakenByAnother: (): void => {
+    released: () => this.lease!.release(),
+    lockTakenByAnother: () => {
       this.stored = {
         body: JSON.stringify({
           owner: faker.string.uuid(),
@@ -89,12 +87,12 @@ export class S3LeaseDriver {
   };
 
   readonly get = {
-    lease: (): AtlasPublicationLease => this.lease!,
-    storedLease: (): Record<string, unknown> | undefined =>
+    lease: () => this.lease!,
+    storedLease: () =>
       this.stored
         ? (JSON.parse(this.stored.body) as Record<string, unknown>)
         : undefined,
-    puts: (): readonly PutObjectCommand['input'][] => this.puts,
+    puts: () => this.puts,
   };
 
   private lock(): S3DeploymentLock {

@@ -1,20 +1,21 @@
-import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import { writeFile, mkdir } from 'node:fs/promises';
 import {
   doesPathExist,
   readJsonFile,
   readTextFile,
   writeJsonFile,
 } from './fs.js';
+import { TemporaryDirectory } from './fs.testkit.js';
 
 export class FsDriver {
+  private readonly temporaryDirectory = new TemporaryDirectory();
   private root = '';
 
   readonly given = {
     directory: async () => {
-      this.root = await mkdtemp(join(tmpdir(), 'atlas-fs-'));
+      this.root = await this.temporaryDirectory.create('atlas-fs-');
 
       return this;
     },

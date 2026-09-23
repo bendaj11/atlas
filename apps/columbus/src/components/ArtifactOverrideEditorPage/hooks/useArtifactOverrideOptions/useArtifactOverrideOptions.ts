@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { useColumbusState } from '../../../../hooks';
-import { uniqueVersions } from '../../../../scripts/artifact-versions/artifact-version-keys/artifact-version-keys';
+import { isRecord } from '../../../../utils/messages/messages';
+import { uniqueVersions } from '../../../../utils/artifact-version-keys/artifact-version-keys';
 import type {
   ArtifactOverrideOptions,
   ArtifactTableRow,
@@ -12,10 +13,12 @@ interface ArtifactOverrideLocationState {
 
 export function useArtifactOverrideOptions():
   ArtifactOverrideOptions | undefined {
-  const { state }: { state: ArtifactOverrideLocationState | null } =
-    useLocation();
+  const location = useLocation();
+  const state: unknown = location.state;
   const { columbusState } = useColumbusState();
-  const artifact = state?.artifact;
+  const artifact = isArtifactOverrideLocationState(state)
+    ? state.artifact
+    : undefined;
 
   if (!artifact || !columbusState) return undefined;
 
@@ -44,4 +47,15 @@ export function useArtifactOverrideOptions():
       (artifactVersion) => artifactVersion.channel === 'pr',
     ),
   };
+}
+
+function isArtifactOverrideLocationState(
+  value: unknown,
+): value is ArtifactOverrideLocationState {
+  return (
+    isRecord(value) &&
+    isRecord(value.artifact) &&
+    isRecord(value.artifact.deployedArtifactVersion) &&
+    typeof value.artifact.overrideEnabled === 'boolean'
+  );
 }

@@ -1,5 +1,8 @@
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
-import { artifactUrl, hydratePublishedArtifactManifest } from '@atlas/schema';
+import {
+  buildArtifactUrl,
+  hydratePublishedArtifactManifest,
+} from '@atlas/schema';
 import { decodeJson } from '../../shared/decode-json/decode-json.js';
 import { fetchBytes } from '../fetch-json/index.js';
 import { assertBytesMatchDescriptor } from './assert-bytes-match-descriptor/assert-bytes-match-descriptor.js';
@@ -13,7 +16,7 @@ export async function loadPublishedArtifact({
   runtime,
   dependencies = createBrowserPublishedArtifactDependencies(),
 }: LoadPublishedArtifactOptions): Promise<AtlasManifest | AtlasHostManifest> {
-  const url = artifactUrl(runtime, reference.path);
+  const url = buildArtifactUrl(runtime, reference.path);
   const bytes = await dependencies.fetchBytes({ url, runtime });
 
   await assertBytesMatchDescriptor(bytes, reference);

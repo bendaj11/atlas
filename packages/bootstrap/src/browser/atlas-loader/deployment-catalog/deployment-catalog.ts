@@ -6,7 +6,7 @@ import type {
 } from '@atlas/schema';
 import {
   assertHostDeploymentManifest,
-  environmentManifestUrl,
+  buildEnvironmentManifestUrl,
   errorSummary,
 } from '@atlas/schema';
 import { decodeJson } from '../../../shared/decode-json/decode-json.js';
@@ -73,7 +73,7 @@ async function fetchDeploymentManifest({
   runtime,
   dependencies,
 }: DeploymentCatalogContext): Promise<AtlasHostDeploymentManifest> {
-  const url = environmentManifestUrl(runtime);
+  const url = buildEnvironmentManifestUrl(runtime);
   const deployment = decodeJson(
     await dependencies.fetchBytes({ url, runtime }),
   );

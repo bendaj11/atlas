@@ -1,43 +1,43 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+/** @jest-environment jsdom */
+
 import { ShadowStylesDriver } from './shadow-styles.driver.js';
 
-describe('shadow stylesheet adaptation', () => {
+describe('adaptShadowStyleSheet', () => {
   let driver: ShadowStylesDriver;
 
   beforeEach(() => {
     driver = new ShadowStylesDriver();
   });
 
-  it('should adapt root selectors when a stylesheet contains style rules', () => {
-    driver.given.rules([{ selectorText: ':root' }]);
-    driver.when.adapt();
-    expect(driver.get.rules()).toEqual([{ selectorText: ':host' }]);
+  it('should replace root selectors when the stylesheet contains style rules', () => {
+    driver.given
+      .cssText(':root { color: red; } .title { color: blue; }')
+      .when.adapted();
+
+    expect(driver.get.selectorTexts()).toEqual([':host', '.title']);
   });
 
-  it('should adapt nested rules when styles use layers or media queries', () => {
-    driver.given.rules([
-      { cssRules: [{ cssRules: [{ selectorText: ':root' }] }] },
-    ]);
-    driver.when.adapt();
-    expect(driver.get.selectors()).toEqual([':root']);
+  it('should adapt nested rule selectors when styles use media queries', () => {
+    driver.given
+      .cssText('@media (min-width: 0px) { :root { color: red; } }')
+      .when.adapted();
+
+    expect(driver.get.adaptedSelectors()).toEqual([':root']);
   });
 
-  it('should adapt imported styles when a stylesheet imports a library', () => {
-    driver.given.rules([
-      { styleSheet: { cssRules: [{ selectorText: ':root' }] } },
-    ]);
-    driver.when.adapt();
-    expect(driver.get.selectors()).toEqual([':root']);
+  it('should skip rules without selectors when the stylesheet contains keyframes or font faces', () => {
+    driver.given
+      .cssText(
+        '@keyframes fade { from { opacity: 0; } } @font-face { font-family: X; }',
+      )
+      .when.adapted();
+
+    expect(driver.get.adaptedSelectors()).toEqual([]);
   });
 
-  it('should skip unrelated rules when a stylesheet contains keyframes or font faces', () => {
-    driver.given.rules([{ cssRules: [{ keyText: 'from' }] }, { style: {} }]);
-    driver.when.adapt();
-    expect(driver.get.selectors()).toEqual([]);
-  });
+  it('should propagate the access failure when stylesheet rules are inaccessible', () => {
+    driver.given.inaccessibleRules(new Error('CORS denied'));
 
-  it('should propagate access failures when stylesheet rules are inaccessible', () => {
-    driver.given.inaccessible(new Error('CORS denied'));
-    expect(() => driver.when.adapt()).toThrow('CORS denied');
+    expect(() => driver.when.adapted()).toThrow('CORS denied');
   });
 });

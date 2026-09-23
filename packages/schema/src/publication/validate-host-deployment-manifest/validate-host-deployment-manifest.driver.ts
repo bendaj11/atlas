@@ -8,16 +8,16 @@ export class ValidateHostDeploymentManifestDriver {
   private issues: AtlasValidationIssue[] = [];
 
   when = {
-    validated: (value: unknown): void => {
+    validated: (value: unknown) => {
       this.issues = validateHostDeploymentManifest(value);
     },
-    asserted: (value: unknown): void => {
+    asserted: (value: unknown) => {
       assertHostDeploymentManifest(value);
     },
   };
 
   get = {
-    issues: (): AtlasValidationIssue[] => this.issues,
-    issuePaths: (): string[] => this.issues.map((issue) => issue.path),
+    issues: () => this.issues,
+    issuePaths: () => this.issues.map((issue) => issue.path),
   };
 }

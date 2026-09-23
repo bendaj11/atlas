@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { aColumbusState } from '../../../testkit/columbus-state.testkit';
+import { aColumbusState } from '../../testkit/columbus-state.testkit';
 import { PersistOverridesDriver } from './persist-overrides.driver';
 
 const { persistColumbusState } = await import('./persist-overrides');

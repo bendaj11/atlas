@@ -15,7 +15,7 @@ describe('assertAtlasHostManifest', () => {
 
   it('should throw AtlasValidationError naming the host manifest when it is invalid', () => {
     expect(() =>
-      driver.when.asserted(aHostManifest({ kind: 'app' as 'host' })),
+      driver.when.asserted({ ...aHostManifest(), kind: 'app' }),
     ).toThrow(
       expect.objectContaining<Partial<AtlasValidationError>>({
         name: 'AtlasValidationError',

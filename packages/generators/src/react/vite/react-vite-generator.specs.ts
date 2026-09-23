@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import { anAtlasId } from '../../testkit/generator-options.testkit.js';
 import { ReactViteGeneratorDriver } from './react-vite-generator.driver.js';
 
-describe('reactViteConfig', () => {
+describe('renderReactViteConfig', () => {
   let driver: ReactViteGeneratorDriver;
 
   beforeEach(() => {

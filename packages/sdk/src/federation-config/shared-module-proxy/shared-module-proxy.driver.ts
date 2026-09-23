@@ -96,8 +96,7 @@ export class SharedModuleProxyDriver {
 
   readonly get = {
     code: (): string | undefined => this.code,
-    commonJsReaderMock: (): jest.Mock<ReadCommonJsExports> =>
-      this.readCommonJsExports,
+    commonJsReaderMock: () => this.readCommonJsExports,
     resolveEntryMock: (): jest.Mock<ViteIdResolver> => this.resolveEntry,
     environment: (): Environment | undefined => this.environment,
     specifier: (): string => this.specifier,

@@ -1,21 +1,23 @@
 import type { AtlasGeneratorOptions } from '../types/generator-types.js';
 import { aGeneratorOptions } from '../../testkit/generator-options.testkit.js';
 import {
-  angularVersionProfile,
-  exactSemver,
-  reactVersionProfile,
-  type AngularVersionProfile,
-  type ReactVersionProfile,
+  extractExactSemver,
+  resolveAngularVersionProfileFromOptions,
+  resolveReactVersionProfileFromOptions,
 } from './generator-versions.js';
+import type {
+  AngularVersionProfile,
+  ReactVersionProfile,
+} from './generator-versions.types.js';
 
 export class GeneratorVersionsDriver {
-  private options: AtlasGeneratorOptions = aGeneratorOptions();
+  private options = aGeneratorOptions();
   private reactProfile!: ReactVersionProfile;
   private angularProfile!: AngularVersionProfile;
   private exactVersion: string | undefined;
 
   readonly given = {
-    options: (options: AtlasGeneratorOptions): this => {
+    options: (options: AtlasGeneratorOptions) => {
       this.options = options;
 
       return this;
@@ -23,20 +25,22 @@ export class GeneratorVersionsDriver {
   };
 
   readonly when = {
-    reactProfileResolved: (): void => {
-      this.reactProfile = reactVersionProfile(this.options);
+    reactProfileResolved: () => {
+      this.reactProfile = resolveReactVersionProfileFromOptions(this.options);
     },
-    angularProfileResolved: (): void => {
-      this.angularProfile = angularVersionProfile(this.options);
+    angularProfileResolved: () => {
+      this.angularProfile = resolveAngularVersionProfileFromOptions(
+        this.options,
+      );
     },
-    exactSemverResolved: (version: string): void => {
-      this.exactVersion = exactSemver(version);
+    exactSemverResolved: (version: string) => {
+      this.exactVersion = extractExactSemver(version);
     },
   };
 
   readonly get = {
-    reactProfile: (): ReactVersionProfile => this.reactProfile,
-    angularProfile: (): AngularVersionProfile => this.angularProfile,
-    exactVersion: (): string | undefined => this.exactVersion,
+    reactProfile: () => this.reactProfile,
+    angularProfile: () => this.angularProfile,
+    exactVersion: () => this.exactVersion,
   };
 }

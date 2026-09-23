@@ -1,4 +1,7 @@
-import { normalizePath, convertHostPathToInnerPath } from './path-conversions.js';
+import {
+  normalizePath,
+  convertHostPathToInnerPath,
+} from './path-conversions.js';
 
 export class PathConversionsDriver {
   private path = '/';

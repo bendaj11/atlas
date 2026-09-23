@@ -1,37 +1,40 @@
+import type { AtlasFramework, AtlasVersionChannel } from '@atlas/schema';
 import { prepareAngularLocalRuntime } from './angular-local-runtime.js';
 
 export class AngularLocalRuntimeDriver {
   private readonly environment: object = {};
-  private channel: 'local' | 'production' = 'local';
-  private framework: 'angular' | 'react' = 'angular';
+  private channel: AtlasVersionChannel = 'local';
+  private framework: AtlasFramework = 'angular';
 
   readonly given = {
-    channel: (channel: 'local' | 'production'): AngularLocalRuntimeDriver => {
+    channel: (channel: AtlasVersionChannel) => {
       this.channel = channel;
+
       return this;
     },
-    framework: (framework: 'angular' | 'react'): AngularLocalRuntimeDriver => {
+    framework: (framework: AtlasFramework) => {
       this.framework = framework;
+
       return this;
     },
-    ngDevMode: (value: unknown): AngularLocalRuntimeDriver => {
+    ngDevMode: (value: unknown) => {
       Reflect.set(this.environment, 'ngDevMode', value);
+
       return this;
     },
   };
 
   readonly when = {
-    prepare: (): AngularLocalRuntimeDriver => {
+    prepare: () => {
       prepareAngularLocalRuntime(
         { channel: this.channel, framework: this.framework },
         this.environment,
       );
-      return this;
     },
   };
 
   readonly get = {
-    ngDevMode: (): unknown => Reflect.get(this.environment, 'ngDevMode'),
-    hasNgDevMode: (): boolean => Reflect.has(this.environment, 'ngDevMode'),
+    ngDevMode: () => Reflect.get(this.environment, 'ngDevMode'),
+    hasNgDevMode: () => Reflect.has(this.environment, 'ngDevMode'),
   };
 }

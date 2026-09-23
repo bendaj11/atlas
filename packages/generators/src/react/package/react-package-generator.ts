@@ -1,14 +1,12 @@
 import type { PackageManifest } from '../../shared/types/generated-documents.js';
 import type { AtlasProjectType } from '../../shared/types/generator-types.js';
-import {
-  atlasPackageRange,
-  type ReactVersionProfile,
-} from '../../shared/versions/generator-versions.js';
+import { getAtlasPackageRange } from '../../shared/versions/generator-versions.js';
+import type { ReactVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
 const VITE_REACT_PLUGIN_VERSION = '^5.0.4';
 const VITE_VERSION = '^7.3.6';
 
-interface ReactPackageOptions {
+interface ReactPackageManifestOptions {
   packageName: string;
   projectName: string;
   type: AtlasProjectType;
@@ -16,7 +14,9 @@ interface ReactPackageOptions {
   routed?: boolean;
 }
 
-export function reactPackage(options: ReactPackageOptions): PackageManifest {
+export function buildReactPackageManifest(
+  options: ReactPackageManifestOptions,
+): PackageManifest {
   const { packageName, projectName, profile } = options;
   const host = options.type === 'host';
   const routed = host || (options.routed ?? true);
@@ -41,11 +41,11 @@ export function reactPackage(options: ReactPackageOptions): PackageManifest {
         : {}),
     },
     dependencies: {
-      '@atlas/schema': atlasPackageRange(),
-      '@atlas/sdk': atlasPackageRange(),
+      '@atlas/schema': getAtlasPackageRange(),
+      '@atlas/sdk': getAtlasPackageRange(),
       ...(host
         ? {
-            '@atlas/runtime': atlasPackageRange(),
+            '@atlas/runtime': getAtlasPackageRange(),
           }
         : {}),
       'es-module-shims': '^2.3.0',
@@ -54,7 +54,7 @@ export function reactPackage(options: ReactPackageOptions): PackageManifest {
       ...(routed ? { 'react-router-dom': profile.routerVersion } : {}),
     },
     devDependencies: {
-      '@atlas/cli': atlasPackageRange(),
+      '@atlas/cli': getAtlasPackageRange(),
       '@types/node': '^22.0.0',
       '@types/react': `^${profile.major}.0.0`,
       '@types/react-dom': `^${profile.major}.0.0`,
@@ -65,7 +65,7 @@ export function reactPackage(options: ReactPackageOptions): PackageManifest {
   };
 }
 
-export function reactIndex(pageTitle: string): string {
+export function renderReactHostIndexHtml(pageTitle: string): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -82,7 +82,7 @@ export function reactIndex(pageTitle: string): string {
 `;
 }
 
-export function reactAppIndex(pageTitle: string): string {
+export function renderReactAppIndexHtml(pageTitle: string): string {
   return `<!doctype html>
 <html lang="en">
   <head>

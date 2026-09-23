@@ -62,7 +62,7 @@ export class FrameworkApiDriver {
   private packageJson!: SdkPackage;
 
   readonly when = {
-    packageRead: async (): Promise<void> => {
+    packageRead: async () => {
       this.packageJson = JSON.parse(
         await readFile(new URL('../package.json', import.meta.url), 'utf8'),
       ) as SdkPackage;
@@ -71,11 +71,11 @@ export class FrameworkApiDriver {
 
   readonly get = {
     typeContracts: () => [verifyFrameworkEventTypes, verifyAngularWidgetTypes],
-    exportNames: (framework: string): string[] =>
+    exportNames: (framework: string) =>
       Object.keys(FRAMEWORK_MODULES[framework] ?? {}),
-    exportedMember: (framework: string, name: string): unknown =>
+    exportedMember: (framework: string, name: string) =>
       FRAMEWORK_MODULES[framework]?.[name],
-    subpath: (name: string): unknown => this.packageJson.exports[name],
+    subpath: (name: string) => this.packageJson.exports[name],
     vitePeer: () => ({
       range: this.packageJson.peerDependencies.vite,
       optional: this.packageJson.peerDependenciesMeta.vite?.optional,

@@ -1,21 +1,25 @@
-import { json, pascal, title } from './text.js';
+import {
+  convertIdToPascalCase,
+  convertIdToTitle,
+  formatJsonDocument,
+} from './text.js';
 
 export class TextDriver {
   private result!: string;
 
   readonly when = {
-    titled: (value: string): void => {
-      this.result = title(value);
+    titled: (value: string) => {
+      this.result = convertIdToTitle(value);
     },
-    pascalCased: (value: string): void => {
-      this.result = pascal(value);
+    pascalCased: (value: string) => {
+      this.result = convertIdToPascalCase(value);
     },
-    serialized: (value: unknown): void => {
-      this.result = json(value);
+    serialized: (value: unknown) => {
+      this.result = formatJsonDocument(value);
     },
   };
 
   readonly get = {
-    result: (): string => this.result,
+    result: () => this.result,
   };
 }

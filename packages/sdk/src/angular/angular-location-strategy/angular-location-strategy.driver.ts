@@ -46,7 +46,7 @@ export class AngularLocationStrategyDriver {
   readonly get = {
     strategy: (): LocationStrategyAdapter => this.strategy,
     hostPath: (): string => this.path,
-    hostUrl: (): string =>
+    hostUrl: () =>
       formatLocationAsUrl(this.context.navigation.getCurrentLocation()),
     popStateMock: (): jest.Mock<PopStateListener> => this.popState,
     hostGoMock: () => this.context.navigation.go,

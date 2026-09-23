@@ -1,5 +1,5 @@
 import { Box, Card, RadioGroup, Text } from '@wix/design-system';
-import type { Scope } from '../../../types/columbus-state';
+import { isScope, type Scope } from '../../../types/columbus-state';
 
 interface ScopePickerProps {
   selectedScope: Scope;
@@ -25,7 +25,9 @@ export function BrowserOverrideScopePicker({
           size="small"
           disabled={disabled}
           display="horizontal"
-          onChange={(nextValue) => onChange(nextValue as Scope)}
+          onChange={(nextValue) => {
+            if (isScope(nextValue)) onChange(nextValue);
+          }}
         >
           <RadioGroup.Radio value="all">All tabs</RadioGroup.Radio>
 

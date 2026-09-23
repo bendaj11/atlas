@@ -5,13 +5,13 @@ import {
   type MessageSender,
 } from '../../testkit/chrome.testkit';
 import type { loadDevelopmentSession as loadDevelopmentSessionType } from '../development-session/development-session-background/development-session-background';
-import type { clearHostDataCache as clearHostDataCacheType } from '../host/host-data-cache/host-data-cache';
+import type { clearHostDataCache as clearHostDataCacheType } from '../../utils/host-data-cache/host-data-cache';
 
 const clearHostDataCache = jest.fn<typeof clearHostDataCacheType>();
 const loadDevelopmentSession = jest.fn<typeof loadDevelopmentSessionType>();
 const fetch = jest.fn<typeof globalThis.fetch>();
 
-jest.unstable_mockModule('../host/host-data-cache/host-data-cache', () => ({
+jest.unstable_mockModule('../../utils/host-data-cache/host-data-cache', () => ({
   clearHostDataCache,
 }));
 jest.unstable_mockModule(

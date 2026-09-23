@@ -36,12 +36,12 @@ export class HttpDriver {
   readonly given = {
     responder: (
       responder: (body: unknown) => { status: number; value: unknown },
-    ): this => {
+    ) => {
       this.responder = responder;
 
       return this;
     },
-    failingBodyParser: (): this => {
+    failingBodyParser: () => {
       this.responder = () => {
         throw new Error('handled elsewhere');
       };
@@ -51,7 +51,7 @@ export class HttpDriver {
   };
 
   readonly when = {
-    serverStarted: async (label = 'Test server'): Promise<void> => {
+    serverStarted: async (label = 'Test server') => {
       this.server = createServer((request, response) => {
         const body =
           request.method === 'DELETE'
@@ -69,23 +69,23 @@ export class HttpDriver {
       const address = this.server.address();
       this.port = typeof address === 'object' && address ? address.port : 0;
     },
-    serverClosed: async (): Promise<void> => {
+    serverClosed: async () => {
       this.server!.closeAllConnections();
       await closeServer(this.server!);
     },
-    posted: (path: string, value: unknown): Promise<void> =>
+    posted: (path: string, value: unknown) =>
       postJson(`${buildLocalOrigin(this.port)}${path}`, value),
-    deleted: (path: string): Promise<void> =>
+    deleted: (path: string) =>
       deleteJson(`${buildLocalOrigin(this.port)}${path}`),
-    rawPosted: async (path: string, body: string): Promise<Response> =>
+    rawPosted: async (path: string, body: string) =>
       fetch(`${buildLocalOrigin(this.port)}${path}`, { method: 'POST', body }),
   };
 
   readonly get = {
     received: () => this.received,
     infoMock: () => info,
-    listening: (): boolean => this.server?.listening ?? false,
-    localOrigin: (port: number): string => buildLocalOrigin(port),
-    addressInUse: (error: unknown): boolean => isAddressInUse(error),
+    listening: () => this.server?.listening ?? false,
+    localOrigin: (port: number) => buildLocalOrigin(port),
+    addressInUse: (error: unknown) => isAddressInUse(error),
   };
 }

@@ -2,7 +2,7 @@ import type {
   ArtifactTableRow,
   OverrideType,
 } from '../../../../types/artifact';
-import { versionBuildIdLabel } from '../../../../scripts/artifact-versions/artifact-version-utils/artifact-version-utils';
+import { versionBuildIdLabel } from '../../../../utils/artifact-version-utils/artifact-version-utils';
 import { Text, Tooltip } from '@wix/design-system';
 
 const OVERRIDE_TYPE_LABELS: Record<OverrideType, string> = {

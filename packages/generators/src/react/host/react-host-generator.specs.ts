@@ -1,7 +1,7 @@
 import { aReactVersionProfile } from '../../testkit/version-profiles.testkit.js';
 import { ReactHostGeneratorDriver } from './react-host-generator.driver.js';
 
-describe('reactHostBootstrap', () => {
+describe('renderReactHostBootstrap', () => {
   let driver: ReactHostGeneratorDriver;
 
   beforeEach(() => {
@@ -69,7 +69,7 @@ describe('reactHostBootstrap', () => {
   });
 });
 
-describe('reactHostSdkConfig', () => {
+describe('renderReactHostSdkConfig', () => {
   let driver: ReactHostGeneratorDriver;
 
   beforeEach(() => {
@@ -86,7 +86,7 @@ describe('reactHostSdkConfig', () => {
   });
 });
 
-describe('reactHostMain', () => {
+describe('renderReactHostMain', () => {
   let driver: ReactHostGeneratorDriver;
 
   beforeEach(() => {

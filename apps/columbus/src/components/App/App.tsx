@@ -4,7 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   ARTIFACT_OVERRIDE_ROUTE,
   ARTIFACTS_ROUTE,
-} from '../../scripts/routing/routes/routes';
+} from '../../routing/routes/routes';
 import { ArtifactsListPage } from '../ArtifactsListPage/ArtifactsListPage';
 import { ArtifactOverrideEditorPage } from '../ArtifactOverrideEditorPage/ArtifactOverrideEditorPage';
 

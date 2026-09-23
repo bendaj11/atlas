@@ -1,6 +1,6 @@
-import type { ReactVersionProfile } from '../../shared/versions/generator-versions.js';
+import type { ReactVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
-export function reactHostBootstrap(profile: ReactVersionProfile): string {
+export function renderReactHostBootstrap(profile: ReactVersionProfile): string {
   const imports =
     profile.major <= 17
       ? 'import { render, unmountComponentAtNode } from "react-dom";'
@@ -14,7 +14,7 @@ import { StrictMode } from "react";
 ${imports}
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import type { AtlasHostClientEntry } from "@atlas/sdk/lifecycle";
+import type { AtlasHostClientEntry, AtlasHostMountRequest } from "@atlas/sdk/lifecycle";
 import {
   AtlasHostProvider,
   AtlasHostStatus,
@@ -26,8 +26,6 @@ import {
 import atlasConfig from "../atlas.config";
 import { useCustomHostSdkOptions, type CustomerHostSdk } from "./host.config";
 import "./styles.css";
-
-type HostMountRequest = Parameters<AtlasHostClientEntry["mount"]>[0];
 
 function HostLayout() {
   return (
@@ -43,7 +41,7 @@ function HostLayout() {
   );
 }
 
-function HostApplication({ request, router }: { request: HostMountRequest; router: ReturnType<typeof createBrowserRouter> }) {
+function HostApplication({ request, router }: { request: AtlasHostMountRequest; router: ReturnType<typeof createBrowserRouter> }) {
   const { hostData, ...sdkOptions } = useCustomHostSdkOptions();
 
   return (
@@ -63,7 +61,7 @@ function HostApplication({ request, router }: { request: HostMountRequest; route
   );
 }
 
-function mountHost(request: HostMountRequest) {
+function mountHost(request: AtlasHostMountRequest) {
   const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
   const element = (
     <StrictMode>
@@ -78,7 +76,7 @@ export const mount: AtlasHostClientEntry["mount"] = mountHost;
 `;
 }
 
-export function reactHostSdkConfig(): string {
+export function renderReactHostSdkConfig(): string {
   return `import type { HostSdkOptions } from "@atlas/runtime/react";
 
 /** Add product-specific host SDK capabilities here. Hooks are supported. */
@@ -90,7 +88,7 @@ export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
 `;
 }
 
-export function reactHostMain(): string {
+export function renderReactHostMain(): string {
   return `const root = document.getElementById("root");
 if (!root) throw new Error("React root is missing.");
 

@@ -4,7 +4,7 @@ import {
   saveArtifactVersionOverride,
   setArtifactVersionOverrideScope,
   toggleArtifactVersionOverride,
-} from '../../scripts/overrides/artifact-version-override-reducers/artifact-version-override-reducers';
+} from '../../utils/artifact-version-override-transitions/artifact-version-override-transitions';
 import type { ArtifactOverride } from '../../types/artifact';
 import type { ColumbusState, Scope } from '../../types/columbus-state';
 import type { OverrideStatus } from '../../types/override-status';

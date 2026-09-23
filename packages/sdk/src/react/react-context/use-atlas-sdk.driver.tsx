@@ -32,7 +32,7 @@ export class UseAtlasSdkDriver {
   });
 
   readonly given = {
-    userName: (userName: string): this => {
+    userName: (userName: string) => {
       updateAtlasHostData(this.sdk, { userName });
 
       return this;
@@ -40,7 +40,7 @@ export class UseAtlasSdkDriver {
   };
 
   readonly when = {
-    rendered: (): void => {
+    rendered: () => {
       render(
         createElement(AtlasSdkProvider, {
           sdk: this.sdk,
@@ -48,16 +48,16 @@ export class UseAtlasSdkDriver {
         }),
       );
     },
-    renderedWithoutProvider: (): void => {
+    renderedWithoutProvider: () => {
       render(createElement(SdkConsumer));
     },
-    hostUserRenamed: (userName: string): void => {
+    hostUserRenamed: (userName: string) => {
       updateAtlasHostData(this.sdk, { userName });
     },
   };
 
   readonly get = {
-    hostUser: (): string | null =>
+    hostUser: () =>
       screen.getByRole('status', { name: HOST_USER_LABEL }).textContent,
   };
 }

@@ -1,7 +1,11 @@
-import { readFile } from 'node:fs/promises';
 import { faker } from '@faker-js/faker';
-import { PromptTestDouble } from '../../shared/interaction/interaction.testkit.js';
+import type {
+  AtlasProject,
+  AtlasWorkspaceKind,
+} from '../../workspace/index.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import { readFile } from 'node:fs/promises';
+import { PromptTestDouble } from '../../shared/interaction/interaction.testkit.js';
 import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import { AtlasGenerateService } from './generate.service.js';
 import {
@@ -9,10 +13,6 @@ import {
   doesPathExist,
   readJsonFile,
 } from '../../shared/index.js';
-import type {
-  AtlasProject,
-  AtlasWorkspaceKind,
-} from '../../workspace/index.js';
 
 export class GenerateServiceDriver {
   private readonly directory = new TemporaryDirectory();
@@ -22,28 +22,22 @@ export class GenerateServiceDriver {
   private prompts = new PromptTestDouble([], false);
 
   readonly given = {
-    workspace: async (): Promise<this> => {
+    workspace: async () => {
       await this.directory.create('atlas-generate-service-');
 
       return this;
     },
-    workspaceKind: (kind: AtlasWorkspaceKind): this => {
+    workspaceKind: (kind: AtlasWorkspaceKind) => {
       this.kind = kind;
 
       return this;
     },
-    workspaceFile: async (
-      relativePath: string,
-      value: unknown,
-    ): Promise<this> => {
+    workspaceFile: async (relativePath: string, value: unknown) => {
       await this.directory.writeJson(relativePath, value);
 
       return this;
     },
-    project: async (
-      name: string,
-      files: Record<string, string>,
-    ): Promise<this> => {
+    project: async (name: string, files: Record<string, string>) => {
       for (const [file, contents] of Object.entries(files))
         await this.directory.writeFile(`${name}/${file}`, contents);
       this.projects.push(
@@ -56,12 +50,12 @@ export class GenerateServiceDriver {
 
       return this;
     },
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = ['--skip-format', ...flags];
 
       return this;
     },
-    prompts: (answers: string[], interactive: boolean): this => {
+    prompts: (answers: string[], interactive: boolean) => {
       this.prompts = new PromptTestDouble(answers, interactive);
 
       return this;
@@ -73,26 +67,24 @@ export class GenerateServiceDriver {
       type: 'host' | 'app',
       name: string,
       framework: 'react' | 'angular',
-    ): Promise<string[]> => this.service().project(type, name, framework),
-    widgetGenerated: (name: string, appId?: string): Promise<void> =>
+    ) => this.service().project(type, name, framework),
+    widgetGenerated: (name: string, appId?: string) =>
       this.service().widget(name, appId),
   };
 
   readonly get = {
-    questions: (): readonly string[] => this.prompts.questions,
-    inputDefaults: (): readonly (string | undefined)[] =>
-      this.prompts.inputDefaults,
-    choiceLabels: (index: number): readonly string[] | undefined =>
-      this.prompts.choiceLabels[index],
-    file: (relativePath: string): Promise<string> =>
+    questions: () => this.prompts.questions,
+    inputDefaults: () => this.prompts.inputDefaults,
+    choiceLabels: (index: number) => this.prompts.choiceLabels[index],
+    file: (relativePath: string) =>
       readFile(this.directory.path(relativePath), 'utf8'),
-    fileExists: (relativePath: string): Promise<boolean> =>
+    fileExists: (relativePath: string) =>
       doesPathExist(this.directory.path(relativePath)),
     json: (relativePath: string) =>
       readJsonFile<Record<string, unknown>>(this.directory.path(relativePath)),
   };
 
-  private service(): AtlasGenerateService {
+  private service() {
     return new AtlasGenerateService(
       aWorkspace({
         kind: this.kind,

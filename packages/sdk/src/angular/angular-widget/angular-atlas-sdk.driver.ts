@@ -11,10 +11,7 @@ import {
 } from '../../core/sdk-factory/index.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { createAngularAtlasSdk } from './angular-atlas-sdk.js';
-import type {
-  AngularAtlasSdk,
-  AngularWidgetBinding,
-} from './angular-widget.types.js';
+import type { AngularAtlasSdk } from './angular-widget.types.js';
 
 interface WidgetInputs {
   readonly count: number;
@@ -41,12 +38,9 @@ export class AngularAtlasSdkDriver {
   }
 
   readonly get = {
-    binding: (
-      widgetId: string,
-      inputs: WidgetInputs,
-    ): AngularWidgetBinding<WidgetInputs> =>
+    binding: (widgetId: string, inputs: WidgetInputs) =>
       this.angularSdk.getWidget<WidgetInputs>(widgetId, { inputs }),
-    hostData: (): object => this.angularSdk.hostData(),
-    sdkHostData: (): object => this.sdk.hostData,
+    hostData: () => this.angularSdk.hostData(),
+    sdkHostData: () => this.sdk.hostData,
   };
 }

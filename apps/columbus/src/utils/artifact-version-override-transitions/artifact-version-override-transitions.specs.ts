@@ -1,13 +1,13 @@
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
-import { aColumbusState } from '../../../testkit/columbus-state.testkit';
+import { aColumbusState } from '../../testkit/columbus-state.testkit';
 import {
   clearAllArtifactVersionOverrides,
   clearArtifactVersionOverride,
   saveArtifactVersionOverride,
   setArtifactVersionOverrideScope,
   toggleArtifactVersionOverride,
-} from './artifact-version-override-reducers';
+} from './artifact-version-override-transitions';
 
 describe('saveArtifactVersionOverride', () => {
   it('should enable the selected version under the deployed artifact id when a selection is saved', () => {

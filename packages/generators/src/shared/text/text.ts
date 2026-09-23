@@ -1,15 +1,15 @@
-export function title(value: string): string {
-  return value
+export function convertIdToTitle(id: string): string {
+  return id
     .split(/[-_\s]+/)
     .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
-export function pascal(value: string): string {
-  return title(value).replace(/\s+/g, '');
+export function convertIdToPascalCase(id: string): string {
+  return convertIdToTitle(id).replace(/\s+/g, '');
 }
 
-export function json(value: unknown): string {
-  return `${JSON.stringify(value, null, 2)}\n`;
+export function formatJsonDocument(document: unknown): string {
+  return `${JSON.stringify(document, null, 2)}\n`;
 }

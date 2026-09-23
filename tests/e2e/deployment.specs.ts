@@ -239,7 +239,7 @@ test('should write only environment state when deployment crosses registry roots
   await runAtlasCli(
     workspaceRoot,
     [
-      'packages/cli/dist/cli/entrypoint.js',
+      'packages/cli/dist/cli/entrypoint/entrypoint.js',
       'deploy',
       EXTERNAL_SHARED_UI_ID,
       '--to=cross-registry-e2e',
@@ -265,7 +265,7 @@ test('should write only environment state when deployment crosses registry roots
 
 async function selectCatalogRelease(version: string): Promise<void> {
   const args = [
-    'packages/cli/dist/cli/entrypoint.js',
+    'packages/cli/dist/cli/entrypoint/entrypoint.js',
     'deploy',
     CATALOG_REACT_ID,
     '--to=production',

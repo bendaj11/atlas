@@ -14,7 +14,7 @@ describe('ValidationIssues', () => {
     });
 
     it('should list nothing when nothing was added', () => {
-      expect(driver.get.list()).toEqual([]);
+      expect(driver.get.issues()).toEqual([]);
     });
 
     it('should list the issue with its own path when added', () => {
@@ -24,7 +24,7 @@ describe('ValidationIssues', () => {
       };
       driver.when.added(issue);
 
-      expect(driver.get.list()).toEqual([issue]);
+      expect(driver.get.issues()).toEqual([issue]);
     });
 
     it('should prefix the path with the scope when added through a scope', () => {
@@ -33,9 +33,9 @@ describe('ValidationIssues', () => {
         path: faker.lorem.word(),
         message: faker.lorem.sentence(),
       };
-      driver.when.addedAt(scope, issue);
+      driver.when.addedInScope(scope, issue);
 
-      expect(driver.get.list()).toEqual([
+      expect(driver.get.issues()).toEqual([
         { path: `${scope}.${issue.path}`, message: issue.message },
       ]);
     });
@@ -43,9 +43,9 @@ describe('ValidationIssues', () => {
     it('should use the scope alone as path when added through a scope with an empty path', () => {
       const scope = faker.lorem.word();
       const message = faker.lorem.sentence();
-      driver.when.addedAt(scope, { path: '', message });
+      driver.when.addedInScope(scope, { path: '', message });
 
-      expect(driver.get.list()).toEqual([{ path: scope, message }]);
+      expect(driver.get.issues()).toEqual([{ path: scope, message }]);
     });
   });
 
@@ -63,7 +63,7 @@ describe('ValidationIssues', () => {
       };
       driver.when.added(issue);
 
-      expect(driver.get.list()).toEqual([
+      expect(driver.get.issues()).toEqual([
         { path: `${prefix}.${issue.path}`, message: issue.message },
       ]);
     });
@@ -74,9 +74,9 @@ describe('ValidationIssues', () => {
         path: faker.lorem.word(),
         message: faker.lorem.sentence(),
       };
-      driver.when.addedAt(scope, issue);
+      driver.when.addedInScope(scope, issue);
 
-      expect(driver.get.list()).toEqual([
+      expect(driver.get.issues()).toEqual([
         { path: `${prefix}.${scope}.${issue.path}`, message: issue.message },
       ]);
     });

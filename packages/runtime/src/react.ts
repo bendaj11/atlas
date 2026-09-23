@@ -7,27 +7,34 @@ import {
   useState,
   useSyncExternalStore,
   type ReactElement,
-  type ReactNode,
 } from 'react';
-import { updateAtlasHostData, type AtlasHostDataOf } from '@atlas/sdk';
-import {
-  AtlasSdkProvider,
-  createHostNavigation,
-  type RouterLike,
-} from '@atlas/sdk/react';
-import { startDomHost, type DomHostOptions } from './dom-host.js';
-import type { DomRuntimeOptions } from './dom-host-options.js';
-import { createDomHostSdk } from './dom-host-sdk.js';
+import { updateAtlasHostData, type AtlasHostData } from '@atlas/sdk';
+import { AtlasSdkProvider, createHostNavigation } from '@atlas/sdk/react';
+import { AtlasHostProviderMissingError } from './adapters/adapter.errors.js';
+import { startDomHost } from './dom-host/dom-host.js';
+import { createDomHostSdk } from './dom-host/dom-host-sdk.js';
+import { AtlasHostAnchorRegistry } from './dom-host/host-anchors.js';
+import type { AtlasHostAnchorKind } from './dom-host/host-anchors.types.js';
 import {
   readAtlasNavigationItems,
   subscribeAtlasNavigationItems,
-  type AtlasHostNavigationItem,
-  type AtlasHostRuntime,
-} from './index.js';
-import {
-  AtlasHostAnchorRegistry,
-  type AtlasHostAnchorKind,
-} from './host-anchors.js';
+} from './dom-host/host-navigation.js';
+import type { AtlasHostNavigationItem } from './dom-host/host-navigation.types.js';
+import type { AtlasHostRuntime } from './host-runtime/host-runtime.types.js';
+import type {
+  AtlasHostLayoutProps,
+  AtlasHostProviderProps,
+  AtlasNavigationProps,
+  AtlasSlotProps,
+  HostOptions,
+  HostProviderState,
+} from './react.types.js';
+
+export type {
+  AtlasHostProviderProps,
+  HostOptions,
+  HostSdkOptions,
+} from './react.types.js';
 
 const AtlasHostAnchorsContext = createContext<
   AtlasHostAnchorRegistry | undefined
@@ -49,24 +56,6 @@ export function AtlasDefaultHostLayout(): ReactElement {
   );
 }
 
-export type HostOptions<THostSdk extends object = {}> =
-  DomHostOptions<THostSdk> & {
-    router: RouterLike;
-  };
-
-/** Product SDK configuration supplied to a React Atlas host. */
-export type HostSdkOptions<THostSdk extends object = {}> = Omit<
-  HostOptions<THostSdk>,
-  keyof DomRuntimeOptions | 'router' | 'navigation' | 'sdk'
-> &
-  Pick<HostOptions<THostSdk>, 'observe'>;
-
-export interface AtlasHostProviderProps<THostSdk extends object = {}> {
-  children: ReactNode;
-  hostId: string;
-  options: HostOptions<THostSdk>;
-}
-
 /** Boots Atlas discovery, Native Federation, routing, slots, and lifecycle for a React host. */
 export async function startHost<THostSdk extends object = {}>(
   options: HostOptions<THostSdk>,
@@ -82,7 +71,7 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
   props: AtlasHostProviderProps<THostSdk>,
 ): ReactElement {
   const [{ options, sdk, anchors }] = useState(() =>
-    createProviderState(props),
+    createHostProviderState(props),
   );
 
   useEffect(() => {
@@ -91,23 +80,25 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
 
     void Promise.resolve().then(async () => {
       if (!active) return;
+
       try {
         runtime = await startHost(options);
+
         if (!active) await runtime.stop();
       } catch {
-        // startDomHost already renders and reports one structured browser error.
+        return;
       }
     });
 
     return () => {
       active = false;
+
       if (runtime) void runtime.stop();
     };
   }, [options]);
 
   useEffect(() => {
-    const updates = readCustomHostData(props.options.hostData);
-    updateAtlasHostData(sdk, updates as Partial<AtlasHostDataOf<THostSdk>>);
+    updateAtlasHostData(sdk, pickCustomHostData(props.options.hostData));
   }, [props.options.hostData, sdk]);
 
   return createElement(AtlasHostAnchorsContext.Provider, {
@@ -119,18 +110,15 @@ export function AtlasHostProvider<THostSdk extends object = {}>(
   });
 }
 
-function createProviderState<THostSdk extends object>(
+function createHostProviderState<THostSdk extends object>(
   props: AtlasHostProviderProps<THostSdk>,
-): {
-  options: HostOptions<THostSdk>;
-  sdk: ReturnType<typeof createDomHostSdk<THostSdk>>;
-  anchors: AtlasHostAnchorRegistry;
-} {
+): HostProviderState<THostSdk> {
   const { hostId, options: hostOptions } = props;
   const navigation =
     hostOptions.navigation ?? createHostNavigation(hostOptions.router);
-  const sdk = createDomHostSdk(hostOptions, hostId, navigation);
+  const sdk = createDomHostSdk({ options: hostOptions, hostId, navigation });
   const anchors = new AtlasHostAnchorRegistry();
+
   return {
     options: { ...hostOptions, navigation, sdk, anchors },
     sdk,
@@ -138,75 +126,73 @@ function createProviderState<THostSdk extends object>(
   };
 }
 
-function readCustomHostData(hostData: object | undefined): object {
+function pickCustomHostData(
+  hostData: Partial<AtlasHostData> | undefined,
+): Omit<Partial<AtlasHostData>, 'hostId' | 'name'> {
   if (!hostData) return {};
-  const {
-    hostId: _hostId,
-    name: _name,
-    ...updates
-  } = hostData as {
-    hostId?: unknown;
-    name?: unknown;
-  };
+
+  const { hostId: _hostId, name: _name, ...updates } = hostData;
+
   return updates;
 }
 
 export function AtlasHostStatus(): ReactElement {
-  return useHostAnchor('status');
+  return useRegisteredHostAnchor('status');
 }
-export function AtlasNavigation(props: {
-  'aria-label'?: string;
-}): ReactElement {
-  return useHostAnchor('navigation', undefined, props);
+
+export function AtlasNavigation(props: AtlasNavigationProps): ReactElement {
+  return useRegisteredHostAnchor('navigation', undefined, props);
 }
+
 export function AtlasRouteOutlet(): ReactElement {
-  return useHostAnchor('route-outlet');
+  return useRegisteredHostAnchor('route-outlet');
 }
 
 /** Renders host layout content only while Atlas activates its layout id. */
-export function AtlasHostLayout(props: {
-  layoutId: string;
-  children?: ReactNode;
-}): ReactElement | null {
+export function AtlasHostLayout(
+  props: AtlasHostLayoutProps,
+): ReactElement | null {
   const anchors = useAtlasHostAnchors();
   const activeLayoutId = useSyncExternalStore(
     (listener) => anchors.subscribeLayouts(listener),
     () => anchors.getActiveLayout(),
     () => undefined,
   );
+
   return activeLayoutId === props.layoutId
     ? createElement(Fragment, null, props.children)
     : null;
 }
 
-export function AtlasSlot(props: { slotId: string }): ReactElement {
-  return useHostAnchor('slot', props.slotId);
+export function AtlasSlot(props: AtlasSlotProps): ReactElement {
+  return useRegisteredHostAnchor('slot', props.slotId);
 }
 
-function useHostAnchor(
+function useRegisteredHostAnchor(
   kind: AtlasHostAnchorKind,
   name?: string,
-  props?: Record<string, string | undefined>,
+  props?: AtlasNavigationProps,
 ): ReactElement {
   const anchors = useAtlasHostAnchors();
   const [element, setElement] = useState<HTMLElement | null>(null);
+
   useEffect(
     () => (element ? anchors.register(kind, element, name) : undefined),
     [anchors, element, kind, name],
   );
-  return createElement(anchorTag(kind), { ...props, ref: setElement });
+
+  return createElement(getAnchorTagName(kind), { ...props, ref: setElement });
 }
 
 function useAtlasHostAnchors(): AtlasHostAnchorRegistry {
   const anchors = useContext(AtlasHostAnchorsContext);
-  if (!anchors)
-    throw new Error(
-      'Atlas host anchors must be rendered inside AtlasHostProvider.',
-    );
+
+  if (!anchors) throw new AtlasHostProviderMissingError();
+
   return anchors;
 }
 
-function anchorTag(kind: AtlasHostAnchorKind): string {
+function getAnchorTagName(kind: AtlasHostAnchorKind): string {
   return `atlas-${kind}`;
 }
 
@@ -214,9 +200,12 @@ export function useAtlasNavigationItems(
   document: Document = globalThis.document,
 ): readonly AtlasHostNavigationItem[] {
   const [items, setItems] = useState(() => readAtlasNavigationItems(document));
+
   useEffect(() => {
     setItems(readAtlasNavigationItems(document));
+
     return subscribeAtlasNavigationItems(setItems, document);
   }, [document]);
+
   return items;
 }

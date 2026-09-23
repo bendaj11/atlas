@@ -1,6 +1,6 @@
-import { digestToIntegrity } from './digest-to-integrity.js';
+import { convertDigestToIntegrity } from './digest-to-integrity.js';
 
-describe('digestToIntegrity', () => {
+describe('convertDigestToIntegrity', () => {
   it.each([
     [`sha256:${'00'.repeat(32)}`, `sha256-${'A'.repeat(43)}=`],
     [
@@ -8,6 +8,6 @@ describe('digestToIntegrity', () => {
       'sha256-//////////////////////////////////////////8=',
     ],
   ])('should convert %s to base64 SRI when converted', (digest, integrity) => {
-    expect(digestToIntegrity(digest)).toBe(integrity);
+    expect(convertDigestToIntegrity(digest)).toBe(integrity);
   });
 });

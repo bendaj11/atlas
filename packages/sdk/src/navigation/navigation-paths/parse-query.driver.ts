@@ -5,12 +5,12 @@ export class ParseQueryDriver {
   private result: AtlasQueryValues | undefined;
 
   readonly when = {
-    queryParsed: (search: string): void => {
+    queryParsed: (search: string) => {
       this.result = parseQuery(search);
     },
   };
 
   readonly get = {
-    result: (): AtlasQueryValues | undefined => this.result,
+    result: () => this.result,
   };
 }

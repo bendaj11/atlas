@@ -218,4 +218,3 @@ export function buildBrowserOpenCommand(
 
   return { command: 'xdg-open', args: [url] };
 }
-

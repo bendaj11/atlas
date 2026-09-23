@@ -10,7 +10,6 @@ import type {
   AtlasSdkOptions,
   AtlasWidgetHandle,
 } from '../sdk-types/index.js';
-import type { AtlasNavigation } from '../../navigation/navigation-types/navigation-types.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import {
   connectAtlasNavigationResolver,
@@ -46,32 +45,32 @@ export class SdkFactoryDriver {
   private sdk!: AtlasSdk<CommerceHostSdk>;
 
   readonly given = {
-    hostId: (hostId: string): this => {
+    hostId: (hostId: string) => {
       this.options = { ...this.options, hostId };
 
       return this;
     },
-    hostData: (hostData: CommerceHostDataOption): this => {
+    hostData: (hostData: CommerceHostDataOption) => {
       this.options = { ...this.options, hostData };
 
       return this;
     },
-    showToast: (showToast: ShowToast): this => {
+    showToast: (showToast: ShowToast) => {
       this.options = { ...this.options, showToast };
 
       return this;
     },
-    eventBus: (eventBus: AtlasEventBus): this => {
+    eventBus: (eventBus: AtlasEventBus) => {
       this.options = { ...this.options, eventBus };
 
       return this;
     },
-    reservedProperty: (name: string, value: unknown): this => {
+    reservedProperty: (name: string, value: unknown) => {
       this.options = { ...this.options, [name]: value };
 
       return this;
     },
-    widgetHandle: (handle: AtlasWidgetHandle<object>): this => {
+    widgetHandle: (handle: AtlasWidgetHandle<object>) => {
       this.widgetResolver.mockReturnValue(handle);
 
       return this;
@@ -79,32 +78,27 @@ export class SdkFactoryDriver {
   };
 
   readonly when = {
-    sdkCreated: (): void => {
+    sdkCreated: () => {
       this.sdk = createAtlasSdk<CommerceHostSdk>(this.options);
     },
-    widgetResolverConnected: (): void => {
+    widgetResolverConnected: () => {
       connectAtlasWidgetResolver(this.sdk, this.widgetResolver);
     },
-    navigationResolverConnected: (): void => {
+    navigationResolverConnected: () => {
       connectAtlasNavigationResolver(this.sdk, this.navigationResolver);
     },
-    navigatedTo: (appId: string, state?: AtlasNavigationState): void => {
+    navigatedTo: (appId: string, state?: AtlasNavigationState) => {
       this.sdk.navigateTo(appId, state);
     },
   };
 
   readonly get = {
-    sdk: (): AtlasSdk<CommerceHostSdk> => this.sdk,
-    widget: (
-      widgetId: string,
-      options?: AtlasGetWidgetOptions,
-    ): AtlasWidgetHandle<object> =>
+    sdk: () => this.sdk,
+    widget: (widgetId: string, options?: AtlasGetWidgetOptions) =>
       this.sdk.getWidget<object>(widgetId, options),
-    widgetResolverMock: (): jest.Mock<AtlasGetWidget> => this.widgetResolver,
-    navigationResolverMock: (): jest.Mock<NavigationResolver> =>
-      this.navigationResolver,
-    hostNavigation: (): AtlasNavigation => this.navigation,
-    atlasNavigationOf: (sdk: object): AtlasNavigation =>
-      getAtlasNavigation(sdk),
+    widgetResolverMock: () => this.widgetResolver,
+    navigationResolverMock: () => this.navigationResolver,
+    hostNavigation: () => this.navigation,
+    atlasNavigationOf: (sdk: object) => getAtlasNavigation(sdk),
   };
 }

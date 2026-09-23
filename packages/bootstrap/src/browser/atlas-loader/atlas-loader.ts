@@ -1,7 +1,7 @@
 import { HostMountFailedError } from '../../shared/errors/index.js';
 import {
   ATLAS_RUNTIME_CONFIG_PATH,
-  resolveAtlasRuntimeConfig,
+  resolveAtlasHostRuntimeConfig,
 } from '@atlas/schema';
 import { fetchBytes, fetchJson } from '../fetch-json/index.js';
 import { loadHostModule } from '../host-loader/index.js';
@@ -20,7 +20,7 @@ export async function startAtlasLoader(
 ): Promise<void> {
   await dependencies.installModuleShim();
 
-  const runtime = resolveAtlasRuntimeConfig(
+  const runtime = resolveAtlasHostRuntimeConfig(
     await dependencies.fetchJson({ url: ATLAS_RUNTIME_CONFIG_PATH }),
     dependencies.location?.href ?? globalThis.location?.href,
   );
