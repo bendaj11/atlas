@@ -1,4 +1,7 @@
-import { generate, parse, walk, type Atrule, type CssNode } from 'css-tree';
+import type { Atrule, CssNode } from 'css-tree';
+import generate from 'css-tree/generator';
+import parse from 'css-tree/parser';
+import walk from 'css-tree/walker';
 
 /** Read imports with CORS; browser CSSOM access does not propagate through @import. */
 export async function prepareShadowImports(

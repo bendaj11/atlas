@@ -1,4 +1,8 @@
-import { generate, List, parse, walk, type CssNode } from 'css-tree';
+import type { CssNode } from 'css-tree';
+import generate from 'css-tree/generator';
+import parse from 'css-tree/parser';
+import { List } from 'css-tree/utils';
+import walk from 'css-tree/walker';
 
 /** Adapt document-root selectors without changing declarations or asset URLs. */
 export function adaptShadowRootSelector(selector: string): string {
