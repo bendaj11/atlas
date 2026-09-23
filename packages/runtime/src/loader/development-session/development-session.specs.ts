@@ -1,7 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+/** @jest-environment jsdom */
+
+import { faker } from '@faker-js/faker';
 import { DevelopmentSessionDriver } from './development-session.driver.js';
 
-describe('development session bridge', () => {
+describe('requestDevelopmentSession', () => {
   let driver: DevelopmentSessionDriver;
 
   beforeEach(() => {
@@ -10,16 +12,24 @@ describe('development session bridge', () => {
 
   afterEach(() => driver.dispose());
 
-  it('should return development document when Columbus provides one', async () => {
-    await driver.when.requested();
+  it('should resolve the session document when the bridge answers the request', async () => {
+    const sessionDocument = { hostId: faker.string.uuid() };
+    await driver.given.sessionDocument(sessionDocument).when.requested();
 
-    expect(driver.get.result()).toEqual(driver.get.document());
+    expect(driver.get.result()).toEqual(sessionDocument);
   });
 
-  it('should continue without delay when local control server is unavailable', async () => {
-    driver.given.unavailableControlServer();
+  it('should resolve undefined when the bridge answers without a document', async () => {
+    await driver.given.sessionDocument(undefined).when.requested();
 
-    await driver.when.requested();
+    expect(driver.get.result()).toBeUndefined();
+  });
+
+  it('should resolve undefined without waiting when the bridge marker is absent', async () => {
+    await driver.given
+      .bridgeMarker(false)
+      .given.bridgeResponding(false)
+      .when.requested();
 
     expect(driver.get.result()).toBeUndefined();
   });

@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "experimentalDecorators": true
   },
   "include": [
     "apps/**/*.specs.ts",

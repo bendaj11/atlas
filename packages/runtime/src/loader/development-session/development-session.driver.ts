@@ -1,99 +1,85 @@
+import { faker } from '@faker-js/faker';
 import {
+  ATLAS_DEV_BRIDGE_MARKER,
+  ATLAS_DEV_SESSION_REQUEST,
   ATLAS_DEV_SESSION_RESPONSE,
   type AtlasDevelopmentSessionRequest,
+  type AtlasDevelopmentSessionResponse,
 } from '@atlas/schema';
+import { installWebPlatformGlobals } from '../../shared/web-platform.testkit.js';
 import { requestDevelopmentSession } from './development-session.js';
 
+installWebPlatformGlobals();
+
 export class DevelopmentSessionDriver {
-  private readonly hostId = crypto.randomUUID();
-  private readonly documentValue = {
-    schemaVersion: '1',
-    hostId: this.hostId,
-    overrides: [],
-  };
-  private response: { document?: unknown; error?: string } = {
-    document: this.documentValue,
-  };
-  private result?: unknown;
-  private listener?: (event: MessageEvent) => void;
-  private readonly originalDocument = Object.getOwnPropertyDescriptor(
-    globalThis,
-    'document',
+  private readonly hostId = faker.string.uuid();
+  private readonly marker = document.head.appendChild(
+    document.createElement('meta'),
   );
-  private readonly originalLocation = Object.getOwnPropertyDescriptor(
-    globalThis,
-    'location',
-  );
-  private readonly originalWindow = Object.getOwnPropertyDescriptor(
-    globalThis,
-    'window',
-  );
+  private sessionDocument: unknown;
+  private respond = true;
+  private result: unknown;
+
+  constructor() {
+    this.marker.name = ATLAS_DEV_BRIDGE_MARKER;
+
+    window.addEventListener('message', this.answerSessionRequest);
+  }
 
   readonly given = {
-    unavailableControlServer: (): void => {
-      this.response = { error: 'Failed to fetch' };
+    sessionDocument: (sessionDocument: unknown) => {
+      this.sessionDocument = sessionDocument;
+
+      return this;
+    },
+    bridgeMarker: (present: boolean) => {
+      if (!present) this.marker.remove();
+
+      return this;
+    },
+    bridgeResponding: (respond: boolean) => {
+      this.respond = respond;
+
+      return this;
     },
   };
 
   readonly when = {
-    requested: async (): Promise<void> => {
-      this.installBrowserBridge();
+    requested: async () => {
       this.result = await requestDevelopmentSession(this.hostId);
     },
   };
 
   readonly get = {
-    document: (): unknown => this.documentValue,
-    result: (): unknown => this.result,
+    result: () => this.result,
   };
 
   dispose(): void {
-    restoreGlobal('document', this.originalDocument);
-    restoreGlobal('location', this.originalLocation);
-    restoreGlobal('window', this.originalWindow);
+    window.removeEventListener('message', this.answerSessionRequest);
+    this.marker.remove();
   }
 
-  private installBrowserBridge(): void {
-    const bridgeWindow = {
-      addEventListener: (
-        _type: string,
-        listener: (event: MessageEvent) => void,
-      ) => {
-        this.listener = listener;
-      },
-      clearTimeout,
-      postMessage: (request: AtlasDevelopmentSessionRequest) => {
-        queueMicrotask(() => {
-          this.listener?.({
-            data: {
-              type: ATLAS_DEV_SESSION_RESPONSE,
-              requestId: request.requestId,
-              hostId: request.hostId,
-              ...this.response,
-            },
-          } as MessageEvent);
-        });
-      },
-      removeEventListener: () => {
-        this.listener = undefined;
-      },
-      setTimeout,
+  private readonly answerSessionRequest = (event: MessageEvent) => {
+    if (!this.respond || !isSessionRequest(event.data)) return;
+
+    const response: AtlasDevelopmentSessionResponse = {
+      type: ATLAS_DEV_SESSION_RESPONSE,
+      requestId: event.data.requestId,
+      hostId: event.data.hostId,
+      document: this.sessionDocument,
     };
-    Object.defineProperties(globalThis, {
-      document: {
-        configurable: true,
-        value: { querySelector: () => ({}) },
-      },
-      location: { configurable: true, value: { origin: 'https://host.test' } },
-      window: { configurable: true, value: bridgeWindow },
-    });
-  }
+
+    window.postMessage(response, location.origin);
+  };
 }
 
-function restoreGlobal(
-  name: 'document' | 'location' | 'window',
-  descriptor: PropertyDescriptor | undefined,
-): void {
-  if (descriptor) Object.defineProperty(globalThis, name, descriptor);
-  else Reflect.deleteProperty(globalThis, name);
+function isSessionRequest(
+  value: unknown,
+): value is AtlasDevelopmentSessionRequest {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    value.type === ATLAS_DEV_SESSION_REQUEST
+  );
 }

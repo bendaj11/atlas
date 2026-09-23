@@ -1,23 +1,23 @@
 import type { AtlasNavigationState } from '@atlas/sdk';
 import type { AtlasNavigation } from '@atlas/sdk/navigation';
-import {
-  createAppNavigator,
-  type AtlasNavigationTarget,
-} from './app-navigator.js';
+import { createAppNavigator } from './app-navigator.js';
+import type { AtlasNavigationTarget } from './app-navigator.types.js';
 
 export class AppNavigatorDriver {
-  private error: { code?: string } | undefined;
+  private error: unknown;
   private navigationPath: string | undefined;
   private targets: readonly AtlasNavigationTarget[] = [];
 
-  given = {
-    targets: (targets: readonly AtlasNavigationTarget[]): void => {
+  readonly given = {
+    targets: (targets: readonly AtlasNavigationTarget[]) => {
       this.targets = targets;
+
+      return this;
     },
   };
 
-  when = {
-    navigateTo: (appId: string, state?: AtlasNavigationState): void => {
+  readonly when = {
+    navigateTo: (appId: string, state?: AtlasNavigationState) => {
       try {
         createAppNavigator(this.navigation(), this.targets)(appId, state);
       } catch (error) {
@@ -26,9 +26,9 @@ export class AppNavigatorDriver {
     },
   };
 
-  get = {
-    navigationPath: (): string | undefined => this.navigationPath,
-    errorCode: (): string | undefined => this.error?.code,
+  readonly get = {
+    navigationPath: () => this.navigationPath,
+    error: () => this.error,
   };
 
   private navigation(): AtlasNavigation {

@@ -1,166 +1,101 @@
 import type { AtlasManifest } from '@atlas/schema';
+import { anAppManifest } from '@atlas/testkit';
+import type { AtlasAssetRewriteRelease } from '../remote-assets.types.js';
 import {
   rewriteAssetUrl,
   rewriteCssAssetUrls,
   startRemoteAssetRewrite,
-  type AtlasAssetRewriteRelease,
 } from './remote-assets.js';
 
-interface TestElement extends HTMLElement {
-  testChildren: TestElement[];
+interface MountedAppSession {
+  manifest: AtlasManifest;
+  boundary: HTMLElement;
+  release: AtlasAssetRewriteRelease;
 }
 
 export class RemoteAssetsDriver {
-  private readonly boundary = createElement('div');
-  private readonly head = createElement('head');
-  private readonly shadowRoot = createElement('shadow-root', 11);
-  private readonly document = Object.assign(Object.create(null), {
-    head: this.head,
-  }) as Document;
-  private release: AtlasAssetRewriteRelease = () => undefined;
-  private appManifest: AtlasManifest | undefined;
+  private readonly document = document.implementation.createHTMLDocument();
+  private readonly sessionsByAppId = new Map<string, MountedAppSession>();
+  private readonly addedStyles: HTMLStyleElement[] = [];
+  private lastManifest: AtlasManifest | undefined;
+  private appendedImage: HTMLImageElement | undefined;
   private rewrittenAssetUrl = '';
   private rewrittenCss = '';
 
-  constructor() {
-    Object.assign(this.boundary, {
-      ownerDocument: this.document,
-      getRootNode: () => this.shadowRoot,
-    });
-    Object.assign(this.shadowRoot, { host: this.boundary });
-  }
-
   readonly given = {
-    app: (appId: string): RemoteAssetsDriver =>
-      this.givenAppAt(appId, `https://cdn.example/${appId}/remoteEntry.json`),
-    appAt: (appId: string, remoteEntryUrl: string): RemoteAssetsDriver =>
-      this.givenAppAt(appId, remoteEntryUrl),
+    appAt: (appId: string, remoteEntryUrl: string) => {
+      const manifest = anAppManifest({
+        id: appId,
+        remoteEntryUrl,
+        isolation: 'shadow-dom',
+      });
+      const boundary = this.document.body
+        .appendChild(this.document.createElement('div'))
+        .attachShadow({ mode: 'open' })
+        .appendChild(this.document.createElement('div'));
+      this.lastManifest = manifest;
+      this.sessionsByAppId.set(appId, {
+        manifest,
+        boundary,
+        release: startRemoteAssetRewrite(manifest, boundary, this.document),
+      });
+
+      return this;
+    },
   };
 
   readonly when = {
-    angularAddsComponentStyle: (appId: string): RemoteAssetsDriver => {
-      const style = createElement('style');
-      style.textContent = `.title[_ngcontent-${appId}-c0]{color:rebeccapurple}`;
-      this.head.appendChild(style);
-      return this;
+    documentStyleAdded: (cssText: string) => {
+      this.document.head.appendChild(this.createStyle(cssText));
     },
-    appUnmounts: (): RemoteAssetsDriver => {
-      this.release();
-      return this;
+    documentFragmentWithStyleAdded: (cssText: string) => {
+      const fragment = this.document.createDocumentFragment();
+
+      fragment.appendChild(this.createStyle(cssText));
+      this.document.head.appendChild(fragment);
     },
-    rewritingAssetUrl: (assetUrl: string): RemoteAssetsDriver => {
-      this.rewrittenAssetUrl = rewriteAssetUrl(
-        assetUrl,
-        this.requireManifest(),
-      );
-      return this;
+    boundaryStyleAdded: (appId: string, cssText: string) => {
+      this.sessionsByAppId
+        .get(appId)!
+        .boundary.appendChild(this.createStyle(cssText));
     },
-    rewritingCss: (cssText: string): RemoteAssetsDriver => {
-      this.rewrittenCss = rewriteCssAssetUrls(cssText, this.requireManifest());
-      return this;
+    boundaryImageAppended: (appId: string, src: string) => {
+      const wrapper = this.document.createElement('div');
+      this.appendedImage = this.document.createElement('img');
+
+      this.appendedImage.setAttribute('src', src);
+      wrapper.append(this.appendedImage);
+      this.sessionsByAppId.get(appId)!.boundary.append(wrapper);
+    },
+    appUnmounted: (appId: string) => this.sessionsByAppId.get(appId)!.release(),
+    rewritingAssetUrl: (assetUrl: string) => {
+      this.rewrittenAssetUrl = rewriteAssetUrl(assetUrl, this.lastManifest!);
+    },
+    rewritingCss: (cssText: string) => {
+      this.rewrittenCss = rewriteCssAssetUrls(cssText, this.lastManifest!);
     },
   };
 
   readonly get = {
-    shadowStyleTexts: (): string[] =>
-      this.shadowRoot.testChildren.map((style) => style.textContent ?? ''),
-    rewrittenAssetUrl: (): string => this.rewrittenAssetUrl,
-    rewrittenCss: (): string => this.rewrittenCss,
+    shadowStyleTexts: (appId: string) =>
+      [...this.sessionsByAppId.get(appId)!.boundary.getRootNode().childNodes]
+        .filter((node): node is HTMLStyleElement => node.nodeName === 'STYLE')
+        .map((style) => style.textContent ?? ''),
+    boundaryChildAppend: (appId: string) =>
+      this.sessionsByAppId.get(appId)!.boundary.firstElementChild?.append,
+    addedStyleTexts: () =>
+      this.addedStyles.map((style) => style.textContent ?? ''),
+    appendedImageSrc: () => this.appendedImage!.getAttribute('src'),
+    rewrittenAssetUrl: () => this.rewrittenAssetUrl,
+    rewrittenCss: () => this.rewrittenCss,
   };
 
-  private givenAppAt(
-    appId: string,
-    remoteEntryUrl: string,
-  ): RemoteAssetsDriver {
-    this.appManifest = createManifest(appId, remoteEntryUrl);
-    this.release = startRemoteAssetRewrite(
-      this.appManifest,
-      this.boundary,
-      this.document,
-    );
-    return this;
+  private createStyle(cssText: string): HTMLStyleElement {
+    const style = this.document.createElement('style');
+    style.textContent = cssText;
+
+    this.addedStyles.push(style);
+
+    return style;
   }
-
-  private requireManifest(): AtlasManifest {
-    if (!this.appManifest)
-      throw new Error('Set an app manifest before rewriting assets.');
-    return this.appManifest;
-  }
-}
-
-function createManifest(id: string, remoteEntryUrl: string): AtlasManifest {
-  return {
-    id,
-    name: id,
-    version: '1.0.0',
-    schemaVersion: '1',
-    kind: 'app',
-    buildId: 'build',
-    channel: 'production',
-    framework: 'angular',
-    isolation: 'shadow-dom',
-    remoteEntryUrl,
-    exposes: { entry: './entry' },
-    requiredHostSdkVersion: '^1.0.0',
-    supportedHosts: ['*'],
-    placements: [],
-    createdAt: '2026-08-11T00:00:00.000Z',
-  };
-}
-
-function createElement(tagName: string, nodeType = 1): TestElement {
-  const element = Object.create(null) as TestElement;
-  const attributes = new Map<string, string>();
-  element.testChildren = [];
-  Object.defineProperties(element, {
-    nodeType: { value: nodeType },
-    tagName: { value: tagName.toUpperCase() },
-  });
-  element.getAttribute = (name) => attributes.get(name) ?? null;
-  element.setAttribute = (name, value) => void attributes.set(name, value);
-  Object.defineProperty(element, 'querySelectorAll', {
-    value: () => element.testChildren,
-  });
-  element.append = (...nodes) => appendElements(element, nodes);
-  element.prepend = (...nodes) => appendElements(element, nodes);
-  element.replaceChildren = (...nodes) => {
-    element.testChildren = nodes.filter(isTestElement);
-  };
-  element.appendChild = (node) => {
-    appendElements(element, [node]);
-    return node;
-  };
-  element.insertBefore = element.appendChild;
-  element.replaceChild = (node, oldNode) => {
-    const index = isTestElement(oldNode)
-      ? element.testChildren.indexOf(oldNode)
-      : -1;
-    if (index >= 0 && isTestElement(node)) element.testChildren[index] = node;
-    return oldNode;
-  };
-  element.cloneNode = () => {
-    const clone = createElement(tagName);
-    clone.textContent = element.textContent;
-    return clone;
-  };
-  return element;
-}
-
-function appendElements(
-  parent: TestElement,
-  nodes: readonly (Node | string)[],
-): void {
-  nodes.forEach((node) => {
-    if (!isTestElement(node)) return;
-    parent.testChildren.push(node);
-    node.remove = () => {
-      parent.testChildren = parent.testChildren.filter(
-        (child) => child !== node,
-      );
-    };
-  });
-}
-
-function isTestElement(value: unknown): value is TestElement {
-  return typeof value === 'object' && value !== null && 'testChildren' in value;
 }

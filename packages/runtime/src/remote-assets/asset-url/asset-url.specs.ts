@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { AssetUrlDriver } from './asset-url.driver.js';
 
-describe('remote asset URL resolver', () => {
+describe('createRemoteAssetResolver', () => {
   let driver: AssetUrlDriver;
 
   beforeEach(() => {

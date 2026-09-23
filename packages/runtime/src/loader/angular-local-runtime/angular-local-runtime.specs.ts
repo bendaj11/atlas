@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
 import { AngularLocalRuntimeDriver } from './angular-local-runtime.driver.js';
 
 describe('prepareAngularLocalRuntime', () => {
