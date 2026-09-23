@@ -4,7 +4,7 @@ import type { AtlasAppContext } from './app-context.js';
 import type { AtlasAppMountResult, AtlasMountOutcome } from './app-entry.js';
 
 export interface AtlasExportedWidgetMountRequest<
-  TProps extends object = Record<string, unknown>,
+  TProps extends object = object,
   THostSdk extends object = {},
 > {
   container: HTMLElement;
@@ -18,14 +18,12 @@ export interface AtlasExportedWidgetMountRequest<
 }
 
 export interface AtlasExportedWidgetMountResult<
-  TInputs extends object = Record<string, unknown>,
+  TInputs extends object = object,
 > extends AtlasAppMountResult {
   setInputs?(inputs: TInputs): void;
 }
 
-export interface AtlasExportedWidgetEntry<
-  TProps extends object = Record<string, unknown>,
-> {
+export interface AtlasExportedWidgetEntry<TProps extends object = object> {
   mount(
     request: AtlasExportedWidgetMountRequest<TProps>,
   ): AtlasMountOutcome<AtlasExportedWidgetMountResult<TProps>>;
