@@ -7,14 +7,17 @@ export interface AtlasRuntimeError {
   message: string;
 }
 
-export interface HostData {
+export interface HostPageState {
+  visibleAppIds: string[];
+  runtimeErrors: AtlasRuntimeError[];
+}
+
+export interface HostData extends HostPageState {
   config: AtlasHostRuntimeConfig;
   pageUrl: string;
   catalog: AtlasHostCatalog;
   versions: Record<string, ArtifactVersion[]>;
   overrides: AtlasOverrideDocument | undefined;
   overrideScope: 'all' | 'tab' | undefined;
-  visibleAppIds?: string[];
-  runtimeErrors: AtlasRuntimeError[];
   versionErrors: string[];
 }

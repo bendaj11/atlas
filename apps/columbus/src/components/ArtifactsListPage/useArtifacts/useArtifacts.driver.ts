@@ -60,7 +60,7 @@ export class UseArtifactsDriver {
 
       return this;
     },
-    visibleAppIds: (ids: string[] | undefined) => {
+    visibleAppIds: (ids: string[]) => {
       this.columbusState!.hostData.visibleAppIds = ids;
 
       return this;

@@ -1,12 +1,14 @@
 import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
+import type { HostData, HostPageState } from '../../types/host-data';
 import { versionKey } from '../artifact-version-keys/artifact-version-keys';
 import { failureMessage } from '../errors/errors';
 import {
   inspectHostRequest,
   isHostDataResponse,
   isManifestResponse,
+  isPageStateResponse,
   loadArtifactVersionRequest,
+  readPageStateRequest,
 } from '../messages/messages';
 import { OVERRIDE_DOCUMENT_KEY } from '../storage-keys/storage-keys';
 import { isExtensionPageUrl, isLoopbackUrl, isWebPageUrl } from '../urls/urls';
@@ -61,6 +63,17 @@ export async function loadArtifactVersionFromHostTab({
   if (!response.ok) throw new Error(response.error);
 
   return response.manifest;
+}
+
+export async function readPageStateFromHostTab(
+  tabId: number,
+): Promise<HostPageState> {
+  const response = await chrome.tabs.sendMessage(tabId, readPageStateRequest());
+  if (!isPageStateResponse(response))
+    throw new Error('Active page did not return its Atlas page state.');
+  if (!response.ok) throw new Error(response.error);
+
+  return response.pageState;
 }
 
 export async function reloadHostTab(tabId: number): Promise<void> {

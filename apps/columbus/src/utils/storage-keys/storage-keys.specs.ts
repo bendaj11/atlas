@@ -2,9 +2,18 @@ import { faker } from '@faker-js/faker';
 import {
   disabledLocalAppsKey,
   disabledOverridesKey,
+  hostDataCacheKey,
   persistedOverridesKey,
   suppressedArtifactsKey,
 } from './storage-keys';
+
+describe('hostDataCacheKey', () => {
+  it('should scope the key by tab when built', () => {
+    const tabId = faker.number.int();
+
+    expect(hostDataCacheKey(tabId)).toBe(`atlas.host-data-cache.${tabId}`);
+  });
+});
 
 describe('persistedOverridesKey', () => {
   it('should scope the key by host when built', () => {

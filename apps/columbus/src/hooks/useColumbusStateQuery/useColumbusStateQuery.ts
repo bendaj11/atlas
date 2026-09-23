@@ -10,8 +10,9 @@ export function useColumbusStateQuery() {
   return useQuery<ColumbusState, Error>({
     queryKey: COLUMBUS_STATE_QUERY_KEY,
     queryFn: () =>
-      loadColumbusState(
-        queryClient.getQueryData(COLUMBUS_STATE_QUERY_KEY) !== undefined,
-      ),
+      loadColumbusState({
+        bypassCache:
+          queryClient.getQueryData(COLUMBUS_STATE_QUERY_KEY) !== undefined,
+      }),
   });
 }

@@ -1,7 +1,10 @@
 import type { Scope } from '../../types/columbus-state';
 
 export const OVERRIDE_DOCUMENT_KEY = 'atlas.runtime-overrides';
-export const HOST_DATA_CACHE_KEY = 'atlas.host-data-cache';
+
+export function hostDataCacheKey(tabId: number): string {
+  return `atlas.host-data-cache.${tabId}`;
+}
 
 export function persistedOverridesKey(hostId: string): string {
   return `atlas.overrides.${hostId}`;

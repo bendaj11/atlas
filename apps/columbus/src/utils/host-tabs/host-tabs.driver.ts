@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
+import type { HostData, HostPageState } from '../../types/host-data';
 import type { ContentResponse } from '../messages/messages';
 import {
   type FakeChrome,
@@ -11,6 +11,7 @@ import {
 type TabMessageResponse =
   | ContentResponse<{ hostData: HostData }>
   | ContentResponse<{ manifest: ArtifactVersion }>
+  | ContentResponse<{ pageState: HostPageState }>
   | null;
 
 export class HostTabsDriver {

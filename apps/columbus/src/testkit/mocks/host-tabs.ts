@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type {
   findAtlasHostTab as findAtlasHostTabType,
   loadArtifactVersionFromHostTab as loadArtifactVersionFromHostTabType,
+  readPageStateFromHostTab as readPageStateFromHostTabType,
   reloadHostTab as reloadHostTabType,
 } from '../../utils/host-tabs/host-tabs';
 
@@ -11,6 +12,9 @@ export const findAtlasHostTabMock: jest.Mock<typeof findAtlasHostTabType> =
 export const loadArtifactVersionFromHostTabMock: jest.Mock<
   typeof loadArtifactVersionFromHostTabType
 > = jest.fn();
+export const readPageStateFromHostTabMock: jest.Mock<
+  typeof readPageStateFromHostTabType
+> = jest.fn();
 export const reloadHostTabMock: jest.Mock<typeof reloadHostTabType> = jest.fn();
 
 jest.unstable_mockModule(
@@ -18,6 +22,7 @@ jest.unstable_mockModule(
   () => ({
     findAtlasHostTab: findAtlasHostTabMock,
     loadArtifactVersionFromHostTab: loadArtifactVersionFromHostTabMock,
+    readPageStateFromHostTab: readPageStateFromHostTabMock,
     reloadHostTab: reloadHostTabMock,
   }),
 );

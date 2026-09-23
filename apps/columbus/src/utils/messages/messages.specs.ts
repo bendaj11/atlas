@@ -9,10 +9,13 @@ import {
   isLoadDevelopmentSessionRequest,
   isManifestResponse,
   isOverrideCountMessage,
+  isPageStateResponse,
+  isReadPageStateRequest,
   isRecord,
   loadArtifactVersionRequest,
   loadDevelopmentSessionRequest,
   overrideCountMessage,
+  readPageStateRequest,
 } from './messages';
 
 describe('isInspectHostRequest', () => {
@@ -24,6 +27,16 @@ describe('isInspectHostRequest', () => {
 
   it('should reject the request when the document key is missing', () => {
     expect(isInspectHostRequest({ type: 'atlas.inspect-host' })).toBe(false);
+  });
+});
+
+describe('isReadPageStateRequest', () => {
+  it('should accept the request when built by its constructor', () => {
+    expect(isReadPageStateRequest(readPageStateRequest())).toBe(true);
+  });
+
+  it('should reject the request when its type differs', () => {
+    expect(isReadPageStateRequest({ type: 'atlas.inspect-host' })).toBe(false);
   });
 });
 
@@ -116,6 +129,29 @@ describe('isHostDataResponse', () => {
     expect(
       isHostDataResponse({ ok: false, error: faker.lorem.sentence() }),
     ).toBe(true);
+  });
+});
+
+describe('isPageStateResponse', () => {
+  it('should accept the response when it succeeded with a page state', () => {
+    expect(
+      isPageStateResponse({
+        ok: true,
+        pageState: { visibleAppIds: [], runtimeErrors: [] },
+      }),
+    ).toBe(true);
+  });
+
+  it('should reject the response when the page state has no visible app ids', () => {
+    expect(
+      isPageStateResponse({ ok: true, pageState: { runtimeErrors: [] } }),
+    ).toBe(false);
+  });
+
+  it('should reject the response when the page state has no runtime errors', () => {
+    expect(
+      isPageStateResponse({ ok: true, pageState: { visibleAppIds: [] } }),
+    ).toBe(false);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   actionThemeMessage,
   isInspectHostRequest,
   isLoadArtifactVersionRequest,
+  isReadPageStateRequest,
   isRecord,
   overrideCountMessage,
 } from '../../../utils/messages/messages';
@@ -24,6 +25,10 @@ import { isLoopbackHostname } from '../../../utils/urls/urls';
 import { countOverrides } from '../../../utils/override-document/override-document';
 import { createArtifactRegistry } from '../../../utils/artifact-registry/artifact-registry';
 import { inspectAtlasHost } from '../../../utils/inspect-atlas-host/inspect-atlas-host';
+import {
+  readRuntimeErrors,
+  readVisibleAppIds,
+} from '../../../utils/page-runtime-state/page-runtime-state';
 
 const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
@@ -51,6 +56,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     );
 
     return true;
+  }
+  if (isReadPageStateRequest(message)) {
+    sendResponse({
+      ok: true,
+      pageState: {
+        visibleAppIds: readVisibleAppIds(),
+        runtimeErrors: readRuntimeErrors(),
+      },
+    });
+
+    return false;
   }
   if (isLoadArtifactVersionRequest(message)) {
     void artifactRegistry

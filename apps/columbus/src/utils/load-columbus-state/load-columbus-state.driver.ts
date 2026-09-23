@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
+import type { HostData, HostPageState } from '../../types/host-data';
+import { readPageStateFromHostTabMock } from '../../testkit/mocks/host-tabs';
 import type { readHostData as readHostDataType } from '../host-data/host-data';
 import type {
   readDisabledArtifactVersionOverrides as readDisabledArtifactVersionOverridesType,
@@ -45,6 +46,16 @@ export class LoadColumbusStateDriver {
 
       return this;
     },
+    pageState: (pageState: HostPageState) => {
+      readPageStateFromHostTabMock.mockResolvedValue(pageState);
+
+      return this;
+    },
+    pageStateFailure: (error: Error) => {
+      readPageStateFromHostTabMock.mockRejectedValue(error);
+
+      return this;
+    },
     hostDataCacheFailure: (error: Error) => {
       readHostDataCache.mockRejectedValue(error);
 
@@ -67,6 +78,11 @@ export class LoadColumbusStateDriver {
 
       return this;
     },
+    disabledArtifactVersionOverridesFailure: (error: Error) => {
+      readDisabledArtifactVersionOverrides.mockRejectedValueOnce(error);
+
+      return this;
+    },
     clearedLocalArtifactIds: (ids: Set<string>) => {
       readClearedLocalArtifactIds.mockResolvedValue(ids);
 
@@ -77,6 +93,7 @@ export class LoadColumbusStateDriver {
   readonly get = {
     readHostData: () => readHostData,
     readHostDataCache: () => readHostDataCache,
+    readPageStateFromHostTab: () => readPageStateFromHostTabMock,
     readDisabledArtifactVersionOverrides: () =>
       readDisabledArtifactVersionOverrides,
     readClearedLocalArtifactIds: () => readClearedLocalArtifactIds,

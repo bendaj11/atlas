@@ -1,11 +1,15 @@
 import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
+import type { HostData, HostPageState } from '../../types/host-data';
 
 export type ColorScheme = 'dark' | 'light';
 
 export interface InspectHostRequest {
   type: 'atlas.inspect-host';
   documentKey: string;
+}
+
+export interface ReadPageStateRequest {
+  type: 'atlas.read-page-state';
 }
 
 export interface LoadArtifactVersionRequest {
@@ -45,6 +49,16 @@ export function isInspectHostRequest(
     isMessage(value, 'atlas.inspect-host') &&
     typeof value.documentKey === 'string'
   );
+}
+
+export function readPageStateRequest(): ReadPageStateRequest {
+  return { type: 'atlas.read-page-state' };
+}
+
+export function isReadPageStateRequest(
+  value: unknown,
+): value is ReadPageStateRequest {
+  return isMessage(value, 'atlas.read-page-state');
 }
 
 export function loadArtifactVersionRequest({
@@ -117,6 +131,18 @@ export function isHostDataResponse(
   value: unknown,
 ): value is ContentResponse<{ hostData: HostData }> {
   return isContentResponse(value, (payload) => isRecord(payload.hostData));
+}
+
+export function isPageStateResponse(
+  value: unknown,
+): value is ContentResponse<{ pageState: HostPageState }> {
+  return isContentResponse(
+    value,
+    (payload) =>
+      isRecord(payload.pageState) &&
+      Array.isArray(payload.pageState.visibleAppIds) &&
+      Array.isArray(payload.pageState.runtimeErrors),
+  );
 }
 
 export function isManifestResponse(

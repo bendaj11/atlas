@@ -6,6 +6,7 @@ import { aHostData } from '../../testkit/host-data.testkit';
 import {
   findAtlasHostTab,
   loadArtifactVersionFromHostTab,
+  readPageStateFromHostTab,
   reloadHostTab,
 } from './host-tabs';
 import { HostTabsDriver } from './host-tabs.driver';
@@ -270,6 +271,60 @@ describe('loadArtifactVersionFromHostTab', () => {
       }),
     ).rejects.toThrow(
       'Active page did not return the selected artifact version.',
+    );
+  });
+});
+
+describe('readPageStateFromHostTab', () => {
+  let driver: HostTabsDriver;
+
+  beforeEach(() => {
+    driver = new HostTabsDriver();
+  });
+
+  it('should send a read page state request to the tab when read', async () => {
+    const tabId = faker.number.int();
+
+    driver.given.tabMessageResponse({
+      ok: true,
+      pageState: { visibleAppIds: [], runtimeErrors: [] },
+    });
+
+    await readPageStateFromHostTab(tabId);
+
+    expect(driver.get.tabMessage()).toHaveBeenCalledWith(tabId, {
+      type: 'atlas.read-page-state',
+    });
+  });
+
+  it('should return the page state the page responds with when the page succeeds', async () => {
+    const pageState = {
+      visibleAppIds: [faker.string.uuid()],
+      runtimeErrors: [{ message: faker.lorem.sentence() }],
+    };
+
+    driver.given.tabMessageResponse({ ok: true, pageState });
+
+    await expect(
+      readPageStateFromHostTab(faker.number.int()),
+    ).resolves.toStrictEqual(pageState);
+  });
+
+  it('should reject with the page error when the page reports one', async () => {
+    const error = faker.lorem.sentence();
+
+    driver.given.tabMessageResponse({ ok: false, error });
+
+    await expect(readPageStateFromHostTab(faker.number.int())).rejects.toThrow(
+      error,
+    );
+  });
+
+  it('should reject when the page returns an unexpected shape', async () => {
+    driver.given.tabMessageResponse(null);
+
+    await expect(readPageStateFromHostTab(faker.number.int())).rejects.toThrow(
+      'Active page did not return its Atlas page state.',
     );
   });
 });

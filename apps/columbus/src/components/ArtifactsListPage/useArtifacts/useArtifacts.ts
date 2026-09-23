@@ -106,7 +106,7 @@ function loadErrorOf(
 
 function isVisible(
   artifactVersion: ArtifactVersion,
-  visibleAppIds: string[] = [],
+  visibleAppIds: string[],
 ): boolean {
   return (
     artifactVersion.kind === 'host' ||
