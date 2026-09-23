@@ -44,6 +44,7 @@ export class BrowserNavigationDriver {
     },
   );
   private unsubscribe: (() => void) | undefined;
+  private globalWindowNavigation: AtlasBrowserNavigation | undefined;
 
   readonly when = {
     subscribed: () => {
@@ -58,8 +59,14 @@ export class BrowserNavigationDriver {
     navigated: (to: string, options?: AtlasNavigateOptions) => {
       this.navigation.navigate(to, options);
     },
-    replaced: (to: string) => {
-      this.navigation.replace(to);
+    replaced: (to: string, options?: AtlasNavigateOptions) => {
+      this.navigation.replace(to, options);
+    },
+    wentBack: () => {
+      this.navigation.back();
+    },
+    createdFromGlobalWindow: () => {
+      this.globalWindowNavigation = createBrowserNavigation();
     },
     historyMoved: (delta: number) => {
       this.navigation.go?.(delta);
@@ -76,6 +83,8 @@ export class BrowserNavigationDriver {
 
   readonly get = {
     navigation: () => this.navigation,
+    globalWindowNavigation: (): AtlasBrowserNavigation | undefined =>
+      this.globalWindowNavigation,
     listenerMock: () => this.listener,
     pushStateMock: () => this.pushState,
     replaceStateMock: () => this.replaceState,

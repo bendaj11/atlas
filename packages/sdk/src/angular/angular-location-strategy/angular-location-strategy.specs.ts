@@ -50,6 +50,28 @@ describe('createLocationStrategy', () => {
       expect(driver.get.hostUrl()).toBe(`${driver.get.hostPath()}/details/9`);
     });
 
+    it('should return no state when getState is called', () => {
+      expect(driver.get.strategy().getState()).toBeUndefined();
+    });
+
+    it('should move the host forward when the router goes forward', () => {
+      driver.when.routerWentForward();
+
+      expect(driver.get.hostGoMock()).toHaveBeenCalledWith(1);
+    });
+
+    it('should move the host back when the router goes back', () => {
+      driver.when.routerWentBack();
+
+      expect(driver.get.hostBackMock()).toHaveBeenCalled();
+    });
+
+    it('should move the host by the delta when the router goes through history', () => {
+      driver.when.routerWentThroughHistory(-2);
+
+      expect(driver.get.hostGoMock()).toHaveBeenCalledWith(-2);
+    });
+
     it('should notify popstate when the host navigates', () => {
       driver.when.hostNavigated('/settings');
 

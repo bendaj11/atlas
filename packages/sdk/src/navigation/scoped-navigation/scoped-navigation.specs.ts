@@ -55,6 +55,20 @@ describe('createScopedNavigation', () => {
       expect(driver.get.hostNavigation().go).toHaveBeenCalledWith(delta);
     });
 
+    it('should return the host location when the current location is read', () => {
+      expect(driver.get.scoped().getCurrentLocation()).toEqual(
+        driver.get.hostNavigation().getCurrentLocation(),
+      );
+    });
+
+    it('should call the listener with the host location when the app subscribes', () => {
+      driver.when.subscribed();
+
+      expect(driver.get.listenerMock()).toHaveBeenCalledWith(
+        driver.get.hostNavigation().getCurrentLocation(),
+      );
+    });
+
     it('should call host back when the app goes back', () => {
       driver.when.wentBack();
 

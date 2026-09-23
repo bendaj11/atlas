@@ -77,6 +77,40 @@ describe('AngularWidgetOutletController', () => {
     });
   });
 
+  describe('when a widget is rendered with a loading component', () => {
+    const widgetId = faker.string.uuid();
+    const inputs = { count: faker.number.int() };
+
+    beforeEach(async () => {
+      await driver.when.renderedWithLoadingComponent(widgetId, inputs);
+    });
+
+    it('should resolve the widget with a loading renderer when a loading component is given', () => {
+      expect(driver.get.resolverMock()).toHaveBeenCalledWith(
+        widgetId,
+        expect.objectContaining({ renderLoading: expect.any(Function) }),
+      );
+    });
+
+    it('should remount the widget when the same widget is re-rendered without the loading component', async () => {
+      await driver.when.rendered(widgetId, inputs);
+
+      expect(driver.get.lifecycle()).toEqual([
+        `mount:${widgetId}`,
+        `unmount:${widgetId}`,
+        `mount:${widgetId}`,
+      ]);
+    });
+  });
+
+  it('should not mount when a widget is rendered after destroy', async () => {
+    driver.when.destroyed();
+
+    await driver.when.rendered(faker.string.uuid(), { count: 1 });
+
+    expect(driver.get.mountMock()).not.toHaveBeenCalled();
+  });
+
   it('should remount when the mounted widget does not support setInputs and inputs change', async () => {
     const widgetId = faker.string.uuid();
     driver.given.setInputsUnsupported();
@@ -85,6 +119,22 @@ describe('AngularWidgetOutletController', () => {
     await driver.when.rendered(widgetId, { count: 2 });
 
     expect(driver.get.mountMock()).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not mount the next widget when destroyed while the previous widget unmounts', async () => {
+    const widgetId = faker.string.uuid();
+    await driver.when.rendered(widgetId, { count: 1 });
+    driver.given.pendingUnmount();
+
+    const rendering = driver.when.renderStarted(faker.string.uuid(), {
+      count: 2,
+    });
+    await driver.when.unmountStarted();
+    const destroying = driver.when.destroyStarted();
+    driver.when.unmountReleased();
+    await Promise.all([rendering, destroying]);
+
+    expect(driver.get.mountMock()).toHaveBeenCalledTimes(1);
   });
 
   it('should unmount a widget that finishes mounting after destroy when destroyed mid-mount', async () => {

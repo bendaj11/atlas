@@ -43,6 +43,7 @@ export class AngularHostNavigationDriver {
   private currentUrl = '/';
   private location: LocationLike = { back: this.back };
   private navigation!: AtlasNavigation;
+  private unsubscribe: (() => void) | undefined;
 
   constructor() {
     Object.defineProperty(this.router, 'url', { get: () => this.currentUrl });
@@ -71,11 +72,20 @@ export class AngularHostNavigationDriver {
         this.origin,
       );
     },
+    createdWithDefaultOrigin: () => {
+      this.navigation = createHostNavigation(this.router, this.location);
+    },
     subscribed: () => {
-      this.navigation.subscribe(this.listener);
+      this.unsubscribe = this.navigation.subscribe(this.listener);
+    },
+    unsubscribed: () => {
+      this.unsubscribe?.();
     },
     navigated: (to: string) => {
       this.navigation.navigate(to);
+    },
+    navigatedWithState: (to: string, state: unknown) => {
+      this.navigation.navigate(to, { state });
     },
     replaced: (to: string) => {
       this.navigation.replace(to);
@@ -101,5 +111,6 @@ export class AngularHostNavigationDriver {
     backMock: () => this.back,
     historyGoMock: () => this.historyGo,
     listenerMock: () => this.listener,
+    routerSubscribed: (): boolean => this.routerListener !== undefined,
   };
 }

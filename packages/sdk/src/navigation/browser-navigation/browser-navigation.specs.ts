@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { faker } from '@faker-js/faker';
 import { BrowserNavigationDriver } from './browser-navigation.driver.js';
 
@@ -41,6 +43,40 @@ describe('createBrowserNavigation', () => {
     expect(driver.get.goMock()).toHaveBeenCalledWith(delta);
   });
 
+  it('should keep the given state when replace is called with state', () => {
+    const state = { id: faker.string.uuid() };
+
+    driver.when.replaced(`/${faker.lorem.slug()}`, { state });
+
+    expect(driver.get.replaceStateMock()).toHaveBeenCalledWith(
+      state,
+      '',
+      expect.any(String),
+    );
+  });
+
+  it('should call history back when back is called', () => {
+    driver.when.wentBack();
+
+    expect(driver.get.backMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not detach the popstate listener when disposed without subscribers', () => {
+    driver.when.disposed();
+
+    expect(driver.get.removeEventListenerMock()).not.toHaveBeenCalled();
+  });
+
+  it('should read the global window when created without a window', () => {
+    driver.when.createdFromGlobalWindow();
+
+    expect(driver.get.globalWindowNavigation()?.getCurrentLocation()).toEqual({
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+    });
+  });
+
   it('should resolve the href against the window location when createHref is called', () => {
     expect(driver.get.navigation().createHref('/orders')).toBe(
       `${driver.get.origin()}/orders`,
@@ -74,6 +110,12 @@ describe('createBrowserNavigation', () => {
       driver.when.navigated('/orders');
 
       expect(driver.get.listenerMock()).toHaveBeenCalledTimes(2);
+    });
+
+    it('should attach the popstate listener once when a second subscriber arrives', () => {
+      driver.when.subscribed();
+
+      expect(driver.get.addEventListenerMock()).toHaveBeenCalledTimes(1);
     });
 
     it('should detach the popstate listener when the last subscriber leaves', () => {

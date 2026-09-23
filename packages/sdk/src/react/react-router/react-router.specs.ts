@@ -34,6 +34,21 @@ describe('connectRouter', () => {
       expect(driver.get.hostUrl()).toBe(`${driver.get.hostPath()}/details/42`);
     });
 
+    it('should replace the host url when the router replaces', () => {
+      driver.when.routerNavigated('/details/42', { replace: true });
+
+      expect(driver.get.hostReplaceMock()).toHaveBeenCalledWith(
+        `${driver.get.hostPath()}/details/42`,
+        undefined,
+      );
+    });
+
+    it('should leave the host untouched when the router moves to the url the host already shows', () => {
+      driver.when.routerNavigated('/products?tab=open');
+
+      expect(driver.get.hostNavigateMock()).not.toHaveBeenCalled();
+    });
+
     it('should move the router to the inner url when the host navigates', async () => {
       await driver.when.hostNavigated('/settings?mode=compact');
 

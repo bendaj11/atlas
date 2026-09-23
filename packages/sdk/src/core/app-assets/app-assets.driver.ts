@@ -4,6 +4,8 @@ import {
 } from '../../testkit/app-context.testkit.js';
 import {
   createAtlasAppAssetFacade,
+  createAtlasAppAssets,
+  defineUnavailableAppAssets,
   type AtlasAppAssets,
 } from './app-assets.js';
 
@@ -16,6 +18,23 @@ export class AppAssetsDriver {
         {},
         anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
       );
+
+      return this;
+    },
+    appAssetsWithoutSdk: (remoteEntryUrl: string) => {
+      this.facade = createAtlasAppAssets(
+        anAppContext({ manifest: anAppManifest({ remoteEntryUrl }) }),
+      );
+
+      return this;
+    },
+    noAppContext: () => {
+      const facade: AtlasAppAssets = {
+        assetBaseUrl: () => '',
+        assetUrl: () => '',
+      };
+      defineUnavailableAppAssets(facade);
+      this.facade = facade;
 
       return this;
     },

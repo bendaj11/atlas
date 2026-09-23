@@ -73,6 +73,29 @@ describe('createWidgetComponent', () => {
     });
   });
 
+  it('should unmount the widget when the mount resolves after the component unmounted', async () => {
+    driver.given.pendingMount();
+
+    await driver.when.widgetRendered(faker.string.uuid(), { count: 1 });
+    driver.when.widgetUnmounted();
+    await driver.when.mountReleased();
+
+    await waitFor(() =>
+      expect(driver.get.unmountMock()).toHaveBeenCalledTimes(1),
+    );
+  });
+
+  it('should keep the loading component hidden when the host hides loading after unmount', async () => {
+    driver.given.loadingComponent(undefined);
+
+    await driver.when.widgetRendered(faker.string.uuid(), { count: 1 });
+    const hide = await act(() => driver.when.loadingShown());
+    driver.when.widgetUnmounted();
+    act(() => hide());
+
+    expect(driver.get.loadingIndicator()).toBeNull();
+  });
+
   it('should surface ATLAS_WIDGET_MOUNT_FAILED to the error boundary when mounting rejects', async () => {
     driver.given.mountRejection(new Error(faker.lorem.sentence()));
 

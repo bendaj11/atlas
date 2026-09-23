@@ -39,6 +39,12 @@ describe('convertHostPathToInnerPath', () => {
     expect(driver.get.result()).toBe('/orders/42');
   });
 
+  it('should return the root when the app path is the root and the pathname is empty', () => {
+    driver.given.path('/').when.innerPathRead('');
+
+    expect(driver.get.result()).toBe('/');
+  });
+
   describe('when the app path is /catalog', () => {
     beforeEach(() => {
       driver.given.path('/catalog');

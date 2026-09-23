@@ -1,10 +1,15 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasScopedNavigation } from '../navigation-types/navigation-types.js';
+import type {
+  AtlasLocation,
+  AtlasScopedNavigation,
+} from '../navigation-types/navigation-types.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
+import { jest } from '@jest/globals';
 import { createScopedNavigation } from './scoped-navigation.js';
 
 export class ScopedNavigationDriver {
   private readonly hostNavigation = aMemoryNavigation();
+  private readonly listener = jest.fn<(location: AtlasLocation) => void>();
   private path = `/${faker.lorem.slug()}`;
   private scoped!: AtlasScopedNavigation;
 
@@ -32,10 +37,14 @@ export class ScopedNavigationDriver {
     wentBack: () => {
       this.scoped.back();
     },
+    subscribed: () => {
+      this.scoped.subscribe(this.listener);
+    },
   };
 
   readonly get = {
     scoped: () => this.scoped,
     hostNavigation: () => this.hostNavigation,
+    listenerMock: () => this.listener,
   };
 }

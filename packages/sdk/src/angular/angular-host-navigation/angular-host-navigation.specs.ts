@@ -41,6 +41,17 @@ describe('createHostNavigation', () => {
       );
     });
 
+    it('should forward the state when navigating with state', () => {
+      const state = { from: faker.word.noun() };
+
+      driver.when.navigatedWithState('/orders/42', state);
+
+      expect(driver.get.navigateByUrlMock()).toHaveBeenCalledWith(
+        '/orders/42',
+        { state },
+      );
+    });
+
     it('should call location back when going back', () => {
       driver.when.wentBack();
 
@@ -64,6 +75,12 @@ describe('createHostNavigation', () => {
           search: '?tab=open',
           hash: '',
         });
+      });
+
+      it('should drop the router subscription when unsubscribing', () => {
+        driver.when.unsubscribed();
+
+        expect(driver.get.routerSubscribed()).toBe(false);
       });
 
       it('should call the listener with the new location when the router navigates', () => {
@@ -108,5 +125,13 @@ describe('createHostNavigation', () => {
     driver.when.historyMoved(-1);
 
     expect(driver.get.backMock()).toHaveBeenCalledTimes(1);
+  });
+
+  it('should resolve the href against the default host origin when created without an origin', () => {
+    driver.given.routerUrl('/orders').when.createdWithDefaultOrigin();
+
+    expect(driver.get.navigation().createHref('/orders')).toBe(
+      'http://localhost/orders',
+    );
   });
 });

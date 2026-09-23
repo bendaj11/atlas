@@ -1,9 +1,13 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasAppContext } from '../../lifecycle.js';
+import { createRouteContext } from '../../navigation/route-context/route-context.js';
+import { createScopedNavigation } from '../../navigation/scoped-navigation/scoped-navigation.js';
 import { anAppContext } from '../../testkit/app-context.testkit.js';
 import {
+  aMemoryNavigation,
   parseUrlIntoLocation,
   formatLocationAsUrl,
+  type MemoryNavigation,
 } from '../../testkit/navigation.testkit.js';
 import {
   connectRouter,
@@ -15,14 +19,19 @@ import {
 export class ReactRouterDriver {
   private readonly routerListeners = new Set<() => void>();
   private readonly path = `/${faker.lorem.slug()}`;
+  private hostNavigation!: MemoryNavigation;
   private context!: AtlasAppContext;
   private router!: AppRouterLike;
   private disconnect: (() => void) | undefined;
 
   readonly given = {
     hostUrl: (innerUrl: string): this => {
-      this.context = anAppContext({ path: this.path });
-      this.context.navigation.navigate(innerUrl);
+      this.hostNavigation = aMemoryNavigation(`${this.path}${innerUrl}`);
+      this.context = anAppContext({
+        path: this.path,
+        navigation: createScopedNavigation(this.path, this.hostNavigation),
+        route: createRouteContext(this.path, this.hostNavigation),
+      });
       this.router = this.createFakeRouter(innerUrl);
 
       return this;
@@ -41,6 +50,7 @@ export class ReactRouterDriver {
     },
     hostNavigated: async (innerUrl: string): Promise<void> => {
       this.context.navigation.navigate(innerUrl);
+
       await Promise.resolve();
     },
   };
@@ -51,6 +61,8 @@ export class ReactRouterDriver {
       formatLocationAsUrl(this.context.navigation.getCurrentLocation()),
     hostPath: (): string => this.path,
     routerLocation: (): RouterLocation => this.router.state.location,
+    hostNavigateMock: () => this.hostNavigation.navigate,
+    hostReplaceMock: () => this.hostNavigation.replace,
   };
 
   private createFakeRouter(innerUrl: string): AppRouterLike {

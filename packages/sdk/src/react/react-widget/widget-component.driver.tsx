@@ -69,6 +69,7 @@ export class WidgetComponentDriver {
   private readonly widgets = new Map<string, ComponentType<WidgetInputs>>();
   private loadingComponent: ComponentType | undefined;
   private rendered: RenderResult | undefined;
+  private releaseMount: (() => void) | undefined;
 
   readonly given = {
     loadingComponent: (component: ComponentType | undefined): this => {
@@ -78,6 +79,18 @@ export class WidgetComponentDriver {
     },
     mountRejection: (error: Error): this => {
       this.mount.mockRejectedValue(error);
+
+      return this;
+    },
+    pendingMount: (): this => {
+      const released = new Promise<void>((resolve) => {
+        this.releaseMount = resolve;
+      });
+      this.mount.mockImplementation(async () => {
+        await released;
+
+        return this.mounted;
+      });
 
       return this;
     },
@@ -100,6 +113,10 @@ export class WidgetComponentDriver {
     },
     widgetUnmounted: (): void => {
       this.rendered?.unmount();
+    },
+    mountReleased: async (): Promise<void> => {
+      this.releaseMount?.();
+      await Promise.resolve();
     },
     loadingShown: async (): Promise<() => void> => {
       const renderLoading = this.renderLoading;

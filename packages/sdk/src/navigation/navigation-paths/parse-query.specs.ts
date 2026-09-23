@@ -13,6 +13,12 @@ describe('parseQuery', () => {
     expect(driver.get.result()).toEqual({ tab: 'open', tag: ['a', 'b'] });
   });
 
+  it('should collect every value when a key repeats three times', () => {
+    driver.when.queryParsed('?tag=a&tag=b&tag=c');
+
+    expect(driver.get.result()).toEqual({ tag: ['a', 'b', 'c'] });
+  });
+
   it('should return an empty object when the search is empty', () => {
     driver.when.queryParsed('');
 

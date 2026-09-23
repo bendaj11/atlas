@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import type {
   AtlasLocation,
   AtlasNavigation,
+  AtlasUnsubscribe,
 } from '../../navigation/navigation-types/navigation-types.js';
 import { parseUrlIntoLocation } from '../../testkit/navigation.testkit.js';
 import type { RouterLike, RouterNavigate } from '../react-router/index.js';
@@ -28,10 +29,16 @@ export class ReactHostNavigationDriver {
     },
   };
   private navigation!: AtlasNavigation;
+  private unsubscribe!: AtlasUnsubscribe;
 
   readonly given = {
     routerUrl: (url: string): this => {
       this.router.state.location = parseUrlIntoLocation(url);
+
+      return this;
+    },
+    routerPathnameOnly: (pathname: string): this => {
+      this.router.state.location = { pathname };
 
       return this;
     },
@@ -41,17 +48,35 @@ export class ReactHostNavigationDriver {
     created: (): void => {
       this.navigation = createHostNavigation(this.router, this.origin);
     },
+    createdWithDefaultOrigin: (): void => {
+      this.navigation = createHostNavigation(this.router);
+    },
     subscribed: (): void => {
-      this.navigation.subscribe(this.listener);
+      this.unsubscribe = this.navigation.subscribe(this.listener);
+    },
+    unsubscribed: (): void => {
+      this.unsubscribe();
     },
     navigated: (to: string): void => {
       this.navigation.navigate(to);
     },
+    navigatedWithState: (to: string, state: unknown): void => {
+      this.navigation.navigate(to, { state });
+    },
+    navigatedWithReplace: (to: string, replace: boolean): void => {
+      this.navigation.navigate(to, { replace });
+    },
     replaced: (to: string): void => {
       this.navigation.replace(to);
     },
+    replacedWithState: (to: string, state: unknown): void => {
+      this.navigation.replace(to, { state });
+    },
     wentBack: (): void => {
       this.navigation.back();
+    },
+    wentThroughHistory: (delta: number): void => {
+      this.navigation.go?.(delta);
     },
   };
 
@@ -60,5 +85,6 @@ export class ReactHostNavigationDriver {
     navigateMock: (): jest.Mock<RouterNavigate> => this.navigate,
     listenerMock: () => this.listener,
     origin: (): string => this.origin,
+    subscriberCount: (): number => this.subscribers.size,
   };
 }

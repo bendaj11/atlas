@@ -34,3 +34,40 @@ describe('createAtlasAppAssetFacade', () => {
     });
   });
 });
+
+describe('createAtlasAppAssets', () => {
+  let driver: AppAssetsDriver;
+
+  beforeEach(() => {
+    driver = new AppAssetsDriver();
+  });
+
+  it('should return the artifact directory when assetBaseUrl is called', () => {
+    const artifactDirectory = `${faker.internet.url()}/apps/${faker.lorem.slug()}/`;
+
+    driver.given.appAssetsWithoutSdk(`${artifactDirectory}remoteEntry.json`);
+
+    expect(driver.get.assets().assetBaseUrl()).toBe(artifactDirectory);
+  });
+});
+
+describe('defineUnavailableAppAssets', () => {
+  let driver: AppAssetsDriver;
+
+  beforeEach(() => {
+    driver = new AppAssetsDriver();
+    driver.given.noAppContext();
+  });
+
+  it('should throw ATLAS_APP_CONTEXT_MISSING when assetBaseUrl is called', () => {
+    expect(() => driver.get.assets().assetBaseUrl()).toThrow(
+      expect.objectContaining({ code: 'ATLAS_APP_CONTEXT_MISSING' }),
+    );
+  });
+
+  it('should throw ATLAS_APP_CONTEXT_MISSING when assetUrl is called', () => {
+    expect(() => driver.get.assets().assetUrl(faker.system.filePath())).toThrow(
+      expect.objectContaining({ code: 'ATLAS_APP_CONTEXT_MISSING' }),
+    );
+  });
+});

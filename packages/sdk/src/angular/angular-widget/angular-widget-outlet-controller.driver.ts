@@ -2,6 +2,7 @@ import '@angular/compiler';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import {
+  Component,
   provideZonelessChangeDetection,
   signal,
   type ApplicationRef,
@@ -25,6 +26,13 @@ import {
   type AngularWidgetBinding,
 } from './index.js';
 
+@Component({
+  selector: 'atlas-widget-skeleton',
+  standalone: true,
+  template: '<output aria-label="Widget loading">loading</output>',
+})
+class WidgetSkeleton {}
+
 interface WidgetInputs {
   readonly count: number;
 }
@@ -38,6 +46,8 @@ export class AngularWidgetOutletControllerDriver {
   });
   private readonly lifecycle: string[] = [];
   private readonly setInputs = jest.fn<SetWidgetInputs<object>>();
+  private releaseUnmount: (() => void) | undefined;
+  private unmountStarted: Promise<void> = Promise.resolve();
   private readonly handleError = jest.fn<HandleWidgetError>();
   private readonly mount = jest.fn<MountWidget<object>>(async () =>
     this.createMountedWidget(),
@@ -60,6 +70,8 @@ export class AngularWidgetOutletControllerDriver {
   private angularSdk!: AngularAtlasSdk;
   private releaseMount: (() => void) | undefined;
   private mountStarted: Promise<void> = Promise.resolve();
+  private blockUnmount: Promise<void> | undefined;
+  private notifyUnmountStarted: (() => void) | undefined;
 
   constructor() {
     connectAtlasWidgetResolver(this.sdk, this.resolver);
@@ -70,6 +82,18 @@ export class AngularWidgetOutletControllerDriver {
       this.mount.mockImplementation(async () => ({
         unmount: async () => undefined,
       }));
+
+      return this;
+    },
+    pendingUnmount: (): this => {
+      let notifyStarted: () => void = () => undefined;
+      this.unmountStarted = new Promise<void>((resolve) => {
+        notifyStarted = resolve;
+      });
+      this.blockUnmount = new Promise<void>((resolve) => {
+        this.releaseUnmount = resolve;
+      });
+      this.notifyUnmountStarted = notifyStarted;
 
       return this;
     },
@@ -108,10 +132,25 @@ export class AngularWidgetOutletControllerDriver {
     rendered: async (widgetId: string, inputs: WidgetInputs): Promise<void> => {
       await this.controller.render(this.createBinding(widgetId, inputs));
     },
+    renderedWithLoadingComponent: async (
+      widgetId: string,
+      inputs: WidgetInputs,
+    ): Promise<void> => {
+      await this.controller.render(
+        this.angularSdk.getWidget<WidgetInputs>(widgetId, {
+          inputs,
+          loadingComponent: WidgetSkeleton,
+        }),
+      );
+    },
     renderStarted: (widgetId: string, inputs: WidgetInputs): Promise<void> => {
       return this.controller.render(this.createBinding(widgetId, inputs));
     },
     mountStarted: (): Promise<void> => this.mountStarted,
+    unmountStarted: (): Promise<void> => this.unmountStarted,
+    unmountReleased: (): void => {
+      this.releaseUnmount?.();
+    },
     mountReleased: (): void => {
       this.releaseMount?.();
     },
@@ -130,6 +169,7 @@ export class AngularWidgetOutletControllerDriver {
     mountMock: (): jest.Mock<MountWidget<object>> => this.mount,
     setInputsMock: () => this.setInputs,
     handleErrorMock: () => this.handleError,
+    resolverMock: (): jest.Mock<AtlasGetWidget> => this.resolver,
     lifecycle: (): readonly string[] => this.lifecycle,
   };
 
@@ -146,6 +186,8 @@ export class AngularWidgetOutletControllerDriver {
     return {
       setInputs: this.setInputs,
       unmount: async () => {
+        this.notifyUnmountStarted?.();
+        await this.blockUnmount;
         this.lifecycle.push(`unmount:${widgetId}`);
       },
     };
