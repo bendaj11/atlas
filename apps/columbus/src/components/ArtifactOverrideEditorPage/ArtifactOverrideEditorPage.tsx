@@ -58,7 +58,7 @@ export function ArtifactOverrideEditorPage() {
       : undefined;
 
   function close(): void {
-    navigate(ARTIFACTS_ROUTE);
+    void navigate(ARTIFACTS_ROUTE);
   }
 
   return (

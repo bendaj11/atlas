@@ -40,7 +40,7 @@ export const ArtifactOverrideActions = ({
           tooltipProps: { disabled: true },
           disabled: actionsDisabled,
           onClick: () =>
-            navigate(ARTIFACT_OVERRIDE_ROUTE, {
+            void navigate(ARTIFACT_OVERRIDE_ROUTE, {
               state: { artifact },
             }),
         },

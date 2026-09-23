@@ -26,17 +26,17 @@ export interface ArtifactVersions {
 }
 
 export interface ArtifactRegistry {
-  readRegistry(root: string): Promise<Registry>;
-  readVersions(
+  readRegistry: (root: string) => Promise<Registry>;
+  readVersions: (
     deployed: ArtifactVersion,
     registry: Registry,
     root: string,
-  ): Promise<ArtifactVersions>;
-  loadManifest(reference: ManifestReference): Promise<ArtifactVersion>;
-  loadVersion(
+  ) => Promise<ArtifactVersions>;
+  loadManifest: (reference: ManifestReference) => Promise<ArtifactVersion>;
+  loadVersion: (
     artifactKey: string,
     versionKey: string,
-  ): Promise<ArtifactVersion>;
+  ) => Promise<ArtifactVersion>;
 }
 
 const CANONICAL_BUILD_ID = 'canonical';
