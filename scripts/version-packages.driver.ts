@@ -17,7 +17,7 @@ export class VersionPackagesDriver {
   private root = '';
 
   readonly given = {
-    releaseWorkspace: async (version: string): Promise<void> => {
+    releaseWorkspace: async (version: string) => {
       this.root = await mkdtemp(join(tmpdir(), 'atlas-version-'));
       await writeJson(join(this.root, 'package.json'), {
         name: 'atlas-platform',
@@ -45,34 +45,40 @@ export class VersionPackagesDriver {
         version,
       });
       await writeFileInDirectory(
-        join(this.root, 'packages/generators/src/shared/versions/generator-versions.ts'),
+        join(
+          this.root,
+          'packages/generators/src/shared/versions/generator-versions.ts',
+        ),
         `export const ATLAS_PACKAGE_VERSION = "${version}";\n`,
       );
     },
   };
 
   readonly when = {
-    versionAtlasPackages: async (version: string): Promise<void> =>
+    versionAtlasPackages: async (version: string) =>
       versionPackages(version, this.root),
   };
 
   readonly get = {
-    atlasVersions: async (): Promise<string[]> =>
+    atlasVersions: async () =>
       uniqueVersions([
         readVersion(join(this.root, 'package.json')),
         ...packageDirectories.map((directory) =>
           readVersion(join(this.root, 'packages', directory, 'package.json')),
         ),
         readGeneratorVersion(
-          join(this.root, 'packages/generators/src/shared/versions/generator-versions.ts'),
+          join(
+            this.root,
+            'packages/generators/src/shared/versions/generator-versions.ts',
+          ),
         ),
       ]),
-    columbusVersions: async (): Promise<string[]> =>
+    columbusVersions: async () =>
       uniqueVersions([
         readVersion(join(this.root, 'apps/columbus/package.json')),
         readVersion(join(this.root, 'apps/columbus/src/manifest.json')),
       ]),
-    internalDependencyVersions: async (): Promise<string[]> =>
+    internalDependencyVersions: async () =>
       uniqueVersions(
         packageDirectories.map((directory) =>
           readDependencyVersion(
