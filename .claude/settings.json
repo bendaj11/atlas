@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": ["Edit(.claude/**)", "Write(.claude/**)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graphify-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/jbd/.local/bin/graphify hook-guard read"
+          }
+        ]
+      }
+    ]
+  }
+}
