@@ -40,6 +40,35 @@ describe('control-server-lease', () => {
     ).toStrictEqual([true]);
   });
 
+  it('should keep the lease when less than its lifetime has elapsed', async () => {
+    const document = anOverrideDocument();
+    await driver.given.lease(document, true);
+
+    driver.given.elapsed(driver.get.leaseLifetime() - 1);
+
+    expect(await driver.get.activeLeases()).toHaveLength(1);
+  });
+
+  it('should forget the lease when its lifetime has elapsed', async () => {
+    const document = anOverrideDocument();
+    await driver.given.lease(document, true);
+
+    driver.given.elapsed(driver.get.leaseLifetime());
+
+    expect(await driver.get.activeLeases()).toStrictEqual([]);
+  });
+
+  it('should renew the lease deadline when the document is written again', async () => {
+    const document = anOverrideDocument();
+    await driver.given.lease(document, true);
+
+    driver.given.elapsed(driver.get.leaseLifetime() - 1);
+    await driver.given.lease(document, true);
+    driver.given.elapsed(driver.get.leaseLifetime() - 1);
+
+    expect(await driver.get.activeLeases()).toHaveLength(1);
+  });
+
   it('should forget the lease when it is removed', async () => {
     const document = anOverrideDocument();
     await driver.given.lease(document, true);

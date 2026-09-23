@@ -2,10 +2,9 @@ import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AtlasDevOverrideDocument } from '../types.js';
-import { CONTROL_RECONCILIATION_INTERVAL_MS } from '../constants.js';
+import { LEASE_LIFETIME_MS } from '../constants.js';
 
 const LEASE_DIRECTORY = join(tmpdir(), 'atlas-dev-control-server-leases');
-const LEASE_LIFETIME_MS = CONTROL_RECONCILIATION_INTERVAL_MS * 3;
 
 interface ControlServerLease {
   document: AtlasDevOverrideDocument;
