@@ -6,7 +6,7 @@ import type {
   AtlasManifestDescriptor,
   AtlasStaticRegistry,
 } from '../../packages/schema/src/index.js';
-import { registryRevision } from '../../packages/cli/src/publication/static-registry/static-registry.js';
+import { computeRegistryRevision } from '../../packages/cli/src/publication/static-registry/revision/registry-revision.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const artifacts = resolve(
@@ -56,7 +56,7 @@ for (const project of projects) {
   await run(
     'node',
     [
-      'packages/cli/dist/cli/entrypoint.js',
+      'packages/cli/dist/cli/entrypoint/entrypoint.js',
       'publish',
       project,
       '--version=0.1.0',
@@ -95,7 +95,7 @@ await buildBootstrap(
 
 async function buildBootstrap(project, output, hostId) {
   await run('node', [
-    'packages/cli/dist/cli/entrypoint.js',
+    'packages/cli/dist/cli/entrypoint/entrypoint.js',
     'bootstrap',
     project,
     '--skip-compile',
@@ -115,7 +115,7 @@ async function deploy(project: string, version: string) {
   await run(
     'node',
     [
-      'packages/cli/dist/cli/entrypoint.js',
+      'packages/cli/dist/cli/entrypoint/entrypoint.js',
       'deploy',
       project,
       '--to=production',
@@ -141,7 +141,7 @@ async function addSecondCatalogRelease() {
     await run(
       'node',
       [
-        'packages/cli/dist/cli/entrypoint.js',
+        'packages/cli/dist/cli/entrypoint/entrypoint.js',
         'publish',
         'catalog-react',
         '--skip-compile',
@@ -221,7 +221,7 @@ async function createExternalWidgetRegistry() {
       },
     },
   };
-  registry.revision = registryRevision(registry) as `sha256:${string}`;
+  registry.revision = computeRegistryRevision(registry) as `sha256:${string}`;
   await writeJson(join(externalCdn, 'registry.json'), registry);
 }
 
@@ -239,7 +239,7 @@ async function addVersionFixtures(appId) {
     await run(
       'node',
       [
-        'packages/cli/dist/cli/entrypoint.js',
+        'packages/cli/dist/cli/entrypoint/entrypoint.js',
         'publish',
         'dashboard-react',
         '--skip-compile',
@@ -255,7 +255,7 @@ async function addVersionFixtures(appId) {
   await run(
     'node',
     [
-      'packages/cli/dist/cli/entrypoint.js',
+      'packages/cli/dist/cli/entrypoint/entrypoint.js',
       'publish',
       'dashboard-react',
       '--skip-compile',

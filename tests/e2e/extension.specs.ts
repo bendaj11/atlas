@@ -480,7 +480,7 @@ function startLiveApp(): ChildProcess {
   return spawn(
     process.execPath,
     [
-      'packages/cli/dist/cli/entrypoint.js',
+      'packages/cli/dist/cli/entrypoint/entrypoint.js',
       'dev',
       'dashboard-react',
       `--port=${liveRemotePort}`,

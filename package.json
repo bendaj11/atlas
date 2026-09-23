@@ -28,7 +28,7 @@
     "test:e2e:prepare": "tsx tests/e2e/prepare.ts",
     "typecheck": "turbo run typecheck --filter=\"@atlas/*\" && tsc -p tsconfig.tests.json && tsc -p tsconfig.tooling.json",
     "typecheck:affected": "turbo run typecheck --affected --filter=\"@atlas/*\"",
-    "atlas": "node packages/cli/dist/cli/entrypoint.js"
+    "atlas": "node packages/cli/dist/cli/entrypoint/entrypoint.js"
   },
   "devDependencies": {
     "@jest/globals": "29.7.0",

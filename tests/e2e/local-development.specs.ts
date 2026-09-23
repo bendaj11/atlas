@@ -113,7 +113,7 @@ function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
   return spawn(
     process.execPath,
     [
-      'packages/cli/dist/cli/entrypoint.js',
+      'packages/cli/dist/cli/entrypoint/entrypoint.js',
       'dev',
       scenario.app,
       `--port=${scenario.remotePort}`,

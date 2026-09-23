@@ -31,7 +31,7 @@ export class AngularLiveDevelopmentDriver {
       this.process = spawn(
         process.execPath,
         [
-          'packages/cli/dist/cli/entrypoint.js',
+          'packages/cli/dist/cli/entrypoint/entrypoint.js',
           'dev',
           'dashboard-angular',
           `--port=${REMOTE_PORT}`,
