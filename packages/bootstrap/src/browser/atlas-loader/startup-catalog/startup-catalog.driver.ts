@@ -1,7 +1,7 @@
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import type { DevSession } from '../../overrides/index.js';
 import { jest } from '@jest/globals';
-import type { fetchBytes, fetchJson } from '../../fetch-json/index.js';
+import type { FetchOptions, fetchBytes } from '../../fetch-json/index.js';
 import type { loadPublishedArtifact } from '../../published-artifact/index.js';
 import type { loadDeploymentCatalog as loadDeploymentCatalogType } from '../deployment-catalog/deployment-catalog.js';
 
@@ -14,7 +14,8 @@ type StartupCatalog = Awaited<ReturnType<typeof loadStartupCatalog>>;
 
 export class StartupCatalogDriver {
   private runtime!: AtlasHostRuntimeConfig;
-  private readonly fetchJson = jest.fn<typeof fetchJson>();
+  private readonly fetchJson =
+    jest.fn<(options: FetchOptions) => Promise<DevSession>>();
   private readonly fetchBytes = jest.fn<typeof fetchBytes>();
   private readonly loadPublishedArtifact =
     jest.fn<typeof loadPublishedArtifact>();
@@ -49,7 +50,7 @@ export class StartupCatalogDriver {
         this.result = await loadStartupCatalog({
           runtime: this.runtime,
           dependencies: {
-            fetchJson: this.fetchJson as typeof fetchJson,
+            fetchJson: this.fetchJson,
             fetchBytes: this.fetchBytes,
             loadPublishedArtifact: this.loadPublishedArtifact,
           },

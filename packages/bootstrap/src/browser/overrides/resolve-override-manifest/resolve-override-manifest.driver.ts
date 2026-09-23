@@ -5,13 +5,14 @@ import type {
   AtlasStaticRegistry,
 } from '@atlas/schema';
 import { jest } from '@jest/globals';
-import type { fetchJson } from '../../fetch-json/index.js';
+import type { FetchOptions } from '../../fetch-json/index.js';
 import type { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { resolveOverrideManifest } from './resolve-override-manifest.js';
 
 export class ResolveOverrideManifestDriver {
   private runtime!: AtlasHostRuntimeConfig;
-  private readonly fetchJson = jest.fn<typeof fetchJson>();
+  private readonly fetchJson =
+    jest.fn<(options: FetchOptions) => Promise<AtlasStaticRegistry>>();
   private readonly loadPublishedArtifact =
     jest.fn<typeof loadPublishedArtifact>();
   private result: AtlasHostManifest | AtlasManifest | undefined;
@@ -52,7 +53,7 @@ export class ResolveOverrideManifestDriver {
           manifest,
           runtime: this.runtime,
           dependencies: {
-            fetchJson: this.fetchJson as typeof fetchJson,
+            fetchJson: this.fetchJson,
             loadPublishedArtifact: this.loadPublishedArtifact,
           },
         });

@@ -4,15 +4,20 @@ import type {
   AtlasManifestDescriptor,
   AtlasStaticRegistry,
 } from '@atlas/schema';
+import type { FetchOptions } from '../../fetch-json/index.js';
 import type {
   OverridesContext,
   OverridesDependencies,
 } from '../overrides.types.js';
 
+export type FetchStaticRegistry = (
+  options: FetchOptions,
+) => Promise<AtlasStaticRegistry>;
+
 export type ResolveOverrideManifestDependencies = Pick<
   OverridesDependencies,
-  'fetchJson' | 'loadPublishedArtifact'
->;
+  'loadPublishedArtifact'
+> & { fetchJson: FetchStaticRegistry };
 
 export interface ResolveOverrideManifestContext extends Pick<
   OverridesContext,
@@ -70,7 +75,7 @@ async function fetchRegistryDescriptor({
   let registry: AtlasStaticRegistry;
 
   try {
-    registry = await dependencies.fetchJson<AtlasStaticRegistry>({
+    registry = await dependencies.fetchJson({
       url: `${registryRoot}/registry.json`,
       runtime,
     });

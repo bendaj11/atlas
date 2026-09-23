@@ -1,6 +1,6 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
-import type { fetchJson } from '../fetch-json/index.js';
+import type { FetchOptions } from '../fetch-json/index.js';
 import type { HostModule } from '../host-module.js';
 import type { importModule } from '../module-shim/index.js';
 import type {
@@ -41,7 +41,7 @@ export class HostLoaderDriver {
   private manifest!: AtlasHostManifest;
   private runtime!: AtlasHostRuntimeConfig;
   private readonly fetchJson =
-    jest.fn<(options: unknown) => Promise<unknown>>();
+    jest.fn<(options: FetchOptions) => Promise<RemoteMetadata>>();
   private readonly importModule = jest.fn<typeof importModule>();
   private readonly validateArtifactUrl = jest.fn<typeof validateArtifactUrl>();
   private readonly validateHostManifest =
@@ -86,7 +86,7 @@ export class HostLoaderDriver {
           runtime: this.runtime,
           dependencies: {
             document: {} as HostLoaderDocument,
-            fetchJson: this.fetchJson as typeof fetchJson,
+            fetchJson: this.fetchJson,
             importModule: this.importModule,
             validateArtifactUrl: this.validateArtifactUrl,
             validateHostManifest: this.validateHostManifest,

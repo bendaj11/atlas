@@ -10,7 +10,6 @@ import { watchHostBuildNotifications } from './build-notifications/build-notific
 import type {
   HostLoaderDependencies,
   LoadHostModuleOptions,
-  RemoteMetadata,
 } from './host-loader.types.js';
 import { loadHostStyles } from './host-styles/host-styles.js';
 import { installHostSharedDependencies } from './shared-dependencies/shared-dependencies.js';
@@ -22,7 +21,7 @@ export async function loadHostModule({
 }: LoadHostModuleOptions): Promise<HostModule> {
   dependencies.validateHostManifest({ manifest, runtime });
 
-  const metadata = await dependencies.fetchJson<RemoteMetadata>({
+  const metadata = await dependencies.fetchJson({
     url: manifest.remoteEntryUrl,
     runtime,
     ...(manifest.integrity === undefined

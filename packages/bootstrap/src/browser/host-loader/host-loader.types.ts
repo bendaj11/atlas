@@ -1,5 +1,5 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
-import type { fetchJson } from '../fetch-json/index.js';
+import type { FetchOptions } from '../fetch-json/index.js';
 import type { importModule } from '../module-shim/index.js';
 import type {
   validateArtifactUrl,
@@ -14,9 +14,13 @@ export interface RemoteMetadata {
 
 export type HostLoaderDocument = Pick<Document, 'createElement' | 'head'>;
 
+export type FetchRemoteMetadata = (
+  options: FetchOptions,
+) => Promise<RemoteMetadata>;
+
 export interface HostLoaderDependencies {
   readonly document: HostLoaderDocument;
-  readonly fetchJson: typeof fetchJson;
+  readonly fetchJson: FetchRemoteMetadata;
   readonly importModule: typeof importModule;
   readonly validateArtifactUrl: typeof validateArtifactUrl;
   readonly validateHostManifest: typeof validateHostManifest;

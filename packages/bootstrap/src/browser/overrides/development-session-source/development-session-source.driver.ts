@@ -6,15 +6,14 @@ import {
   readStoredOverridesDocument,
 } from './development-session-source.js';
 import type { requestDevelopmentSession } from '../../development-session/index.js';
-import type { fetchJson } from '../../fetch-json/index.js';
-import type { loadPublishedArtifact } from '../../published-artifact/index.js';
+import type { FetchOptions } from '../../fetch-json/index.js';
 import type { DevSession } from '../overrides.types.js';
 
 export class DevelopmentSessionSourceDriver {
   private readonly sessionStore = new Map<string, string>();
   private readonly localStore = new Map<string, string>();
   private readonly fetchJson =
-    jest.fn<(options: unknown) => Promise<unknown>>();
+    jest.fn<(options: FetchOptions) => Promise<DevSession>>();
   private readonly requestDevelopmentSession =
     jest.fn<typeof requestDevelopmentSession>();
   private readonly dependencies = {
@@ -26,15 +25,14 @@ export class DevelopmentSessionSourceDriver {
     localStorage: {
       getItem: (key: string) => this.localStore.get(key) ?? null,
     },
-    fetchJson: this.fetchJson as typeof fetchJson,
+    fetchJson: this.fetchJson,
     requestDevelopmentSession: this.requestDevelopmentSession,
-    loadPublishedArtifact: jest.fn<typeof loadPublishedArtifact>(),
   };
   private discovered: unknown;
   private stored: string | null | undefined;
 
   readonly given = {
-    fetchedSession: (session: unknown) => {
+    fetchedSession: (session: DevSession) => {
       this.fetchJson.mockResolvedValue(session);
 
       return this;

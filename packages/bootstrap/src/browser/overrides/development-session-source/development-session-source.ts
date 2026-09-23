@@ -1,16 +1,33 @@
 import { OVERRIDES_STORAGE_KEY } from '../overrides.constants.js';
+import type { FetchOptions } from '../../fetch-json/index.js';
 import type {
   DevSession,
   OverridesContext,
   OverridesDependencies,
 } from '../overrides.types.js';
 
+export type FetchDevelopmentSession = (
+  options: FetchOptions,
+) => Promise<DevSession>;
+
+export type DevelopmentSessionSourceDependencies = Pick<
+  OverridesDependencies,
+  'sessionStorage' | 'localStorage' | 'requestDevelopmentSession'
+> & { fetchJson: FetchDevelopmentSession };
+
+export interface DevelopmentSessionSourceContext extends Pick<
+  OverridesContext,
+  'runtime'
+> {
+  dependencies: DevelopmentSessionSourceDependencies;
+}
+
 export async function discoverDevelopmentSession({
   runtime,
   dependencies,
-}: OverridesContext): Promise<DevSession | undefined> {
+}: DevelopmentSessionSourceContext): Promise<DevSession | undefined> {
   if (runtime.developmentSessionUrl) {
-    return dependencies.fetchJson<DevSession>({
+    return dependencies.fetchJson({
       url: runtime.developmentSessionUrl,
       runtime,
     });
@@ -28,7 +45,7 @@ export function storeDevelopmentSession({
   dependencies,
 }: {
   session: DevSession;
-  dependencies: OverridesDependencies;
+  dependencies: DevelopmentSessionSourceDependencies;
 }): string {
   const stored = JSON.stringify(session);
 
@@ -38,7 +55,7 @@ export function storeDevelopmentSession({
 }
 
 export function readStoredOverridesDocument(
-  dependencies: OverridesDependencies,
+  dependencies: DevelopmentSessionSourceDependencies,
 ): string | null {
   return (
     dependencies.sessionStorage.getItem(OVERRIDES_STORAGE_KEY) ||
