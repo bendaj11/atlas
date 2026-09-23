@@ -33,7 +33,10 @@
     }
   },
   "files": [
-    "dist/**/*.js",
+    "dist/index.js",
+    "dist/angular.js",
+    "dist/react.js",
+    "dist/chunks/*.js",
     "dist/**/*.d.ts"
   ],
   "sideEffects": false,
@@ -41,7 +44,7 @@
     "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
-    "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json",
+    "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json && esbuild dist/index.js dist/angular.js dist/react.js --bundle --splitting --format=esm --platform=browser --target=es2022 --packages=external --minify --keep-names --charset=utf8 --sourcemap=external --outdir=dist --chunk-names=chunks/[name]-[hash] --allow-overwrite",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config jest.config.mjs --coverage",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit",
     "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --runInBand --testPathPattern=packages/runtime/e2e/ --testTimeout=30000"
@@ -77,6 +80,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/css-tree": "^3.2.0",
     "@types/react": "^19.2.0",
+    "esbuild": "0.25.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }

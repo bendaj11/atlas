@@ -3,8 +3,6 @@ import {
   assertManifestStylesTrust,
   PERMISSIVE_TRUST_POLICY,
 } from '../loader/trust/trust-policy.js';
-import { prepareShadowImports } from '../shadow-imports/shadow-imports.js';
-import { adaptShadowStyleSheet } from '../shadow-styles/shadow-styles.js';
 import {
   AtlasStylesheetAdaptError,
   AtlasStylesheetLoadError,
@@ -114,9 +112,18 @@ function waitForStylesheetReady(input: {
       'load',
       async () => {
         try {
-          if ('host' in target && element.sheet) {
-            await prepareShadowImports(element.sheet, element.ownerDocument);
-            adaptShadowStyleSheet(element.sheet);
+          const sheet = element.sheet;
+
+          if ('host' in target && sheet) {
+            const [{ prepareShadowImports }, { adaptShadowStyleSheet }] =
+              await Promise.all([
+                import('../shadow-imports/shadow-imports.js'),
+                import('../shadow-styles/shadow-styles.js'),
+              ]);
+
+            await prepareShadowImports(sheet, element.ownerDocument);
+
+            adaptShadowStyleSheet(sheet);
           }
 
           resolve();
