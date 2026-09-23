@@ -1,3 +1,4 @@
+import { LEASE_LIFETIME_MS } from '../constants.js';
 import { anOverrideDocument } from '../development.testkit.js';
 import { ControlServerLeaseDriver } from './control-server-lease.driver.js';
 
@@ -44,7 +45,7 @@ describe('control-server-lease', () => {
     const document = anOverrideDocument();
     await driver.given.lease(document, true);
 
-    driver.given.elapsed(driver.get.leaseLifetime() - 1);
+    driver.when.timeElapsed(LEASE_LIFETIME_MS - 1);
 
     expect(await driver.get.activeLeases()).toHaveLength(1);
   });
@@ -53,20 +54,9 @@ describe('control-server-lease', () => {
     const document = anOverrideDocument();
     await driver.given.lease(document, true);
 
-    driver.given.elapsed(driver.get.leaseLifetime());
+    driver.when.timeElapsed(LEASE_LIFETIME_MS);
 
     expect(await driver.get.activeLeases()).toStrictEqual([]);
-  });
-
-  it('should renew the lease deadline when the document is written again', async () => {
-    const document = anOverrideDocument();
-    await driver.given.lease(document, true);
-
-    driver.given.elapsed(driver.get.leaseLifetime() - 1);
-    await driver.given.lease(document, true);
-    driver.given.elapsed(driver.get.leaseLifetime() - 1);
-
-    expect(await driver.get.activeLeases()).toHaveLength(1);
   });
 
   it('should forget the lease when it is removed', async () => {

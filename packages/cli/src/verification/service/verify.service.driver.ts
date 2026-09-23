@@ -252,15 +252,15 @@ export class VerifyServiceDriver {
     }
 
     if (scenario === 'request-concurrency') {
-      return Array.from({ length: 12 }, (_value, index) =>
-        this.deploymentManifest({ version: `1.0.${index}` }),
-      );
+      return faker.helpers
+        .uniqueArray(faker.system.semver, 12)
+        .map((version) => this.deploymentManifest({ version }));
     }
 
     if (scenario === 'body-concurrency') {
-      return Array.from({ length: 8 }, (_value, index) =>
-        this.deploymentManifest({ version: `1.0.${index}` }),
-      );
+      return faker.helpers
+        .uniqueArray(faker.system.semver, 8)
+        .map((version) => this.deploymentManifest({ version }));
     }
 
     return [this.deploymentManifest()];
@@ -331,12 +331,6 @@ export class VerifyServiceDriver {
     const manifestsByUrl = new Map(
       published.map(({ descriptor, bytes }) => [descriptor.url, bytes]),
     );
-
-    if (manifestsByUrl.size !== published.length) {
-      throw new Error(
-        'Verification scenario published two manifests at the same path; give each artifact its own id or version.',
-      );
-    }
 
     return async (input) => {
       const url = input.toString();

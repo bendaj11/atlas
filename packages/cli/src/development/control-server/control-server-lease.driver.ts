@@ -1,9 +1,5 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import {
-  CONTROL_RECONCILIATION_INTERVAL_MS,
-  LEASE_LIFETIME_MS,
-} from '../constants.js';
 import type { AtlasDevOverrideDocument } from '../types.js';
 import {
   readActiveControlServerLeases,
@@ -16,15 +12,7 @@ export class ControlServerLeaseDriver {
   private readonly documents: AtlasDevOverrideDocument[] = [];
 
   constructor() {
-    jest.useFakeTimers({
-      doNotFake: [
-        'nextTick',
-        'queueMicrotask',
-        'setImmediate',
-        'clearImmediate',
-      ],
-      now: faker.date.recent(),
-    });
+    jest.useFakeTimers({ now: faker.date.recent() });
   }
 
   readonly given = {
@@ -34,22 +22,18 @@ export class ControlServerLeaseDriver {
 
       return this;
     },
-    elapsed: (milliseconds: number) => {
-      jest.setSystemTime(Date.now() + milliseconds);
-
-      return this;
-    },
   };
 
   readonly when = {
     removed: (document: AtlasDevOverrideDocument) =>
       removeControlServerLease({ port: this.port, document }),
+    timeElapsed: (milliseconds: number) => {
+      jest.setSystemTime(Date.now() + milliseconds);
+    },
   };
 
   readonly get = {
     activeLeases: () => readActiveControlServerLeases(this.port),
-    leaseLifetime: () => LEASE_LIFETIME_MS,
-    reconciliationInterval: () => CONTROL_RECONCILIATION_INTERVAL_MS,
     cleanup: async () => {
       try {
         for (const document of this.documents)
