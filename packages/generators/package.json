@@ -25,7 +25,7 @@
     }
   },
   "files": [
-    "dist/**/*.js",
+    "dist/index.js",
     "dist/**/*.d.ts"
   ],
   "sideEffects": false,
@@ -33,7 +33,7 @@
     "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
-    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b",
+    "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/index.ts --bundle --format=esm --platform=node --target=es2022 --packages=external --external:@atlas/* --minify --keep-names --sourcemap=external --outfile=dist/index.js --allow-overwrite",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
@@ -41,6 +41,7 @@
     "@atlas/schema": "workspace:^"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.5.0"
+    "@faker-js/faker": "^10.5.0",
+    "esbuild": "0.25.12"
   }
 }
