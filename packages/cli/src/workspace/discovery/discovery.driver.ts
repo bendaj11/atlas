@@ -1,7 +1,12 @@
 import { relative } from 'node:path';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import type { AtlasProject } from '../types.js';
-import { findAtlasProject, listAtlasProjects } from './discovery.js';
+import {
+  InMemoryDirectory,
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
 
 interface ProjectFiles {
   packageJson?: unknown;
@@ -9,8 +14,14 @@ interface ProjectFiles {
   atlasConfig?: boolean;
 }
 
+const { findAtlasProject, listAtlasProjects } = await import('./discovery.js');
+
 export class DiscoveryDriver {
-  private readonly directory = new TemporaryDirectory();
+  private readonly directory = new InMemoryDirectory();
+
+  constructor() {
+    resetFileSystem();
+  }
 
   readonly given = {
     workspace: async (rootPackageJson: unknown = {}) => {

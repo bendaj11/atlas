@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
@@ -21,15 +20,27 @@ import type {
 } from '../publication-storage/types.js';
 import type { AtlasPreviewHeadResolver } from '../registry-config/types.js';
 import type { AtlasArtifactPreviewState } from '../pr-state-file/pr-state-file.js';
-import {
-  stringifyCanonicalJson,
-  computeRegistryRevision,
-} from '../static-registry/revision/registry-revision.js';
-import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
-import type { AtlasProjectBuilder } from '../types.js';
-import { AtlasPublishService } from './publish.service.js';
+import type {
+  AtlasPreviewPruneResult,
+  AtlasPreviewRemovalResult,
+  AtlasProjectBuilder,
+  AtlasPublishResult,
+} from '../types.js';
 import type { AtlasBuildResult } from '../../build/index.js';
-import { CliArguments } from '../../shared/index.js';
+import {
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { mkdtemp, rm, writeFile } = await import('node:fs/promises');
+const { stringifyCanonicalJson, computeRegistryRevision } =
+  await import('../static-registry/revision/registry-revision.js');
+const { createEmptyStaticRegistry } =
+  await import('../static-registry/static-registry.js');
+const { AtlasPublishService } = await import('./publish.service.js');
+const { CliArguments } = await import('../../shared/index.js');
 
 export class PublishServiceDriver {
   private readonly id = faker.string.uuid();
@@ -48,13 +59,9 @@ export class PublishServiceDriver {
   private readonly deliveryEvents: string[] = [];
   private readonly cachedObjects = new Map<string, Uint8Array>();
   private directory?: string;
-  private result?: Awaited<ReturnType<AtlasPublishService['run']>>;
-  private pruneResult?: Awaited<
-    ReturnType<AtlasPublishService['prunePreviews']>
-  >;
-  private removalResult?: Awaited<
-    ReturnType<AtlasPublishService['removePreview']>
-  >;
+  private result?: AtlasPublishResult;
+  private pruneResult?: AtlasPreviewPruneResult;
+  private removalResult?: AtlasPreviewRemovalResult;
   private bytes = new TextEncoder().encode(faker.string.alphanumeric(24));
   private readonly artifact = anAppArtifactManifest({
     id: this.id,
@@ -65,8 +72,12 @@ export class PublishServiceDriver {
     version: '1.4.0',
   };
 
+  constructor() {
+    resetFileSystem();
+  }
+
   given = {
-    unknownWriteOutcome: (operation: 'create' | 'replace'): void => {
+    unknownWriteOutcome: (operation: 'create' | 'replace') => {
       if (operation === 'create') {
         const create = this.storage.create.bind(this.storage);
         this.storage.create = jest
@@ -92,7 +103,7 @@ export class PublishServiceDriver {
     deliveryCache: (
       failure:
         'none' | 'invalidate-once' | 'verify-once' | 'artifact-verify-once',
-    ): void => {
+    ) => {
       this.permanentInvalidationFailures =
         failure === 'invalidate-once' ? 1 : 0;
       this.deliveryFailures = failure === 'verify-once' ? 1 : 0;
@@ -121,29 +132,29 @@ export class PublishServiceDriver {
           }
         });
     },
-    release: (version = '1.4.0'): void => {
+    release: (version = '1.4.0') => {
       this.selector = { version };
     },
-    preview: (number = 123): void => {
+    preview: (number = 123) => {
       this.selector = { preview: number };
       this.resolvePreviewHead.mockImplementation(async () => ({
         state: 'open' as const,
         headSha: 'abc123',
       }));
     },
-    changedBytes: (): void => {
+    changedBytes: () => {
       this.bytes = new TextEncoder().encode(faker.string.alphanumeric(25));
     },
-    dryRun: (): void => {
+    dryRun: () => {
       this.dryRun = true;
     },
-    transientVerificationFailure: (): void => {
+    transientVerificationFailure: () => {
       this.verificationFailures = 1;
     },
-    transientInvalidationFailure: (): void => {
+    transientInvalidationFailure: () => {
       this.invalidationFailures = 1;
     },
-    previewPruning: (): void => {
+    previewPruning: () => {
       const registry = createEmptyStaticRegistry('2026-01-01T00:00:00.000Z');
       registry.apps[this.id] = this.registryArtifact(this.id, [1, 2]);
       registry.apps[this.otherId] = this.registryArtifact(this.otherId, [2]);
@@ -168,7 +179,7 @@ export class PublishServiceDriver {
   };
 
   when = {
-    publish: async (): Promise<void> => {
+    publish: async () => {
       this.directory ??= await mkdtemp(join(tmpdir(), 'atlas-publish-test-'));
       await writeFile(join(this.directory, 'remoteEntry.json'), this.bytes);
       this.publication.mockImplementation(async () => this.buildResult());
@@ -191,11 +202,11 @@ export class PublishServiceDriver {
         },
       });
     },
-    cleanup: async (): Promise<void> => {
+    cleanup: async () => {
       if (this.directory)
         await rm(this.directory, { recursive: true, force: true });
     },
-    prune: async (): Promise<void> => {
+    prune: async () => {
       const states: readonly AtlasArtifactPreviewState[] = [
         { kind: 'app', id: this.id, openPreviews: new Set([1]) },
       ];
@@ -206,7 +217,7 @@ export class PublishServiceDriver {
         invalidate: (paths) => this.invalidate(paths),
       });
     },
-    removePreview: async (): Promise<void> => {
+    removePreview: async () => {
       this.removalResult = await new AtlasPublishService(
         new CliArguments(['remove-preview']),
       ).removePreview(this.id, 1, {
@@ -217,40 +228,33 @@ export class PublishServiceDriver {
   };
 
   get = {
-    deliveryEvents: (): string[] => this.deliveryEvents,
-    registryExists: (): boolean => this.storage.has('registry.json'),
+    deliveryEvents: () => this.deliveryEvents,
+    registryExists: () => this.storage.has('registry.json'),
     result: () => this.result,
-    name: (): string => this.name,
-    identity: (): string =>
+    name: () => this.name,
+    identity: () =>
       `app ${this.name} (${this.id}), release ${this.selector.version}`,
-    registry: (): AtlasStaticRegistry =>
+    registry: () =>
       JSON.parse(
         new TextDecoder().decode(this.storage.required('registry.json').bytes),
       ) as AtlasStaticRegistry,
-    paths: (): string[] => [...this.storage.paths()].sort(),
-    progress: (): readonly string[] => this.progress,
+    paths: () => [...this.storage.paths()].sort(),
+    progress: () => this.progress,
     resolverMock: () => this.resolvePreviewHead,
-    publicationAttempts: (): number => this.publication.mock.calls.length,
-    prunedSelections: (): Record<string, string[]> => ({
+    publicationAttempts: () => this.publication.mock.calls.length,
+    prunedSelections: () => ({
       scoped: Object.keys(this.get.registry().apps[this.id]!.previews),
       unscoped: Object.keys(this.get.registry().apps[this.otherId]!.previews),
     }),
-    pruneRetry: (): { removed: number | undefined; invalidations: number } => ({
+    pruneRetry: () => ({
       removed: this.pruneResult?.removed,
       invalidations: this.invalidationCalls,
     }),
-    removalRetry: (): {
-      removed: boolean | undefined;
-      invalidations: number;
-    } => ({
+    removalRetry: () => ({
       removed: this.removalResult?.removed,
       invalidations: this.invalidationCalls,
     }),
-    prunedOrphans: (): {
-      removedGenerations: number | undefined;
-      scopedExists: boolean;
-      unscopedExists: boolean;
-    } => ({
+    prunedOrphans: () => ({
       removedGenerations: this.pruneResult?.removedGenerations,
       scopedExists: this.storage.has(this.orphanPath(this.id)),
       unscopedExists: this.storage.has(this.orphanPath(this.otherId)),

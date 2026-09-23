@@ -1,11 +1,16 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
 import {
-  readAngularProxyConfigPath,
-  readConfiguredDevServerPort,
-} from './config.js';
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { mkdtemp, writeFile } = await import('node:fs/promises');
+const { readAngularProxyConfigPath, readConfiguredDevServerPort } =
+  await import('./config.js');
 
 export class DevelopmentConfigDriver {
   private readonly projectName = faker.word.noun().toLowerCase();
@@ -15,12 +20,16 @@ export class DevelopmentConfigDriver {
   private resolvedPort?: number;
   private resolvedPath?: string;
 
+  constructor() {
+    resetFileSystem();
+  }
+
   given = {
     angularProject: async ({
       originalTarget,
     }: {
       originalTarget: 'configured';
-    }): Promise<void> => {
+    }) => {
       this.root = await mkdtemp(join(tmpdir(), 'atlas-angular-config-'));
 
       await writeFile(
@@ -44,7 +53,7 @@ export class DevelopmentConfigDriver {
         }),
       );
     },
-    devServer: async (framework: 'angular' | 'react'): Promise<void> => {
+    devServer: async (framework: 'angular' | 'react') => {
       this.root = await mkdtemp(join(tmpdir(), 'atlas-dev-server-config-'));
 
       if (framework === 'react') {
@@ -72,13 +81,13 @@ export class DevelopmentConfigDriver {
   };
 
   when = {
-    resolveProxyPath: async (): Promise<void> => {
+    resolveProxyPath: async () => {
       this.resolvedPath = await readAngularProxyConfigPath(
         this.root,
         this.projectName,
       );
     },
-    resolvePort: async (): Promise<void> => {
+    resolvePort: async () => {
       this.resolvedPort = await readConfiguredDevServerPort(
         this.root,
         this.projectName,
@@ -87,9 +96,9 @@ export class DevelopmentConfigDriver {
   };
 
   get = {
-    configuredProxyPath: (): string => this.proxyPath,
-    configuredPort: (): number => this.port,
-    resolvedPort: (): number | undefined => this.resolvedPort,
-    resolvedProxyPath: (): string | undefined => this.resolvedPath,
+    configuredProxyPath: () => this.proxyPath,
+    configuredPort: () => this.port,
+    resolvedPort: () => this.resolvedPort,
+    resolvedProxyPath: () => this.resolvedPath,
   };
 }

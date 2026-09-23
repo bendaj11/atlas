@@ -1,23 +1,38 @@
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
 import type {
   AtlasHostManifest,
   AtlasManifest,
   AtlasVersionChannel,
 } from '@atlas/schema';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
 import type { AtlasBuildResult, BuildManifestOptions } from '../types.js';
-import { AtlasBuildService } from './build.service.js';
-import { CliArguments } from '../../shared/index.js';
+import type { loadCompiledAtlasConfig as loadCompiledAtlasConfigType } from '../config-loader/config-loader.js';
 import type {
   AtlasProject,
   AtlasWorkspaceKind,
 } from '../../workspace/index.js';
+import {
+  InMemoryDirectory,
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const loadCompiledAtlasConfig = jest.fn<typeof loadCompiledAtlasConfigType>();
+jest.unstable_mockModule('../config-loader/config-loader.js', () => ({
+  loadCompiledAtlasConfig,
+}));
+
+const { readFile } = await import('node:fs/promises');
+const { aProject, aWorkspace } =
+  await import('../../workspace/workspace.testkit.js');
+const { AtlasBuildService } = await import('./build.service.js');
+const { CliArguments } = await import('../../shared/index.js');
 
 export class BuildServiceDriver {
-  private readonly directory = new TemporaryDirectory();
+  private readonly directory = new InMemoryDirectory();
   private readonly projectName = faker.word.noun().toLowerCase();
   private project!: AtlasProject;
   private kind: AtlasWorkspaceKind = 'standalone';
@@ -27,10 +42,14 @@ export class BuildServiceDriver {
   private manifest?: AtlasManifest;
   private hostManifest?: AtlasHostManifest;
 
+  constructor() {
+    resetFileSystem();
+    loadCompiledAtlasConfig.mockReset();
+  }
+
   readonly given = {
-    project: async (): Promise<this> => {
+    project: async () => {
       await this.directory.create('atlas-build-service-');
-      await this.directory.writeJson('package.json', { type: 'module' });
       this.project = aProject({
         id: this.projectName,
         packageName: this.projectName,
@@ -41,28 +60,24 @@ export class BuildServiceDriver {
 
       return this;
     },
-    projectField: (overrides: Partial<AtlasProject>): this => {
+    projectField: (overrides: Partial<AtlasProject>) => {
       this.project = { ...this.project, ...overrides };
 
       return this;
     },
-    workspaceKind: (kind: AtlasWorkspaceKind): this => {
+    workspaceKind: (kind: AtlasWorkspaceKind) => {
       this.kind = kind;
 
       return this;
     },
-    config: async (source: string): Promise<this> => {
-      await this.directory.writeFile(
-        `${this.projectName}/atlas.config.js`,
-        source,
-      );
+    config: (
+      config: Awaited<ReturnType<typeof loadCompiledAtlasConfigType>>,
+    ) => {
+      loadCompiledAtlasConfig.mockResolvedValue(config);
 
       return this;
     },
-    artifactFile: async (
-      relativePath: string,
-      contents = '',
-    ): Promise<this> => {
+    artifactFile: async (relativePath: string, contents = '') => {
       await this.directory.writeFile(
         `${this.projectName}/dist/${relativePath}`,
         contents,
@@ -70,12 +85,12 @@ export class BuildServiceDriver {
 
       return this;
     },
-    flags: (flags: string[]): this => {
+    flags: (flags: string[]) => {
       this.flags = ['--skip-compile', ...flags];
 
       return this;
     },
-    environment: (name: string, value: string | undefined): this => {
+    environment: (name: string, value: string | undefined) => {
       if (!this.environment.has(name))
         this.environment.set(name, process.env[name]);
       if (value === undefined) delete process.env[name];
@@ -86,20 +101,20 @@ export class BuildServiceDriver {
   };
 
   readonly when = {
-    publicationBuilt: async (): Promise<void> => {
+    publicationBuilt: async () => {
       this.result = await this.service().publication(this.projectName);
     },
     manifestBuilt: async (
       channel?: AtlasVersionChannel,
       options: BuildManifestOptions = { skipCompile: true },
-    ): Promise<void> => {
+    ) => {
       this.manifest = await this.service().buildManifest(
         this.projectName,
         channel,
         options,
       );
     },
-    localHostManifestBuilt: async (baseUrl: string): Promise<void> => {
+    localHostManifestBuilt: async (baseUrl: string) => {
       this.hostManifest = await this.service().buildLocalHostManifest(
         this.projectName,
         baseUrl,
@@ -108,18 +123,18 @@ export class BuildServiceDriver {
   };
 
   readonly get = {
-    result: (): AtlasBuildResult => this.result!,
-    manifest: (): AtlasManifest => this.manifest!,
-    hostManifest: (): AtlasHostManifest => this.hostManifest!,
-    writtenHostManifest: async (): Promise<unknown> =>
+    result: () => this.result!,
+    manifest: () => this.manifest!,
+    hostManifest: () => this.hostManifest!,
+    writtenHostManifest: async () =>
       JSON.parse(
         await readFile(
           join(this.project.root, '.atlas', 'local-host.manifest.json'),
           'utf8',
         ),
       ),
-    artifactRoot: (): string => this.directory.path(`${this.projectName}/dist`),
-    restoreEnvironment: (): void => {
+    artifactRoot: () => this.directory.path(`${this.projectName}/dist`),
+    restoreEnvironment: () => {
       for (const [name, value] of this.environment) {
         if (value === undefined) delete process.env[name];
         else process.env[name] = value;
@@ -127,7 +142,7 @@ export class BuildServiceDriver {
     },
   };
 
-  private service(): AtlasBuildService {
+  private service() {
     const workspace = aWorkspace({
       kind: this.kind,
       root: this.directory.root,

@@ -1,9 +1,8 @@
 import { createServer, type Server } from 'node:http';
-import type { AtlasHostRuntimeConfig } from '@atlas/schema';
 import { aHostRuntimeConfig } from '@atlas/testkit';
-import { closeServer } from '../http/http.js';
-import type { LocalNativeProxy } from '../types.js';
-import { startLocalBootstrapServer } from './bootstrap-server.js';
+import { closeServer } from '../../src/development/http/http.js';
+import type { LocalNativeProxy } from '../../src/development/types.js';
+import { startLocalBootstrapServer } from '../../src/development/bootstrap-server/bootstrap-server.js';
 
 export class BootstrapServerDriver {
   private server?: Server;
@@ -19,12 +18,12 @@ export class BootstrapServerDriver {
   });
 
   readonly given = {
-    html: (html: string): this => {
+    html: (html: string) => {
       this.html = html;
 
       return this;
     },
-    upstream: async (routes: Record<string, unknown>): Promise<this> => {
+    upstream: async (routes: Record<string, unknown>) => {
       this.upstream = createServer((request, response) => {
         response.writeHead(200, {
           'content-type': 'text/plain',
@@ -44,7 +43,7 @@ export class BootstrapServerDriver {
   };
 
   readonly when = {
-    started: async (): Promise<void> => {
+    started: async () => {
       this.server = await startLocalBootstrapServer({
         port: 0,
         runtime: this.runtime,
@@ -52,7 +51,7 @@ export class BootstrapServerDriver {
         ...(this.proxy ? { proxy: this.proxy } : {}),
       });
     },
-    stopped: async (): Promise<void> => {
+    stopped: async () => {
       this.server?.closeAllConnections();
       this.upstream?.closeAllConnections();
       if (this.server) await closeServer(this.server);
@@ -61,12 +60,12 @@ export class BootstrapServerDriver {
   };
 
   readonly get = {
-    response: (path: string, method = 'GET'): Promise<Response> => {
+    response: (path: string, method = 'GET') => {
       const address = this.server!.address();
       const port = typeof address === 'object' && address ? address.port : 0;
 
       return fetch(`http://localhost:${port}${path}`, { method });
     },
-    runtime: (): AtlasHostRuntimeConfig => this.runtime,
+    runtime: () => this.runtime,
   };
 }

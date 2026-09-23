@@ -5,16 +5,16 @@ export class EntrypointDriver {
   private result!: CliProcessResult;
 
   readonly when = {
-    run: async (args: string[]): Promise<void> => {
+    run: async (args: string[]) => {
       this.result = await runCli({ args });
     },
   };
 
   readonly get = {
-    result: (): CliProcessResult => this.result,
-    stdout: (): string => this.result.stdout,
-    stderr: (): string => this.result.stderr,
-    packageVersion: async (): Promise<string> => {
+    result: () => this.result,
+    stdout: () => this.result.stdout,
+    stderr: () => this.result.stderr,
+    packageVersion: async () => {
       const contents = await readFile(
         new URL('../../package.json', import.meta.url),
         'utf8',

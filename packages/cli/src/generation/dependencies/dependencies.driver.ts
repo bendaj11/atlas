@@ -1,31 +1,39 @@
 import { relative } from 'node:path';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import type { SupportedFramework } from '../../shared/index.js';
 import {
+  InMemoryDirectory,
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const {
   resolveDependencyManifestPath,
   detectExistingFrameworkVersion,
   mergePackageDependencies,
-  type FrameworkVersionInfo,
-} from './dependencies.js';
-import { type SupportedFramework, readJsonFile } from '../../shared/index.js';
+} = await import('./dependencies.js');
+const { readJsonFile } = await import('../../shared/index.js');
 
 export class DependenciesDriver {
-  private readonly directory = new TemporaryDirectory();
+  private readonly directory = new InMemoryDirectory();
+
+  constructor() {
+    resetFileSystem();
+  }
 
   readonly given = {
-    workspace: async (): Promise<this> => {
+    workspace: async () => {
       await this.directory.create('atlas-dependencies-');
 
       return this;
     },
-    packageJson: async (
-      relativePath: string,
-      value: unknown,
-    ): Promise<this> => {
+    packageJson: async (relativePath: string, value: unknown) => {
       await this.directory.writeJson(relativePath, value);
 
       return this;
     },
-    directory: async (relativePath: string): Promise<this> => {
+    directory: async (relativePath: string) => {
       await this.directory.mkdir(relativePath);
 
       return this;
@@ -37,7 +45,7 @@ export class DependenciesDriver {
       relativeManifest: string,
       generated: unknown,
       framework: SupportedFramework,
-    ): Promise<boolean> =>
+    ) =>
       mergePackageDependencies(
         this.directory.path(relativeManifest),
         JSON.stringify(generated),
@@ -46,7 +54,7 @@ export class DependenciesDriver {
   };
 
   readonly get = {
-    manifestPath: async (relativeProjectRoot: string): Promise<string> =>
+    manifestPath: async (relativeProjectRoot: string) =>
       relative(
         this.directory.root,
         await resolveDependencyManifestPath(
@@ -57,7 +65,7 @@ export class DependenciesDriver {
     frameworkVersion: async (
       relativeProjectRoot: string,
       framework: SupportedFramework,
-    ): Promise<FrameworkVersionInfo | undefined> => {
+    ) => {
       const info = await detectExistingFrameworkVersion(
         this.directory.path(relativeProjectRoot),
         this.directory.root,

@@ -9,6 +9,10 @@ describe('control-server-lease', () => {
     driver = new ControlServerLeaseDriver();
   });
 
+  afterEach(() => {
+    driver.when.clockRestored();
+  });
+
   it('should return no leases when none were written for the port', async () => {
     expect(await driver.get.activeLeases()).toStrictEqual([]);
   });

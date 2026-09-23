@@ -1,23 +1,35 @@
 import { jest } from '@jest/globals';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../../workspace/workspace.testkit.js';
-import { resolveWidgetApp, type WidgetAppSelection } from './widget-apps.js';
 import type { AtlasPrompter } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
+import {
+  InMemoryDirectory,
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { aProject, aWorkspace } =
+  await import('../../workspace/workspace.testkit.js');
+const { resolveWidgetApp } = await import('./widget-apps.js');
 
 export class WidgetAppsDriver {
-  private readonly directory = new TemporaryDirectory();
+  private readonly directory = new InMemoryDirectory();
   private readonly projects: AtlasProject[] = [];
   private interactive = false;
   private readonly select = jest.fn<AtlasPrompter['select']>();
 
+  constructor() {
+    resetFileSystem();
+  }
+
   readonly given = {
-    workspace: async (): Promise<this> => {
+    workspace: async () => {
       await this.directory.create('atlas-widget-apps-');
 
       return this;
     },
-    projectConfig: async (name: string, source: string): Promise<this> => {
+    projectConfig: async (name: string, source: string) => {
       await this.directory.writeFile(`${name}/atlas.config.ts`, source);
       this.projects.push(
         aProject({ id: name, root: this.directory.path(name) }),
@@ -25,12 +37,12 @@ export class WidgetAppsDriver {
 
       return this;
     },
-    interactive: (interactive: boolean): this => {
+    interactive: (interactive: boolean) => {
       this.interactive = interactive;
 
       return this;
     },
-    selection: (appId: string): this => {
+    selection: (appId: string) => {
       this.select.mockResolvedValue(appId);
 
       return this;
@@ -38,7 +50,7 @@ export class WidgetAppsDriver {
   };
 
   readonly get = {
-    app: (requestedAppId?: string): Promise<WidgetAppSelection> =>
+    app: (requestedAppId?: string) =>
       resolveWidgetApp({
         workspace: aWorkspace({ listProjects: async () => this.projects }),
         prompts: {

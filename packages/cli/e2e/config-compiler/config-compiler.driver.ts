@@ -1,9 +1,12 @@
 import { faker } from '@faker-js/faker';
-import { doesPathExist } from '../../shared/index.js';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { aProject, aWorkspace } from '../workspace.testkit.js';
-import { compileAtlasConfig } from './config-compiler.js';
-import type { AtlasProject, AtlasWorkspaceKind } from '../types.js';
+import { doesPathExist } from '../../src/shared/index.js';
+import { TemporaryDirectory } from '../temporary-directory.testkit.js';
+import { aProject, aWorkspace } from '../../src/workspace/workspace.testkit.js';
+import { compileAtlasConfig } from '../../src/workspace/config-compiler/config-compiler.js';
+import type {
+  AtlasProject,
+  AtlasWorkspaceKind,
+} from '../../src/workspace/types.js';
 
 export class ConfigCompilerDriver {
   private readonly directory = new TemporaryDirectory();

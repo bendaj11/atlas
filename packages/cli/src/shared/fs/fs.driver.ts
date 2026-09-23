@@ -1,16 +1,20 @@
-import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import {
-  doesPathExist,
-  readJsonFile,
-  readTextFile,
-  writeJsonFile,
-} from './fs.js';
+import { mockFileSystem, resetFileSystem } from './in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { mkdtemp, writeFile, mkdir } = await import('node:fs/promises');
+const { doesPathExist, readJsonFile, readTextFile, writeJsonFile } =
+  await import('./fs.js');
 
 export class FsDriver {
   private root = '';
+
+  constructor() {
+    resetFileSystem();
+  }
 
   readonly given = {
     directory: async () => {

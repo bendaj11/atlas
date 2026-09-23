@@ -1,8 +1,15 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import { loadEnvFiles } from './env.js';
+import {
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { mkdtemp, writeFile } = await import('node:fs/promises');
+const { loadEnvFiles } = await import('./env.js');
 
 export class WorkspaceEnvDriver {
   private readonly registryUrl = faker.internet.url();
@@ -10,6 +17,10 @@ export class WorkspaceEnvDriver {
   private readonly originalRegistryUrl = process.env.ATLAS_REGISTRY_URL;
   private root = '';
   private loadedValues?: Record<string, string | undefined>;
+
+  constructor() {
+    resetFileSystem();
+  }
 
   given = {
     layeredFiles: async () => {

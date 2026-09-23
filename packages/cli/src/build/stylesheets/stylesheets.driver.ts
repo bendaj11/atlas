@@ -1,36 +1,41 @@
-import type {
-  AtlasConfig,
-  AtlasStylesheet,
-  AtlasVersionChannel,
-} from '@atlas/schema';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
+import type { AtlasConfig, AtlasVersionChannel } from '@atlas/schema';
 import {
-  discoverStylesheets,
-  extractStylesheetPathsFromIndex,
-} from './stylesheets.js';
+  InMemoryDirectory,
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { discoverStylesheets, extractStylesheetPathsFromIndex } =
+  await import('./stylesheets.js');
 
 export class StylesheetsDriver {
-  private readonly directory = new TemporaryDirectory();
+  private readonly directory = new InMemoryDirectory();
   private framework: AtlasConfig['framework'] = 'react';
   private channel: AtlasVersionChannel = 'production';
 
+  constructor() {
+    resetFileSystem();
+  }
+
   readonly given = {
-    artifactRoot: async (): Promise<this> => {
+    artifactRoot: async () => {
       await this.directory.create('atlas-stylesheets-');
 
       return this;
     },
-    framework: (framework: AtlasConfig['framework']): this => {
+    framework: (framework: AtlasConfig['framework']) => {
       this.framework = framework;
 
       return this;
     },
-    channel: (channel: AtlasVersionChannel): this => {
+    channel: (channel: AtlasVersionChannel) => {
       this.channel = channel;
 
       return this;
     },
-    file: async (relativePath: string, contents = ''): Promise<this> => {
+    file: async (relativePath: string, contents = '') => {
       await this.directory.writeFile(relativePath, contents);
 
       return this;
@@ -38,14 +43,13 @@ export class StylesheetsDriver {
   };
 
   readonly get = {
-    stylesheets: (baseUrl: string): Promise<AtlasStylesheet[]> =>
+    stylesheets: (baseUrl: string) =>
       discoverStylesheets({
         artifactRoot: this.directory.root,
         artifactBaseUrl: baseUrl,
         framework: this.framework,
         channel: this.channel,
       }),
-    pathsFromIndex: (html: string): string[] =>
-      extractStylesheetPathsFromIndex(html),
+    pathsFromIndex: (html: string) => extractStylesheetPathsFromIndex(html),
   };
 }

@@ -1,15 +1,26 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readAtlasPreviewUrls } from './previews.js';
+import {
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
+
+const { mkdtemp, writeFile } = await import('node:fs/promises');
+const { readAtlasPreviewUrls } = await import('./previews.js');
 
 export class AtlasPreviewUrlsDriver {
   private projectRoot = '';
   private result?: readonly string[];
   private error?: Error;
 
+  constructor() {
+    resetFileSystem();
+  }
+
   given = {
-    packageJson: async (value: unknown): Promise<void> => {
+    packageJson: async (value: unknown) => {
       this.projectRoot = await mkdtemp(join(tmpdir(), 'atlas-previews-'));
       await writeFile(
         join(this.projectRoot, 'package.json'),
@@ -19,7 +30,7 @@ export class AtlasPreviewUrlsDriver {
   };
 
   when = {
-    read: async (): Promise<void> => {
+    read: async () => {
       try {
         this.result = await readAtlasPreviewUrls(this.projectRoot);
       } catch (error) {
@@ -29,7 +40,7 @@ export class AtlasPreviewUrlsDriver {
   };
 
   get = {
-    result: (): readonly string[] | undefined => this.result,
-    extractErrorMessage: (): string | undefined => this.error?.message,
+    result: () => this.result,
+    extractErrorMessage: () => this.error?.message,
   };
 }

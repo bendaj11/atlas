@@ -51,7 +51,8 @@
     "typescript": "~5.9.0"
   },
   "devDependencies": {
+    "@atlas/testkit": "workspace:*",
     "@faker-js/faker": "^10.5.0",
-    "@atlas/testkit": "workspace:*"
+    "memfs": "4.64.0"
   }
 }

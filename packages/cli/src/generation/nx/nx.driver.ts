@@ -1,14 +1,24 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { faker } from '@faker-js/faker';
-import { alignDelegatedAngularFederationConfig } from './delegated-federation-config.js';
-import { alignDelegatedTsconfig } from './delegated-tsconfig.js';
-import { createAtlasConfigNxTarget, createNxTarget } from './nx-targets.js';
-import { ensureDelegatedNxTargets } from './nx.js';
 import type { SupportedFramework } from '../../shared/index.js';
+import {
+  mockFileSystem,
+  resetFileSystem,
+} from '../../shared/fs/in-memory-fs.testkit.js';
+
+mockFileSystem();
 
 type ProjectType = 'host' | 'app';
+
+const { mkdir, mkdtemp, readFile, writeFile } =
+  await import('node:fs/promises');
+const { alignDelegatedAngularFederationConfig } =
+  await import('./delegated-federation-config.js');
+const { alignDelegatedTsconfig } = await import('./delegated-tsconfig.js');
+const { createAtlasConfigNxTarget, createNxTarget } =
+  await import('./nx-targets.js');
+const { ensureDelegatedNxTargets } = await import('./nx.js');
 
 export class NxDriver {
   private readonly name = faker.word.noun().toLowerCase();
@@ -23,8 +33,12 @@ export class NxDriver {
   private projectRoot = '';
   private value?: unknown;
 
+  constructor() {
+    resetFileSystem();
+  }
+
   given = {
-    federationConfig: async (): Promise<void> => {
+    federationConfig: async () => {
       await this.createRoots();
 
       await writeFile(
@@ -49,7 +63,7 @@ module.exports = {
       framework: SupportedFramework;
       root: 'current' | 'stale';
       type: ProjectType;
-    }): Promise<void> => {
+    }) => {
       await this.createRoots();
       const relativeRoot = `apps/${this.name}`;
       const configuredRoot =
@@ -81,7 +95,7 @@ module.exports = {
 
       this.value = { framework, type };
     },
-    tsconfig: async (framework: SupportedFramework): Promise<void> => {
+    tsconfig: async (framework: SupportedFramework) => {
       await this.createRoots();
 
       await writeFile(
@@ -100,7 +114,7 @@ module.exports = {
   };
 
   when = {
-    alignFederation: async (): Promise<void> => {
+    alignFederation: async () => {
       await alignDelegatedAngularFederationConfig({
         workspaceRoot: this.workspaceRoot,
         root: this.projectRoot,
@@ -124,7 +138,7 @@ module.exports = {
         ].length,
       };
     },
-    alignTsconfig: async (): Promise<void> => {
+    alignTsconfig: async () => {
       const framework = this.value as SupportedFramework;
 
       await alignDelegatedTsconfig({ root: this.projectRoot, framework });
@@ -141,13 +155,13 @@ module.exports = {
         moduleResolution: tsconfig.compilerOptions.moduleResolution,
       };
     },
-    createConfigTarget: (): void => {
+    createConfigTarget: () => {
       this.value = createAtlasConfigNxTarget({
         packageManager: this.packageManager,
         cwd: this.projectRoot,
       });
     },
-    createTarget: (): void => {
+    createTarget: () => {
       this.value = createNxTarget({
         packageManager: this.packageManager,
         cwd: this.projectRoot,
@@ -158,7 +172,7 @@ module.exports = {
       frameworkVersion,
     }: {
       frameworkVersion?: string;
-    } = {}): Promise<void> => {
+    } = {}) => {
       const { framework, type } = this.value as {
         framework: SupportedFramework;
         type: ProjectType;
@@ -215,7 +229,7 @@ module.exports = {
         cwd: this.projectRoot,
       },
     }),
-    value: <T>(): T => this.value as T,
+    value: <T>() => this.value as T,
   };
 
   private async createRoots(): Promise<void> {

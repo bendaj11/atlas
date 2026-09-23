@@ -54,6 +54,9 @@ export class ControlServerLeaseDriver {
     timeElapsed: (milliseconds: number) => {
       jest.setSystemTime(Date.now() + milliseconds);
     },
+    clockRestored: () => {
+      jest.useRealTimers();
+    },
   };
 
   readonly get = {

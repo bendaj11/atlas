@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasConfig, AtlasExportedWidgetManifest } from '@atlas/schema';
-import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
-import { discoverExportedWidgets } from './exported-widgets.js';
+import type { AtlasConfig } from '@atlas/schema';
+import { TemporaryDirectory } from '../temporary-directory.testkit.js';
+import { discoverExportedWidgets } from '../../src/build/exported-widgets/exported-widgets.js';
 
 export class ExportedWidgetsDriver {
   private readonly directory = new TemporaryDirectory();
@@ -11,21 +11,17 @@ export class ExportedWidgetsDriver {
   } as AtlasConfig;
 
   readonly given = {
-    projectRoot: async (): Promise<this> => {
+    projectRoot: async () => {
       await this.directory.create('atlas-exported-widgets-');
 
       return this;
     },
-    framework: (framework: AtlasConfig['framework']): this => {
+    framework: (framework: AtlasConfig['framework']) => {
       this.config = { ...this.config, framework };
 
       return this;
     },
-    widgetFile: async (
-      widget: string,
-      file: string,
-      contents = '',
-    ): Promise<this> => {
+    widgetFile: async (widget: string, file: string, contents = '') => {
       await this.directory.writeFile(
         `src/exported-widgets/${widget}/${file}`,
         contents,
@@ -36,10 +32,8 @@ export class ExportedWidgetsDriver {
   };
 
   readonly get = {
-    configId: (): string => this.config.id,
-    widgets: (
-      ownerRemoteEntryUrl: string,
-    ): Promise<AtlasExportedWidgetManifest[]> =>
+    configId: () => this.config.id,
+    widgets: (ownerRemoteEntryUrl: string) =>
       discoverExportedWidgets({
         projectRoot: this.directory.root,
         config: this.config,
