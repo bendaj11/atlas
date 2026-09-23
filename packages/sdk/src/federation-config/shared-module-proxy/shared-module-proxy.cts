@@ -1,9 +1,9 @@
 import { join } from 'node:path';
-import type { Plugin } from 'vite';
 import type {
   ReadCommonJsExports,
   SharedModuleProxyDependencies,
   SharedModuleProxyOptions,
+  SharedModuleProxyPlugin,
   SharedProxyLoadContext,
   ViteIdResolver,
 } from './shared-module-proxy.types.cjs';
@@ -20,7 +20,7 @@ export function buildSharedProxyId(specifier: string): string {
 export function createSharedModuleProxy(
   options: SharedModuleProxyOptions,
   dependencies: SharedModuleProxyDependencies,
-): Plugin {
+): SharedModuleProxyPlugin {
   const specifiers = new Set(options.specifiers);
   const importer = join(options.projectRoot, 'package.json');
   let resolveEntry: ViteIdResolver | undefined;

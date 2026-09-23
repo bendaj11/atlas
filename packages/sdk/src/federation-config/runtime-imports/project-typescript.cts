@@ -9,7 +9,10 @@ export function loadProjectTypescript(
   requireFromProject: NodeJS.Require,
 ): TypeScriptModule {
   try {
-    return requireFromProject('typescript') as TypeScriptModule;
+    const projectTypescript: TypeScriptModule =
+      requireFromProject('typescript');
+
+    return projectTypescript;
   } catch {
     return loadBundledTypescript();
   }
@@ -60,7 +63,9 @@ export function readProjectCompilerOptions(
 
 function loadBundledTypescript(): TypeScriptModule {
   try {
-    return require('typescript') as TypeScriptModule;
+    const bundledTypescript: TypeScriptModule = require('typescript');
+
+    return bundledTypescript;
   } catch (cause) {
     throw new FederationConfigError(
       'Atlas React federation requires TypeScript to discover shared runtime dependencies.',

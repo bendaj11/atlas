@@ -19,14 +19,13 @@ export function forwardChangedInputs<TInputs extends object>(
 }
 
 export function shallowEqual(left: object, right: object): boolean {
-  const leftKeys = Object.keys(left) as Array<keyof typeof left>;
-  const rightKeys = Object.keys(right);
+  const leftEntries = Object.entries(left);
 
-  if (leftKeys.length !== rightKeys.length) return false;
+  if (leftEntries.length !== Object.keys(right).length) return false;
 
-  return leftKeys.every(
-    (key) =>
+  return leftEntries.every(
+    ([key, value]) =>
       Object.prototype.hasOwnProperty.call(right, key) &&
-      Object.is(left[key], (right as Record<string, unknown>)[key]),
+      Object.is(value, Reflect.get(right, key)),
   );
 }

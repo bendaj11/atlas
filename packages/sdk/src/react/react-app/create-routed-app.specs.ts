@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { CreateRoutedAppDriver } from './create-routed-app.driver.js';
 
 describe('createRoutedApp', () => {

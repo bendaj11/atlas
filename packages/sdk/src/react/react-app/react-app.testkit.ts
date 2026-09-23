@@ -24,11 +24,11 @@ export function aRootAdapter(): RootAdapterMocks {
 }
 
 export function aMountRequest(): AtlasAppMountRequest {
-  const container = {} as HTMLElement;
+  const container = document.createElement('div');
 
   return {
     container,
-    styleTarget: container as unknown as Node & ParentNode,
+    styleTarget: container,
     sdk: createAtlasSdk({
       hostId: faker.string.uuid(),
       navigation: aMemoryNavigation(),

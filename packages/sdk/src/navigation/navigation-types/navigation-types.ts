@@ -34,16 +34,19 @@ export type SubscribeToLocation = (
 
 export type ReadLocation = () => AtlasLocation;
 
-/** Host-owned browser navigation exposed through framework adapters. */
+/**
+ * Host-owned browser navigation exposed through framework adapters.
+ * Members stay method-style so host adapters written against a wider option type stay assignable.
+ */
 export interface AtlasNavigation {
-  navigate: NavigateToPath;
-  replace: ReplacePath;
-  back: GoBack;
+  navigate(to: string, options?: AtlasNavigateOptions): void;
+  replace(to: string, options?: AtlasReplaceOptions): void;
+  back(): void;
   /** Moves through host history when the host adapter supports an arbitrary delta. */
-  go?: GoThroughHistory;
-  createHref: CreateHref;
-  subscribe: SubscribeToLocation;
-  getCurrentLocation: ReadLocation;
+  go?(delta: number): void;
+  createHref(to: string): string;
+  subscribe(listener: AtlasNavigationListener): AtlasUnsubscribe;
+  getCurrentLocation(): AtlasLocation;
 }
 
 /** Browser navigation whose global event listener can be explicitly released. */

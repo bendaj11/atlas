@@ -1,11 +1,19 @@
+/** @jest-environment jsdom */
+
 import { faker } from '@faker-js/faker';
 import { AngularAtlasSdkDriver } from './angular-atlas-sdk.driver.js';
 
 describe('createAngularAtlasSdk', () => {
   let driver: AngularAtlasSdkDriver;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     driver = new AngularAtlasSdkDriver();
+
+    await driver.when.angularApplicationStarted();
+  });
+
+  afterEach(() => {
+    driver.when.applicationDestroyed();
   });
 
   it('should return a frozen binding with widget id and inputs when getWidget is called', () => {

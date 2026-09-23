@@ -1,4 +1,4 @@
-import type { Environment, Rollup } from 'vite';
+import type { Environment, Plugin, ResolvedConfig, Rollup } from 'vite';
 
 export type ViteIdResolver = ReturnType<typeof import('vite').createIdResolver>;
 
@@ -42,6 +42,14 @@ export interface SharedProxyLoadContext {
   resolve: ResolveSharedEntry;
   load: LoadSharedEntryInfo;
   error: ReportLoadError;
+}
+
+/** The shared-proxy plugin with its three hooks declared, so tests can call them without narrowing. */
+export interface SharedModuleProxyPlugin extends Plugin {
+  readonly name: string;
+  configResolved(config: ResolvedConfig): Promise<void>;
+  resolveId(source: string): string | undefined;
+  load(this: SharedProxyLoadContext, id: string): Promise<string | undefined>;
 }
 
 export interface ProxySourceOptions {

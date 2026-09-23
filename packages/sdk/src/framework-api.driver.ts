@@ -63,9 +63,10 @@ export class FrameworkApiDriver {
 
   readonly when = {
     packageRead: async () => {
-      this.packageJson = JSON.parse(
+      const packageJson: SdkPackage = JSON.parse(
         await readFile(new URL('../package.json', import.meta.url), 'utf8'),
-      ) as SdkPackage;
+      );
+      this.packageJson = packageJson;
     },
   };
 

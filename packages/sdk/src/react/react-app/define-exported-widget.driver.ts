@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { jest } from '@jest/globals';
 import type {
   AtlasExportedWidgetMountRequest,
@@ -14,8 +15,8 @@ interface WidgetProps {
 export class DefineExportedWidgetDriver {
   private readonly root = aRootAdapter();
   private readonly createElement = jest.fn<
-    (request: AtlasExportedWidgetMountRequest<WidgetProps>) => unknown
-  >((request) => request.props);
+    (request: AtlasExportedWidgetMountRequest<WidgetProps>) => ReactNode
+  >((request) => JSON.stringify(request.props));
   private mounted: AtlasExportedWidgetMountResult<WidgetProps> | void =
     undefined;
 
@@ -42,7 +43,7 @@ export class DefineExportedWidgetDriver {
 
   readonly get = {
     createElementMock: (): jest.Mock<
-      (request: AtlasExportedWidgetMountRequest<WidgetProps>) => unknown
+      (request: AtlasExportedWidgetMountRequest<WidgetProps>) => ReactNode
     > => this.createElement,
     renderMock: () => this.root.render,
     unmountRootMock: () => this.root.unmount,

@@ -2,15 +2,16 @@ import '@angular/compiler';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import {
+  provideZonelessChangeDetection,
   signal,
   type ApplicationRef,
-  type EnvironmentInjector,
 } from '@angular/core';
+import { createApplication } from '@angular/platform-browser';
 import type {
   AtlasGetWidget,
   AtlasMountedWidgetHandle,
-  AtlasWidgetHandle,
   MountWidget,
+  SetWidgetInputs,
 } from '../../core/sdk-types/index.js';
 import {
   connectAtlasWidgetResolver,
@@ -28,39 +29,35 @@ interface WidgetInputs {
   readonly count: number;
 }
 
+type HandleWidgetError = (error: unknown) => void;
+
 export class AngularWidgetOutletControllerDriver {
   private readonly sdk = createAtlasSdk({
     hostId: faker.string.uuid(),
     navigation: aMemoryNavigation(),
   });
   private readonly lifecycle: string[] = [];
-  private readonly setInputs = jest.fn<(inputs: WidgetInputs) => void>();
-  private readonly handleError = jest.fn<(error: unknown) => void>();
-  private readonly mount = jest.fn<MountWidget<WidgetInputs>>(async () =>
+  private readonly setInputs = jest.fn<SetWidgetInputs<object>>();
+  private readonly handleError = jest.fn<HandleWidgetError>();
+  private readonly mount = jest.fn<MountWidget<object>>(async () =>
     this.createMountedWidget(),
   );
-  private readonly resolver = jest.fn<AtlasGetWidget>(
-    (widgetId) =>
-      ({
-        id: widgetId,
-        name: faker.commerce.productName(),
-        mount: (container: HTMLElement, inputs: object) => {
-          this.lifecycle.push(`mount:${widgetId}`);
+  private readonly resolver = jest.fn<AtlasGetWidget>((widgetId) => ({
+    id: widgetId,
+    name: faker.commerce.productName(),
+    mount: (container, inputs) => {
+      this.lifecycle.push(`mount:${widgetId}`);
 
-          return this.mount(container, inputs as WidgetInputs);
-        },
-      }) as AtlasWidgetHandle<object>,
-  );
-  private readonly angularSdk: AngularAtlasSdk = createAngularAtlasSdk({
-    sdk: this.sdk,
-    applicationRef: Object.create(null) as ApplicationRef,
-    environmentInjector: Object.create(null) as EnvironmentInjector,
-    hostData: signal(this.sdk.hostData).asReadonly(),
-  });
+      return this.mount(container, inputs);
+    },
+  }));
+  private readonly container = document.createElement('div');
   private readonly controller = new AngularWidgetOutletController<WidgetInputs>(
-    Object.create(null) as HTMLElement,
+    this.container,
     this.handleError,
   );
+  private applicationRef!: ApplicationRef;
+  private angularSdk!: AngularAtlasSdk;
   private releaseMount: (() => void) | undefined;
   private mountStarted: Promise<void> = Promise.resolve();
 
@@ -96,6 +93,18 @@ export class AngularWidgetOutletControllerDriver {
   };
 
   readonly when = {
+    angularApplicationStarted: async (): Promise<void> => {
+      const application = await createApplication({
+        providers: [provideZonelessChangeDetection()],
+      });
+      this.applicationRef = application;
+      this.angularSdk = createAngularAtlasSdk({
+        sdk: this.sdk,
+        applicationRef: application,
+        environmentInjector: application.injector,
+        hostData: signal(this.sdk.hostData).asReadonly(),
+      });
+    },
     rendered: async (widgetId: string, inputs: WidgetInputs): Promise<void> => {
       await this.controller.render(this.createBinding(widgetId, inputs));
     },
@@ -112,10 +121,13 @@ export class AngularWidgetOutletControllerDriver {
     destroyStarted: (): Promise<void> => this.controller.destroy(),
     foreignBindingRendered: (widgetId: string) =>
       this.controller.render({ widgetId, inputs: { count: 0 } }),
+    applicationDestroyed: (): void => {
+      this.applicationRef.destroy();
+    },
   };
 
   readonly get = {
-    mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
+    mountMock: (): jest.Mock<MountWidget<object>> => this.mount,
     setInputsMock: () => this.setInputs,
     handleErrorMock: () => this.handleError,
     lifecycle: (): readonly string[] => this.lifecycle,
@@ -128,7 +140,7 @@ export class AngularWidgetOutletControllerDriver {
     return this.angularSdk.getWidget<WidgetInputs>(widgetId, { inputs });
   }
 
-  private createMountedWidget(): AtlasMountedWidgetHandle<WidgetInputs> {
+  private createMountedWidget(): AtlasMountedWidgetHandle<object> {
     const widgetId = this.lifecycle.at(-1)?.slice('mount:'.length);
 
     return {

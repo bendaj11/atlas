@@ -14,13 +14,20 @@ interface ProjectPackageJson {
   readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
+interface InstalledPackageJson {
+  readonly version: string;
+  readonly exports?: unknown;
+}
+
 /** `dependencies` merged with `peerDependencies` of the project package.json; empty when the file is absent. */
 export function readDeclaredPackageRanges(
   packagePath: string,
 ): Record<string, string> {
-  const packageJson: ProjectPackageJson = existsSync(packagePath)
-    ? (JSON.parse(readFileSync(packagePath, 'utf8')) as ProjectPackageJson)
-    : {};
+  if (!existsSync(packagePath)) return {};
+
+  const packageJson: ProjectPackageJson = JSON.parse(
+    readFileSync(packagePath, 'utf8'),
+  );
 
   return { ...packageJson.dependencies, ...packageJson.peerDependencies };
 }
@@ -65,10 +72,9 @@ export function readInstalledPackageInfo(
     );
   }
 
-  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8')) as {
-    version: string;
-    exports?: unknown;
-  };
+  const packageJson: InstalledPackageJson = JSON.parse(
+    readFileSync(packagePath, 'utf8'),
+  );
 
   return {
     version: packageJson.version,

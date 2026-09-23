@@ -42,9 +42,12 @@ export function subscribeAtlasHostData(
 function getHostDataListeners(
   sdk: object,
 ): HostDataListenerRegistry | undefined {
-  return (sdk as Record<symbol, HostDataListenerRegistry | undefined>)[
-    HOST_DATA_LISTENERS
-  ];
+  const registry: HostDataListenerRegistry | undefined = Reflect.get(
+    sdk,
+    HOST_DATA_LISTENERS,
+  );
+
+  return registry;
 }
 
 function registerHostDataListeners(sdk: object): HostDataListenerRegistry {

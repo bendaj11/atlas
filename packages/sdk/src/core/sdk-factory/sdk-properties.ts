@@ -1,14 +1,17 @@
-import type { AtlasHostData, AtlasSdkOptions } from '../sdk-types/index.js';
+import type {
+  AtlasHostDataValue,
+  AtlasSdkOptions,
+} from '../sdk-types/index.js';
 import { AtlasSdkError } from '../sdk-error/sdk-error.js';
 
 export function buildHostData<THostSdk extends object, TEvents extends object>(
   options: AtlasSdkOptions<THostSdk, TEvents>,
-): AtlasHostData & object {
+): AtlasHostDataValue<THostSdk> {
   return {
     ...options.hostData,
     hostId: options.hostId,
     name: options.hostData?.name ?? options.hostId,
-  };
+  } as AtlasHostDataValue<THostSdk>;
 }
 
 /** Host-defined SDK members: everything in the options that is not core Atlas configuration. */

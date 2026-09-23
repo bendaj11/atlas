@@ -10,9 +10,10 @@ import { render, screen, type RenderResult } from '@testing-library/react';
 import type {
   AtlasGetWidget,
   AtlasMountedWidgetHandle,
-  AtlasWidgetHandle,
   AtlasWidgetLoadingRenderer,
   MountWidget,
+  SetWidgetInputs,
+  UnmountWidget,
 } from '../../core/sdk-types/index.js';
 import { createWidgetComponent } from './widget-component.js';
 
@@ -46,26 +47,25 @@ class Boundary extends Component<{ children: ReactNode }, { error: unknown }> {
 }
 
 export class WidgetComponentDriver {
-  private readonly setInputs = jest.fn<(inputs: WidgetInputs) => void>();
-  private readonly unmount = jest.fn<() => Promise<void>>(
-    async () => undefined,
-  );
-  private readonly mounted: AtlasMountedWidgetHandle<WidgetInputs> = {
+  private readonly setInputs = jest.fn<SetWidgetInputs<object>>();
+  private readonly unmount = jest.fn<UnmountWidget>(async () => undefined);
+  private readonly mounted: AtlasMountedWidgetHandle<object> = {
     setInputs: this.setInputs,
     unmount: this.unmount,
   };
-  private readonly mount = jest.fn<MountWidget<WidgetInputs>>(
+  private readonly mount = jest.fn<MountWidget<object>>(
     async () => this.mounted,
   );
-  private readonly getWidget = jest.fn<AtlasGetWidget>(
-    (widgetId, options) =>
-      ({
-        id: widgetId,
-        name: faker.commerce.productName(),
-        mount: this.mount,
-        renderLoading: options?.renderLoading,
-      }) as unknown as AtlasWidgetHandle<object>,
-  );
+  private renderLoading: AtlasWidgetLoadingRenderer | undefined;
+  private readonly getWidget = jest.fn<AtlasGetWidget>((widgetId, options) => {
+    this.renderLoading = options?.renderLoading;
+
+    return {
+      id: widgetId,
+      name: faker.commerce.productName(),
+      mount: (container, inputs) => this.mount(container, inputs),
+    };
+  });
   private readonly widgets = new Map<string, ComponentType<WidgetInputs>>();
   private loadingComponent: ComponentType | undefined;
   private rendered: RenderResult | undefined;
@@ -102,9 +102,11 @@ export class WidgetComponentDriver {
       this.rendered?.unmount();
     },
     loadingShown: async (): Promise<() => void> => {
-      const options = this.getWidget.mock.calls[0]?.[1];
-      const renderLoading =
-        options?.renderLoading as AtlasWidgetLoadingRenderer;
+      const renderLoading = this.renderLoading;
+
+      if (!renderLoading)
+        throw new Error('Widget was created without loading.');
+
       const hide =
         renderLoading(document.createElement('div')) ?? (() => undefined);
       await Promise.resolve();
@@ -114,9 +116,9 @@ export class WidgetComponentDriver {
   };
 
   readonly get = {
-    mountMock: (): jest.Mock<MountWidget<WidgetInputs>> => this.mount,
+    mountMock: (): jest.Mock<MountWidget<object>> => this.mount,
     setInputsMock: () => this.setInputs,
-    unmountMock: (): jest.Mock<() => Promise<void>> => this.unmount,
+    unmountMock: (): jest.Mock<UnmountWidget> => this.unmount,
     container: (widgetId: string) =>
       document.querySelector(`[data-atlas-widget-container="${widgetId}"]`),
     loadingIndicator: () =>

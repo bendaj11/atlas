@@ -36,9 +36,10 @@ export function createAngularFederationConfig(
   const requireFromProject = createRequire(
     join(options.projectRoot, 'package.json'),
   );
-  const { shareAll, withNativeFederation } = requireFromProject(
+  const nativeFederation: NativeFederationConfigModule = requireFromProject(
     NATIVE_FEDERATION_CONFIG,
-  ) as NativeFederationConfigModule;
+  );
+  const { shareAll, withNativeFederation } = nativeFederation;
 
   return withNativeFederation(
     createAngularFederationOptions(options, shareAll),

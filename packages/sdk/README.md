@@ -34,5 +34,17 @@ Apps should not create their own host SDK. Read it with `useAtlasSdk()` or
 | `@atlas/sdk/federation`        | Native Federation runtime re-export                                    |
 | `@atlas/sdk/federation-config` | Typed Vite and Native Federation config factories for builds           |
 
-Every public failure is an `AtlasError` with a stable `code` and
-`suggestedActions`; see [error handling](https://github.com/bendaj11/atlas/blob/main/docs/error-handling.md).
+## Errors
+
+Every public failure is thrown as a class that extends `AtlasError`, carrying a
+stable `code` and `suggestedActions`:
+
+| Class                     | Thrown when                                                           |
+| ------------------------- | --------------------------------------------------------------------- |
+| `AtlasSdkError`           | SDK misuse or a capability the host has not connected yet             |
+| `AtlasWidgetMountError`   | A React widget fails to mount; catch it with an error boundary        |
+| `AtlasEventListenerError` | An event listener throws; reported asynchronously, never swallowed    |
+| `FederationConfigError`   | Build-time federation config failure (`@atlas/sdk/federation-config`) |
+
+See [error handling](https://github.com/bendaj11/atlas/blob/main/docs/error-handling.md)
+for the full contract.

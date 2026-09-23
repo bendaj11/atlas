@@ -9,6 +9,7 @@ export type {
   ReadCommonJsExports,
   SharedModuleProxyDependencies,
   SharedModuleProxyOptions,
+  SharedModuleProxyPlugin,
   SharedProxyLoadContext,
   ResolveSharedEntry,
   LoadSharedEntryInfo,

@@ -18,7 +18,7 @@ export function createAtlasAppAssetFacade<TSdk extends object>(
   context: AtlasAppContext,
 ): TSdk & AtlasAppAssets {
   const assetBaseUrl = new URL('.', context.manifest.remoteEntryUrl).href;
-  const facade = Object.create(sdk) as TSdk & AtlasAppAssets;
+  const facade: TSdk & AtlasAppAssets = Object.create(sdk);
   Object.defineProperties(facade, {
     assetBaseUrl: { value: () => assetBaseUrl },
     assetUrl: {

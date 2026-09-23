@@ -12,12 +12,19 @@ import type {
   ReactGetWidgetOptions,
 } from './react-widget.types.js';
 
-type WidgetCache = Map<
-  string,
-  Map<ComponentType | undefined, ComponentType<object>>
+type WidgetsByLoadingComponent = Map<
+  ComponentType | undefined,
+  ComponentType<never>
 >;
 
-const sdkFacades = new WeakMap<object, WeakMap<object, object>>();
+type WidgetCache = Map<string, WidgetsByLoadingComponent>;
+
+type ReactFacadesByAppContext<
+  THostSdk extends object,
+  TEvents extends object,
+> = WeakMap<object, ReactAtlasSdk<THostSdk, TEvents>>;
+
+const REACT_FACADES = Symbol.for('@atlas/sdk/react-facades');
 
 /** Wraps the host SDK with React widget components and app asset helpers; one facade per (sdk, app context). */
 export function createReactAtlasSdk<
@@ -27,25 +34,37 @@ export function createReactAtlasSdk<
   sdk: AtlasSdkValue<THostSdk, TEvents>,
   context?: AtlasAppContext,
 ): ReactAtlasSdk<THostSdk, TEvents> {
-  const appFacades = sdkFacades.get(sdk) ?? new WeakMap<object, object>();
-  sdkFacades.set(sdk, appFacades);
-
+  const facades = getFacadesOf<THostSdk, TEvents>(sdk);
   const facadeContext = context ?? sdk;
-  const cached = appFacades.get(facadeContext);
+  const cached = facades.get(facadeContext);
 
-  if (cached) return cached as ReactAtlasSdk<THostSdk, TEvents>;
+  if (cached) return cached;
 
-  const facade = Object.create(
+  const facade: ReactAtlasSdk<THostSdk, TEvents> = Object.create(
     context ? createAtlasAppAssetFacade(sdk, context) : sdk,
-  ) as ReactAtlasSdk<THostSdk, TEvents>;
+  );
 
   if (!context) defineUnavailableAppAssets(facade);
   Object.defineProperty(facade, 'getWidget', {
     value: createWidgetComponentGetter(sdk, new Map()),
   });
-  appFacades.set(facadeContext, facade);
+  facades.set(facadeContext, facade);
 
   return facade;
+}
+
+function getFacadesOf<THostSdk extends object, TEvents extends object>(
+  sdk: object,
+): ReactFacadesByAppContext<THostSdk, TEvents> {
+  const existing: ReactFacadesByAppContext<THostSdk, TEvents> | undefined =
+    Reflect.get(sdk, REACT_FACADES);
+
+  if (existing) return existing;
+
+  const facades: ReactFacadesByAppContext<THostSdk, TEvents> = new WeakMap();
+  Object.defineProperty(sdk, REACT_FACADES, { value: facades });
+
+  return facades;
 }
 
 function createWidgetComponentGetter(
@@ -62,17 +81,14 @@ function createWidgetComponentGetter(
 
     const cachedWidget = widgetsByLoadingComponent.get(loadingComponent);
 
-    if (cachedWidget) return cachedWidget as ComponentType<TInputs>;
+    if (cachedWidget) return cachedWidget;
 
     const widget = createWidgetComponent<TInputs>({
       sdk,
       widgetId,
       loadingComponent,
     });
-    widgetsByLoadingComponent.set(
-      loadingComponent,
-      widget as ComponentType<object>,
-    );
+    widgetsByLoadingComponent.set(loadingComponent, widget);
 
     return widget;
   };

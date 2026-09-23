@@ -1,6 +1,7 @@
 import { createAtlasEventBus, type AtlasEventMap } from '../event-bus/index.js';
 import type {
   AtlasCoreSdk,
+  AtlasHostDataOf,
   AtlasSdk,
   AtlasSdkOptions,
 } from '../sdk-types/index.js';
@@ -31,8 +32,8 @@ export function createAtlasSdk<
 
 function createAtlasCoreSdk<THostSdk extends object, TEvents extends object>(
   options: AtlasSdkOptions<THostSdk, TEvents>,
-): AtlasCoreSdk<object, TEvents> {
-  const core: AtlasCoreSdk<object, TEvents> = {
+): AtlasCoreSdk<AtlasHostDataOf<THostSdk>, TEvents> {
+  const core: AtlasCoreSdk<AtlasHostDataOf<THostSdk>, TEvents> = {
     hostId: options.hostId,
     hostData: buildHostData(options),
     navigateTo: (appId, state) => navigateThroughHost(core, appId, state),

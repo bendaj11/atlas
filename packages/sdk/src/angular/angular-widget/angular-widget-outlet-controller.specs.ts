@@ -1,11 +1,19 @@
+/** @jest-environment jsdom */
+
 import { faker } from '@faker-js/faker';
 import { AngularWidgetOutletControllerDriver } from './angular-widget-outlet-controller.driver.js';
 
 describe('AngularWidgetOutletController', () => {
   let driver: AngularWidgetOutletControllerDriver;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     driver = new AngularWidgetOutletControllerDriver();
+
+    await driver.when.angularApplicationStarted();
+  });
+
+  afterEach(() => {
+    driver.when.applicationDestroyed();
   });
 
   it('should report ATLAS_WIDGET_BINDING_INVALID to the error handler when rendering a binding not created by getWidget', async () => {

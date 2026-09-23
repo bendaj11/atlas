@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type { AtlasAppMountResult } from '../../lifecycle.js';
@@ -15,9 +16,9 @@ export class CreateRoutedAppDriver {
     subscribe: () => this.routerUnsubscribe,
     dispose: this.routerDispose,
   };
-  private readonly createElement = jest.fn<(router: AppRouterLike) => unknown>(
-    () => faker.lorem.word(),
-  );
+  private readonly createElement = jest.fn<
+    (router: AppRouterLike) => ReactNode
+  >(() => faker.lorem.word());
   private mounted: AtlasAppMountResult | void = undefined;
 
   readonly when = {

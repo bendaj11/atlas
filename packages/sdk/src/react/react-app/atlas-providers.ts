@@ -17,12 +17,12 @@ type ProviderRequest = Pick<
 /** Wraps an app or widget element with the SDK, style target, and runtime context providers. */
 export function withAtlasProviders(
   request: ProviderRequest | AtlasExportedWidgetMountRequest<object>,
-  element: unknown,
+  element: ReactNode,
 ): ReactNode {
   const runtimeElement = createReactElement(
     AtlasRuntimeContext.Provider,
     { value: request.context },
-    element as ReactNode,
+    element,
   );
 
   return createReactElement(AtlasSdkProvider, {

@@ -2,11 +2,12 @@ export type SetWidgetInputs<TInputs extends object> = (inputs: TInputs) => void;
 
 export type UnmountWidget = () => Promise<void>;
 
+/** Handle returned by a mounted widget; hosts and framework adapters implement it. */
 export interface AtlasMountedWidgetHandle<
   TInputs extends object = Record<string, unknown>,
 > {
-  setInputs?: SetWidgetInputs<TInputs>;
-  unmount: UnmountWidget;
+  setInputs?(inputs: TInputs): void;
+  unmount(): Promise<void>;
 }
 
 export type AtlasWidgetLoadingRenderer = (
@@ -28,7 +29,10 @@ export interface AtlasWidgetHandle<
 > {
   readonly id: string;
   readonly name: string;
-  mount: MountWidget<TInputs>;
+  mount(
+    container: HTMLElement,
+    inputs: TInputs,
+  ): Promise<AtlasMountedWidgetHandle<TInputs>>;
 }
 
 export type AtlasGetWidget = <TInputs extends object = Record<string, unknown>>(

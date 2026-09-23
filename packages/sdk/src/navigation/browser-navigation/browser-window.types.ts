@@ -15,11 +15,12 @@ export type HistoryBack = () => void;
 
 export type HistoryGo = (delta?: number) => void;
 
+/** The `History` members Atlas drives; the real `window.history` is assignable. */
 export interface BrowserHistoryLike {
-  pushState: WriteHistoryEntry;
-  replaceState: WriteHistoryEntry;
-  back: HistoryBack;
-  go: HistoryGo;
+  pushState(state: unknown, unused: string, url?: string | URL | null): void;
+  replaceState(state: unknown, unused: string, url?: string | URL | null): void;
+  back(): void;
+  go(delta?: number): void;
 }
 
 export type BrowserPopstateListener = () => void;
@@ -33,6 +34,9 @@ export type BrowserPopstateRegistrar = (
 export interface BrowserWindowLike {
   location: BrowserLocationLike;
   history: BrowserHistoryLike;
-  addEventListener: BrowserPopstateRegistrar;
-  removeEventListener: BrowserPopstateRegistrar;
+  addEventListener(type: 'popstate', listener: BrowserPopstateListener): void;
+  removeEventListener(
+    type: 'popstate',
+    listener: BrowserPopstateListener,
+  ): void;
 }

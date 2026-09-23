@@ -5,7 +5,6 @@ import type {
   EventKey,
   PayloadEventKey,
   PayloadlessEventKey,
-  StoredEventListener,
 } from './event-bus.types.js';
 import { EventListenerRegistry } from './listener-registry.js';
 
@@ -24,21 +23,21 @@ export function createAtlasEventBus<
     type: EventKey<TEvents>,
     payload?: TEvents[EventKey<TEvents>],
   ): void {
-    registry.notify(type, payload as TEvents[EventKey<TEvents>]);
+    registry.notify(type, payload);
   }
 
   function addEventListener<TKey extends EventKey<TEvents>>(
     type: TKey,
     listener: AtlasEventListener<TEvents, TKey>,
   ): void {
-    registry.add(type, listener as StoredEventListener<TEvents>);
+    registry.add(type, listener);
   }
 
   function removeEventListener<TKey extends EventKey<TEvents>>(
     type: TKey,
     listener: AtlasEventListener<TEvents, TKey>,
   ): void {
-    registry.remove(type, listener as StoredEventListener<TEvents>);
+    registry.remove(type, listener);
   }
 
   function once<TKey extends EventKey<TEvents>>(

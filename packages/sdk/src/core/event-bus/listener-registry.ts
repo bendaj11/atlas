@@ -5,20 +5,17 @@ import type { EventKey, StoredEventListener } from './event-bus.types.js';
 export class EventListenerRegistry<TEvents extends object> {
   private readonly listeners = new Map<
     EventKey<TEvents>,
-    Set<StoredEventListener<TEvents>>
+    Set<StoredEventListener>
   >();
 
-  add(type: EventKey<TEvents>, listener: StoredEventListener<TEvents>): void {
+  add(type: EventKey<TEvents>, listener: StoredEventListener): void {
     const subscribers =
-      this.listeners.get(type) ?? new Set<StoredEventListener<TEvents>>();
+      this.listeners.get(type) ?? new Set<StoredEventListener>();
     this.listeners.set(type, subscribers);
     subscribers.add(listener);
   }
 
-  remove(
-    type: EventKey<TEvents>,
-    listener: StoredEventListener<TEvents>,
-  ): void {
+  remove(type: EventKey<TEvents>, listener: StoredEventListener): void {
     const subscribers = this.listeners.get(type);
     subscribers?.delete(listener);
 
@@ -26,19 +23,19 @@ export class EventListenerRegistry<TEvents extends object> {
   }
 
   /** Calls every listener; a throwing listener is reported asynchronously and does not block the others. */
-  notify(type: EventKey<TEvents>, payload: TEvents[EventKey<TEvents>]): void {
+  notify(type: EventKey<TEvents>, payload: unknown): void {
     for (const listener of this.listeners.get(type) ?? []) {
       notifyListenerSafely(listener, payload);
     }
   }
 }
 
-function notifyListenerSafely<TEvents extends object>(
-  listener: StoredEventListener<TEvents>,
-  payload: TEvents[EventKey<TEvents>],
+function notifyListenerSafely(
+  listener: StoredEventListener,
+  payload: unknown,
 ): void {
   try {
-    listener(payload);
+    Reflect.apply(listener, undefined, [payload]);
   } catch (error) {
     queueMicrotask(() => {
       throw new AtlasEventListenerError(error);

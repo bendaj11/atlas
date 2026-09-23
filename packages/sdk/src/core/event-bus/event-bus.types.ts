@@ -18,9 +18,8 @@ export type PayloadEventKey<TEvents extends object> = Exclude<
   PayloadlessEventKey<TEvents>
 >;
 
-export type StoredEventListener<TEvents extends object> = (
-  payload: TEvents[EventKey<TEvents>],
-) => void;
+/** Listener as the registry stores it: any concrete listener is assignable, and the registry never calls it typed. */
+export type StoredEventListener = (payload: never) => void;
 
 /**
  * Typed, in-memory event target scoped to one Atlas host.

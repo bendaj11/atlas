@@ -33,7 +33,7 @@ export function createAngularAtlasSdk<
 ): AngularAtlasSdk<THostSdk, TEvents> {
   const { sdk, applicationRef, environmentInjector, hostData } = input;
 
-  const facade = Object.create(sdk) as AngularAtlasSdk<THostSdk, TEvents>;
+  const facade: AngularAtlasSdk<THostSdk, TEvents> = Object.create(sdk);
   Object.defineProperty(facade, 'hostData', { value: hostData });
   Object.defineProperty(facade, 'getWidget', {
     value: <TInputs extends object>(

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import type {
@@ -10,7 +11,7 @@ import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
 export class DefineAppDriver {
   private readonly root = aRootAdapter();
   private readonly createElement = jest.fn<
-    (request: AtlasAppMountRequest) => unknown
+    (request: AtlasAppMountRequest) => ReactNode
   >(() => faker.lorem.word());
   private readonly request = aMountRequest();
   private mounted: AtlasAppMountResult | void = undefined;
@@ -30,7 +31,7 @@ export class DefineAppDriver {
     renderMock: () => this.root.render,
     unmountRootMock: () => this.root.unmount,
     createElementMock: (): jest.Mock<
-      (request: AtlasAppMountRequest) => unknown
+      (request: AtlasAppMountRequest) => ReactNode
     > => this.createElement,
     request: () => this.request,
   };

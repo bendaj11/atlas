@@ -5,8 +5,10 @@ import {
 } from './angular-style-host.js';
 
 export class AngularStyleHostDriver {
-  private readonly documentHead = {} as HTMLHeadElement;
-  private readonly shadowRoot = {} as ShadowRoot;
+  private readonly documentHead = document.head;
+  private readonly shadowRoot = document
+    .createElement('div')
+    .attachShadow({ mode: 'open' });
   private readonly addHost = jest.fn<StyleHostMutation>();
   private readonly removeHost = jest.fn<StyleHostMutation>();
   private styleTarget: Node = this.documentHead;

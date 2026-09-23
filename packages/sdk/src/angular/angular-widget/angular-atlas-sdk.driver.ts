@@ -1,10 +1,11 @@
 import '@angular/compiler';
 import { faker } from '@faker-js/faker';
 import {
+  provideZonelessChangeDetection,
   signal,
   type ApplicationRef,
-  type EnvironmentInjector,
 } from '@angular/core';
+import { createApplication } from '@angular/platform-browser';
 import {
   connectAtlasWidgetResolver,
   createAtlasSdk,
@@ -22,12 +23,8 @@ export class AngularAtlasSdkDriver {
     hostId: faker.string.uuid(),
     navigation: aMemoryNavigation(),
   });
-  private readonly angularSdk: AngularAtlasSdk = createAngularAtlasSdk({
-    sdk: this.sdk,
-    applicationRef: Object.create(null) as ApplicationRef,
-    environmentInjector: Object.create(null) as EnvironmentInjector,
-    hostData: signal(this.sdk.hostData).asReadonly(),
-  });
+  private applicationRef!: ApplicationRef;
+  private angularSdk!: AngularAtlasSdk;
 
   constructor() {
     connectAtlasWidgetResolver(this.sdk, (widgetId) => ({
@@ -36,6 +33,24 @@ export class AngularAtlasSdkDriver {
       mount: async () => ({ unmount: async () => undefined }),
     }));
   }
+
+  readonly when = {
+    angularApplicationStarted: async (): Promise<void> => {
+      const application = await createApplication({
+        providers: [provideZonelessChangeDetection()],
+      });
+      this.applicationRef = application;
+      this.angularSdk = createAngularAtlasSdk({
+        sdk: this.sdk,
+        applicationRef: application,
+        environmentInjector: application.injector,
+        hostData: signal(this.sdk.hostData).asReadonly(),
+      });
+    },
+    applicationDestroyed: (): void => {
+      this.applicationRef.destroy();
+    },
+  };
 
   readonly get = {
     binding: (widgetId: string, inputs: WidgetInputs) =>

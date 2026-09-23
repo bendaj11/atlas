@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { DefineAppDriver } from './define-app.driver.js';
 
 describe('defineApp', () => {

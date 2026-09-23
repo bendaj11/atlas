@@ -16,10 +16,16 @@ export interface RouterEvents {
   subscribe(listener: () => void): RouterEventSubscription;
 }
 
-/** The subset of Angular `Router` the host navigation adapter reads and drives. */
+/**
+ * The subset of Angular `Router` the host navigation adapter reads and drives.
+ * Members stay method-style so the real `Router` stays assignable.
+ */
 export interface RouterLike {
   readonly url: string;
-  navigateByUrl: NavigateByUrl;
+  navigateByUrl(
+    url: string,
+    options?: AngularNavigateByUrlOptions,
+  ): Promise<boolean>;
   events: RouterEvents;
 }
 
@@ -29,8 +35,8 @@ export type LocationHistoryGo = (delta: number) => void;
 
 /** The subset of Angular `Location` the host navigation adapter uses for history moves. */
 export interface LocationLike {
-  back: LocationBack;
-  historyGo?: LocationHistoryGo;
+  back(): void;
+  historyGo?(delta: number): void;
 }
 
 export interface PopStateEvent {
@@ -52,8 +58,18 @@ export interface LocationStrategyAdapter {
   path(includeHash?: boolean): string;
   prepareExternalUrl(internal: string): string;
   getState(): unknown;
-  pushState: WriteLocationState;
-  replaceState: WriteLocationState;
+  pushState(
+    state: unknown,
+    title: string,
+    url: string,
+    queryParams: string,
+  ): void;
+  replaceState(
+    state: unknown,
+    title: string,
+    url: string,
+    queryParams: string,
+  ): void;
   forward(): void;
   back(): void;
   historyGo(relativePosition: number): void;

@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { faker } from '@faker-js/faker';
 import { DefineExportedWidgetDriver } from './define-exported-widget.driver.js';
 

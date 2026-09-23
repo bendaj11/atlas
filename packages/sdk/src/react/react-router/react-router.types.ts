@@ -22,11 +22,17 @@ export type RouterNavigate = (
 
 export type RouterSubscribe = (listener: () => void) => () => void;
 
-/** The subset of a React Router data router that Atlas reads and drives. */
+/**
+ * The subset of a React Router data router that Atlas reads and drives.
+ * Members stay method-style so a router created by any React Router version is assignable.
+ */
 export interface RouterLike {
   readonly state: RouterState;
-  navigate: RouterNavigate;
-  subscribe: RouterSubscribe;
+  navigate(
+    to: string | number,
+    options?: RouterNavigateOptions,
+  ): Promise<void> | void;
+  subscribe(listener: () => void): () => void;
 }
 
 /** An app memory router; `dispose` is called when the app unmounts. */

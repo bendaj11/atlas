@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { AngularStyleHostDriver } from './angular-style-host.driver.js';
 
 describe('attachAngularComponentStyles', () => {
