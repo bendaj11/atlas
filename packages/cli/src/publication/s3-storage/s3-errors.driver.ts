@@ -8,7 +8,7 @@ export class S3ErrorsDriver {
   private error: unknown;
 
   readonly given = {
-    error: (error: unknown): this => {
+    error: (error: unknown) => {
       this.error = error;
 
       return this;
@@ -16,9 +16,9 @@ export class S3ErrorsDriver {
   };
 
   readonly get = {
-    missing: (): boolean => isMissingObject(this.error),
-    precondition: (): boolean => isPreconditionFailure(this.error),
-    storageError: (operation: string): Error =>
+    missing: () => isMissingObject(this.error),
+    precondition: () => isPreconditionFailure(this.error),
+    storageError: (operation: string) =>
       new S3StorageError(operation, this.error),
   };
 }

@@ -6,7 +6,7 @@ export class NetworkLimiterDriver {
   private peak = 0;
 
   readonly given = {
-    limit: (limit: number): this => {
+    limit: (limit: number) => {
       this.limit = limit;
 
       return this;
@@ -14,7 +14,7 @@ export class NetworkLimiterDriver {
   };
 
   readonly when = {
-    operationsRun: async (count: number): Promise<void> => {
+    operationsRun: async (count: number) => {
       const limiter = new NetworkLimiter(this.limit);
       await Promise.all(
         Array.from({ length: count }, () =>
@@ -30,7 +30,7 @@ export class NetworkLimiterDriver {
   };
 
   readonly get = {
-    peakConcurrency: (): number => this.peak,
+    peakConcurrency: () => this.peak,
     construction: () => () => new NetworkLimiter(this.limit),
   };
 }

@@ -6,7 +6,7 @@ export class OverlayDriver {
   private files: AtlasGeneratedFile[] = [];
 
   readonly given = {
-    files: (paths: string[]): this => {
+    files: (paths: string[]) => {
       this.files = paths.map((path) => ({ path, contents: '' }));
 
       return this;
@@ -18,7 +18,7 @@ export class OverlayDriver {
       workspaceScaffolded: boolean;
       type: 'host' | 'app';
       framework: SupportedFramework;
-    }): string[] =>
+    }) =>
       generatedOverlay(
         this.files,
         options.workspaceScaffolded,

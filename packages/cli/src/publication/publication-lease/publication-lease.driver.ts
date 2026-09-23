@@ -22,7 +22,7 @@ export class PublicationLeaseDriver {
   private readonly events: string[] = [];
 
   readonly given = {
-    verifyDelivery: (enabled: boolean): this => {
+    verifyDelivery: (enabled: boolean) => {
       this.verifyDelivery = enabled
         ? jest
             .fn<NonNullable<AtlasPublicationStorage['verifyDelivery']>>()
@@ -39,9 +39,9 @@ export class PublicationLeaseDriver {
   };
 
   readonly when = {
-    operationRun: async <T>(operation: () => Promise<T>): Promise<T> =>
+    operationRun: async <T>(operation: () => Promise<T>) =>
       withPublicationLease(this.storage(), operation),
-    deliveryVerified: (paths: readonly string[]): Promise<void> =>
+    deliveryVerified: (paths: readonly string[]) =>
       verifyDeliveryWhileHeld({
         storage: this.storage(),
         lease: this.lease,
@@ -53,7 +53,7 @@ export class PublicationLeaseDriver {
     acquireLockMock: () => this.acquireLock,
     releaseMock: () => this.lease.release as jest.Mock,
     verifyDeliveryMock: () => this.verifyDelivery,
-    events: (): readonly string[] => this.events,
+    events: () => this.events,
   };
 
   private storage(): AtlasPublicationStorage {

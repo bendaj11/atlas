@@ -7,10 +7,7 @@ import {
   type S3Client,
 } from '@aws-sdk/client-s3';
 import { faker } from '@faker-js/faker';
-import type {
-  AtlasPublicationListedObject,
-  AtlasPublicationObjectMetadata,
-} from '../publication-storage/types.js';
+import type { AtlasPublicationObjectMetadata } from '../publication-storage/types.js';
 import { S3PublicationStorage, type S3Options } from './s3-storage.js';
 
 type Command =
@@ -27,17 +24,17 @@ export class S3StorageDriver {
   private responder: (command: Command) => unknown = () => ({});
 
   readonly given = {
-    options: (options: Partial<S3Options>): this => {
+    options: (options: Partial<S3Options>) => {
       this.options = options;
 
       return this;
     },
-    response: (responder: (command: Command) => unknown): this => {
+    response: (responder: (command: Command) => unknown) => {
       this.responder = responder;
 
       return this;
     },
-    failure: (error: unknown): this => {
+    failure: (error: unknown) => {
       this.responder = () => {
         throw error;
       };
@@ -64,11 +61,10 @@ export class S3StorageDriver {
   readonly get = {
     read: (path: string) => this.storage().read(path),
     inspect: (path: string) => this.storage().inspect(path),
-    list: (prefix: string): Promise<AtlasPublicationListedObject[]> =>
-      this.storage().list(prefix),
+    list: (prefix: string) => this.storage().list(prefix),
     remove: (path: string) => this.storage().remove(path),
-    commands: (): readonly Command['input'][] => this.commands,
-    bucket: (): string => this.bucket,
+    commands: () => this.commands,
+    bucket: () => this.bucket,
   };
 
   private storage(): S3PublicationStorage {

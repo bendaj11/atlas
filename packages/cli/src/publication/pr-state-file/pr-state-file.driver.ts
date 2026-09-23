@@ -1,7 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
 import {
-  type AtlasArtifactPreviewState,
   type PullRequestStateDependencies,
   readOpenPreviews,
 } from './pr-state-file.js';
@@ -12,14 +11,14 @@ export class PullRequestStateDriver {
     jest.fn<PullRequestStateDependencies['readState']>();
 
   readonly given = {
-    stateFile: (contents: unknown): this => {
+    stateFile: (contents: unknown) => {
       this.readState.mockResolvedValue(
         typeof contents === 'string' ? contents : JSON.stringify(contents),
       );
 
       return this;
     },
-    unreadableStateFile: (): this => {
+    unreadableStateFile: () => {
       this.readState.mockRejectedValue(new Error('ENOENT'));
 
       return this;
@@ -27,8 +26,7 @@ export class PullRequestStateDriver {
   };
 
   readonly get = {
-    previews: (): Promise<readonly AtlasArtifactPreviewState[]> =>
-      readOpenPreviews(this.path, { readState: this.readState }),
-    path: (): string => this.path,
+    previews: () => readOpenPreviews(this.path, { readState: this.readState }),
+    path: () => this.path,
   };
 }

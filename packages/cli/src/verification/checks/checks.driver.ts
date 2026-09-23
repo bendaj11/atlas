@@ -1,20 +1,20 @@
-import { VerificationChecks, type AtlasVerificationReport } from './checks.js';
+import { VerificationChecks } from './checks.js';
 
 export class ChecksDriver {
   private readonly checks = new VerificationChecks();
 
   readonly given = {
-    pass: (subject: string, message: string): this => {
+    pass: (subject: string, message: string) => {
       this.checks.pass(subject, message);
 
       return this;
     },
-    warning: (subject: string, message: string): this => {
+    warning: (subject: string, message: string) => {
       this.checks.warn(subject, message);
 
       return this;
     },
-    failure: (subject: string, message: string): this => {
+    failure: (subject: string, message: string) => {
       this.checks.fail(subject, message);
 
       return this;
@@ -22,7 +22,7 @@ export class ChecksDriver {
   };
 
   readonly get = {
-    report: (hostUrl: string, hostId?: string): AtlasVerificationReport =>
+    report: (hostUrl: string, hostId?: string) =>
       this.checks.report(hostUrl, hostId),
   };
 }

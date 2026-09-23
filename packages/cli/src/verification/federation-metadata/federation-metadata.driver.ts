@@ -1,13 +1,10 @@
-import {
-  parseFederationMetadata,
-  type FederationMetadata,
-} from './federation-metadata.js';
+import { parseFederationMetadata } from './federation-metadata.js';
 
 export class FederationMetadataDriver {
   private source = '';
 
   readonly given = {
-    json: (value: unknown): this => {
+    json: (value: unknown) => {
       this.source = JSON.stringify(value);
 
       return this;
@@ -15,7 +12,7 @@ export class FederationMetadataDriver {
   };
 
   readonly get = {
-    metadata: (): FederationMetadata =>
+    metadata: () =>
       parseFederationMetadata(new TextEncoder().encode(this.source)),
   };
 }

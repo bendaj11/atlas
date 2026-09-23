@@ -17,19 +17,19 @@ export class RuntimeConfigDriver {
   private error?: Error;
 
   given = {
-    arguments: (values: readonly string[]): void => {
+    arguments: (values: readonly string[]) => {
       this.args = new CliArguments(values);
     },
-    hostConfig: (config: Partial<AtlasConfig>): void => {
+    hostConfig: (config: Partial<AtlasConfig>) => {
       this.config = { ...this.config, ...config } as AtlasConfig;
     },
-    hostVersion: (version: string): void => {
+    hostVersion: (version: string) => {
       this.hostVersion = version;
     },
   };
 
   when = {
-    create: (): void => {
+    create: () => {
       try {
         this.runtime = createHostRuntimeConfig(
           this.config,
@@ -43,10 +43,10 @@ export class RuntimeConfigDriver {
   };
 
   get = {
-    runtime: (): AtlasHostRuntimeConfig | undefined => this.runtime,
+    runtime: () => this.runtime,
     error: (): (() => void) => () => {
       throw this.error;
     },
-    hostId: (): string => this.hostId,
+    hostId: () => this.hostId,
   };
 }

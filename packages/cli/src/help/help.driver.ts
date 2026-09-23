@@ -4,7 +4,7 @@ export class HelpDriver {
   private values: string[] = [];
 
   readonly given = {
-    values: (values: string[]): this => {
+    values: (values: string[]) => {
       this.values = values;
 
       return this;
@@ -12,8 +12,7 @@ export class HelpDriver {
   };
 
   readonly get = {
-    topic: (): readonly string[] | undefined =>
-      resolveRequestedHelpTopic(this.values),
-    help: (topic: readonly string[]): string => formatHelp(topic),
+    topic: () => resolveRequestedHelpTopic(this.values),
+    help: (topic: readonly string[]) => formatHelp(topic),
   };
 }
