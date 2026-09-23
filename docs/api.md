@@ -134,7 +134,7 @@ Import host infrastructure from `@atlas/runtime`:
 
 | API                              | Purpose                                                                 |
 | -------------------------------- | ----------------------------------------------------------------------- |
-| `loadHostCatalog()`              | Fetch active deployment data and hydrate the internal validated catalog |
+| `loadHostDeployment()`           | Fetch active deployment data and hydrate the internal validated catalog |
 | `loadBrowserRuntimeOverrides()`  | Read local, preview, or other-release selections                        |
 | `resolveRuntimeManifests()`      | Enforce one selected version per app id                                 |
 | `createRemoteTrustPolicy()`      | Derive trusted origins and integrity behavior                           |
