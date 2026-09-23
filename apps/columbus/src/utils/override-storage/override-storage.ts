@@ -59,7 +59,7 @@ export async function writeOverrideDocument({
     args: [
       OVERRIDE_DOCUMENT_KEY,
       disabledLocalAppsKey(hostId),
-      JSON.stringify({ documentValue, scope, disabledAppIds }),
+      { documentValue, scope, disabledAppIds },
     ],
   });
   if (scope !== 'all') return;
@@ -143,16 +143,17 @@ async function writeList(key: string, values: unknown[]): Promise<void> {
   await chrome.storage.local.set({ [key]: values });
 }
 
+interface PersistedOverridesPayload {
+  documentValue: OverrideDocument;
+  scope: Scope;
+  disabledAppIds: string[];
+}
+
 function persistOverridesInPage(
   documentKey: string,
   disabledAppsKey: string,
-  payload: string,
+  { documentValue, scope, disabledAppIds }: PersistedOverridesPayload,
 ): void {
-  const { documentValue, scope, disabledAppIds } = JSON.parse(payload) as {
-    documentValue: OverrideDocument;
-    scope: Scope;
-    disabledAppIds: string[];
-  };
   const serializedDocument = JSON.stringify(documentValue);
   const serializedDisabledApps = JSON.stringify(disabledAppIds);
   const hasOverrides =

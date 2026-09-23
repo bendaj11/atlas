@@ -128,12 +128,12 @@ export function installFakeChrome(): FakeChrome {
         },
       },
       scripting: {
-        executeScript: async ({
+        executeScript: async <Args extends unknown[]>({
           func,
           args,
         }: {
-          func: (...values: string[]) => void;
-          args: string[];
+          func: (...values: Args) => void;
+          args: Args;
         }) => {
           func(...args);
 

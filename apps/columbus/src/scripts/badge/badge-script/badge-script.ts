@@ -113,13 +113,9 @@ async function readDevelopmentSessionOverrideCount(
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) return undefined;
 
-    const session = (await response.json()) as {
-      schemaVersion?: string;
-      hostId?: string;
-      overrides?: unknown[];
-      hostOverride?: unknown;
-    };
+    const session: unknown = await response.json();
     if (
+      !isRecord(session) ||
       session.schemaVersion !== '1' ||
       session.hostId !== hostId ||
       !Array.isArray(session.overrides)
@@ -166,12 +162,10 @@ async function fetchRuntimeConfig(): Promise<{ hostId?: string } | undefined> {
     });
     if (!response.ok) return undefined;
 
-    const value = (await response.json()) as {
-      schemaVersion?: string;
-      hostId?: string;
-    };
+    const value: unknown = await response.json();
+    if (!isRecord(value) || value.schemaVersion !== 'v1') return undefined;
 
-    return value.schemaVersion === 'v1' ? value : undefined;
+    return typeof value.hostId === 'string' ? { hostId: value.hostId } : {};
   } catch {
     return undefined;
   }

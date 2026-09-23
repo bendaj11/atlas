@@ -1,6 +1,6 @@
 import type { ArtifactVersion } from './artifact-version';
 
-interface AtlasArtifactOverride {
+export interface AtlasArtifactOverride {
   appId: string;
   manifest: ArtifactVersion;
   reason: 'local' | 'pr' | 'historical';

@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import type { AtlasHostDeploymentManifest } from '@atlas/schema';
 import {
   aHostCatalog,
   aHostManifest,
@@ -67,12 +68,12 @@ describe('readCatalog', () => {
     });
     const host = aPublishedArtifact(aHostManifest({ id: config.hostId }));
     const app = aPublishedArtifact(anAppManifest());
-    const deployment = {
+    const deployment: AtlasHostDeploymentManifest = {
       schemaVersion: 'v1',
       kind: 'host-deployment',
       hostId: config.hostId,
       environment: 'production',
-      deploymentRevision: faker.string.uuid(),
+      deploymentRevision: `sha256:${faker.string.hexadecimal({ length: 64, casing: 'lower', prefix: '' })}`,
       host: host.descriptor,
       apps: [app.descriptor],
     };
@@ -204,6 +205,22 @@ describe('readCatalog', () => {
       );
     });
 
+    it('should fetch the development session when the snapshot catalog is not a host catalog', async () => {
+      driver.given
+        .runtimeSnapshot({
+          schemaVersion: '1',
+          runtime: { hostId: config.hostId, environment: 'development' },
+          catalog: null,
+        })
+        .given.fetchJson({ catalog: aHostCatalog({ hostId: config.hostId }) });
+
+      await readCatalog(config, driver.get.loadManifest());
+
+      expect(driver.get.fetchWithTimeout()).toHaveBeenCalledWith(
+        config.developmentSessionUrl,
+      );
+    });
+
     it('should return the development session catalog when no snapshot exists', async () => {
       const catalog = aHostCatalog({ hostId: config.hostId });
 
@@ -235,6 +252,14 @@ describe('readCatalog', () => {
       driver.given.fetchJson({
         catalog: aHostCatalog({ hostId: faker.string.uuid() }),
       });
+
+      await expect(
+        readCatalog(config, driver.get.loadManifest()),
+      ).rejects.toThrow('Atlas development session returned invalid data.');
+    });
+
+    it('should reject when the development session catalog is not a host catalog', async () => {
+      driver.given.fetchJson({ catalog: null });
 
       await expect(
         readCatalog(config, driver.get.loadManifest()),

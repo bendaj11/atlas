@@ -9,11 +9,7 @@ import {
   loadArtifactVersionRequest,
 } from '../messages/messages';
 import { OVERRIDE_DOCUMENT_KEY } from '../storage-keys/storage-keys';
-import {
-  isExtensionPageUrl,
-  isLoopbackUrl,
-  isWebPageUrl,
-} from '../urls/urls';
+import { isExtensionPageUrl, isLoopbackUrl, isWebPageUrl } from '../urls/urls';
 
 export type HostTab = chrome.tabs.Tab & { id: number; url: string };
 

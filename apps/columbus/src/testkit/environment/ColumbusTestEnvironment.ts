@@ -22,7 +22,8 @@ class TestMessageChannel {
   }
 }
 
-globalThis.MessageChannel ??=
-  TestMessageChannel as unknown as typeof MessageChannel;
-globalThis.TextDecoder ??= NodeTextDecoder as unknown as typeof TextDecoder;
-globalThis.TextEncoder ??= NodeTextEncoder as unknown as typeof TextEncoder;
+Object.assign(globalThis, {
+  MessageChannel: globalThis.MessageChannel ?? TestMessageChannel,
+  TextDecoder: globalThis.TextDecoder ?? NodeTextDecoder,
+  TextEncoder: globalThis.TextEncoder ?? NodeTextEncoder,
+});

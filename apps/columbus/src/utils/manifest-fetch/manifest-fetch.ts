@@ -1,14 +1,10 @@
-import { hydratePublishedArtifactManifest } from '@atlas/schema';
+import {
+  type AtlasManifestDescriptor,
+  hydratePublishedArtifactManifest,
+} from '@atlas/schema';
 import type { ArtifactVersion } from '../../types/artifact-version';
 
-export interface ManifestDescriptor {
-  path: string;
-  digest: string;
-  size: number;
-  mediaType: 'application/json';
-}
-
-export interface ManifestReference extends ManifestDescriptor {
+export interface ManifestReference extends AtlasManifestDescriptor {
   url: string;
 }
 
@@ -16,7 +12,7 @@ const FETCH_TIMEOUT_MS = 5_000;
 
 export function manifestReference(
   registryRoot: string,
-  descriptor: ManifestDescriptor,
+  descriptor: AtlasManifestDescriptor,
 ): ManifestReference {
   return {
     ...descriptor,
@@ -51,11 +47,11 @@ export async function fetchVerifiedManifest(
   return hydratePublishedArtifactManifest(
     JSON.parse(new TextDecoder().decode(bytes)),
     reference.url,
-  ) as ArtifactVersion;
+  );
 }
 
 async function assertMatchesDescriptor(
-  descriptor: ManifestDescriptor,
+  descriptor: AtlasManifestDescriptor,
   bytes: Uint8Array,
 ): Promise<void> {
   const hash = new Uint8Array(

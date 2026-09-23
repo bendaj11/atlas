@@ -75,8 +75,9 @@ export function isOverrideCountMessage(
 ): value is OverrideCountMessage {
   return (
     isMessage(value, 'atlas.override-count') &&
+    typeof value.overrideCount === 'number' &&
     Number.isInteger(value.overrideCount) &&
-    (value.overrideCount as number) >= 0
+    value.overrideCount >= 0
   );
 }
 

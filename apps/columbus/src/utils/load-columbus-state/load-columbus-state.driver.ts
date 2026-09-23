@@ -18,10 +18,10 @@ const readHostDataCache = jest.fn<typeof readHostDataCacheType>();
 jest.unstable_mockModule('../host-data/host-data', () => ({
   readHostData,
 }));
-jest.unstable_mockModule(
-  '../override-storage/override-storage',
-  () => ({ readDisabledArtifactVersionOverrides, readClearedLocalArtifactIds }),
-);
+jest.unstable_mockModule('../override-storage/override-storage', () => ({
+  readDisabledArtifactVersionOverrides,
+  readClearedLocalArtifactIds,
+}));
 jest.unstable_mockModule('../host-data-cache/host-data-cache', () => ({
   readHostDataCache,
 }));

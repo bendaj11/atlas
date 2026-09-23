@@ -27,7 +27,7 @@ export function usePersistOverridesMutation(): PersistOverridesMutation {
   }).at(-1);
 
   return {
-    error: (latest?.error as Error | null | undefined) ?? null,
+    error: latest?.error ?? null,
     isError: latest?.status === 'error',
     isPending: latest?.status === 'pending',
     mutateAsync,

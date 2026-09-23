@@ -1,8 +1,8 @@
 import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
+import type { AtlasRuntimeError } from '../../types/host-data';
 import type { AtlasOverrideDocument as OverrideDocument } from '../../types/override-document';
 import type { Scope } from '../../types/columbus-state';
-import { isRecord } from '../messages/messages';
+import { isStoredOverrideDocument } from '../override-document/override-document';
 
 export interface StoredOverrides {
   overrides: OverrideDocument | undefined;
@@ -20,15 +20,12 @@ export function readStoredOverrides(
   const overrideScope: Scope = tabStored ? 'tab' : 'all';
   try {
     const document: unknown = JSON.parse(stored);
-    const matchesHost =
-      isRecord(document) &&
-      document.schemaVersion === '1' &&
-      document.hostId === hostId;
 
     return {
-      overrides: matchesHost
-        ? (document as unknown as OverrideDocument)
-        : undefined,
+      overrides:
+        isStoredOverrideDocument(document) && document.hostId === hostId
+          ? document
+          : undefined,
       overrideScope,
     };
   } catch {
@@ -56,7 +53,7 @@ export function localOverridesOf(
   };
 }
 
-export function readRuntimeErrors(): HostData['runtimeErrors'] {
+export function readRuntimeErrors(): AtlasRuntimeError[] {
   return [
     ...document.querySelectorAll<HTMLElement>('[data-atlas-state="error"]'),
   ].map((element) => {

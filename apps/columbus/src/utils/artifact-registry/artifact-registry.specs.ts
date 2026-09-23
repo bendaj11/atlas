@@ -61,6 +61,20 @@ describe('createArtifactRegistry', () => {
         createArtifactRegistry().readRegistry(aRegistryUrl()),
       ).rejects.toThrow('Atlas registry returned invalid data.');
     });
+
+    it('should reject when a registered app is not a registry artifact', async () => {
+      driver.given.registryResponse(
+        Response.json({
+          schemaVersion: '2',
+          apps: { [faker.string.uuid()]: null },
+          hosts: {},
+        }),
+      );
+
+      await expect(
+        createArtifactRegistry().readRegistry(aRegistryUrl()),
+      ).rejects.toThrow('Atlas registry returned invalid data.');
+    });
   });
 
   describe('readVersions', () => {

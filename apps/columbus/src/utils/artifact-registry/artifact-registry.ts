@@ -1,29 +1,24 @@
 import type { ArtifactVersion } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
+import type {
+  AtlasHostRuntimeConfig,
+  AtlasManifestDescriptor,
+  AtlasRegistryArtifact,
+  AtlasStaticRegistry,
+} from '@atlas/schema';
 import { versionKey } from '../artifact-version-keys/artifact-version-keys';
 import { messageFromError } from '../errors/errors';
 import { isRecord } from '../messages/messages';
 import {
   fetchVerifiedManifest,
   fetchWithTimeout,
-  type ManifestDescriptor,
   type ManifestReference,
   manifestReference,
 } from '../manifest-fetch/manifest-fetch';
 
-export interface RegistryArtifact {
-  id: string;
-  name: string;
-  releases: Record<string, ManifestDescriptor>;
-  previews: Record<string, ManifestDescriptor>;
-  latest?: string;
-}
-
-export interface Registry {
-  schemaVersion: '2';
-  apps: Record<string, RegistryArtifact>;
-  hosts: Record<string, RegistryArtifact>;
-}
+export type Registry = Pick<
+  AtlasStaticRegistry,
+  'schemaVersion' | 'apps' | 'hosts'
+>;
 
 export interface ArtifactVersions {
   manifests: ArtifactVersion[];
@@ -47,7 +42,7 @@ export interface ArtifactRegistry {
 const CANONICAL_BUILD_ID = 'canonical';
 
 export function registryRootFor(
-  config: HostData['config'],
+  config: AtlasHostRuntimeConfig,
 ): string | undefined {
   const root = config.artifactRegistryUrl.replace(/\/$/, '');
   if (config.environment !== 'development' || !config.developmentSessionUrl)
@@ -168,20 +163,60 @@ async function readRegistry(root: string): Promise<Registry> {
     throw new Error(`Atlas registry returned ${response.status}.`);
 
   const registry: unknown = await response.json();
-  if (
-    !isRecord(registry) ||
-    registry.schemaVersion !== '2' ||
-    !isRecord(registry.apps) ||
-    !isRecord(registry.hosts)
-  )
+  if (!isRegistry(registry))
     throw new Error('Atlas registry returned invalid data.');
 
-  return registry as unknown as Registry;
+  return registry;
+}
+
+function isRegistry(value: unknown): value is Registry {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === '2' &&
+    isRecordOf(value.apps, isRegistryArtifact) &&
+    isRecordOf(value.hosts, isRegistryArtifact)
+  );
+}
+
+function isRegistryArtifact(value: unknown): value is AtlasRegistryArtifact {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    isRecordOf(value.releases, isManifestDescriptor) &&
+    isRecordOf(value.previews, isManifestDescriptor) &&
+    (value.packageName === undefined ||
+      typeof value.packageName === 'string') &&
+    (value.latest === undefined || typeof value.latest === 'string')
+  );
+}
+
+function isManifestDescriptor(
+  value: unknown,
+): value is AtlasManifestDescriptor {
+  return (
+    isRecord(value) &&
+    typeof value.path === 'string' &&
+    isSha256Digest(value.digest) &&
+    typeof value.size === 'number' &&
+    value.mediaType === 'application/json'
+  );
+}
+
+function isSha256Digest(value: unknown): value is `sha256:${string}` {
+  return typeof value === 'string' && value.startsWith('sha256:');
+}
+
+function isRecordOf<Value>(
+  value: unknown,
+  isValue: (entry: unknown) => entry is Value,
+): value is Record<string, Value> {
+  return isRecord(value) && Object.values(value).every(isValue);
 }
 
 function orderedReleases(
-  artifact: RegistryArtifact,
-): Array<[string, ManifestDescriptor]> {
+  artifact: AtlasRegistryArtifact,
+): Array<[string, AtlasManifestDescriptor]> {
   return Object.entries(artifact.releases).sort(([left], [right]) => {
     if (left === artifact.latest) return -1;
     if (right === artifact.latest) return 1;
@@ -191,8 +226,8 @@ function orderedReleases(
 }
 
 function orderedPreviews(
-  artifact: RegistryArtifact,
-): Array<[string, ManifestDescriptor]> {
+  artifact: AtlasRegistryArtifact,
+): Array<[string, AtlasManifestDescriptor]> {
   return Object.entries(artifact.previews).sort(
     ([left], [right]) => Number(right) - Number(left),
   );

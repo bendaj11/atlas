@@ -1,4 +1,7 @@
-import { BADGE_BACKGROUND_COLOR, BADGE_TEXT_COLOR } from '../../utils/constants/constants';
+import {
+  BADGE_BACKGROUND_COLOR,
+  BADGE_TEXT_COLOR,
+} from '../../utils/constants/constants';
 import { CONTROL_PORT_PARAMETER } from '../../utils/control-port/control-port';
 import { clearHostDataCache } from '../../utils/host-data-cache/host-data-cache';
 import { actionIconPathsFor } from '../../utils/action-icon-theme/action-icon-theme';
@@ -7,6 +10,7 @@ import {
   isActionThemeMessage,
   isLoadDevelopmentSessionRequest,
   isOverrideCountMessage,
+  isRecord,
   type LoadDevelopmentSessionRequest,
 } from '../../utils/messages/messages';
 import { loadDevelopmentSession } from '../development-session/development-session-background/development-session-background';
@@ -61,10 +65,9 @@ async function fetchDevelopmentSession(url: string): Promise<unknown> {
     signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) {
-    const body = (await response.json().catch(() => undefined)) as
-      { error?: unknown } | undefined;
+    const body: unknown = await response.json().catch(() => undefined);
     throw new Error(
-      typeof body?.error === 'string'
+      isRecord(body) && typeof body.error === 'string'
         ? body.error
         : `Atlas development session returned HTTP ${response.status}.`,
     );

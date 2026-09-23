@@ -11,20 +11,14 @@ const writeDisabledArtifactVersionOverrides =
 const writeClearedLocalArtifactIds =
   jest.fn<typeof OverrideStorageModule.writeClearedLocalArtifactIds>();
 
-jest.unstable_mockModule(
-  '../local-override/local-override',
-  () => ({
-    validateLocalOverride,
-  }),
-);
-jest.unstable_mockModule(
-  '../override-storage/override-storage',
-  () => ({
-    writeDisabledArtifactVersionOverrides,
-    writeOverrideDocument,
-    writeClearedLocalArtifactIds,
-  }),
-);
+jest.unstable_mockModule('../local-override/local-override', () => ({
+  validateLocalOverride,
+}));
+jest.unstable_mockModule('../override-storage/override-storage', () => ({
+  writeDisabledArtifactVersionOverrides,
+  writeOverrideDocument,
+  writeClearedLocalArtifactIds,
+}));
 
 export class PersistOverridesDriver {
   constructor() {

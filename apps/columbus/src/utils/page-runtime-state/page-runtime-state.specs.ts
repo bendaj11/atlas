@@ -96,6 +96,16 @@ describe('readStoredOverrides', () => {
     );
   });
 
+  it('should drop the document when it is not an override document', () => {
+    const documentKey = faker.word.noun();
+
+    driver.given.pageLocalStorage(documentKey, JSON.stringify(null));
+
+    expect(readStoredOverrides(documentKey, faker.string.uuid())).toStrictEqual(
+      { overrides: undefined, overrideScope: 'all' },
+    );
+  });
+
   it('should keep the scope when the stored value is not json', () => {
     const documentKey = faker.word.noun();
 

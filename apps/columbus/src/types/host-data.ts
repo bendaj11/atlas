@@ -2,7 +2,7 @@ import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import type { ArtifactVersion } from './artifact-version';
 import type { AtlasOverrideDocument } from './override-document';
 
-interface AtlasRuntimeError {
+export interface AtlasRuntimeError {
   artifactId?: string;
   message: string;
 }

@@ -50,11 +50,12 @@ export async function clearHostDataCache(tabId?: number): Promise<void> {
 }
 
 function isHostDataSnapshot(value: unknown): value is HostDataSnapshot {
-  if (!isRecord(value)) return false;
-  const snapshot = value as Partial<HostDataSnapshot>;
   return (
-    Number.isInteger(snapshot.tabId) &&
-    typeof snapshot.tabUrl === 'string' &&
-    typeof snapshot.hostData?.config?.hostId === 'string'
+    isRecord(value) &&
+    Number.isInteger(value.tabId) &&
+    typeof value.tabUrl === 'string' &&
+    isRecord(value.hostData) &&
+    isRecord(value.hostData.config) &&
+    typeof value.hostData.config.hostId === 'string'
   );
 }

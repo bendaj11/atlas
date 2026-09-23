@@ -12,10 +12,9 @@ const readPersistedOverrideDocument =
 jest.unstable_mockModule('../host-data-cache/host-data-cache', () => ({
   writeHostDataCache,
 }));
-jest.unstable_mockModule(
-  '../override-storage/override-storage',
-  () => ({ readPersistedOverrideDocument }),
-);
+jest.unstable_mockModule('../override-storage/override-storage', () => ({
+  readPersistedOverrideDocument,
+}));
 
 export class HostDataDriver {
   constructor() {

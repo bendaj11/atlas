@@ -11,6 +11,7 @@ import type {
   OverrideType,
 } from '../../../types/artifact';
 import type { ColumbusState } from '../../../types/columbus-state';
+import type { AtlasRuntimeError } from '../../../types/host-data';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 
 interface Artifacts {
@@ -91,7 +92,7 @@ function createArtifact(
 
 function loadErrorOf(
   artifactKey: string,
-  runtimeErrors: ColumbusState['hostData']['runtimeErrors'],
+  runtimeErrors: AtlasRuntimeError[],
 ): string | undefined {
   const runtimeError = runtimeErrors.find(
     (error) => error.artifactId === artifactKey,

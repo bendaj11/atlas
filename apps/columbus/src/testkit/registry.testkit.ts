@@ -1,16 +1,16 @@
 import { createHash } from 'node:crypto';
 import type { ArtifactVersion } from '../types/artifact-version';
-import type { ManifestDescriptor } from '../utils/manifest-fetch/manifest-fetch';
 import type {
-  Registry,
-  RegistryArtifact,
-} from '../utils/artifact-registry/artifact-registry';
+  AtlasManifestDescriptor,
+  AtlasRegistryArtifact,
+} from '@atlas/schema';
+import type { Registry } from '../utils/artifact-registry/artifact-registry';
 
 export interface PublishedArtifact {
   manifest: ArtifactVersion;
   path: string;
   bytes: Uint8Array;
-  descriptor: ManifestDescriptor;
+  descriptor: AtlasManifestDescriptor;
 }
 
 export function aPublishedArtifact(
@@ -78,9 +78,9 @@ export function aPublishedArtifact(
 export function aRegistryArtifact(
   manifest: ArtifactVersion,
   published: PublishedArtifact[] = [],
-): RegistryArtifact {
-  const releases: RegistryArtifact['releases'] = {};
-  const previews: RegistryArtifact['previews'] = {};
+): AtlasRegistryArtifact {
+  const releases: Record<string, AtlasManifestDescriptor> = {};
+  const previews: Record<string, AtlasManifestDescriptor> = {};
   let latest: string | undefined;
   published.forEach((artifact) => {
     if (artifact.manifest.channel === 'pr')

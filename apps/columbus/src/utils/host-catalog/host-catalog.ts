@@ -1,12 +1,16 @@
 import {
+  type AtlasHostCatalog,
+  type AtlasHostDeploymentManifest,
+  type AtlasHostRuntimeConfig,
   buildEnvironmentManifestUrl,
   resolveAtlasHostRuntimeConfig,
+  validateAtlasHostCatalog,
+  validateHostDeploymentManifest,
 } from '@atlas/schema';
 import {
   type ArtifactVersion,
   isAppArtifactVersion,
 } from '../../types/artifact-version';
-import type { HostData } from '../../types/host-data';
 import { mapWithConcurrency } from '../concurrency/concurrency';
 import { isRecord } from '../messages/messages';
 import {
@@ -15,23 +19,9 @@ import {
   manifestReference,
 } from '../manifest-fetch/manifest-fetch';
 
-type RuntimeConfig = HostData['config'];
-type Catalog = HostData['catalog'];
-
-interface HostDeployment {
-  schemaVersion: 'v1';
-  kind: 'host-deployment';
-  hostId: string;
-  environment: string;
-  deploymentRevision: string;
-  host: ManifestReference;
-  apps: ManifestReference[];
-  widgetProviders?: ManifestReference[];
-}
-
 const LOOKUP_CONCURRENCY = 8;
 
-export async function readRuntimeConfig(): Promise<RuntimeConfig> {
+export async function readRuntimeConfig(): Promise<AtlasHostRuntimeConfig> {
   const response = await fetchWithTimeout('/atlas.runtime.json');
   if (!response.ok)
     throw new Error(`Atlas runtime config returned ${response.status}.`);
@@ -42,16 +32,18 @@ export async function readRuntimeConfig(): Promise<RuntimeConfig> {
 }
 
 export async function readCatalog(
-  config: RuntimeConfig,
+  config: AtlasHostRuntimeConfig,
   loadManifest: (reference: ManifestReference) => Promise<ArtifactVersion>,
-): Promise<Catalog> {
+): Promise<AtlasHostCatalog> {
   if (config.environment !== 'development')
     return readDeployedCatalog(config, loadManifest);
 
   return readSnapshotCatalog(config) ?? readDevelopmentSessionCatalog(config);
 }
 
-function readSnapshotCatalog(config: RuntimeConfig): Catalog | undefined {
+function readSnapshotCatalog(
+  config: AtlasHostRuntimeConfig,
+): AtlasHostCatalog | undefined {
   const content = document.getElementById(
     'atlas-runtime-snapshot',
   )?.textContent;
@@ -65,20 +57,20 @@ function readSnapshotCatalog(config: RuntimeConfig): Catalog | undefined {
       !isRecord(snapshot.runtime) ||
       snapshot.runtime.hostId !== config.hostId ||
       snapshot.runtime.environment !== config.environment ||
-      !isRecord(snapshot.catalog) ||
+      !isHostCatalog(snapshot.catalog) ||
       snapshot.catalog.hostId !== config.hostId
     )
       return undefined;
 
-    return snapshot.catalog as unknown as Catalog;
+    return snapshot.catalog;
   } catch {
     return undefined;
   }
 }
 
 async function readDevelopmentSessionCatalog(
-  config: RuntimeConfig,
-): Promise<Catalog> {
+  config: AtlasHostRuntimeConfig,
+): Promise<AtlasHostCatalog> {
   if (!config.developmentSessionUrl)
     throw new Error('Atlas development session URL is missing.');
 
@@ -89,18 +81,18 @@ async function readDevelopmentSessionCatalog(
   const session: unknown = await response.json();
   if (
     !isRecord(session) ||
-    !isRecord(session.catalog) ||
+    !isHostCatalog(session.catalog) ||
     session.catalog.hostId !== config.hostId
   )
     throw new Error('Atlas development session returned invalid data.');
 
-  return session.catalog as unknown as Catalog;
+  return session.catalog;
 }
 
 async function readDeployedCatalog(
-  config: RuntimeConfig,
+  config: AtlasHostRuntimeConfig,
   loadManifest: (reference: ManifestReference) => Promise<ArtifactVersion>,
-): Promise<Catalog> {
+): Promise<AtlasHostCatalog> {
   const response = await fetchWithTimeout(buildEnvironmentManifestUrl(config));
   if (!response.ok)
     throw new Error(`Atlas host manifest returned ${response.status}.`);
@@ -145,15 +137,16 @@ async function readDeployedCatalog(
 
 function isHostDeployment(
   value: unknown,
-  config: RuntimeConfig,
-): value is HostDeployment {
+  config: AtlasHostRuntimeConfig,
+): value is AtlasHostDeploymentManifest {
   return (
+    validateHostDeploymentManifest(value).length === 0 &&
     isRecord(value) &&
-    value.schemaVersion === 'v1' &&
-    value.kind === 'host-deployment' &&
     value.hostId === config.hostId &&
-    value.environment === config.environment &&
-    isRecord(value.host) &&
-    Array.isArray(value.apps)
+    value.environment === config.environment
   );
+}
+
+function isHostCatalog(value: unknown): value is AtlasHostCatalog {
+  return validateAtlasHostCatalog(value).length === 0;
 }
