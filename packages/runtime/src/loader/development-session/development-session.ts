@@ -13,6 +13,7 @@ export function requestDevelopmentSession(
 ): Promise<unknown | undefined> {
   const document = globalThis.document;
   const window = globalThis.window;
+
   if (
     !document?.querySelector(`meta[name="${ATLAS_DEV_BRIDGE_MARKER}"]`) ||
     !window
@@ -29,6 +30,7 @@ export function requestDevelopmentSession(
     };
     const receive = (event: MessageEvent): void => {
       if (!isMatchingResponse(event.data, requestId, hostId)) return;
+
       complete(event.data.document);
     };
     const timeout = window.setTimeout(() => complete(), BRIDGE_TIMEOUT_MS);
@@ -49,10 +51,13 @@ function isMatchingResponse(
   hostId: string,
 ): value is AtlasDevelopmentSessionResponse {
   if (typeof value !== 'object' || value === null) return false;
-  const response = value as Partial<AtlasDevelopmentSessionResponse>;
+
   return (
-    response.type === ATLAS_DEV_SESSION_RESPONSE &&
-    response.requestId === requestId &&
-    response.hostId === hostId
+    'type' in value &&
+    value.type === ATLAS_DEV_SESSION_RESPONSE &&
+    'requestId' in value &&
+    value.requestId === requestId &&
+    'hostId' in value &&
+    value.hostId === hostId
   );
 }

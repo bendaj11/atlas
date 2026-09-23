@@ -1,6 +1,6 @@
 import type { AtlasManifest } from '@atlas/schema';
-
-export type AssetResolver = (value: string) => string;
+import { resolveUrlAgainstDocument } from '../../shared/url.js';
+import type { AssetResolver } from '../remote-assets.types.js';
 
 const ASSET_PATH_TOKEN = 'assets/';
 const ASSET_PATH_PATTERN = /^(?:\.\/)?assets\//;
@@ -10,17 +10,20 @@ const URL_FUNCTION_PATTERN = /url\(\s*(?:(["'])(.*?)\1|([^)]*?))\s*\)/g;
 export function createRemoteAssetResolver(
   manifest: AtlasManifest,
 ): AssetResolver {
-  const remoteEntryUrl = new URL(
-    manifest.remoteEntryUrl,
-    globalThis.location?.href ?? 'http://atlas.local',
-  );
+  const remoteEntryUrl = resolveUrlAgainstDocument(manifest.remoteEntryUrl);
   const remoteDirectory = new URL('.', remoteEntryUrl);
   return (value) => {
     const trimmedValue = value.trim();
-    if (isExternalUrl(trimmedValue) || isFragmentUrl(trimmedValue))
+
+    if (
+      hasSchemeOrIsProtocolRelative(trimmedValue) ||
+      isFragmentUrl(trimmedValue)
+    )
       return value;
+
     if (ABSOLUTE_ASSET_PATH_PATTERN.test(trimmedValue))
       return new URL(trimmedValue.slice(1), remoteDirectory).href;
+
     if (ASSET_PATH_PATTERN.test(trimmedValue))
       return new URL(trimmedValue.replace(/^\.\//, ''), remoteDirectory).href;
     return value;
@@ -48,9 +51,10 @@ export function rewriteCssUrls(
   );
 }
 
-function isExternalUrl(value: string): boolean {
+function hasSchemeOrIsProtocolRelative(value: string): boolean {
   return /^[a-z][a-z\d+\-.]*:/i.test(value) || value.startsWith('//');
 }
+
 function isFragmentUrl(value: string): boolean {
   return value.startsWith('#');
 }

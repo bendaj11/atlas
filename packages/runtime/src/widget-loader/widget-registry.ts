@@ -1,25 +1,14 @@
+import type { AtlasAppManifest } from '@atlas/schema';
+import {
+  AtlasWidgetAmbiguousError,
+  AtlasWidgetIdInvalidError,
+  AtlasWidgetNotFoundError,
+} from './widget-loader.errors.js';
 import type {
-  AtlasAppManifest,
-  AtlasExportedWidgetManifest,
-  AtlasHostCatalog,
-  AtlasHostRuntimeConfig,
-} from '@atlas/schema';
-import { runtimeError } from './runtime-error.js';
-
-export interface AtlasResolvedWidget {
-  widget: AtlasExportedWidgetManifest;
-  ownerManifest: AtlasAppManifest;
-}
-
-export type AtlasWidgetResolver = (
-  widgetId: string,
-) => Promise<AtlasResolvedWidget>;
-
-interface WidgetRegistryOptions {
-  catalog: AtlasHostCatalog;
-  /** @deprecated Runtime config is no longer used for external registry discovery. */
-  runtimeConfig?: AtlasHostRuntimeConfig;
-}
+  AtlasResolvedWidget,
+  AtlasWidgetResolver,
+  WidgetRegistryOptions,
+} from './widget-loader.types.js';
 
 /** Resolves widgets selected in the active environment manifest. */
 export function createRegistryWidgetResolver(
@@ -29,53 +18,38 @@ export function createRegistryWidgetResolver(
     ...options.catalog.apps,
     ...(options.catalog.widgetProviders ?? []),
   ];
-  const widgets = indexWidgets(selected);
+  const widgetsById = indexWidgetsById(selected);
 
   return (widgetId) => {
-    assertWidgetId(widgetId);
-    const known = widgets.get(widgetId);
+    assertWidgetIdIsNotBlank(widgetId);
+
+    const known = widgetsById.get(widgetId);
+
     if (known) return Promise.resolve(known);
-    return Promise.reject(
-      runtimeError(
-        `Atlas could not find widget "${widgetId}" in the active environment manifest.`,
-        {
-          code: 'ATLAS_WIDGET_NOT_FOUND',
-          suggestedActions:
-            'Deploy its provider app to this environment and retry.',
-        },
-      ),
-    );
+
+    return Promise.reject(new AtlasWidgetNotFoundError(widgetId));
   };
 }
 
-function indexWidgets(
+function indexWidgetsById(
   manifests: readonly AtlasAppManifest[],
 ): Map<string, AtlasResolvedWidget> {
-  const widgets = new Map<string, AtlasResolvedWidget>();
+  const widgetsById = new Map<string, AtlasResolvedWidget>();
+
   for (const ownerManifest of manifests) {
     for (const widget of ownerManifest.exportedWidgets ?? []) {
-      const existing = widgets.get(widget.id);
-      if (existing && existing.ownerManifest.id !== ownerManifest.id) {
-        throw runtimeError(
-          `Atlas found widget "${widget.id}" in more than one provider app.`,
-          {
-            code: 'ATLAS_WIDGET_AMBIGUOUS',
-            suggestedActions:
-              'Give every exported widget a globally unique UUID.',
-          },
-        );
-      }
-      widgets.set(widget.id, { widget, ownerManifest });
+      const existing = widgetsById.get(widget.id);
+
+      if (existing && existing.ownerManifest.id !== ownerManifest.id)
+        throw new AtlasWidgetAmbiguousError(widget.id);
+
+      widgetsById.set(widget.id, { widget, ownerManifest });
     }
   }
-  return widgets;
+
+  return widgetsById;
 }
 
-function assertWidgetId(widgetId: string): void {
-  if (!widgetId.trim()) {
-    throw runtimeError('Atlas widget id cannot be empty.', {
-      code: 'ATLAS_WIDGET_ID_INVALID',
-      suggestedActions: 'Pass the UUID from the exported widget manifest.',
-    });
-  }
+function assertWidgetIdIsNotBlank(widgetId: string): void {
+  if (!widgetId.trim()) throw new AtlasWidgetIdInvalidError();
 }

@@ -9,49 +9,61 @@ export async function prepareShadowImports(
 
   for (let index = rules.length - 1; index >= 0; index -= 1) {
     const rule = rules[index];
-    if (!rule || !('href' in rule) || !('styleSheet' in rule)) continue;
-    const imported = rule as CSSImportRule;
-    const href = new URL(imported.href, sheet.href ?? document.baseURI).href;
-    const css = await readImport(href, new Set(sheet.href ? [sheet.href] : []));
-    const replacement = wrapImport(css, imported);
+
+    if (!rule || !isImportRule(rule)) continue;
+
+    const href = new URL(rule.href, sheet.href ?? document.baseURI).href;
+    const css = await fetchAndInlineCssImport(
+      href,
+      new Set(sheet.href ? [sheet.href] : []),
+    );
+    const replacement = wrapCssInImportConditions(css, rule);
 
     sheet.deleteRule(index);
+
     try {
       sheet.insertRule(replacement, index);
     } catch (error) {
-      sheet.insertRule(imported.cssText, index);
+      sheet.insertRule(rule.cssText, index);
+
       throw error;
     }
   }
 }
 
-async function readImport(
+async function fetchAndInlineCssImport(
   href: string,
   ancestors: ReadonlySet<string>,
 ): Promise<string> {
   if (ancestors.has(href)) return '';
+
   try {
     const response = await fetch(href);
+
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const baseUrl = response.url || href;
     const visited = new Set([...ancestors, href, baseUrl]);
-    // Preserve original declarations: CSSOM serialization can drop variable shorthands.
     const tree = parse(await response.text(), { parseCustomProperty: true });
+
     if (tree.type !== 'StyleSheet') throw new Error('Expected a stylesheet');
-    absolutizeUrls(tree, baseUrl);
+
+    absolutizeUrlsInTree(tree, baseUrl);
 
     for (const item of tree.children.toArray()) {
       if (item.type !== 'Atrule' || item.name.toLowerCase() !== 'import')
         continue;
-      const prelude = importPrelude(item);
+      const prelude = extractImportPrelude(item);
       const source = prelude[0];
+
       if (!source || (source.type !== 'String' && source.type !== 'Url'))
         throw new Error('Invalid CSS import');
-      const css = await readImport(
+      const css = await fetchAndInlineCssImport(
         new URL(source.value, baseUrl).href,
         visited,
       );
-      const replacement = parse(wrapPrelude(css, prelude.slice(1)));
+      const replacement = parse(
+        wrapCssInPreludeConditions(css, prelude.slice(1)),
+      );
       const entry = tree.children.toArray().indexOf(item);
       const nodes = tree.children.toArray();
       nodes.splice(
@@ -61,6 +73,7 @@ async function readImport(
           ? replacement.children.toArray()
           : []),
       );
+
       tree.children.fromArray(nodes);
     }
     return generate(tree);
@@ -69,16 +82,17 @@ async function readImport(
   }
 }
 
-function importPrelude(rule: Atrule): CssNode[] {
+function extractImportPrelude(rule: Atrule): CssNode[] {
   return rule.prelude?.type === 'AtrulePrelude'
     ? rule.prelude.children.toArray()
     : [];
 }
 
-function absolutizeUrls(tree: CssNode, href: string): void {
+function absolutizeUrlsInTree(tree: CssNode, href: string): void {
   walk(tree, {
     enter(node: CssNode) {
       if (node.type === 'Url') node.value = new URL(node.value, href).href;
+
       if (
         node.type === 'Function' &&
         ['image-set', '-webkit-image-set'].includes(node.name.toLowerCase())
@@ -91,15 +105,20 @@ function absolutizeUrls(tree: CssNode, href: string): void {
   });
 }
 
-function wrapPrelude(css: string, conditions: CssNode[]): string {
+function wrapCssInPreludeConditions(
+  css: string,
+  conditions: CssNode[],
+): string {
   return conditions.reduceRight((result, condition) => {
     if (condition.type === 'Identifier' && condition.name === 'layer')
       return `@layer {${result}}`;
+
     if (condition.type === 'Function' && condition.name === 'layer')
       return `@layer ${condition.children
         .toArray()
         .map((node) => generate(node))
         .join('')} {${result}}`;
+
     if (condition.type === 'Function' && condition.name === 'supports')
       return `@supports (${condition.children
         .toArray()
@@ -109,11 +128,17 @@ function wrapPrelude(css: string, conditions: CssNode[]): string {
   }, css);
 }
 
-function wrapImport(css: string, rule: CSSImportRule): string {
+function wrapCssInImportConditions(css: string, rule: CSSImportRule): string {
   let result = `@media ${rule.media.mediaText || 'all'} {${css}}`;
+
   if (rule.supportsText)
     result = `@supports (${rule.supportsText}) {${result}}`;
+
   if (rule.layerName !== null && rule.layerName !== undefined)
     result = `@layer ${rule.layerName} {${result}}`;
   return result;
+}
+
+function isImportRule(rule: CSSRule): rule is CSSImportRule {
+  return 'href' in rule && 'styleSheet' in rule;
 }
