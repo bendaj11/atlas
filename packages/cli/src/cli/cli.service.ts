@@ -10,8 +10,6 @@ import {
   type AtlasPrompter,
 } from '../shared/index.js';
 import { detectWorkspace, loadEnvFiles } from '../workspace/index.js';
-import { runRegistryCommand } from './registry-commands/registry-commands.js';
-import { runWorkspaceCommand } from './workspace-commands/workspace-commands.js';
 
 const VERSION_ARGUMENTS = ['--version', '-v', 'version'];
 
@@ -39,12 +37,17 @@ export async function runAtlasCli(
     }
 
     const invocation = await resolveInvocation(args, prompts);
+    const { runRegistryCommand } =
+      await import('./registry-commands/registry-commands.js');
 
     if (await runRegistryCommand({ args, invocation })) return;
 
     const workspace = await detectWorkspace();
 
     if (invocation.command !== 'dev') await loadEnvFiles(workspace.root);
+
+    const { runWorkspaceCommand } =
+      await import('./workspace-commands/workspace-commands.js');
 
     if (await runWorkspaceCommand({ workspace, args, prompts, invocation }))
       return;
