@@ -81,22 +81,42 @@ export async function startDomHostRuntime<THostSdk extends object>(
 
   services.onSdkCreated?.(sdk);
 
+  let navigationItems = createHostNavigationItems({
+    manifests,
+    hostId: config.hostId,
+    navigation,
+  });
+  let renderedNav: HTMLElement | undefined;
+
+  const renderNavigationItems = () => {
+    renderedNav = anchors.get('navigation');
+
+    renderHostNavigation({
+      document,
+      nav: renderedNav,
+      items: navigationItems,
+    });
+  };
+
   const publishNavigationItems = () => {
-    const items = createHostNavigationItems({
+    navigationItems = createHostNavigationItems({
       manifests,
       hostId: config.hostId,
       navigation,
     });
 
-    renderHostNavigation({ document, nav: anchors.get('navigation'), items });
-    publishAtlasNavigationItems(document, items);
+    renderNavigationItems();
+    publishAtlasNavigationItems(document, navigationItems);
 
-    options.onNavigationChange?.(items);
+    options.onNavigationChange?.(navigationItems);
   };
 
   publishNavigationItems();
 
   const stopNavigationItems = navigation.subscribe(publishNavigationItems);
+  const stopNavigationAnchor = anchors.subscribe(() => {
+    if (anchors.get('navigation') !== renderedNav) renderNavigationItems();
+  });
 
   onInfrastructureReady();
 
@@ -151,6 +171,7 @@ export async function startDomHostRuntime<THostSdk extends object>(
     updateHostData: (updates) => runtime.updateHostData(updates),
     async stop() {
       stopNavigationItems();
+      stopNavigationAnchor();
 
       await runtime.stop();
     },

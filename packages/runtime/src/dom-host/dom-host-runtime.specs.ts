@@ -107,6 +107,14 @@ describe('startDomHostRuntime', () => {
       expect(driver.get.navigationLinkLabels()).toEqual([label]);
     });
 
+    it('should render the navigation items into a navigation anchor registered after start', async () => {
+      await driver.when.started();
+
+      await driver.when.navigationAnchorRegistered();
+
+      expect(driver.get.navigationLinkLabels()).toEqual([label]);
+    });
+
     it('should call onNavigationChange with the items when started', async () => {
       await driver.when.started();
 

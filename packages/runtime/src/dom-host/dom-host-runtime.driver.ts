@@ -98,6 +98,11 @@ export class DomHostRuntimeDriver {
 
       await flushAsyncWork();
     },
+    navigationAnchorRegistered: async () => {
+      this.anchors.register('navigation', this.createAnchorElement('nav'));
+
+      await flushAsyncWork();
+    },
     navigatedTo: async (path: string) => {
       this.navigation.navigate(path);
 
