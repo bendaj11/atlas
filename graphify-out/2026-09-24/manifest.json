@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/package.json": {
-    "mtime": 1790262652.584185,
-    "ast_hash": "e983f10c0efc4c3cca592ed8cee2fe45",
+    "mtime": 1790269075.706696,
+    "ast_hash": "79010b8bae2a16c97ed7e668335da738",
     "semantic_hash": ""
   },
   "apps/columbus/tsconfig.json": {
@@ -1580,8 +1580,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/public/manifest.json": {
-    "mtime": 1787840962.279925,
-    "ast_hash": "97a216d8bbbbd0d0482444e21ec0dc4e",
+    "mtime": 1790269075.7076423,
+    "ast_hash": "ae84271d96bb1f1fe431ea2e835ff4e1",
     "semantic_hash": ""
   },
   "apps/columbus/src/components/App/App.driver.tsx": {
