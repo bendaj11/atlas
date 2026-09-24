@@ -1,6 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
+import {
+  ATLAS_IMMUTABLE_CACHE_CONTROL,
+  type AtlasPublishedArtifactManifest,
+} from '@atlas/schema';
 import type {
   AtlasPublicationLease,
   AtlasPublicationObjectMetadata,
@@ -8,10 +11,7 @@ import type {
 } from '../publication-storage/types.js';
 import { encodeManifestBytes } from '../static-registry/descriptors/descriptors.js';
 import type { AtlasBuildResult } from '../../build/index.js';
-import {
-  computeSha256Digest,
-  IMMUTABLE_CACHE_CONTROL,
-} from '../../shared/index.js';
+import { computeSha256Digest } from '../../shared/index.js';
 
 export interface PublicationFile {
   path: string;
@@ -60,7 +60,7 @@ export async function preparePublicationFiles(
       path: `${prefix}/manifest.json`,
       bytes,
       metadata: {
-        cacheControl: IMMUTABLE_CACHE_CONTROL,
+        cacheControl: ATLAS_IMMUTABLE_CACHE_CONTROL,
         contentType: 'application/json',
       },
     },

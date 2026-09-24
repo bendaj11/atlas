@@ -35,7 +35,7 @@
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/browser/atlas-loader/main.ts --bundle --format=esm --platform=browser --target=es2022 --minify --keep-names --sourcemap=external --outfile=dist/atlas.loader.js && esbuild node_modules/es-module-shims/dist/es-module-shims.js --format=esm --platform=browser --target=es2022 --outfile=dist/es-module-shims.js",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern=packages/bootstrap/src/",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/bootstrap/src/'",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {

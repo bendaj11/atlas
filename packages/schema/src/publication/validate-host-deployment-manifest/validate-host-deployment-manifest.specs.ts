@@ -1,9 +1,9 @@
 import { faker } from '@faker-js/faker';
-import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
 import {
   aHostDeploymentManifest,
   aManifestDescriptor,
-} from '../publication.testkit.js';
+} from '@atlas/testkit/internal';
+import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
 import { ValidateHostDeploymentManifestDriver } from './validate-host-deployment-manifest.driver.js';
 
 describe('validateHostDeploymentManifest', () => {

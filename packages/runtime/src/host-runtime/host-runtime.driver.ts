@@ -4,8 +4,8 @@ import type { AtlasManifest } from '@atlas/schema';
 import { getAtlasNavigation } from '@atlas/sdk';
 import type { AtlasAppEntry, AtlasAppMountRequest } from '@atlas/sdk/lifecycle';
 import { createTestHostSdk } from '@atlas/testkit';
+import { flushAsyncWork } from '@atlas/testkit/internal';
 import { AtlasHostAnchorRegistry } from '../dom-host/host-anchors.js';
-import { flushAsyncWork } from '../shared/async.testkit.js';
 import { startAtlasHostRuntime } from './host-runtime.js';
 import type {
   AtlasHostMountEvent,

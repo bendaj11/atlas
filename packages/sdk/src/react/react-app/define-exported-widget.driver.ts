@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { jest } from '@jest/globals';
+import { anExportedWidgetManifest } from '@atlas/testkit';
 import type {
   AtlasExportedWidgetMountRequest,
   AtlasExportedWidgetMountResult,
 } from '../../lifecycle.js';
-import { anExportedWidgetManifest } from '../../testkit/app-context.testkit.js';
 import { defineExportedWidget } from './define-exported-widget.js';
 import { aMountRequest, aRootAdapter } from './react-app.testkit.js';
 

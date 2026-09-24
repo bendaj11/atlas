@@ -1,7 +1,10 @@
 /** @jest-environment jsdom */
 
 import { faker } from '@faker-js/faker';
-import { aHostArtifactManifest, anAppArtifactManifest } from '@atlas/testkit';
+import {
+  aHostArtifactManifest,
+  anAppArtifactManifest,
+} from '@atlas/testkit/internal';
 import {
   aDeploymentWith,
   aReferenceTo,

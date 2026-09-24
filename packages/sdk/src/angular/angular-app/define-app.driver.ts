@@ -1,16 +1,14 @@
 import '@angular/compiler';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
+import { anExportedWidgetManifest } from '@atlas/testkit';
 import type {
   AtlasAppMountRequest,
   AtlasAppMountResult,
   AtlasExportedWidgetMountRequest,
 } from '../../lifecycle.js';
 import { createAtlasSdk } from '../../core/sdk-factory/index.js';
-import {
-  anAppContext,
-  anExportedWidgetManifest,
-} from '../../testkit/app-context.testkit.js';
+import { anAppContext } from '../../testkit/app-context.testkit.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { defineApp, defineExportedWidget } from './define-app.js';
 

@@ -36,7 +36,6 @@ export type {
   ProcessOutputDestinations,
 } from './process/process.js';
 export {
-  IMMUTABLE_CACHE_CONTROL,
   MUTABLE_CACHE_CONTROL,
   resolvePublicationContentType,
 } from './publication-metadata/publication-metadata.js';

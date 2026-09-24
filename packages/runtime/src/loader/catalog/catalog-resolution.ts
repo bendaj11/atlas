@@ -2,13 +2,13 @@ import {
   assertAtlasManifest,
   type AtlasHostCatalog,
   type AtlasManifest,
+  type AtlasRuntimeOverride,
 } from '@atlas/schema';
 import { extractErrorMessage } from '../../shared/errors.js';
 import {
   AtlasCatalogSelectionError,
   AtlasOverrideError,
 } from '../loader.errors.js';
-import type { AtlasRuntimeOverride } from '../overrides/overrides.types.js';
 import { assertLocalManifestUsesLoopbackUrls } from '../trust/trust-policy.js';
 
 export function resolveRuntimeManifests(

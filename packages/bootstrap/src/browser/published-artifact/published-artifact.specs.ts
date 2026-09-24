@@ -1,9 +1,6 @@
 import { faker } from '@faker-js/faker';
-import {
-  aHostRuntimeConfig,
-  aManifestDescriptor,
-  anAppManifest,
-} from '@atlas/testkit';
+import { aHostRuntimeConfig, anAppManifest } from '@atlas/testkit';
+import { aManifestDescriptor } from '@atlas/testkit/internal';
 import { PublishedArtifactDriver } from './published-artifact.driver.js';
 
 describe('loadPublishedArtifact', () => {

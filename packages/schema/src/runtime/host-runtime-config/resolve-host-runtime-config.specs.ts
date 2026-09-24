@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
+import { aHostRuntimeConfig } from '@atlas/testkit';
+import { aRegistryUrl } from '@atlas/testkit/internal';
 import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { aHostRuntimeConfig, aRegistryRootUrl } from '../runtime.testkit.js';
 import { ResolveHostRuntimeConfigDriver } from './resolve-host-runtime-config.driver.js';
 
 describe('resolveAtlasHostRuntimeConfig', () => {
@@ -38,7 +39,7 @@ describe('resolveAtlasHostRuntimeConfig', () => {
     });
 
     it('should preserve an absolute artifact registry when resolved', () => {
-      const artifactRegistryUrl = aRegistryRootUrl();
+      const artifactRegistryUrl = aRegistryUrl();
       driver.when.resolved(aHostRuntimeConfig({ artifactRegistryUrl }));
 
       expect(driver.get.runtime()?.artifactRegistryUrl).toBe(
@@ -94,7 +95,7 @@ describe('resolveAtlasHostRuntimeConfig', () => {
     });
 
     it('should preserve an absolute artifact registry when resolved', () => {
-      const artifactRegistryUrl = aRegistryRootUrl();
+      const artifactRegistryUrl = aRegistryUrl();
       driver.when.resolved(aHostRuntimeConfig({ artifactRegistryUrl }));
 
       expect(driver.get.runtime()?.artifactRegistryUrl).toBe(

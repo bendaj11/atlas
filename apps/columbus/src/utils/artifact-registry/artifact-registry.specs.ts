@@ -1,14 +1,11 @@
 /** @jest-environment node */
 
 import { faker } from '@faker-js/faker';
-import {
-  aHostRuntimeConfig,
-  anAppManifest,
-  aRegistryUrl,
-} from '@atlas/testkit';
+import { aHostRuntimeConfig, anAppManifest } from '@atlas/testkit';
+import { aRegistryUrl } from '@atlas/testkit/internal';
 import {
   aRegistry,
-  aRegistryArtifact,
+  aRegistryArtifactOf,
   aPublishedArtifact,
 } from '../../testkit/registry.testkit';
 import { ArtifactRegistryDriver } from './artifact-registry.driver';
@@ -107,7 +104,7 @@ describe('createArtifactRegistry', () => {
         }),
       );
       const registry = aRegistry({
-        apps: { [deployed.id]: aRegistryArtifact(deployed, [older, latest]) },
+        apps: { [deployed.id]: aRegistryArtifactOf(deployed, [older, latest]) },
       });
 
       it('should list the canonical production releases newest first when read', async () => {
@@ -156,7 +153,7 @@ describe('createArtifactRegistry', () => {
         }),
       );
       const registry = aRegistry({
-        apps: { [deployed.id]: aRegistryArtifact(deployed, [preview]) },
+        apps: { [deployed.id]: aRegistryArtifactOf(deployed, [preview]) },
       });
 
       it('should fetch the preview manifest at its registry reference when read', async () => {
@@ -224,7 +221,7 @@ describe('createArtifactRegistry', () => {
         }),
       );
       const registry = aRegistry({
-        apps: { [deployed.id]: aRegistryArtifact(deployed, [release]) },
+        apps: { [deployed.id]: aRegistryArtifactOf(deployed, [release]) },
       });
 
       it('should return the fetched release manifest when loaded', async () => {
@@ -276,7 +273,7 @@ describe('createArtifactRegistry', () => {
         }),
       );
       const registry = aRegistry({
-        apps: { [deployed.id]: aRegistryArtifact(deployed, [preview]) },
+        apps: { [deployed.id]: aRegistryArtifactOf(deployed, [preview]) },
       });
       const artifactRegistry = createArtifactRegistry();
 

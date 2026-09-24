@@ -2,9 +2,11 @@ import { assertOverrideMatchesManifest } from '../catalog/catalog-resolution.js'
 import { requestDevelopmentSession } from '../development-session/development-session.js';
 import { AtlasOverrideError } from '../loader.errors.js';
 import type {
-  AtlasBrowserOverrideOptions,
   AtlasRuntimeOverride,
   AtlasRuntimeOverrideDocument,
+} from '@atlas/schema';
+import type {
+  AtlasBrowserOverrideOptions,
   OverrideSessionStorage,
 } from './overrides.types.js';
 

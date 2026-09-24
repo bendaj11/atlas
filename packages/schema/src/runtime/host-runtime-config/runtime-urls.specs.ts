@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { aHostRuntimeConfig, aRegistryRootUrl } from '../runtime.testkit.js';
+import { aHostRuntimeConfig } from '@atlas/testkit';
+import { aRegistryUrl } from '@atlas/testkit/internal';
 import { RuntimeUrlsDriver } from './runtime-urls.driver.js';
 
 describe('resolveEnvironmentRegistryUrl', () => {
@@ -18,7 +19,7 @@ describe('resolveEnvironmentRegistryUrl', () => {
 
   it('should return the environment registry when the config has one', () => {
     const runtime = aHostRuntimeConfig({
-      environmentRegistryUrl: aRegistryRootUrl(),
+      environmentRegistryUrl: aRegistryUrl(),
     });
     driver.given.runtime(runtime).when.environmentRegistryUrlBuilt();
 
@@ -35,7 +36,7 @@ describe('buildEnvironmentManifestUrl', () => {
 
   it('should build the host manifest path under the environment registry when built', () => {
     const runtime = aHostRuntimeConfig({
-      environmentRegistryUrl: aRegistryRootUrl(),
+      environmentRegistryUrl: aRegistryUrl(),
     });
     driver.given.runtime(runtime).when.environmentManifestUrlBuilt();
 

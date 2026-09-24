@@ -1,7 +1,10 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasHostCatalog, AtlasManifest } from '@atlas/schema';
+import type {
+  AtlasHostCatalog,
+  AtlasManifest,
+  AtlasRuntimeOverride,
+} from '@atlas/schema';
 import { aHostCatalog } from '@atlas/testkit';
-import type { AtlasRuntimeOverride } from '../overrides/overrides.types.js';
 import { resolveRuntimeCatalog } from './catalog-resolution.js';
 
 export class CatalogResolutionDriver {

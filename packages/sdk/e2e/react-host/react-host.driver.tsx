@@ -3,16 +3,14 @@ import { jest } from '@jest/globals';
 import { useState } from 'react';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
+import { anAppManifest } from '@atlas/testkit';
 import {
   AtlasRuntimeContext,
   AtlasSdkProvider,
   useAtlasSdk,
 } from '../../src/react/react-context/index.js';
 import { createAtlasSdk, updateAtlasHostData } from '../../src/index.js';
-import {
-  anAppContext,
-  anAppManifest,
-} from '../../src/testkit/app-context.testkit.js';
+import { anAppContext } from '../../src/testkit/app-context.testkit.js';
 import { aMemoryNavigation } from '../../src/testkit/navigation.testkit.js';
 
 interface HostSdk {

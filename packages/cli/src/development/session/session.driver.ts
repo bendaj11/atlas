@@ -3,10 +3,10 @@ import type { AtlasHostCatalog } from '@atlas/schema';
 import {
   aHostCatalog,
   aHostManifest,
-  anAppManifest,
   aRoutePlacement,
+  anAppManifest,
 } from '@atlas/testkit';
-import { anOverrideDocument } from '../development.testkit.js';
+import { anOverrideDocument } from '@atlas/testkit/internal';
 import type { AtlasDevOverrideDocument } from '../types.js';
 import { createDevSession, createLocalDevCatalog } from './dev-catalog.js';
 import { createDevSessionStore } from './session.js';

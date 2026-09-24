@@ -7,12 +7,12 @@ import type {
   AtlasPublishedArtifactManifest,
   AtlasStaticRegistry,
 } from '@atlas/schema';
+import { aRoutePlacement } from '@atlas/testkit';
 import {
   aHostArtifactManifest,
   anAppArtifactManifest,
   anEnvironmentDeployment,
-  aRoutePlacement,
-} from '@atlas/testkit';
+} from '@atlas/testkit/internal';
 import type { AtlasDeployResult } from '../types.js';
 import { AtlasDeployService } from './deploy.service.js';
 import { CliArguments } from '../../shared/index.js';

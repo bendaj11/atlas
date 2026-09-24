@@ -1,11 +1,7 @@
 import { faker } from '@faker-js/faker';
+import { aStylesheet, anExportedWidgetManifest } from '@atlas/testkit';
+import { aSha256Integrity } from '@atlas/testkit/internal';
 import { ATLAS_VERSION_CHANNELS } from '../atlas-version-channel.js';
-import {
-  aSha256Integrity,
-  aStylesheet,
-  anExportedWidget,
-  anIdentifier,
-} from '../manifest.testkit.js';
 import { CreateManifestFromConfigDriver } from './create-manifest-from-config.driver.js';
 
 describe('createManifestFromConfig', () => {
@@ -44,7 +40,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should use the id as name when config omits name', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     driver.given.config({ id }).when.created();
 
     expect(driver.get.manifest().name).toBe(id);
@@ -95,7 +91,7 @@ describe('createManifestFromConfig', () => {
 
   it('should pass through identity, name, isolation and sdk range when given', () => {
     const config = {
-      id: anIdentifier(),
+      id: faker.string.uuid(),
       name: faker.commerce.productName(),
       framework: 'angular' as const,
       domIsolation: 'shared-dom' as const,
@@ -120,7 +116,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should pass through git, integrity, styles and exported widgets when given', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     const framework = 'vue' as const;
     const input = {
       gitSha: faker.git.commitSha(),
@@ -129,7 +125,9 @@ describe('createManifestFromConfig', () => {
       prNumber: faker.number.int({ min: 1, max: 999 }),
       integrity: aSha256Integrity(),
       styles: [aStylesheet()],
-      exportedWidgets: [anExportedWidget({ ownerAppId: id, framework })],
+      exportedWidgets: [
+        anExportedWidgetManifest({ ownerAppId: id, framework }),
+      ],
     };
     driver.given.config({ id, framework }).given.input(input).when.created();
 
@@ -137,7 +135,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should dedupe externalAppsDependencies when config repeats one', () => {
-    const [first, second] = [anIdentifier(), anIdentifier()];
+    const [first, second] = [faker.string.uuid(), faker.string.uuid()];
     driver.given
       .config({ externalAppsDependencies: [first, second, first] })
       .when.created();
@@ -149,7 +147,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should derive supportedHosts from route and slot hosts when configured', () => {
-    const [routeHost, slotHost] = [anIdentifier(), anIdentifier()];
+    const [routeHost, slotHost] = [faker.string.uuid(), faker.string.uuid()];
     driver.given
       .config({
         routes: [{ hostId: routeHost, path: '/catalog' }],
@@ -161,7 +159,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should write a route placement with only the given route fields when a route is configured', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.given
       .config({ routes: [{ hostId, path: '/catalog', title: 'Catalog' }] })
       .when.created();
@@ -177,7 +175,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should copy match, redirectTo, layoutId and nav when a route defines them', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     const route = {
       hostId,
       path: '/',
@@ -202,10 +200,10 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should copy layoutId when a route defines one', () => {
-    const layoutId = anIdentifier();
+    const layoutId = faker.string.uuid();
     driver.given
       .config({
-        routes: [{ hostId: anIdentifier(), path: '/catalog', layoutId }],
+        routes: [{ hostId: faker.string.uuid(), path: '/catalog', layoutId }],
       })
       .when.created();
 
@@ -216,7 +214,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should write a slot placement when a slot is configured', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.given
       .config({ slots: [{ slotId: 'sidebar', hostId }] })
       .when.created();
@@ -227,7 +225,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should suffix later placement ids when routes normalize to the same id', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.given
       .config({
         routes: [
@@ -243,7 +241,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should scope slot ids by host when two hosts share a slot name', () => {
-    const [first, second] = [anIdentifier(), anIdentifier()];
+    const [first, second] = [faker.string.uuid(), faker.string.uuid()];
     driver.given
       .config({
         slots: [
@@ -259,7 +257,7 @@ describe('createManifestFromConfig', () => {
   });
 
   it('should throw the manifest validation error when the config produces duplicate routes', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.given.config({
       routes: [
         { hostId, path: '/orders' },

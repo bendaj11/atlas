@@ -1,11 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type {
-  AtlasPayloadFileDescriptor,
-  AtlasPayloadFileRole,
+import {
+  ATLAS_IMMUTABLE_CACHE_CONTROL,
+  type AtlasPayloadFileDescriptor,
+  type AtlasPayloadFileRole,
 } from '@atlas/schema';
 import {
-  IMMUTABLE_CACHE_CONTROL,
   resolvePublicationContentType,
   computeSha256Digest,
 } from '../../shared/index.js';
@@ -63,7 +63,7 @@ export async function describePayloadFiles(options: {
         digest: computeSha256Digest(bytes),
         size: bytes.byteLength,
         mediaType: resolvePublicationContentType(normalized),
-        cacheControl: IMMUTABLE_CACHE_CONTROL,
+        cacheControl: ATLAS_IMMUTABLE_CACHE_CONTROL,
         role: classifyPayloadRole(normalized, normalizedEntry),
       };
     }),

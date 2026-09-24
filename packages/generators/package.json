@@ -34,6 +34,7 @@
   },
   "scripts": {
     "build": "tsx ../../scripts/clean-package-output.ts && tsc -b && esbuild src/index.ts --bundle --format=esm --platform=node --target=es2022 --packages=external --external:@atlas/* --minify --keep-names --sourcemap=external --outfile=dist/index.js --allow-overwrite",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/generators/src/'",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {

@@ -1,7 +1,8 @@
 /** @jest-environment node */
 
 import { faker } from '@faker-js/faker';
-import { anAppManifest, aRegistryUrl } from '@atlas/testkit';
+import { anAppManifest } from '@atlas/testkit';
+import { aRegistryUrl } from '@atlas/testkit/internal';
 import { aPublishedArtifact } from '../../testkit/registry.testkit';
 import {
   fetchVerifiedManifest,

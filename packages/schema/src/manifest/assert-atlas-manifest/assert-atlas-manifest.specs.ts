@@ -1,5 +1,5 @@
+import { aSlotPlacement, anAppManifest } from '@atlas/testkit';
 import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { aSlotPlacement, anAppManifest } from '../manifest.testkit.js';
 import { AssertAtlasManifestDriver } from './assert-atlas-manifest.driver.js';
 
 describe('assertAtlasManifest', () => {

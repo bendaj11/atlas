@@ -1,5 +1,8 @@
 import { faker } from '@faker-js/faker';
-import { aManifestDescriptor, aRegistryArtifact } from '@atlas/testkit';
+import {
+  aManifestDescriptor,
+  aRegistryArtifact,
+} from '@atlas/testkit/internal';
 import { ArtifactResolutionDriver } from './artifact-resolution.driver.js';
 
 describe('artifact resolution', () => {

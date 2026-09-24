@@ -44,9 +44,9 @@ the Columbus extension.
 - `packages/`: publishable Atlas packages
 - `apps/columbus/`: local, PR, and historical version overrides
 - `examples/`: compact cross-framework integration fixtures
+- `examples/e2e/`: browser-level production flow tests over the examples
 - `docs/`: user and architecture documentation
 - `scripts/`: package verification and release scripts
-- `tests/e2e/`: browser-level production flow tests
 
 Generated `dist`, cache, IDE, and test artifact directories are intentionally
 ignored and must not be committed.

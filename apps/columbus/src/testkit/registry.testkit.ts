@@ -75,7 +75,7 @@ export function aPublishedArtifact(
   };
 }
 
-export function aRegistryArtifact(
+export function aRegistryArtifactOf(
   manifest: ArtifactVersion,
   published: PublishedArtifact[] = [],
 ): AtlasRegistryArtifact {

@@ -74,7 +74,9 @@ describe('mountApp', () => {
   });
 
   it('should mount the entry inside a shadow root when the manifest has no isolation', async () => {
-    await driver.when.mounted(anAppManifest({ channel: 'production' }));
+    await driver.when.mounted(
+      anAppManifest({ channel: 'production', isolation: undefined }),
+    );
 
     expect(driver.get.lastRequest().container.getRootNode()).toBeInstanceOf(
       ShadowRoot,
@@ -82,7 +84,9 @@ describe('mountApp', () => {
   });
 
   it('should pass the shadow root as style target when the manifest has no isolation', async () => {
-    await driver.when.mounted(anAppManifest({ channel: 'production' }));
+    await driver.when.mounted(
+      anAppManifest({ channel: 'production', isolation: undefined }),
+    );
 
     expect(driver.get.lastRequest().styleTarget).toBe(
       driver.get.lastRequest().container.getRootNode(),

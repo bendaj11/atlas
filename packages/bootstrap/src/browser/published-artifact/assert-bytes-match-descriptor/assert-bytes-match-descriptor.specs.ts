@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
-import { aManifestDescriptor, aSha256Digest } from '@atlas/testkit';
+import { aManifestDescriptor, aSha256Digest } from '@atlas/testkit/internal';
 import { AssertBytesMatchDescriptorDriver } from './assert-bytes-match-descriptor.driver.js';
 
 describe('assertBytesMatchDescriptor', () => {

@@ -3,7 +3,7 @@ import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import { anAppConfig } from '@atlas/testkit';
+import { anAppConfig, anOverrideDocument } from '@atlas/testkit/internal';
 import type { startControlServer as startControlServerType } from '../control-server/control-server.js';
 import type * as ProcessModule from '../process/process.js';
 import type { DevControlServer } from '../types.js';
@@ -36,7 +36,6 @@ const { runDevSession } = await import('./session-runner.js');
 
 const { aProject, aWorkspace } =
   await import('../../workspace/workspace.testkit.js');
-const { anOverrideDocument } = await import('../development.testkit.js');
 const { CliArguments } = await import('../../shared/index.js');
 
 class FakeChildProcess extends EventEmitter {

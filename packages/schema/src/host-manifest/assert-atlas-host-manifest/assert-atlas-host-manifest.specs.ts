@@ -1,5 +1,5 @@
+import { aHostManifest } from '@atlas/testkit';
 import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { aHostManifest } from '../host-manifest.testkit.js';
 import { AssertAtlasHostManifestDriver } from './assert-atlas-host-manifest.driver.js';
 
 describe('assertAtlasHostManifest', () => {

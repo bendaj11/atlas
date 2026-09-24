@@ -5,10 +5,10 @@ import { runCli as runAtlasCli } from './deployment.driver.js';
 const workspaceRoot = resolve(import.meta.dirname, '../..');
 const artifactsRoot = resolve(
   workspaceRoot,
-  process.env.ATLAS_E2E_ARTIFACTS_DIR ?? 'tests/e2e/.artifacts',
+  process.env.ATLAS_E2E_ARTIFACTS_DIR ?? 'examples/e2e/.artifacts',
 );
 const cdnRoot = join(artifactsRoot, 'cdn');
-const registryConfig = join(workspaceRoot, 'tests/e2e/atlas.registry.ts');
+const registryConfig = join(workspaceRoot, 'examples/e2e/atlas.registry.ts');
 const REACT_HOST_ID = '060a7f62-1c95-402c-9993-55749faf36d9';
 const CATALOG_REACT_ID = '3ae54928-c2c6-491d-b766-6996ce0ef3c8';
 const EXTERNAL_SHARED_UI_ID = '745518fc-3b1a-4197-b044-da306b0a02ff';

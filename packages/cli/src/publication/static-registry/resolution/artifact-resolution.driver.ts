@@ -1,5 +1,5 @@
 import type { AtlasRegistryArtifact } from '@atlas/schema';
-import { aStaticRegistry } from '@atlas/testkit';
+import { aStaticRegistry } from '@atlas/testkit/internal';
 import {
   resolveRegistryArtifact,
   resolveRelease,

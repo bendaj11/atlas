@@ -1,6 +1,9 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasHostDeploymentManifest } from '@atlas/schema';
-import { aDeploymentManifest, aManifestDescriptor } from '@atlas/testkit';
+import {
+  aHostDeploymentManifest,
+  aManifestDescriptor,
+} from '@atlas/testkit/internal';
 import {
   aSha256DigestOf,
   encodeTextAsBytes,
@@ -29,7 +32,7 @@ export function aDeploymentWith(input: {
   widgetProviders?: DeploymentManifestReference[];
   overrides?: Partial<AtlasHostDeploymentManifest>;
 }): AtlasHostDeploymentManifest {
-  return aDeploymentManifest({
+  return aHostDeploymentManifest({
     host: input.host,
     apps: input.apps ?? [],
     ...(input.widgetProviders

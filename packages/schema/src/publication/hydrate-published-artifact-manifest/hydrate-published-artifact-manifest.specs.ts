@@ -1,16 +1,14 @@
 import { faker } from '@faker-js/faker';
-import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import {
-  aSlotPlacement,
-  anIdentifier,
-} from '../../manifest/manifest.testkit.js';
+import { aSlotPlacement } from '@atlas/testkit';
 import {
   aHostArtifactManifest,
   aPublishedWidget,
   aRemoteEntryFile,
   aStylesheetFile,
   anAppArtifactManifest,
-} from '../publication.testkit.js';
+} from '@atlas/testkit/internal';
+import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
+import { ATLAS_DOM_ISOLATIONS } from '../../manifest/atlas-dom-isolation.js';
 import { HydratePublishedArtifactManifestDriver } from './hydrate-published-artifact-manifest.driver.js';
 
 const ZERO_DIGEST = `sha256:${'00'.repeat(32)}` as const;
@@ -41,9 +39,10 @@ describe('hydratePublishedArtifactManifest', () => {
       entryPath: entry.path,
       files: [entry, stylesheet],
       styles: [{ path: stylesheet.path, integrity: ZERO_INTEGRITY }],
+      isolation: faker.helpers.arrayElement(ATLAS_DOM_ISOLATIONS),
       placements: [aSlotPlacement()],
       metadata: { domain: faker.commerce.department() },
-      externalAppsDependencies: [anIdentifier()],
+      externalAppsDependencies: [faker.string.uuid()],
       source: { gitSha: faker.git.commitSha(), gitBranch: faker.git.branch() },
     });
     const widget = aPublishedWidget({

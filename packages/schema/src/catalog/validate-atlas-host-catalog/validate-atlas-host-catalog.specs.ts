@@ -1,12 +1,11 @@
 import { faker } from '@faker-js/faker';
-import { aHostManifest } from '../../host-manifest/host-manifest.testkit.js';
 import {
-  aRouteContribution,
+  aHostCatalog,
+  aHostManifest,
   aRoutePlacement,
   anAppManifest,
-  anIdentifier,
-} from '../../manifest/manifest.testkit.js';
-import { aHostCatalog } from '../catalog.testkit.js';
+} from '@atlas/testkit';
+import { aRouteContribution } from '@atlas/testkit/internal';
 import { ValidateAtlasHostCatalogDriver } from './validate-atlas-host-catalog.driver.js';
 
 describe('validateAtlasHostCatalog', () => {
@@ -70,7 +69,9 @@ describe('validateAtlasHostCatalog', () => {
   });
 
   it('should report host.id when it differs from the catalog hostId', () => {
-    driver.when.validated(aHostCatalog({ hostId: anIdentifier() }));
+    driver.when.validated(
+      aHostCatalog({ hostId: faker.string.uuid(), host: aHostManifest() }),
+    );
 
     expect(driver.get.issues()).toEqual([
       {
@@ -115,7 +116,7 @@ describe('validateAtlasHostCatalog', () => {
   });
 
   it('should report the second app id when two apps share one', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     driver.when.validated(
       aHostCatalog({ apps: [anAppManifest({ id }), anAppManifest({ id })] }),
     );
@@ -126,7 +127,7 @@ describe('validateAtlasHostCatalog', () => {
   });
 
   it('should report the second provider id when two widget providers share one', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     driver.when.validated(
       aHostCatalog({
         widgetProviders: [anAppManifest({ id }), anAppManifest({ id })],

@@ -2,12 +2,14 @@ import { faker } from '@faker-js/faker';
 import {
   aHostManifest,
   aHostRuntimeConfig,
-  aManifestDescriptor,
   anAppManifest,
+} from '@atlas/testkit';
+import {
+  PUBLISHED_CHANNELS,
+  aManifestDescriptor,
   aRegistryUrl,
   aStaticRegistry,
-  PUBLISHED_CHANNELS,
-} from '@atlas/testkit';
+} from '@atlas/testkit/internal';
 import { ResolveOverrideManifestDriver } from './resolve-override-manifest.driver.js';
 
 describe('resolveOverrideManifest', () => {

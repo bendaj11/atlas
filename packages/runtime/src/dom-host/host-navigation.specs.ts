@@ -11,7 +11,7 @@ describe('createHostNavigationItems', () => {
     driver = new HostNavigationDriver();
   });
 
-  describe('when the host has visible routes with nav order and a hidden route', () => {
+  describe('when the host has visible routes with nav order, a prefix-matched orders route and a hidden route', () => {
     const hostId = faker.string.uuid();
     const catalog = anAppManifest({
       placements: [
@@ -25,7 +25,11 @@ describe('createHostNavigationItems', () => {
       placements: [
         aRoutePlacement({
           hostId,
-          route: { path: '/orders', nav: { label: 'Orders', order: 10 } },
+          route: {
+            path: '/orders',
+            match: 'prefix',
+            nav: { label: 'Orders', order: 10 },
+          },
         }),
       ],
     });
@@ -69,27 +73,37 @@ describe('createHostNavigationItems', () => {
     });
   });
 
-  it('should keep only the first app when two apps share a route path', () => {
+  it('should keep only the first app when two apps share a visible route path', () => {
     const hostId = faker.string.uuid();
     const first = anAppManifest({
-      placements: [aRoutePlacement({ hostId, route: { path: '/orders' } })],
+      placements: [
+        aRoutePlacement({ hostId, route: { path: '/orders', nav: undefined } }),
+      ],
     });
     const second = anAppManifest({
-      placements: [aRoutePlacement({ hostId, route: { path: '/orders/' } })],
+      placements: [
+        aRoutePlacement({
+          hostId,
+          route: { path: '/orders/', nav: undefined },
+        }),
+      ],
     });
     driver.given.hostId(hostId).given.manifests([first, second]).when.created();
 
     expect(driver.get.items().map((item) => item.appId)).toEqual([first.id]);
   });
 
-  it('should mark the item active when the current path matches a parameterized route', () => {
+  it('should mark the item active when the current path matches a visible parameterized route', () => {
     const hostId = faker.string.uuid();
     driver.given
       .hostId(hostId)
       .given.manifests([
         anAppManifest({
           placements: [
-            aRoutePlacement({ hostId, route: { path: '/users/:id' } }),
+            aRoutePlacement({
+              hostId,
+              route: { path: '/users/:id', nav: undefined },
+            }),
           ],
         }),
       ])
@@ -99,7 +113,7 @@ describe('createHostNavigationItems', () => {
     expect(driver.get.items()[0]?.active).toBe(true);
   });
 
-  it('should not mark the item active when a full-match route is only a prefix of the current path', () => {
+  it('should not mark the item active when a visible full-match route is only a prefix of the current path', () => {
     const hostId = faker.string.uuid();
     driver.given
       .hostId(hostId)
@@ -108,7 +122,7 @@ describe('createHostNavigationItems', () => {
           placements: [
             aRoutePlacement({
               hostId,
-              route: { path: '/catalog', match: 'full' },
+              route: { path: '/catalog', match: 'full', nav: undefined },
             }),
           ],
         }),
@@ -119,15 +133,23 @@ describe('createHostNavigationItems', () => {
     expect(driver.get.items()[0]?.active).toBe(false);
   });
 
-  it('should fall back to the route title and then the app name when nav label is absent', () => {
+  it('should fall back to the route title and then the app name when nav is absent and only one route has a title', () => {
     const hostId = faker.string.uuid();
     const titled = anAppManifest({
       placements: [
-        aRoutePlacement({ hostId, route: { path: '/a', title: 'Titled' } }),
+        aRoutePlacement({
+          hostId,
+          route: { path: '/a', title: 'Titled', nav: undefined },
+        }),
       ],
     });
     const untitled = anAppManifest({
-      placements: [aRoutePlacement({ hostId, route: { path: '/b' } })],
+      placements: [
+        aRoutePlacement({
+          hostId,
+          route: { path: '/b', title: undefined, nav: undefined },
+        }),
+      ],
     });
     driver.given
       .hostId(hostId)

@@ -5,15 +5,13 @@ import {
   Input,
   provideZonelessChangeDetection,
 } from '@angular/core';
+import { anExportedWidgetManifest } from '@atlas/testkit';
 import type {
   AtlasAppMountRequest,
   AtlasExportedWidgetMountResult,
 } from '../../lifecycle.js';
 import { createAtlasSdk } from '../../core/sdk-factory/index.js';
-import {
-  anAppContext,
-  anExportedWidgetManifest,
-} from '../../testkit/app-context.testkit.js';
+import { anAppContext } from '../../testkit/app-context.testkit.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { createExportedWidget } from './create-exported-widget.js';
 

@@ -1,20 +1,4 @@
-import type { AtlasManifest } from '@atlas/schema';
 import type { AtlasRetryPolicy } from '../../resilience/resilience.types.js';
-
-export type AtlasRuntimeOverrideReason = 'local' | 'pr' | 'historical';
-
-export interface AtlasRuntimeOverride {
-  appId: string;
-  manifest: AtlasManifest;
-  reason: AtlasRuntimeOverrideReason;
-}
-
-export interface AtlasRuntimeOverrideDocument {
-  schemaVersion: '1';
-  hostId: string;
-  overrides: AtlasRuntimeOverride[];
-  generatedAt: string;
-}
 
 export type OverrideSessionStorage = Pick<Storage, 'getItem'> &
   Partial<Pick<Storage, 'setItem'>>;

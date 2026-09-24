@@ -11,11 +11,11 @@ import { computeRegistryRevision } from '../../packages/cli/src/publication/stat
 const root = resolve(import.meta.dirname, '../..');
 const artifacts = resolve(
   root,
-  process.env.ATLAS_E2E_ARTIFACTS_DIR ?? 'tests/e2e/.artifacts',
+  process.env.ATLAS_E2E_ARTIFACTS_DIR ?? 'examples/e2e/.artifacts',
 );
 const cdn = join(artifacts, 'cdn');
 const externalCdn = join(artifacts, 'external-cdn');
-const registryConfig = join(root, 'tests/e2e/atlas.registry.ts');
+const registryConfig = join(root, 'examples/e2e/atlas.registry.ts');
 const cdnOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_CDN_PORT ?? '4400'}`;
 const reactHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_REACT_HOST_PORT ?? '4300'}`;
 const angularHostOrigin = `http://127.0.0.1:${process.env.ATLAS_E2E_ANGULAR_HOST_PORT ?? '4301'}`;

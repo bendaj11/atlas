@@ -10,10 +10,10 @@
     "types": ["node"]
   },
   "include": [
-    "apps/columbus/src/scripts/build/**/*.ts",
     "scripts/**/*.ts",
-    "tests/e2e/directory-publication-storage.ts",
-    "tests/e2e/prepare.ts",
-    "tests/e2e/static-server.ts"
+    "examples/e2e/atlas.registry.ts",
+    "examples/e2e/directory-publication-storage.ts",
+    "examples/e2e/prepare.ts",
+    "examples/e2e/static-server.ts"
   ]
 }

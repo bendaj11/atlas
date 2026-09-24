@@ -326,6 +326,15 @@ importers:
         specifier: ~5.9.0
         version: 5.9.3
 
+  examples/e2e:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.61.1
+        version: 1.61.1
+      tsx:
+        specifier: ^4.23.7
+        version: 4.23.7
+
   examples/hosts/demo-angular-host:
     dependencies:
       '@angular-architects/native-federation':
@@ -529,6 +538,9 @@ importers:
       '@faker-js/faker':
         specifier: ^10.5.0
         version: 10.5.0
+      '@playwright/test':
+        specifier: ^1.61.1
+        version: 1.61.1
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -538,6 +550,9 @@ importers:
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.17
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
       react:
         specifier: ^19.2.0
         version: 19.2.8
@@ -562,6 +577,9 @@ importers:
       cjs-module-lexer:
         specifier: ^1.4.3
         version: 1.4.3
+      typescript:
+        specifier: '>=5.5'
+        version: 5.9.3
     devDependencies:
       '@angular/common':
         specifier: ^20.3.0

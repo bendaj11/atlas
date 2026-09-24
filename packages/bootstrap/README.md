@@ -15,9 +15,9 @@ retain `atlas-host-root` and `/atlas.loader.js`.
 Library consumers may call `createAtlasBootstrapFiles()` directly. No Express or
 application server required.
 
-Runtime config helpers (`resolveAtlasRuntimeConfig`, `assertAtlasRuntimeConfig`,
-`environmentManifestUrl`, `artifactUrl`) live in `@atlas/schema`. The root entry
-of this package reads built assets from disk and is Node-only.
+The `atlas.runtime.json` contract (`AtlasHostRuntimeConfig`) lives in
+`@atlas/schema`. The root entry of this package reads built assets from disk and
+is Node-only.
 
 Errors thrown by this package are `AtlasError` instances from `@atlas/schema`
 with a `code` (`DEPLOYMENT_INVALID`, `CATALOG_INVALID`,

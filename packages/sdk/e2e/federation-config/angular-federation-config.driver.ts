@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { AngularProjectExpose } from '../../federation-config.cjs';
+import type { AngularProjectExpose } from '../../dist/federation-config.cjs';
 import {
   exampleProjectRoot,
   missingFiles,

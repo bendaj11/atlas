@@ -1,6 +1,9 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasAppConfig, AtlasHostConfig } from '@atlas/schema';
-import { ALL_FRAMEWORKS } from './manifests.js';
+import {
+  ATLAS_FRAMEWORKS,
+  type AtlasAppConfig,
+  type AtlasHostConfig,
+} from '@atlas/schema';
 
 export function anAppConfig(
   overrides: Partial<AtlasAppConfig> = {},
@@ -8,7 +11,7 @@ export function anAppConfig(
   return {
     id: faker.string.uuid(),
     name: faker.commerce.productName(),
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
     type: 'app',
     ...overrides,
   };
@@ -20,7 +23,7 @@ export function aHostConfig(
   return {
     id: faker.string.uuid(),
     name: faker.commerce.productName(),
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
     type: 'host',
     ...overrides,
   };

@@ -1,5 +1,5 @@
+import { anOverrideDocument } from '@atlas/testkit/internal';
 import { LEASE_LIFETIME_MS } from '../constants.js';
-import { anOverrideDocument } from '../development.testkit.js';
 import { ControlServerLeaseDriver } from './control-server-lease.driver.js';
 
 describe('control-server-lease', () => {

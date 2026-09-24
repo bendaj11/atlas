@@ -14,4 +14,4 @@ export {
   type ShareAll,
   type SkipEntry,
   type GeneratedWidgetEntry,
-} from './dist/federation-config/index.cjs';
+} from './federation-config/index.cjs';

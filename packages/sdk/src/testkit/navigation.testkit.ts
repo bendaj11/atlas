@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals';
+import { createMemoryNavigation } from '@atlas/testkit';
 import type {
   AtlasLocation,
   AtlasNavigation,
-  AtlasNavigationListener,
   GoBack,
   GoThroughHistory,
   NavigateToPath,
@@ -17,29 +17,18 @@ export interface MemoryNavigation extends AtlasNavigation {
 }
 
 export function aMemoryNavigation(initialUrl = '/'): MemoryNavigation {
-  let location = parseUrlIntoLocation(initialUrl);
-  const listeners = new Set<AtlasNavigationListener>();
-  const notify = (): void => {
-    for (const listener of listeners) listener(location);
-  };
-  const move = (to: string): void => {
-    location = parseUrlIntoLocation(to);
-    notify();
-  };
+  const navigation = createMemoryNavigation(initialUrl);
 
   return {
-    navigate: jest.fn<NavigateToPath>((to) => move(to)),
-    replace: jest.fn<ReplacePath>((to) => move(to)),
+    navigate: jest.fn<NavigateToPath>((to, options) =>
+      navigation.navigate(to, options),
+    ),
+    replace: jest.fn<ReplacePath>((to) => navigation.replace(to)),
     back: jest.fn<GoBack>(),
     go: jest.fn<GoThroughHistory>(),
-    createHref: (to) => to,
-    subscribe(listener) {
-      listeners.add(listener);
-      listener(location);
-
-      return () => listeners.delete(listener);
-    },
-    getCurrentLocation: () => location,
+    createHref: (to) => navigation.createHref(to),
+    subscribe: (listener) => navigation.subscribe(listener),
+    getCurrentLocation: () => navigation.getCurrentLocation(),
   };
 }
 

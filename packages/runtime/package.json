@@ -44,7 +44,7 @@
     "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json",
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config jest.config.mjs --coverage",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit",
-    "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --runInBand --testPathPattern=packages/runtime/e2e/ --testTimeout=30000"
+    "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --runInBand --testPathPattern='packages/runtime/e2e/' --testTimeout=30000"
   },
   "dependencies": {
     "@atlas/schema": "workspace:^",
@@ -54,7 +54,7 @@
   "peerDependencies": {
     "@angular/core": ">=19 <23",
     "@angular/platform-browser": ">=19 <23",
-    "react": ">=17 <21"
+    "react": ">=17 <20"
   },
   "peerDependenciesMeta": {
     "@angular/core": {
@@ -74,9 +74,11 @@
     "@angular/platform-browser": "^20.3.0",
     "@atlas/testkit": "workspace:*",
     "@faker-js/faker": "^10.5.0",
+    "@playwright/test": "^1.61.1",
     "@testing-library/react": "^16.3.0",
     "@types/css-tree": "^3.2.0",
     "@types/react": "^19.2.0",
+    "esbuild": "0.25.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }

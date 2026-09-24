@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasHostCatalog } from '@atlas/schema';
 import { aHostCatalog, aHostManifest, anAppManifest } from '@atlas/testkit';
-import { anOverrideDocument } from '../development.testkit.js';
+import { anOverrideDocument } from '@atlas/testkit/internal';
 import type { AtlasDevOverrideDocument, DevControlServer } from '../types.js';
 import { startControlServer } from './control-server.js';
 
@@ -221,21 +221,23 @@ export class ControlServerDriver {
   }
 
   private hostDocument(): AtlasDevOverrideDocument {
-    return anOverrideDocument({
-      hostId: this.hostId,
+    return {
+      ...anOverrideDocument({ hostId: this.hostId }),
       hostOverride: aHostManifest({ id: this.hostId, channel: 'local' }),
       previewUrl: this.previewUrl,
-    });
+    };
   }
 
   private overrideDocumentFor(appId: string): AtlasDevOverrideDocument {
-    return anOverrideDocument({
-      hostId: this.hostId,
+    return {
+      ...anOverrideDocument({
+        hostId: this.hostId,
+        overrides: [
+          { appId, manifest: anAppManifest({ id: appId }), reason: 'local' },
+        ],
+      }),
       previewUrl: this.previewUrl,
-      overrides: [
-        { appId, manifest: anAppManifest({ id: appId }), reason: 'local' },
-      ],
-    });
+    };
   }
 
   private async previewSessionStatus(previewUrl: string): Promise<number> {

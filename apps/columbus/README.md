@@ -40,7 +40,7 @@ If one app version index is unavailable, the extension keeps the host usable, sh
 
 ## Verification
 
-`yarn test:e2e` loads the built Manifest V3 extension in Playwright's bundled Chromium and exercises historical, PR, local, reset, all-tabs, current-tab, and invalid-URL workflows against the example Atlas deployment. Columbus has permanent loopback-only host permissions for local development discovery; all non-loopback page access still depends on the active tab and static content-script matches.
+`pnpm test:e2e` (suite in `examples/e2e/extension.specs.ts`) loads the built Manifest V3 extension in Playwright's bundled Chromium and exercises historical, PR, local, reset, all-tabs, current-tab, and invalid-URL workflows against the example Atlas deployment. Columbus has permanent loopback-only host permissions for local development discovery; all non-loopback page access still depends on the active tab and static content-script matches.
 
 ## Troubleshooting
 

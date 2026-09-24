@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
+import { aHostRuntimeConfig } from '@atlas/testkit';
+import { aRegistryUrl } from '@atlas/testkit/internal';
 import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { aHostRuntimeConfig, aRegistryRootUrl } from '../runtime.testkit.js';
 import { ValidateHostRuntimeConfigDriver } from './validate-host-runtime-config.driver.js';
 
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
@@ -27,7 +28,7 @@ describe('validateAtlasHostRuntimeConfig', () => {
     driver.when.validated(
       aHostRuntimeConfig({
         hostVersion: faker.system.semver(),
-        environmentRegistryUrl: aRegistryRootUrl(),
+        environmentRegistryUrl: aRegistryUrl(),
       }),
     );
 
@@ -92,7 +93,7 @@ describe('validateAtlasHostRuntimeConfig', () => {
     const environment = faker.word.noun();
     driver.when.validated({
       ...aHostRuntimeConfig({ environment }),
-      registryUrl: aRegistryRootUrl(),
+      registryUrl: aRegistryUrl(),
     });
 
     expect(driver.get.issues()).toEqual([
@@ -143,7 +144,7 @@ describe('validateAtlasHostRuntimeConfig', () => {
   });
 
   it('should report an environment registry with a trailing slash when validated', () => {
-    const environmentRegistryUrl = `${aRegistryRootUrl()}/`;
+    const environmentRegistryUrl = `${aRegistryUrl()}/`;
     driver.when.validated(aHostRuntimeConfig({ environmentRegistryUrl }));
 
     expect(driver.get.issues()).toEqual([

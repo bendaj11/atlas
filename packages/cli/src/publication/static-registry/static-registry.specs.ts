@@ -1,5 +1,8 @@
 import { faker } from '@faker-js/faker';
-import { aManifestDescriptor, anAppArtifactManifest } from '@atlas/testkit';
+import {
+  aManifestDescriptor,
+  anAppArtifactManifest,
+} from '@atlas/testkit/internal';
 import { StaticRegistryDriver } from './static-registry.driver.js';
 
 describe('static registry', () => {

@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
-import { anAppArtifactManifest } from '@atlas/testkit';
+import { anAppArtifactManifest } from '@atlas/testkit/internal';
 import type { PublicationFile } from './publication-files.js';
 import type { AtlasBuildResult } from '../../build/index.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';

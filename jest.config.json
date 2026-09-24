@@ -4,6 +4,8 @@
     ".tsx"
   ],
   "moduleNameMapper": {
+    "^@atlas/testkit$": "<rootDir>/packages/testkit/src/index.ts",
+    "^@atlas/testkit/internal$": "<rootDir>/packages/testkit/src/internal.ts",
     "^(\\.{1,2}/.*)\\.js$": "$1",
     "^(\\.{1,2}/.*)\\.cjs$": [
       "$1.cts",
@@ -18,7 +20,7 @@
   ],
   "rootDir": ".",
   "testPathIgnorePatterns": [
-    "<rootDir>/tests/e2e/",
+    "<rootDir>/examples/e2e/",
     "<rootDir>/.claude/worktrees/"
   ],
   "testEnvironment": "node",

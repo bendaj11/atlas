@@ -2,7 +2,7 @@ import type {
   AtlasAppArtifactManifest,
   AtlasStaticRegistry,
 } from '@atlas/schema';
-import { anAppArtifactManifest } from '@atlas/testkit';
+import { anAppArtifactManifest } from '@atlas/testkit/internal';
 import {
   createManifestDescriptor,
   encodeManifestBytes,

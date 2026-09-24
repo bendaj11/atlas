@@ -1,12 +1,10 @@
 import { faker } from '@faker-js/faker';
+import { anAppManifest } from '@atlas/testkit';
 import {
   connectAtlasWidgetResolver,
   createAtlasSdk,
 } from '../../core/sdk-factory/index.js';
-import {
-  anAppContext,
-  anAppManifest,
-} from '../../testkit/app-context.testkit.js';
+import { anAppContext } from '../../testkit/app-context.testkit.js';
 import { aMemoryNavigation } from '../../testkit/navigation.testkit.js';
 import { createReactAtlasSdk } from './react-atlas-sdk.js';
 import type { ReactAtlasSdk } from './react-widget.types.js';

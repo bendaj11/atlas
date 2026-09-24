@@ -1,13 +1,9 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import type { AtlasConfig } from '@atlas/schema';
+import { ATLAS_IMMUTABLE_CACHE_CONTROL, type AtlasConfig } from '@atlas/schema';
 import { convertToPosixPath } from '../payload/payload.js';
-import {
-  CliError,
-  IMMUTABLE_CACHE_CONTROL,
-  resolvePublicationContentType,
-} from '../../shared/index.js';
+import { CliError, resolvePublicationContentType } from '../../shared/index.js';
 import type { AtlasProject } from '../../workspace/index.js';
 
 export interface ArtifactRootLookup {
@@ -87,7 +83,7 @@ export async function hashArtifactDirectory(root: string): Promise<string> {
     hash.update(convertToPosixPath(relativePath));
     hash.update('\0');
     hash.update(resolvePublicationContentType(relativePath));
-    hash.update(`\0${IMMUTABLE_CACHE_CONTROL}\0`);
+    hash.update(`\0${ATLAS_IMMUTABLE_CACHE_CONTROL}\0`);
     hash.update(await readFile(join(root, relativePath)));
     hash.update('\0');
   }

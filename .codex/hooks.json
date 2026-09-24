@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/jbd/.local/pipx-python312/venvs/graphifyy/bin/graphify hook-check"
+            "command": "graphify hook-check"
           }
         ]
       }

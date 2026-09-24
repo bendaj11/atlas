@@ -1,0 +1,14 @@
+{
+  "name": "@atlas-example/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixtures": "tsx prepare.ts",
+    "test:e2e": "tsx prepare.ts && cd ../.. && playwright test --config examples/e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "tsx": "^4.23.7"
+  }
+}

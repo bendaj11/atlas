@@ -1,6 +1,7 @@
 import type { AtlasHostManifest, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { faker } from '@faker-js/faker';
-import { aHostManifest, PUBLISHED_CHANNELS } from '@atlas/testkit';
+import { aHostManifest } from '@atlas/testkit';
+import { PUBLISHED_CHANNELS } from '@atlas/testkit/internal';
 
 export function aPublishedHostManifestFor(
   runtime: Pick<AtlasHostRuntimeConfig, 'hostId' | 'artifactRegistryUrl'>,

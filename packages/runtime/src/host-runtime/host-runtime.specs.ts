@@ -11,7 +11,7 @@ describe('startAtlasHostRuntime', () => {
     driver = new HostRuntimeDriver();
   });
 
-  describe('when two production apps declare nested routes for the host', () => {
+  describe('when two production apps declare nested routes with a prefix-matched inner route for the host', () => {
     beforeEach(async () => {
       driver.given.manifests([
         anAppManifest({
@@ -30,7 +30,7 @@ describe('startAtlasHostRuntime', () => {
           placements: [
             aRoutePlacement({
               hostId: driver.hostId,
-              route: { path: '/catalog/details' },
+              route: { path: '/catalog/details', match: 'prefix' },
             }),
           ],
         }),

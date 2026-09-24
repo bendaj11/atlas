@@ -6,6 +6,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
+    "paths": {
+      "@atlas/testkit": ["./packages/testkit/src/index.ts"],
+      "@atlas/testkit/internal": ["./packages/testkit/src/internal.ts"]
+    },
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "resolveJsonModule": true,
@@ -27,9 +31,9 @@
     "packages/runtime/src/css-tree.d.ts",
     "scripts/**/*.specs.ts",
     "scripts/**/*.driver.ts",
-    "tests/**/*.specs.ts",
-    "tests/**/*.driver.ts",
-    "playwright.config.ts"
+    "examples/e2e/*.specs.ts",
+    "examples/e2e/*.driver.ts",
+    "examples/e2e/playwright.config.ts"
   ],
   "exclude": ["dist", "node_modules"]
 }

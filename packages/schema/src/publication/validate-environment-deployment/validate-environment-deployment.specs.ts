@@ -1,9 +1,9 @@
-import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { anIdentifier } from '../../manifest/manifest.testkit.js';
+import { faker } from '@faker-js/faker';
 import {
   aReleaseVersion,
   anEnvironmentDeployment,
-} from '../publication.testkit.js';
+} from '@atlas/testkit/internal';
+import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
 import { ValidateEnvironmentDeploymentDriver } from './validate-environment-deployment.driver.js';
 
 describe('validateEnvironmentDeployment', () => {
@@ -101,7 +101,7 @@ describe('validateEnvironmentDeployment', () => {
   });
 
   it('should report the selection when it is not an object', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     driver.when.validated({
       ...anEnvironmentDeployment(),
       apps: { [id]: 'latest' },
@@ -116,7 +116,7 @@ describe('validateEnvironmentDeployment', () => {
   });
 
   it('should report the selection version when it is unsafe', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     driver.when.validated(
       anEnvironmentDeployment({ hosts: { [id]: { version: '../unsafe' } } }),
     );

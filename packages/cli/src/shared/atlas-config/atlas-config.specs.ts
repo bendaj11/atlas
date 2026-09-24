@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasConfig } from '@atlas/schema';
-import { aHostConfig, anAppConfig } from '@atlas/testkit';
+import { aHostConfig, anAppConfig } from '@atlas/testkit/internal';
 import { AtlasConfigDriver } from './atlas-config.driver.js';
 
 describe('atlas-config', () => {

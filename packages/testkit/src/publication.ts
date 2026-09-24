@@ -1,20 +1,18 @@
 import { faker } from '@faker-js/faker';
-import type {
-  AtlasAppArtifactManifest,
-  AtlasArtifactManifestBaseV2,
-  AtlasEnvironmentDeployment,
-  AtlasHostArtifactManifest,
-  AtlasHostDeploymentManifest,
-  AtlasManifestDescriptor,
-  AtlasPayloadFileDescriptor,
-  AtlasRegistryArtifact,
-  AtlasStaticRegistry,
+import {
+  ATLAS_DOM_ISOLATIONS,
+  ATLAS_FRAMEWORKS,
+  ATLAS_IMMUTABLE_CACHE_CONTROL,
+  type AtlasAppArtifactManifest,
+  type AtlasEnvironmentDeployment,
+  type AtlasHostArtifactManifest,
+  type AtlasHostDeploymentManifest,
+  type AtlasManifestDescriptor,
+  type AtlasPayloadFileDescriptor,
+  type AtlasPublishedWidgetManifest,
+  type AtlasRegistryArtifact,
+  type AtlasStaticRegistry,
 } from '@atlas/schema';
-import { ALL_FRAMEWORKS } from './manifests.js';
-
-export const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
-export const ALL_PAYLOAD_FILE_ROLES: readonly AtlasPayloadFileDescriptor['role'][] =
-  ['remote-entry', 'script', 'stylesheet', 'asset', 'source-map'];
 
 export function aSha256Digest(): `sha256:${string}` {
   return `sha256:${faker.string.hexadecimal({ length: 64, prefix: '' }).toLowerCase()}`;
@@ -24,11 +22,19 @@ export function aRegistryUrl(): string {
   return `https://${faker.internet.domainName()}/${faker.lorem.slug()}`;
 }
 
+export function aReleaseVersion(): string {
+  return faker.system.semver();
+}
+
+function aRelativePath(extension: string): string {
+  return `${faker.lorem.slug()}.${extension}`;
+}
+
 export function aManifestDescriptor(
   overrides: Partial<AtlasManifestDescriptor> = {},
 ): AtlasManifestDescriptor {
   return {
-    path: `${faker.lorem.slug()}/manifest.json`,
+    path: aRelativePath('json'),
     digest: aSha256Digest(),
     size: faker.number.int({ min: 1, max: 100_000 }),
     mediaType: 'application/json',
@@ -36,14 +42,14 @@ export function aManifestDescriptor(
   };
 }
 
-export function aDeploymentManifest(
+export function aHostDeploymentManifest(
   overrides: Partial<AtlasHostDeploymentManifest> = {},
 ): AtlasHostDeploymentManifest {
   return {
     schemaVersion: 'v1',
     kind: 'host-deployment',
     hostId: faker.string.uuid(),
-    environment: faker.word.noun(),
+    environment: faker.lorem.slug(),
     deploymentRevision: aSha256Digest(),
     host: aManifestDescriptor(),
     apps: [aManifestDescriptor()],
@@ -81,47 +87,72 @@ export function aPayloadFileDescriptor(
   overrides: Partial<AtlasPayloadFileDescriptor> = {},
 ): AtlasPayloadFileDescriptor {
   return {
-    path: `${faker.system.fileName({ extensionCount: 0 })}.js`,
+    path: aRelativePath('js'),
     digest: aSha256Digest(),
     size: faker.number.int({ min: 1, max: 100_000 }),
-    mediaType: 'application/javascript',
-    cacheControl: IMMUTABLE_CACHE_CONTROL,
-    role: faker.helpers.arrayElement(ALL_PAYLOAD_FILE_ROLES),
+    mediaType: 'text/javascript; charset=utf-8',
+    cacheControl: ATLAS_IMMUTABLE_CACHE_CONTROL,
+    role: 'script',
     ...overrides,
   };
 }
 
-function anArtifactManifestBaseV2(): Omit<AtlasArtifactManifestBaseV2, 'kind'> {
-  const entryPath = 'remoteEntry.json';
+export function aRemoteEntryFile(
+  overrides: Partial<AtlasPayloadFileDescriptor> = {},
+): AtlasPayloadFileDescriptor {
+  return aPayloadFileDescriptor({ role: 'remote-entry', ...overrides });
+}
 
+export function aStylesheetFile(
+  overrides: Partial<AtlasPayloadFileDescriptor> = {},
+): AtlasPayloadFileDescriptor {
+  return aPayloadFileDescriptor({
+    path: aRelativePath('css'),
+    mediaType: 'text/css; charset=utf-8',
+    role: 'stylesheet',
+    ...overrides,
+  });
+}
+
+export function aPublishedWidget(
+  overrides: Partial<AtlasPublishedWidgetManifest> = {},
+): AtlasPublishedWidgetManifest {
   return {
-    schemaVersion: '2',
+    schemaVersion: '1',
+    contractVersion: '1',
     id: faker.string.uuid(),
     name: faker.commerce.productName(),
-    packageName: faker.word.noun().toLowerCase(),
-    release: { version: faker.system.semver() },
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
-    entryPath,
-    exposes: { entry: `./${faker.word.noun()}` },
-    files: [
-      aPayloadFileDescriptor({
-        path: entryPath,
-        mediaType: 'application/json',
-        role: 'remote-entry',
-      }),
-    ],
+    ownerAppId: faker.string.uuid(),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
+    expose: `./${faker.lorem.slug()}`,
+    ...overrides,
   };
 }
 
 export function anAppArtifactManifest(
   overrides: Partial<AtlasAppArtifactManifest> = {},
 ): AtlasAppArtifactManifest {
+  const entry = aRemoteEntryFile();
+  const placements = overrides.placements ?? [];
+  const supportedHosts = placements.length
+    ? [...new Set(placements.map((placement) => placement.hostId))]
+    : [faker.string.uuid()];
+
   return {
-    ...anArtifactManifestBaseV2(),
+    schemaVersion: '2',
     kind: 'app-artifact',
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    packageName: faker.word.noun().toLowerCase(),
+    release: { version: aReleaseVersion() },
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
+    entryPath: entry.path,
+    exposes: { entry: `./${faker.word.noun()}` },
+    isolation: faker.helpers.arrayElement(ATLAS_DOM_ISOLATIONS),
     requiredHostSdkVersion: `^${faker.system.semver()}`,
-    supportedHosts: [faker.string.uuid()],
-    placements: [],
+    supportedHosts,
+    placements,
+    files: [entry],
     ...overrides,
   };
 }
@@ -129,10 +160,23 @@ export function anAppArtifactManifest(
 export function aHostArtifactManifest(
   overrides: Partial<AtlasHostArtifactManifest> = {},
 ): AtlasHostArtifactManifest {
+  const entry = aRemoteEntryFile({
+    path: aRelativePath('json'),
+    mediaType: 'application/json; charset=utf-8',
+  });
+
   return {
-    ...anArtifactManifestBaseV2(),
+    schemaVersion: '2',
     kind: 'host-artifact',
+    id: faker.string.uuid(),
+    name: faker.commerce.productName(),
+    packageName: faker.word.noun().toLowerCase(),
+    release: { version: aReleaseVersion() },
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
+    entryPath: entry.path,
+    exposes: { entry: `./${faker.word.noun()}` },
     requiredLoaderApiVersion: `^${faker.system.semver()}`,
+    files: [entry],
     ...overrides,
   };
 }
@@ -142,7 +186,7 @@ export function anEnvironmentDeployment(
 ): AtlasEnvironmentDeployment {
   return {
     schemaVersion: 'v1',
-    environment: faker.word.noun(),
+    environment: faker.lorem.slug(),
     revision: aSha256Digest(),
     updatedAt: faker.date.recent().toISOString(),
     hosts: {},

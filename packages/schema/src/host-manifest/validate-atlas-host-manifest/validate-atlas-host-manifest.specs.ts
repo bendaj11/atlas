@@ -1,11 +1,8 @@
 import { faker } from '@faker-js/faker';
+import { aHostManifest, aStylesheet } from '@atlas/testkit';
+import { aSha256Integrity } from '@atlas/testkit/internal';
 import { ATLAS_FRAMEWORKS } from '../../manifest/atlas-framework.js';
 import { ATLAS_VERSION_CHANNELS } from '../../manifest/atlas-version-channel.js';
-import {
-  aSha256Integrity,
-  aStylesheet,
-} from '../../manifest/manifest.testkit.js';
-import { aHostManifest } from '../host-manifest.testkit.js';
 import { ValidateAtlasHostManifestDriver } from './validate-atlas-host-manifest.driver.js';
 
 const REQUIRED_STRING_FIELDS = [

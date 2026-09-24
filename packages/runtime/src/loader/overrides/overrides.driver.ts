@@ -4,10 +4,8 @@ import {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
   loadBrowserRuntimeOverrides,
 } from './overrides.js';
-import type {
-  AtlasRuntimeOverride,
-  RequestDevelopmentSession,
-} from './overrides.types.js';
+import type { AtlasRuntimeOverride } from '@atlas/schema';
+import type { RequestDevelopmentSession } from './overrides.types.js';
 
 export class OverridesDriver {
   private hostId = faker.string.uuid();

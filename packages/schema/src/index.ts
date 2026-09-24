@@ -113,6 +113,11 @@ export {
   validateAtlasHostRuntimeConfig,
 } from './runtime/host-runtime-config/validate-host-runtime-config.js';
 export type { AtlasStaticRegistry } from './runtime/atlas-static-registry.js';
+export type {
+  AtlasRuntimeOverride,
+  AtlasRuntimeOverrideDocument,
+  AtlasRuntimeOverrideReason,
+} from './runtime/atlas-runtime-override.js';
 export {
   ATLAS_DEV_BRIDGE_MARKER,
   ATLAS_DEV_SESSION_REQUEST,

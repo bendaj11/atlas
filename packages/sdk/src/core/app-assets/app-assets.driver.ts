@@ -1,7 +1,5 @@
-import {
-  anAppContext,
-  anAppManifest,
-} from '../../testkit/app-context.testkit.js';
+import { anAppManifest } from '@atlas/testkit';
+import { anAppContext } from '../../testkit/app-context.testkit.js';
 import {
   createAtlasAppAssetFacade,
   createAtlasAppAssets,

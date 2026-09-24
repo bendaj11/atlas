@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { aStylesheet } from '../manifest/manifest.testkit.js';
+import { aStylesheet } from '@atlas/testkit';
 import { ValidateStylesDriver } from './validate-styles.driver.js';
 
 describe('validateStyles', () => {

@@ -41,12 +41,12 @@
     },
     "./federation-config": {
       "import": {
-        "types": "./federation-config.d.mts",
-        "default": "./federation-config.mjs"
+        "types": "./dist/federation-config.d.mts",
+        "default": "./dist/federation-config.mjs"
       },
       "require": {
-        "types": "./federation-config.d.cts",
-        "default": "./federation-config.cjs"
+        "types": "./dist/federation-config.d.cts",
+        "default": "./dist/federation-config.cjs"
       }
     },
     "./angular": {
@@ -63,18 +63,17 @@
     "dist/**/*.cjs",
     "dist/**/*.d.ts",
     "dist/**/*.d.cts",
-    "federation-config.cjs",
-    "federation-config.d.cts",
-    "federation-config.d.mts",
-    "federation-config.mjs"
+    "dist/**/*.mjs",
+    "dist/**/*.d.mts"
   ],
   "sideEffects": false,
   "engines": {
     "node": "^22.12.0 || ^24.0.0"
   },
   "scripts": {
-    "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json && tsc -p tsconfig.federation-config.json",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/(src|e2e)/' --testTimeout=30000",
+    "build": "tsx ../../scripts/clean-package-output.ts && ngc -p tsconfig.angular.json",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/src/' --testTimeout=30000",
+    "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ../../jest.config.json --testPathPattern='packages/sdk/e2e/' --testTimeout=60000",
     "typecheck": "ngc -p tsconfig.angular.json --noEmit"
   },
   "dependencies": {
@@ -87,6 +86,7 @@
     "@angular/core": ">=19 <23",
     "@angular/platform-browser": ">=19 <23",
     "react": ">=17 <20",
+    "typescript": ">=5.5",
     "vite": "*"
   },
   "peerDependenciesMeta": {
@@ -100,6 +100,9 @@
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     },
     "vite": {

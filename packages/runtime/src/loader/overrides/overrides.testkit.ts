@@ -1,28 +1,15 @@
 import { faker } from '@faker-js/faker';
-import type { AtlasManifest } from '@atlas/schema';
 import type {
+  AtlasManifest,
   AtlasRuntimeOverride,
-  AtlasRuntimeOverrideDocument,
   AtlasRuntimeOverrideReason,
-} from './overrides.types.js';
+} from '@atlas/schema';
 
 export const ALL_OVERRIDE_REASONS: readonly AtlasRuntimeOverrideReason[] = [
   'local',
   'pr',
   'historical',
 ];
-
-export function anOverrideDocument(
-  overrides: Partial<AtlasRuntimeOverrideDocument> = {},
-): AtlasRuntimeOverrideDocument {
-  return {
-    schemaVersion: '1',
-    hostId: faker.string.uuid(),
-    generatedAt: faker.date.recent().toISOString(),
-    overrides: [],
-    ...overrides,
-  };
-}
 
 export function anOverrideOf(
   manifest: AtlasManifest,

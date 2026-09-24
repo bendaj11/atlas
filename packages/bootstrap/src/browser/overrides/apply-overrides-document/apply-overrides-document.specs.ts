@@ -4,8 +4,8 @@ import {
   aHostManifest,
   aHostRuntimeConfig,
   anAppManifest,
-  PUBLISHED_CHANNELS,
 } from '@atlas/testkit';
+import { PUBLISHED_CHANNELS } from '@atlas/testkit/internal';
 import { ApplyOverridesDocumentDriver } from './apply-overrides-document.driver.js';
 
 describe('applyOverridesDocument', () => {

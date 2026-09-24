@@ -1,8 +1,8 @@
-import type { AtlasRuntimeOverride } from '@atlas/runtime';
 import type {
   AtlasHostCatalog,
   AtlasHostManifest,
   AtlasManifest,
+  AtlasRuntimeOverride,
 } from '@atlas/schema';
 import { LOCAL_HOST_PLACEHOLDER_PORT } from '../constants.js';
 import type {

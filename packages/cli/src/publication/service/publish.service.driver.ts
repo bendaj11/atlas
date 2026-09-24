@@ -8,7 +8,10 @@ import type {
   AtlasRegistryArtifact,
   AtlasStaticRegistry,
 } from '@atlas/schema';
-import { anAppArtifactManifest, aPayloadFileDescriptor } from '@atlas/testkit';
+import {
+  aPayloadFileDescriptor,
+  anAppArtifactManifest,
+} from '@atlas/testkit/internal';
 import type {
   AtlasPublicationBody,
   AtlasPublicationLease,

@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { aHostConfig, anAppConfig } from '@atlas/testkit';
+import { aHostConfig, anAppConfig } from '@atlas/testkit/internal';
 import { BuildServiceDriver } from './build.service.driver.js';
 
 describe('AtlasBuildService', () => {

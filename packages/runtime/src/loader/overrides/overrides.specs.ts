@@ -1,8 +1,9 @@
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
+import { anOverrideDocument } from '@atlas/testkit/internal';
 import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY } from './overrides.js';
 import { OverridesDriver } from './overrides.driver.js';
-import { anOverrideDocument, anOverrideOf } from './overrides.testkit.js';
+import { anOverrideOf } from './overrides.testkit.js';
 
 describe('loadBrowserRuntimeOverrides', () => {
   let driver: OverridesDriver;

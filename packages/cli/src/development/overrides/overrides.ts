@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import type { AtlasRuntimeOverrideDocument } from '@atlas/runtime';
 import { join } from 'node:path';
+import type { AtlasRuntimeOverrideDocument } from '@atlas/schema';
 
 export async function writeDevOverrideDocument(
   projectRoot: string,

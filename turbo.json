@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["scripts/clean-package-output.js"],
+  "globalDependencies": ["scripts/clean-package-output.ts"],
   "ui": "tui",
   "tasks": {
     "build": {

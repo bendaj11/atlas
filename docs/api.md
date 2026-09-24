@@ -204,7 +204,7 @@ Import from `@atlas/testkit`:
 
 | API                        | Purpose                                        |
 | -------------------------- | ---------------------------------------------- |
-| `createTestManifest()`     | Create a valid manifest with focused overrides |
+| `anAppManifest()`          | Create a valid manifest with focused overrides |
 | `createTestHostSdk()`      | Create an in-memory SDK for app tests          |
 | `createMemoryNavigation()` | Test navigation without a browser              |
 

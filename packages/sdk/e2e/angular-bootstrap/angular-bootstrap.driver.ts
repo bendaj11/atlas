@@ -9,6 +9,7 @@ import {
   type ApplicationConfig,
   type EnvironmentInjector,
 } from '@angular/core';
+import { anAppManifest } from '@atlas/testkit';
 import {
   createAtlasAppAssets,
   createAtlasSdk,
@@ -23,10 +24,7 @@ import {
   provideAtlasSdk,
   type AtlasSdk as AngularAtlasSdk,
 } from '../../src/angular.js';
-import {
-  anAppContext,
-  anAppManifest,
-} from '../../src/testkit/app-context.testkit.js';
+import { anAppContext } from '../../src/testkit/app-context.testkit.js';
 import { aMemoryNavigation } from '../../src/testkit/navigation.testkit.js';
 
 interface CustomerSdk {

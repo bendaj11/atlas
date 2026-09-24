@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
+import { aManifestDescriptor } from '@atlas/testkit/internal';
 import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { aManifestDescriptor } from '../publication.testkit.js';
 import { ValidateManifestDescriptorDriver } from './validate-manifest-descriptor.driver.js';
 
 describe('assertManifestDescriptor', () => {

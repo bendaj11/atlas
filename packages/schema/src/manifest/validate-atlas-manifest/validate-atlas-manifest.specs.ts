@@ -1,17 +1,15 @@
 import { faker } from '@faker-js/faker';
-import { ATLAS_DOM_ISOLATIONS } from '../atlas-dom-isolation.js';
-import { ATLAS_FRAMEWORKS } from '../atlas-framework.js';
-import { ATLAS_VERSION_CHANNELS } from '../atlas-version-channel.js';
 import {
-  aRouteContribution,
   aRoutePlacement,
-  aSha256Integrity,
   aSlotPlacement,
   aStylesheet,
   anAppManifest,
-  anExportedWidget,
-  anIdentifier,
-} from '../manifest.testkit.js';
+  anExportedWidgetManifest,
+} from '@atlas/testkit';
+import { aRouteContribution, aSha256Integrity } from '@atlas/testkit/internal';
+import { ATLAS_DOM_ISOLATIONS } from '../atlas-dom-isolation.js';
+import { ATLAS_FRAMEWORKS } from '../atlas-framework.js';
+import { ATLAS_VERSION_CHANNELS } from '../atlas-version-channel.js';
 import { ValidateAtlasManifestDriver } from './validate-atlas-manifest.driver.js';
 
 const REQUIRED_STRING_FIELDS = [
@@ -305,7 +303,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report each bad entry when hosts are empty, duplicated or not strings', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.when.validated({
       ...anAppManifest(),
       supportedHosts: [hostId, '', hostId, 4],
@@ -341,7 +339,7 @@ describe('validateAtlasManifest', () => {
 
   it('should report supportedHosts when the wildcard is mixed with named hosts', () => {
     driver.when.validated(
-      anAppManifest({ supportedHosts: ['*', anIdentifier()] }),
+      anAppManifest({ supportedHosts: ['*', faker.string.uuid()] }),
     );
 
     expect(driver.get.issues()).toEqual([
@@ -391,7 +389,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report nothing when a route and a slot target a supported host', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.when.validated(
       anAppManifest({
         placements: [aRoutePlacement({ hostId }), aSlotPlacement({ hostId })],
@@ -421,10 +419,10 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report the placement host when it is not in supportedHosts', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.when.validated(
       anAppManifest({
-        supportedHosts: [anIdentifier()],
+        supportedHosts: [faker.string.uuid()],
         placements: [aSlotPlacement({ hostId })],
       }),
     );
@@ -466,8 +464,8 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report the second id when two placements share id and host', () => {
-    const hostId = anIdentifier();
-    const id = anIdentifier();
+    const hostId = faker.string.uuid();
+    const id = faker.string.uuid();
     driver.when.validated(
       anAppManifest({
         placements: [
@@ -486,7 +484,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report nothing when two placements share an id on different hosts', () => {
-    const id = anIdentifier();
+    const id = faker.string.uuid();
     driver.when.validated(
       anAppManifest({
         placements: [aSlotPlacement({ id }), aSlotPlacement({ id })],
@@ -689,7 +687,7 @@ describe('validateAtlasManifest', () => {
           aRoutePlacement({
             route: aRouteContribution({
               redirectTo: '/dashboard',
-              layoutId: anIdentifier(),
+              layoutId: faker.string.uuid(),
             }),
           }),
         ],
@@ -705,7 +703,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report the second path when two routes on one host differ only by trailing slash', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.when.validated(
       anAppManifest({
         placements: [
@@ -759,7 +757,7 @@ describe('validateAtlasManifest', () => {
     driver.when.validated({
       ...manifest,
       exportedWidgets: [
-        anExportedWidget({
+        anExportedWidgetManifest({
           ownerAppId: manifest.id,
           framework: manifest.framework,
         }),
@@ -773,7 +771,9 @@ describe('validateAtlasManifest', () => {
     const manifest = anAppManifest();
     driver.when.validated({
       ...manifest,
-      exportedWidgets: [anExportedWidget({ framework: manifest.framework })],
+      exportedWidgets: [
+        anExportedWidgetManifest({ framework: manifest.framework }),
+      ],
     });
 
     expect(driver.get.issues()).toEqual([
@@ -789,7 +789,10 @@ describe('validateAtlasManifest', () => {
     driver.when.validated({
       ...manifest,
       exportedWidgets: [
-        anExportedWidget({ ownerAppId: manifest.id, framework: 'angular' }),
+        anExportedWidgetManifest({
+          ownerAppId: manifest.id,
+          framework: 'angular',
+        }),
       ],
     });
 
@@ -807,7 +810,7 @@ describe('validateAtlasManifest', () => {
       ...manifest,
       exportedWidgets: [
         {
-          ...anExportedWidget(),
+          ...anExportedWidgetManifest(),
           ownerAppId: manifest.id,
           framework: manifest.framework,
           schemaVersion: '2',
@@ -830,7 +833,7 @@ describe('validateAtlasManifest', () => {
 
   it('should report the second id when two widgets share one', () => {
     const manifest = anAppManifest();
-    const widget = anExportedWidget({
+    const widget = anExportedWidgetManifest({
       ownerAppId: manifest.id,
       framework: manifest.framework,
     });
@@ -861,7 +864,7 @@ describe('validateAtlasManifest', () => {
   it('should report nothing when every dependency is a unique identifier', () => {
     driver.when.validated(
       anAppManifest({
-        externalAppsDependencies: [anIdentifier(), anIdentifier()],
+        externalAppsDependencies: [faker.string.uuid(), faker.string.uuid()],
       }),
     );
 
@@ -869,7 +872,7 @@ describe('validateAtlasManifest', () => {
   });
 
   it('should report non-string, unsafe and duplicate entries when present', () => {
-    const appId = anIdentifier();
+    const appId = faker.string.uuid();
     driver.when.validated({
       ...anAppManifest(),
       externalAppsDependencies: [4, 'maps app', appId, appId],

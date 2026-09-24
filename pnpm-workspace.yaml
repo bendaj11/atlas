@@ -3,13 +3,14 @@ packages:
   - 'apps/*'
   - 'examples/hosts/*'
   - 'examples/apps/*'
+  - 'examples/e2e'
 
 linkWorkspacePackages: true
 
 allowBuilds:
   '@parcel/watcher': true
-  core-js: set this to true or false
+  core-js: false
   esbuild: true
   lmdb: true
   msgpackr-extract: true
-  sinon: set this to true or false
+  sinon: false

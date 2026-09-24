@@ -1,8 +1,8 @@
 import { createServer, type Server } from 'node:http';
-import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser, type Page } from '@playwright/test';
+import { build } from 'esbuild';
 
 const workspace = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -27,12 +27,6 @@ export class ShadowStylesBrowserDriver {
 
   readonly when = {
     open: async () => {
-      const require = createRequire(
-        resolve(workspace, 'packages/bootstrap/package.json'),
-      );
-      const { build } = require('esbuild') as {
-        build(options: unknown): Promise<{ outputFiles: { text: string }[] }>;
-      };
       const bundle = await build({
         entryPoints: [
           resolve(workspace, 'packages/runtime/src/stylesheets/stylesheets.ts'),

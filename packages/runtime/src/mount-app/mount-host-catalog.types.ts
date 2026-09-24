@@ -1,6 +1,5 @@
-import type { AtlasManifest } from '@atlas/schema';
+import type { AtlasManifest, AtlasRuntimeOverride } from '@atlas/schema';
 import type { FetchBytes } from '../loader/fetch-bytes.js';
-import type { AtlasRuntimeOverride } from '../loader/overrides/overrides.types.js';
 import type { AtlasLoaderOptions } from './mount-app.types.js';
 
 export type ResolveAppContainer = (

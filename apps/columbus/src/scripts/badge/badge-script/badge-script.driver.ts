@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { flushAsyncWork } from '@atlas/testkit/internal';
 import type { ArtifactVersion } from '../../../types/artifact-version';
 import type { AtlasRuntimeError, HostData } from '../../../types/host-data';
 import {
@@ -232,8 +233,4 @@ export class BadgeScriptDriver {
     await import('./badge-script');
     await flushAsyncWork();
   }
-}
-
-function flushAsyncWork(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
 }

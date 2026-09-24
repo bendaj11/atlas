@@ -1,9 +1,7 @@
 import type {
-  AtlasRuntimeOverrideDocument,
-  AtlasRuntimeOverride,
-} from '@atlas/runtime';
-import type {
   AtlasConfig,
+  AtlasRuntimeOverride,
+  AtlasRuntimeOverrideDocument,
   AtlasHostConfig,
   AtlasHostCatalog,
   AtlasHostManifest,

@@ -168,12 +168,7 @@ export {
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
   loadBrowserRuntimeOverrides,
 } from './loader/overrides/overrides.js';
-export type {
-  AtlasBrowserOverrideOptions,
-  AtlasRuntimeOverride,
-  AtlasRuntimeOverrideDocument,
-  AtlasRuntimeOverrideReason,
-} from './loader/overrides/overrides.types.js';
+export type { AtlasBrowserOverrideOptions } from './loader/overrides/overrides.types.js';
 export {
   resolveRuntimeCatalog,
   resolveRuntimeManifests,

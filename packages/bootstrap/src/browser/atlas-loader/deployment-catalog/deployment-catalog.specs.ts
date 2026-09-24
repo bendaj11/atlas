@@ -1,11 +1,13 @@
 import { faker } from '@faker-js/faker';
 import {
-  aDeploymentManifest,
   aHostManifest,
   aHostRuntimeConfig,
-  aManifestDescriptor,
   anAppManifest,
 } from '@atlas/testkit';
+import {
+  aHostDeploymentManifest,
+  aManifestDescriptor,
+} from '@atlas/testkit/internal';
 import { DeploymentCatalogDriver } from './deployment-catalog.driver.js';
 
 describe('loadDeploymentCatalog', () => {
@@ -20,7 +22,7 @@ describe('loadDeploymentCatalog', () => {
     const host = aHostManifest({ id: runtime.hostId });
     const app = anAppManifest();
     const widgetProvider = anAppManifest();
-    const deployment = aDeploymentManifest({
+    const deployment = aHostDeploymentManifest({
       hostId: runtime.hostId,
       environment: runtime.environment,
       widgetProviders: [aManifestDescriptor()],
@@ -77,7 +79,7 @@ describe('loadDeploymentCatalog', () => {
     });
 
     it('should omit widget providers when the deployment declares none', async () => {
-      const plain = aDeploymentManifest({
+      const plain = aHostDeploymentManifest({
         hostId: runtime.hostId,
         environment: runtime.environment,
       });
@@ -91,7 +93,7 @@ describe('loadDeploymentCatalog', () => {
     });
 
     it('should load at most six artifacts at once when the deployment has many references', async () => {
-      const many = aDeploymentManifest({
+      const many = aHostDeploymentManifest({
         hostId: runtime.hostId,
         environment: runtime.environment,
         apps: Array.from({ length: 8 }, () => aManifestDescriptor()),

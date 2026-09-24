@@ -14,7 +14,7 @@ export type ExampleProject =
 const executeFile = promisify(execFile);
 
 export const FACTORY_PATH = fileURLToPath(
-  new URL('../../federation-config.cjs', import.meta.url),
+  new URL('../../dist/federation-config.cjs', import.meta.url),
 );
 export const WORKSPACE_ROOT = fileURLToPath(
   new URL('../../../..', import.meta.url),

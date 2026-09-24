@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { aHostManifest } from './manifests.js';
-import { aRegistryUrl } from './publication.js';
+import { aRegistryUrl, aSha256Digest } from './publication.js';
 
 export function aHostRuntimeConfig(
   overrides: Partial<AtlasHostRuntimeConfig> = {},
@@ -23,7 +23,7 @@ export function aHostCatalog(
   return {
     schemaVersion: '1',
     hostId,
-    revision: faker.string.uuid(),
+    revision: aSha256Digest(),
     generatedAt: faker.date.recent().toISOString(),
     host: aHostManifest({ id: hostId }),
     apps: [],

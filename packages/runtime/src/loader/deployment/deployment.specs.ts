@@ -3,7 +3,7 @@ import {
   aHostArtifactManifest,
   aManifestDescriptor,
   anAppArtifactManifest,
-} from '@atlas/testkit';
+} from '@atlas/testkit/internal';
 import { DeploymentDriver } from './deployment.driver.js';
 import { aDeploymentWith, aReferenceTo } from './deployment.testkit.js';
 

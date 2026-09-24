@@ -1,29 +1,24 @@
 import { faker } from '@faker-js/faker';
-import type {
-  AtlasArtifactManifestBase,
-  AtlasExportedWidgetManifest,
-  AtlasHostManifest,
-  AtlasManifest,
-  AtlasPlacement,
-  AtlasRouteContribution,
-  AtlasStylesheet,
+import {
+  ATLAS_DOM_ISOLATIONS,
+  ATLAS_FRAMEWORKS,
+  ATLAS_ROUTE_MATCHES,
+  ATLAS_VERSION_CHANNELS,
+  type AtlasArtifactManifestBase,
+  type AtlasExportedWidgetManifest,
+  type AtlasHostManifest,
+  type AtlasManifest,
+  type AtlasPlacement,
+  type AtlasRouteContribution,
+  type AtlasStylesheet,
+  type AtlasVersionChannel,
 } from '@atlas/schema';
 
 type ArtifactManifest = AtlasManifest | AtlasHostManifest;
 
-export const ALL_CHANNELS: readonly ArtifactManifest['channel'][] = [
+export const PUBLISHED_CHANNELS: readonly AtlasVersionChannel[] = [
   'production',
   'pr',
-  'local',
-];
-export const PUBLISHED_CHANNELS: readonly ArtifactManifest['channel'][] = [
-  'production',
-  'pr',
-];
-export const ALL_FRAMEWORKS: readonly ArtifactManifest['framework'][] = [
-  'angular',
-  'react',
-  'vue',
 ];
 
 function anArtifactManifestBase(): Omit<AtlasArtifactManifestBase, 'kind'> {
@@ -33,8 +28,8 @@ function anArtifactManifestBase(): Omit<AtlasArtifactManifestBase, 'kind'> {
     name: faker.commerce.productName(),
     version: faker.system.semver(),
     buildId: faker.string.alphanumeric(8),
-    channel: faker.helpers.arrayElement(ALL_CHANNELS),
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    channel: faker.helpers.arrayElement(ATLAS_VERSION_CHANNELS),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
     remoteEntryUrl: faker.internet.url(),
     createdAt: faker.date.recent().toISOString(),
   };
@@ -43,13 +38,19 @@ function anArtifactManifestBase(): Omit<AtlasArtifactManifestBase, 'kind'> {
 export function anAppManifest(
   overrides: Partial<AtlasManifest> = {},
 ): AtlasManifest {
+  const placements = overrides.placements ?? [];
+  const supportedHosts = placements.length
+    ? [...new Set(placements.map((placement) => placement.hostId))]
+    : [faker.string.uuid()];
+
   return {
     ...anArtifactManifestBase(),
     kind: 'app',
+    isolation: faker.helpers.arrayElement(ATLAS_DOM_ISOLATIONS),
     exposes: { entry: `./${faker.word.noun()}` },
     requiredHostSdkVersion: `^${faker.system.semver()}`,
-    supportedHosts: [faker.string.uuid()],
-    placements: [],
+    supportedHosts,
+    placements,
     ...overrides,
   };
 }
@@ -84,6 +85,26 @@ export function aVersionOf<T extends ArtifactManifest>(
   } as T;
 }
 
+export function aSha256Integrity(): string {
+  return `sha256-${faker.string.alphanumeric(43)}=`;
+}
+
+export function aRouteContribution(
+  overrides: Partial<AtlasRouteContribution> = {},
+): AtlasRouteContribution {
+  return {
+    path: `/${faker.lorem.slug()}`,
+    match: faker.helpers.arrayElement(ATLAS_ROUTE_MATCHES),
+    title: faker.lorem.words(),
+    nav: {
+      label: faker.lorem.word(),
+      order: faker.number.int({ max: 100 }),
+      visible: faker.datatype.boolean(),
+    },
+    ...overrides,
+  };
+}
+
 export function aRoutePlacement(
   overrides: Partial<AtlasPlacement> & {
     route?: Partial<AtlasRouteContribution>;
@@ -95,7 +116,7 @@ export function aRoutePlacement(
     id: faker.string.uuid(),
     kind: 'route',
     hostId: faker.string.uuid(),
-    route: { path: `/${faker.word.noun()}`, ...route },
+    route: aRouteContribution(route),
     ...placement,
   };
 }
@@ -107,7 +128,7 @@ export function aSlotPlacement(
     id: faker.string.uuid(),
     kind: 'slot',
     hostId: faker.string.uuid(),
-    slot: faker.word.noun(),
+    slot: faker.lorem.slug(),
     ...overrides,
   };
 }
@@ -117,13 +138,13 @@ export function anExportedWidgetManifest(
 ): AtlasExportedWidgetManifest {
   return {
     schemaVersion: '1',
+    contractVersion: '1',
     id: faker.string.uuid(),
     name: faker.commerce.productName(),
     ownerAppId: faker.string.uuid(),
-    framework: faker.helpers.arrayElement(ALL_FRAMEWORKS),
+    framework: faker.helpers.arrayElement(ATLAS_FRAMEWORKS),
     remoteEntryUrl: faker.internet.url(),
-    expose: `./${faker.word.noun()}`,
-    contractVersion: '1',
+    expose: `./${faker.lorem.slug()}`,
     ...overrides,
   };
 }
@@ -133,6 +154,7 @@ export function aStylesheet(
 ): AtlasStylesheet {
   return {
     href: faker.internet.url(),
+    integrity: aSha256Integrity(),
     ...overrides,
   };
 }

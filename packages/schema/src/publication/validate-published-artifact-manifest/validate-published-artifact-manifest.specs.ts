@@ -1,22 +1,18 @@
 import { faker } from '@faker-js/faker';
-import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { ATLAS_DOM_ISOLATIONS } from '../../manifest/atlas-dom-isolation.js';
-import { ATLAS_FRAMEWORKS } from '../../manifest/atlas-framework.js';
-import {
-  aRouteContribution,
-  aRoutePlacement,
-  aSlotPlacement,
-  anIdentifier,
-} from '../../manifest/manifest.testkit.js';
+import { aRoutePlacement, aSlotPlacement } from '@atlas/testkit';
 import {
   aHostArtifactManifest,
-  aPayloadFile,
+  aPayloadFileDescriptor,
   aPublishedWidget,
   aRemoteEntryFile,
+  aRouteContribution,
   aSha256Digest,
   aStylesheetFile,
   anAppArtifactManifest,
-} from '../publication.testkit.js';
+} from '@atlas/testkit/internal';
+import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
+import { ATLAS_DOM_ISOLATIONS } from '../../manifest/atlas-dom-isolation.js';
+import { ATLAS_FRAMEWORKS } from '../../manifest/atlas-framework.js';
 import { ValidatePublishedArtifactManifestDriver } from './validate-published-artifact-manifest.driver.js';
 
 const ZERO_DIGEST = `sha256:${'00'.repeat(32)}` as const;
@@ -281,7 +277,7 @@ describe('validatePublishedArtifactManifest', () => {
       driver.when.validated(
         anAppArtifactManifest({
           entryPath: entry.path,
-          files: [entry, aPayloadFile({ role })],
+          files: [entry, aPayloadFileDescriptor({ role })],
         }),
       );
 
@@ -322,7 +318,7 @@ describe('validatePublishedArtifactManifest', () => {
     driver.when.validated(
       anAppArtifactManifest({
         entryPath: entry.path,
-        files: [entry, aPayloadFile({ path: 'manifest.json' })],
+        files: [entry, aPayloadFileDescriptor({ path: 'manifest.json' })],
       }),
     );
 
@@ -336,7 +332,7 @@ describe('validatePublishedArtifactManifest', () => {
     driver.when.validated(
       anAppArtifactManifest({
         entryPath: entry.path,
-        files: [entry, aPayloadFile({ path: entry.path })],
+        files: [entry, aPayloadFileDescriptor({ path: entry.path })],
       }),
     );
 
@@ -361,7 +357,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report files when the entry file is not a remote entry', () => {
-    const entry = aPayloadFile({ role: 'script' });
+    const entry = aPayloadFileDescriptor({ role: 'script' });
     driver.when.validated(
       anAppArtifactManifest({ entryPath: entry.path, files: [entry] }),
     );
@@ -585,7 +581,7 @@ describe('validatePublishedArtifactManifest', () => {
 
   it('should report supportedHosts when the wildcard is mixed with hosts', () => {
     driver.when.validated(
-      anAppArtifactManifest({ supportedHosts: ['*', anIdentifier()] }),
+      anAppArtifactManifest({ supportedHosts: ['*', faker.string.uuid()] }),
     );
 
     expect(driver.get.issues()).toEqual([
@@ -597,7 +593,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report unsafe, non-string and duplicate hosts when present', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.when.validated({
       ...anAppArtifactManifest(),
       supportedHosts: ['../h', 1, hostId, hostId],
@@ -624,10 +620,10 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report the placement host when it is not supported', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     driver.when.validated(
       anAppArtifactManifest({
-        supportedHosts: [anIdentifier()],
+        supportedHosts: [faker.string.uuid()],
         placements: [aSlotPlacement({ hostId })],
       }),
     );
@@ -749,7 +745,7 @@ describe('validatePublishedArtifactManifest', () => {
   });
 
   it('should report the second route path when two routes repeat a path on one host', () => {
-    const hostId = anIdentifier();
+    const hostId = faker.string.uuid();
     const route = aRouteContribution({ path: '/orders' });
     driver.when.validated(
       anAppArtifactManifest({
@@ -924,7 +920,7 @@ describe('validatePublishedArtifactManifest', () => {
   it('should report nothing when externalAppsDependencies are unique safe ids', () => {
     driver.when.validated(
       anAppArtifactManifest({
-        externalAppsDependencies: [anIdentifier(), anIdentifier()],
+        externalAppsDependencies: [faker.string.uuid(), faker.string.uuid()],
       }),
     );
 

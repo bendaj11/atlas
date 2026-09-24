@@ -1,10 +1,6 @@
 import { faker } from '@faker-js/faker';
-import {
-  aHostConfig,
-  aHostManifest,
-  anAppConfig,
-  anAppManifest,
-} from '@atlas/testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
+import { aHostConfig, anAppConfig } from '@atlas/testkit/internal';
 import { DevServiceDriver } from './dev.service.driver.js';
 
 describe('AtlasDevService', () => {

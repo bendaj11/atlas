@@ -32,7 +32,7 @@ jobs:
           fi
 
           changed_files="$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA")"
-          if echo "$changed_files" | grep -Eq '^(apps|examples|packages|scripts|tests)/|^(\.github/workflows/|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json|tsconfig.json|playwright.config.ts)'; then
+          if echo "$changed_files" | grep -Eq '^(apps|examples|packages|scripts)/|^(\.github/workflows/|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json|tsconfig.json)'; then
             echo "heavy=true" >> "$GITHUB_OUTPUT"
           else
             echo "heavy=false" >> "$GITHUB_OUTPUT"
@@ -192,8 +192,8 @@ jobs:
         with:
           name: playwright-results
           path: |
-            playwright-report
-            test-results
+            examples/e2e/playwright-report
+            examples/e2e/test-results
           if-no-files-found: ignore
 
   release-bundle:

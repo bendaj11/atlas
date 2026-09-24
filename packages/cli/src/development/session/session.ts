@@ -1,5 +1,8 @@
-import type { AtlasRuntimeOverride } from '@atlas/runtime';
-import type { AtlasHostCatalog, AtlasHostManifest } from '@atlas/schema';
+import type {
+  AtlasHostCatalog,
+  AtlasHostManifest,
+  AtlasRuntimeOverride,
+} from '@atlas/schema';
 import type { AtlasDevOverrideDocument, DevSessionStore } from '../types.js';
 import {
   createDevSession,

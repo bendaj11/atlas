@@ -45,12 +45,16 @@ Assert that the app calls SDK capabilities instead of importing host code:
 Test generated or customized host startup with fake manifests and providers:
 
 ```ts
-import { createTestManifest } from '@atlas/testkit';
+import { anAppManifest, aRoutePlacement } from '@atlas/testkit';
 
-const ordersManifest = createTestManifest({
+const ordersManifest = anAppManifest({
   id: '2bea9c13-4899-4f93-9211-cd8c55e9c529',
-  hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-  path: '/orders',
+  placements: [
+    aRoutePlacement({
+      hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
+      route: { path: '/orders' },
+    }),
+  ],
 });
 ```
 

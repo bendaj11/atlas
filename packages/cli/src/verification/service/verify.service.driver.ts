@@ -1,12 +1,9 @@
 import { createHash } from 'node:crypto';
 import { faker } from '@faker-js/faker';
 import { jest } from '@jest/globals';
-import {
-  anAppManifest,
-  aPayloadFileDescriptor,
-  aRoutePlacement,
-} from '@atlas/testkit';
 import type { AtlasHostManifest, AtlasManifest } from '@atlas/schema';
+import { aRoutePlacement, anAppManifest } from '@atlas/testkit';
+import { aPayloadFileDescriptor } from '@atlas/testkit/internal';
 import type { AtlasVerificationReport } from '../checks/checks.js';
 import type { AtlasVerifyOptions } from '../types.js';
 import { AtlasVerifyService } from './verify.service.js';

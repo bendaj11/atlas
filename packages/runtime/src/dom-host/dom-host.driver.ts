@@ -5,10 +5,10 @@ import {
   aHostRuntimeConfig,
   createMemoryNavigation,
 } from '@atlas/testkit';
+import { flushAsyncWork } from '@atlas/testkit/internal';
 import type { AtlasHostRuntime } from '../host-runtime/host-runtime.types.js';
 import { aFederationAdapter } from '../loader/native-federation.testkit.js';
 import type { AtlasRuntimeObserver } from '../observability/observability.types.js';
-import { flushAsyncWork } from '../shared/async.testkit.js';
 import { startDomHost } from './dom-host.js';
 import type { CreateHostNavigation } from './dom-host.types.js';
 import { AtlasHostAnchorRegistry } from './host-anchors.js';

@@ -1,5 +1,5 @@
+import { aHostCatalog } from '@atlas/testkit';
 import { AtlasValidationError } from '../../errors/atlas-validation-error/atlas-validation-error.js';
-import { aHostCatalog } from '../catalog.testkit.js';
 import { AssertAtlasHostCatalogDriver } from './assert-atlas-host-catalog.driver.js';
 
 describe('assertAtlasHostCatalog', () => {

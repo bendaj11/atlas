@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { jest } from '@jest/globals';
 import { build as buildVite, type Plugin, type UserConfig } from 'vite';
-import type { SkipEntry } from '../../federation-config.cjs';
+import type { SkipEntry } from '../../dist/federation-config.cjs';
 import {
   anEmptyReactProject,
   aReactFederationFixture,
@@ -15,7 +15,7 @@ import {
   type ExampleProject,
 } from './federation-config.testkit.js';
 
-type FederationConfigModule = typeof import('../../federation-config.cjs');
+type FederationConfigModule = typeof import('../../dist/federation-config.cjs');
 
 interface FederationMetadata {
   readonly name: string;

@@ -1,10 +1,6 @@
 import { faker } from '@faker-js/faker';
-import {
-  aHostRuntimeConfig,
-  anAppManifest,
-  aRegistryUrl,
-  PUBLISHED_CHANNELS,
-} from '@atlas/testkit';
+import { aHostRuntimeConfig, anAppManifest } from '@atlas/testkit';
+import { PUBLISHED_CHANNELS, aRegistryUrl } from '@atlas/testkit/internal';
 import { ValidateArtifactUrlDriver } from './validate-artifact-url.driver.js';
 
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
