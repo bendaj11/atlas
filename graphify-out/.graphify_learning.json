@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-24T16:58:18.392207+00:00",
+  "generated_at": "2026-09-24T18:38:49.489495+00:00",
   "nodes": {
     "docs_local_development_local_development_and_columbus": {
       "code_fingerprint": "a9db6c3b9e48477508a61dd7f6c3984798a576f3d4cd7c0a1be2762fd6a0d0b5",
@@ -12,7 +12,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.216533359,
+      "score": 0.216184411,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "how can I serve columbus locally so I can develop without the need to rebuild and install every time"
         }
       ],
-      "score": 0.216533359,
+      "score": 0.216184411,
       "source_file": "docs/local-development.md",
       "status": "tentative",
       "uses": 1
@@ -49,7 +49,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.433057055,
+      "score": 0.432359173,
       "source_file": "packages/cli/src/development/service/dev.service.ts",
       "status": "preferred",
       "uses": 2
@@ -76,7 +76,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.21654763,
+      "score": 0.216198658,
       "source_file": "packages/cli/src/development/session/session.ts",
       "status": "contested",
       "uses": 2,
@@ -93,7 +93,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.248018752,
+      "score": 0.247619064,
       "source_file": "packages/cli/src/generation/service/generate.service.ts",
       "status": "tentative",
       "uses": 1
@@ -109,7 +109,7 @@
           "q": "when running atlas g host or app, in generation process im getting error atlas.config.ts: SyntaxError ; expected"
         }
       ],
-      "score": 0.248018752,
+      "score": 0.247619064,
       "source_file": "packages/cli/src/workspace/config-compiler/config-compiler.ts",
       "status": "tentative",
       "uses": 1
@@ -125,7 +125,7 @@
           "q": "How can I use my custom httpClient in an Angular host to update signals and pass them into host data?"
         }
       ],
-      "score": 0.611014468,
+      "score": 0.610029804,
       "source_file": "packages/runtime/src/angular.types.ts",
       "status": "tentative",
       "uses": 1
@@ -141,7 +141,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.254495245,
+      "score": 0.254085119,
       "source_file": "packages/runtime/src/host-runtime/host-runtime.ts",
       "status": "tentative",
       "uses": 1
@@ -157,7 +157,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.611602454,
+      "score": 0.610616843,
       "source_file": "packages/runtime/src/mount-app/mount-app.ts",
       "status": "tentative",
       "uses": 1
@@ -173,7 +173,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.611602454,
+      "score": 0.610616843,
       "source_file": "packages/runtime/src/remote-assets/document-styles.ts",
       "status": "tentative",
       "uses": 1
@@ -189,7 +189,7 @@
           "q": "Angular app imports local UI package index.less in angular.json but CSS variables and component styles are unavailable: Atlas or Turborepo?"
         }
       ],
-      "score": 0.611602454,
+      "score": 0.610616843,
       "source_file": "packages/runtime/src/stylesheets/stylesheets.ts",
       "status": "tentative",
       "uses": 1
@@ -205,7 +205,7 @@
           "q": "when running apps locally why do I need to specify both host url and id? isn't url enough?"
         }
       ],
-      "score": 0.216502801,
+      "score": 0.216153901,
       "source_file": "packages/schema/src/config/atlas-config.ts",
       "status": "tentative",
       "uses": 1
@@ -232,7 +232,7 @@
           "q": "Can Atlas infer host id from a configured host URL when an app declares multiple hosts?"
         }
       ],
-      "score": 0.216563582,
+      "score": 0.216214585,
       "source_file": "packages/schema/src/runtime/atlas-host-runtime-config.ts",
       "status": "contested",
       "uses": 2,
@@ -249,7 +249,7 @@
           "q": "Local app development should never require host id; user supplies only launch URL."
         }
       ],
-      "score": 0.216518753,
+      "score": 0.216169828,
       "source_file": "packages/schema/src/runtime/atlas-runtime-override.ts",
       "status": "tentative",
       "uses": 1
@@ -265,7 +265,7 @@
           "q": "in angular app.config.ts the sdk doesnt have assetsUrl. why?"
         }
       ],
-      "score": 0.611569348,
+      "score": 0.610583789,
       "source_file": "packages/sdk/src/core/app-assets/app-assets.ts",
       "status": "tentative",
       "uses": 1
@@ -281,7 +281,7 @@
           "q": "how to add slots to host dynamically depending on the route?"
         }
       ],
-      "score": 0.254495245,
+      "score": 0.254085119,
       "source_file": "packages/sdk/src/navigation/route-context/route-context.ts",
       "status": "tentative",
       "uses": 1
