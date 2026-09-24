@@ -103,6 +103,7 @@ function collectVisibleRoutePlacementsForHost(
           placementTargetsHost(placement, hostId) &&
           placement.kind === 'route' &&
           placement.route &&
+          placement.route.redirectTo === undefined &&
           placement.route.nav?.visible !== false,
       ),
   ).available.sort(

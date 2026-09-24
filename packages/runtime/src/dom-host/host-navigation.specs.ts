@@ -93,6 +93,32 @@ describe('createHostNavigationItems', () => {
     expect(driver.get.items().map((item) => item.appId)).toEqual([first.id]);
   });
 
+  it('should exclude a redirect route when the host has a visible route and a redirect route', () => {
+    const hostId = faker.string.uuid();
+    const app = anAppManifest({
+      placements: [
+        aRoutePlacement({
+          hostId,
+          route: { path: '/angular-app', nav: undefined },
+        }),
+        aRoutePlacement({
+          hostId,
+          route: {
+            path: '/',
+            match: 'full',
+            redirectTo: '/angular-app',
+            nav: undefined,
+          },
+        }),
+      ],
+    });
+    driver.given.hostId(hostId).given.manifests([app]).when.created();
+
+    expect(driver.get.items().map((item) => item.path)).toEqual([
+      '/angular-app',
+    ]);
+  });
+
   it('should mark the item active when the current path matches a visible parameterized route', () => {
     const hostId = faker.string.uuid();
     driver.given
