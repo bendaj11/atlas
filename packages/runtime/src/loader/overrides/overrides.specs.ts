@@ -1,7 +1,10 @@
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
 import { anOverrideDocument } from '@atlas/testkit/internal';
-import { ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY } from './overrides.js';
+import {
+  ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
+  ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
+} from './overrides.js';
 import { OverridesDriver } from './overrides.driver.js';
 import { anOverrideOf } from './overrides.testkit.js';
 
@@ -51,9 +54,45 @@ describe('loadBrowserRuntimeOverrides', () => {
         JSON.stringify(document),
       );
     });
+
+    it('should mark the session as seeded in tab storage when loaded', () => {
+      expect(driver.get.setItemMock()).toHaveBeenCalledWith(
+        ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
+        `${hostId}:${document.generatedAt}`,
+      );
+    });
   });
 
-  it('should prefer the development session when both a session and a stored document exist', async () => {
+  describe('when the development session was already seeded in this tab', () => {
+    const hostId = faker.string.uuid();
+    const sessionDocument = anOverrideDocument({
+      hostId,
+      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
+    });
+    const storedDocument = anOverrideDocument({
+      hostId,
+      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
+    });
+
+    beforeEach(async () => {
+      await driver.given
+        .hostId(hostId)
+        .given.developmentSessionDocument(sessionDocument)
+        .given.storedDocument(storedDocument)
+        .given.storedSeed(`${hostId}:${sessionDocument.generatedAt}`)
+        .when.loaded();
+    });
+
+    it('should return the stored overrides when loaded', () => {
+      expect(driver.get.overrides()).toEqual(storedDocument.overrides);
+    });
+
+    it('should not overwrite tab storage when loaded', () => {
+      expect(driver.get.setItemMock()).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should prefer the development session when both a session and a stored document exist and the tab is not seeded', async () => {
     const hostId = faker.string.uuid();
     const sessionDocument = anOverrideDocument({
       hostId,

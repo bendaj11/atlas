@@ -81,6 +81,56 @@ describe('storeDevelopmentSession', () => {
 
     expect(driver.get.stored()).toBe(JSON.stringify(session));
   });
+
+  it('should write the session seed to session storage when stored', () => {
+    const session = {
+      hostId: faker.string.uuid(),
+      generatedAt: faker.date.recent().toISOString(),
+    };
+    driver.when.sessionStored(session);
+
+    expect(driver.get.storedSeed()).toBe(
+      `${session.hostId}:${session.generatedAt}`,
+    );
+  });
+});
+
+describe('isDevelopmentSessionSeeded', () => {
+  let driver: DevelopmentSessionSourceDriver;
+
+  beforeEach(() => {
+    driver = new DevelopmentSessionSourceDriver();
+  });
+
+  it('should return false when no seed is stored', () => {
+    driver.when.seedChecked({ hostId: faker.string.uuid() });
+
+    expect(driver.get.seeded()).toBe(false);
+  });
+
+  it('should return true when the stored seed matches the session', () => {
+    const session = {
+      hostId: faker.string.uuid(),
+      generatedAt: faker.date.recent().toISOString(),
+    };
+    driver.given
+      .storedSeed(`${session.hostId}:${session.generatedAt}`)
+      .when.seedChecked(session);
+
+    expect(driver.get.seeded()).toBe(true);
+  });
+
+  it('should return false when the stored seed belongs to another session', () => {
+    const hostId = faker.string.uuid();
+    driver.given
+      .storedSeed(`${hostId}:${faker.date.past().toISOString()}`)
+      .when.seedChecked({
+        hostId,
+        generatedAt: faker.date.recent().toISOString(),
+      });
+
+    expect(driver.get.seeded()).toBe(false);
+  });
 });
 
 describe('readStoredOverridesDocument', () => {

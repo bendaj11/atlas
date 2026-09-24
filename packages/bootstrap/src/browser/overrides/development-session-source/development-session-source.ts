@@ -1,4 +1,7 @@
-import { OVERRIDES_STORAGE_KEY } from '../overrides.constants.js';
+import {
+  DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
+  OVERRIDES_STORAGE_KEY,
+} from '../overrides.constants.js';
 import type { FetchOptions } from '../../fetch-json/index.js';
 import type {
   DevSession,
@@ -50,8 +53,26 @@ export function storeDevelopmentSession({
   const stored = JSON.stringify(session);
 
   dependencies.sessionStorage.setItem(OVERRIDES_STORAGE_KEY, stored);
+  dependencies.sessionStorage.setItem(
+    DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
+    seedOf(session),
+  );
 
   return stored;
+}
+
+export function isDevelopmentSessionSeeded({
+  session,
+  dependencies,
+}: {
+  session: DevSession;
+  dependencies: DevelopmentSessionSourceDependencies;
+}): boolean {
+  return (
+    dependencies.sessionStorage.getItem(
+      DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
+    ) === seedOf(session)
+  );
 }
 
 export function readStoredOverridesDocument(
@@ -61,4 +82,8 @@ export function readStoredOverridesDocument(
     dependencies.sessionStorage.getItem(OVERRIDES_STORAGE_KEY) ||
     dependencies.localStorage.getItem(OVERRIDES_STORAGE_KEY)
   );
+}
+
+function seedOf(session: DevSession): string {
+  return `${session.hostId}:${session.generatedAt}`;
 }

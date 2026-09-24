@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import type { applyOverridesDocument as applyOverridesDocumentType } from '../apply-overrides-document/apply-overrides-document.js';
 import type {
   discoverDevelopmentSession as discoverDevelopmentSessionType,
+  isDevelopmentSessionSeeded as isDevelopmentSessionSeededType,
   storeDevelopmentSession as storeDevelopmentSessionType,
   readStoredOverridesDocument as storedOverridesDocumentType,
 } from '../development-session-source/development-session-source.js';
@@ -12,6 +13,8 @@ import type { DevSession, OverridesDependencies } from '../overrides.types.js';
 const applyOverridesDocument = jest.fn<typeof applyOverridesDocumentType>();
 const discoverDevelopmentSession =
   jest.fn<typeof discoverDevelopmentSessionType>();
+const isDevelopmentSessionSeeded =
+  jest.fn<typeof isDevelopmentSessionSeededType>();
 const storeDevelopmentSession = jest.fn<typeof storeDevelopmentSessionType>();
 const readStoredOverridesDocument =
   jest.fn<typeof storedOverridesDocumentType>();
@@ -26,6 +29,7 @@ jest.unstable_mockModule(
   '../development-session-source/development-session-source.js',
   () => ({
     discoverDevelopmentSession,
+    isDevelopmentSessionSeeded,
     storeDevelopmentSession,
     readStoredOverridesDocument,
   }),
@@ -50,6 +54,7 @@ export class ApplyOverridesDriver {
     for (const mock of [
       applyOverridesDocument,
       discoverDevelopmentSession,
+      isDevelopmentSessionSeeded,
       storeDevelopmentSession,
       readStoredOverridesDocument,
       mergeDevelopmentSession,
@@ -57,6 +62,7 @@ export class ApplyOverridesDriver {
       mock.mockReset();
     }
     discoverDevelopmentSession.mockResolvedValue(undefined);
+    isDevelopmentSessionSeeded.mockReturnValue(false);
     readStoredOverridesDocument.mockReturnValue(null);
     storeDevelopmentSession.mockImplementation(({ session }) =>
       JSON.stringify(session),
@@ -81,6 +87,11 @@ export class ApplyOverridesDriver {
     },
     discoveredSession: (session: DevSession | undefined) => {
       discoverDevelopmentSession.mockResolvedValue(session);
+
+      return this;
+    },
+    sessionSeeded: (seeded: boolean) => {
+      isDevelopmentSessionSeeded.mockReturnValue(seeded);
 
       return this;
     },

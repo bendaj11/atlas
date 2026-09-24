@@ -11,6 +11,8 @@ import type {
 } from './overrides.types.js';
 
 export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = 'atlas.runtime-overrides';
+export const ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY =
+  'atlas.development-session-seed';
 
 export async function loadBrowserRuntimeOverrides(
   options: AtlasBrowserOverrideOptions,
@@ -20,12 +22,20 @@ export async function loadBrowserRuntimeOverrides(
     options.developmentSession ??
     (() => requestDevelopmentSession(options.hostId));
   const developmentDocument = await requestSession();
-  const document = developmentDocument
+  const developmentSession = developmentDocument
     ? parseOverrideDocumentFromValue(
         developmentDocument,
         'the development session',
       )
-    : readOverrideDocumentFromStorage(sessionStorage);
+    : undefined;
+  const seedDocument =
+    developmentSession &&
+    sessionStorage?.getItem(ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY) !==
+      seedOf(developmentSession)
+      ? developmentSession
+      : undefined;
+  const document =
+    seedDocument ?? readOverrideDocumentFromStorage(sessionStorage);
 
   if (!document) return [];
 
@@ -34,14 +44,22 @@ export async function loadBrowserRuntimeOverrides(
   for (const override of document.overrides)
     assertOverrideMatchesManifest(override);
 
-  if (developmentDocument) {
+  if (seedDocument) {
     sessionStorage?.setItem?.(
       ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
-      JSON.stringify(document),
+      JSON.stringify(seedDocument),
+    );
+    sessionStorage?.setItem?.(
+      ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
+      seedOf(seedDocument),
     );
   }
 
   return document.overrides;
+}
+
+function seedOf(document: AtlasRuntimeOverrideDocument): string {
+  return `${document.hostId}:${document.generatedAt}`;
 }
 
 function readOverrideDocumentFromStorage(

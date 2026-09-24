@@ -5,6 +5,7 @@ import { loadPublishedArtifact } from '../../published-artifact/index.js';
 import { applyOverridesDocument } from '../apply-overrides-document/apply-overrides-document.js';
 import {
   discoverDevelopmentSession,
+  isDevelopmentSessionSeeded,
   readStoredOverridesDocument,
   storeDevelopmentSession,
 } from '../development-session-source/development-session-source.js';
@@ -22,8 +23,13 @@ export async function applyOverrides({
   dependencies = createBrowserOverridesDependencies(),
 }: ApplyOverridesOptions): Promise<AtlasHostCatalog> {
   const context = { runtime, dependencies };
-  const session =
+  const discovered =
     developmentSession ?? (await discoverDevelopmentSession(context));
+  const session =
+    discovered &&
+    !isDevelopmentSessionSeeded({ session: discovered, dependencies })
+      ? discovered
+      : undefined;
   const stored = session
     ? storeDevelopmentSession({ session, dependencies })
     : readStoredOverridesDocument(dependencies);

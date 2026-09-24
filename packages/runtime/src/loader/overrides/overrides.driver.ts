@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
 import {
+  ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
   ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
   loadBrowserRuntimeOverrides,
 } from './overrides.js';
@@ -10,6 +11,7 @@ import type { RequestDevelopmentSession } from './overrides.types.js';
 export class OverridesDriver {
   private hostId = faker.string.uuid();
   private storedDocument: string | null = null;
+  private storedSeed: string | null = null;
   private readonly developmentSession = jest
     .fn<RequestDevelopmentSession>()
     .mockResolvedValue(undefined);
@@ -33,6 +35,11 @@ export class OverridesDriver {
 
       return this;
     },
+    storedSeed: (seed: string) => {
+      this.storedSeed = seed;
+
+      return this;
+    },
     storedText: (text: string) => {
       this.storedDocument = text;
 
@@ -48,9 +55,10 @@ export class OverridesDriver {
           developmentSession: this.developmentSession,
           sessionStorage: {
             getItem: (key) =>
-              key === ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY
-                ? this.storedDocument
-                : null,
+              ({
+                [ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY]: this.storedDocument,
+                [ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY]: this.storedSeed,
+              })[key] ?? null,
             setItem: this.setItem,
           },
         });

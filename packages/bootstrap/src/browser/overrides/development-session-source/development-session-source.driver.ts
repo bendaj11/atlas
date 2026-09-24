@@ -2,6 +2,7 @@ import type { AtlasHostRuntimeConfig } from '@atlas/schema';
 import { jest } from '@jest/globals';
 import {
   discoverDevelopmentSession,
+  isDevelopmentSessionSeeded,
   storeDevelopmentSession,
   readStoredOverridesDocument,
 } from './development-session-source.js';
@@ -30,6 +31,7 @@ export class DevelopmentSessionSourceDriver {
   };
   private discovered: unknown;
   private stored: string | null | undefined;
+  private seeded: boolean | undefined;
 
   readonly given = {
     fetchedSession: (session: DevSession) => {
@@ -44,6 +46,11 @@ export class DevelopmentSessionSourceDriver {
     },
     sessionStorageValue: (value: string) => {
       this.sessionStore.set('atlas.runtime-overrides', value);
+
+      return this;
+    },
+    storedSeed: (seed: string) => {
+      this.sessionStore.set('atlas.development-session-seed', seed);
 
       return this;
     },
@@ -67,6 +74,12 @@ export class DevelopmentSessionSourceDriver {
         dependencies: this.dependencies,
       });
     },
+    seedChecked: (session: DevSession) => {
+      this.seeded = isDevelopmentSessionSeeded({
+        session,
+        dependencies: this.dependencies,
+      });
+    },
     documentRead: () => {
       this.stored = readStoredOverridesDocument(this.dependencies);
     },
@@ -75,7 +88,9 @@ export class DevelopmentSessionSourceDriver {
   readonly get = {
     discovered: () => this.discovered,
     stored: () => this.stored,
+    seeded: () => this.seeded,
     sessionStorageValue: () => this.sessionStore.get('atlas.runtime-overrides'),
+    storedSeed: () => this.sessionStore.get('atlas.development-session-seed'),
     fetchJsonMock: () => this.fetchJson,
     requestDevelopmentSessionMock: () => this.requestDevelopmentSession,
   };

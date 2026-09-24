@@ -72,6 +72,35 @@ describe('applyOverrides', () => {
       });
     });
 
+    describe('when a session already seeded in this tab is supplied', () => {
+      const session = { hostId: runtime.hostId };
+      const overridden = aHostCatalog({ hostId: runtime.hostId });
+      const stored = { hostId: runtime.hostId };
+
+      beforeEach(async () => {
+        driver.given
+          .suppliedSession(session)
+          .given.sessionSeeded(true)
+          .given.storedDocument(stored)
+          .given.overriddenCatalog(overridden);
+        await driver.when.applied();
+      });
+
+      it('should not store the session again when applied', () => {
+        expect(driver.get.storeDevelopmentSessionMock()).not.toHaveBeenCalled();
+      });
+
+      it('should not merge the session when applied', () => {
+        expect(driver.get.mergeDevelopmentSessionMock()).not.toHaveBeenCalled();
+      });
+
+      it('should apply the stored document to the catalog when applied', () => {
+        expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
+          expect.objectContaining({ catalog, overrides: stored }),
+        );
+      });
+    });
+
     it('should merge the discovered session when one is discovered', async () => {
       const session = { hostId: runtime.hostId };
       driver.given.discoveredSession(session).given.mergedCatalog(catalog);
