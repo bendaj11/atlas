@@ -1,4 +1,4 @@
-import { VerifyServiceDriver } from './verify.service.driver.js';
+import { VerifyServiceDriver } from './verify-service.driver.js';
 
 describe('AtlasVerifyService', () => {
   let driver: VerifyServiceDriver;

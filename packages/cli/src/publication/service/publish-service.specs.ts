@@ -1,4 +1,4 @@
-import { PublishServiceDriver } from './publish.service.driver.js';
+import { PublishServiceDriver } from './publish-service.driver.js';
 
 describe('AtlasPublishService', () => {
   let driver: PublishServiceDriver;

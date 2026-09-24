@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import {
   anAppConfigSource,
   GenerateServiceDriver,
-} from './generate.service.driver.js';
+} from './generate-service.driver.js';
 
 describe('AtlasGenerateService', () => {
   let driver: GenerateServiceDriver;

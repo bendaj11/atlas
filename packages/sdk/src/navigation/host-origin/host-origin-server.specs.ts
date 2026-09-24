@@ -1,12 +1,12 @@
 /** @jest-environment node */
 
-import { HostOriginDriver } from './host-origin.driver.js';
+import { HostOriginServerDriver } from './host-origin-server.driver.js';
 
 describe('resolveDefaultHostOrigin', () => {
-  let driver: HostOriginDriver;
+  let driver: HostOriginServerDriver;
 
   beforeEach(() => {
-    driver = new HostOriginDriver();
+    driver = new HostOriginServerDriver();
   });
 
   it('should return the localhost fallback when no browser window is present', () => {

@@ -1,4 +1,4 @@
-import { DeployServiceDriver } from './deploy.service.driver.js';
+import { DeployServiceDriver } from './deploy-service.driver.js';
 
 describe('AtlasDeployService', () => {
   let driver: DeployServiceDriver;

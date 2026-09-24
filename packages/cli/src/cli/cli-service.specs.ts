@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { aReport, CliServiceDriver } from './cli.service.driver.js';
+import { aReport, CliServiceDriver } from './cli-service.driver.js';
 
 describe('runAtlasCli', () => {
   let driver: CliServiceDriver;

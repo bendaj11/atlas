@@ -1,4 +1,4 @@
-import { AtlasBootstrapServiceDriver } from './bootstrap.service.driver.js';
+import { AtlasBootstrapServiceDriver } from './bootstrap-service.driver.js';
 
 describe('AtlasBootstrapService', () => {
   let driver: AtlasBootstrapServiceDriver;

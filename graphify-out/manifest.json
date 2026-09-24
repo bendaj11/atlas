@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "apps/columbus/package.json": {
-    "mtime": 1790161385.0465584,
-    "ast_hash": "23ad64c4c426285aafa09c0684bf63a7",
+    "mtime": 1790262652.584185,
+    "ast_hash": "e983f10c0efc4c3cca592ed8cee2fe45",
     "semantic_hash": ""
   },
   "apps/columbus/tsconfig.json": {
@@ -945,9 +945,9 @@
     "semantic_hash": ""
   },
   "apps/columbus/tsconfig.node.json": {
-    "mtime": 1784708606.0398605,
-    "ast_hash": "559e7821dc823f5dae4491665e296c4a",
-    "semantic_hash": "559e7821dc823f5dae4491665e296c4a"
+    "mtime": 1790262777.5162687,
+    "ast_hash": "65d525ee6cd74ff506e5df4cef92fc46",
+    "semantic_hash": ""
   },
   "apps/columbus/src/main.tsx": {
     "mtime": 1790159144.7619486,
@@ -995,7 +995,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/development/index.ts": {
-    "mtime": 1789634665.6324499,
+    "mtime": 1790262985.6410706,
     "ast_hash": "af15beb3a8d72dbe5ba783406a80bede",
     "semantic_hash": ""
   },
@@ -1012,11 +1012,6 @@
   "packages/cli/src/help/help.ts": {
     "mtime": 1789637107.3718495,
     "ast_hash": "49fdf4e557d0bf85eb5e38eabf61e206",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/cli/cli.service.ts": {
-    "mtime": 1790165102.2267323,
-    "ast_hash": "82eee3660c98e1cc47b3124251816794",
     "semantic_hash": ""
   },
   "docs/native-host-anchors.md": {
@@ -1140,7 +1135,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/cli/entrypoint/entrypoint.ts": {
-    "mtime": 1789634665.627311,
+    "mtime": 1790262985.6427875,
     "ast_hash": "13cf4d987d9251dd01444c99d7ce2c8e",
     "semantic_hash": ""
   },
@@ -1162,21 +1157,6 @@
   "packages/cli/src/publication/static-registry/static-registry.ts": {
     "mtime": 1789637157.790605,
     "ast_hash": "d9cc805093c52369f816e39326d9efb6",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/bootstrap/service/bootstrap.service.driver.ts": {
-    "mtime": 1790159961.148122,
-    "ast_hash": "ac324123927fdac0c9cba3aee0a33c5d",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/bootstrap/service/bootstrap.service.specs.ts": {
-    "mtime": 1789550600.8235087,
-    "ast_hash": "836508c3987c6ff0cf2e868cb704b49c",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/bootstrap/service/bootstrap.service.ts": {
-    "mtime": 1789654311.021125,
-    "ast_hash": "b1a0d56781b969447eb52e5d78817e8e",
     "semantic_hash": ""
   },
   "packages/cli/src/bootstrap/template/bootstrap-template.driver.ts": {
@@ -1259,21 +1239,6 @@
     "ast_hash": "c427925846c8844abb3c7088ea79738e",
     "semantic_hash": ""
   },
-  "packages/cli/src/development/service/dev.service.driver.ts": {
-    "mtime": 1790228242.3261142,
-    "ast_hash": "a697df0ab930e6a1347ec4c08330901a",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/development/service/dev.service.specs.ts": {
-    "mtime": 1790228242.3263776,
-    "ast_hash": "e62ed9e645882e944cb72b8c4cfe0e59",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/development/service/dev.service.ts": {
-    "mtime": 1789654311.0264733,
-    "ast_hash": "8159bfa0c27f598fb24cf94804c66897",
-    "semantic_hash": ""
-  },
   "packages/cli/src/development/session/session.driver.ts": {
     "mtime": 1790228243.3258617,
     "ast_hash": "51f305b36c8c5dacf63a1e9fbe8ace93",
@@ -1309,54 +1274,9 @@
     "ast_hash": "649a5c477df3c02f80a58581908bcfc2",
     "semantic_hash": ""
   },
-  "packages/cli/src/generation/service/generate.service.driver.ts": {
-    "mtime": 1790164014.80734,
-    "ast_hash": "bcb46edaa7c67881ca7858959d926b31",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/generation/service/generate.service.specs.ts": {
-    "mtime": 1789551430.7621412,
-    "ast_hash": "628675459ed0e56f5b4c88ff5c131837",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/generation/service/generate.service.ts": {
-    "mtime": 1789637702.5147328,
-    "ast_hash": "e3c01a88bb3cbd6b5d8e929cb8a04714",
-    "semantic_hash": ""
-  },
   "packages/cli/src/publication/pr-state-file/pr-state-file.driver.ts": {
     "mtime": 1790159961.1548645,
     "ast_hash": "3e84735d69b3ce752e15722e14fea03e",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/publication/service/publish.service.driver.ts": {
-    "mtime": 1790228243.3981528,
-    "ast_hash": "47508c0c05bda2a5fc60245f7855068b",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/publication/service/publish.service.specs.ts": {
-    "mtime": 1790164422.664645,
-    "ast_hash": "c08b68da7610fad680d7f35e0df643a3",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/publication/service/publish.service.ts": {
-    "mtime": 1789637457.8624213,
-    "ast_hash": "38064da15065cc0526e4f46d178176ea",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/verification/service/verify.service.driver.ts": {
-    "mtime": 1790228242.3288846,
-    "ast_hash": "317d6aec7e03f7532b4815514a6762fd",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/verification/service/verify.service.specs.ts": {
-    "mtime": 1789550600.8335092,
-    "ast_hash": "d08a289f65206e692524667ebb53e9a5",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/verification/service/verify.service.ts": {
-    "mtime": 1789655939.0955052,
-    "ast_hash": "35b21d13464d2318ab4bc9adf4db9205",
     "semantic_hash": ""
   },
   "packages/cli/src/workspace/service/workspace.driver.ts": {
@@ -1494,11 +1414,6 @@
     "ast_hash": "6395fe200a8641a53401354a2c88d7ce",
     "semantic_hash": ""
   },
-  "apps/columbus/vite.badge.config.ts": {
-    "mtime": 1789651529.8426077,
-    "ast_hash": "64281301597d988b5490be9bc3243db9",
-    "semantic_hash": ""
-  },
   "packages/cli/src/publication/static-registry/revision/registry-revision.specs.ts": {
     "mtime": 1789637047.6137094,
     "ast_hash": "b618543a9eda3b3be43954b96f8fd453",
@@ -1517,11 +1432,6 @@
   "packages/cli/src/publication/static-registry/validation/static-registry-validation.ts": {
     "mtime": 1789655626.848171,
     "ast_hash": "d77e5c6ec03f9f6164e3f3687af8309c",
-    "semantic_hash": ""
-  },
-  "apps/columbus/vite.development-session.config.ts": {
-    "mtime": 1789651528.5466514,
-    "ast_hash": "cc908cda195028a59b21ea46e588951a",
     "semantic_hash": ""
   },
   "packages/runtime/src/loader/development-session/development-session.ts": {
@@ -1852,16 +1762,6 @@
   "packages/bootstrap/src/node/bootstrap-types.ts": {
     "mtime": 1789636820.273957,
     "ast_hash": "9e9d539cea5f12c446603d159683646b",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/cli/cli.service.driver.ts": {
-    "mtime": 1789654475.10822,
-    "ast_hash": "82abcbfe25f640510c6a92b39988adfb",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/cli/cli.service.specs.ts": {
-    "mtime": 1789550768.2435195,
-    "ast_hash": "f6d40e165b505e2252f610552e23ffa9",
     "semantic_hash": ""
   },
   "packages/cli/src/development/control-server/control-server-lease.driver.ts": {
@@ -4640,7 +4540,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/bootstrap/index.ts": {
-    "mtime": 1789634665.6216733,
+    "mtime": 1790262985.6386483,
     "ast_hash": "82854bc20e9be8cea2e5345917dba0e3",
     "semantic_hash": ""
   },
@@ -4655,7 +4555,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/cli/index.ts": {
-    "mtime": 1789634665.6275148,
+    "mtime": 1790262985.6425335,
     "ast_hash": "5ed3a8bbf0a382c5325df45029eaff85",
     "semantic_hash": ""
   },
@@ -4680,7 +4580,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/deployment/index.ts": {
-    "mtime": 1789654311.0242977,
+    "mtime": 1790262985.6443436,
     "ast_hash": "83a121fabc0cc94cfa07692553feaf46",
     "semantic_hash": ""
   },
@@ -4697,21 +4597,6 @@
   "packages/cli/src/deployment/selection/selection.ts": {
     "mtime": 1789637057.545401,
     "ast_hash": "eb096da5699450723b0db124a2fae9e6",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/deployment/service/deploy.service.driver.ts": {
-    "mtime": 1790228243.2451255,
-    "ast_hash": "104927a4bed26372b3f1876d2684c954",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/deployment/service/deploy.service.specs.ts": {
-    "mtime": 1789634665.628923,
-    "ast_hash": "beb5e2523ad62eed3d7ec32bc1f370a3",
-    "semantic_hash": ""
-  },
-  "packages/cli/src/deployment/service/deploy.service.ts": {
-    "mtime": 1789637136.2405381,
-    "ast_hash": "6384192d3e24af270d9ec545410242e5",
     "semantic_hash": ""
   },
   "packages/cli/src/deployment/types.ts": {
@@ -4785,7 +4670,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/generation/index.ts": {
-    "mtime": 1789634665.6382804,
+    "mtime": 1790262985.6462386,
     "ast_hash": "8480a4ae8c43618771a3a368396ae550",
     "semantic_hash": ""
   },
@@ -4905,7 +4790,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/publication/index.ts": {
-    "mtime": 1789637049.7035558,
+    "mtime": 1790262985.639753,
     "ast_hash": "c00b9262b2eb3150fc54fea781d73601",
     "semantic_hash": ""
   },
@@ -5075,7 +4960,7 @@
     "semantic_hash": ""
   },
   "packages/cli/src/verification/index.ts": {
-    "mtime": 1789634665.660805,
+    "mtime": 1790262985.6429927,
     "ast_hash": "78e9c99f1e90d842d125b7486b73b207",
     "semantic_hash": ""
   },
@@ -6744,11 +6629,6 @@
     "ast_hash": "07244aede793795b061ec216cef5f603",
     "semantic_hash": ""
   },
-  "packages/sdk/src/navigation/host-origin/host-origin.server.specs.ts": {
-    "mtime": 1790168653.2451155,
-    "ast_hash": "42810cf94dd2ee54cb51e08ba34186cc",
-    "semantic_hash": ""
-  },
   "packages/sdk/src/navigation/host-origin/host-origin.specs.ts": {
     "mtime": 1790168653.2452338,
     "ast_hash": "34c2fa8dba93a908d71c44f5a840402f",
@@ -6892,6 +6772,131 @@
   "packages/testkit/src/overrides.ts": {
     "mtime": 1790228024.166985,
     "ast_hash": "21204202a6c1b423c0ab03c7dfaea8c0",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/navigation/host-origin/host-origin-server.driver.ts": {
+    "mtime": 1790262414.4408133,
+    "ast_hash": "b9d4a43b80cc1aa24d9946fe27fc4e84",
+    "semantic_hash": ""
+  },
+  "packages/sdk/src/navigation/host-origin/host-origin-server.specs.ts": {
+    "mtime": 1790262492.6991124,
+    "ast_hash": "009ede52bbc050a7193f58f9007e6ed3",
+    "semantic_hash": ""
+  },
+  "apps/columbus/vite-badge.config.ts": {
+    "mtime": 1789651529.8426077,
+    "ast_hash": "64281301597d988b5490be9bc3243db9",
+    "semantic_hash": ""
+  },
+  "apps/columbus/vite-development-session.config.ts": {
+    "mtime": 1789651528.5466514,
+    "ast_hash": "cc908cda195028a59b21ea46e588951a",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/bootstrap/service/bootstrap-service.driver.ts": {
+    "mtime": 1790262985.6393044,
+    "ast_hash": "ac324123927fdac0c9cba3aee0a33c5d",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/bootstrap/service/bootstrap-service.specs.ts": {
+    "mtime": 1790262652.488732,
+    "ast_hash": "53e1467b01eed3b82d365b9041fbfc28",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/cli/cli-service.driver.ts": {
+    "mtime": 1790262985.6422198,
+    "ast_hash": "82abcbfe25f640510c6a92b39988adfb",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/cli/cli-service.specs.ts": {
+    "mtime": 1790262652.4944012,
+    "ast_hash": "6ff112dfec75ed7461028462b65deb17",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/deployment/service/deploy-service.driver.ts": {
+    "mtime": 1790262985.6452022,
+    "ast_hash": "104927a4bed26372b3f1876d2684c954",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/deployment/service/deploy-service.specs.ts": {
+    "mtime": 1790262652.5010784,
+    "ast_hash": "7a84458bd0915ff581bec97f40aa14b9",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/development/service/dev-service.driver.ts": {
+    "mtime": 1790262985.641505,
+    "ast_hash": "a697df0ab930e6a1347ec4c08330901a",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/development/service/dev-service.specs.ts": {
+    "mtime": 1790262652.4927437,
+    "ast_hash": "e6f0cb9436b5fda6c9bedb9e917cc8b3",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/generation/service/generate-service.driver.ts": {
+    "mtime": 1790262985.6466584,
+    "ast_hash": "bcb46edaa7c67881ca7858959d926b31",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/generation/service/generate-service.specs.ts": {
+    "mtime": 1790262652.5042312,
+    "ast_hash": "6ee140e141f1e6b4da97fca46fbe92d7",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/service/publish-service.driver.ts": {
+    "mtime": 1790262985.640788,
+    "ast_hash": "47508c0c05bda2a5fc60245f7855068b",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/service/publish-service.specs.ts": {
+    "mtime": 1790262652.4901845,
+    "ast_hash": "675657a7c2a2f9384ec5f82e0d28199d",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/verification/service/verify-service.driver.ts": {
+    "mtime": 1790262985.6440709,
+    "ast_hash": "317d6aec7e03f7532b4815514a6762fd",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/verification/service/verify-service.specs.ts": {
+    "mtime": 1790262652.4989705,
+    "ast_hash": "396ea4c3fe95f6d2c02151dfc2445359",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/bootstrap/service/bootstrap.service.ts": {
+    "mtime": 1789654311.021125,
+    "ast_hash": "b1a0d56781b969447eb52e5d78817e8e",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/cli/cli.service.ts": {
+    "mtime": 1790165102.2267323,
+    "ast_hash": "82eee3660c98e1cc47b3124251816794",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/deployment/service/deploy.service.ts": {
+    "mtime": 1789637136.2405381,
+    "ast_hash": "6384192d3e24af270d9ec545410242e5",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/development/service/dev.service.ts": {
+    "mtime": 1789654311.0264733,
+    "ast_hash": "8159bfa0c27f598fb24cf94804c66897",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/generation/service/generate.service.ts": {
+    "mtime": 1789637702.5147328,
+    "ast_hash": "e3c01a88bb3cbd6b5d8e929cb8a04714",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/publication/service/publish.service.ts": {
+    "mtime": 1789637457.8624213,
+    "ast_hash": "38064da15065cc0526e4f46d178176ea",
+    "semantic_hash": ""
+  },
+  "packages/cli/src/verification/service/verify.service.ts": {
+    "mtime": 1789655939.0955052,
+    "ast_hash": "35b21d13464d2318ab4bc9adf4db9205",
     "semantic_hash": ""
   }
 }
