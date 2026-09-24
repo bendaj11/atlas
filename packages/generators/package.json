@@ -1,6 +1,6 @@
 {
   "name": "@atlas/generators",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "type": "module",
   "description": "Project generators used internally by the Atlas CLI.",
   "license": "MIT",

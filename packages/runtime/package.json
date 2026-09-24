@@ -1,6 +1,6 @@
 {
   "name": "@atlas/runtime",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "type": "module",
   "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
   "license": "MIT",
