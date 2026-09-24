@@ -5,8 +5,9 @@ host source code. It receives typed capabilities through Atlas at mount time.
 
 ## Host Domain
 
-The Angular host provides SDK capabilities in `src/bootstrap.ts` when it calls
-`startHost`:
+The Angular host provides SDK capabilities from `createCustomHostSdkOptions()` in
+`src/app/host.config.ts`, which the generated `src/bootstrap.ts` passes to
+`defineAngularHost()`. The lower-level `startHost()` takes the same options:
 
 ```ts
 interface CustomerHostSdk {
@@ -33,7 +34,7 @@ await startHost<CustomerHostSdk>({
 Atlas derives `hostData.hostId` from runtime config. `hostData.name` defaults to
 host ID when omitted.
 
-Hosts bootstrapped with `bootstrapAngularHost()` can also use `injectAtlasSdk()`
+Hosts defined with `defineAngularHost()` can also use `injectAtlasSdk()`
 without an app context, once the runtime has created the SDK. Avoid injecting it
 eagerly in the host root or in `createCustomHostSdkOptions()`, before that point.
 The lower-level `startHost()` does not register an Angular SDK provider itself.
@@ -52,7 +53,7 @@ SDK injection:
 
 ```ts
 // Host: src/app/host.config.ts
-interface CustomerHostSdk {
+export interface CustomerHostSdk {
   hostData: { user: PublicUser | null | undefined };
 }
 

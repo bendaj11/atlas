@@ -2,6 +2,7 @@ import type { ReactVersionProfile } from '../../shared/versions/generator-versio
 import { aReactVersionProfile } from '../../testkit/version-profiles.testkit.js';
 import {
   renderReactHostBootstrap,
+  renderReactHostLayout,
   renderReactHostMain,
   renderReactHostSdkConfig,
 } from './react-host-generator.js';
@@ -21,6 +22,9 @@ export class ReactHostGeneratorDriver {
   readonly when = {
     bootstrapGenerated: () => {
       this.contents = renderReactHostBootstrap(this.profile);
+    },
+    layoutGenerated: () => {
+      this.contents = renderReactHostLayout();
     },
     sdkConfigGenerated: () => {
       this.contents = renderReactHostSdkConfig();

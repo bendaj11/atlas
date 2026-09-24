@@ -15,16 +15,14 @@ describe('renderReactHostBootstrap', () => {
         .when.bootstrapGenerated();
     });
 
-    it('should import flushSync and createRoot when generated', () => {
+    it('should import createRoot from the react dom client when generated', () => {
       expect(driver.get.contents()).toContain(
-        'import { flushSync } from "react-dom";\nimport { createRoot } from "react-dom/client";',
+        'import { createRoot } from "react-dom/client";',
       );
     });
 
-    it('should render through a flushed root and unmount it when generated', () => {
-      expect(driver.get.contents()).toContain(
-        '  const root = createRoot(container);\n  flushSync(() => root.render(element));\n  return { unmount: () => root.unmount() };',
-      );
+    it('should pass createRoot as the react dom renderer when generated', () => {
+      expect(driver.get.contents()).toContain('  reactDom: { createRoot },');
     });
   });
 
@@ -41,9 +39,9 @@ describe('renderReactHostBootstrap', () => {
       );
     });
 
-    it('should render through legacy render and unmount the container when generated', () => {
+    it('should pass legacy render and unmount as the react dom renderer when generated', () => {
       expect(driver.get.contents()).toContain(
-        '  render(element, container);\n  return { unmount: () => unmountComponentAtNode(container) };',
+        '  reactDom: { render, unmountComponentAtNode },',
       );
     });
   });
@@ -53,19 +51,41 @@ describe('renderReactHostBootstrap', () => {
       driver.when.bootstrapGenerated();
     });
 
-    it('should export mount bound to the host mount function when generated', () => {
-      expect(driver.get.contents()).toContain(
-        'export const mount: AtlasHostClientEntry["mount"] = mountHost;',
-      );
+    it('should export mount defined from the atlas config and host layout when generated', () => {
+      expect(driver.get.contents())
+        .toContain(`export const mount = defineReactHost<CustomerHostSdk>({
+  config: atlasConfig,
+  layout: HostLayout,`);
     });
 
-    it('should merge custom host sdk options into the provider options when generated', () => {
-      expect(driver.get.contents())
-        .toContain(`          hostData: { hostId: atlasConfig.id, name: atlasConfig.name, ...hostData },
-          ...sdkOptions,
-          runtimeConfig: request.runtimeConfig,
-          ...(request.catalog ? { catalog: request.catalog } : {})`);
+    it('should pass the host providers and custom sdk options hook when generated', () => {
+      expect(driver.get.contents()).toContain(`  providers: HostProviders,
+  useSdkOptions: useCustomHostSdkOptions
+});`);
     });
+  });
+});
+
+describe('renderReactHostLayout', () => {
+  let driver: ReactHostGeneratorDriver;
+
+  beforeEach(() => {
+    driver = new ReactHostGeneratorDriver();
+  });
+
+  it('should render the atlas host layout with status, header slot, navigation and route outlet when generated', () => {
+    driver.when.layoutGenerated();
+
+    expect(driver.get.contents())
+      .toContain(`    <AtlasHostLayout layoutId="default">
+      <AtlasHostStatus />
+      <header>
+        <strong>Atlas</strong>
+        <AtlasSlot slotId="header" />
+      </header>
+      <AtlasNavigation aria-label="Application" />
+      <AtlasRouteOutlet />
+    </AtlasHostLayout>`);
   });
 });
 
@@ -74,6 +94,15 @@ describe('renderReactHostSdkConfig', () => {
 
   beforeEach(() => {
     driver = new ReactHostGeneratorDriver();
+  });
+
+  it('should export host providers wrapping children in strict mode when generated', () => {
+    driver.when.sdkConfigGenerated();
+
+    expect(driver.get.contents())
+      .toContain(`export function HostProviders({ children }: { children?: ReactNode }) {
+  return <StrictMode>{children}</StrictMode>;
+}`);
   });
 
   it('should export an empty custom host sdk options hook when generated', () => {

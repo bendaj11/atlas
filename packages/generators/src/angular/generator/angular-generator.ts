@@ -12,7 +12,6 @@ import {
   renderAngularHostBootstrap,
   renderAngularHostComponent,
   renderAngularHostMain,
-  renderAngularHostRoutes,
   renderAngularHostSdkConfig,
 } from '../host/angular-host-generator.js';
 import {
@@ -117,7 +116,6 @@ export function generateAngularHostFiles({
         requiresZonelessProvider: profile.requiresZonelessProvider,
       }),
     },
-    { path: 'src/app/app.routes.ts', contents: renderAngularHostRoutes() },
     { path: 'src/app/host.config.ts', contents: renderAngularHostSdkConfig() },
     { path: 'src/main.ts', contents: renderAngularHostMain() },
     { path: 'src/bootstrap.ts', contents: renderAngularHostBootstrap() },

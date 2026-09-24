@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 
 import { faker } from '@faker-js/faker';
+import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
 import { AngularAdapterDriver } from './angular.driver.js';
 
 describe('startHost', () => {
@@ -124,6 +125,76 @@ describe('bootstrapAngularHost', () => {
     await driver.when.angularHostBootstrapped();
 
     expect(driver.get.error()).toMatchObject({ code: 'ATLAS_SDK_NOT_READY' });
+  });
+});
+
+describe('defineAngularHost', () => {
+  let driver: AngularAdapterDriver;
+
+  beforeEach(() => {
+    driver = new AngularAdapterDriver();
+  });
+
+  describe('when a named host is mounted', () => {
+    const name = faker.company.name();
+    const runtimeConfig = aHostRuntimeConfig();
+
+    beforeEach(async () => {
+      await driver.given
+        .hostName(name)
+        .given.runtimeConfig(runtimeConfig)
+        .when.angularHostMounted();
+    });
+
+    it('should merge the atlas host identity into the custom host data when mounted', () => {
+      expect(driver.get.startedOptions().hostData).toEqual({
+        region: driver.region(),
+        hostId: driver.hostId,
+        name,
+      });
+    });
+
+    it('should forward the request runtime config when mounted', () => {
+      expect(driver.get.startedOptions().runtimeConfig).toBe(runtimeConfig);
+    });
+
+    it('should forward renderHostLoading from the custom sdk options when mounted', () => {
+      expect(driver.get.startedOptions().renderHostLoading).toBe(
+        driver.get.renderHostLoadingMock(),
+      );
+    });
+
+    it('should omit the catalog when the request has no catalog', () => {
+      expect('catalog' in driver.get.startedOptions()).toBe(false);
+    });
+
+    it('should stop the runtime when unmounted', async () => {
+      await driver.when.unmounted();
+
+      expect(driver.get.stopMock()).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should use the host id as host data name when the config has no name', async () => {
+    await driver.given.hostName(undefined).when.angularHostMounted();
+
+    expect(driver.get.startedOptions().hostData?.name).toBe(driver.hostId);
+  });
+
+  it('should forward the request catalog when the request has a catalog', async () => {
+    const catalog = aHostCatalog();
+
+    await driver.given.catalog(catalog).when.angularHostMounted();
+
+    expect(driver.get.startedOptions().catalog).toBe(catalog);
+  });
+
+  it('should navigate the atlas provided router to the browser url when mounted', async () => {
+    const url = `/${faker.word.noun()}`;
+
+    await driver.given.browserUrl(url).when.angularHostMounted();
+
+    expect(await driver.get.startedNavigationPathname()).toBe(url);
   });
 });
 

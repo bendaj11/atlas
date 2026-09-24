@@ -4,7 +4,6 @@ import {
   renderAngularHostBootstrap,
   renderAngularHostComponent,
   renderAngularHostMain,
-  renderAngularHostRoutes,
   renderAngularHostSdkConfig,
 } from './angular-host-generator.js';
 
@@ -31,9 +30,6 @@ export class AngularHostGeneratorDriver {
     },
     mainGenerated: () => {
       this.contents = renderAngularHostMain();
-    },
-    routesGenerated: () => {
-      this.contents = renderAngularHostRoutes();
     },
     sdkConfigGenerated: () => {
       this.contents = renderAngularHostSdkConfig();

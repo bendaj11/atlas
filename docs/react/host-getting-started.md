@@ -31,17 +31,23 @@ customer-host/
   atlas.config.ts
   vite.config.ts
   src/
+    bootstrap.tsx
+    host-layout.tsx
+    host.config.tsx
     main.tsx
     styles.css
 ```
 
 Responsibilities:
 
-| File              | Owner      | Edit for                                                                                                   |
-| ----------------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
-| `atlas.config.ts` | Host team  | Unique Host ID and display name                                                                            |
-| `src/main.tsx`    | Host team  | React entry, Atlas startup code, and initial page layout                                                   |
-| `vite.config.ts`  | Host build | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
+| File                  | Owner          | Edit for                                                                                                   |
+| --------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `atlas.config.ts`     | Host team      | Unique Host ID and display name                                                                            |
+| `src/host-layout.tsx` | Host UI team   | Main page layout and elements where Atlas shows Apps                                                       |
+| `src/host.config.tsx` | Host team      | SDK services, UI renderers, monitoring                                                                     |
+| `src/bootstrap.tsx`   | Atlas/platform | Exports `mount()` from `defineReactHost()`; do not edit                                                    |
+| `src/main.tsx`        | Host team      | Vite asset-server entry that points developers to `atlas dev`                                              |
+| `vite.config.ts`      | Host build     | Customize Vite plugins, server, aliases, and build overrides; keep `createReactHostViteConfig` composition |
 
 Generated host config resembles:
 
@@ -64,9 +70,9 @@ name. Apps use this ID to declare their URLs and named page areas in this Host.
 ## 2. Understand The React Bootstrap
 
 Atlas loader chooses the published or local Host version, creates an HTML
-container, and calls the `mount` function in `src/main.tsx`.
-
-Generated lifecycle:
+container, and calls the `mount` function exported by `src/bootstrap.tsx`.
+`src/bootstrap.tsx` passes `atlas.config.ts`, `HostLayout`, the React DOM root
+API, and `useCustomHostSdkOptions` to `defineReactHost()`, which:
 
 1. creates one React root inside loader-owned container;
 2. renders the main page layout and React Router;
@@ -76,16 +82,16 @@ Generated lifecycle:
 6. shows selected Apps at their URLs and named page areas;
 7. unmounts React root when loader replaces or stops host client.
 
-`src/main.tsx` is both normal Vite entry and federated lifecycle entry. Opening
-Vite port has no Atlas runtime or catalog endpoints, so it is not complete host
-composition. `atlas dev` loads same file behind local static bootstrap.
+Opening the Vite port has no Atlas runtime or catalog endpoints, so it is not
+complete host composition. `atlas dev` loads `src/bootstrap.tsx` behind local
+static bootstrap.
 
 Do not fetch another list of Apps or choose App versions in React code. Atlas
 passes that information into `mount`.
 
 ## 3. Build The Main Application Layout
 
-Replace generated `HostLayout` function in `src/main.tsx`, while keeping anchors
+Replace generated `HostLayout` function in `src/host-layout.tsx`, while keeping anchors
 that tell Atlas where Apps may appear:
 
 ```tsx
@@ -146,7 +152,9 @@ app routes, and deep links.
 
 Apps must not import host source. Put product-wide capabilities into
 `src/host.config.tsx`. The generated `useCustomHostSdkOptions()` hook runs inside the
-host React tree, so it can use React Query and other product hooks.
+host React tree, so it can use React Query and other product hooks. Put their
+providers, such as `QueryClientProvider`, in the generated `HostProviders`
+component in the same file; it wraps the whole host, `StrictMode` included.
 
 Example extension inside `host.config.tsx`:
 
@@ -190,7 +198,8 @@ export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
 }
 ```
 
-Keep lifecycle request, router, and federation imports around this example.
+Atlas adds `hostData.hostId` and `hostData.name` from `atlas.config.ts`, plus
+router, Native Federation, runtime config, and catalog.
 `undefined` means user is loading; `null` means user is known signed out. Atlas
 updates mounted Angular and React apps when React Query changes this value.
 
@@ -270,24 +279,19 @@ in Host source code. The Host should not import Orders source code.
 ## 8. Add Product Loading And Error UI
 
 Generated status elements provide functional defaults. Production hosts often
-connect design-system renderers through provider options:
+connect design-system renderers from `useCustomHostSdkOptions()`:
 
 ```tsx
-<AtlasHostProvider
-  hostId={atlasConfig.id}
-  options={{
-    // generated router, federation, hostData, and catalog options
-    renderHostLoading: (container) => renderHostSkeleton(container),
-    renderHostError: (container, error, retry) =>
-      renderHostFailure(container, { error, retry }),
-    renderLoading: (container, event) =>
-      renderAppSkeleton(container, event.manifest.name),
-    renderError: (container, event, retry) =>
-      renderAppFailure(container, { app: event.manifest.name, retry }),
-  }}
->
-  {children}
-</AtlasHostProvider>
+return {
+  // product SDK options
+  renderHostLoading: (container) => renderHostSkeleton(container),
+  renderHostError: (container, error, retry) =>
+    renderHostFailure(container, { error, retry }),
+  renderLoading: (container, event) =>
+    renderAppSkeleton(container, event.manifest.name),
+  renderError: (container, event, retry) =>
+    renderAppFailure(container, { app: event.manifest.name, retry }),
+};
 ```
 
 Host-level renderers cover Atlas startup. Placement renderers cover one routed or

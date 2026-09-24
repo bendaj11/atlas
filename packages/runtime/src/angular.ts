@@ -9,14 +9,19 @@ import {
   type Signal,
   type ApplicationConfig,
 } from '@angular/core';
+import { Location } from '@angular/common';
 import { bootstrapApplication } from '@angular/platform-browser';
+import { provideRouter, Router, type Routes } from '@angular/router';
 import {
   createHostNavigation,
   provideAtlasSdk,
   type RouterLike,
 } from '@atlas/sdk/angular';
 import type { AtlasEventMap, AtlasSdk } from '@atlas/sdk';
+import { initFederation, loadRemoteModule } from '@atlas/sdk/federation';
 import type { AtlasHostDataOf } from '@atlas/sdk/host';
+import type { AtlasHostClientEntry } from '@atlas/sdk/lifecycle';
+import { AtlasAngularHostAnchors } from './adapters/angular-anchors.js';
 import { AtlasSdkNotReadyError } from './adapters/adapter.errors.js';
 import { startDomHost } from './dom-host/dom-host.js';
 import type { DomHostOptions } from './dom-host/dom-host.types.js';
@@ -29,6 +34,7 @@ import type { AtlasHostRuntime } from './host-runtime/host-runtime.types.js';
 import type {
   AngularHostBootstrapOptions,
   AngularHostDataInput,
+  AngularHostDefinition,
   AngularHostStartServices,
   HostOptions,
   MountedAngularHost,
@@ -44,6 +50,8 @@ export {
 } from './adapters/angular-anchors.js';
 export type {
   AngularHostBootstrapOptions,
+  AngularHostDefinition,
+  CreateAngularHostSdkOptions,
   HostOptions,
   HostSdkOptions,
 } from './angular.types.js';
@@ -53,7 +61,48 @@ export type {
   standalone: true,
   template: '',
 })
-export class AtlasDefaultHostRouteComponent {}
+class AtlasDefaultHostRouteComponent {}
+
+const ATLAS_HOST_ROUTES: Routes = [
+  { path: '**', component: AtlasDefaultHostRouteComponent },
+];
+
+export function defineAngularHost<THostSdk extends object = {}>(
+  definition: AngularHostDefinition<THostSdk>,
+): AtlasHostClientEntry['mount'] {
+  const { config, component, appConfig, sdkOptions } = definition;
+
+  return (request) =>
+    bootstrapAngularHost<THostSdk>({
+      component,
+      request,
+      appConfig: {
+        ...appConfig,
+        providers: [
+          ...(appConfig?.providers ?? []),
+          provideRouter(ATLAS_HOST_ROUTES),
+        ],
+      },
+      createHostOptions: (injector) => {
+        const customOptions = sdkOptions(injector);
+
+        return {
+          ...customOptions,
+          router: injector.get(Router),
+          location: injector.get(Location),
+          anchors: injector.get(AtlasAngularHostAnchors),
+          federation: { initFederation, loadRemoteModule },
+          hostData: {
+            ...customOptions.hostData,
+            hostId: config.id,
+            name: config.name ?? config.id,
+          },
+          runtimeConfig: request.runtimeConfig,
+          ...(request.catalog ? { catalog: request.catalog } : {}),
+        };
+      },
+    });
+}
 
 /** Bootstraps an Angular host and owns the dynamically mounted root lifecycle. */
 export async function bootstrapAngularHost<THostSdk extends object = {}>(

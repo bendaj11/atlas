@@ -520,6 +520,9 @@ importers:
         specifier: ^3.2.1
         version: 3.2.1
     devDependencies:
+      '@angular/common':
+        specifier: ^20.3.0
+        version: 20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
       '@angular/compiler':
         specifier: ^20.3.0
         version: 20.3.26
@@ -532,6 +535,9 @@ importers:
       '@angular/platform-browser':
         specifier: ^20.3.0
         version: 20.3.26(@angular/animations@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1)))(@angular/common@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@angular/router':
+        specifier: ^20.3.0
+        version: 20.3.26(@angular/common@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.26(@angular/animations@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1)))(@angular/common@20.3.26(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.26(@angular/compiler@20.3.26)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       '@atlas/testkit':
         specifier: workspace:*
         version: link:../testkit
@@ -550,6 +556,9 @@ importers:
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.2.3(@types/react@19.2.17)
       esbuild:
         specifier: 0.25.12
         version: 0.25.12
@@ -559,6 +568,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.8(react@19.2.8)
+      react-router-dom:
+        specifier: ^7.9.0
+        version: 7.18.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
 
   packages/schema:
     devDependencies:

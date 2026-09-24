@@ -11,6 +11,7 @@ import {
 import { bootstrapApplication } from '@angular/platform-browser';
 import { injectAtlasSdk } from '@atlas/sdk/angular';
 import { createAtlasSdk } from '@atlas/sdk/host';
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { aHostRuntimeConfig, createMemoryNavigation } from '@atlas/testkit';
 import { aFederationAdapter } from './loader/native-federation.testkit.js';
 import type {
@@ -20,6 +21,7 @@ import type {
 import type {
   DomHostOptions,
   DomHostServices,
+  RenderHostLoading,
   ReportSdkCreated,
 } from './dom-host/dom-host.types.js';
 import { publishAtlasNavigationItems } from './dom-host/host-navigation.js';
@@ -34,8 +36,12 @@ const startDomHost = jest.fn<StartDomHostForHostSdk>();
 
 jest.unstable_mockModule('./dom-host/dom-host.js', () => ({ startDomHost }));
 
-const { AtlasNavigationItemsService, bootstrapAngularHost, startHost } =
-  await import('./angular.js');
+const {
+  AtlasNavigationItemsService,
+  bootstrapAngularHost,
+  defineAngularHost,
+  startHost,
+} = await import('./angular.js');
 
 interface HostSdk {
   readonly hostData: { readonly region: string };
@@ -65,10 +71,14 @@ export class AngularAdapterDriver {
     (url: string, options?: object) => Promise<boolean>
   >(async () => true);
   private readonly onSdkCreated = jest.fn<ReportSdkCreated<HostSdk>>();
+  private readonly renderHostLoading = jest.fn<RenderHostLoading>();
   private routerUrl = '/';
   private app: ApplicationRef | undefined;
   private runtime: AtlasHostRuntime<HostSdk> | undefined;
-  private unmount: (() => Promise<void>) | undefined;
+  private unmount: (() => void | Promise<void>) | undefined;
+  private hostName: string | undefined = faker.company.name();
+  private runtimeConfig = aHostRuntimeConfig({ hostId: this.hostId });
+  private catalog: AtlasHostCatalog | undefined;
   private root: HTMLElement | null = null;
   private eagerSdkComponent = false;
   private error: unknown;
@@ -106,6 +116,21 @@ export class AngularAdapterDriver {
     },
     browserUrl: (url: string) => {
       window.history.replaceState(null, '', url);
+
+      return this;
+    },
+    hostName: (hostName: string | undefined) => {
+      this.hostName = hostName;
+
+      return this;
+    },
+    runtimeConfig: (runtimeConfig: AtlasHostRuntimeConfig) => {
+      this.runtimeConfig = runtimeConfig;
+
+      return this;
+    },
+    catalog: (catalog: AtlasHostCatalog) => {
+      this.catalog = catalog;
 
       return this;
     },
@@ -160,7 +185,34 @@ export class AngularAdapterDriver {
         this.error = error;
       }
     },
-    unmounted: () => this.unmount!(),
+    angularHostMounted: async () => {
+      const container = document.createElement('div');
+
+      document.body.replaceChildren(container);
+
+      const mount = defineAngularHost<HostSdk>({
+        config: {
+          id: this.hostId,
+          ...(this.hostName ? { name: this.hostName } : {}),
+        },
+        component: HostRoot,
+        appConfig: { providers: [provideZonelessChangeDetection()] },
+        sdkOptions: () => ({
+          hostData: { region: this.region },
+          renderHostLoading: this.renderHostLoading,
+        }),
+      });
+      const mounted = await mount({
+        container,
+        runtimeConfig: this.runtimeConfig,
+        ...(this.catalog ? { catalog: this.catalog } : {}),
+      });
+
+      this.unmount = mounted?.unmount;
+    },
+    unmounted: async () => {
+      await this.unmount!();
+    },
     navigationItemsPublished: (labels: string[]) => {
       publishAtlasNavigationItems(
         document,
@@ -172,10 +224,15 @@ export class AngularAdapterDriver {
   readonly get = {
     startDomHostMock: () => startDomHost,
     startedOptions: () => startDomHost.mock.calls.at(-1)![0],
+    startedNavigationPathname: async () =>
+      (
+        await startDomHost.mock.calls.at(-1)![1].createNavigation()
+      ).getCurrentLocation().pathname,
     updateHostDataMock: () => this.updateHostData,
     stopMock: () => this.stop,
     navigateByUrlMock: () => this.navigateByUrl,
     onSdkCreatedMock: () => this.onSdkCreated,
+    renderHostLoadingMock: () => this.renderHostLoading,
     rootConnected: () => this.root?.isConnected ?? false,
     error: () => this.error,
     navigationItemLabels: () =>

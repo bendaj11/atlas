@@ -34,7 +34,6 @@ customer-host/
     app/
       app.config.ts
       app.component.ts
-      app.routes.ts
       host.config.ts
     bootstrap.ts
     main.ts
@@ -46,10 +45,9 @@ Responsibilities:
 | -------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
 | `atlas.config.ts`          | Host team               | Unique Host ID and display name                                                |
 | `src/app/app.component.ts` | Host UI team            | Main page layout and HTML elements where Atlas shows Apps                      |
-| `src/app/app.config.ts`    | Host UI team            | Angular providers, router, and zoneless configuration                          |
-| `src/app/app.routes.ts`    | Atlas/platform          | Catch-all Angular route required for Atlas navigation                          |
+| `src/app/app.config.ts`    | Host UI team            | Angular providers and zoneless configuration; Atlas provides the router        |
 | `src/app/host.config.ts`   | Host platform team      | Auth-aware HTTP, SDK services, UI renderers, monitoring                        |
-| `src/bootstrap.ts`         | Atlas lifecycle adapter | Exports both `bootstrap()` and `mount()`                                       |
+| `src/bootstrap.ts`         | Atlas lifecycle adapter | Exports `mount()` from `defineAngularHost()`; do not edit                      |
 | `federation.config.js`     | Federation build        | Add Native Federation options; Atlas keeps required exposure and sharing rules |
 
 Generated host config resembles:
@@ -75,10 +73,11 @@ name. Apps use this ID to declare their URLs and named page areas in this Host.
 Atlas loader chooses the published or local Host version, creates an HTML
 container, and calls the `mount` function exported by `src/bootstrap.ts`.
 
-`src/bootstrap.ts` then:
+`src/bootstrap.ts` passes `atlas.config.ts`, `AppComponent`, `appConfig`, and
+`createCustomHostSdkOptions` to `defineAngularHost()`, which then:
 
 1. bootstraps the Angular application;
-2. applies the catch-all Angular Router route from `app.routes.ts`;
+2. provides Angular Router with the catch-all route Atlas navigation requires;
 3. connects Angular Router and browser navigation to Atlas;
 4. initializes Native Federation loading;
 5. creates one host-owned Atlas SDK;
@@ -164,7 +163,7 @@ Example extension:
 product-owned placeholders. Replace them with services from the host project.
 
 ```ts
-interface CustomerHostSdk {
+export interface CustomerHostSdk {
   hostData: {
     projectId: string;
   };
@@ -172,23 +171,22 @@ interface CustomerHostSdk {
   showToast(message: string): void;
 }
 
-const runtime = await startHost<CustomerHostSdk>({
-  router: app.injector.get(Router),
-  location: app.injector.get(Location),
-  federation: { initFederation, loadRemoteModule },
-  hostData: {
-    hostId: atlasConfig.id,
-    name: atlasConfig.name,
-    projectId: 'customer-portal',
-  },
-  orders: ordersApi,
-  showToast: (message) => toastService.show(message),
-  observe: (event) => monitoring.capture('atlas.runtime', event),
-  ...(request
-    ? { runtimeConfig: request.runtimeConfig, catalog: request.catalog }
-    : {}),
-});
+export function createCustomHostSdkOptions(
+  injector: Injector,
+): HostSdkOptions<CustomerHostSdk> {
+  const toastService = injector.get(ToastService);
+
+  return {
+    hostData: { projectId: 'customer-portal' },
+    orders: ordersApi,
+    showToast: (message) => toastService.show(message),
+    observe: (event) => monitoring.capture('atlas.runtime', event),
+  };
+}
 ```
+
+Atlas adds `hostData.hostId` and `hostData.name` from `atlas.config.ts`, plus
+router, location, anchors, Native Federation, runtime config, and catalog.
 
 Typical host-provided capabilities:
 
@@ -266,11 +264,11 @@ in Host source code. The Host should not import Orders source code.
 ## 8. Add Product Loading And Error UI
 
 Generated status elements provide functional defaults. Production hosts often
-connect design-system renderers in `startHost`:
+connect design-system renderers from `createCustomHostSdkOptions()`:
 
 ```ts
-await startHost({
-  // generated router, location, federation, hostData, and catalog options
+return {
+  // product SDK options
   renderHostLoading: (container) => renderHostSkeleton(container),
   renderHostError: (container, error, retry) =>
     renderHostFailure(container, { error, retry }),
@@ -278,7 +276,7 @@ await startHost({
     renderAppSkeleton(container, event.manifest.name),
   renderError: (container, event, retry) =>
     renderAppFailure(container, { app: event.manifest.name, retry }),
-});
+};
 ```
 
 Host-level renderers cover Atlas startup. Placement renderers cover one routed or

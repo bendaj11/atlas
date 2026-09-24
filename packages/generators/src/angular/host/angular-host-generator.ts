@@ -32,33 +32,24 @@ root.textContent = "Start this Atlas host with atlas dev.";
 `;
 }
 
-export function renderAngularHostRoutes(): string {
-  return `import { Routes } from "@angular/router";
-import { AtlasDefaultHostRouteComponent } from "@atlas/runtime/angular";
-
-export const routes: Routes = [
-  { path: "**", component: AtlasDefaultHostRouteComponent }
-];
-`;
-}
-
 export function renderAngularHostAppConfig(options: {
   requiresZonelessProvider: boolean;
 }): string {
   const { requiresZonelessProvider } = options;
-  const coreImport = requiresZonelessProvider
-    ? 'import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";\n'
-    : 'import { ApplicationConfig } from "@angular/core";\n';
-  const providers = requiresZonelessProvider
-    ? 'provideZonelessChangeDetection(),\n    provideRouter(routes)'
-    : 'provideRouter(routes)';
 
-  return `${coreImport}import { provideRouter } from "@angular/router";
-import { routes } from "./app.routes";
+  if (!requiresZonelessProvider)
+    return `import { ApplicationConfig } from "@angular/core";
+
+export const appConfig: ApplicationConfig = {
+  providers: []
+};
+`;
+
+  return `import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    ${providers}
+    provideZonelessChangeDetection()
   ]
 };
 `;
@@ -69,7 +60,7 @@ export function renderAngularHostSdkConfig(): string {
 import type { HostSdkOptions } from "@atlas/runtime/angular";
 
 /** Add product-specific host SDK capabilities here. */
-interface CustomerHostSdk {}
+export interface CustomerHostSdk {}
 
 export function createCustomHostSdkOptions(
   _injector: Injector,
@@ -80,34 +71,17 @@ export function createCustomHostSdkOptions(
 }
 
 export function renderAngularHostBootstrap(): string {
-  return `import { Location } from "@angular/common";
-import { Router } from "@angular/router";
-import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import type { AtlasHostClientEntry, AtlasHostMountRequest } from "@atlas/sdk/lifecycle";
-import { AtlasAngularHostAnchors, bootstrapAngularHost } from "@atlas/runtime/angular";
+  return `import { defineAngularHost } from "@atlas/runtime/angular";
 import atlasConfig from "../atlas.config";
 import { appConfig } from "./app/app.config";
 import { AppComponent } from "./app/app.component";
-import { createCustomHostSdkOptions } from "./app/host.config";
+import { createCustomHostSdkOptions, type CustomerHostSdk } from "./app/host.config";
 
-export async function bootstrap(request: AtlasHostMountRequest) {
-  return bootstrapAngularHost({
-    component: AppComponent,
-    appConfig,
-    request,
-    createHostOptions: (injector) => ({
-      router: injector.get(Router),
-      location: injector.get(Location),
-      anchors: injector.get(AtlasAngularHostAnchors),
-      federation: { initFederation, loadRemoteModule },
-      hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
-      ...createCustomHostSdkOptions(injector),
-      runtimeConfig: request.runtimeConfig,
-      ...(request.catalog ? { catalog: request.catalog } : {})
-    })
-  });
-}
-
-export const mount: AtlasHostClientEntry["mount"] = bootstrap;
+export const mount = defineAngularHost<CustomerHostSdk>({
+  config: atlasConfig,
+  component: AppComponent,
+  appConfig,
+  sdkOptions: createCustomHostSdkOptions
+});
 `;
 }

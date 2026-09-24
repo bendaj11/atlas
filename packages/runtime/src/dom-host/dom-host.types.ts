@@ -57,14 +57,25 @@ export interface DomRuntimeOptions extends AtlasWidgetUiOptions {
   observe?: AtlasRuntimeObserver;
 }
 
-export type DomHostOptions<THostSdk extends object = {}> = Omit<
+export type AtlasOwnedRuntimeOption =
+  'federation' | 'runtimeConfig' | 'catalog' | 'document' | 'anchors';
+
+export type DomHostCustomizationOptions = Omit<
+  DomRuntimeOptions,
+  AtlasOwnedRuntimeOption
+>;
+
+export type DomSdkOptions<THostSdk extends object = {}> = Omit<
   AtlasSdkOptions<THostSdk, AtlasEventMap>,
   'hostId' | 'navigation'
-> &
-  DomRuntimeOptions & {
-    sdk?: AtlasSdk<THostSdk, AtlasEventMap>;
-    navigation?: AtlasNavigation;
-  };
+>;
+
+export type DomHostOptions<THostSdk extends object = {}> =
+  DomSdkOptions<THostSdk> &
+    DomRuntimeOptions & {
+      sdk?: AtlasSdk<THostSdk, AtlasEventMap>;
+      navigation?: AtlasNavigation;
+    };
 
 export type CreateHostNavigation = () =>
   AtlasNavigation | Promise<AtlasNavigation>;

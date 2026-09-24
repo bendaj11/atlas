@@ -21,7 +21,6 @@ const ANGULAR_HOST_PATHS = [
   'src/assets/.gitkeep',
   'src/app/app.component.ts',
   'src/app/app.config.ts',
-  'src/app/app.routes.ts',
   'src/app/host.config.ts',
   'src/main.ts',
   'src/bootstrap.ts',
@@ -36,6 +35,7 @@ const REACT_HOST_PATHS = [
   'src/styles.css',
   'src/main.tsx',
   'src/bootstrap.tsx',
+  'src/host-layout.tsx',
   'src/host.config.tsx',
 ];
 const ANGULAR_ROUTED_APP_PATHS = [

@@ -1,17 +1,21 @@
 import { jest } from '@jest/globals';
 import { faker } from '@faker-js/faker';
 import { act, render, type RenderResult } from '@testing-library/react';
-import { createElement, type ReactNode } from 'react';
+import { createElement, type ReactElement, type ReactNode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { useAtlasSdk } from '@atlas/sdk/react';
+import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
 import { aHostRuntimeConfig } from '@atlas/testkit';
 import type { AtlasHostRuntime } from './host-runtime/host-runtime.types.js';
 import type {
   DomHostOptions,
   DomHostServices,
+  RenderHostLoading,
 } from './dom-host/dom-host.types.js';
 import { publishAtlasNavigationItems } from './dom-host/host-navigation.js';
 import { aNavigationItem } from './dom-host/host-navigation.testkit.js';
 import { aFederationAdapter } from './loader/native-federation.testkit.js';
+import { installWebPlatformGlobals } from './shared/web-platform.testkit.js';
 
 interface HostSdk {
   readonly hostData: { readonly region: string };
@@ -26,6 +30,8 @@ const startDomHost = jest.fn<StartDomHostForHostSdk>();
 
 jest.unstable_mockModule('./dom-host/dom-host.js', () => ({ startDomHost }));
 
+installWebPlatformGlobals();
+
 const {
   AtlasDefaultHostLayout,
   AtlasHostLayout,
@@ -34,6 +40,7 @@ const {
   AtlasNavigation,
   AtlasRouteOutlet,
   AtlasSlot,
+  defineReactHost,
   useAtlasNavigationItems,
 } = await import('./react.js');
 
@@ -47,6 +54,18 @@ function SdkConsumer() {
     'output',
     { 'data-testid': 'region' },
     sdk.hostData.region,
+  );
+}
+
+function DefinedHostLayout() {
+  return createElement('main', { 'data-testid': 'defined-layout' });
+}
+
+function HostProviders(props: { children?: ReactNode }) {
+  return createElement(
+    'section',
+    { 'data-testid': 'host-providers' },
+    props.children,
   );
 }
 
@@ -68,6 +87,18 @@ export class ReactAdapterDriver {
   private useDefaultLayout = false;
   private rendered: RenderResult | undefined;
   private renderError: unknown;
+  private hostName: string | undefined = faker.company.name();
+  private runtimeConfig = aHostRuntimeConfig({ hostId: this.hostId });
+  private catalog: AtlasHostCatalog | undefined;
+  private legacyReactDom = faker.datatype.boolean();
+  private hostProviders = faker.datatype.boolean();
+  private readonly legacyRender =
+    jest.fn<(element: ReactElement, container: Element) => void>();
+  private readonly unmountComponentAtNode =
+    jest.fn<(container: Element) => boolean>();
+  private readonly container = document.createElement('div');
+  private readonly renderHostLoading = jest.fn<RenderHostLoading>();
+  private unmount: (() => void | Promise<void>) | undefined;
 
   constructor() {
     startDomHost.mockReset();
@@ -91,6 +122,31 @@ export class ReactAdapterDriver {
     },
     region: (region: string) => {
       this.region = region;
+
+      return this;
+    },
+    hostName: (hostName: string | undefined) => {
+      this.hostName = hostName;
+
+      return this;
+    },
+    runtimeConfig: (runtimeConfig: AtlasHostRuntimeConfig) => {
+      this.runtimeConfig = runtimeConfig;
+
+      return this;
+    },
+    catalog: (catalog: AtlasHostCatalog) => {
+      this.catalog = catalog;
+
+      return this;
+    },
+    hostProviders: (hostProviders: boolean) => {
+      this.hostProviders = hostProviders;
+
+      return this;
+    },
+    legacyReactDom: (legacyReactDom: boolean) => {
+      this.legacyReactDom = legacyReactDom;
 
       return this;
     },
@@ -125,6 +181,42 @@ export class ReactAdapterDriver {
       act(async () => {
         this.rendered!.unmount();
       }),
+    reactHostMounted: async () => {
+      document.body.replaceChildren(this.container);
+
+      const mount = defineReactHost<HostSdk>({
+        config: {
+          id: this.hostId,
+          ...(this.hostName ? { name: this.hostName } : {}),
+        },
+        layout: DefinedHostLayout,
+        ...(this.hostProviders ? { providers: HostProviders } : {}),
+        reactDom: this.legacyReactDom
+          ? {
+              render: this.legacyRender,
+              unmountComponentAtNode: this.unmountComponentAtNode,
+            }
+          : { createRoot },
+        useSdkOptions: () => ({
+          hostData: { region: this.region },
+          renderHostLoading: this.renderHostLoading,
+        }),
+      });
+
+      await act(async () => {
+        const mounted = await mount({
+          container: this.container,
+          runtimeConfig: this.runtimeConfig,
+          ...(this.catalog ? { catalog: this.catalog } : {}),
+        });
+
+        this.unmount = mounted?.unmount;
+      });
+    },
+    reactHostUnmounted: () =>
+      act(async () => {
+        await this.unmount!();
+      }),
     slotRenderedOutsideProvider: () => {
       try {
         render(createElement(AtlasSlot, { slotId: SLOT_ID }));
@@ -146,6 +238,16 @@ export class ReactAdapterDriver {
     layoutContentPresent: () =>
       this.rendered!.queryByTestId('layout-content') !== null,
     renderError: () => this.renderError,
+    container: () => this.container,
+    definedLayoutPresent: () =>
+      this.container.querySelector('[data-testid="defined-layout"]') !== null,
+    layoutInsideProviders: () =>
+      this.container.querySelector(
+        '[data-testid="host-providers"] [data-testid="defined-layout"]',
+      ) !== null,
+    legacyRenderMock: () => this.legacyRender,
+    renderHostLoadingMock: () => this.renderHostLoading,
+    unmountComponentAtNodeMock: () => this.unmountComponentAtNode,
     startedNavigationPathname: async () =>
       (
         await startDomHost.mock.calls.at(-1)![1].createNavigation()

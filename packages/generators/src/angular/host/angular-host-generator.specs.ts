@@ -7,34 +7,27 @@ describe('renderAngularHostAppConfig', () => {
     driver = new AngularHostGeneratorDriver();
   });
 
-  it('should provide only the router when no zoneless provider is required', () => {
+  it('should provide no providers when no zoneless provider is required', () => {
     driver.given.requiresZonelessProvider(false).when.appConfigGenerated();
 
     expect(driver.get.contents())
       .toBe(`import { ApplicationConfig } from "@angular/core";
-import { provideRouter } from "@angular/router";
-import { routes } from "./app.routes";
 
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideRouter(routes)
-  ]
+  providers: []
 };
 `);
   });
 
-  it('should provide zoneless change detection before the router when a zoneless provider is required', () => {
+  it('should provide zoneless change detection when a zoneless provider is required', () => {
     driver.given.requiresZonelessProvider(true).when.appConfigGenerated();
 
     expect(driver.get.contents())
       .toBe(`import { ApplicationConfig, provideZonelessChangeDetection } from "@angular/core";
-import { provideRouter } from "@angular/router";
-import { routes } from "./app.routes";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZonelessChangeDetection(),
-    provideRouter(routes)
+    provideZonelessChangeDetection()
   ]
 };
 `);
@@ -84,27 +77,19 @@ root.textContent = "Start this Atlas host with atlas dev.";
   });
 });
 
-describe('renderAngularHostRoutes', () => {
-  let driver: AngularHostGeneratorDriver;
-
-  beforeEach(() => {
-    driver = new AngularHostGeneratorDriver();
-  });
-
-  it('should route every path to the default atlas host route component when generated', () => {
-    driver.when.routesGenerated();
-
-    expect(driver.get.contents()).toContain(
-      '{ path: "**", component: AtlasDefaultHostRouteComponent }',
-    );
-  });
-});
-
 describe('renderAngularHostSdkConfig', () => {
   let driver: AngularHostGeneratorDriver;
 
   beforeEach(() => {
     driver = new AngularHostGeneratorDriver();
+  });
+
+  it('should export the customer host sdk type when generated', () => {
+    driver.when.sdkConfigGenerated();
+
+    expect(driver.get.contents()).toContain(
+      'export interface CustomerHostSdk {}',
+    );
   });
 
   it('should export an empty custom host sdk options factory when generated', () => {
@@ -126,23 +111,22 @@ describe('renderAngularHostBootstrap', () => {
     driver = new AngularHostGeneratorDriver();
   });
 
-  describe('when generated', () => {
-    beforeEach(() => {
-      driver.when.bootstrapGenerated();
-    });
+  it('should export mount defined from the atlas config, component, app config and custom sdk options when generated', () => {
+    driver.when.bootstrapGenerated();
 
-    it('should export mount bound to the angular host bootstrap when generated', () => {
-      expect(driver.get.contents()).toContain(
-        'export const mount: AtlasHostClientEntry["mount"] = bootstrap;',
-      );
-    });
+    expect(driver.get.contents())
+      .toBe(`import { defineAngularHost } from "@atlas/runtime/angular";
+import atlasConfig from "../atlas.config";
+import { appConfig } from "./app/app.config";
+import { AppComponent } from "./app/app.component";
+import { createCustomHostSdkOptions, type CustomerHostSdk } from "./app/host.config";
 
-    it('should merge custom host sdk options into the host options when generated', () => {
-      expect(driver.get.contents())
-        .toContain(`      hostData: { hostId: atlasConfig.id, name: atlasConfig.name },
-      ...createCustomHostSdkOptions(injector),
-      runtimeConfig: request.runtimeConfig,
-      ...(request.catalog ? { catalog: request.catalog } : {})`);
-    });
+export const mount = defineAngularHost<CustomerHostSdk>({
+  config: atlasConfig,
+  component: AppComponent,
+  appConfig,
+  sdkOptions: createCustomHostSdkOptions
+});
+`);
   });
 });

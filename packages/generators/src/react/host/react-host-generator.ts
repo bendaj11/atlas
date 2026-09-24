@@ -1,33 +1,42 @@
 import type { ReactVersionProfile } from '../../shared/versions/generator-versions.types.js';
 
 export function renderReactHostBootstrap(profile: ReactVersionProfile): string {
-  const imports =
-    profile.major <= 17
-      ? 'import { render, unmountComponentAtNode } from "react-dom";'
-      : 'import { flushSync } from "react-dom";\nimport { createRoot } from "react-dom/client";';
-  const renderHost =
-    profile.major <= 17
-      ? 'render(element, container);\n  return { unmount: () => unmountComponentAtNode(container) };'
-      : 'const root = createRoot(container);\n  flushSync(() => root.render(element));\n  return { unmount: () => root.unmount() };';
+  const legacy = profile.major <= 17;
+  const reactDomImport = legacy
+    ? 'import { render, unmountComponentAtNode } from "react-dom";'
+    : 'import { createRoot } from "react-dom/client";';
+  const reactDom = legacy
+    ? '{ render, unmountComponentAtNode }'
+    : '{ createRoot }';
+
   return `import "es-module-shims";
-import { StrictMode } from "react";
-${imports}
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { initFederation, loadRemoteModule } from "@atlas/sdk/federation";
-import type { AtlasHostClientEntry, AtlasHostMountRequest } from "@atlas/sdk/lifecycle";
-import {
-  AtlasHostProvider,
-  AtlasHostStatus,
+${reactDomImport}
+import { defineReactHost } from "@atlas/runtime/react";
+import atlasConfig from "../atlas.config";
+import { HostLayout } from "./host-layout";
+import { HostProviders, useCustomHostSdkOptions, type CustomerHostSdk } from "./host.config";
+import "./styles.css";
+
+export const mount = defineReactHost<CustomerHostSdk>({
+  config: atlasConfig,
+  layout: HostLayout,
+  reactDom: ${reactDom},
+  providers: HostProviders,
+  useSdkOptions: useCustomHostSdkOptions
+});
+`;
+}
+
+export function renderReactHostLayout(): string {
+  return `import {
   AtlasHostLayout,
+  AtlasHostStatus,
   AtlasNavigation,
   AtlasRouteOutlet,
   AtlasSlot
 } from "@atlas/runtime/react";
-import atlasConfig from "../atlas.config";
-import { useCustomHostSdkOptions, type CustomerHostSdk } from "./host.config";
-import "./styles.css";
 
-function HostLayout() {
+export function HostLayout() {
   return (
     <AtlasHostLayout layoutId="default">
       <AtlasHostStatus />
@@ -40,47 +49,20 @@ function HostLayout() {
     </AtlasHostLayout>
   );
 }
-
-function HostApplication({ request, router }: { request: AtlasHostMountRequest; router: ReturnType<typeof createBrowserRouter> }) {
-  const { hostData, ...sdkOptions } = useCustomHostSdkOptions();
-
-  return (
-    <AtlasHostProvider<CustomerHostSdk>
-        hostId={atlasConfig.id}
-        options={{
-          router,
-          federation: { initFederation, loadRemoteModule },
-          hostData: { hostId: atlasConfig.id, name: atlasConfig.name, ...hostData },
-          ...sdkOptions,
-          runtimeConfig: request.runtimeConfig,
-          ...(request.catalog ? { catalog: request.catalog } : {})
-        }}
-      >
-        <RouterProvider router={router} />
-    </AtlasHostProvider>
-  );
-}
-
-function mountHost(request: AtlasHostMountRequest) {
-  const router = createBrowserRouter([{ path: "*", Component: HostLayout }]);
-  const element = (
-    <StrictMode>
-      <HostApplication request={request} router={router} />
-    </StrictMode>
-  );
-  const container = request.container;
-  ${renderHost}
-};
-
-export const mount: AtlasHostClientEntry["mount"] = mountHost;
 `;
 }
 
 export function renderReactHostSdkConfig(): string {
-  return `import type { HostSdkOptions } from "@atlas/runtime/react";
+  return `import { StrictMode, type ReactNode } from "react";
+import type { HostSdkOptions } from "@atlas/runtime/react";
 
 /** Add product-specific host SDK capabilities here. Hooks are supported. */
 export interface CustomerHostSdk {}
+
+/** Wrap the host with product providers here, such as a query client. */
+export function HostProviders({ children }: { children?: ReactNode }) {
+  return <StrictMode>{children}</StrictMode>;
+}
 
 export function useCustomHostSdkOptions(): HostSdkOptions<CustomerHostSdk> {
   return {};

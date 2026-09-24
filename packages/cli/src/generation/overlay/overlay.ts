@@ -17,7 +17,7 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     'src/index.html',
     'src/app/app.component.ts',
     'src/app/app.config.ts',
-    'src/app/app.routes.ts',
+    'src/app/host.config.ts',
     'src/main.ts',
     'src/bootstrap.ts',
   ]),
@@ -28,6 +28,8 @@ const DELEGATED_HOST_FILES: Record<SupportedFramework, ReadonlySet<string>> = {
     'src/styles.css',
     'src/main.tsx',
     'src/bootstrap.tsx',
+    'src/host-layout.tsx',
+    'src/host.config.tsx',
   ]),
 };
 

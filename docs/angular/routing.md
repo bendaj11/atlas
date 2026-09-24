@@ -99,17 +99,16 @@ The host owns the markup and design system components. Atlas still owns runtime
 catalog resolution, route ordering, hidden navigation entries, href creation,
 navigation, and active-route matching.
 
-The host starts Atlas from `src/bootstrap.ts`:
+The host starts Atlas from `src/bootstrap.ts`. `defineAngularHost()` provides
+Angular Router with the catch-all route, then passes the router, location,
+anchors, and Native Federation loader to Atlas:
 
 ```ts
-await startHost({
-  router: app.injector.get(Router),
-  location: app.injector.get(Location),
-  federation: { initFederation, loadRemoteModule },
-  hostData: {
-    hostId: '0a17281f-287b-4d89-a8ca-0ab0e577c506',
-    name: 'Customer Host',
-  },
+export const mount = defineAngularHost<CustomerHostSdk>({
+  config: atlasConfig,
+  component: AppComponent,
+  appConfig,
+  sdkOptions: createCustomHostSdkOptions,
 });
 ```
 

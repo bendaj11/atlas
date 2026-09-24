@@ -1,6 +1,6 @@
 {
   "name": "@atlas/runtime",
-  "version": "0.4.26",
+  "version": "0.5.0",
   "type": "module",
   "description": "Atlas host discovery, Native Federation loading, and mount lifecycle.",
   "license": "MIT",
@@ -52,34 +52,54 @@
     "css-tree": "^3.2.1"
   },
   "peerDependencies": {
+    "@angular/common": ">=19 <23",
     "@angular/core": ">=19 <23",
     "@angular/platform-browser": ">=19 <23",
-    "react": ">=17 <20"
+    "@angular/router": ">=19 <23",
+    "react": ">=17 <20",
+    "react-dom": ">=17 <20",
+    "react-router-dom": ">=6.4 <8"
   },
   "peerDependenciesMeta": {
+    "@angular/common": {
+      "optional": true
+    },
     "@angular/core": {
       "optional": true
     },
     "@angular/platform-browser": {
       "optional": true
     },
+    "@angular/router": {
+      "optional": true
+    },
     "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "react-router-dom": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@angular/common": "^20.3.0",
     "@angular/compiler": "^20.3.0",
     "@angular/compiler-cli": "^20.3.0",
     "@angular/core": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
+    "@angular/router": "^20.3.0",
     "@atlas/testkit": "workspace:*",
     "@faker-js/faker": "^10.5.0",
     "@playwright/test": "^1.61.1",
     "@testing-library/react": "^16.3.0",
     "@types/css-tree": "^3.2.0",
     "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "esbuild": "0.25.12",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.0"
   }
 }

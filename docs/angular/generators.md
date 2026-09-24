@@ -12,16 +12,16 @@ atlas g host customer-host --framework=angular
 
 Generated host files to understand first:
 
-| File                       | Owner          | Purpose                                                                     |
-| -------------------------- | -------------- | --------------------------------------------------------------------------- |
-| `atlas.config.ts`          | Host team      | Stable host id, display name, runtime defaults.                             |
-| `atlas.bootstrap.html`     | Host team      | Product-domain HTML and loading UI used automatically by `atlas bootstrap`. |
-| `src/bootstrap.ts`         | Atlas/platform | Exports Atlas `mount()`; runtime configuration comes from Atlas bootstrap.  |
-| `src/app/app.config.ts`    | Host team      | Angular providers, router, and version-appropriate zoneless setup.          |
-| `src/app/host.config.ts`   | Host team      | Product SDK capabilities and host runtime customization.                    |
-| `src/app/app.component.ts` | Host team      | Replaceable product layout with Atlas DOM anchors.                          |
-| `federation.config.js`     | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone. |
-| `dist/bootstrap/`          | Atlas CLI      | Static product-domain files from `atlas bootstrap`.                         |
+| File                       | Owner          | Purpose                                                                              |
+| -------------------------- | -------------- | ------------------------------------------------------------------------------------ |
+| `atlas.config.ts`          | Host team      | Stable host id, display name, runtime defaults.                                      |
+| `atlas.bootstrap.html`     | Host team      | Product-domain HTML and loading UI used automatically by `atlas bootstrap`.          |
+| `src/bootstrap.ts`         | Atlas/platform | Exports `mount()` from `defineAngularHost()`; do not edit.                           |
+| `src/app/app.config.ts`    | Host team      | Angular providers and version-appropriate zoneless setup; Atlas provides the router. |
+| `src/app/host.config.ts`   | Host team      | Product SDK capabilities and host runtime customization.                             |
+| `src/app/app.component.ts` | Host team      | Replaceable product layout with Atlas DOM anchors.                                   |
+| `federation.config.js`     | Atlas/platform | Native Federation compatibility file. Product teams usually leave it alone.          |
+| `dist/bootstrap/`          | Atlas CLI      | Static product-domain files from `atlas bootstrap`.                                  |
 
 The host owns layout, auth, top-level routing, host services, and runtime
 configuration.
@@ -53,8 +53,8 @@ Product developers usually edit Angular components, services, styles, tests,
 and `atlas.config.ts`. Angular app bootstrap happens only when Atlas runtime
 mounts `src/main.ts` inside a host. The host supplies SDK and app context;
 generated apps do not create either one.
-Generated `main.ts` and host bootstrap files import federation runtime functions
-from `@atlas/sdk/federation`. The required `federation.config.js` delegates to
+Generated app `main.ts` imports federation runtime functions from
+`@atlas/sdk/federation`; host `defineAngularHost()` imports them internally. The required `federation.config.js` delegates to
 `@atlas/sdk/federation-config`; only Angular builder declarations and their
 package dependency remain visible because Angular CLI resolves them by package name.
 

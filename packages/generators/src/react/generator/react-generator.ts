@@ -7,6 +7,7 @@ import {
 } from '../app/react-app-generator.js';
 import {
   renderReactHostBootstrap,
+  renderReactHostLayout,
   renderReactHostMain,
   renderReactHostSdkConfig,
 } from '../host/react-host-generator.js';
@@ -78,6 +79,7 @@ export function generateReactHostFiles({
     { path: 'src/styles.css', contents: renderAtlasHostStyles() },
     { path: 'src/main.tsx', contents: renderReactHostMain() },
     { path: 'src/bootstrap.tsx', contents: renderReactHostBootstrap(profile) },
+    { path: 'src/host-layout.tsx', contents: renderReactHostLayout() },
     { path: 'src/host.config.tsx', contents: renderReactHostSdkConfig() },
   ];
 }
