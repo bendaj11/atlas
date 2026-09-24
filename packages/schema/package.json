@@ -1,6 +1,6 @@
 {
   "name": "@atlas/schema",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "description": "Canonical Atlas manifests, registries, and runtime configuration schemas.",
   "license": "MIT",
