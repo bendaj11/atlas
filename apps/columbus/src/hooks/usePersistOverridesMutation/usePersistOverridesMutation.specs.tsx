@@ -38,6 +38,12 @@ describe('usePersistOverridesMutation', () => {
       );
     });
 
+    it('should call setColumbusState once when mutated', async () => {
+      await driver.when.mutated(aColumbusState());
+
+      expect(driver.get.setColumbusState()).toHaveBeenCalledTimes(1);
+    });
+
     it('should call window.close once when mutated', async () => {
       await driver.when.mutated(aColumbusState());
 
@@ -93,6 +99,40 @@ describe('usePersistOverridesMutation', () => {
       driver.when.renderedAgain();
 
       expect(driver.get.otherResult().error?.message).toContain(reason);
+    });
+  });
+
+  describe('when persisting fails with a previous columbusState', () => {
+    const previousColumbusState = aColumbusState();
+
+    beforeEach(async () => {
+      driver.given
+        .columbusState(previousColumbusState)
+        .given.persist(Promise.reject(new Error(faker.lorem.sentence())))
+        .when.rendered();
+
+      await driver.when.mutated(aColumbusState());
+    });
+
+    it('should call setColumbusState last with the previous columbusState when mutated', () => {
+      expect(driver.get.setColumbusState()).toHaveBeenLastCalledWith(
+        previousColumbusState,
+      );
+    });
+  });
+
+  describe('when persisting fails without a previous columbusState', () => {
+    beforeEach(async () => {
+      driver.given
+        .columbusState(undefined)
+        .given.persist(Promise.reject(new Error(faker.lorem.sentence())))
+        .when.rendered();
+
+      await driver.when.mutated(aColumbusState());
+    });
+
+    it('should call setColumbusState once when mutated', () => {
+      expect(driver.get.setColumbusState()).toHaveBeenCalledTimes(1);
     });
   });
 });

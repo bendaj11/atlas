@@ -13,12 +13,29 @@ interface PersistOverridesMutation {
   mutateAsync: (columbusState: ColumbusState) => Promise<void>;
 }
 
+interface PersistOverridesContext {
+  previousColumbusState: ColumbusState | undefined;
+}
+
 export function usePersistOverridesMutation(): PersistOverridesMutation {
-  const { setColumbusState } = useColumbusState();
-  const { mutateAsync } = useMutation<void, Error, ColumbusState>({
+  const { columbusState, setColumbusState } = useColumbusState();
+  const { mutateAsync } = useMutation<
+    void,
+    Error,
+    ColumbusState,
+    PersistOverridesContext
+  >({
     mutationKey: PERSIST_OVERRIDES_MUTATION_KEY,
     mutationFn: persistOverrides,
-    onMutate: (columbusState) => setColumbusState(columbusState),
+    onMutate: (nextColumbusState) => {
+      setColumbusState(nextColumbusState);
+
+      return { previousColumbusState: columbusState };
+    },
+    onError: (_error, _nextColumbusState, context) => {
+      if (context?.previousColumbusState)
+        setColumbusState(context.previousColumbusState);
+    },
     onSuccess: () => window.close(),
   });
   const latest = useMutationState({

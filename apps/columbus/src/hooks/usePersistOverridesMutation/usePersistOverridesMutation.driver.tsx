@@ -6,6 +6,7 @@ import type { ColumbusState } from '../../types/columbus-state';
 import type { persistColumbusState as persistColumbusStateType } from '../../utils/persist-overrides/persist-overrides';
 import { createQueryClient } from '../../utils/query-client/query-client';
 import { useColumbusStateMock } from '../../testkit/mocks/useColumbusState';
+import { aColumbusState } from '../../testkit/columbus-state.testkit';
 
 type ColumbusStateValue = ReturnType<typeof useColumbusStateMock>;
 
@@ -28,6 +29,7 @@ export class UsePersistOverridesMutationDriver {
     jest.fn<ColumbusStateValue['setColumbusState']>();
   private readonly closeWindow = jest.spyOn(window, 'close');
   private readonly queryClient = createQueryClient();
+  private columbusState: ColumbusState | undefined = aColumbusState();
   private hook!: RenderHookResult<
     ReturnType<typeof usePersistOverridesMutation>,
     undefined
@@ -43,6 +45,11 @@ export class UsePersistOverridesMutationDriver {
   }
 
   readonly given = {
+    columbusState: (columbusState: ColumbusState | undefined) => {
+      this.columbusState = columbusState;
+
+      return this;
+    },
     persist: (result: Promise<void>) => {
       persistColumbusState.mockReturnValue(result);
 
@@ -53,7 +60,7 @@ export class UsePersistOverridesMutationDriver {
   readonly when = {
     rendered: () => {
       useColumbusStateMock.mockReturnValue({
-        columbusState: undefined,
+        columbusState: this.columbusState,
         setColumbusState: this.setColumbusState,
       });
       this.hook = renderHook(() => usePersistOverridesMutation(), {
