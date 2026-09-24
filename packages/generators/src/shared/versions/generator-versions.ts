@@ -9,7 +9,7 @@ import type {
   ReactVersionProfile,
 } from './generator-versions.types.js';
 
-export const ATLAS_PACKAGE_VERSION = '0.4.26';
+export const ATLAS_PACKAGE_VERSION = "0.5.1";
 const DEFAULT_REACT_VERSION = '19.2.8';
 const DEFAULT_ANGULAR_VERSION = '20.3.0';
 const VERIFIED_REACT_MAJORS = [17, 18, 19];
