@@ -119,9 +119,23 @@ export type {
   AtlasRuntimeOverrideReason,
 } from './runtime/atlas-runtime-override.js';
 export {
+  dismissedDevelopmentOffersKey,
+  isDevelopmentOfferDismissed,
+  isDevelopmentOfferIds,
+  mergeDevelopmentOffers,
+  parseDismissedDevelopmentOffers,
+} from './runtime/development-offers/development-offers.js';
+export type {
+  AtlasDevelopmentOfferIds,
+  AtlasDevelopmentOffers,
+  AtlasOverrideSelection,
+} from './runtime/development-offers/development-offers.js';
+export {
   ATLAS_DEV_BRIDGE_MARKER,
   ATLAS_DEV_SESSION_REQUEST,
   ATLAS_DEV_SESSION_RESPONSE,
+  ATLAS_PREVIEW_LAUNCHER_MARKER,
+  ATLAS_PREVIEW_LAUNCHER_PATH,
 } from './runtime/atlas-development-session-bridge.js';
 export type {
   AtlasDevelopmentSessionRequest,

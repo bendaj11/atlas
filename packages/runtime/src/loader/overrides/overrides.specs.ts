@@ -1,10 +1,8 @@
+/** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
 import { anOverrideDocument } from '@atlas/testkit/internal';
-import {
-  ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
-  ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
-} from './overrides.js';
+import { loadBrowserRuntimeOverrides } from './overrides.js';
 import { OverridesDriver } from './overrides.driver.js';
 import { anOverrideOf } from './overrides.testkit.js';
 
@@ -15,142 +13,144 @@ describe('loadBrowserRuntimeOverrides', () => {
     driver = new OverridesDriver();
   });
 
-  describe('when no development session and no stored document exist', () => {
-    beforeEach(async () => {
-      await driver.when.loaded();
-    });
+  it('should return no overrides when no development session and no stored document exist', async () => {
+    const hostId = faker.string.uuid();
 
-    it('should return no overrides when loaded', () => {
-      expect(driver.get.overrides()).toEqual([]);
-    });
-
-    it('should request the development session once when loaded', () => {
-      expect(driver.get.developmentSessionMock()).toHaveBeenCalledTimes(1);
-    });
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([]);
   });
 
-  describe('when the development session returns a document for the host', () => {
+  it('should return the offered overrides when the development session offers them and nothing is stored', async () => {
     const hostId = faker.string.uuid();
-    const manifest = anAppManifest({ channel: 'production' });
-    const document = anOverrideDocument({
-      hostId,
-      overrides: [anOverrideOf(manifest)],
+    const offered = anOverrideOf(anAppManifest({ channel: 'local' }));
+
+    driver.given.developmentSession({
+      ...anOverrideDocument({ hostId, overrides: [offered] }),
+      offerIds: { [offered.appId]: faker.date.past().toISOString() },
     });
 
-    beforeEach(async () => {
-      await driver.given
-        .hostId(hostId)
-        .given.developmentSessionDocument(document)
-        .when.loaded();
-    });
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([offered]);
+  });
 
-    it('should return the session overrides when loaded', () => {
-      expect(driver.get.overrides()).toEqual(document.overrides);
-    });
+  it('should skip an offered override when its offer was dismissed for every tab', async () => {
+    const hostId = faker.string.uuid();
+    const offered = anOverrideOf(anAppManifest({ channel: 'local' }));
+    const offerId = faker.date.past().toISOString();
 
-    it('should persist the session document in tab storage when loaded', () => {
-      expect(driver.get.setItemMock()).toHaveBeenCalledWith(
-        ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
-        JSON.stringify(document),
+    driver.given
+      .developmentSession({
+        ...anOverrideDocument({ hostId, overrides: [offered] }),
+        offerIds: { [offered.appId]: offerId },
+      })
+      .given.originDismissedOffers(hostId, { [offered.appId]: offerId });
+
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([]);
+  });
+
+  it('should return an offered override when only an earlier offer of its app was dismissed', async () => {
+    const hostId = faker.string.uuid();
+    const offered = anOverrideOf(anAppManifest({ channel: 'local' }));
+
+    driver.given
+      .developmentSession({
+        ...anOverrideDocument({ hostId, overrides: [offered] }),
+        offerIds: { [offered.appId]: faker.date.recent().toISOString() },
+      })
+      .given.originDismissedOffers(hostId, {
+        [offered.appId]: faker.date.past().toISOString(),
+      });
+
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([offered]);
+  });
+
+  it('should return the stored overrides with the offered ones when both exist', async () => {
+    const hostId = faker.string.uuid();
+    const stored = anOverrideOf(anAppManifest({ channel: 'production' }));
+    const offered = anOverrideOf(anAppManifest({ channel: 'local' }));
+
+    driver.given
+      .developmentSession({
+        ...anOverrideDocument({ hostId, overrides: [offered] }),
+        offerIds: { [offered.appId]: faker.date.past().toISOString() },
+      })
+      .given.originDocument(anOverrideDocument({ hostId, overrides: [stored] }));
+
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([stored, offered]);
+  });
+
+  it('should return only the stored overrides when no development session exists', async () => {
+    const hostId = faker.string.uuid();
+    const stored = anOverrideOf(anAppManifest({ channel: 'production' }));
+
+    driver.given.originDocument(
+      anOverrideDocument({ hostId, overrides: [stored] }),
+    );
+
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([stored]);
+  });
+
+  it('should prefer the tab document over the origin document when both exist', async () => {
+    const hostId = faker.string.uuid();
+    const tabOverride = anOverrideOf(anAppManifest({ channel: 'production' }));
+
+    driver.given
+      .tabDocument(anOverrideDocument({ hostId, overrides: [tabOverride] }))
+      .given.originDocument(
+        anOverrideDocument({
+          hostId,
+          overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
+        }),
       );
-    });
 
-    it('should mark the session as seeded in tab storage when loaded', () => {
-      expect(driver.get.setItemMock()).toHaveBeenCalledWith(
-        ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
-        `${hostId}:${document.generatedAt}`,
-      );
-    });
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).resolves.toStrictEqual([tabOverride]);
   });
 
-  describe('when the development session was already seeded in this tab', () => {
-    const hostId = faker.string.uuid();
-    const sessionDocument = anOverrideDocument({
-      hostId,
-      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
-    });
-    const storedDocument = anOverrideDocument({
-      hostId,
-      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
-    });
-
-    beforeEach(async () => {
-      await driver.given
-        .hostId(hostId)
-        .given.developmentSessionDocument(sessionDocument)
-        .given.storedDocument(storedDocument)
-        .given.storedSeed(`${hostId}:${sessionDocument.generatedAt}`)
-        .when.loaded();
-    });
-
-    it('should return the stored overrides when loaded', () => {
-      expect(driver.get.overrides()).toEqual(storedDocument.overrides);
-    });
-
-    it('should not overwrite tab storage when loaded', () => {
-      expect(driver.get.setItemMock()).not.toHaveBeenCalled();
-    });
-  });
-
-  it('should prefer the development session when both a session and a stored document exist and the tab is not seeded', async () => {
-    const hostId = faker.string.uuid();
-    const sessionDocument = anOverrideDocument({
-      hostId,
-      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
-    });
-    const storedDocument = anOverrideDocument({
-      hostId,
-      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
-    });
-    await driver.given
-      .hostId(hostId)
-      .given.developmentSessionDocument(sessionDocument)
-      .given.storedDocument(storedDocument)
-      .when.loaded();
-
-    expect(driver.get.overrides()).toEqual(sessionDocument.overrides);
-  });
-
-  it('should return the stored overrides when only a stored document exists', async () => {
-    const hostId = faker.string.uuid();
-    const storedDocument = anOverrideDocument({
-      hostId,
-      overrides: [anOverrideOf(anAppManifest({ channel: 'production' }))],
-    });
-    await driver.given
-      .hostId(hostId)
-      .given.storedDocument(storedDocument)
-      .when.loaded();
-
-    expect(driver.get.overrides()).toEqual(storedDocument.overrides);
-  });
-
-  it('should reject with ATLAS_INVALID_OVERRIDE when the document targets another host', async () => {
+  it('should reject with ATLAS_INVALID_OVERRIDE when the development session targets another host', async () => {
     const otherHostId = faker.string.uuid();
-    await driver.given
-      .developmentSessionDocument(anOverrideDocument({ hostId: otherHostId }))
-      .when.loaded();
 
-    expect(driver.get.error()).toMatchObject({
+    driver.given.developmentSession({
+      ...anOverrideDocument({ hostId: otherHostId }),
+      offerIds: {},
+    });
+
+    await expect(
+      loadBrowserRuntimeOverrides({
+        hostId: faker.string.uuid(),
+        ...driver.get.dependencies(),
+      }),
+    ).rejects.toMatchObject({
       code: 'ATLAS_INVALID_OVERRIDE',
       message: expect.stringContaining(`targets host "${otherHostId}"`),
     });
   });
 
-  it('should name the app when an override manifest is invalid', async () => {
+  it('should name the app when a stored override manifest is invalid', async () => {
     const hostId = faker.string.uuid();
     const manifest = anAppManifest({
       channel: 'production',
       version: 'custom-url',
     });
-    await driver.given
-      .hostId(hostId)
-      .given.storedDocument(
-        anOverrideDocument({ hostId, overrides: [anOverrideOf(manifest)] }),
-      )
-      .when.loaded();
 
-    expect(driver.get.error()).toMatchObject({
+    driver.given.tabDocument(
+      anOverrideDocument({ hostId, overrides: [anOverrideOf(manifest)] }),
+    );
+
+    await expect(
+      loadBrowserRuntimeOverrides({ hostId, ...driver.get.dependencies() }),
+    ).rejects.toMatchObject({
       message: expect.stringContaining(
         `Atlas override for app "${manifest.id}" is invalid`,
       ),
@@ -158,18 +158,28 @@ describe('loadBrowserRuntimeOverrides', () => {
   });
 
   it('should reject with ATLAS_INVALID_OVERRIDE when the stored document is not JSON', async () => {
-    await driver.given.storedText('{not json').when.loaded();
+    driver.given.tabText(`{${faker.lorem.word()}`);
 
-    expect(driver.get.error()).toMatchObject({
+    await expect(
+      loadBrowserRuntimeOverrides({
+        hostId: faker.string.uuid(),
+        ...driver.get.dependencies(),
+      }),
+    ).rejects.toMatchObject({
       code: 'ATLAS_INVALID_OVERRIDE',
       message: expect.stringContaining('is not valid JSON'),
     });
   });
 
   it('should reject with ATLAS_INVALID_OVERRIDE when the stored document has the wrong shape', async () => {
-    await driver.given.storedDocument({ schemaVersion: '2' }).when.loaded();
+    driver.given.tabDocument(null);
 
-    expect(driver.get.error()).toMatchObject({
+    await expect(
+      loadBrowserRuntimeOverrides({
+        hostId: faker.string.uuid(),
+        ...driver.get.dependencies(),
+      }),
+    ).rejects.toMatchObject({
       code: 'ATLAS_INVALID_OVERRIDE',
       message: expect.stringContaining('invalid document shape'),
     });

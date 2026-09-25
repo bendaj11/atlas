@@ -1,8 +1,5 @@
 import { faker } from '@faker-js/faker';
-import {
-  countDevSessionOverrides,
-  createBadgeRefresher,
-} from './badge-refresh';
+import { createBadgeRefresher } from './badge-refresh';
 import { BadgeRefreshDriver } from './badge-refresh.driver';
 
 describe('createBadgeRefresher', () => {
@@ -83,44 +80,5 @@ describe('createBadgeRefresher', () => {
       [firstCount],
       [secondCount],
     ]);
-  });
-});
-
-describe('countDevSessionOverrides', () => {
-  it('should count the apps and the host override when all are enabled', () => {
-    expect(
-      countDevSessionOverrides({
-        session: {
-          overrides: [
-            { appId: faker.string.uuid() },
-            { appId: faker.string.uuid() },
-          ],
-          hostOverride: {},
-        },
-        disabledAppIds: new Set(),
-      }),
-    ).toBe(3);
-  });
-
-  it('should skip the disabled apps when some are disabled', () => {
-    const disabledAppId = faker.string.uuid();
-
-    expect(
-      countDevSessionOverrides({
-        session: {
-          overrides: [{ appId: disabledAppId }, { appId: faker.string.uuid() }],
-        },
-        disabledAppIds: new Set([disabledAppId]),
-      }),
-    ).toBe(1);
-  });
-
-  it('should skip the malformed overrides when entries lack an app id', () => {
-    expect(
-      countDevSessionOverrides({
-        session: { overrides: [{ appId: faker.string.uuid() }, {}, null] },
-        disabledAppIds: new Set(),
-      }),
-    ).toBe(1);
   });
 });

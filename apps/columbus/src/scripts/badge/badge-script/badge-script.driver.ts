@@ -1,7 +1,12 @@
 import { jest } from '@jest/globals';
 import { flushAsyncWork } from '@atlas/testkit/internal';
 import type { ArtifactVersion } from '../../../types/artifact-version';
-import type { AtlasRuntimeError, HostData } from '../../../types/host-data';
+import type {
+  AtlasRuntimeError,
+  DevelopmentOffers,
+  HostData,
+} from '../../../types/host-data';
+import type { AtlasOverrideDocument } from '../../../types/override-document';
 import {
   type FakeChrome,
   installFakeChrome,
@@ -26,6 +31,9 @@ const artifactRegistry = {
   loadManifest: jest.fn<ArtifactRegistry['loadManifest']>(),
   loadVersion: jest.fn<ArtifactRegistry['loadVersion']>(),
 };
+type DevelopmentSessionDocument = AtlasOverrideDocument &
+  Pick<DevelopmentOffers, 'offerIds'>;
+
 const fetch =
   jest.fn<
     (
@@ -45,9 +53,11 @@ jest.unstable_mockModule(
   '../../../utils/inspect-atlas-host/inspect-atlas-host',
   () => ({ inspectAtlasHost }),
 );
+const pageRuntimeState =
+  await import('../../../utils/page-runtime-state/page-runtime-state');
 jest.unstable_mockModule(
   '../../../utils/page-runtime-state/page-runtime-state',
-  () => ({ readVisibleAppIds, readRuntimeErrors }),
+  () => ({ ...pageRuntimeState, readVisibleAppIds, readRuntimeErrors }),
 );
 
 const windowListeners: Array<[string, EventListenerOrEventListenerObject]> = [];
@@ -63,6 +73,7 @@ window.addEventListener = (
 
 export class BadgeScriptDriver {
   private readonly chrome: FakeChrome = installFakeChrome();
+  private readonly runtimeMessage = jest.fn<FakeChrome['onRuntimeMessage']>();
   private readonly colorSchemeListeners: Array<() => void> = [];
   private readonly colorSchemeQuery = {
     matches: false,
@@ -84,6 +95,8 @@ export class BadgeScriptDriver {
     document.body.innerHTML = '';
     sessionStorage.clear();
     localStorage.clear();
+    this.chrome.onRuntimeMessage = this.runtimeMessage;
+    this.runtimeMessage.mockResolvedValue(undefined);
     fetch.mockResolvedValue({ ok: false, status: 404, json: async () => null });
     Object.assign(globalThis, { fetch });
     Object.assign(window, {
@@ -135,12 +148,13 @@ export class BadgeScriptDriver {
 
       return this;
     },
-    fetchStatus: (status: number) => {
-      fetch.mockResolvedValueOnce({
-        ok: false,
-        status,
-        json: async () => null,
-      });
+    developmentSession: (document: DevelopmentSessionDocument) => {
+      this.runtimeMessage.mockResolvedValue({ document });
+
+      return this;
+    },
+    developmentSessionError: (error: string) => {
+      this.runtimeMessage.mockResolvedValue({ error });
 
       return this;
     },
@@ -179,7 +193,7 @@ export class BadgeScriptDriver {
   readonly when = {
     started: () => this.start(),
     overridesStoredAndEventFired: async (
-      document: unknown,
+      document: AtlasOverrideDocument,
       eventType: string,
     ) => {
       await this.start();
@@ -190,12 +204,19 @@ export class BadgeScriptDriver {
       window.dispatchEvent(new Event(eventType));
       await flushAsyncWork();
     },
-    overridesStoredAndIntervalElapsed: async (document: unknown) => {
+    overridesStoredAndIntervalElapsed: async (
+      document: AtlasOverrideDocument,
+    ) => {
       await this.start();
       sessionStorage.setItem(
         'atlas.runtime-overrides',
         JSON.stringify(document),
       );
+      setInterval.mock.calls.forEach(([callback]) => callback());
+      await flushAsyncWork();
+    },
+    intervalElapsed: async () => {
+      await this.start();
       setInterval.mock.calls.forEach(([callback]) => callback());
       await flushAsyncWork();
     },
@@ -223,6 +244,7 @@ export class BadgeScriptDriver {
         .map(({ colorScheme }) => colorScheme),
     setInterval: () => setInterval,
     fetch: () => fetch,
+    runtimeMessage: () => this.runtimeMessage,
     inspectAtlasHost: () => inspectAtlasHost,
     loadVersion: () => artifactRegistry.loadVersion,
   };

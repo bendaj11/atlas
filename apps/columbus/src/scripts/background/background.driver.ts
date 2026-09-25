@@ -6,13 +6,18 @@ import {
 } from '../../testkit/chrome.testkit';
 import type { loadDevelopmentSession as loadDevelopmentSessionType } from '../development-session/development-session-background/development-session-background';
 import type { clearHostDataCache as clearHostDataCacheType } from '../../utils/host-data-cache/host-data-cache';
+import type { focusPreviewTab as focusPreviewTabType } from '../../utils/preview-tabs/preview-tabs';
 
 const clearHostDataCache = jest.fn<typeof clearHostDataCacheType>();
+const focusPreviewTab = jest.fn<typeof focusPreviewTabType>();
 const loadDevelopmentSession = jest.fn<typeof loadDevelopmentSessionType>();
 const fetch = jest.fn<typeof globalThis.fetch>();
 
 jest.unstable_mockModule('../../utils/host-data-cache/host-data-cache', () => ({
   clearHostDataCache,
+}));
+jest.unstable_mockModule('../../utils/preview-tabs/preview-tabs', () => ({
+  focusPreviewTab,
 }));
 jest.unstable_mockModule(
   '../development-session/development-session-background/development-session-background',
@@ -48,6 +53,16 @@ export class BackgroundDriver {
 
       return this;
     },
+    previewFocus: (focused: boolean) => {
+      focusPreviewTab.mockResolvedValue(focused);
+
+      return this;
+    },
+    previewFocusFailure: (error: Error) => {
+      focusPreviewTab.mockRejectedValue(error);
+
+      return this;
+    },
     fetchResponse: (response: Response) => {
       fetch.mockResolvedValue(response);
 
@@ -80,6 +95,7 @@ export class BackgroundDriver {
     response: () => this.response,
     clearHostDataCache: () => clearHostDataCache,
     loadDevelopmentSession: () => loadDevelopmentSession,
+    focusPreviewTab: () => focusPreviewTab,
     fetch: () => fetch,
     actionIconPaths: () => this.chrome.actionIconPaths,
     badgeTexts: () => this.chrome.badgeTexts,

@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { anAppManifest } from '@atlas/testkit';
 import { aHostData } from '../../testkit/host-data.testkit';
+import type { DevelopmentOffers } from '../../types/host-data';
 import { LoadColumbusStateDriver } from './load-columbus-state.driver';
 
 const { loadColumbusState } = await import('./load-columbus-state');
@@ -126,15 +127,6 @@ describe('loadColumbusState', () => {
       ).resolves.toHaveProperty('disabledArtifactVersionOverrides', disabled);
     });
 
-    it('should resolve with the cleared local artifact ids when loaded', async () => {
-      const cleared = new Set([faker.string.uuid()]);
-      driver.given.clearedLocalArtifactIds(cleared);
-
-      await expect(
-        loadColumbusState({ bypassCache: false }),
-      ).resolves.toHaveProperty('clearedLocalArtifactIds', cleared);
-    });
-
     it('should resolve with the disabled override apps added to the catalog when they are not deployed', async () => {
       const overrideApp = anAppManifest();
       driver.given.disabledArtifactVersionOverrides(
@@ -184,22 +176,6 @@ describe('loadColumbusState', () => {
     });
   });
 
-  it('should read the cleared local artifact ids of the host tab and scope when loaded', async () => {
-    const read = {
-      hostData: aHostData({ overrideScope: 'tab' }),
-      tabId: faker.number.int(),
-    };
-    driver.given.hostData(read);
-
-    await loadColumbusState({ bypassCache: false });
-
-    expect(driver.get.readClearedLocalArtifactIds()).toHaveBeenCalledWith({
-      hostId: read.hostData.config.hostId,
-      tabId: read.tabId,
-      scope: 'tab',
-    });
-  });
-
   it('should resolve with the enabled overrides of the override document when loaded', async () => {
     const override = anAppManifest();
     const read = {
@@ -223,6 +199,101 @@ describe('loadColumbusState', () => {
       'enabledArtifactVersionOverrides',
       new Map([[override.id, override]]),
     );
+  });
+
+  it('should resolve with the disabled overrides without the artifact enabled by the override document when loaded', async () => {
+    const override = anAppManifest();
+    const read = {
+      hostData: aHostData({
+        overrides: {
+          schemaVersion: '1',
+          hostId: faker.string.uuid(),
+          overrides: [
+            { appId: override.id, manifest: override, reason: 'local' },
+          ],
+          generatedAt: faker.date.recent().toISOString(),
+        },
+      }),
+      tabId: faker.number.int(),
+    };
+    driver.given
+      .hostData(read)
+      .given.disabledArtifactVersionOverrides(
+        new Map([[override.id, anAppManifest({ id: override.id })]]),
+      );
+
+    await expect(
+      loadColumbusState({ bypassCache: false }),
+    ).resolves.toHaveProperty('disabledArtifactVersionOverrides', new Map());
+  });
+
+  describe('when the active tab has a live development offer', () => {
+    const offered = anAppManifest();
+    const offerId = faker.string.uuid();
+    const developmentOffers: DevelopmentOffers = {
+      overrides: [{ appId: offered.id, manifest: offered, reason: 'local' }],
+      offerIds: { [offered.id]: offerId },
+    };
+
+    it('should resolve with the offered build enabled when the offer is not dismissed', async () => {
+      driver.given.hostData({
+        hostData: aHostData({ developmentOffers, dismissedOfferIds: {} }),
+        tabId: faker.number.int(),
+      });
+
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty(
+        'enabledArtifactVersionOverrides',
+        new Map([[offered.id, offered]]),
+      );
+    });
+
+    it('should resolve without the offered build enabled when the same offer is dismissed', async () => {
+      driver.given.hostData({
+        hostData: aHostData({
+          developmentOffers,
+          dismissedOfferIds: { [offered.id]: offerId },
+        }),
+        tabId: faker.number.int(),
+      });
+
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('enabledArtifactVersionOverrides', new Map());
+    });
+
+    it('should resolve with the offered build enabled when a previous offer of the artifact is dismissed', async () => {
+      driver.given.hostData({
+        hostData: aHostData({
+          developmentOffers,
+          dismissedOfferIds: { [offered.id]: faker.string.uuid() },
+        }),
+        tabId: faker.number.int(),
+      });
+
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty(
+        'enabledArtifactVersionOverrides',
+        new Map([[offered.id, offered]]),
+      );
+    });
+
+    it('should resolve with the disabled overrides without the offered artifact when the offer is not dismissed', async () => {
+      driver.given
+        .hostData({
+          hostData: aHostData({ developmentOffers, dismissedOfferIds: {} }),
+          tabId: faker.number.int(),
+        })
+        .given.disabledArtifactVersionOverrides(
+          new Map([[offered.id, anAppManifest({ id: offered.id })]]),
+        );
+
+      await expect(
+        loadColumbusState({ bypassCache: false }),
+      ).resolves.toHaveProperty('disabledArtifactVersionOverrides', new Map());
+    });
   });
 
   describe('when the active tab read fails', () => {

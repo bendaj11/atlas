@@ -1,73 +1,98 @@
 import { assertOverrideMatchesManifest } from '../catalog/catalog-resolution.js';
 import { requestDevelopmentSession } from '../development-session/development-session.js';
 import { AtlasOverrideError } from '../loader.errors.js';
-import type {
-  AtlasRuntimeOverride,
-  AtlasRuntimeOverrideDocument,
+import {
+  dismissedDevelopmentOffersKey,
+  isDevelopmentOfferIds,
+  mergeDevelopmentOffers,
+  parseDismissedDevelopmentOffers,
+  type AtlasDevelopmentOffers,
+  type AtlasRuntimeOverride,
+  type AtlasRuntimeOverrideDocument,
 } from '@atlas/schema';
 import type {
   AtlasBrowserOverrideOptions,
-  OverrideSessionStorage,
+  OverrideStorage,
 } from './overrides.types.js';
 
 export const ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY = 'atlas.runtime-overrides';
-export const ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY =
-  'atlas.development-session-seed';
 
 export async function loadBrowserRuntimeOverrides(
   options: AtlasBrowserOverrideOptions,
 ): Promise<AtlasRuntimeOverride[]> {
-  const sessionStorage = options.sessionStorage ?? globalThis.sessionStorage;
+  const storages = [
+    options.sessionStorage ?? globalThis.sessionStorage,
+    options.localStorage ?? globalThis.localStorage,
+  ];
   const requestSession =
     options.developmentSession ??
     (() => requestDevelopmentSession(options.hostId));
-  const developmentDocument = await requestSession();
-  const developmentSession = developmentDocument
-    ? parseOverrideDocumentFromValue(
-        developmentDocument,
-        'the development session',
-      )
+  const sessionValue = await requestSession();
+  const offers = sessionValue
+    ? parseDevelopmentOffersFromValue(sessionValue)
     : undefined;
-  const seedDocument =
-    developmentSession &&
-    sessionStorage?.getItem(ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY) !==
-      seedOf(developmentSession)
-      ? developmentSession
-      : undefined;
-  const document =
-    seedDocument ?? readOverrideDocumentFromStorage(sessionStorage);
+  const stored = readOverrideDocumentFromStorage(storages);
 
-  if (!document) return [];
+  for (const document of [offers, stored])
+    if (document) assertOverrideDocumentTargetsHost(document, options.hostId);
 
-  assertOverrideDocumentTargetsHost(document, options.hostId);
+  const selection = { overrides: stored?.overrides ?? [] };
+  const { overrides } = offers
+    ? mergeDevelopmentOffers({
+        selection,
+        offers,
+        dismissedOfferIds: parseDismissedDevelopmentOffers(
+          readFromStorages({
+            storages,
+            key: dismissedDevelopmentOffersKey(options.hostId),
+          }),
+        ),
+      })
+    : selection;
 
-  for (const override of document.overrides)
-    assertOverrideMatchesManifest(override);
+  for (const override of overrides) assertOverrideMatchesManifest(override);
 
-  if (seedDocument) {
-    sessionStorage?.setItem?.(
-      ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
-      JSON.stringify(seedDocument),
-    );
-    sessionStorage?.setItem?.(
-      ATLAS_DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
-      seedOf(seedDocument),
-    );
-  }
-
-  return document.overrides;
+  return overrides;
 }
 
-function seedOf(document: AtlasRuntimeOverrideDocument): string {
-  return `${document.hostId}:${document.generatedAt}`;
+function readFromStorages({
+  storages,
+  key,
+}: {
+  storages: (OverrideStorage | undefined)[];
+  key: string;
+}): string | null {
+  for (const storage of storages) {
+    const value = storage?.getItem(key);
+
+    if (value !== null && value !== undefined) return value;
+  }
+
+  return null;
+}
+
+function parseDevelopmentOffersFromValue(
+  value: unknown,
+): AtlasRuntimeOverrideDocument & AtlasDevelopmentOffers {
+  const document = parseOverrideDocumentFromValue(
+    value,
+    'the development session',
+  );
+  const offerIds = isRecord(value) ? value.offerIds : undefined;
+
+  return {
+    ...document,
+    offerIds: isDevelopmentOfferIds(offerIds) ? offerIds : {},
+  };
 }
 
 function readOverrideDocumentFromStorage(
-  sessionStorage: OverrideSessionStorage | undefined,
+  storages: (OverrideStorage | undefined)[],
 ): AtlasRuntimeOverrideDocument | undefined {
-  const stored =
-    sessionStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY) ??
-    globalThis.localStorage?.getItem(ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY);
+  const stored = readFromStorages({
+    storages,
+    key: ATLAS_OVERRIDE_DOCUMENT_STORAGE_KEY,
+  });
 
   if (!stored) return undefined;
 
@@ -131,7 +156,7 @@ function isOverrideEntryShape(value: unknown): value is AtlasRuntimeOverride {
 }
 
 function assertOverrideDocumentTargetsHost(
-  document: AtlasRuntimeOverrideDocument,
+  document: Pick<AtlasRuntimeOverrideDocument, 'hostId'>,
   hostId: string,
 ): void {
   if (document.hostId !== hostId) {

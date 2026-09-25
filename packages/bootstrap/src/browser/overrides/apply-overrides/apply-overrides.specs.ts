@@ -1,6 +1,14 @@
+/** @jest-environment jsdom */
 import { faker } from '@faker-js/faker';
-import { aHostCatalog, aHostRuntimeConfig } from '@atlas/testkit';
+import {
+  aHostCatalog,
+  aHostManifest,
+  aHostRuntimeConfig,
+  anAppManifest,
+} from '@atlas/testkit';
 import { ApplyOverridesDriver } from './apply-overrides.driver.js';
+
+const { applyOverrides } = await import('./apply-overrides.js');
 
 describe('applyOverrides', () => {
   let driver: ApplyOverridesDriver;
@@ -9,124 +17,160 @@ describe('applyOverrides', () => {
     driver = new ApplyOverridesDriver();
   });
 
-  describe('when the runtime selects a host with a catalog', () => {
-    const runtime = aHostRuntimeConfig();
+  describe('when the runtime selects a host with a catalog and names no development session URL', () => {
+    const runtime = aHostRuntimeConfig({ developmentSessionUrl: undefined });
     const catalog = aHostCatalog({ hostId: runtime.hostId });
 
-    beforeEach(() => {
-      driver.given.runtime(runtime).given.catalog(catalog);
-    });
-
-    describe('when no session is supplied or discovered and nothing is stored', () => {
-      beforeEach(async () => {
-        await driver.when.applied();
-      });
-
-      it('should discover a development session for the runtime when applied', () => {
-        expect(
-          driver.get.discoverDevelopmentSessionMock(),
-        ).toHaveBeenCalledWith(expect.objectContaining({ runtime }));
-      });
-
-      it('should return the catalog unchanged when applied', () => {
-        expect(driver.get.result()).toBe(catalog);
-      });
-
-      it('should not merge a session when applied', () => {
-        expect(driver.get.mergeDevelopmentSessionMock()).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('when a session is supplied', () => {
-      const session = { hostId: runtime.hostId };
-      const merged = aHostCatalog({ hostId: runtime.hostId });
-
-      beforeEach(async () => {
-        driver.given.suppliedSession(session).given.mergedCatalog(merged);
-        await driver.when.applied();
-      });
-
-      it('should not discover a session when applied', () => {
-        expect(
-          driver.get.discoverDevelopmentSessionMock(),
-        ).not.toHaveBeenCalled();
-      });
-
-      it('should store the supplied session when applied', () => {
-        expect(driver.get.storeDevelopmentSessionMock()).toHaveBeenCalledWith(
-          expect.objectContaining({ session }),
-        );
-      });
-
-      it('should merge the supplied session into the catalog when applied', () => {
-        expect(driver.get.mergeDevelopmentSessionMock()).toHaveBeenCalledWith({
+    it('should return the catalog unchanged when no session is discovered and nothing is stored', async () => {
+      await expect(
+        applyOverrides({
+          runtime,
           catalog,
-          session,
-        });
-      });
-
-      it('should apply the stored session document to the merged catalog when applied', () => {
-        expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
-          expect.objectContaining({ catalog: merged, overrides: session }),
-        );
-      });
+          dependencies: driver.get.dependencies(),
+        }),
+      ).resolves.toBe(catalog);
     });
 
-    describe('when a session already seeded in this tab is supplied', () => {
-      const session = { hostId: runtime.hostId };
-      const overridden = aHostCatalog({ hostId: runtime.hostId });
-      const stored = { hostId: runtime.hostId };
-
-      beforeEach(async () => {
-        driver.given
-          .suppliedSession(session)
-          .given.sessionSeeded(true)
-          .given.storedDocument(stored)
-          .given.overriddenCatalog(overridden);
-        await driver.when.applied();
-      });
-
-      it('should not store the session again when applied', () => {
-        expect(driver.get.storeDevelopmentSessionMock()).not.toHaveBeenCalled();
-      });
-
-      it('should not merge the session when applied', () => {
-        expect(driver.get.mergeDevelopmentSessionMock()).not.toHaveBeenCalled();
-      });
-
-      it('should apply the stored document to the catalog when applied', () => {
-        expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
-          expect.objectContaining({ catalog, overrides: stored }),
-        );
-      });
-    });
-
-    it('should merge the discovered session when one is discovered', async () => {
-      const session = { hostId: runtime.hostId };
-      driver.given.discoveredSession(session).given.mergedCatalog(catalog);
-      await driver.when.applied();
-
-      expect(driver.get.mergeDevelopmentSessionMock()).toHaveBeenCalledWith({
+    it('should not discover a session when one is supplied', async () => {
+      await applyOverrides({
+        runtime,
         catalog,
-        session,
+        developmentSession: { hostId: runtime.hostId, overrides: [] },
+        dependencies: driver.get.dependencies(),
       });
+
+      expect(driver.get.requestDevelopmentSessionMock()).not.toHaveBeenCalled();
+    });
+
+    it('should apply the offered overrides when the discovered session offers them', async () => {
+      const manifest = anAppManifest({ channel: 'local' });
+      const offered = { appId: manifest.id, manifest };
+
+      driver.given.bridgeSession({
+        hostId: runtime.hostId,
+        overrides: [offered],
+        offerIds: { [manifest.id]: faker.date.past().toISOString() },
+      });
+
+      await applyOverrides({
+        runtime,
+        catalog,
+        dependencies: driver.get.dependencies(),
+      });
+
+      expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
+        expect.objectContaining({ catalog, overrides: { overrides: [offered] } }),
+      );
+    });
+
+    it('should return the catalog unchanged when every offer was dismissed for every tab', async () => {
+      const manifest = anAppManifest({ channel: 'local' });
+      const offerId = faker.date.past().toISOString();
+
+      driver.given
+        .bridgeSession({
+          hostId: runtime.hostId,
+          overrides: [{ appId: manifest.id, manifest }],
+          offerIds: { [manifest.id]: offerId },
+        })
+        .given.originDismissedOffers(runtime.hostId, { [manifest.id]: offerId });
+
+      await expect(
+        applyOverrides({
+          runtime,
+          catalog,
+          dependencies: driver.get.dependencies(),
+        }),
+      ).resolves.toBe(catalog);
+    });
+
+    it('should apply the offered host override when the session offers a host', async () => {
+      const hostOverride = aHostManifest({ id: runtime.hostId });
+
+      driver.given.bridgeSession({
+        hostId: runtime.hostId,
+        overrides: [],
+        hostOverride,
+        offerIds: { [hostOverride.id]: faker.date.past().toISOString() },
+      });
+
+      await applyOverrides({
+        runtime,
+        catalog,
+        dependencies: driver.get.dependencies(),
+      });
+
+      expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          catalog,
+          overrides: { overrides: [], hostOverride },
+        }),
+      );
+    });
+
+    it('should apply the stored overrides with the offered ones when both exist', async () => {
+      const storedManifest = anAppManifest({ channel: 'production' });
+      const offeredManifest = anAppManifest({ channel: 'local' });
+      const stored = { appId: storedManifest.id, manifest: storedManifest };
+      const offered = { appId: offeredManifest.id, manifest: offeredManifest };
+
+      driver.given
+        .bridgeSession({
+          hostId: runtime.hostId,
+          overrides: [offered],
+          offerIds: { [offeredManifest.id]: faker.date.past().toISOString() },
+        })
+        .given.originDocument({ hostId: runtime.hostId, overrides: [stored] });
+
+      await applyOverrides({
+        runtime,
+        catalog,
+        dependencies: driver.get.dependencies(),
+      });
+
+      expect(driver.get.applyOverridesDocumentMock()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          catalog,
+          overrides: { overrides: [stored, offered] },
+        }),
+      );
     });
 
     it('should return the catalog unchanged when the stored document targets another host', async () => {
-      driver.given.storedDocument({ hostId: faker.string.uuid() });
-      await driver.when.applied();
+      const manifest = anAppManifest({ channel: 'production' });
 
-      expect(driver.get.result()).toBe(catalog);
+      driver.given.tabDocument({
+        hostId: faker.string.uuid(),
+        overrides: [{ appId: manifest.id, manifest }],
+      });
+
+      await expect(
+        applyOverrides({
+          runtime,
+          catalog,
+          dependencies: driver.get.dependencies(),
+        }),
+      ).resolves.toBe(catalog);
     });
 
     it('should return the overridden catalog when the stored document targets this host', async () => {
+      const manifest = anAppManifest({ channel: 'production' });
       const overridden = aHostCatalog({ hostId: runtime.hostId });
-      driver.given
-        .storedDocument({ hostId: runtime.hostId })
-        .given.overriddenCatalog(overridden);
-      await driver.when.applied();
 
-      expect(driver.get.result()).toBe(overridden);
+      driver.given
+        .tabDocument({
+          hostId: runtime.hostId,
+          overrides: [{ appId: manifest.id, manifest }],
+        })
+        .given.overriddenCatalog(overridden);
+
+      await expect(
+        applyOverrides({
+          runtime,
+          catalog,
+          dependencies: driver.get.dependencies(),
+        }),
+      ).resolves.toBe(overridden);
     });
   });
 });

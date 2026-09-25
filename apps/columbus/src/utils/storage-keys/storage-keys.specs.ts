@@ -1,10 +1,8 @@
 import { faker } from '@faker-js/faker';
 import {
-  disabledLocalAppsKey,
   disabledOverridesKey,
   hostDataCacheKey,
   persistedOverridesKey,
-  suppressedArtifactsKey,
 } from './storage-keys';
 
 describe('hostDataCacheKey', () => {
@@ -23,16 +21,6 @@ describe('persistedOverridesKey', () => {
   });
 });
 
-describe('disabledLocalAppsKey', () => {
-  it('should scope the key by host when built', () => {
-    const hostId = faker.string.uuid();
-
-    expect(disabledLocalAppsKey(hostId)).toBe(
-      `atlas.disabled-local-apps.${hostId}`,
-    );
-  });
-});
-
 describe('disabledOverridesKey', () => {
   it('should scope the key by host and tab when scope is tab', () => {
     const hostId = faker.string.uuid();
@@ -48,25 +36,6 @@ describe('disabledOverridesKey', () => {
 
     expect(disabledOverridesKey(hostId, faker.number.int(), 'all')).toBe(
       `atlas.disabled-overrides.${hostId}.all`,
-    );
-  });
-});
-
-describe('suppressedArtifactsKey', () => {
-  it('should scope the key by host and tab when scope is tab', () => {
-    const hostId = faker.string.uuid();
-    const tabId = faker.number.int();
-
-    expect(suppressedArtifactsKey(hostId, tabId, 'tab')).toBe(
-      `atlas.suppressed-artifacts.${hostId}.tab.${tabId}`,
-    );
-  });
-
-  it('should scope the key by host alone when scope is all', () => {
-    const hostId = faker.string.uuid();
-
-    expect(suppressedArtifactsKey(hostId, faker.number.int(), 'all')).toBe(
-      `atlas.suppressed-artifacts.${hostId}.all`,
     );
   });
 });

@@ -62,23 +62,6 @@ describe('saveArtifactVersionOverride', () => {
       }).enabledArtifactVersionOverrides,
     ).toStrictEqual(new Map());
   });
-
-  it('should remove the deployed artifact id from the cleared local ids when a selection is saved', () => {
-    const deployed = anAppManifest();
-    const columbusState = aColumbusState({
-      clearedLocalArtifactIds: new Set([deployed.id]),
-    });
-
-    expect(
-      saveArtifactVersionOverride({
-        columbusState,
-        selection: {
-          deployedArtifactVersion: deployed,
-          selectedOverrideArtifactVersion: anAppManifest({ id: deployed.id }),
-        },
-      }).clearedLocalArtifactIds,
-    ).toStrictEqual(new Set());
-  });
 });
 
 describe('toggleArtifactVersionOverride', () => {
@@ -155,42 +138,6 @@ describe('clearArtifactVersionOverride', () => {
         .disabledArtifactVersionOverrides,
     ).toStrictEqual(new Map());
   });
-
-  it('should add the artifact id to the cleared local ids when an enabled local override is cleared', () => {
-    const override = anAppManifest({ channel: 'local' });
-    const columbusState = aColumbusState({
-      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
-    });
-
-    expect(
-      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
-        .clearedLocalArtifactIds,
-    ).toStrictEqual(new Set([override.id]));
-  });
-
-  it('should add the artifact id to the cleared local ids when a disabled local override is cleared', () => {
-    const override = anAppManifest({ channel: 'local' });
-    const columbusState = aColumbusState({
-      disabledArtifactVersionOverrides: new Map([[override.id, override]]),
-    });
-
-    expect(
-      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
-        .clearedLocalArtifactIds,
-    ).toStrictEqual(new Set([override.id]));
-  });
-
-  it('should keep the cleared local ids empty when an enabled pr override is cleared', () => {
-    const override = anAppManifest({ channel: 'pr' });
-    const columbusState = aColumbusState({
-      enabledArtifactVersionOverrides: new Map([[override.id, override]]),
-    });
-
-    expect(
-      clearArtifactVersionOverride({ columbusState, artifactKey: override.id })
-        .clearedLocalArtifactIds,
-    ).toStrictEqual(new Set());
-  });
 });
 
 describe('clearAllArtifactVersionOverrides', () => {
@@ -224,30 +171,6 @@ describe('clearAllArtifactVersionOverrides', () => {
       clearAllArtifactVersionOverrides(columbusState)
         .disabledArtifactVersionOverrides,
     ).toStrictEqual(new Map());
-  });
-
-  it('should add the local override ids to the cleared local ids when all are cleared', () => {
-    const enabled = anAppManifest({ channel: 'local' });
-    const disabled = anAppManifest({ channel: 'local' });
-    const columbusState = aColumbusState({
-      enabledArtifactVersionOverrides: new Map([[enabled.id, enabled]]),
-      disabledArtifactVersionOverrides: new Map([[disabled.id, disabled]]),
-    });
-
-    expect(
-      clearAllArtifactVersionOverrides(columbusState).clearedLocalArtifactIds,
-    ).toStrictEqual(new Set([enabled.id, disabled.id]));
-  });
-
-  it('should keep the cleared local ids empty when only pr overrides are cleared', () => {
-    const enabled = anAppManifest({ channel: 'pr' });
-    const columbusState = aColumbusState({
-      enabledArtifactVersionOverrides: new Map([[enabled.id, enabled]]),
-    });
-
-    expect(
-      clearAllArtifactVersionOverrides(columbusState).clearedLocalArtifactIds,
-    ).toStrictEqual(new Set());
   });
 });
 

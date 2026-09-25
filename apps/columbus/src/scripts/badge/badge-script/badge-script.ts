@@ -1,12 +1,6 @@
-import {
-  countDevSessionOverrides,
-  createBadgeRefresher,
-} from '../badge-refresh/badge-refresh';
+import { mergeDevelopmentOffers } from '@atlas/schema';
+import { createBadgeRefresher } from '../badge-refresh/badge-refresh';
 import { hasAtlasBootstrapSignature } from '../atlas-bootstrap-signature/atlas-bootstrap-signature';
-import {
-  DEFAULT_CONTROL_PORT,
-  rememberedControlPort,
-} from '../../../utils/control-port/control-port';
 import { messageFromError } from '../../../utils/errors/errors';
 import {
   actionThemeMessage,
@@ -18,14 +12,18 @@ import {
 } from '../../../utils/messages/messages';
 import {
   OVERRIDE_DOCUMENT_KEY,
-  disabledLocalAppsKey,
   persistedOverridesKey,
 } from '../../../utils/storage-keys/storage-keys';
-import { isLoopbackHostname } from '../../../utils/urls/urls';
-import { countOverrides } from '../../../utils/override-document/override-document';
+import {
+  countOverrides,
+  isStoredOverrideDocument,
+} from '../../../utils/override-document/override-document';
+import { readDevelopmentOffers } from '../../../utils/development-offers/development-offers';
+import type { DevelopmentOffers } from '../../../types/host-data';
 import { createArtifactRegistry } from '../../../utils/artifact-registry/artifact-registry';
 import { inspectAtlasHost } from '../../../utils/inspect-atlas-host/inspect-atlas-host';
 import {
+  readDismissedOfferIds,
   readRuntimeErrors,
   readVisibleAppIds,
 } from '../../../utils/page-runtime-state/page-runtime-state';
@@ -34,6 +32,7 @@ const REFRESH_INTERVAL_MS = 2_000;
 const darkColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const artifactRegistry = createArtifactRegistry();
 let runtimeConfigPromise: Promise<{ hostId?: string } | undefined> | undefined;
+let developmentOffers: DevelopmentOffers | undefined;
 
 const refreshBadge = createBadgeRefresher({
   readCount: readOverrideCount,
@@ -99,67 +98,34 @@ async function readOverrideCount(): Promise<number> {
   const stored =
     sessionStorage.getItem(OVERRIDE_DOCUMENT_KEY) ??
     localStorage.getItem(OVERRIDE_DOCUMENT_KEY);
-  if (stored) return countStoredOverrides(stored);
-
   const config = await readRuntimeConfig();
-  if (!config?.hostId) return 0;
+  const hostId = config?.hostId;
 
-  if (isLoopbackHostname(location.hostname)) {
-    const developmentSessionOverrideCount =
-      await readDevelopmentSessionOverrideCount(config.hostId);
-    if (developmentSessionOverrideCount !== undefined)
-      return developmentSessionOverrideCount;
-  }
+  if (!hostId) return stored ? countStoredOverrides(parseJson(stored)) : 0;
 
-  const key = persistedOverridesKey(config.hostId);
-  const persisted = await chrome.storage.local.get(key);
+  const document = stored
+    ? parseJson(stored)
+    : (await chrome.storage.local.get(persistedOverridesKey(hostId)))[
+        persistedOverridesKey(hostId)
+      ];
+  const selection = isStoredOverrideDocument(document)
+    ? {
+        overrides: document.overrides,
+        ...(document.hostOverride
+          ? { hostOverride: document.hostOverride }
+          : {}),
+      }
+    : { overrides: [] };
+  developmentOffers ??= await readDevelopmentOffers(hostId);
 
-  return countStoredOverrides(persisted[key]);
-}
-
-async function readDevelopmentSessionOverrideCount(
-  hostId: string,
-): Promise<number | undefined> {
-  try {
-    const url = new URL(
-      '/atlas.dev-session.json',
-      `http://localhost:${rememberedControlPort() ?? DEFAULT_CONTROL_PORT}`,
-    );
-    url.searchParams.set('hostId', hostId);
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) return undefined;
-
-    const session: unknown = await response.json();
-    if (
-      !isRecord(session) ||
-      session.schemaVersion !== '1' ||
-      session.hostId !== hostId ||
-      !Array.isArray(session.overrides)
-    )
-      return undefined;
-    const disabledAppIds = readDisabledLocalAppIds(hostId);
-
-    return countDevSessionOverrides({
-      session: {
-        overrides: session.overrides,
-        hostOverride: session.hostOverride,
-      },
-      disabledAppIds,
-    });
-  } catch {
-    return undefined;
-  }
-}
-
-function readDisabledLocalAppIds(hostId: string): Set<string> {
-  const key = disabledLocalAppsKey(hostId);
-  const stored = sessionStorage.getItem(key) ?? localStorage.getItem(key);
-  const value = stored ? parseJson(stored) : [];
-
-  return new Set(
-    Array.isArray(value)
-      ? value.filter((appId): appId is string => typeof appId === 'string')
-      : [],
+  return countOverrides(
+    developmentOffers
+      ? mergeDevelopmentOffers({
+          selection,
+          offers: developmentOffers,
+          dismissedOfferIds: readDismissedOfferIds(hostId),
+        })
+      : selection,
   );
 }
 
@@ -188,14 +154,7 @@ async function fetchRuntimeConfig(): Promise<{ hostId?: string } | undefined> {
 }
 
 function countStoredOverrides(value: unknown): number {
-  const documentValue = typeof value === 'string' ? parseJson(value) : value;
-  if (!isRecord(documentValue) || !Array.isArray(documentValue.overrides))
-    return 0;
-
-  return countOverrides({
-    overrides: documentValue.overrides,
-    hostOverride: documentValue.hostOverride,
-  });
+  return isStoredOverrideDocument(value) ? countOverrides(value) : 0;
 }
 
 function parseJson(value: string): unknown {

@@ -8,8 +8,9 @@ import {
   uniqueManifests,
 } from '../artifact-registry/artifact-registry';
 import { readCatalog, readRuntimeConfig } from '../host-catalog/host-catalog';
+import { readDevelopmentOffers } from '../development-offers/development-offers';
 import {
-  localOverridesOf,
+  readDismissedOfferIds,
   readRuntimeErrors,
   readStoredOverrides,
   readVisibleAppIds,
@@ -22,6 +23,7 @@ export async function inspectAtlasHost(
   registry: ArtifactRegistry,
 ): Promise<HostData> {
   const config = await readRuntimeConfig();
+  const developmentOffersRead = readDevelopmentOffers(config.hostId);
   const catalog = await readCatalog(config, registry.loadManifest);
   if (catalog.hostId !== config.hostId)
     throw new Error(
@@ -71,8 +73,10 @@ export async function inspectAtlasHost(
     versions: Object.fromEntries(
       versionReads.map(({ key, manifests }) => [key, manifests]),
     ),
-    overrides: stored.overrides ?? localOverridesOf(config.hostId, deployed),
+    overrides: stored.overrides,
     overrideScope: stored.overrideScope,
+    developmentOffers: await developmentOffersRead,
+    dismissedOfferIds: readDismissedOfferIds(config.hostId),
     visibleAppIds: readVisibleAppIds(),
     runtimeErrors: readRuntimeErrors(),
     versionErrors: [

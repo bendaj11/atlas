@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { ControlServerDriver } from './control-server.driver.js';
 
 describe('development control server', () => {
@@ -109,5 +110,21 @@ describe('development control server', () => {
     await driver.given.runningHostAndApp();
 
     expect(await driver.get.unregisteredPreviewSessionStatus()).toBe(403);
+  });
+
+  it('should serve the preview launcher when the preview URL is a web page', async () => {
+    await driver.given.runningHostAndApp();
+
+    expect(await driver.get.previewLauncherStatus(faker.internet.url())).toBe(
+      200,
+    );
+  });
+
+  it('should reject the preview launcher when the preview URL is not a web page', async () => {
+    await driver.given.runningHostAndApp();
+
+    expect(
+      await driver.get.previewLauncherStatus(`javascript:${faker.lorem.word()}`),
+    ).toBe(400);
   });
 });

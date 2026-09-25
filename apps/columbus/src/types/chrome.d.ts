@@ -8,6 +8,7 @@ declare global {
         id?: number;
         lastAccessed?: number;
         url?: string;
+        windowId?: number;
       }
       interface TabChangeInfo {
         status?: 'loading' | 'complete';
@@ -19,7 +20,11 @@ declare global {
       }): Promise<Tab[]>;
       function reload(tabId: number): Promise<void>;
       function sendMessage(tabId: number, message: unknown): Promise<unknown>;
-      function update(tabId: number, properties: { url: string }): Promise<Tab>;
+      function remove(tabId: number): Promise<void>;
+      function update(
+        tabId: number,
+        properties: { url: string } | { active: boolean },
+      ): Promise<Tab>;
       namespace onUpdated {
         function addListener(
           listener: (
@@ -32,6 +37,12 @@ declare global {
       namespace onRemoved {
         function addListener(listener: (tabId: number) => void): void;
       }
+    }
+    namespace windows {
+      function update(
+        windowId: number,
+        properties: { focused: boolean },
+      ): Promise<unknown>;
     }
     namespace scripting {
       interface InjectionResult<T> {

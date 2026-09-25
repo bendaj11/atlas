@@ -1,7 +1,6 @@
 import type { AtlasRetryPolicy } from '../../resilience/resilience.types.js';
 
-export type OverrideSessionStorage = Pick<Storage, 'getItem'> &
-  Partial<Pick<Storage, 'setItem'>>;
+export type OverrideStorage = Pick<Storage, 'getItem'>;
 
 export type RequestDevelopmentSession = () => Promise<unknown | undefined>;
 
@@ -12,7 +11,8 @@ export interface AtlasBrowserOverrideOptions {
   /** @deprecated Override URLs are never fetched; this value is ignored. */
   fetchJson?: (url: string, signal?: AbortSignal) => Promise<unknown>;
   /** Tab-scoped storage. Its override document takes precedence over origin-wide storage. */
-  sessionStorage?: OverrideSessionStorage;
+  sessionStorage?: OverrideStorage;
+  localStorage?: OverrideStorage;
   developmentSession?: RequestDevelopmentSession;
   requestPolicy?: AtlasRetryPolicy;
 }

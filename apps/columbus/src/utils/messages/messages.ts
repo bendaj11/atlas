@@ -23,6 +23,10 @@ export interface OverrideCountMessage {
   overrideCount: number;
 }
 
+export interface FocusPreviewRequest {
+  type: 'atlas.focus-preview';
+}
+
 export interface ActionThemeMessage {
   type: 'columbus.action-theme';
   colorScheme: ColorScheme;
@@ -114,6 +118,16 @@ export function loadDevelopmentSessionRequest(
   request: Omit<LoadDevelopmentSessionRequest, 'type'>,
 ): LoadDevelopmentSessionRequest {
   return { type: 'atlas.load-development-session', ...request };
+}
+
+export function focusPreviewRequest(): FocusPreviewRequest {
+  return { type: 'atlas.focus-preview' };
+}
+
+export function isFocusPreviewRequest(
+  value: unknown,
+): value is FocusPreviewRequest {
+  return isMessage(value, 'atlas.focus-preview');
 }
 
 export function isLoadDevelopmentSessionRequest(

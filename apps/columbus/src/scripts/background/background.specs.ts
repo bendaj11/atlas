@@ -200,6 +200,43 @@ describe('background', () => {
     });
   });
 
+  describe('when a preview focus request arrives from a tab', () => {
+    const tab = { id: faker.number.int(), url: faker.internet.url() };
+
+    beforeEach(() => {
+      driver.given.sender({ tab });
+    });
+
+    it('should focus the preview for the sender tab when received', async () => {
+      driver.given.previewFocus(true);
+
+      await driver.when.messageReceived({ type: 'atlas.focus-preview' });
+
+      expect(driver.get.focusPreviewTab()).toHaveBeenCalledWith({
+        launcherTab: tab,
+      });
+    });
+
+    it.each([true, false])(
+      'should respond with focused %s when the focus resolves with it',
+      async (focused) => {
+        driver.given.previewFocus(focused);
+
+        await driver.when.messageReceived({ type: 'atlas.focus-preview' });
+
+        expect(driver.get.response()).toStrictEqual({ focused });
+      },
+    );
+
+    it('should respond with focused false when the focus fails', async () => {
+      driver.given.previewFocusFailure(new Error(faker.lorem.sentence()));
+
+      await driver.when.messageReceived({ type: 'atlas.focus-preview' });
+
+      expect(driver.get.response()).toStrictEqual({ focused: false });
+    });
+  });
+
   describe('when the session loader fetches through the injected fetchJson', () => {
     const previewUrl = faker.internet.url();
     const request = loadDevelopmentSessionRequest({

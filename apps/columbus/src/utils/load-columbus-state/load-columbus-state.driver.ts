@@ -3,17 +3,12 @@ import type { ArtifactVersion } from '../../types/artifact-version';
 import type { HostData, HostPageState } from '../../types/host-data';
 import { readPageStateFromHostTabMock } from '../../testkit/mocks/host-tabs';
 import type { readHostData as readHostDataType } from '../host-data/host-data';
-import type {
-  readDisabledArtifactVersionOverrides as readDisabledArtifactVersionOverridesType,
-  readClearedLocalArtifactIds as readClearedLocalArtifactIdsType,
-} from '../override-storage/override-storage';
+import type { readDisabledArtifactVersionOverrides as readDisabledArtifactVersionOverridesType } from '../override-storage/override-storage';
 import type { readHostDataCache as readHostDataCacheType } from '../host-data-cache/host-data-cache';
 
 const readHostData = jest.fn<typeof readHostDataType>();
 const readDisabledArtifactVersionOverrides =
   jest.fn<typeof readDisabledArtifactVersionOverridesType>();
-const readClearedLocalArtifactIds =
-  jest.fn<typeof readClearedLocalArtifactIdsType>();
 const readHostDataCache = jest.fn<typeof readHostDataCacheType>();
 
 jest.unstable_mockModule('../host-data/host-data', () => ({
@@ -21,7 +16,6 @@ jest.unstable_mockModule('../host-data/host-data', () => ({
 }));
 jest.unstable_mockModule('../override-storage/override-storage', () => ({
   readDisabledArtifactVersionOverrides,
-  readClearedLocalArtifactIds,
 }));
 jest.unstable_mockModule('../host-data-cache/host-data-cache', () => ({
   readHostDataCache,
@@ -37,7 +31,6 @@ export class LoadColumbusStateDriver {
     jest.clearAllMocks();
     readHostDataCache.mockResolvedValue(undefined);
     readDisabledArtifactVersionOverrides.mockResolvedValue(new Map());
-    readClearedLocalArtifactIds.mockResolvedValue(new Set());
   }
 
   readonly given = {
@@ -83,11 +76,6 @@ export class LoadColumbusStateDriver {
 
       return this;
     },
-    clearedLocalArtifactIds: (ids: Set<string>) => {
-      readClearedLocalArtifactIds.mockResolvedValue(ids);
-
-      return this;
-    },
   };
 
   readonly get = {
@@ -96,6 +84,5 @@ export class LoadColumbusStateDriver {
     readPageStateFromHostTab: () => readPageStateFromHostTabMock,
     readDisabledArtifactVersionOverrides: () =>
       readDisabledArtifactVersionOverrides,
-    readClearedLocalArtifactIds: () => readClearedLocalArtifactIds,
   };
 }

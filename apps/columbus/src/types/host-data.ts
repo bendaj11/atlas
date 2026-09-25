@@ -1,6 +1,19 @@
-import type { AtlasHostCatalog, AtlasHostRuntimeConfig } from '@atlas/schema';
+import type {
+  AtlasDevelopmentOfferIds,
+  AtlasDevelopmentOffers,
+  AtlasHostCatalog,
+  AtlasHostRuntimeConfig,
+} from '@atlas/schema';
 import type { ArtifactVersion } from './artifact-version';
-import type { AtlasOverrideDocument } from './override-document';
+import type {
+  AtlasArtifactOverride,
+  AtlasOverrideDocument,
+} from './override-document';
+
+export type DevelopmentOffers = AtlasDevelopmentOffers<
+  AtlasArtifactOverride,
+  ArtifactVersion
+>;
 
 export interface AtlasRuntimeError {
   artifactId?: string;
@@ -19,5 +32,7 @@ export interface HostData extends HostPageState {
   versions: Record<string, ArtifactVersion[]>;
   overrides: AtlasOverrideDocument | undefined;
   overrideScope: 'all' | 'tab' | undefined;
+  developmentOffers: DevelopmentOffers | undefined;
+  dismissedOfferIds: AtlasDevelopmentOfferIds;
   versionErrors: string[];
 }

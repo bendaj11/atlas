@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { ATLAS_PREVIEW_LAUNCHER_PATH } from '@atlas/schema';
 import {
   LOCAL_HOST,
   readJsonRequest,
@@ -10,6 +11,7 @@ import type {
   DevSessionStore,
   StartControlServerOptions,
 } from '../types.js';
+import { previewLauncherPage } from './preview-launcher.js';
 import {
   readPublishedCatalog,
   warnPublishedCatalogOnce,
@@ -135,6 +137,15 @@ export function createControlRequestHandler({
       return;
     }
 
+    if (
+      control.method === 'GET' &&
+      control.pathname === ATLAS_PREVIEW_LAUNCHER_PATH
+    ) {
+      respondWithPreviewLauncher({ response, control });
+
+      return;
+    }
+
     if (control.method === 'GET' && control.pathname === '/health') {
       const ready = session.hasReadySession();
 
@@ -240,6 +251,23 @@ async function loadPublishedCatalog({
   }
 }
 
+function respondWithPreviewLauncher({
+  response,
+  control,
+}: {
+  response: ServerResponse;
+  control: ControlRequest;
+}): void {
+  if (!isWebPageUrl(control.previewUrl)) {
+    writeJson(response, { error: 'Atlas preview URL is invalid.' }, 400);
+
+    return;
+  }
+
+  response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  response.end(previewLauncherPage(control.previewUrl));
+}
+
 function respondWithSession({
   response,
   value,
@@ -258,6 +286,18 @@ function respondWithSession({
     'retry-after': '1',
   });
   response.end('{"status":"starting"}\n');
+}
+
+function isWebPageUrl(value: string | undefined): value is string {
+  if (!value) return false;
+
+  try {
+    const { protocol } = new URL(value);
+
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function extractPathSegmentBetween({

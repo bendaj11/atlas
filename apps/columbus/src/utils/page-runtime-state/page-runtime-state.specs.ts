@@ -1,7 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import {
-  localOverridesOf,
+  readDismissedOfferIds,
   readRuntimeErrors,
   readStoredOverrides,
   readVisibleAppIds,
@@ -117,40 +116,67 @@ describe('readStoredOverrides', () => {
   });
 });
 
-describe('localOverridesOf', () => {
-  it('should return nothing when no manifest is local', () => {
-    expect(
-      localOverridesOf(faker.string.uuid(), [
-        anAppManifest({ channel: 'production' }),
-      ]),
-    ).toBeUndefined();
+describe('readDismissedOfferIds', () => {
+  let driver: PageRuntimeStateDriver;
+
+  beforeEach(() => {
+    driver = new PageRuntimeStateDriver();
   });
 
-  it('should list the local apps as overrides when apps are local', () => {
-    const local = anAppManifest({ channel: 'local' });
-
-    expect(
-      localOverridesOf(faker.string.uuid(), [
-        anAppManifest({ channel: 'production' }),
-        local,
-      ])?.overrides,
-    ).toStrictEqual([{ appId: local.id, manifest: local, reason: 'local' }]);
+  it('should return no offer ids when nothing is stored', () => {
+    expect(readDismissedOfferIds(faker.string.uuid())).toStrictEqual({});
   });
 
-  it('should set the host override when the host is local', () => {
-    const host = aHostManifest({ channel: 'local' });
+  it('should return the offer ids when they are in local storage under the host id', () => {
+    const hostId = faker.string.uuid();
+    const dismissedOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
 
-    expect(localOverridesOf(faker.string.uuid(), [host])?.hostOverride).toBe(
-      host,
+    driver.given.pageLocalStorage(
+      `atlas.dismissed-development-offers.${hostId}`,
+      JSON.stringify(dismissedOfferIds),
     );
+
+    expect(readDismissedOfferIds(hostId)).toStrictEqual(dismissedOfferIds);
   });
 
-  it('should use the given host id when local manifests exist', () => {
+  it('should return the offer ids when they are in session storage under the host id', () => {
+    const hostId = faker.string.uuid();
+    const dismissedOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
+
+    driver.given.pageSessionStorage(
+      `atlas.dismissed-development-offers.${hostId}`,
+      JSON.stringify(dismissedOfferIds),
+    );
+
+    expect(readDismissedOfferIds(hostId)).toStrictEqual(dismissedOfferIds);
+  });
+
+  it('should prefer session storage when both storages hold offer ids', () => {
+    const hostId = faker.string.uuid();
+    const tabOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
+
+    driver.given
+      .pageLocalStorage(
+        `atlas.dismissed-development-offers.${hostId}`,
+        JSON.stringify({ [faker.string.uuid()]: faker.string.uuid() }),
+      )
+      .given.pageSessionStorage(
+        `atlas.dismissed-development-offers.${hostId}`,
+        JSON.stringify(tabOfferIds),
+      );
+
+    expect(readDismissedOfferIds(hostId)).toStrictEqual(tabOfferIds);
+  });
+
+  it('should return no offer ids when the stored value is not an offer id map', () => {
     const hostId = faker.string.uuid();
 
-    expect(
-      localOverridesOf(hostId, [anAppManifest({ channel: 'local' })])?.hostId,
-    ).toBe(hostId);
+    driver.given.pageLocalStorage(
+      `atlas.dismissed-development-offers.${hostId}`,
+      JSON.stringify(null),
+    );
+
+    expect(readDismissedOfferIds(hostId)).toStrictEqual({});
   });
 });
 

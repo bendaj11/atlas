@@ -10,7 +10,6 @@ export function aColumbusState(
     tabId: faker.number.int({ min: 1, max: 1000 }),
     enabledArtifactVersionOverrides: new Map(),
     disabledArtifactVersionOverrides: new Map(),
-    clearedLocalArtifactIds: new Set(),
     scope: faker.helpers.arrayElement(SCOPES),
     ...overrides,
   };

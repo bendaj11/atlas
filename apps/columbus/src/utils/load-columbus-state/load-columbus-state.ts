@@ -1,9 +1,7 @@
+import { mergeDevelopmentOffers } from '@atlas/schema';
 import type { HostData } from '../../types/host-data';
 import { readHostData } from '../host-data/host-data';
-import {
-  readDisabledArtifactVersionOverrides,
-  readClearedLocalArtifactIds,
-} from '../override-storage/override-storage';
+import { readDisabledArtifactVersionOverrides } from '../override-storage/override-storage';
 import { readHostDataCache } from '../host-data-cache/host-data-cache';
 import { readPageStateFromHostTab } from '../host-tabs/host-tabs';
 import { failureMessage } from '../errors/errors';
@@ -64,18 +62,34 @@ async function createColumbusState(
   result: HostReadResult,
 ): Promise<ColumbusState> {
   const scope: Scope = result.hostData.overrideScope === 'tab' ? 'tab' : 'all';
-  const enabledArtifactVersionOverrides =
-    extractEnabledArtifactVersionOverrides(result.hostData);
-  const storageLocation = {
-    hostId: result.hostData.config.hostId,
-    tabId: result.tabId,
-    scope,
+  const { overrides, developmentOffers, dismissedOfferIds } = result.hostData;
+  const selection = {
+    overrides: overrides?.overrides ?? [],
+    ...(overrides?.hostOverride
+      ? { hostOverride: overrides.hostOverride }
+      : {}),
   };
-  const [disabledArtifactVersionOverrides, clearedLocalArtifactIds] =
-    await Promise.all([
-      readDisabledArtifactVersionOverrides(storageLocation),
-      readClearedLocalArtifactIds(storageLocation),
-    ]);
+  const enabledArtifactVersionOverrides =
+    extractEnabledArtifactVersionOverrides(
+      developmentOffers
+        ? mergeDevelopmentOffers({
+            selection,
+            offers: developmentOffers,
+            dismissedOfferIds,
+          })
+        : selection,
+    );
+  const storedDisabledArtifactVersionOverrides =
+    await readDisabledArtifactVersionOverrides({
+      hostId: result.hostData.config.hostId,
+      tabId: result.tabId,
+      scope,
+    });
+  const disabledArtifactVersionOverrides = new Map(
+    [...storedDisabledArtifactVersionOverrides].filter(
+      ([artifactKey]) => !enabledArtifactVersionOverrides.has(artifactKey),
+    ),
+  );
   const hostData = includeOverrideAppsInCatalog({
     hostData: result.hostData,
     overrideArtifactVersions: [
@@ -89,7 +103,6 @@ async function createColumbusState(
     tabId: result.tabId,
     enabledArtifactVersionOverrides,
     disabledArtifactVersionOverrides,
-    clearedLocalArtifactIds,
     scope,
   };
 }

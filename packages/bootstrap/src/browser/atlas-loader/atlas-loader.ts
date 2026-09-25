@@ -37,7 +37,11 @@ export async function startAtlasLoader(
 
   dependencies.validateCatalog({ runtime, catalog });
 
-  publishRuntimeSnapshot({ document: dependencies.document, runtime, catalog });
+  publishRuntimeSnapshot({
+    document: dependencies.document,
+    runtime,
+    catalog: startup.catalog,
+  });
 
   const root = dependencies.document.getElementById(HOST_ROOT_ELEMENT_ID);
 

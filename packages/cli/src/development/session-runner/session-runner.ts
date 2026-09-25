@@ -2,6 +2,7 @@ import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
 import type { AtlasConfig } from '@atlas/schema';
 import { startControlServer } from '../control-server/control-server.js';
+import { previewLauncherUrl } from '../control-server/preview-launcher.js';
 import { closeServer, buildLocalOrigin } from '../http/http.js';
 import { DEFAULT_CONTROL_PORT } from '../constants.js';
 import {
@@ -73,7 +74,10 @@ export async function runDevSession(
 
     const browserUrl = options.browserUrl(context);
     logHostViewUrl(options.hostUrl, browserUrl);
-    openBrowserWhenReady(args, browserUrl);
+    openBrowserWhenReady(
+      args,
+      previewLauncherUrl({ controlOrigin, previewUrl: browserUrl }),
+    );
     await waitForShutdown(frameworkServer, control);
   } catch (error) {
     if (!frameworkServer.killed) frameworkServer.kill('SIGTERM');

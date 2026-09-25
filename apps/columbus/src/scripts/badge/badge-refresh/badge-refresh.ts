@@ -1,18 +1,6 @@
-import { isRecord } from '../../../utils/messages/messages';
-
 interface BadgeRefreshDependencies {
   readCount: () => Promise<number>;
   publishCount: (count: number) => Promise<void>;
-}
-
-interface DevSessionBadgeState {
-  overrides: unknown[];
-  hostOverride?: unknown;
-}
-
-interface CountDevSessionOverridesOptions {
-  session: DevSessionBadgeState;
-  disabledAppIds: ReadonlySet<string>;
 }
 
 export function createBadgeRefresher({
@@ -49,18 +37,4 @@ export function createBadgeRefresher({
   }
 
   return refresh;
-}
-
-export function countDevSessionOverrides({
-  session,
-  disabledAppIds,
-}: CountDevSessionOverridesOptions): number {
-  const enabledApps = session.overrides.filter((override) => {
-    if (!isRecord(override)) return false;
-    if (!('appId' in override)) return false;
-    return (
-      typeof override.appId === 'string' && !disabledAppIds.has(override.appId)
-    );
-  });
-  return enabledApps.length + (session.hostOverride ? 1 : 0);
 }

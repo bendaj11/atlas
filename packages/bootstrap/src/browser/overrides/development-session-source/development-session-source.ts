@@ -1,7 +1,5 @@
-import {
-  DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
-  OVERRIDES_STORAGE_KEY,
-} from '../overrides.constants.js';
+import { dismissedDevelopmentOffersKey } from '@atlas/schema';
+import { OVERRIDES_STORAGE_KEY } from '../overrides.constants.js';
 import type { FetchOptions } from '../../fetch-json/index.js';
 import type {
   DevSession,
@@ -43,47 +41,34 @@ export async function discoverDevelopmentSession({
   return session as DevSession | undefined;
 }
 
-export function storeDevelopmentSession({
-  session,
-  dependencies,
-}: {
-  session: DevSession;
-  dependencies: DevelopmentSessionSourceDependencies;
-}): string {
-  const stored = JSON.stringify(session);
-
-  dependencies.sessionStorage.setItem(OVERRIDES_STORAGE_KEY, stored);
-  dependencies.sessionStorage.setItem(
-    DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
-    seedOf(session),
-  );
-
-  return stored;
-}
-
-export function isDevelopmentSessionSeeded({
-  session,
-  dependencies,
-}: {
-  session: DevSession;
-  dependencies: DevelopmentSessionSourceDependencies;
-}): boolean {
-  return (
-    dependencies.sessionStorage.getItem(
-      DEVELOPMENT_SESSION_SEED_STORAGE_KEY,
-    ) === seedOf(session)
-  );
-}
-
 export function readStoredOverridesDocument(
   dependencies: DevelopmentSessionSourceDependencies,
 ): string | null {
-  return (
-    dependencies.sessionStorage.getItem(OVERRIDES_STORAGE_KEY) ||
-    dependencies.localStorage.getItem(OVERRIDES_STORAGE_KEY)
-  );
+  return readFromStorages({ dependencies, key: OVERRIDES_STORAGE_KEY });
 }
 
-function seedOf(session: DevSession): string {
-  return `${session.hostId}:${session.generatedAt}`;
+export function readDismissedDevelopmentOffers({
+  hostId,
+  dependencies,
+}: {
+  hostId: string;
+  dependencies: DevelopmentSessionSourceDependencies;
+}): string | null {
+  return readFromStorages({
+    dependencies,
+    key: dismissedDevelopmentOffersKey(hostId),
+  });
+}
+
+function readFromStorages({
+  dependencies,
+  key,
+}: {
+  dependencies: DevelopmentSessionSourceDependencies;
+  key: string;
+}): string | null {
+  return (
+    dependencies.sessionStorage.getItem(key) ??
+    dependencies.localStorage.getItem(key)
+  );
 }

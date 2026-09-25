@@ -17,6 +17,16 @@ export class OverrideStorageDriver {
 
       return this;
     },
+    pageLocalStorageItem: (key: string, value: string) => {
+      localStorage.setItem(key, value);
+
+      return this;
+    },
+    pageSessionStorageItem: (key: string, value: string) => {
+      sessionStorage.setItem(key, value);
+
+      return this;
+    },
   };
 
   readonly get = {

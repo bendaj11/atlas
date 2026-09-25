@@ -33,10 +33,10 @@ describe('runDevSession', () => {
       expect(driver.get.controlMarkReadyMock()).toHaveBeenCalledTimes(1);
     });
 
-    it('should open the browser at the computed URL when ready', () => {
+    it('should open the browser at the preview launcher for the computed URL when ready', () => {
       expect(driver.get.openBrowserMock()).toHaveBeenCalledWith(
         expect.anything(),
-        'http://localhost:4400/',
+        'http://localhost:4400/atlas.open?previewUrl=http%3A%2F%2Flocalhost%3A4400%2F',
       );
     });
 

@@ -1,11 +1,9 @@
 import { faker } from '@faker-js/faker';
-import { anAppManifest } from '@atlas/testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import { aHostData } from '../../testkit/host-data.testkit';
 import {
-  readClearedLocalArtifactIds,
   readDisabledArtifactVersionOverrides,
   readPersistedOverrideDocument,
-  writeClearedLocalArtifactIds,
   writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
 } from './override-storage';
@@ -71,110 +69,15 @@ describe('writeOverrideDocument', () => {
     driver = new OverrideStorageDriver();
   });
 
-  describe('when scope is all and the document has an override', () => {
+  describe('when scope is tab', () => {
     const hostData = aHostData();
-    const manifest = anAppManifest();
-    const documentValue = {
-      schemaVersion: '1' as const,
-      hostId: hostData.config.hostId,
-      overrides: [{ appId: manifest.id, manifest, reason: 'pr' as const }],
-      generatedAt: faker.date.recent().toISOString(),
-    };
-
-    beforeEach(async () => {
-      await writeOverrideDocument({
-        tabId: faker.number.int(),
-        hostData,
-        documentValue,
-        scope: 'all',
-      });
-    });
-
-    it('should store the document in page local storage when written', () => {
-      expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toStrictEqual(
-        documentValue,
-      );
-    });
-
-    it('should persist the document in extension storage when written', () => {
-      expect(
-        driver.get.extensionStorageItem(
-          `atlas.overrides.${hostData.config.hostId}`,
-        ),
-      ).toStrictEqual(documentValue);
-    });
-
-    it('should remove the persisted document when an empty document is written afterwards', async () => {
-      await writeOverrideDocument({
-        tabId: faker.number.int(),
-        hostData,
-        documentValue: { ...documentValue, overrides: [] },
-        scope: 'all',
-      });
-
-      expect(
-        driver.get.extensionStorageItem(
-          `atlas.overrides.${hostData.config.hostId}`,
-        ),
-      ).toBeUndefined();
-    });
-
-    it('should remove the page document when an empty document with nothing disabled is written afterwards', async () => {
-      await writeOverrideDocument({
-        tabId: faker.number.int(),
-        hostData,
-        documentValue: { ...documentValue, overrides: [] },
-        scope: 'all',
-      });
-
-      expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toBeUndefined();
-    });
-  });
-
-  describe('when scope is all, the document is empty, and an app is disabled', () => {
-    const hostData = aHostData();
-    const disabledAppId = faker.string.uuid();
     const documentValue = {
       schemaVersion: '1' as const,
       hostId: hostData.config.hostId,
       overrides: [],
       generatedAt: faker.date.recent().toISOString(),
     };
-
-    beforeEach(async () => {
-      await writeOverrideDocument({
-        tabId: faker.number.int(),
-        hostData,
-        documentValue,
-        scope: 'all',
-        disabledAppIds: [disabledAppId],
-      });
-    });
-
-    it('should keep the empty document in page local storage when written', () => {
-      expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toStrictEqual(
-        documentValue,
-      );
-    });
-
-    it('should store the disabled app ids in page local storage when written', () => {
-      expect(
-        driver.get.pageLocalStorageItem(
-          `atlas.disabled-local-apps.${hostData.config.hostId}`,
-        ),
-      ).toStrictEqual([disabledAppId]);
-    });
-  });
-
-  describe('when scope is tab and the document has an override', () => {
-    const hostData = aHostData();
-    const manifest = anAppManifest();
-    const documentValue = {
-      schemaVersion: '1' as const,
-      hostId: hostData.config.hostId,
-      overrides: [{ appId: manifest.id, manifest, reason: 'pr' as const }],
-      generatedAt: faker.date.recent().toISOString(),
-    };
+    const dismissedOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
 
     beforeEach(async () => {
       await writeOverrideDocument({
@@ -182,6 +85,7 @@ describe('writeOverrideDocument', () => {
         hostData,
         documentValue,
         scope: 'tab',
+        dismissedOfferIds,
       });
     });
 
@@ -191,6 +95,14 @@ describe('writeOverrideDocument', () => {
       );
     });
 
+    it('should store the dismissed offer ids in page session storage when written', () => {
+      expect(
+        driver.get.pageSessionStorageItem(
+          `atlas.dismissed-development-offers.${hostData.config.hostId}`,
+        ),
+      ).toStrictEqual(dismissedOfferIds);
+    });
+
     it('should not persist the document in extension storage when written', () => {
       expect(
         driver.get.extensionStorageItem(
@@ -198,6 +110,205 @@ describe('writeOverrideDocument', () => {
         ),
       ).toBeUndefined();
     });
+  });
+
+  describe('when scope is all, the document has an app override, and no offer is dismissed', () => {
+    const hostData = aHostData();
+    const manifest = anAppManifest();
+    const documentValue = {
+      schemaVersion: '1' as const,
+      hostId: hostData.config.hostId,
+      overrides: [{ appId: manifest.id, manifest, reason: 'pr' as const }],
+      generatedAt: faker.date.recent().toISOString(),
+    };
+
+    it('should remove the document from page session storage when written', async () => {
+      driver.given.pageSessionStorageItem(
+        DOCUMENT_KEY,
+        JSON.stringify(documentValue),
+      );
+
+      await writeOverrideDocument({
+        tabId: faker.number.int(),
+        hostData,
+        documentValue,
+        scope: 'all',
+        dismissedOfferIds: {},
+      });
+
+      expect(driver.get.pageSessionStorageItem(DOCUMENT_KEY)).toBeUndefined();
+    });
+
+    it('should remove the dismissed offer ids from page local storage when written', async () => {
+      const dismissedOffersKey = `atlas.dismissed-development-offers.${hostData.config.hostId}`;
+
+      driver.given.pageLocalStorageItem(
+        dismissedOffersKey,
+        JSON.stringify({ [faker.string.uuid()]: faker.string.uuid() }),
+      );
+
+      await writeOverrideDocument({
+        tabId: faker.number.int(),
+        hostData,
+        documentValue,
+        scope: 'all',
+        dismissedOfferIds: {},
+      });
+
+      expect(
+        driver.get.pageLocalStorageItem(dismissedOffersKey),
+      ).toBeUndefined();
+    });
+
+    describe('when written', () => {
+      beforeEach(async () => {
+        await writeOverrideDocument({
+          tabId: faker.number.int(),
+          hostData,
+          documentValue,
+          scope: 'all',
+          dismissedOfferIds: {},
+        });
+      });
+
+      it('should store the document in page local storage when written', () => {
+        expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toStrictEqual(
+          documentValue,
+        );
+      });
+
+      it('should persist the document in extension storage when written', () => {
+        expect(
+          driver.get.extensionStorageItem(
+            `atlas.overrides.${hostData.config.hostId}`,
+          ),
+        ).toStrictEqual(documentValue);
+      });
+    });
+  });
+
+  it('should store the document in page local storage when scope is all and the document has only a host override', async () => {
+    const hostData = aHostData();
+    const documentValue = {
+      schemaVersion: '1' as const,
+      hostId: hostData.config.hostId,
+      overrides: [],
+      hostOverride: aHostManifest(),
+      generatedAt: faker.date.recent().toISOString(),
+    };
+
+    await writeOverrideDocument({
+      tabId: faker.number.int(),
+      hostData,
+      documentValue,
+      scope: 'all',
+      dismissedOfferIds: {},
+    });
+
+    expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toStrictEqual(
+      documentValue,
+    );
+  });
+
+  describe('when scope is all, the document is empty, and an offer is dismissed', () => {
+    const hostData = aHostData();
+    const documentValue = {
+      schemaVersion: '1' as const,
+      hostId: hostData.config.hostId,
+      overrides: [],
+      generatedAt: faker.date.recent().toISOString(),
+    };
+    const dismissedOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
+    const dismissedOffersKey = `atlas.dismissed-development-offers.${hostData.config.hostId}`;
+
+    it('should remove the dismissed offer ids from page session storage when written', async () => {
+      driver.given.pageSessionStorageItem(
+        dismissedOffersKey,
+        JSON.stringify(dismissedOfferIds),
+      );
+
+      await writeOverrideDocument({
+        tabId: faker.number.int(),
+        hostData,
+        documentValue,
+        scope: 'all',
+        dismissedOfferIds,
+      });
+
+      expect(
+        driver.get.pageSessionStorageItem(dismissedOffersKey),
+      ).toBeUndefined();
+    });
+
+    it('should remove the persisted document from extension storage when written', async () => {
+      driver.given.extensionStorageItem(
+        `atlas.overrides.${hostData.config.hostId}`,
+        documentValue,
+      );
+
+      await writeOverrideDocument({
+        tabId: faker.number.int(),
+        hostData,
+        documentValue,
+        scope: 'all',
+        dismissedOfferIds,
+      });
+
+      expect(
+        driver.get.extensionStorageItem(
+          `atlas.overrides.${hostData.config.hostId}`,
+        ),
+      ).toBeUndefined();
+    });
+
+    describe('when written', () => {
+      beforeEach(async () => {
+        await writeOverrideDocument({
+          tabId: faker.number.int(),
+          hostData,
+          documentValue,
+          scope: 'all',
+          dismissedOfferIds,
+        });
+      });
+
+      it('should keep the empty document in page local storage when written', () => {
+        expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toStrictEqual(
+          documentValue,
+        );
+      });
+
+      it('should store the dismissed offer ids in page local storage when written', () => {
+        expect(
+          driver.get.pageLocalStorageItem(dismissedOffersKey),
+        ).toStrictEqual(dismissedOfferIds);
+      });
+    });
+  });
+
+  it('should remove the document from page local storage when scope is all, the document is empty, and no offer is dismissed', async () => {
+    const hostData = aHostData();
+    const documentValue = {
+      schemaVersion: '1' as const,
+      hostId: hostData.config.hostId,
+      overrides: [],
+      generatedAt: faker.date.recent().toISOString(),
+    };
+
+    driver.given.pageLocalStorageItem(
+      DOCUMENT_KEY,
+      JSON.stringify(documentValue),
+    );
+
+    await writeOverrideDocument({
+      tabId: faker.number.int(),
+      hostData,
+      documentValue,
+      scope: 'all',
+      dismissedOfferIds: {},
+    });
+
+    expect(driver.get.pageLocalStorageItem(DOCUMENT_KEY)).toBeUndefined();
   });
 });
 
@@ -305,105 +416,6 @@ describe('writeDisabledArtifactVersionOverrides', () => {
 
     expect(
       driver.get.extensionStorageItem(`atlas.disabled-overrides.${hostId}.all`),
-    ).toBeUndefined();
-  });
-});
-
-describe('readClearedLocalArtifactIds', () => {
-  let driver: OverrideStorageDriver;
-
-  beforeEach(() => {
-    driver = new OverrideStorageDriver();
-  });
-
-  it('should return an empty set when nothing is stored', async () => {
-    await expect(
-      readClearedLocalArtifactIds({
-        hostId: faker.string.uuid(),
-        tabId: faker.number.int(),
-        scope: 'all',
-      }),
-    ).resolves.toStrictEqual(new Set());
-  });
-
-  it('should return the stored ids when scope is all', async () => {
-    const hostId = faker.string.uuid();
-    const artifactId = faker.string.uuid();
-
-    driver.given.extensionStorageItem(
-      `atlas.suppressed-artifacts.${hostId}.all`,
-      [artifactId],
-    );
-
-    await expect(
-      readClearedLocalArtifactIds({
-        hostId,
-        tabId: faker.number.int(),
-        scope: 'all',
-      }),
-    ).resolves.toStrictEqual(new Set([artifactId]));
-  });
-
-  it('should ignore the stored values when they are not non-empty strings', async () => {
-    const hostId = faker.string.uuid();
-    const artifactId = faker.string.uuid();
-
-    driver.given.extensionStorageItem(
-      `atlas.suppressed-artifacts.${hostId}.all`,
-      [artifactId, '', faker.number.int()],
-    );
-
-    await expect(
-      readClearedLocalArtifactIds({
-        hostId,
-        tabId: faker.number.int(),
-        scope: 'all',
-      }),
-    ).resolves.toStrictEqual(new Set([artifactId]));
-  });
-});
-
-describe('writeClearedLocalArtifactIds', () => {
-  let driver: OverrideStorageDriver;
-
-  beforeEach(() => {
-    driver = new OverrideStorageDriver();
-  });
-
-  it('should store the ids under the scoped key when the set has entries', async () => {
-    const hostId = faker.string.uuid();
-    const tabId = faker.number.int();
-    const artifactId = faker.string.uuid();
-
-    await writeClearedLocalArtifactIds(
-      { hostId, tabId, scope: 'tab' },
-      new Set([artifactId]),
-    );
-
-    expect(
-      driver.get.extensionStorageItem(
-        `atlas.suppressed-artifacts.${hostId}.tab.${tabId}`,
-      ),
-    ).toStrictEqual([artifactId]);
-  });
-
-  it('should remove the scoped key when the set is empty', async () => {
-    const hostId = faker.string.uuid();
-
-    driver.given.extensionStorageItem(
-      `atlas.suppressed-artifacts.${hostId}.all`,
-      [faker.string.uuid()],
-    );
-
-    await writeClearedLocalArtifactIds(
-      { hostId, tabId: faker.number.int(), scope: 'all' },
-      new Set(),
-    );
-
-    expect(
-      driver.get.extensionStorageItem(
-        `atlas.suppressed-artifacts.${hostId}.all`,
-      ),
     ).toBeUndefined();
   });
 });

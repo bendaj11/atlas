@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
-import { anAppManifest } from '@atlas/testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
 import { aColumbusState } from '../../testkit/columbus-state.testkit';
+import { aHostData } from '../../testkit/host-data.testkit';
 import { PersistOverridesDriver } from './persist-overrides.driver';
 
 const { persistColumbusState } = await import('./persist-overrides');
@@ -13,14 +14,14 @@ describe('persistColumbusState', () => {
   });
 
   it('should validate every enabled override when persisting', async () => {
-    const local = anAppManifest({ channel: 'local' });
-    const preview = anAppManifest({ channel: 'pr' });
+    const first = anAppManifest();
+    const second = anAppManifest();
 
     await persistColumbusState(
       aColumbusState({
         enabledArtifactVersionOverrides: new Map([
-          [local.id, local],
-          [preview.id, preview],
+          [first.id, first],
+          [second.id, second],
         ]),
       }),
     );
@@ -29,7 +30,7 @@ describe('persistColumbusState', () => {
       driver.get
         .validateLocalOverride()
         .mock.calls.map(([manifest]) => manifest),
-    ).toStrictEqual([local, preview]);
+    ).toStrictEqual([first, second]);
   });
 
   describe('when validation fails', () => {
@@ -55,22 +56,22 @@ describe('persistColumbusState', () => {
     });
   });
 
-  it('should write document, disabled overrides, cleared ids, then reload when persisting', async () => {
+  it('should write document, disabled overrides, then reload when persisting', async () => {
     await persistColumbusState(aColumbusState());
 
     const order = [
       driver.get.writeOverrideDocument(),
       driver.get.writeDisabledArtifactVersionOverrides(),
-      driver.get.writeClearedLocalArtifactIds(),
       driver.get.reloadHostTab(),
     ].map((mock) => mock.mock.invocationCallOrder[0]);
 
     expect(order).toStrictEqual([...order].sort((left, right) => left - right));
   });
 
-  it('should write the override document built from the enabled overrides when persisting', async () => {
+  it('should write the override document built from the enabled overrides with no dismissed offers when no development offers exist', async () => {
     const override = anAppManifest({ channel: 'production' });
     const columbusState = aColumbusState({
+      hostData: aHostData({ developmentOffers: undefined }),
       enabledArtifactVersionOverrides: new Map([[override.id, override]]),
     });
 
@@ -88,22 +89,216 @@ describe('persistColumbusState', () => {
         ],
       },
       scope: columbusState.scope,
-      disabledAppIds: [],
+      dismissedOfferIds: {},
     });
   });
 
-  it('should list the disabled and cleared app ids once each when both exist', async () => {
-    const disabled = anAppManifest();
-    const cleared = faker.string.uuid();
+  it('should keep the stored dismissed offers when the development offers cannot be read', async () => {
+    const dismissedOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
+
+    await persistColumbusState(
+      aColumbusState({
+        hostData: aHostData({ developmentOffers: undefined, dismissedOfferIds }),
+      }),
+    );
+
+    expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+      expect.objectContaining({ dismissedOfferIds }),
+    );
+  });
+
+  describe('when a development offer of an app is live', () => {
+    const offered = anAppManifest();
+    const offerId = faker.string.uuid();
+    const hostData = aHostData({
+      developmentOffers: {
+        overrides: [{ appId: offered.id, manifest: offered, reason: 'local' }],
+        offerIds: { [offered.id]: offerId },
+      },
+    });
+
+    describe('when the app is enabled with the same channel and remote entry url as the offer', () => {
+      const sameBuild = anAppManifest({
+        id: offered.id,
+        channel: offered.channel,
+        remoteEntryUrl: offered.remoteEntryUrl,
+      });
+      const columbusState = aColumbusState({
+        hostData,
+        enabledArtifactVersionOverrides: new Map([[offered.id, sameBuild]]),
+      });
+
+      it('should write the override document without the offered app when persisting', async () => {
+        await persistColumbusState(columbusState);
+
+        expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+          expect.objectContaining({
+            documentValue: expect.objectContaining({ overrides: [] }),
+          }),
+        );
+      });
+
+      it('should write no dismissed offers when persisting', async () => {
+        await persistColumbusState(columbusState);
+
+        expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+          expect.objectContaining({ dismissedOfferIds: {} }),
+        );
+      });
+    });
+
+    describe('when the app is enabled with the same channel and another remote entry url', () => {
+      const replacement = anAppManifest({
+        id: offered.id,
+        channel: offered.channel,
+        remoteEntryUrl: faker.internet.url(),
+      });
+      const columbusState = aColumbusState({
+        hostData,
+        enabledArtifactVersionOverrides: new Map([[offered.id, replacement]]),
+      });
+
+      it('should write the override document with the replacement when persisting', async () => {
+        await persistColumbusState(columbusState);
+
+        expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+          expect.objectContaining({
+            documentValue: expect.objectContaining({
+              overrides: [expect.objectContaining({ manifest: replacement })],
+            }),
+          }),
+        );
+      });
+
+      it('should write the offer id as dismissed when persisting', async () => {
+        await persistColumbusState(columbusState);
+
+        expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+          expect.objectContaining({
+            dismissedOfferIds: { [offered.id]: offerId },
+          }),
+        );
+      });
+    });
+
+    it('should write the offer id as dismissed when the app is enabled with the same remote entry url on another channel', async () => {
+      const localOffered = anAppManifest({ channel: 'local' });
+      const localOfferId = faker.string.uuid();
+      const replacement = anAppManifest({
+        id: localOffered.id,
+        channel: 'pr',
+        remoteEntryUrl: localOffered.remoteEntryUrl,
+      });
+      const columbusState = aColumbusState({
+        hostData: aHostData({
+          developmentOffers: {
+            overrides: [
+              {
+                appId: localOffered.id,
+                manifest: localOffered,
+                reason: 'local',
+              },
+            ],
+            offerIds: { [localOffered.id]: localOfferId },
+          },
+        }),
+        enabledArtifactVersionOverrides: new Map([
+          [localOffered.id, replacement],
+        ]),
+      });
+
+      await persistColumbusState(columbusState);
+
+      expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dismissedOfferIds: { [localOffered.id]: localOfferId },
+        }),
+      );
+    });
+
+    it('should keep a stored dismissal of an app that is no longer offered when persisting', async () => {
+      const unofferedAppId = faker.string.uuid();
+      const unofferedOfferId = faker.string.uuid();
+      const columbusState = aColumbusState({
+        hostData: {
+          ...hostData,
+          dismissedOfferIds: { [unofferedAppId]: unofferedOfferId },
+        },
+        enabledArtifactVersionOverrides: new Map([[offered.id, offered]]),
+      });
+
+      await persistColumbusState(columbusState);
+
+      expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dismissedOfferIds: { [unofferedAppId]: unofferedOfferId },
+        }),
+      );
+    });
+
+    it('should drop the stored dismissal of the offered app when it is enabled with the offered build', async () => {
+      const columbusState = aColumbusState({
+        hostData: { ...hostData, dismissedOfferIds: { [offered.id]: offerId } },
+        enabledArtifactVersionOverrides: new Map([[offered.id, offered]]),
+      });
+
+      await persistColumbusState(columbusState);
+
+      expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+        expect.objectContaining({ dismissedOfferIds: {} }),
+      );
+    });
+
+    it('should write the offer id as dismissed when the app is cleared', async () => {
+      const columbusState = aColumbusState({
+        hostData,
+        enabledArtifactVersionOverrides: new Map(),
+        disabledArtifactVersionOverrides: new Map(),
+      });
+
+      await persistColumbusState(columbusState);
+
+      expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dismissedOfferIds: { [offered.id]: offerId },
+        }),
+      );
+    });
+
+    it('should write the offer id as dismissed when the app is disabled', async () => {
+      const columbusState = aColumbusState({
+        hostData,
+        enabledArtifactVersionOverrides: new Map(),
+        disabledArtifactVersionOverrides: new Map([[offered.id, offered]]),
+      });
+
+      await persistColumbusState(columbusState);
+
+      expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dismissedOfferIds: { [offered.id]: offerId },
+        }),
+      );
+    });
+  });
+
+  it('should write no dismissed offers when the host is enabled with the offered host build', async () => {
+    const offeredHost = aHostManifest();
     const columbusState = aColumbusState({
-      disabledArtifactVersionOverrides: new Map([[disabled.id, disabled]]),
-      clearedLocalArtifactIds: new Set([cleared, disabled.id]),
+      hostData: aHostData({
+        developmentOffers: {
+          overrides: [],
+          hostOverride: offeredHost,
+          offerIds: { [offeredHost.id]: faker.string.uuid() },
+        },
+      }),
+      enabledArtifactVersionOverrides: new Map([[offeredHost.id, offeredHost]]),
     });
 
     await persistColumbusState(columbusState);
 
     expect(driver.get.writeOverrideDocument()).toHaveBeenCalledWith(
-      expect.objectContaining({ disabledAppIds: [disabled.id, cleared] }),
+      expect.objectContaining({ dismissedOfferIds: {} }),
     );
   });
 
@@ -125,23 +320,6 @@ describe('persistColumbusState', () => {
         scope: columbusState.scope,
       },
       columbusState.disabledArtifactVersionOverrides,
-    );
-  });
-
-  it('should write the cleared local artifact ids under the state location when persisting', async () => {
-    const columbusState = aColumbusState({
-      clearedLocalArtifactIds: new Set([faker.string.uuid()]),
-    });
-
-    await persistColumbusState(columbusState);
-
-    expect(driver.get.writeClearedLocalArtifactIds()).toHaveBeenCalledWith(
-      {
-        hostId: columbusState.hostData.config.hostId,
-        tabId: columbusState.tabId,
-        scope: columbusState.scope,
-      },
-      columbusState.clearedLocalArtifactIds,
     );
   });
 

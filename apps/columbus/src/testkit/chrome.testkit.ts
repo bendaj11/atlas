@@ -5,6 +5,7 @@ export interface FakeTab {
   id?: number;
   lastAccessed?: number;
   url?: string;
+  windowId?: number;
 }
 
 export interface MessageSender {
@@ -23,6 +24,9 @@ export interface FakeChrome {
   localStorage: Map<string, unknown>;
   sessionStorage: Map<string, unknown>;
   reloadedTabIds: number[];
+  activatedTabIds: number[];
+  removedTabIds: number[];
+  focusedWindowIds: number[];
   tabMessages: Array<{ tabId: number; message: unknown }>;
   runtimeMessages: unknown[];
   badgeTexts: Array<{ tabId?: number; text: string }>;
@@ -53,6 +57,9 @@ export function installFakeChrome(): FakeChrome {
     localStorage: new Map(),
     sessionStorage: new Map(),
     reloadedTabIds: [],
+    activatedTabIds: [],
+    removedTabIds: [],
+    focusedWindowIds: [],
     tabMessages: [],
     runtimeMessages: [],
     badgeTexts: [],
@@ -85,6 +92,14 @@ export function installFakeChrome(): FakeChrome {
         reload: async (tabId: number) => {
           fake.reloadedTabIds.push(tabId);
         },
+        remove: async (tabId: number) => {
+          fake.removedTabIds.push(tabId);
+        },
+        update: async (tabId: number, properties: { active?: boolean }) => {
+          if (properties.active) fake.activatedTabIds.push(tabId);
+
+          return { id: tabId };
+        },
         sendMessage: (tabId: number, message: unknown) => {
           fake.tabMessages.push({ tabId, message });
 
@@ -99,6 +114,11 @@ export function installFakeChrome(): FakeChrome {
           addListener: (listener: (tabId: number) => void) => {
             tabRemovedListeners.push(listener);
           },
+        },
+      },
+      windows: {
+        update: async (windowId: number) => {
+          fake.focusedWindowIds.push(windowId);
         },
       },
       runtime: {

@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { anAppManifest } from '@atlas/testkit';
+import { aHostManifest, anAppManifest } from '@atlas/testkit';
+import { anOverrideDocument } from '@atlas/testkit/internal';
 import { aHostData } from '../../../testkit/host-data.testkit';
 import {
   inspectHostRequest,
@@ -48,10 +49,21 @@ describe('badge-script', () => {
       expect(driver.get.publishedColorSchemes()).toStrictEqual(['light']);
     });
 
-    it('should count the session overrides when session storage holds a document', async () => {
+    it('should count the session overrides when session storage holds an override document', async () => {
+      const first = anAppManifest();
+      const second = anAppManifest();
+
       driver.given.sessionStorageItem(
         'atlas.runtime-overrides',
-        JSON.stringify({ overrides: [{}, {}], hostOverride: {} }),
+        JSON.stringify({
+          ...anOverrideDocument({
+            overrides: [
+              { appId: first.id, manifest: first, reason: 'local' },
+              { appId: second.id, manifest: second, reason: 'local' },
+            ],
+          }),
+          hostOverride: aHostManifest(),
+        }),
       );
 
       await driver.when.started();
@@ -59,15 +71,36 @@ describe('badge-script', () => {
       expect(driver.get.publishedOverrideCounts()).toStrictEqual([3]);
     });
 
-    it('should count the local overrides when only local storage holds a document', async () => {
+    it('should count the local overrides when only local storage holds an override document', async () => {
+      const first = anAppManifest();
+      const second = anAppManifest();
+
       driver.given.localStorageItem(
+        'atlas.runtime-overrides',
+        JSON.stringify(
+          anOverrideDocument({
+            overrides: [
+              { appId: first.id, manifest: first, reason: 'local' },
+              { appId: second.id, manifest: second, reason: 'local' },
+            ],
+          }),
+        ),
+      );
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+    });
+
+    it('should publish zero overrides when session storage holds an invalid document', async () => {
+      driver.given.sessionStorageItem(
         'atlas.runtime-overrides',
         JSON.stringify({ overrides: [{}, {}] }),
       );
 
       await driver.when.started();
 
-      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([0]);
     });
   });
 
@@ -89,144 +122,297 @@ describe('badge-script', () => {
       );
     });
 
-    describe('when the page is remote', () => {
-      beforeEach(() => {
-        driver.given.pageLocation(faker.internet.url());
-      });
+    it('should fetch only the runtime config when started', async () => {
+      await driver.when.started();
 
-      it('should fetch only the runtime config when started', async () => {
-        await driver.when.started();
+      expect(
+        driver.get.fetch().mock.calls.map(([input]) => String(input)),
+      ).toStrictEqual(['/atlas.runtime.json']);
+    });
 
-        expect(
-          driver.get.fetch().mock.calls.map(([input]) => String(input)),
-        ).toStrictEqual(['/atlas.runtime.json']);
-      });
+    it('should publish zero overrides when nothing is stored and no development session is offered', async () => {
+      await driver.when.started();
 
-      it('should publish zero overrides when nothing is stored', async () => {
-        await driver.when.started();
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([0]);
+    });
 
-        expect(driver.get.publishedOverrideCounts()).toStrictEqual([0]);
-      });
+    it('should request the development session for the host and page when started', async () => {
+      const href = faker.internet.url();
 
-      it('should count the persisted overrides when the extension stores a document for the host', async () => {
-        driver.given.extensionStorageItem(`atlas.overrides.${hostId}`, {
-          overrides: [{}, {}],
-        });
+      driver.given.pageLocation(href);
 
-        await driver.when.started();
+      await driver.when.started();
 
-        expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+      expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+        type: 'atlas.load-development-session',
+        hostId,
+        previewUrl: href,
       });
     });
 
-    describe('when the page is local', () => {
-      beforeEach(() => {
-        driver.given.pageLocation(`http://localhost:${faker.internet.port()}/`);
-      });
+    it('should request the development session through the remembered control port when one is stored', async () => {
+      const href = faker.internet.url();
+      const controlPort = faker.internet.port();
 
-      it('should fetch the development session from the default control port when none is remembered', async () => {
-        await driver.when.started();
-
-        expect(
-          driver.get.fetch().mock.calls.map(([input]) => String(input)),
-        ).toStrictEqual([
-          '/atlas.runtime.json',
-          `http://localhost:4400/atlas.dev-session.json?hostId=${hostId}`,
-        ]);
-      });
-
-      it('should fetch the development session from the remembered control port when one is stored', async () => {
-        const controlPort = faker.internet.port();
-
-        driver.given.sessionStorageItem(
+      driver.given
+        .pageLocation(href)
+        .given.sessionStorageItem(
           'atlas.development-control-port',
           String(controlPort),
         );
 
-        await driver.when.started();
+      await driver.when.started();
 
-        expect(
-          driver.get.fetch().mock.calls.map(([input]) => String(input)),
-        ).toStrictEqual([
-          '/atlas.runtime.json',
-          `http://localhost:${controlPort}/atlas.dev-session.json?hostId=${hostId}`,
-        ]);
-      });
-
-      it('should count the development session overrides when the session belongs to the host', async () => {
-        driver.given.fetchJson({
-          schemaVersion: '1',
-          hostId,
-          overrides: [
-            { appId: faker.string.uuid() },
-            { appId: faker.string.uuid() },
-          ],
-          hostOverride: {},
-        });
-
-        await driver.when.started();
-
-        expect(driver.get.publishedOverrideCounts()).toStrictEqual([3]);
-      });
-
-      it('should skip the disabled local apps when counting the development session', async () => {
-        const disabledAppId = faker.string.uuid();
-
-        driver.given
-          .fetchJson({
-            schemaVersion: '1',
-            hostId,
-            overrides: [
-              { appId: disabledAppId },
-              { appId: faker.string.uuid() },
-            ],
-            hostOverride: {},
-          })
-          .given.localStorageItem(
-            `atlas.disabled-local-apps.${hostId}`,
-            JSON.stringify([disabledAppId]),
-          );
-
-        await driver.when.started();
-
-        expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
-      });
-
-      it('should fall back to the persisted overrides when the development session is missing', async () => {
-        driver.given
-          .fetchStatus(404)
-          .given.extensionStorageItem(`atlas.overrides.${hostId}`, {
-            overrides: [{}],
-          });
-
-        await driver.when.started();
-
-        expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
-      });
-
-      it('should fall back to the persisted overrides when the development session belongs to another host', async () => {
-        driver.given
-          .fetchJson({
-            schemaVersion: '1',
-            hostId: faker.string.uuid(),
-            overrides: [{}, {}],
-          })
-          .given.extensionStorageItem(`atlas.overrides.${hostId}`, {
-            overrides: [{}],
-          });
-
-        await driver.when.started();
-
-        expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
+      expect(driver.get.runtimeMessage()).toHaveBeenCalledWith({
+        type: 'atlas.load-development-session',
+        hostId,
+        previewUrl: href,
+        controlPort,
       });
     });
 
-    it('should publish the new count when the poll finds a change', async () => {
-      driver.given.pageLocation(faker.internet.url());
+    it('should count the persisted overrides when the extension stores an override document for the host', async () => {
+      const first = anAppManifest();
+      const second = anAppManifest();
 
-      await driver.when.overridesStoredAndIntervalElapsed({
-        overrides: [{}, {}],
+      driver.given.extensionStorageItem(
+        `atlas.overrides.${hostId}`,
+        anOverrideDocument({
+          overrides: [
+            { appId: first.id, manifest: first, reason: 'local' },
+            { appId: second.id, manifest: second, reason: 'local' },
+          ],
+        }),
+      );
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+    });
+
+    it('should count the offered overrides when the development session of the host offers apps and a host that are not dismissed', async () => {
+      const manifest = anAppManifest();
+      const hostOverride = aHostManifest();
+
+      driver.given.developmentSession({
+        ...anOverrideDocument({
+          hostId,
+          overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
+        }),
+        hostOverride,
+        offerIds: {
+          [manifest.id]: faker.string.uuid(),
+          [hostOverride.id]: faker.string.uuid(),
+        },
       });
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+    });
+
+    it('should skip the offered override when its live offer is dismissed', async () => {
+      const offerId = faker.string.uuid();
+      const dismissed = anAppManifest();
+      const offered = anAppManifest();
+
+      driver.given
+        .developmentSession({
+          ...anOverrideDocument({
+            hostId,
+            overrides: [
+              { appId: dismissed.id, manifest: dismissed, reason: 'local' },
+              { appId: offered.id, manifest: offered, reason: 'local' },
+            ],
+          }),
+          offerIds: {
+            [dismissed.id]: offerId,
+            [offered.id]: faker.string.uuid(),
+          },
+        })
+        .given.localStorageItem(
+          `atlas.dismissed-development-offers.${hostId}`,
+          JSON.stringify({ [dismissed.id]: offerId }),
+        );
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
+    });
+
+    it('should count the offered override when only an earlier offer of the app is dismissed', async () => {
+      const dismissed = anAppManifest();
+      const offered = anAppManifest();
+
+      driver.given
+        .developmentSession({
+          ...anOverrideDocument({
+            hostId,
+            overrides: [
+              { appId: dismissed.id, manifest: dismissed, reason: 'local' },
+              { appId: offered.id, manifest: offered, reason: 'local' },
+            ],
+          }),
+          offerIds: {
+            [dismissed.id]: faker.string.uuid(),
+            [offered.id]: faker.string.uuid(),
+          },
+        })
+        .given.localStorageItem(
+          `atlas.dismissed-development-offers.${hostId}`,
+          JSON.stringify({ [dismissed.id]: faker.string.uuid() }),
+        );
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+    });
+
+    it('should count the stored selection plus the offered overrides when the offers are for other apps', async () => {
+      const selected = anAppManifest();
+      const offered = anAppManifest();
+
+      driver.given
+        .sessionStorageItem(
+          'atlas.runtime-overrides',
+          JSON.stringify(
+            anOverrideDocument({
+              overrides: [
+                { appId: selected.id, manifest: selected, reason: 'local' },
+              ],
+            }),
+          ),
+        )
+        .given.developmentSession({
+          ...anOverrideDocument({
+            hostId,
+            overrides: [
+              { appId: offered.id, manifest: offered, reason: 'local' },
+            ],
+          }),
+          offerIds: { [offered.id]: faker.string.uuid() },
+        });
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([2]);
+    });
+
+    it('should count the stored selection once when the offer is for the selected app', async () => {
+      const selected = anAppManifest();
+
+      driver.given
+        .sessionStorageItem(
+          'atlas.runtime-overrides',
+          JSON.stringify(
+            anOverrideDocument({
+              overrides: [
+                { appId: selected.id, manifest: selected, reason: 'local' },
+              ],
+            }),
+          ),
+        )
+        .given.developmentSession({
+          ...anOverrideDocument({
+            hostId,
+            overrides: [
+              { appId: selected.id, manifest: selected, reason: 'local' },
+            ],
+          }),
+          offerIds: { [selected.id]: faker.string.uuid() },
+        });
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
+    });
+
+    it('should count only the persisted overrides when the development session belongs to another host', async () => {
+      const persisted = anAppManifest();
+      const offered = anAppManifest();
+
+      driver.given
+        .extensionStorageItem(
+          `atlas.overrides.${hostId}`,
+          anOverrideDocument({
+            overrides: [
+              { appId: persisted.id, manifest: persisted, reason: 'local' },
+            ],
+          }),
+        )
+        .given.developmentSession({
+          ...anOverrideDocument({
+            hostId: faker.string.uuid(),
+            overrides: [
+              { appId: offered.id, manifest: offered, reason: 'local' },
+            ],
+          }),
+          offerIds: { [offered.id]: faker.string.uuid() },
+        });
+
+      await driver.when.started();
+
+      expect(driver.get.publishedOverrideCounts()).toStrictEqual([1]);
+    });
+
+    it('should request the development session again on the next poll when the first read fails', async () => {
+      driver.given.developmentSessionError(faker.lorem.sentence());
+
+      await driver.when.started();
+      await driver.when.intervalElapsed();
+
+      expect(
+        driver.get
+          .runtimeMessage()
+          .mock.calls.filter(
+            ([message]) =>
+              typeof message === 'object' &&
+              message !== null &&
+              'type' in message &&
+              message.type === 'atlas.load-development-session',
+          ),
+      ).toHaveLength(2);
+    });
+
+    it('should not request the development session again on the next poll when the first read succeeds', async () => {
+      const manifest = anAppManifest();
+
+      driver.given.developmentSession({
+        ...anOverrideDocument({
+          hostId,
+          overrides: [{ appId: manifest.id, manifest, reason: 'local' }],
+        }),
+        offerIds: { [manifest.id]: faker.string.uuid() },
+      });
+
+      await driver.when.started();
+      await driver.when.intervalElapsed();
+
+      expect(
+        driver.get
+          .runtimeMessage()
+          .mock.calls.filter(
+            ([message]) =>
+              typeof message === 'object' &&
+              message !== null &&
+              'type' in message &&
+              message.type === 'atlas.load-development-session',
+          ),
+      ).toHaveLength(1);
+    });
+
+    it('should publish the new count when the poll finds a change', async () => {
+      const first = anAppManifest();
+      const second = anAppManifest();
+
+      await driver.when.overridesStoredAndIntervalElapsed(
+        anOverrideDocument({
+          overrides: [
+            { appId: first.id, manifest: first, reason: 'local' },
+            { appId: second.id, manifest: second, reason: 'local' },
+          ],
+        }),
+      );
 
       expect(driver.get.publishedOverrideCounts()).toStrictEqual([0, 2]);
     });
@@ -236,8 +422,16 @@ describe('badge-script', () => {
     it.each(WINDOW_EVENTS)(
       'should publish the new count when the window fires %s',
       async (eventType) => {
+        const first = anAppManifest();
+        const second = anAppManifest();
+
         await driver.when.overridesStoredAndEventFired(
-          { overrides: [{}, {}] },
+          anOverrideDocument({
+            overrides: [
+              { appId: first.id, manifest: first, reason: 'local' },
+              { appId: second.id, manifest: second, reason: 'local' },
+            ],
+          }),
           eventType,
         );
 
@@ -247,7 +441,7 @@ describe('badge-script', () => {
 
     it('should not republish when the count is unchanged', async () => {
       await driver.when.overridesStoredAndEventFired(
-        { overrides: [] },
+        anOverrideDocument({ overrides: [] }),
         'focus',
       );
 

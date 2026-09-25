@@ -43,7 +43,9 @@ describe('inspectAtlasHost', () => {
         .given.catalog(catalog)
         .given.storedOverrides(stored)
         .given.runtimeErrors([])
-        .given.visibleAppIds([]);
+        .given.visibleAppIds([])
+        .given.developmentOffers(undefined)
+        .given.dismissedOfferIds({});
     });
 
     it('should report the page url when inspected', async () => {
@@ -66,6 +68,26 @@ describe('inspectAtlasHost', () => {
 
       expect(driver.get.readStoredOverrides()).toHaveBeenCalledWith(
         documentKey,
+        config.hostId,
+      );
+    });
+
+    it('should read the development offers for the host id when inspected', async () => {
+      driver.given.registryRoot(undefined);
+
+      await inspectAtlasHost(faker.word.noun(), driver.get.registry());
+
+      expect(driver.get.readDevelopmentOffers()).toHaveBeenCalledWith(
+        config.hostId,
+      );
+    });
+
+    it('should read the dismissed offer ids for the host id when inspected', async () => {
+      driver.given.registryRoot(undefined);
+
+      await inspectAtlasHost(faker.word.noun(), driver.get.registry());
+
+      expect(driver.get.readDismissedOfferIds()).toHaveBeenCalledWith(
         config.hostId,
       );
     });
@@ -228,7 +250,7 @@ describe('inspectAtlasHost', () => {
       });
     });
 
-    it('should have no overrides when nothing is stored and no manifest is local', async () => {
+    it('should have no overrides when nothing is stored', async () => {
       driver.given.registryRoot(undefined);
 
       expect(
@@ -260,31 +282,33 @@ describe('inspectAtlasHost', () => {
           .visibleAppIds,
       ).toBe(ids);
     });
-  });
 
-  it('should derive the overrides from the local manifests when nothing is stored and an app is local', async () => {
-    const config = aHostRuntimeConfig();
-    const local = anAppManifest({ channel: 'local' });
-    const catalog = aHostCatalog({
-      hostId: config.hostId,
-      host: aHostManifest({ id: config.hostId, channel: 'production' }),
-      apps: [local],
+    it('should expose the development offers when the development session offers overrides', async () => {
+      const manifest = anAppManifest();
+      const offers = {
+        overrides: [{ appId: manifest.id, manifest, reason: 'local' as const }],
+        offerIds: { [manifest.id]: faker.string.uuid() },
+      };
+
+      driver.given.registryRoot(undefined).given.developmentOffers(offers);
+
+      expect(
+        (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+          .developmentOffers,
+      ).toBe(offers);
     });
 
-    driver.given
-      .runtimeConfig(config)
-      .given.catalog(catalog)
-      .given.registryRoot(undefined)
-      .given.storedOverrides({ overrides: undefined, overrideScope: undefined })
-      .given.runtimeErrors([])
-      .given.visibleAppIds([]);
+    it('should expose the dismissed offer ids when the page stores them', async () => {
+      const dismissedOfferIds = { [faker.string.uuid()]: faker.string.uuid() };
 
-    expect(
-      (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
-        .overrides,
-    ).toMatchObject({
-      hostId: config.hostId,
-      overrides: [{ appId: local.id, manifest: local, reason: 'local' }],
+      driver.given
+        .registryRoot(undefined)
+        .given.dismissedOfferIds(dismissedOfferIds);
+
+      expect(
+        (await inspectAtlasHost(faker.word.noun(), driver.get.registry()))
+          .dismissedOfferIds,
+      ).toBe(dismissedOfferIds);
     });
   });
 });

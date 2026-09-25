@@ -7,59 +7,55 @@ import {
 } from './override-artifact-versions';
 
 describe('extractEnabledArtifactVersionOverrides', () => {
-  it('should return no manifests when the host has no override document', () => {
-    const hostData = aHostData({ overrides: undefined });
+  const REASONS = ['local', 'pr', 'historical'] as const;
 
-    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
-      new Map(),
-    );
+  it('should return no manifests when the selection is empty', () => {
+    expect(
+      extractEnabledArtifactVersionOverrides({ overrides: [] }),
+    ).toStrictEqual(new Map());
   });
 
-  it('should key app overrides by artifact id when the document lists apps', () => {
-    const orders = anAppManifest({ channel: 'pr' });
-    const hostData = aHostData({
-      overrides: {
-        schemaVersion: '1',
-        hostId: faker.string.uuid(),
-        generatedAt: faker.date.recent().toISOString(),
-        overrides: [{ appId: orders.id, manifest: orders, reason: 'pr' }],
-      },
-    });
+  it('should key app overrides by artifact id when the selection lists apps', () => {
+    const orders = anAppManifest();
 
-    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
-      new Map([[orders.id, orders]]),
-    );
+    expect(
+      extractEnabledArtifactVersionOverrides({
+        overrides: [
+          {
+            appId: orders.id,
+            manifest: orders,
+            reason: faker.helpers.arrayElement(REASONS),
+          },
+        ],
+      }),
+    ).toStrictEqual(new Map([[orders.id, orders]]));
   });
 
-  it('should include the host override when the document has one', () => {
+  it('should include the host override when the selection has one', () => {
     const host = aHostManifest();
-    const hostData = aHostData({
-      overrides: {
-        schemaVersion: '1',
-        hostId: faker.string.uuid(),
-        generatedAt: faker.date.recent().toISOString(),
+
+    expect(
+      extractEnabledArtifactVersionOverrides({
         overrides: [],
         hostOverride: host,
-      },
-    });
-
-    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
-      new Map([[host.id, host]]),
-    );
+      }),
+    ).toStrictEqual(new Map([[host.id, host]]));
   });
 
   it('should normalize the version when a local override has the legacy custom version', () => {
     const legacy = anAppManifest({ channel: 'local', version: 'custom-url' });
-    const hostData = aHostData({
-      overrides: {
-        schemaVersion: '1',
-        hostId: faker.string.uuid(),
-        generatedAt: faker.date.recent().toISOString(),
-        overrides: [{ appId: legacy.id, manifest: legacy, reason: 'local' }],
-      },
-    });
 
-    expect(extractEnabledArtifactVersionOverrides(hostData)).toStrictEqual(
+    expect(
+      extractEnabledArtifactVersionOverrides({
+        overrides: [
+          {
+            appId: legacy.id,
+            manifest: legacy,
+            reason: faker.helpers.arrayElement(REASONS),
+          },
+        ],
+      }),
+    ).toStrictEqual(
       new Map([[legacy.id, { ...legacy, version: '0.0.0-local' }]]),
     );
   });

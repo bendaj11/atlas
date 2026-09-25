@@ -13,6 +13,5 @@ export interface ColumbusState {
   tabId: number;
   enabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
   disabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
-  clearedLocalArtifactIds: Set<string>;
   scope: Scope;
 }

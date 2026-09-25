@@ -11,6 +11,8 @@ export function aHostData(overrides: Partial<HostData> = {}): HostData {
     catalog: aHostCatalog({ hostId }),
     overrides: undefined,
     overrideScope: undefined,
+    developmentOffers: undefined,
+    dismissedOfferIds: {},
     versions: {},
     visibleAppIds: [],
     runtimeErrors: [],

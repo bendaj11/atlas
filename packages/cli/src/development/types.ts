@@ -1,6 +1,6 @@
 import type {
   AtlasConfig,
-  AtlasRuntimeOverride,
+  AtlasDevelopmentOffers,
   AtlasRuntimeOverrideDocument,
   AtlasHostConfig,
   AtlasHostCatalog,
@@ -67,12 +67,10 @@ export type AtlasDevBuildService = Pick<
   'loadConfig' | 'buildManifest' | 'buildLocalHostManifest'
 >;
 
-export interface AtlasDevSessionDocument {
+export interface AtlasDevSessionDocument extends AtlasDevelopmentOffers {
   schemaVersion: '1';
   hostId: string;
   catalog: AtlasHostCatalog;
-  overrides: AtlasRuntimeOverride[];
-  hostOverride?: AtlasHostManifest;
   overrideUrl: string;
   generatedAt: string;
 }
@@ -109,10 +107,6 @@ export interface DevSessionStore {
   markHostReady(hostId: string): void;
   markDocumentReady(document: AtlasDevOverrideDocument): void;
   document(hostId?: string): AtlasDevOverrideDocument | undefined;
-  catalog(
-    hostId: string,
-    productionCatalog?: AtlasHostCatalog,
-  ): AtlasHostCatalog | undefined;
   devSession(
     hostId?: string,
     publishedCatalog?: AtlasHostCatalog,

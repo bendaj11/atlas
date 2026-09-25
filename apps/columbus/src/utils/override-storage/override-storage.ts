@@ -1,3 +1,7 @@
+import {
+  dismissedDevelopmentOffersKey,
+  type AtlasDevelopmentOfferIds,
+} from '@atlas/schema';
 import type { ArtifactVersion } from '../../types/artifact-version';
 import type { HostData } from '../../types/host-data';
 import type { AtlasOverrideDocument as OverrideDocument } from '../../types/override-document';
@@ -5,10 +9,8 @@ import type { Scope } from '../../types/columbus-state';
 import { normalizeStoredArtifactVersion } from '../artifact-version-utils/artifact-version-utils';
 import {
   OVERRIDE_DOCUMENT_KEY,
-  disabledLocalAppsKey,
   disabledOverridesKey,
   persistedOverridesKey,
-  suppressedArtifactsKey,
 } from '../storage-keys/storage-keys';
 import {
   countOverrides,
@@ -27,7 +29,7 @@ interface WriteOverrideDocumentOptions {
   hostData: HostData;
   documentValue: OverrideDocument;
   scope: Scope;
-  disabledAppIds?: string[];
+  dismissedOfferIds: AtlasDevelopmentOfferIds;
 }
 
 export async function readPersistedOverrideDocument(
@@ -48,7 +50,7 @@ export async function writeOverrideDocument({
   hostData,
   documentValue,
   scope,
-  disabledAppIds = [],
+  dismissedOfferIds,
 }: WriteOverrideDocumentOptions): Promise<void> {
   const hostId = hostData.config.hostId;
 
@@ -58,8 +60,8 @@ export async function writeOverrideDocument({
     func: persistOverridesInPage,
     args: [
       OVERRIDE_DOCUMENT_KEY,
-      disabledLocalAppsKey(hostId),
-      { documentValue, scope, disabledAppIds },
+      dismissedDevelopmentOffersKey(hostId),
+      { documentValue, scope, dismissedOfferIds },
     ],
   });
   if (scope !== 'all') return;
@@ -103,37 +105,6 @@ export async function writeDisabledArtifactVersionOverrides(
   );
 }
 
-export async function readClearedLocalArtifactIds(
-  location: OverrideStorageLocation,
-): Promise<Set<string>> {
-  const key = suppressedArtifactsKey(
-    location.hostId,
-    location.tabId,
-    location.scope,
-  );
-  const stored = await chrome.storage.local.get(key);
-  const value = stored[key];
-
-  return new Set(
-    Array.isArray(value)
-      ? value.filter(
-          (artifactId): artifactId is string =>
-            typeof artifactId === 'string' && artifactId.length > 0,
-        )
-      : [],
-  );
-}
-
-export async function writeClearedLocalArtifactIds(
-  location: OverrideStorageLocation,
-  artifactIds: Set<string>,
-): Promise<void> {
-  await writeList(
-    suppressedArtifactsKey(location.hostId, location.tabId, location.scope),
-    [...artifactIds],
-  );
-}
-
 async function writeList(key: string, values: unknown[]): Promise<void> {
   if (values.length === 0) {
     await chrome.storage.local.remove(key);
@@ -146,33 +117,34 @@ async function writeList(key: string, values: unknown[]): Promise<void> {
 interface PersistedOverridesPayload {
   documentValue: OverrideDocument;
   scope: Scope;
-  disabledAppIds: string[];
+  dismissedOfferIds: AtlasDevelopmentOfferIds;
 }
 
 function persistOverridesInPage(
   documentKey: string,
-  disabledAppsKey: string,
-  { documentValue, scope, disabledAppIds }: PersistedOverridesPayload,
+  dismissedOffersKey: string,
+  { documentValue, scope, dismissedOfferIds }: PersistedOverridesPayload,
 ): void {
   const serializedDocument = JSON.stringify(documentValue);
-  const serializedDisabledApps = JSON.stringify(disabledAppIds);
+  const serializedDismissedOffers = JSON.stringify(dismissedOfferIds);
   const hasOverrides =
     documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0) > 0;
+  const hasDismissedOffers = Object.keys(dismissedOfferIds).length > 0;
 
   if (scope !== 'all') {
     sessionStorage.setItem(documentKey, serializedDocument);
-    sessionStorage.setItem(disabledAppsKey, serializedDisabledApps);
+    sessionStorage.setItem(dismissedOffersKey, serializedDismissedOffers);
 
     return;
   }
 
-  if (hasOverrides || disabledAppIds.length > 0)
+  if (hasOverrides || hasDismissedOffers)
     localStorage.setItem(documentKey, serializedDocument);
   else localStorage.removeItem(documentKey);
   sessionStorage.removeItem(documentKey);
 
-  if (disabledAppIds.length > 0)
-    localStorage.setItem(disabledAppsKey, serializedDisabledApps);
-  else localStorage.removeItem(disabledAppsKey);
-  sessionStorage.removeItem(disabledAppsKey);
+  if (hasDismissedOffers)
+    localStorage.setItem(dismissedOffersKey, serializedDismissedOffers);
+  else localStorage.removeItem(dismissedOffersKey);
+  sessionStorage.removeItem(dismissedOffersKey);
 }

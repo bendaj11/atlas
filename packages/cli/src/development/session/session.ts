@@ -1,17 +1,14 @@
 import type {
-  AtlasHostCatalog,
+  AtlasDevelopmentOfferIds,
   AtlasHostManifest,
   AtlasRuntimeOverride,
 } from '@atlas/schema';
 import type { AtlasDevOverrideDocument, DevSessionStore } from '../types.js';
-import {
-  createDevSession,
-  createLocalDevCatalog,
-  mergeLocalCatalog,
-} from './dev-catalog.js';
+import { createDevSession, createLocalDevCatalog } from './dev-catalog.js';
 
 interface DevSessionEntry {
   override: AtlasRuntimeOverride;
+  offerId: string;
   ready: boolean;
 }
 
@@ -19,6 +16,7 @@ interface HostDevSession {
   entries: Map<string, DevSessionEntry>;
   generatedAt: string;
   hostOverride?: AtlasHostManifest;
+  hostOfferId?: string;
   hostReady: boolean;
   previewUrls: Set<string>;
 }
@@ -36,6 +34,7 @@ export function createDevSessionStore(
 
     if (document.hostOverride) {
       host.hostOverride = document.hostOverride;
+      host.hostOfferId = document.generatedAt;
       host.hostReady = false;
     }
 
@@ -43,6 +42,7 @@ export function createDevSessionStore(
       const existing = host.entries.get(override.manifest.id);
       host.entries.set(override.manifest.id, {
         override,
+        offerId: document.generatedAt,
         ready: existing?.ready ?? false,
       });
     }
@@ -77,25 +77,21 @@ export function createDevSessionStore(
     };
   };
 
-  const localCatalog = (
-    hostId: string | undefined,
-    publishedCatalog: AtlasHostCatalog | undefined,
-  ):
-    | { document: AtlasDevOverrideDocument; catalog: AtlasHostCatalog }
-    | undefined => {
-    const document = currentDocument(hostId);
+  const currentOfferIds = (hostId: string): AtlasDevelopmentOfferIds => {
+    const host = hosts.get(hostId);
 
-    if (!document) return undefined;
+    if (!host) return {};
 
-    const local = createLocalDevCatalog(document);
-    const catalog = publishedCatalog
-      ? mergeLocalCatalog({
-          productionCatalog: publishedCatalog,
-          localCatalog: local,
-        })
-      : local;
+    const readyEntries = [...host.entries.values()].filter(
+      (entry) => entry.ready,
+    );
 
-    return { document, catalog };
+    return Object.fromEntries([
+      ...readyEntries.map((entry) => [entry.override.appId, entry.offerId]),
+      ...(host.hostReady && host.hostOverride && host.hostOfferId
+        ? [[host.hostOverride.id, host.hostOfferId]]
+        : []),
+    ]);
   };
 
   const markReady = (appId: string, requestedHostId?: string): void => {
@@ -125,6 +121,7 @@ export function createDevSessionStore(
       if (!host) return;
 
       delete host.hostOverride;
+      delete host.hostOfferId;
       host.hostReady = false;
 
       if (host.entries.size === 0) hosts.delete(hostId);
@@ -146,15 +143,17 @@ export function createDevSessionStore(
         markReady(override.appId, document.hostId);
     },
     document: currentDocument,
-    catalog(hostId, productionCatalog) {
-      return localCatalog(hostId, productionCatalog)?.catalog;
-    },
     devSession(hostId, publishedCatalog) {
-      const resolved = localCatalog(hostId, publishedCatalog);
+      const document = currentDocument(hostId);
 
-      return resolved
-        ? createDevSession(resolved.document, resolved.catalog, overrideUrl)
-        : undefined;
+      if (!document) return undefined;
+
+      return createDevSession({
+        document,
+        catalog: publishedCatalog ?? createLocalDevCatalog(document),
+        offerIds: currentOfferIds(document.hostId),
+        overrideUrl,
+      });
     },
     hasReadySession() {
       return [...hosts.keys()].some(

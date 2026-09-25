@@ -192,9 +192,17 @@ export class ControlServerDriver {
       ).status;
     },
     registeredPreviewSessionStatus: () =>
-      this.previewSessionStatus(this.previewUrl),
+      this.previewStatus({
+        pathname: '/atlas.dev-session.json',
+        previewUrl: this.previewUrl,
+      }),
     unregisteredPreviewSessionStatus: () =>
-      this.previewSessionStatus(faker.internet.url()),
+      this.previewStatus({
+        pathname: '/atlas.dev-session.json',
+        previewUrl: faker.internet.url(),
+      }),
+    previewLauncherStatus: (previewUrl: string) =>
+      this.previewStatus({ pathname: '/atlas.open', previewUrl }),
     recoveredLocalHostAndAppState: () => ({
       appIds: [this.appId],
       hostChannel: 'local',
@@ -240,12 +248,15 @@ export class ControlServerDriver {
     };
   }
 
-  private async previewSessionStatus(previewUrl: string): Promise<number> {
+  private async previewStatus({
+    pathname,
+    previewUrl,
+  }: {
+    pathname: string;
+    previewUrl: string;
+  }): Promise<number> {
     if (!this.host) throw new Error('Host is required.');
-    const url = new URL(
-      '/atlas.dev-session.json',
-      `http://localhost:${this.host.port}`,
-    );
+    const url = new URL(pathname, `http://localhost:${this.host.port}`);
     url.searchParams.set('hostId', this.hostId);
     url.searchParams.set('previewUrl', previewUrl);
     return (await fetch(url, { headers: { connection: 'close' } })).status;

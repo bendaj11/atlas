@@ -6,8 +6,10 @@ import { CONTROL_PORT_PARAMETER } from '../../utils/control-port/control-port';
 import { clearHostDataCache } from '../../utils/host-data-cache/host-data-cache';
 import { actionIconPathsFor } from '../../utils/action-icon-theme/action-icon-theme';
 import { messageFromError } from '../../utils/errors/errors';
+import { focusPreviewTab } from '../../utils/preview-tabs/preview-tabs';
 import {
   isActionThemeMessage,
+  isFocusPreviewRequest,
   isLoadDevelopmentSessionRequest,
   isOverrideCountMessage,
   isRecord,
@@ -24,6 +26,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void loadForTab(sender, message).then(
       (document) => sendResponse({ document }),
       (error) => sendResponse({ error: messageFromError(error) }),
+    );
+
+    return true;
+  }
+
+  if (isFocusPreviewRequest(message) && sender.tab) {
+    void focusPreviewTab({ launcherTab: sender.tab }).then(
+      (focused) => sendResponse({ focused }),
+      () => sendResponse({ focused: false }),
     );
 
     return true;

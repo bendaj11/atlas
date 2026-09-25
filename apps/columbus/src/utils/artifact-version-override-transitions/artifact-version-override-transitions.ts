@@ -52,11 +52,7 @@ export function saveArtifactVersionOverride({
   const disabledArtifactVersionOverrides = new Map(
     columbusState.disabledArtifactVersionOverrides,
   );
-  const clearedLocalArtifactIds = new Set(
-    columbusState.clearedLocalArtifactIds,
-  );
   disabledArtifactVersionOverrides.delete(artifactKey);
-  clearedLocalArtifactIds.delete(selection.deployedArtifactVersion.id);
 
   if (selection.selectedOverrideArtifactVersion)
     enabledArtifactVersionOverrides.set(
@@ -69,28 +65,16 @@ export function saveArtifactVersionOverride({
     ...columbusState,
     enabledArtifactVersionOverrides,
     disabledArtifactVersionOverrides,
-    clearedLocalArtifactIds,
   };
 }
 
 export function clearAllArtifactVersionOverrides(
   columbusState: ColumbusState,
 ): ColumbusState {
-  const clearedLocalArtifactIds = new Set(
-    columbusState.clearedLocalArtifactIds,
-  );
-  for (const artifactVersion of [
-    ...columbusState.enabledArtifactVersionOverrides.values(),
-    ...columbusState.disabledArtifactVersionOverrides.values(),
-  ]) {
-    if (artifactVersion.channel === 'local')
-      clearedLocalArtifactIds.add(artifactVersion.id);
-  }
   return {
     ...columbusState,
     enabledArtifactVersionOverrides: new Map(),
     disabledArtifactVersionOverrides: new Map(),
-    clearedLocalArtifactIds,
   };
 }
 
@@ -107,21 +91,13 @@ export function clearArtifactVersionOverride({
   const disabledArtifactVersionOverrides = new Map(
     columbusState.disabledArtifactVersionOverrides,
   );
-  const selectedOverrideArtifactVersion =
-    enabledArtifactVersionOverrides.get(artifactKey) ??
-    disabledArtifactVersionOverrides.get(artifactKey);
-  const clearedLocalArtifactIds = new Set(
-    columbusState.clearedLocalArtifactIds,
-  );
   enabledArtifactVersionOverrides.delete(artifactKey);
   disabledArtifactVersionOverrides.delete(artifactKey);
-  if (selectedOverrideArtifactVersion?.channel === 'local')
-    clearedLocalArtifactIds.add(selectedOverrideArtifactVersion.id);
+
   return {
     ...columbusState,
     enabledArtifactVersionOverrides,
     disabledArtifactVersionOverrides,
-    clearedLocalArtifactIds,
   };
 }
 

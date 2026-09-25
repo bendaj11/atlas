@@ -1,11 +1,13 @@
+import type { AtlasDevelopmentOfferIds } from '@atlas/schema';
+import type { ArtifactVersion } from '../../types/artifact-version';
 import type { ColumbusState } from '../../types/columbus-state';
+import type { DevelopmentOffers } from '../../types/host-data';
 import { reloadHostTab } from '../host-tabs/host-tabs';
 import { validateLocalOverride } from '../local-override/local-override';
 import { createOverrideDocument } from '../override-document/override-document';
 import {
   writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
-  writeClearedLocalArtifactIds,
 } from '../override-storage/override-storage';
 
 export async function persistColumbusState(
@@ -16,39 +18,98 @@ export async function persistColumbusState(
       validateLocalOverride,
     ),
   );
-  const location = {
-    hostId: columbusState.hostData.config.hostId,
-    tabId: columbusState.tabId,
-    scope: columbusState.scope,
-  };
+  const offers = columbusState.hostData.developmentOffers;
+  const offeredArtifactVersions = offers
+    ? offeredArtifactVersionsOf(offers)
+    : new Map<string, ArtifactVersion>();
+  const selectedOverrides = new Map(
+    [...columbusState.enabledArtifactVersionOverrides].filter(
+      ([artifactKey, artifactVersion]) =>
+        !isSameBuild({
+          offered: offeredArtifactVersions.get(artifactKey),
+          enabled: artifactVersion,
+        }),
+    ),
+  );
+
   await writeOverrideDocument({
     tabId: columbusState.tabId,
     hostData: columbusState.hostData,
     documentValue: createOverrideDocument({
       hostData: columbusState.hostData,
-      overrides: columbusState.enabledArtifactVersionOverrides,
+      overrides: selectedOverrides,
     }),
     scope: columbusState.scope,
-    disabledAppIds: disabledAppIds(columbusState),
+    dismissedOfferIds: offers
+      ? dismissedOfferIdsOf({
+          offers,
+          offeredArtifactVersions,
+          storedDismissedOfferIds: columbusState.hostData.dismissedOfferIds,
+          enabledArtifactVersionOverrides:
+            columbusState.enabledArtifactVersionOverrides,
+        })
+      : columbusState.hostData.dismissedOfferIds,
   });
   await writeDisabledArtifactVersionOverrides(
-    location,
+    {
+      hostId: columbusState.hostData.config.hostId,
+      tabId: columbusState.tabId,
+      scope: columbusState.scope,
+    },
     columbusState.disabledArtifactVersionOverrides,
-  );
-  await writeClearedLocalArtifactIds(
-    location,
-    columbusState.clearedLocalArtifactIds,
   );
   await reloadHostTab(columbusState.tabId);
 }
 
-function disabledAppIds(columbusState: ColumbusState): string[] {
-  return [
-    ...new Set([
-      ...[...columbusState.disabledArtifactVersionOverrides.values()].map(
-        (artifactVersion) => artifactVersion.id,
-      ),
-      ...columbusState.clearedLocalArtifactIds,
-    ]),
-  ];
+function offeredArtifactVersionsOf(
+  offers: DevelopmentOffers,
+): Map<string, ArtifactVersion> {
+  const offeredArtifactVersions = new Map(
+    offers.overrides.map((override) => [override.appId, override.manifest]),
+  );
+
+  if (offers.hostOverride)
+    offeredArtifactVersions.set(offers.hostOverride.id, offers.hostOverride);
+
+  return offeredArtifactVersions;
+}
+
+function dismissedOfferIdsOf({
+  offers,
+  offeredArtifactVersions,
+  storedDismissedOfferIds,
+  enabledArtifactVersionOverrides,
+}: {
+  offers: DevelopmentOffers;
+  offeredArtifactVersions: Map<string, ArtifactVersion>;
+  storedDismissedOfferIds: AtlasDevelopmentOfferIds;
+  enabledArtifactVersionOverrides: Map<string, ArtifactVersion>;
+}): AtlasDevelopmentOfferIds {
+  const unofferedDismissals = Object.entries(storedDismissedOfferIds).filter(
+    ([artifactKey]) => !(artifactKey in offers.offerIds),
+  );
+  const offerDismissals = Object.entries(offers.offerIds).filter(
+    ([artifactKey]) =>
+      !isSameBuild({
+        offered: offeredArtifactVersions.get(artifactKey),
+        enabled: enabledArtifactVersionOverrides.get(artifactKey),
+      }),
+  );
+
+  return Object.fromEntries([...unofferedDismissals, ...offerDismissals]);
+}
+
+function isSameBuild({
+  offered,
+  enabled,
+}: {
+  offered: ArtifactVersion | undefined;
+  enabled: ArtifactVersion | undefined;
+}): boolean {
+  return (
+    offered !== undefined &&
+    enabled !== undefined &&
+    offered.channel === enabled.channel &&
+    offered.remoteEntryUrl === enabled.remoteEntryUrl
+  );
 }

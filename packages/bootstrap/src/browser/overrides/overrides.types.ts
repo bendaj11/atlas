@@ -1,4 +1,5 @@
 import type {
+  AtlasDevelopmentOfferIds,
   AtlasHostCatalog,
   AtlasHostManifest,
   AtlasHostRuntimeConfig,
@@ -30,10 +31,11 @@ export interface DevSession {
   catalog?: AtlasHostCatalog;
   hostOverride?: AtlasHostManifest;
   overrides?: RuntimeAppOverride[];
+  offerIds?: AtlasDevelopmentOfferIds;
 }
 
 export interface OverridesDependencies {
-  readonly sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
+  readonly sessionStorage: Pick<Storage, 'getItem'>;
   readonly localStorage: Pick<Storage, 'getItem'>;
   readonly fetchJson: typeof fetchJson;
   readonly requestDevelopmentSession: typeof requestDevelopmentSession;

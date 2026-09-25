@@ -100,6 +100,16 @@ describe('startAtlasLoader', () => {
       expect(driver.get.mountRequest()?.catalog).toBe(overridden);
     });
 
+    it('should publish the startup catalog in the runtime snapshot when overrides change it', async () => {
+      const overridden = aHostCatalog({ hostId: runtime.hostId });
+      driver.given.overriddenCatalog(overridden);
+      await driver.when.started();
+
+      expect(driver.get.publishRuntimeSnapshotMock()).toHaveBeenCalledWith(
+        expect.objectContaining({ catalog }),
+      );
+    });
+
     it('should mount through the default export when the module exposes mount there', async () => {
       const mount = async () => undefined;
       driver.given.hostModule({ default: { mount } });

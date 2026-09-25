@@ -1,11 +1,13 @@
 import { jest } from '@jest/globals';
-import type { HostData } from '../../types/host-data';
+import type { AtlasDevelopmentOfferIds } from '@atlas/schema';
+import type { DevelopmentOffers, HostData } from '../../types/host-data';
 import type {
   ArtifactRegistry,
   ArtifactVersions,
   Registry,
 } from '../artifact-registry/artifact-registry';
 import type * as ArtifactRegistryModule from '../artifact-registry/artifact-registry';
+import type { readDevelopmentOffers as readDevelopmentOffersType } from '../development-offers/development-offers';
 import type * as HostCatalogModule from '../host-catalog/host-catalog';
 import type * as PageRuntimeStateModule from '../page-runtime-state/page-runtime-state';
 
@@ -23,6 +25,9 @@ const readRuntimeErrors =
   jest.fn<typeof PageRuntimeStateModule.readRuntimeErrors>();
 const readVisibleAppIds =
   jest.fn<typeof PageRuntimeStateModule.readVisibleAppIds>();
+const readDismissedOfferIds =
+  jest.fn<typeof PageRuntimeStateModule.readDismissedOfferIds>();
+const readDevelopmentOffers = jest.fn<typeof readDevelopmentOffersType>();
 
 jest.unstable_mockModule('../artifact-registry/artifact-registry', () => ({
   ...artifactRegistry,
@@ -38,6 +43,10 @@ jest.unstable_mockModule('../page-runtime-state/page-runtime-state', () => ({
   readRuntimeErrors,
   readStoredOverrides,
   readVisibleAppIds,
+  readDismissedOfferIds,
+}));
+jest.unstable_mockModule('../development-offers/development-offers', () => ({
+  readDevelopmentOffers,
 }));
 
 export class InspectAtlasHostDriver {
@@ -109,6 +118,16 @@ export class InspectAtlasHostDriver {
 
       return this;
     },
+    developmentOffers: (offers: DevelopmentOffers | undefined) => {
+      readDevelopmentOffers.mockResolvedValue(offers);
+
+      return this;
+    },
+    dismissedOfferIds: (offerIds: AtlasDevelopmentOfferIds) => {
+      readDismissedOfferIds.mockReturnValue(offerIds);
+
+      return this;
+    },
   };
 
   readonly get = {
@@ -121,5 +140,7 @@ export class InspectAtlasHostDriver {
     readRegistry: () => this.readRegistry,
     readVersions: () => this.readVersions,
     readStoredOverrides: () => readStoredOverrides,
+    readDevelopmentOffers: () => readDevelopmentOffers,
+    readDismissedOfferIds: () => readDismissedOfferIds,
   };
 }

@@ -1,4 +1,5 @@
 import type {
+  AtlasDevelopmentOfferIds,
   AtlasHostCatalog,
   AtlasHostManifest,
   AtlasManifest,
@@ -30,46 +31,26 @@ export function createLocalDevCatalog(
   };
 }
 
-export function createDevSession(
-  document: AtlasDevOverrideDocument,
-  catalog: AtlasHostCatalog,
-  overrideUrl: string,
-): AtlasDevSessionDocument {
+export function createDevSession({
+  document,
+  catalog,
+  offerIds,
+  overrideUrl,
+}: {
+  document: AtlasDevOverrideDocument;
+  catalog: AtlasHostCatalog;
+  offerIds: AtlasDevelopmentOfferIds;
+  overrideUrl: string;
+}): AtlasDevSessionDocument {
   return {
     schemaVersion: '1',
     hostId: document.hostId,
     catalog,
     overrides: document.overrides,
     ...(document.hostOverride ? { hostOverride: document.hostOverride } : {}),
+    offerIds,
     overrideUrl,
     generatedAt: document.generatedAt,
-  };
-}
-
-export function mergeLocalCatalog({
-  productionCatalog,
-  localCatalog,
-}: {
-  productionCatalog: AtlasHostCatalog;
-  localCatalog: AtlasHostCatalog;
-}): AtlasHostCatalog {
-  const localApps = new Map(localCatalog.apps.map((app) => [app.id, app]));
-  const productionApps = productionCatalog.apps.map(
-    (app) => localApps.get(app.id) ?? app,
-  );
-  const additionalLocalApps = localCatalog.apps.filter(
-    (app) => !productionCatalog.apps.some(({ id }) => id === app.id),
-  );
-
-  return {
-    ...productionCatalog,
-    revision: localCatalog.revision,
-    generatedAt: localCatalog.generatedAt,
-    host:
-      localCatalog.host.channel === 'local'
-        ? localCatalog.host
-        : productionCatalog.host,
-    apps: [...productionApps, ...additionalLocalApps],
   };
 }
 

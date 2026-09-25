@@ -8,8 +8,6 @@ const writeOverrideDocument =
   jest.fn<typeof OverrideStorageModule.writeOverrideDocument>();
 const writeDisabledArtifactVersionOverrides =
   jest.fn<typeof OverrideStorageModule.writeDisabledArtifactVersionOverrides>();
-const writeClearedLocalArtifactIds =
-  jest.fn<typeof OverrideStorageModule.writeClearedLocalArtifactIds>();
 
 jest.unstable_mockModule('../local-override/local-override', () => ({
   validateLocalOverride,
@@ -17,7 +15,6 @@ jest.unstable_mockModule('../local-override/local-override', () => ({
 jest.unstable_mockModule('../override-storage/override-storage', () => ({
   writeDisabledArtifactVersionOverrides,
   writeOverrideDocument,
-  writeClearedLocalArtifactIds,
 }));
 
 export class PersistOverridesDriver {
@@ -26,7 +23,6 @@ export class PersistOverridesDriver {
     validateLocalOverride.mockResolvedValue(undefined);
     writeOverrideDocument.mockResolvedValue(undefined);
     writeDisabledArtifactVersionOverrides.mockResolvedValue(undefined);
-    writeClearedLocalArtifactIds.mockResolvedValue(undefined);
     reloadHostTabMock.mockResolvedValue(undefined);
   }
 
@@ -43,7 +39,6 @@ export class PersistOverridesDriver {
     writeOverrideDocument: () => writeOverrideDocument,
     writeDisabledArtifactVersionOverrides: () =>
       writeDisabledArtifactVersionOverrides,
-    writeClearedLocalArtifactIds: () => writeClearedLocalArtifactIds,
     reloadHostTab: () => reloadHostTabMock,
   };
 }

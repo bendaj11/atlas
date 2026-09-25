@@ -1,5 +1,7 @@
+import type { AtlasOverrideSelection } from '@atlas/schema';
 import type { ArtifactVersion } from '../../types/artifact-version';
 import type { HostData } from '../../types/host-data';
+import type { AtlasArtifactOverride } from '../../types/override-document';
 import { normalizeStoredArtifactVersion } from '../artifact-version-utils/artifact-version-utils';
 
 interface IncludeOverrideAppsOptions {
@@ -8,12 +10,11 @@ interface IncludeOverrideAppsOptions {
 }
 
 export function extractEnabledArtifactVersionOverrides(
-  hostData: HostData,
+  selection: AtlasOverrideSelection<AtlasArtifactOverride, ArtifactVersion>,
 ): Map<string, ArtifactVersion> {
-  const overrideDocument = hostData.overrides;
   const selectedArtifactVersions = [
-    ...(overrideDocument?.hostOverride ? [overrideDocument.hostOverride] : []),
-    ...(overrideDocument?.overrides ?? []).map((override) => override.manifest),
+    ...(selection.hostOverride ? [selection.hostOverride] : []),
+    ...selection.overrides.map((override) => override.manifest),
   ];
 
   return new Map(

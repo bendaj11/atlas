@@ -1,4 +1,8 @@
-import type { ArtifactVersion } from '../../types/artifact-version';
+import {
+  dismissedDevelopmentOffersKey,
+  parseDismissedDevelopmentOffers,
+  type AtlasDevelopmentOfferIds,
+} from '@atlas/schema';
 import type { AtlasRuntimeError } from '../../types/host-data';
 import type { AtlasOverrideDocument as OverrideDocument } from '../../types/override-document';
 import type { Scope } from '../../types/columbus-state';
@@ -33,24 +37,14 @@ export function readStoredOverrides(
   }
 }
 
-export function localOverridesOf(
+export function readDismissedOfferIds(
   hostId: string,
-  manifests: ArtifactVersion[],
-): OverrideDocument | undefined {
-  const local = manifests.filter(({ channel }) => channel === 'local');
-  if (!local.length) return undefined;
+): AtlasDevelopmentOfferIds {
+  const key = dismissedDevelopmentOffersKey(hostId);
 
-  const host = local.find(({ kind }) => kind === 'host');
-
-  return {
-    schemaVersion: '1',
-    hostId,
-    generatedAt: new Date().toISOString(),
-    ...(host ? { hostOverride: host } : {}),
-    overrides: local
-      .filter(({ kind }) => kind === 'app')
-      .map((manifest) => ({ appId: manifest.id, manifest, reason: 'local' })),
-  };
+  return parseDismissedDevelopmentOffers(
+    sessionStorage.getItem(key) ?? localStorage.getItem(key),
+  );
 }
 
 export function readRuntimeErrors(): AtlasRuntimeError[] {
