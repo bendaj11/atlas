@@ -1,6 +1,6 @@
 {
   "name": "@atlas/bootstrap",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "type": "module",
   "description": "Static Atlas browser bootstrap assets and loader.",
   "license": "MIT",
