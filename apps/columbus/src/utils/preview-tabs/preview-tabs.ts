@@ -56,18 +56,8 @@ function showsPreview({
   tabUrl: string | undefined;
   previewUrl: string;
 }): boolean {
-  if (!isWebPageUrl(tabUrl)) return false;
-
-  const tab = new URL(tabUrl);
-  const preview = new URL(previewUrl);
-
-  const previewDirectory = preview.pathname.endsWith('/')
-    ? preview.pathname
-    : `${preview.pathname}/`;
-
   return (
-    tab.origin === preview.origin &&
-    (tab.pathname === preview.pathname ||
-      tab.pathname.startsWith(previewDirectory))
+    isWebPageUrl(tabUrl) &&
+    new URL(tabUrl).origin === new URL(previewUrl).origin
   );
 }

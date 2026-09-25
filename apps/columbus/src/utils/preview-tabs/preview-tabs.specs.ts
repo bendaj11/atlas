@@ -74,7 +74,9 @@ describe('focusPreviewTab', () => {
     it('should focus the window of the preview tab when focused', async () => {
       await focusPreviewTab({ launcherTab });
 
-      expect(driver.get.focusedWindowIds()).toStrictEqual([previewTab.windowId]);
+      expect(driver.get.focusedWindowIds()).toStrictEqual([
+        previewTab.windowId,
+      ]);
     });
 
     it('should reload the preview tab when focused', async () => {
@@ -132,57 +134,38 @@ describe('focusPreviewTab', () => {
     await expect(focusPreviewTab({ launcherTab })).resolves.toBe(false);
   });
 
-  it('should return false when a tab shows another path of the preview origin', async () => {
+  it('should return true when a tab shows another route of the preview origin', async () => {
     const previewOrigin = `https://${faker.internet.domainName()}`;
     const launcherTab = {
       id: faker.number.int({ min: 1, max: 100 }),
-      url: `http://localhost/atlas.open?previewUrl=${encodeURIComponent(`${previewOrigin}/${faker.lorem.word()}-a/`)}`,
+      url: `http://localhost/atlas.open?previewUrl=${encodeURIComponent(`${previewOrigin}/${faker.lorem.word()}-a`)}`,
     };
     driver.given.openTabs([
       launcherTab,
       {
         id: faker.number.int({ min: 101, max: 200 }),
-        url: `${previewOrigin}/${faker.lorem.word()}-b/`,
-      },
-    ]);
-
-    await expect(focusPreviewTab({ launcherTab })).resolves.toBe(false);
-  });
-
-  it('should return false when a tab shows a sibling path that extends the preview path', async () => {
-    const previewOrigin = `https://${faker.internet.domainName()}`;
-    const previewPath = `/${faker.lorem.word()}`;
-    const launcherTab = {
-      id: faker.number.int({ min: 1, max: 100 }),
-      url: `http://localhost/atlas.open?previewUrl=${encodeURIComponent(`${previewOrigin}${previewPath}`)}`,
-    };
-    driver.given.openTabs([
-      launcherTab,
-      {
-        id: faker.number.int({ min: 101, max: 200 }),
-        url: `${previewOrigin}${previewPath}${faker.lorem.word()}`,
-      },
-    ]);
-
-    await expect(focusPreviewTab({ launcherTab })).resolves.toBe(false);
-  });
-
-  it('should return true when a tab shows a page under the preview path', async () => {
-    const previewOrigin = `https://${faker.internet.domainName()}`;
-    const previewPath = `/${faker.lorem.word()}`;
-    const launcherTab = {
-      id: faker.number.int({ min: 1, max: 100 }),
-      url: `http://localhost/atlas.open?previewUrl=${encodeURIComponent(`${previewOrigin}${previewPath}`)}`,
-    };
-    driver.given.openTabs([
-      launcherTab,
-      {
-        id: faker.number.int({ min: 101, max: 200 }),
-        url: `${previewOrigin}${previewPath}/${faker.lorem.word()}`,
+        url: `${previewOrigin}/${faker.lorem.word()}-b`,
       },
     ]);
 
     await expect(focusPreviewTab({ launcherTab })).resolves.toBe(true);
+  });
+
+  it('should return false when a tab shows the preview route on another origin', async () => {
+    const previewPath = `/${faker.lorem.word()}`;
+    const launcherTab = {
+      id: faker.number.int({ min: 1, max: 100 }),
+      url: `http://localhost/atlas.open?previewUrl=${encodeURIComponent(`https://${faker.internet.domainName()}${previewPath}`)}`,
+    };
+    driver.given.openTabs([
+      launcherTab,
+      {
+        id: faker.number.int({ min: 101, max: 200 }),
+        url: `https://${faker.internet.domainName()}${previewPath}`,
+      },
+    ]);
+
+    await expect(focusPreviewTab({ launcherTab })).resolves.toBe(false);
   });
 
   it('should return false when the sender is not a launcher tab', async () => {
