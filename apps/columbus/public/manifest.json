@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Atlas App Versions",
-  "version": "0.5.0",
+  "name": "Columbus by Atlas",
+  "version": "0.5.1",
   "minimum_chrome_version": "111",
   "description": "Switch Atlas apps between production, PR, historical, and local versions.",
   "icons": {
@@ -34,7 +34,7 @@
     }
   ],
   "action": {
-    "default_title": "Atlas versions",
+    "default_title": "Columbus by Atlas",
     "default_popup": "index.html",
     "default_icon": {
       "16": "icons/columbus-dark-16.png",
