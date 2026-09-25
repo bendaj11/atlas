@@ -2,6 +2,7 @@ import { createInterface, type Interface } from 'node:readline/promises';
 import { stderr, stdin, stdout } from 'node:process';
 import type { WriteStream } from 'node:tty';
 import selectPrompt from '@inquirer/select';
+import { formatDuration } from '../format/format.js';
 
 type UiColor =
   | 'bold'
@@ -27,6 +28,35 @@ const STATUS_COLORS: Readonly<Record<MessageStatus, UiColor>> = {
   success: 'green',
   warning: 'warningBadge',
   error: 'red',
+};
+
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const SPINNER_INTERVAL_MS = 80;
+const MINIMUM_REPORTED_DURATION_MS = 1000;
+
+interface ActiveStep {
+  message: string;
+  readonly startedAt: number;
+  frame: number;
+  readonly timer?: ReturnType<typeof setInterval>;
+}
+
+let activeStep: ActiveStep | undefined;
+
+export interface AtlasProgressReporter {
+  start(message: string): void;
+  update(message: string): void;
+  succeed(message: string): void;
+  fail(message: string): void;
+  warn(message: string): void;
+}
+
+export const silentProgress: AtlasProgressReporter = {
+  start: () => undefined,
+  update: () => undefined,
+  succeed: () => undefined,
+  fail: () => undefined,
+  warn: () => undefined,
 };
 
 const ATLAS_LOGO: readonly { text: string; color: RgbColor }[] = [
@@ -135,6 +165,7 @@ export const ui = {
     writeStatus(stdout, 'success', message);
   },
   error(message: string): void {
+    stopActiveStep();
     writeError(message);
   },
   item(message: string): void {
@@ -149,6 +180,51 @@ export const ui = {
       `${colorize(label, 'bold', stdout)}: ${formatTerminalLink(value, target, stdout)}`,
     );
   },
+  progress: {
+    start(message: string): void {
+      stopActiveStep();
+
+      if (!isAnimated(stdout)) {
+        writeStatus(stdout, 'info', message);
+        activeStep = { message, startedAt: Date.now(), frame: 0 };
+
+        return;
+      }
+
+      const timer = setInterval(() => {
+        if (!activeStep) return;
+
+        activeStep.frame = (activeStep.frame + 1) % SPINNER_FRAMES.length;
+        drawActiveStep();
+      }, SPINNER_INTERVAL_MS);
+      timer.unref();
+      activeStep = { message, startedAt: Date.now(), frame: 0, timer };
+      drawActiveStep();
+    },
+    update(message: string): void {
+      if (!activeStep) return;
+
+      activeStep.message = message;
+
+      if (activeStep.timer) drawActiveStep();
+    },
+    succeed(message: string): void {
+      const elapsed = activeStep ? Date.now() - activeStep.startedAt : 0;
+      stopActiveStep();
+      const duration =
+        elapsed >= MINIMUM_REPORTED_DURATION_MS
+          ? ` ${colorize(`· ${formatDuration(elapsed)}`, 'dim', stdout)}`
+          : '';
+      writeStatus(stdout, 'success', `${message}${duration}`);
+    },
+    fail(message: string): void {
+      stopActiveStep();
+      writeStatus(stderr, 'error', message);
+    },
+    warn(message: string): void {
+      ui.warning(message);
+    },
+  } satisfies AtlasProgressReporter,
 };
 
 function formatLogo(stream: WriteStream): string {
@@ -218,8 +294,41 @@ function indentContinuationLines(message: string): string {
 }
 
 function writeLine(stream: WriteStream, message: string): void {
+  clearActiveStep();
+
   if (stream === stderr) console.error(message);
   else console.info(message);
+
+  if (activeStep?.timer) drawActiveStep();
+}
+
+function isAnimated(stream: WriteStream): boolean {
+  return (
+    Boolean(stream.isTTY) && !process.env.CI && process.env.TERM !== 'dumb'
+  );
+}
+
+function drawActiveStep(): void {
+  if (!activeStep) return;
+
+  const frame = colorize(SPINNER_FRAMES[activeStep.frame]!, 'cyan', stdout);
+  const width = Math.max((stdout.columns ?? 80) - 3, 1);
+  const message =
+    activeStep.message.length > width
+      ? `${activeStep.message.slice(0, width - 1)}…`
+      : activeStep.message;
+  stdout.write(`\r\u001B[2K${frame} ${message}`);
+}
+
+function clearActiveStep(): void {
+  if (activeStep?.timer) stdout.write('\r\u001B[2K');
+}
+
+function stopActiveStep(): void {
+  clearActiveStep();
+
+  if (activeStep?.timer) clearInterval(activeStep.timer);
+  activeStep = undefined;
 }
 
 function colorize(value: string, color: UiColor, stream: WriteStream): string {

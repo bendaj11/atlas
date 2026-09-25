@@ -9,6 +9,8 @@ import {
 } from '../../publication/index.js';
 import {
   CliArguments,
+  formatDuration,
+  pluralize,
   ui,
   type AtlasInvocation,
   type AtlasPrompter,
@@ -104,8 +106,9 @@ async function generate({
       async (projectRoots) => {
         if (args.hasFlag('skip-install')) return;
 
-        ui.info(`Installing dependencies with ${workspace.packageManager}...`);
+        ui.info(`Installing dependencies with ${workspace.packageManager}`);
         await service.installDependencies(projectRoots);
+        ui.success('Installed dependencies');
       },
     );
     ui.success(`Created "${invocation.name}" at ${roots.join(' and ')}.`);
@@ -131,19 +134,27 @@ async function publish({
 }: WorkspaceCommandContext & { projectName: string }): Promise<void> {
   ui.heading(`Publish · ${projectName}`);
 
+  const startedAt = Date.now();
   const builds = new AtlasBuildService(workspace, args);
   const config = await loadAtlasRegistryConfig(args, workspace.root);
-  const result = await new AtlasPublishService(args, builds, ui.info).run(
+  const result = await new AtlasPublishService(args, builds, ui.progress).run(
     projectName,
     config,
   );
 
-  if (result.dryRun) result.uploaded.forEach((path) => ui.item(path));
+  if (result.dryRun) {
+    result.uploaded.forEach((path) => ui.item(path));
+    ui.success(
+      `Dry run complete: ${pluralize(result.uploaded.length, 'file')} would be written. Storage was not changed.`,
+    );
+
+    return;
+  }
+
   ui.success(
-    result.dryRun
-      ? `Dry run: ${result.uploaded.length} file(s).`
-      : `Published ${result.manifest.path}.`,
+    `Published ${projectName} in ${formatDuration(Date.now() - startedAt)}`,
   );
+  ui.result('Manifest', result.manifest.path);
 }
 
 async function develop({

@@ -1,6 +1,7 @@
 import {
   readPositiveEnvironmentInteger,
   requiredStorageValue,
+  resolveParallelUploads,
   selectStorageFromEnvironment,
 } from './storage-environment.js';
 import { CliArguments } from '../../shared/index.js';
@@ -18,6 +19,7 @@ const ENVIRONMENT_KEYS = [
   'ATLAS_STORAGE_ACCESS_KEY_ID',
   'ATLAS_STORAGE_SECRET_ACCESS_KEY',
   'ATLAS_STORAGE_SESSION_TOKEN',
+  'ATLAS_PARALLEL_UPLOADS',
   'ATLAS_TEST_LIMIT',
   'ATLAS_TEST_REQUIRED',
 ];
@@ -53,6 +55,12 @@ export class StorageEnvironmentDriver {
           flag,
           environmentName,
         }),
+      ),
+    concurrency: () =>
+      this.withEnvironment(() =>
+        resolveParallelUploads(
+          new CliArguments(['publish', 'x', ...this.flags]),
+        ),
       ),
     positiveInteger: (name: string) =>
       this.withEnvironment(() => readPositiveEnvironmentInteger(name)),

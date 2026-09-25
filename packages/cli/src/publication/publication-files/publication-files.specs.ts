@@ -66,11 +66,63 @@ describe('publication-files', () => {
       await driver.given.payload('main.js', faker.lorem.sentence());
       const files = await driver.get.files();
 
-      await driver.when.uploaded([...files.payloads, files.manifest]);
+      await driver.when.uploaded(files);
 
       expect(driver.get.storedPaths()).toStrictEqual([
         files.payloads[0]!.path,
         files.manifest.path,
+      ]);
+    });
+
+    it('should upload the manifest after every payload', async () => {
+      await driver.given.payload('a.js', faker.lorem.sentence());
+      await driver.given.payload('b.js', faker.lorem.sentence());
+      await driver.given.payload('c.js', faker.lorem.sentence());
+      const files = await driver.get.files();
+
+      await driver.when.uploaded(files);
+
+      expect(driver.get.createdPaths().at(-1)).toBe(files.manifest.path);
+    });
+
+    it('should read back every file when storage does not verify created objects', async () => {
+      await driver.given.payload('main.js', faker.lorem.sentence());
+      const files = await driver.get.files();
+
+      await driver.when.uploaded(files);
+
+      expect(driver.get.readPaths()).toStrictEqual([
+        files.payloads[0]!.path,
+        files.manifest.path,
+      ]);
+    });
+
+    it('should skip read-back when storage verifies created objects', async () => {
+      await driver.given.payload('main.js', faker.lorem.sentence());
+      driver.given.storageVerifyingCreatedObjects();
+      const files = await driver.get.files();
+
+      await driver.when.uploaded(files);
+
+      expect(driver.get.readPaths()).toStrictEqual([]);
+    });
+
+    it('should report each uploaded and verified file when uploads succeed', async () => {
+      await driver.given.payload('main.js', 'abc');
+      const files = await driver.get.files();
+      const size = `${3 + files.manifest.bytes.byteLength} B`;
+
+      await driver.when.uploaded(files);
+
+      expect(driver.get.progress()).toStrictEqual([
+        `Uploading files 0/2 (${size})`,
+        `Uploading files 1/2 (${size})`,
+        `Uploading files 2/2 (${size})`,
+        `Uploaded 2 files (${size})`,
+        'Verifying uploaded files 0/2',
+        'Verifying uploaded files 1/2',
+        'Verifying uploaded files 2/2',
+        'Verified 2 uploaded files',
       ]);
     });
 
@@ -79,7 +131,7 @@ describe('publication-files', () => {
       driver.given.storedObject(files.manifest);
 
       await expect(
-        driver.when.uploaded([files.manifest]),
+        driver.when.uploaded({ payloads: [], manifest: files.manifest }),
       ).resolves.toBeUndefined();
     });
 
@@ -90,9 +142,24 @@ describe('publication-files', () => {
         bytes: new Uint8Array([9]),
       });
 
-      await expect(driver.when.uploaded([files.manifest])).rejects.toThrow(
+      await expect(
+        driver.when.uploaded({ payloads: [], manifest: files.manifest }),
+      ).rejects.toThrow(
         `Immutable publication object already exists: ${files.manifest.path}`,
       );
+    });
+
+    it('should not upload the manifest when a payload upload fails', async () => {
+      await driver.given.payload('main.js', faker.lorem.sentence());
+      const files = await driver.get.files();
+      driver.given.storedObject({
+        ...files.payloads[0]!,
+        bytes: new Uint8Array([9]),
+      });
+
+      await driver.when.uploaded(files).catch(() => undefined);
+
+      expect(driver.get.createdPaths()).not.toContain(files.manifest.path);
     });
   });
 });

@@ -33,9 +33,7 @@ describe('http', () => {
 
     it('should announce the actual address when listening starts', () => {
       expect(driver.get.infoMock()).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /^Atlas test listening at http:\/\/localhost:\d+\.$/,
-        ),
+        expect.stringMatching(/^Atlas test running at http:\/\/localhost:\d+$/),
       );
     });
 

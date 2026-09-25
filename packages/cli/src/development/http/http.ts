@@ -20,7 +20,7 @@ export function listenOnLocalHost(
       const address = server.address();
       const actualPort =
         typeof address === 'object' && address ? address.port : port;
-      ui.info(`${label} listening at ${buildLocalOrigin(actualPort)}.`);
+      ui.info(`${label} running at ${buildLocalOrigin(actualPort)}`);
       resolve(server);
     });
   });

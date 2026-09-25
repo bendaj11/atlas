@@ -73,6 +73,34 @@ describe('ui', () => {
     expect(driver.get.infoCalls()).toStrictEqual(driver.get.linkedResult());
   });
 
+  it('should write one line per step when progress is shown without a terminal', () => {
+    driver.when.show('progress');
+
+    expect(driver.get.infoCalls()).toStrictEqual(driver.get.progress());
+  });
+
+  it('should animate the running step in place when standard output is a terminal', () => {
+    driver.given.terminal({ inputIsTTY: false, outputIsTTY: true });
+
+    driver.when.show('progress');
+
+    expect(driver.get.writeCalls()).toStrictEqual(driver.get.spinnerFrames());
+  });
+
+  it('should keep only the completed step when a terminal step succeeds', () => {
+    driver.given.terminal({ inputIsTTY: false, outputIsTTY: true });
+
+    driver.when.show('progress');
+
+    expect(driver.get.infoCalls()).toStrictEqual([driver.get.progress()[1]]);
+  });
+
+  it('should write failed step to standard error when progress fails', () => {
+    driver.when.show('failed-progress');
+
+    expect(driver.get.errorCalls()).toStrictEqual(driver.get.failedProgress());
+  });
+
   it('should allow prompts when standard output is piped', () => {
     driver.given.terminal({ inputIsTTY: true, outputIsTTY: false });
 

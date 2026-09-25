@@ -67,7 +67,9 @@ describe('publication-lease', () => {
 
       await driver.when.deliveryVerified(paths);
 
-      expect(driver.get.verifyDeliveryMock()).toHaveBeenCalledWith(paths);
+      expect(driver.get.verifyDeliveryMock()).toHaveBeenCalledWith(paths, {
+        concurrency: 1,
+      });
     });
   });
 });

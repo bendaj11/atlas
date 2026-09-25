@@ -11,7 +11,14 @@ import type {
 } from '../publication-storage/types.js';
 import { encodeManifestBytes } from '../static-registry/descriptors/descriptors.js';
 import type { AtlasBuildResult } from '../../build/index.js';
-import { computeSha256Digest } from '../../shared/index.js';
+import {
+  computeSha256Digest,
+  forEachConcurrently,
+  formatBytes,
+  pluralize,
+  silentProgress,
+  type AtlasProgressReporter,
+} from '../../shared/index.js';
 
 export interface PublicationFile {
   path: string;
@@ -23,8 +30,6 @@ export interface PublicationFiles {
   readonly payloads: PublicationFile[];
   readonly manifest: PublicationFile;
 }
-
-export type PublicationProgressReporter = (message: string) => void;
 
 export async function preparePublicationFiles(
   build: AtlasBuildResult,
@@ -78,43 +83,90 @@ export function derivePublicationIdentity(
   return `${artifact} ${manifest.name} (${manifest.id}), ${version}`;
 }
 
+export function measurePublicationFiles(files: PublicationFiles): {
+  count: number;
+  bytes: number;
+} {
+  const all = [...files.payloads, files.manifest];
+
+  return {
+    count: all.length,
+    bytes: all.reduce((total, file) => total + file.bytes.byteLength, 0),
+  };
+}
+
 export async function uploadAndVerify(options: {
   storage: AtlasPublicationStorage;
-  files: readonly PublicationFile[];
+  files: PublicationFiles;
+  concurrency: number;
   lease?: AtlasPublicationLease;
-  reportProgress?: PublicationProgressReporter;
+  progress?: AtlasProgressReporter;
 }): Promise<void> {
-  const { storage, files, lease, reportProgress = () => undefined } = options;
-  reportProgress(
-    `Uploading ${files.length} immutable file(s) to publication storage...`,
-  );
+  const {
+    storage,
+    files,
+    concurrency,
+    lease,
+    progress = silentProgress,
+  } = options;
+  const { count, bytes } = measurePublicationFiles(files);
+  const size = formatBytes(bytes);
+  let uploaded = 0;
 
-  for (const file of files) {
+  const upload = async (file: PublicationFile): Promise<void> => {
     await lease?.assertHeld();
     await createImmutable(storage, file);
+    uploaded += 1;
+    progress.update(`Uploading files ${uploaded}/${count} (${size})`);
+  };
+
+  progress.start(`Uploading files 0/${count} (${size})`);
+  await forEachConcurrently({
+    items: files.payloads,
+    concurrency,
+    operation: upload,
+  });
+  await upload(files.manifest);
+  progress.succeed(`Uploaded ${pluralize(count, 'file')} (${size})`);
+
+  if (storage.verifiesCreatedObjects) return;
+
+  let verified = 0;
+
+  progress.start(`Verifying uploaded files 0/${count}`);
+  await forEachConcurrently({
+    items: [...files.payloads, files.manifest],
+    concurrency,
+    operation: async (file) => {
+      await lease?.assertHeld();
+      await verifyStoredObject(storage, file);
+      verified += 1;
+      progress.update(`Verifying uploaded files ${verified}/${count}`);
+    },
+  });
+  progress.succeed(`Verified ${pluralize(count, 'uploaded file')}`);
+}
+
+async function verifyStoredObject(
+  storage: AtlasPublicationStorage,
+  file: PublicationFile,
+): Promise<void> {
+  const [bytes, metadata] = await Promise.all([
+    storage.read(file.path),
+    storage.inspect(file.path),
+  ]);
+
+  if (!bytes || !metadata) {
+    throw new Error(`Published object ${file.path} is missing.`);
   }
 
-  reportProgress(
-    `Verifying ${files.length} uploaded immutable file(s) and metadata...`,
-  );
-
-  for (const file of files) {
-    await lease?.assertHeld();
-    const bytes = await storage.read(file.path);
-    const metadata = await storage.inspect(file.path);
-
-    if (!bytes || !metadata) {
-      throw new Error(`Published object ${file.path} is missing.`);
-    }
-
-    assertPayload({
-      path: file.path,
-      bytes,
-      expectedDigest: computeSha256Digest(file.bytes),
-      expectedSize: file.bytes.byteLength,
-    });
-    assertMetadata(file.path, metadata, file.metadata);
-  }
+  assertPayload({
+    path: file.path,
+    bytes,
+    expectedDigest: computeSha256Digest(file.bytes),
+    expectedSize: file.bytes.byteLength,
+  });
+  assertMetadata(file.path, metadata, file.metadata);
 }
 
 function resolveArtifactPrefix(

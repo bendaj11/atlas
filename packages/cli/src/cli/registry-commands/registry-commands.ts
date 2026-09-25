@@ -5,6 +5,7 @@ import {
   readOpenPreviews,
 } from '../../publication/index.js';
 import {
+  formatDuration,
   ui,
   type AtlasInvocation,
   type CliArguments,
@@ -57,14 +58,24 @@ async function deploy({
 }): Promise<void> {
   ui.heading(`Deploy · ${artifact}`);
 
+  const startedAt = Date.now();
   const config = await loadAtlasRegistryConfig(args);
-  const result = await new AtlasDeployService(args).run(artifact, config);
-
-  ui.success(
-    `${result.artifactId}@${result.version} deployed to ${result.environment}.`,
+  const result = await new AtlasDeployService(args, ui.progress).run(
+    artifact,
+    config,
   );
 
-  if (result.dryRun) return;
+  if (result.dryRun) {
+    ui.success(
+      `Dry run complete: ${artifact} version ${result.version} can be deployed to ${result.environment}. Storage was not changed.`,
+    );
+
+    return;
+  }
+
+  ui.success(
+    `Deployed ${artifact} version ${result.version} to ${result.environment} in ${formatDuration(Date.now() - startedAt)}`,
+  );
 
   const hostUrls = config?.hostUrls ?? [];
 

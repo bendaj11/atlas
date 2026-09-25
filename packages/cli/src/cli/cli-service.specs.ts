@@ -102,7 +102,9 @@ describe('runAtlasCli', () => {
 
       await driver.when.run(['publish', 'orders', '--dry-run']);
 
-      expect(driver.get.infoOutput()).toMatch(/Dry run: 2 file\(s\)/);
+      expect(driver.get.infoOutput()).toMatch(
+        /Dry run complete: 2 files would be written\. Storage was not changed\./,
+      );
     });
   });
 

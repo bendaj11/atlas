@@ -6,6 +6,7 @@ export {
   normalizeToCliError,
   formatErrorWithCauses,
 } from './cli-error/cli-error.js';
+export { forEachConcurrently } from './concurrency/concurrency.js';
 export {
   convertDigestToIntegrity,
   computeSha256Digest,
@@ -24,6 +25,7 @@ export {
   readTextFile,
   writeJsonFile,
 } from './fs/fs.js';
+export { formatBytes, formatDuration, pluralize } from './format/format.js';
 export { resolveInvocation } from './interaction/interaction.js';
 export type { AtlasInvocation } from './interaction/interaction.js';
 export {
@@ -52,8 +54,8 @@ export {
   formatTypeScriptDiagnostics,
   loadTypeScript,
 } from './typescript/typescript.js';
-export { TerminalPrompter, ui } from './ui/ui.js';
-export type { AtlasPrompter } from './ui/ui.js';
+export { silentProgress, TerminalPrompter, ui } from './ui/ui.js';
+export type { AtlasProgressReporter, AtlasPrompter } from './ui/ui.js';
 export {
   parseAbsoluteHttpUrl,
   isLoopbackUrl,

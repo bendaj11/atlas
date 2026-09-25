@@ -121,6 +121,37 @@ describe('AtlasDeployService', () => {
     expect(driver.get.deliveryEvents()).toEqual(['invalidate', 'verify']);
   });
 
+  it('should report deployment stages when deployment verifies delivery', async () => {
+    await driver.given.catalog();
+    driver.given.deliveryCache('none');
+
+    await driver.when.deploy();
+
+    expect(driver.get.progress()).toStrictEqual([
+      'start: Reading registry',
+      `succeed: Selected ${driver.get.appId()} version 1.4.0`,
+      'start: Waiting for publish lock',
+      'succeed: Acquired publish lock',
+      'start: Updating production registry',
+      'succeed: Updated production registry',
+      'start: Checking public delivery',
+      'succeed: Public URLs serve the deployment',
+    ]);
+  });
+
+  it('should warn about the retry when cache invalidation is transiently unavailable', async () => {
+    await driver.given.catalog();
+    driver.given.transientInvalidationFailure();
+
+    await driver.when.deploy();
+
+    expect(driver.get.progress()).toContainEqual(
+      expect.stringMatching(
+        /^warn: Storage request failed temporarily\. Retrying in \d+ms \(attempt 2\)\.$/,
+      ),
+    );
+  });
+
   it('should recover deployment when cache refresh failed after committing state', async () => {
     await driver.given.catalog();
     driver.given.deliveryCache('invalidate-once');

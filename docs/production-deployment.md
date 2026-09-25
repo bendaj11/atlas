@@ -234,6 +234,12 @@ error.
 | Target bucket          | `--bucket`              | `ATLAS_S3_BUCKET`           |
 | Target prefix          | `--key-prefix`          | `ATLAS_STORAGE_KEY_PREFIX`  |
 | Target region          | `--region`              | `ATLAS_S3_REGION`           |
+| Parallel uploads       | `--parallel-uploads`    | `ATLAS_PARALLEL_UPLOADS`    |
+
+`--parallel-uploads` sets how many files `publish` and `deploy` upload and check
+at the same time. The default is `16`. Lower it when your storage provider
+rate-limits requests. Raise it for releases with many small files on fast
+storage.
 
 `ATLAS_HOST_URL` provides a default public URL for `atlas verify`. It does not
 select an environment or an app development preview; app teams configure previews

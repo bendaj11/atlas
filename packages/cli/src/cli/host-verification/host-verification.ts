@@ -1,4 +1,4 @@
-import { ui, type CliArguments } from '../../shared/index.js';
+import { pluralize, ui, type CliArguments } from '../../shared/index.js';
 import {
   AtlasVerifyService,
   type AtlasVerificationCheck,
@@ -26,7 +26,15 @@ export async function verifyHostUrls(
   hostUrls: readonly string[],
 ): Promise<void> {
   for (const hostUrl of hostUrls) {
+    ui.progress.start(`Checking ${hostUrl}`);
     const report = await new AtlasVerifyService().run({ hostUrl });
+
+    if (report.failures)
+      ui.progress.fail(
+        `Found ${pluralize(report.failures, 'problem')} on ${hostUrl}`,
+      );
+    else ui.progress.succeed(`Checked ${hostUrl}`);
+
     report.checks.forEach(printVerificationCheck);
 
     if (report.failures)

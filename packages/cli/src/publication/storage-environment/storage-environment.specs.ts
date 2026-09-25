@@ -160,4 +160,43 @@ describe('storage-environment', () => {
       },
     );
   });
+
+  describe('resolveParallelUploads', () => {
+    it('should default to sixteen parallel uploads when nothing is configured', () => {
+      expect(driver.get.concurrency()).toBe(16);
+    });
+
+    it('should read ATLAS_PARALLEL_UPLOADS when the flag is absent', () => {
+      driver.given.environment({ ATLAS_PARALLEL_UPLOADS: '16' });
+
+      expect(driver.get.concurrency()).toBe(16);
+    });
+
+    it('should prefer --parallel-uploads over ATLAS_PARALLEL_UPLOADS when both are set', () => {
+      driver.given
+        .environment({ ATLAS_PARALLEL_UPLOADS: '16' })
+        .given.flags(['--parallel-uploads', '2']);
+
+      expect(driver.get.concurrency()).toBe(2);
+    });
+
+    it.each(['0', '-1', '1.5', 'true'])(
+      'should throw when --parallel-uploads is %s',
+      (value) => {
+        driver.given.flags([`--parallel-uploads=${value}`]);
+
+        expect(() => driver.get.concurrency()).toThrow(
+          '--parallel-uploads must be a positive integer.',
+        );
+      },
+    );
+
+    it('should name the variable when ATLAS_PARALLEL_UPLOADS is invalid', () => {
+      driver.given.environment({ ATLAS_PARALLEL_UPLOADS: 'many' });
+
+      expect(() => driver.get.concurrency()).toThrow(
+        'ATLAS_PARALLEL_UPLOADS must be a positive integer.',
+      );
+    });
+  });
 });

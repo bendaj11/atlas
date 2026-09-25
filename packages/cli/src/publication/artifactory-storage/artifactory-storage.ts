@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { ArtifactoryClient } from '../artifactory-client/artifactory-client.js';
 import type { ArtifactoryConnectionOptions } from '../artifactory-client/types.js';
+import { forEachConcurrently } from '../../shared/index.js';
 import type {
   AtlasPublicationBody,
+  AtlasPublicationDeliveryOptions,
   AtlasPublicationLease,
   AtlasPublicationListedObject,
   AtlasPublicationObjectMetadata,
@@ -33,9 +35,11 @@ const DEFAULT_MAX_BUFFERED_BYTES = 256 * 1024 * 1024;
 
 /** Artifactory-backed publication under an organization-owned, whole-command writer lock. */
 export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
+  readonly verifiesCreatedObjects = true;
   private readonly client: ArtifactoryStorageClient;
   private readonly maxBufferedBytes: number;
   private pendingMutation: Promise<void> = Promise.resolve();
+  private readonly pendingCreates = new Map<string, Promise<void>>();
   private unknownMutationFailure: unknown;
 
   constructor(
@@ -84,29 +88,15 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     return { ...info, ...headers };
   }
 
-  async verifyDelivery(paths: readonly string[]): Promise<void> {
-    for (const path of new Set(paths)) {
-      const stored = await this.inspect(path);
-
-      if (!stored?.versionToken || stored.size === undefined)
-        throw new Error(`Artifactory object is missing from storage: ${path}`);
-
-      const delivered = await this.client.deliveryMetadata(path);
-
-      if (
-        delivered.contentType !== stored.contentType ||
-        delivered.cacheControl !== stored.cacheControl
-      ) {
-        throw new Error(
-          'Artifactory delivery verification failed: Content-Type or Cache-Control do not match stored metadata.',
-        );
-      }
-
-      await this.verifyPublicBytes(path, {
-        size: stored.size,
-        versionToken: stored.versionToken,
-      });
-    }
+  async verifyDelivery(
+    paths: readonly string[],
+    options: AtlasPublicationDeliveryOptions = {},
+  ): Promise<void> {
+    await forEachConcurrently({
+      items: [...new Set(paths)],
+      concurrency: options.concurrency ?? 1,
+      operation: (path) => this.verifyDeliveredObject(path),
+    });
   }
 
   list(prefix: string): Promise<AtlasPublicationListedObject[]> {
@@ -118,7 +108,7 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     bytes: AtlasPublicationBody,
     metadata: AtlasPublicationObjectMetadata,
   ): Promise<void> {
-    return this.serializeMutation(async () => {
+    return this.createMutation(path, async () => {
       if (await this.client.fileInfo(path)) {
         throw new Error(`Artifactory object already exists: ${path}`);
       }
@@ -170,16 +160,46 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
     };
   }
 
-  private serializeMutation(operation: () => Promise<void>): Promise<void> {
-    const mutation = this.pendingMutation.then(async () => {
-      if (this.unknownMutationFailure !== undefined)
-        throw this.unknownMutationFailure;
+  private createMutation(
+    path: string,
+    operation: () => Promise<void>,
+  ): Promise<void> {
+    const mutation = Promise.all([
+      this.pendingMutation,
+      this.pendingCreates.get(path),
+    ]).then(() => this.runMutation(operation));
+    const settled = this.trackOutcome(mutation);
+    this.pendingCreates.set(path, settled);
 
-      await this.options.assertExclusivePublishing();
-      await operation();
+    void settled.then(() => {
+      if (this.pendingCreates.get(path) === settled)
+        this.pendingCreates.delete(path);
     });
 
-    this.pendingMutation = mutation.catch((error: unknown) => {
+    return mutation;
+  }
+
+  private serializeMutation(operation: () => Promise<void>): Promise<void> {
+    const mutation = Promise.all([
+      this.pendingMutation,
+      ...this.pendingCreates.values(),
+    ]).then(() => this.runMutation(operation));
+
+    this.pendingMutation = this.trackOutcome(mutation);
+
+    return mutation;
+  }
+
+  private async runMutation(operation: () => Promise<void>): Promise<void> {
+    if (this.unknownMutationFailure !== undefined)
+      throw this.unknownMutationFailure;
+
+    await this.options.assertExclusivePublishing();
+    await operation();
+  }
+
+  private trackOutcome(mutation: Promise<void>): Promise<void> {
+    return mutation.catch((error: unknown) => {
       if (
         typeof error === 'object' &&
         error !== null &&
@@ -188,8 +208,29 @@ export class ArtifactoryPublicationStorage implements AtlasPublicationStorage {
       )
         this.unknownMutationFailure = error;
     });
+  }
 
-    return mutation;
+  private async verifyDeliveredObject(path: string): Promise<void> {
+    const stored = await this.inspect(path);
+
+    if (!stored?.versionToken || stored.size === undefined)
+      throw new Error(`Artifactory object is missing from storage: ${path}`);
+
+    const delivered = await this.client.deliveryMetadata(path);
+
+    if (
+      delivered.contentType !== stored.contentType ||
+      delivered.cacheControl !== stored.cacheControl
+    ) {
+      throw new Error(
+        'Artifactory delivery verification failed: Content-Type or Cache-Control do not match stored metadata.',
+      );
+    }
+
+    await this.verifyPublicBytes(path, {
+      size: stored.size,
+      versionToken: stored.versionToken,
+    });
   }
 
   private async upload(

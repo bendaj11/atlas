@@ -31,6 +31,11 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
       },
       ...buildStorageOptionsHelp(),
       {
+        label: '--parallel-uploads <count>',
+        description:
+          'Parallel storage requests for uploads and checks; default 16',
+      },
+      {
         label: '--expected-registry-revision <digest>',
         description: 'Require current registry revision',
       },
@@ -94,6 +99,11 @@ export const PUBLICATION_HELP: Readonly<Record<string, CommandHelp>> = {
       {
         label: '--expected-registry-revision <digest>',
         description: 'Require current target registry revision',
+      },
+      {
+        label: '--parallel-uploads <count>',
+        description:
+          'Parallel storage requests for uploads and checks; default 16',
       },
       {
         label: '--dry-run',
@@ -180,6 +190,11 @@ function buildStorageEnvironmentHelp({
         ]
       : []),
     { label: 'ATLAS_REGISTRY_URL', description: 'Public target registry root' },
+    {
+      label: 'ATLAS_PARALLEL_UPLOADS',
+      description:
+        'Parallel storage requests; --parallel-uploads wins; default 16',
+    },
     {
       label: 'ATLAS_HOST_URL',
       description: 'Public host base URL used when deploying a host binding',

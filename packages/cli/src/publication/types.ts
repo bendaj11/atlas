@@ -1,6 +1,5 @@
 import type { AtlasManifestDescriptor } from '@atlas/schema';
 import type { AtlasBuildResult } from '../build/index.js';
-import type { PublicationProgressReporter } from './publication-files/publication-files.js';
 
 export interface AtlasPublishResult {
   uploaded: string[];
@@ -24,5 +23,3 @@ export interface AtlasPreviewPruneResult {
 export interface AtlasProjectBuilder {
   publication(projectName: string): Promise<AtlasBuildResult>;
 }
-
-export type AtlasPublishProgressReporter = PublicationProgressReporter;

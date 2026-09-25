@@ -150,15 +150,20 @@ describe('AtlasPublishService', () => {
     await driver.when.publish();
 
     expect(driver.get.progress()).toStrictEqual([
-      'Building ' + driver.get.name() + '...',
-      'Prepared ' + driver.get.identity() + '; 2 immutable file(s) ready.',
-      'Waiting to acquire publication lock...',
-      'Checking current registry revision...',
-      'Uploading 2 immutable file(s) to publication storage...',
-      'Verifying 2 uploaded immutable file(s) and metadata...',
-      'Reading latest registry.json...',
-      'Updating registry.json and configured caches...',
-      'Verifying published registry...',
+      `start: Reading build output of ${driver.get.name()}`,
+      `succeed: Prepared ${driver.get.identity()}: 2 files, ${driver.get.size()}`,
+      'start: Waiting for publish lock',
+      'succeed: Acquired publish lock',
+      'start: Checking registry',
+      'succeed: Registry accepts version 1.4.0',
+      `start: Uploading files 0/2 (${driver.get.size()})`,
+      `succeed: Uploaded 2 files (${driver.get.size()})`,
+      'start: Verifying uploaded files 0/2',
+      'succeed: Verified 2 uploaded files',
+      'start: Updating registry',
+      'succeed: Registry now lists version 1.4.0',
+      'start: Checking public registry',
+      'succeed: Public registry serves the new revision',
     ]);
   });
 
@@ -167,9 +172,10 @@ describe('AtlasPublishService', () => {
     await driver.when.publish();
 
     expect(driver.get.progress()).toStrictEqual([
-      'Building ' + driver.get.name() + '...',
-      'Prepared ' + driver.get.identity() + '; 2 immutable file(s) ready.',
-      'Reading registry.json for dry-run validation...',
+      `start: Reading build output of ${driver.get.name()}`,
+      `succeed: Prepared ${driver.get.identity()}: 2 files, ${driver.get.size()}`,
+      'start: Checking registry',
+      'succeed: Registry accepts version 1.4.0',
     ]);
   });
 
@@ -182,7 +188,9 @@ describe('AtlasPublishService', () => {
 
     it('should report the retry when publication completes', () => {
       expect(driver.get.progress()).toContainEqual(
-        expect.stringMatching(/retrying attempt 2 in \d+ms/),
+        expect.stringMatching(
+          /^warn: Storage request failed temporarily\. Retrying in \d+ms \(attempt 2\)\.$/,
+        ),
       );
     });
 

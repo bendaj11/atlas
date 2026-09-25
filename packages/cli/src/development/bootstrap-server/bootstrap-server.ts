@@ -31,7 +31,7 @@ export async function startLocalBootstrapServer(
     proxyNativeUpgrade(request, socket, head, options.proxy!.origin);
   });
 
-  return await listenOnLocalHost(server, options.port, 'Atlas local bootstrap');
+  return await listenOnLocalHost(server, options.port, 'Local host page');
 }
 
 function createBootstrapFileMap(

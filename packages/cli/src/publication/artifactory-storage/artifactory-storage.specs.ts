@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { ArtifactoryStorageDriver } from './artifactory-storage.driver.js';
 
 describe('ArtifactoryPublicationStorage', () => {
@@ -176,6 +177,49 @@ describe('ArtifactoryPublicationStorage', () => {
     await driver.when.createConcurrently();
 
     expect(driver.get.uploads()).toHaveLength(1);
+  });
+
+  it('should upload different objects at the same time when creates target different paths', async () => {
+    driver.given.slowUploads();
+
+    await driver.when.createAt([
+      `apps/${faker.string.uuid()}/1.0.0/a.js`,
+      `apps/${faker.string.uuid()}/1.0.0/b.js`,
+      `apps/${faker.string.uuid()}/1.0.0/c.js`,
+    ]);
+
+    expect(driver.get.peakRequests()).toBe(3);
+  });
+
+  it('should run a replacement only after in-flight creates finish', async () => {
+    driver.given.slowUploads();
+
+    await expect(
+      driver.when.createAndReplaceConcurrently(),
+    ).resolves.toBeDefined();
+  });
+
+  it('should check delivery of several objects at the same time up to the concurrency limit', async () => {
+    driver.given.object('present');
+    driver.given.slowDelivery();
+
+    await driver.when.verifyDeliveryOf(
+      ['a.js', 'b.js', 'c.js'].map((name) => `apps/example/1.0.0/${name}`),
+      2,
+    );
+
+    expect(driver.get.peakRequests()).toBe(2);
+  });
+
+  it('should check delivery one object at a time when no concurrency is given', async () => {
+    driver.given.object('present');
+    driver.given.slowDelivery();
+
+    await driver.when.verifyDeliveryInOrder(
+      ['a.js', 'b.js'].map((name) => `apps/example/1.0.0/${name}`),
+    );
+
+    expect(driver.get.peakRequests()).toBe(1);
   });
 
   it('should continue processing when a previous mutation failed', async () => {

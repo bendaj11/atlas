@@ -59,6 +59,7 @@ export class DeployServiceDriver {
   private permanentInvalidationFailures = 0;
   private deliveryFailures = 0;
   private readonly deliveryEvents: string[] = [];
+  private readonly progress: string[] = [];
   private readonly cachedObjects = new Map<string, Uint8Array>();
   private result?: AtlasDeployResult;
 
@@ -148,25 +149,28 @@ export class DeployServiceDriver {
 
   when = {
     deploy: async () => {
-      this.result = await new AtlasDeployService(this.arguments()).run(
-        this.appId,
-        {
-          storage: this.storage,
-          invalidate: async (paths) => {
-            this.invalidations.push(...paths);
-            this.deliveryEvents.push('invalidate');
-            if (this.invalidationFailures-- > 0) {
-              throw { $metadata: { httpStatusCode: 503 } };
-            }
-            if (this.permanentInvalidationFailures-- > 0)
-              throw new Error('Cache refresh unavailable');
-            for (const path of paths) {
-              const bytes = await this.storage.read(path);
-              if (bytes) this.cachedObjects.set(path, bytes);
-            }
-          },
+      this.result = await new AtlasDeployService(this.arguments(), {
+        start: (message) => this.progress.push(`start: ${message}`),
+        update: () => undefined,
+        succeed: (message) => this.progress.push(`succeed: ${message}`),
+        fail: (message) => this.progress.push(`fail: ${message}`),
+        warn: (message) => this.progress.push(`warn: ${message}`),
+      }).run(this.appId, {
+        storage: this.storage,
+        invalidate: async (paths) => {
+          this.invalidations.push(...paths);
+          this.deliveryEvents.push('invalidate');
+          if (this.invalidationFailures-- > 0) {
+            throw { $metadata: { httpStatusCode: 503 } };
+          }
+          if (this.permanentInvalidationFailures-- > 0)
+            throw new Error('Cache refresh unavailable');
+          for (const path of paths) {
+            const bytes = await this.storage.read(path);
+            if (bytes) this.cachedObjects.set(path, bytes);
+          }
         },
-      );
+      });
     },
     cleanup: () => {
       globalThis.fetch = this.originalFetch;
@@ -175,6 +179,8 @@ export class DeployServiceDriver {
 
   get = {
     deliveryEvents: () => this.deliveryEvents,
+    progress: () => this.progress,
+    appId: () => this.appId,
     result: () => this.result,
     selectedAppVersion: () =>
       this.storage.json<AtlasEnvironmentDeployment>(

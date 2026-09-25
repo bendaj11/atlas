@@ -48,6 +48,25 @@ export function requiredStorageValue(options: {
   return value;
 }
 
+export const DEFAULT_PARALLEL_UPLOADS = 16;
+
+export function resolveParallelUploads(args?: CliArguments): number {
+  const flag = args?.flag('parallel-uploads');
+  const value = flag ?? process.env.ATLAS_PARALLEL_UPLOADS;
+
+  if (value === undefined) return DEFAULT_PARALLEL_UPLOADS;
+
+  const number = Number(value);
+
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(number) || number <= 0) {
+    throw new Error(
+      `${flag === undefined ? 'ATLAS_PARALLEL_UPLOADS' : '--parallel-uploads'} must be a positive integer.`,
+    );
+  }
+
+  return number;
+}
+
 export function readPositiveEnvironmentInteger(
   name: string,
 ): number | undefined {

@@ -46,6 +46,8 @@ export class ArtifactoryStorageDriver {
     remove: jest.fn<ArtifactoryClient['remove']>().mockResolvedValue(undefined),
   };
   private maximumBytes = 100;
+  private activeRequests = 0;
+  private peakRequests = 0;
   private instance?: ArtifactoryPublicationStorage;
   private lease?: AtlasPublicationLease;
 
@@ -121,6 +123,20 @@ export class ArtifactoryStorageDriver {
         new Error('External publishing lock is not held.'),
       );
     },
+    slowUploads: () => {
+      const upload = this.client.upload.getMockImplementation();
+      this.client.upload.mockImplementation(async (input) => {
+        await this.trackRequest();
+        await upload?.(input);
+      });
+    },
+    slowDelivery: () => {
+      this.client.deliveryMetadata.mockImplementation(async () => {
+        await this.trackRequest();
+
+        return this.metadata;
+      });
+    },
     files: (count: number) => {
       this.client.list.mockResolvedValue(
         Array.from({ length: count }, (_, index) => ({
@@ -141,6 +157,18 @@ export class ArtifactoryStorageDriver {
     readStream: () => this.storage().readStream(this.fixture.path),
     inspect: () => this.storage().inspect(this.fixture.path),
     verifyDelivery: () => this.storage().verifyDelivery([this.fixture.path]),
+    verifyDeliveryOf: (paths: readonly string[], concurrency: number) =>
+      this.storage().verifyDelivery(paths, { concurrency }),
+    verifyDeliveryInOrder: (paths: readonly string[]) =>
+      this.storage().verifyDelivery(paths),
+    createAt: (paths: readonly string[]) =>
+      Promise.all(
+        paths.map((path) =>
+          this.storage().create(path, this.fixture.bytes, this.metadata),
+        ),
+      ),
+    createAndReplaceConcurrently: () =>
+      Promise.all([this.when.create(), this.when.replace()]),
     publishAndVerify: async () => {
       await this.when.create();
       await this.when.verifyDelivery();
@@ -238,6 +266,7 @@ export class ArtifactoryStorageDriver {
     checkedDelivery: () =>
       this.client.deliveryMetadata.mock.calls.map(([path]) => path),
     authoritativeRequests: () => this.client.fileInfo.mock.calls.length,
+    peakRequests: () => this.peakRequests,
   };
 
   private options(): ArtifactoryOptions {
@@ -263,6 +292,13 @@ export class ArtifactoryStorageDriver {
   private acquiredLease(): AtlasPublicationLease {
     if (!this.lease) throw new Error('Acquire a lease first.');
     return this.lease;
+  }
+
+  private async trackRequest(): Promise<void> {
+    this.activeRequests += 1;
+    this.peakRequests = Math.max(this.peakRequests, this.activeRequests);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    this.activeRequests -= 1;
   }
 
   private async *chunks(bytes: Uint8Array): AsyncIterable<Uint8Array> {

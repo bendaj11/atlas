@@ -11,7 +11,9 @@ type UiScenario =
   | 'single-action-error'
   | 'multiple-action-error'
   | 'result'
-  | 'linked-result';
+  | 'linked-result'
+  | 'progress'
+  | 'failed-progress';
 
 export class UiDriver {
   private readonly subject = faker.word.noun();
@@ -23,6 +25,10 @@ export class UiDriver {
   private readonly originalInfo = console.info;
   private readonly originalNoColor = process.env.NO_COLOR;
   private readonly originalTerm = process.env.TERM;
+  private readonly originalCi = process.env.CI;
+  private readonly write = jest.fn<(chunk: string | Uint8Array) => boolean>(
+    () => true,
+  );
   private readonly inputTtyDescriptor = Object.getOwnPropertyDescriptor(
     stdin,
     'isTTY',
@@ -54,12 +60,14 @@ export class UiDriver {
       if (colors) delete process.env.NO_COLOR;
       else process.env.NO_COLOR = '1';
       process.env.TERM = 'xterm-256color';
+      delete process.env.CI;
     },
   };
 
   when = {
     show: (scenario: UiScenario) => {
       Object.assign(console, { error: this.error, info: this.info });
+      const write = jest.spyOn(stdout, 'write').mockImplementation(this.write);
       try {
         if (scenario === 'logo') ui.logo();
         if (scenario === 'heading') ui.heading(`Publish · ${this.subject}`);
@@ -79,7 +87,17 @@ export class UiDriver {
         if (scenario === 'result') ui.result(this.subject, this.url);
         if (scenario === 'linked-result')
           ui.linkedResult(this.subject, this.url, `${this.url}?activate=true`);
+        if (scenario === 'progress') {
+          ui.progress.start(`Uploading ${this.subject}`);
+          ui.progress.update(`Uploading ${this.subject} 1/2`);
+          ui.progress.succeed(`Uploaded ${this.subject}`);
+        }
+        if (scenario === 'failed-progress') {
+          ui.progress.start(`Checking ${this.subject}`);
+          ui.progress.fail(`Found a problem on ${this.subject}`);
+        }
       } finally {
+        write.mockRestore();
         Object.assign(console, {
           error: this.originalError,
           info: this.originalInfo,
@@ -98,6 +116,7 @@ export class UiDriver {
 
   get = {
     errorCalls: () => this.error.mock.calls,
+    writeCalls: () => this.write.mock.calls,
     infoCalls: () => this.info.mock.calls,
     logo: () => [
       [
@@ -136,6 +155,16 @@ export class UiDriver {
         `${this.subject}: \u001B]8;;${this.url}?activate=true\u0007${this.url}\u001B]8;;\u0007`,
       ],
     ],
+    progress: () => [
+      [`i Uploading ${this.subject}`],
+      [`✓ Uploaded ${this.subject}`],
+    ],
+    failedProgress: () => [[`✖ Found a problem on ${this.subject}`]],
+    spinnerFrames: () => [
+      [`\r\u001B[2K⠋ Uploading ${this.subject}`],
+      [`\r\u001B[2K⠋ Uploading ${this.subject} 1/2`],
+      ['\r\u001B[2K'],
+    ],
     isPromptInteractive: () => this.prompter?.interactive ?? false,
   };
 
@@ -144,6 +173,8 @@ export class UiDriver {
     else process.env.NO_COLOR = this.originalNoColor;
     if (this.originalTerm === undefined) delete process.env.TERM;
     else process.env.TERM = this.originalTerm;
+    if (this.originalCi === undefined) delete process.env.CI;
+    else process.env.CI = this.originalCi;
     if (this.inputTtyDescriptor) {
       Object.defineProperty(stdin, 'isTTY', this.inputTtyDescriptor);
     } else {

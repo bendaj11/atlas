@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
 import type { Server } from 'node:http';
-import type { AtlasConfig } from '@atlas/schema';
+import type { AtlasConfig, AtlasFramework } from '@atlas/schema';
 import { startControlServer } from '../control-server/control-server.js';
 import { previewLauncherUrl } from '../control-server/preview-launcher.js';
 import { closeServer, buildLocalOrigin } from '../http/http.js';
@@ -13,9 +13,20 @@ import {
   waitForShutdown,
 } from '../process/process.js';
 import type { AtlasDevOverrideDocument, DevControlServer } from '../types.js';
-import { type CliArguments, readJsonFile } from '../../shared/index.js';
+import {
+  type CliArguments,
+  formatDuration,
+  readJsonFile,
+  ui,
+} from '../../shared/index.js';
 import type { AtlasProject, AtlasWorkspace } from '../../workspace/index.js';
 import { resolveRegistryUrl } from '../../build/index.js';
+
+const FRAMEWORK_LABELS: Readonly<Record<AtlasFramework, string>> = {
+  angular: 'Angular',
+  react: 'React',
+  vue: 'Vue',
+};
 
 export interface DevSessionRuntime {
   controlPort: number;
@@ -53,6 +64,11 @@ export async function runDevSession(
     ...(registryUrl ? { registryUrl } : {}),
     environment: args.flag('environment') ?? 'production',
   });
+  const startedAt = Date.now();
+
+  ui.info(
+    `Starting ${FRAMEWORK_LABELS[config.framework]} dev server on port ${options.frameworkPort}`,
+  );
   const frameworkServer = workspace.spawn(
     project,
     devTask,
@@ -69,6 +85,7 @@ export async function runDevSession(
 
   try {
     await waitForRemoteEntry(options.remoteEntryUrl, frameworkServer);
+    ui.success(`Dev server ready in ${formatDuration(Date.now() - startedAt)}`);
     bootstrap = await options.beforeReady?.(context);
     await control.markReady();
 

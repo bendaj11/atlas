@@ -1,7 +1,8 @@
 import { faker } from '@faker-js/faker';
+import { jest } from '@jest/globals';
 import type { AtlasPublishedArtifactManifest } from '@atlas/schema';
 import { anAppArtifactManifest } from '@atlas/testkit/internal';
-import type { PublicationFile } from './publication-files.js';
+import type { PublicationFile, PublicationFiles } from './publication-files.js';
 import type { AtlasBuildResult } from '../../build/index.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 import { aProject } from '../../workspace/workspace.testkit.js';
@@ -16,6 +17,9 @@ import { computeSha256Digest } from '../../shared/index.js';
 export class PublicationFilesDriver {
   private readonly directory = new TemporaryDirectory();
   private readonly storage = new InMemoryPublicationStorage();
+  private readonly create = jest.spyOn(this.storage, 'create');
+  private readonly read = jest.spyOn(this.storage, 'read');
+  private readonly progress: string[] = [];
   private readonly files: AtlasPublishedArtifactManifest['files'] = [];
   private readonly id = faker.string.uuid();
   private readonly name = faker.commerce.productName();
@@ -56,11 +60,27 @@ export class PublicationFilesDriver {
 
       return this;
     },
+    storageVerifyingCreatedObjects: () => {
+      Object.assign(this.storage, { verifiesCreatedObjects: true });
+
+      return this;
+    },
   };
 
   readonly when = {
-    uploaded: (files: readonly PublicationFile[]) =>
-      uploadAndVerify({ storage: this.storage, files }),
+    uploaded: (files: PublicationFiles) =>
+      uploadAndVerify({
+        storage: this.storage,
+        files,
+        concurrency: 2,
+        progress: {
+          start: (message) => this.progress.push(message),
+          update: (message) => this.progress.push(message),
+          succeed: (message) => this.progress.push(message),
+          fail: (message) => this.progress.push(message),
+          warn: (message) => this.progress.push(message),
+        },
+      }),
   };
 
   readonly get = {
@@ -68,6 +88,9 @@ export class PublicationFilesDriver {
     identity: () => derivePublicationIdentity(this.manifest()),
     manifest: () => this.manifest(),
     storedPaths: () => [...this.storage.objects.keys()],
+    createdPaths: () => this.create.mock.calls.map(([path]) => path),
+    readPaths: () => this.read.mock.calls.map(([path]) => path),
+    progress: () => this.progress,
   };
 
   private build(): AtlasBuildResult {

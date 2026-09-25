@@ -20,11 +20,12 @@ export async function verifyDeliveryWhileHeld(options: {
   storage: AtlasPublicationStorage;
   lease: AtlasPublicationLease;
   paths: readonly string[];
+  concurrency?: number;
 }): Promise<void> {
-  const { storage, lease, paths } = options;
+  const { storage, lease, paths, concurrency = 1 } = options;
 
   if (!storage.verifyDelivery) return;
   await lease.assertHeld();
-  await storage.verifyDelivery(paths);
+  await storage.verifyDelivery(paths, { concurrency });
   await lease.assertHeld();
 }

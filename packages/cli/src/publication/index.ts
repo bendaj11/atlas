@@ -16,6 +16,7 @@ export type {
   AtlasPublicationStorage,
 } from './publication-storage/types.js';
 export { S3PublicationStorage } from './s3-storage/s3-storage.js';
+export { resolveParallelUploads } from './storage-environment/storage-environment.js';
 export type { S3Options } from './s3-storage/s3-storage.js';
 export {
   defineAtlasRegistryConfig,
@@ -33,7 +34,6 @@ export type {
   AtlasPreviewPruneResult,
   AtlasPreviewRemovalResult,
   AtlasProjectBuilder,
-  AtlasPublishProgressReporter,
   AtlasPublishResult,
 } from './types.js';
 export { stringifyCanonicalJson } from './static-registry/revision/registry-revision.js';

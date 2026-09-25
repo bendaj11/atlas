@@ -36,7 +36,8 @@ import {
 } from '../static-registry/revision/registry-revision.js';
 import { createEmptyStaticRegistry } from '../static-registry/static-registry.js';
 import { AtlasPublishService } from './publish.service.js';
-import { CliArguments } from '../../shared/index.js';
+import { CliArguments, formatBytes } from '../../shared/index.js';
+import { encodeManifestBytes } from '../static-registry/descriptors/descriptors.js';
 import { TemporaryDirectory } from '../../shared/fs/fs.testkit.js';
 
 export class PublishServiceDriver {
@@ -186,7 +187,13 @@ export class PublishServiceDriver {
       this.result = await new AtlasPublishService(
         new CliArguments(values),
         { publication: this.publication },
-        (message) => this.progress.push(message),
+        {
+          start: (message) => this.progress.push(`start: ${message}`),
+          update: () => undefined,
+          succeed: (message) => this.progress.push(`succeed: ${message}`),
+          fail: (message) => this.progress.push(`fail: ${message}`),
+          warn: (message) => this.progress.push(`warn: ${message}`),
+        },
       ).run(this.name, {
         storage: this.storage,
         invalidate: (paths) => this.invalidate(paths),
@@ -232,6 +239,11 @@ export class PublishServiceDriver {
       ) as AtlasStaticRegistry,
     paths: () => [...this.storage.paths()].sort(),
     progress: () => this.progress,
+    size: () =>
+      formatBytes(
+        this.bytes.byteLength +
+          encodeManifestBytes(this.buildResult().manifest).byteLength,
+      ),
     resolverMock: () => this.resolvePreviewHead,
     publicationAttempts: () => this.publication.mock.calls.length,
     prunedSelections: () => ({

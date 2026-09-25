@@ -16,6 +16,18 @@ Command modules must not print human-facing status directly.
 | Item        | `•`        | stdout | A member of a result list              |
 | Result      | `<label>:` | stdout | A value users may copy or pipe         |
 
+Long-running commands such as `publish` and `deploy` report steps. In an
+interactive terminal, the running step is an animated spinner line that updates
+in place (for example `Uploading files 23/68 (4.2 MB)`). When the step
+completes, the spinner line is replaced by a success line. Steps that take one
+second or more show their duration, for example `✓ Uploaded 68 files (4.2 MB)
+· 3.1s`. When output is not a TTY, `CI` is set, or `TERM=dumb`, each step prints
+one `i` line when it starts and one `✓` line when it completes, with no
+animation.
+
+Write status messages in plain language that does not need knowledge of Atlas
+internals. Do not end status lines with `...` or with a period after a URL.
+
 Use one event per line. Keep the first sentence self-contained. Put the most
 important result last unless a labeled result must be followed by a next step.
 Do not add timestamps: CI and log collectors own timestamps.

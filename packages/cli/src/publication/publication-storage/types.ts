@@ -1,11 +1,19 @@
 import type { ArtifactoryOptions } from '../artifactory-storage/artifactory-storage.js';
 import type { S3Options } from '../s3-storage/s3-storage.js';
 
+export interface AtlasPublicationDeliveryOptions {
+  readonly concurrency?: number;
+}
+
 export interface AtlasPublicationStorage {
+  readonly verifiesCreatedObjects?: boolean;
   read(path: string): Promise<Uint8Array | undefined>;
   readStream(path: string): Promise<AsyncIterable<Uint8Array> | undefined>;
   inspect(path: string): Promise<AtlasPublicationObjectMetadata | undefined>;
-  verifyDelivery?(paths: readonly string[]): Promise<void>;
+  verifyDelivery?(
+    paths: readonly string[],
+    options?: AtlasPublicationDeliveryOptions,
+  ): Promise<void>;
   list(prefix: string): Promise<AtlasPublicationListedObject[]>;
   create(
     path: string,

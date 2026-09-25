@@ -1,11 +1,18 @@
 import {
   assertEnvironmentName,
   createPublicationStorage,
+  resolveParallelUploads,
   verifyDeliveryWhileHeld,
   withPublicationLease,
   type AtlasRegistryConfig,
 } from '../../publication/index.js';
-import { CliArguments, withExponentialRetry } from '../../shared/index.js';
+import {
+  CliArguments,
+  formatDuration,
+  silentProgress,
+  withExponentialRetry,
+  type AtlasProgressReporter,
+} from '../../shared/index.js';
 import {
   listDeploymentPaths,
   planDeployment,
@@ -17,14 +24,23 @@ import { selectArtifactVersion } from '../selection/selection.js';
 import type { AtlasDeployResult, RegistryAccess } from '../types.js';
 
 export class AtlasDeployService {
-  constructor(private readonly args: CliArguments) {}
+  constructor(
+    private readonly args: CliArguments,
+    private readonly progress: AtlasProgressReporter = silentProgress,
+  ) {}
 
   run(
     artifactIdentifier: string,
     config?: AtlasRegistryConfig,
   ): Promise<AtlasDeployResult> {
-    return withExponentialRetry(() =>
-      this.runOnce({ artifactIdentifier, config }),
+    return withExponentialRetry(
+      () => this.runOnce({ artifactIdentifier, config }),
+      {
+        onRetry: (attempt, delayMs) =>
+          this.progress.warn(
+            `Storage request failed temporarily. Retrying in ${formatDuration(delayMs)} (attempt ${attempt + 1}).`,
+          ),
+      },
     );
   }
 
@@ -39,7 +55,9 @@ export class AtlasDeployService {
     const selector = requireFlag(this.args, 'version');
 
     assertEnvironmentName(environment);
+    const concurrency = resolveParallelUploads(this.args);
 
+    this.progress.start('Reading registry');
     const storage = await createPublicationStorage(config?.storage, this.args);
     const access: RegistryAccess = {
       storage,
@@ -52,13 +70,20 @@ export class AtlasDeployService {
       identifier: artifactIdentifier,
       selector,
     });
+    this.progress.succeed(
+      `Selected ${artifactIdentifier} version ${selected.version}`,
+    );
     const dryRun = this.args.hasFlag('dry-run');
     const plan = () =>
       planDeployment({ access, registry, environment, selected });
 
+    if (!dryRun) this.progress.start('Waiting for publish lock');
+
     const deployment = dryRun
       ? await plan()
       : await withPublicationLease(storage, async (lease) => {
+          this.progress.succeed('Acquired publish lock');
+          this.progress.start(`Updating ${environment} registry`);
           const planned = await plan();
 
           await writeDeployment({
@@ -67,14 +92,22 @@ export class AtlasDeployService {
             environment,
             deployment: planned,
           });
+          this.progress.succeed(`Updated ${environment} registry`);
 
           if (storage.verifyDelivery) {
             const paths = listDeploymentPaths({
               environment,
               deployment: planned,
             });
+            this.progress.start('Checking public delivery');
             await config?.invalidate?.(paths);
-            await verifyDeliveryWhileHeld({ storage, lease, paths });
+            await verifyDeliveryWhileHeld({
+              storage,
+              lease,
+              paths,
+              concurrency,
+            });
+            this.progress.succeed('Public URLs serve the deployment');
           }
 
           return planned;

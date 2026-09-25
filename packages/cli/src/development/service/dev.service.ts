@@ -120,7 +120,7 @@ export class AtlasDevService {
     await writeDevOverrideDocument(project.root, document);
 
     if (this.args.hasFlag('prepare-only')) {
-      ui.success(`Prepared host client "${config.id}" for ${hostUrl}.`);
+      ui.success(`Prepared host client "${config.id}" for ${hostUrl}`);
       ui.info('Run without --prepare-only to start development servers.');
 
       return;
