@@ -6,6 +6,10 @@ import { delay } from './local-development.driver.js';
 
 const PROCESS_START_TIMEOUT = 120_000;
 const PROCESS_STOP_TIMEOUT = 15_000;
+const RELOAD_TIMEOUT = 30_000;
+
+export const ANGULAR_LIVE_DEVELOPMENT_TIMEOUT =
+  PROCESS_START_TIMEOUT + RELOAD_TIMEOUT + PROCESS_STOP_TIMEOUT;
 const REMOTE_PORT = 4213;
 const CONTROL_PORT = 4413;
 const BUILD_NOTIFICATIONS_ENDPOINT =
@@ -54,7 +58,9 @@ export class AngularLiveDevelopmentDriver {
       await notifications;
     },
     changeSignalHeading: async (): Promise<void> => {
-      const reload = this.page.waitForEvent('load', { timeout: 30_000 });
+      const reload = this.page.waitForEvent('load', {
+        timeout: RELOAD_TIMEOUT,
+      });
       await writeFile(
         SOURCE_PATH,
         this.originalSource.replace(

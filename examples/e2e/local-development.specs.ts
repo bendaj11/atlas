@@ -118,6 +118,7 @@ function startAtlasDev(scenario: LocalDevelopmentCase): ChildProcess {
       scenario.app,
       `--port=${scenario.remotePort}`,
       `--control-port=${scenario.controlPort}`,
+      '--no-open',
     ],
     {
       cwd: process.cwd(),

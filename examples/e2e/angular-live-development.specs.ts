@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { AngularLiveDevelopmentDriver } from './angular-live-development.driver.js';
+import {
+  ANGULAR_LIVE_DEVELOPMENT_TIMEOUT,
+  AngularLiveDevelopmentDriver,
+} from './angular-live-development.driver.js';
 
 test.describe('Angular local development', () => {
   test('should reload signal-based app when local source changes inside a production host', async ({
     page,
   }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ANGULAR_LIVE_DEVELOPMENT_TIMEOUT);
     const driver = new AngularLiveDevelopmentDriver(page);
 
     try {

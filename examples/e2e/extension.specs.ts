@@ -312,13 +312,28 @@ test.describe('Atlas Columbus extension', () => {
     const host = await session.context.newPage();
     await host.goto(hostUrl);
     await host.evaluate(() => {
+      const localApp = (id: string) => ({
+        appId: id,
+        reason: 'local',
+        manifest: {
+          schemaVersion: '1',
+          kind: 'app',
+          id,
+          name: id,
+          version: '0.0.0-local',
+          buildId: 'local',
+          channel: 'local',
+          framework: 'react',
+          remoteEntryUrl: `http://localhost:4210/${id}/remoteEntry.json`,
+        },
+      });
       localStorage.setItem(
         'atlas.runtime-overrides',
         JSON.stringify({
           schemaVersion: '1',
           hostId: 'test-host',
           generatedAt: '2026-01-01T00:00:00.000Z',
-          overrides: [{ appId: 'orders' }, { appId: 'dashboard' }],
+          overrides: [localApp('orders'), localApp('dashboard')],
         }),
       );
     });
@@ -405,12 +420,9 @@ async function openPopupDocument(
   session: ExtensionSession,
   activePage: Page,
 ): Promise<Page> {
+  await activePage.bringToFront();
   const popup = await session.context.newPage();
   await popup.goto(`chrome-extension://${session.extensionId}/index.html`);
-  const refresh = popup.getByRole('button', { name: 'Refresh' });
-  await refresh.waitFor();
-  await activePage.bringToFront();
-  await refresh.click();
   await popup
     .getByText(/artifacts found|No Atlas host found/)
     .waitFor({ state: 'visible' });
@@ -469,11 +481,11 @@ async function storedReason(host: Page): Promise<string | undefined> {
 async function overrideCount(
   host: Page,
   storage: BrowserStorage,
-): Promise<number | undefined> {
+): Promise<number> {
   const documentValue = await readOverride(host, storage);
   return documentValue
     ? documentValue.overrides.length + (documentValue.hostOverride ? 1 : 0)
-    : undefined;
+    : 0;
 }
 
 function startLiveApp(): ChildProcess {
