@@ -15,10 +15,10 @@ describe('createHostUi', () => {
       driver.given.statusAnchor().when.created();
     });
 
-    it('should render the default loading status when loading is shown', () => {
+    it('should label the default loading status when loading is shown', () => {
       driver.when.loadingShown();
 
-      expect(driver.get.containerText()).toBe('Loading application...');
+      expect(driver.get.statusLabel()).toBe('Loading application');
     });
 
     it('should mark the container busy when loading is shown', () => {
@@ -64,7 +64,7 @@ describe('createHostUi', () => {
 
       driver.when.cleared();
 
-      expect(driver.get.containerText()).toBe('');
+      expect(driver.get.statusLabel()).toBeNull();
     });
 
     it('should remove the state attribute when cleared after loading was shown', () => {
@@ -120,7 +120,7 @@ describe('createHostUi', () => {
 
       driver.when.statusAnchorRegistered();
 
-      expect(driver.get.containerText()).toBe('Loading application...');
+      expect(driver.get.statusLabel()).toBe('Loading application');
     });
 
     it('should not render into the anchor when it is registered after dispose', () => {
@@ -129,7 +129,7 @@ describe('createHostUi', () => {
       driver.when.disposed();
       driver.when.statusAnchorRegistered();
 
-      expect(driver.get.containerText()).toBe('');
+      expect(driver.get.statusLabel()).toBeNull();
     });
   });
 });

@@ -1,9 +1,9 @@
+import { ATLAS_LOADER_HTML } from '@atlas/schema';
 import { VERSIONED_LOADER_SOURCE } from '../bootstrap-assets.js';
 import { BootstrapTemplateInvalidError } from '../../shared/errors/index.js';
 import type { AtlasBootstrapOptions } from '../bootstrap-types.js';
 
 const DEFAULT_TITLE = 'Atlas';
-const DEFAULT_LOADING_HTML = 'Loading product…';
 
 export function createBootstrapHtml(
   options: Pick<AtlasBootstrapOptions, 'title' | 'loadingHtml'> = {},
@@ -16,7 +16,7 @@ export function createBootstrapHtml(
     <title>${escapeHtml(options.title ?? DEFAULT_TITLE)}</title>
   </head>
   <body>
-    <div id="atlas-host-root">${options.loadingHtml ?? DEFAULT_LOADING_HTML}</div>
+    <div id="atlas-host-root">${options.loadingHtml ?? ATLAS_LOADER_HTML}</div>
     <script type="module" src="${VERSIONED_LOADER_SOURCE}"></script>
   </body>
 </html>`;

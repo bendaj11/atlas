@@ -24,11 +24,11 @@ describe('renderHostMountState', () => {
     expect(driver.get.containerState()).toBe('mounting');
   });
 
-  it('should render a status with the app name when the loading state is rendered', () => {
+  it('should label the loading status with the app name when the loading state is rendered', () => {
     driver.when.stateRendered('loading');
 
-    expect(driver.get.placementStatusText()).toBe(
-      `Loading ${driver.get.manifest().name}...`,
+    expect(driver.get.placementStatusLabel()).toBe(
+      `Loading ${driver.get.manifest().name}`,
     );
   });
 
@@ -57,7 +57,7 @@ describe('renderHostMountState', () => {
 
     driver.when.stateRendered('mounted');
 
-    expect(driver.get.placementStatusText()).toBeUndefined();
+    expect(driver.get.placementStatusLabel()).toBeUndefined();
   });
 
   it('should keep a nested widget status when the mounted state is rendered', () => {

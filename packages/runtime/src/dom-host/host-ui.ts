@@ -1,3 +1,4 @@
+import { createLoaderElement } from '../shared/loader.js';
 import type { DisposeRenderer } from '../widget-loader/widget-loader.types.js';
 import type { RetryHostStart } from './dom-host.types.js';
 import type {
@@ -31,7 +32,12 @@ export function createHostUi(options: AtlasHostUiOptions): AtlasHostUi {
         return;
       }
 
-      renderDefaultLoading(options.document, container);
+      container.replaceChildren(
+        createLoaderElement({
+          document: options.document,
+          label: 'Loading application',
+        }),
+      );
 
       return;
     }
@@ -96,20 +102,6 @@ function applyHostStateToContainer(
   container.dataset.atlasState = state;
 
   container.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
-}
-
-function renderDefaultLoading(
-  document: Document,
-  container: HTMLElement,
-): void {
-  const status = document.createElement('div');
-  status.dataset.atlasStatus = '';
-
-  status.setAttribute('role', 'status');
-
-  status.textContent = 'Loading application...';
-
-  container.replaceChildren(status);
 }
 
 function renderDefaultError(

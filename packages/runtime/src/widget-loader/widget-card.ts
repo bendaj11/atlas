@@ -1,3 +1,4 @@
+import { createLoaderElement } from '../shared/loader.js';
 import type {
   AtlasResolvedWidget,
   AtlasWidgetRenderContext,
@@ -53,7 +54,7 @@ export function createWidgetCard(input: WidgetCardInput): WidgetCard {
       }
 
       element.append(
-        createStatusElement(document, 'status', 'Loading widget...'),
+        createLoaderElement({ document, label: 'Loading widget' }),
       );
     },
     showError({ error, retry, resolved }) {

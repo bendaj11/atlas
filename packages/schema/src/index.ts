@@ -141,6 +141,7 @@ export type {
   AtlasDevelopmentSessionRequest,
   AtlasDevelopmentSessionResponse,
 } from './runtime/atlas-development-session-bridge.js';
+export { ATLAS_LOADER_HTML } from './runtime/loader/atlas-loader.js';
 export {
   actionableMessage,
   AtlasError,

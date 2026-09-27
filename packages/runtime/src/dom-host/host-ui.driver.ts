@@ -62,6 +62,8 @@ export class HostUiDriver {
     containerText: () => this.container.textContent ?? '',
     containerState: () => this.container.dataset.atlasState,
     containerBusy: () => this.container.getAttribute('aria-busy'),
+    statusLabel: () =>
+      this.container.firstElementChild?.getAttribute('aria-label') ?? null,
     statusRole: () =>
       this.container.firstElementChild?.getAttribute('role') ?? null,
     renderHostLoadingMock: () => this.renderHostLoading,

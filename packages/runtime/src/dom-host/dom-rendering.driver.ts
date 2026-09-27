@@ -77,9 +77,10 @@ export class DomRenderingDriver {
     containerState: () => this.container.dataset.atlasState,
     containerAppId: () => this.container.dataset.atlasAppId,
     containerBusy: () => this.container.getAttribute('aria-busy'),
-    placementStatusText: () =>
-      this.container.querySelector('[data-atlas-placement-status]')
-        ?.textContent ?? undefined,
+    placementStatusLabel: () =>
+      this.container
+        .querySelector('[data-atlas-placement-status]')
+        ?.getAttribute('aria-label'),
     placementStatusRole: () =>
       this.container
         .querySelector('[data-atlas-placement-status]')

@@ -21,7 +21,7 @@ describe('createBootstrapHtml', () => {
     driver.when.htmlCreated();
 
     expect(driver.get.html()).toContain(
-      '<div id="atlas-host-root">Loading product…</div>',
+      '<div id="atlas-host-root"><div data-atlas-status data-atlas-loader role="status" aria-label="Loading"',
     );
   });
 

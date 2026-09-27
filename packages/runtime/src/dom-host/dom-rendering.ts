@@ -1,3 +1,4 @@
+import { createLoaderElement } from '../shared/loader.js';
 import type { AtlasHostMountEvent } from '../host-runtime/host-runtime.types.js';
 import type {
   HostMountStateRenderInput,
@@ -81,16 +82,14 @@ function renderPlacementLoadingState(input: {
     return;
   }
 
-  const status = findOrCreatePlacementStatusElement({
+  const loader = createLoaderElement({
     document,
-    container: event.container,
-    existingStatus,
-    role: 'status',
+    label: `Loading ${event.manifest.name}`,
   });
-  const label = document.createElement('span');
-  label.textContent = `Loading ${event.manifest.name}...`;
+  loader.setAttribute('data-atlas-placement-status', '');
 
-  status.append(label);
+  existingStatus?.remove();
+  event.container.prepend(loader);
 }
 
 function renderPlacementErrorState(input: {
