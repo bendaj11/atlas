@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import { connect, type Socket } from 'node:net';
 import { jest } from '@jest/globals';
 import type { ui as uiType } from '../../shared/index.js';
 
@@ -24,6 +25,7 @@ const {
 
 export class HttpDriver {
   private server?: Server;
+  private client?: Socket;
   private port = 0;
   private readonly received: { method?: string; body?: unknown }[] = [];
   private responder: (body: unknown) => { status: number; value: unknown } =
@@ -70,8 +72,20 @@ export class HttpDriver {
       this.port = typeof address === 'object' && address ? address.port : 0;
     },
     serverClosed: async () => {
-      this.server!.closeAllConnections();
       await closeServer(this.server!);
+      this.client?.destroy();
+    },
+    clientConnectedWithPendingRequest: async () => {
+      const requestReceived = new Promise((resolve) =>
+        this.server!.once('request', resolve),
+      );
+      const client = connect(this.port, 'localhost');
+      this.client = client;
+      await new Promise<void>((resolve) => client.once('connect', resolve));
+      client.write(
+        'POST /pending HTTP/1.1\r\nHost: localhost\r\nContent-Length: 10\r\n\r\n',
+      );
+      await requestReceived;
     },
     posted: (path: string, value: unknown) =>
       postJson(`${buildLocalOrigin(this.port)}${path}`, value),

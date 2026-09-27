@@ -31,6 +31,14 @@ describe('http', () => {
       await driver.when.serverClosed();
     });
 
+    it('should stop when a client still holds an open request', async () => {
+      await driver.when.clientConnectedWithPendingRequest();
+
+      await driver.when.serverClosed();
+
+      expect(driver.get.listening()).toBe(false);
+    });
+
     it('should announce the actual address when listening starts', () => {
       expect(driver.get.infoMock()).toHaveBeenCalledWith(
         expect.stringMatching(/^Atlas test running at http:\/\/localhost:\d+$/),
